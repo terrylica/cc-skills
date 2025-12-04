@@ -19,7 +19,7 @@
     {
       "name": "itp",
       "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
-      "version": "3.0.0",
+      "version": "1.0.0",
       "source": "./plugins/itp/",
       "category": "productivity",
       "author": {"name": "Terry Li"},
