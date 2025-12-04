@@ -94,7 +94,7 @@ Before release, audit for hardcoded values:
 
 ```bash
 # Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 uv run --script "$PLUGIN_DIR/skills/code-hardcode-audit/scripts/audit_hardcodes.py" -- src/
 ```
 

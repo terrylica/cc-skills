@@ -16,6 +16,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 TEMPLATE_DIR="$SKILL_DIR/assets/templates/shareable-config"
 
+# Portable sed -i (works on both BSD/macOS and GNU/Linux)
+portable_sed_i() {
+    local pattern="$1"
+    local file="$2"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "$pattern" "$file"
+    else
+        sed -i "$pattern" "$file"
+    fi
+}
+
 USERNAME="${USER}"
 
 # Parse arguments
@@ -65,14 +76,12 @@ cp "$TEMPLATE_DIR/README.md" "$USER_CONFIG_DIR/"
 cd "$USER_CONFIG_DIR"
 
 # Update package.json
-sed -i.bak "s|@USER/semantic-release-config|@$USERNAME/semantic-release-config|g" package.json
-sed -i.bak "s|USER|$USERNAME|g" package.json
-rm -f package.json.bak
+portable_sed_i "s|@USER/semantic-release-config|@$USERNAME/semantic-release-config|g" package.json
+portable_sed_i "s|USER|$USERNAME|g" package.json
 
 # Update README
-sed -i.bak "s|@USER/semantic-release-config|@$USERNAME/semantic-release-config|g" README.md
-sed -i.bak "s|USER|$USERNAME|g" README.md
-rm -f README.bak
+portable_sed_i "s|@USER/semantic-release-config|@$USERNAME/semantic-release-config|g" README.md
+portable_sed_i "s|USER|$USERNAME|g" README.md
 
 # Initialize git repository
 git init

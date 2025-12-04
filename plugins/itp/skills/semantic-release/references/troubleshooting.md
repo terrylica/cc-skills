@@ -7,6 +7,7 @@
 **Symptom**: GitHub Actions succeeds but no git tag or release created.
 
 **Diagnosis**:
+
 - Check commit messages follow Conventional Commits format
 - Verify commits since last release contain `feat:` or `fix:` types
 - Confirm branch name matches configuration (default: `main`)
@@ -28,16 +29,17 @@
 **Diagnosis**: Node.js version below 24.10.0.
 
 **Solution**:
+
 ```bash
-# Install Node.js 24 LTS
-nvm install 24
-nvm use 24
+# Install Node.js 24 LTS (using mise)
+mise install node@24
+mise use node@24
 ```
 
 Update `.github/workflows/release.yml`:
+
 ```yaml
 - uses: actions/setup-node@v4
   with:
-    node-version: '24'
+    node-version: "24"
 ```
-

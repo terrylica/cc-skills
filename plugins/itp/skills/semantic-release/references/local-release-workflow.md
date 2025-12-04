@@ -108,13 +108,13 @@ Set environment and run:
 
 ```bash
 export GIT_OPTIONAL_LOCKS=0
-GH_TOKEN=$(gh auth token) npx semantic-release --no-ci
+GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci
 ```
 
 **For dry-run** (no changes):
 
 ```bash
-GH_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run
+GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run
 ```
 
 ### Step 5: Verify Post-Release State

@@ -55,7 +55,7 @@ Error: Semgrep rules not found: /path/to/assets/semgrep-hardcode-rules.yaml
 
 ```bash
 # Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 ls "$PLUGIN_DIR/skills/code-hardcode-audit/assets/semgrep-hardcode-rules.yaml"
 ```
 
@@ -131,8 +131,8 @@ Error: jscpd requires Node.js >= 16
 **Fix**: Update Node.js via mise:
 
 ```bash
-mise install node@20
-mise use --global node@20
+mise install node
+mise use --global node
 ```
 
 ## Ruff Issues

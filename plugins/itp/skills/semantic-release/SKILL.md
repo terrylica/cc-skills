@@ -252,7 +252,7 @@ See [Authentication Guide](/skills/semantic-release/references/authentication.md
 ```bash
 cd /path/to/project
 # Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 "$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --user
 # Or --org mycompany/semantic-release-config
 # Or --inline
@@ -266,10 +266,10 @@ Follow the [Local Release Workflow](/skills/semantic-release/references/local-re
 
 ```bash
 # Dry-run first (no changes)
-GH_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run
+GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run
 
 # Create actual release
-GH_TOKEN=$(gh auth token) npx semantic-release --no-ci
+GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci
 ```
 
 **Files updated instantly**: `package.json`, `CHANGELOG.md`, Git tags, GitHub release.
@@ -295,7 +295,7 @@ brew install dopplerhq/cli/doppler
 doppler secrets set PYPI_TOKEN='your-pypi-token' --project claude-config --config prd
 
 # Copy publish script from pypi-doppler skill (environment-agnostic)
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cp "$PLUGIN_DIR/skills/pypi-doppler/scripts/publish-to-pypi.sh" scripts/
 chmod +x scripts/publish-to-pypi.sh
 
