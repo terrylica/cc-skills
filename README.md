@@ -4,9 +4,10 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 
 ## Plugins
 
-| Plugin                                              | Description                                                                                                      | Category    |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------- |
-| [skill-architecture](./plugins/skill-architecture/) | Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns | development |
+| Plugin                                              | Description                                                                                                      | Category     |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------ |
+| [skill-architecture](./plugins/skill-architecture/) | Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns | development  |
+| [itp-workflow](./plugins/itp-workflow/)             | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release          | productivity |
 
 ## Installation
 
@@ -38,10 +39,14 @@ cc-skills/
 │   ├── plugin.json          # Marketplace metadata
 │   └── marketplace.json     # Plugin registry
 ├── plugins/
-│   └── skill-architecture/  # Meta-skill for creating skills
-│       ├── SKILL.md         # Main skill documentation
-│       ├── references/      # Detailed reference docs
-│       └── scripts/         # Bundled executables
+│   ├── skill-architecture/  # Meta-skill for creating skills
+│   │   ├── SKILL.md
+│   │   ├── references/
+│   │   └── scripts/
+│   └── itp-workflow/        # ADR-driven development workflow
+│       ├── commands/        # /itp, /itp-setup slash commands
+│       ├── skills/          # 8 bundled skills
+│       └── scripts/
 ├── plugin.json              # Root plugin config
 ├── package.json             # Node.js + semantic-release
 └── README.md
@@ -62,6 +67,21 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 - Bundled resources (scripts/, references/, assets/)
 
 **Triggers**: "create skill", "YAML frontmatter", "validate skill", "skill architecture"
+
+### itp-workflow
+
+**Implement-The-Plan workflow: ADR-driven 4-phase development.**
+
+Execute approved plans from Claude Code's Plan Mode through a structured workflow:
+
+- **Preflight**: ADR + Design Spec creation with graph-easy diagrams
+- **Phase 1**: Implementation with engineering standards
+- **Phase 2**: Format & Push to GitHub
+- **Phase 3**: Release (semantic-release) & Publish (PyPI)
+
+**Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, pypi-doppler, semantic-release
+
+**Triggers**: `/itp`, `/itp-setup`, ADR workflow, plan execution
 
 ## License
 

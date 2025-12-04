@@ -1,0 +1,107 @@
+---
+name: code-hardcode-audit
+description: Detects hardcoded values, magic numbers, and duplicate constants using Ruff, Semgrep, and jscpd. Use when auditing for hardcodes, magic numbers, PLR2004, constant detection, or before release.
+allowed-tools: Bash, Read, Write, Glob, Grep
+---
+
+# Code Hardcode Audit
+
+## Triggers
+
+Use this skill when the user mentions:
+
+- "hardcoded values", "hardcodes", "magic numbers"
+- "constant detection", "find constants"
+- "duplicate constants", "DRY violations"
+- "code audit", "hardcode audit"
+- "PLR2004", "semgrep", "jscpd"
+
+## Quick Start
+
+```bash
+# Full audit (all tools, both outputs)
+uv run --script scripts/audit_hardcodes.py -- src/
+
+# Python magic numbers only (fastest)
+uv run --script scripts/run_ruff_plr.py -- src/
+
+# Pattern-based detection (URLs, ports, paths)
+uv run --script scripts/run_semgrep.py -- src/
+
+# Copy-paste detection
+uv run --script scripts/run_jscpd.py -- src/
+```
+
+## Tool Overview
+
+| Tool             | Detection Focus                 | Language Support | Speed  |
+| ---------------- | ------------------------------- | ---------------- | ------ |
+| **Ruff PLR2004** | Magic value comparisons         | Python           | Fast   |
+| **Semgrep**      | URLs, ports, paths, credentials | Multi-language   | Medium |
+| **jscpd**        | Duplicate code blocks           | Multi-language   | Slow   |
+
+## Output Formats
+
+### JSON (--output json)
+
+```json
+{
+  "summary": {
+    "total_findings": 42,
+    "by_tool": { "ruff": 15, "semgrep": 20, "jscpd": 7 },
+    "by_severity": { "high": 5, "medium": 25, "low": 12 }
+  },
+  "findings": [
+    {
+      "id": "MAGIC-001",
+      "tool": "ruff",
+      "rule": "PLR2004",
+      "file": "src/config.py",
+      "line": 42,
+      "column": 8,
+      "message": "Magic value used in comparison: 8123",
+      "severity": "medium",
+      "suggested_fix": "Extract to named constant"
+    }
+  ],
+  "refactoring_plan": [
+    {
+      "priority": 1,
+      "action": "Create constants/ports.py",
+      "finding_ids": ["MAGIC-001", "MAGIC-003"]
+    }
+  ]
+}
+```
+
+### Compiler-like Text (--output text)
+
+```
+src/config.py:42:8: PLR2004 Magic value used in comparison: 8123 [ruff]
+src/probe.py:15:1: hardcoded-url Hardcoded URL detected [semgrep]
+src/client.py:20-35: Clone detected (16 lines, 95% similarity) [jscpd]
+
+Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
+```
+
+## CLI Options
+
+```
+--output {json,text,both}  Output format (default: both)
+--tools {all,ruff,semgrep,jscpd}  Tools to run (default: all)
+--severity {all,high,medium,low}  Filter by severity (default: all)
+--exclude PATTERN  Glob pattern to exclude (repeatable)
+--parallel  Run tools in parallel (default: true)
+```
+
+## References
+
+- [Tool Comparison](/skills/code-hardcode-audit/references/tool-comparison.md) - Detailed tool capabilities
+- [Output Schema](/skills/code-hardcode-audit/references/output-schema.md) - JSON schema specification
+- [Troubleshooting](/skills/code-hardcode-audit/references/troubleshooting.md) - Common issues and fixes
+
+## Related
+
+- ADR-0046: Semantic Constants Abstraction
+- ADR-0047: Code Hardcode Audit Skill
+- [`code-clone-assistant`](/skills/code-clone-assistant/SKILL.md) - PMD CPD-based clone detection (DRY focus)
