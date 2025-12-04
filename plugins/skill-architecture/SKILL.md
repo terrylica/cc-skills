@@ -110,6 +110,50 @@ After modifying THIS skill (skill-architecture):
 
 ---
 
+## Continuous Improvement (Proactive Self-Evolution)
+
+**CRITICAL**: Skills must actively evolve. Don't wait for explicit requests—upgrade skills when insights emerge.
+
+### During Every Skill Execution
+
+Watch for these improvement signals:
+
+| Signal                    | Example                        | Action                      |
+| ------------------------- | ------------------------------ | --------------------------- |
+| **Friction**              | Step feels awkward or unclear  | Rewrite for clarity         |
+| **Missing edge case**     | Workflow fails on valid input  | Add handling + document     |
+| **Better pattern**        | Discover more elegant approach | Update + log why            |
+| **User confusion**        | Same question asked repeatedly | Add clarification or FAQ    |
+| **Tool evolution**        | Underlying tool gains features | Update to leverage them     |
+| **Repeated manual steps** | Same code written each time    | Create script in `scripts/` |
+
+### Immediate Update Protocol
+
+When improvement opportunity identified:
+
+1. **Pause current task** (briefly)
+2. **Make the improvement** to SKILL.md or resources
+3. **Log in evolution-log.md** (one-liner is fine for small changes)
+4. **Resume original task**
+
+> **Rationale**: Small immediate updates compound. Waiting means insights are forgotten. 30 seconds now saves 5 minutes later.
+
+### What NOT to Update Immediately
+
+- Major structural changes (discuss with user first)
+- Changes that would break in-progress work
+- Speculative improvements without concrete evidence
+
+### Self-Reflection Trigger
+
+After completing any skill-assisted task, ask:
+
+> "Did anything about this skill feel suboptimal? If I encountered this again, what would help?"
+
+If answer exists → update the skill NOW.
+
+---
+
 ## About Skills
 
 Skills are modular, self-contained packages that extend Claude's capabilities with specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific domains—transforming Claude from general-purpose to specialized agent with procedural knowledge no model fully possesses.

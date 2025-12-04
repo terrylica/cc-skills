@@ -4,6 +4,29 @@
 
 ---
 
+## 2025-12-04: Add Continuous Improvement Section
+
+**Trigger**: User identified gap—skill had mechanics for self-evolution but no proactive trigger.
+
+### Problem
+
+Skill-architecture taught HOW to make skills self-evolving (Template D, Post-Change Checklist, evolution-log) but didn't instruct Claude to ACTIVELY WATCH for improvement opportunities during normal usage.
+
+### Solution
+
+Added "Continuous Improvement (Proactive Self-Evolution)" section with:
+
+- **6 improvement signals** to watch for (friction, edge cases, better patterns, confusion, tool evolution, repeated steps)
+- **Immediate Update Protocol** (pause → fix → log → resume)
+- **What NOT to update** (guard rails)
+- **Self-Reflection Trigger** (post-task question)
+
+### Key Insight
+
+The distinction between reactive (what to do after changes) and proactive (actively seeking improvements) is critical. Skills should be vigilant observers, not passive recipients.
+
+---
+
 ## 2024-12-04: Adversarial Audit Round 3 (Multi-Agent)
 
 **Trigger**: User spawned 5 parallel sub-agents for comprehensive audit.
