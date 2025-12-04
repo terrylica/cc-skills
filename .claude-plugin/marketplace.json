@@ -17,13 +17,22 @@
       "keywords": ["meta-skill", "skill-creation", "architecture", "templates"]
     },
     {
-      "name": "itp-workflow",
+      "name": "itp",
       "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
-      "version": "2.0.0",
-      "source": "./plugins/itp-workflow/",
+      "version": "3.0.0",
+      "source": "./plugins/itp/",
       "category": "productivity",
       "author": {"name": "Terry Li"},
       "keywords": ["adr", "workflow", "implementation", "release", "semantic-release"]
+    },
+    {
+      "name": "gh-tools",
+      "description": "GitHub workflow automation with intelligent GFM link validation for PRs. Use when creating pull requests, validating PR links, or fixing broken GFM links in PR descriptions.",
+      "version": "1.0.0",
+      "source": "./plugins/gh-tools/",
+      "category": "development",
+      "author": {"name": "Terry Li"},
+      "keywords": ["github", "pull-request", "gfm", "link-validation", "gh-cli"]
     }
   ]
 }
