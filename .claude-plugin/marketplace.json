@@ -15,6 +15,15 @@
       "category": "development",
       "author": {"name": "Terry Li"},
       "keywords": ["meta-skill", "skill-creation", "architecture", "templates"]
+    },
+    {
+      "name": "itp-workflow",
+      "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
+      "version": "2.0.0",
+      "source": "./plugins/itp-workflow/",
+      "category": "productivity",
+      "author": {"name": "Terry Li"},
+      "keywords": ["adr", "workflow", "implementation", "release", "semantic-release"]
     }
   ]
 }
