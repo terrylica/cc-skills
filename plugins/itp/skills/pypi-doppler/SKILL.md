@@ -53,7 +53,7 @@ This skill provides **local-only PyPI publishing** using Doppler for secure cred
 
 ```bash
 # Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cp "$PLUGIN_DIR/skills/pypi-doppler/scripts/publish-to-pypi.sh" scripts/
 chmod +x scripts/publish-to-pypi.sh
 ```
@@ -201,7 +201,7 @@ git pull origin main
 
 ```bash
 # First time: copy script from skill to your project (environment-agnostic)
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cp "$PLUGIN_DIR/skills/pypi-doppler/scripts/publish-to-pypi.sh" scripts/
 chmod +x scripts/publish-to-pypi.sh
 

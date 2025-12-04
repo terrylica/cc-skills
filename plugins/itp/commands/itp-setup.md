@@ -1,5 +1,5 @@
 ---
-description: Install and verify dependencies for itp-workflow plugin. Run before first use.
+description: Install and verify dependencies for itp plugin. Run before first use.
 allowed-tools: Read, Bash(brew:*), Bash(npm:*), Bash(cpanm:*), Bash(uv:*), Bash(which:*), Bash(command -v:*), Bash(PLUGIN_DIR:*)
 ---
 
@@ -13,14 +13,16 @@ Run the bundled verification script:
 
 ```bash
 # Environment-agnostic path (works for both plugin and manual installation)
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
 ```
 
 Or auto-install missing tools:
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --install
 ```
 
@@ -55,7 +57,7 @@ If the script fails, manually verify each tool:
 
 | Tool             | Check Command                    | Install Command                |
 | ---------------- | -------------------------------- | ------------------------------ |
-| node             | `node --version` (v20+)          | `mise install node@20`         |
+| node             | `node --version`                 | `mise install node`            |
 | semantic-release | `npx semantic-release --version` | `npm i -g semantic-release@25` |
 | doppler          | `doppler --version`              | `brew install doppler`         |
 
@@ -94,6 +96,9 @@ npx semantic-release --version
 # Fix npm permissions
 mkdir -p ~/.npm-global
 npm config set prefix '~/.npm-global'
-echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
-source ~/.zshrc
+
+# Add to your shell config (detects zsh vs bash)
+SHELL_RC="$([[ "$SHELL" == */zsh ]] && echo ~/.zshrc || echo ~/.bashrc)"
+echo 'export PATH=~/.npm-global/bin:$PATH' >> "$SHELL_RC"
+source "$SHELL_RC"
 ```

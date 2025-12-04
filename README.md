@@ -7,7 +7,8 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | Plugin                                              | Description                                                                                                      | Category     |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------ |
 | [skill-architecture](./plugins/skill-architecture/) | Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns | development  |
-| [itp-workflow](./plugins/itp-workflow/)             | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release          | productivity |
+| [itp](./plugins/itp/)                               | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release          | productivity |
+| [gh-tools](./plugins/gh-tools/)                     | GitHub workflow automation with intelligent GFM link validation for PRs                                          | development  |
 
 ## Installation
 
@@ -43,10 +44,12 @@ cc-skills/
 │   │   ├── SKILL.md
 │   │   ├── references/
 │   │   └── scripts/
-│   └── itp-workflow/        # ADR-driven development workflow
-│       ├── commands/        # /itp, /itp-setup slash commands
-│       ├── skills/          # 8 bundled skills
-│       └── scripts/
+│   ├── itp/                 # ADR-driven development workflow
+│   │   ├── commands/        # /itp, /itp-setup slash commands
+│   │   ├── skills/          # 8 bundled skills
+│   │   └── scripts/
+│   └── gh-tools/            # GitHub workflow automation
+│       └── skills/          # pr-gfm-validator
 ├── plugin.json              # Root plugin config
 ├── package.json             # Node.js + semantic-release
 └── README.md
@@ -68,7 +71,7 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 
 **Triggers**: "create skill", "YAML frontmatter", "validate skill", "skill architecture"
 
-### itp-workflow
+### itp
 
 **Implement-The-Plan workflow: ADR-driven 4-phase development.**
 
@@ -82,6 +85,18 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 **Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, pypi-doppler, semantic-release
 
 **Triggers**: `/itp`, `/itp-setup`, ADR workflow, plan execution
+
+### gh-tools
+
+**GitHub workflow automation with intelligent GFM link validation.**
+
+Validates and fixes GitHub Flavored Markdown links in PR descriptions:
+
+- Detects broken repository-relative links
+- Auto-fixes common link patterns
+- Integrates with `gh` CLI workflows
+
+**Triggers**: PR creation, GFM validation, link checking
 
 ## License
 

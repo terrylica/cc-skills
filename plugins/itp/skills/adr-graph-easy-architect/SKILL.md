@@ -1,21 +1,18 @@
 ---
-name: graph-easy
-description: Create ASCII diagrams for any GitHub Flavored Markdown file using graph-easy. Use for READMEs, design docs, specifications, or any markdown needing architecture diagrams. Zero external dependencies for rendering - pure text output embeds directly in markdown.
+name: adr-graph-easy-architect
+description: Create ASCII architecture diagrams for ADRs using graph-easy. Use when writing ADRs, adding diagrams to existing ADRs, or when user mentions "ADR diagram", "architecture diagram", "ASCII diagram". Zero external dependencies for rendering - pure text output embeds directly in markdown.
 ---
 
-# Graph-Easy Diagram Skill
+# ADR Graph-Easy Architect
 
-Create ASCII architecture diagrams for any GitHub Flavored Markdown file using graph-easy. Pure text output with automatic layout - no image rendering required.
+Create comprehensive ASCII architecture diagrams for Architecture Decision Records (ADRs) using graph-easy. Pure text output with automatic layout - no image rendering required.
 
 ## When to Use This Skill
 
-- Adding diagrams to README files
-- Design specification documentation
-- Any GFM markdown file needing architecture visualization
-- Creating flowcharts, pipelines, or system diagrams
-- User mentions "diagram", "ASCII diagram", "graph-easy", or "architecture chart"
-
-**NOT for ADRs** - Use `adr-graph-easy-architect` for Architecture Decision Records (includes ADR-specific patterns like 2-diagram requirement and before/after templates).
+- Writing new ADR that involves architectural changes
+- ADR describes migration, integration, or system changes
+- User asks for visual representation of a decision
+- Existing ADR diagram needs review or update
 
 ## Preflight Check
 
@@ -34,43 +31,72 @@ command -v $PM &>/dev/null || { echo "ERROR: $PM not installed"; exit 1; }
 echo "✓ Package manager: $PM"
 ```
 
-### Layer 2: cpanminus (Perl package manager)
+### Layer 2: Perl + cpanminus (mise-first approach)
 
 ```bash
-# Install cpanminus via detected package manager
-command -v cpanm &>/dev/null || {
-  echo "Installing cpanminus via $PM..."
-  case "$PM" in
-    brew) brew install cpanminus ;;
-    apt)  sudo apt install -y cpanminus ;;
-  esac
-}
-echo "✓ cpanminus installed"
+# Prefer mise for unified tool management
+if command -v mise &>/dev/null; then
+  # Install Perl via mise
+  mise which perl &>/dev/null || mise install perl
+  # Install cpanminus under mise perl
+  mise exec perl -- cpanm --version &>/dev/null 2>&1 || {
+    echo "Installing cpanminus under mise perl..."
+    mise exec perl -- curl -L https://cpanmin.us | mise exec perl -- perl - App::cpanminus
+  }
+  echo "✓ cpanminus installed (via mise perl)"
+else
+  # Fallback: Install cpanminus via system package manager
+  command -v cpanm &>/dev/null || {
+    echo "Installing cpanminus via $PM..."
+    case "$PM" in
+      brew) brew install cpanminus ;;
+      apt)  sudo apt install -y cpanminus ;;
+    esac
+  }
+  echo "✓ cpanminus installed"
+fi
 ```
 
 ### Layer 3: Graph::Easy Perl module
 
 ```bash
-# Check if Graph::Easy is installed
-perl -MGraph::Easy -e1 2>/dev/null || {
-  echo "Installing Graph::Easy via cpanm..."
-  cpanm Graph::Easy
-}
-echo "✓ Graph::Easy installed"
+# Check if Graph::Easy is installed (mise-first)
+if command -v mise &>/dev/null; then
+  mise exec perl -- perl -MGraph::Easy -e1 2>/dev/null || {
+    echo "Installing Graph::Easy via mise perl cpanm..."
+    mise exec perl -- cpanm Graph::Easy
+  }
+  echo "✓ Graph::Easy installed (via mise perl)"
+else
+  perl -MGraph::Easy -e1 2>/dev/null || {
+    echo "Installing Graph::Easy via cpanm..."
+    cpanm Graph::Easy
+  }
+  echo "✓ Graph::Easy installed"
+fi
 ```
 
-### Layer 4: Wrapper script (handles PERL5LIB)
+### Layer 4: Wrapper script (mise-first, no PERL5LIB needed)
 
 ```bash
 # Create wrapper script for easy invocation
 if [[ ! -x ~/.local/bin/graph-easy ]]; then
   echo "Creating graph-easy wrapper script..."
   mkdir -p ~/.local/bin
-  cat > ~/.local/bin/graph-easy << 'WRAPPER'
+  if command -v mise &>/dev/null; then
+    # mise wrapper - no PERL5LIB needed
+    cat > ~/.local/bin/graph-easy << 'WRAPPER'
+#!/bin/bash
+exec mise exec perl -- graph-easy "$@"
+WRAPPER
+  else
+    # Legacy wrapper with PERL5LIB
+    cat > ~/.local/bin/graph-easy << 'WRAPPER'
 #!/bin/bash
 export PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
 exec "$HOME/perl5/bin/graph-easy" "$@"
 WRAPPER
+  fi
   chmod +x ~/.local/bin/graph-easy
 fi
 echo "✓ Wrapper script ready at ~/.local/bin/graph-easy"
@@ -80,23 +106,43 @@ echo "✓ Wrapper script ready at ~/.local/bin/graph-easy"
 
 ```bash
 # Copy-paste this entire block to ensure graph-easy is ready (macOS + Linux)
-case "$(uname -s)" in
-  Darwin) PM="brew" ;;
-  Linux)  PM="apt" ;;
-  *)      echo "ERROR: Unsupported OS"; exit 1 ;;
-esac
-command -v $PM &>/dev/null || { echo "ERROR: $PM not installed"; exit 1; }
-command -v cpanm &>/dev/null || { [ "$PM" = "apt" ] && sudo apt install -y cpanminus || brew install cpanminus; }
-perl -MGraph::Easy -e1 2>/dev/null || cpanm Graph::Easy
-[[ -x ~/.local/bin/graph-easy ]] || {
-  mkdir -p ~/.local/bin
-  cat > ~/.local/bin/graph-easy << 'WRAPPER'
+# Prefers mise for unified cross-platform tool management
+
+# Check for mise first (recommended)
+if command -v mise &>/dev/null; then
+  echo "Using mise for Perl management..."
+  mise which perl &>/dev/null || mise install perl
+  mise exec perl -- cpanm --version &>/dev/null 2>&1 || \
+    mise exec perl -- curl -L https://cpanmin.us | mise exec perl -- perl - App::cpanminus
+  mise exec perl -- perl -MGraph::Easy -e1 2>/dev/null || mise exec perl -- cpanm Graph::Easy
+  # Create mise-aware wrapper
+  [[ -x ~/.local/bin/graph-easy ]] || {
+    mkdir -p ~/.local/bin
+    echo '#!/bin/bash' > ~/.local/bin/graph-easy
+    echo 'exec mise exec perl -- graph-easy "$@"' >> ~/.local/bin/graph-easy
+    chmod +x ~/.local/bin/graph-easy
+  }
+else
+  # Fallback: system package manager
+  echo "💡 Tip: Install mise for unified tool management: curl https://mise.run | sh"
+  case "$(uname -s)" in
+    Darwin) PM="brew" ;;
+    Linux)  PM="apt" ;;
+    *)      echo "ERROR: Unsupported OS"; exit 1 ;;
+  esac
+  command -v $PM &>/dev/null || { echo "ERROR: $PM not installed"; exit 1; }
+  command -v cpanm &>/dev/null || { [ "$PM" = "apt" ] && sudo apt install -y cpanminus || brew install cpanminus; }
+  perl -MGraph::Easy -e1 2>/dev/null || cpanm Graph::Easy
+  [[ -x ~/.local/bin/graph-easy ]] || {
+    mkdir -p ~/.local/bin
+    cat > ~/.local/bin/graph-easy << 'WRAPPER'
 #!/bin/bash
 export PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
 exec "$HOME/perl5/bin/graph-easy" "$@"
 WRAPPER
-  chmod +x ~/.local/bin/graph-easy
-}
+    chmod +x ~/.local/bin/graph-easy
+  }
+fi
 ~/.local/bin/graph-easy --help | head -1 && echo "✓ graph-easy ready"
 ```
 
@@ -133,15 +179,13 @@ WRAPPER
 )
 
 # Nested connections
-( Frontend:
-  [React App]
-  [API Client]
+( Before:
+  [Old System]
 )
-( Backend:
-  [API Server]
-  [Database]
+( After:
+  [New System]
 )
-[API Client] -> [API Server]
+[Before] -> [After]
 ```
 
 ### Node Labels
@@ -160,8 +204,8 @@ WRAPPER
 
 **Character rules for nodes:**
 
-- Graphical emojis (rocket, bulb, checkmark) - NEVER (double-width breaks box alignment)
-- Unicode symbols (check, cross, arrow) - OK (single-width, safe)
+- Graphical emojis (🚀 💡 ✅ ❌) - NEVER (double-width breaks box alignment)
+- Unicode symbols (✓ ✗ ⚠ → ←) - OK (single-width, safe)
 - ASCII markers ([x] [+] [!] :) ) - ALWAYS safe (monospace)
 
 Use `graph { label: "..."; }` for graphical emojis in title/legend.
@@ -170,15 +214,15 @@ Use `graph { label: "..."; }` for graphical emojis in title/legend.
 
 ```
 # BAD - emoji inside node
-[rocket] { label: "Launch"; }
+[rocket] { label: "🚀 Launch"; }
 ```
 
 Renders broken:
 
 ```
-+----------------+
-| Launch         |   <-- box edge misaligned due to double-width emoji
-+----------------+
+┌────────────┐
+│ 🚀 Launch  │   <-- box edge misaligned due to double-width emoji
+└────────────┘
 ```
 
 **Example: ASCII marker preserves alignment (DO THIS)**
@@ -191,9 +235,27 @@ Renders broken:
 Renders correctly:
 
 ```
-+--------------+
-| [>] Launch   |
-+--------------+
+┌────────────┐
+│ [>] Launch │
+└────────────┘
+```
+
+**Example: Emoji safe in graph title (OK)**
+
+```
+# OK - emoji in graph label (outside boxes)
+graph { label: "🚀 Deployment Pipeline"; flow: east; }
+[Build] -> [Test] -> [Deploy]
+```
+
+Renders correctly (emoji in title, not in boxes):
+
+```
+        🚀 Deployment Pipeline
+
+┌───────┐     ┌──────┐     ┌────────┐
+│ Build │ --> │ Test │ --> │ Deploy │
+└───────┘     └──────┘     └────────┘
 ```
 
 ### Flow Direction (MANDATORY: Always specify)
@@ -212,26 +274,42 @@ Emojis break alignment INSIDE boxes but are SAFE in graph titles/legends.
 
 **Emoji Selection Guide** - Choose emoji that matches diagram purpose:
 
-| Diagram Type             | Emoji  | Example Title           |
-| ------------------------ | ------ | ----------------------- |
-| Migration/Change         | swap   | `"Database Migration"`  |
-| Deployment/Release       | rocket | `"Deployment Pipeline"` |
-| Data Flow                | chart  | `"Data Ingestion Flow"` |
-| Security/Auth            | lock   | `"Authentication Flow"` |
-| Error/Failure            | warn   | `"Error Handling"`      |
-| Decision/Branch          | split  | `"Routing Decision"`    |
-| Architecture             | build  | `"System Architecture"` |
-| Network/API              | globe  | `"API Integration"`     |
-| Storage/Database         | disk   | `"Storage Layer"`       |
-| Monitoring/Observability | signal | `"Monitoring Stack"`    |
+| Diagram Type             | Emoji | Example Title                |
+| ------------------------ | ----- | ---------------------------- |
+| Migration/Change         | 🔄    | `"🔄 Database Migration"`    |
+| Deployment/Release       | 🚀    | `"🚀 Deployment Pipeline"`   |
+| Data Flow                | 📊    | `"📊 Data Ingestion Flow"`   |
+| Security/Auth            | 🔐    | `"🔐 Authentication Flow"`   |
+| Error/Failure            | ⚠️    | `"⚠️ Error Handling"`        |
+| Decision/Branch          | 🔀    | `"🔀 Routing Decision"`      |
+| Architecture             | 🏗️    | `"🏗️ System Architecture"`   |
+| Network/API              | 🌐    | `"🌐 API Integration"`       |
+| Storage/Database         | 💾    | `"💾 Storage Layer"`         |
+| Monitoring/Observability | 📡    | `"📡 Monitoring Stack"`      |
+| Hook/Event               | 🪝    | `"🪝 Hook Flow"`             |
+| Before/After comparison  | ⏮️/⏭️ | `"⏮️ Before"` / `"⏭️ After"` |
 
 ```
 # Title with semantic emoji
-graph { label: "Deployment Pipeline"; flow: east; }
+graph { label: "🚀 Deployment Pipeline"; flow: east; }
 
 # Title with legend (multiline using \n)
-graph { label: "Hook Flow\n----------\nAllow  Deny  Warn"; flow: south; }
+graph { label: "🪝 Hook Flow\n──────────\n✓ Allow  ✗ Deny  ⚠ Warn"; flow: south; }
 ```
+
+**Rendered:**
+
+```
+Hook Flow
+ ──────────
+✓ Allow ✗ Deny ⚠ Warn
+
+   ╭───────╮
+   │ Start │
+   ╰───────╯
+```
+
+**Rule**: Emojis ONLY in `graph { label: "..."; }` - NEVER inside `[ node ]`
 
 ### Node Styling (Best Practices)
 
@@ -256,16 +334,16 @@ graph { label: "Hook Flow\n----------\nAllow  Deny  Warn"; flow: south; }
 **Rendered examples:**
 
 ```
-+----------+              +---------+
-| Rounded  |              | Default |
-+----------+              +---------+
+╭─────────╮              ┌─────────┐
+│ Rounded │              │ Default │
+╰─────────╯              └─────────┘
 
-+==========+              +=========+
-| Double   |              |  Bold   |
-+==========+              +=========+
+╔═════════╗              ┏━━━━━━━━━┓
+║ Double  ║              ┃  Bold   ┃
+╚═════════╝              ┗━━━━━━━━━┛
 ```
 
-> **Note:** Dotted borders (`{ border: dotted; }`) use special characters that render inconsistently on GitHub. Use sparingly.
+> **Note:** Dotted borders (`{ border: dotted; }`) use `⋮` characters that render inconsistently on GitHub. Use sparingly.
 
 ### Edge Styles
 
@@ -281,21 +359,26 @@ graph { label: "Hook Flow\n----------\nAllow  Deny  Warn"; flow: south; }
 
 ## Part 2: Common Diagram Patterns
 
-### Pipeline (Left-to-Right)
+### Migration (Before → After)
 
 ```
-graph { flow: east; }
-[Input] -> [Process] -> [Output]
+graph { flow: south; }
+[Before] -- migrate --> [After]
 ```
 
 ### Multi-Component System
 
 ```
 graph { flow: south; }
-[API Gateway] -> [Service A]
-[API Gateway] -> [Service B]
-[Service A] -> [Database]
-[Service B] -> [Database]
+[A] -> [B] -> [C]
+[B] -> [D]
+```
+
+### Pipeline (Left-to-Right)
+
+```
+graph { flow: east; }
+[Input] -> [Process] -> [Output]
 ```
 
 ### Decision with Options
@@ -304,23 +387,16 @@ graph { flow: south; }
 graph { flow: south; }
 [Decision] -> [Option A]
 [Decision] -> [Option B]
-[Decision] -> [Option C]
 ```
 
 ### Grouped Components
 
 ```
-( Frontend:
-  [React App]
-  [Vue App]
+( Group:
+  [Component 1]
+  [Component 2]
 )
-( Backend:
-  [API Server]
-  [Worker]
-)
-[React App] -> [API Server]
-[Vue App] -> [API Server]
-[API Server] -> [Worker]
+[External] -> [Component 1]
 ```
 
 ### Bidirectional Flow
@@ -328,25 +404,6 @@ graph { flow: south; }
 ```
 [Client] <-> [Server]
 [Server] -> [Database]
-```
-
-### Layered Architecture
-
-```
-graph { flow: south; }
-( Presentation:
-  [UI Components]
-)
-( Business:
-  [Services]
-)
-( Data:
-  [Repository]
-  [Database]
-)
-[UI Components] -> [Services]
-[Services] -> [Repository]
-[Repository] -> [Database]
 ```
 
 ---
@@ -363,7 +420,7 @@ graph { flow: south; }
 EOF
 ```
 
-**Never use** `--as=ascii` - it produces ugly `+--+` boxes instead of clean `+--+` Unicode lines.
+**Never use** `--as=ascii` - it produces ugly `+--+` boxes instead of clean `┌──┐` lines.
 
 ### Output Modes
 
@@ -383,12 +440,12 @@ EOF
 
 # 3. Review output
 # 4. Iterate if needed
-# 5. Copy final ASCII to markdown
+# 5. Copy final ASCII to ADR
 ```
 
 ---
 
-## Part 4: Embedding in Markdown
+## Part 4: Embedding in ADR
 
 ### Markdown Format (MANDATORY: Always Include Source)
 
@@ -402,9 +459,9 @@ EOF
 ## Architecture
 
 ```
-+----------+     +----------+     +----------+
-|  Input   | --> | Process  | --> |  Output  |
-+----------+     +----------+     +----------+
+┌──────────┐     ┌──────────┐     ┌──────────┐
+│  Before  │ ──> │  After   │ ──> │ Database │
+└──────────┘     └──────────┘     └──────────┘
 ```
 
 <details>
@@ -412,7 +469,7 @@ EOF
 
 ```
 graph { flow: east; }
-[Input] -> [Process] -> [Output]
+[Before] -> [After] -> [Database]
 ```
 
 </details>
@@ -465,10 +522,15 @@ GitHub Flavored Markdown supports HTML `<details>` and `<summary>` tags for coll
 **References:**
 
 - [GitHub Docs: Collapsed sections](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-collapsed-sections)
+- [GFM details/summary gist](https://gist.github.com/scmx/eca72d44afee0113ceb0349dd54a84a2)
+
+### File Organization
+
+No separate asset files needed - diagram is inline in the markdown.
 
 ### Regeneration
 
-If the markdown changes, regenerate by running the source through graph-easy again:
+If ADR changes, regenerate by running the source through graph-easy again:
 
 ```bash
 # Extract source from <details> block, pipe through graph-easy
@@ -499,24 +561,53 @@ EOF
 ### Box Drawing (U+2500-257F)
 
 ```
-- | + + + + + + + + +   (light)
-= | + + + + + + + + +   (double)
+─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼   (light)
+═ ║ ╔ ╗ ╚ ╝ ╠ ╣ ╦ ╩ ╬   (double)
 ```
 
 ### Arrows & Pointers
 
 ```
--> <- up down            (arrows)
-v ^                      (logic - graph-easy uses these)
-< > ^ v                  (ASCII arrows)
+→ ← ↑ ↓              (arrows)
+∨ ∧                  (logic - graph-easy uses these)
+< > ^ v              (ASCII arrows)
 ```
 
 ### Shapes & Bullets
 
 ```
-* o O                    (bullets)
-[ ] #                    (squares)
-< > <>                   (diamonds)
+• ○ ●                (bullets)
+□ ■                  (squares)
+◇ ◆                  (diamonds)
+```
+
+### Math & Logic
+
+```
+× ÷ ± ≠ ≤ ≥ ∞       (math)
+∧ ∨ ¬                (logic)
+```
+
+## Reference: Common Patterns
+
+```
+# Vertical flow (architecture)
+graph { flow: south; }
+
+# Horizontal flow (pipeline)
+graph { flow: east; }
+
+# Labeled edge
+[A] -- label text --> [B]
+
+# Group with border
+( Group Name:
+  [Node A]
+  [Node B]
+)
+
+# Custom node label
+[id] { label: "Display Name"; }
 ```
 
 ---
@@ -528,18 +619,18 @@ v ^                      (logic - graph-easy uses these)
 ### Correct Example
 
 ```
-graph { label: "🚀 Deployment Pipeline"; flow: east; }
-[Build] -> [Test] -> [Deploy]
+graph { label: "🔄 Database Migration"; flow: south; }
+[Old DB] -> [New DB]
 ```
 
 ### Anti-Pattern (INVALID - DO NOT DO THIS)
 
 ```
-graph { flow: east; }
-[Build] -> [Test] -> [Deploy]
+graph { flow: south; }
+[Old DB] -> [New DB]
 ```
 
-**Why this is wrong**: Missing `label:` with emoji. Every diagram needs context at a glance.
+**Why this is wrong**: Missing `label:` with emoji. The preflight validator will **BLOCK** any ADR containing diagrams without `graph { label: "emoji ..."; }`.
 
 ---
 
@@ -554,7 +645,7 @@ graph { flow: east; }
 ### Embedding (MUST have - non-negotiable)
 
 - [ ] **`<details>` block with source** - EVERY diagram MUST have collapsible source code block
-- [ ] Format: rendered diagram in code block, followed immediately by `<details><summary>graph-easy source</summary>` with source in code block
+- [ ] Format: rendered diagram in ` ``` ` block, followed immediately by `<details><summary>graph-easy source</summary>` with source in ` ``` ` block
 - [ ] Never commit a diagram without its reproducible source
 
 ### Node Styling (Visual hierarchy)
@@ -562,7 +653,7 @@ graph { flow: east; }
 - [ ] Start/end nodes: `{ shape: rounded; }` - entry/exit points
 - [ ] Critical/important nodes: `{ border: double; }` or `{ border: bold; }`
 - [ ] Optional/skippable nodes: `{ border: dotted; }`
-- [ ] Default nodes: no styling (standard border)
+- [ ] Default nodes: no styling (standard `┌──┐` border)
 - [ ] Long labels use `\n` for multiline - max ~15 chars per line
 
 ### Edge Styling (Semantic meaning)
@@ -574,8 +665,8 @@ graph { flow: east; }
 
 ### Character Safety (Alignment)
 
-- [ ] NO graphical emojis inside nodes (break alignment)
-- [ ] Unicode symbols OK inside nodes (single-width)
+- [ ] NO graphical emojis inside nodes (🚀 💡 ✅ ❌ break alignment)
+- [ ] Unicode symbols OK inside nodes (✓ ✗ ⚠ are single-width)
 - [ ] ASCII markers ALWAYS safe ([x] [+] [!] [OK])
 - [ ] Graphical emojis ONLY in `graph { label: "..."; }` title
 
@@ -596,7 +687,7 @@ graph { flow: east; }
 
 ### Aesthetics
 
-5. **Uses boxart** - clean Unicode lines, not ASCII `+--+`
+5. **Uses boxart** - clean Unicode lines `┌──┐`, not ASCII `+--+`
 6. **Visual hierarchy** - start/end rounded, important bold/double, optional dotted
 7. **Consistent styling** - same border style = same semantic meaning throughout
 8. **Readable labels** - multiline with `\n`, no truncation
@@ -604,8 +695,10 @@ graph { flow: east; }
 
 ### Comprehensiveness
 
-10. **Edge semantics** - solid=normal, dotted=conditional, bold=critical
-11. **Logical grouping** - related nodes in `( Group: ... )` containers
+10. **Semantic emoji in title** - emoji consciously chosen to match diagram purpose (see Emoji Selection Guide)
+11. **Legend if needed** - multiline title with `\n` for complex diagrams
+12. **Edge semantics** - solid=normal, dotted=conditional, bold=critical
+13. **Logical grouping** - related nodes in `( Group: ... )` containers
 
 ## Troubleshooting
 
@@ -613,7 +706,7 @@ graph { flow: east; }
 | ------------------- | ------------------------ | --------------------------------------------- |
 | `command not found` | graph-easy not installed | Run preflight check                           |
 | Misaligned boxes    | Used `--as=ascii`        | Always use `--as=boxart`                      |
-| Box border broken   | Graphical emoji in node  | Remove emojis, use ASCII markers [x][+]       |
+| Box border broken   | Graphical emoji in node  | Remove 🚀💡, use ✓✗ or [x][+]                 |
 | Nodes overlap       | Too complex              | Split into multiple diagrams (max 7-10 nodes) |
 | Edge labels cut off | Label too long           | Shorten to 1-3 words                          |
 | No title showing    | Wrong syntax             | Use `graph { label: "Title"; flow: south; }`  |

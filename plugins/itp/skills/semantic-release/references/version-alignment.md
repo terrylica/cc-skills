@@ -126,7 +126,7 @@ Before release, audit for hardcoded version strings:
 
 ```bash
 # Python: Find hardcoded version patterns (environment-agnostic path)
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 uv run --script "$PLUGIN_DIR/skills/code-hardcode-audit/scripts/audit_hardcodes.py" -- src/
 
 # Grep for suspicious patterns

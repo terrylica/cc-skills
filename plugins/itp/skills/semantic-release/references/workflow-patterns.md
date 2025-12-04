@@ -14,7 +14,7 @@ Use for solo projects where you want consistent personal defaults.
 
 ```bash
 # Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cd "$PLUGIN_DIR/skills/semantic-release"
 ./scripts/init_user_config.sh
 ```
@@ -44,7 +44,7 @@ npm publish --access public
 
 ```bash
 cd /path/to/project
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 "$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --user
 ```
 
@@ -81,7 +81,7 @@ Use for company/team projects requiring shared standards.
 
 ```bash
 # Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cd "$PLUGIN_DIR/skills/semantic-release"
 ./scripts/create_org_config.sh mycompany semantic-release-config ~/org-configs/
 ```
@@ -107,7 +107,7 @@ npm publish --access public
 
 ```bash
 cd /path/to/team-project
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 "$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --org mycompany/semantic-release-config
 ```
 
@@ -138,7 +138,7 @@ Use for one-off projects with unique requirements.
 
 ```bash
 cd /path/to/project
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 "$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --inline
 ```
 
@@ -193,7 +193,7 @@ release() {
     fi
 
     # Release
-    GH_TOKEN=$(gh auth token) npx semantic-release --no-ci "$@"
+    GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci "$@"
     local rc=$?
 
     # Post-release: verify pristine state

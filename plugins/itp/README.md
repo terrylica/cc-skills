@@ -1,7 +1,7 @@
-# ITP Workflow Plugin
+# ITP Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-7-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-8-blue.svg)]()
 [![Commands](https://img.shields.io/badge/Commands-2-green.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
@@ -51,7 +51,7 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
 +--------------------------+     +---------------------------+
 | Path A: Type in feedback |     |        Review Plan        |
 |  SlashCommand tool call  |     | Choose option 3 (reject)  |
-|    /itp-workflow:itp     | <-- |  → feedback input opens   |
+|         /itp             | <-- |  → feedback input opens   |
 +--------------------------+     +---------------------------+
   |                                |
   |                                |
@@ -71,7 +71,7 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
   |                                |
   |                                v
   |                              +---------------------------+
-  |                              |  Type /itp-workflow:itp   |
+  |                              |       Type /itp           |
   |                              |     at command prompt     |
   |                              +---------------------------+
   |                                |
@@ -87,7 +87,7 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
 
 1. Review the plan Claude created
 2. Choose **option 3 (reject)** — feedback input field opens
-3. Type: `SlashCommand tool call /itp-workflow:itp`
+3. Type: `SlashCommand tool call /itp`
 4. ITP workflow triggers immediately
 
 #### Path B: Defer to Command Prompt (More Control)
@@ -96,18 +96,18 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
 2. Choose **option 3 (reject)** — feedback input field opens
 3. Type: `"Wait for my further instruction"`
 4. Claude acknowledges: `"Understood. Waiting for your instructions."`
-5. Type `/itp-workflow:itp` at the command prompt
+5. Type `/itp` at the command prompt
 
 **Note**: If running with `--dangerously-skip-permissions`, you may need to press `Shift+Enter` to return to bypass-permissions mode before entering the `/itp` command.
 
 #### Path Comparison
 
-| Aspect           | Path A (Feedback Input)                     | Path B (Command Prompt)                  |
-| ---------------- | ------------------------------------------- | ---------------------------------------- |
-| **Steps**        | Fewer (direct trigger)                      | Extra step (Claude waits first)          |
-| **Interface**    | Plain text field                            | Native slash command interface           |
-| **Autocomplete** | ❌ No hints or suggestions                  | ✅ `/itp-workflow:itp` shows in dropdown |
-| **Syntax**       | Must type full `SlashCommand tool call ...` | Just type `/itp` and select from hints   |
+| Aspect           | Path A (Feedback Input)                     | Path B (Command Prompt)                |
+| ---------------- | ------------------------------------------- | -------------------------------------- |
+| **Steps**        | Fewer (direct trigger)                      | Extra step (Claude waits first)        |
+| **Interface**    | Plain text field                            | Native slash command interface         |
+| **Autocomplete** | ❌ No hints or suggestions                  | ✅ `/itp` shows in dropdown            |
+| **Syntax**       | Must type full `SlashCommand tool call ...` | Just type `/itp` and select from hints |
 
 **Recommendation**: Use **Path B** if you want the native Claude Code experience with autocomplete hints. Use **Path A** if you prefer fewer steps and don't mind typing the full command.
 
@@ -116,10 +116,10 @@ graph { flow: south; }
 [ Plan Mode ] { label: "Plan Mode (Shift+Tab ×2)"; }
 [ Plan File ] { label: "~/.claude/plans/<name>.md"; }
 [ Review ] { label: "Review Plan\nChoose option 3 (reject)\n→ feedback input opens"; }
-[ Path A ] { label: "Path A: Type in feedback\nSlashCommand tool call\n/itp-workflow:itp"; }
+[ Path A ] { label: "Path A: Type in feedback\nSlashCommand tool call\n/itp"; }
 [ Path B ] { label: "Path B: Type message\n\"Wait for /itp\""; }
 [ Wait ] { label: "Claude waits\nfor input"; }
-[ Cmd ] { label: "Type /itp-workflow:itp\nat command prompt"; }
+[ Cmd ] { label: "Type /itp\nat command prompt"; }
 [ ITP ] { border: double; label: "/itp Workflow\n(4 phases)"; }
 
 [ Plan Mode ] -> [ Plan File ] -> [ Review ]
@@ -214,10 +214,10 @@ graph { label: "📦 Artifact Transformation"; flow: east; }
 
 ```bash
 # 1. Add marketplace
-/plugin marketplace add terrylica/itp-workflow
+/plugin marketplace add terrylica/cc-skills
 
 # 2. Install plugin
-/plugin install itp-workflow@itp-workflow
+/plugin install cc-skills@itp
 
 # 3. Run setup (first time only)
 /itp-setup
@@ -233,10 +233,10 @@ Add to `~/.claude/settings.json`:
 ```json
 {
   "extraKnownMarketplaces": {
-    "itp-workflow": {
+    "cc-skills": {
       "source": {
         "source": "github",
-        "repo": "terrylica/itp-workflow"
+        "repo": "terrylica/cc-skills"
       }
     }
   }
@@ -247,50 +247,65 @@ Add to `~/.claude/settings.json`:
 
 ```bash
 # 1. Clone repo
-git clone git@github.com:terrylica/itp-workflow.git /tmp/itp-workflow
+git clone git@github.com:terrylica/cc-skills.git /tmp/cc-skills
 
-# 2. Copy command
-cp /tmp/itp-workflow/commands/itp.md ~/.claude/commands/
+# 2. Copy commands
+cp /tmp/cc-skills/plugins/itp/commands/itp.md ~/.claude/commands/
+cp /tmp/cc-skills/plugins/itp/commands/itp-setup.md ~/.claude/commands/
 
 # 3. Copy skills
-cp -r /tmp/itp-workflow/skills/* ~/.claude/skills/
+cp -r /tmp/cc-skills/plugins/itp/skills/* ~/.claude/skills/
 
 # 4. Install dependencies
-bash /tmp/itp-workflow/scripts/install-dependencies.sh --install
+bash /tmp/cc-skills/plugins/itp/scripts/install-dependencies.sh --install
 ```
+
+## Platform Support
+
+| Platform          | Status           | Package Manager |
+| ----------------- | ---------------- | --------------- |
+| macOS (Intel/ARM) | ✅ Supported     | Homebrew        |
+| Ubuntu 20.04+     | ✅ Supported     | apt             |
+| Debian 11+        | ✅ Supported     | apt             |
+| Linuxbrew         | ✅ Supported     | Homebrew        |
+| Windows/WSL       | ❌ Not supported | —               |
+
+The install script auto-detects your platform and uses the appropriate package manager.
 
 ## Dependencies
 
+> **Recommended**: Install [mise](https://mise.jdx.dev/) first for unified cross-platform tool management.
+
 ### Core (Required)
 
-| Tool     | Install             |
-| -------- | ------------------- |
-| uv       | `brew install uv`   |
-| gh       | `brew install gh`   |
-| prettier | `npm i -g prettier` |
+| Tool     | mise (Preferred)          | macOS Fallback      | Ubuntu Fallback                                    |
+| -------- | ------------------------- | ------------------- | -------------------------------------------------- |
+| uv       | `mise install uv`         | `brew install uv`   | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| gh       | `mise install github-cli` | `brew install gh`   | `sudo apt install gh`                              |
+| prettier | —                         | `npm i -g prettier` | `npm i -g prettier`                                |
 
 ### ADR Diagrams (Required for Preflight)
 
-| Tool       | Install                  |
-| ---------- | ------------------------ |
-| cpanm      | `brew install cpanminus` |
-| graph-easy | `cpanm Graph::Easy`      |
+| Tool       | mise (Preferred) | macOS Fallback           | Ubuntu Fallback              |
+| ---------- | ---------------- | ------------------------ | ---------------------------- |
+| cpanm      | —                | `brew install cpanminus` | `sudo apt install cpanminus` |
+| graph-easy | —                | `cpanm Graph::Easy`      | `cpanm Graph::Easy`          |
 
 ### Code Audit (Optional)
 
-| Tool    | Install                |
-| ------- | ---------------------- |
-| ruff    | `uv tool install ruff` |
-| semgrep | `brew install semgrep` |
-| jscpd   | `npm i -g jscpd`       |
+| Tool    | mise (Preferred)       | macOS Fallback         | Ubuntu Fallback        |
+| ------- | ---------------------- | ---------------------- | ---------------------- |
+| ruff    | `mise install ruff`    | `uv tool install ruff` | `uv tool install ruff` |
+| semgrep | `mise install semgrep` | `brew install semgrep` | `pip install semgrep`  |
+| jscpd   | —                      | `npm i -g jscpd`       | `npm i -g jscpd`       |
 
 ### Release (Optional)
 
-| Tool             | Install                        |
-| ---------------- | ------------------------------ |
-| Node.js 20+      | `mise install node@20`         |
-| semantic-release | `npm i -g semantic-release@25` |
-| doppler          | `brew install doppler`         |
+| Tool             | mise (Preferred)       | macOS Fallback                 | Ubuntu Fallback                                     |
+| ---------------- | ---------------------- | ------------------------------ | --------------------------------------------------- |
+| Node.js          | `mise install node`    | `brew install node`            | via nodesource                                      |
+| semantic-release | —                      | `npm i -g semantic-release@25` | `npm i -g semantic-release@25`                      |
+| doppler          | `mise install doppler` | `brew install doppler`         | `curl -Ls https://cli.doppler.com/install.sh \| sh` |
 
 ## Usage
 
@@ -335,11 +350,30 @@ bash /tmp/itp-workflow/scripts/install-dependencies.sh --install
 | -------------------------- | ---------------------------- | ------------------------------------------------------------------------ |
 | `implement-plan-preflight` | ADR and design spec creation | —                                                                        |
 | `adr-graph-easy-architect` | ASCII architecture diagrams  | [Graph::Easy](https://metacpan.org/pod/Graph::Easy)                      |
+| `graph-easy`               | General ASCII diagram tool   | [Graph::Easy](https://metacpan.org/pod/Graph::Easy)                      |
 | `impl-standards`           | Code quality standards       | —                                                                        |
 | `adr-code-traceability`    | ADR-to-code linking          | —                                                                        |
 | `code-hardcode-audit`      | Magic number detection       | [jscpd](https://github.com/kucherenko/jscpd)                             |
 | `semantic-release`         | Versioning automation        | [semantic-release](https://github.com/semantic-release/semantic-release) |
 | `pypi-doppler`             | Local PyPI publishing        | [Doppler](https://www.doppler.com/)                                      |
+
+## CI/CD Strategy
+
+### graph-easy (Local-Only)
+
+ADR diagrams using `graph-easy` are generated **locally** and committed to the repository. This avoids Perl/CPAN dependencies in CI/CD pipelines.
+
+**Workflow:**
+
+1. Developer runs `/itp` locally → generates ASCII diagrams
+2. Diagrams are committed as part of the ADR/design spec
+3. CI/CD validates the committed files (no regeneration needed)
+
+**Why local-only?**
+
+- Perl/cpanm adds 2-3 minutes to CI workflows
+- Graph::Easy has no pre-built binaries
+- Diagrams change infrequently (only during design phase)
 
 ## Troubleshooting
 
@@ -366,8 +400,11 @@ For manual installation, use `~/.claude/` paths. The `${CLAUDE_PLUGIN_ROOT}` var
 ```bash
 mkdir -p ~/.npm-global
 npm config set prefix '~/.npm-global'
-echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
-source ~/.zshrc
+
+# Add to your shell config (detects zsh vs bash)
+SHELL_RC="$([[ "$SHELL" == */zsh ]] && echo ~/.zshrc || echo ~/.bashrc)"
+echo 'export PATH=~/.npm-global/bin:$PATH' >> "$SHELL_RC"
+source "$SHELL_RC"
 ```
 
 ## License

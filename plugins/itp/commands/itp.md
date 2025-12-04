@@ -313,8 +313,9 @@ The skill provides:
 Run validator:
 
 ```bash
-# Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/itp-workflow}"
+# Environment-agnostic path (relative to script location)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
 uv run "$PLUGIN_DIR/skills/implement-plan-preflight/scripts/preflight-validator.py" $ADR_ID
 ```
 
