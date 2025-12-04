@@ -1,3 +1,17 @@
+# [2.0.0](https://github.com/terrylica/cc-skills/compare/v1.0.0...v2.0.0) (2025-12-04)
+
+
+* feat(itp)!: rename itp-workflow to itp for brevity ([8228250](https://github.com/terrylica/cc-skills/commit/822825051970209df3adc1f5e705c3083113ec5e)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+### BREAKING CHANGES
+
+* Plugin renamed from itp-workflow to itp.
+Users must reinstall: `/plugin install cc-skills@itp`
+
+Changes:
+- Rename plugins/itp-workflow/ → plugins/itp/
+
 # 1.0.0 (2025-12-04)
 
 
