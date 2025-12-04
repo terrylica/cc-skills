@@ -13,6 +13,7 @@ Meta-skill for creating effective Claude Code skills with TodoWrite templates, s
 ## Features
 
 - **5 TodoWrite Templates**: Pre-defined task lists for Create, Update, Add Resources, Convert to Self-Evolving, and Troubleshoot workflows
+- **Continuous Improvement**: Proactive self-evolution triggers—skills upgrade themselves when insights emerge
 - **Progressive Disclosure**: 3-level context management (metadata → SKILL.md → references)
 - **Security Practices**: `allowed-tools` restrictions with CVE references
 - **Structural Patterns**: Workflow, Task, Reference, and Capabilities patterns
