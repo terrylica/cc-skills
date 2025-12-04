@@ -1,0 +1,20 @@
+{
+  "name": "cc-skills",
+  "version": "1.0.0",
+  "description": "Claude Code Skills Marketplace",
+  "owner": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  },
+  "plugins": [
+    {
+      "name": "skill-architecture",
+      "description": "Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns",
+      "version": "1.0.0",
+      "source": "./plugins/skill-architecture/",
+      "category": "development",
+      "author": {"name": "Terry Li"},
+      "keywords": ["meta-skill", "skill-creation", "architecture", "templates"]
+    }
+  ]
+}
