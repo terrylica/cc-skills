@@ -1,10 +1,10 @@
-**Skill**: [Skill Architecture](/skills/skill-architecture/SKILL.md)
+**Skill**: [Skill Architecture](../SKILL.md)
 
 # Workflow Patterns
 
 Common patterns for skill creation with practical examples.
 
-______________________________________________________________________
+---
 
 ## Pattern A: Minimal Skill (Single File)
 
@@ -51,6 +51,7 @@ Validate data:
 ```
 
 **Directory**:
+
 ```
 data-validator/
 ├── SKILL.md
@@ -81,6 +82,7 @@ Use grep for specific endpoints:
 ```
 
 **Directory**:
+
 ```
 api-client/
 ├── SKILL.md
@@ -89,12 +91,12 @@ api-client/
     └── examples.md
 ```
 
-______________________________________________________________________
+---
 
 ## Workflow Comparison
 
 | Criteria             | Marketplace Process | Manual Process |
-|----------------------|---------------------|----------------|
+| -------------------- | ------------------- | -------------- |
 | Complexity           | Medium-High         | Low            |
 | Uses scripts         | Yes                 | Optional       |
 | Structure guaranteed | Yes (init script)   | Manual         |

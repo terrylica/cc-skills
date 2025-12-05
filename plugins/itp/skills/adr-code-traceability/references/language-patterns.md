@@ -1,4 +1,4 @@
-**Skill**: [ADR Code Traceability](/skills/adr-code-traceability/SKILL.md)
+**Skill**: [ADR Code Traceability](../SKILL.md)
 
 # Language-Specific ADR Reference Patterns
 

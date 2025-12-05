@@ -1,4 +1,4 @@
-**Skill**: [Skill Architecture](/skills/skill-architecture/SKILL.md)
+**Skill**: [Skill Architecture](../SKILL.md)
 
 # Marketplace Sync Tracking
 
@@ -16,6 +16,7 @@ Track content merged from Anthropic's skill-creator marketplace for future updat
 ### From Marketplace skill-creator (209 lines total)
 
 **Merged into SKILL.md** (245 lines):
+
 - [x] 6-step creation process (Steps 1-6)
 - [x] Progressive disclosure explanation (3-level loading)
 - [x] Bundled resources guidance (scripts/, references/, assets/)
@@ -24,18 +25,21 @@ Track content merged from Anthropic's skill-creator marketplace for future updat
 - [x] Writing style guidance (imperative form)
 
 **Extracted to references/**:
+
 - [x] 4 structural patterns → `structural-patterns.md`
 - [x] Progressive disclosure deep-dive → `progressive-disclosure.md`
 - [x] Script usage documentation → `scripts-reference.md`
 
 **Script References** (not copied, links only):
+
 - [x] init_skill.py - Location documented
 - [x] package_skill.py - Location documented
 - [x] quick_validate.py - Location documented
 
-### From Original _agent-skill-builder.disabled (91 lines + 5 references)
+### From Original \_agent-skill-builder.disabled (91 lines + 5 references)
 
 **Preserved Content**:
+
 - [x] CLI-specific features (allowed-tools restriction)
 - [x] Security focus (threat model, CVE references)
 - [x] File naming conventions (SKILL.md vs Skill.md)
@@ -43,6 +47,7 @@ Track content merged from Anthropic's skill-creator marketplace for future updat
 - [x] Advanced topics (CLI vs API differences)
 
 **Existing References Kept**:
+
 - [x] security-practices.md (254 words) - Your unique CVE content
 - [x] token-efficiency.md (129 words)
 - [x] validation-reference.md (382 words)
@@ -52,6 +57,7 @@ Track content merged from Anthropic's skill-creator marketplace for future updat
 ### User Additions (Terry's Conventions)
 
 **Integrated into SKILL.md**:
+
 - [x] Absolute path requirements (iTerm2 Cmd+click)
 - [x] Unix-only platform scope
 - [x] PEP 723 inline dependencies
@@ -60,6 +66,7 @@ Track content merged from Anthropic's skill-creator marketplace for future updat
 - [x] `uv run` preference for Python
 
 **New References Created**:
+
 - [x] structural-patterns.md - Marketplace Pattern 1-4 extracted
 - [x] progressive-disclosure.md - Context management deep-dive
 - [x] scripts-reference.md - Marketplace script usage guide
@@ -100,7 +107,7 @@ git diff c74d647..origin/main -- skill-creator/SKILL.md
 ### 3. Selective Merge Decision Matrix
 
 | Change Type             | Action                         | Rationale                          |
-|-------------------------|--------------------------------|------------------------------------|
+| ----------------------- | ------------------------------ | ---------------------------------- |
 | New best practices      | Merge to SKILL.md              | Keep guidance current              |
 | Script improvements     | Update references              | Don't copy, just update paths/docs |
 | New structural patterns | Add to structural-patterns.md  | Expand pattern library             |
@@ -111,6 +118,7 @@ git diff c74d647..origin/main -- skill-creator/SKILL.md
 ### 4. Update This File
 
 After syncing:
+
 - Update "Last Sync" section with new commit SHA
 - Document merged changes in "Content Sources"
 - Update file inventory if structure changed
@@ -127,19 +135,21 @@ claude # Test: "What are the 4 structural patterns?"
 
 ## Version History
 
-| Date       | Marketplace Commit | Changes Merged              | Notes                                                                       |
-|------------|--------------------|-----------------------------|-----------------------------------------------------------------------------|
-| 2025-11-07 | c74d647            | Initial comprehensive merge | Created skill-architecture from _agent-skill-builder.disabled + marketplace |
+| Date       | Marketplace Commit | Changes Merged              | Notes                                                                        |
+| ---------- | ------------------ | --------------------------- | ---------------------------------------------------------------------------- |
+| 2025-11-07 | c74d647            | Initial comprehensive merge | Created skill-architecture from \_agent-skill-builder.disabled + marketplace |
 
 ## Marketplace vs User Skill Positioning
 
 **Marketplace `skill-creator`**:
+
 - Role: Executable tooling provider
 - Focus: Scripts (init, package, validate)
 - Auto-updates: Yes
 - When used: Direct script execution needs
 
 **User `skill-architecture`**:
+
 - Role: Comprehensive creation guide
 - Focus: Best practices, security, CLI features, your conventions
 - Auto-updates: Manual sync (this process)

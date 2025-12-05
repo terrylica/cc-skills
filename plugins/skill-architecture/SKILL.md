@@ -28,9 +28,10 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 6. Add TodoWrite task templates section to SKILL.md
 7. Add Post-Change Checklist section to SKILL.md
 8. Validate with quick_validate.py
-9. Test skill on real example
-10. Register skill in project CLAUDE.md
-11. Verify against Skill Quality Checklist below
+9. Validate links (relative paths only): uv run scripts/validate_links.py <skill-path>
+10. Test skill on real example
+11. Register skill in project CLAUDE.md
+12. Verify against Skill Quality Checklist below
 ```
 
 ### Template B: Update Existing Skill
@@ -41,9 +42,10 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 3. Make targeted changes to SKILL.md
 4. Update any affected references/ or scripts/
 5. Validate with quick_validate.py
-6. Test updated behavior
-7. Update project CLAUDE.md if description changed
-8. Verify against Skill Quality Checklist below
+6. Validate links (relative paths only): uv run scripts/validate_links.py <skill-path>
+7. Test updated behavior
+8. Update project CLAUDE.md if description changed
+9. Verify against Skill Quality Checklist below
 ```
 
 ### Template C: Add Resources to Skill
@@ -54,8 +56,9 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 3. Create resource in appropriate directory
 4. Update SKILL.md to document new resource
 5. Validate with quick_validate.py
-6. Test resource integration
-7. Verify against Skill Quality Checklist below
+6. Validate links (relative paths only): uv run scripts/validate_links.py <skill-path>
+7. Test resource integration
+8. Verify against Skill Quality Checklist below
 ```
 
 ### Template D: Convert to Self-Evolving Skill
@@ -68,8 +71,9 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 5. Create references/config-reference.md (if skill manages external config)
 6. Update description with self-evolution triggers
 7. Validate with quick_validate.py
-8. Test self-documentation on sample change
-9. Verify against Skill Quality Checklist below
+8. Validate links (relative paths only): uv run scripts/validate_links.py <skill-path>
+9. Test self-documentation on sample change
+10. Verify against Skill Quality Checklist below
 ```
 
 ### Template E: Troubleshoot Skill Not Triggering
@@ -79,9 +83,10 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 2. Verify trigger keywords in description match user queries
 3. Check skill location (~/.claude/skills/ or project .claude/skills/)
 4. Validate with quick_validate.py for errors
-5. Test with explicit trigger phrase
-6. Document findings in skill if new issue discovered
-7. Verify against Skill Quality Checklist below
+5. Validate links: uv run scripts/validate_links.py <skill-path>
+6. Test with explicit trigger phrase
+7. Document findings in skill if new issue discovered
+8. Verify against Skill Quality Checklist below
 ```
 
 ### Skill Quality Checklist
@@ -95,6 +100,8 @@ After ANY skill work, verify:
 - [ ] Final template step references this checklist
 - [ ] Project CLAUDE.md updated if new/renamed skill
 - [ ] Validated with quick_validate.py
+- [ ] All markdown links use relative paths (plugin-portable)
+- [ ] No broken internal links (validate_links.py passes)
 
 ---
 
@@ -105,8 +112,8 @@ After modifying THIS skill (skill-architecture):
 1. [ ] Templates and 6 Steps tutorial remain aligned
 2. [ ] Skill Quality Checklist reflects current best practices
 3. [ ] All referenced files in references/ exist
-4. [ ] Append changes to [evolution-log.md](/skills/skill-architecture/references/evolution-log.md)
-5. [ ] Update [~/.claude/CLAUDE.md](/CLAUDE.md) if triggers changed
+4. [ ] Append changes to [evolution-log.md](./references/evolution-log.md)
+5. [ ] Update user's CLAUDE.md if triggers changed
 
 ---
 
@@ -323,19 +330,19 @@ Skills use progressive loading to manage context efficiently:
 
 ## Bundled Resources
 
-Skills can include `scripts/`, `references/`, and `assets/` directories. See [Progressive Disclosure](/skills/skill-architecture/references/progressive-disclosure.md) for detailed guidance on when to use each.
+Skills can include `scripts/`, `references/`, and `assets/` directories. See [Progressive Disclosure](./references/progressive-disclosure.md) for detailed guidance on when to use each.
 
 ---
 
 ## CLI-Specific Features
 
-CLI skills support `allowed-tools` restriction for security. See [Security Practices](/skills/skill-architecture/references/security-practices.md) for details.
+CLI skills support `allowed-tools` restriction for security. See [Security Practices](./references/security-practices.md) for details.
 
 ---
 
 ## Structural Patterns
 
-See [Structural Patterns](/skills/skill-architecture/references/structural-patterns.md) for detailed guidance on:
+See [Structural Patterns](./references/structural-patterns.md) for detailed guidance on:
 
 1. **Workflow Pattern** - Sequential multi-step procedures
 2. **Task Pattern** - Specific, bounded tasks
@@ -346,18 +353,18 @@ See [Structural Patterns](/skills/skill-architecture/references/structural-patte
 
 ## User Conventions Integration
 
-This skill follows Terry's conventions from [`~/.claude/CLAUDE.md`](/CLAUDE.md):
+This skill follows common user conventions:
 
-- **Absolute paths**: Always use `/Users/terryli/...` (iTerm2 Cmd+click compatible)
+- **Absolute paths**: Always use full paths (terminal Cmd+click compatible)
 - **Unix-only**: macOS, Linux (no Windows support)
 - **Python**: `uv run script.py` with PEP 723 inline dependencies
-- **Planning**: OpenAPI 3.1.1 specs in [`specifications/`](/specifications/)
+- **Planning**: OpenAPI 3.1.1 specs when appropriate
 
 ---
 
 ## Marketplace Scripts
 
-See [Scripts Reference](/skills/skill-architecture/references/scripts-reference.md) for marketplace script usage.
+See [Scripts Reference](./references/scripts-reference.md) for marketplace script usage.
 
 ---
 
@@ -365,14 +372,14 @@ See [Scripts Reference](/skills/skill-architecture/references/scripts-reference.
 
 For detailed information, see:
 
-- [Structural Patterns](/skills/skill-architecture/references/structural-patterns.md) - 4 skill architecture patterns
-- [Workflow Patterns](/skills/skill-architecture/references/workflow-patterns.md) - Workflow skill implementation patterns
-- [Progressive Disclosure](/skills/skill-architecture/references/progressive-disclosure.md) - Context management patterns
-- [Creation Workflow](/skills/skill-architecture/references/creation-workflow.md) - Step-by-step process
-- [Scripts Reference](/skills/skill-architecture/references/scripts-reference.md) - Marketplace script usage
-- [Security Practices](/skills/skill-architecture/references/security-practices.md) - Threats and defenses (CVE references)
-- [Token Efficiency](/skills/skill-architecture/references/token-efficiency.md) - Context optimization
-- [Advanced Topics](/skills/skill-architecture/references/advanced-topics.md) - CLI vs API, composition, bugs
-- [Validation Reference](/skills/skill-architecture/references/validation-reference.md) - Quality checklist
-- [SYNC-TRACKING](/skills/skill-architecture/references/SYNC-TRACKING.md) - Marketplace version tracking
-- [Evolution Log](/skills/skill-architecture/references/evolution-log.md) - This skill's change history
+- [Structural Patterns](./references/structural-patterns.md) - 4 skill architecture patterns
+- [Workflow Patterns](./references/workflow-patterns.md) - Workflow skill implementation patterns
+- [Progressive Disclosure](./references/progressive-disclosure.md) - Context management patterns
+- [Creation Workflow](./references/creation-workflow.md) - Step-by-step process
+- [Scripts Reference](./references/scripts-reference.md) - Marketplace script usage
+- [Security Practices](./references/security-practices.md) - Threats and defenses (CVE references)
+- [Token Efficiency](./references/token-efficiency.md) - Context optimization
+- [Advanced Topics](./references/advanced-topics.md) - CLI vs API, composition, bugs
+- [Validation Reference](./references/validation-reference.md) - Quality checklist
+- [SYNC-TRACKING](./references/SYNC-TRACKING.md) - Marketplace version tracking
+- [Evolution Log](./references/evolution-log.md) - This skill's change history

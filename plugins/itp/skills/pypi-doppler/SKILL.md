@@ -45,9 +45,9 @@ This skill provides **local-only PyPI publishing** using Doppler for secure cred
 
 ## Bundled Scripts
 
-| Script                                                                          | Purpose                                        |
-| ------------------------------------------------------------------------------- | ---------------------------------------------- |
-| [`scripts/publish-to-pypi.sh`](/skills/pypi-doppler/scripts/publish-to-pypi.sh) | Local PyPI publishing with CI detection guards |
+| Script                                                       | Purpose                                        |
+| ------------------------------------------------------------ | ---------------------------------------------- |
+| [`scripts/publish-to-pypi.sh`](./scripts/publish-to-pypi.sh) | Local PyPI publishing with CI detection guards |
 
 **Usage**: Copy to your project's `scripts/` directory:
 
@@ -513,8 +513,8 @@ To test publishing workflow without affecting production:
 - **ADR-0027**: `docs/architecture/decisions/0027-local-only-pypi-publishing.md` - Architectural decision for local-only publishing
 - **ADR-0028**: `docs/architecture/decisions/0028-skills-documentation-alignment.md` - Skills alignment with ADR-0027
 - **PUBLISHING.md**: `docs/development/PUBLISHING.md` - Complete release workflow guide
-- **semantic-release Skill**: [`semantic-release`](/skills/semantic-release/SKILL.md) - Versioning automation (NO publishing)
-- **Bundled Script**: [`scripts/publish-to-pypi.sh`](/skills/pypi-doppler/scripts/publish-to-pypi.sh) - Reference implementation with CI guards
+- **semantic-release Skill**: [`semantic-release`](../semantic-release/SKILL.md) - Versioning automation (NO publishing)
+- **Bundled Script**: [`scripts/publish-to-pypi.sh`](./scripts/publish-to-pypi.sh) - Reference implementation with CI guards
 
 ---
 

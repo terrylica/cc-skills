@@ -1,11 +1,11 @@
-**Skill**: [Code Hardcode Audit](/skills/code-hardcode-audit/SKILL.md)
+**Skill**: [Code Hardcode Audit](../SKILL.md)
 
 # Tool Comparison
 
 ## Overview
 
 | Tool             | Detection Focus                          | Language Support | Speed  | Install                 |
-|------------------|------------------------------------------|------------------|--------|-------------------------|
+| ---------------- | ---------------------------------------- | ---------------- | ------ | ----------------------- |
 | **Ruff PLR2004** | Magic value comparisons                  | Python only      | Fast   | `uv tool install ruff`  |
 | **Semgrep**      | Pattern-based (URLs, ports, credentials) | Multi-language   | Medium | `brew install semgrep`  |
 | **jscpd**        | Duplicate code blocks                    | Multi-language   | Slow   | `npx jscpd` (on-demand) |
@@ -26,6 +26,7 @@ DEFAULT_TIMEOUT = 30  # Assignment, not comparison
 ```
 
 **Limitations**:
+
 - Python only
 - Only comparisons, not assignments
 - Doesn't detect string literals
@@ -35,7 +36,7 @@ DEFAULT_TIMEOUT = 30  # Assignment, not comparison
 **Detects**: 7 pattern categories
 
 | Rule ID                  | Detects                     | Severity |
-|--------------------------|-----------------------------|----------|
+| ------------------------ | --------------------------- | -------- |
 | `hardcoded-url`          | HTTP/HTTPS URLs             | WARNING  |
 | `hardcoded-port`         | Port numbers                | WARNING  |
 | `hardcoded-timeframe`    | "1h", "4h", "1d" strings    | INFO     |
@@ -45,6 +46,7 @@ DEFAULT_TIMEOUT = 30  # Assignment, not comparison
 | `hardcoded-api-limit`    | limit=, batch_size=         | INFO     |
 
 **Limitations**:
+
 - Requires rule tuning to reduce false positives
 - Pattern matching may miss obfuscated values
 
@@ -68,6 +70,7 @@ def process_b():  # Clone of process_a
 ```
 
 **Limitations**:
+
 - Slower than other tools (full AST parsing)
 - Requires Node.js (available via mise)
 - High threshold to avoid false positives
@@ -90,7 +93,7 @@ def process_b():  # Clone of process_a
 ## When to Use Each Tool
 
 | Scenario                           | Recommended Tool         |
-|------------------------------------|--------------------------|
+| ---------------------------------- | ------------------------ |
 | Quick Python magic number check    | Ruff alone               |
 | Security audit (credentials, URLs) | Semgrep alone            |
 | DRY violation detection            | jscpd alone              |

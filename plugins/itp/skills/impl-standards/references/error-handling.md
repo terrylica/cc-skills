@@ -1,4 +1,4 @@
-**Skill**: [Implement Plan Engineering Standards](/skills/implement-plan-engineering-standards/SKILL.md)
+**Skill**: [Implement Plan Engineering Standards](../SKILL.md)
 
 # Error Handling Standards
 
@@ -18,12 +18,12 @@ When an error occurs, the code must:
 
 ## Forbidden Patterns
 
-| Pattern | Why Forbidden |
-|---------|---------------|
-| **Silent catch** | Hides failures, causes debugging nightmares |
-| **Default values on error** | Masks real issues with fake data |
-| **Automatic retry** | Hides intermittent failures, wastes resources |
-| **Fallback to alternative** | Unclear which path executed, hard to debug |
+| Pattern                     | Why Forbidden                                 |
+| --------------------------- | --------------------------------------------- |
+| **Silent catch**            | Hides failures, causes debugging nightmares   |
+| **Default values on error** | Masks real issues with fake data              |
+| **Automatic retry**         | Hides intermittent failures, wastes resources |
+| **Fallback to alternative** | Unclear which path executed, hard to debug    |
 
 ### Bad Examples
 

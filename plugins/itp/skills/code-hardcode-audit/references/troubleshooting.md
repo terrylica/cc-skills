@@ -1,4 +1,4 @@
-**Skill**: [Code Hardcode Audit](/skills/code-hardcode-audit/SKILL.md)
+**Skill**: [Code Hardcode Audit](../SKILL.md)
 
 # Troubleshooting
 
@@ -220,4 +220,4 @@ ruff check --select PLR2004 --output-format json src/ 2>&1
 
 2. Report skill issues:
    - Check ADR-0047 for design decisions
-   - Review the [code-hardcode-audit SKILL.md](/skills/code-hardcode-audit/SKILL.md)
+   - Review the [code-hardcode-audit SKILL.md](../SKILL.md)

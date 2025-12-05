@@ -1,4 +1,4 @@
-**Skill**: [Skill Architecture](/skills/skill-architecture/SKILL.md)
+**Skill**: [Skill Architecture](../SKILL.md)
 
 # Marketplace Scripts Reference
 
@@ -45,12 +45,14 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/init_skill.py 
 ### What It Generates
 
 **SKILL.md template** with:
+
 - Proper YAML frontmatter
 - TODO placeholders for customization
 - Sections: About, Capabilities, Usage
 - Reference links template
 
 **Example directories**:
+
 - `scripts/example_script.py` - Delete or customize
 - `references/example_reference.md` - Delete or customize
 - `assets/example_asset.txt` - Delete or customize
@@ -85,6 +87,7 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/quick_validate
 ### Validation Checks
 
 **YAML Frontmatter**:
+
 - [ ] Required fields: `name`, `description`
 - [ ] Name format: lowercase, hyphens, numbers only (no underscores!)
 - [ ] Name length: ≤64 chars
@@ -92,6 +95,7 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/quick_validate
 - [ ] Valid YAML syntax
 
 **File Structure**:
+
 - [ ] SKILL.md exists
 - [ ] Proper directory organization
 
@@ -144,10 +148,12 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.
 ### When to Use
 
 **Claude Code CLI** (our environment):
+
 - ❌ **NEVER** - Skills are directories in `~/.claude/skills/`, no zips needed
 - ✅ Use `quick_validate.py` for validation instead
 
 **claude.ai (web) or Claude Desktop**:
+
 - ✅ Preparing skills for upload via "Upload skill" button
 - ✅ Distributing skills to users on those platforms
 
@@ -162,6 +168,7 @@ If validation fails, no zip is created.
 ### Output
 
 **Success**: Creates `<skill-name>.zip` with complete skill structure:
+
 ```
 pdf-editor.zip
 └── pdf-editor/
@@ -210,12 +217,13 @@ fi
 ## Version Tracking
 
 **Current Versions** (as of 2025-11-07):
+
 - Marketplace: `anthropic-agent-skills` commit `c74d647`
 - init_skill.py: 303 lines
 - package_skill.py: 110 lines
 - quick_validate.py: 65 lines
 
-**Update Process**: See [SYNC-TRACKING.md](/skills/skill-architecture/references/SYNC-TRACKING.md)
+**Update Process**: See [SYNC-TRACKING.md](./SYNC-TRACKING.md)
 
 ## Future Enhancements (User Modifications)
 
@@ -224,6 +232,7 @@ Potential improvements to marketplace scripts:
 ### PEP 723 Inline Dependencies
 
 Add to script headers:
+
 ```python
 # /// script
 # dependencies = ["pyyaml>=6.0"]
@@ -235,6 +244,7 @@ Enables `uv run init_skill.py` without separate dependency install.
 ### Absolute Path Output
 
 Modify print statements:
+
 ```python
 # Current: print(f"Created: {skill_dir}")
 # Better:  print(f"Created: {skill_dir.resolve()}")
@@ -245,6 +255,7 @@ Matches iTerm2 Cmd+click requirement.
 ### Terry's Template Integration
 
 Update SKILL.md template to include:
+
 - Absolute path convention note
 - Link to ~/.claude/CLAUDE.md
 - PEP 723 example for scripts/
@@ -255,6 +266,7 @@ Update SKILL.md template to include:
 ### "No module named 'yaml'"
 
 Install PyYAML:
+
 ```bash
 pip install pyyaml
 # Or with uv
@@ -264,6 +276,7 @@ uv pip install pyyaml
 ### "Permission denied"
 
 Make scripts executable:
+
 ```bash
 chmod +x plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/*.py
 ```
@@ -271,6 +284,7 @@ chmod +x plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/*.py
 ### "Skill directory already exists"
 
 init_skill.py won't overwrite existing directories:
+
 ```bash
 # Remove or rename existing directory first
 mv ~/.claude/skills/pdf-editor ~/.claude/skills/pdf-editor.backup

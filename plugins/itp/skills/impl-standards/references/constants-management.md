@@ -1,4 +1,4 @@
-**Skill**: [Implement Plan Engineering Standards](/skills/implement-plan-engineering-standards/SKILL.md)
+**Skill**: [Implement Plan Engineering Standards](../SKILL.md)
 
 # Constants Management
 
@@ -84,7 +84,7 @@ from importlib.metadata import version
 __version__ = version("mypackage")
 ```
 
-See [`semantic-release` skill](/skills/semantic-release/SKILL.md) for version management.
+See [`semantic-release` skill](../../semantic-release/SKILL.md) for version management.
 
 ---
 
@@ -98,7 +98,7 @@ PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/p
 uv run --script "$PLUGIN_DIR/skills/code-hardcode-audit/scripts/audit_hardcodes.py" -- src/
 ```
 
-See [`code-hardcode-audit` skill](/skills/code-hardcode-audit/SKILL.md) for details.
+See [`code-hardcode-audit` skill](../../code-hardcode-audit/SKILL.md) for details.
 
 ---
 

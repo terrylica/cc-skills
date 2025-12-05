@@ -1,4 +1,4 @@
-**Skill**: [semantic-release](/skills/semantic-release/SKILL.md)
+**Skill**: [semantic-release](../SKILL.md)
 
 ## Troubleshooting
 

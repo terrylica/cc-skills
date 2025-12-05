@@ -33,7 +33,7 @@ ADR: {adr-id}
 | Rust       | `//! ...\n//! ADR: {adr-id}`         | `// ADR: {adr-id} - reason` |
 | Go         | `// Package ... \n// ADR: {adr-id}`  | `// ADR: {adr-id} - reason` |
 
-See [Language Patterns](/skills/adr-code-traceability/references/language-patterns.md) for complete examples.
+See [Language Patterns](./references/language-patterns.md) for complete examples.
 
 ---
 
@@ -47,7 +47,7 @@ Is this a NEW file created by the ADR?
     └── No → Skip ADR reference
 ```
 
-See [Placement Guidelines](/skills/adr-code-traceability/references/placement-guidelines.md) for detailed guidance.
+See [Placement Guidelines](./references/placement-guidelines.md) for detailed guidance.
 
 ---
 
@@ -87,5 +87,5 @@ const rateLimiter = new TokenBucketLimiter({ rate: 100, burst: 20 });
 
 ## Reference Documentation
 
-- [Language Patterns](/skills/adr-code-traceability/references/language-patterns.md) - Python, TS, Rust, Go patterns
-- [Placement Guidelines](/skills/adr-code-traceability/references/placement-guidelines.md) - When and where to add
+- [Language Patterns](./references/language-patterns.md) - Python, TS, Rust, Go patterns
+- [Placement Guidelines](./references/placement-guidelines.md) - When and where to add

@@ -1,5 +1,4 @@
-**Skill**: [Skill Architecture](/skills/skill-architecture/SKILL.md)
-
+**Skill**: [Skill Architecture](../SKILL.md)
 
 ## Part 2: How Agent Skills Work (Token Efficiency)
 
@@ -28,4 +27,4 @@ For authentication details, see reference.md section "OAuth Flow".
 For examples, consult examples.md.
 ```
 
-______________________________________________________________________
+---

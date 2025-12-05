@@ -136,8 +136,6 @@ GitHub Actions workflows must NEVER include:
 
 When creating or modifying GitHub Actions workflows, Claude Code will check CLAUDE.md and this skill to ensure compliance.
 
-**Reference**: [GitHub Actions Prohibition ADR](/docs/adr/2025-11-21-github-actions-no-testing-linting.md)
-
 ---
 
 ## Separation of Concerns (4-Level Architecture)
@@ -243,9 +241,9 @@ git remote -v          # Verify remote format
 gh auth status  # Verify active account matches repo owner
 ```
 
-See [Local Release Workflow](/skills/semantic-release/references/local-release-workflow.md) for complete detection sequence and resolution patterns.
+See [Local Release Workflow](./references/local-release-workflow.md) for complete detection sequence and resolution patterns.
 
-See [Authentication Guide](/skills/semantic-release/references/authentication.md) for SSH and gh CLI setup.
+See [Authentication Guide](./references/authentication.md) for SSH and gh CLI setup.
 
 ### Step 2: Initialize Project
 
@@ -260,7 +258,7 @@ PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/p
 
 ### Step 3: Run Release Locally
 
-Follow the [Local Release Workflow](/skills/semantic-release/references/local-release-workflow.md) for the complete process.
+Follow the [Local Release Workflow](./references/local-release-workflow.md) for the complete process.
 
 **Quick commands**:
 
@@ -283,7 +281,7 @@ The workflow guides you through:
 
 ### Step 4: PyPI Publishing (Python Projects)
 
-**For Python packages**: semantic-release handles versioning, use the [`pypi-doppler`](/skills/pypi-doppler/SKILL.md) skill for local PyPI publishing.
+**For Python packages**: semantic-release handles versioning, use the [`pypi-doppler`](../pypi-doppler/SKILL.md) skill for local PyPI publishing.
 
 **Quick setup**:
 
@@ -303,7 +301,7 @@ chmod +x scripts/publish-to-pypi.sh
 ./scripts/publish-to-pypi.sh  # 30 seconds vs 3-5 minutes with GitHub Actions
 ```
 
-See [`pypi-doppler` skill](/skills/pypi-doppler/SKILL.md) for complete workflow with CI detection guards.
+See [`pypi-doppler` skill](../pypi-doppler/SKILL.md) for complete workflow with CI detection guards.
 
 ### Step 5: GitHub Actions (Optional)
 
@@ -317,13 +315,13 @@ Repository Settings → Actions → General → Workflow permissions → Enable 
 
 For detailed information, see:
 
-- [Authentication](/skills/semantic-release/references/authentication.md) - **START HERE** - SSH keys, GitHub CLI web auth (avoid manual tokens)
-- [Local Release Workflow](/skills/semantic-release/references/local-release-workflow.md) - Step-by-step release process with issue resolution
-- [Workflow Patterns](/skills/semantic-release/references/workflow-patterns.md) - Personal, Team, and Standalone project patterns
-- [Version Alignment](/skills/semantic-release/references/version-alignment.md) - Git tags as SSoT, manifest patterns, runtime version access
-- [2025 Updates](/skills/semantic-release/references/2025-updates.md) - v25 changelog, Node.js 24+, OIDC trusted publishing, plugin versions
-- [Python Projects with Node.js semantic-release](/skills/semantic-release/references/python-projects-nodejs-semantic-release.md) - Complete guide for Python package automation with @semantic-release/exec
-- [`pypi-doppler` skill](/skills/pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler credentials and CI detection guards
-- [Monorepo Support](/skills/semantic-release/references/monorepo-support.md) - pnpm/npm workspaces configuration
-- [Troubleshooting](/skills/semantic-release/references/troubleshooting.md) - Common issues and solutions
-- [Resources](/skills/semantic-release/references/resources.md) - Scripts, templates, and asset documentation
+- [Authentication](./references/authentication.md) - **START HERE** - SSH keys, GitHub CLI web auth (avoid manual tokens)
+- [Local Release Workflow](./references/local-release-workflow.md) - Step-by-step release process with issue resolution
+- [Workflow Patterns](./references/workflow-patterns.md) - Personal, Team, and Standalone project patterns
+- [Version Alignment](./references/version-alignment.md) - Git tags as SSoT, manifest patterns, runtime version access
+- [2025 Updates](./references/2025-updates.md) - v25 changelog, Node.js 24+, OIDC trusted publishing, plugin versions
+- [Python Projects with Node.js semantic-release](./references/python-projects-nodejs-semantic-release.md) - Complete guide for Python package automation with @semantic-release/exec
+- [`pypi-doppler` skill](../pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler credentials and CI detection guards
+- [Monorepo Support](./references/monorepo-support.md) - pnpm/npm workspaces configuration
+- [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
+- [Resources](./references/resources.md) - Scripts, templates, and asset documentation

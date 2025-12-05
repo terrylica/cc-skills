@@ -1,4 +1,4 @@
-**Skill**: [ADR Code Traceability](/skills/adr-code-traceability/SKILL.md)
+**Skill**: [ADR Code Traceability](../SKILL.md)
 
 # ADR Reference Placement Guidelines
 
@@ -50,11 +50,11 @@ Is this a NEW file created by the ADR?
 
 ## File Header vs Inline Comment
 
-| Placement | Use For | Example |
-|-----------|---------|---------|
-| **File header** | Entire file implements ADR | New service, new module |
-| **Inline comment** | Specific code block relates to ADR | Algorithm choice, config value |
-| **Both** | New file with specific non-obvious sections | New file with workaround |
+| Placement          | Use For                                     | Example                        |
+| ------------------ | ------------------------------------------- | ------------------------------ |
+| **File header**    | Entire file implements ADR                  | New service, new module        |
+| **Inline comment** | Specific code block relates to ADR          | Algorithm choice, config value |
+| **Both**           | New file with specific non-obvious sections | New file with workaround       |
 
 ---
 
