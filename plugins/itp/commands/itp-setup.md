@@ -12,17 +12,15 @@ Verify and install all dependencies required by the `/itp` workflow.
 Run the bundled verification script:
 
 ```bash
-# Environment-agnostic path (works for both plugin and manual installation)
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
+# Environment-agnostic path (explicit fallback for marketplace installation)
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
 ```
 
 Or auto-install missing tools:
 
 ```bash
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --install
 ```
 
