@@ -33,6 +33,15 @@
       "category": "development",
       "author": {"name": "Terry Li"},
       "keywords": ["github", "pull-request", "gfm", "link-validation", "gh-cli"]
+    },
+    {
+      "name": "link-validator",
+      "description": "Validate markdown link portability in Claude Code skills and plugins. Ensures relative paths for cross-installation compatibility.",
+      "version": "1.0.0",
+      "source": "./plugins/link-validator/",
+      "category": "development",
+      "author": {"name": "Terry Li"},
+      "keywords": ["markdown", "links", "validation", "portability", "relative-paths"]
     }
   ]
 }
