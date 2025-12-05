@@ -37,10 +37,10 @@ cp -r /tmp/cc-skills/plugins/skill-architecture ~/.claude/skills/
 
 Marketplace plugin commands display with the `plugin:command` format:
 
-| Display Format   | Meaning                           |
-| ---------------- | --------------------------------- |
-| `/itp:itp`       | Plugin `itp`, command `itp`       |
-| `/itp:itp-setup` | Plugin `itp`, command `itp-setup` |
+| Display Format | Meaning                       |
+| -------------- | ----------------------------- |
+| `/itp:itp`     | Plugin `itp`, command `itp`   |
+| `/itp:setup`   | Plugin `itp`, command `setup` |
 
 **Why the colon format?**
 
@@ -63,7 +63,7 @@ cc-skills/
 │   │   ├── references/
 │   │   └── scripts/
 │   ├── itp/                 # ADR-driven development workflow
-│   │   ├── commands/        # /itp, /itp-setup slash commands
+│   │   ├── commands/        # /itp:itp, /itp:setup slash commands
 │   │   ├── skills/          # 8 bundled skills
 │   │   └── scripts/
 │   ├── gh-tools/            # GitHub workflow automation
@@ -106,7 +106,7 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 
 **Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, pypi-doppler, semantic-release
 
-**Triggers**: `/itp`, `/itp-setup`, ADR workflow, plan execution
+**Triggers**: `/itp:itp`, `/itp:setup`, ADR workflow, plan execution
 
 ### gh-tools
 
