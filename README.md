@@ -9,6 +9,7 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [skill-architecture](./plugins/skill-architecture/) | Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns | development  |
 | [itp](./plugins/itp/)                               | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release          | productivity |
 | [gh-tools](./plugins/gh-tools/)                     | GitHub workflow automation with intelligent GFM link validation for PRs                                          | development  |
+| [link-validator](./plugins/link-validator/)         | Validate markdown link portability in skills and plugins (relative paths for cross-installation compatibility)   | development  |
 
 ## Installation
 
@@ -32,6 +33,23 @@ git clone git@github.com:terrylica/cc-skills.git /tmp/cc-skills
 cp -r /tmp/cc-skills/plugins/skill-architecture ~/.claude/skills/
 ```
 
+## Slash Command Naming Convention
+
+Marketplace plugin commands display with the `plugin:command` format:
+
+| Display Format   | Meaning                           |
+| ---------------- | --------------------------------- |
+| `/itp:itp`       | Plugin `itp`, command `itp`       |
+| `/itp:itp-setup` | Plugin `itp`, command `itp-setup` |
+
+**Why the colon format?**
+
+- **Display**: Claude Code always shows the full `plugin:command` namespace in autocomplete and command lists
+- **Invocation**: You may type `/itp` directly if no naming conflicts exist with other installed plugins
+- **Clarity**: The namespace identifies which plugin provides each command
+
+This is standard Claude Code behavior for marketplace plugins - the display format cannot be changed, but shorter invocation works when unambiguous.
+
 ## Repository Structure
 
 ```text
@@ -48,8 +66,12 @@ cc-skills/
 │   │   ├── commands/        # /itp, /itp-setup slash commands
 │   │   ├── skills/          # 8 bundled skills
 │   │   └── scripts/
-│   └── gh-tools/            # GitHub workflow automation
-│       └── skills/          # pr-gfm-validator
+│   ├── gh-tools/            # GitHub workflow automation
+│   │   └── skills/          # pr-gfm-validator
+│   └── link-validator/      # Markdown link portability validation
+│       ├── SKILL.md
+│       ├── scripts/         # validate_links.py
+│       └── references/
 ├── plugin.json              # Root plugin config
 ├── package.json             # Node.js + semantic-release
 └── README.md
@@ -97,6 +119,18 @@ Validates and fixes GitHub Flavored Markdown links in PR descriptions:
 - Integrates with `gh` CLI workflows
 
 **Triggers**: PR creation, GFM validation, link checking
+
+### link-validator
+
+**Validate markdown link portability for skills and plugins.**
+
+Ensures markdown links use relative paths (`./`, `../`) for cross-installation compatibility:
+
+- Detects absolute repo paths that break when installed elsewhere
+- Suggests relative path fixes
+- Zero dependencies (PEP 723 inline script)
+
+**Triggers**: link validation, portability check, relative paths, before skill distribution
 
 ## License
 
