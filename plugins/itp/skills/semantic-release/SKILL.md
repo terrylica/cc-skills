@@ -163,12 +163,41 @@ semantic-release analyzes commit messages to determine version bumps:
 <type>(<scope>): <subject>
 ```
 
-### Version Bump Rules
+### Version Bump Rules (Default)
 
 - `feat:` → MINOR version bump (0.1.0 → 0.2.0)
 - `fix:` → PATCH version bump (0.1.0 → 0.1.1)
 - `BREAKING CHANGE:` or `feat!:` → MAJOR version bump (0.1.0 → 1.0.0)
-- `docs:`, `chore:`, `style:`, `refactor:`, `perf:`, `test:` → No version bump
+- `docs:`, `chore:`, `style:`, `refactor:`, `perf:`, `test:` → No version bump (by default)
+
+### Marketplace Plugin Configuration (Always Bump)
+
+For Claude Code marketplace plugins, **every change requires a version bump** for users to receive updates. Configure `releaseRules` to trigger patch releases on all commit types:
+
+```yaml
+# .releaserc.yml
+plugins:
+  - - "@semantic-release/commit-analyzer"
+    - releaseRules:
+        # Marketplace plugins require version bump for ANY change
+        - { type: "docs", release: "patch" }
+        - { type: "chore", release: "patch" }
+        - { type: "style", release: "patch" }
+        - { type: "refactor", release: "patch" }
+        - { type: "test", release: "patch" }
+        - { type: "build", release: "patch" }
+        - { type: "ci", release: "patch" }
+```
+
+**Result after configuration:**
+
+| Commit Type                                                        | Release Type       |
+| ------------------------------------------------------------------ | ------------------ |
+| `feat:`                                                            | minor (default)    |
+| `fix:`, `perf:`, `revert:`                                         | patch (default)    |
+| `docs:`, `chore:`, `style:`, `refactor:`, `test:`, `build:`, `ci:` | patch (configured) |
+
+**Why marketplace plugins need this**: Plugin updates are distributed via version tags. Without a version bump, users running `/plugin update` see no changes even if content was modified.
 
 ### MANDATORY: Every Release Must Increment Version
 
