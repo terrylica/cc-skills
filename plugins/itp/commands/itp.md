@@ -313,9 +313,8 @@ The skill provides:
 Run validator:
 
 ```bash
-# Environment-agnostic path (relative to script location)
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
+# Environment-agnostic path (explicit fallback for marketplace installation)
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 uv run "$PLUGIN_DIR/skills/implement-plan-preflight/scripts/preflight-validator.py" $ADR_ID
 ```
 
