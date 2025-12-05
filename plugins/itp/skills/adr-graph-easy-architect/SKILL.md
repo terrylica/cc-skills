@@ -79,14 +79,13 @@ fi
 ### Layer 4: Verify graph-easy is in PATH
 
 ```bash
-# Verify graph-easy is accessible (installed via mise or cpan)
+# Verify graph-easy is accessible and functional
 command -v graph-easy &>/dev/null || {
   echo "ERROR: graph-easy not found in PATH"
-  echo "If using mise: mise exec perl -- graph-easy --version"
   exit 1
 }
-graph-easy --version 2>&1 | head -1
-echo "✓ graph-easy ready"
+# Test actual functionality (--version exits with code 2, unreliable)
+echo "[Test] -> [OK]" | graph-easy &>/dev/null && echo "✓ graph-easy ready"
 ```
 
 ### All-in-One Preflight Script
@@ -115,12 +114,13 @@ else
   perl -MGraph::Easy -e1 2>/dev/null || cpanm Graph::Easy
 fi
 
-# Verify graph-easy is in PATH
+# Verify graph-easy is in PATH and functional
 command -v graph-easy &>/dev/null || {
   echo "ERROR: graph-easy not in PATH after installation"
   exit 1
 }
-graph-easy --version 2>&1 | head -1 && echo "✓ graph-easy ready"
+# Test actual functionality (--version exits with code 2, unreliable)
+echo "[Test] -> [OK]" | graph-easy &>/dev/null && echo "✓ graph-easy ready"
 ```
 
 ---

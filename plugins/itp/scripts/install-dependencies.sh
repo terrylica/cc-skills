@@ -210,10 +210,10 @@ else
     INSTALL_CPANM=$(get_install_cmd cpanminus)
 fi
 # Check graph-easy: direct command OR via mise perl
-# Note: graph-easy --version exits with code 2, so we check output instead
-if command -v graph-easy &>/dev/null; then
-    echo -e "${GREEN}✓${NC} graph-easy ($(graph-easy --version 2>&1 | head -1 || echo 'installed'))"
-elif $HAS_MISE && { mise exec perl -- graph-easy --version 2>&1 || true; } | grep -q "Graph::Easy"; then
+# Note: graph-easy --version hangs (waits for stdin) AND exits with code 2, so test functionality instead
+if command -v graph-easy &>/dev/null && echo "[A]" | graph-easy &>/dev/null; then
+    echo -e "${GREEN}✓${NC} graph-easy (functional)"
+elif $HAS_MISE && echo "[A]" | mise exec perl -- graph-easy &>/dev/null; then
     echo -e "${GREEN}✓${NC} graph-easy (via mise perl)"
 else
     echo -e "${RED}✗${NC} graph-easy (missing)"
