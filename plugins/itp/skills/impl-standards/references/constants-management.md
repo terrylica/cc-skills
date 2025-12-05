@@ -93,9 +93,9 @@ See [`semantic-release` skill](../../semantic-release/SKILL.md) for version mana
 Before release, audit for hardcoded values:
 
 ```bash
-# Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
-uv run --script "$PLUGIN_DIR/skills/code-hardcode-audit/scripts/audit_hardcodes.py" -- src/
+# Requires CLAUDE_PLUGIN_ROOT to be set (available in plugin context)
+# For manual runs, set to your plugin installation directory
+uv run --script "$CLAUDE_PLUGIN_ROOT/skills/code-hardcode-audit/scripts/audit_hardcodes.py" -- src/
 ```
 
 See [`code-hardcode-audit` skill](../../code-hardcode-audit/SKILL.md) for details.

@@ -19,6 +19,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -207,37 +208,39 @@ def run_semgrep(target: Path, excludes: list[str]) -> list[Finding]:
 
 def run_jscpd(target: Path, excludes: list[str]) -> list[Finding]:
     """Run jscpd via npx and return findings."""
-    cmd = ["npx", "jscpd", "--reporters", "json", "--output", "/tmp/jscpd-report", str(target)]
-    for pattern in excludes:
-        cmd.extend(["--ignore", pattern])
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_dir = Path(tmpdir)
+        cmd = ["npx", "jscpd", "--reporters", "json", "--output", str(output_dir), str(target)]
+        for pattern in excludes:
+            cmd.extend(["--ignore", pattern])
 
-    try:
-        subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        report_path = Path("/tmp/jscpd-report/jscpd-report.json")
-        if report_path.exists():
-            data = json.loads(report_path.read_text())
-            findings = []
-            for i, dup in enumerate(data.get("duplicates", [])):
-                first = dup.get("firstFile", {})
-                second = dup.get("secondFile", {})
-                findings.append(
-                    Finding(
-                        id=f"JSCPD-{i + 1:03d}",
-                        tool="jscpd",
-                        rule="duplicate-code",
-                        file=first.get("name", ""),
-                        line=first.get("startLoc", {}).get("line", 0),
-                        end_line=first.get("endLoc", {}).get("line"),
-                        message=f"Clone detected with {second.get('name', '')} "
-                        f"({dup.get('lines', 0)} lines, "
-                        f"{dup.get('fragment', '')})",
-                        severity="low",
-                        suggested_fix="Extract to shared function or module",
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            report_path = output_dir / "jscpd-report.json"
+            if report_path.exists():
+                data = json.loads(report_path.read_text())
+                findings = []
+                for i, dup in enumerate(data.get("duplicates", [])):
+                    first = dup.get("firstFile", {})
+                    second = dup.get("secondFile", {})
+                    findings.append(
+                        Finding(
+                            id=f"JSCPD-{i + 1:03d}",
+                            tool="jscpd",
+                            rule="duplicate-code",
+                            file=first.get("name", ""),
+                            line=first.get("startLoc", {}).get("line", 0),
+                            end_line=first.get("endLoc", {}).get("line"),
+                            message=f"Clone detected with {second.get('name', '')} "
+                            f"({dup.get('lines', 0)} lines, "
+                            f"{dup.get('fragment', '')})",
+                            severity="low",
+                            suggested_fix="Extract to shared function or module",
+                        )
                     )
-                )
-            return findings
-    except (json.JSONDecodeError, FileNotFoundError, subprocess.TimeoutExpired) as e:
-        print(f"jscpd error: {e}", file=sys.stderr)
+                return findings
+        except (json.JSONDecodeError, FileNotFoundError, subprocess.TimeoutExpired) as e:
+            print(f"jscpd error: {e}", file=sys.stderr)
     return []
 
 

@@ -13,7 +13,7 @@ s1_pass=0
 s2_pass=0
 s3_pass=0
 
-for skill_md in $(find /Users/terryli/.claude/skills -name "SKILL.md" -type f); do
+for skill_md in $(find "$HOME/.claude/skills" -name "SKILL.md" -type f 2>/dev/null); do
   total_skills=$((total_skills + 1))
   skill_name=$(basename $(dirname "$skill_md"))
 
