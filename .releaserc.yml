@@ -2,7 +2,18 @@ branches:
   - main
 
 plugins:
-  - "@semantic-release/commit-analyzer"
+  - - "@semantic-release/commit-analyzer"
+    - releaseRules:
+        # Marketplace plugins require version bump for ANY change
+        # Default: feat=minor, fix=patch, perf=patch, revert=patch
+        # Added: all other types trigger patch release
+        - { type: "docs", release: "patch" }
+        - { type: "chore", release: "patch" }
+        - { type: "style", release: "patch" }
+        - { type: "refactor", release: "patch" }
+        - { type: "test", release: "patch" }
+        - { type: "build", release: "patch" }
+        - { type: "ci", release: "patch" }
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/changelog"
   - - "@semantic-release/exec"
