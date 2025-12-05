@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # itp plugin dependency installer
-# Usage: ./install-dependencies.sh [--check|--install]
+# ADR: 2025-12-05-itp-setup-todowrite-workflow
+# Usage: ./install-dependencies.sh [--check|--install|--detect-only|--yes]
 # Supports: macOS (Homebrew), Ubuntu/Debian (apt)
 
 set -euo pipefail
@@ -64,6 +65,17 @@ HAS_MISE=false
 if command -v mise &>/dev/null; then
     HAS_MISE=true
 fi
+
+# ============================================================================
+# Disclaimer Function - ADR: 2025-12-05-itp-setup-todowrite-workflow
+# ============================================================================
+
+show_disclaimer() {
+    echo ""
+    echo -e "${BLUE}Note:${NC} This plugin is developed against latest tool versions."
+    echo "Your existing installations are respected and will not be reinstalled."
+    echo "If you encounter compatibility issues, report or consider upgrading."
+}
 
 # Get platform-specific install command for a tool
 # Prefers mise where available for cross-platform consistency
@@ -178,6 +190,15 @@ install_tool() {
 # Detect platform first
 detect_platform
 
+# Handle --detect-only mode - ADR: 2025-12-05-itp-setup-todowrite-workflow
+if [ "$MODE" = "--detect-only" ]; then
+    echo "Platform detected:"
+    echo "  OS=$OS"
+    echo "  PM=$PM"
+    echo "  HAS_MISE=$HAS_MISE"
+    exit 0
+fi
+
 echo "=== itp plugin dependency check ==="
 echo -e "Platform: ${BLUE}$OS${NC} | Package Manager: ${BLUE}$PM${NC} | mise: ${BLUE}$($HAS_MISE && echo 'yes' || echo 'no')${NC}"
 echo ""
@@ -246,12 +267,14 @@ echo ""
 # Summary
 echo "=== Summary ==="
 if [ "$MISSING" -eq 0 ]; then
-    echo -e "${GREEN}✅ All required dependencies installed${NC}"
+    echo -e "${GREEN}All required dependencies installed${NC}"
+    show_disclaimer
     exit 0
 else
-    echo -e "${YELLOW}⚠️  $MISSING dependencies missing${NC}"
+    echo -e "${YELLOW}$MISSING dependencies missing${NC}"
+    show_disclaimer
 
-    if [ "$MODE" = "--install" ]; then
+    if [ "$MODE" = "--install" ] || [ "$MODE" = "--yes" ]; then
         echo ""
         echo "=== Auto-Installing Missing Tools ==="
 

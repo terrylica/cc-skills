@@ -1,70 +1,219 @@
 ---
-description: Install and verify dependencies for itp plugin. Run before first use.
-allowed-tools: Read, Bash(brew:*), Bash(npm:*), Bash(cpanm:*), Bash(uv:*), Bash(which:*), Bash(command -v:*), Bash(PLUGIN_DIR:*)
+description: "SETUP COMMAND - Execute TodoWrite FIRST, then Check -> Gate -> Install -> Verify"
+allowed-tools: Read, Bash(brew:*), Bash(npm:*), Bash(cpanm:*), Bash(uv:*), Bash(which:*), Bash(command -v:*), Bash(PLUGIN_DIR:*), Bash(source:*), AskUserQuestion, TodoWrite, TodoRead
 ---
+
+<!--
+ADR: 2025-12-05-itp-setup-todowrite-workflow
+-->
 
 # ITP Setup
 
-Verify and install all dependencies required by the `/itp` workflow.
+Verify and install dependencies required by the `/itp` workflow using TodoWrite-driven interactive workflow.
 
-## Quick Check
+---
 
-Run the bundled verification script:
+## MANDATORY FIRST ACTION
 
-```bash
-# Environment-agnostic path (explicit fallback for marketplace installation)
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
-bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
+**YOUR FIRST ACTION MUST BE TodoWrite with the template below.**
+
+DO NOT:
+
+- Run any checks before TodoWrite
+- Skip the interactive gate
+- Install without user confirmation
+
+**Execute this TodoWrite template EXACTLY:**
+
+```
+TodoWrite with todos:
+- "Setup: Detect platform (macOS/Linux)" | pending | "Detecting platform"
+- "Setup: Check Core Tools (uv, gh, prettier)" | pending | "Checking Core Tools"
+- "Setup: Check ADR Diagram Tools (cpanm, graph-easy)" | pending | "Checking ADR Tools"
+- "Setup: Check Code Audit Tools (ruff, semgrep, jscpd)" | pending | "Checking Audit Tools"
+- "Setup: Check Release Tools (node, semantic-release)" | pending | "Checking Release Tools"
+- "Setup: Present findings and disclaimer" | pending | "Presenting findings"
+- "Setup: GATE - Await user decision" | pending | "Awaiting user decision"
+- "Setup: Install missing tools (if confirmed)" | pending | "Installing missing tools"
+- "Setup: Verify installation" | pending | "Verifying installation"
 ```
 
-Or auto-install missing tools:
+**After TodoWrite completes, proceed to Phase 1 below.**
+
+---
+
+## Phase 1: Preflight Check
+
+Mark each todo as `in_progress` before starting, `completed` when done.
+
+### Todo 1: Detect Platform
+
+```bash
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+source "$PLUGIN_DIR/scripts/install-dependencies.sh" --detect-only
+```
+
+Platform detection sets: `OS`, `PM` (package manager), `HAS_MISE`
+
+### Todo 2: Check Core Tools
+
+Check each tool using `command -v`:
+
+| Tool     | Check                 | Required |
+| -------- | --------------------- | -------- |
+| uv       | `command -v uv`       | Yes      |
+| gh       | `command -v gh`       | Yes      |
+| prettier | `command -v prettier` | Yes      |
+
+Record findings:
+
+- Found: `[OK] uv (installed)` -> mark completed
+- Missing: `[x] prettier (missing)` -> note for Phase 3
+
+### Todo 3: Check ADR Diagram Tools
+
+| Tool       | Check                             | Required     |
+| ---------- | --------------------------------- | ------------ |
+| cpanm      | `command -v cpanm`                | For diagrams |
+| graph-easy | `echo "[A]" \| graph-easy` (test) | For diagrams |
+
+### Todo 4: Check Code Audit Tools
+
+| Tool    | Check                | Required       |
+| ------- | -------------------- | -------------- |
+| ruff    | `command -v ruff`    | For code-audit |
+| semgrep | `command -v semgrep` | For code-audit |
+| jscpd   | `command -v jscpd`   | For code-audit |
+
+### Todo 5: Check Release Tools
+
+| Tool             | Check                            | Required      |
+| ---------------- | -------------------------------- | ------------- |
+| node             | `command -v node`                | For release   |
+| semantic-release | `npx semantic-release --version` | For release   |
+| doppler          | `command -v doppler`             | For PyPI only |
+
+---
+
+## Phase 2: Present Findings (Interactive Gate)
+
+### Todo 6: Present Findings
+
+Display summary with this format:
+
+```
+=== SETUP PREFLIGHT COMPLETE ===
+
+Found: X tools | Missing: Y tools
+
+Your existing installations:
+[OK] uv (0.4.9)
+[OK] gh (2.40.0)
+[x] prettier (missing)
+[OK] cpanm (installed)
+...
+
+Note: This plugin is developed against latest tool versions.
+Your existing installations are respected and will not be reinstalled.
+If you encounter issues, report or consider upgrading.
+
+Missing tools can be installed:
+  prettier -> npm i -g prettier
+  ruff -> uv tool install ruff
+```
+
+### Todo 7: GATE - Await User Decision
+
+**If missing tools exist, STOP and ask user:**
+
+Use AskUserQuestion with these options:
+
+```
+question: "Would you like to install the missing tools?"
+header: "Install"
+options:
+  - label: "Install missing"
+    description: "Automatically install all missing tools"
+  - label: "Skip"
+    description: "Show manual install commands and exit"
+```
+
+**IMPORTANT**: Do NOT proceed to Phase 3 until user responds.
+
+**If ALL tools present**: Mark todo completed, skip to "All set!" message, mark todos 8-9 as N/A.
+
+---
+
+## Phase 3: Installation (Conditional)
+
+### Todo 8: Install Missing Tools
+
+**Only execute if**:
+
+- User selected "Install missing"
+- OR `--install` flag was passed (skip interactive gate)
+
+Run installation commands for missing tools only:
 
 ```bash
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --install
 ```
 
-## Manual Dependency Verification
+**If user selected "Skip"**:
 
-If the script fails, manually verify each tool:
+- Display manual install commands
+- Mark todo as skipped
+- Exit cleanly
 
-### Core Tools (Required)
+### Todo 9: Verify Installation
 
-| Tool     | Check Command        | Install Command     |
-| -------- | -------------------- | ------------------- |
-| uv       | `uv --version`       | `brew install uv`   |
-| gh       | `gh --version`       | `brew install gh`   |
-| prettier | `prettier --version` | `npm i -g prettier` |
+Re-run checks to confirm tools are now available:
 
-### ADR Diagrams (Required for Preflight)
+```bash
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
+```
 
-| Tool       | Check Command                                | Install Command          |
-| ---------- | -------------------------------------------- | ------------------------ |
-| cpanm      | `cpanm --version`                            | `brew install cpanminus` |
-| graph-easy | `echo "[A]" \| graph-easy` (--version hangs) | `cpanm Graph::Easy`      |
+Mark todo completed only if verification passes.
 
-### Code Audit (Optional - for Phase 1)
+---
 
-| Tool    | Check Command       | Install Command        |
-| ------- | ------------------- | ---------------------- |
-| ruff    | `ruff --version`    | `uv tool install ruff` |
-| semgrep | `semgrep --version` | `brew install semgrep` |
-| jscpd   | `jscpd --version`   | `npm i -g jscpd`       |
+## Flag Handling
 
-### Release (Optional - for Phase 3)
+| Flag        | Behavior                                    |
+| ----------- | ------------------------------------------- |
+| (none)      | Default: Check -> Gate -> Ask permission    |
+| `--check`   | Same as default (hidden alias)              |
+| `--install` | Check -> Skip gate -> Install automatically |
+| `--yes`     | Alias for `--install`                       |
 
-| Tool             | Check Command                    | Install Command                |
-| ---------------- | -------------------------------- | ------------------------------ |
-| node             | `node --version`                 | `mise install node`            |
-| semantic-release | `npx semantic-release --version` | `npm i -g semantic-release@25` |
-| doppler          | `doppler --version`              | `brew install doppler`         |
+Parse `$ARGUMENTS` for flags:
 
-## Execution Instructions
+```bash
+case "$ARGUMENTS" in
+  *--install*|*--yes*)
+    SKIP_GATE=true
+    ;;
+  *)
+    SKIP_GATE=false
+    ;;
+esac
+```
 
-1. Run the `--check` command first to see what's missing
-2. Install missing tools using the commands above
-3. Re-run `--check` to verify all dependencies are installed
-4. You're ready to use `/itp` workflow!
+---
+
+## Edge Cases
+
+| Case                              | Handling                                                          |
+| --------------------------------- | ----------------------------------------------------------------- |
+| All tools present                 | Todos 1-6 complete, Todo 7 shows "All set!", Todos 8-9 marked N/A |
+| Some missing, user says "install" | Todos 8-9 execute normally                                        |
+| Some missing, user says "skip"    | Show manual commands, mark todos 8-9 as skipped                   |
+| `--install` flag passed           | Skip Todo 7 gate, proceed directly to install                     |
+| macOS vs Linux                    | Todo 1 detects platform, install commands adapt                   |
+
+---
 
 ## Troubleshooting
 
@@ -95,7 +244,7 @@ npx semantic-release --version
 mkdir -p ~/.npm-global
 npm config set prefix '~/.npm-global'
 
-# Add to your shell config (detects zsh vs bash)
+# Add to your shell config
 SHELL_RC="$([[ "$SHELL" == */zsh ]] && echo ~/.zshrc || echo ~/.bashrc)"
 echo 'export PATH=~/.npm-global/bin:$PATH' >> "$SHELL_RC"
 source "$SHELL_RC"
