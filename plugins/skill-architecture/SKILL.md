@@ -102,6 +102,7 @@ After ANY skill work, verify:
 - [ ] Validated with quick_validate.py
 - [ ] All markdown links use relative paths (plugin-portable)
 - [ ] No broken internal links (validate_links.py passes)
+- [ ] No unsafe path patterns in markdown (see [Path Patterns](./references/path-patterns.md))
 
 ---
 
@@ -380,6 +381,7 @@ For detailed information, see:
 - [Security Practices](./references/security-practices.md) - Threats and defenses (CVE references)
 - [Token Efficiency](./references/token-efficiency.md) - Context optimization
 - [Advanced Topics](./references/advanced-topics.md) - CLI vs API, composition, bugs
+- [Path Patterns](./references/path-patterns.md) - Safe/unsafe path references (known bugs documented)
 - [Validation Reference](./references/validation-reference.md) - Quality checklist
 - [SYNC-TRACKING](./references/SYNC-TRACKING.md) - Marketplace version tracking
 - [Evolution Log](./references/evolution-log.md) - This skill's change history
