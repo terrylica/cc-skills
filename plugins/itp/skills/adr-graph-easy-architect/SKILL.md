@@ -76,30 +76,17 @@ else
 fi
 ```
 
-### Layer 4: Wrapper script (mise-first, no PERL5LIB needed)
+### Layer 4: Verify graph-easy is in PATH
 
 ```bash
-# Create wrapper script for easy invocation
-if [[ ! -x ~/.local/bin/graph-easy ]]; then
-  echo "Creating graph-easy wrapper script..."
-  mkdir -p ~/.local/bin
-  if command -v mise &>/dev/null; then
-    # mise wrapper - no PERL5LIB needed
-    cat > ~/.local/bin/graph-easy << 'WRAPPER'
-#!/bin/bash
-exec mise exec perl -- graph-easy "$@"
-WRAPPER
-  else
-    # Legacy wrapper with PERL5LIB
-    cat > ~/.local/bin/graph-easy << 'WRAPPER'
-#!/bin/bash
-export PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
-exec "$HOME/perl5/bin/graph-easy" "$@"
-WRAPPER
-  fi
-  chmod +x ~/.local/bin/graph-easy
-fi
-echo "✓ Wrapper script ready at ~/.local/bin/graph-easy"
+# Verify graph-easy is accessible (installed via mise or cpan)
+command -v graph-easy &>/dev/null || {
+  echo "ERROR: graph-easy not found in PATH"
+  echo "If using mise: mise exec perl -- graph-easy --version"
+  exit 1
+}
+graph-easy --version 2>&1 | head -1
+echo "✓ graph-easy ready"
 ```
 
 ### All-in-One Preflight Script
@@ -115,13 +102,6 @@ if command -v mise &>/dev/null; then
   mise exec perl -- cpanm --version &>/dev/null 2>&1 || \
     mise exec perl -- curl -L https://cpanmin.us | mise exec perl -- perl - App::cpanminus
   mise exec perl -- perl -MGraph::Easy -e1 2>/dev/null || mise exec perl -- cpanm Graph::Easy
-  # Create mise-aware wrapper
-  [[ -x ~/.local/bin/graph-easy ]] || {
-    mkdir -p ~/.local/bin
-    echo '#!/bin/bash' > ~/.local/bin/graph-easy
-    echo 'exec mise exec perl -- graph-easy "$@"' >> ~/.local/bin/graph-easy
-    chmod +x ~/.local/bin/graph-easy
-  }
 else
   # Fallback: system package manager
   echo "💡 Tip: Install mise for unified tool management: curl https://mise.run | sh"
@@ -133,17 +113,14 @@ else
   command -v $PM &>/dev/null || { echo "ERROR: $PM not installed"; exit 1; }
   command -v cpanm &>/dev/null || { [ "$PM" = "apt" ] && sudo apt install -y cpanminus || brew install cpanminus; }
   perl -MGraph::Easy -e1 2>/dev/null || cpanm Graph::Easy
-  [[ -x ~/.local/bin/graph-easy ]] || {
-    mkdir -p ~/.local/bin
-    cat > ~/.local/bin/graph-easy << 'WRAPPER'
-#!/bin/bash
-export PERL5LIB="$HOME/perl5/lib/perl5:$PERL5LIB"
-exec "$HOME/perl5/bin/graph-easy" "$@"
-WRAPPER
-    chmod +x ~/.local/bin/graph-easy
-  }
 fi
-~/.local/bin/graph-easy --help | head -1 && echo "✓ graph-easy ready"
+
+# Verify graph-easy is in PATH
+command -v graph-easy &>/dev/null || {
+  echo "ERROR: graph-easy not in PATH after installation"
+  exit 1
+}
+graph-easy --version 2>&1 | head -1 && echo "✓ graph-easy ready"
 ```
 
 ---
@@ -414,7 +391,7 @@ graph { flow: south; }
 
 ```bash
 # MANDATORY: Always use --as=boxart for clean output
-~/.local/bin/graph-easy --as=boxart << 'EOF'
+graph-easy --as=boxart << 'EOF'
 graph { flow: south; }
 [A] -> [B] -> [C]
 EOF
@@ -434,7 +411,7 @@ EOF
 ```bash
 # 1. Write DSL to heredoc
 # 2. Render with boxart
-~/.local/bin/graph-easy --as=boxart << 'EOF'
+graph-easy --as=boxart << 'EOF'
 [Your] -> [Diagram] -> [Here]
 EOF
 
@@ -534,7 +511,7 @@ If ADR changes, regenerate by running the source through graph-easy again:
 
 ```bash
 # Extract source from <details> block, pipe through graph-easy
-~/.local/bin/graph-easy --as=boxart << 'EOF'
+graph-easy --as=boxart << 'EOF'
 # paste source here
 EOF
 ```
