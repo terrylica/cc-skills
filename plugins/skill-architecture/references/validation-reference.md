@@ -1,5 +1,23 @@
 **Skill**: [Skill Architecture](../SKILL.md)
 
+## Terminology: Audit vs Validate vs Verify
+
+These terms have distinct meanings in the skill ecosystem:
+
+| Term         | Definition                                  | Example Usage                               |
+| ------------ | ------------------------------------------- | ------------------------------------------- |
+| **audit**    | Detect violations, issues, or anti-patterns | `code-hardcode-audit` detects magic numbers |
+| **validate** | Check compliance with format/rules          | `link-validator` checks link portability    |
+| **verify**   | Confirm existence or state                  | Preflight verifies ADR artifacts exist      |
+
+**Guidelines**:
+
+- Use **audit** for skills that scan for problems (static analysis, code smells)
+- Use **validate** for skills that check format compliance (schemas, conventions)
+- Use **verify** for workflow checkpoints that confirm prerequisites
+
+---
+
 ## Part 9: Validation Checklist
 
 Before finalizing:

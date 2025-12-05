@@ -315,7 +315,7 @@ Run validator:
 ```bash
 # Environment-agnostic path (explicit fallback for marketplace installation)
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
-uv run "$PLUGIN_DIR/skills/implement-plan-preflight/scripts/preflight-validator.py" $ADR_ID
+uv run "$PLUGIN_DIR/skills/implement-plan-preflight/scripts/preflight_validator.py" $ADR_ID
 ```
 
 Or verify manually:

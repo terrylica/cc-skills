@@ -11,6 +11,38 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [gh-tools](./plugins/gh-tools/)                     | GitHub workflow automation with intelligent GFM link validation for PRs                                          | development  |
 | [link-validator](./plugins/link-validator/)         | Validate markdown link portability in skills and plugins (relative paths for cross-installation compatibility)   | development  |
 
+## Terminology
+
+Understanding the architectural hierarchy:
+
+| Term          | Definition                                                                                    | Location             | Example                          |
+| ------------- | --------------------------------------------------------------------------------------------- | -------------------- | -------------------------------- |
+| **Plugin**    | Marketplace-installable container with metadata, commands, and optional bundled skills        | `~/.claude/plugins/` | `itp`, `gh-tools`                |
+| **Skill**     | Executable agent with SKILL.md frontmatter; can be standalone or bundled within a plugin      | `~/.claude/skills/`  | `semantic-release`, `graph-easy` |
+| **Command**   | Slash command (`/plugin:command`) defined in `.md` file within plugin's `commands/` directory | Plugin's `commands/` | `/itp:setup`                     |
+| **Reference** | Supporting documentation in `references/` directory; not directly executable                  | `references/`        | `error-handling.md`              |
+
+**Hierarchy**:
+
+```
+Plugin (Container)
+├── commands/           → Slash commands (/plugin:command)
+├── skills/             → Bundled skills (copied to ~/.claude/skills/ on install)
+│   └── skill-name/
+│       ├── SKILL.md    → Skill definition (frontmatter + instructions)
+│       ├── scripts/    → Executable helpers
+│       └── references/ → Supporting docs
+├── scripts/            → Plugin-level utilities
+└── references/         → Plugin-level documentation
+```
+
+**Key distinctions**:
+
+- **install** → Acquire packages/tools via package manager (`brew install`, `npm install`)
+- **setup** → Verify environment post-installation (`/itp:setup` checks dependencies)
+- **init** → Create initial directory structure (one-time scaffolding)
+- **configure** → Adjust settings in config files (iterative customization)
+
 ## Installation
 
 ### Via Claude Code Plugin Marketplace

@@ -2,6 +2,17 @@
 
 # Marketplace Scripts Reference
 
+## Script Naming Conventions
+
+**Recommended**: `snake_case` for all new scripts.
+
+| Language | Convention   | Example                                   |
+| -------- | ------------ | ----------------------------------------- |
+| Python   | `snake_case` | `audit_hardcodes.py`, `validate_links.py` |
+| Shell    | `snake_case` | `init_project.sh`, `create_org_config.sh` |
+
+**Note**: Some legacy scripts use `kebab-case` (e.g., `publish-to-pypi.sh`, `install-dependencies.sh`). These are preserved for backwards compatibility. New scripts should use `snake_case`.
+
 Guide to using skill-creator scripts from the Anthropic marketplace.
 
 ## Script Locations

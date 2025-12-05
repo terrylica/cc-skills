@@ -92,7 +92,7 @@ Only if `-b` flag specified. See [Workflow Steps](./references/workflow-steps.md
 Run validator or manual checklist:
 
 ```bash
-uv run scripts/preflight-validator.py $ADR_ID
+uv run scripts/preflight_validator.py $ADR_ID
 ```
 
 **Checklist** (ALL must be true):
@@ -154,8 +154,8 @@ See [ADR Template](./references/adr-template.md) for full field descriptions.
 
 ```bash
 # Verify preflight artifacts
-uv run scripts/preflight-validator.py <adr-id>
+uv run scripts/preflight_validator.py <adr-id>
 
 # Example
-uv run scripts/preflight-validator.py 2025-12-01-my-feature
+uv run scripts/preflight_validator.py 2025-12-01-my-feature
 ```
