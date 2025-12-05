@@ -172,7 +172,16 @@ semantic-release analyzes commit messages to determine version bumps:
 
 ### Marketplace Plugin Configuration (Always Bump)
 
-For Claude Code marketplace plugins, **every change requires a version bump** for users to receive updates. Configure `releaseRules` to trigger patch releases on all commit types:
+For Claude Code marketplace plugins, **every change requires a version bump** for users to receive updates.
+
+**Option A: Shareable Config (if published)**
+
+```yaml
+# .releaserc.yml
+extends: "@terryli/semantic-release-config/marketplace"
+```
+
+**Option B: Inline Configuration**
 
 ```yaml
 # .releaserc.yml
