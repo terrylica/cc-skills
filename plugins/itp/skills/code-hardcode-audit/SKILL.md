@@ -6,7 +6,7 @@ allowed-tools: Bash, Read, Write, Glob, Grep
 
 # Code Hardcode Audit
 
-## Triggers
+## When to Use This Skill
 
 Use this skill when the user mentions:
 

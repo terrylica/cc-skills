@@ -8,10 +8,10 @@ Preflight Validator - Verify ADR and Design Spec artifacts exist.
 ADR: implement-plan-preflight skill
 
 Usage:
-    uv run preflight-validator.py <adr-id>
+    uv run preflight_validator.py <adr-id>
 
 Example:
-    uv run preflight-validator.py 2025-12-01-clickhouse-aws-ohlcv-ingestion
+    uv run preflight_validator.py 2025-12-01-clickhouse-aws-ohlcv-ingestion
 """
 
 import sys
@@ -209,8 +209,8 @@ def validate_spec_frontmatter(spec_path: Path) -> list[str]:
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: uv run preflight-validator.py <adr-id>")
-        print("Example: uv run preflight-validator.py 2025-12-01-my-feature")
+        print("Usage: uv run preflight_validator.py <adr-id>")
+        print("Example: uv run preflight_validator.py 2025-12-01-my-feature")
         sys.exit(1)
 
     adr_id = sys.argv[1]

@@ -13,7 +13,7 @@
       "version": "2.3.6",
       "source": "./plugins/skill-architecture/",
       "category": "development",
-      "author": {"name": "Terry Li"},
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
       "keywords": ["meta-skill", "skill-creation", "architecture", "templates"]
     },
     {
@@ -22,7 +22,7 @@
       "version": "2.3.6",
       "source": "./plugins/itp/",
       "category": "productivity",
-      "author": {"name": "Terry Li"},
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
       "keywords": ["adr", "workflow", "implementation", "release", "semantic-release"]
     },
     {
@@ -31,7 +31,7 @@
       "version": "2.3.6",
       "source": "./plugins/gh-tools/",
       "category": "development",
-      "author": {"name": "Terry Li"},
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
       "keywords": ["github", "pull-request", "gfm", "link-validation", "gh-cli"]
     },
     {
@@ -40,7 +40,7 @@
       "version": "2.3.6",
       "source": "./plugins/link-validator/",
       "category": "development",
-      "author": {"name": "Terry Li"},
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
       "keywords": ["markdown", "links", "validation", "portability", "relative-paths"]
     }
   ]

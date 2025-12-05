@@ -17,7 +17,7 @@ Skills with absolute repo paths break when installed elsewhere:
 | Relative        | `./references/guide.md` | Yes - always resolves   |
 | Relative parent | `../sibling/SKILL.md`   | Yes - always resolves   |
 
-## When to Use
+## When to Use This Skill
 
 - Before distributing a skill/plugin
 - After creating new markdown links in skills

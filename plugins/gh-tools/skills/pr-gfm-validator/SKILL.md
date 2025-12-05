@@ -7,7 +7,7 @@ description: Validate and auto-fix GitHub Flavored Markdown links in PR descript
 
 Validate and auto-convert GFM links in pull request descriptions to prevent 404 errors.
 
-## When This Skill Activates
+## When to Use This Skill
 
 This skill triggers when:
 
