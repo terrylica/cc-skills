@@ -4,6 +4,33 @@
 
 ---
 
+## 2025-12-04: Add Path Patterns Reference
+
+**Trigger**: `/itp:itp-setup` command failed due to unsupported `$(dirname "$0")` pattern in markdown.
+
+### Problem
+
+Command markdown files used `$(dirname "$0")` to resolve script paths, but `$0` is not set in the context where Claude reads markdown files. This is a known Claude Code bug ([#9354](https://github.com/anthropics/claude-code/issues/9354)).
+
+### Solution
+
+1. Created `references/path-patterns.md` documenting:
+   - **Safe patterns**: Explicit fallback paths, relative links, `${BASH_SOURCE[0]}` in scripts
+   - **Unsafe patterns**: `$(dirname "$0")` in markdown, bare `${CLAUDE_PLUGIN_ROOT}` without fallback
+   - **Related GitHub issues**: #9354, #11278
+   - **Migration guide**: How to find and fix unsafe patterns
+
+2. Added to Skill Quality Checklist:
+   - "No unsafe path patterns in markdown"
+
+3. Added to Reference Documentation list
+
+### Key Insight
+
+Environment variables and bash context (`$0`, `$SCRIPT_DIR`) behave differently in actual scripts vs. markdown documentation that Claude reads. Always use explicit fallback paths for marketplace plugins.
+
+---
+
 ## 2025-12-04: Add Continuous Improvement Section
 
 **Trigger**: User identified gap—skill had mechanics for self-evolution but no proactive trigger.
