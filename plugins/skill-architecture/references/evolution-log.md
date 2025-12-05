@@ -4,6 +4,38 @@
 
 ---
 
+## 2025-12-04: Expand Path Patterns for Script Portability
+
+**Trigger**: Multi-agent audit found hardcoded paths across all skills/scripts.
+
+### Problem
+
+Path-patterns.md only covered markdown-specific patterns. Scripts had transgressions:
+
+- `/Users/terryli/.claude/skills` (user-specific path)
+- `/tmp/jscpd-report` (hardcoded temp directory)
+- `~/.local/bin/graph-easy` (hardcoded binary location)
+
+### Solution
+
+1. Added 3 new unsafe patterns to `path-patterns.md`:
+   - **Pattern 4**: Hardcoded user-specific paths (`/Users/<user>`, `/home/<user>`)
+   - **Pattern 5**: Hardcoded temp directories (`/tmp`)
+   - **Pattern 6**: Hardcoded binary locations (`~/.local/bin/tool`)
+
+2. Expanded Validation Checklist with script-specific checks
+
+3. Updated Skill Quality Checklist with inline examples:
+   - Use `$HOME` not `/Users/<user>`
+   - Use `tempfile.TemporaryDirectory` not `/tmp`
+   - Use `command -v` not hardcoded paths
+
+### Key Insight
+
+Portability requires discipline in BOTH markdown AND scripts. Multi-agent parallel audit is effective for finding distributed issues across a codebase.
+
+---
+
 ## 2025-12-04: Add Path Patterns Reference
 
 **Trigger**: `/itp:itp-setup` command failed due to unsupported `$(dirname "$0")` pattern in markdown.

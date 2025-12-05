@@ -90,6 +90,57 @@ bash ~/.claude/plugins/itp/scripts/my-script.sh
 
 **Why it fails**: Marketplace plugins install to `~/.claude/plugins/marketplaces/<publisher>/<plugin>/`, not `~/.claude/plugins/<plugin>/`.
 
+### Pattern 4: Hardcoded User-Specific Paths
+
+```bash
+# ❌ BREAKS on other machines
+find /Users/terryli/.claude/skills -name "SKILL.md"
+cd /home/alice/projects
+```
+
+**Why it fails**: User-specific paths only work on the developer's machine. Always use `$HOME`:
+
+```bash
+# ✅ WORKS for all users
+find "$HOME/.claude/skills" -name "SKILL.md"
+```
+
+### Pattern 5: Hardcoded Temp Directories
+
+```python
+# ❌ Not portable (Windows, permissions, cleanup)
+output_dir = "/tmp/jscpd-report"
+```
+
+**Why it fails**: `/tmp` doesn't exist on Windows, may have permissions issues, and doesn't clean up.
+
+```python
+# ✅ WORKS - proper temp directory handling
+import tempfile
+with tempfile.TemporaryDirectory() as tmpdir:
+    output_dir = Path(tmpdir)
+    # Auto-cleans when context exits
+```
+
+### Pattern 6: Hardcoded Binary Locations
+
+```bash
+# ❌ Assumes specific installation location
+/opt/homebrew/bin/graph-easy --as=boxart
+~/.local/bin/uv publish
+```
+
+**Why it fails**: Tools can be installed via different methods (mise, homebrew, apt, cargo, etc.).
+
+```bash
+# ✅ WORKS - uses PATH resolution
+graph-easy --as=boxart
+
+# ✅ WORKS - command exists check first
+command -v uv &>/dev/null || { echo "uv not found"; exit 1; }
+uv publish
+```
+
 ---
 
 ## Context-Specific Guidance
@@ -107,11 +158,21 @@ bash ~/.claude/plugins/itp/scripts/my-script.sh
 
 When reviewing skills/plugins for path issues:
 
+**Markdown Files (.md):**
+
 - [ ] No `$(dirname "$0")` in any `.md` file
 - [ ] No `$(dirname "$SCRIPT_DIR")` in any `.md` file
 - [ ] All `${CLAUDE_PLUGIN_ROOT}` usages have explicit fallback
 - [ ] Fallback paths match actual marketplace structure
 - [ ] Relative links used for internal documentation
+
+**Scripts (.sh, .py):**
+
+- [ ] No hardcoded `/Users/<username>` or `/home/<username>` paths
+- [ ] Use `$HOME` or environment variables instead of user-specific paths
+- [ ] Use `tempfile` module (Python) or `mktemp` (Bash) for temp directories
+- [ ] Use `command -v` or PATH resolution for tool execution
+- [ ] No hardcoded binary locations like `~/.local/bin/tool` or `/opt/homebrew/bin/tool`
 
 ---
 
