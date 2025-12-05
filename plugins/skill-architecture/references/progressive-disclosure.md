@@ -1,4 +1,4 @@
-**Skill**: [Skill Architecture](/skills/skill-architecture/SKILL.md)
+**Skill**: [Skill Architecture](../SKILL.md)
 
 # Progressive Disclosure
 
@@ -30,12 +30,14 @@ description: Extract text, rotate, merge, split PDFs. Use when working with PDF 
 **Cost**: Moderate (part of context window)
 
 **Guidelines**:
+
 - Essential procedures only
 - Quick reference format
 - Link to references/ for details
 - Keep under 200 lines when possible
 
 **Example**:
+
 ```markdown
 ## Quick Start
 
@@ -53,17 +55,20 @@ See [Advanced Operations](/skills/pdf-editor/references/advanced.md) for complex
 **Cost**: High (full file content) or Zero (scripts execute without loading)
 
 **References** - Loaded when Claude needs deep context:
+
 ```markdown
 See [Schema Documentation](/skills/api-client/references/schema.md)
 ```
 
 **Scripts** - May execute without loading:
+
 ```bash
 scripts/rotate_pdf.py input.pdf 90
 # Claude runs without reading script content
 ```
 
 **Assets** - Never loaded (copied/modified only):
+
 ```markdown
 Copy template: `cp assets/template.html output.html`
 ```
@@ -73,22 +78,28 @@ Copy template: `cp assets/template.html output.html`
 ### Anti-Pattern: Monolithic SKILL.md
 
 ❌ **Bad**: 500-line SKILL.md with everything inline
+
 ```markdown
 # PDF Editor
 
 ## Rotation
+
 [50 lines of rotation details]
 
 ## Merging
+
 [100 lines of merge details]
 
 ## Splitting
+
 [80 lines of split details]
 
 ## Format Conversion
+
 [150 lines of conversion details]
 
 ## Troubleshooting
+
 [120 lines of error handling]
 ```
 
@@ -97,6 +108,7 @@ Copy template: `cp assets/template.html output.html`
 ### Pattern: Lean Entry + Rich References
 
 ✅ **Good**: Lean SKILL.md + detailed references
+
 ```markdown
 # PDF Editor
 
@@ -117,6 +129,7 @@ Common issues: See [Troubleshooting](/skills/pdf-editor/references/troubleshooti
 ## When to Use Each Level
 
 ### Put in SKILL.md (Level 2):
+
 - ✅ Common use cases (80% of tasks)
 - ✅ Quick reference commands
 - ✅ Navigation guide to references
@@ -124,6 +137,7 @@ Common issues: See [Troubleshooting](/skills/pdf-editor/references/troubleshooti
 - ✅ Tool restrictions (`allowed-tools`)
 
 ### Put in references/ (Level 3):
+
 - ✅ Detailed explanations (>100 words)
 - ✅ Edge cases and advanced scenarios
 - ✅ Comprehensive documentation
@@ -131,12 +145,14 @@ Common issues: See [Troubleshooting](/skills/pdf-editor/references/troubleshooti
 - ✅ Troubleshooting guides
 
 ### Put in scripts/ (Level 3):
+
 - ✅ Deterministic operations
 - ✅ Repeatedly rewritten code
 - ✅ External tool wrappers
 - ✅ Complex algorithms
 
 ### Put in assets/ (Level 3):
+
 - ✅ Templates (HTML, config files)
 - ✅ Images, icons, fonts
 - ✅ Boilerplate code
@@ -145,29 +161,36 @@ Common issues: See [Troubleshooting](/skills/pdf-editor/references/troubleshooti
 ## Real-World Example: BigQuery Skill
 
 **Before Progressive Disclosure** (400 lines):
+
 ```markdown
 # BigQuery
 
 ## Table Schemas
+
 [200 lines of schema documentation]
 
 ## Query Patterns
+
 [100 lines of query examples]
 
 ## Troubleshooting
+
 [100 lines of error handling]
 ```
 
 **After Progressive Disclosure** (80 lines + references):
-```markdown
+
+````markdown
 # BigQuery
 
 ## Quick Queries
 
 Find today's user logins:
+
 ```sql
 SELECT COUNT(*) FROM users WHERE login_date = CURRENT_DATE()
 ```
+````
 
 Complex queries: See Query Patterns (/skills/bigquery/references/query-patterns.md)
 
@@ -181,6 +204,7 @@ Grep for tables: `grep -i "table_name" /skills/bigquery/references/schema.md`
 ## Troubleshooting
 
 See Common Issues (/skills/bigquery/references/troubleshooting.md)
+
 ```
 
 **Result**:
@@ -201,3 +225,4 @@ See Common Issues (/skills/bigquery/references/troubleshooting.md)
 - SKILL.md too detailed (loads unnecessary content)
 - Duplicate content across SKILL.md and references
 - Unclear when to consult references
+```

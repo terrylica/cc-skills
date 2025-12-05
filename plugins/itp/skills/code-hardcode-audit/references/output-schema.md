@@ -1,4 +1,4 @@
-**Skill**: [Code Hardcode Audit](/skills/code-hardcode-audit/SKILL.md)
+**Skill**: [Code Hardcode Audit](../SKILL.md)
 
 # Output Schema
 
@@ -124,7 +124,7 @@ Summary: 5 findings (ruff: 2, semgrep: 2, jscpd: 1)
 ## Finding ID Format
 
 | Prefix   | Tool         | Example     |
-|----------|--------------|-------------|
+| -------- | ------------ | ----------- |
 | `RUFF-`  | Ruff PLR2004 | `RUFF-001`  |
 | `SGRP-`  | Semgrep      | `SGRP-001`  |
 | `JSCPD-` | jscpd        | `JSCPD-001` |
@@ -132,7 +132,7 @@ Summary: 5 findings (ruff: 2, semgrep: 2, jscpd: 1)
 ## Severity Levels
 
 | Level    | Meaning                         | Action                |
-|----------|---------------------------------|-----------------------|
+| -------- | ------------------------------- | --------------------- |
 | `high`   | Security risk or critical issue | Fix immediately       |
 | `medium` | Code quality issue              | Fix in current sprint |
 | `low`    | Minor improvement               | Track for later       |
@@ -140,7 +140,7 @@ Summary: 5 findings (ruff: 2, semgrep: 2, jscpd: 1)
 ## Tool-Specific Severity Mapping
 
 | Tool    | Default Severity | Notes                                 |
-|---------|------------------|---------------------------------------|
+| ------- | ---------------- | ------------------------------------- |
 | Ruff    | medium           | Magic numbers are quality issues      |
 | Semgrep | Varies by rule   | Credentials = high, timeframes = low  |
 | jscpd   | low              | Duplicates are refactoring candidates |

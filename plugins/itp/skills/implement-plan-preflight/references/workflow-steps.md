@@ -1,4 +1,4 @@
-**Skill**: [Implement Plan Preflight](/skills/implement-plan-preflight/SKILL.md)
+**Skill**: [Implement Plan Preflight](../SKILL.md)
 
 # Preflight Workflow Steps
 
@@ -60,29 +60,31 @@ git commit -m "wip: checkpoint before implementing <slug>" || true
 ### Actions
 
 1. Create directory if needed: `mkdir -p docs/adr`
-2. Create ADR file using template from [ADR Template](/skills/implement-plan-preflight/references/adr-template.md)
+2. Create ADR file using template from [ADR Template](./adr-template.md)
 3. Populate frontmatter from session context
 4. Add Design Spec link in header
 
 ### Frontmatter Population
 
 Extract from session context:
+
 - `decision-maker`: User who approved the plan
 - `consulted`: Agent perspectives used in research
 - `research-method`: How research was conducted
 - `clarification-iterations`: Number of AskUserQuestion rounds
-- `perspectives`: Select from [Perspectives Taxonomy](/skills/implement-plan-preflight/references/perspectives-taxonomy.md)
+- `perspectives`: Select from [Perspectives Taxonomy](./perspectives-taxonomy.md)
 
 ### Diagram Requirements (2 DIAGRAMS REQUIRED)
 
 **⛔ MANDATORY**: Every ADR must include EXACTLY 2 diagrams. Do NOT proceed without both.
 
-| Diagram | Location | Purpose |
-|---------|----------|---------|
-| **Before/After** | Context section | Shows system state change (what exists now vs. after implementation) |
-| **Architecture** | Architecture section | Shows component relationships and data flow |
+| Diagram          | Location             | Purpose                                                              |
+| ---------------- | -------------------- | -------------------------------------------------------------------- |
+| **Before/After** | Context section      | Shows system state change (what exists now vs. after implementation) |
+| **Architecture** | Architecture section | Shows component relationships and data flow                          |
 
 **SKILL INVOCATION (REQUIRED):**
+
 1. **Invoke Skill tool with `adr-graph-easy-architect` NOW**
 2. Create **Before/After diagram** first — embed in `## Context` section
 3. Create **Architecture diagram** second — embed in `## Architecture` section
@@ -138,13 +140,13 @@ last-updated: YYYY-MM-DD
 
 ### Frontmatter Field Descriptions
 
-| Field                   | Required | Description                                             |
-| ----------------------- | -------- | ------------------------------------------------------- |
-| `adr`                   | Yes      | ADR ID for programmatic linking                         |
-| `source`                | Yes      | Full path to global plan (ephemeral, for traceability)  |
-| `implementation-status` | Yes      | `in_progress`, `blocked`, `completed`, or `abandoned`   |
-| `phase`                 | Yes      | Current workflow phase                                  |
-| `last-updated`          | Yes      | Date of last spec modification                          |
+| Field                   | Required | Description                                            |
+| ----------------------- | -------- | ------------------------------------------------------ |
+| `adr`                   | Yes      | ADR ID for programmatic linking                        |
+| `source`                | Yes      | Full path to global plan (ephemeral, for traceability) |
+| `implementation-status` | Yes      | `in_progress`, `blocked`, `completed`, or `abandoned`  |
+| `phase`                 | Yes      | Current workflow phase                                 |
+| `last-updated`          | Yes      | Date of last spec modification                         |
 
 ### Link Format Rule
 
@@ -179,6 +181,7 @@ echo "Preflight complete: ADR and design spec created"
 
 **⛔ DIAGRAM VERIFICATION**: If either diagram is missing, STOP and invoke `adr-graph-easy-architect` skill.
 Search for `<!-- graph-easy source:` — you need TWO separate blocks.
+
 - [ ] Design spec exists at `/docs/design/$ADR_ID/spec.md`
 - [ ] Design spec has YAML frontmatter with all 5 required fields
 - [ ] Design spec has `implementation-status: in_progress`
@@ -207,10 +210,10 @@ Search for `<!-- graph-easy source:` — you need TWO separate blocks.
 
 ## Common Errors
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| ADR frontmatter missing fields | Incomplete template | Check all 7 required fields |
-| Design spec missing backlink | Forgot to add header | Add `**ADR**: [...]` link |
-| Diagrams not present | Skipped diagram step | Use Skill tool to invoke `adr-graph-easy-architect` |
-| Wrong slug format | Contains redundant words | Apply word economy rule |
-| Relative paths in links | Used `./` or `../` | Use `/docs/adr/...` format |
+| Error                          | Cause                    | Solution                                            |
+| ------------------------------ | ------------------------ | --------------------------------------------------- |
+| ADR frontmatter missing fields | Incomplete template      | Check all 7 required fields                         |
+| Design spec missing backlink   | Forgot to add header     | Add `**ADR**: [...]` link                           |
+| Diagrams not present           | Skipped diagram step     | Use Skill tool to invoke `adr-graph-easy-architect` |
+| Wrong slug format              | Contains redundant words | Apply word economy rule                             |
+| Relative paths in links        | Used `./` or `../`       | Use `/docs/adr/...` format                          |

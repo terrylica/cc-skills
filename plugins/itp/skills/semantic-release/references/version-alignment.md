@@ -1,4 +1,4 @@
-**Skill**: [semantic-release](/skills/semantic-release/SKILL.md)
+**Skill**: [semantic-release](../SKILL.md)
 
 # Version Alignment Standards
 
@@ -134,7 +134,7 @@ grep -rn "__version__ = " src/
 grep -rn "VERSION = " src/
 ```
 
-See [`code-hardcode-audit` skill](/skills/code-hardcode-audit/SKILL.md) for comprehensive detection.
+See [`code-hardcode-audit` skill](../../code-hardcode-audit/SKILL.md) for comprehensive detection.
 
 ---
 
@@ -192,4 +192,4 @@ plugins:
   - "@semantic-release/github"
 ```
 
-See [Python Projects Guide](/skills/semantic-release/references/python-projects-nodejs-semantic-release.md) for complete setup.
+See [Python Projects Guide](./python-projects-nodejs-semantic-release.md) for complete setup.

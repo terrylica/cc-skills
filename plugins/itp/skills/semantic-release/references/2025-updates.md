@@ -1,4 +1,4 @@
-**Skill**: [semantic-release](/skills/semantic-release/SKILL.md)
+**Skill**: [semantic-release](../SKILL.md)
 
 # semantic-release 2025 Updates
 
@@ -33,7 +33,7 @@
 
 All core plugins updated to latest stable versions (v25 compatible).
 
-Version source of truth: [`scripts/init_project.sh`](/skills/semantic-release/scripts/init_project.sh) (lines 146-153)
+Version source of truth: [`scripts/init_project.sh`](../scripts/init_project.sh) (lines 146-153)
 
 ## Workspace Support (2025)
 

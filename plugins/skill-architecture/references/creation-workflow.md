@@ -1,4 +1,4 @@
-**Skill**: [Skill Architecture](/skills/skill-architecture/SKILL.md)
+**Skill**: [Skill Architecture](../SKILL.md)
 
 # Creation Workflow
 
@@ -7,12 +7,13 @@ Step-by-step process for creating effective skills, merging marketplace best pra
 ## Overview
 
 Two complementary workflows:
+
 1. **Marketplace 6-Step Process** (comprehensive, uses scripts)
 2. **Manual Creation** (lightweight, no scripts)
 
 Choose based on complexity and tooling preferences.
 
-______________________________________________________________________
+---
 
 ## Marketplace 6-Step Process (Recommended)
 
@@ -21,12 +22,14 @@ ______________________________________________________________________
 Gather real examples of how the skill will be used.
 
 **Questions to ask**:
+
 - "What functionality should this skill support?"
 - "Can you give examples of how it would be used?"
 - "What would trigger this skill?"
 - "What file types or domains are involved?"
 
 **Example conversation**:
+
 ```
 User: "I need help rotating PDFs"
 You: "What else besides rotation? Merging? Splitting?"
@@ -43,13 +46,14 @@ Analyze each use case to identify resources needed.
 **Decision matrix**:
 
 | Task Type        | Resource Type | Example                        |
-|------------------|---------------|--------------------------------|
+| ---------------- | ------------- | ------------------------------ |
 | Repeated code    | scripts/      | PDF rotation algorithm         |
 | Domain knowledge | references/   | Database schemas, API docs     |
 | Templates/assets | assets/       | HTML boilerplate, config files |
 | Simple workflows | SKILL.md only | Basic instructions             |
 
 **Example analysis**:
+
 - "Rotating PDFs" → Code repeated each time → `scripts/rotate_pdf.py`
 - "Database queries" → Schema not memorized → `references/schema.md`
 - "Frontend apps" → Same boilerplate → `assets/template/`
@@ -63,6 +67,7 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/init_skill.py 
 ```
 
 **Creates**:
+
 ```
 ~/.claude/skills/pdf-editor/
 ├── SKILL.md (template with TODOs)
@@ -81,6 +86,7 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/init_skill.py 
 **A. Start with Resources**
 
 Implement planned resources from Step 2:
+
 - Write scripts in `scripts/`
 - Document schemas/APIs in `references/`
 - Add templates to `assets/`
@@ -90,11 +96,13 @@ May require user input (brand assets, credentials, etc.)
 **B. Update SKILL.md**
 
 Answer three questions:
+
 1. **What is the purpose?** (2-3 sentences)
 2. **When should it be used?** (Trigger keywords!)
 3. **How to use bundled resources?** (Commands, examples)
 
 **Writing style**: Imperative form (verb-first)
+
 - ✅ "To rotate a PDF, run `scripts/rotate_pdf.py <file> <degrees>`"
 - ❌ "You can rotate PDFs by running..."
 
@@ -109,6 +117,7 @@ description: Extract text and tables from PDFs, rotate pages, merge documents. U
 ```
 
 **Include**:
+
 - WHAT it does (specific capabilities)
 - WHEN to use (triggers: file types, keywords, domains)
 
@@ -121,6 +130,7 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.
 ```
 
 **Validates**:
+
 - [ ] YAML frontmatter format
 - [ ] Required fields present
 - [ ] Naming conventions
@@ -138,12 +148,13 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.
 5. **Repeat**: Test again
 
 **Common iterations**:
+
 - Add missing trigger keywords to description
 - Extract large SKILL.md sections to references/
 - Add scripts for repeatedly rewritten code
 - Improve examples with real use cases
 
-______________________________________________________________________
+---
 
 ## Manual Creation (Lightweight)
 
@@ -152,6 +163,7 @@ For simple skills without scripts/assets:
 ### Step 1: Define Purpose and Triggers
 
 Answer:
+
 - What specific problem does this solve?
 - What keywords would users naturally mention?
 - What file types or domains?
@@ -180,6 +192,7 @@ allowed-tools: Read, Grep, Bash # Optional, for security
 - Include examples
 
 Example:
+
 ```markdown
 ## Instructions
 
@@ -203,26 +216,38 @@ Example:
 - [ ] Tested for prompt injection
 - [ ] No unsafe file operations
 
-See [Security Practices](/skills/skill-architecture/references/security-practices.md)
+See [Security Practices](./security-practices.md)
 
-______________________________________________________________________
+---
 
 ## Common Creation Patterns
 
-See [Workflow Patterns](/skills/skill-architecture/references/workflow-patterns.md) for practical examples and workflow comparison.
+See [Workflow Patterns](./workflow-patterns.md) for practical examples and workflow comparison.
 
-______________________________________________________________________
+---
 
 ## User Conventions (Terry's Standards)
 
-When creating skills, follow conventions from [`~/.claude/CLAUDE.md`](/CLAUDE.md):
+<!-- Link to repo CLAUDE.md removed - not available in installed context -->
 
-### Absolute Paths
+When creating skills, follow conventions from `~/.claude/CLAUDE.md`:
 
-Always use absolute paths (iTerm2 Cmd+click compatible):
+### Relative Paths for Skill Links
+
+Use relative paths for links within the skill:
 
 ```markdown
-See [Schema](/skills/api-client/references/schema.md)  # Not: See references/schema.md
+# From SKILL.md to references/
+
+See [Schema](./references/schema.md)
+
+# From one reference to another
+
+See [Schema](./schema.md)
+
+# From reference back to SKILL.md
+
+See [Main Skill](../SKILL.md)
 ```
 
 ### Python Scripts
@@ -235,6 +260,7 @@ Use PEP 723 inline dependencies:
 # ///
 import yaml
 ```
+
 Run with: `uv run scripts/process.py`
 
 ### Unix-Only
@@ -253,7 +279,7 @@ For complex workflows, reference OpenAPI specs:
 See specification: [`specifications/workflow.yaml`](/specifications/workflow.yaml)
 ```
 
-______________________________________________________________________
+---
 
 ## Troubleshooting Creation
 
@@ -262,6 +288,7 @@ ______________________________________________________________________
 **Cause**: Description doesn't match user query
 
 **Fix**: Add more trigger keywords
+
 ```yaml
 # Before
 description: PDF manipulation tool
@@ -275,6 +302,7 @@ description: Extract text and tables from PDFs, rotate pages, merge documents. U
 **Cause**: Too much detail in main file
 
 **Fix**: Use progressive disclosure
+
 - Move details to `references/`
 - Keep only essential info in SKILL.md
 - Add navigation links
@@ -284,6 +312,7 @@ description: Extract text and tables from PDFs, rotate pages, merge documents. U
 **Cause**: Instructions unclear or incomplete
 
 **Fix**:
+
 - Add specific examples
 - Include error handling
 - Test instructions manually first
@@ -293,6 +322,7 @@ description: Extract text and tables from PDFs, rotate pages, merge documents. U
 **Cause**: Structural or format issues
 
 **Fix**: Run validation script for details
+
 ```bash
 plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.py <skill-path>
 ```

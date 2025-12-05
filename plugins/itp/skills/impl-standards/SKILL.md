@@ -46,7 +46,7 @@ except Exception:
     pass  # Error hidden
 ```
 
-See [Error Handling Reference](/skills/impl-standards/references/error-handling.md) for detailed patterns.
+See [Error Handling Reference](./references/error-handling.md) for detailed patterns.
 
 ---
 
@@ -63,7 +63,7 @@ response = requests.get(url, timeout=DEFAULT_API_TIMEOUT_SECONDS)
 response = requests.get(url, timeout=30)
 ```
 
-See [Constants Management Reference](/skills/impl-standards/references/constants-management.md) for patterns.
+See [Constants Management Reference](./references/constants-management.md) for patterns.
 
 ---
 
@@ -107,15 +107,15 @@ nohup python script.py > logs/2025-12-01-my-feature-20251201_143022.log 2>&1 &
 
 ## Related Skills
 
-| Skill                                                             | Purpose                                   |
-| ----------------------------------------------------------------- | ----------------------------------------- |
-| [`adr-code-traceability`](/skills/adr-code-traceability/SKILL.md) | Add ADR references to code                |
-| [`code-hardcode-audit`](/skills/code-hardcode-audit/SKILL.md)     | Detect hardcoded values before release    |
-| [`semantic-release`](/skills/semantic-release/SKILL.md)           | Version management and release automation |
+| Skill                                                        | Purpose                                   |
+| ------------------------------------------------------------ | ----------------------------------------- |
+| [`adr-code-traceability`](../adr-code-traceability/SKILL.md) | Add ADR references to code                |
+| [`code-hardcode-audit`](../code-hardcode-audit/SKILL.md)     | Detect hardcoded values before release    |
+| [`semantic-release`](../semantic-release/SKILL.md)           | Version management and release automation |
 
 ---
 
 ## Reference Documentation
 
-- [Error Handling](/skills/impl-standards/references/error-handling.md) - Raise + propagate patterns
-- [Constants Management](/skills/impl-standards/references/constants-management.md) - Magic number abstraction
+- [Error Handling](./references/error-handling.md) - Raise + propagate patterns
+- [Constants Management](./references/constants-management.md) - Magic number abstraction

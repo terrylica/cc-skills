@@ -96,12 +96,12 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 
 ## References
 
-- [Tool Comparison](/skills/code-hardcode-audit/references/tool-comparison.md) - Detailed tool capabilities
-- [Output Schema](/skills/code-hardcode-audit/references/output-schema.md) - JSON schema specification
-- [Troubleshooting](/skills/code-hardcode-audit/references/troubleshooting.md) - Common issues and fixes
+- [Tool Comparison](./references/tool-comparison.md) - Detailed tool capabilities
+- [Output Schema](./references/output-schema.md) - JSON schema specification
+- [Troubleshooting](./references/troubleshooting.md) - Common issues and fixes
 
 ## Related
 
 - ADR-0046: Semantic Constants Abstraction
 - ADR-0047: Code Hardcode Audit Skill
-- [`code-clone-assistant`](/skills/code-clone-assistant/SKILL.md) - PMD CPD-based clone detection (DRY focus)
+- `code-clone-assistant` - PMD CPD-based clone detection (DRY focus)

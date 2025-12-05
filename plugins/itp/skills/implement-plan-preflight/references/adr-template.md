@@ -1,4 +1,4 @@
-**Skill**: [Implement Plan Preflight](/skills/implement-plan-preflight/SKILL.md)
+**Skill**: [Implement Plan Preflight](../SKILL.md)
 
 # ADR Template (MADR 4.0)
 
@@ -159,6 +159,7 @@ Chosen option: **Option C**, because [rationale from AskUserQuestion iterations 
 **Format**: `YYYY-MM-DD-slug`
 
 **Examples**:
+
 - `2025-12-01-clickhouse-aws-ohlcv-ingestion`
 - `2025-11-28-telegram-bot-network-aware-supervision`
 

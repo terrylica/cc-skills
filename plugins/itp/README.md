@@ -162,7 +162,7 @@ The plan file in `~/.claude/plans/` is **ephemeral**—Claude uses random names 
 The `/itp` workflow captures these ephemeral artifacts as **permanent** records:
 
 > [!TIP]
-> **Why capture decisions immediately?** See [Claude Code Ephemeral Context](/skills/implement-plan-preflight/references/claude-code-ephemeral-context.md) for details on how plan files and question flows work—and why waiting means losing your architectural decisions.
+> **Why capture decisions immediately?** See [Claude Code Ephemeral Context](skills/implement-plan-preflight/references/claude-code-ephemeral-context.md) for details on how plan files and question flows work—and why waiting means losing your architectural decisions.
 
 ```
 📦 Artifact Transformation

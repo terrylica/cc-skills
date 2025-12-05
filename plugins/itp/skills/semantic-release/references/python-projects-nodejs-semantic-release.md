@@ -1,4 +1,4 @@
-**Skill**: [semantic-release](/skills/semantic-release/SKILL.md)
+**Skill**: [semantic-release](../SKILL.md)
 
 # Python Projects with semantic-release (Node.js) - 2025 Production Pattern
 
@@ -71,6 +71,7 @@ your-python-project/
 ```
 
 **Key points**:
+
 - `version`: Always `"0.0.0-development"` (managed by git tags)
 - `private: true`: Prevents accidental npm publish
 - `engines.node`: Minimum Node.js 22.14.0 (v24.10.0+ recommended for CI)
@@ -94,7 +95,7 @@ plugins:
 
   # Update version in pyproject.toml and build package
   - - "@semantic-release/exec"
-    - prepareCmd: "sed -i.bak 's/^version = \".*\"/version = \"${nextRelease.version}\"/' pyproject.toml && rm pyproject.toml.bak && uv build"
+    - prepareCmd: 'sed -i.bak ''s/^version = ".*"/version = "${nextRelease.version}"/'' pyproject.toml && rm pyproject.toml.bak && uv build'
       publishCmd: "echo 'Python package built successfully'"
 
   # Commit version changes back to repository
@@ -112,6 +113,7 @@ plugins:
 ```
 
 **Platform-specific sed commands**:
+
 - macOS/BSD: `sed -i.bak 's/pattern/replacement/' file && rm file.bak`
 - GNU/Linux: `sed -i 's/pattern/replacement/' file`
 
@@ -128,6 +130,7 @@ description = "Your package description"
 ```
 
 **Important**:
+
 - Do NOT use dynamic versioning (no `setuptools-scm`, `hatchling.version`)
 - Version will be updated directly by semantic-release via `sed`
 
@@ -183,12 +186,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -210,6 +213,7 @@ jobs:
 ```
 
 **Key points**:
+
 - `fetch-depth: 0`: Required for semantic-release to analyze commit history
 - Node.js 24: Latest LTS version (22+ works)
 - `npm ci`: Faster than `npm install`, uses package-lock.json
@@ -263,7 +267,7 @@ git push origin main
 ### Version Bump Rules
 
 | Commit Type                                              | Version Bump          | Example                          |
-|----------------------------------------------------------|-----------------------|----------------------------------|
+| -------------------------------------------------------- | --------------------- | -------------------------------- |
 | `feat:`                                                  | MINOR (0.1.0 → 0.2.0) | `feat: add Ethereum collector`   |
 | `fix:`                                                   | PATCH (0.1.0 → 0.1.1) | `fix: correct timestamp parsing` |
 | `BREAKING CHANGE:`                                       | MAJOR (0.1.0 → 1.0.0) | See below                        |
@@ -296,6 +300,7 @@ BREAKING CHANGE: Module imports have changed from old_name to new_name"
 **Cause**: Local commits not pushed or remote has changes
 
 **Solution**:
+
 ```bash
 git fetch
 git status
@@ -309,6 +314,7 @@ git push  # If ahead
 **Cause**: Running locally without GITHUB_TOKEN from gh CLI
 
 **Solution** (⚠️ AVOID manual tokens):
+
 ```bash
 # For testing (dry-run doesn't need real credentials)
 GITHUB_TOKEN=dummy npx semantic-release --dry-run
@@ -323,6 +329,7 @@ GITHUB_TOKEN=$(gh auth token) npx semantic-release
 **Cause**: GNU sed syntax differs from BSD sed (macOS)
 
 **Solution**: Use macOS-compatible syntax (works on both):
+
 ```bash
 sed -i.bak 's/pattern/replacement/' file && rm file.bak
 ```
@@ -332,16 +339,17 @@ sed -i.bak 's/pattern/replacement/' file && rm file.bak
 Add after the `@semantic-release/github` plugin in `.releaserc.yml`:
 
 ```yaml
-  # Publish to PyPI
-  - - "@semantic-release/exec"
-    - publishCmd: |
-        python -m pip install --upgrade twine
-        python -m twine upload dist/*
+# Publish to PyPI
+- - "@semantic-release/exec"
+  - publishCmd: |
+      python -m pip install --upgrade twine
+      python -m twine upload dist/*
 ```
 
 Set `TWINE_USERNAME` and `TWINE_PASSWORD` in GitHub Secrets.
 
 **Better: Use OIDC trusted publishing** (recommended 2025):
+
 1. Configure at https://pypi.org/manage/account/publishing/
 2. Update workflow to use `pypa/gh-action-pypi-publish@release/v1`
 

@@ -71,14 +71,14 @@ Example: `2025-12-01-clickhouse-aws-ohlcv-ingestion`
 
 ### Step P.1: Create Feature Branch (Optional)
 
-Only if `-b` flag specified. See [Workflow Steps](/skills/implement-plan-preflight/references/workflow-steps.md) for details.
+Only if `-b` flag specified. See [Workflow Steps](./references/workflow-steps.md) for details.
 
 ### Step P.2: Create ADR File
 
 1. Create `/docs/adr/$ADR_ID.md`
-2. Use template from [ADR Template](/skills/implement-plan-preflight/references/adr-template.md)
+2. Use template from [ADR Template](./references/adr-template.md)
 3. Populate frontmatter from session context
-4. Select perspectives from [Perspectives Taxonomy](/skills/implement-plan-preflight/references/perspectives-taxonomy.md)
+4. Select perspectives from [Perspectives Taxonomy](./references/perspectives-taxonomy.md)
 5. Use Skill tool to invoke `adr-graph-easy-architect` for diagrams
 
 ### Step P.3: Create Design Spec
@@ -123,7 +123,7 @@ perspectives: [Perspective1, Perspective2]
 ---
 ```
 
-See [ADR Template](/skills/implement-plan-preflight/references/adr-template.md) for full field descriptions.
+See [ADR Template](./references/adr-template.md) for full field descriptions.
 
 ---
 
@@ -144,9 +144,9 @@ See [ADR Template](/skills/implement-plan-preflight/references/adr-template.md) 
 
 ## Reference Documentation
 
-- [ADR Template](/skills/implement-plan-preflight/references/adr-template.md) - Complete MADR 4.0 template
-- [Perspectives Taxonomy](/skills/implement-plan-preflight/references/perspectives-taxonomy.md) - 11 perspective types
-- [Workflow Steps](/skills/implement-plan-preflight/references/workflow-steps.md) - Detailed step-by-step guide
+- [ADR Template](./references/adr-template.md) - Complete MADR 4.0 template
+- [Perspectives Taxonomy](./references/perspectives-taxonomy.md) - 11 perspective types
+- [Workflow Steps](./references/workflow-steps.md) - Detailed step-by-step guide
 
 ---
 

@@ -1,4 +1,4 @@
-**Skill**: [semantic-release](/skills/semantic-release/SKILL.md)
+**Skill**: [semantic-release](../SKILL.md)
 
 # Authentication for semantic-release
 
@@ -16,6 +16,7 @@ semantic-release requires **two types of authentication**:
 **Check first**: Verify SSH authentication for git operations
 
 **Verify SSH setup**:
+
 ```bash
 # Check git remote uses SSH
 git remote -v
@@ -27,6 +28,7 @@ ssh -T git@github.com
 ```
 
 **Context-aware SSH** (smart dynamic structure):
+
 ```ssh-config
 # ~/.ssh/config - Dynamic key selection based on directory patterns
 Match host github.com exec "echo $PWD | grep -q '/pattern1'"
@@ -40,12 +42,14 @@ Match host github.com exec "echo $PWD | grep -q '/pattern3'"
 ```
 
 **This smart structure automatically**:
+
 - ✅ Selects correct GitHub account based on directory path
 - ✅ Eliminates manual key management
 - ✅ Prevents authentication failures (proper config = no failures)
 - ✅ Works for all git operations (push, pull, clone)
 
 **Benefits**:
+
 - ✅ Automatic per-directory authentication
 - ✅ No manual credential management
 - ✅ Handles all git push/pull/tag operations
@@ -53,6 +57,7 @@ Match host github.com exec "echo $PWD | grep -q '/pattern3'"
 - ✅ No setup needed if properly configured
 
 **Setup** (if not working):
+
 ```bash
 # Verify key exists
 ls -la ~/.ssh/id_ed25519*
@@ -72,6 +77,7 @@ ssh-add ~/.ssh/id_ed25519_yourkey
 **Secondary check**: GitHub API authentication for creating releases
 
 **Verify gh CLI**:
+
 ```bash
 # Check gh CLI is authenticated
 gh auth status
@@ -79,6 +85,7 @@ gh auth status
 ```
 
 **Integration with npm scripts** (package.json):
+
 ```json
 "scripts": {
   "release": "GITHUB_TOKEN=$(gh auth token) semantic-release",
@@ -89,12 +96,14 @@ gh auth status
 **Note**: `gh auth token` retrieves credentials from gh CLI's web authentication - **never create manual tokens**.
 
 **Benefits**:
+
 - ✅ Web-based authentication via system keyring
 - ✅ Works with multiple GitHub accounts
 - ✅ No manual credential creation needed
 - ✅ Complements SSH (doesn't replace it)
 
 **Setup** (if not authenticated):
+
 ```bash
 gh auth login
 # Select: GitHub.com → HTTPS → Login with browser
@@ -105,7 +114,7 @@ gh auth login
 
 **If gh CLI authentication fails**, simply re-run `gh auth login` with web browser authentication.
 
-______________________________________________________________________
+---
 
 ## How They Work Together
 
@@ -124,7 +133,7 @@ Commit Changelog       Update Issues/PRs
 
 **Both are required and complementary** - not alternatives!
 
-______________________________________________________________________
+---
 
 ## Troubleshooting
 
@@ -133,6 +142,7 @@ ______________________________________________________________________
 **Diagnosis**: SSH key issue
 
 **Fix**:
+
 ```bash
 # 1. Test SSH
 ssh -T git@github.com
@@ -157,6 +167,7 @@ ssh-add ~/.ssh/id_ed25519_yourkey
 **Diagnosis**: gh CLI authentication missing (semantic-release needs GITHUB_TOKEN environment variable from gh CLI)
 
 **Fix** (web-based authentication):
+
 ```bash
 # 1. Check gh CLI authentication
 gh auth status
@@ -179,6 +190,7 @@ cat package.json | grep -A 2 "release"
 **Diagnosis**: SSH works (git operations) but gh CLI authentication missing
 
 **Fix** (web authentication):
+
 ```bash
 # SSH is working (Priority 1 ✅)
 # Need GitHub API auth (Priority 2)
@@ -202,17 +214,18 @@ gh auth status
 # .github/workflows/release.yml
 - name: Release
   env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Automatic GitHub credentials
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Automatic GitHub credentials
   run: npm run release
 ```
 
 **No manual setup needed** - GitHub provides credentials automatically via `GITHUB_TOKEN` secret.
 
 **Verify repository permissions**:
+
 - Settings → Actions → General → Workflow permissions
 - ✅ Enable "Read and write permissions"
 
-______________________________________________________________________
+---
 
 ## Authentication Architecture
 
@@ -241,7 +254,7 @@ ______________________________________________________________________
 └─────────────────────────────────────────────┘
 ```
 
-______________________________________________________________________
+---
 
 ## Best Practices
 
@@ -262,12 +275,12 @@ ______________________________________________________________________
 5. **Share credentials** between users or machines
 6. **Use personal access tokens** - ⚠️ AVOID - gh CLI web auth handles everything
 
-______________________________________________________________________
+---
 
 ## Quick Reference
 
 | Context                     | Git Operations          | GitHub API                                 |
-|-----------------------------|-------------------------|--------------------------------------------|
+| --------------------------- | ----------------------- | ------------------------------------------ |
 | **Local (npm run release)** | SSH keys (smart config) | gh CLI (web auth) - ⚠️ AVOID manual tokens |
 | **GitHub Actions**          | Automatic credentials   | Automatic credentials                      |
 

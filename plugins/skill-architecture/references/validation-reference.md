@@ -1,5 +1,4 @@
-**Skill**: [Skill Architecture](/skills/skill-architecture/SKILL.md)
-
+**Skill**: [Skill Architecture](../SKILL.md)
 
 ## Part 9: Validation Checklist
 
@@ -19,7 +18,7 @@ Before finalizing:
 - [ ] No duplicate functionality
 - [ ] Supporting files in scripts/, reference.md, examples.md
 
-______________________________________________________________________
+---
 
 ## Part 10: Quick Reference
 
@@ -48,7 +47,7 @@ description: Does X when user mentions Y (specific triggers)
 
 **Security**: Sandbox, restrict tools, validate inputs, no secrets.
 
-______________________________________________________________________
+---
 
 ## Resources
 
@@ -57,7 +56,7 @@ ______________________________________________________________________
 - **Template**: https://github.com/anthropics/skills/tree/main/template-skill
 - **Support**: https://support.claude.com/en/articles/12512198-how-to-create-custom-skills
 
-______________________________________________________________________
+---
 
 ## Meta-Example: This Agent Skill
 
@@ -75,7 +74,7 @@ This `agent-skill-builder` demonstrates its own principles:
 
 **Token usage**: ~50 tokens when inactive, ~2000 when fully loaded
 
-______________________________________________________________________
+---
 
 ## Summary
 

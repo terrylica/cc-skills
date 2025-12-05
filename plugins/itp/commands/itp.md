@@ -635,7 +635,7 @@ fi
 
 **MANDATORY Skill tool call: `semantic-release`** — activate NOW for version tagging and release.
 
-- Follow the [Local Release Workflow](/skills/semantic-release/references/local-release-workflow.md)
+- Follow the [Local Release Workflow](../skills/semantic-release/references/local-release-workflow.md)
 - Conventional commits → tag → release → changelog → push
 
 ### 3.3 PyPI Publishing (if -p flag)

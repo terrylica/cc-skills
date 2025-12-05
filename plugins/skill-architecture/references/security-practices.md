@@ -1,5 +1,4 @@
-**Skill**: [Skill Architecture](/skills/skill-architecture/SKILL.md)
-
+**Skill**: [Skill Architecture](../SKILL.md)
 
 ## Part 3: Security (Critical)
 
@@ -64,4 +63,3 @@ allowed-tools: Read, Bash # Blocks WebFetch to prevent data exfiltration
 Use environment variable $API_KEY from user's shell.
 Validate all inputs before API calls.
 ```
-

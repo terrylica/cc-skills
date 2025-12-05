@@ -1,6 +1,6 @@
-**Skill**: [semantic-release](/skills/semantic-release/SKILL.md)
+**Skill**: [semantic-release](../SKILL.md)
 
-> **Note**: For the canonical publish script with CI detection guards, see the [`pypi-doppler` skill](/skills/pypi-doppler/SKILL.md). This reference provides semantic-release integration context.
+> **Note**: For the canonical publish script with CI detection guards, see the [`pypi-doppler` skill](../../pypi-doppler/SKILL.md). This reference provides semantic-release integration context.
 
 # PyPI Publishing with Doppler Secret Management
 
@@ -16,6 +16,7 @@ This workflow solves two key problems:
 **Solution**: @semantic-release/exec plugin + Doppler CLI + local publishing workflow
 
 **Benefits**:
+
 - 10x faster publishing (30 seconds vs 5 minutes with GitHub Actions)
 - Encrypted secret storage with audit trails
 - Easy token rotation without code changes
@@ -26,12 +27,14 @@ This workflow solves two key problems:
 ### Traditional Workflow Issues
 
 **GitHub-Only semantic-release**:
+
 - Creates tags and releases on GitHub
 - Updates package.json (Node.js standard)
 - Does NOT update pyproject.toml (Python standard)
 - Result: pyproject.toml stuck at v1.0.0 despite GitHub having v2.1.2
 
 **GitHub Actions Publishing**:
+
 - Build environment setup: 1-2 min
 - Dependency installation: 1-2 min
 - Actual publishing: 30 sec
@@ -39,6 +42,7 @@ This workflow solves two key problems:
 - Slow feedback loop for publish failures
 
 **Plaintext Token Storage (~/.pypirc)**:
+
 - No encryption at rest
 - No centralized rotation capability
 - Version control risk (accidental commits)
@@ -49,6 +53,7 @@ This workflow solves two key problems:
 ### Separation of Concerns
 
 **GitHub Actions** (Automated, Fast):
+
 - Analyze conventional commits
 - Determine next version (major/minor/patch)
 - Update pyproject.toml, package.json via @semantic-release/exec
@@ -58,6 +63,7 @@ This workflow solves two key problems:
 - Time: 1-2 minutes
 
 **Local Workflow** (Manual, Controlled):
+
 - Pull latest version from GitHub
 - Build package with uv
 - Publish to PyPI with Doppler-managed credentials
@@ -119,17 +125,17 @@ uv --version        # Should show v0.5+
       {
         "preset": "conventionalcommits",
         "releaseRules": [
-          {"type": "feat", "release": "minor"},
-          {"type": "fix", "release": "patch"},
-          {"type": "perf", "release": "patch"},
-          {"type": "docs", "release": "patch"},
-          {"breaking": true, "release": "major"}
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "docs", "release": "patch" },
+          { "breaking": true, "release": "major" }
         ]
       }
     ],
     [
       "@semantic-release/release-notes-generator",
-      {"preset": "conventionalcommits"}
+      { "preset": "conventionalcommits" }
     ],
     [
       "@semantic-release/changelog",
@@ -144,10 +150,7 @@ uv --version        # Should show v0.5+
         "prepareCmd": "sed -i.bak 's/^version = \".*\"/version = \"${nextRelease.version}\"/' pyproject.toml && sed -i.bak 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' package.json && rm -f pyproject.toml.bak package.json.bak"
       }
     ],
-    [
-      "@semantic-release/npm",
-      {"npmPublish": false}
-    ],
+    ["@semantic-release/npm", { "npmPublish": false }],
     [
       "@semantic-release/github",
       {
@@ -167,6 +170,7 @@ uv --version        # Should show v0.5+
 ```
 
 **Key Points**:
+
 - `@semantic-release/exec` MUST come before `@semantic-release/git`
 - `prepareCmd` updates both pyproject.toml and package.json
 - `.bak` files created for macOS/BSD sed compatibility, then deleted
@@ -368,6 +372,7 @@ git push origin main
 **Symptom**: 403 Forbidden when publishing to PyPI
 
 **Causes**:
+
 1. Token format error (missing `pypi-` prefix)
 2. Token has extra quotes or newlines
 3. Token expired or revoked
@@ -392,6 +397,7 @@ doppler secrets get PYPI_TOKEN --plain | wc -l
 **Symptom**: Script fails at Step 0
 
 **Causes**:
+
 1. Wrong Doppler project/config selected
 2. Token never set
 3. Insufficient Doppler permissions
@@ -419,6 +425,7 @@ doppler secrets set PYPI_TOKEN='pypi-...'
 **Symptom**: GitHub release shows v2.1.3 but pyproject.toml still shows v1.0.0
 
 **Causes**:
+
 1. @semantic-release/exec not installed
 2. Plugin order wrong (exec after git)
 3. sed command syntax error
@@ -530,16 +537,17 @@ doppler configs tokens create github-actions --max-age 90d --plain
 
 ## Comparison: OIDC vs API Tokens
 
-| Feature               | OIDC Trusted Publishing         | API Tokens (this guide)      |
-|-----------------------|---------------------------------|------------------------------|
-| Setup complexity      | Medium (GitHub + PyPI config)   | Low (just generate token)    |
-| Security              | Highest (no long-lived secrets) | High (encrypted in Doppler)  |
-| Rotation              | Automatic (short-lived)         | Manual (90 days)             |
-| Local publishing      | ❌ Not supported                 | ✅ Fully supported            |
-| CI/CD publishing      | ✅ Ideal for automation          | ✅ Requires secret management |
-| Token compromise risk | None (ephemeral tokens)         | Low (encrypted, revocable)   |
+| Feature               | OIDC Trusted Publishing         | API Tokens (this guide)       |
+| --------------------- | ------------------------------- | ----------------------------- |
+| Setup complexity      | Medium (GitHub + PyPI config)   | Low (just generate token)     |
+| Security              | Highest (no long-lived secrets) | High (encrypted in Doppler)   |
+| Rotation              | Automatic (short-lived)         | Manual (90 days)              |
+| Local publishing      | ❌ Not supported                | ✅ Fully supported            |
+| CI/CD publishing      | ✅ Ideal for automation         | ✅ Requires secret management |
+| Token compromise risk | None (ephemeral tokens)         | Low (encrypted, revocable)    |
 
 **Recommendation**:
+
 - **Local publishing**: Use API tokens + Doppler (this guide)
 - **CI/CD-only publishing**: Use OIDC trusted publishing
 
@@ -555,6 +563,7 @@ This workflow was validated with gapless-crypto-clickhouse v2.1.3:
   - Total time: ~2 minutes (vs 5+ minutes with GitHub Actions publishing)
 
 **Key Files**:
+
 - `.releaserc.json` - semantic-release config with @semantic-release/exec
 - `scripts/publish-to-pypi.sh` - Local publishing script with Doppler
 - `.doppler.yaml` - Project configuration
