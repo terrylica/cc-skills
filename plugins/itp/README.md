@@ -220,7 +220,7 @@ graph { label: "📦 Artifact Transformation"; flow: east; }
 /plugin install cc-skills@itp
 
 # 3. Run setup (first time only)
-/itp-setup
+/itp:setup
 
 # 4. Use workflow
 /itp my-feature -b
@@ -251,7 +251,7 @@ git clone git@github.com:terrylica/cc-skills.git /tmp/cc-skills
 
 # 2. Copy commands
 cp /tmp/cc-skills/plugins/itp/commands/itp.md ~/.claude/commands/
-cp /tmp/cc-skills/plugins/itp/commands/itp-setup.md ~/.claude/commands/
+cp /tmp/cc-skills/plugins/itp/commands/setup.md ~/.claude/commands/
 
 # 3. Copy skills
 cp -r /tmp/cc-skills/plugins/itp/skills/* ~/.claude/skills/
