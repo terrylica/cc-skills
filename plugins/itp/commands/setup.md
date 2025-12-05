@@ -38,10 +38,10 @@ If the script fails, manually verify each tool:
 
 ### ADR Diagrams (Required for Preflight)
 
-| Tool       | Check Command          | Install Command          |
-| ---------- | ---------------------- | ------------------------ |
-| cpanm      | `cpanm --version`      | `brew install cpanminus` |
-| graph-easy | `graph-easy --version` | `cpanm Graph::Easy`      |
+| Tool       | Check Command                                | Install Command          |
+| ---------- | -------------------------------------------- | ------------------------ |
+| cpanm      | `cpanm --version`                            | `brew install cpanminus` |
+| graph-easy | `echo "[A]" \| graph-easy` (--version hangs) | `cpanm Graph::Easy`      |
 
 ### Code Audit (Optional - for Phase 1)
 
