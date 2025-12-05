@@ -102,7 +102,10 @@ After ANY skill work, verify:
 - [ ] Validated with quick_validate.py
 - [ ] All markdown links use relative paths (plugin-portable)
 - [ ] No broken internal links (validate_links.py passes)
-- [ ] No unsafe path patterns in markdown (see [Path Patterns](./references/path-patterns.md))
+- [ ] No unsafe path patterns (see [Path Patterns](./references/path-patterns.md)):
+  - No hardcoded `/Users/<user>` or `/home/<user>` (use `$HOME`)
+  - No hardcoded `/tmp` in Python (use `tempfile.TemporaryDirectory`)
+  - No hardcoded binary paths (use `command -v` or PATH)
 
 ---
 
