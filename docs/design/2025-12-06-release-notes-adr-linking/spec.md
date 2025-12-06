@@ -1,8 +1,8 @@
 ---
 adr: 2025-12-06-release-notes-adr-linking
 source: ~/.claude/plans/memoized-cooking-nygaard.md
-implementation-status: in_progress
-phase: phase-1
+implementation-status: completed
+phase: phase-3
 last-updated: 2025-12-06
 ---
 
