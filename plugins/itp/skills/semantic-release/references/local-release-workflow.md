@@ -107,14 +107,13 @@ git push https://github.com/user/repo.git main
 Set environment and run:
 
 ```bash
-export GIT_OPTIONAL_LOCKS=0
-GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci
+/usr/bin/env bash -c 'export GIT_OPTIONAL_LOCKS=0 && GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci'
 ```
 
 **For dry-run** (no changes):
 
 ```bash
-GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run'
 ```
 
 ### Step 5: Verify Post-Release State

@@ -149,7 +149,7 @@ node -e "require('js-yaml').load(require('fs').readFileSync('.releaserc.yml'))"
 ### Dry-Run Release Test
 
 ```bash
-GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run'
 ```
 
 ## Success Criteria

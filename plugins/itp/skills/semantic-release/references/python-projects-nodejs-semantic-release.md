@@ -240,7 +240,7 @@ npm install
 GITHUB_TOKEN=dummy npx semantic-release --dry-run
 
 # Real release (local, use gh CLI - ⚠️ AVOID manual tokens)
-GITHUB_TOKEN=$(gh auth token) npx semantic-release
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release'
 ```
 
 ### Automated Releases via GitHub Actions
@@ -321,7 +321,7 @@ GITHUB_TOKEN=dummy npx semantic-release --dry-run
 
 # For real release - use gh CLI web auth (⚠️ NEVER create manual tokens)
 # First authenticate: gh auth login
-GITHUB_TOKEN=$(gh auth token) npx semantic-release
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release'
 ```
 
 ### sed command fails on Linux

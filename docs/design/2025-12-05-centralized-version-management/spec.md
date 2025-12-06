@@ -116,7 +116,7 @@ npm run release
 ### From Local Machine
 
 ```bash
-CI=true GITHUB_TOKEN="$(gh auth token)" npm run release
+/usr/bin/env bash -c 'CI=true GITHUB_TOKEN="$(gh auth token)" npm run release'
 ```
 
 **Why CI=true?** semantic-release v25+ auto-enables dry-run mode outside CI environments as a safety feature.
@@ -124,7 +124,7 @@ CI=true GITHUB_TOKEN="$(gh auth token)" npm run release
 ### Dry Run
 
 ```bash
-GITHUB_TOKEN="$(gh auth token)" npm run release:dry
+/usr/bin/env bash -c 'GITHUB_TOKEN="$(gh auth token)" npm run release:dry'
 ```
 
 ## Implementation Journey

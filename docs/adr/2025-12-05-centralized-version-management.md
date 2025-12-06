@@ -181,7 +181,7 @@ npm run release
 ### From Local Machine
 
 ```bash
-CI=true GITHUB_TOKEN="$(gh auth token)" npm run release
+/usr/bin/env bash -c 'CI=true GITHUB_TOKEN="$(gh auth token)" npm run release'
 ```
 
 ### Testing the Script

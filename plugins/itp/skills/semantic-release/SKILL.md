@@ -336,10 +336,10 @@ Follow the [Local Release Workflow](./references/local-release-workflow.md) for 
 
 ```bash
 # Dry-run first (no changes)
-GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run'
 
 # Create actual release
-GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci'
 ```
 
 **Files updated instantly**: `package.json`, `CHANGELOG.md`, Git tags, GitHub release.
