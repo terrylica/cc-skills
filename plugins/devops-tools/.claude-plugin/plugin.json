@@ -1,6 +1,6 @@
 {
   "name": "devops-tools",
-  "version": "2.5.1",
+  "version": "2.6.0",
   "description": "Doppler credential workflows and Claude Code session recovery troubleshooting",
   "author": {
     "name": "Terry Li",

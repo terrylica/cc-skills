@@ -1,6 +1,6 @@
 {
   "name": "mql5-tools",
-  "version": "2.5.1",
+  "version": "2.6.0",
   "description": "MQL5 indicator development patterns for MetaTrader 5",
   "author": {
     "name": "Terry Li",

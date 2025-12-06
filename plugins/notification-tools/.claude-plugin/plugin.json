@@ -1,6 +1,6 @@
 {
   "name": "notification-tools",
-  "version": "2.5.1",
+  "version": "2.6.0",
   "description": "Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring",
   "author": {
     "name": "Terry Li",

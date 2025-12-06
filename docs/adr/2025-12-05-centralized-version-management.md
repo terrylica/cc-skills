@@ -107,8 +107,8 @@ The script (`scripts/sync-versions.mjs`) handles:
   │
   ∨
 ┌───────────────────┐                                     ┌────────────────────────┐
-│   4 JSON Files    │                                     │ @semantic-release/git  │
-│   (14 fields)     │ <─────────────────────────────────> │                        │
+│  10 JSON Files    │                                     │ @semantic-release/git  │
+│   (20 fields)     │ <─────────────────────────────────> │                        │
 └───────────────────┘                                     └────────────────────────┘
                                                             │
                                                             │ commit
@@ -128,7 +128,7 @@ graph { label: "🔄 Version Sync Architecture"; }
 [ Determined ] { label: "Version Determined"; origin: Commits; offset: 4,0; }
 [ PrepareCmd ] { label: "@semantic-release/exec\nprepareCmd"; origin: Determined; offset: 0,2; }
 [ SyncScript ] { label: "sync-versions.mjs"; origin: PrepareCmd; offset: -4,0; }
-[ JSONFiles ] { label: "4 JSON Files\n(14 fields)"; origin: SyncScript; offset: 0,2; }
+[ JSONFiles ] { label: "10 JSON Files\n(20 fields)"; origin: SyncScript; offset: 0,2; }
 [ GitPlugin ] { label: "@semantic-release/git"; origin: JSONFiles; offset: 4,0; }
 [ Release ] { shape: rounded; label: "GitHub Release"; origin: GitPlugin; offset: 0,2; }
 
@@ -144,7 +144,9 @@ graph { label: "🔄 Version Sync Architecture"; }
 
 ## Version Field Inventory
 
-### Files Synced (4 files, 14 fields)
+### Files Synced (10 files, 20 fields)
+
+**Core files (4 files, 14 fields):**
 
 | File                              | Fields | Validated |
 | --------------------------------- | ------ | --------- |
@@ -152,6 +154,14 @@ graph { label: "🔄 Version Sync Architecture"; }
 | `package.json`                    | 1      | ✓         |
 | `.claude-plugin/plugin.json`      | 1      | ✓         |
 | `.claude-plugin/marketplace.json` | 11     | ✓         |
+
+**Individual plugin files (6 files, 6 fields):**
+
+| File                                             | Fields | Validated |
+| ------------------------------------------------ | ------ | --------- |
+| `plugins/*/.claude-plugin/plugin.json` (dynamic) | 1 each | ✓         |
+
+The script dynamically discovers individual plugin.json files in `plugins/*/`.
 
 ### Protected Files (Not in script's file list)
 
