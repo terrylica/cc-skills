@@ -20,8 +20,7 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
     "@semantic-release/release-notes-generator": "^14.0.1",
-    "semantic-release": "^25.0.0",
-    "semantic-release-replace-plugin": "^1.2.7"
+    "semantic-release": "^25.0.0"
   },
   "engines": {
     "node": ">=22.0.0"
