@@ -48,7 +48,7 @@ const EXPECTED_COUNTS = {
   "plugin.json": 1,
   "package.json": 1,
   ".claude-plugin/plugin.json": 1,
-  ".claude-plugin/marketplace.json": 15, // 1 root + 14 plugins
+  ".claude-plugin/marketplace.json": 16, // 1 root + 15 plugins
 };
 
 // Version regex pattern
