@@ -11,6 +11,5 @@
   "keywords": ["skills", "meta-skill", "claude-code", "skill-architecture"],
   "claude-code": {
     "min-version": "1.0.0"
-  },
-  "hooks": "./hooks/hooks.json"
+  }
 }
