@@ -1,0 +1,78 @@
+---
+name: doppler-workflows
+description: Manages credentials and publishing workflows via Doppler. Use when publishing Python packages to PyPI, rotating AWS credentials, or managing secrets with Doppler.
+allowed-tools: Read, Bash
+---
+
+# Doppler Credential Workflows
+
+## Quick Reference
+
+**When to use this skill:**
+
+- Publishing Python packages to PyPI
+- Rotating AWS access keys
+- Managing credentials across multiple services
+- Troubleshooting authentication failures (403, InvalidClientTokenId)
+- Setting up Doppler credential injection patterns
+- Multi-token/multi-account strategies
+
+## Core Pattern: Doppler CLI
+
+**Standard Usage:**
+
+```bash
+doppler run --project <project> --config <config> --command='<command>'
+```
+
+**Why --command flag:**
+
+- Official Doppler pattern (auto-detects shell)
+- Ensures variables expand AFTER Doppler injects them
+- Without it: shell expands `$VAR` before Doppler runs → empty string
+
+---
+
+## Quick Start Examples
+
+### PyPI Publishing
+
+```bash
+doppler run --project claude-config --config dev \
+  --command='uv publish --token "$PYPI_TOKEN"'
+```
+
+### AWS Operations
+
+```bash
+doppler run --project aws-credentials --config dev \
+  --command='aws s3 ls --region $AWS_DEFAULT_REGION'
+```
+
+---
+
+## Best Practices
+
+1. Always use --command flag for credential injection
+2. Use project-scoped tokens (PyPI) for better security
+3. Rotate credentials regularly (90 days recommended)
+4. Document with Doppler notes: `doppler secrets notes set <SECRET> "<note>"`
+5. Use stdin for storing secrets: `echo -n 'secret' | doppler secrets set`
+6. Test injection before using: `echo ${#VAR}` to verify length
+7. Multi-token naming: `SERVICE_TOKEN_{ABBREV}` for clarity
+
+---
+
+## Reference Documentation
+
+For detailed information, see:
+
+- [PyPI Publishing](./references/pypi-publishing.md) - Token setup, publishing, troubleshooting
+- [AWS Credentials](./references/aws-credentials.md) - Rotation workflow, setup, troubleshooting
+- [Multi-Service Patterns](./references/multi-service-patterns.md) - Multiple PyPI packages, multiple AWS accounts
+- [AWS Workflow](./AWS_WORKFLOW.md) - Complete AWS credential management guide
+
+**Bundled Specifications:**
+
+- `PYPI_REFERENCE.yaml` - Complete PyPI spec
+- `AWS_SPECIFICATION.yaml` - AWS credential architecture

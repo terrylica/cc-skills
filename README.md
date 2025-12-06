@@ -10,6 +10,12 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [itp](./plugins/itp/)                               | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release          | productivity |
 | [gh-tools](./plugins/gh-tools/)                     | GitHub workflow automation with intelligent GFM link validation for PRs                                          | development  |
 | [link-validator](./plugins/link-validator/)         | Validate markdown link portability in skills and plugins (relative paths for cross-installation compatibility)   | development  |
+| [devops-tools](./plugins/devops-tools/)             | Doppler credential workflows and Claude Code session recovery troubleshooting                                    | devops       |
+| [dotfiles-tools](./plugins/dotfiles-tools/)         | Chezmoi dotfile management via natural language workflows                                                        | utilities    |
+| [latex-tools](./plugins/latex-tools/)               | LaTeX document automation with build, setup, and table generation skills                                         | documents    |
+| [mql5-tools](./plugins/mql5-tools/)                 | MQL5 indicator development patterns for MetaTrader 5                                                             | trading      |
+| [notification-tools](./plugins/notification-tools/) | Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring                                | utilities    |
+| [python-tools](./plugins/python-tools/)             | Pydantic v2 API documentation patterns for Python packages                                                       | development  |
 
 ## Terminology
 
@@ -88,22 +94,18 @@ This is standard Claude Code behavior for marketplace plugins - the display form
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry
+│   └── marketplace.json     # Plugin registry (10 plugins)
 ├── plugins/
 │   ├── skill-architecture/  # Meta-skill for creating skills
-│   │   ├── SKILL.md
-│   │   ├── references/
-│   │   └── scripts/
-│   ├── itp/                 # ADR-driven development workflow
-│   │   ├── commands/        # /itp:itp, /itp:setup slash commands
-│   │   ├── skills/          # 8 bundled skills
-│   │   └── scripts/
+│   ├── itp/                 # ADR-driven development workflow (8 bundled skills)
 │   ├── gh-tools/            # GitHub workflow automation
-│   │   └── skills/          # pr-gfm-validator
-│   └── link-validator/      # Markdown link portability validation
-│       ├── SKILL.md
-│       ├── scripts/         # validate_links.py
-│       └── references/
+│   ├── link-validator/      # Markdown link portability validation
+│   ├── devops-tools/        # Doppler credentials + session recovery
+│   ├── dotfiles-tools/      # Chezmoi dotfile management
+│   ├── latex-tools/         # LaTeX document automation
+│   ├── mql5-tools/          # MQL5 indicator development
+│   ├── notification-tools/  # Telegram + Pushover notifications
+│   └── python-tools/        # Pydantic v2 API documentation
 ├── plugin.json              # Root plugin config
 ├── package.json             # Node.js + semantic-release
 └── README.md
@@ -163,6 +165,68 @@ Ensures markdown links use relative paths (`./`, `../`) for cross-installation c
 - Zero dependencies (PEP 723 inline script)
 
 **Triggers**: link validation, portability check, relative paths, before skill distribution
+
+### devops-tools
+
+**Doppler credential workflows and Claude Code session recovery.**
+
+Two bundled skills:
+
+- **doppler-workflows** - PyPI publishing, AWS credential rotation, multi-service patterns
+- **session-recovery** - Troubleshoot Claude Code session issues and HOME variable problems
+
+**Triggers**: "publish to PyPI", "rotate AWS credentials", "sessions not saving"
+
+### dotfiles-tools
+
+**Chezmoi dotfile management via natural language workflows.**
+
+6 prompt patterns for tracking, syncing, and pushing dotfiles with SLO validation and secret detection.
+
+**Triggers**: "track my .zshrc", "sync dotfiles", "push dotfile changes"
+
+### latex-tools
+
+**LaTeX document automation with build, setup, and table generation.**
+
+Three bundled skills:
+
+- **latex-build** - Build automation with latexmk and live preview
+- **latex-setup** - macOS environment setup with MacTeX and Skim
+- **latex-tables** - Modern table creation with tabularray package
+
+**Triggers**: "compile LaTeX", "set up LaTeX on Mac", "create LaTeX table"
+
+### mql5-tools
+
+**MQL5 indicator development patterns for MetaTrader 5.**
+
+Battle-tested solutions for buffer management, display scaling, recalculation, and debugging patterns.
+
+**Triggers**: "create MQL5 indicator", "blank indicator window", "OnCalculate() debugging"
+
+### notification-tools
+
+**Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring.**
+
+Features:
+
+- Simultaneous Telegram + Pushover delivery
+- HTML formatting for Telegram, plain text for Pushover
+- Restart detection (startup, code change, crash)
+- Message archiving for debugging
+
+**Triggers**: "watchexec notifications", "send to Telegram and Pushover", "monitor process restarts"
+
+### python-tools
+
+**Pydantic v2 API documentation patterns for Python packages.**
+
+3-layer architecture: Literal Types → Pydantic Models → Rich Docstrings.
+
+Benefits: Single source of truth, AI agent discovery, IDE autocomplete, runtime validation.
+
+**Triggers**: "document Python API", "create Pydantic models", "generate JSON schema"
 
 ## License
 

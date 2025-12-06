@@ -83,11 +83,12 @@ console.log(`Files processed: ${FILES.length}`);
 console.log(`Total replacements: ${totalReplacements}`);
 
 // Validate expected counts
+// Note: marketplace.json count = 1 (root) + N (plugins array entries)
 const expected = {
   "plugin.json": 1,
   "package.json": 1,
   ".claude-plugin/plugin.json": 1,
-  ".claude-plugin/marketplace.json": 5,
+  ".claude-plugin/marketplace.json": 11,
 };
 
 let hasError = false;
@@ -106,8 +107,8 @@ if (hasError) {
   process.exit(1);
 }
 
-if (totalReplacements !== 8) {
-  console.error(`\nExpected 8 total replacements, got ${totalReplacements}`);
+if (totalReplacements !== 14) {
+  console.error(`\nExpected 14 total replacements, got ${totalReplacements}`);
   process.exit(1);
 }
 

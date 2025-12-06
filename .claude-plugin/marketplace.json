@@ -42,6 +42,60 @@
 "category": "development",
 "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
 "keywords": ["markdown", "links", "validation", "portability", "relative-paths"]
+},
+{
+"name": "devops-tools",
+"description": "Doppler credential workflows and Claude Code session recovery troubleshooting",
+"version": "2.5.2",
+"source": "./plugins/devops-tools/",
+"category": "devops",
+"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+"keywords": ["doppler", "credentials", "pypi", "aws", "session-recovery"]
+},
+{
+"name": "dotfiles-tools",
+"description": "Chezmoi dotfile management via natural language workflows",
+"version": "2.5.2",
+"source": "./plugins/dotfiles-tools/",
+"category": "utilities",
+"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+"keywords": ["chezmoi", "dotfiles", "configuration", "sync", "git"]
+},
+{
+"name": "latex-tools",
+"description": "LaTeX document automation with build, setup, and table generation skills",
+"version": "2.5.2",
+"source": "./plugins/latex-tools/",
+"category": "documents",
+"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+"keywords": ["latex", "documents", "build", "tables", "pdf", "mactex"]
+},
+{
+"name": "mql5-tools",
+"description": "MQL5 indicator development patterns for MetaTrader 5",
+"version": "2.5.2",
+"source": "./plugins/mql5-tools/",
+"category": "trading",
+"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+"keywords": ["mql5", "metatrader", "indicators", "trading", "mt5"]
+},
+{
+"name": "notification-tools",
+"description": "Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring",
+"version": "2.5.2",
+"source": "./plugins/notification-tools/",
+"category": "utilities",
+"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+"keywords": ["telegram", "pushover", "watchexec", "notifications", "monitoring"]
+},
+{
+"name": "python-tools",
+"description": "Pydantic v2 API documentation patterns for Python packages",
+"version": "2.5.2",
+"source": "./plugins/python-tools/",
+"category": "development",
+"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+"keywords": ["pydantic", "api-documentation", "python", "fastapi", "json-schema"]
 }
 ]
 }

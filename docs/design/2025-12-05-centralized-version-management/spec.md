@@ -80,15 +80,15 @@ node scripts/sync-versions.mjs 1.2.3
 
 ## Version Field Inventory
 
-### Files Synced (4 files, 8 fields)
+### Files Synced (4 files, 14 fields)
 
 | File                              | Fields | Expected |
 | --------------------------------- | ------ | -------- |
 | `plugin.json`                     | 1      | 1        |
 | `package.json`                    | 1      | 1        |
 | `.claude-plugin/plugin.json`      | 1      | 1        |
-| `.claude-plugin/marketplace.json` | 5      | 5        |
-| **Total**                         | **8**  | **8**    |
+| `.claude-plugin/marketplace.json` | 11     | 11       |
+| **Total**                         | **14** | **14**   |
 
 ### Protected Files (Not in script's file list)
 
@@ -220,7 +220,7 @@ const VERSION = 'X.Y.Z';
   ∨
 ┌───────────────────┐                                     ┌────────────────────────┐
 │   4 JSON Files    │                                     │ @semantic-release/git  │
-│    (8 fields)     │ <─────────────────────────────────> │                        │
+│   (14 fields)     │ <─────────────────────────────────> │                        │
 └───────────────────┘                                     └────────────────────────┘
                                                             │
                                                             │ commit
@@ -240,7 +240,7 @@ graph { label: "🔄 Version Sync Architecture"; }
 [ Determined ] { label: "Version Determined"; origin: Commits; offset: 4,0; }
 [ PrepareCmd ] { label: "@semantic-release/exec\nprepareCmd"; origin: Determined; offset: 0,2; }
 [ SyncScript ] { label: "sync-versions.mjs"; origin: PrepareCmd; offset: -4,0; }
-[ JSONFiles ] { label: "4 JSON Files\n(8 fields)"; origin: SyncScript; offset: 0,2; }
+[ JSONFiles ] { label: "4 JSON Files\n(14 fields)"; origin: SyncScript; offset: 0,2; }
 [ GitPlugin ] { label: "@semantic-release/git"; origin: JSONFiles; offset: 4,0; }
 [ Release ] { shape: rounded; label: "GitHub Release"; origin: GitPlugin; offset: 0,2; }
 
