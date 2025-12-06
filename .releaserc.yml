@@ -16,7 +16,7 @@ plugins:
         - { type: "ci", release: "patch" }
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/changelog"
-  # Idiomatic version replacement with validation (replaces sed-based approach)
+  # Idiomatic version replacement (replaces sed-based approach)
   # ADR: 2025-12-05-centralized-version-management
   - - "semantic-release-replace-plugin"
     - replacements:
@@ -25,44 +25,24 @@ plugins:
           from: '"version": "[0-9]+\\.[0-9]+\\.[0-9]+"'
           to: '"version": "${nextRelease.version}"'
           countMatches: true
-          results:
-            - file: plugin.json
-              hasChanged: true
-              numMatches: 1
-              numReplacements: 1
 
         # Root package.json (1 version field) - NOW SYNCED
         - files: ["package.json"]
-          from: '"version":"[0-9]+\\.[0-9]+\\.[0-9]+"'
-          to: '"version":"${nextRelease.version}"'
+          from: '"version": "[0-9]+\\.[0-9]+\\.[0-9]+"'
+          to: '"version": "${nextRelease.version}"'
           countMatches: true
-          results:
-            - file: package.json
-              hasChanged: true
-              numMatches: 1
-              numReplacements: 1
 
         # .claude-plugin/plugin.json (1 version field)
         - files: [".claude-plugin/plugin.json"]
           from: '"version": "[0-9]+\\.[0-9]+\\.[0-9]+"'
           to: '"version": "${nextRelease.version}"'
           countMatches: true
-          results:
-            - file: .claude-plugin/plugin.json
-              hasChanged: true
-              numMatches: 1
-              numReplacements: 1
 
         # .claude-plugin/marketplace.json (5 version fields)
         - files: [".claude-plugin/marketplace.json"]
           from: '"version": "[0-9]+\\.[0-9]+\\.[0-9]+"'
           to: '"version": "${nextRelease.version}"'
           countMatches: true
-          results:
-            - file: .claude-plugin/marketplace.json
-              hasChanged: true
-              numMatches: 5
-              numReplacements: 5
   - - "@semantic-release/git"
     - assets:
         - CHANGELOG.md
