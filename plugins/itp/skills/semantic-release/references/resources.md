@@ -33,6 +33,14 @@
 - Builds and publishes Python packages
 - Local-first approach (30 seconds vs 3-5 minutes in GitHub Actions)
 
+**generate-adr-notes.mjs**: Generate ADR/Design Spec links for release notes
+
+- Detects ADRs changed since last release via git diff
+- Parses commit messages for `ADR: YYYY-MM-DD-slug` references
+- Outputs markdown with full HTTPS URLs for GitHub releases
+- Used via `generateNotesCmd` in `@semantic-release/exec`
+- See [ADR Release Linking](./adr-release-linking.md) for configuration
+
 ### assets/templates/
 
 **shareable-config/**: Complete shareable config package template
