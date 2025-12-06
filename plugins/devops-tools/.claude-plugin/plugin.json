@@ -1,7 +1,7 @@
 {
   "name": "devops-tools",
-  "version": "2.6.2",
-  "description": "Doppler credential workflows and Claude Code session recovery troubleshooting",
+  "version": "3.0.0",
+  "description": "DevOps automation: Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery",
   "author": {
     "name": "Terry Li",
     "url": "https://github.com/terrylica"
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/terrylica/cc-skills",
   "repository": "https://github.com/terrylica/cc-skills",
   "license": "MIT",
-  "keywords": ["doppler", "credentials", "pypi", "aws", "session-recovery", "troubleshooting"]
+  "keywords": ["doppler", "credentials", "secrets", "validation", "telegram", "bot", "mlflow", "monitoring", "session-recovery", "troubleshooting"]
 }

@@ -1,0 +1,13 @@
+{
+  "name": "doc-build-tools",
+  "version": "3.0.0",
+  "description": "Document build automation: LaTeX compilation, Pandoc PDF generation, setup, and tables",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  },
+  "homepage": "https://github.com/terrylica/cc-skills",
+  "repository": "https://github.com/terrylica/cc-skills",
+  "license": "MIT",
+  "keywords": ["latex", "pandoc", "pdf", "documents", "build", "tables", "markdown", "mactex"]
+}
