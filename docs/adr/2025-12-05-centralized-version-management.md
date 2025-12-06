@@ -5,115 +5,202 @@ decision-maker: terrylica
 consulted: Claude Code (12-agent DCTL audit)
 research-method: Web research + local codebase analysis
 clarification-iterations: 3
+supersedes: sed-based version updates
 perspectives:
   - EcosystemArtifact
   - DeveloperExperience
 ---
 
-# Centralized Version Management with semantic-release-replace-plugin
+# Centralized Version Management with @semantic-release/exec
 
 ## Context and Problem Statement
 
-The cc-skills repository has version information scattered across 4 files with 8 total version fields. The current sed-based approach for version synchronization during releases has several problems:
+The cc-skills repository has version information scattered across 4 files with 8 total version fields. The original sed-based approach had several problems:
 
 1. **Platform-specific syntax**: `sed -i ''` is macOS-specific; Linux requires `sed -i`
-2. **Greedy matching**: Pattern `"version": "[^"]*"` matches ALL version fields indiscriminately
+2. **Greedy matching**: Pattern `"version": "[^"]*"` matches ALL version fields
 3. **No validation**: Silent failures if pattern doesn't match
-4. **Version drift**: package.json frozen at 1.0.0 while plugin.json is at 2.4.0
-5. **Template risk**: Could accidentally corrupt template files with placeholder versions
+4. **Version drift**: package.json frozen at 1.0.0 while plugin.json was at 2.4.0
+5. **Template risk**: Could corrupt template files with placeholder versions
 
 ## Research Summary
 
 ### Web Research Findings
 
-1. **semantic-release-replace-plugin** (Google-backed): Purpose-built for multi-file version sync with validation
-2. **@semantic-release/npm pkgRoot**: Can run multiple times but only for package.json files
-3. **Changesets**: Overkill for monolithic versioning (designed for independent package versioning)
-4. **jq-based scripts**: More robust than sed but still bespoke
+1. **semantic-release-replace-plugin**: Has [known bugs with results validation](https://github.com/jpoehnelt/semantic-release-replace-plugin/issues/164)
+2. **@semantic-release/exec**: Official plugin, full control via custom scripts
+3. **npm postversion hook**: [Officially recommended](https://semantic-release.gitbook.io/semantic-release/support/faq) for version file updates
+4. **Changesets**: Overkill for monolithic versioning
 
-### Local Codebase Analysis
+### Implementation Journey
 
-**Files requiring version sync (SYNC):**
-
-- `plugin.json` (1 field) - Source of truth
-- `package.json` (1 field) - Currently frozen at 1.0.0
-- `.claude-plugin/plugin.json` (1 field)
-- `.claude-plugin/marketplace.json` (5 fields - root + 4 plugins)
-
-**Files to protect (DO NOT SYNC):**
-
-- `plugins/itp/skills/semantic-release/assets/templates/package.json` (0.0.0-development)
-- `plugins/itp/skills/semantic-release/assets/templates/shareable-config/package.json` (1.0.0)
+| Attempt | Approach                                                  | Result                             |
+| ------- | --------------------------------------------------------- | ---------------------------------- |
+| 1       | semantic-release-replace-plugin with `results` validation | Failed - inverted validation logic |
+| 2       | replace-plugin without `results`                          | Files not updated (unknown cause)  |
+| 3       | **@semantic-release/exec + custom script**                | **Success**                        |
 
 ## Decision Log
 
-| Question                | Answer                          | Rationale                                       |
-| ----------------------- | ------------------------------- | ----------------------------------------------- |
-| Sync package.json?      | Yes                             | Aligns with npm ecosystem standard; fixes drift |
-| Which replacement tool? | semantic-release-replace-plugin | Idiomatic, validated, Google-backed             |
-| Template protection?    | Explicit file targeting         | Simpler than regex exclusions                   |
+| Question             | Answer                       | Rationale                                 |
+| -------------------- | ---------------------------- | ----------------------------------------- |
+| Sync package.json?   | Yes                          | Aligns with npm ecosystem; fixes drift    |
+| Which tool?          | @semantic-release/exec       | Official plugin, full control, debuggable |
+| Template protection? | Explicit file list in script | Script only updates 4 specific files      |
 
 ## Considered Options
 
-1. **Keep sed, add package.json** - Minimal change but retains fragility
-2. **Switch to jq** - More robust but still bespoke
-3. **semantic-release-replace-plugin** - Idiomatic with built-in validation
+1. **Keep sed** - Platform-specific, fragile
+2. **semantic-release-replace-plugin** - Buggy validation, unreliable
+3. **@semantic-release/exec + script** - Official plugin, full control ✓
 4. **Changesets** - Overkill for monolithic versioning
 
 ## Decision Outcome
 
-**Chosen option**: semantic-release-replace-plugin
+**Chosen option**: @semantic-release/exec with custom Node.js script
 
 ### Implementation
 
-Replace @semantic-release/exec sed commands with declarative replace-plugin configuration:
-
 ```yaml
-- - "semantic-release-replace-plugin"
-  - replacements:
-      - files: ["plugin.json"]
-        from: '"version": "[0-9]+\\.[0-9]+\\.[0-9]+"'
-        to: '"version": "${nextRelease.version}"'
-        countMatches: true
-      # ... (similar for other 3 files)
+# .releaserc.yml
+- - "@semantic-release/exec"
+  - prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
 ```
 
-**Note**: The `results` validation array was removed after testing revealed inverted validation logic that caused false failures. The `countMatches: true` option provides basic verification.
+The script (`scripts/sync-versions.mjs`) handles:
+
+- Updates 4 files with 8 total version fields
+- Validates expected replacement counts per file
+- Exits with error if validation fails
 
 ### Positive Consequences
 
-- Cross-platform compatible (no macOS-specific syntax)
-- Explicit file targeting protects templates
-- Declarative YAML config vs shell commands
-- Part of official semantic-release ecosystem
+- Cross-platform compatible (Node.js)
+- Full control over replacement logic
+- Built-in validation with clear error messages
+- Uses official semantic-release plugin
+- Easier to debug and maintain
+- Script can be run standalone for testing
 
 ### Negative Consequences
 
-- Additional npm dependency (semantic-release-replace-plugin)
-- `results` validation unreliable (removed from config)
+- Custom script to maintain (but simple ~80 lines)
+- Extra file in repository
 
 ## Architecture
 
 ```
-+-------------------+     semantic-release      +---------------------+
-|   Git Commits     | ───────────────────────▶ |  Version Determined |
-+-------------------+     analyzeCommits        +----------┬----------+
-                                                           │
-                                                           ▼
-+-------------------+     replace-plugin        +---------------------+
-|   4 JSON Files    | ◀─────────────────────── |  ${nextRelease}     |
-|                   |     regex replace         |                     |
-| plugin.json (1)   |                          | countMatches: true  |
-| package.json (1)  |                          +---------------------+
-| .claude-plugin/   |
-|   plugin.json (1) |                          +---------------------+
-|   marketplace (5) | ◀──────────────────────▶ |  @semantic-release/ |
-+-------------------+     @semantic-release/    |        git          |
-                              git commit        +---------------------+
+🔄 Version Sync Architecture
+
+╭────────────────────────╮
+│      Git Commits       │
+╰────────────────────────╯
+  │
+  │
+  ∨
+┌────────────────────────┐
+│    semantic-release    │
+│     analyzeCommits     │
+└────────────────────────┘
+  │
+  │
+  ∨
+┌────────────────────────┐
+│   Version Determined   │
+└────────────────────────┘
+  │
+  │
+  ∨
+┌────────────────────────┐
+│ @semantic-release/exec │
+│       prepareCmd       │
+└────────────────────────┘
+  │
+  │ version arg
+  ∨
+┌────────────────────────┐
+│   sync-versions.mjs    │
+└────────────────────────┘
+  │
+  │
+  ∨
+┌────────────────────────┐
+│      4 JSON Files      │
+│       (8 fields)       │
+└────────────────────────┘
+  │
+  │
+  ∨
+┌────────────────────────┐
+│ @semantic-release/git  │
+└────────────────────────┘
+  │
+  │ commit
+  ∨
+╭────────────────────────╮
+│     GitHub Release     │
+╰────────────────────────╯
+```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "🔄 Version Sync Architecture"; flow: south; }
+
+[ Git Commits ] { shape: rounded; }
+[ Git Commits ] -> [ semantic-release\nanalyzeCommits ]
+[ semantic-release\nanalyzeCommits ] -> [ Version Determined ]
+[ Version Determined ] -> [ @semantic-release/exec\nprepareCmd ]
+[ @semantic-release/exec\nprepareCmd ] -- version arg --> [ sync-versions.mjs ]
+[ sync-versions.mjs ] -> [ 4 JSON Files\n(8 fields) ]
+[ 4 JSON Files\n(8 fields) ] -> [ @semantic-release/git ]
+[ @semantic-release/git ] -- commit --> [ GitHub Release ] { shape: rounded; }
+```
+
+</details>
+
+## Version Field Inventory
+
+### Files Synced (4 files, 8 fields)
+
+| File                              | Fields | Validated |
+| --------------------------------- | ------ | --------- |
+| `plugin.json`                     | 1      | ✓         |
+| `package.json`                    | 1      | ✓         |
+| `.claude-plugin/plugin.json`      | 1      | ✓         |
+| `.claude-plugin/marketplace.json` | 5      | ✓         |
+
+### Protected Files (Not in script's file list)
+
+| File                                                                                 | Version             | Why Protected        |
+| ------------------------------------------------------------------------------------ | ------------------- | -------------------- |
+| `plugins/itp/skills/semantic-release/assets/templates/package.json`                  | `0.0.0-development` | Template placeholder |
+| `plugins/itp/skills/semantic-release/assets/templates/shareable-config/package.json` | `1.0.0`             | Example config       |
+
+## Running Releases
+
+### From CI (GitHub Actions)
+
+```bash
+npm run release
+```
+
+### From Local Machine
+
+```bash
+CI=true GITHUB_TOKEN="$(gh auth token)" npm run release
+```
+
+### Testing the Script
+
+```bash
+node scripts/sync-versions.mjs 1.2.3  # Test with any version
 ```
 
 ## More Information
 
-- [semantic-release-replace-plugin on GitHub](https://github.com/jpoehnelt/semantic-release-replace-plugin)
-- [Official semantic-release Plugins List](https://semantic-release.gitbook.io/semantic-release/extending/plugins-list)
+- [Design Spec](/docs/design/2025-12-05-centralized-version-management/spec.md)
+- [@semantic-release/exec](https://github.com/semantic-release/exec)
 - [semantic-release FAQ](https://semantic-release.gitbook.io/semantic-release/support/faq)
+- [replace-plugin issue #164](https://github.com/jpoehnelt/semantic-release-replace-plugin/issues/164)
