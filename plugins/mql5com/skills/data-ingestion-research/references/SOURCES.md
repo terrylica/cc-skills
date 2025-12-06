@@ -1,4 +1,4 @@
-**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](/skills/mql5-data-ingestion-research/SKILL.md)
+**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](../SKILL.md)
 
 # Official MQL5 Documentation Sources
 
@@ -7,7 +7,7 @@
 
 ⚠️ **User Responsibility**: Verify these URLs are current before relying on information
 
-______________________________________________________________________
+---
 
 ## Core Custom Symbol Functions
 
@@ -24,7 +24,7 @@ ______________________________________________________________________
 
 **Relevance**: Required for creating forex custom symbols before importing tick/bar data
 
-______________________________________________________________________
+---
 
 ### 2. CustomTicksReplace()
 
@@ -41,7 +41,7 @@ ______________________________________________________________________
 
 **Relevance**: Primary method for importing tick data in batches
 
-______________________________________________________________________
+---
 
 ### 3. CustomTicksAdd()
 
@@ -58,7 +58,7 @@ ______________________________________________________________________
 
 **Relevance**: Alternative to Replace for streaming data (not batch import)
 
-______________________________________________________________________
+---
 
 ### 4. CustomRatesUpdate()
 
@@ -75,7 +75,7 @@ ______________________________________________________________________
 
 **Relevance**: Primary method for importing bar data (alternative to ticks)
 
-______________________________________________________________________
+---
 
 ## Data Structures
 
@@ -94,7 +94,7 @@ ______________________________________________________________________
 
 **Relevance**: Defines CSV → MqlTick mapping for tick imports
 
-______________________________________________________________________
+---
 
 ### 6. MqlRates Structure
 
@@ -108,7 +108,7 @@ ______________________________________________________________________
 
 **Relevance**: Defines CSV → MqlRates mapping for bar imports
 
-______________________________________________________________________
+---
 
 ## File Operations
 
@@ -127,7 +127,7 @@ ______________________________________________________________________
 
 **Relevance**: Required for MQL5 CSV import scripts
 
-______________________________________________________________________
+---
 
 ## Workflow Documentation
 
@@ -144,7 +144,7 @@ ______________________________________________________________________
 
 **Relevance**: High-level overview of custom symbol ecosystem
 
-______________________________________________________________________
+---
 
 ### 9. Custom Symbols Tutorial (Book)
 
@@ -159,7 +159,7 @@ ______________________________________________________________________
 
 **Relevance**: Practical guidance beyond API reference
 
-______________________________________________________________________
+---
 
 ## Additional Resources
 
@@ -175,7 +175,7 @@ ______________________________________________________________________
 
 **Relevance**: Understanding tester behavior with custom data
 
-______________________________________________________________________
+---
 
 ### 11. Custom Instruments GUI (MetaTrader 5 Help)
 
@@ -190,7 +190,7 @@ ______________________________________________________________________
 
 **Relevance**: Alternative to programmatic import (good for testing)
 
-______________________________________________________________________
+---
 
 ### 12. FileOpen() Function Reference
 
@@ -203,7 +203,7 @@ ______________________________________________________________________
 
 **Relevance**: Comprehensive file handling documentation
 
-______________________________________________________________________
+---
 
 ## Community Resources (Unofficial)
 
@@ -222,7 +222,7 @@ ______________________________________________________________________
 
 **Caveat**: Validate forum advice against official docs
 
-______________________________________________________________________
+---
 
 ### 14. MQL5 Article: Advanced Custom Symbol Techniques
 
@@ -238,7 +238,7 @@ ______________________________________________________________________
 
 **Relevance**: Advanced patterns beyond basic import
 
-______________________________________________________________________
+---
 
 ### 15. MQL5 Community Logging Framework
 
@@ -252,7 +252,7 @@ ______________________________________________________________________
 
 **Relevance**: Debugging data import scripts
 
-______________________________________________________________________
+---
 
 ## Documentation Version Notes
 
@@ -267,7 +267,7 @@ ______________________________________________________________________
 
 **Recommendation**: Always check "Updated" date on mql5.com documentation pages
 
-______________________________________________________________________
+---
 
 ## Verification Checklist
 
@@ -285,7 +285,7 @@ When using this skill, verify:
 1. Check MetaEditor built-in help (F1)
 1. Post in MQL5 forum for clarification
 
-______________________________________________________________________
+---
 
 ## Missing Documentation (Known Gaps)
 
@@ -309,9 +309,9 @@ ______________________________________________________________________
 
 **What's missing**: Explicit validation rules beyond "ascending time"
 
-**Workaround**: Inferred rules documented in [VALIDATION.md](/skills/mql5-data-ingestion-research/references/VALIDATION.md)
+**Workaround**: Inferred rules documented in [VALIDATION.md](./VALIDATION.md)
 
-______________________________________________________________________
+---
 
 ## Source Changelog
 

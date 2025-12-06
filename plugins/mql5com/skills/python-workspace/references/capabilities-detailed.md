@@ -1,5 +1,4 @@
-**Skill**: [MQL5→Python Translation Workspace Skill](/skills/mql5-python-workspace/SKILL.md)
-
+**Skill**: [MQL5→Python Translation Workspace Skill](../SKILL.md)
 
 #### 2. GUI-Based Custom Indicator Export (v4.0.0)
 
@@ -30,7 +29,7 @@ python generate_export_config.py \
 
 **Reference**: `/docs/guides/V4_FILE_BASED_CONFIG_WORKFLOW.md`
 
-______________________________________________________________________
+---
 
 #### 3. Rigorous Validation Framework
 
@@ -65,7 +64,7 @@ python validate_indicator.py \
 
 **Reference**: `/docs/guides/INDICATOR_VALIDATION_METHODOLOGY.md`
 
-______________________________________________________________________
+---
 
 #### 4. Complete MQL5→Python Migration Workflow (7 Phases)
 
@@ -97,7 +96,7 @@ ______________________________________________________________________
 
 **Reference**: `/docs/guides/MQL5_TO_PYTHON_MIGRATION_GUIDE.md`
 
-______________________________________________________________________
+---
 
 #### 5. Lessons Learned Knowledge Base (185+ Hours Captured)
 
@@ -116,7 +115,7 @@ ______________________________________________________________________
 
 **Reference**: `/docs/guides/LESSONS_LEARNED_PLAYBOOK.md`
 
-______________________________________________________________________
+---
 
 ### ❌ WHAT THIS WORKSPACE **CANNOT DO**
 
@@ -140,7 +139,7 @@ ______________________________________________________________________
 
 **Reference**: `/docs/guides/EXTERNAL_RESEARCH_BREAKTHROUGHS.md` (Research B)
 
-______________________________________________________________________
+---
 
 #### 2. Reliable Startup.ini Parameter Passing
 
@@ -168,7 +167,7 @@ ______________________________________________________________________
 
 **Reference**: `/docs/guides/SCRIPT_PARAMETER_PASSING_RESEARCH.md`
 
-______________________________________________________________________
+---
 
 #### 3. Pandas Rolling Windows for MQL5 ATR
 
@@ -197,7 +196,7 @@ for i in range(len(tr)):
 
 **Reference**: `/docs/guides/LESSONS_LEARNED_PLAYBOOK.md` (Gotcha #4)
 
-______________________________________________________________________
+---
 
 #### 4. Cold Start Validation (\<5000 Bars)
 
@@ -225,7 +224,7 @@ Correct: Fetch 5000, calculate on ALL, compare last N
 
 **Reference**: `/docs/guides/PYTHON_INDICATOR_VALIDATION_FAILURES.md` (Failure #5)
 
-______________________________________________________________________
+---
 
 #### 5. Accept 0.95 Correlation as "Good Enough"
 
@@ -246,7 +245,7 @@ ______________________________________________________________________
 
 **Reference**: `/docs/guides/LESSONS_LEARNED_PLAYBOOK.md` (Bug Pattern #1)
 
-______________________________________________________________________
+---
 
 #### 6. Wine/CrossOver Compilation with Spaces in Paths
 
@@ -274,7 +273,7 @@ cp "C:/Temp.ex5" "C:/Program Files/.../Script.ex5"
 
 **Reference**: `/docs/guides/LESSONS_LEARNED_PLAYBOOK.md` (Gotcha #2)
 
-______________________________________________________________________
+---
 
 #### 7. Use `/inc` Parameter for Standard Compilation
 
@@ -296,4 +295,3 @@ metaeditor64.exe /compile:"C:/Program Files/MT5/MQL5/Scripts/Script.mq5"
 **Time Saved by Knowing**: 4+ hours debugging compilation errors
 
 **Reference**: `/docs/guides/EXTERNAL_RESEARCH_BREAKTHROUGHS.md` (Research A)
-

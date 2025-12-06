@@ -1,4 +1,4 @@
-**Skill**: [MQL5 Article Extractor](/skills/mql5-article-extractor/SKILL.md)
+**Skill**: [MQL5 Article Extractor](../SKILL.md)
 
 ### Topic Collections
 
@@ -22,23 +22,19 @@
 When user makes vague request:
 
 1. **Ask for domain confirmation** (if ambiguous):
-
    - "Is this for mql5.com articles? (This tool only works with mql5.com)"
 
 1. **Request specific input**:
-
    - "Please provide one of:
      - Article URL: https://www.mql5.com/en/articles/[ID]
      - User ID: numeric or username from mql5.com profile
      - Path to file with article URLs"
 
 1. **Suggest scope limits**:
-
    - "For testing, use --max-articles N to limit quantity"
    - "For production, omit limit to extract all"
 
 1. **Confirm before large operations**:
-
    - If user says "all articles" → ask "User X has Y articles. Proceed with full extraction?"
 
 ## Common Usage Examples
@@ -101,3 +97,4 @@ mql5_articles/
 ├── tick_data/                # Topic collections
 │   ├── official_docs/        # 3 Python MT5 TICK functions
 │   │   ├── copy_ticks_from.md
+```
