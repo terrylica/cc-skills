@@ -15,11 +15,13 @@ plugins:
         - { type: "build", release: "patch" }
         - { type: "ci", release: "patch" }
   - "@semantic-release/release-notes-generator"
-  - "@semantic-release/changelog"
-  # Version sync via custom script (more reliable than replace-plugin)
+  # ADR/Design Spec links + version sync via @semantic-release/exec
+  # ADR: 2025-12-06-release-notes-adr-linking
   # ADR: 2025-12-05-centralized-version-management
   - - "@semantic-release/exec"
-    - prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
+    - generateNotesCmd: 'node "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-adr-notes.mjs" ${lastRelease.gitTag}'
+      prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
+  - "@semantic-release/changelog"
   # marketplace.json-only versioning: no individual plugin.json files
   - - "@semantic-release/git"
     - assets:

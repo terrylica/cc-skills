@@ -251,6 +251,32 @@ BREAKING CHANGE: All API calls now require API key in Authorization header.
 
 ---
 
+## ADR/Design Spec Linking
+
+Link Architecture Decision Records (ADRs) and Design Specs in release notes automatically.
+
+### Quick Setup
+
+Add to `.releaserc.yml` before `@semantic-release/changelog`:
+
+```yaml
+- - "@semantic-release/exec"
+  - generateNotesCmd: 'node "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-adr-notes.mjs" ${lastRelease.gitTag}'
+```
+
+### How It Works
+
+The script detects ADRs via:
+
+1. **Git diff**: Files changed in `docs/adr/*.md` and `docs/design/*/spec.md`
+2. **Commit parsing**: References like `ADR: 2025-12-06-slug` in commit messages
+
+Full HTTPS URLs are generated (required for GitHub release pages).
+
+See [ADR Release Linking](./references/adr-release-linking.md) for detailed configuration.
+
+---
+
 ## Quick Start
 
 ### Step 1: Account Alignment Check (MANDATORY FIRST STEP)
@@ -362,4 +388,5 @@ For detailed information, see:
 - [`pypi-doppler` skill](../pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler credentials and CI detection guards
 - [Monorepo Support](./references/monorepo-support.md) - pnpm/npm workspaces configuration
 - [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
+- [ADR Release Linking](./references/adr-release-linking.md) - Auto-link ADRs and Design Specs in release notes
 - [Resources](./references/resources.md) - Scripts, templates, and asset documentation
