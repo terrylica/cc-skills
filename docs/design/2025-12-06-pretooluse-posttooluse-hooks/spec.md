@@ -34,8 +34,8 @@ Two consolidated Bash + jq hooks:
 ```
 hooks/
 ├── hooks.json              # Configuration (points to scripts)
-├── pretooluse-guard.sh     # Blocks: graph-easy CLI, manual ASCII
-└── posttooluse-reminder.sh # Reminds: ADR↔Spec, Code→ADR
+├── pretooluse-guard.sh     # Hard blocks: manual ASCII art (exit 2)
+└── posttooluse-reminder.sh # Reminds: graph-easy skill, ADR↔Spec, Code→ADR
 ```
 
 ### hooks.json
@@ -46,7 +46,7 @@ hooks/
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -57,7 +57,7 @@ hooks/
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Bash|Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -70,17 +70,28 @@ hooks/
 }
 ```
 
+### Exit Code 2 vs Permission Decisions
+
+| Approach                   | Bypass-able?                           | Use Case         |
+| -------------------------- | -------------------------------------- | ---------------- |
+| `permissionDecision: deny` | Yes (with bypass permissions)          | Soft warnings    |
+| `exit 2` + stderr          | **No** (runs before permission system) | Hard enforcement |
+
 ### PreToolUse Guard Logic
 
-| Tool       | Check                      | Action                                            |
-| ---------- | -------------------------- | ------------------------------------------------- |
-| Bash       | Contains `graph-easy`      | Block unless skill invoked (transcript check)     |
-| Write/Edit | Box-drawing chars in `.md` | Block unless `<details>graph-easy source` present |
+Uses **exit code 2** (hard block that cannot be bypassed):
+
+| Tool       | Check                      | Action                                          |
+| ---------- | -------------------------- | ----------------------------------------------- |
+| Write/Edit | Box-drawing chars in `.md` | Block unless `<details>graph-easy source` block |
 
 ### PostToolUse Reminder Logic
 
-| File Pattern                   | Reminder                              |
+Non-blocking reminders that work regardless of bypass permissions:
+
+| Tool/Pattern                   | Reminder                              |
 | ------------------------------ | ------------------------------------- |
+| Bash with `graph-easy`         | "Prefer the graph-easy skill"         |
 | `docs/adr/*.md`                | "Check if Design Spec needs updating" |
 | `docs/design/*/spec.md`        | "Check if ADR needs updating"         |
 | `src/**`, `*.py`, `*.ts`, etc. | "Consider ADR traceability"           |
@@ -95,17 +106,26 @@ hooks/
 ## Validation
 
 ```bash
-# Test PreToolUse - should block
-echo '{"tool_name":"Bash","tool_input":{"command":"graph-easy"}}' | ./hooks/pretooluse-guard.sh
+# Test PreToolUse - should block ASCII art without source (exit 2)
+echo '{"tool_name":"Write","tool_input":{"file_path":"test.md","content":"┌──┐\\n└──┘"}}' | ./hooks/pretooluse-guard.sh
+echo "Exit code: $?"  # Should be 2
 
-# Test PostToolUse - should remind
-echo '{"tool_name":"Write","tool_input":{"file_path":"docs/adr/test.md"}}' | ./hooks/posttooluse-reminder.sh
+# Test PreToolUse - should allow ASCII art with source block (exit 0)
+echo '{"tool_name":"Write","tool_input":{"file_path":"test.md","content":"┌──┐<summary>graph-easy source</summary>"}}' | ./hooks/pretooluse-guard.sh
+echo "Exit code: $?"  # Should be 0
+
+# Test PostToolUse - graph-easy reminder
+echo '{"tool_name":"Bash","tool_input":{"command":"graph-easy"}}' | ./hooks/posttooluse-reminder.sh
+
+# Test PostToolUse - ADR sync reminder
+echo '{"tool_name":"Write","tool_input":{"file_path":"docs/adr/2025-01-01-test.md"}}' | ./hooks/posttooluse-reminder.sh
 ```
 
 ## Success Criteria
 
-- [x] Graph-easy CLI blocked without skill context
-- [x] Manual ASCII art blocked in markdown
+- [x] Manual ASCII art blocked with exit code 2 (hard block, cannot be bypassed)
+- [x] ASCII art with `<details>graph-easy source` allowed
+- [x] Graph-easy CLI triggers PostToolUse skill reminder
 - [x] ADR modification triggers spec sync reminder
 - [x] Spec modification triggers ADR sync reminder
 - [x] Code modification triggers traceability reminder
