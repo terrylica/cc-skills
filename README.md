@@ -10,9 +10,12 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [itp](./plugins/itp/)                               | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release          | productivity |
 | [gh-tools](./plugins/gh-tools/)                     | GitHub workflow automation with intelligent GFM link validation for PRs                                          | development  |
 | [link-validator](./plugins/link-validator/)         | Validate markdown link portability in skills and plugins (relative paths for cross-installation compatibility)   | development  |
-| [devops-tools](./plugins/devops-tools/)             | Doppler credential workflows and Claude Code session recovery troubleshooting                                    | devops       |
+| [devops-tools](./plugins/devops-tools/)             | Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery                | devops       |
 | [dotfiles-tools](./plugins/dotfiles-tools/)         | Chezmoi dotfile management via natural language workflows                                                        | utilities    |
-| [latex-tools](./plugins/latex-tools/)               | LaTeX document automation with build, setup, and table generation skills                                         | documents    |
+| [doc-build-tools](./plugins/doc-build-tools/)       | LaTeX compilation, Pandoc PDF generation, environment setup, and table generation                                | documents    |
+| [doc-tools](./plugins/doc-tools/)                   | ASCII diagram validation and markdown documentation standards                                                    | documents    |
+| [quality-tools](./plugins/quality-tools/)           | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                          | quality      |
+| [productivity-tools](./plugins/productivity-tools/) | Slash command generation and smart file organization                                                             | productivity |
 | [mql5-tools](./plugins/mql5-tools/)                 | MQL5 indicator development patterns for MetaTrader 5                                                             | trading      |
 | [notification-tools](./plugins/notification-tools/) | Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring                                | utilities    |
 | [python-tools](./plugins/python-tools/)             | Pydantic v2 API documentation patterns for Python packages                                                       | development  |
@@ -94,15 +97,18 @@ This is standard Claude Code behavior for marketplace plugins - the display form
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (10 plugins)
+│   └── marketplace.json     # Plugin registry (14 plugins)
 ├── plugins/
 │   ├── skill-architecture/  # Meta-skill for creating skills
 │   ├── itp/                 # ADR-driven development workflow (8 bundled skills)
 │   ├── gh-tools/            # GitHub workflow automation
 │   ├── link-validator/      # Markdown link portability validation
-│   ├── devops-tools/        # Doppler credentials + session recovery
+│   ├── devops-tools/        # Doppler credentials, secrets, MLflow, Telegram, recovery
 │   ├── dotfiles-tools/      # Chezmoi dotfile management
-│   ├── latex-tools/         # LaTeX document automation
+│   ├── doc-build-tools/     # LaTeX + Pandoc PDF generation
+│   ├── doc-tools/           # ASCII diagrams + documentation standards
+│   ├── quality-tools/       # Code clones, E2E validation, profiling, schema
+│   ├── productivity-tools/  # Slash commands + smart file placement
 │   ├── mql5-tools/          # MQL5 indicator development
 │   ├── notification-tools/  # Telegram + Pushover notifications
 │   └── python-tools/        # Pydantic v2 API documentation
@@ -168,14 +174,17 @@ Ensures markdown links use relative paths (`./`, `../`) for cross-installation c
 
 ### devops-tools
 
-**Doppler credential workflows and Claude Code session recovery.**
+**Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.**
 
-Two bundled skills:
+Five bundled skills:
 
 - **doppler-workflows** - PyPI publishing, AWS credential rotation, multi-service patterns
+- **doppler-secret-validation** - Add, validate, and test API tokens/credentials in Doppler
+- **telegram-bot-management** - Production bot management, monitoring, restart, and troubleshooting
+- **mlflow-query** - Query MLflow experiments, compare runs, analyze model metrics
 - **session-recovery** - Troubleshoot Claude Code session issues and HOME variable problems
 
-**Triggers**: "publish to PyPI", "rotate AWS credentials", "sessions not saving"
+**Triggers**: "publish to PyPI", "add to Doppler", "telegram bot status", "MLflow experiments", "sessions not saving"
 
 ### dotfiles-tools
 
@@ -185,17 +194,53 @@ Two bundled skills:
 
 **Triggers**: "track my .zshrc", "sync dotfiles", "push dotfile changes"
 
-### latex-tools
+### doc-build-tools
 
-**LaTeX document automation with build, setup, and table generation.**
+**Document build automation: LaTeX compilation, Pandoc PDF generation, setup, and tables.**
 
-Three bundled skills:
+Four bundled skills:
 
 - **latex-build** - Build automation with latexmk and live preview
 - **latex-setup** - macOS environment setup with MacTeX and Skim
 - **latex-tables** - Modern table creation with tabularray package
+- **pandoc-pdf-generation** - Markdown to PDF with XeLaTeX, section numbering, TOC, bibliography
 
-**Triggers**: "compile LaTeX", "set up LaTeX on Mac", "create LaTeX table"
+**Triggers**: "compile LaTeX", "set up LaTeX on Mac", "create LaTeX table", "generate PDF from markdown"
+
+### doc-tools
+
+**Documentation quality tools: ASCII diagram validation and markdown standards.**
+
+Two bundled skills:
+
+- **ascii-diagram-validator** - Validate ASCII box-drawing diagram alignment in markdown files
+- **documentation-standards** - LLM-optimized markdown documentation standards with section numbering
+
+**Triggers**: "validate ASCII diagrams", "check diagram alignment", "documentation standards"
+
+### quality-tools
+
+**Code quality and validation tools: clone detection, E2E validation, profiling, schema testing.**
+
+Four bundled skills:
+
+- **code-clone-assistant** - Detect and refactor code duplication using PMD CPD
+- **multi-agent-e2e-validation** - Multi-agent parallel E2E validation for database refactors
+- **multi-agent-performance-profiling** - Parallel performance profiling for data pipeline bottlenecks
+- **schema-e2e-validation** - Run Earthly E2E validation for schema-first data contracts
+
+**Triggers**: "detect code clones", "validate E2E", "profile performance", "validate schema"
+
+### productivity-tools
+
+**Productivity and automation tools: slash command generation and file organization.**
+
+Two bundled skills:
+
+- **slash-command-factory** - Generate custom Claude Code slash commands through intelligent question flow
+- **smart-file-placement** - Organize files into hierarchical workspace directories automatically
+
+**Triggers**: "create slash command", "generate command", "where should I put this file", "workspace organization"
 
 ### mql5-tools
 
