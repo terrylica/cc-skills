@@ -17,6 +17,7 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [quality-tools](./plugins/quality-tools/)           | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                          | quality      |
 | [productivity-tools](./plugins/productivity-tools/) | Slash command generation and smart file organization                                                             | productivity |
 | [mql5-tools](./plugins/mql5-tools/)                 | MQL5 indicator development patterns for MetaTrader 5                                                             | trading      |
+| [mql5com](./plugins/mql5com/)                       | MQL5.com operations: article extraction, data research, Python workspace, log reading                            | trading      |
 | [notification-tools](./plugins/notification-tools/) | Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring                                | utilities    |
 | [python-tools](./plugins/python-tools/)             | Pydantic v2 API documentation patterns for Python packages                                                       | development  |
 
@@ -110,6 +111,7 @@ cc-skills/
 │   ├── quality-tools/       # Code clones, E2E validation, profiling, schema
 │   ├── productivity-tools/  # Slash commands + smart file placement
 │   ├── mql5-tools/          # MQL5 indicator development
+│   ├── mql5com/             # MQL5.com article extraction + data research
 │   ├── notification-tools/  # Telegram + Pushover notifications
 │   └── python-tools/        # Pydantic v2 API documentation
 ├── plugin.json              # Root plugin config
@@ -249,6 +251,19 @@ Two bundled skills:
 Battle-tested solutions for buffer management, display scaling, recalculation, and debugging patterns.
 
 **Triggers**: "create MQL5 indicator", "blank indicator window", "OnCalculate() debugging"
+
+### mql5com
+
+**MQL5.com operations: article extraction, data research, Python workspace, and log reading.**
+
+Four bundled skills:
+
+- **mql5-article-extractor** - Extract and organize MQL5 articles and documentation
+- **mql5-data-ingestion-research** - Research MQL5 data ingestion methods and APIs
+- **mql5-python-workspace** - Configure Python workspace for MQL5 integration
+- **mt5-log-reader** - Read MetaTrader 5 logs to validate indicator execution
+
+**Triggers**: "extract MQL5 article", "MT5 Python setup", "read MT5 logs", "MQL5 data sources"
 
 ### notification-tools
 
