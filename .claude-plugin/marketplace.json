@@ -96,6 +96,15 @@
 "category": "development",
 "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
 "keywords": ["pydantic", "api-documentation", "python", "fastapi", "json-schema"]
+},
+{
+"name": "mql5com",
+"description": "Skills for operating mql5.com - article extraction, data research, Python workspace, and log reading",
+"version": "2.6.2",
+"source": "./plugins/mql5com/",
+"category": "trading",
+"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+"keywords": ["mql5.com", "metatrader", "article-extraction", "data-ingestion", "python-mt5"]
 }
 ]
 }
