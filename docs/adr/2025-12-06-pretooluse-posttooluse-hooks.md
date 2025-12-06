@@ -154,6 +154,46 @@ graph { label: "Hooks Architecture"; flow: south; }
 
 </details>
 
+## Marketplace Integration
+
+The hooks are packaged as an **opt-in plugin** within the cc-skills marketplace:
+
+```bash
+# Install (enables enforcement)
+/plugin install itp-hooks@cc-skills
+
+# Disable (removes enforcement)
+/plugin disable itp-hooks@cc-skills
+```
+
+### Why Opt-in?
+
+- Not all users want strict enforcement
+- Hooks cannot be selectively disabled within a plugin
+- Separating from core cc-skills allows granular control
+
+### Plugin Structure
+
+```
+plugins/itp-hooks/
+├── hooks/
+│   ├── hooks.json              # Hook configuration
+│   ├── pretooluse-guard.sh     # ASCII art blocking (exit 2)
+│   └── posttooluse-reminder.sh # Sync reminders
+├── README.md
+└── LICENSE
+```
+
+The `hooks` field in `marketplace.json` enables hook registration:
+
+```json
+{
+  "name": "itp-hooks",
+  "hooks": "./plugins/itp-hooks/hooks/hooks.json",
+  "strict": false
+}
+```
+
 ## Consequences
 
 ### Positive
