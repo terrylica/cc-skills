@@ -150,6 +150,15 @@ designFiles.forEach((f) => {
   if (match) allDesignSlugs.add(match[1]);
 });
 
+// COUPLING: If design spec changed, include corresponding ADR
+// This ensures ADR and spec always appear together in release notes
+allDesignSlugs.forEach((slug) => {
+  const adrPath = `${ADR_DIR}/${slug}.md`;
+  if (existsSync(adrPath) && !allAdrSlugs.has(slug)) {
+    allAdrSlugs.add(slug);
+  }
+});
+
 // Exit silently if nothing found (prevents empty sections in release notes)
 if (allAdrSlugs.size === 0 && allDesignSlugs.size === 0) {
   process.exit(0);

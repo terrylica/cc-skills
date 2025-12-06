@@ -1,15 +1,16 @@
 {
-"name": "cc-skills",
-"version": "2.9.2",
-"description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI",
-"author": {
-"name": "Terry Li",
-"url": "https://github.com/terrylica"
-},
-"license": "MIT",
-"repository": "https://github.com/terrylica/cc-skills",
-"keywords": ["skills", "meta-skill", "claude-code", "skill-architecture"],
-"claude-code": {
-"min-version": "1.0.0"
-}
+  "name": "cc-skills",
+  "version": "2.9.2",
+  "description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/terrylica/cc-skills",
+  "keywords": ["skills", "meta-skill", "claude-code", "skill-architecture"],
+  "claude-code": {
+    "min-version": "1.0.0"
+  },
+  "hooks": "./hooks/hooks.json"
 }
