@@ -21,9 +21,8 @@ export PUSHOVER_USER_KEY=$(doppler secrets get PUSHOVER_USER_KEY \
 **For Telegram** (generic example):
 
 ```bash
-# Load from Doppler project
-export TELEGRAM_BOT_TOKEN=$(doppler secrets get TELEGRAM_BOT_TOKEN --plain)
-export TELEGRAM_CHAT_ID=$(doppler secrets get TELEGRAM_CHAT_ID --plain)
+# Load from Doppler project (use bash wrapper for zsh compatibility)
+/usr/bin/env bash -c 'export TELEGRAM_BOT_TOKEN=$(doppler secrets get TELEGRAM_BOT_TOKEN --plain) && export TELEGRAM_CHAT_ID=$(doppler secrets get TELEGRAM_CHAT_ID --plain)'
 ```
 
 ### Pattern 2: Environment Variables
@@ -38,7 +37,7 @@ fi
 ### Pattern 3: Keychain (macOS)
 
 ```bash
-PUSHOVER_TOKEN=$(security find-generic-password -s 'pushover-app-token' -a 'username' -w 2>/dev/null)
+/usr/bin/env bash -c 'PUSHOVER_TOKEN=$(security find-generic-password -s "pushover-app-token" -a "username" -w 2>/dev/null)'
 ```
 
 **Security**: Never hardcode credentials in scripts or skill files!

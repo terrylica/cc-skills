@@ -88,10 +88,12 @@ gh auth status
 
 ```json
 "scripts": {
-  "release": "GITHUB_TOKEN=$(gh auth token) semantic-release",
-  "release:dry": "GITHUB_TOKEN=$(gh auth token) semantic-release --dry-run"
+  "release": "/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release'",
+  "release:dry": "/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --dry-run'"
 }
 ```
+
+**Note**: The `/usr/bin/env bash -c` wrapper is required for macOS where zsh is the default shell. NPM runs scripts through the system shell, and zsh fails on `$(...)` substitution patterns.
 
 **Note**: `gh auth token` retrieves credentials from gh CLI's web authentication - **never create manual tokens**.
 
