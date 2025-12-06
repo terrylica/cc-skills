@@ -91,10 +91,27 @@ graph { label: "After: Hooks Enforce Standards"; flow: east; }
 
 Chosen option: **Option C (PreToolUse + PostToolUse)**, because:
 
-1. PreToolUse can **block** dangerous patterns before they execute
-2. PostToolUse can **remind** about sync without blocking operations
+1. PreToolUse with **exit code 2** provides **hard blocks** that cannot be bypassed
+2. PostToolUse provides **non-blocking reminders** for best practices
 3. Bash + jq implementation is 2.5x faster than Python (~18ms vs ~46ms)
 4. Consolidated architecture: 2 scripts instead of 3+ individual ones
+
+### Key Implementation Detail: Exit Code 2 vs Permission Decisions
+
+PreToolUse hooks can return `permissionDecision: "deny"` (soft block) or `exit 2` (hard block):
+
+| Approach                   | Bypass-able?                           | Use Case         |
+| -------------------------- | -------------------------------------- | ---------------- |
+| `permissionDecision: deny` | Yes (with bypass permissions)          | Soft warnings    |
+| `exit 2` + stderr          | **No** (runs before permission system) | Hard enforcement |
+
+We use **exit code 2** for ASCII art blocking because there's no legitimate reason to add manual diagrams without a graph-easy source block.
+
+We use **PostToolUse reminder** for graph-easy CLI because:
+
+- Users may legitimately need direct CLI for testing
+- Transcript-based skill detection had false positives (conversation mentions ≠ invocations)
+- Reminders work regardless of bypass permissions
 
 ## Architecture
 
