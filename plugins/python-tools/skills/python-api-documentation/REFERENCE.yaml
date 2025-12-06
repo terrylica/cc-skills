@@ -1,0 +1,379 @@
+openapi: 3.1.0
+info:
+  title: Pydantic API Documentation Standard
+  description: |
+    Industry-standard approach for Python package API documentation using Pydantic v2
+    as the single source of truth for data validation, schema generation, and machine-readable
+    documentation accessible to AI coding agents and human developers.
+
+    Eliminates documentation fragmentation by consolidating data contracts, validation rules,
+    JSON schemas, type hints, and API documentation into Python code.
+  version: 1.0.0
+  contact:
+    name: Research Date
+    url: 2025-01-12
+
+components:
+  schemas:
+    IndustryAdoption:
+      type: object
+      description: Objective evidence of Pydantic as industry standard (2024-2025)
+      properties:
+        adoption_metrics:
+          type: object
+          properties:
+            pypi_packages:
+              type: integer
+              example: 8000
+              description: Number of PyPI packages using Pydantic
+            monthly_downloads:
+              type: string
+              example: "360M+"
+              description: PyPI downloads per month
+            faang_adoption:
+              type: boolean
+              example: true
+              description: Used by all FAANG companies
+            nasdaq_top_25:
+              type: integer
+              example: 20
+              description: Number of top 25 NASDAQ companies using Pydantic
+        major_integrations:
+          type: array
+          description: Production systems using Pydantic as validation layer
+          items:
+            type: string
+          example:
+            - "OpenAI SDK"
+            - "Anthropic SDK"
+            - "Google ADK"
+            - "FastAPI"
+            - "LangChain"
+            - "LlamaIndex"
+            - "AutoGPT"
+            - "Transformers"
+            - "CrewAI"
+            - "Instructor"
+        validation_status:
+          type: string
+          example: "Objective industry standard"
+          description: Status confirmed via web research 2025-01-12
+
+    PydanticV2Performance:
+      type: object
+      description: Performance improvements in Pydantic v2 over v1 (verified 2024)
+      properties:
+        speedup_range:
+          type: string
+          example: "4-50x faster"
+          description: Performance improvement range vs Pydantic v1.9.1
+        general_performance:
+          type: string
+          example: "17x faster"
+          description: Average speedup for typical model validation
+        real_world_benchmark:
+          type: string
+          example: "5x improvement"
+          description: Real-world validation of 130k records (30s → 6s)
+        rust_core:
+          type: boolean
+          example: true
+          description: Validation logic rewritten in Rust via pydantic-core
+        recent_improvements:
+          type: object
+          description: 2024 performance enhancements
+          properties:
+            v2_7_enum_speedup:
+              type: string
+              example: "4x faster enum validation"
+            v2_7_json_parsing:
+              type: string
+              example: "15% faster string parsing"
+            v2_11_schema_build:
+              type: string
+              example: "2x faster schema build"
+            v2_11_memory:
+              type: string
+              example: "2-5x memory reduction"
+            v2_11_fastapi:
+              type: string
+              example: "67% faster startup with generics"
+
+    SingleSourceOfTruth:
+      type: object
+      description: Code as documentation pattern eliminating file fragmentation
+      properties:
+        principle:
+          type: string
+          example: "Pydantic models + Rich docstrings = Complete API documentation"
+        eliminates:
+          type: array
+          items:
+            type: string
+          example:
+            - "Separate README.md for API docs"
+            - "AGENTS.md duplication"
+            - "llms.txt files"
+            - "Manually written JSON schemas"
+            - "Swagger/OpenAPI specs"
+        automatic_generation:
+          type: object
+          properties:
+            json_schema:
+              type: string
+              example: "Model.model_json_schema()"
+              description: Auto-generate JSON Schema for AI agents
+            openapi_docs:
+              type: string
+              example: "FastAPI auto-generates from Pydantic models"
+              description: Interactive Swagger UI without manual config
+            type_hints:
+              type: string
+              example: "IDE autocomplete from type annotations"
+              description: Rich IDE support from Python types
+            validation:
+              type: string
+              example: "Runtime validation from model definition"
+              description: Data validation without separate rules
+        introspection_methods:
+          type: array
+          description: How AI agents discover API structure
+          items:
+            type: string
+          example:
+            - "inspect.signature() - Parameter types and defaults"
+            - "__annotations__ - Type hint metadata"
+            - "__doc__ - Docstring content"
+            - "Model.model_json_schema() - JSON Schema"
+            - "get_args(Literal[...]) - Valid enum values"
+            - "help() - Human-readable documentation"
+
+    ArchitecturePattern:
+      type: object
+      description: Three-layer pattern for unified API documentation
+      properties:
+        layer_1_types:
+          type: object
+          description: Valid values defined once
+          properties:
+            purpose:
+              type: string
+              example: "Define all valid values as Literal types"
+            example:
+              type: string
+              example: |
+                PairType = Literal["EURUSD", "GBPUSD", "XAUUSD"]
+                TimeframeType = Literal["1m", "5m", "15m", "1h", "4h", "1d"]
+            benefits:
+              type: array
+              items:
+                type: string
+              example:
+                - "IDE autocomplete shows exact options"
+                - "Type checker validates at dev time"
+                - "AI agents see valid values via get_args()"
+                - "Runtime validation prevents invalid inputs"
+        layer_2_models:
+          type: object
+          description: Data structure and validation rules
+          properties:
+            purpose:
+              type: string
+              example: "Define what data looks like with Pydantic models"
+            example:
+              type: string
+              example: |
+                class UpdateResult(BaseModel):
+                    months_added: int = Field(ge=0, description="...")
+                    duckdb_size_mb: float = Field(ge=0, description="...")
+                    model_config = {"json_schema_extra": {"examples": [...]}}
+            benefits:
+              type: array
+              items:
+                type: string
+              example:
+                - "JSON Schema auto-generated"
+                - "Runtime validation automatic"
+                - "Examples embedded in schema"
+                - "Field descriptions machine-readable"
+        layer_3_methods:
+          type: object
+          description: Behavior and usage patterns
+          properties:
+            purpose:
+              type: string
+              example: "Define what methods do with rich docstrings + examples"
+            example:
+              type: string
+              example: |
+                def update_data(
+                    self,
+                    pair: PairType,
+                    start_date: str
+                ) -> UpdateResult:
+                    '''
+                    Download and update forex data incrementally.
+
+                    Example:
+                        >>> processor.update_data("EURUSD", "2022-01-01")
+                    '''
+            benefits:
+              type: array
+              items:
+                type: string
+              example:
+                - "Typed parameters for IDE support"
+                - "Structured return types"
+                - "Usage examples in docstrings"
+                - "AI agents parse via help()"
+
+    BestPractices:
+      type: object
+      description: Recommended patterns for Pydantic API documentation
+      properties:
+        use_literal_types:
+          type: boolean
+          example: true
+          description: Define enums as Literal[...] for concrete options
+        use_field_descriptions:
+          type: boolean
+          example: true
+          description: Every Field() must have description parameter
+        embed_examples:
+          type: boolean
+          example: true
+          description: Use model_config json_schema_extra for examples
+        validation_constraints:
+          type: boolean
+          example: true
+          description: Use Field(ge=0, le=100) for numeric validation
+        helper_methods:
+          type: boolean
+          example: true
+          description: Add @staticmethod helpers like supported_pairs()
+        avoid_separate_docs:
+          type: boolean
+          example: true
+          description: No README.md API sections, docs live in code
+        rich_docstrings:
+          type: boolean
+          example: true
+          description: Methods have Args/Returns/Examples/See Also sections
+
+    ComparisonMatrix:
+      type: object
+      description: Fragmented vs unified documentation approaches
+      properties:
+        fragmented_approach:
+          type: object
+          properties:
+            files:
+              type: array
+              items:
+                type: string
+              example:
+                - "README.md (human docs)"
+                - "AGENTS.md (AI docs)"
+                - "llms.txt (LLM docs)"
+                - "docs/api.md (API docs)"
+                - "openapi.yaml (schema)"
+            problems:
+              type: array
+              items:
+                type: string
+              example:
+                - "Multiple sources of truth"
+                - "Synchronization burden"
+                - "Outdated documentation risk"
+                - "Maintenance overhead"
+        unified_approach:
+          type: object
+          properties:
+            files:
+              type: array
+              items:
+                type: string
+              example:
+                - "README.md (brief overview only)"
+                - "src/models.py (Pydantic models)"
+                - "src/processor.py (rich docstrings)"
+            benefits:
+              type: array
+              items:
+                type: string
+              example:
+                - "Single source of truth"
+                - "Code = Documentation"
+                - "Auto-sync impossible to break"
+                - "Works everywhere (IDE/AI/runtime)"
+                - "Change once, updates everywhere"
+
+    AIAgentDiscovery:
+      type: object
+      description: How AI coding agents probe Python packages
+      properties:
+        discovery_workflow:
+          type: array
+          description: Standard introspection sequence
+          items:
+            type: object
+          example:
+            - step: 1
+              action: "help(ClassName)"
+              discovers: "Rich docstrings"
+            - step: 2
+              action: "inspect.signature(method)"
+              discovers: "Typed parameters"
+            - step: 3
+              action: "Model.model_json_schema()"
+              discovers: "Machine-readable schema"
+            - step: 4
+              action: "get_args(PairType)"
+              discovers: "Valid enum values"
+            - step: 5
+              action: "Model.model_config"
+              discovers: "Embedded examples"
+        supported_tools:
+          type: array
+          description: AI agents that work with this pattern
+          items:
+            type: string
+          example:
+            - "Claude Code"
+            - "GitHub Copilot"
+            - "Cursor"
+            - "OpenAI Codex"
+            - "Codeium"
+            - "Tabnine"
+            - "FastAPI (auto-generates UI)"
+
+    MigrationPath:
+      type: object
+      description: Refactoring existing packages to Pydantic pattern
+      properties:
+        step_1:
+          type: string
+          example: "Define Literal types for all enums"
+        step_2:
+          type: string
+          example: "Create Pydantic models for all return types"
+        step_3:
+          type: string
+          example: "Add Field(description=...) to every field"
+        step_4:
+          type: string
+          example: "Embed examples in model_config"
+        step_5:
+          type: string
+          example: "Update method signatures with typed returns"
+        step_6:
+          type: string
+          example: "Add rich docstrings with Examples section"
+        step_7:
+          type: string
+          example: "Add @staticmethod helpers (supported_x())"
+        step_8:
+          type: string
+          example: "Remove redundant documentation files"
+
+paths: {}
