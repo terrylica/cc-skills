@@ -146,6 +146,17 @@
       "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
       "keywords": ["mql5.com", "metatrader", "article-extraction", "data-ingestion", "python-mt5"],
       "strict": false
+    },
+    {
+      "name": "itp-hooks",
+      "description": "ITP workflow enforcement: ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
+      "version": "2.10.2",
+      "source": "./plugins/itp-hooks/",
+      "category": "enforcement",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["itp", "hooks", "enforcement", "adr", "graph-easy", "standards"],
+      "hooks": "./plugins/itp-hooks/hooks/hooks.json",
+      "strict": false
     }
   ]
 }
