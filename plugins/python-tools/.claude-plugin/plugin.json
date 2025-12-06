@@ -1,6 +1,6 @@
 {
   "name": "python-tools",
-  "version": "2.6.0",
+  "version": "2.6.2",
   "description": "Pydantic v2 API documentation patterns for Python packages",
   "author": {
     "name": "Terry Li",

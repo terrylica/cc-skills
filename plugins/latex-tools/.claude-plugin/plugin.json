@@ -1,6 +1,6 @@
 {
   "name": "latex-tools",
-  "version": "2.6.0",
+  "version": "2.6.2",
   "description": "LaTeX document automation with build, setup, and table generation skills",
   "author": {
     "name": "Terry Li",

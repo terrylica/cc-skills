@@ -1,6 +1,6 @@
 {
   "name": "dotfiles-tools",
-  "version": "2.6.0",
+  "version": "2.6.2",
   "description": "Chezmoi dotfile management via natural language workflows",
   "author": {
     "name": "Terry Li",
