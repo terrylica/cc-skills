@@ -257,12 +257,20 @@ Link Architecture Decision Records (ADRs) and Design Specs in release notes auto
 
 ### Quick Setup
 
-Add to `.releaserc.yml` before `@semantic-release/changelog`:
+**Step 1**: Set environment variable before running semantic-release:
+
+```bash
+export ADR_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-adr-notes.mjs"
+```
+
+**Step 2**: Add to `.releaserc.yml` before `@semantic-release/changelog`:
 
 ```yaml
 - - "@semantic-release/exec"
-  - generateNotesCmd: 'node "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-adr-notes.mjs" ${lastRelease.gitTag}'
+  - generateNotesCmd: 'node "$ADR_NOTES_SCRIPT" ${lastRelease.gitTag}'
 ```
+
+**Why?** `@semantic-release/exec` uses lodash templates which interpret `${...}` as JavaScript. Using `$VAR` (no braces) bypasses lodash and lets bash expand it.
 
 ### How It Works
 

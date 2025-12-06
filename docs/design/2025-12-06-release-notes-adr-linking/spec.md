@@ -115,8 +115,14 @@ Extend the existing `semantic-release` skill with ADR/Design Spec linking capabi
 # ADR/Design Spec links + version sync via @semantic-release/exec
 # ADR: 2025-12-06-release-notes-adr-linking
 - - "@semantic-release/exec"
-  - generateNotesCmd: 'node "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-adr-notes.mjs" ${lastRelease.gitTag}'
+  - generateNotesCmd: 'node "$ADR_NOTES_SCRIPT" ${lastRelease.gitTag}'
     prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
+```
+
+**Note**: Uses `$ADR_NOTES_SCRIPT` (no braces) because `@semantic-release/exec` processes commands through lodash templates which interpret `${...}` as JavaScript. Set the environment variable before running semantic-release:
+
+```bash
+export ADR_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-adr-notes.mjs"
 ```
 
 ## Validation Strategy
