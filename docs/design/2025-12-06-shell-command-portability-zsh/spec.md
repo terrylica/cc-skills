@@ -1,7 +1,7 @@
 ---
 adr: 2025-12-06-shell-command-portability-zsh
 source: ~/.claude/plans/modular-crafting-acorn.md
-implementation-status: in_progress
+implementation-status: completed
 phase: phase-1
 last-updated: 2025-12-06
 ---
