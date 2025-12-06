@@ -72,21 +72,17 @@ Replace @semantic-release/exec sed commands with declarative replace-plugin conf
 - - "semantic-release-replace-plugin"
   - replacements:
       - files: ["plugin.json"]
-        from: "\"version\": \"[0-9]+\\.[0-9]+\\.[0-9]+\""
+        from: '"version": "[0-9]+\\.[0-9]+\\.[0-9]+"'
         to: '"version": "${nextRelease.version}"'
         countMatches: true
-        results:
-          - file: plugin.json
-            hasChanged: true
-            numMatches: 1
-            numReplacements: 1
       # ... (similar for other 3 files)
 ```
+
+**Note**: The `results` validation array was removed after testing revealed inverted validation logic that caused false failures. The `countMatches: true` option provides basic verification.
 
 ### Positive Consequences
 
 - Cross-platform compatible (no macOS-specific syntax)
-- Built-in validation via `results` array
 - Explicit file targeting protects templates
 - Declarative YAML config vs shell commands
 - Part of official semantic-release ecosystem
@@ -94,8 +90,7 @@ Replace @semantic-release/exec sed commands with declarative replace-plugin conf
 ### Negative Consequences
 
 - Additional npm dependency (semantic-release-replace-plugin)
-- Slightly more verbose configuration
-- Learning curve for results validation syntax
+- `results` validation unreliable (removed from config)
 
 ## Architecture
 
@@ -107,8 +102,8 @@ Replace @semantic-release/exec sed commands with declarative replace-plugin conf
                                                            ▼
 +-------------------+     replace-plugin        +---------------------+
 |   4 JSON Files    | ◀─────────────────────── |  ${nextRelease}     |
-|                   |     with validation       |                     |
-| plugin.json (1)   |                          | results: numMatches |
+|                   |     regex replace         |                     |
+| plugin.json (1)   |                          | countMatches: true  |
 | package.json (1)  |                          +---------------------+
 | .claude-plugin/   |
 |   plugin.json (1) |                          +---------------------+
