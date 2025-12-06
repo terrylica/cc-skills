@@ -1,137 +1,151 @@
 {
-"name": "cc-skills",
-"version": "3.0.0",
-"description": "Claude Code Skills Marketplace",
-"owner": {
-"name": "Terry Li",
-"url": "https://github.com/terrylica"
-},
-"plugins": [
-{
-"name": "skill-architecture",
-"description": "Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns",
-"version": "3.0.0",
-"source": "./plugins/skill-architecture/",
-"category": "development",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["meta-skill", "skill-creation", "architecture", "templates"]
-},
-{
-"name": "itp",
-"description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
-"version": "3.0.0",
-"source": "./plugins/itp/",
-"category": "productivity",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["adr", "workflow", "implementation", "release", "semantic-release"]
-},
-{
-"name": "gh-tools",
-"description": "GitHub workflow automation with intelligent GFM link validation for PRs",
-"version": "3.0.0",
-"source": "./plugins/gh-tools/",
-"category": "development",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["github", "pull-request", "gfm", "link-validation", "gh-cli"]
-},
-{
-"name": "link-validator",
-"description": "Validate markdown link portability in Claude Code skills and plugins",
-"version": "3.0.0",
-"source": "./plugins/link-validator/",
-"category": "development",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["markdown", "links", "validation", "portability", "relative-paths"]
-},
-{
-"name": "devops-tools",
-"description": "Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery",
-"version": "3.0.0",
-"source": "./plugins/devops-tools/",
-"category": "devops",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["doppler", "credentials", "secrets", "telegram", "mlflow", "session-recovery"]
-},
-{
-"name": "dotfiles-tools",
-"description": "Chezmoi dotfile management via natural language workflows",
-"version": "3.0.0",
-"source": "./plugins/dotfiles-tools/",
-"category": "utilities",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["chezmoi", "dotfiles", "configuration", "sync", "git"]
-},
-{
-"name": "doc-build-tools",
-"description": "Document build automation: LaTeX compilation, Pandoc PDF generation, setup, and tables",
-"version": "3.0.0",
-"source": "./plugins/doc-build-tools/",
-"category": "documents",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["latex", "pandoc", "pdf", "documents", "build", "tables", "markdown"]
-},
-{
-"name": "doc-tools",
-"description": "Documentation quality tools: ASCII diagram validation and markdown documentation standards",
-"version": "3.0.0",
-"source": "./plugins/doc-tools/",
-"category": "documents",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["ascii", "diagrams", "documentation", "markdown", "standards", "validation"]
-},
-{
-"name": "quality-tools",
-"description": "Code quality and validation: clone detection, multi-agent E2E validation, performance profiling, schema testing",
-"version": "3.0.0",
-"source": "./plugins/quality-tools/",
-"category": "quality",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["quality", "testing", "validation", "performance", "profiling", "e2e", "clones", "schema"]
-},
-{
-"name": "productivity-tools",
-"description": "Productivity and automation: slash command generation and smart file organization",
-"version": "3.0.0",
-"source": "./plugins/productivity-tools/",
-"category": "productivity",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["productivity", "automation", "commands", "file-management", "workspace"]
-},
-{
-"name": "mql5-tools",
-"description": "MQL5 indicator development patterns for MetaTrader 5",
-"version": "3.0.0",
-"source": "./plugins/mql5-tools/",
-"category": "trading",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["mql5", "metatrader", "indicators", "trading", "mt5"]
-},
-{
-"name": "notification-tools",
-"description": "Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring",
-"version": "3.0.0",
-"source": "./plugins/notification-tools/",
-"category": "utilities",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["telegram", "pushover", "watchexec", "notifications", "monitoring"]
-},
-{
-"name": "python-tools",
-"description": "Pydantic v2 API documentation patterns for Python packages",
-"version": "3.0.0",
-"source": "./plugins/python-tools/",
-"category": "development",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["pydantic", "api-documentation", "python", "fastapi", "json-schema"]
-},
-{
-"name": "mql5com",
-"description": "Skills for operating mql5.com - article extraction, data research, Python workspace, and log reading",
-"version": "3.0.0",
-"source": "./plugins/mql5com/",
-"category": "trading",
-"author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
-"keywords": ["mql5.com", "metatrader", "article-extraction", "data-ingestion", "python-mt5"]
-}
-]
+  "name": "cc-skills",
+  "version": "3.0.0",
+  "description": "Claude Code Skills Marketplace",
+  "owner": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  },
+  "plugins": [
+    {
+      "name": "skill-architecture",
+      "description": "Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns",
+      "version": "3.0.0",
+      "source": "./plugins/skill-architecture/",
+      "category": "development",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["meta-skill", "skill-creation", "architecture", "templates"],
+      "strict": false
+    },
+    {
+      "name": "itp",
+      "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
+      "version": "3.0.0",
+      "source": "./plugins/itp/",
+      "category": "productivity",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["adr", "workflow", "implementation", "release", "semantic-release"],
+      "strict": false
+    },
+    {
+      "name": "gh-tools",
+      "description": "GitHub workflow automation with intelligent GFM link validation for PRs",
+      "version": "3.0.0",
+      "source": "./plugins/gh-tools/",
+      "category": "development",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["github", "pull-request", "gfm", "link-validation", "gh-cli"],
+      "strict": false
+    },
+    {
+      "name": "link-validator",
+      "description": "Validate markdown link portability in Claude Code skills and plugins",
+      "version": "3.0.0",
+      "source": "./plugins/link-validator/",
+      "category": "development",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["markdown", "links", "validation", "portability", "relative-paths"],
+      "strict": false
+    },
+    {
+      "name": "devops-tools",
+      "description": "Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery",
+      "version": "3.0.0",
+      "source": "./plugins/devops-tools/",
+      "category": "devops",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["doppler", "credentials", "secrets", "telegram", "mlflow", "session-recovery"],
+      "strict": false
+    },
+    {
+      "name": "dotfiles-tools",
+      "description": "Chezmoi dotfile management via natural language workflows",
+      "version": "3.0.0",
+      "source": "./plugins/dotfiles-tools/",
+      "category": "utilities",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["chezmoi", "dotfiles", "configuration", "sync", "git"],
+      "strict": false
+    },
+    {
+      "name": "doc-build-tools",
+      "description": "Document build automation: LaTeX compilation, Pandoc PDF generation, setup, and tables",
+      "version": "3.0.0",
+      "source": "./plugins/doc-build-tools/",
+      "category": "documents",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["latex", "pandoc", "pdf", "documents", "build", "tables", "markdown"],
+      "strict": false
+    },
+    {
+      "name": "doc-tools",
+      "description": "Documentation quality tools: ASCII diagram validation and markdown documentation standards",
+      "version": "3.0.0",
+      "source": "./plugins/doc-tools/",
+      "category": "documents",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["ascii", "diagrams", "documentation", "markdown", "standards", "validation"],
+      "strict": false
+    },
+    {
+      "name": "quality-tools",
+      "description": "Code quality and validation: clone detection, multi-agent E2E validation, performance profiling, schema testing",
+      "version": "3.0.0",
+      "source": "./plugins/quality-tools/",
+      "category": "quality",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["quality", "testing", "validation", "performance", "profiling", "e2e", "clones", "schema"],
+      "strict": false
+    },
+    {
+      "name": "productivity-tools",
+      "description": "Productivity and automation: slash command generation and smart file organization",
+      "version": "3.0.0",
+      "source": "./plugins/productivity-tools/",
+      "category": "productivity",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["productivity", "automation", "commands", "file-management", "workspace"],
+      "strict": false
+    },
+    {
+      "name": "mql5-tools",
+      "description": "MQL5 indicator development patterns for MetaTrader 5",
+      "version": "3.0.0",
+      "source": "./plugins/mql5-tools/",
+      "category": "trading",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["mql5", "metatrader", "indicators", "trading", "mt5"],
+      "strict": false
+    },
+    {
+      "name": "notification-tools",
+      "description": "Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring",
+      "version": "3.0.0",
+      "source": "./plugins/notification-tools/",
+      "category": "utilities",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["telegram", "pushover", "watchexec", "notifications", "monitoring"],
+      "strict": false
+    },
+    {
+      "name": "python-tools",
+      "description": "Pydantic v2 API documentation patterns for Python packages",
+      "version": "3.0.0",
+      "source": "./plugins/python-tools/",
+      "category": "development",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["pydantic", "api-documentation", "python", "fastapi", "json-schema"],
+      "strict": false
+    },
+    {
+      "name": "mql5com",
+      "description": "Skills for operating mql5.com - article extraction, data research, Python workspace, and log reading",
+      "version": "3.0.0",
+      "source": "./plugins/mql5com/",
+      "category": "trading",
+      "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
+      "keywords": ["mql5.com", "metatrader", "article-extraction", "data-ingestion", "python-mt5"],
+      "strict": false
+    }
+  ]
 }

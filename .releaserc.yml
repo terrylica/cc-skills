@@ -20,6 +20,7 @@ plugins:
   # ADR: 2025-12-05-centralized-version-management
   - - "@semantic-release/exec"
     - prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
+  # marketplace.json-only versioning: no individual plugin.json files
   - - "@semantic-release/git"
     - assets:
         - CHANGELOG.md
@@ -27,6 +28,5 @@ plugins:
         - package.json
         - .claude-plugin/plugin.json
         - .claude-plugin/marketplace.json
-        - "plugins/*/.claude-plugin/plugin.json"
       message: "chore(release): ${nextRelease.version} [skip ci]"
   - "@semantic-release/github"
