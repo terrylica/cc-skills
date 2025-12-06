@@ -1,4 +1,4 @@
-**Skill**: [MQL5→Python Translation Workspace Skill](/skills/mql5-python-workspace/SKILL.md)
+**Skill**: [MQL5→Python Translation Workspace Skill](../SKILL.md)
 
 ## Success Metrics
 
@@ -27,7 +27,7 @@
 - **Bar-Level Debugging**: Top 100 largest differences stored
 - **Reproducibility**: All parameters stored
 
-______________________________________________________________________
+---
 
 ## Version History
 
@@ -39,7 +39,7 @@ ______________________________________________________________________
 - 185+ hours of debugging captured
 - Production-ready validation framework (1.000000 correlation)
 
-______________________________________________________________________
+---
 
 ## Skill Maintenance
 
@@ -60,7 +60,7 @@ python comprehensive_validation.py --priority ALL --verbose
 
 **Target**: 30/32 PASS (2 expected failures: duckdb/numpy missing in macOS Python)
 
-______________________________________________________________________
+---
 
 **Skill Status**: ✅ PRODUCTION READY
 **Last Updated**: 2025-10-27

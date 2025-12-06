@@ -1,5 +1,4 @@
-**Skill**: [MQL5→Python Translation Workspace Skill](/skills/mql5-python-workspace/SKILL.md)
-
+**Skill**: [MQL5→Python Translation Workspace Skill](../SKILL.md)
 
 ### 1. Quick Market Data Export (Beginner - 10-15 seconds)
 
@@ -20,7 +19,7 @@ wine "C:\\Program Files\\Python312\\python.exe" \
 
 **Reference**: `/docs/guides/V4_FILE_BASED_CONFIG_WORKFLOW.md` (Quick Start)
 
-______________________________________________________________________
+---
 
 ### 2. Custom Laguerre RSI Export (Intermediate - 20-30 seconds)
 
@@ -42,7 +41,7 @@ python generate_export_config.py --symbol XAUUSD --timeframe M1 \
 
 **Reference**: `/docs/guides/V4_FILE_BASED_CONFIG_WORKFLOW.md` (Example 3)
 
-______________________________________________________________________
+---
 
 ### 3. Validate Python Indicator (Intermediate - 5-10 minutes)
 
@@ -71,7 +70,7 @@ python validate_indicator.py \
 
 **Reference**: `/docs/guides/INDICATOR_VALIDATION_METHODOLOGY.md`
 
-______________________________________________________________________
+---
 
 ### 4. Complete Indicator Migration (Advanced - 2-4 hours)
 
@@ -94,4 +93,3 @@ ______________________________________________________________________
 **Time Investment**: 2-4 hours first time, 1-2 hours subsequently
 
 **Reference**: `/docs/guides/MQL5_TO_PYTHON_MIGRATION_GUIDE.md`
-

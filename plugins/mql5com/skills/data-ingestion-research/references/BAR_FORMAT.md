@@ -1,11 +1,11 @@
-**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](/skills/mql5-data-ingestion-research/SKILL.md)
+**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](../SKILL.md)
 
 # MT5 M1 Bar Format Specification (UNVALIDATED)
 
 **Status**: 🔬 Research | ⚠️ Not Tested
 **Source**: [CustomRatesUpdate() Documentation](https://www.mql5.com/en/docs/customsymbols/customratesupdate)
 
-______________________________________________________________________
+---
 
 ## When to Use Bars vs Ticks
 
@@ -23,7 +23,7 @@ ______________________________________________________________________
 
 **Recommendation**: If exness-data-preprocess provides ticks, prefer tick import. MT5 can build bars from ticks.
 
-______________________________________________________________________
+---
 
 ## CSV Format for CustomRatesUpdate()
 
@@ -38,7 +38,7 @@ Date,Time,Open,High,Low,Close,TickVolume,Volume,Spread
 
 **Critical Constraint**: All bars MUST be **M1 (1-minute) resolution**
 
-______________________________________________________________________
+---
 
 ## MqlRates Structure Mapping
 
@@ -60,17 +60,17 @@ struct MqlRates {
 ### Field Requirements
 
 | Field         | Required | Type     | Constraints                 | Notes                          |
-|---------------|----------|----------|-----------------------------|--------------------------------|
-| `time`        | ✅ YES    | datetime | M1 open time, no duplicates | Format: `YYYY.MM.DD HH:MM:SS`  |
-| `open`        | ✅ YES    | double   | > 0                         | First price in minute          |
-| `high`        | ✅ YES    | double   | ≥ max(open, close, low)     | Highest price in minute        |
-| `low`         | ✅ YES    | double   | ≤ min(open, close, high)    | Lowest price in minute         |
-| `close`       | ✅ YES    | double   | > 0                         | Last price in minute           |
-| `tick_volume` | ✅ YES    | long     | ≥ 0                         | Number of price changes        |
-| `spread`      | ❌ NO     | int      | ≥ 0, in points (not pips)   | Set 0 if unknown               |
-| `real_volume` | ❌ NO     | long     | ≥ 0                         | Trade volume, set 0 if unknown |
+| ------------- | -------- | -------- | --------------------------- | ------------------------------ |
+| `time`        | ✅ YES   | datetime | M1 open time, no duplicates | Format: `YYYY.MM.DD HH:MM:SS`  |
+| `open`        | ✅ YES   | double   | > 0                         | First price in minute          |
+| `high`        | ✅ YES   | double   | ≥ max(open, close, low)     | Highest price in minute        |
+| `low`         | ✅ YES   | double   | ≤ min(open, close, high)    | Lowest price in minute         |
+| `close`       | ✅ YES   | double   | > 0                         | Last price in minute           |
+| `tick_volume` | ✅ YES   | long     | ≥ 0                         | Number of price changes        |
+| `spread`      | ❌ NO    | int      | ≥ 0, in points (not pips)   | Set 0 if unknown               |
+| `real_volume` | ❌ NO    | long     | ≥ 0                         | Trade volume, set 0 if unknown |
 
-______________________________________________________________________
+---
 
 ## Why M1 Only?
 
@@ -86,7 +86,7 @@ From official documentation:
 
 **Source**: [CustomRatesUpdate() Documentation](https://www.mql5.com/en/docs/customsymbols/customratesupdate)
 
-______________________________________________________________________
+---
 
 ## Generating M1 Bars from Ticks (Unvalidated)
 
@@ -118,7 +118,7 @@ m1_bars.to_csv('eurusd_m1.csv', index=False)
 
 **Caveat**: Using `mid = (bid+ask)/2` loses spread information. If available, use `last` trade prices instead.
 
-______________________________________________________________________
+---
 
 ## Validation Rules (Pre-Import)
 
@@ -163,7 +163,7 @@ def validate_chronological(df: pd.DataFrame) -> bool:
     return df['time'].is_monotonic_increasing
 ```
 
-______________________________________________________________________
+---
 
 ## MQL5 Import Script (Illustrative, Unvalidated)
 
@@ -244,7 +244,7 @@ void OnStart() {
 
 **Status**: Illustrative only, not tested in live MT5
 
-______________________________________________________________________
+---
 
 ## Alternative: Use Exness OHLC Query
 
@@ -269,7 +269,7 @@ df[['time', 'open', 'high', 'low', 'close', 'tick_volume', 'real_volume', 'sprea
 
 **Disadvantage**: Cannot test strategies in "Every tick based on real ticks" mode
 
-______________________________________________________________________
+---
 
 ## Performance Considerations (Unvalidated)
 
@@ -290,7 +290,7 @@ ______________________________________________________________________
 - 1 week M1 = ~10,080 bars = ~242 KB
 - 1 year M1 = ~525,600 bars = ~12.6 MB
 
-______________________________________________________________________
+---
 
 ## Edge Cases (Require Testing)
 
@@ -318,12 +318,12 @@ ______________________________________________________________________
 
 **Test**: Intentionally duplicate a bar, observe error
 
-______________________________________________________________________
+---
 
 ## Comparison: Ticks vs M1 Bars
 
 | Aspect           | Tick Import                      | M1 Bar Import      |
-|------------------|----------------------------------|--------------------|
+| ---------------- | -------------------------------- | ------------------ |
 | **Data Size**    | Large (100s MB)                  | Moderate (10s MB)  |
 | **Import Speed** | Slower (500K chunks)             | Faster             |
 | **Tester Mode**  | "Every tick based on real ticks" | "1 minute OHLC"    |
@@ -331,7 +331,7 @@ ______________________________________________________________________
 | **Use Case**     | Scalping, HFT strategies         | Swing, day trading |
 | **Source**       | `query_ticks()`                  | `query_ohlc()`     |
 
-______________________________________________________________________
+---
 
 ## Changelog
 

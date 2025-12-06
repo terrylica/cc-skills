@@ -1,5 +1,4 @@
-**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](/skills/mql5-data-ingestion-research/SKILL.md)
-
+**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](../SKILL.md)
 
 ### Gap 1: Exness Tick Structure Compatibility
 
@@ -31,7 +30,7 @@
 
 **Validation Needed**: Test default vs explicit configuration
 
-______________________________________________________________________
+---
 
 ## Migration Path: Research → Production
 
@@ -60,4 +59,3 @@ mql5-data-ingestion/
 - [ ] Format validator tested on edge cases
 - [ ] Documentation reviewed by MT5 expert
 - [ ] Performance benchmarks documented
-

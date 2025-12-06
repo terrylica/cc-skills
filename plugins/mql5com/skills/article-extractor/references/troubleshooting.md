@@ -1,23 +1,24 @@
-**Skill**: [MQL5 Article Extractor](/skills/mql5-article-extractor/SKILL.md)
+**Skill**: [MQL5 Article Extractor](../SKILL.md)
 
-│   │   ├── copy_ticks_range.md
-│   │   └── symbol_info_tick.md
-│   └── user_articles/        # 9 articles by author
-│       ├── artmedia70/article_[ID]/
-│       ├── lazymesh/article_[ID]/
-│       └── ...
-├── python_integration/       # Topic collections
-│   ├── official_docs/        # 32 MT5 Python API functions
-│   │   ├── mt5initialize_py.md
-│   │   ├── mt5copyticksfrom_py.md
-│   │   └── ...
-│   └── user_articles/        # 15 implementation articles
-│       ├── dmitrievsky/article_[ID]/
-│       ├── koshtenko/article_[ID]/
-│       └── ...
+│ │ ├── copy*ticks_range.md
+│ │ └── symbol_info_tick.md
+│ └── user_articles/ # 9 articles by author
+│ ├── artmedia70/article*[ID]/
+│ ├── lazymesh/article*[ID]/
+│ └── ...
+├── python_integration/ # Topic collections
+│ ├── official_docs/ # 32 MT5 Python API functions
+│ │ ├── mt5initialize_py.md
+│ │ ├── mt5copyticksfrom_py.md
+│ │ └── ...
+│ └── user_articles/ # 15 implementation articles
+│ ├── dmitrievsky/article*[ID]/
+│ ├── koshtenko/article\_[ID]/
+│ └── ...
 ├── extraction_summary.json
 └── extraction.log
-```
+
+`````
 
 **Content Organization:**
 
@@ -39,7 +40,7 @@ grep -r "```mql5" mql5_articles/ | wc -l
 
 # View summary
 cat mql5_articles/extraction_summary.json
-````
+`````
 
 ## Error Handling
 
@@ -118,6 +119,6 @@ After execution, report:
 - Output directory location
 - Link to extraction summary
 
-______________________________________________________________________
+---
 
 **Remember**: This skill ONLY works with mql5.com. Any request for other domains is out of scope and should be rejected with a clear message.

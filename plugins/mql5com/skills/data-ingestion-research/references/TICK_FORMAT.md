@@ -1,11 +1,11 @@
-**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](/skills/mql5-data-ingestion-research/SKILL.md)
+**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](../SKILL.md)
 
 # MT5 Tick Data Format Specification (UNVALIDATED)
 
 **Status**: 🔬 Research | ⚠️ Not Tested
 **Source**: [MqlTick Structure](https://www.mql5.com/en/docs/constants/structures/mqltick)
 
-______________________________________________________________________
+---
 
 ## CSV Format for CustomTicksReplace()
 
@@ -29,19 +29,19 @@ unix_ms,bid,ask,last,volume_real
 ### Field Requirements
 
 | Field         | Required       | Type   | Constraints                         | Default if Missing     |
-|---------------|----------------|--------|-------------------------------------|------------------------|
-| `unix_ms`     | ✅ YES          | int64  | > 0, strictly ascending             | N/A (import fails)     |
+| ------------- | -------------- | ------ | ----------------------------------- | ---------------------- |
+| `unix_ms`     | ✅ YES         | int64  | > 0, strictly ascending             | N/A (import fails)     |
 | `bid`         | ⚠️ Conditional | double | ≥ 0, if >0 then `ask` should be set | 0 (MT5 infers no bid)  |
 | `ask`         | ⚠️ Conditional | double | ≥ 0, if >0 then `bid` ≤ `ask`       | 0 (MT5 infers no ask)  |
 | `last`        | ⚠️ Conditional | double | ≥ 0                                 | 0 (MT5 infers no last) |
-| `volume_real` | ❌ NO           | double | ≥ 0                                 | 0                      |
+| `volume_real` | ❌ NO          | double | ≥ 0                                 | 0                      |
 
 **Conditional Logic**:
 
 - At least ONE of `bid`, `ask`, or `last` MUST be > 0 per tick
 - If both `bid` and `ask` > 0, then `bid ≤ ask` must hold
 
-______________________________________________________________________
+---
 
 ## MqlTick Structure Mapping
 
@@ -72,7 +72,7 @@ struct MqlTick {
 When you provide ticks via `CustomTicksReplace()`, MT5 sets flags:
 
 | Condition         | Flag Set           | Meaning                    |
-|-------------------|--------------------|----------------------------|
+| ----------------- | ------------------ | -------------------------- |
 | `bid > 0`         | `TICK_FLAG_BID`    | Bid price changed          |
 | `ask > 0`         | `TICK_FLAG_ASK`    | Ask price changed          |
 | `last > 0`        | `TICK_FLAG_LAST`   | Last price (trade) changed |
@@ -80,7 +80,7 @@ When you provide ticks via `CustomTicksReplace()`, MT5 sets flags:
 
 **Source**: Inferred from [CustomTicksAdd() behavior](https://www.mql5.com/en/book/advanced/custom_symbols/custom_symbols_ticks)
 
-______________________________________________________________________
+---
 
 ## Forex Tick Data Specifics (Exness Use Case)
 
@@ -148,7 +148,7 @@ df['last'] = 0
 
 **Caveat**: This **manufactures** spread and loses true bid/ask dynamics. Use raw_spread variant if available.
 
-______________________________________________________________________
+---
 
 ## Validation Rules (Pre-Import)
 
@@ -190,7 +190,7 @@ def validate_finite(df: pd.DataFrame) -> bool:
     return df[cols].applymap(np.isfinite).all().all()
 ```
 
-______________________________________________________________________
+---
 
 ## Performance Considerations (Unvalidated)
 
@@ -238,7 +238,7 @@ if(fill > 0) {
 
 **Validation Needed**: Measure actual memory usage in MT5
 
-______________________________________________________________________
+---
 
 ## Edge Cases (Require Testing)
 
@@ -266,14 +266,13 @@ ______________________________________________________________________
 
 **Recommendation**: Filter out closed-market ticks before import
 
-______________________________________________________________________
+---
 
 ## GUI Import Alternative (Manual Testing)
 
 For small datasets, use MT5 GUI instead of MQL5 scripts:
 
 1. **Create Custom Symbol**:
-
    - Symbols → Create Custom Symbol
    - Set name: `EURUSD.EXNESS`
    - Set properties: Digits=5, Contract Size=100000
@@ -286,14 +285,13 @@ For small datasets, use MT5 GUI instead of MQL5 scripts:
    ```
 
 1. **Import via GUI**:
-
    - Select symbol → Ticks tab → Import Ticks
    - Map columns: Date+Time → Time, Bid → Bid, etc.
    - Click Import
 
 **Limitation**: GUI is manual; not suitable for millions of ticks
 
-______________________________________________________________________
+---
 
 ## Changelog
 

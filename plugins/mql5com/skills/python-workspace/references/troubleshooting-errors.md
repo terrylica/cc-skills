@@ -1,4 +1,4 @@
-**Skill**: [MQL5→Python Translation Workspace Skill](/skills/mql5-python-workspace/SKILL.md)
+**Skill**: [MQL5→Python Translation Workspace Skill](../SKILL.md)
 
 ## Critical Requirements & Assumptions
 
@@ -24,7 +24,7 @@
 1. ❌ Paths with spaces work in Wine compilation
 1. ❌ NumPy 2.x works with MetaTrader5 package
 
-______________________________________________________________________
+---
 
 ## Common User Workflows
 
@@ -47,7 +47,7 @@ wine "C:\\Program Files\\Python312\\python.exe" \
 
 **Reference**: `/docs/guides/V4_FILE_BASED_CONFIG_WORKFLOW.md` (Quick Start)
 
-______________________________________________________________________
+---
 
 ### 2. Custom Laguerre RSI Export (Intermediate - 20-30 seconds)
 
@@ -69,7 +69,7 @@ python generate_export_config.py --symbol XAUUSD --timeframe M1 \
 
 **Reference**: `/docs/guides/V4_FILE_BASED_CONFIG_WORKFLOW.md` (Example 3)
 
-______________________________________________________________________
+---
 
 ### 3. Validate Python Indicator (Intermediate - 5-10 minutes)
 
@@ -98,7 +98,7 @@ python validate_indicator.py \
 
 **Reference**: `/docs/guides/INDICATOR_VALIDATION_METHODOLOGY.md`
 
-______________________________________________________________________
+---
 
 ### 4. Complete Indicator Migration (Advanced - 2-4 hours)
 
@@ -122,7 +122,7 @@ ______________________________________________________________________
 
 **Reference**: `/docs/guides/MQL5_TO_PYTHON_MIGRATION_GUIDE.md`
 
-______________________________________________________________________
+---
 
 ## Documentation Hub (Single Source of Truth)
 
@@ -157,7 +157,7 @@ ______________________________________________________________________
 - **Project Memory**: `/CLAUDE.md` (hub-and-spoke architecture)
 - **Documentation Index**: `/docs/README.md` (complete guide catalog)
 
-______________________________________________________________________
+---
 
 ## Skill Activation Guidelines
 
@@ -207,7 +207,7 @@ Activate when user mentions:
 - Every failure documented with solutions
 - Hub-and-spoke architecture (single source of truth per topic)
 
-______________________________________________________________________
+---
 
 ## Error Handling Patterns
 
@@ -237,4 +237,3 @@ ______________________________________________________________________
 **Diagnosis**: Using pandas rolling windows (returns NaN until full window)
 **Solution**: Use manual loops for expanding window logic
 **Time**: 30-45 minutes
-

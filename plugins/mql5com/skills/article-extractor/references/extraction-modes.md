@@ -1,4 +1,4 @@
-**Skill**: [MQL5 Article Extractor](/skills/mql5-article-extractor/SKILL.md)
+**Skill**: [MQL5 Article Extractor](../SKILL.md)
 
 ## Extraction Modes
 
@@ -84,4 +84,3 @@ cd /Users/terryli/eon/mql5
 - **Primary Source**: https://www.mql5.com/en/users/29210372/publications
 - **Author**: Allan Munene Mutiiria (77 technical articles)
 - **Content Type**: MQL5 trading strategy implementations
-

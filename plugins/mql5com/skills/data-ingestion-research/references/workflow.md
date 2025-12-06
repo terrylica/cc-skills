@@ -1,4 +1,4 @@
-**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](/skills/mql5-data-ingestion-research/SKILL.md)
+**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](../SKILL.md)
 
 ## Recommended Workflow (Unvalidated)
 
@@ -19,7 +19,7 @@
    df[['unix_ms', 'bid', 'ask', 'last', 'volume']].to_csv('ticks.csv', index=False)
    ```
 
-1. Validate format (see [VALIDATION.md](/skills/mql5-data-ingestion-research/references/VALIDATION.md))
+1. Validate format (see [VALIDATION.md](./VALIDATION.md))
 
 ### Phase 2: MT5 Import (Requires Validation)
 
@@ -39,4 +39,4 @@ CustomTicksReplace("EURUSD.EXNESS", from_ms, to_ms, ticks_array);
 1. Choose: "Every tick based on real ticks"
 1. Run backtest
 
-______________________________________________________________________
+---

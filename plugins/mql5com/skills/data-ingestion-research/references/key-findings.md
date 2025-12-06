@@ -1,4 +1,4 @@
-**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](/skills/mql5-data-ingestion-research/SKILL.md)
+**Skill**: [MQL5 Data Ingestion Research (UNVALIDATED)](../SKILL.md)
 
 ## Key Research Findings
 
@@ -39,4 +39,3 @@ Files in `Terminal\Common\Files` are accessible to both:
 **Implication**: Always use `FILE_COMMON` flag when creating import scripts.
 
 **Source**: [`FileOpen()` Documentation](https://www.mql5.com/en/docs/files/fileopen)
-
