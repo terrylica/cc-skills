@@ -9,6 +9,5 @@
   "homepage": "https://github.com/terrylica/cc-skills",
   "repository": "https://github.com/terrylica/cc-skills",
   "license": "MIT",
-  "keywords": ["skills", "meta-skill", "claude-code", "skill-architecture"],
-  "hooks": "./hooks/hooks.json"
+  "keywords": ["skills", "meta-skill", "claude-code", "skill-architecture"]
 }
