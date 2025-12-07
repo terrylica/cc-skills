@@ -22,21 +22,21 @@ skills="$HOME/.claude/skills"
 echo "Initializing workspace: $workplace"
 mkdir -p "/var/tmp/$workplace" "$scratch" "$skills"
 
-# Update .gitignore if in git repo
+# Update .gitignore if in git repo - atomic write
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
 if [ "$in_git_repo" = true ]; then
   gitignore="$toplevel/.gitignore"
 
-  # Add scratch/ if not present
-  if [ -f "$gitignore" ]; then
-    grep -q "^/scratch/$" "$gitignore" 2>/dev/null || echo "/scratch/" >> "$gitignore"
-    grep -q "^/var/tmp/$" "$gitignore" 2>/dev/null || echo "/var/tmp/" >> "$gitignore"
-  else
-    cat > "$gitignore" << 'EOF'
-# Workspace directories
-/scratch/
-/var/tmp/
-EOF
-  fi
+  # Atomic .gitignore update using mktemp + mv
+  tmp=$(mktemp)
+  {
+    # Preserve existing content
+    cat "$gitignore" 2>/dev/null || true
+    # Add entries if not already present
+    grep -qx "/scratch/" "$gitignore" 2>/dev/null || echo "/scratch/"
+    grep -qx "/var/tmp/" "$gitignore" 2>/dev/null || echo "/var/tmp/"
+  } > "$tmp"
+  mv "$tmp" "$gitignore"
 
   echo "Updated .gitignore"
 fi

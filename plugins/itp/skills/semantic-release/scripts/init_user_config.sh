@@ -54,14 +54,15 @@ echo "Location: $USER_CONFIG_DIR"
 echo "Package:  @$USERNAME/semantic-release-config"
 echo ""
 
-# Check if already exists
+# Check if already exists - idempotent skip
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
 if [ -d "$USER_CONFIG_DIR" ]; then
-    echo "ERROR: $USER_CONFIG_DIR already exists"
+    echo "INFO: $USER_CONFIG_DIR already exists, skipping initialization"
     echo ""
-    echo "To reinitialize:"
+    echo "To reinitialize from scratch:"
     echo "  rm -rf $USER_CONFIG_DIR"
     echo "  $0"
-    exit 1
+    exit 0
 fi
 
 # Create directory
