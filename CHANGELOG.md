@@ -1,3 +1,10 @@
+## [2.11.2](https://github.com/terrylica/cc-skills/compare/v2.11.1...v2.11.2) (2025-12-07)
+
+
+### Bug Fixes
+
+* **itp-hooks:** add symlink for hooks path resolution ([26b7456](https://github.com/terrylica/cc-skills/commit/26b74560d0b004f97fc641ce9bac0fe6b409f845))
+
 ## [2.11.1](https://github.com/terrylica/cc-skills/compare/v2.11.0...v2.11.1) (2025-12-07)
 
 
