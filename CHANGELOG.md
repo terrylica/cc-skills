@@ -1,3 +1,10 @@
+## [2.11.3](https://github.com/terrylica/cc-skills/compare/v2.11.2...v2.11.3) (2025-12-07)
+
+
+### Bug Fixes
+
+* **itp-hooks:** add plugin.json for standalone hook loading ([dc723cb](https://github.com/terrylica/cc-skills/commit/dc723cbc5d8ae6efec2d1cd133170938a879bbeb))
+
 ## [2.11.2](https://github.com/terrylica/cc-skills/compare/v2.11.1...v2.11.2) (2025-12-07)
 
 
