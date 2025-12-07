@@ -19,8 +19,9 @@ plugins:
   # ADR: 2025-12-06-release-notes-adr-linking
   # ADR: 2025-12-05-centralized-version-management
   - - "@semantic-release/exec"
-    - generateNotesCmd: 'node "$ADR_NOTES_SCRIPT" ${lastRelease.gitTag}'
-      prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
+    # generateNotesCmd temporarily disabled (ADR_NOTES_SCRIPT not set)
+    # - generateNotesCmd: 'node "$ADR_NOTES_SCRIPT" ${lastRelease.gitTag}'
+    - prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
   - "@semantic-release/changelog"
   # marketplace.json-only versioning: no individual plugin.json files
   - - "@semantic-release/git"
@@ -30,5 +31,6 @@ plugins:
         - package.json
         - .claude-plugin/plugin.json
         - .claude-plugin/marketplace.json
+        - plugins/itp-hooks/plugin.json
       message: "chore(release): ${nextRelease.version} [skip ci]"
   - "@semantic-release/github"
