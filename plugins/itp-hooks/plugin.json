@@ -1,0 +1,10 @@
+{
+  "name": "itp-hooks",
+  "version": "2.11.2",
+  "description": "ITP workflow enforcement: ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  },
+  "hooks": "./hooks/hooks.json"
+}
