@@ -254,9 +254,11 @@ fi
 echo "   Package: ${PACKAGE_NAME}"
 echo "   Version: v${CURRENT_VERSION}"
 
-# Step 2: Clean old builds
+# Step 2: Clean old builds - safe glob handling
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
 echo -e "\n Step 2: Cleaning old builds..."
-rm -rf dist/ build/ *.egg-info
+rm -rf dist/ build/ 2>/dev/null || true
+find . -maxdepth 1 -name "*.egg-info" -type d -exec rm -rf {} + 2>/dev/null || true
 echo "   Cleaned"
 
 # Step 3: Build package

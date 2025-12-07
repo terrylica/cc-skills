@@ -72,10 +72,15 @@ portable_sed_i "s|USER|$ORG_NAME|g" package.json
 portable_sed_i "s|@USER/semantic-release-config|@$ORG_NAME/$CONFIG_NAME|g" README.md
 portable_sed_i "s|USER|$ORG_NAME|g" README.md
 
-# Initialize git repository
-git init
-git add .
-git commit -m "chore: initialize org semantic-release config"
+# Initialize git repository - idempotent check
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+if [ ! -d ".git" ]; then
+    git init
+    git add .
+    git commit -m "chore: initialize org semantic-release config" || true  # Allow clean tree
+else
+    echo "INFO: Git repository already initialized"
+fi
 
 cat > .gitignore <<EOF
 node_modules/

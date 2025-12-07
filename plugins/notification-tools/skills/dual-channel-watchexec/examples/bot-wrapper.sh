@@ -71,8 +71,10 @@ if [[ -n "$MOST_RECENT_FILE" ]]; then
     AGE=$((NOW - MOST_RECENT_TIME))
     echo "✅ Detected file change: $CHANGED_FILE (${AGE}s ago, path: $RECENT_CHANGE_FULL)"
 
-    # Create watchexec info JSON (mimics watchexec diagnostic output)
-    cat > "$WATCHEXEC_INFO_FILE" <<WATCHEXEC_EOF
+    # Create watchexec info JSON - atomic write using mktemp + mv
+    # ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+    tmp=$(mktemp)
+    cat > "$tmp" <<WATCHEXEC_EOF
 {
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "watchexec": {
@@ -91,21 +93,23 @@ if [[ -n "$MOST_RECENT_FILE" ]]; then
   }
 }
 WATCHEXEC_EOF
+    mv "$tmp" "$WATCHEXEC_INFO_FILE"
 else
     echo "⚠️  No recently modified files detected (checked last 60s)"
-    # Create empty watchexec info
-    echo "{}" > "$WATCHEXEC_INFO_FILE"
+    # Create empty watchexec info - atomic write
+    tmp=$(mktemp)
+    echo "{}" > "$tmp"
+    mv "$tmp" "$WATCHEXEC_INFO_FILE"
 fi
 
 # ============================================================================
 # DETERMINE RESTART REASON
 # ============================================================================
 
-REASON="startup"
-
-if [[ ! -f "$FIRST_RUN_MARKER" ]]; then
+# Atomic first-run check using mkdir (mkdir is atomic, fails if exists)
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+if mkdir "$FIRST_RUN_MARKER" 2>/dev/null; then
     REASON="startup"
-    touch "$FIRST_RUN_MARKER"
     echo "🚀 First run - sending startup notification"
     "$NOTIFY_SCRIPT" "$REASON" 0 "$WATCHEXEC_INFO_FILE" "" &
 else
@@ -122,8 +126,9 @@ fi
 
 echo "▶️  Starting process: $MAIN_SCRIPT"
 
-# Clear previous crash log
-> "$CRASH_LOG"
+# Clear previous crash log - safe truncation with existence check
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+: > "$CRASH_LOG"  # ':' is a no-op, ensures file exists and is truncated
 
 # Run the main script and capture exit code and stderr
 EXIT_CODE=0
@@ -145,26 +150,37 @@ fi
 if [[ $EXIT_CODE -ne 0 ]]; then
     echo "💥 Process crashed with exit code: $EXIT_CODE"
 
-    # Capture crash context
+    # Capture crash context - atomic write using mktemp + mv
+    # ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
     CRASH_CONTEXT="/tmp/crash_context_$$.txt"
-
-    # Last 20 lines of bot log
-    if [[ -f "$BOT_LOG" ]]; then
-        echo "--- BOT LOG (last 20 lines) ---" > "$CRASH_CONTEXT"
-        tail -20 "$BOT_LOG" >> "$CRASH_CONTEXT" 2>/dev/null || true
-    fi
-
-    # Stderr from crash
-    if [[ -f "$CRASH_LOG" && -s "$CRASH_LOG" ]]; then
-        echo "--- STDERR ---" >> "$CRASH_CONTEXT"
-        tail -10 "$CRASH_LOG" >> "$CRASH_CONTEXT" 2>/dev/null || true
-    fi
+    tmp=$(mktemp)
+    {
+        # Last 20 lines of bot log
+        if [[ -f "$BOT_LOG" ]]; then
+            echo "--- BOT LOG (last 20 lines) ---"
+            tail -20 "$BOT_LOG" 2>/dev/null || true
+        fi
+        # Stderr from crash
+        if [[ -f "$CRASH_LOG" && -s "$CRASH_LOG" ]]; then
+            echo "--- STDERR ---"
+            tail -10 "$CRASH_LOG" 2>/dev/null || true
+        fi
+    } > "$tmp"
+    mv "$tmp" "$CRASH_CONTEXT"
 
     # Send crash notification (background, non-blocking)
     "$NOTIFY_SCRIPT" "crash" "$EXIT_CODE" "$WATCHEXEC_INFO_FILE" "$CRASH_CONTEXT" &
+
+    # Wait for background notification to complete before exit
+    # ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+    wait
 
     # Exit with same code (watchexec will restart)
     exit $EXIT_CODE
 fi
 
 echo "✅ Process exited cleanly (exit code: 0)"
+
+# Wait for any background notifications to complete
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+wait
