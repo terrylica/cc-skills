@@ -249,3 +249,28 @@ SHELL_RC="$([[ "$SHELL" == */zsh ]] && echo ~/.zshrc || echo ~/.bashrc)"
 echo 'export PATH=~/.npm-global/bin:$PATH' >> "$SHELL_RC"
 source "$SHELL_RC"
 ```
+
+---
+
+## Next Steps
+
+After setup completes, configure itp-hooks for enhanced workflow guidance:
+
+1. **Check hook status**:
+
+   ```bash
+   /itp:hooks status
+   ```
+
+2. **Install hooks** (if not already installed):
+
+   ```bash
+   /itp:hooks install
+   ```
+
+### What hooks provide
+
+- **PreToolUse guard**: Blocks Unicode box-drawing diagrams without `<details>` source blocks
+- **PostToolUse reminder**: Prompts ADR sync and graph-easy skill usage
+
+**IMPORTANT:** Hooks require a Claude Code session restart after installation.
