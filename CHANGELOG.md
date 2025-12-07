@@ -1,3 +1,10 @@
+## [2.12.1](https://github.com/terrylica/cc-skills/compare/v2.12.0...v2.12.1) (2025-12-07)
+
+
+### Bug Fixes
+
+* **adr:** regenerate diagrams with graph-easy boxart ([b2ee96f](https://github.com/terrylica/cc-skills/commit/b2ee96f762d21e785ec9dbc980cf96b5fd8b9422))
+
 # [2.12.0](https://github.com/terrylica/cc-skills/compare/v2.11.4...v2.12.0) (2025-12-07)
 
 
