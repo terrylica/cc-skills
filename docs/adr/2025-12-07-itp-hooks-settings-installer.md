@@ -18,24 +18,26 @@ Claude Code only loads hooks from `~/.claude/settings.json`, NOT from plugin.jso
 
 Users need a way to install/uninstall itp-hooks to their settings.json without manually editing JSON.
 
-<!-- graph-easy source: before-after
+```
+                                     🪝 Hook Loading
+                                      ─────────────
+                                   ✗ Ignored ✓ Loaded
+
+┌───────────────────┐  ignored   ┌─────────────────────┐  loaded   ┌─────────────────────┐
+│ Plugin hooks.json │ ─────────> │ Claude Code Runtime │ <──────── │ settings.json hooks │
+└───────────────────┘            └─────────────────────┘           └─────────────────────┘
+```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "🪝 Hook Loading\n─────────────\n✗ Ignored ✓ Loaded"; flow: east; }
 [Plugin hooks.json] -- ignored --> [Claude Code Runtime]
-
 [settings.json hooks] -- loaded --> [Claude Code Runtime]
--->
+```
 
-```
-+-------------------+  ignored   +---------------------+
-| Plugin hooks.json | ---------> | Claude Code Runtime |
-+-------------------+            +---------------------+
-                                           ^
-                                           |
-                                         loaded
-                                           |
-+---------------------+                    |
-| settings.json hooks | -------------------+
-+---------------------+
-```
+</details>
 
 ## Decision Drivers
 
@@ -64,24 +66,44 @@ Chosen option: **Slash command with shell script** (`/itp hooks`)
 
 ## Architecture
 
-<!-- graph-easy source: architecture
-[/itp hooks command] -> [manage-hooks.sh]
+```
+           🏗️ /itp hooks Architecture
+
+                           ╭────────────────────╮
+                           │ /itp hooks command │
+                           ╰────────────────────╯
+                             │
+                             │
+                             ∨
+┌────────────────────┐     ┌────────────────────┐
+│ ~/.claude/backups/ │ <── │  manage-hooks.sh   │
+└────────────────────┘     └────────────────────┘
+                             │
+                             │
+                             ∨
+                           ┌────────────────────┐
+                           │         jq         │
+                           └────────────────────┘
+                             │
+                             │
+                             ∨
+                           ┌────────────────────┐
+                           │   settings.json    │
+                           └────────────────────┘
+```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "🏗️ /itp hooks Architecture"; flow: south; }
+[/itp hooks command] { shape: rounded; } -> [manage-hooks.sh]
 [manage-hooks.sh] -> [jq]
 [jq] -> [settings.json]
 [manage-hooks.sh] -> [~/.claude/backups/]
--->
+```
 
-```
-+-------------------+     +------------------+     +-----+     +---------------+
-| /itp hooks command| --> | manage-hooks.sh  | --> | jq  | --> | settings.json |
-+-------------------+     +------------------+     +-----+     +---------------+
-                                   |
-                                   |
-                                   v
-                          +-------------------+
-                          | ~/.claude/backups/|
-                          +-------------------+
-```
+</details>
 
 ### Components
 
@@ -98,6 +120,10 @@ Chosen option: **Slash command with shell script** (`/itp hooks`)
 | 2025-12-07 | Use `$HOME` literal in JSON | settings.json doesn't support `${CLAUDE_PLUGIN_ROOT}`                     |
 | 2025-12-07 | Numbered restore list       | Users forget timestamps; numbered list with `restore latest` is better UX |
 | 2025-12-07 | Atomic writes via temp+mv   | Prevents corruption from interrupted writes                               |
+
+## Verification
+
+All tests passed on 2025-12-07.
 
 ## More Information
 
