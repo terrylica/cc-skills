@@ -1,3 +1,10 @@
+# [2.13.0](https://github.com/terrylica/cc-skills/compare/v2.12.1...v2.13.0) (2025-12-07)
+
+
+### Features
+
+* **itp:** add hooks reminder to setup command ([af34e6e](https://github.com/terrylica/cc-skills/commit/af34e6e42840e1f8db9b16d16ee4fd9b6dd41480))
+
 ## [2.12.1](https://github.com/terrylica/cc-skills/compare/v2.12.0...v2.12.1) (2025-12-07)
 
 
