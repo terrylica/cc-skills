@@ -1,3 +1,10 @@
+## [2.11.4](https://github.com/terrylica/cc-skills/compare/v2.11.3...v2.11.4) (2025-12-07)
+
+
+### Bug Fixes
+
+* **itp-hooks:** remove dual hooks config, rely on standalone plugin.json ([fb0c3a4](https://github.com/terrylica/cc-skills/commit/fb0c3a483beed602927af9b8d22a4f3e109ae4d4))
+
 ## [2.11.3](https://github.com/terrylica/cc-skills/compare/v2.11.2...v2.11.3) (2025-12-07)
 
 
