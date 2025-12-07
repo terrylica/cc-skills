@@ -1,3 +1,10 @@
+# [2.12.0](https://github.com/terrylica/cc-skills/compare/v2.11.4...v2.12.0) (2025-12-07)
+
+
+### Features
+
+* **itp:** add /itp hooks command for settings.json hook management ([cf2a675](https://github.com/terrylica/cc-skills/commit/cf2a67546c5a223597ffb70f35c8e286fa88b0e5))
+
 ## [2.11.4](https://github.com/terrylica/cc-skills/compare/v2.11.3...v2.11.4) (2025-12-07)
 
 
