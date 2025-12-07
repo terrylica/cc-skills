@@ -155,7 +155,7 @@
       "category": "enforcement",
       "author": {"name": "Terry Li", "url": "https://github.com/terrylica"},
       "keywords": ["itp", "hooks", "enforcement", "adr", "graph-easy", "standards"],
-      "hooks": "../plugins/itp-hooks/hooks/hooks.json",
+      "hooks": "./plugins/itp-hooks/hooks/hooks.json",
       "strict": false
     }
   ]
