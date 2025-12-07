@@ -16,6 +16,25 @@ LATEX_PREAMBLE="table-spacing.tex"
 LOG_FILE="build-pdf.log"
 
 # ==============================================================================
+# Log Rotation - prevent unbounded growth
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+# ==============================================================================
+LOG_ROTATION_KEEP_COUNT=5
+rotate_log() {
+    local log_file="$1"
+    local keep_count="${2:-$LOG_ROTATION_KEEP_COUNT}"
+
+    if [ -f "$log_file" ]; then
+        mv "$log_file" "${log_file}.$(date +%s)"
+        # Keep only last N logs
+        ls -t "${log_file}."* 2>/dev/null | tail -n +$((keep_count + 1)) | xargs rm -f 2>/dev/null || true
+    fi
+}
+
+# Rotate log before starting new build
+rotate_log "$LOG_FILE" "$LOG_ROTATION_KEEP_COUNT"
+
+# ==============================================================================
 # Color Output
 # ==============================================================================
 RED='\033[0;31m'

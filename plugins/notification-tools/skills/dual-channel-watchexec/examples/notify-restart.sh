@@ -8,12 +8,38 @@
 set -euo pipefail
 
 # ============================================================================
+# IDEMPOTENCY HELPERS
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+# ============================================================================
+
+# Log rotation - keep last N logs to prevent unbounded growth
+LOG_ROTATION_KEEP_COUNT=5
+rotate_log() {
+    local log_file="$1"
+    local keep_count="${2:-$LOG_ROTATION_KEEP_COUNT}"
+
+    if [ -f "$log_file" ]; then
+        mv "$log_file" "${log_file}.$(date +%s)"
+        # Keep only last N logs
+        ls -t "${log_file}."* 2>/dev/null | tail -n +$((keep_count + 1)) | xargs rm -f 2>/dev/null || true
+    fi
+}
+
+# Trap for cleanup - will be set after MESSAGE_FILE is created
+MESSAGE_FILE=""
+cleanup() {
+    [[ -n "$MESSAGE_FILE" ]] && rm -f "$MESSAGE_FILE"
+}
+trap cleanup EXIT
+
+# ============================================================================
 # CONFIGURATION - Adapt these for your project
 # ============================================================================
 
 # Log output location
 NOTIFICATION_LOG="${NOTIFICATION_LOG:-./logs/bot-notifications.log}"
 mkdir -p "$(dirname "$NOTIFICATION_LOG")"
+rotate_log "$NOTIFICATION_LOG" "$LOG_ROTATION_KEEP_COUNT"
 exec >> "$NOTIFICATION_LOG" 2>&1
 
 # Message archive directory
@@ -157,7 +183,9 @@ MESSAGE="$EMOJI <b>Service $STATUS</b>
 # ARCHIVE MESSAGE (for debugging)
 # ============================================================================
 
-MESSAGE_ARCHIVE_FILE="$MESSAGE_ARCHIVE_DIR/$(date '+%Y%m%d-%H%M%S')-$REASON-$PID.txt"
+# Nanosecond precision to prevent filename collisions
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+MESSAGE_ARCHIVE_FILE="$MESSAGE_ARCHIVE_DIR/$(date '+%Y%m%d-%H%M%S-%N')-$REASON-$PID.txt"
 
 cat > "$MESSAGE_ARCHIVE_FILE" <<ARCHIVE_EOF
 ========================================================================
@@ -194,8 +222,9 @@ echo "📝 Message archived: $MESSAGE_ARCHIVE_FILE"
 if [[ -n "${TELEGRAM_BOT_TOKEN:-}" ]] && [[ -n "${TELEGRAM_CHAT_ID:-}" ]]; then
     echo "📱 Sending Telegram notification..."
 
-    # Create temp file for message to avoid shell escaping issues
-    MESSAGE_FILE="/tmp/telegram_message_$$.txt"
+    # Create temp file using mktemp to avoid race conditions
+    # ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
+    MESSAGE_FILE=$(mktemp /tmp/telegram_message.XXXXXX)
     cat > "$MESSAGE_FILE" <<MSGEOF
 $MESSAGE
 MSGEOF

@@ -144,11 +144,22 @@ npm pkg set scripts.release="semantic-release"
 npm pkg set version="0.0.0-development"
 npm pkg set engines.node=">=22.14.0"
 
-# Create .releaserc.yml
+# Create .releaserc.yml with backup + traceability
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
 echo "Creating .releaserc.yml..."
+BACKUP_REF="none"
+if [ -f .releaserc.yml ]; then
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP=".releaserc.yml.bak.${TIMESTAMP}"
+    cp .releaserc.yml "$BACKUP"
+    BACKUP_REF="./$BACKUP"
+    echo "INFO: Backed up existing .releaserc.yml to $BACKUP"
+fi
+
 case $MODE in
     user|org)
         cat > .releaserc.yml <<EOF
+# Previous version: $BACKUP_REF
 # Extends: $CONFIG_PACKAGE
 # Level: Project (extends Level 2/3)
 extends: "$CONFIG_PACKAGE"
@@ -156,6 +167,7 @@ EOF
         ;;
     inline)
         cat > .releaserc.yml <<EOF
+# Previous version: $BACKUP_REF
 # Inline configuration
 # Level: Project (standalone)
 
@@ -184,9 +196,10 @@ echo "Creating .github/workflows/release.yml..."
 mkdir -p .github/workflows
 cp "$TEMPLATES_DIR/github-workflow.yml" .github/workflows/release.yml
 
-# Update .gitignore
+# Update .gitignore - exact line match to prevent false positives
+# ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md
 if [ -f .gitignore ]; then
-    grep -q "node_modules" .gitignore || echo "node_modules/" >> .gitignore
+    grep -qx "node_modules/" .gitignore || echo "node_modules/" >> .gitignore
 else
     echo "node_modules/" > .gitignore
 fi
