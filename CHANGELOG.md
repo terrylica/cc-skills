@@ -1,3 +1,10 @@
+# [2.15.0](https://github.com/terrylica/cc-skills/compare/v2.14.0...v2.15.0) (2025-12-08)
+
+
+### Features
+
+* **itp:** add gitleaks secret scanner to setup command ([920fa14](https://github.com/terrylica/cc-skills/commit/920fa14c88ecc39d6afd1aa4a2fec73f9b60cbf2))
+
 # [2.14.0](https://github.com/terrylica/cc-skills/compare/v2.13.0...v2.14.0) (2025-12-07)
 
 
