@@ -1,6 +1,6 @@
 ---
 name: code-hardcode-audit
-description: Detects hardcoded values, magic numbers, and duplicate constants using Ruff, Semgrep, and jscpd. Use when auditing for hardcodes, magic numbers, PLR2004, constant detection, or before release.
+description: Detects hardcoded values, magic numbers, duplicate constants, and leaked secrets using Ruff, Semgrep, jscpd, and gitleaks. Use when auditing for hardcodes, magic numbers, PLR2004, constant detection, secret scanning, or before release.
 allowed-tools: Bash, Read, Write, Glob, Grep
 ---
 
@@ -14,7 +14,9 @@ Use this skill when the user mentions:
 - "constant detection", "find constants"
 - "duplicate constants", "DRY violations"
 - "code audit", "hardcode audit"
-- "PLR2004", "semgrep", "jscpd"
+- "PLR2004", "semgrep", "jscpd", "gitleaks"
+- "secret scanning", "leaked secrets", "API keys"
+- "passwords in code", "credential leaks"
 
 ## Quick Start
 
@@ -30,6 +32,9 @@ uv run --script scripts/run_semgrep.py -- src/
 
 # Copy-paste detection
 uv run --script scripts/run_jscpd.py -- src/
+
+# Secret scanning (API keys, tokens, passwords)
+uv run --script scripts/run_gitleaks.py -- src/
 ```
 
 ## Tool Overview
@@ -39,6 +44,7 @@ uv run --script scripts/run_jscpd.py -- src/
 | **Ruff PLR2004** | Magic value comparisons         | Python           | Fast   |
 | **Semgrep**      | URLs, ports, paths, credentials | Multi-language   | Medium |
 | **jscpd**        | Duplicate code blocks           | Multi-language   | Slow   |
+| **gitleaks**     | Secrets, API keys, passwords    | Any (file-based) | Fast   |
 
 ## Output Formats
 
@@ -88,7 +94,7 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 
 ```
 --output {json,text,both}  Output format (default: both)
---tools {all,ruff,semgrep,jscpd}  Tools to run (default: all)
+--tools {all,ruff,semgrep,jscpd,gitleaks}  Tools to run (default: all)
 --severity {all,high,medium,low}  Filter by severity (default: all)
 --exclude PATTERN  Glob pattern to exclude (repeatable)
 --parallel  Run tools in parallel (default: true)
