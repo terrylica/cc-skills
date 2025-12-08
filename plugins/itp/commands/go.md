@@ -100,6 +100,7 @@ TodoWrite with todos (MERGED - preserving existing):
 # ITP Phase 1 - Skill tool calls marked explicitly
 - "[ITP] Phase 1: Sync ADR status proposed → accepted" | pending
 - "[ITP] Phase 1: Skill tool call → impl-standards" | pending
+- "[ITP] Phase 1: Skill tool call → mise-configuration (if new scripts)" | pending
 - "[ITP] Phase 1: Skill tool call → adr-code-traceability" | pending
 - "[ITP] Phase 1: Execute implementation tasks from spec.md" | pending
 - "[ITP] Phase 1: Skill tool call → code-hardcode-audit" | pending
@@ -132,6 +133,7 @@ TodoWrite with todos (MERGED - preserving existing):
 | `implement-plan-preflight` | Preflight | ADR + Design Spec creation      |
 | `adr-graph-easy-architect` | Preflight | Architecture diagrams           |
 | `impl-standards`           | Phase 1   | Error handling, constants       |
+| `mise-configuration`       | Phase 1   | Env var centralization patterns |
 | `adr-code-traceability`    | Phase 1   | Code-to-ADR references          |
 | `code-hardcode-audit`      | Phase 1   | Pre-release validation          |
 | `semantic-release`         | Phase 3   | Version tagging + release       |
@@ -454,10 +456,13 @@ Execute each task in `spec.md`:
 **Skill Execution Order** (invoke sequentially, in this order):
 
 1. **`impl-standards`** — Apply error handling & constants patterns FIRST
-2. **`adr-code-traceability`** — Add ADR references to code SECOND
-3. **`code-hardcode-audit`** — Final audit LAST (before Phase 2)
+2. **`mise-configuration`** — Centralize config via mise [env] SECOND
+3. **`adr-code-traceability`** — Add ADR references to code THIRD
+4. **`code-hardcode-audit`** — Final audit LAST (before Phase 2)
 
 **MANDATORY Skill tool call: `impl-standards`** — activate NOW for detailed standards.
+
+**MANDATORY Skill tool call: `mise-configuration`** — activate when creating/modifying scripts with configurable values.
 
 **MANDATORY Skill tool call: `adr-code-traceability`** — activate NOW for ADR references in code.
 
