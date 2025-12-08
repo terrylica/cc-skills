@@ -2,14 +2,14 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""Orchestrator for code hardcode audit combining Ruff, Semgrep, and jscpd.
+"""Orchestrator for code hardcode audit combining Ruff, Semgrep, jscpd, and gitleaks.
 
 Usage:
     uv run --script audit_hardcodes.py -- <path> [options]
 
 Options:
     --output {json,text,both}  Output format (default: both)
-    --tools {all,ruff,semgrep,jscpd}  Tools to run (default: all)
+    --tools {all,ruff,semgrep,jscpd,gitleaks}  Tools to run (default: all)
     --severity {all,high,medium,low}  Filter by severity (default: all)
     --exclude PATTERN  Glob pattern to exclude (repeatable)
     --no-parallel  Disable parallel execution
@@ -244,6 +244,56 @@ def run_jscpd(target: Path, excludes: list[str]) -> list[Finding]:
     return []
 
 
+def run_gitleaks(target: Path, excludes: list[str]) -> list[Finding]:
+    """Run gitleaks for secret detection and return findings.
+
+    Uses modern 'dir' command for directory scanning (v8.19.0+).
+    Exit codes: 0 = clean, 1 = secrets found (expected), 2+ = error.
+    """
+    cmd = [
+        "gitleaks",
+        "dir",
+        str(target),
+        "--report-format",
+        "json",
+        "--report-path",
+        "/dev/stdout",
+    ]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+        # Exit code 1 = secrets found (expected, not an error)
+        if result.returncode in (0, 1) and result.stdout.strip():
+            try:
+                data = json.loads(result.stdout)
+                findings = []
+                for i, item in enumerate(data):
+                    findings.append(
+                        Finding(
+                            id=f"GITLEAKS-{i + 1:03d}",
+                            tool="gitleaks",
+                            rule=item.get("RuleID", "secret"),
+                            file=item.get("File", ""),
+                            line=item.get("StartLine", 0),
+                            end_line=item.get("EndLine"),
+                            message=f"Secret detected: {item.get('Match', '')[:30]}...",
+                            severity="high",  # Secrets are always high severity
+                            suggested_fix="Remove secret and rotate credentials",
+                        )
+                    )
+                return findings
+            except json.JSONDecodeError:
+                pass
+        return []
+    except FileNotFoundError:
+        print("gitleaks not found. Install with: mise use --global gitleaks", file=sys.stderr)
+        return []
+    except subprocess.TimeoutExpired:
+        print("gitleaks timed out after 120 seconds", file=sys.stderr)
+        return []
+
+
 def run_audit(
     target: Path,
     tools: list[str],
@@ -257,12 +307,13 @@ def run_audit(
         "ruff": run_ruff,
         "semgrep": run_semgrep,
         "jscpd": run_jscpd,
+        "gitleaks": run_gitleaks,
     }
 
     selected = tools if tools != ["all"] else list(tool_funcs.keys())
 
     if parallel:
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             futures = {
                 executor.submit(tool_funcs[name], target, excludes): name
                 for name in selected
@@ -306,7 +357,7 @@ def filter_by_severity(result: AuditResult, severity: str) -> AuditResult:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Audit code for hardcoded values using Ruff, Semgrep, and jscpd"
+        description="Audit code for hardcoded values using Ruff, Semgrep, jscpd, and gitleaks"
     )
     parser.add_argument("path", type=Path, help="Path to audit")
     parser.add_argument(
@@ -317,7 +368,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--tools",
-        choices=["all", "ruff", "semgrep", "jscpd"],
+        choices=["all", "ruff", "semgrep", "jscpd", "gitleaks"],
         nargs="+",
         default=["all"],
         help="Tools to run",
