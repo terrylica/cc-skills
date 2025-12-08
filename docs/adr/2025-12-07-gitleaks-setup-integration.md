@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: implemented
 date: 2025-12-07
 decision-maker: Terry Li
 consulted: [Security-Fundamentals, Plugin-Integration, Tool-Registry]

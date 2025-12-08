@@ -1,8 +1,8 @@
 ---
 adr: 2025-12-07-gitleaks-setup-integration
 source: ~/.claude/plans/polymorphic-conjuring-glade.md
-implementation-status: in_progress
-phase: phase-1
+implementation-status: completed
+phase: phase-3
 last-updated: 2025-12-07
 ---
 
