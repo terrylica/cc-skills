@@ -30,7 +30,7 @@ TodoWrite with todos:
 - "Setup: Detect platform (macOS/Linux)" | pending | "Detecting platform"
 - "Setup: Check Core Tools (uv, gh, prettier)" | pending | "Checking Core Tools"
 - "Setup: Check ADR Diagram Tools (cpanm, graph-easy)" | pending | "Checking ADR Tools"
-- "Setup: Check Code Audit Tools (ruff, semgrep, jscpd)" | pending | "Checking Audit Tools"
+- "Setup: Check Code Audit Tools (ruff, semgrep, jscpd, gitleaks)" | pending | "Checking Audit Tools"
 - "Setup: Check Release Tools (node, semantic-release)" | pending | "Checking Release Tools"
 - "Setup: Present findings and disclaimer" | pending | "Presenting findings"
 - "Setup: GATE - Await user decision" | pending | "Awaiting user decision"
@@ -79,11 +79,12 @@ Record findings:
 
 ### Todo 4: Check Code Audit Tools
 
-| Tool    | Check                | Required       |
-| ------- | -------------------- | -------------- |
-| ruff    | `command -v ruff`    | For code-audit |
-| semgrep | `command -v semgrep` | For code-audit |
-| jscpd   | `command -v jscpd`   | For code-audit |
+| Tool     | Check                 | Required        |
+| -------- | --------------------- | --------------- |
+| ruff     | `command -v ruff`     | For code-audit  |
+| semgrep  | `command -v semgrep`  | For code-audit  |
+| jscpd    | `command -v jscpd`    | For code-audit  |
+| gitleaks | `command -v gitleaks` | For secret-scan |
 
 ### Todo 5: Check Release Tools
 
