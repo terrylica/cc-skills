@@ -12,9 +12,10 @@
 import { execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
 
-// Constants for file paths
-const ADR_DIR = "docs/adr";
-const DESIGN_DIR = "docs/design";
+// ADR: 2025-12-08-mise-env-centralized-config
+// Configuration via environment variables with defaults for backward compatibility
+const ADR_DIR = process.env.ADR_DIR || "docs/adr";
+const DESIGN_DIR = process.env.DESIGN_DIR || "docs/design";
 
 // ADR file pattern: YYYY-MM-DD-slug.md
 const ADR_FILE_PATTERN = /^docs\/adr\/(\d{4}-\d{2}-\d{2}-[\w-]+)\.md$/;
