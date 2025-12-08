@@ -1,3 +1,11 @@
+# [2.19.0](https://github.com/terrylica/cc-skills/compare/v2.18.0...v2.19.0) (2025-12-08)
+
+
+### Features
+
+* **itp:** polish mise-configuration skill to SOTA best practices ([9113bfa](https://github.com/terrylica/cc-skills/commit/9113bfaa00a91ee935a7502a43e336f0097f3f55))
+* **itp:** wire mise-configuration skill into /itp:go workflow ([550be35](https://github.com/terrylica/cc-skills/commit/550be35a3cdfbca1609708aee9db7b0d8d616509))
+
 # [2.18.0](https://github.com/terrylica/cc-skills/compare/v2.17.0...v2.18.0) (2025-12-08)
 
 
