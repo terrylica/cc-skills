@@ -121,7 +121,7 @@ When presenting missing tool installation commands:
 | prettier | `mise use --global npm:prettier` |
 | jscpd    | `npm i -g jscpd` (npm only)      |
 
-**Display summary with this format:**
+**Display summary format (versions derived from actual tool output):**
 
 ```
 === SETUP PREFLIGHT COMPLETE ===
@@ -129,8 +129,8 @@ When presenting missing tool installation commands:
 Found: X tools | Missing: Y tools
 
 Your existing installations:
-[OK] uv (0.9.16)
-[OK] gh (2.83.1)
+[OK] uv (<derived from: uv --version>)
+[OK] gh (<derived from: gh --version>)
 [x] gitleaks (missing)
 ...
 
@@ -147,6 +147,8 @@ Missing tools will be installed via mise (detected):
 Missing tools will be installed via brew:
   gitleaks -> brew install gitleaks
 ```
+
+**IMPORTANT**: Version numbers must be derived dynamically from running the actual tool's version command. Never hardcode version numbers.
 
 ### Todo 7: GATE - Await User Decision
 
