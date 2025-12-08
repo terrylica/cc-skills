@@ -1,3 +1,10 @@
+# [2.16.0](https://github.com/terrylica/cc-skills/compare/v2.15.0...v2.16.0) (2025-12-08)
+
+
+### Features
+
+* **itp:** rename /itp:itp command to /itp:go for shortcut support ([032c240](https://github.com/terrylica/cc-skills/commit/032c240f25ad77b0ae3ac7c335bdcbf879ab8d09))
+
 # [2.15.0](https://github.com/terrylica/cc-skills/compare/v2.14.0...v2.15.0) (2025-12-08)
 
 
