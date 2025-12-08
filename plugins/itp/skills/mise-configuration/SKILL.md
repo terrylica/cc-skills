@@ -1,6 +1,6 @@
 ---
 name: mise Configuration SSoT
-description: This skill should be used when the user asks to "configure environment variables", "use mise env", "add mise configuration", "refactor hardcoded values", "centralize configuration", mentions "mise [env]", "mise.toml", or needs guidance on environment variable patterns with backward compatibility.
+description: This skill should be used when the user asks to "configure environment variables", "use mise env", "add mise configuration", "refactor hardcoded values", "centralize configuration", "set up Python venv", "mise templates", mentions "mise [env]", "mise.toml", "[settings]", "[tools]", or needs guidance on environment variable patterns with backward compatibility.
 ---
 
 # mise Configuration as Single Source of Truth
@@ -13,14 +13,9 @@ Define all configurable values in `.mise.toml` `[env]` section. Scripts read via
 
 **Key insight**: mise auto-loads `[env]` values when shell has `mise activate` configured. Scripts using `os.environ.get("VAR", "default")` pattern work identically whether mise is present or not.
 
-## When to Apply
-
-- Creating new skills with configurable timeouts, paths, or thresholds
-- Refactoring hardcoded values to environment variables
-- Adding user-overridable settings to scripts
-- Consolidating scattered configuration into single source
-
 ## Quick Reference
+
+### Language Patterns
 
 | Language   | Pattern                            | Notes                       |
 | ---------- | ---------------------------------- | --------------------------- |
@@ -30,63 +25,227 @@ Define all configurable values in `.mise.toml` `[env]` section. Scripts read via
 | Go         | `os.Getenv("VAR")` with default    | Empty string if unset       |
 | Rust       | `std::env::var("VAR").unwrap_or()` | Returns Result<String>      |
 
-## Minimal .mise.toml
+### Special Directives
+
+| Directive       | Purpose                 | Example                                             |
+| --------------- | ----------------------- | --------------------------------------------------- |
+| `_.file`        | Load from .env files    | `_.file = ".env"`                                   |
+| `_.path`        | Extend PATH             | `_.path = ["bin", "node_modules/.bin"]`             |
+| `_.source`      | Execute bash scripts    | `_.source = "./scripts/env.sh"`                     |
+| `_.python.venv` | Auto-create Python venv | `_.python.venv = { path = ".venv", create = true }` |
+
+## Python Venv Auto-Creation (Critical)
+
+Auto-create and activate Python virtual environments:
 
 ```toml
-# .mise.toml - Single source of truth for configuration
-# Values auto-load when mise activate is in shell
-
 [env]
-TIMEOUT = "300"
-OUTPUT_DIR = "output"
-DEBUG_MODE = "false"
+_.python.venv = { path = ".venv", create = true }
 ```
 
-## Existing Implementations
+This pattern is used in ALL projects. When entering the directory with mise activated:
 
-| Skill                    | Variables                                   | Purpose                  |
-| ------------------------ | ------------------------------------------- | ------------------------ |
-| code-hardcode-audit      | AUDIT_PARALLEL_WORKERS, AUDIT_JSCPD_TIMEOUT | Performance tuning       |
-| pypi-doppler             | DOPPLER_PROJECT, DOPPLER_CONFIG             | Credential source        |
-| implement-plan-preflight | ADR_DIR, DESIGN_DIR, DESIGN_SPEC_FILENAME   | Path conventions         |
-| semantic-release         | ADR_DIR, DESIGN_DIR                         | Release note integration |
+1. Creates `.venv` if it doesn't exist
+2. Activates the venv automatically
+3. Works with `uv` for fast venv creation
+
+**Alternative via [settings]**:
+
+```toml
+[settings]
+python.uv_venv_auto = true
+```
+
+## Special Directives
+
+### Load from .env Files (`_.file`)
+
+```toml
+[env]
+# Single file
+_.file = ".env"
+
+# Multiple files with options
+_.file = [
+    ".env",
+    { path = ".env.secrets", redact = true }
+]
+```
+
+### Extend PATH (`_.path`)
+
+```toml
+[env]
+_.path = [
+    "{{config_root}}/bin",
+    "{{config_root}}/node_modules/.bin",
+    "scripts"
+]
+```
+
+### Source Bash Scripts (`_.source`)
+
+```toml
+[env]
+_.source = "./scripts/env.sh"
+_.source = { path = ".secrets.sh", redact = true }
+```
+
+### Lazy Evaluation (`tools = true`)
+
+By default, env vars resolve BEFORE tools install. Use `tools = true` to access tool-generated paths:
+
+```toml
+[env]
+# Access PATH after tools are set up
+GEM_BIN = { value = "{{env.GEM_HOME}}/bin", tools = true }
+
+# Load .env files after tool setup
+_.file = { path = ".env", tools = true }
+```
+
+## Template Syntax (Tera)
+
+mise uses Tera templating. Delimiters: `{{ }}` expressions, `{% %}` statements, `{# #}` comments.
+
+### Built-in Variables
+
+| Variable              | Description                     |
+| --------------------- | ------------------------------- |
+| `{{config_root}}`     | Directory containing .mise.toml |
+| `{{cwd}}`             | Current working directory       |
+| `{{env.VAR}}`         | Environment variable            |
+| `{{mise_bin}}`        | Path to mise binary             |
+| `{{mise_pid}}`        | mise process ID                 |
+| `{{xdg_cache_home}}`  | XDG cache directory             |
+| `{{xdg_config_home}}` | XDG config directory            |
+| `{{xdg_data_home}}`   | XDG data directory              |
+
+### Functions
+
+```toml
+[env]
+# Get env var with fallback
+NODE_VER = "{{ get_env(name='NODE_VERSION', default='20') }}"
+
+# Execute shell command
+TIMESTAMP = "{{ exec(command='date +%Y-%m-%d') }}"
+
+# System info
+ARCH = "{{ arch() }}"      # x64, arm64
+OS = "{{ os() }}"          # linux, macos, windows
+CPUS = "{{ num_cpus() }}"
+
+# File operations
+VERSION = "{{ read_file(path='VERSION') | trim }}"
+HASH = "{{ hash_file(path='config.json', len=8) }}"
+```
+
+### Filters
+
+```toml
+[env]
+# Case conversion
+SNAKE = "{{ name | snakecase }}"
+KEBAB = "{{ name | kebabcase }}"
+CAMEL = "{{ name | lowercamelcase }}"
+
+# String manipulation
+TRIMMED = "{{ text | trim }}"
+UPPER = "{{ text | upper }}"
+REPLACED = "{{ text | replace(from='old', to='new') }}"
+
+# Path operations
+ABSOLUTE = "{{ path | absolute }}"
+BASENAME = "{{ path | basename }}"
+DIRNAME = "{{ path | dirname }}"
+```
+
+### Conditionals
+
+```toml
+[env]
+{% if env.DEBUG %}
+LOG_LEVEL = "debug"
+{% else %}
+LOG_LEVEL = "info"
+{% endif %}
+```
+
+## Required & Redacted Variables
+
+### Required Variables
+
+Enforce variable definition with helpful messages:
+
+```toml
+[env]
+DATABASE_URL = { required = true }
+API_KEY = { required = "Get from https://example.com/api-keys" }
+```
+
+### Redacted Variables
+
+Hide sensitive values from output:
+
+```toml
+[env]
+SECRET = { value = "my_secret", redact = true }
+_.file = { path = ".env.secrets", redact = true }
+
+# Pattern-based redactions
+redactions = ["*_TOKEN", "*_KEY", "PASSWORD"]
+```
+
+## [settings] Section
+
+```toml
+[settings]
+experimental = true              # Enable experimental features
+python.uv_venv_auto = true       # Auto-create venv with uv
+```
+
+## [tools] Version Pinning
+
+Pin tool versions for reproducibility:
+
+```toml
+[tools]
+python = "3.11"  # or higher (3.12, 3.13, etc.)
+node = "latest"
+uv = "latest"
+
+# With options
+rust = { version = "1.75", profile = "minimal" }
+```
+
+**min_version**: Enforce mise version compatibility:
+
+```toml
+min_version = "2024.9.5"
+```
 
 ## Implementation Steps
 
 1. **Identify hardcoded values** - timeouts, paths, thresholds, feature flags
 2. **Create `.mise.toml`** - add `[env]` section with documented variables
-3. **Update scripts** - use env vars with original values as defaults
-4. **Add ADR reference** - comment: `# ADR: 2025-12-08-mise-env-centralized-config`
-5. **Test without mise** - verify script works using defaults
-6. **Test with mise** - verify activated shell uses `.mise.toml` values
+3. **Add venv auto-creation** - `_.python.venv = { path = ".venv", create = true }`
+4. **Update scripts** - use env vars with original values as defaults
+5. **Add ADR reference** - comment: `# ADR: 2025-12-08-mise-env-centralized-config`
+6. **Test without mise** - verify script works using defaults
+7. **Test with mise** - verify activated shell uses `.mise.toml` values
 
-## Variable Naming Convention
+## Anti-Patterns
 
-Use uppercase with underscores, prefixed by skill/tool context:
-
-```
-# Good - clear context
-AUDIT_PARALLEL_WORKERS
-DOPPLER_PROJECT
-ADR_DIR
-
-# Avoid - too generic
-TIMEOUT
-DIR
-WORKERS
-```
-
-## Anti-Patterns to Avoid
-
-| Anti-Pattern                  | Why                    | Instead                                              |
-| ----------------------------- | ---------------------- | ---------------------------------------------------- |
-| `mise exec -- script.py`      | Forces mise dependency | Use env vars with defaults                           |
-| Tool version pinning via mise | Different concern      | Keep tool versions in separate `.mise.toml` sections |
-| Secrets in `.mise.toml`       | Visible in repo        | Use Doppler for secrets                              |
-| No defaults in scripts        | Breaks without mise    | Always provide fallback                              |
+| Anti-Pattern                | Why                    | Instead                                    |
+| --------------------------- | ---------------------- | ------------------------------------------ |
+| `mise exec -- script.py`    | Forces mise dependency | Use env vars with defaults                 |
+| Secrets in `.mise.toml`     | Visible in repo        | Use Doppler or `redact = true`             |
+| No defaults in scripts      | Breaks without mise    | Always provide fallback                    |
+| Mixing env/tools resolution | Order matters          | Use `tools = true` for tool-dependent vars |
 
 ## Additional Resources
 
-For complete code patterns and templates by language, see: **[`references/patterns.md`](./references/patterns.md)**
+For complete code patterns and examples, see: **[`references/patterns.md`](./references/patterns.md)**
 
-**ADR**: [mise Environment Variables as Centralized Configuration](/docs/adr/2025-12-08-mise-env-centralized-config.md)
+**ADR Reference**: When implementing mise configuration, create an ADR at `docs/adr/YYYY-MM-DD-mise-env-centralized-config.md` in your project.
