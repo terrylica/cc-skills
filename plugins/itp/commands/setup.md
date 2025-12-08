@@ -100,7 +100,28 @@ Record findings:
 
 ### Todo 6: Present Findings
 
-Display summary with this format:
+**IMPORTANT: Use mise-first commands when available**
+
+When presenting missing tool installation commands:
+
+- If `HAS_MISE=true` (detected in Todo 1): Show mise commands
+- If `HAS_MISE=false`: Show platform package manager commands (brew/apt)
+
+**Mise command reference (use when HAS_MISE=true):**
+
+| Tool     | mise command                     |
+| -------- | -------------------------------- |
+| gitleaks | `mise use --global gitleaks`     |
+| ruff     | `mise use --global ruff`         |
+| uv       | `mise use --global uv`           |
+| gh       | `mise use --global github-cli`   |
+| semgrep  | `mise use --global semgrep`      |
+| node     | `mise use --global node`         |
+| doppler  | `mise use --global doppler`      |
+| prettier | `mise use --global npm:prettier` |
+| jscpd    | `npm i -g jscpd` (npm only)      |
+
+**Display summary with this format:**
 
 ```
 === SETUP PREFLIGHT COMPLETE ===
@@ -108,19 +129,23 @@ Display summary with this format:
 Found: X tools | Missing: Y tools
 
 Your existing installations:
-[OK] uv (0.4.9)
-[OK] gh (2.40.0)
-[x] prettier (missing)
-[OK] cpanm (installed)
+[OK] uv (0.9.16)
+[OK] gh (2.83.1)
+[x] gitleaks (missing)
 ...
 
 Note: This plugin is developed against latest tool versions.
-Your existing installations are respected and will not be reinstalled.
-If you encounter issues, report or consider upgrading.
+Your existing installations are respected.
 
-Missing tools can be installed:
-  prettier -> npm i -g prettier
-  ruff -> uv tool install ruff
+Missing tools will be installed via mise (detected):
+  gitleaks -> mise use --global gitleaks
+```
+
+**If HAS_MISE=false, show platform commands instead:**
+
+```
+Missing tools will be installed via brew:
+  gitleaks -> brew install gitleaks
 ```
 
 ### Todo 7: GATE - Await User Decision
