@@ -1158,8 +1158,4 @@ Generated commands should:
 
 ---
 
-**Version**: 1.2.0
-**Last Updated**: November 29, 2025
-**Compatible**: Claude Code (all versions with slash command support)
-
-**Build powerful custom slash commands in minutes!** ⚡
+**Build powerful custom slash commands in minutes!**

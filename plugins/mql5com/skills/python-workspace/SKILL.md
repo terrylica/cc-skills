@@ -5,9 +5,7 @@ description: Configures Python development workspace for MQL5 integration. Use w
 
 # MQL5-Python Translation Workspace Skill
 
-**Version**: 1.0.0
-**Project**: mql5-crossover (CrossOver Bottle MT5 + Python Validation)
-**Purpose**: Seamless MQL5 indicator translation to Python with autonomous validation and self-correction
+Seamless MQL5 indicator translation to Python with autonomous validation and self-correction.
 
 ---
 
