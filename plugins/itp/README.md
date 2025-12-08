@@ -1,7 +1,7 @@
 # ITP Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-9-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-10-blue.svg)]()
 [![Commands](https://img.shields.io/badge/Commands-3-green.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
@@ -349,17 +349,18 @@ The install script auto-detects your platform and uses the appropriate package m
 
 ## Included Skills
 
-| Skill                      | Purpose                           | Powered by                                                               |
-| -------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
-| `implement-plan-preflight` | ADR and design spec creation      | —                                                                        |
-| `adr-graph-easy-architect` | ASCII architecture diagrams       | [Graph::Easy](https://metacpan.org/pod/Graph::Easy)                      |
-| `graph-easy`               | General ASCII diagram tool        | [Graph::Easy](https://metacpan.org/pod/Graph::Easy)                      |
-| `impl-standards`           | Code quality standards            | —                                                                        |
-| `adr-code-traceability`    | ADR-to-code linking               | —                                                                        |
-| `code-hardcode-audit`      | Magic number detection            | [jscpd](https://github.com/kucherenko/jscpd)                             |
-| `semantic-release`         | Versioning automation             | [semantic-release](https://github.com/semantic-release/semantic-release) |
-| `pypi-doppler`             | Local PyPI publishing             | [Doppler](https://www.doppler.com/)                                      |
-| `mise-configuration`       | Centralized env var configuration | [mise](https://mise.jdx.dev/)                                            |
+| Skill                      | Purpose                              | Powered by                                                               |
+| -------------------------- | ------------------------------------ | ------------------------------------------------------------------------ |
+| `implement-plan-preflight` | ADR and design spec creation         | —                                                                        |
+| `adr-graph-easy-architect` | ASCII architecture diagrams          | [Graph::Easy](https://metacpan.org/pod/Graph::Easy)                      |
+| `graph-easy`               | General ASCII diagram tool           | [Graph::Easy](https://metacpan.org/pod/Graph::Easy)                      |
+| `impl-standards`           | Code quality standards               | —                                                                        |
+| `adr-code-traceability`    | ADR-to-code linking                  | —                                                                        |
+| `code-hardcode-audit`      | Magic number detection               | [jscpd](https://github.com/kucherenko/jscpd)                             |
+| `semantic-release`         | Versioning automation                | [semantic-release](https://github.com/semantic-release/semantic-release) |
+| `pypi-doppler`             | Local PyPI publishing                | [Doppler](https://www.doppler.com/)                                      |
+| `mise-configuration`       | Centralized env var configuration    | [mise](https://mise.jdx.dev/)                                            |
+| `mise-tasks`               | Task orchestration with dependencies | [mise](https://mise.jdx.dev/)                                            |
 
 ## CI/CD Strategy
 

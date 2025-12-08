@@ -244,8 +244,51 @@ min_version = "2024.9.5"
 | No defaults in scripts      | Breaks without mise    | Always provide fallback                    |
 | Mixing env/tools resolution | Order matters          | Use `tools = true` for tool-dependent vars |
 
+## Task Orchestration Integration
+
+When you detect **workflow opportunities** during mise configuration, prescriptively invoke the `mise-tasks` skill.
+
+### Detection Triggers
+
+- Multi-step workflows (test + build + deploy)
+- Repeatable project commands (lint, format, release)
+- Dependency chains (db-migrate depends on db-init)
+- File-tracked builds (sources/outputs caching)
+
+### Prescriptive AI Reminder
+
+> **PRESCRIPTIVE**: When detecting multi-step project workflows, **invoke [`mise-tasks` skill](../mise-tasks/SKILL.md)** to generate appropriate `[tasks]` definitions with dependency management.
+
+### Example: From Environment to Tasks
+
+**Step 1**: Configure environment (this skill):
+
+```toml
+[env]
+DATABASE_URL = "postgresql://localhost/mydb"
+_.python.venv = { path = ".venv", create = true }
+```
+
+**Step 2**: Define tasks (`mise-tasks` skill):
+
+```toml
+[tasks.test]
+depends = ["lint"]
+run = "pytest tests/"
+
+[tasks.deploy]
+depends = ["test", "build"]
+run = "deploy.sh"
+```
+
+Tasks automatically inherit `[env]` values.
+
+---
+
 ## Additional Resources
 
 For complete code patterns and examples, see: **[`references/patterns.md`](./references/patterns.md)**
+
+**For task orchestration**, see: **[`mise-tasks` skill](../mise-tasks/SKILL.md)** - Dependencies, arguments, file tracking, watch mode
 
 **ADR Reference**: When implementing mise configuration, create an ADR at `docs/adr/YYYY-MM-DD-mise-env-centralized-config.md` in your project.

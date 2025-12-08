@@ -625,6 +625,27 @@ DOPPLER_CONFIG = "prd"
 
 # --- Redaction patterns for sensitive values ---
 redactions = ["*_TOKEN", "*_KEY", "*_SECRET"]
+
+# ==============================================================================
+# TASKS - See mise-tasks skill for comprehensive task orchestration
+# ==============================================================================
+# [tasks]
+# For task definitions with dependencies, arguments, and file tracking,
+# invoke the mise-tasks skill: ../mise-tasks/SKILL.md
+#
+# Example tasks (uncomment and customize):
+# [tasks.test]
+# description = "Run test suite"
+# run = "pytest tests/"
+#
+# [tasks.lint]
+# description = "Run linters"
+# run = "ruff check . && ruff format --check ."
+#
+# [tasks.build]
+# description = "Build package"
+# depends = ["lint", "test"]
+# run = "uv build"
 ```
 
 ## Real-World Examples
