@@ -17,6 +17,7 @@ Options:
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+# ADR: 2025-12-08-mise-env-centralized-config
+# Configuration via environment variables with defaults for backward compatibility
+AUDIT_PARALLEL_WORKERS = int(os.environ.get("AUDIT_PARALLEL_WORKERS", "4"))
+AUDIT_JSCPD_TIMEOUT = int(os.environ.get("AUDIT_JSCPD_TIMEOUT", "300"))
+AUDIT_GITLEAKS_TIMEOUT = int(os.environ.get("AUDIT_GITLEAKS_TIMEOUT", "120"))
 
 
 @dataclass
@@ -215,7 +222,7 @@ def run_jscpd(target: Path, excludes: list[str]) -> list[Finding]:
             cmd.extend(["--ignore", pattern])
 
         try:
-            subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            subprocess.run(cmd, capture_output=True, text=True, timeout=AUDIT_JSCPD_TIMEOUT)
             report_path = output_dir / "jscpd-report.json"
             if report_path.exists():
                 data = json.loads(report_path.read_text())
@@ -261,7 +268,7 @@ def run_gitleaks(target: Path, excludes: list[str]) -> list[Finding]:
     ]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=AUDIT_GITLEAKS_TIMEOUT)
 
         # Exit code 1 = secrets found (expected, not an error)
         if result.returncode in (0, 1) and result.stdout.strip():
@@ -290,7 +297,7 @@ def run_gitleaks(target: Path, excludes: list[str]) -> list[Finding]:
         print("gitleaks not found. Install with: mise use --global gitleaks", file=sys.stderr)
         return []
     except subprocess.TimeoutExpired:
-        print("gitleaks timed out after 120 seconds", file=sys.stderr)
+        print(f"gitleaks timed out after {AUDIT_GITLEAKS_TIMEOUT} seconds", file=sys.stderr)
         return []
 
 
@@ -313,7 +320,7 @@ def run_audit(
     selected = tools if tools != ["all"] else list(tool_funcs.keys())
 
     if parallel:
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=AUDIT_PARALLEL_WORKERS) as executor:
             futures = {
                 executor.submit(tool_funcs[name], target, excludes): name
                 for name in selected

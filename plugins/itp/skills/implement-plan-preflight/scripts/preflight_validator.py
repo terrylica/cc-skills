@@ -14,9 +14,16 @@ Example:
     uv run preflight_validator.py 2025-12-01-clickhouse-aws-ohlcv-ingestion
 """
 
+import os
 import sys
 import re
 from pathlib import Path
+
+# ADR: 2025-12-08-mise-env-centralized-config
+# Configuration via environment variables with defaults for backward compatibility
+ADR_DIR = os.environ.get("ADR_DIR", "docs/adr")
+DESIGN_DIR = os.environ.get("DESIGN_DIR", "docs/design")
+DESIGN_SPEC_FILENAME = os.environ.get("DESIGN_SPEC_FILENAME", "spec.md")
 
 # Emoji regex pattern for validation in graph labels
 # Covers common emoji ranges: emoticons, symbols, dingbats, pictographs
@@ -221,8 +228,8 @@ def main():
         print("Expected format: YYYY-MM-DD-slug")
         sys.exit(1)
 
-    adr_path = Path(f"docs/adr/{adr_id}.md")
-    spec_path = Path(f"docs/design/{adr_id}/spec.md")
+    adr_path = Path(f"{ADR_DIR}/{adr_id}.md")
+    spec_path = Path(f"{DESIGN_DIR}/{adr_id}/{DESIGN_SPEC_FILENAME}")
 
     all_errors = []
 

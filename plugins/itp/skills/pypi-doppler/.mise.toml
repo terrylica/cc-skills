@@ -1,0 +1,16 @@
+# ADR: 2025-12-08-mise-env-centralized-config
+# mise [env] as centralized configuration for pypi-doppler skill
+
+[env]
+# Doppler configuration (currently hardcoded in publish-to-pypi.sh)
+DOPPLER_PROJECT = "claude-config"
+DOPPLER_CONFIG = "prd"
+DOPPLER_PYPI_SECRET = "PYPI_TOKEN"
+
+# Build configuration
+PYPI_VERIFY_DELAY = "3"
+
+# Optional: convenience tasks
+[tasks.publish]
+description = "Build and publish to PyPI"
+run = "bash scripts/publish-to-pypi.sh"

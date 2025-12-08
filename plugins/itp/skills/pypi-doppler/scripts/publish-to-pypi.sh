@@ -20,6 +20,16 @@
 set -euo pipefail
 
 # ============================================================================
+# CONFIGURATION (ADR: 2025-12-08-mise-env-centralized-config)
+# ============================================================================
+# Environment variables with defaults for backward compatibility.
+# These can be pre-set via mise [env] or exported manually.
+DOPPLER_PROJECT="${DOPPLER_PROJECT:-claude-config}"
+DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
+DOPPLER_PYPI_SECRET="${DOPPLER_PYPI_SECRET:-PYPI_TOKEN}"
+PYPI_VERIFY_DELAY="${PYPI_VERIFY_DELAY:-3}"
+
+# ============================================================================
 # ENVIRONMENT DISCOVERY
 # ============================================================================
 # Discover how uv is installed before making assumptions.
@@ -216,12 +226,12 @@ if ! command -v doppler &> /dev/null; then
     exit 1
 fi
 
-# Try to get PYPI_TOKEN from Doppler (claude-config/prd)
-if ! PYPI_TOKEN=$(doppler secrets get PYPI_TOKEN --project claude-config --config prd --plain 2>/dev/null); then
-    echo "   ERROR: PYPI_TOKEN not found in Doppler"
+# Try to get PYPI_TOKEN from Doppler (configurable via env vars)
+if ! PYPI_TOKEN=$(doppler secrets get "$DOPPLER_PYPI_SECRET" --project "$DOPPLER_PROJECT" --config "$DOPPLER_CONFIG" --plain 2>/dev/null); then
+    echo "   ERROR: $DOPPLER_PYPI_SECRET not found in Doppler"
     echo ""
     echo "   To fix, run:"
-    echo "     doppler secrets set PYPI_TOKEN='your-token' --project claude-config --config prd"
+    echo "     doppler secrets set $DOPPLER_PYPI_SECRET='your-token' --project $DOPPLER_PROJECT --config $DOPPLER_CONFIG"
     echo ""
     echo "   Get token from: https://pypi.org/manage/account/token/"
     exit 1
@@ -269,7 +279,7 @@ echo "   Built: dist/${PACKAGE_NAME}-${CURRENT_VERSION}*"
 
 # Step 4: Publish to PyPI using Doppler token
 echo -e "\n Step 4: Publishing to PyPI..."
-echo "   Using PYPI_TOKEN from Doppler (claude-config/prd)"
+echo "   Using $DOPPLER_PYPI_SECRET from Doppler ($DOPPLER_PROJECT/$DOPPLER_CONFIG)"
 
 # Use UV_PUBLISH_TOKEN environment variable for security (no token in process list)
 UV_PUBLISH_TOKEN="${PYPI_TOKEN}" $UV_CMD publish 2>&1 | grep -E "(Uploading|succeeded|Failed)" || \
@@ -279,7 +289,7 @@ echo "   Published to PyPI"
 
 # Step 5: Verify publication on PyPI
 echo -e "\n Step 5: Verifying on PyPI..."
-sleep 3
+sleep "$PYPI_VERIFY_DELAY"
 
 # Check if package version is live on PyPI
 if curl -s "https://pypi.org/pypi/${PACKAGE_NAME}/${CURRENT_VERSION}/json" | grep -q "\"version\":"; then

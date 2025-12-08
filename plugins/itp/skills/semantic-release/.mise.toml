@@ -1,0 +1,16 @@
+# ADR: 2025-12-08-mise-env-centralized-config
+# mise [env] as centralized configuration for semantic-release skill
+
+[env]
+# ADR integration paths (used by generate-adr-notes.mjs)
+ADR_DIR = "docs/adr"
+DESIGN_DIR = "docs/design"
+
+# Optional: convenience tasks
+[tasks."release:dry"]
+description = "Dry-run semantic-release"
+run = "/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run'"
+
+[tasks.release]
+description = "Execute semantic-release"
+run = "/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci'"
