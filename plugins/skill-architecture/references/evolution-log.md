@@ -38,7 +38,7 @@ Portability requires discipline in BOTH markdown AND scripts. Multi-agent parall
 
 ## 2025-12-04: Add Path Patterns Reference
 
-**Trigger**: `/itp:itp-setup` command failed due to unsupported `$(dirname "$0")` pattern in markdown.
+**Trigger**: `/itp:setup` command failed due to unsupported `$(dirname "$0")` pattern in markdown.
 
 ### Problem
 

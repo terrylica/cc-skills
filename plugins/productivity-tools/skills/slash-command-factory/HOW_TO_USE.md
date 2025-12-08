@@ -48,16 +48,19 @@ Create a command for analyzing customer feedback and generating product insights
 This skill uses **three official patterns** from Anthropic documentation:
 
 ### Simple Pattern (code-review)
+
 - **Best for**: Straightforward tasks with clear input/output
 - **Structure**: Context → Task
 - **Example Presets**: code-review, deps-audit, metrics-report
 
 ### Multi-Phase Pattern (codebase-analyze)
+
 - **Best for**: Complex discovery and documentation
 - **Structure**: Discovery → Analysis → Task
 - **Example Preset**: codebase-analyze
 
 ### Agent-Style Pattern (ultrathink)
+
 - **Best for**: Specialized expert roles and coordination
 - **Structure**: Role → Process → Guidelines
 - **Example Presets**: ultrathink, openapi-sync, batch-agents
@@ -71,11 +74,13 @@ This skill uses **three official patterns** from Anthropic documentation:
 All commands follow **kebab-case** (lowercase with hyphens):
 
 **Valid**:
+
 - ✅ `code-review`
 - ✅ `api-document`
 - ✅ `update-docs`
 
 **Invalid**:
+
 - ❌ `code_review` (underscores)
 - ❌ `CodeReview` (CamelCase)
 - ❌ `review` (too short)
@@ -91,16 +96,34 @@ The skill **automatically converts** your purpose to valid command names!
 **To install**:
 
 **Project-level** (this project only):
+
 ```bash
 cp generated-commands/[command-name]/[command-name].md .claude/commands/
 ```
 
 **User-level** (all projects):
+
 ```bash
 cp generated-commands/[command-name]/[command-name].md ~/.claude/commands/
 ```
 
 **Then**: Restart Claude Code
+
+### Command Invocation Format
+
+After installation, how you invoke the command depends on **where** it's installed:
+
+| Installation                               | Command Format              | Example                                |
+| ------------------------------------------ | --------------------------- | -------------------------------------- |
+| Project/User level (`~/.claude/commands/`) | `/command-name`             | `/research-business "Tesla"`           |
+| Plugin `commands/` directory               | `/plugin-name:command-name` | `/my-plugin:research-business "Tesla"` |
+
+**Shortcut rules**:
+
+- You can type `/research-business` instead of `/my-plugin:research-business` if no naming conflicts exist
+- **Exception**: When `command-name` = `plugin-name` (e.g., `/foo:foo`), you **must** use the full format
+
+For full details, see the [Slash Command Naming Convention](../../../../README.md#slash-command-naming-convention) in the root README.
 
 ---
 
@@ -147,6 +170,7 @@ cp generated-commands/generate-ptv10/generate-ptv10.md .claude/commands/
 ## Output Structure
 
 **Simple command**:
+
 ```
 generated-commands/my-command/
 ├── my-command.md         # The command file
@@ -154,6 +178,7 @@ generated-commands/my-command/
 ```
 
 **Complex command**:
+
 ```
 generated-commands/my-command/
 ├── my-command.md         # Command (ROOT)
