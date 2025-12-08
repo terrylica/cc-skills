@@ -1,3 +1,11 @@
+# [2.18.0](https://github.com/terrylica/cc-skills/compare/v2.17.0...v2.18.0) (2025-12-08)
+
+
+### Features
+
+* **itp:** add mise [env] as centralized configuration for ITP skills ([140ed67](https://github.com/terrylica/cc-skills/commit/140ed67db176b7f6f1d179d9f14e69901b0788ba))
+* **itp:** add mise-configuration skill for env var SSoT pattern ([e202ebf](https://github.com/terrylica/cc-skills/commit/e202ebf507b1d3ca0c269aa40ba6a8b34cc781bc))
+
 # [2.17.0](https://github.com/terrylica/cc-skills/compare/v2.16.2...v2.17.0) (2025-12-08)
 
 
