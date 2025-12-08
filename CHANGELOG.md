@@ -1,3 +1,10 @@
+## [2.16.2](https://github.com/terrylica/cc-skills/compare/v2.16.1...v2.16.2) (2025-12-08)
+
+
+### Bug Fixes
+
+* **itp:** clarify version numbers are derived, not hardcoded ([dadb3c3](https://github.com/terrylica/cc-skills/commit/dadb3c36dc790477219039ddcc30d4fe969c014c))
+
 ## [2.16.1](https://github.com/terrylica/cc-skills/compare/v2.16.0...v2.16.1) (2025-12-08)
 
 # [2.16.0](https://github.com/terrylica/cc-skills/compare/v2.15.0...v2.16.0) (2025-12-08)
