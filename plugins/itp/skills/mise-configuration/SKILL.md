@@ -211,7 +211,7 @@ Pin tool versions for reproducibility:
 
 ```toml
 [tools]
-python = "3.11"  # or higher (3.12, 3.13, etc.)
+python = "3.11"  # minimum baseline; use 3.12, 3.13 as needed
 node = "latest"
 uv = "latest"
 

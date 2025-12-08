@@ -28,7 +28,7 @@ _.python.venv = { path = ".venv", create = true }
 python.uv_venv_auto = true
 
 [tools]
-python = "3.11"  # or higher
+python = "3.11"  # baseline >=3.11; pin to project needs
 uv = "latest"
 ```
 
@@ -42,7 +42,7 @@ PYTHONUNBUFFERED = "1"
 PYTHONDONTWRITEBYTECODE = "1"
 
 [tools]
-python = "3.11"  # or higher
+python = "3.11"  # baseline >=3.11; pin to project needs
 uv = "latest"
 ```
 
@@ -332,7 +332,7 @@ experimental = true
 python.uv_venv_auto = true
 
 [tools]
-python = "3.11"  # or higher
+python = "3.11"  # baseline >=3.11; pin to project needs
 uv = "latest"
 
 [env]
@@ -347,7 +347,7 @@ Pin tool versions for reproducibility:
 
 ```toml
 [tools]
-python = "3.11"  # or higher
+python = "3.11"  # baseline >=3.11; pin to project needs
 node = "latest"
 uv = "latest"
 rust = "1.75"
@@ -361,7 +361,7 @@ rust = "1.75"
 python = "3.12.3"
 
 # Version prefix (latest 3.12.x)
-python = "3.11"  # or higher
+python = "3.11"  # baseline >=3.11; pin to project needs
 
 # Latest
 uv = "latest"
@@ -380,7 +380,7 @@ node = ["22", "20", "18"]
 min_version = "2024.9.5"
 
 [tools]
-python = "3.11"  # or higher
+python = "3.11"  # baseline >=3.11; pin to project needs
 ```
 
 ### Full Development Environment
@@ -394,7 +394,7 @@ experimental = true
 python.uv_venv_auto = true
 
 [tools]
-python = "3.11"  # or higher
+python = "3.11"  # baseline >=3.11; pin to project needs
 node = "latest"
 uv = "latest"
 rust = "1.75"
@@ -581,7 +581,7 @@ python.uv_venv_auto = true
 # TOOLS - Version pinning for reproducibility
 # ==============================================================================
 [tools]
-python = "3.11"  # or higher
+python = "3.11"  # baseline >=3.11; pin to project needs
 node = "latest"
 uv = "latest"
 
