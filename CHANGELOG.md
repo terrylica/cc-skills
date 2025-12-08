@@ -1,3 +1,10 @@
+# [2.17.0](https://github.com/terrylica/cc-skills/compare/v2.16.2...v2.17.0) (2025-12-08)
+
+
+### Features
+
+* **itp:** integrate gitleaks into code-hardcode-audit skill ([24dedd4](https://github.com/terrylica/cc-skills/commit/24dedd411df452567bece1626726bd8add769f1b))
+
 ## [2.16.2](https://github.com/terrylica/cc-skills/compare/v2.16.1...v2.16.2) (2025-12-08)
 
 
