@@ -3,7 +3,7 @@
 # Design Spec: ITP Workflow Todo Insertion (Not Overwrite)
 
 **Status**: In Progress
-**Target File**: `/Users/terryli/eon/cc-skills/plugins/itp/commands/itp.md`
+**Target File**: `/Users/terryli/eon/cc-skills/plugins/itp/commands/go.md`
 
 ## Problem Statement
 
@@ -74,9 +74,9 @@ Add instruction to:
 
 ## Files to Modify
 
-| File                          | Change                                      |
-| ----------------------------- | ------------------------------------------- |
-| `plugins/itp/commands/itp.md` | Rewrite lines 17-62 for insertion semantics |
+| File                         | Change                                      |
+| ---------------------------- | ------------------------------------------- |
+| `plugins/itp/commands/go.md` | Rewrite lines 17-62 for insertion semantics |
 
 ## User Decisions (Confirmed)
 
@@ -177,10 +177,10 @@ TodoWrite with todos (MERGED - preserving existing):
 
 ## Files to Modify
 
-| File                          | Lines       | Change                                              |
-| ----------------------------- | ----------- | --------------------------------------------------- |
-| `plugins/itp/commands/itp.md` | 17-62       | Replace overwrite with merge logic                  |
-| `plugins/itp/commands/itp.md` | New section | Add Step 0 (Plan Integration) before current Step 0 |
+| File                         | Lines       | Change                                              |
+| ---------------------------- | ----------- | --------------------------------------------------- |
+| `plugins/itp/commands/go.md` | 17-62       | Replace overwrite with merge logic                  |
+| `plugins/itp/commands/go.md` | New section | Add Step 0 (Plan Integration) before current Step 0 |
 
 ## Implementation Checklist
 

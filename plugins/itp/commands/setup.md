@@ -9,7 +9,7 @@ ADR: 2025-12-05-itp-setup-todowrite-workflow
 
 # ITP Setup
 
-Verify and install dependencies required by the `/itp` workflow using TodoWrite-driven interactive workflow.
+Verify and install dependencies required by the `/itp:go` workflow using TodoWrite-driven interactive workflow.
 
 ---
 

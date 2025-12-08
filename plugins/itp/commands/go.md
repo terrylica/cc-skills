@@ -201,7 +201,7 @@ You MUST execute ALL phases in order, regardless of task complexity:
 - ❌ Skipping ADR/Design Spec for "document fixes" or "small changes"
 - ❌ Making autonomous judgments to bypass phases
 
-**If the task seems too simple for this workflow**: Stop and ask the user if they want to proceed without `/itp`. Do NOT silently skip phases.
+**If the task seems too simple for this workflow**: Stop and ask the user if they want to proceed without `/itp:go`. Do NOT silently skip phases.
 
 ---
 
@@ -221,23 +221,23 @@ Parse `$ARGUMENTS` for:
 
 ```text
 # Fresh start modes (no release)
-/itp                   # Derive slug, stay on current branch
-/itp my-feature        # Custom slug, stay on current branch
-/itp -b                # Derive slug, create {type}/{adr-id} branch
-/itp my-feature -b     # Custom slug, create {type}/{adr-id} branch
+/itp:go                   # Derive slug, stay on current branch
+/itp:go my-feature        # Custom slug, stay on current branch
+/itp:go -b                # Derive slug, create {type}/{adr-id} branch
+/itp:go my-feature -b     # Custom slug, create {type}/{adr-id} branch
 
 # Feature branch with release intent (reminder shown, Phase 3 skips)
-/itp my-feature -b -r        # Intent to release after merge
-/itp my-feature -b -r -p     # Intent to release + publish after merge
+/itp:go my-feature -b -r        # Intent to release after merge
+/itp:go my-feature -b -r -p     # Intent to release + publish after merge
 
 # Release modes (on main/master only)
-/itp -r                # On main: run semantic-release only
-/itp -p                # On main: run PyPI publish only
-/itp -r -p             # On main: full release + publish
+/itp:go -r                # On main: run semantic-release only
+/itp:go -p                # On main: run PyPI publish only
+/itp:go -r -p             # On main: full release + publish
 
 # Continuation modes
-/itp -c                # Continue: auto-detect ADR, resume
-/itp -c "use Redis"    # Continue with explicit decision
+/itp:go -c                # Continue: auto-detect ADR, resume
+/itp:go -c "use Redis"    # Continue with explicit decision
 ```
 
 **Mode Selection**:
@@ -620,10 +620,10 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
     echo "  │ 1. Create PR: gh pr create                              │"
     echo "  │ 2. Get approval and merge to main/master                │"
     echo "  │ 3. Switch: git checkout main && git pull                │"
-    [ "$RELEASE_FLAG" = true ] && echo "  │ 4. Release: /itp -r    # semantic-release              │"
-    [ "$PUBLISH_FLAG" = true ] && echo "  │ 5. Publish: /itp -p    # PyPI publish                  │"
+    [ "$RELEASE_FLAG" = true ] && echo "  │ 4. Release: /itp:go -r    # semantic-release           │"
+    [ "$PUBLISH_FLAG" = true ] && echo "  │ 5. Publish: /itp:go -p    # PyPI publish               │"
     echo "  │                                                         │"
-    echo "  │ Or combine: /itp -r -p    # for both                    │"
+    echo "  │ Or combine: /itp:go -r -p    # for both                 │"
     echo "  └─────────────────────────────────────────────────────────┘"
     echo ""
     echo "  The release/publish steps will NOT happen automatically."
@@ -639,7 +639,7 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
     echo "  Next steps:"
     echo "    1. Create PR: gh pr create"
     echo "    2. Get approval and merge to main/master"
-    echo "    3. Run /itp -r on main to release (or /itp -r -p for both)"
+    echo "    3. Run /itp:go -r on main to release (or /itp:go -r -p for both)"
   fi
   echo ""
   echo "═══════════════════════════════════════════════════════════════"
@@ -660,9 +660,9 @@ if [ "$RELEASE_FLAG" = false ] && [ "$PUBLISH_FLAG" = false ]; then
   echo "  But no release/publish flags were provided."
   echo ""
   echo "  To release this version, run one of:"
-  echo "    /itp -r       # semantic-release (version + changelog + GitHub)"
-  echo "    /itp -p       # PyPI publishing (if applicable)"
-  echo "    /itp -r -p    # both release and publish"
+  echo "    /itp:go -r       # semantic-release (version + changelog + GitHub)"
+  echo "    /itp:go -p       # PyPI publishing (if applicable)"
+  echo "    /itp:go -r -p    # both release and publish"
   echo ""
   echo "  Phase 3 requires explicit intent via flags."
   echo ""

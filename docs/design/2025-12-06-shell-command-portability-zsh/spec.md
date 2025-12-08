@@ -167,7 +167,7 @@ Files to modify (see plan for full list):
 
 Files to modify:
 
-- `plugins/itp/commands/itp.md`
+- `plugins/itp/commands/go.md`
 - `plugins/itp/commands/setup.md`
 - `plugins/itp/README.md`
 - `plugins/itp/CHANGELOG.md`

@@ -12,7 +12,7 @@ Add Architecture Decision Record references to code for decision traceability. P
 - Creating new files as part of an ADR implementation
 - Documenting non-obvious implementation choices
 - User mentions "ADR traceability", "code reference", "document decision"
-- Adding decision context to code during `/itp` Phase 1
+- Adding decision context to code during `/itp:go` Phase 1
 
 ## Quick Reference
 

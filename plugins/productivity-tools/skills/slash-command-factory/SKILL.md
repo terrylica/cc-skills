@@ -12,6 +12,7 @@ A comprehensive system for generating production-ready Claude Code slash command
 ## Overview
 
 This skill helps you create custom slash commands for Claude Code by:
+
 - Asking 5-7 straightforward questions about your command needs
 - Generating complete command .md files with proper YAML frontmatter
 - Providing 10 powerful preset commands for common use cases
@@ -34,6 +35,7 @@ This skill generates commands following **three official patterns** from Anthrop
 **Official Reference**: code-review.md
 
 **Structure**:
+
 ```markdown
 ---
 allowed-tools: Bash(git diff:*), Bash(git log:*)
@@ -41,15 +43,18 @@ description: Purpose description
 ---
 
 ## Context
+
 - Current state: !`bash command`
 - Additional data: !`another command`
 
 ## Your task
+
 [Clear instructions with numbered steps]
 [Success criteria]
 ```
 
 **When to use**:
+
 - Simple, focused tasks
 - Quick analysis or reviews
 - Straightforward workflows
@@ -64,6 +69,7 @@ description: Purpose description
 **Official Reference**: codebase-analysis.md
 
 **Structure**:
+
 ```markdown
 ---
 allowed-tools: Bash(find:*), Bash(tree:*), Bash(ls:*), Bash(grep:*), Bash(wc:*), Bash(du:*)
@@ -73,17 +79,22 @@ description: Comprehensive purpose
 # Command Title
 
 ## Phase 1: Project Discovery
+
 ### Directory Structure
+
 !`find . -type d | sort`
 
 ### File Count Analysis
+
 !`find . -type f | wc -l`
 
 ## Phase 2: Detailed Analysis
+
 [More discovery commands]
 [File references with @]
 
 ## Phase 3: Your Task
+
 Based on all discovered information, create:
 
 1. **Deliverable 1**
@@ -98,6 +109,7 @@ At the end, write output to [filename].md
 ```
 
 **When to use**:
+
 - Comprehensive analysis needed
 - Multiple discovery phases
 - Large amounts of context gathering
@@ -113,6 +125,7 @@ At the end, write output to [filename].md
 **Official Reference**: openapi-expert.md
 
 **Structure**:
+
 ```markdown
 ---
 name: command-name
@@ -150,6 +163,7 @@ When you encounter [scenario], [action to take].
 ```
 
 **When to use**:
+
 - Need specialized domain expertise
 - Orchestrating complex workflows
 - Coordinating multiple sub-processes
@@ -167,6 +181,7 @@ All slash command files MUST follow kebab-case convention:
 **Format**: `[verb]-[noun].md`, `[noun]-[verb].md`, or `[domain]-[action].md`
 
 **Rules**:
+
 1. **Case**: Lowercase only with hyphens as separators
 2. **Length**: 2-4 words maximum
 3. **Characters**: Only `[a-z0-9-]` allowed (letters, numbers, hyphens)
@@ -190,6 +205,7 @@ Input: "Analyze customer feedback and generate insights"
 ```
 
 **More Examples**:
+
 - "Review pull requests" → `pr-review.md` or `review-pr.md`
 - "Generate API documentation" → `api-document.md` or `document-api.md`
 - "Update README files" → `update-readme.md` or `readme-update.md`
@@ -202,12 +218,14 @@ Input: "Analyze customer feedback and generate insights"
 ### Official Examples (From Anthropic Docs)
 
 **Correct**:
+
 - ✅ `code-review.md` (verb-noun)
 - ✅ `codebase-analysis.md` (noun-noun compound)
 - ✅ `update-claude-md.md` (verb-noun-qualifier)
 - ✅ `openapi-expert.md` (domain-role)
 
 **Incorrect**:
+
 - ❌ `code_review.md` (snake_case - wrong)
 - ❌ `CodeReview.md` (PascalCase - wrong)
 - ❌ `codeReview.md` (camelCase - wrong)
@@ -221,27 +239,35 @@ Input: "Analyze customer feedback and generate insights"
 ### Critical Rule: Subcommand-Level Specificity
 
 **❌ NEVER ALLOWED**:
+
 ```yaml
 allowed-tools: Bash
 ```
+
 Blanket Bash permission is **prohibited** per official Anthropic patterns.
 
 **❌ TOO BROAD** (for commands with subcommands):
+
 ```yaml
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(npm:*)
 ```
+
 Command-level wildcards allow dangerous operations (`git reset --hard`, `gh repo delete`).
 
 **✅ REQUIRED** (subcommand-level specificity):
+
 ```yaml
 allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(gh repo view:*)
 ```
+
 Must specify **exact subcommands** for commands with subcommand hierarchies.
 
 **✅ OK** (commands without subcommands):
+
 ```yaml
 allowed-tools: Bash(cp:*), Bash(mkdir -p:*), Bash(date:*), Bash(open:*)
 ```
+
 Simple commands without subcommand hierarchies can use command-level.
 
 ---
@@ -251,26 +277,31 @@ Simple commands without subcommand hierarchies can use command-level.
 Based on Anthropic's documented examples:
 
 **Git Operations** (code-review, update-docs):
+
 ```yaml
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(git add:*), Bash(git commit:*)
 ```
 
 **File Discovery** (codebase-analysis):
+
 ```yaml
 allowed-tools: Bash(find:*), Bash(tree:*), Bash(ls:*), Bash(du:*)
 ```
 
 **Content Analysis** (comprehensive discovery):
+
 ```yaml
 allowed-tools: Bash(grep:*), Bash(wc:*), Bash(head:*), Bash(tail:*), Bash(cat:*)
 ```
 
 **Data Processing** (custom analysis):
+
 ```yaml
 allowed-tools: Bash(awk:*), Bash(sed:*), Bash(sort:*), Bash(uniq:*)
 ```
 
 **Combined Patterns** (multi-phase commands):
+
 ```yaml
 allowed-tools: Bash(find:*), Bash(tree:*), Bash(ls:*), Bash(grep:*), Bash(wc:*), Bash(du:*), Bash(head:*), Bash(tail:*), Bash(cat:*), Bash(touch:*)
 ```
@@ -279,14 +310,14 @@ allowed-tools: Bash(find:*), Bash(tree:*), Bash(ls:*), Bash(grep:*), Bash(wc:*),
 
 ### Permission Selection Guide
 
-| Command Type | Bash Permissions | Example Commands |
-|--------------|------------------|------------------|
-| **Git Commands** | `git status, git diff, git log, git branch` | code-review, commit-assist |
-| **Discovery** | `find, tree, ls, du` | codebase-analyze, structure-map |
-| **Analysis** | `grep, wc, head, tail, cat` | search-code, count-lines |
-| **Update** | `git diff, find, grep` | update-docs, sync-config |
-| **Data Processing** | `awk, sed, sort, uniq` | parse-data, format-output |
-| **Comprehensive** | All of the above | full-audit, system-analyze |
+| Command Type        | Bash Permissions                            | Example Commands                |
+| ------------------- | ------------------------------------------- | ------------------------------- |
+| **Git Commands**    | `git status, git diff, git log, git branch` | code-review, commit-assist      |
+| **Discovery**       | `find, tree, ls, du`                        | codebase-analyze, structure-map |
+| **Analysis**        | `grep, wc, head, tail, cat`                 | search-code, count-lines        |
+| **Update**          | `git diff, find, grep`                      | update-docs, sync-config        |
+| **Data Processing** | `awk, sed, sort, uniq`                      | parse-data, format-output       |
+| **Comprehensive**   | All of the above                            | full-audit, system-analyze      |
 
 ---
 
@@ -297,24 +328,17 @@ allowed-tools: Bash(find:*), Bash(tree:*), Bash(ls:*), Bash(grep:*), Bash(wc:*),
 Choose from 10 powerful preset commands:
 
 **Business & Research**:
+
 1. **/research-business** - Comprehensive market research and competitive analysis
 2. **/research-content** - Multi-platform content trend analysis and SEO strategy
 
-**Healthcare & Compliance**:
-3. **/medical-translate** - Translate medical terminology to 8th-10th grade (German/English) 
-4. **/compliance-audit** - HIPAA/GDPR/DSGVO compliance validation
+**Healthcare & Compliance**: 3. **/medical-translate** - Translate medical terminology to 8th-10th grade (German/English) 4. **/compliance-audit** - HIPAA/GDPR/DSGVO compliance validation
 
-**Development & Integration**:
-5. **/api-build** - Generate complete API integration code with tests
-6. **/test-auto** - Auto-generate comprehensive test suites
+**Development & Integration**: 5. **/api-build** - Generate complete API integration code with tests 6. **/test-auto** - Auto-generate comprehensive test suites
 
-**Documentation & Knowledge**:
-7. **/docs-generate** - Automated documentation creation
-8. **/knowledge-mine** - Extract and structure insights from documents
+**Documentation & Knowledge**: 7. **/docs-generate** - Automated documentation creation 8. **/knowledge-mine** - Extract and structure insights from documents
 
-**Workflow & Productivity**:
-9. **/workflow-analyze** - Analyze and optimize business processes
-10. **/batch-agents** - Launch and coordinate multiple agents for complex tasks
+**Workflow & Productivity**: 9. **/workflow-analyze** - Analyze and optimize business processes 10. **/batch-agents** - Launch and coordinate multiple agents for complex tasks
 
 ### Path 2: Custom Command (5-7 Questions)
 
@@ -331,12 +355,13 @@ Create a completely custom command for your specific needs.
 Be specific about its purpose and when you'll use it.
 
 Examples:
+
 - 'Analyze customer feedback and generate actionable insights'
 - 'Generate HIPAA-compliant API documentation'
 - 'Research market trends and create content strategy'
 - 'Extract key insights from research papers'
 
-Your command's purpose: ___"
+Your command's purpose: \_\_\_"
 
 ---
 
@@ -345,10 +370,12 @@ Your command's purpose: ___"
 The skill automatically determines if your command needs arguments based on the purpose.
 
 **If arguments are needed**, they will use `$ARGUMENTS` format:
+
 - User types: `/your-command argument1 argument2`
 - Command receives: `$ARGUMENTS` = "argument1 argument2"
 
 **Examples**:
+
 - `/research-business "Tesla" "EV market"` → $ARGUMENTS = "Tesla EV market"
 - `/medical-translate "Myokardinfarkt" "de"` → $ARGUMENTS = "Myokardinfarkt de"
 
@@ -361,24 +388,28 @@ The skill automatically determines if your command needs arguments based on the 
 **Every flag/option MUST have a short form** for quick command-line entry.
 
 **Rules**:
+
 1. **Prefer 1-letter**: `-b` for `--branch`, `-v` for `--verbose`
 2. **Use 2-letters only if needed**: `-nb` for `--no-branch` (when `-n` conflicts)
 3. **Document both forms**: Always show `[-short|--long]` in argument-hint
 
 **Format in argument-hint**:
+
 ```yaml
 argument-hint: "[slug] [-b|--branch] [-v|--verbose]"
 ```
 
 **Format in Arguments table**:
+
 ```markdown
-| Argument    | Short | Description              | Default |
-| ----------- | ----- | ------------------------ | ------- |
-| `--branch`  | `-b`  | Create feature branch    | false   |
-| `--verbose` | `-v`  | Enable verbose output    | false   |
+| Argument    | Short | Description           | Default |
+| ----------- | ----- | --------------------- | ------- |
+| `--branch`  | `-b`  | Create feature branch | false   |
+| `--verbose` | `-v`  | Enable verbose output | false   |
 ```
 
 **Letter Selection Priority**:
+
 1. First letter of the flag name (`--branch` → `-b`)
 2. Distinctive letter if first conflicts (`--debug` → `-d`, but if `-d` taken, use `-D` or `-db`)
 3. Mnemonic association (`--quiet` → `-q`, `--force` → `-f`)
@@ -392,6 +423,7 @@ argument-hint: "[slug] [-b|--branch] [-v|--verbose]"
 "Which Claude Code tools should this command use?
 
 Available tools:
+
 - **Read** - Read files
 - **Write** - Create files
 - **Edit** - Modify files
@@ -403,18 +435,20 @@ Available tools:
 **CRITICAL**: For Bash, you MUST specify exact commands, not wildcards.
 
 **Bash Examples**:
-- ✅ Bash(git status:*), Bash(git diff:*), Bash(git log:*)
-- ✅ Bash(find:*), Bash(tree:*), Bash(ls:*)
-- ✅ Bash(grep:*), Bash(wc:*), Bash(head:*)
+
+- ✅ Bash(git status:_), Bash(git diff:_), Bash(git log:\*)
+- ✅ Bash(find:_), Bash(tree:_), Bash(ls:\*)
+- ✅ Bash(grep:_), Bash(wc:_), Bash(head:\*)
 - ❌ Bash (wildcard not allowed per official patterns)
 
 **Tool Combination Examples**:
-- Git command: Read, Bash(git status:*), Bash(git diff:*)
+
+- Git command: Read, Bash(git status:_), Bash(git diff:_)
 - Code generator: Read, Write, Edit
-- Discovery command: Bash(find:*), Bash(tree:*), Bash(grep:*)
+- Discovery command: Bash(find:_), Bash(tree:_), Bash(grep:\*)
 - Analysis command: Read, Grep, Task (launch agents)
 
-Your tools (comma-separated): ___"
+Your tools (comma-separated): \_\_\_"
 
 ---
 
@@ -423,17 +457,19 @@ Your tools (comma-separated): ___"
 "Does this command need to launch agents for specialized tasks?
 
 Examples of when to use agents:
+
 - Complex analysis (launch rr-architect, rr-security)
 - Implementation tasks (launch rr-frontend, rr-backend)
 - Quality checks (launch rr-qa, rr-test-runner)
 
 Options:
+
 1. **No agents** - Command handles everything itself
 2. **Launch agents** - Delegate to specialized agents
 
-Your choice (1 or 2): ___"
+Your choice (1 or 2): \_\_\_"
 
-If "2", ask: "Which agents should it launch? ___"
+If "2", ask: "Which agents should it launch? \_\_\_"
 
 ---
 
@@ -446,7 +482,7 @@ If "2", ask: "Which agents should it launch? ___"
 3. **Action** - Execute tasks, run workflows, deploy
 4. **Report** - Structured report with findings and next steps
 
-Your choice (1, 2, 3, or 4): ___"
+Your choice (1, 2, 3, or 4): \_\_\_"
 
 ---
 
@@ -459,7 +495,7 @@ Your choice (1, 2, 3, or 4): ___"
 3. **Haiku** - Fastest, cheapest (for simple commands)
 4. **Opus** - Maximum capability (for critical tasks)
 
-Your choice (1, 2, 3, or 4) or press Enter for default: ___"
+Your choice (1, 2, 3, or 4) or press Enter for default: \_\_\_"
 
 ---
 
@@ -468,11 +504,12 @@ Your choice (1, 2, 3, or 4) or press Enter for default: ___"
 "Any special features?
 
 Optional features:
+
 - **Bash execution** - Run shell commands and include output (!`command`)
 - **File references** - Include file contents (@file.txt)
 - **Context gathering** - Read project files for context
 
-Features you need (comma-separated) or press Enter to skip: ___"
+Features you need (comma-separated) or press Enter to skip: \_\_\_"
 
 ---
 
@@ -481,6 +518,7 @@ Features you need (comma-separated) or press Enter to skip: ___"
 After collecting answers:
 
 1. **Generate YAML Frontmatter**:
+
 ```yaml
 ---
 description: [From command purpose]
@@ -490,25 +528,30 @@ model: [If specified]
 ---
 ```
 
-2. **Generate Command Body**:
+1. **Generate Command Body**:
+
 ```markdown
 [Purpose-specific instructions]
 
 [If uses agents]:
+
 1. **Launch [agent-name]** with [specific task]
 2. Coordinate workflow
 3. Validate results
 
 [If uses bash]:
+
 - Context: !`bash command`
 
 [If uses file refs]:
+
 - Review: @file.txt
 
 Success Criteria: [Based on output type]
 ```
 
-3. **Create Folder Structure**:
+1. **Create Folder Structure**:
+
 ```
 generated-commands/[command-name]/
 ├── [command-name].md    # Command file (ROOT)
@@ -517,13 +560,15 @@ generated-commands/[command-name]/
 └── [folders if needed]  # standards/, examples/, scripts/
 ```
 
-4. **Validate Format**:
+1. **Validate Format**:
+
 - ✅ YAML frontmatter valid
 - ✅ $ARGUMENTS syntax correct (if used)
 - ✅ allowed-tools format proper
 - ✅ Folder organization clean
 
-5. **Provide Installation Instructions**:
+1. **Provide Installation Instructions**:
+
 ```
 Your command is ready!
 
@@ -539,6 +584,24 @@ To install:
    /[command-name] [arguments]
 ```
 
+### Plugin Command Invocation Format
+
+When commands are installed in a **plugin** (via `commands/` directory), users invoke them with the full namespace:
+
+```
+/plugin-name:command-name [arguments]
+```
+
+| Installation Location              | Invocation Format           | Example                        |
+| ---------------------------------- | --------------------------- | ------------------------------ |
+| `~/.claude/commands/` (user-level) | `/command-name`             | `/research-business`           |
+| `plugin/commands/` (plugin)        | `/plugin-name:command-name` | `/my-plugin:research-business` |
+
+**Shortcut rules**:
+
+- Commands like `/my-plugin:research-business` can be invoked as `/research-business` if no naming conflicts exist
+- **Exception**: When `command-name` = `plugin-name` (e.g., `/foo:foo`), you **must** use the full format—typing `/foo` alone is interpreted as the plugin prefix, not the command
+
 ---
 
 ## Preset Command Details
@@ -550,6 +613,7 @@ To install:
 **Arguments**: `$ARGUMENTS` (company or market to research)
 
 **YAML**:
+
 ```yaml
 ---
 description: Comprehensive business and market research with competitor analysis
@@ -559,6 +623,7 @@ allowed-tools: Read, Bash, Grep
 ```
 
 **What it does**:
+
 - Market size and trends analysis
 - Competitor SWOT analysis
 - Opportunity identification
@@ -574,6 +639,7 @@ allowed-tools: Read, Bash, Grep
 **Arguments**: `$ARGUMENTS` (topic to research)
 
 **YAML**:
+
 ```yaml
 ---
 description: Multi-platform content trend analysis for data-driven content strategy
@@ -583,6 +649,7 @@ allowed-tools: Read, Bash
 ```
 
 **What it does**:
+
 - Analyze trends across Google, Reddit, YouTube, Medium, LinkedIn, X
 - User intent analysis (informational, commercial, transactional)
 - Content gap identification
@@ -598,6 +665,7 @@ allowed-tools: Read, Bash
 **Arguments**: `$ARGUMENTS` (medical term and language)
 
 **YAML**:
+
 ```yaml
 ---
 description: Translate medical terminology to 8th-10th grade reading level (German/English)
@@ -607,6 +675,7 @@ allowed-tools: Read
 ```
 
 **What it does**:
+
 - Translate complex medical terms
 - Simplify to 8th-10th grade reading level
 - Validate with Flesch-Kincaid (EN) or Wiener Sachtextformel (DE)
@@ -622,6 +691,7 @@ allowed-tools: Read
 **Arguments**: `$ARGUMENTS` (path and compliance standard)
 
 **YAML**:
+
 ```yaml
 ---
 description: Audit code for HIPAA/GDPR/DSGVO compliance requirements
@@ -631,6 +701,7 @@ allowed-tools: Read, Grep, Task
 ```
 
 **What it does**:
+
 - Scan for PHI/PII handling
 - Check encryption requirements
 - Verify audit logging
@@ -646,6 +717,7 @@ allowed-tools: Read, Grep, Task
 **Arguments**: `$ARGUMENTS` (API name and endpoints)
 
 **YAML**:
+
 ```yaml
 ---
 description: Generate complete API client with error handling and tests
@@ -655,6 +727,7 @@ allowed-tools: Read, Write, Edit, Bash, Task
 ```
 
 **What it does**:
+
 - Generate API client classes
 - Add error handling and retries
 - Create authentication logic
@@ -670,6 +743,7 @@ allowed-tools: Read, Write, Edit, Bash, Task
 **Arguments**: `$ARGUMENTS` (file path and test type)
 
 **YAML**:
+
 ```yaml
 ---
 description: Auto-generate comprehensive test suite with coverage analysis
@@ -679,6 +753,7 @@ allowed-tools: Read, Write, Bash
 ```
 
 **What it does**:
+
 - Analyze code to test
 - Generate test cases (happy path, edge cases, errors)
 - Add test fixtures and mocks
@@ -694,6 +769,7 @@ allowed-tools: Read, Write, Bash
 **Arguments**: `$ARGUMENTS` (code path and doc type)
 
 **YAML**:
+
 ```yaml
 ---
 description: Auto-generate documentation from code (API docs, README, architecture)
@@ -703,6 +779,7 @@ allowed-tools: Read, Write, Grep
 ```
 
 **What it does**:
+
 - Extract code structure and functions
 - Generate API documentation
 - Create README with usage examples
@@ -718,6 +795,7 @@ allowed-tools: Read, Write, Grep
 **Arguments**: `$ARGUMENTS` (document path and output format)
 
 **YAML**:
+
 ```yaml
 ---
 description: Extract and structure knowledge from documents into actionable insights
@@ -727,6 +805,7 @@ allowed-tools: Read, Grep
 ```
 
 **What it does**:
+
 - Read and analyze documents
 - Extract key insights
 - Generate FAQs
@@ -742,6 +821,7 @@ allowed-tools: Read, Grep
 **Arguments**: `$ARGUMENTS` (workflow description)
 
 **YAML**:
+
 ```yaml
 ---
 description: Analyze workflows and provide optimization recommendations
@@ -751,6 +831,7 @@ allowed-tools: Read, Task
 ```
 
 **What it does**:
+
 - Map current workflow
 - Identify bottlenecks
 - Suggest automation opportunities
@@ -766,6 +847,7 @@ allowed-tools: Read, Task
 **Arguments**: `$ARGUMENTS` (agent names and task)
 
 **YAML**:
+
 ```yaml
 ---
 description: Launch and coordinate multiple agents for complex tasks
@@ -775,6 +857,7 @@ allowed-tools: Task
 ```
 
 **What it does**:
+
 - Parse agent list
 - Launch agents in parallel (if safe) or sequential
 - Coordinate outputs
@@ -801,6 +884,7 @@ Commands are generated in your project's root directory:
 ```
 
 **Organization Rules**:
+
 - All .md files in ROOT directory
 - Supporting folders separate (standards/, examples/, scripts/)
 - No mixing of different types in same folder
@@ -813,11 +897,13 @@ Commands are generated in your project's root directory:
 **After generation**:
 
 1. **Review output**:
+
    ```bash
    ls generated-commands/[command-name]/
    ```
 
 2. **Copy to Claude Code** (when ready):
+
    ```bash
    # Project-level (this project only)
    cp generated-commands/[command-name]/[command-name].md .claude/commands/
@@ -829,6 +915,7 @@ Commands are generated in your project's root directory:
 3. **Restart Claude Code** (if running)
 
 4. **Test command**:
+
    ```bash
    /[command-name] [arguments]
    ```
@@ -882,6 +969,7 @@ Do [task] with "$ARGUMENTS":
 3. **Step 3**: Generate output
 
 **Success Criteria**:
+
 - Criterion 1
 - Criterion 2
 - Criterion 3
@@ -892,6 +980,7 @@ Do [task] with "$ARGUMENTS":
 ## Validation
 
 Every generated command is automatically validated for:
+
 - ✅ Valid YAML frontmatter (proper syntax, required fields)
 - ✅ Correct argument format ($ARGUMENTS, not $1 $2 $3)
 - ✅ **Short forms for all flags** (mandatory 1-2 letter shortcuts)
@@ -908,6 +997,7 @@ Every generated command is automatically validated for:
 ## Best Practices
 
 **For Command Design**:
+
 - Keep commands focused (one clear purpose)
 - Use descriptive names (kebab-case for files)
 - Document expected arguments clearly
@@ -915,6 +1005,7 @@ Every generated command is automatically validated for:
 - Add examples in TEST_EXAMPLES.md
 
 **For Tool Selection**:
+
 - Read: For analyzing files
 - Write/Edit: For generating/modifying files
 - Bash: For system commands, web research
@@ -922,6 +1013,7 @@ Every generated command is automatically validated for:
 - Grep/Glob: For searching code
 
 **For Agent Integration**:
+
 - Use Task tool to launch agents
 - Specify which agents clearly
 - Coordinate outputs
@@ -932,15 +1024,18 @@ Every generated command is automatically validated for:
 ## Important Notes
 
 **Arguments**:
+
 - ✅ Always use `$ARGUMENTS` (all arguments as one string)
 - ❌ Never use `$1`, `$2`, `$3` (positional - not used by this factory)
 
 **Folder Organization**:
+
 - ✅ All .md files in command root directory
 - ✅ Supporting folders separate (standards/, examples/, scripts/)
 - ✅ No mixing of different types
 
 **Output Location**:
+
 - Commands generate to: `./generated-commands/[command-name]/`
 - User copies to: `.claude/commands/[command-name].md` (when ready)
 
@@ -969,6 +1064,7 @@ Create a command that generates German PTV 10 therapy applications
 ```
 
 **Skill asks**:
+
 - Purpose? (Generate PTV 10 applications)
 - Tools? (Read, Write, Task)
 - Agents? (Yes - health-sdk-builder related agents)
@@ -994,10 +1090,12 @@ Build a command for competitive SWOT analysis
 ## Integration with Factory Agents
 
 **Works with**:
+
 - factory-guide (can delegate to this skill via prompts-guide pattern)
 - Existing slash commands (/build, /validate-output, etc.)
 
 **Complements**:
+
 - skills-guide (builds Skills)
 - prompts-guide (builds Prompts)
 - agents-guide (builds Agents)
@@ -1012,11 +1110,13 @@ Build a command for competitive SWOT analysis
 Generated commands are validated for:
 
 **YAML Frontmatter**:
+
 - Has `description` field
 - Proper YAML syntax
 - Valid frontmatter fields only
 
 **Arguments**:
+
 - Uses $ARGUMENTS if needed
 - Has argument-hint if $ARGUMENTS used
 - No $1, $2, $3 positional args
@@ -1024,6 +1124,7 @@ Generated commands are validated for:
 - **argument-hint shows `[-short|--long]` format**
 
 **Tools**:
+
 - Valid tool names
 - Proper comma-separated format
 - Appropriate for command purpose
@@ -1031,6 +1132,7 @@ Generated commands are validated for:
 - **No blanket `Bash`** permission
 
 **Organization**:
+
 - .md files in root
 - Folders properly separated
 - No scattered files
@@ -1040,6 +1142,7 @@ Generated commands are validated for:
 ## Success Criteria
 
 Generated commands should:
+
 - ✅ Have valid YAML frontmatter
 - ✅ Use $ARGUMENTS (never positional)
 - ✅ **All flags have short forms** (1-2 letters, e.g., `-b|--branch`)

@@ -23,10 +23,13 @@ This plugin bridges Claude Code's **Plan Mode** and implementation:
 
 1. **Enter Plan Mode** — Press `Shift+Tab` twice (or use `--permission-mode plan`)
 2. **Create Plan** — Claude analyzes your request and writes a plan to `~/.claude/plans/<name>.md`
-3. **Trigger /itp** — Two paths available (see below)
+3. **Trigger /itp:go** — Two paths available (see below)
 4. **Execute Workflow** — 4-phase transformation into permanent artifacts
 
-### Plan Mode → /itp Bridge (Two Rejection Paths)
+> [!TIP]
+> **Command Format**: Plugin commands display as `/itp:go`, `/itp:setup`, `/itp:hooks` in autocomplete. See [Slash Command Naming Convention](../../README.md#slash-command-naming-convention) for details on the `plugin:command` format.
+
+### Plan Mode → /itp:go Bridge (Two Rejection Paths)
 
 > [!TIP]
 > **[Claude Code 2.0.57+](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md)**: "Added feedback input when rejecting plans, allowing users to tell Claude what to change" — This enables both paths below.
@@ -34,7 +37,7 @@ This plugin bridges Claude Code's **Plan Mode** and implementation:
 Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57. When reviewing a plan, you're presented with options (typically: approve, modify, reject). Choosing the **third option (reject)** opens a feedback input field where you can type a command or message.
 
 ```
-🔄 Plan Mode → /itp Bridge (Two Rejection Paths)
+🔄 Plan Mode → /itp:go Bridge (Two Rejection Paths)
 
                                  +---------------------------+
                                  | Plan Mode (Shift+Tab ×2)  |
@@ -51,14 +54,14 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
 +--------------------------+     +---------------------------+
 | Path A: Type in feedback |     |        Review Plan        |
 |  SlashCommand tool call  |     | Choose option 3 (reject)  |
-|         /itp             | <-- |  → feedback input opens   |
+|        /itp:go           | <-- |  → feedback input opens   |
 +--------------------------+     +---------------------------+
   |                                |
   |                                |
   |                                v
   |                              +---------------------------+
   |                              |   Path B: Type message    |
-  |                              |      "Wait for /itp"      |
+  |                              |    "Wait for /itp:go"     |
   |                              +---------------------------+
   |                                |
   |                                |
@@ -71,14 +74,14 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
   |                                |
   |                                v
   |                              +---------------------------+
-  |                              |       Type /itp           |
+  |                              |      Type /itp:go         |
   |                              |     at command prompt     |
   |                              +---------------------------+
   |                                |
   |                                |
   |                                v
   |                              #===========================#
-  |                              H       /itp Workflow       H
+  |                              H      /itp:go Workflow     H
   +----------------------------> H        (4 phases)         H
                                  #===========================#
 ```
@@ -87,7 +90,7 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
 
 1. Review the plan Claude created
 2. Choose **option 3 (reject)** — feedback input field opens
-3. Type: `SlashCommand tool call /itp`
+3. Type: `SlashCommand tool call /itp:go`
 4. ITP workflow triggers immediately
 
 #### Path B: Defer to Command Prompt (More Control)
@@ -96,18 +99,18 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
 2. Choose **option 3 (reject)** — feedback input field opens
 3. Type: `"Wait for my further instruction"`
 4. Claude acknowledges: `"Understood. Waiting for your instructions."`
-5. Type `/itp` at the command prompt
+5. Type `/itp:go` at the command prompt
 
-**Note**: If running with `--dangerously-skip-permissions`, you may need to press `Shift+Enter` to return to bypass-permissions mode before entering the `/itp` command.
+**Note**: If running with `--dangerously-skip-permissions`, you may need to press `Shift+Enter` to return to bypass-permissions mode before entering the `/itp:go` command.
 
 #### Path Comparison
 
-| Aspect           | Path A (Feedback Input)                     | Path B (Command Prompt)                |
-| ---------------- | ------------------------------------------- | -------------------------------------- |
-| **Steps**        | Fewer (direct trigger)                      | Extra step (Claude waits first)        |
-| **Interface**    | Plain text field                            | Native slash command interface         |
-| **Autocomplete** | ❌ No hints or suggestions                  | ✅ `/itp` shows in dropdown            |
-| **Syntax**       | Must type full `SlashCommand tool call ...` | Just type `/itp` and select from hints |
+| Aspect           | Path A (Feedback Input)                     | Path B (Command Prompt)                   |
+| ---------------- | ------------------------------------------- | ----------------------------------------- |
+| **Steps**        | Fewer (direct trigger)                      | Extra step (Claude waits first)           |
+| **Interface**    | Plain text field                            | Native slash command interface            |
+| **Autocomplete** | ❌ No hints or suggestions                  | ✅ `/itp:go` shows in dropdown            |
+| **Syntax**       | Must type full `SlashCommand tool call ...` | Just type `/itp:go` and select from hints |
 
 **Recommendation**: Use **Path B** if you want the native Claude Code experience with autocomplete hints. Use **Path A** if you prefer fewer steps and don't mind typing the full command.
 
@@ -116,11 +119,11 @@ graph { flow: south; }
 [ Plan Mode ] { label: "Plan Mode (Shift+Tab ×2)"; }
 [ Plan File ] { label: "~/.claude/plans/<name>.md"; }
 [ Review ] { label: "Review Plan\nChoose option 3 (reject)\n→ feedback input opens"; }
-[ Path A ] { label: "Path A: Type in feedback\nSlashCommand tool call\n/itp"; }
-[ Path B ] { label: "Path B: Type message\n\"Wait for /itp\""; }
+[ Path A ] { label: "Path A: Type in feedback\nSlashCommand tool call\n/itp:go"; }
+[ Path B ] { label: "Path B: Type message\n\"Wait for /itp:go\""; }
 [ Wait ] { label: "Claude waits\nfor input"; }
-[ Cmd ] { label: "Type /itp\nat command prompt"; }
-[ ITP ] { border: double; label: "/itp Workflow\n(4 phases)"; }
+[ Cmd ] { label: "Type /itp:go\nat command prompt"; }
+[ ITP ] { border: double; label: "/itp:go Workflow\n(4 phases)"; }
 
 [ Plan Mode ] -> [ Plan File ] -> [ Review ]
 [ Review ] --> [ Path A ]
@@ -133,7 +136,7 @@ graph { flow: south; }
 ### 4-Phase Workflow
 
 ```
-🚀 /itp 4-Phase Workflow
+🚀 /itp:go 4-Phase Workflow
 
 ╭──────────────╮     ┌─────────────┐     ┌──────────┐     ╔═══════════╗
 │  Preflight   │     │   Phase 1   │     │ Phase 2  │     ║  Phase 3  ║
@@ -145,7 +148,7 @@ graph { flow: south; }
 <summary>graph-easy source</summary>
 
 ```
-graph { label: "🚀 /itp 4-Phase Workflow"; flow: east; }
+graph { label: "🚀 /itp:go 4-Phase Workflow"; flow: east; }
 [ P0 ] { shape: rounded; label: "Preflight\n(ADR + Spec)"; }
 [ P1 ] { label: "Phase 1\n(Implement)"; }
 [ P2 ] { label: "Phase 2\n(Format)"; }
@@ -155,11 +158,11 @@ graph { label: "🚀 /itp 4-Phase Workflow"; flow: east; }
 
 </details>
 
-### Why /itp?
+### Why /itp:go?
 
 The plan file in `~/.claude/plans/` is **ephemeral**—Claude uses random names like `abstract-fluttering-unicorn.md` that get overwritten on the next planning session. Decisions made during [AskUserQuestion](https://egghead.io/create-interactive-ai-tools-with-claude-codes-ask-user-question~b47wn) flows are also lost when context compacts.
 
-The `/itp` workflow captures these ephemeral artifacts as **permanent** records:
+The `/itp:go` workflow captures these ephemeral artifacts as **permanent** records:
 
 > [!TIP]
 > **Why capture decisions immediately?** See [Claude Code Ephemeral Context](skills/implement-plan-preflight/references/claude-code-ephemeral-context.md) for details on how plan files and question flows work—and why waiting means losing your architectural decisions.
@@ -167,17 +170,17 @@ The `/itp` workflow captures these ephemeral artifacts as **permanent** records:
 ```
 📦 Artifact Transformation
 
-┌−−−−−−−−−−−−−−−−−−−−−−┐         ┌−−−−−−−−−−−−−−−−−−┐
-╎ Ephemeral:           ╎         ╎                  ╎
-╎                      ╎         ╎                  ╎
-╎ ┌──────────────────┐ ╎         ╎ ┌──────────────┐ ╎
-╎ │ ~/.claude/plans/ │ ╎  /itp   ╎ │  /docs/adr/  │ ╎
-╎ │ [!] Overwritten  │ ╎ ──────> ╎ │ [+] Persists │ ╎
-╎ └──────────────────┘ ╎         ╎ └──────────────┘ ╎
-╎                      ╎         ╎                  ╎
-└−−−−−−−−−−−−−−−−−−−−−−┘         └−−−−−−−−−−−−−−−−−−┘
+┌−−−−−−−−−−−−−−−−−−−−−−┐           ┌−−−−−−−−−−−−−−−−−−┐
+╎ Ephemeral:           ╎           ╎                  ╎
+╎                      ╎           ╎                  ╎
+╎ ┌──────────────────┐ ╎           ╎ ┌──────────────┐ ╎
+╎ │ ~/.claude/plans/ │ ╎ /itp:go  ╎ │  /docs/adr/  │ ╎
+╎ │ [!] Overwritten  │ ╎ ───────> ╎ │ [+] Persists │ ╎
+╎ └──────────────────┘ ╎           ╎ └──────────────┘ ╎
+╎                      ╎           ╎                  ╎
+└−−−−−−−−−−−−−−−−−−−−−−┘           └−−−−−−−−−−−−−−−−−−┘
     │
-    │ /itp
+    │ /itp:go
     ∨
 ┌−−−−−−−−−−−−−−−−−−−−−−┐
 ╎ Permanent:           ╎
@@ -202,8 +205,8 @@ graph { label: "📦 Artifact Transformation"; flow: east; }
   [ ADR ] { label: "/docs/adr/\n[+] Persists"; }
   [ Spec ] { label: "/docs/design/\n[+] Persists"; }
 )
-[ Global Plan ] -- /itp --> [ ADR ]
-[ Global Plan ] -- /itp --> [ Spec ]
+[ Global Plan ] -- /itp:go --> [ ADR ]
+[ Global Plan ] -- /itp:go --> [ Spec ]
 ```
 
 </details>
@@ -223,7 +226,7 @@ graph { label: "📦 Artifact Transformation"; flow: east; }
 /itp:setup
 
 # 4. Use workflow
-/itp my-feature -b
+/itp:go my-feature -b
 ```
 
 ### Option 2: Settings Configuration
@@ -250,7 +253,7 @@ Add to `~/.claude/settings.json`:
 git clone git@github.com:terrylica/cc-skills.git /tmp/cc-skills
 
 # 2. Copy commands
-cp /tmp/cc-skills/plugins/itp/commands/itp.md ~/.claude/commands/
+cp /tmp/cc-skills/plugins/itp/commands/go.md ~/.claude/commands/
 cp /tmp/cc-skills/plugins/itp/commands/setup.md ~/.claude/commands/
 
 # 3. Copy skills
@@ -318,23 +321,23 @@ The install script auto-detects your platform and uses the appropriate package m
 # 2. Approve the plan when prompted (ExitPlanMode)
 
 # 3. Execute the approved plan
-/itp my-feature -b    # Creates branch and executes 4-phase workflow
+/itp:go my-feature -b    # Creates branch and executes 4-phase workflow
 ```
 
 ### Quick Commands
 
 ```bash
 # Execute plan on current branch
-/itp my-feature
+/itp:go my-feature
 
 # Execute plan with new feature branch
-/itp my-feature -b
+/itp:go my-feature -b
 
 # Continue in-progress work
-/itp -c
+/itp:go -c
 
 # Continue with explicit decision
-/itp -c "use Redis"
+/itp:go -c "use Redis"
 ```
 
 ### Workflow Phases
@@ -365,7 +368,7 @@ ADR diagrams using `graph-easy` are generated **locally** and committed to the r
 
 **Workflow:**
 
-1. Developer runs `/itp` locally → generates ASCII diagrams
+1. Developer runs `/itp:go` locally → generates ASCII diagrams
 2. Diagrams are committed as part of the ADR/design spec
 3. CI/CD validates the committed files (no regeneration needed)
 

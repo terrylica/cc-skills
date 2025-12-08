@@ -12,7 +12,7 @@ last-updated: 2025-12-05
 
 ## Summary
 
-Redesign `/itp:setup` to mirror the `/itp:itp` TodoWrite-driven workflow pattern:
+Redesign `/itp:setup` to mirror the `/itp:go` TodoWrite-driven workflow pattern:
 
 1. **TodoWrite FIRST** - Mandatory todo creation before any checks
 2. **Preflight Check Phase** - Discover tools, mark todos as checked
@@ -161,7 +161,7 @@ show_disclaimer() {
 ```
 feat(itp): TodoWrite-driven interactive setup workflow
 
-- Mirror /itp:itp pattern with mandatory TodoWrite first
+- Mirror /itp:go pattern with mandatory TodoWrite first
 - Phase-based workflow: Check → Gate → Install → Verify
 - Interactive gate asks permission before installation
 - Respects existing installations, adds disclaimer

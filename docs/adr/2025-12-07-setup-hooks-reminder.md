@@ -14,7 +14,7 @@ perspectives: [User Experience, Documentation]
 
 ## Context
 
-The `/itp:itp setup` command installs ITP workflow dependencies (graph-easy, semantic-release, etc.) but does not remind users about the `/itp:itp hooks` command. Since Claude Code only loads hooks from `~/.claude/settings.json` (not plugin.json), users must explicitly install hooks after setup.
+The `/itp:setup` command installs ITP workflow dependencies (graph-easy, semantic-release, etc.) but does not remind users about the `/itp:hooks` command. Since Claude Code only loads hooks from `~/.claude/settings.json` (not plugin.json), users must explicitly install hooks after setup.
 
 Currently, setup.md ends with a Troubleshooting section without guiding users to the next logical step: configuring itp-hooks for enhanced workflow guidance.
 
@@ -129,7 +129,7 @@ graph { label: "⏭️ After: Setup With Hooks Guidance"; flow: south; }
 
 ## Decision
 
-Add a "Next Steps" section at the end of `/itp:itp setup` command (setup.md) using structured bullets format to remind users about the hooks command.
+Add a "Next Steps" section at the end of `/itp:setup` command (setup.md) using structured bullets format to remind users about the hooks command.
 
 ### Implementation
 

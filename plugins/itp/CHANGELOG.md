@@ -129,7 +129,7 @@ If you installed manually to `~/.claude/`:
 1. **Backup your customizations** (if any):
 
    ```bash
-   cp ~/.claude/commands/itp.md ~/.claude/commands/itp.md.backup
+   cp ~/.claude/commands/go.md ~/.claude/commands/go.md.backup
    ```
 
 2. **Pull latest and reinstall**:

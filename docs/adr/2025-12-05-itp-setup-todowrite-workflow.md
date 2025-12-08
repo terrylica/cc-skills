@@ -14,7 +14,7 @@ perspectives: [EcosystemArtifact, ProductFeature]
 
 ## Context and Problem Statement
 
-The current `/itp:setup` command runs dependency checks and installations without user interaction or progress visibility. Users have no control over what gets installed, no visibility into what tools are already present, and no ability to skip installation. This contrasts with the `/itp:itp` workflow which uses TodoWrite for structured progress tracking and interactive gates.
+The current `/itp:setup` command runs dependency checks and installations without user interaction or progress visibility. Users have no control over what gets installed, no visibility into what tools are already present, and no ability to skip installation. This contrasts with the `/itp:go` workflow which uses TodoWrite for structured progress tracking and interactive gates.
 
 The setup command should respect existing user installations and only install missing tools after explicit user confirmation.
 
@@ -65,7 +65,7 @@ graph { label: "⏭️ After: TodoWrite-Driven Interactive"; flow: east; }
 
 | Agent Perspective | Key Finding                                                                  | Confidence |
 | ----------------- | ---------------------------------------------------------------------------- | ---------- |
-| Claude-Planning   | TodoWrite-first pattern from /itp:itp provides structured workflow control   | High       |
+| Claude-Planning   | TodoWrite-first pattern from /itp:go provides structured workflow control    | High       |
 | Claude-Planning   | Interactive gate pattern enables user consent before installation            | High       |
 | Claude-Planning   | Version checking APIs too complex; simpler to respect existing installations | High       |
 
@@ -73,7 +73,7 @@ graph { label: "⏭️ After: TodoWrite-Driven Interactive"; flow: east; }
 
 | Decision Area        | Options Evaluated                      | Chosen           | Rationale                                         |
 | -------------------- | -------------------------------------- | ---------------- | ------------------------------------------------- |
-| Progress tracking    | Silent execution vs TodoWrite-driven   | TodoWrite-driven | Mirrors /itp:itp pattern, provides visibility     |
+| Progress tracking    | Silent execution vs TodoWrite-driven   | TodoWrite-driven | Mirrors /itp:go pattern, provides visibility      |
 | Installation control | Auto-install vs Interactive gate       | Interactive gate | Respects user autonomy, prevents unwanted changes |
 | Version handling     | API version checks vs Respect existing | Respect existing | Simpler, avoids complexity of version APIs        |
 | Flag behavior        | Visible flags vs Hidden aliases        | Hidden aliases   | Maintains backward compatibility                  |
@@ -87,7 +87,7 @@ graph { label: "⏭️ After: TodoWrite-Driven Interactive"; flow: east; }
 
 ## Decision Drivers
 
-- Consistency with `/itp:itp` workflow pattern
+- Consistency with `/itp:go` workflow pattern
 - User autonomy over their development environment
 - Transparency about what tools are installed/missing
 - Simplicity over complex version checking
@@ -102,7 +102,7 @@ graph { label: "⏭️ After: TodoWrite-Driven Interactive"; flow: east; }
 
 Chosen option: **Option C** (TodoWrite-driven interactive workflow), because:
 
-1. Mirrors the successful `/itp:itp` pattern for consistency
+1. Mirrors the successful `/itp:go` pattern for consistency
 2. Provides user visibility via TodoWrite progress tracking
 3. Respects existing installations without forcing upgrades
 4. Includes interactive gate for user consent before changes
@@ -110,7 +110,7 @@ Chosen option: **Option C** (TodoWrite-driven interactive workflow), because:
 
 ## Synthesis
 
-**Convergent findings**: The TodoWrite-first pattern is proven effective in `/itp:itp` and should be adopted for setup.
+**Convergent findings**: The TodoWrite-first pattern is proven effective in `/itp:go` and should be adopted for setup.
 
 **Divergent findings**: Initial exploration considered version checking APIs, but this was rejected as too complex.
 
@@ -299,5 +299,5 @@ graph { label: "🏗️ Setup Workflow Architecture"; flow: south; }
 
 ## References
 
-- [ITP Command](/plugins/itp/commands/itp.md) - Pattern source for TodoWrite workflow
+- [ITP Command](/plugins/itp/commands/go.md) - Pattern source for TodoWrite workflow
 - [Global Plan](/Users/terryli/.claude/plans/memoized-cooking-nygaard.md) - Original design (ephemeral)

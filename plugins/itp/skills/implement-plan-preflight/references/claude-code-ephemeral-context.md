@@ -1,6 +1,6 @@
 # Claude Code Ephemeral Context
 
-This document explains the ephemeral nature of Claude Code's Plan Mode artifacts and why the `/itp` workflow exists to capture decisions before they're lost.
+This document explains the ephemeral nature of Claude Code's Plan Mode artifacts and why the `/itp:go` workflow exists to capture decisions before they're lost.
 
 ## Plan File Location & Naming
 
@@ -46,7 +46,7 @@ Decisions made via `AskUserQuestion` flows include:
 - Trade-off resolutions (performance vs simplicity)
 - Scope clarifications (what's in/out of scope)
 
-These decisions **live only in the conversation context**. When context compacts at ~95% capacity, they're summarized away. The `/itp` workflow captures these decisions in ADRs before they're lost.
+These decisions **live only in the conversation context**. When context compacts at ~95% capacity, they're summarized away. The `/itp:go` workflow captures these decisions in ADRs before they're lost.
 
 ## References
 

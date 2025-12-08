@@ -12,7 +12,7 @@ last-updated: 2025-12-07
 
 ## Summary
 
-Add a "Next Steps" section at the end of `/itp:itp setup` to remind users about the `/itp:itp hooks` command for checking status and installing hooks.
+Add a "Next Steps" section at the end of `/itp:setup` to remind users about the `/itp:hooks` command for checking status and installing hooks.
 
 ## Research Validation
 
@@ -47,7 +47,8 @@ After setup completes, configure itp-hooks for enhanced workflow guidance:
    ```
 ````
 
-2. **Install hooks** (if not already installed):
+1. **Install hooks** (if not already installed):
+
    ```bash
    /itp:hooks install
    ```

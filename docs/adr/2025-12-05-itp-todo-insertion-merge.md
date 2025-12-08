@@ -14,7 +14,7 @@ perspectives: [WorkflowDesign, UserExperience, DataIntegrity]
 
 ## Context and Problem Statement
 
-The ITP workflow command (`/itp`) currently instructs Claude to "Copy this TodoWrite template EXACTLY" as a mandatory first action. This **overwrites** any existing todos from:
+The ITP workflow command (`/itp:go`) currently instructs Claude to "Copy this TodoWrite template EXACTLY" as a mandatory first action. This **overwrites** any existing todos from:
 
 - Plan files in `~/.claude/plans/*.md`
 - Previous work sessions
@@ -58,11 +58,11 @@ Before: TodoWrite Overwrites
 ```
 graph { label: "Before: TodoWrite Overwrites"; flow: south; }
 [ Plan File ] { shape: rounded; }
-[ itp Command ] { border: bold; }
+[ /itp:go Command ] { border: bold; }
 [ TodoWrite COPY EXACTLY ] { border: double; }
 [ Existing Todos DESTROYED ] { border: dotted; }
-[ Plan File ] -> [ itp Command ]
-[ itp Command ] -> [ TodoWrite COPY EXACTLY ]
+[ Plan File ] -> [ /itp:go Command ]
+[ /itp:go Command ] -> [ TodoWrite COPY EXACTLY ]
 [ TodoWrite COPY EXACTLY ] -- overwrites --> [ Existing Todos DESTROYED ]
 ```
 
@@ -108,12 +108,12 @@ After: TodoWrite Merges
 ```
 graph { label: "After: TodoWrite Merges"; flow: south; }
 [ Plan File ] { shape: rounded; }
-[ itp Command ] { border: bold; }
+[ /itp:go Command ] { border: bold; }
 [ Step 0 Plan Integration ] { border: double; }
 [ Merged TodoWrite ] { border: bold; }
 [ Existing Todos PRESERVED ] { shape: rounded; }
-[ Plan File ] -> [ itp Command ]
-[ itp Command ] -> [ Step 0 Plan Integration ]
+[ Plan File ] -> [ /itp:go Command ]
+[ /itp:go Command ] -> [ Step 0 Plan Integration ]
 [ Step 0 Plan Integration ] -- reads --> [ Plan File ]
 [ Step 0 Plan Integration ] -- interleaves --> [ Merged TodoWrite ]
 [ Merged TodoWrite ] -> [ Existing Todos PRESERVED ]
@@ -190,7 +190,7 @@ Chosen option: **Option C (Interleave)**, because plan file tasks have natural m
 
 ### Negative
 
-- More complex TodoWrite instruction in `/itp` command
+- More complex TodoWrite instruction in `/itp:go` command
 - Potential AskUserQuestion overhead for ambiguous mappings
 - Requires Claude to understand task categorization
 
