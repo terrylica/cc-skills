@@ -92,6 +92,7 @@ get_install_cmd() {
             ruff)      echo "mise install ruff && mise use --global ruff"; return ;;
             uv)        echo "mise install uv && mise use --global uv"; return ;;
             semgrep)   echo "mise install semgrep && mise use --global semgrep"; return ;;
+            gitleaks)  echo "mise install gitleaks && mise use --global gitleaks"; return ;;
             prettier)  echo "mise use --global npm:prettier@latest"; return ;;
             perl)      echo "mise install perl && mise use --global perl"; return ;;
             cpanminus) echo "mise install perl && mise exec perl -- curl -L https://cpanmin.us | mise exec perl -- perl - App::cpanminus"; return ;;
@@ -119,6 +120,7 @@ get_install_cmd() {
                 gh)        echo "brew install gh" ;;
                 cpanminus) echo "brew install cpanminus" ;;
                 semgrep)   echo "brew install semgrep" ;;
+                gitleaks)  echo "brew install gitleaks" ;;
                 doppler)   echo "brew install dopplerhq/cli/doppler" ;;
                 node)      echo "brew install node" ;;
                 perl)      echo "brew install perl" ;;
@@ -130,6 +132,7 @@ get_install_cmd() {
                 gh)        echo "sudo apt-get install -y gh" ;;
                 cpanminus) echo "sudo apt-get install -y cpanminus" ;;
                 semgrep)   echo "python3 -m pip install --user semgrep" ;;
+                gitleaks)  echo "sudo apt install -y gitleaks" ;;
                 doppler)   echo "curl -Ls https://cli.doppler.com/install.sh | sh" ;;
                 node)      echo "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs" ;;
                 perl)      echo "sudo apt-get install -y perl" ;;
@@ -248,6 +251,7 @@ echo "## Code Audit (Optional)"
 check_tool "ruff" "ruff" || { MISSING=$((MISSING+1)); INSTALL_RUFF=$(get_install_cmd ruff); }
 check_tool "semgrep" "semgrep" || { MISSING=$((MISSING+1)); INSTALL_SEMGREP=$(get_install_cmd semgrep); }
 check_tool "jscpd" "jscpd" || { MISSING=$((MISSING+1)); INSTALL_JSCPD=$(get_install_cmd jscpd); }
+check_tool "gitleaks" "gitleaks" || { MISSING=$((MISSING+1)); INSTALL_GITLEAKS=$(get_install_cmd gitleaks); }
 echo ""
 
 # Release (Optional - for Phase 3)
@@ -291,6 +295,7 @@ else
         [ -n "${INSTALL_RUFF:-}" ] && install_tool "ruff" "$INSTALL_RUFF"
         [ -n "${INSTALL_SEMGREP:-}" ] && install_tool "semgrep" "$INSTALL_SEMGREP"
         [ -n "${INSTALL_JSCPD:-}" ] && install_tool "jscpd" "$INSTALL_JSCPD"
+        [ -n "${INSTALL_GITLEAKS:-}" ] && install_tool "gitleaks" "$INSTALL_GITLEAKS"
 
         # Release
         [ -n "${INSTALL_NODE:-}" ] && install_tool "node" "$INSTALL_NODE"
