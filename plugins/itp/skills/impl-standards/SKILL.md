@@ -9,7 +9,7 @@ Apply these standards during implementation to ensure consistent, maintainable c
 
 ## When to Use This Skill
 
-- During `/itp` Phase 1
+- During `/itp:go` Phase 1
 - When writing new production code
 - User mentions "error handling", "constants", "magic numbers", "progress logging"
 - Before release to verify code quality

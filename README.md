@@ -81,16 +81,16 @@ Marketplace plugin commands display with the `plugin:command` format:
 
 | Display Format | Meaning                       |
 | -------------- | ----------------------------- |
-| `/itp:itp`     | Plugin `itp`, command `itp`   |
+| `/itp:go`      | Plugin `itp`, command `go`    |
 | `/itp:setup`   | Plugin `itp`, command `setup` |
 
 **Why the colon format?**
 
 - **Display**: Claude Code always shows the full `plugin:command` namespace in autocomplete and command lists
-- **Invocation**: You may type `/itp` directly if no naming conflicts exist with other installed plugins
+- **Invocation**: You may type `/go`, `/setup`, or `/hooks` directly if no naming conflicts exist with other installed plugins
 - **Clarity**: The namespace identifies which plugin provides each command
 
-This is standard Claude Code behavior for marketplace plugins - the display format cannot be changed, but shorter invocation works when unambiguous.
+**Important edge case**: When the command name equals the plugin name (e.g., `/foo:foo`), you **must** use the full format. Typing `/foo` alone is interpreted as the plugin prefix, not the command. This applies whenever `command-name` = `plugin-name`.
 
 ## Repository Structure
 
@@ -148,7 +148,7 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 
 **Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, pypi-doppler, semantic-release
 
-**Triggers**: `/itp:itp`, `/itp:setup`, ADR workflow, plan execution
+**Triggers**: `/itp:go`, `/itp:setup`, ADR workflow, plan execution
 
 ### gh-tools
 
