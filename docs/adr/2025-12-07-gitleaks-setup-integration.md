@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: implemented
 date: 2025-12-07
 decision-maker: <user>ca
 consulted: [Security-Fundamentals, Plugin-Integration, Tool-Registry]
