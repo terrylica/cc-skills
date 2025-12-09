@@ -4,6 +4,10 @@ Code quality and validation tools for Claude Code.
 
 ## Skills
 
+### clickhouse-architect
+
+Prescriptive ClickHouse schema design, compression codec selection, and performance optimization. Use when designing schemas, selecting ORDER BY keys, choosing compression codecs, auditing table structure, or optimizing query performance. Covers both ClickHouse Cloud (SharedMergeTree) and self-hosted (ReplicatedMergeTree).
+
 ### code-clone-assistant
 
 Detects and refactors code duplication using PMD CPD and Semgrep. Use when identifying code clones, addressing DRY violations, or refactoring duplicate code.
