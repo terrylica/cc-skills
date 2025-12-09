@@ -120,7 +120,7 @@ graph { label: "⏭️ After: Design + Operations"; flow: east; }
 | Dictionary 6.6x            | 🔄 **Contextual**      | Only for 1.4B+ rows star schema; <500 rows use JOINs          |
 | JOINs anti-pattern         | 🔄 **Improved 8-180x** | v24.4+ predicate pushdown (180x upper bound)                  |
 | Mutations anti-pattern     | 🔄 **Improved 1700x**  | v24.4+ lightweight updates                                    |
-| ALP codec                  | ❌ NOT in ClickHouse   | Issue #60533 open, no merge                                   |
+| ALP codec                  | 🔄 **In Development**  | PR #91362 (Dec 2025) under review; not yet in any release     |
 
 ## Decision Log
 
@@ -129,7 +129,7 @@ graph { label: "⏭️ After: Design + Operations"; flow: east; }
 | Plugin placement  | devops-tools, quality-tools   | quality-tools       | Design validation focus, complements schema-e2e-validation    |
 | Deployment target | Cloud-only, Self-hosted, Both | Both equally        | SharedMergeTree (Cloud) and ReplicatedMergeTree (self-hosted) |
 | Version handling  | All versions, Modern only     | Modern only (24.4+) | Focus on current best practices, note legacy briefly          |
-| Future features   | Include ALP, Production-only  | Production-only     | ALP codec not yet implemented (Issue #60533)                  |
+| Future features   | Include ALP, Production-only  | Production-only     | ALP codec PR #91362 in review (Dec 2025); not yet released    |
 | Audit depth       | Basic, Comprehensive          | Comprehensive (20+) | Full system.\* coverage for production use                    |
 
 ### Trade-offs Accepted
