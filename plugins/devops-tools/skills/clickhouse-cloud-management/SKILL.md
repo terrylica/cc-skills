@@ -164,5 +164,6 @@ For detailed patterns and advanced techniques, consult:
 
 ## Related Skills
 
+- `quality-tools:clickhouse-architect` - Schema design, compression codecs, performance optimization
 - `devops-tools:doppler-secret-validation` - For storing credentials in Doppler
 - `devops-tools:doppler-workflows` - For credential rotation workflows
