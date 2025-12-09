@@ -1,3 +1,10 @@
+# [2.21.0](https://github.com/terrylica/cc-skills/compare/v2.20.1...v2.21.0) (2025-12-09)
+
+
+### Features
+
+* **quality-tools:** add clickhouse-architect skill for schema design ([7926523](https://github.com/terrylica/cc-skills/commit/7926523d23948cd7280ca72d3acfe4bf576c836e))
+
 ## [2.20.1](https://github.com/terrylica/cc-skills/compare/v2.20.0...v2.20.1) (2025-12-09)
 
 # [2.20.0](https://github.com/terrylica/cc-skills/compare/v2.19.0...v2.20.0) (2025-12-09)
