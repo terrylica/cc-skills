@@ -8,30 +8,33 @@ Decision guide and benchmarks for selecting optimal ClickHouse compression codec
 
 ## Quick Selection Guide
 
-| Column Type               | Recommended Codec      | Example                                            |
-| ------------------------- | ---------------------- | -------------------------------------------------- |
-| DateTime/DateTime64       | DoubleDelta + ZSTD     | `timestamp DateTime64(3) CODEC(DoubleDelta, ZSTD)` |
-| Float (prices, gauges)    | Gorilla + ZSTD         | `price Float64 CODEC(Gorilla, ZSTD)`               |
-| Integer (counters, IDs)   | T64 + ZSTD             | `count UInt64 CODEC(T64, ZSTD)`                    |
-| Integer (slowly changing) | Delta + ZSTD           | `version UInt32 CODEC(Delta, ZSTD)`                |
-| String (< 10k unique)     | LowCardinality(String) | `status LowCardinality(String)`                    |
-| String (high cardinality) | ZSTD(3)                | `description String CODEC(ZSTD(3))`                |
-| General/Mixed             | ZSTD(3)                | Default compression level 3                        |
+| Column Type               | Default Codec          | Read-Heavy Alternative | When to Use Alternative         |
+| ------------------------- | ---------------------- | ---------------------- | ------------------------------- |
+| DateTime/DateTime64       | DoubleDelta + ZSTD     | DoubleDelta + LZ4      | Monotonic, read-heavy workloads |
+| Float (prices, gauges)    | Gorilla + ZSTD         | Gorilla + LZ4          | Decompression speed critical    |
+| Integer (counters, IDs)   | T64 + ZSTD             | —                      | T64 works best with ZSTD        |
+| Integer (slowly changing) | Delta + ZSTD           | Delta + LZ4            | Read-heavy workloads            |
+| String (< 10k unique)     | LowCardinality(String) | —                      | Always use LowCardinality       |
+| String (high cardinality) | ZSTD(3)                | LZ4                    | Decompression speed critical    |
+| General/Mixed             | ZSTD(3)                | LZ4                    | When unsure, ZSTD is safer      |
 
-## CRITICAL SAFETY WARNING
+## Note on Codec Combinations
 
-**Never combine Delta/DoubleDelta with Gorilla codecs**.
+Delta/DoubleDelta + Gorilla combinations are **blocked by default** via `allow_suspicious_codecs`.
 
-This combination causes **DATA CORRUPTION** (PR #45652):
+**Why blocked**: Gorilla already performs implicit delta compression internally. Combining Delta/DoubleDelta with Gorilla is **redundant**—it adds overhead without compression benefit.
+
+**Historical context**: A corruption bug existed in this combination (fixed in PR #45615, Jan 2023). The blocking (PR #45652) remains as a best practice guardrail, not because of danger.
+
+**Best practice**: Use each codec family independently for its intended data type:
+
+- DoubleDelta/Delta: Timestamps, monotonic sequences
+- Gorilla: Float values (prices, gauges)
 
 ```sql
--- DANGEROUS - DATA CORRUPTION RISK
-column Float64 CODEC(Delta, Gorilla, ZSTD)
-column Float64 CODEC(DoubleDelta, Gorilla, ZSTD)
-
--- SAFE - Use codecs independently
-price Float64 CODEC(Gorilla, ZSTD)
-timestamp DateTime64 CODEC(DoubleDelta, ZSTD)
+-- Correct usage
+price Float64 CODEC(Gorilla, ZSTD)              -- Floats: use Gorilla
+timestamp DateTime64 CODEC(DoubleDelta, ZSTD)   -- Timestamps: use DoubleDelta
 ```
 
 ## Codec Reference
@@ -134,16 +137,19 @@ log_line String CODEC(LZ4)
 
 ## Codec Chaining
 
-Always chain specialized codecs with general-purpose compression:
+Chain specialized codecs with general-purpose compression:
 
-| Specialized Codec | Chain With |
-| ----------------- | ---------- |
-| DoubleDelta       | ZSTD       |
-| Gorilla           | ZSTD       |
-| T64               | ZSTD       |
-| Delta             | ZSTD       |
+| Specialized Codec | Default Chain | Read-Heavy Alternative        | Notes                        |
+| ----------------- | ------------- | ----------------------------- | ---------------------------- |
+| DoubleDelta       | ZSTD          | LZ4 (1.76x faster decompress) | LZ4 for monotonic sequences  |
+| Gorilla           | ZSTD          | LZ4                           | ZSTD provides better ratio   |
+| T64               | ZSTD          | —                             | T64 works best with ZSTD     |
+| Delta             | ZSTD          | LZ4                           | LZ4 for read-heavy workloads |
 
-**Always chain** DoubleDelta, Gorilla, T64, Delta with ZSTD or LZ4.
+**Decision guide**:
+
+- **ZSTD** (default): Better compression ratio, safer when data patterns unknown
+- **LZ4**: 1.76x faster decompression, use when read latency is critical
 
 ## Benchmark Results
 

@@ -8,13 +8,15 @@ ClickHouse-native patterns that replace traditional database approaches.
 
 ## Pattern Mapping
 
-| Traditional Approach  | ClickHouse-Native Alternative    | Improvement  |
-| --------------------- | -------------------------------- | ------------ |
-| Repository pattern    | Direct SQL + parameterized views | Simpler      |
-| Regular views         | Parameterized views (23.1+)      | Flexible     |
-| JOINs for lookups     | Dictionaries                     | 6.6x faster  |
-| App-level aggregation | Materialized views               | Pre-computed |
-| DELETE for dedup      | ReplacingMergeTree               | Automatic    |
+| Traditional Approach  | ClickHouse-Native Alternative    | Improvement                   |
+| --------------------- | -------------------------------- | ----------------------------- |
+| Repository pattern    | Direct SQL + parameterized views | Simpler                       |
+| Regular views         | Parameterized views (23.1+)      | Flexible                      |
+| JOINs for lookups     | Dictionaries                     | Up to 6.6x faster (see below) |
+| App-level aggregation | Materialized views               | Pre-computed                  |
+| DELETE for dedup      | ReplacingMergeTree               | Automatic                     |
+
+**Note**: Dictionary performance gains are context-dependent. See [Dictionaries vs JOINs](#dictionaries-vs-joins-context-dependent) for decision framework.
 
 ## Parameterized Views (23.1+)
 
@@ -73,9 +75,36 @@ SELECT * FROM trades_multi_symbol(
 );
 ```
 
-## Dictionaries (6.6x Faster Than JOINs)
+## Dictionaries vs JOINs (Context-Dependent)
 
-Replace JOINs with O(1) dictionary lookups for dimension tables.
+**Benchmark context**: The "6.6x faster" claim comes from Star Schema Benchmark with **1.4 billion rows** in the fact table.
+
+### v24.4+ JOIN Improvements
+
+ClickHouse 24.4 introduced significant JOIN optimizations:
+
+- Predicate pushdown: **8-180x** faster (180x upper bound)
+- Automatic OUTER→INNER conversion
+- Enhanced equivalence class analysis
+
+### When to Use Dictionaries (v24.4+)
+
+| Scenario                            | Recommendation                        |
+| ----------------------------------- | ------------------------------------- |
+| Dimension table <500 rows           | Use JOINs (overhead negligible)       |
+| Dimension table 500-10k rows        | Benchmark both approaches             |
+| Dimension table >10k rows           | Consider dictionaries                 |
+| Fact table >100M rows + star schema | Dictionaries recommended              |
+| LEFT ANY JOIN semantics             | Dictionaries (direct join 25x faster) |
+
+### When to Use JOINs (v24.4+)
+
+| Scenario                         | Recommendation                           |
+| -------------------------------- | ---------------------------------------- |
+| Small dimension tables           | JOINs (v24.4+ optimizations handle well) |
+| Complex JOIN types (FULL, RIGHT) | JOINs (dictionaries don't support)       |
+| One-to-many relationships        | JOINs (dictionaries deduplicate keys)    |
+| Pre-sorted data                  | Full sorting merge join                  |
 
 ### Create Dictionary
 

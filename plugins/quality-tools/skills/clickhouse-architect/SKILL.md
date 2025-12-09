@@ -58,26 +58,28 @@ ORDER BY (trade_id, timestamp, symbol, exchange);
 
 ### Compression Codec Quick Reference
 
-| Column Type              | Recommended Codec          | Example                                            |
-| ------------------------ | -------------------------- | -------------------------------------------------- |
-| DateTime/DateTime64      | `CODEC(DoubleDelta, ZSTD)` | `timestamp DateTime64(3) CODEC(DoubleDelta, ZSTD)` |
-| Float prices/gauges      | `CODEC(Gorilla, ZSTD)`     | `price Float64 CODEC(Gorilla, ZSTD)`               |
-| Integer counters         | `CODEC(T64, ZSTD)`         | `count UInt64 CODEC(T64, ZSTD)`                    |
-| Slowly changing integers | `CODEC(Delta, ZSTD)`       | `version UInt32 CODEC(Delta, ZSTD)`                |
-| String (low cardinality) | `LowCardinality(String)`   | `status LowCardinality(String)`                    |
-| General data             | `CODEC(ZSTD(3))`           | Default compression level 3                        |
+| Column Type              | Default Codec              | Read-Heavy Alternative    | Example                                            |
+| ------------------------ | -------------------------- | ------------------------- | -------------------------------------------------- |
+| DateTime/DateTime64      | `CODEC(DoubleDelta, ZSTD)` | `CODEC(DoubleDelta, LZ4)` | `timestamp DateTime64(3) CODEC(DoubleDelta, ZSTD)` |
+| Float prices/gauges      | `CODEC(Gorilla, ZSTD)`     | `CODEC(Gorilla, LZ4)`     | `price Float64 CODEC(Gorilla, ZSTD)`               |
+| Integer counters         | `CODEC(T64, ZSTD)`         | —                         | `count UInt64 CODEC(T64, ZSTD)`                    |
+| Slowly changing integers | `CODEC(Delta, ZSTD)`       | `CODEC(Delta, LZ4)`       | `version UInt32 CODEC(Delta, ZSTD)`                |
+| String (low cardinality) | `LowCardinality(String)`   | —                         | `status LowCardinality(String)`                    |
+| General data             | `CODEC(ZSTD(3))`           | `CODEC(LZ4)`              | Default compression level 3                        |
 
-**CRITICAL SAFETY WARNING**:
+**When to use LZ4 over ZSTD**: LZ4 provides 1.76x faster decompression. Use LZ4 for read-heavy workloads with monotonic sequences (timestamps, counters). Use ZSTD (default) when compression ratio matters or data patterns are unknown.
 
-Never combine Delta/DoubleDelta with Gorilla codecs on the same column. This causes **DATA CORRUPTION** (see PR #45652). Each codec must be used independently.
+**Note on codec combinations**:
+
+Delta/DoubleDelta + Gorilla combinations are blocked by default (`allow_suspicious_codecs`) because Gorilla already performs implicit delta compression internally—combining them is **redundant**, not dangerous. A historical corruption bug (PR #45615, Jan 2023) was fixed, but the blocking remains as a best practice guardrail.
+
+Use each codec family independently for its intended data type:
 
 ```sql
--- DANGEROUS - DO NOT USE
-price Float64 CODEC(Delta, Gorilla, ZSTD)  -- DATA CORRUPTION RISK
-
--- Safe alternatives
-price Float64 CODEC(Gorilla, ZSTD)         -- Correct for floats
-timestamp DateTime64 CODEC(DoubleDelta, ZSTD)  -- Correct for timestamps
+-- Correct usage
+price Float64 CODEC(Gorilla, ZSTD)              -- Floats: use Gorilla
+timestamp DateTime64 CODEC(DoubleDelta, ZSTD)   -- Timestamps: use DoubleDelta
+timestamp DateTime64 CODEC(DoubleDelta, LZ4)    -- Read-heavy: use LZ4
 ```
 
 ### PARTITION BY Guidelines
@@ -173,7 +175,21 @@ GROUP BY exchange, symbol, hour;
 
 ### Dictionaries
 
-Replace JOINs with O(1) dictionary lookups (6.6x faster):
+Replace JOINs with O(1) dictionary lookups for **large-scale star schemas**:
+
+**When to use dictionaries (v24.4+)**:
+
+- Fact tables with 100M+ rows joining dimension tables
+- Dimension tables 1k-500k rows with monotonic keys
+- LEFT ANY JOIN semantics required
+
+**When JOINs are sufficient (v24.4+)**:
+
+- Dimension tables <500 rows (JOIN overhead negligible)
+- v24.4+ predicate pushdown provides 8-180x improvements
+- Complex JOIN types (FULL, RIGHT, multi-condition)
+
+**Benchmark context**: 6.6x speedup measured on Star Schema Benchmark (1.4B rows).
 
 ```sql
 CREATE DICTIONARY symbol_info (
@@ -183,10 +199,10 @@ CREATE DICTIONARY symbol_info (
 )
 PRIMARY KEY symbol
 SOURCE(CLICKHOUSE(TABLE 'symbols'))
-LAYOUT(FLAT())
+LAYOUT(FLAT())  -- Best for <500k entries with monotonic keys
 LIFETIME(3600);
 
--- Use in queries
+-- Use in queries (O(1) lookup)
 SELECT
     symbol,
     dictGet('symbol_info', 'name', symbol) AS symbol_name
