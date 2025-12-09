@@ -135,6 +135,25 @@ json_payload String CODEC(ZSTD(3))
 log_line String CODEC(LZ4)
 ```
 
+## Upcoming Codecs
+
+### ALP (Adaptive Lossless floating-Point)
+
+**Status**: 🔄 In Development (PR #91362, Dec 2025)
+
+**Best for**: Float columns with better compression than Gorilla
+
+**How it works**: Adaptive encoding that exploits patterns in floating-point data
+
+**Current status**: Not yet available in any ClickHouse release. PR #91362 is under active review (opened Dec 2, 2025). Issue #60533 tracks the feature request.
+
+**When available**: ALP will provide an alternative to Gorilla for float compression, potentially with better ratios for certain data patterns.
+
+```sql
+-- Future syntax (not yet available)
+price Float64 CODEC(ALP, ZSTD)  -- Once released
+```
+
 ## Codec Chaining
 
 Chain specialized codecs with general-purpose compression:
