@@ -1,9 +1,10 @@
 ---
 adr: 2025-12-08-clickhouse-cloud-management-skill
 source: ~/.claude/plans/spicy-conjuring-planet.md
-implementation-status: in_progress
-phase: phase-1
+implementation-status: released
+phase: phase-3
 last-updated: 2025-12-08
+release: v2.20.0
 ---
 
 # Design Spec: Extract ClickHouse Cloud Management Skill
