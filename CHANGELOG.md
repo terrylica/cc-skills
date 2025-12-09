@@ -1,3 +1,15 @@
+# [2.22.0](https://github.com/terrylica/cc-skills/compare/v2.21.1...v2.22.0) (2025-12-09)
+
+
+### Bug Fixes
+
+* **quality-tools:** add ALP codec development status to clickhouse-architect ([8ff3525](https://github.com/terrylica/cc-skills/commit/8ff352526b15bdc3c2603aa0e383c6a81c0a74ad)), closes [#91362](https://github.com/terrylica/cc-skills/issues/91362) [#60533](https://github.com/terrylica/cc-skills/issues/60533) [#91362](https://github.com/terrylica/cc-skills/issues/91362)
+
+
+### Features
+
+* **devops-tools:** add clickhouse-pydantic-config skill ([e171d05](https://github.com/terrylica/cc-skills/commit/e171d05fa61386a363f73fbdf3ce137c603f6ee2))
+
 ## [2.21.1](https://github.com/terrylica/cc-skills/compare/v2.21.0...v2.21.1) (2025-12-09)
 
 
