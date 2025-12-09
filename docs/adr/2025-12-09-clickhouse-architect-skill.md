@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: implemented
 date: 2025-12-09
 decision-maker: <user>ca
 consulted:

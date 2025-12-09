@@ -1,8 +1,8 @@
 ---
 adr: 2025-12-09-clickhouse-architect-skill
 source: ~/.claude/plans/adaptive-leaping-sloth.md
-implementation-status: in_progress
-phase: phase-1
+implementation-status: completed
+phase: released
 last-updated: 2025-12-09
 ---
 
