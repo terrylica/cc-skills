@@ -106,18 +106,21 @@ graph { label: "⏭️ After: Design + Operations"; flow: east; }
 | Schema-Design          | ORDER BY 3-5 cols, lowest cardinality first; 10x penalty if not  | High       |
 | Idiomatic-Patterns     | Parameterized views (23.1+), dictionaries 6.6x faster than JOINs | High       |
 
-### Empirical Validation Status
+### Empirical Validation Status (Updated v2.22.0)
 
-| Pattern                    | Status             | Evidence                                 |
-| -------------------------- | ------------------ | ---------------------------------------- |
-| DoubleDelta for timestamps | Validated          | Official docs + 2025 testing             |
-| Gorilla for floats         | Validated          | **CRITICAL**: Delta+Gorilla = corruption |
-| T64 for integers           | Validated          | Best with ZSTD, not LZ4                  |
-| ORDER BY 3-5 cols          | Validated          | 10x penalty measured                     |
-| LowCardinality < 10k       | Validated          | 4x query improvement                     |
-| JOINs anti-pattern         | **Improved 180x**  | v24.4+ predicate pushdown                |
-| Mutations anti-pattern     | **Improved 1700x** | v24.4+ lightweight updates               |
-| ALP codec                  | NOT in ClickHouse  | Issue #60533 open, no merge              |
+| Pattern                    | Status                 | Evidence                                                      |
+| -------------------------- | ---------------------- | ------------------------------------------------------------- |
+| DoubleDelta for timestamps | ✅ Validated           | Official docs + testing                                       |
+| DoubleDelta + ZSTD default | 🔄 **Nuanced**         | LZ4 better for read-heavy monotonic (1.76x faster decompress) |
+| Gorilla for floats         | ✅ Validated           | Official docs                                                 |
+| Delta+Gorilla corruption   | 🔄 **Outdated**        | Bug fixed PR #45615 (Jan 2023); now just blocked as redundant |
+| T64 for integers           | ✅ Validated           | Best with ZSTD                                                |
+| ORDER BY 3-5 cols          | ✅ Validated           | 10x penalty measured                                          |
+| LowCardinality < 10k       | ✅ Validated           | 4x query improvement                                          |
+| Dictionary 6.6x            | 🔄 **Contextual**      | Only for 1.4B+ rows star schema; <500 rows use JOINs          |
+| JOINs anti-pattern         | 🔄 **Improved 8-180x** | v24.4+ predicate pushdown (180x upper bound)                  |
+| Mutations anti-pattern     | 🔄 **Improved 1700x**  | v24.4+ lightweight updates                                    |
+| ALP codec                  | ❌ NOT in ClickHouse   | Issue #60533 open, no merge                                   |
 
 ## Decision Log
 
@@ -190,6 +193,62 @@ Chosen option: **Option B**, because:
 - Requires maintaining cross-reference to devops-tools
 - Modern-only focus may frustrate legacy users
 - Comprehensive scope means longer skill content
+
+## Post-Release Validation (v2.22.0)
+
+### Empirical Research Validation
+
+Following v2.21.0 release, independent research validation identified three claims requiring correction:
+
+#### 1. Codec Chaining: DoubleDelta + ZSTD vs LZ4
+
+| Original Claim  | Research Finding  | Correction            |
+| --------------- | ----------------- | --------------------- |
+| Always use ZSTD | Context-dependent | Added LZ4 alternative |
+
+**Verified facts**:
+
+- DoubleDelta + LZ4: 1.76x faster decompression, best for monotonic sequences
+- DoubleDelta + ZSTD: Better compression ratio, best for slowly changing time series
+- ZSTD is safer default when data patterns unknown
+
+**Sources**: ClickHouse Official Blog, Altinity KB, GitHub Issue #38134
+
+#### 2. Delta+Gorilla Warning
+
+| Original Claim    | Research Finding   | Correction         |
+| ----------------- | ------------------ | ------------------ |
+| "DATA CORRUPTION" | Bug fixed Jan 2023 | Downgraded to note |
+
+**Verified facts**:
+
+- PR #45615 (Jan 26, 2023): Fixed the actual corruption bug
+- PR #45652 (Jan 31, 2023): Added `allow_suspicious_codecs` guardrail
+- Post-fix: Combination is **redundant** (Gorilla does implicit delta), not dangerous
+- Still blocked by default as best practice
+
+**Sources**: GitHub PRs #45615, #45652; ClickHouse docs
+
+#### 3. Dictionary 6.6x Performance
+
+| Original Claim            | Research Finding  | Correction              |
+| ------------------------- | ----------------- | ----------------------- |
+| "6.6x faster" unqualified | Context-dependent | Added benchmark context |
+
+**Verified facts**:
+
+- 6.6x benchmark: Star Schema, 1.4B rows fact table, ClickHouse Cloud
+- v24.4+ JOINs: 8-180x improvement (predicate pushdown)
+- Dictionaries overkill for <500 row dimension tables
+- Decision framework added for when to use each approach
+
+**Sources**: ClickHouse Blog "Using Dictionaries to Accelerate Queries", Tinybird v24.4 improvements
+
+### Research Methodology
+
+- 3 parallel research agents with web search + GitHub verification
+- Cross-referenced ClickHouse official docs, Altinity KB, GitHub PRs/Issues
+- Iterative clarification with user on warning tone preference
 
 ## Architecture
 
