@@ -1,0 +1,49 @@
+# ADR: 2025-12-09-clickhouse-pydantic-config-skill
+# mise SSoT configuration for ClickHouse Pydantic Config skill
+#
+# This file serves as the Single Source of Truth for all connection parameters.
+# Scripts read from environment variables with backward-compatible defaults.
+
+min_version = "2024.9.5"
+
+[env]
+# Connection identity
+CLICKHOUSE_NAME = "clickhouse-local"
+CLICKHOUSE_MODE = "local"  # "local" or "cloud"
+CLICKHOUSE_TYPE = "dev"    # "dev", "test", or "prod"
+
+# Connection parameters
+CLICKHOUSE_HOST = "localhost"
+CLICKHOUSE_PORT = "8123"
+CLICKHOUSE_DATABASE = "default"
+
+# Output paths
+DBEAVER_CONFIG_PATH = ".dbeaver/data-sources.json"
+CONNECTION_SCHEMA_PATH = ".dbeaver/connection.schema.json"
+
+# DBeaver binary (macOS)
+DBEAVER_BIN = "/Applications/DBeaver.app/Contents/MacOS/dbeaver"
+
+# Cloud credentials (read from .env for security)
+# CLICKHOUSE_USER_READONLY - set in .env
+# CLICKHOUSE_PASSWORD_READONLY - set in .env
+
+[tasks.db-client-generate]
+description = "Generate DBeaver config from Pydantic model"
+run = "uv run scripts/generate_dbeaver_config.py --output ${DBEAVER_CONFIG_PATH}"
+
+[tasks.db-client-validate]
+description = "Validate DBeaver config against schema"
+run = "uv run scripts/validate_config.py --config ${DBEAVER_CONFIG_PATH}"
+
+[tasks.dbeaver]
+description = "Launch DBeaver with project workspace"
+run = '"${DBEAVER_BIN}" -data .dbeaver-workspace &'
+
+[tasks."db-client:cloud"]
+description = "Generate config for ClickHouse Cloud"
+run = "uv run scripts/generate_dbeaver_config.py --mode cloud --output ${DBEAVER_CONFIG_PATH}"
+
+[tasks."db-client:dry-run"]
+description = "Preview generated config without writing"
+run = "uv run scripts/generate_dbeaver_config.py --dry-run"
