@@ -1,16 +1,17 @@
 # devops-tools
 
-DevOps automation plugin for Claude Code: Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
+DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
 
 ## Skills
 
-| Skill                         | Description                                                         |
-| ----------------------------- | ------------------------------------------------------------------- |
-| **doppler-workflows**         | PyPI publishing, AWS credential rotation, multi-service patterns    |
-| **doppler-secret-validation** | Add, validate, and test API tokens/credentials in Doppler           |
-| **telegram-bot-management**   | Production bot management, monitoring, restart, and troubleshooting |
-| **mlflow-query**              | Query MLflow experiments, compare runs, analyze model metrics       |
-| **session-recovery**          | Troubleshoot Claude Code session issues and HOME variable problems  |
+| Skill                           | Description                                                            |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management |
+| **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
+| **doppler-secret-validation**   | Add, validate, and test API tokens/credentials in Doppler              |
+| **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting    |
+| **mlflow-query**                | Query MLflow experiments, compare runs, analyze model metrics          |
+| **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems     |
 
 ## Installation
 
@@ -25,6 +26,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 **Trigger phrases:**
 
+- "create ClickHouse user", "ClickHouse permissions" → clickhouse-cloud-management
 - "publish to PyPI" → doppler-workflows
 - "add to Doppler", "validate token" → doppler-secret-validation
 - "telegram bot", "bot status", "restart bot" → telegram-bot-management
@@ -32,6 +34,13 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "no conversations found to resume" → session-recovery
 
 ## Key Features
+
+### ClickHouse Cloud Management
+
+- Create and manage database users via SQL over HTTP
+- Permission grants (GRANT/REVOKE) for fine-grained access control
+- Credential retrieval from 1Password Engineering vault
+- Connection testing and troubleshooting
 
 ### Doppler Workflows
 
