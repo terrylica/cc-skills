@@ -1,3 +1,17 @@
+# [2.20.0](https://github.com/terrylica/cc-skills/compare/v2.19.0...v2.20.0) (2025-12-09)
+
+
+### Bug Fixes
+
+* align documentation with recent releases ([246c179](https://github.com/terrylica/cc-skills/commit/246c179a967bb01b9f8a234a0ac209824f542a31))
+* **itp:** clarify Python baseline >=3.11 in mise-configuration ([364fa21](https://github.com/terrylica/cc-skills/commit/364fa21f0d0f300088416602ef537eca7c2e27de))
+
+
+### Features
+
+* **devops-tools:** add clickhouse-cloud-management skill ([ce1409b](https://github.com/terrylica/cc-skills/commit/ce1409bd67ae3b7e409b42fdc0605fd47789e45e))
+* **itp:** add mise-tasks skill with bidirectional cross-references ([7827bde](https://github.com/terrylica/cc-skills/commit/7827bde8777d47bfcf60868896fb5504ae70ebb6))
+
 # [2.19.0](https://github.com/terrylica/cc-skills/compare/v2.18.0...v2.19.0) (2025-12-08)
 
 
