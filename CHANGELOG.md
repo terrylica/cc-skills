@@ -1,3 +1,10 @@
+## [2.21.1](https://github.com/terrylica/cc-skills/compare/v2.21.0...v2.21.1) (2025-12-09)
+
+
+### Bug Fixes
+
+* **quality-tools:** rectify clickhouse-architect skill based on empirical validation ([33fc270](https://github.com/terrylica/cc-skills/commit/33fc2702d06c97ca66a304d762e4626f0f9f4a14)), closes [#45615](https://github.com/terrylica/cc-skills/issues/45615)
+
 # [2.21.0](https://github.com/terrylica/cc-skills/compare/v2.20.1...v2.21.0) (2025-12-09)
 
 
