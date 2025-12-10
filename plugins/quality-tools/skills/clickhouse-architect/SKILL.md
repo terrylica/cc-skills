@@ -26,6 +26,7 @@ Follow this sequence when designing or reviewing ClickHouse schemas:
 3. **Configure PARTITION BY** for data lifecycle management
 4. **Add performance accelerators** (projections, indexes)
 5. **Validate with audit queries** (see scripts/)
+6. **Document with COMMENT statements** (see [`references/schema-documentation.md`](./references/schema-documentation.md))
 
 ### ORDER BY Key Selection
 
@@ -229,13 +230,14 @@ The audit script checks:
 
 ### Reference Files
 
-| Reference                                                                                  | Content                                  |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------- |
-| [`references/schema-design-workflow.md`](./references/schema-design-workflow.md)           | Complete workflow with examples          |
-| [`references/compression-codec-selection.md`](./references/compression-codec-selection.md) | Decision tree + benchmarks               |
-| [`references/anti-patterns-and-fixes.md`](./references/anti-patterns-and-fixes.md)         | 13 deadly sins + v24.4+ status           |
-| [`references/audit-and-diagnostics.md`](./references/audit-and-diagnostics.md)             | Query interpretation guide               |
-| [`references/idiomatic-architecture.md`](./references/idiomatic-architecture.md)           | Parameterized views, dictionaries, dedup |
+| Reference                                                                                  | Content                                        |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| [`references/schema-design-workflow.md`](./references/schema-design-workflow.md)           | Complete workflow with examples                |
+| [`references/compression-codec-selection.md`](./references/compression-codec-selection.md) | Decision tree + benchmarks                     |
+| [`references/anti-patterns-and-fixes.md`](./references/anti-patterns-and-fixes.md)         | 13 deadly sins + v24.4+ status                 |
+| [`references/audit-and-diagnostics.md`](./references/audit-and-diagnostics.md)             | Query interpretation guide                     |
+| [`references/idiomatic-architecture.md`](./references/idiomatic-architecture.md)           | Parameterized views, dictionaries, dedup       |
+| [`references/schema-documentation.md`](./references/schema-documentation.md)               | COMMENT patterns + naming for AI understanding |
 
 ### External Documentation
 
