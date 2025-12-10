@@ -1,3 +1,10 @@
+## [2.22.1](https://github.com/terrylica/cc-skills/compare/v2.22.0...v2.22.1) (2025-12-10)
+
+
+### Bug Fixes
+
+* **itp-hooks:** exempt plan files from ASCII diagram blocking ([6c5aa9b](https://github.com/terrylica/cc-skills/commit/6c5aa9b962aa4e977deb4921cb12675b9ff246bf))
+
 # [2.22.0](https://github.com/terrylica/cc-skills/compare/v2.21.1...v2.22.0) (2025-12-09)
 
 
