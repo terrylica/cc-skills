@@ -3,9 +3,10 @@ name: clickhouse-architect
 description: >
   This skill should be used when the user asks to "design ClickHouse schema",
   "select compression codecs", "audit table structure", "optimize query performance",
-  "migrate to ClickHouse", "tune ORDER BY", "fix partition key", "review schema",
-  or mentions "ClickHouse performance", "compression benchmark", "schema validation",
-  "MergeTree optimization", "SharedMergeTree", "ReplicatedMergeTree".
+  "migrate to ClickHouse", "tune ORDER BY", "fix partition key", "review schema design",
+  or mentions "ClickHouse performance", "compression benchmark", "MergeTree optimization",
+  "SharedMergeTree", "ReplicatedMergeTree". For YAML schema contract validation,
+  use schema-e2e-validation skill instead.
 allowed-tools: Read, Bash, Grep, Skill
 ---
 

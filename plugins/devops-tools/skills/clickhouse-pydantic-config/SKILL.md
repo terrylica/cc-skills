@@ -46,6 +46,24 @@ mise run db-client:dry-run
 mise run dbeaver
 ```
 
+## Credential Prerequisites (Cloud Mode)
+
+<!-- ADR: 2025-12-10-clickhouse-skill-documentation-gaps -->
+
+Before using cloud mode, obtain credentials via the skill chain:
+
+1. **Create/retrieve user**: Use `clickhouse-cloud-management` skill to create read-only users or retrieve existing credentials from 1Password
+2. **Store in .env**: Add to `.env` file (gitignored):
+
+```bash
+CLICKHOUSE_USER_READONLY=your_user
+CLICKHOUSE_PASSWORD_READONLY=your_password
+```
+
+1. **Generate config**: Run `mise run db-client:cloud`
+
+**Skill chain**: `clickhouse-cloud-management` → `.env` → `clickhouse-pydantic-config`
+
 ## mise `[env]` as Single Source of Truth
 
 All configurable values live in `.mise.toml`:
