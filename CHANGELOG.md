@@ -1,3 +1,10 @@
+# [2.25.0](https://github.com/terrylica/cc-skills/compare/v2.24.0...v2.25.0) (2025-12-10)
+
+
+### Features
+
+* **clickhouse:** close documentation gaps in skill ecosystem ([281f491](https://github.com/terrylica/cc-skills/commit/281f49108af2e625f8e25bf07a68cd7f24bb922d))
+
 # [2.24.0](https://github.com/terrylica/cc-skills/compare/v2.23.0...v2.24.0) (2025-12-10)
 
 
