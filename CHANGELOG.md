@@ -1,3 +1,10 @@
+# [2.24.0](https://github.com/terrylica/cc-skills/compare/v2.23.0...v2.24.0) (2025-12-10)
+
+
+### Features
+
+* **clickhouse-architect:** add schema documentation guidance for AI understanding ([0653234](https://github.com/terrylica/cc-skills/commit/065323469b2a67ab8b6b0ccfef46a52864c63d41))
+
 # [2.23.0](https://github.com/terrylica/cc-skills/compare/v2.22.1...v2.23.0) (2025-12-10)
 
 
