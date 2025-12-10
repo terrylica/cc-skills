@@ -1,3 +1,10 @@
+# [2.23.0](https://github.com/terrylica/cc-skills/compare/v2.22.1...v2.23.0) (2025-12-10)
+
+
+### Features
+
+* **itp-hooks:** add workflow-aware graph-easy detection ([c9775ae](https://github.com/terrylica/cc-skills/commit/c9775aec9141e0eeebf6c0089b55d15f0205a57b))
+
 ## [2.22.1](https://github.com/terrylica/cc-skills/compare/v2.22.0...v2.22.1) (2025-12-10)
 
 
