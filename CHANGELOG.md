@@ -1,3 +1,11 @@
+# [2.26.0](https://github.com/terrylica/cc-skills/compare/v2.25.0...v2.26.0) (2025-12-10)
+
+
+### Features
+
+* **clickhouse:** add hub-based skill delegation to architect skill ([aa3a2fe](https://github.com/terrylica/cc-skills/commit/aa3a2feb107cc6d5f1141ca884a719344f704b4b))
+* **clickhouse:** add Python driver policy to all ClickHouse skills ([38cee2c](https://github.com/terrylica/cc-skills/commit/38cee2cb9110263e37f36ff35c4796e3c225aae2))
+
 # [2.25.0](https://github.com/terrylica/cc-skills/compare/v2.24.0...v2.25.0) (2025-12-10)
 
 
