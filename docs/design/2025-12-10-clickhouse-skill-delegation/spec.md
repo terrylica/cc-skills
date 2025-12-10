@@ -1,8 +1,8 @@
 ---
 adr: 2025-12-10-clickhouse-skill-delegation
 source: ~/.claude/plans/lazy-forging-engelbart.md
-implementation-status: in_progress
-phase: phase-2
+implementation-status: implemented
+phase: phase-3
 last-updated: 2025-12-10
 ---
 
