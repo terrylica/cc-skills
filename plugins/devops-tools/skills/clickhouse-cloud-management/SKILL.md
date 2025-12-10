@@ -154,6 +154,12 @@ Expected output: `1` (single row with value 1)
 - Native protocol (port 9440) requires PrivateLink
 - Use HTTP interface with curl or clickhouse-client HTTP mode
 
+## Next Steps After User Creation
+
+<!-- ADR: 2025-12-10-clickhouse-skill-delegation -->
+
+After creating a ClickHouse user, invoke **`devops-tools:clickhouse-pydantic-config`** to generate DBeaver configuration with the new credentials.
+
 ## Additional Resources
 
 ### Reference Files
