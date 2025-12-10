@@ -162,8 +162,13 @@ For detailed patterns and advanced techniques, consult:
 
 - **[references/sql-patterns.md](./references/sql-patterns.md)** - Complete SQL syntax reference with examples
 
+## Python Driver Policy
+
+For Python application code connecting to ClickHouse Cloud, use `clickhouse-connect` (official HTTP driver). See [`clickhouse-architect`](../../quality-tools/skills/clickhouse-architect/SKILL.md#python-driver-policy) for recommended code patterns and why to avoid `clickhouse-driver` (community).
+
 ## Related Skills
 
-- `quality-tools:clickhouse-architect` - Schema design, compression codecs, performance optimization
+- `quality-tools:clickhouse-architect` - Schema design, compression codecs, Python driver policy
+- `devops-tools:clickhouse-pydantic-config` - DBeaver configuration generation
 - `devops-tools:doppler-secret-validation` - For storing credentials in Doppler
 - `devops-tools:doppler-workflows` - For credential rotation workflows

@@ -246,10 +246,49 @@ The audit script checks:
 - [Altinity Knowledge Base](https://kb.altinity.com/)
 - [ClickHouse Blog](https://clickhouse.com/blog)
 
+## Python Driver Policy
+
+<!-- ADR: 2025-12-10-clickhouse-python-driver-policy -->
+
+**Use `clickhouse-connect` (official) for all Python integrations.**
+
+```python
+# ✅ RECOMMENDED: clickhouse-connect (official, HTTP)
+import clickhouse_connect
+
+client = clickhouse_connect.get_client(
+    host='localhost',
+    port=8123,  # HTTP port
+    username='default',
+    password=''
+)
+result = client.query("SELECT * FROM trades LIMIT 1000")
+df = client.query_df("SELECT * FROM trades")  # Pandas integration
+```
+
+### Why NOT `clickhouse-driver`
+
+| Factor          | clickhouse-connect | clickhouse-driver   |
+| --------------- | ------------------ | ------------------- |
+| Maintainer      | ClickHouse Inc.    | Solo developer      |
+| Weekly commits  | Yes (active)       | Sparse (months)     |
+| Open issues     | 41 (addressed)     | 76 (accumulating)   |
+| Downloads/week  | 2.7M               | 1.5M                |
+| Bus factor risk | Low (company)      | **High (1 person)** |
+
+**Do NOT use `clickhouse-driver`** despite its ~26% speed advantage for large exports. The maintenance risk outweighs performance gains:
+
+- Single maintainer (mymarilyn) with no succession plan
+- Issues accumulating without response
+- Risk of abandonment breaks production code
+
+**Exception**: Only consider `clickhouse-driver` if you have extreme performance requirements (exporting millions of rows) AND accept the maintenance risk.
+
 ## Related Skills
 
 | Skill                                      | Purpose                       |
 | ------------------------------------------ | ----------------------------- |
 | `devops-tools:clickhouse-cloud-management` | User/permission management    |
+| `devops-tools:clickhouse-pydantic-config`  | DBeaver connection generation |
 | `quality-tools:schema-e2e-validation`      | YAML schema contracts         |
 | `quality-tools:multi-agent-e2e-validation` | Database migration validation |
