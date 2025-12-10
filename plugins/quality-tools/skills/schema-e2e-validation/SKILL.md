@@ -220,3 +220,19 @@ The wrapper script `scripts/earthly-with-doppler.sh`:
   - Doppler `--format env` outputs quotes, must strip with `sed 's/"//g'`
   - README.md must be copied for hatchling build backend
   - Colima must be started before Earthly runs
+
+---
+
+## Design Authority
+
+<!-- ADR: 2025-12-10-clickhouse-skill-delegation -->
+
+This skill validates schemas but does not design them. For schema design guidance (ORDER BY, compression, partitioning), invoke **`quality-tools:clickhouse-architect`** first.
+
+## Related Skills
+
+| Skill                                      | Purpose                         |
+| ------------------------------------------ | ------------------------------- |
+| `quality-tools:clickhouse-architect`       | Schema design before validation |
+| `devops-tools:clickhouse-cloud-management` | Cloud credentials for E2E tests |
+| `devops-tools:clickhouse-pydantic-config`  | Client configuration            |

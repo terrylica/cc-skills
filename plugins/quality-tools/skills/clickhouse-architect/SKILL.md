@@ -1,12 +1,14 @@
 ---
 name: clickhouse-architect
 description: >
-  This skill should be used when the user asks to "design ClickHouse schema",
-  "select compression codecs", "audit table structure", "optimize query performance",
-  "migrate to ClickHouse", "tune ORDER BY", "fix partition key", "review schema design",
-  or mentions "ClickHouse performance", "compression benchmark", "MergeTree optimization",
-  "SharedMergeTree", "ReplicatedMergeTree". For YAML schema contract validation,
-  use schema-e2e-validation skill instead.
+  ClickHouse schema design authority (hub skill). Use when designing schemas,
+  selecting compression codecs, tuning ORDER BY, optimizing queries, or
+  reviewing table structure. **Delegates to**: clickhouse-cloud-management
+  for user creation, clickhouse-pydantic-config for DBeaver config,
+  schema-e2e-validation for YAML contracts. Triggers: "design ClickHouse
+  schema", "compression codecs", "MergeTree optimization", "ORDER BY tuning",
+  "partition key", "ClickHouse performance", "SharedMergeTree",
+  "ReplicatedMergeTree", "migrate to ClickHouse".
 allowed-tools: Read, Bash, Grep, Skill
 ---
 
@@ -143,6 +145,37 @@ CREATE TABLE trades (...)
 ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/trades', '{replica}')
 ORDER BY (exchange, symbol, timestamp);
 ```
+
+## Skill Delegation Guide
+
+<!-- ADR: 2025-12-10-clickhouse-skill-delegation -->
+
+This skill is the **hub** for ClickHouse-related tasks. When the user's needs extend beyond schema design, invoke the related skills below.
+
+### Delegation Decision Matrix
+
+| User Need                                       | Invoke Skill                               | Trigger Phrases                                      |
+| ----------------------------------------------- | ------------------------------------------ | ---------------------------------------------------- |
+| Create database users, manage permissions       | `devops-tools:clickhouse-cloud-management` | "create user", "GRANT", "permissions", "credentials" |
+| Configure DBeaver, generate connection JSON     | `devops-tools:clickhouse-pydantic-config`  | "DBeaver", "client config", "connection setup"       |
+| Validate schema contracts against live database | `quality-tools:schema-e2e-validation`      | "validate schema", "Earthly E2E", "schema contract"  |
+
+### Typical Workflow Sequence
+
+1. **Schema Design** (THIS SKILL) → Design ORDER BY, compression, partitioning
+2. **User Setup** → `clickhouse-cloud-management` (if cloud credentials needed)
+3. **Client Config** → `clickhouse-pydantic-config` (generate DBeaver JSON)
+4. **Validation** → `schema-e2e-validation` (CI/CD schema contracts)
+
+### Example: Full Stack Request
+
+**User**: "I need to design a trades table for ClickHouse Cloud and set up DBeaver to query it."
+
+**Expected behavior**:
+
+1. Use THIS skill for schema design
+2. Invoke `clickhouse-cloud-management` for creating database user
+3. Invoke `clickhouse-pydantic-config` for DBeaver configuration
 
 ## Performance Accelerators
 
