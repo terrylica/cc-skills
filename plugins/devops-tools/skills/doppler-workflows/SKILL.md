@@ -76,3 +76,13 @@ For detailed information, see:
 
 - `PYPI_REFERENCE.yaml` - Complete PyPI spec
 - `AWS_SPECIFICATION.yaml` - AWS credential architecture
+
+---
+
+## PyPI Publishing Policy
+
+<!-- ADR: 2025-12-10-clickhouse-skill-documentation-gaps -->
+
+For PyPI publishing, see [`pypi-doppler` skill](../pypi-doppler/SKILL.md) for **LOCAL-ONLY** workspace policy.
+
+**Do NOT** configure PyPI publishing in GitHub Actions or CI/CD pipelines.

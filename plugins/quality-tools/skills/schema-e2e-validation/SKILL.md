@@ -1,6 +1,10 @@
 ---
 name: schema-e2e-validation
-description: Run Earthly E2E validation for schema-first data contracts. Use when validating schema changes, testing YAML against live ClickHouse, or regenerating types/DDL/docs.
+description: >
+  Run Earthly E2E validation for YAML schema contracts. Use when validating YAML schema
+  changes, testing schema contracts against live ClickHouse, or regenerating Python types,
+  DDL, and docs from YAML. For SQL schema design and optimization, use clickhouse-architect
+  skill instead.
 allowed-tools: Read, Bash, Grep
 ---
 
