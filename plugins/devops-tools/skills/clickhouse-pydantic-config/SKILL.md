@@ -181,6 +181,14 @@ See [references/dbeaver-format.md](./references/dbeaver-format.md) for complete 
 | `quality-tools:clickhouse-architect`       | Schema design context               |
 | `itp:mise-configuration`                   | SSoT environment variable patterns  |
 
+## Python Driver Policy
+
+For Python application code connecting to ClickHouse (not DBeaver), use `clickhouse-connect` (official HTTP driver). See [`clickhouse-architect`](../../quality-tools/skills/clickhouse-architect/SKILL.md#python-driver-policy) for:
+
+- Recommended code patterns
+- Why NOT to use `clickhouse-driver` (community)
+- Performance vs maintenance trade-offs
+
 ## Additional Resources
 
 | Reference                                                      | Content                      |
