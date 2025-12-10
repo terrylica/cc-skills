@@ -52,6 +52,27 @@ if [[ "$FILE_PATH" =~ /\.claude/plans/.*\.md$ ]]; then
     # If set to "false" or other value, continue to check for ASCII art
 fi
 
+# Check if graph-easy was recently used in this session
+# ADR: 2025-12-09-itp-hooks-workflow-aware-graph-easy
+STATE_DIR="$HOME/.claude/hooks/state"
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // ""')
+
+if [[ -n "$SESSION_ID" && -f "$STATE_DIR/${SESSION_ID}.graph-easy-used" ]]; then
+    FLAG_TIMESTAMP=$(cat "$STATE_DIR/${SESSION_ID}.graph-easy-used")
+    CURRENT_TIME=$(date +%s)
+    FLAG_AGE=$((CURRENT_TIME - FLAG_TIMESTAMP))
+
+    if [[ $FLAG_AGE -lt 30 ]]; then
+        # graph-easy was used within 30 seconds, allow this write
+        # Consume the flag (one-shot) to prevent abuse
+        rm "$STATE_DIR/${SESSION_ID}.graph-easy-used"
+        exit 0
+    fi
+
+    # Flag expired, clean up
+    rm "$STATE_DIR/${SESSION_ID}.graph-easy-used"
+fi
+
 # Get content to check
 if [[ "$TOOL_NAME" == "Edit" ]]; then
     CONTENT=$(echo "$INPUT" | jq -r '.tool_input.new_string // ""')

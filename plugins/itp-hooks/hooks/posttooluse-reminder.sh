@@ -25,6 +25,17 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
     COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""')
 
     if [[ "$COMMAND" =~ graph-easy ]]; then
+        # Track graph-easy usage for PreToolUse exemption
+        # ADR: 2025-12-09-itp-hooks-workflow-aware-graph-easy
+        STATE_DIR="$HOME/.claude/hooks/state"
+        mkdir -p "$STATE_DIR"
+        SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // ""')
+
+        if [[ -n "$SESSION_ID" ]]; then
+            # Write timestamp to flag file for PreToolUse to check
+            echo "$(date +%s)" > "$STATE_DIR/${SESSION_ID}.graph-easy-used"
+        fi
+
         REMINDER="[GRAPH-EASY SKILL] You used graph-easy CLI directly. For reproducible diagrams, prefer the graph-easy skill (or adr-graph-easy-architect for ADRs). Skills ensure: proper --as=boxart mode, correct \\\\n escaping, and <details> source block for future edits."
     fi
 
