@@ -20,6 +20,7 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [mql5com](./plugins/mql5com/)                       | MQL5.com operations: article extraction, data research, Python workspace, log reading                            | trading      |
 | [notification-tools](./plugins/notification-tools/) | Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring                                | utilities    |
 | [python-tools](./plugins/python-tools/)             | Pydantic v2 API documentation patterns for Python packages                                                       | development  |
+| [itp-hooks](./plugins/itp-hooks/)                   | ITP workflow enforcement: ASCII art blocking, graph-easy reminders                                               | enforcement  |
 
 ## Terminology
 
@@ -98,10 +99,10 @@ Marketplace plugin commands display with the `plugin:command` format:
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (14 plugins)
+│   └── marketplace.json     # Plugin registry (15 plugins)
 ├── plugins/
 │   ├── skill-architecture/  # Meta-skill for creating skills
-│   ├── itp/                 # ADR-driven development workflow (8 bundled skills)
+│   ├── itp/                 # ADR-driven development workflow (10 bundled skills)
 │   ├── gh-tools/            # GitHub workflow automation
 │   ├── link-validator/      # Markdown link portability validation
 │   ├── devops-tools/        # Doppler credentials, secrets, MLflow, Telegram, recovery
@@ -146,7 +147,7 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 - **Phase 2**: Format & Push to GitHub
 - **Phase 3**: Release (semantic-release) & Publish (PyPI)
 
-**Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, pypi-doppler, semantic-release
+**Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, mise-configuration, mise-tasks, pypi-doppler, semantic-release
 
 **Triggers**: `/itp:go`, `/itp:setup`, ADR workflow, plan execution
 
@@ -178,21 +179,25 @@ Ensures markdown links use relative paths (`./`, `../`) for cross-installation c
 
 **Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.**
 
-Five bundled skills:
+Seven bundled skills:
 
+- **clickhouse-cloud-management** - ClickHouse Cloud user/permission management via SQL over HTTP
+- **clickhouse-pydantic-config** - Generate DBeaver configurations from Pydantic ClickHouse connection models
 - **doppler-workflows** - PyPI publishing, AWS credential rotation, multi-service patterns
 - **doppler-secret-validation** - Add, validate, and test API tokens/credentials in Doppler
 - **telegram-bot-management** - Production bot management, monitoring, restart, and troubleshooting
 - **mlflow-query** - Query MLflow experiments, compare runs, analyze model metrics
 - **session-recovery** - Troubleshoot Claude Code session issues and HOME variable problems
 
-**Triggers**: "publish to PyPI", "add to Doppler", "telegram bot status", "MLflow experiments", "sessions not saving"
+**Triggers**: "publish to PyPI", "add to Doppler", "telegram bot status", "MLflow experiments", "sessions not saving", "create ClickHouse user", "DBeaver config"
 
 ### dotfiles-tools
 
 **Chezmoi dotfile management via natural language workflows.**
 
-6 prompt patterns for tracking, syncing, and pushing dotfiles with SLO validation and secret detection.
+One bundled skill:
+
+- **chezmoi-workflows** - Natural language workflows for tracking, syncing, and pushing dotfiles with SLO validation
 
 **Triggers**: "track my .zshrc", "sync dotfiles", "push dotfile changes"
 
@@ -224,14 +229,15 @@ Two bundled skills:
 
 **Code quality and validation tools: clone detection, E2E validation, profiling, schema testing.**
 
-Four bundled skills:
+Five bundled skills:
 
+- **clickhouse-architect** - ClickHouse schema design authority (ORDER BY, compression, partitioning)
 - **code-clone-assistant** - Detect and refactor code duplication using PMD CPD
 - **multi-agent-e2e-validation** - Multi-agent parallel E2E validation for database refactors
 - **multi-agent-performance-profiling** - Parallel performance profiling for data pipeline bottlenecks
 - **schema-e2e-validation** - Run Earthly E2E validation for schema-first data contracts
 
-**Triggers**: "detect code clones", "validate E2E", "profile performance", "validate schema"
+**Triggers**: "detect code clones", "validate E2E", "profile performance", "validate schema", "ClickHouse schema design"
 
 ### productivity-tools
 

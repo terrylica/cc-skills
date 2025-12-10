@@ -7,6 +7,7 @@ DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler c
 | Skill                           | Description                                                            |
 | ------------------------------- | ---------------------------------------------------------------------- |
 | **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management |
+| **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models        |
 | **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
 | **doppler-secret-validation**   | Add, validate, and test API tokens/credentials in Doppler              |
 | **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting    |
@@ -27,6 +28,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 **Trigger phrases:**
 
 - "create ClickHouse user", "ClickHouse permissions" → clickhouse-cloud-management
+- "DBeaver config", "connection setup" → clickhouse-pydantic-config
 - "publish to PyPI" → doppler-workflows
 - "add to Doppler", "validate token" → doppler-secret-validation
 - "telegram bot", "bot status", "restart bot" → telegram-bot-management
@@ -41,6 +43,13 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Permission grants (GRANT/REVOKE) for fine-grained access control
 - Credential retrieval from 1Password Engineering vault
 - Connection testing and troubleshooting
+
+### ClickHouse Pydantic Config
+
+- Generate DBeaver connection configurations from Pydantic v2 models
+- mise `[env]` as Single Source of Truth (SSoT)
+- Support for local and cloud connection modes
+- Semi-prescriptive patterns adaptable to each repository
 
 ### Doppler Workflows
 
