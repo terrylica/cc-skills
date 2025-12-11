@@ -1,0 +1,30 @@
+# Comprehensive Python linting for Claude Code hooks
+# ADR: 2025-12-11-ruff-posttooluse-linting
+#
+# This config documents the rule set used by posttooluse-reminder.sh
+# for deterministic error handling and idiomatic Python enforcement.
+
+[lint]
+select = [
+    "BLE",   # Blind except - catches `except Exception:` and `except BaseException:`
+    "S110",  # try-except-pass - catches silent exception suppression
+    "E722",  # Bare except - catches `except:` without exception type
+    "F",     # Pyflakes - unused imports, undefined names, shadowed vars
+    "UP",    # Pyupgrade - outdated syntax (Union -> |, old-style classes)
+    "SIM",   # Simplify - unnecessary else, overly complex expressions
+    "B",     # Bugbear - common bugs (mutable default args, getattr with constant)
+    "I",     # Isort - import ordering
+    "RUF",   # Ruff-specific - unused noqa, ambiguous unicode
+]
+
+ignore = [
+    "D",     # Docstrings - too noisy for hook feedback
+    "ANN",   # Type annotations - handled by mypy/pyright
+]
+
+[lint.per-file-ignores]
+# Allow try-except-pass in test setup/teardown
+"**/test_*.py" = ["S110", "B011"]
+"**/*_test.py" = ["S110", "B011"]
+# Allow unused imports in pytest fixtures
+"**/conftest.py" = ["F401"]
