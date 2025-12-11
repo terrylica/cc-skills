@@ -1,3 +1,15 @@
+# [2.27.0](https://github.com/terrylica/cc-skills/compare/v2.26.1...v2.27.0) (2025-12-11)
+
+
+### Bug Fixes
+
+* **release:** update expected plugin count after skill audit ([0c7d1ed](https://github.com/terrylica/cc-skills/commit/0c7d1eda6d4a28b1f1d9600ccbba3eb7c6205fea))
+
+
+### Features
+
+* Ruff PostToolUse linting + skill audit cleanup ([#1](https://github.com/terrylica/cc-skills/issues/1)) ([2670f98](https://github.com/terrylica/cc-skills/commit/2670f9816abb8f4ca8d511d79bc3c7533878307b))
+
 ## [2.26.1](https://github.com/terrylica/cc-skills/compare/v2.26.0...v2.26.1) (2025-12-11)
 
 # [2.26.0](https://github.com/terrylica/cc-skills/compare/v2.25.0...v2.26.0) (2025-12-10)
