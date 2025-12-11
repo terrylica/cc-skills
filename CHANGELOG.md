@@ -1,3 +1,10 @@
+# [2.28.0](https://github.com/terrylica/cc-skills/compare/v2.27.1...v2.28.0) (2025-12-11)
+
+
+### Features
+
+* **link-checker:** add universal link validation plugin ([#2](https://github.com/terrylica/cc-skills/issues/2)) ([56e9800](https://github.com/terrylica/cc-skills/commit/56e980025c380781698d4daa12cbb5a8bf634d7a))
+
 ## [2.27.1](https://github.com/terrylica/cc-skills/compare/v2.27.0...v2.27.1) (2025-12-11)
 
 # [2.27.0](https://github.com/terrylica/cc-skills/compare/v2.26.1...v2.27.0) (2025-12-11)
