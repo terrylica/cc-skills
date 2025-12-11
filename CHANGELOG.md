@@ -1,3 +1,5 @@
+## [2.27.1](https://github.com/terrylica/cc-skills/compare/v2.27.0...v2.27.1) (2025-12-11)
+
 # [2.27.0](https://github.com/terrylica/cc-skills/compare/v2.26.1...v2.27.0) (2025-12-11)
 
 
