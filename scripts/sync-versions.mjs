@@ -48,7 +48,7 @@ const EXPECTED_COUNTS = {
   "plugin.json": 1,
   "package.json": 1,
   ".claude-plugin/plugin.json": 1,
-  ".claude-plugin/marketplace.json": 16, // 1 root + 15 plugins
+  ".claude-plugin/marketplace.json": 15, // 1 root + 14 plugins
 };
 
 // Version regex pattern
@@ -113,7 +113,7 @@ if (hasError) {
   process.exit(1);
 }
 
-// Verify total expected replacements: 1 + 1 + 1 + 15 = 18
+// Verify total expected replacements: 1 + 1 + 1 + 15 = 18 (root + 14 plugins)
 const expectedTotal = Object.values(EXPECTED_COUNTS).reduce((a, b) => a + b, 0);
 if (totalReplacements !== expectedTotal) {
   console.error(`\nExpected ${expectedTotal} total replacements, got ${totalReplacements}`);
