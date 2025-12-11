@@ -19,16 +19,18 @@ Claude Code plugin for ITP (Implement The Plan) workflow enforcement via PreTool
 
 ### Non-blocking Reminders (PostToolUse)
 
-| Check                 | Trigger                        | Reminder                            |
-| --------------------- | ------------------------------ | ----------------------------------- |
-| Graph-easy skill      | Direct `graph-easy` CLI usage  | Prefer skill for reproducibility    |
-| ADR→Spec sync         | Modify `docs/adr/*.md`         | Check if Design Spec needs updating |
-| Spec→ADR sync         | Modify `docs/design/*/spec.md` | Check if ADR needs updating         |
-| Code→ADR traceability | Modify implementation files    | Consider ADR reference              |
+| Check                 | Trigger                        | Reminder                              |
+| --------------------- | ------------------------------ | ------------------------------------- |
+| **Ruff linting**      | Edit/Write `.py` files         | Shows lint errors (9 rule categories) |
+| Graph-easy skill      | Direct `graph-easy` CLI usage  | Prefer skill for reproducibility      |
+| ADR→Spec sync         | Modify `docs/adr/*.md`         | Check if Design Spec needs updating   |
+| Spec→ADR sync         | Modify `docs/design/*/spec.md` | Check if ADR needs updating           |
+| Code→ADR traceability | Modify implementation files    | Consider ADR reference                |
 
 ## Requirements
 
 - `jq` - JSON processor (standard on most systems)
+- `ruff` - Python linter (optional, for Python linting)
 - Claude Code 1.0.0+
 
 ## How It Works
@@ -54,15 +56,12 @@ This plugin uses **exit code 2** for ASCII art blocking because:
 
 ## Files
 
-```
-plugins/itp-hooks/
-├── hooks/
-│   ├── hooks.json              # Hook configuration
-│   ├── pretooluse-guard.sh     # ASCII art blocking
-│   └── posttooluse-reminder.sh # Sync reminders
-├── README.md
-└── LICENSE
-```
+- `hooks/hooks.json` - Hook configuration
+- `hooks/pretooluse-guard.sh` - ASCII art blocking
+- `hooks/posttooluse-reminder.sh` - Sync reminders + Ruff linting
+- `hooks/ruff.toml` - Ruff rule documentation
+- `README.md`
+- `LICENSE`
 
 ## License
 
