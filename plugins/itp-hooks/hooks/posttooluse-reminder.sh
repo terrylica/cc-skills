@@ -81,7 +81,28 @@ elif [[ "$FILE_PATH" =~ ^docs/design/([0-9]{4}-[0-9]{2}-[0-9]{2}-[a-zA-Z0-9_-]+)
 elif [[ "$FILE_PATH" =~ ^(src/|lib/|scripts/|plugins/[^/]+/skills/[^/]+/scripts/) ]] || \
      [[ "$FILE_PATH" =~ \.(py|ts|js|mjs|rs|go)$ ]]; then
     BASENAME=$(basename "$FILE_PATH")
-    REMINDER="[CODE-ADR TRACEABILITY] You modified implementation file: ${BASENAME}. Consider: Does this change relate to an existing ADR? If implementing a decision from docs/adr/, add ADR reference comment."
+
+    #--- Ruff linting for Python files ---
+    # ADR: 2025-12-11-ruff-posttooluse-linting
+    if [[ "$FILE_PATH" =~ \.py$ ]] && command -v ruff &>/dev/null; then
+        # Comprehensive rule set: error handling + idiomatic Python
+        # BLE: blind except, S110: try-except-pass, E722: bare except
+        # F: pyflakes, UP: pyupgrade, SIM: simplify, B: bugbear, I: isort, RUF: ruff-specific
+        RUFF_OUTPUT=$(ruff check "$FILE_PATH" \
+            --select BLE,S110,E722,F,UP,SIM,B,I,RUF \
+            --ignore D,ANN \
+            --no-fix \
+            --output-format=concise \
+            2>/dev/null | head -20)
+
+        if [[ -n "$RUFF_OUTPUT" ]]; then
+            REMINDER="[RUFF] Issues detected in ${BASENAME}:\\n${RUFF_OUTPUT}\\nRun 'ruff check ${FILE_PATH} --fix' to auto-fix safe issues."
+        else
+            REMINDER="[CODE-ADR TRACEABILITY] You modified implementation file: ${BASENAME}. Consider: Does this change relate to an existing ADR? If implementing a decision from docs/adr/, add ADR reference comment."
+        fi
+    else
+        REMINDER="[CODE-ADR TRACEABILITY] You modified implementation file: ${BASENAME}. Consider: Does this change relate to an existing ADR? If implementing a decision from docs/adr/, add ADR reference comment."
+    fi
 fi
 
 # Output reminder if set
