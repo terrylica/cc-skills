@@ -1,0 +1,6 @@
+{
+  "name": "link-checker",
+  "version": "1.0.0",
+  "description": "Universal link validation using lychee for Claude Code sessions",
+  "hooks": "./hooks/hooks.json"
+}
