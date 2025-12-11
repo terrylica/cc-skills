@@ -15,11 +15,10 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [doc-build-tools](./plugins/doc-build-tools/)       | LaTeX compilation, Pandoc PDF generation, environment setup, and table generation                                | documents    |
 | [doc-tools](./plugins/doc-tools/)                   | ASCII diagram validation and markdown documentation standards                                                    | documents    |
 | [quality-tools](./plugins/quality-tools/)           | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                          | quality      |
-| [productivity-tools](./plugins/productivity-tools/) | Slash command generation and smart file organization                                                             | productivity |
+| [productivity-tools](./plugins/productivity-tools/) | Slash command generation for Claude Code                                                                         | productivity |
 | [mql5-tools](./plugins/mql5-tools/)                 | MQL5 indicator development patterns for MetaTrader 5                                                             | trading      |
-| [mql5com](./plugins/mql5com/)                       | MQL5.com operations: article extraction, data research, Python workspace, log reading                            | trading      |
+| [mql5com](./plugins/mql5com/)                       | MQL5.com operations: article extraction, Python workspace, log reading                                           | trading      |
 | [notification-tools](./plugins/notification-tools/) | Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring                                | utilities    |
-| [python-tools](./plugins/python-tools/)             | Pydantic v2 API documentation patterns for Python packages                                                       | development  |
 | [itp-hooks](./plugins/itp-hooks/)                   | ITP workflow enforcement: ASCII art blocking, graph-easy reminders                                               | enforcement  |
 
 ## Terminology
@@ -99,7 +98,7 @@ Marketplace plugin commands display with the `plugin:command` format:
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (15 plugins)
+│   └── marketplace.json     # Plugin registry (14 plugins)
 ├── plugins/
 │   ├── skill-architecture/  # Meta-skill for creating skills
 │   ├── itp/                 # ADR-driven development workflow (10 bundled skills)
@@ -110,11 +109,10 @@ cc-skills/
 │   ├── doc-build-tools/     # LaTeX + Pandoc PDF generation
 │   ├── doc-tools/           # ASCII diagrams + documentation standards
 │   ├── quality-tools/       # Code clones, E2E validation, profiling, schema
-│   ├── productivity-tools/  # Slash commands + smart file placement
+│   ├── productivity-tools/  # Slash command generation
 │   ├── mql5-tools/          # MQL5 indicator development
-│   ├── mql5com/             # MQL5.com article extraction + data research
-│   ├── notification-tools/  # Telegram + Pushover notifications
-│   └── python-tools/        # Pydantic v2 API documentation
+│   ├── mql5com/             # MQL5.com article extraction + Python workspace
+│   └── notification-tools/  # Telegram + Pushover notifications
 ├── plugin.json              # Root plugin config
 ├── package.json             # Node.js + semantic-release
 └── README.md
@@ -241,14 +239,13 @@ Five bundled skills:
 
 ### productivity-tools
 
-**Productivity and automation tools: slash command generation and file organization.**
+**Slash command generation for Claude Code.**
 
-Two bundled skills:
+One bundled skill:
 
 - **slash-command-factory** - Generate custom Claude Code slash commands through intelligent question flow
-- **smart-file-placement** - Organize files into hierarchical workspace directories automatically
 
-**Triggers**: "create slash command", "generate command", "where should I put this file", "workspace organization"
+**Triggers**: "create slash command", "generate command"
 
 ### mql5-tools
 
@@ -260,16 +257,15 @@ Battle-tested solutions for buffer management, display scaling, recalculation, a
 
 ### mql5com
 
-**MQL5.com operations: article extraction, data research, Python workspace, and log reading.**
+**MQL5.com operations: article extraction, Python workspace, and log reading.**
 
-Four bundled skills:
+Three bundled skills:
 
-- **mql5-article-extractor** - Extract and organize MQL5 articles and documentation
-- **mql5-data-ingestion-research** - Research MQL5 data ingestion methods and APIs
-- **mql5-python-workspace** - Configure Python workspace for MQL5 integration
-- **mt5-log-reader** - Read MetaTrader 5 logs to validate indicator execution
+- **article-extractor** - Extract and organize MQL5 articles and documentation
+- **python-workspace** - Configure Python workspace for MQL5 integration
+- **log-reader** - Read MetaTrader 5 logs to validate indicator execution
 
-**Triggers**: "extract MQL5 article", "MT5 Python setup", "read MT5 logs", "MQL5 data sources"
+**Triggers**: "extract MQL5 article", "MT5 Python setup", "read MT5 logs"
 
 ### notification-tools
 
@@ -283,16 +279,6 @@ Features:
 - Message archiving for debugging
 
 **Triggers**: "watchexec notifications", "send to Telegram and Pushover", "monitor process restarts"
-
-### python-tools
-
-**Pydantic v2 API documentation patterns for Python packages.**
-
-3-layer architecture: Literal Types → Pydantic Models → Rich Docstrings.
-
-Benefits: Single source of truth, AI agent discovery, IDE autocomplete, runtime validation.
-
-**Triggers**: "document Python API", "create Pydantic models", "generate JSON schema"
 
 ## License
 
