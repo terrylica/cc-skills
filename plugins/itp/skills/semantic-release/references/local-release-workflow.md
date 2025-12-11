@@ -22,29 +22,41 @@ Before starting, verify each prerequisite. If any fails, resolve before proceedi
 
 ### Account Alignment Check (MANDATORY FIRST STEP)
 
-**CRITICAL**: For multi-account GitHub setups, verify the active gh account matches the repository owner BEFORE any release operation. This check is non-negotiable and must be performed first.
+**CRITICAL**: For multi-account GitHub setups, verify the active gh account matches the SSH-authenticated account BEFORE any release operation. This check is non-negotiable and must be performed first.
 
 **Detection sequence** (execute autonomously):
 
-1. **Extract repository owner** from git remote URL:
-   - Parse `git remote get-url origin` output
-   - Handle SSH format: `git@github.com:OWNER/repo.git` → extract OWNER
-   - Handle HTTPS format: `https://github.com/OWNER/repo.git` → extract OWNER
+1. **Determine expected account from SSH** (authoritative source):
+
+   ```bash
+   ssh -T git@github.com 2>&1
+   # Output: "Hi <username>! You've successfully authenticated..."
+   # Extract <username> - this is the expected account
+   ```
+
+   **Why SSH is authoritative**: If `~/.ssh/config` uses directory-based `Match` directives, the SSH key (and thus account) is automatically selected based on `$PWD`. Git push/pull will use this account.
 
 2. **Identify active gh account**:
-   - Parse `gh auth status` output
-   - Find the account marked "Active account: true"
-   - Extract the account username
 
-3. **Compare and resolve**:
-   - If active account username ≠ repository owner → **MISMATCH DETECTED**
-   - Switch to correct account: `gh auth switch --user <repo-owner>`
-   - If account not available → prompt user: `gh auth login` for that account
-   - After switch, verify: `gh auth status` shows correct account active
+   ```bash
+   gh auth status 2>&1 | grep -B1 "Active account: true" | head -1
+   # Extract the account username from output
+   ```
 
-**Why this matters**: GitHub tokens are account-specific. A mismatched account causes "Repository not found" errors even when the repository exists, because the token lacks access permissions for that repository.
+3. **Compare and auto-resolve**:
+   - If SSH username ≠ active gh account → **MISMATCH DETECTED**
+   - Auto-switch: `gh auth switch --user <ssh-username>`
+   - If account not logged in → prompt: `gh auth login` for that account
+   - Verify switch: `gh auth status` shows correct account active
 
-**Failure mode without this check**: Release silently fails or produces cryptic permission errors that don't indicate the root cause is account mismatch.
+4. **Fallback: Extract from repo owner** (if SSH detection unclear):
+   - Parse `git remote get-url origin`
+   - SSH format: `git@github.com:OWNER/repo.git` → extract OWNER
+   - HTTPS format: `https://github.com/OWNER/repo.git` → extract OWNER
+
+**Why alignment matters**: Git operations authenticate via SSH. GitHub API (semantic-release) authenticates via gh token. Different accounts = "Repository not found" errors even for valid repositories.
+
+**Failure mode without this check**: Release fails with cryptic permission errors that don't indicate account mismatch as root cause.
 
 ---
 
