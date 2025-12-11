@@ -1,7 +1,7 @@
 ---
 adr: 2025-12-11-ruff-posttooluse-linting
 source: ~/.claude/plans/lazy-forging-engelbart.md
-implementation-status: in_progress
+implementation-status: implemented
 phase: phase-1
 last-updated: 2025-12-11
 ---
