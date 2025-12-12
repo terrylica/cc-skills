@@ -1,3 +1,10 @@
+# [2.29.0](https://github.com/terrylica/cc-skills/compare/v2.28.0...v2.29.0) (2025-12-12)
+
+
+### Features
+
+* **marketplace:** register link-checker plugin and add auto-discovery ([0527f4a](https://github.com/terrylica/cc-skills/commit/0527f4a87760603f72b4a6059d32bb835d6aad4d))
+
 # [2.28.0](https://github.com/terrylica/cc-skills/compare/v2.27.1...v2.28.0) (2025-12-11)
 
 
