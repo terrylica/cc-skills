@@ -11,7 +11,7 @@ DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler c
 | **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
 | **doppler-secret-validation**   | Add, validate, and test API tokens/credentials in Doppler              |
 | **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting    |
-| **mlflow-query**                | Query MLflow experiments, compare runs, analyze model metrics          |
+| **mlflow-python**               | Log backtest metrics, query experiments, QuantStats integration        |
 | **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems     |
 
 ## Installation
@@ -32,7 +32,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "publish to PyPI" → doppler-workflows
 - "add to Doppler", "validate token" → doppler-secret-validation
 - "telegram bot", "bot status", "restart bot" → telegram-bot-management
-- "MLflow experiments", "compare runs" → mlflow-query
+- "log backtest", "MLflow metrics", "search runs" → mlflow-python
 - "no conversations found to resume" → session-recovery
 
 ## Key Features
@@ -69,11 +69,12 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Launchd service management
 - Troubleshooting connectivity and state issues
 
-### MLflow Query
+### MLflow Python
 
-- List and search experiments
-- Compare run metrics and parameters
-- Security patterns for credential management
+- Log backtest metrics using QuantStats (70+ trading metrics)
+- Query experiments and runs with DataFrame output
+- Create experiments and retrieve metric history
+- Idiomatic authentication with mise `[env]` pattern
 
 ### Session Recovery
 
