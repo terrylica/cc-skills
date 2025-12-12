@@ -1,3 +1,10 @@
+# [2.30.0](https://github.com/terrylica/cc-skills/compare/v2.29.0...v2.30.0) (2025-12-12)
+
+
+### Features
+
+* **itp:** add plugin-add command for marketplace plugin creation ([6c30ea9](https://github.com/terrylica/cc-skills/commit/6c30ea9648726de4885e5aae852f5dec2732ed4b))
+
 # [2.29.0](https://github.com/terrylica/cc-skills/compare/v2.28.0...v2.29.0) (2025-12-12)
 
 
