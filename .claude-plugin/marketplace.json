@@ -281,6 +281,28 @@
       ],
       "hooks": "./plugins/itp-hooks/hooks/hooks.json",
       "strict": false
+    },
+    {
+      "name": "link-checker",
+      "description": "Universal link validation at session end: lychee broken link detection, path policy linting, ULID correlation IDs",
+      "version": "2.28.0",
+      "source": "./plugins/link-checker/",
+      "category": "quality",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "lychee",
+        "links",
+        "validation",
+        "broken-links",
+        "path-linting",
+        "stop-hook",
+        "ulid"
+      ],
+      "hooks": "./plugins/link-checker/hooks/hooks.json",
+      "strict": false
     }
   ]
 }

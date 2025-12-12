@@ -13,11 +13,15 @@
  * - All version info is centralized in marketplace.json
  * - This follows the pattern used by claude-code-plugins-plus (254 plugins)
  *
+ * AUTO-DISCOVERY: Plugin count is dynamically read from marketplace.json
+ * - No hardcoded plugin counts - adapts to new plugins automatically
+ * - Pre-commit hook validates plugin directory count matches marketplace.json
+ *
  * ADR: /docs/adr/2025-12-05-centralized-version-management.md
  */
 
-import { readFileSync, writeFileSync } from "fs";
-import { resolve } from "path";
+import { readFileSync, writeFileSync, readdirSync, statSync } from "fs";
+import { resolve, join } from "path";
 
 const VERSION = process.argv[2];
 
@@ -43,12 +47,75 @@ const FILES = [
   ".claude-plugin/marketplace.json",
 ];
 
-// Expected version field counts per file
+/**
+ * Auto-discover plugin count from marketplace.json
+ * Returns: { pluginCount, pluginNames }
+ */
+function discoverPluginCount() {
+  const marketplacePath = resolve(process.cwd(), ".claude-plugin/marketplace.json");
+  try {
+    const content = JSON.parse(readFileSync(marketplacePath, "utf8"));
+    const plugins = content.plugins || [];
+    return {
+      pluginCount: plugins.length,
+      pluginNames: plugins.map(p => p.name),
+    };
+  } catch (err) {
+    console.error(`Error reading marketplace.json: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Validate that plugins/ directory count matches marketplace.json
+ * This catches the case where plugin files exist but weren't registered
+ */
+function validatePluginDirectories(expectedPlugins) {
+  const pluginsDir = resolve(process.cwd(), "plugins");
+  try {
+    const dirs = readdirSync(pluginsDir).filter(name => {
+      const path = join(pluginsDir, name);
+      return statSync(path).isDirectory() && !name.startsWith(".");
+    });
+
+    const missing = dirs.filter(d => !expectedPlugins.includes(d));
+    const extra = expectedPlugins.filter(p => !dirs.includes(p));
+
+    if (missing.length > 0) {
+      console.warn(`\n⚠️  Plugin directories not registered in marketplace.json:`);
+      missing.forEach(m => console.warn(`   - plugins/${m}/`));
+      console.warn(`   Run: Add these to .claude-plugin/marketplace.json\n`);
+    }
+
+    if (extra.length > 0) {
+      console.warn(`\n⚠️  Plugins in marketplace.json without directories:`);
+      extra.forEach(e => console.warn(`   - ${e}`));
+    }
+
+    return { dirs, missing, extra };
+  } catch (err) {
+    console.warn(`Could not validate plugins directory: ${err.message}`);
+    return { dirs: [], missing: [], extra: [] };
+  }
+}
+
+// Auto-discover plugin count
+const { pluginCount, pluginNames } = discoverPluginCount();
+console.log(`Discovered ${pluginCount} plugins in marketplace.json`);
+
+// Validate plugin directories match
+const { missing } = validatePluginDirectories(pluginNames);
+if (missing.length > 0) {
+  console.error(`\n❌ Unregistered plugins detected! Register them in marketplace.json first.`);
+  process.exit(1);
+}
+
+// Expected version field counts per file (auto-discovered)
 const EXPECTED_COUNTS = {
   "plugin.json": 1,
   "package.json": 1,
   ".claude-plugin/plugin.json": 1,
-  ".claude-plugin/marketplace.json": 15, // 1 root + 14 plugins
+  ".claude-plugin/marketplace.json": 1 + pluginCount, // 1 root + N plugins
 };
 
 // Version regex pattern
