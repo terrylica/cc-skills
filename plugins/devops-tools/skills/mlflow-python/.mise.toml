@@ -1,0 +1,30 @@
+# ADR: 2025-12-12-mlflow-python-skill
+# mise [env] as centralized configuration for mlflow-python skill
+
+[env]
+# MLflow tracking server
+MLFLOW_TRACKING_URI = "http://localhost:5000"
+MLFLOW_DEFAULT_EXPERIMENT = "default"
+
+# Python unbuffered output for real-time logging
+PYTHONUNBUFFERED = "1"
+
+# Load secrets from .env.local (gitignored)
+# Expected variables: MLFLOW_TRACKING_USERNAME, MLFLOW_TRACKING_PASSWORD
+_.file = { path = ".env.local", redact = true }
+
+[tasks.log-backtest]
+description = "Log backtest metrics with QuantStats"
+run = "uv run scripts/log_backtest.py"
+
+[tasks.query]
+description = "Query experiments and runs"
+run = "uv run scripts/query_experiments.py"
+
+[tasks.create-experiment]
+description = "Create a new experiment"
+run = "uv run scripts/create_experiment.py"
+
+[tasks.metric-history]
+description = "Get metric history for a run"
+run = "uv run scripts/get_metric_history.py"
