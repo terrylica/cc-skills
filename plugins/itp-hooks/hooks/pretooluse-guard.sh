@@ -67,6 +67,13 @@ else
     CONTENT=$(echo "$INPUT" | jq -r '.tool_input.content // ""')
 fi
 
+# File tree detection - skip blocking for content without box corners
+# File trees use ├ └ │ ─ but NEVER use ┌ ┐ ┘ (corners that form enclosed boxes)
+BOX_CORNER_CHARS='[┌╔┏╭┐╗┓╮┘╝┛╯]'
+if ! echo "$CONTENT" | grep -q "$BOX_CORNER_CHARS"; then
+    exit 0
+fi
+
 # Check for box-drawing characters (Unicode block)
 BOX_CHARS='[┌─│┐└┘├┤┬┴┼╌╎║═╔╗╚╝╠╣╦╩╬┏┓┗┛┃━╭╮╯╰]'
 
