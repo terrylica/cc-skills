@@ -1,3 +1,10 @@
+## [3.1.2](https://github.com/terrylica/cc-skills/compare/v3.1.1...v3.1.2) (2025-12-13)
+
+
+### Bug Fixes
+
+* **itp-hooks:** detect file trees to avoid false positives in diagram blocking ([b71d7cb](https://github.com/terrylica/cc-skills/commit/b71d7cb4e70719e06e72dcb7d1a6f76c85596ea8))
+
 ## [3.1.1](https://github.com/terrylica/cc-skills/compare/v3.1.0...v3.1.1) (2025-12-13)
 
 
