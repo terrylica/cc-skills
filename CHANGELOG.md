@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/terrylica/cc-skills/compare/v3.1.2...v3.2.0) (2025-12-13)
+
+
+### Features
+
+* **pandoc-pdf-generation:** add orientation options and markdown authoring guide ([f4d2d61](https://github.com/terrylica/cc-skills/commit/f4d2d610263ceac4cb165fcede37eaaa1d6dd770))
+
 ## [3.1.2](https://github.com/terrylica/cc-skills/compare/v3.1.1...v3.1.2) (2025-12-13)
 
 
