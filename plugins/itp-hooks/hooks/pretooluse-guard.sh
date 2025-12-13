@@ -32,24 +32,11 @@ if [[ ! "$FILE_PATH" =~ \.(md|mdx)$ ]]; then
     exit 0
 fi
 
-# Exempt plan files from ASCII art blocking (configurable via mise)
-# Plan files are AI-generated during Claude's planning phase and may contain
-# diagrams that don't have graph-easy source blocks yet
-#
-# SSoT: ~/.config/mise/config.toml [env] section
-# Set ITP_HOOKS_EXEMPT_PLANS="true" to exempt, "false" to enforce blocking
-if [[ "$FILE_PATH" =~ /\.claude/plans/.*\.md$ ]]; then
-    # Check if variable is explicitly set (mise SSoT)
-    if [[ -z "${ITP_HOOKS_EXEMPT_PLANS+x}" ]]; then
-        # Variable not set - warn but default to exempt for backwards compatibility
-        echo "[itp-hooks] WARN: ITP_HOOKS_EXEMPT_PLANS not set. Defaulting to exempt plan files." >&2
-        echo "[itp-hooks] Configure in ~/.config/mise/config.toml: ITP_HOOKS_EXEMPT_PLANS = \"true\"" >&2
-        exit 0
-    elif [[ "$ITP_HOOKS_EXEMPT_PLANS" == "true" ]]; then
-        # Explicitly enabled via mise
-        exit 0
-    fi
-    # If set to "false" or other value, continue to check for ASCII art
+# Exempt plan files from ASCII art blocking
+# Matches any /plans/*.md path (Claude plans, workspace archives, etc.)
+# Plan directories contain ephemeral working documents, not production docs
+if [[ "$FILE_PATH" =~ /plans/.*\.md$ ]]; then
+    exit 0
 fi
 
 # Check if graph-easy was recently used in this session
