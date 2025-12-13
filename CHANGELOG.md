@@ -1,3 +1,15 @@
+# [3.0.0](https://github.com/terrylica/cc-skills/compare/v2.30.0...v3.0.0) (2025-12-13)
+
+
+### Features
+
+* **devops-tools:** add mlflow-python skill with QuantStats integration ([12a4ba7](https://github.com/terrylica/cc-skills/commit/12a4ba7355c01270d21aa5699590e4b7b94132de))
+
+
+### BREAKING CHANGES
+
+* **devops-tools:** mlflow-query skill deleted without deprecation period
+
 # [2.30.0](https://github.com/terrylica/cc-skills/compare/v2.29.0...v2.30.0) (2025-12-12)
 
 
