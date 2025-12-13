@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/terrylica/cc-skills/compare/v3.0.0...v3.1.0) (2025-12-13)
+
+
+### Features
+
+* **graph-easy:** add wrapper script for mise-installed binary ([ae4fcf9](https://github.com/terrylica/cc-skills/commit/ae4fcf948f0a00e99a76eb0b9f16e48b516c46e7))
+
 # [3.0.0](https://github.com/terrylica/cc-skills/compare/v2.30.0...v3.0.0) (2025-12-13)
 
 
