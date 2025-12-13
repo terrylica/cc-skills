@@ -160,7 +160,14 @@ ssh-add -l
 
 # 5. Add key to ssh-agent if needed
 ssh-add ~/.ssh/id_ed25519_yourkey
+
+# 6. Check for ControlMaster cache (multi-account setups)
+# Stale connections can use wrong account
+ssh -O exit git@github.com 2>/dev/null
+ssh -T git@github.com  # Re-test after killing cache
 ```
+
+**Multi-Account Users**: If SSH authenticates as the wrong account, your SSH ControlMaster may be caching a stale connection. See [Local Release Workflow - ControlMaster Issues](./local-release-workflow.md#controlmaster-cache-issues) for detailed troubleshooting.
 
 ### "No GitHub token specified"
 
