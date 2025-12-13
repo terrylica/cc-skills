@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/terrylica/cc-skills/compare/v3.1.0...v3.1.1) (2025-12-13)
+
+
+### Bug Fixes
+
+* **itp-hooks:** broaden plan file exemption to any /plans/ directory ([e206d03](https://github.com/terrylica/cc-skills/commit/e206d03376721cd1656919b51e9c2f7e0a448d44))
+
 # [3.1.0](https://github.com/terrylica/cc-skills/compare/v3.0.0...v3.1.0) (2025-12-13)
 
 
