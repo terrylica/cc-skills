@@ -1,6 +1,6 @@
 ---
 name: pandoc-pdf-generation
-description: Generates professional PDFs from Markdown using Pandoc with XeLaTeX. Use when creating PDFs, needing section numbering, table of contents, bibliography, or custom LaTeX styling.
+description: Use when writing markdown intended for PDF output, creating PDFs from markdown, or printing PDFs. Invoke EARLY when authoring markdown for PDF to prevent mistakes (manual heading numbers, manual ASCII diagrams, inline annotations). Also use for PDF generation with Pandoc/XeLaTeX, section numbering, table of contents, bibliography, landscape/portrait orientation, printing (one-sided, duplex, simplex, lpr), fixing diagrams breaking across pages, code block page breaks, or double numbering issues. Triggers on - markdown for PDF, write document for printing, create printable doc, pandoc, xelatex, print PDF, PDF generation.
 ---
 
 # Pandoc PDF Generation
@@ -12,6 +12,7 @@ Generate professional PDF documents from Markdown using Pandoc with the XeLaTeX 
 ## When to Use This Skill
 
 Use this skill when:
+
 - Converting Markdown to PDF with professional formatting requirements
 - Needing automatic section numbering and table of contents
 - Managing citations and bibliographies without manual duplication
@@ -23,6 +24,7 @@ Use this skill when:
 ### Single Source of Truth Pattern
 
 This skill provides production-proven assets in `${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/`:
+
 - `table-spacing-template.tex` - Production-tuned LaTeX preamble (booktabs, colortbl, ToC fixes)
 - `build-pdf.sh` - Universal auto-detecting build script
 
@@ -32,21 +34,58 @@ This skill provides production-proven assets in `${CLAUDE_PLUGIN_ROOT}/skills/pa
 # Create symlink once per project (git-friendly)
 ln -s ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/build-pdf.sh build-pdf.sh
 
-# Auto-detect single .md file in directory
+# Auto-detect single .md file in directory (landscape default)
 ./build-pdf.sh
 
-# Or specify explicitly
+# Portrait mode
+./build-pdf.sh --portrait document.md
+
+# Monospace font for ASCII diagrams
+./build-pdf.sh --monospace diagrams.md
+
+# Explicit input/output
 ./build-pdf.sh input.md output.pdf
 ```
 
+**Options:**
+
+| Flag          | Description                                     |
+| ------------- | ----------------------------------------------- |
+| `--landscape` | Landscape orientation (default)                 |
+| `--portrait`  | Portrait orientation                            |
+| `--monospace` | Use DejaVu Sans Mono - ideal for ASCII diagrams |
+| `-h, --help`  | Show help message                               |
+
 **Features:**
+
 - ✅ Auto-detects input file (if single .md exists)
 - ✅ Auto-detects bibliography (`references.bib`) and CSL files
 - ✅ Always uses production-proven LaTeX preamble from skill
 - ✅ Pre-flight checks (pandoc, xelatex, files exist)
 - ✅ Post-build validation (file size, page count)
+- ✅ Code blocks stay on same page (no splitting across pages)
 
-### Manual Command (For Reference)
+### Landscape PDF (Quick Command)
+
+For landscape PDFs with blue hyperlinks (no build-pdf.sh dependency):
+
+```bash
+pandoc file.md -o file.pdf \
+  --pdf-engine=xelatex \
+  -V geometry:a4paper,landscape \
+  -V geometry:margin=1in \
+  -V fontsize=11pt \
+  -V mainfont="DejaVu Sans" \
+  -V colorlinks=true \
+  -V linkcolor=blue \
+  -V urlcolor=blue \
+  --toc --toc-depth=2 \
+  --number-sections
+```
+
+**Use landscape for**: Wide data tables, comparison matrices, technical docs with code blocks.
+
+### Manual Command (With LaTeX Preamble)
 
 ```bash
 pandoc document.md \
@@ -60,13 +99,94 @@ pandoc document.md \
   -H ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/table-spacing-template.tex
 ```
 
+---
 
-______________________________________________________________________
+## ASCII Diagrams: Always Use graph-easy
+
+**CRITICAL**: Never manually type ASCII diagrams. Always use the `itp:graph-easy` skill.
+
+Manual ASCII art causes alignment issues in PDFs. The graph-easy skill ensures:
+
+- Proper boxart character alignment
+- Consistent spacing
+- Reproducible output
+
+```bash
+# Invoke the skill for general diagrams
+Skill(itp:graph-easy)
+
+# For ADR architecture diagrams
+Skill(itp:adr-graph-easy-architect)
+```
+
+**Also important**: Keep annotations OUTSIDE code blocks. Don't add inline comments like `# contains: file1, file2` inside diagram code blocks - they break alignment.
+
+---
+
+## Verification Checklist
+
+Before considering a PDF "done", verify:
+
+**Pre-Generation:**
+
+- [ ] No manual section numbering in markdown (use `--number-sections`)
+- [ ] All ASCII diagrams generated via `itp:graph-easy` skill
+- [ ] Annotations are outside code blocks, not inside
+
+**Post-Generation:**
+
+- [ ] Open PDF and visually inspect each page
+- [ ] Verify diagrams don't break across pages
+- [ ] Check section numbering is correct (no "1. 1. Title" duplication)
+- [ ] Confirm bullet lists render as bullets, not inline dashes
+
+**Pre-Print:**
+
+- [ ] Get user approval before printing
+- [ ] Confirm orientation preference (landscape/portrait)
+- [ ] Confirm duplex preference (one-sided/two-sided)
+
+---
+
+## Printing Workflow
+
+Always let the user review the PDF before printing.
+
+**Open for review:**
+
+```bash
+open output.pdf
+```
+
+**Print one-sided (simplex):**
+
+```bash
+lpr -P "PRINTER_NAME" -o Duplex=None output.pdf
+```
+
+**Print two-sided (duplex):**
+
+```bash
+lpr -P "PRINTER_NAME" -o Duplex=DuplexNoTumble output.pdf  # Long-edge binding
+lpr -P "PRINTER_NAME" -o Duplex=DuplexTumble output.pdf    # Short-edge binding
+```
+
+**Find printer name:**
+
+```bash
+lpstat -p -d
+```
+
+**Never print without user approval** - this wastes paper if issues exist.
+
+---
 
 ## Reference Documentation
 
 For detailed information, see:
+
 - [Core Development Principles](./references/core-principles.md) - **START HERE** - Universal principles learned from production failures
+- [Markdown for PDF](./references/markdown-for-pdf.md) - Markdown structure patterns for clean landscape PDFs
 - [YAML Front Matter Structure](./references/yaml-structure.md) - YAML metadata patterns
 - [LaTeX Customization](./references/latex-parameters.md) - Preamble and table formatting
 - [Bibliography & Citations](./references/bibliography-citations.md) - BibTeX and CSL styles

@@ -128,3 +128,94 @@ Manual visual inspection:
 **Why This Matters:** This issue only surfaces in production with certain text patterns. Ad-hoc Pandoc commands without proper LaTeX configuration will miss this critical requirement.
 
 **Reference:** See [Core Principles](./core-principles.md) for universal development patterns learned from this failure.
+
+### Issue: Code Blocks/Diagrams Breaking Across Pages
+
+**Problem:** ASCII diagrams or code blocks split between two pages, making them unreadable.
+
+**Root Cause:** LaTeX treats code blocks as normal content flow without page break protection.
+
+**Solution:** The canonical LaTeX preamble now includes fancyvrb with samepage:
+
+```latex
+\usepackage{fancyvrb}
+\fvset{samepage=true}
+
+\BeforeBeginEnvironment{Shaded}{\begin{samepage}}
+\AfterEndEnvironment{Shaded}{\end{samepage}}
+```
+
+**For very tall diagrams** that exceed page height, add `\newpage` in markdown BEFORE the code block.
+
+**Prevention:**
+
+1. Always use the canonical build script (includes page break protection)
+2. For tall diagrams, add `\newpage` before the section
+3. Visually inspect PDF before presenting to users
+
+### Issue: Double Section Numbering ("1. 1. Title")
+
+**Problem:** Section headings display as "1. 1. Introduction" instead of "1. Introduction"
+
+**Root Cause:** Manual numbering in markdown combined with `--number-sections` flag.
+
+**Bad:** `# 1. Introduction` with `--number-sections`
+
+**Good:** `# Introduction` with `--number-sections`
+
+**Solution:** NEVER manually number markdown headings. Let `--number-sections` handle it.
+
+**Prevention:**
+
+1. Never manually number headings in markdown
+2. Always use `--number-sections` flag for numbered output
+3. Verify section numbering before finalizing
+
+### Issue: ASCII Diagram Misalignment
+
+**Problem:** ASCII box diagrams have misaligned edges, broken arrows, or inconsistent spacing.
+
+**Root Cause:** Manually typed ASCII art instead of using graph-easy tool.
+
+**Solution:** ALWAYS use the `itp:graph-easy` skill for ASCII diagrams:
+
+```bash
+# General diagrams
+Skill(itp:graph-easy)
+
+# ADR architecture diagrams
+Skill(itp:adr-graph-easy-architect)
+```
+
+**Also:** Keep annotations OUTSIDE code blocks. Don't add inline comments inside diagrams - they break alignment. Place descriptive text in regular markdown paragraphs before or after the diagram.
+
+**Prevention:**
+
+1. Never manually type ASCII diagrams
+2. Always use graph-easy skills
+3. Never add inline comments inside diagram code blocks
+
+### Issue: Unwanted Double-Sided Printing
+
+**Problem:** Printer outputs double-sided when single-sided is needed.
+
+**Solution:** Use `-o Duplex=None` with lpr:
+
+```bash
+# One-sided (simplex)
+lpr -P "PRINTER_NAME" -o Duplex=None output.pdf
+
+# Two-sided (duplex) - long edge binding
+lpr -P "PRINTER_NAME" -o Duplex=DuplexNoTumble output.pdf
+
+# Two-sided (duplex) - short edge binding (landscape)
+lpr -P "PRINTER_NAME" -o Duplex=DuplexTumble output.pdf
+```
+
+**Find printer name:**
+
+```bash
+lpstat -p -d
+```
+
+**Note:** Some systems have default duplex settings in `~/.lpoptions` that may override command-line options.

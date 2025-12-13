@@ -1,15 +1,27 @@
 #!/bin/bash
 # Universal PDF Build Script for Pandoc
-# Usage: ./build-pdf.sh [input.md] [output.pdf]
-# If no arguments provided, looks for single .md file in current directory
+# Usage: ./build-pdf.sh [OPTIONS] [input.md] [output.pdf]
+#
+# Options:
+#   --landscape    Landscape orientation (default)
+#   --portrait     Portrait orientation
+#   --monospace    Use monospace font (DejaVu Sans Mono) - ideal for ASCII diagrams
+#   -h, --help     Show this help message
+#
+# If no input file provided, looks for single .md file in current directory
 
 set -e
 
 # ==============================================================================
 # Configuration
 # ==============================================================================
-SKILL_DIR="$HOME/.claude/skills/pandoc-pdf-generation/assets"
-LATEX_PREAMBLE="$SKILL_DIR/table-spacing-template.tex"
+# Resolve the actual directory of this script (works with symlinks)
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
+LATEX_PREAMBLE="$SCRIPT_DIR/table-spacing-template.tex"
+
+# Defaults
+ORIENTATION="landscape"
+FONT="DejaVu Sans"
 
 # Color output
 GREEN='\033[0;32m'
@@ -20,6 +32,62 @@ NC='\033[0m'
 log_info() { echo -e "${GREEN}✓${NC} $1"; }
 log_warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 log_error() { echo -e "${RED}✗${NC} $1"; }
+
+show_help() {
+    echo "Usage: $0 [OPTIONS] [input.md] [output.pdf]"
+    echo ""
+    echo "Options:"
+    echo "  --landscape    Landscape orientation (default)"
+    echo "  --portrait     Portrait orientation"
+    echo "  --monospace    Use monospace font (DejaVu Sans Mono) - ideal for ASCII diagrams"
+    echo "  -h, --help     Show this help message"
+    echo ""
+    echo "If no input file provided, auto-detects single .md file in current directory."
+    echo ""
+    echo "Examples:"
+    echo "  $0                           # Auto-detect, landscape"
+    echo "  $0 --portrait doc.md         # Portrait mode"
+    echo "  $0 --monospace diagrams.md   # Monospace font for ASCII art"
+    echo "  $0 doc.md output.pdf         # Explicit input/output"
+}
+
+# ==============================================================================
+# Parse Arguments
+# ==============================================================================
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --landscape)
+            ORIENTATION="landscape"
+            shift
+            ;;
+        --portrait)
+            ORIENTATION="portrait"
+            shift
+            ;;
+        --monospace)
+            FONT="DejaVu Sans Mono"
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -*)
+            log_error "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+        *)
+            POSITIONAL_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Restore positional parameters
+set -- "${POSITIONAL_ARGS[@]}"
 
 # ==============================================================================
 # Input Detection
@@ -33,12 +101,12 @@ else
     MD_FILES=(*.md)
     if [[ ${#MD_FILES[@]} -eq 0 || ! -f "${MD_FILES[0]}" ]]; then
         log_error "No Markdown files found in current directory"
-        echo "Usage: $0 [input.md] [output.pdf]"
+        show_help
         exit 1
     elif [[ ${#MD_FILES[@]} -gt 1 ]]; then
         log_error "Multiple Markdown files found. Please specify which one:"
         printf '  - %s\n' "${MD_FILES[@]}"
-        echo "Usage: $0 [input.md] [output.pdf]"
+        show_help
         exit 1
     fi
     INPUT_FILE="${MD_FILES[0]}"
@@ -60,6 +128,8 @@ fi
 
 log_info "Input:  $INPUT_FILE"
 log_info "Output: $OUTPUT_FILE"
+log_info "Orientation: $ORIENTATION"
+log_info "Font: $FONT"
 
 # ==============================================================================
 # Pre-flight Checks
@@ -102,6 +172,13 @@ if [[ -f "chicago-note-bibliography.csl" ]]; then
     log_info "Using citation style: chicago-note-bibliography.csl"
 fi
 
+# Build geometry string based on orientation
+if [[ "$ORIENTATION" == "landscape" ]]; then
+    GEOMETRY="a4paper,landscape"
+else
+    GEOMETRY="a4paper"
+fi
+
 # Build command
 pandoc "$INPUT_FILE" \
   -o "$OUTPUT_FILE" \
@@ -109,8 +186,9 @@ pandoc "$INPUT_FILE" \
   --toc \
   --toc-depth=3 \
   --number-sections \
-  -V mainfont="DejaVu Sans" \
-  -V geometry:landscape \
+  -V mainfont="$FONT" \
+  -V monofont="DejaVu Sans Mono" \
+  -V geometry:"$GEOMETRY" \
   -V geometry:margin=1in \
   -V toc-title="Table of Contents" \
   -H "$LATEX_PREAMBLE" \
@@ -138,5 +216,5 @@ if command -v pdfinfo &> /dev/null; then
 fi
 
 echo ""
-echo "✅ Build complete!"
+echo "Build complete!"
 echo "   View: open $OUTPUT_FILE"

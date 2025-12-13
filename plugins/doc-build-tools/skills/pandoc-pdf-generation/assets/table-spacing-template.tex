@@ -83,6 +83,24 @@
 % to call \theendnotes at document end.
 
 % ==============================================================================
+% Code Block Page Break Prevention
+% ==============================================================================
+% Problem: Code blocks (especially ASCII diagrams) split across pages
+% Solution: Configure fancyvrb to keep Verbatim environments on same page
+%
+% Note: This works for moderately-sized code blocks. For very tall diagrams
+% that exceed page height, use \newpage in markdown BEFORE the code block.
+%
+% Reference: Our conversation learnings (Dec 2025) - diagrams breaking across pages
+
+\usepackage{fancyvrb}
+\fvset{samepage=true}
+
+% Also wrap Pandoc's Shaded environment (syntax-highlighted code) in samepage
+\BeforeBeginEnvironment{Shaded}{\begin{samepage}}
+\AfterEndEnvironment{Shaded}{\end{samepage}}
+
+% ==============================================================================
 % Text Alignment
 % ==============================================================================
 % Use ragged-right (left-aligned) instead of justified text
