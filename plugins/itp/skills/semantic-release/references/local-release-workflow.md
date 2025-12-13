@@ -188,7 +188,75 @@ gh release list --limit 1
 1. Test SSH: `ssh -T git@github.com`
 2. Check SSH config: `cat ~/.ssh/config | grep -A5 github`
 3. Add key to agent: `ssh-add ~/.ssh/id_ed25519`
-4. Fallback: Use HTTPS push with gh token authentication (see Step 2)
+4. Check for ControlMaster cache (see next section)
+5. Fallback: Use HTTPS push with gh token authentication (see Step 2)
+
+### ControlMaster Cache Issues
+
+**Cause**: SSH ControlMaster maintains persistent connections that cache authentication. In multi-account setups, the cached connection may use a different account than expected based on current directory.
+
+**Symptoms**:
+
+- Account alignment check passes (SSH and gh show same username)
+- `ssh -T git@github.com` shows correct account
+- `git push` or semantic-release still fails with "Repository not found"
+- Error persists even after `gh auth switch`
+
+**Root Cause Explained**: SSH ControlMaster caches connections by **hostname**, not by identity file or directory. When you connect to `github.com` from directory A (using account-A's key), then switch to directory B (which should use account-B's key), SSH reuses the cached account-A connection instead of creating a new connection with account-B's key.
+
+**Detection Sequence**:
+
+```bash
+# 1. Check if ControlMaster is enabled
+grep -i "ControlMaster" ~/.ssh/config
+
+# 2. List active control sockets for GitHub
+ls -la ~/.ssh/control*github* 2>/dev/null
+ls -la ~/.ssh/controlmasters/*github* 2>/dev/null
+
+# 3. Test with fresh connection (bypass cache)
+ssh -o ControlMaster=no -T git@github.com
+# Compare output to:
+ssh -T git@github.com
+# If different → stale cache is the issue
+```
+
+**Resolution**:
+
+```bash
+# Option 1: Kill cached connection via SSH
+ssh -O exit git@github.com
+
+# Option 2: Remove control socket file directly
+rm -f ~/.ssh/control-git@github.com:22
+
+# Option 3: Kill all SSH processes for github.com
+pkill -f 'ssh.*github.com'
+
+# Verify fix
+ssh -T git@github.com
+# Should show expected account
+
+# Retry release
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci'
+```
+
+**Prevention (Recommended for Multi-Account Setups)**:
+
+Add to `~/.ssh/config`:
+
+```sshconfig
+# Disable ControlMaster for GitHub to prevent account caching
+Host github.com
+    ControlMaster no
+```
+
+**Trade-offs**:
+
+- ✅ Eliminates stale authentication cache
+- ✅ Each git operation uses fresh account-aware SSH connection
+- ⚠️ Slightly slower SSH operations (no connection reuse)
+- For multi-account setups, **correctness > speed**
 
 ### "Not on main branch"
 

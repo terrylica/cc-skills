@@ -334,6 +334,24 @@ ssh -T git@github.com
 gh auth status | grep -A1 "Active account: true"
 ```
 
+**⚠️ ControlMaster Cache Warning**: If your SSH config uses `ControlMaster` for connection pooling, cached connections may persist with **stale authentication** from a previous account. Even if account alignment checks pass, cached connections can cause "Repository not found" errors.
+
+**Quick fix** (kill cached connections):
+
+```bash
+ssh -O exit git@github.com 2>/dev/null || pkill -f 'ssh.*github.com'
+```
+
+**Prevention** (recommended for multi-account setups):
+
+```sshconfig
+# ~/.ssh/config - Disable ControlMaster for GitHub
+Host github.com
+    ControlMaster no
+```
+
+See [Local Release Workflow - ControlMaster Issues](./references/local-release-workflow.md#controlmaster-cache-issues) for detailed troubleshooting.
+
 See [Local Release Workflow](./references/local-release-workflow.md) for complete detection sequence.
 
 See [Authentication Guide](./references/authentication.md) for SSH and gh CLI setup.
