@@ -151,20 +151,23 @@ Your `~/.ssh/config` must use Match directives for directory-based key selection
 
 ```sshconfig
 # Work account
-Match host github.com exec "echo $PWD | grep -q '/work/'"
+# NOTE: Use `pwd` not `$PWD` - $PWD may be empty in non-interactive shells
+# Match both github.com (port 22) and ssh.github.com (port 443 fallback)
+Match host github.com,ssh.github.com exec "pwd | grep -q '/work/'"
     User git
     IdentityFile ~/.ssh/id_work
     IdentitiesOnly yes
 
 # Personal account
-Match host github.com exec "echo $PWD | grep -q '/personal/'"
+Match host github.com,ssh.github.com exec "pwd | grep -q '/personal/'"
     User git
     IdentityFile ~/.ssh/id_personal
     IdentitiesOnly yes
 
-# Default github.com (allows Match directives to control)
-Host github.com
+# Disable ControlMaster for all GitHub endpoints (multi-account safety)
+Host github.com ssh.github.com
     User git
+    ControlMaster no
 ```
 
 ## Installation
