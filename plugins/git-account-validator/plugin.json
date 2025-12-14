@@ -1,0 +1,10 @@
+{
+  "name": "git-account-validator",
+  "version": "1.0.0",
+  "description": "Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config, supports port 443 fallback",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  },
+  "hooks": "./hooks/hooks.json"
+}

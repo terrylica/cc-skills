@@ -1,0 +1,17 @@
+{
+  "description": "Pre-push validation for multi-account GitHub authentication",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate-git-push.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

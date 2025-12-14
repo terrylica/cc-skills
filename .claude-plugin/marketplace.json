@@ -303,6 +303,28 @@
       ],
       "hooks": "./plugins/link-checker/hooks/hooks.json",
       "strict": false
+    },
+    {
+      "name": "git-account-validator",
+      "description": "Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config, port 443 fallback",
+      "version": "1.0.0",
+      "source": "./plugins/git-account-validator/",
+      "category": "enforcement",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "git",
+        "github",
+        "ssh",
+        "multi-account",
+        "pre-push",
+        "validation",
+        "hooks"
+      ],
+      "hooks": "./plugins/git-account-validator/hooks/hooks.json",
+      "strict": false
     }
   ]
 }
