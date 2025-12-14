@@ -127,22 +127,22 @@ graph { label: "⏭️ After: With Validation"; flow: south; }
 Your `~/.gitconfig` must use `includeIf` to set per-directory credentials:
 
 ```gitconfig
-[includeIf "gitdir:/Users/you/work/"]
-    path = ~/.gitconfig-work
+[includeIf "gitdir:~/projects/alpha/"]
+    path = ~/.gitconfig-alpha
 
-[includeIf "gitdir:/Users/you/personal/"]
-    path = ~/.gitconfig-personal
+[includeIf "gitdir:~/projects/beta/"]
+    path = ~/.gitconfig-beta
 ```
 
 Each included file must set `credential.username`:
 
 ```gitconfig
-# ~/.gitconfig-work
+# ~/.gitconfig-alpha
 [user]
-    name = work-account
-    email = you@work.com
+    name = Your Name
+    email = you@example.com
 [credential]
-    username = work-account
+    username = github-account-alpha
 ```
 
 ### SSH Configuration
@@ -150,18 +150,19 @@ Each included file must set `credential.username`:
 Your `~/.ssh/config` must use Match directives for directory-based key selection:
 
 ```sshconfig
-# Work account
 # NOTE: Use `pwd` not `$PWD` - $PWD may be empty in non-interactive shells
 # Match both github.com (port 22) and ssh.github.com (port 443 fallback)
-Match host github.com,ssh.github.com exec "pwd | grep -q '/work/'"
+
+# Account alpha - for ~/projects/alpha/
+Match host github.com,ssh.github.com exec "pwd | grep -q '/alpha/'"
     User git
-    IdentityFile ~/.ssh/id_work
+    IdentityFile ~/.ssh/id_alpha
     IdentitiesOnly yes
 
-# Personal account
-Match host github.com,ssh.github.com exec "pwd | grep -q '/personal/'"
+# Account beta - for ~/projects/beta/
+Match host github.com,ssh.github.com exec "pwd | grep -q '/beta/'"
     User git
-    IdentityFile ~/.ssh/id_personal
+    IdentityFile ~/.ssh/id_beta
     IdentitiesOnly yes
 
 # Disable ControlMaster for all GitHub endpoints (multi-account safety)
@@ -196,9 +197,9 @@ Run: git remote set-url origin git@github.com:owner/repo.git
 ```
 BLOCKED: GitHub account mismatch detected
 
-Directory:     /Users/you/personal/project
-Expected user: personal-account (from git config)
-SSH auth user: work-account
+Directory:     ~/projects/alpha/my-repo
+Expected user: account-alpha (from git config)
+SSH auth user: account-beta
 
 This would push to the WRONG GitHub account!
 
@@ -209,7 +210,7 @@ Possible causes:
 
 Solutions:
   1. Close cached SSH connections: ssh -O exit git@github.com
-  2. Use explicit host alias: git@github.com-personal-account:owner/repo.git
+  2. Use explicit host alias: git@github.com-account-alpha:owner/repo.git
   3. Check SSH config Match directives in ~/.ssh/config
 ```
 
@@ -219,9 +220,9 @@ Solutions:
 
 SSH ControlMaster caches connections by **hostname**, not by identity file. This means:
 
-1. You push from `~/work/` - SSH connects as `work-account`
+1. You push from `~/projects/alpha/` - SSH connects as `account-alpha`
 2. Connection cached for 10 minutes
-3. You push from `~/personal/` - SSH reuses cached `work-account` connection!
+3. You push from `~/projects/beta/` - SSH reuses cached `account-alpha` connection!
 
 The validation script uses `ssh -o ControlMaster=no` to bypass the cache and get the true authentication result for the current directory.
 
