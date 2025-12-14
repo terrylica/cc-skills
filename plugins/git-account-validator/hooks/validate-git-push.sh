@@ -185,6 +185,20 @@ fi
 # Configurable timeout (default 5 seconds, override with GIT_ACCOUNT_VALIDATOR_TIMEOUT)
 SSH_TIMEOUT="${GIT_ACCOUNT_VALIDATOR_TIMEOUT:-5}"
 
+# Pre-flush: Close any cached ControlMaster connections to GitHub
+# This prevents stale authentication from being reused
+# Silent failures are OK - connection may not exist
+ssh -O exit git@github.com 2>/dev/null || true
+ssh -O exit -p 443 git@ssh.github.com 2>/dev/null || true
+
+# Also close connections for common host aliases (pattern: github.com-*)
+for control_socket in ~/.ssh/control-git@github.com* ~/.ssh/control-git@ssh.github.com*; do
+    if [[ -S "$control_socket" ]]; then
+        # Extract host from socket name and close it
+        ssh -O exit -o ControlPath="$control_socket" git@github.com 2>/dev/null || true
+    fi
+done
+
 # Bypass ControlMaster cache to get fresh authentication result
 # Try standard port 22 first, fallback to port 443 (ssh.github.com) if blocked
 SSH_OUTPUT=$(timeout_cmd "$SSH_TIMEOUT" ssh -o ControlMaster=no -o BatchMode=yes -T git@github.com 2>&1 || true)
