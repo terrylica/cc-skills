@@ -1,3 +1,15 @@
+# [3.3.0](https://github.com/terrylica/cc-skills/compare/v3.2.0...v3.3.0) (2025-12-14)
+
+
+### Bug Fixes
+
+* **git-account-validator:** pre-flush SSH ControlMaster cache before validation ([5ef6820](https://github.com/terrylica/cc-skills/commit/5ef682055f55f799e565c9a79fad4166bcb1cb5b))
+
+
+### Features
+
+* **git-account-validator:** add pre-push validation plugin for multi-account GitHub ([73984f7](https://github.com/terrylica/cc-skills/commit/73984f7e889ad73b499477e305be23c2aa9bec38))
+
 # [3.2.0](https://github.com/terrylica/cc-skills/compare/v3.1.2...v3.2.0) (2025-12-13)
 
 
