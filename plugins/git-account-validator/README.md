@@ -151,7 +151,7 @@ Your `~/.ssh/config` must use Match directives for directory-based key selection
 
 ```sshconfig
 # NOTE: Use `pwd` not `$PWD` - $PWD may be empty in non-interactive shells
-# Match both github.com (port 22) and ssh.github.com (port 443 fallback)
+# Match both github.com and ssh.github.com (for port 443 routing)
 
 # Account alpha - for ~/projects/alpha/
 Match host github.com,ssh.github.com exec "pwd | grep -q '/alpha/'"
@@ -165,11 +165,21 @@ Match host github.com,ssh.github.com exec "pwd | grep -q '/beta/'"
     IdentityFile ~/.ssh/id_beta
     IdentitiesOnly yes
 
-# Disable ControlMaster for all GitHub endpoints (multi-account safety)
-Host github.com ssh.github.com
+# Route github.com through port 443 (port 22 often blocked on networks)
+# This makes all git@github.com:... URLs work transparently via ssh.github.com:443
+Host github.com
+    HostName ssh.github.com
+    Port 443
+    User git
+    ControlMaster no
+
+# Direct ssh.github.com access
+Host ssh.github.com
     User git
     ControlMaster no
 ```
+
+**Why port 443?** Many corporate networks block SSH port 22. GitHub offers SSH access via `ssh.github.com:443` as a fallback. The `Host github.com` block above transparently routes all GitHub SSH traffic through port 443.
 
 ## Installation
 
