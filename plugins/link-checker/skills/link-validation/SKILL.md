@@ -61,6 +61,6 @@ See [./config/lychee.toml](./../../config/lychee.toml) for the default configura
 
 ## References
 
-- [ADR: Link Checker Plugin Extraction](./../../docs/adr/2025-12-11-link-checker-plugin-extraction.md)
-- [Design Spec](./../../docs/design/2025-12-11-link-checker-plugin-extraction/spec.md)
+- [ADR: Link Checker Plugin Extraction](../../../../docs/adr/2025-12-11-link-checker-plugin-extraction.md)
+- [Design Spec](../../../../docs/design/2025-12-11-link-checker-plugin-extraction/spec.md)
 - [lychee Documentation](https://github.com/lycheeverse/lychee)

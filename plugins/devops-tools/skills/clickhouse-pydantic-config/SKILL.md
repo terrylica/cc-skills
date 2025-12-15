@@ -183,7 +183,7 @@ See [references/dbeaver-format.md](./references/dbeaver-format.md) for complete 
 
 ## Python Driver Policy
 
-For Python application code connecting to ClickHouse (not DBeaver), use `clickhouse-connect` (official HTTP driver). See [`clickhouse-architect`](../../quality-tools/skills/clickhouse-architect/SKILL.md#python-driver-policy) for:
+For Python application code connecting to ClickHouse (not DBeaver), use `clickhouse-connect` (official HTTP driver). See [`clickhouse-architect`](../../../quality-tools/skills/clickhouse-architect/SKILL.md#python-driver-policy) for:
 
 - Recommended code patterns
 - Why NOT to use `clickhouse-driver` (community)

@@ -83,6 +83,6 @@ For detailed information, see:
 
 <!-- ADR: 2025-12-10-clickhouse-skill-documentation-gaps -->
 
-For PyPI publishing, see [`pypi-doppler` skill](../pypi-doppler/SKILL.md) for **LOCAL-ONLY** workspace policy.
+For PyPI publishing, see [`pypi-doppler` skill](../../../itp/skills/pypi-doppler/SKILL.md) for **LOCAL-ONLY** workspace policy.
 
 **Do NOT** configure PyPI publishing in GitHub Actions or CI/CD pipelines.
