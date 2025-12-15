@@ -1,3 +1,12 @@
+# [3.5.0](https://github.com/terrylica/cc-skills/compare/v3.4.1...v3.5.0) (2025-12-15)
+
+
+### Features
+
+* **marketplace:** register alpha-forge-worktree plugin ([ac70daf](https://github.com/terrylica/cc-skills/commit/ac70dafaf421bf147940bbee64ac2a8d71a150cb))
+* **plugin:** add alpha-forge-worktree plugin for git worktree management ([16c40bd](https://github.com/terrylica/cc-skills/commit/16c40bda8d036eb4dea45db1e42e5655677b3c7b))
+* **validation:** enhance plugin validation to prevent marketplace registration oversight ([0792242](https://github.com/terrylica/cc-skills/commit/0792242964ae7da80543d964b246c886bb7b7398))
+
 ## [3.4.1](https://github.com/terrylica/cc-skills/compare/v3.4.0...v3.4.1) (2025-12-15)
 
 # [3.4.0](https://github.com/terrylica/cc-skills/compare/v3.3.0...v3.4.0) (2025-12-15)
