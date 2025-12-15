@@ -1,0 +1,9 @@
+{
+  "name": "research-repo-worktree",
+  "version": "1.0.0",
+  "description": "Git worktree management for research-repo with ADR-style naming and dynamic iTerm2 tab detection",
+  "author": {
+    "name": "<user>ca",
+    "url": "https://github.com/terrylica"
+  }
+}
