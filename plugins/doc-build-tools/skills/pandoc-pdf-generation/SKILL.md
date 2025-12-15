@@ -49,12 +49,13 @@ ln -s ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/build-pdf.sh bui
 
 **Options:**
 
-| Flag          | Description                                     |
-| ------------- | ----------------------------------------------- |
-| `--landscape` | Landscape orientation (default)                 |
-| `--portrait`  | Portrait orientation                            |
-| `--monospace` | Use DejaVu Sans Mono - ideal for ASCII diagrams |
-| `-h, --help`  | Show help message                               |
+| Flag             | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
+| `--landscape`    | Landscape orientation (default)                            |
+| `--portrait`     | Portrait orientation                                       |
+| `--monospace`    | Use DejaVu Sans Mono - ideal for ASCII diagrams            |
+| `--hide-details` | Hide `<details>` blocks (e.g., graph-easy source) from PDF |
+| `-h, --help`     | Show help message                                          |
 
 **Features:**
 
@@ -64,6 +65,7 @@ ln -s ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/build-pdf.sh bui
 - ✅ Pre-flight checks (pandoc, xelatex, files exist)
 - ✅ Post-build validation (file size, page count)
 - ✅ Code blocks stay on same page (no splitting across pages)
+- ✅ Lua filter to hide `<details>` blocks from PDF output
 
 ### Landscape PDF (Quick Command)
 
@@ -120,6 +122,46 @@ Skill(itp:adr-graph-easy-architect)
 ```
 
 **Also important**: Keep annotations OUTSIDE code blocks. Don't add inline comments like `# contains: file1, file2` inside diagram code blocks - they break alignment.
+
+---
+
+## Hiding Content for PDF Output
+
+Use `--hide-details` to remove `<details>` blocks from PDF output. This is useful when:
+
+- **graph-easy source blocks**: Keep source in markdown for diagram regeneration, but hide from printed PDFs
+- **Technical implementation notes**: Show in web/markdown view, hide from printed handouts
+- **Collapsible sections**: HTML `<details>` tags don't render as collapsible in PDF
+
+**Usage:**
+
+```bash
+./build-pdf.sh --hide-details document.md
+```
+
+**Markdown pattern:**
+
+````markdown
+## My Section
+
+```diagram
+┌─────┐     ┌─────┐
+│ Box │ ──> │ Box │
+└─────┘     └─────┘
+```
+````
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+[Box] -> [Box]
+```
+
+</details>
+```
+
+With `--hide-details`, the entire `<details>` block is stripped from PDF output while remaining visible in markdown/HTML.
 
 ---
 
