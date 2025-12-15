@@ -325,6 +325,26 @@
       ],
       "hooks": "./plugins/git-account-validator/hooks/hooks.json",
       "strict": false
+    },
+    {
+      "name": "alpha-forge-worktree",
+      "description": "Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection",
+      "version": "1.0.0",
+      "source": "./plugins/alpha-forge-worktree/",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "git",
+        "worktree",
+        "alpha-forge",
+        "iterm2",
+        "tabs",
+        "workflow"
+      ],
+      "strict": false
     }
   ]
 }
