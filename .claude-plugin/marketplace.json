@@ -325,6 +325,26 @@
       ],
       "hooks": "./plugins/git-account-validator/hooks/hooks.json",
       "strict": false
+    },
+    {
+      "name": "research-repo-worktree",
+      "description": "Git worktree management for research-repo with ADR-style naming and dynamic iTerm2 tab detection",
+      "version": "1.0.0",
+      "source": "./plugins/research-repo-worktree/",
+      "category": "productivity",
+      "author": {
+        "name": "<user>ca",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "git",
+        "worktree",
+        "research-repo",
+        "iterm2",
+        "tabs",
+        "workflow"
+      ],
+      "strict": false
     }
   ]
 }
