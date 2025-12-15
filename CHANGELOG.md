@@ -1,3 +1,10 @@
+# [4.2.0](https://github.com/terrylica/cc-skills/compare/v4.1.1...v4.2.0) (2025-12-15)
+
+
+### Features
+
+* **alpha-forge-worktree:** add direnv integration for auto-loading secrets ([0e8214c](https://github.com/terrylica/cc-skills/commit/0e8214c0fe531a4587e1066f4f5c21156e6f751c))
+
 ## [4.1.1](https://github.com/terrylica/cc-skills/compare/v4.1.0...v4.1.1) (2025-12-15)
 
 # [4.1.0](https://github.com/terrylica/cc-skills/compare/v4.0.0...v4.1.0) (2025-12-15)
