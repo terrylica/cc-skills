@@ -1,3 +1,16 @@
+# [4.0.0](https://github.com/terrylica/cc-skills/compare/v3.5.0...v4.0.0) (2025-12-15)
+
+
+### Features
+
+* **alpha-forge-worktree:** refactor to skills-only architecture with natural language triggers ([9d71107](https://github.com/terrylica/cc-skills/commit/9d71107a5550625c226c156c12b61d5bb9f25145))
+
+
+### BREAKING CHANGES
+
+* **alpha-forge-worktree:** The /af:wt slash command is removed. Use natural language
+triggers like "create worktree for [description]" instead.
+
 # [3.5.0](https://github.com/terrylica/cc-skills/compare/v3.4.1...v3.5.0) (2025-12-15)
 
 
