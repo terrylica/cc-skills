@@ -1,3 +1,10 @@
+# [3.4.0](https://github.com/terrylica/cc-skills/compare/v3.3.0...v3.4.0) (2025-12-15)
+
+
+### Features
+
+* **pandoc-pdf-generation:** add --hide-details flag to strip <details> blocks from PDF ([be2012e](https://github.com/terrylica/cc-skills/commit/be2012e5154852884582adfc7f42605ef51a0190))
+
 # [3.3.0](https://github.com/terrylica/cc-skills/compare/v3.2.0...v3.3.0) (2025-12-14)
 
 
