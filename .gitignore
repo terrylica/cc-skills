@@ -16,3 +16,6 @@ npm-debug.log*
 # Build artifacts
 dist/
 build/
+
+# Ralph Orchestrator workspace (temporary)
+plugins/ralph-tools/
