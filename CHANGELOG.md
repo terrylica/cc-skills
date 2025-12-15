@@ -1,3 +1,15 @@
+# [4.1.0](https://github.com/terrylica/cc-skills/compare/v4.0.0...v4.1.0) (2025-12-15)
+
+
+### Bug Fixes
+
+* add ralph-tools plugin with validation fixes ([952d1e3](https://github.com/terrylica/cc-skills/commit/952d1e345c003c0102b7c875db9c23a620369c80))
+
+
+### Features
+
+* **itp:** add ralph-orchestrator skill for autonomous AI development ([da1ba3b](https://github.com/terrylica/cc-skills/commit/da1ba3b63f1dee2190dfa5c240fbacbb334f7063))
+
 # [4.0.0](https://github.com/terrylica/cc-skills/compare/v3.5.0...v4.0.0) (2025-12-15)
 
 
