@@ -29,7 +29,7 @@ alpha-forge.worktree-YYYY-MM-DD-slug
 2. **Branch without date**: Use today's date
    - `feat/quick-fix` → `{TODAY}`
 
-### Slug Extraction Rules
+### Slug Extraction Rules (From Existing Branches)
 
 1. **Standard branch**: Remove prefix and date
    - `feat/2025-12-14-sharpe-statistical-validation` → `sharpe-statistical-validation`
@@ -39,6 +39,43 @@ alpha-forge.worktree-YYYY-MM-DD-slug
 
 3. **Preserve hyphens**: Keep slug as-is for acronym generation
    - `eth-block-metrics` stays as `eth-block-metrics`
+
+## Slug Derivation Rules (From Descriptions)
+
+When creating new branches from natural language descriptions, Claude derives slugs using these rules.
+
+### Word Economy Rule
+
+Each word in the slug MUST convey unique meaning:
+
+- **Remove filler words**: the, a, an, for, with, and, to, from, in, on, of, by
+- **Avoid redundancy**: Don't repeat concepts (e.g., "database" after "ClickHouse")
+- **Limit length**: 3-5 words maximum
+
+### Conversion Steps
+
+1. Parse description from user input
+2. Convert to lowercase
+3. Apply word economy (remove filler words)
+4. Replace spaces with hyphens
+5. Validate: only `[a-z0-9-]` characters
+
+### Examples
+
+| User Description                        | Derived Slug                    | Words Removed  |
+| --------------------------------------- | ------------------------------- | -------------- |
+| "sharpe statistical validation"         | `sharpe-statistical-validation` | (none)         |
+| "fix the memory leak in metrics"        | `memory-leak-metrics`           | fix, the, in   |
+| "implement user authentication for API" | `user-authentication-api`       | implement, for |
+| "add BigQuery data source support"      | `bigquery-data-source`          | add, support   |
+| "refactor the database connection pool" | `database-connection-pool`      | refactor, the  |
+
+### Why Word Economy Matters
+
+- **Tab names**: Shorter slugs → shorter acronyms → easier to identify
+- **Paths**: Shorter slugs → shorter filesystem paths
+- **Consistency**: Same description should always produce same slug
+- **Readability**: Essential words only → clearer purpose at a glance
 
 ## iTerm2 Tab Naming
 

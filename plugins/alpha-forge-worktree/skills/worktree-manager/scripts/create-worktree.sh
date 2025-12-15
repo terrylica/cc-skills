@@ -2,19 +2,74 @@
 # Create alpha-forge worktree with ADR-style naming
 # ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md
 #
-# Usage: create-worktree.sh <branch-name>
-# Example: create-worktree.sh feat/2025-12-14-sharpe-statistical-validation
+# Modes:
+#   new    - Create new branch + worktree (atomic)
+#   remote - Track remote branch in worktree
+#   local  - Use existing local branch
+#
+# Usage:
+#   New:    create-worktree.sh --mode new --slug <slug> --type <type> --base <base>
+#   Remote: create-worktree.sh --mode remote --branch <remote-branch>
+#   Local:  create-worktree.sh --mode local --branch <branch>
+#
+# Examples:
+#   create-worktree.sh --mode new --slug sharpe-statistical-validation --type feat --base main
+#   create-worktree.sh --mode remote --branch origin/feat/2025-12-10-existing
+#   create-worktree.sh --mode local --branch feat/2025-12-15-my-feature
 
 set -euo pipefail
 
-BRANCH="${1:-}"
+# Defaults
+MODE=""
+SLUG=""
+TYPE=""
+BASE=""
+BRANCH=""
 AF_ROOT="$HOME/eon/alpha-forge"
 WORKTREE_BASE="$HOME/eon"
 
-# Validate input
-if [[ -z "$BRANCH" ]]; then
-    echo "Usage: create-worktree.sh <branch-name>" >&2
-    echo "Example: create-worktree.sh feat/2025-12-14-sharpe-statistical-validation" >&2
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --mode)
+            MODE="$2"
+            shift 2
+            ;;
+        --slug)
+            SLUG="$2"
+            shift 2
+            ;;
+        --type)
+            TYPE="$2"
+            shift 2
+            ;;
+        --base)
+            BASE="$2"
+            shift 2
+            ;;
+        --branch)
+            BRANCH="$2"
+            shift 2
+            ;;
+        *)
+            # Legacy support: first positional arg is branch (local mode)
+            if [[ -z "$BRANCH" ]]; then
+                BRANCH="$1"
+                MODE="${MODE:-local}"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate mode
+if [[ -z "$MODE" ]]; then
+    echo "Error: --mode required (new|remote|local)" >&2
+    echo "" >&2
+    echo "Usage:" >&2
+    echo "  New:    create-worktree.sh --mode new --slug <slug> --type <type> --base <base>" >&2
+    echo "  Remote: create-worktree.sh --mode remote --branch <remote-branch>" >&2
+    echo "  Local:  create-worktree.sh --mode local --branch <branch>" >&2
     exit 1
 fi
 
@@ -26,55 +81,161 @@ fi
 
 cd "$AF_ROOT"
 
-# Validate branch exists (local or remote)
-if ! git show-ref --verify --quiet "refs/heads/$BRANCH" 2>/dev/null && \
-   ! git show-ref --verify --quiet "refs/remotes/origin/$BRANCH" 2>/dev/null; then
-    echo "Error: Branch '$BRANCH' not found locally or on origin" >&2
-    echo "" >&2
-    echo "Available local branches:" >&2
-    git branch --format='  %(refname:short)' >&2
-    exit 1
-fi
+# Mode-specific validation and execution
+case "$MODE" in
+    new)
+        # Mode 1: New branch from description (atomic creation)
+        if [[ -z "$SLUG" || -z "$TYPE" || -z "$BASE" ]]; then
+            echo "Error: --mode new requires --slug, --type, and --base" >&2
+            exit 1
+        fi
 
-# Extract date and slug from branch name
-# Pattern: (feat|fix|refactor|chore)/YYYY-MM-DD-slug
-# Or: (feat|fix|refactor|chore)/slug (use today's date)
-if [[ "$BRANCH" =~ ^(feat|fix|refactor|chore)/([0-9]{4}-[0-9]{2}-[0-9]{2})-(.+)$ ]]; then
-    DATE="${BASH_REMATCH[2]}"
-    SLUG="${BASH_REMATCH[3]}"
-elif [[ "$BRANCH" =~ ^(feat|fix|refactor|chore)/(.+)$ ]]; then
-    DATE=$(date +%Y-%m-%d)
-    SLUG="${BASH_REMATCH[2]}"
-else
-    # Fallback: use branch name as slug
-    DATE=$(date +%Y-%m-%d)
-    SLUG="${BRANCH##*/}"
-fi
+        DATE=$(date +%Y-%m-%d)
+        BRANCH="${TYPE}/${DATE}-${SLUG}"
+        WORKTREE_NAME="alpha-forge.worktree-${DATE}-${SLUG}"
+        WORKTREE_PATH="${WORKTREE_BASE}/${WORKTREE_NAME}"
 
-WORKTREE_NAME="alpha-forge.worktree-${DATE}-${SLUG}"
-WORKTREE_PATH="${WORKTREE_BASE}/${WORKTREE_NAME}"
+        # Check if branch already exists
+        if git show-ref --verify --quiet "refs/heads/$BRANCH" 2>/dev/null; then
+            echo "Error: Branch '$BRANCH' already exists" >&2
+            echo "Use --mode local to create worktree for existing branch" >&2
+            exit 1
+        fi
 
-# Check if worktree already exists
-if [[ -d "$WORKTREE_PATH" ]]; then
-    echo "Error: Worktree already exists at $WORKTREE_PATH" >&2
-    exit 1
-fi
+        # Check if worktree path already exists
+        if [[ -d "$WORKTREE_PATH" ]]; then
+            echo "Error: Worktree already exists at $WORKTREE_PATH" >&2
+            exit 1
+        fi
 
-# Check if branch already has a worktree
-EXISTING_WT=$(git worktree list | grep "\[$BRANCH\]" | awk '{print $1}' || true)
-if [[ -n "$EXISTING_WT" ]]; then
-    echo "Error: Branch '$BRANCH' already has a worktree at $EXISTING_WT" >&2
-    exit 1
-fi
+        # Validate base branch exists on remote
+        if ! git show-ref --verify --quiet "refs/remotes/origin/$BASE" 2>/dev/null; then
+            echo "Error: Base branch 'origin/$BASE' not found" >&2
+            echo "" >&2
+            echo "Available remote branches:" >&2
+            git branch -r --format='  %(refname:short)' | head -20 >&2
+            exit 1
+        fi
 
-# Create worktree
-echo "Creating worktree..."
-echo "  Path: $WORKTREE_PATH"
-echo "  Branch: $BRANCH"
+        # Atomic branch + worktree creation
+        echo "Creating new branch and worktree..."
+        echo "  Branch: $BRANCH"
+        echo "  Base:   origin/$BASE"
+        echo "  Path:   $WORKTREE_PATH"
 
-git worktree add "$WORKTREE_PATH" "$BRANCH"
+        git worktree add -b "$BRANCH" "$WORKTREE_PATH" "origin/$BASE"
+        ;;
 
-# Generate tab name
+    remote)
+        # Mode 2: Track remote branch
+        if [[ -z "$BRANCH" ]]; then
+            echo "Error: --mode remote requires --branch <remote-branch>" >&2
+            exit 1
+        fi
+
+        # Strip origin/ prefix if present for local branch name
+        REMOTE_BRANCH="$BRANCH"
+        LOCAL_BRANCH="${BRANCH#origin/}"
+
+        # Extract date and slug from branch name
+        if [[ "$LOCAL_BRANCH" =~ ^(feat|fix|refactor|chore)/([0-9]{4}-[0-9]{2}-[0-9]{2})-(.+)$ ]]; then
+            DATE="${BASH_REMATCH[2]}"
+            SLUG="${BASH_REMATCH[3]}"
+        elif [[ "$LOCAL_BRANCH" =~ ^(feat|fix|refactor|chore)/(.+)$ ]]; then
+            DATE=$(date +%Y-%m-%d)
+            SLUG="${BASH_REMATCH[2]}"
+        else
+            DATE=$(date +%Y-%m-%d)
+            SLUG="${LOCAL_BRANCH##*/}"
+        fi
+
+        WORKTREE_NAME="alpha-forge.worktree-${DATE}-${SLUG}"
+        WORKTREE_PATH="${WORKTREE_BASE}/${WORKTREE_NAME}"
+
+        # Validate remote branch exists
+        if ! git show-ref --verify --quiet "refs/remotes/$REMOTE_BRANCH" 2>/dev/null; then
+            echo "Error: Remote branch '$REMOTE_BRANCH' not found" >&2
+            echo "" >&2
+            echo "Available remote branches:" >&2
+            git branch -r --format='  %(refname:short)' | head -20 >&2
+            exit 1
+        fi
+
+        # Check if worktree path already exists
+        if [[ -d "$WORKTREE_PATH" ]]; then
+            echo "Error: Worktree already exists at $WORKTREE_PATH" >&2
+            exit 1
+        fi
+
+        # Create tracking branch + worktree
+        echo "Creating tracking branch and worktree..."
+        echo "  Remote: $REMOTE_BRANCH"
+        echo "  Local:  $LOCAL_BRANCH"
+        echo "  Path:   $WORKTREE_PATH"
+
+        git worktree add -b "$LOCAL_BRANCH" "$WORKTREE_PATH" "$REMOTE_BRANCH"
+        BRANCH="$LOCAL_BRANCH"
+        ;;
+
+    local)
+        # Mode 3: Existing local branch
+        if [[ -z "$BRANCH" ]]; then
+            echo "Error: --mode local requires --branch <branch>" >&2
+            exit 1
+        fi
+
+        # Extract date and slug from branch name
+        if [[ "$BRANCH" =~ ^(feat|fix|refactor|chore)/([0-9]{4}-[0-9]{2}-[0-9]{2})-(.+)$ ]]; then
+            DATE="${BASH_REMATCH[2]}"
+            SLUG="${BASH_REMATCH[3]}"
+        elif [[ "$BRANCH" =~ ^(feat|fix|refactor|chore)/(.+)$ ]]; then
+            DATE=$(date +%Y-%m-%d)
+            SLUG="${BASH_REMATCH[2]}"
+        else
+            DATE=$(date +%Y-%m-%d)
+            SLUG="${BRANCH##*/}"
+        fi
+
+        WORKTREE_NAME="alpha-forge.worktree-${DATE}-${SLUG}"
+        WORKTREE_PATH="${WORKTREE_BASE}/${WORKTREE_NAME}"
+
+        # Validate local branch exists
+        if ! git show-ref --verify --quiet "refs/heads/$BRANCH" 2>/dev/null; then
+            echo "Error: Local branch '$BRANCH' not found" >&2
+            echo "" >&2
+            echo "Available local branches:" >&2
+            git branch --format='  %(refname:short)' | head -20 >&2
+            exit 1
+        fi
+
+        # Check if worktree path already exists
+        if [[ -d "$WORKTREE_PATH" ]]; then
+            echo "Error: Worktree already exists at $WORKTREE_PATH" >&2
+            exit 1
+        fi
+
+        # Check if branch already has a worktree
+        EXISTING_WT=$(git worktree list | grep "\[$BRANCH\]" | awk '{print $1}' || true)
+        if [[ -n "$EXISTING_WT" ]]; then
+            echo "Error: Branch '$BRANCH' already has a worktree at $EXISTING_WT" >&2
+            exit 1
+        fi
+
+        # Create worktree for existing branch
+        echo "Creating worktree for existing branch..."
+        echo "  Branch: $BRANCH"
+        echo "  Path:   $WORKTREE_PATH"
+
+        git worktree add "$WORKTREE_PATH" "$BRANCH"
+        ;;
+
+    *)
+        echo "Error: Unknown mode '$MODE'. Use: new|remote|local" >&2
+        exit 1
+        ;;
+esac
+
+# Generate tab name from slug
 ACRONYM=$(echo "$SLUG" | tr '-' '\n' | cut -c1 | tr -d '\n' | tr '[:upper:]' '[:lower:]')
 TAB_NAME="AF-${ACRONYM}"
 

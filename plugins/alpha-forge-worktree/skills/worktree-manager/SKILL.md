@@ -1,21 +1,265 @@
 ---
-description: "Manage alpha-forge git worktrees with ADR-style naming, acronym tab names, and stale detection"
+name: worktree-manager
+description: Create alpha-forge git worktrees with automatic branch naming from descriptions. Use when user says create worktree, new worktree, alpha-forge worktree, AF worktree, or describes a feature to work on in alpha-forge.
 ---
 
 # Alpha-Forge Worktree Manager
 
 <!-- ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md -->
 
-Create and manage git worktrees for the alpha-forge repository with consistent naming conventions and lifecycle management.
+Create and manage git worktrees for the alpha-forge repository with automatic branch naming, consistent conventions, and lifecycle management.
 
 ## Triggers
 
-- "create worktree"
+Invoke this skill when user mentions:
+
+- "create worktree for [description]"
+- "new worktree [description]"
 - "alpha-forge worktree"
-- "git worktree alpha-forge"
 - "AF worktree"
-- "new worktree for alpha-forge"
-- "manage worktrees"
+- "worktree from origin/..."
+- "worktree for feat/..."
+
+## Operational Modes
+
+This skill supports three distinct modes based on user input:
+
+| Mode             | User Input Example                            | Action                                |
+| ---------------- | --------------------------------------------- | ------------------------------------- |
+| **New Branch**   | "create worktree for sharpe validation"       | Derive slug, create branch + worktree |
+| **Remote Track** | "create worktree from origin/feat/existing"   | Track remote branch in new worktree   |
+| **Local Branch** | "create worktree for feat/2025-12-15-my-feat" | Use existing branch in new worktree   |
+
+---
+
+## Mode 1: New Branch from Description (Primary)
+
+This is the most common workflow. User provides a natural language description, Claude derives the slug.
+
+### Step 1: Parse Description and Derive Slug
+
+**Claude derives kebab-case slugs following these rules:**
+
+**Word Economy Rule**:
+
+- Each word in slug MUST convey unique meaning
+- Remove filler words: the, a, an, for, with, and, to, from, in, on, of, by
+- Avoid redundancy (e.g., "database" after "ClickHouse")
+- Limit to 3-5 words maximum
+
+**Conversion Steps**:
+
+1. Parse description from user input
+2. Convert to lowercase
+3. Apply word economy (remove filler words)
+4. Replace spaces with hyphens
+
+**Examples**:
+
+| User Description                        | Derived Slug                    |
+| --------------------------------------- | ------------------------------- |
+| "sharpe statistical validation"         | `sharpe-statistical-validation` |
+| "fix the memory leak in metrics"        | `memory-leak-metrics`           |
+| "implement user authentication for API" | `user-authentication-api`       |
+| "add BigQuery data source support"      | `bigquery-data-source`          |
+
+### Step 2: Verify Main Worktree Status
+
+**CRITICAL**: Before proceeding, check that main worktree is on `main` branch.
+
+```bash
+cd ~/eon/alpha-forge
+CURRENT=$(git branch --show-current)
+```
+
+**If NOT on main/master**:
+
+Use AskUserQuestion to warn user:
+
+```yaml
+question: "Main worktree is on '$CURRENT', not main. Best practice is to keep main worktree clean. Continue anyway?"
+header: "Warning"
+options:
+  - label: "Continue anyway"
+    description: "Proceed with worktree creation"
+  - label: "Switch main to 'main' first"
+    description: "I'll switch the main worktree to main branch before creating"
+multiSelect: false
+```
+
+If user selects "Switch main to 'main' first":
+
+```bash
+cd ~/eon/alpha-forge
+git checkout main
+```
+
+### Step 3: Fetch Remote and Display Branches
+
+```bash
+cd ~/eon/alpha-forge
+git fetch --all --prune
+
+# Display available branches for user reference
+echo "Available remote branches:"
+git branch -r | grep -v HEAD | head -20
+```
+
+### Step 4: Prompt for Branch Type
+
+Use AskUserQuestion:
+
+```yaml
+question: "What type of branch is this?"
+header: "Branch type"
+options:
+  - label: "feat"
+    description: "New feature or capability"
+  - label: "fix"
+    description: "Bug fix or correction"
+  - label: "refactor"
+    description: "Code restructuring (no behavior change)"
+  - label: "chore"
+    description: "Maintenance, tooling, dependencies"
+multiSelect: false
+```
+
+### Step 5: Prompt for Base Branch
+
+Use AskUserQuestion:
+
+```yaml
+question: "Which branch should this be based on?"
+header: "Base branch"
+options:
+  - label: "main (Recommended)"
+    description: "Base from main branch"
+  - label: "develop"
+    description: "Base from develop branch"
+multiSelect: false
+```
+
+If user needs a different branch, they can select "Other" and provide the branch name.
+
+### Step 6: Construct Branch Name
+
+```bash
+TYPE="feat"           # From Step 4
+DATE=$(date +%Y-%m-%d)
+SLUG="sharpe-statistical-validation"  # From Step 1
+BASE="main"           # From Step 5
+
+BRANCH="${TYPE}/${DATE}-${SLUG}"
+# Result: feat/2025-12-15-sharpe-statistical-validation
+```
+
+### Step 7: Create Worktree (Atomic)
+
+```bash
+cd ~/eon/alpha-forge
+
+WORKTREE_PATH="$HOME/eon/alpha-forge.worktree-${DATE}-${SLUG}"
+
+# Atomic branch + worktree creation
+git worktree add -b "${BRANCH}" "${WORKTREE_PATH}" "origin/${BASE}"
+```
+
+### Step 8: Generate Tab Name and Report
+
+```bash
+# Generate acronym from slug
+ACRONYM=$(echo "$SLUG" | tr '-' '\n' | cut -c1 | tr -d '\n')
+TAB_NAME="AF-${ACRONYM}"
+```
+
+Report success:
+
+```
+✓ Worktree created successfully
+
+  Path:    ~/eon/alpha-forge.worktree-2025-12-15-sharpe-statistical-validation
+  Branch:  feat/2025-12-15-sharpe-statistical-validation
+  Tab:     AF-ssv
+
+  iTerm2: Restart iTerm2 to see the new tab
+```
+
+---
+
+## Mode 2: Remote Branch Tracking
+
+When user specifies `origin/branch-name`, create a local tracking branch.
+
+**Detection**: User input contains `origin/` prefix.
+
+**Example**: "create worktree from origin/feat/2025-12-10-existing-feature"
+
+### Workflow
+
+```bash
+cd ~/eon/alpha-forge
+git fetch --all --prune
+
+REMOTE_BRANCH="origin/feat/2025-12-10-existing-feature"
+LOCAL_BRANCH="feat/2025-12-10-existing-feature"
+
+# Extract date and slug for worktree naming
+# Pattern: type/YYYY-MM-DD-slug
+if [[ "$LOCAL_BRANCH" =~ ^(feat|fix|refactor|chore)/([0-9]{4}-[0-9]{2}-[0-9]{2})-(.+)$ ]]; then
+    DATE="${BASH_REMATCH[2]}"
+    SLUG="${BASH_REMATCH[3]}"
+else
+    DATE=$(date +%Y-%m-%d)
+    SLUG="${LOCAL_BRANCH##*/}"
+fi
+
+WORKTREE_PATH="$HOME/eon/alpha-forge.worktree-${DATE}-${SLUG}"
+
+# Create tracking branch + worktree
+git worktree add -b "${LOCAL_BRANCH}" "${WORKTREE_PATH}" "${REMOTE_BRANCH}"
+```
+
+---
+
+## Mode 3: Existing Local Branch
+
+When user specifies a local branch name (without `origin/`), use it directly.
+
+**Detection**: User input is a valid branch name format (e.g., `feat/2025-12-15-slug`).
+
+**Example**: "create worktree for feat/2025-12-15-my-feature"
+
+### Workflow
+
+```bash
+cd ~/eon/alpha-forge
+
+BRANCH="feat/2025-12-15-my-feature"
+
+# Verify branch exists
+if ! git show-ref --verify "refs/heads/${BRANCH}" 2>/dev/null; then
+    echo "ERROR: Local branch '${BRANCH}' not found"
+    echo "Available local branches:"
+    git branch | head -20
+    exit 1
+fi
+
+# Extract date and slug
+if [[ "$BRANCH" =~ ^(feat|fix|refactor|chore)/([0-9]{4}-[0-9]{2}-[0-9]{2})-(.+)$ ]]; then
+    DATE="${BASH_REMATCH[2]}"
+    SLUG="${BASH_REMATCH[3]}"
+else
+    DATE=$(date +%Y-%m-%d)
+    SLUG="${BRANCH##*/}"
+fi
+
+WORKTREE_PATH="$HOME/eon/alpha-forge.worktree-${DATE}-${SLUG}"
+
+# Create worktree for existing branch (no -b flag)
+git worktree add "${WORKTREE_PATH}" "${BRANCH}"
+```
+
+---
 
 ## Naming Conventions
 
@@ -24,8 +268,6 @@ Create and manage git worktrees for the alpha-forge repository with consistent n
 **Format**: `alpha-forge.worktree-YYYY-MM-DD-slug`
 
 **Location**: `~/eon/`
-
-**Examples**:
 
 | Branch                                          | Worktree Folder                                                 |
 | ----------------------------------------------- | --------------------------------------------------------------- |
@@ -37,61 +279,15 @@ Create and manage git worktrees for the alpha-forge repository with consistent n
 
 **Format**: `AF-{acronym}` where acronym = first character of each word in slug
 
-**Examples**:
-
 | Worktree Slug                   | Tab Name   |
 | ------------------------------- | ---------- |
 | `sharpe-statistical-validation` | `AF-ssv`   |
 | `feature-genesis-skills`        | `AF-fgs`   |
 | `eth-block-metrics-data-plugin` | `AF-ebmdp` |
 
-## Workflow
+---
 
-### 1. Pre-Diagnosis
-
-Before creating a worktree, analyze the target branch:
-
-```bash
-# Check if branch exists locally or remotely
-cd ~/eon/alpha-forge
-git show-ref --verify refs/heads/{BRANCH} 2>/dev/null || \
-git show-ref --verify refs/remotes/origin/{BRANCH} 2>/dev/null
-
-# Check branch status relative to main
-git log --oneline main..{BRANCH} | head -5   # Commits ahead
-git log --oneline {BRANCH}..main | head -5   # Commits behind
-```
-
-Report to user:
-
-- Branch exists: ✓/✗
-- Commits ahead of main: N
-- Commits behind main: N
-- Suggested worktree name
-
-### 2. Name Generation
-
-Extract date and slug from branch name:
-
-```bash
-# Pattern: (feat|fix|refactor|chore)/YYYY-MM-DD-slug
-# Or: (feat|fix|refactor|chore)/slug (use today's date)
-
-BRANCH="feat/2025-12-14-sharpe-statistical-validation"
-
-# Extract components
-if [[ "$BRANCH" =~ ^(feat|fix|refactor|chore)/([0-9]{4}-[0-9]{2}-[0-9]{2})-(.+)$ ]]; then
-    DATE="${BASH_REMATCH[2]}"
-    SLUG="${BASH_REMATCH[3]}"
-else
-    DATE=$(date +%Y-%m-%d)
-    SLUG="${BRANCH##*/}"
-fi
-
-WORKTREE_NAME="alpha-forge.worktree-${DATE}-${SLUG}"
-```
-
-### 3. Stale Worktree Detection
+## Stale Worktree Detection
 
 Check for worktrees whose branches are already merged to main:
 
@@ -105,59 +301,15 @@ MERGED=$(git branch --merged main | grep -v '^\*' | grep -v 'main' | tr -d ' ')
 git worktree list --porcelain | grep '^branch' | cut -d' ' -f2 | while read branch; do
     branch_name="${branch##refs/heads/}"
     if echo "$MERGED" | grep -q "^${branch_name}$"; then
-        # Find worktree path for this branch
         path=$(git worktree list | grep "\[${branch_name}\]" | awk '{print $1}')
         echo "STALE: $branch_name at $path"
     fi
 done
 ```
 
-If stale worktrees found:
+If stale worktrees found, prompt user to cleanup using AskUserQuestion.
 
-1. List them with branch name and path
-2. Prompt user to cleanup using AskUserQuestion
-3. If confirmed, execute cleanup (see Cleanup section)
-
-### 4. Worktree Creation
-
-```bash
-cd ~/eon/alpha-forge
-
-# For local branch
-git worktree add ~/eon/${WORKTREE_NAME} ${BRANCH}
-
-# For remote branch (creates local tracking branch)
-git worktree add ~/eon/${WORKTREE_NAME} -b ${LOCAL_BRANCH} origin/${BRANCH}
-```
-
-### 5. Tab Name Generation
-
-Generate acronym for iTerm2 tab:
-
-```bash
-# Extract acronym from slug
-SLUG="sharpe-statistical-validation"
-ACRONYM=$(echo "$SLUG" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) printf substr($i,1,1)}')
-TAB_NAME="AF-${ACRONYM}"
-
-echo "Tab name: $TAB_NAME"  # AF-ssv
-```
-
-### 6. Success Report
-
-After creation, display:
-
-```
-✓ Worktree created successfully
-
-  Path:    ~/eon/alpha-forge.worktree-2025-12-14-sharpe-statistical-validation
-  Branch:  feat/2025-12-14-sharpe-statistical-validation
-  Tab:     AF-ssv
-
-  iTerm2 Integration:
-  - Restart iTerm2 to see the new tab automatically
-  - Tab will appear after the main AF tab
-```
+---
 
 ## Cleanup Workflow
 
@@ -174,11 +326,21 @@ git branch -d {BRANCH}
 ### Prune Orphaned Entries
 
 ```bash
-# Clean up worktree metadata for removed directories
 git worktree prune
 ```
 
+---
+
 ## Error Handling
+
+| Scenario                 | Action                                           |
+| ------------------------ | ------------------------------------------------ |
+| Branch already exists    | Suggest using Mode 3 (existing branch) or rename |
+| Remote branch not found  | List available remote branches                   |
+| Main worktree on feature | Warn via AskUserQuestion, offer to switch        |
+| Empty description        | Show usage examples                              |
+| Network error on fetch   | Allow offline mode with local branches only      |
+| Worktree path exists     | Suggest cleanup or different slug                |
 
 ### Branch Not Found
 
@@ -190,7 +352,7 @@ git worktree prune
   - main
 
   To create from remote:
-  git fetch origin && /af:wt origin/branch-name
+  Specify: "create worktree from origin/branch-name"
 ```
 
 ### Worktree Already Exists
@@ -204,17 +366,7 @@ git worktree prune
   cd ~/eon/alpha-forge.worktree-2025-12-14-sharpe-statistical-validation
 ```
 
-### Path Conflict
-
-```
-✗ Directory already exists: ~/eon/alpha-forge.worktree-2025-12-14-slug
-
-  This directory exists but is not registered as a worktree.
-
-  Options:
-  1. Remove directory and retry
-  2. Choose different slug name
-```
+---
 
 ## Integration
 
@@ -227,9 +379,7 @@ The `default-layout.py` script auto-discovers worktrees:
 3. Generates `AF-{acronym}` tab names
 4. Inserts tabs after main AF tab
 
-### Slash Command
-
-Use `/af:wt [branch-name]` for quick worktree creation.
+---
 
 ## References
 

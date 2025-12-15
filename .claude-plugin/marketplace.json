@@ -331,7 +331,7 @@
       "description": "Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection",
       "version": "3.5.0",
       "source": "./plugins/alpha-forge-worktree/",
-      "category": "productivity",
+      "category": "development",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"

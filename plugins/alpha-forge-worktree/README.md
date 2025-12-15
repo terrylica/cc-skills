@@ -4,10 +4,19 @@ Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2
 
 ## Features
 
-- `/af:wt [branch-name]` - Create worktree with ADR-style naming
+- Natural language worktree creation ("create worktree for sharpe validation")
+- Automatic slug derivation from descriptions (word economy rules)
+- Three operational modes: new branch, remote tracking, existing branch
 - Dynamic iTerm2 tab detection with acronym-based naming (AF-ssv)
 - Stale worktree detection and cleanup prompts
-- Helper scripts for worktree lifecycle management
+
+## Operational Modes
+
+| Mode             | Trigger Example                             | Action                                |
+| ---------------- | ------------------------------------------- | ------------------------------------- |
+| **New Branch**   | "create worktree for sharpe validation"     | Derive slug, create branch + worktree |
+| **Remote Track** | "create worktree from origin/feat/existing" | Track remote branch in new worktree   |
+| **Local Branch** | "create worktree for feat/2025-12-15-my-wt" | Use existing branch in new worktree   |
 
 ## Naming Conventions
 
@@ -31,20 +40,26 @@ Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2
 
 ## Usage
 
-### Create Worktree
+### Create Worktree (Natural Language)
 
-```bash
-# With Claude Code
-/af:wt feat/2025-12-14-my-feature
+```
+# New branch from description
+"create worktree for sharpe statistical validation"
+→ Claude derives slug: sharpe-statistical-validation
+→ Prompts for branch type (feat/fix/refactor/chore)
+→ Prompts for base branch (main/develop/other)
+→ Creates: feat/2025-12-15-sharpe-statistical-validation
 
-# Or use the skill
-"create alpha-forge worktree for feat/2025-12-14-my-feature"
+# Track remote branch
+"create worktree from origin/feat/2025-12-10-existing-feature"
+
+# Use existing local branch
+"create worktree for feat/2025-12-15-my-feature"
 ```
 
 ### Detect Stale Worktrees
 
 ```bash
-# Run detection script
 ~/eon/cc-skills/plugins/alpha-forge-worktree/skills/worktree-manager/scripts/detect-stale.sh
 ```
 
@@ -75,15 +90,13 @@ The plugin integrates with `~/scripts/iterm2/default-layout.py`:
 alpha-forge-worktree/
 ├── plugin.json                           # Plugin metadata
 ├── README.md                             # This file
-├── commands/
-│   └── wt.md                             # /af:wt slash command
 └── skills/
     └── worktree-manager/
-        ├── SKILL.md                      # Skill definition
+        ├── SKILL.md                      # Skill definition (primary entry point)
         ├── references/
-        │   └── naming-conventions.md     # Naming reference
+        │   └── naming-conventions.md     # Naming reference + slug derivation rules
         └── scripts/
-            ├── create-worktree.sh        # Create worktree
+            ├── create-worktree.sh        # Create worktree (3 modes)
             ├── detect-stale.sh           # Detect merged branches
             └── cleanup-worktree.sh       # Remove worktree
 ```
