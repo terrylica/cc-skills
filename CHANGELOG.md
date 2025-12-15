@@ -1,3 +1,5 @@
+## [3.4.1](https://github.com/terrylica/cc-skills/compare/v3.4.0...v3.4.1) (2025-12-15)
+
 # [3.4.0](https://github.com/terrylica/cc-skills/compare/v3.3.0...v3.4.0) (2025-12-15)
 
 
