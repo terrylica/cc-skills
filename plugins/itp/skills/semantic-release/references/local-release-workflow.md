@@ -145,6 +145,42 @@ git status --porcelain
 gh release list --limit 1
 ```
 
+### Step 6: Update Local Tracking Refs
+
+**IMPORTANT**: After semantic-release pushes via GitHub API, local git tracking refs may be stale. This causes shell prompts and status lines to show incorrect ahead/behind counts (e.g., `↑:3` when actually in sync).
+
+**Update tracking refs without full fetch**:
+
+```bash
+git fetch origin main:refs/remotes/origin/main --no-tags
+```
+
+This command:
+
+- Updates only `origin/main` ref (fast, no network overhead for other branches)
+- Skips tag fetch (tags already created by semantic-release)
+- Ensures local tracking matches remote state
+
+**Verify sync**:
+
+```bash
+git status -sb
+# Should show: ## main...origin/main (no ahead/behind counts)
+```
+
+**Why this matters**: Tools like Claude Code status line, shell prompts (p10k, starship), and IDE git integrations rely on local tracking refs. Stale refs cause confusing indicators that persist until the next `git fetch`.
+
+**Alternative - Add to npm scripts** (automate for future releases):
+
+```json
+{
+  "scripts": {
+    "release": "semantic-release --no-ci",
+    "postrelease": "git fetch origin main:refs/remotes/origin/main --no-tags"
+  }
+}
+```
+
 ---
 
 ## Issue Resolution
@@ -296,6 +332,31 @@ Only these trigger releases:
 
 `docs:`, `chore:`, `style:`, `refactor:`, `test:` → no release
 
+### Stale Ahead/Behind Indicators After Release
+
+**Symptom**: After successful release, shell prompt or status line shows `↑:N` (commits ahead) when actually in sync with remote.
+
+**Cause**: semantic-release pushes via GitHub API, but local git tracking refs (`origin/main`) aren't updated. Tools that display ahead/behind counts rely on these local refs.
+
+**Affected tools**:
+
+- Claude Code status line
+- Shell prompts (p10k, starship, oh-my-zsh)
+- IDE git integrations (VS Code, IntelliJ)
+
+**Resolution**:
+
+```bash
+# Update local tracking ref without full fetch
+git fetch origin main:refs/remotes/origin/main --no-tags
+
+# Verify
+git status -sb
+# Should show: ## main...origin/main (no ahead/behind)
+```
+
+**Prevention**: Always run Step 6 (Update Local Tracking Refs) after release.
+
 ---
 
 ## Decision Tree
@@ -335,9 +396,14 @@ Start Release
     │   ├── No commits to release? → Inform user
     │   └── Success ↓
     │
-    └── Verify pristine state
-        ├── Unexpected changes → Investigate
-        └── Clean → ✅ Complete
+    ├── Verify pristine state
+    │   ├── Unexpected changes → Investigate
+    │   └── Clean ↓
+    │
+    └── Update local tracking refs
+        │   git fetch origin main:refs/remotes/origin/main --no-tags
+        │
+        └── Verify: git status -sb (no ahead/behind) → ✅ Complete
 ```
 
 ---
@@ -351,3 +417,4 @@ Start Release
 - [ ] **Version incremented** (new tag > previous tag)
 - [ ] New release visible: `gh release list --limit 1`
 - [ ] Working directory pristine after release
+- [ ] Local tracking refs updated (no stale ahead/behind indicators)
