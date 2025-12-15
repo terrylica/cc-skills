@@ -331,7 +331,7 @@
       "description": "Git worktree management for research-repo with ADR-style naming and dynamic iTerm2 tab detection",
       "version": "3.5.0",
       "source": "./plugins/research-repo-worktree/",
-      "category": "productivity",
+      "category": "development",
       "author": {
         "name": "<user>ca",
         "url": "https://github.com/terrylica"
