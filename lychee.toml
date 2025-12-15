@@ -1,0 +1,51 @@
+# Lychee Link Checker Configuration
+# Repository: cc-skills
+#
+# Run: lychee .
+
+############################# Display ###############################
+verbose = "error"      # Only show errors
+no_progress = true     # Required for non-interactive shells
+
+############################# Cache #################################
+cache = true
+max_cache_age = "7d"
+
+############################# Runtime ###############################
+timeout = 10
+max_retries = 2
+max_concurrency = 8
+
+############################# Features ##############################
+include_fragments = true
+include_verbatim = false
+include_mail = false
+
+############################# Path Exclusions #######################
+# Regex patterns for files to skip entirely
+exclude_path = [
+    "node_modules/",
+    "\\.git/",
+    "file-history/",
+    "plugins/marketplaces/",
+    "todos/.*\\.json$",
+    "\\.venv/",
+    "backups/",
+    "__pycache__/",
+    # Exclude auto-generated CHANGELOG files (semantic-release artifacts)
+    "CHANGELOG\\.md$",
+]
+
+############################# URL Exclusions ########################
+# Patterns (regex) applied to link URLs
+exclude = [
+    "^mailto:",
+    # Template/placeholder URLs
+    "mql5\\.com/en/articles/\\[ID\\]",
+    # External URLs with access restrictions (paywall, rate limits)
+    "medium\\.com/@ibm_ptc_security",
+    # Shield.io badges (rate limited)
+    "img\\.shields\\.io",
+    # Semantic-release auto-generated links to private/non-existent repo history
+    "github\\.com/terrylica/cc-skills/(compare|commit|issues)/",
+]

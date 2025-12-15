@@ -225,6 +225,5 @@ graph { label: "🏗️ Link-Checker Plugin Architecture"; flow: south; }
 ## References
 
 - [Global Plan](/docs/design/2025-12-11-link-checker-plugin-extraction/spec.md) - Full implementation specification
-- [claude-orchestrator](https://github.com/terrylica/claude-orchestrator) - Source system
 - [cc-skills](https://github.com/terrylica/cc-skills) - Target marketplace
 - [itp-hooks pattern](/plugins/itp-hooks/) - Reference plugin architecture

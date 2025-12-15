@@ -613,8 +613,7 @@ cat .agent/metrics/state_*.json 2>/dev/null | jq '.errors[-3:]' || echo "  No st
 
 ### Community Resources
 
-- **GitHub Issues**: [Report bugs](https://github.com/mikeyobrien/ralph-orchestrator/issues)
-- **Discussions**: [Ask questions](https://github.com/mikeyobrien/ralph-orchestrator/discussions)
+- **GitHub Issues**: [Report bugs and ask questions](https://github.com/mikeyobrien/ralph-orchestrator/issues)
 - **Full Documentation**: [Online docs](https://mikeyobrien.github.io/ralph-orchestrator/)
 
 ### Bug Reports Should Include

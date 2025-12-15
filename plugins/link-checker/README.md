@@ -2,7 +2,7 @@
 
 Universal link validation for Claude Code sessions using [lychee](https://github.com/lycheeverse/lychee).
 
-**ADR**: [Link Checker Plugin Extraction](./../../docs/adr/2025-12-11-link-checker-plugin-extraction.md)
+**ADR**: [Link Checker Plugin Extraction](../../docs/adr/2025-12-11-link-checker-plugin-extraction.md)
 
 ## Features
 

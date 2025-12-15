@@ -71,7 +71,7 @@ description: Does X when user mentions Y (specific triggers)
 
 - **Official Docs**: <https://docs.claude.com/en/docs/claude-code/skills>
 - **Official Repo**: <https://github.com/anthropics/skills>
-- **Template**: <https://github.com/anthropics/skills/tree/main/template-skill>
+- **Template**: <https://github.com/anthropics/skills/tree/main/template>
 - **Support**: <https://support.claude.com/en/articles/12512198-how-to-create-custom-skills>
 
 ---

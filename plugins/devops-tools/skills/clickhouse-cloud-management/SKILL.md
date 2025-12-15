@@ -170,7 +170,7 @@ For detailed patterns and advanced techniques, consult:
 
 ## Python Driver Policy
 
-For Python application code connecting to ClickHouse Cloud, use `clickhouse-connect` (official HTTP driver). See [`clickhouse-architect`](../../quality-tools/skills/clickhouse-architect/SKILL.md#python-driver-policy) for recommended code patterns and why to avoid `clickhouse-driver` (community).
+For Python application code connecting to ClickHouse Cloud, use `clickhouse-connect` (official HTTP driver). See [`clickhouse-architect`](../../../quality-tools/skills/clickhouse-architect/SKILL.md#python-driver-policy) for recommended code patterns and why to avoid `clickhouse-driver` (community).
 
 ## Related Skills
 

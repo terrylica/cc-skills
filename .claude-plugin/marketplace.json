@@ -345,6 +345,27 @@
         "workflow"
       ],
       "strict": false
+    },
+    {
+      "name": "ralph-tools",
+      "description": "Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete. Long-running automation, evolutionary development",
+      "version": "1.0.0",
+      "source": "./plugins/ralph-tools/",
+      "category": "automation",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "ralph",
+        "orchestrator",
+        "autonomous",
+        "long-running",
+        "automation",
+        "evolutionary",
+        "ai-loop"
+      ],
+      "strict": false
     }
   ]
 }
