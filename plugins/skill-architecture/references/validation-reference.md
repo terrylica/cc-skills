@@ -69,10 +69,79 @@ description: Does X when user mentions Y (specific triggers)
 
 ## Resources
 
-- **Official Docs**: https://docs.claude.com/en/docs/claude-code/skills
-- **Official Repo**: https://github.com/anthropics/skills
-- **Template**: https://github.com/anthropics/skills/tree/main/template-skill
-- **Support**: https://support.claude.com/en/articles/12512198-how-to-create-custom-skills
+- **Official Docs**: <https://docs.claude.com/en/docs/claude-code/skills>
+- **Official Repo**: <https://github.com/anthropics/skills>
+- **Template**: <https://github.com/anthropics/skills/tree/main/template-skill>
+- **Support**: <https://support.claude.com/en/articles/12512198-how-to-create-custom-skills>
+
+---
+
+## Plugin Manifest Validation
+
+<!-- ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned) -->
+
+When creating **plugins** (not just skills), additional validation is required for marketplace discovery.
+
+### Critical: Marketplace Registration
+
+Plugins must be registered in `.claude-plugin/marketplace.json` to be discoverable by `/plugin install`. Creating a plugin directory without registration results in:
+
+```
+Plugin "plugin-name" not found in any marketplace
+```
+
+### Validation Script
+
+Run before committing plugin changes:
+
+```bash
+node scripts/validate-plugins.mjs           # Validate only
+node scripts/validate-plugins.mjs --fix     # Show fix instructions
+node scripts/validate-plugins.mjs --strict  # Fail on warnings too
+```
+
+### What It Validates
+
+| Check                  | Error Level | Description                                        |
+| ---------------------- | ----------- | -------------------------------------------------- |
+| Directory registration | ❌ Error    | Plugin dirs must have marketplace.json entry       |
+| Required fields        | ❌ Error    | name, description, version, source, category       |
+| Source path exists     | ❌ Error    | `source` field must point to real directory        |
+| Hooks file exists      | ❌ Error    | `hooks` field (if present) must point to real file |
+| Orphaned entries       | ⚠️ Warning  | Registered plugins must have directories           |
+| Missing author         | ⚠️ Warning  | Recommended field                                  |
+| Missing keywords       | ⚠️ Warning  | Recommended field                                  |
+
+### Pre-Commit Hook
+
+Install the validation hook to catch issues automatically:
+
+```bash
+./scripts/install-hooks.sh
+```
+
+The hook runs `validate-plugins.mjs` when `plugins/` or `marketplace.json` changes.
+
+### Plugin Entry Template
+
+When adding a new plugin, use this template:
+
+```json
+{
+  "name": "my-plugin",
+  "description": "Brief description of what the plugin does",
+  "version": "1.0.0",
+  "source": "./plugins/my-plugin/",
+  "category": "productivity",
+  "author": { "name": "Your Name", "url": "https://github.com/username" },
+  "keywords": ["relevant", "keywords"],
+  "strict": false
+}
+```
+
+### Workflow Recommendation
+
+Use `/itp:plugin-add` to create new plugins - it handles marketplace registration automatically (Phase 3.1).
 
 ---
 
