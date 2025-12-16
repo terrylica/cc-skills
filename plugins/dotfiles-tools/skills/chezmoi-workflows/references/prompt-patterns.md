@@ -34,7 +34,7 @@
 4. **Verify commit**
 
    ```bash
-   cd ~/.local/share/chezmoi && git log -1 --oneline
+   chezmoi git -- log -1 --oneline
    ```
 
    Expected: Shows new commit with timestamp
@@ -42,7 +42,7 @@
 5. **Push to remote**
 
    ```bash
-   cd ~/.local/share/chezmoi && git push
+   chezmoi git -- push
    ```
 
    Expected: Successfully pushed to remote
@@ -117,7 +117,7 @@
 3. **Show commit log**
 
    ```bash
-   cd ~/.local/share/chezmoi && git log --oneline -3
+   chezmoi git -- log --oneline -3
    ```
 
    Expected: Shows recent commits including new auto-commit
@@ -125,7 +125,7 @@
 4. **Push to remote**
 
    ```bash
-   cd ~/.local/share/chezmoi && git push
+   chezmoi git -- push
    ```
 
    Expected: Successfully pushed to origin/main
@@ -191,7 +191,7 @@
 3. **Push to remote**
 
    ```bash
-   cd ~/.local/share/chezmoi && git push
+   chezmoi git -- push
    ```
 
    Expected: Successfully pushed
@@ -211,7 +211,7 @@
 1. **Check git status**
 
    ```bash
-   cd ~/.local/share/chezmoi && git status
+   chezmoi git -- status
    ```
 
    Expected: Shows conflicted files
@@ -227,9 +227,8 @@
 4. **Complete merge**
 
    ```bash
-   cd ~/.local/share/chezmoi
-   git add [resolved-files]
-   git commit -m "Resolve merge conflict in [files]"
+   chezmoi git -- add [resolved-files]
+   chezmoi git -- commit -m "Resolve merge conflict in [files]"
    ```
 
 5. **Apply to home directory**
@@ -243,7 +242,7 @@
 6. **Push to remote**
 
    ```bash
-   cd ~/.local/share/chezmoi && git push
+   chezmoi git -- push
    ```
 
 7. **Verify SLOs**
