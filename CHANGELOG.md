@@ -1,3 +1,10 @@
+# [4.4.0](https://github.com/terrylica/cc-skills/compare/v4.3.0...v4.4.0) (2025-12-16)
+
+
+### Features
+
+* **iterm2-layout-config:** add plugin for TOML-based configuration separation ([5aa88d0](https://github.com/terrylica/cc-skills/commit/5aa88d044a5dbf20a9048e99017ab494fee5112d))
+
 # [4.3.0](https://github.com/terrylica/cc-skills/compare/v4.2.0...v4.3.0) (2025-12-16)
 
 
