@@ -1,3 +1,18 @@
+# [4.5.0](https://github.com/terrylica/cc-skills/compare/v4.4.0...v4.5.0) (2025-12-16)
+
+
+### Bug Fixes
+
+* **dotfiles-tools:** improve skill description with specific triggers ([8ff7fe3](https://github.com/terrylica/cc-skills/commit/8ff7fe341591ca0bcd360332e5876ff313c141c2))
+* **dotfiles-tools:** use portable chezmoi git commands ([8039eea](https://github.com/terrylica/cc-skills/commit/8039eea11df522f89e049a93931f7f5aba6b5c10))
+* **dotfiles-tools:** validation fixes for universal applicability ([db192a2](https://github.com/terrylica/cc-skills/commit/db192a23ad732c6cd40efeb9272139cabc488d71))
+
+
+### Features
+
+* **dotfiles-tools:** add setup guide for universal chezmoi configuration ([9233cb9](https://github.com/terrylica/cc-skills/commit/9233cb9677424bf200e8d4214aed4c851ac8a0ab))
+* **dotfiles-tools:** expand description with common tool triggers ([e815cf0](https://github.com/terrylica/cc-skills/commit/e815cf08ad7c905caf4480fd020e4acf69cda8a6))
+
 # [4.4.0](https://github.com/terrylica/cc-skills/compare/v4.3.0...v4.4.0) (2025-12-16)
 
 
