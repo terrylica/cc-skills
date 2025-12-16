@@ -1,3 +1,10 @@
+# [4.3.0](https://github.com/terrylica/cc-skills/compare/v4.2.0...v4.3.0) (2025-12-16)
+
+
+### Features
+
+* **ralph-tools:** add 'ralph wiggum' as skill trigger ([cdd02dc](https://github.com/terrylica/cc-skills/commit/cdd02dcedc507b1405dee09c3c028135407170f2))
+
 # [4.2.0](https://github.com/terrylica/cc-skills/compare/v4.1.1...v4.2.0) (2025-12-15)
 
 
