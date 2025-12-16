@@ -72,13 +72,13 @@ chezmoi git -- push
 
 Built-in variables available in `.tmpl` files:
 
-| Variable            | Example Value     | Description         |
-| ------------------- | ----------------- | ------------------- |
-| `.chezmoi.os`       | `darwin`, `linux` | Operating system    |
-| `.chezmoi.arch`     | `arm64`, `amd64`  | CPU architecture    |
-| `.chezmoi.homeDir`  | `/home/user`      | Home directory path |
-| `.chezmoi.hostname` | `macbook`         | Machine hostname    |
-| `.chezmoi.username` | `user`            | Current username    |
+| Variable            | Example Value                 | Description         |
+| ------------------- | ----------------------------- | ------------------- |
+| `.chezmoi.os`       | `darwin`, `linux`             | Operating system    |
+| `.chezmoi.arch`     | `arm64`, `amd64`              | CPU architecture    |
+| `.chezmoi.homeDir`  | `/Users/user` or `/home/user` | Home directory path |
+| `.chezmoi.hostname` | `macbook`                     | Machine hostname    |
+| `.chezmoi.username` | `user`                        | Current username    |
 
 Custom variables from `[data]` section:
 

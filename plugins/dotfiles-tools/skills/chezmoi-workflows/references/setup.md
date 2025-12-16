@@ -150,13 +150,15 @@ gh repo create dotfiles --private
 # 3. Update remote
 chezmoi git -- remote set-url origin git@github.com:<new-account>/dotfiles.git
 
-# 4. Push history
+# 4. Push history (force required for new empty repo)
 chezmoi git -- push -u origin main --force
 
 # 5. (Optional) Delete old repo
 gh auth switch -u <old-account>
 gh repo delete <old-account>/dotfiles --yes
 ```
+
+**Note**: Force push is safe here because the new repo is empty. Never force push to a repo with existing history unless intentional.
 
 ---
 
