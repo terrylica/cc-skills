@@ -91,9 +91,7 @@ brew install chezmoi                   # macOS
 ```bash
 chezmoi init                           # Create empty source
 chezmoi add ~/.zshrc ~/.gitconfig      # Add first files
-gh repo create dotfiles --private      # Create private GitHub repo
-chezmoi git -- remote add origin git@github.com:<user>/dotfiles.git
-chezmoi git -- push -u origin main
+gh repo create dotfiles --private --source="$(chezmoi source-path)" --push
 ```
 
 ### Initialize (clone existing)
@@ -110,13 +108,13 @@ chezmoi apply                          # Deploy to home directory
 Move source to custom location (e.g., for multi-account SSH):
 
 ```bash
-mv "$(chezmoi source-path)" ~/own/dotfiles
+mv "$(chezmoi source-path)" ~/path/to/dotfiles
 ```
 
 Edit `~/.config/chezmoi/chezmoi.toml`:
 
 ```toml
-sourceDir = "~/own/dotfiles"
+sourceDir = "~/path/to/dotfiles"
 ```
 
 Verify:
