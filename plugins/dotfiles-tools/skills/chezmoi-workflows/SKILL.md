@@ -1,129 +1,176 @@
 ---
 name: chezmoi-workflows
-description: Dotfile backup, sync, and version control with chezmoi. Use when user mentions dotfiles, .zshrc, .gitconfig, .config/, chezmoi, track config, sync dotfiles, push dotfiles, dotfile status, backup configs, restore configs, dotfile setup, initialize dotfiles, dotfiles remote, or cross-machine sync.
+description: Dotfile backup, sync, and version control with chezmoi. Covers .zshrc, .gitconfig, .bashrc, .vimrc, .config/, XDG config files. Operations include track, add, sync, push, pull, backup, restore, status, diff, re-add. Setup workflows for chezmoi init, dotfiles remote, GitHub private repository, cross-machine sync, multi-account SSH. Troubleshooting for merge conflicts, secret detection, template errors.
 allowed-tools: Read, Edit, Bash
 ---
 
 # Chezmoi Workflows
 
-Backup, sync, and version-control dotfiles across machines using chezmoi.
-
-## Triggers
-
-Invoke this skill when user mentions:
-
-- **Files**: `.zshrc`, `.gitconfig`, `.bashrc`, `.vimrc`, `.config/`, dotfiles
-- **Actions**: track, sync, push, pull, backup, restore, status, diff
-- **Setup**: initialize dotfiles, set up chezmoi, configure remote, cross-machine sync
-- **Tools**: chezmoi, dotfile manager
-
 ## Architecture
 
-Two-State System:
-
-- **Source State**: `$(chezmoi source-path)` (configurable, default: `~/.local/share/chezmoi`)
-- **Target State**: `~/` (home directory)
-- **Remote**: User-configured GitHub repository (private or public)
-
-**Fully Configurable**: Source path, remote URL, and GitHub account are all user-configurable. See [Setup Guide](./references/setup.md).
+| Component  | Location                         | Purpose                               |
+| ---------- | -------------------------------- | ------------------------------------- |
+| **Source** | `$(chezmoi source-path)`         | Git repository with dotfile templates |
+| **Target** | `~/`                             | Home directory (deployed files)       |
+| **Remote** | GitHub (private recommended)     | Cross-machine sync and backup         |
+| **Config** | `~/.config/chezmoi/chezmoi.toml` | User preferences and settings         |
 
 ---
 
-## Setup & Configuration
-
-### Show Current Setup
-
-**User says**: "Show my chezmoi setup" or "What's my dotfiles config?"
+## 1. Status Check
 
 ```bash
-chezmoi source-path                    # Source directory
-chezmoi git -- remote -v               # GitHub remote
-chezmoi managed | wc -l                # Tracked file count
+chezmoi source-path                    # Show source directory
+chezmoi git -- remote -v               # Show GitHub remote
+chezmoi status                         # Show drift between source and target
+chezmoi managed | wc -l                # Count tracked files
 ```
 
-### First-Time Setup
+---
 
-**User says**: "Set up chezmoi" or "Initialize dotfiles"
+## 2. Track File Changes
 
-See [Setup Guide](./references/setup.md) for:
-
-- Installation
-- Repository initialization (fresh or clone existing)
-- Custom source directory configuration
-- Multi-account GitHub setup
-
-### Change Remote
-
-**User says**: "Change my dotfiles remote" or "Use different GitHub account"
+After editing a config file, add it to chezmoi:
 
 ```bash
-chezmoi git -- remote set-url origin git@github.com:<username>/<repo>.git
+chezmoi status                         # 1. Verify file shows as modified
+chezmoi diff ~/.zshrc                  # 2. Review changes
+chezmoi add ~/.zshrc                   # 3. Add to source (auto-commits if configured)
+chezmoi git -- log -1 --oneline        # 4. Verify commit created
+chezmoi git -- push                    # 5. Push to remote
+```
+
+---
+
+## 3. Track New File
+
+Add a previously untracked config file:
+
+```bash
+chezmoi add ~/.config/app/config.toml  # 1. Add file to source
+chezmoi managed | grep app             # 2. Verify in managed list
+chezmoi git -- push                    # 3. Push to remote
+```
+
+---
+
+## 4. Sync from Remote
+
+Pull changes from GitHub and apply to home directory:
+
+```bash
+chezmoi update                         # 1. Pull + apply (single command)
+chezmoi verify                         # 2. Verify all files match source
+chezmoi status                         # 3. Confirm no drift
+```
+
+---
+
+## 5. Push All Changes
+
+Bulk sync all modified tracked files to remote:
+
+```bash
+chezmoi status                         # 1. Review all drift
+chezmoi re-add                         # 2. Re-add all managed files (auto-commits)
+chezmoi git -- push                    # 3. Push to remote
+```
+
+---
+
+## 6. First-Time Setup
+
+### Install chezmoi
+
+```bash
+brew install chezmoi                   # macOS
+```
+
+### Initialize (fresh start)
+
+```bash
+chezmoi init                           # Create empty source
+chezmoi add ~/.zshrc ~/.gitconfig      # Add first files
+gh repo create dotfiles --private      # Create private GitHub repo
+chezmoi git -- remote add origin git@github.com:<user>/dotfiles.git
 chezmoi git -- push -u origin main
 ```
 
----
+### Initialize (clone existing)
 
-## Quick Start
-
-### Track Changes
-
-**User says**: "I edited [file]. Track the changes."
-
-**Workflow**:
-
-1. Verify drift: `chezmoi status`
-2. Show changes: `chezmoi diff [file]`
-3. Add to source state: `chezmoi add [file]` (auto-commits)
-4. Verify commit: `chezmoi git -- log -1 --oneline`
-5. Push to remote: `chezmoi git -- push`
-
-### Sync from Remote
-
-**User says**: "Sync my dotfiles from remote."
-
-**Workflow**:
-
-1. Pull and apply: `chezmoi update`
-2. Verify: `chezmoi verify` (exit code 0)
-
-### Push to Remote
-
-**User says**: "Push my dotfile changes to GitHub."
-
-**Workflow**:
-
-1. Check drift: `chezmoi status`
-2. Re-add all: `chezmoi re-add`
-3. Push: `chezmoi git -- push`
+```bash
+chezmoi init git@github.com:<user>/dotfiles.git
+chezmoi apply                          # Deploy to home directory
+```
 
 ---
 
-## SLO Validation
+## 7. Configure Source Directory
 
-After operations, validate Service Level Objectives:
+Move source to custom location (e.g., for multi-account SSH):
 
-1. **Availability**: `chezmoi verify` (exit code 0)
-2. **Correctness**: `chezmoi diff` (empty output)
-3. **Observability**: `chezmoi managed` (shows all tracked files)
-4. **Maintainability**: `git log` (preserves change history)
+```bash
+mv "$(chezmoi source-path)" ~/own/dotfiles
+```
 
-Report SLO status to user after major operations.
+Edit `~/.config/chezmoi/chezmoi.toml`:
+
+```toml
+sourceDir = "~/own/dotfiles"
+```
+
+Verify:
+
+```bash
+chezmoi source-path                    # Should show new location
+```
 
 ---
 
-## Reference Documentation
+## 8. Change Remote
 
-For detailed information, see:
+Switch to different GitHub account or repository:
 
-- [Setup Guide](./references/setup.md) - Installation, initialization, remote configuration, multi-account setup
-- [Prompt Patterns](./references/prompt-patterns.md) - All 6 natural language patterns with examples
-- [Configuration](./references/configuration.md) - chezmoi.toml settings and template handling
-- [Secret Detection](./references/secret-detection.md) - Fail-fast secret detection and resolution
+```bash
+chezmoi git -- remote -v                                              # View current
+chezmoi git -- remote set-url origin git@github.com:<user>/<repo>.git # Change
+chezmoi git -- push -u origin main                                    # Push to new remote
+```
 
-**Official Documentation**: <https://www.chezmoi.io/reference/>
+---
 
-**Version Compatibility**:
+## 9. Resolve Merge Conflicts
 
-- Chezmoi 2.66.1+ (macOS + Linux)
-- Git 2.51.1+
-- Platform: macOS (primary), Linux (secondary)
+```bash
+chezmoi git -- status                  # 1. Identify conflicted files
+chezmoi git -- diff                    # 2. Review conflicts
+# Manually edit files in $(chezmoi source-path)
+chezmoi git -- add <resolved-files>    # 3. Stage resolved files
+chezmoi git -- commit -m "Resolve merge conflict"
+chezmoi apply                          # 4. Apply to home directory
+chezmoi git -- push                    # 5. Push resolution
+```
+
+---
+
+## 10. Validation (SLO)
+
+After major operations, verify system state:
+
+```bash
+chezmoi verify                         # Exit 0 = all files match source
+chezmoi diff                           # Empty = no drift
+chezmoi managed                        # Lists all tracked files
+chezmoi git -- log --oneline -3        # Recent commit history
+```
+
+---
+
+## Reference
+
+- [Setup Guide](./references/setup.md) - Installation, multi-account GitHub, migration
+- [Prompt Patterns](./references/prompt-patterns.md) - Detailed workflow examples
+- [Configuration](./references/configuration.md) - chezmoi.toml settings, templates
+- [Secret Detection](./references/secret-detection.md) - Handling detected secrets
+
+**Chezmoi docs**: <https://www.chezmoi.io/reference/>
