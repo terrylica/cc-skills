@@ -1,21 +1,21 @@
 ---
 name: chezmoi-workflows
-description: Manages dotfiles with chezmoi via natural language. Use when user mentions dotfiles, config sync, chezmoi, track changes, sync dotfiles, check status, push changes, set up chezmoi, initialize dotfiles, or configure dotfiles remote.
+description: Dotfile backup, sync, and version control with chezmoi. Use when user mentions dotfiles, .zshrc, .gitconfig, .config/, chezmoi, track config, sync dotfiles, push dotfiles, dotfile status, backup configs, restore configs, dotfile setup, initialize dotfiles, dotfiles remote, or cross-machine sync.
 allowed-tools: Read, Edit, Bash
 ---
 
 # Chezmoi Workflows
 
-Execute common chezmoi operations via natural language prompts without requiring user to memorize commands or use shell aliases.
+Backup, sync, and version-control dotfiles across machines using chezmoi.
 
-## Workflow Model
+## Triggers
 
-AI-Assisted:
+Invoke this skill when user mentions:
 
-- User edits configuration files normally with any editor
-- User prompts Claude Code with natural language
-- Claude Code executes all chezmoi/git operations
-- No shell complexity or command memorization needed
+- **Files**: `.zshrc`, `.gitconfig`, `.bashrc`, `.vimrc`, `.config/`, dotfiles
+- **Actions**: track, sync, push, pull, backup, restore, status, diff
+- **Setup**: initialize dotfiles, set up chezmoi, configure remote, cross-machine sync
+- **Tools**: chezmoi, dotfile manager
 
 ## Architecture
 
