@@ -31,7 +31,7 @@
 **When user edits a templated file** (files ending in `.tmpl` in source directory):
 
 1. **Identify template**
-   - Check if file is template: `ls ~/.local/share/chezmoi/dot_[filename].tmpl`
+   - Check if file is template: `ls $(chezmoi source-path)/dot_[filename].tmpl`
 
 2. **Edit source template**
 
@@ -44,7 +44,7 @@
 3. **Test template rendering**
 
    ```bash
-   chezmoi execute-template < ~/.local/share/chezmoi/dot_filename.tmpl
+   chezmoi execute-template < "$(chezmoi source-path)/dot_filename.tmpl"
    ```
 
    Expected: Valid rendered output, no template errors
@@ -58,10 +58,9 @@
 5. **Commit and push**
 
    ```bash
-   cd ~/.local/share/chezmoi
-   git add dot_filename.tmpl
-   git commit -m "Update filename template"
-   git push
+   chezmoi git -- add dot_filename.tmpl
+   chezmoi git -- commit -m "Update filename template"
+   chezmoi git -- push
    ```
 
 **Template Variables**:
