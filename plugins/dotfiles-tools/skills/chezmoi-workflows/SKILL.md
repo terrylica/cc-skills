@@ -1,6 +1,6 @@
 ---
 name: chezmoi-workflows
-description: Manages dotfiles with chezmoi via natural language. Use when user mentions dotfiles, config sync, chezmoi, track changes, sync dotfiles, check status, or push changes.
+description: Manages dotfiles with chezmoi via natural language. Use when user mentions dotfiles, config sync, chezmoi, track changes, sync dotfiles, check status, push changes, set up chezmoi, initialize dotfiles, or configure dotfiles remote.
 allowed-tools: Read, Edit, Bash
 ---
 
@@ -21,11 +21,45 @@ AI-Assisted:
 
 Two-State System:
 
-- **Source State**: `$(chezmoi source-path)` (git repository, default: `~/.local/share/chezmoi`)
+- **Source State**: `$(chezmoi source-path)` (configurable, default: `~/.local/share/chezmoi`)
 - **Target State**: `~/` (home directory)
-- **Remote**: GitHub dotfiles repository (private)
+- **Remote**: User-configured GitHub repository (private or public)
 
-**Note**: Source path is configurable via `sourceDir` in `~/.config/chezmoi/chezmoi.toml`
+**Fully Configurable**: Source path, remote URL, and GitHub account are all user-configurable. See [Setup Guide](./references/setup.md).
+
+---
+
+## Setup & Configuration
+
+### Show Current Setup
+
+**User says**: "Show my chezmoi setup" or "What's my dotfiles config?"
+
+```bash
+chezmoi source-path                    # Source directory
+chezmoi git -- remote -v               # GitHub remote
+chezmoi managed | wc -l                # Tracked file count
+```
+
+### First-Time Setup
+
+**User says**: "Set up chezmoi" or "Initialize dotfiles"
+
+See [Setup Guide](./references/setup.md) for:
+
+- Installation
+- Repository initialization (fresh or clone existing)
+- Custom source directory configuration
+- Multi-account GitHub setup
+
+### Change Remote
+
+**User says**: "Change my dotfiles remote" or "Use different GitHub account"
+
+```bash
+chezmoi git -- remote set-url origin git@github.com:<username>/<repo>.git
+chezmoi git -- push -u origin main
+```
 
 ---
 
@@ -81,6 +115,7 @@ Report SLO status to user after major operations.
 
 For detailed information, see:
 
+- [Setup Guide](./references/setup.md) - Installation, initialization, remote configuration, multi-account setup
 - [Prompt Patterns](./references/prompt-patterns.md) - All 6 natural language patterns with examples
 - [Configuration](./references/configuration.md) - chezmoi.toml settings and template handling
 - [Secret Detection](./references/secret-detection.md) - Fail-fast secret detection and resolution
