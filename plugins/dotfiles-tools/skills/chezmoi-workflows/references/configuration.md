@@ -2,71 +2,115 @@
 
 ## Configuration Reference
 
-**chezmoi.toml** (at `~/.config/chezmoi/chezmoi.toml`):
+`~/.config/chezmoi/chezmoi.toml`:
 
 ```toml
 [edit]
-  command = "hx"        # Helix editor
-  apply = false         # Manual apply after review
+command = "hx"            # Your preferred editor (vim, nvim, code, etc.)
+apply = false             # Manual apply after review
 
 [git]
-  autoadd = true        # Auto-stage changes
-  autocommit = true     # Auto-commit on add/apply
-  autopush = false      # Claude Code handles push
+autoadd = true            # Auto-stage changes on chezmoi add
+autocommit = true         # Auto-commit on add/apply
+autopush = false          # Manual push for review before sync
 
 [add]
-  secrets = "error"     # Fail on secret detection
+secrets = "error"         # Fail-fast on detected secrets
 ```
 
 **Key Settings**:
 
-- `autocommit = true`: Automatic commits on `chezmoi add` and `chezmoi apply`
-- `autopush = false`: Manual push for review (Claude Code handles this)
-- `secrets = "error"`: Fail-fast on detected secrets (prevents SECRET-001 type issues)
+| Setting      | Value     | Effect                                                 |
+| ------------ | --------- | ------------------------------------------------------ |
+| `autocommit` | `true`    | Automatic commits on `chezmoi add` and `chezmoi apply` |
+| `autopush`   | `false`   | Manual push allows review before remote sync           |
+| `secrets`    | `"error"` | Fail-fast on detected secrets (recommended)            |
 
 ---
 
 ## Template Handling
 
-**When user edits a templated file** (files ending in `.tmpl` in source directory):
+Files ending in `.tmpl` in source directory are Go templates.
 
-1. **Identify template**
-   - Check if file is template: `ls $(chezmoi source-path)/dot_[filename].tmpl`
+### 1. Identify Template
 
-2. **Edit source template**
+```bash
+ls "$(chezmoi source-path)/dot_zshrc.tmpl" 2>/dev/null && echo "Is template"
+```
 
-   ```bash
-   chezmoi edit ~/.filename
-   ```
+### 2. Edit Template
 
-   OR manually edit the template file directly
+```bash
+chezmoi edit ~/.zshrc
+```
 
-3. **Test template rendering**
+Or edit source file directly in `$(chezmoi source-path)/`.
 
-   ```bash
-   chezmoi execute-template < "$(chezmoi source-path)/dot_filename.tmpl"
-   ```
+### 3. Test Rendering
 
-   Expected: Valid rendered output, no template errors
+```bash
+chezmoi execute-template < "$(chezmoi source-path)/dot_zshrc.tmpl"
+```
 
-4. **Apply to home directory**
+### 4. Apply to Home
 
-   ```bash
-   chezmoi apply ~/.filename
-   ```
+```bash
+chezmoi apply ~/.zshrc
+```
 
-5. **Commit and push**
+### 5. Commit and Push
 
-   ```bash
-   chezmoi git -- add dot_filename.tmpl
-   chezmoi git -- commit -m "Update filename template"
-   chezmoi git -- push
-   ```
+```bash
+chezmoi git -- add dot_zshrc.tmpl
+chezmoi git -- commit -m "Update zshrc template"
+chezmoi git -- push
+```
 
-**Template Variables**:
+---
 
-- `.chezmoi.os` - darwin, linux
-- `.chezmoi.arch` - arm64, amd64
-- `.chezmoi.homeDir` - /Users/username
-- `.chezmoi.hostname` - hostname
-- `.data.git.name`, `.data.git.email` - From chezmoi.toml
+## Template Variables
+
+Built-in variables available in `.tmpl` files:
+
+| Variable            | Example Value     | Description         |
+| ------------------- | ----------------- | ------------------- |
+| `.chezmoi.os`       | `darwin`, `linux` | Operating system    |
+| `.chezmoi.arch`     | `arm64`, `amd64`  | CPU architecture    |
+| `.chezmoi.homeDir`  | `/home/user`      | Home directory path |
+| `.chezmoi.hostname` | `macbook`         | Machine hostname    |
+| `.chezmoi.username` | `user`            | Current username    |
+
+Custom variables from `[data]` section:
+
+```toml
+[data]
+[data.git]
+  name = "Your Name"
+  email = "you@example.com"
+```
+
+Access in templates: `{{ .data.git.name }}`, `{{ .data.git.email }}`
+
+---
+
+## Conditional Templates
+
+OS-specific configuration:
+
+```go-template
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS-specific config
+export HOMEBREW_PREFIX="/opt/homebrew"
+{{ else if eq .chezmoi.os "linux" -}}
+# Linux-specific config
+export HOMEBREW_PREFIX="/home/linuxbrew/.linuxbrew"
+{{ end -}}
+```
+
+Architecture-specific:
+
+```go-template
+{{ if eq .chezmoi.arch "arm64" -}}
+# ARM64 config
+{{ end -}}
+```
