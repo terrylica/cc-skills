@@ -1,252 +1,99 @@
 **Skill**: [Chezmoi Workflows](../SKILL.md)
 
-## Prompt Pattern 1: Track Changes
+## Command Reference
 
-**User says**: "I edited [file]. Track the changes."
-
-**Workflow**:
-
-1. **Verify drift**
-
-   ```bash
-   chezmoi status
-   ```
-
-   Expected: Shows modified file(s) with 'M' indicator
-
-2. **Show changes**
-
-   ```bash
-   chezmoi diff [file]
-   ```
-
-   Expected: Displays unified diff of changes
-
-3. **Add to source state** (auto-commits)
-
-   ```bash
-   chezmoi add [file]
-   ```
-
-   Expected: File added to source directory, git commit created automatically
-   Note: `autocommit = true` in chezmoi.toml triggers automatic commit
-
-4. **Verify commit**
-
-   ```bash
-   chezmoi git -- log -1 --oneline
-   ```
-
-   Expected: Shows new commit with timestamp
-
-5. **Push to remote**
-
-   ```bash
-   chezmoi git -- push
-   ```
-
-   Expected: Successfully pushed to remote
-
-6. **Confirm to user**
-   - Show commit message
-   - Show files changed
-   - Confirm push success
+Quick reference for chezmoi commands with expected outputs.
 
 ---
 
-## Prompt Pattern 2: Sync from Remote
+## Status Commands
 
-**User says**: "Sync my dotfiles from remote."
-
-**Workflow**:
-
-1. **Pull and apply**
-
-   ```bash
-   chezmoi update
-   ```
-
-   Expected: Pulls from GitHub, applies changes to home directory
-   Note: Equivalent to `git pull` + `chezmoi apply`
-
-2. **Show what changed**
-
-   ```bash
-   chezmoi status
-   ```
-
-   Expected: Should show empty (no drift after sync)
-
-3. **Verify SLOs**
-
-   ```bash
-   chezmoi verify
-   ```
-
-   Expected: Exit code 0 (all files match source state)
-
-4. **Confirm to user**
-   - Show files updated
-   - Confirm no errors
-   - Report SLO status
+| Command             | Expected Output                                       |
+| ------------------- | ----------------------------------------------------- |
+| `chezmoi status`    | `M` modified, `A` added, `D` deleted, empty = in sync |
+| `chezmoi diff`      | Unified diff, empty = no changes                      |
+| `chezmoi managed`   | List of all tracked files                             |
+| `chezmoi verify`    | Exit 0 = success, non-zero = drift detected           |
+| `chezmoi unmanaged` | Files in target not tracked by chezmoi                |
 
 ---
 
-## Prompt Pattern 3: Push to Remote
+## Tracking Commands
 
-**User says**: "Push my dotfile changes to GitHub."
-
-**Workflow**:
-
-1. **Check drift**
-
-   ```bash
-   chezmoi status
-   ```
-
-   Expected: Shows any untracked modifications
-
-2. **Re-add all modified tracked files**
-
-   ```bash
-   chezmoi re-add
-   ```
-
-   Expected: Updates source state for all managed files, creates commit
-
-3. **Show commit log**
-
-   ```bash
-   chezmoi git -- log --oneline -3
-   ```
-
-   Expected: Shows recent commits including new auto-commit
-
-4. **Push to remote**
-
-   ```bash
-   chezmoi git -- push
-   ```
-
-   Expected: Successfully pushed to origin/main
-
-5. **Confirm to user**
-   - Show commit count pushed
-   - Show commit messages
-   - Confirm push success
+| Command                   | Effect                                         |
+| ------------------------- | ---------------------------------------------- |
+| `chezmoi add ~/.zshrc`    | Add file to source, auto-commits if configured |
+| `chezmoi re-add`          | Re-add all managed files that changed          |
+| `chezmoi forget ~/.zshrc` | Stop tracking file (keeps in home)             |
 
 ---
 
-## Prompt Pattern 4: Check Status
+## Sync Commands
 
-**User says**: "Check my dotfile status."
-
-**Workflow**:
-
-1. **Check drift**
-
-   ```bash
-   chezmoi status
-   ```
-
-   Expected: Lists modified/added/deleted files with indicators (M/A/D)
-
-2. **List managed files**
-
-   ```bash
-   chezmoi managed
-   ```
-
-   Expected: Shows all files tracked by chezmoi
-
-3. **Explain drift**
-   - If drift detected: Explain which files differ
-   - If no drift: Confirm everything synchronized
-   - Suggest next action (track changes, sync, push, etc.)
+| Command                  | Effect                                    |
+| ------------------------ | ----------------------------------------- |
+| `chezmoi apply`          | Deploy source to home directory           |
+| `chezmoi apply ~/.zshrc` | Deploy single file                        |
+| `chezmoi update`         | Pull from remote + apply (single command) |
 
 ---
 
-## Prompt Pattern 5: Track New File
+## Git Commands
 
-**User says**: "Track [file path] with chezmoi."
+All git operations use `chezmoi git --` prefix for portability:
 
-**Workflow**:
-
-1. **Add file**
-
-   ```bash
-   chezmoi add [file]
-   ```
-
-   Expected: File added to source directory, commit created
-
-2. **Verify in managed list**
-
-   ```bash
-   chezmoi managed | grep [filename]
-   ```
-
-   Expected: File appears in managed list
-
-3. **Push to remote**
-
-   ```bash
-   chezmoi git -- push
-   ```
-
-   Expected: Successfully pushed
-
-4. **Confirm to user**
-   - Show file now tracked
-   - Confirm pushed to remote
+| Command                           | Effect                    |
+| --------------------------------- | ------------------------- |
+| `chezmoi git -- status`           | Git status of source repo |
+| `chezmoi git -- log --oneline -5` | Recent commits            |
+| `chezmoi git -- push`             | Push to remote            |
+| `chezmoi git -- pull`             | Pull from remote          |
+| `chezmoi git -- remote -v`        | Show configured remotes   |
 
 ---
 
-## Prompt Pattern 6: Resolve Conflicts
+## Workflow: Track Changes
 
-**User says**: "I have merge conflicts. Help resolve them."
+```bash
+chezmoi status                    # 1. Check what changed
+chezmoi diff ~/.zshrc             # 2. Review diff
+chezmoi add ~/.zshrc              # 3. Add (auto-commits)
+chezmoi git -- push               # 4. Push to remote
+```
 
-**Workflow**:
+## Workflow: Sync from Remote
 
-1. **Check git status**
+```bash
+chezmoi update                    # 1. Pull + apply
+chezmoi verify                    # 2. Verify success
+```
 
-   ```bash
-   chezmoi git -- status
-   ```
+## Workflow: Push All Changes
 
-   Expected: Shows conflicted files
+```bash
+chezmoi re-add                    # 1. Re-add all managed files
+chezmoi git -- push               # 2. Push to remote
+```
 
-2. **Show conflicted files**
-   - List each file with conflict markers
-   - Explain the conflict (local vs. remote changes)
+## Workflow: Resolve Conflicts
 
-3. **Guide resolution**
-   - Ask user which version to keep (local/remote/manual merge)
-   - For manual merge: show conflict markers and guide editing
+```bash
+chezmoi git -- status             # 1. Identify conflicts
+# Edit conflicted files in $(chezmoi source-path)
+chezmoi git -- add <files>        # 2. Stage resolved
+chezmoi git -- commit -m "Resolve conflicts"
+chezmoi apply                     # 3. Apply to home
+chezmoi git -- push               # 4. Push resolution
+```
 
-4. **Complete merge**
+---
 
-   ```bash
-   chezmoi git -- add [resolved-files]
-   chezmoi git -- commit -m "Resolve merge conflict in [files]"
-   ```
+## Validation Checklist
 
-5. **Apply to home directory**
+After major operations:
 
-   ```bash
-   chezmoi apply
-   ```
-
-   Expected: Resolved changes applied to home directory
-
-6. **Push to remote**
-
-   ```bash
-   chezmoi git -- push
-   ```
-
-7. **Verify SLOs**
-
-   ```bash
-   chezmoi verify
-   ```
+```bash
+chezmoi verify && echo "OK"       # All files match source
+chezmoi diff | head               # No unexpected drift
+chezmoi git -- status             # No uncommitted changes
+```
