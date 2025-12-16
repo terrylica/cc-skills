@@ -1,0 +1,9 @@
+{
+  "name": "iterm2-layout-config",
+  "version": "4.3.0",
+  "description": "iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

@@ -366,6 +366,26 @@
         "ai-loop"
       ],
       "strict": false
+    },
+    {
+      "name": "iterm2-layout-config",
+      "description": "iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code",
+      "version": "4.3.0",
+      "source": "./plugins/iterm2-layout-config/",
+      "category": "development",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "iterm2",
+        "layout",
+        "workspace",
+        "toml",
+        "configuration",
+        "xdg"
+      ],
+      "strict": false
     }
   ]
 }
