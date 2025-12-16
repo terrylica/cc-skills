@@ -105,16 +105,16 @@ Delete or comment out the `[[tabs]]` entry:
 
 ## Configuration Schema
 
-| Section       | Key                | Type   | Default      | Description               |
-| ------------- | ------------------ | ------ | ------------ | ------------------------- |
-| `[layout]`    | `left_pane_ratio`  | float  | 0.20         | Left pane width (0.0-1.0) |
-| `[layout]`    | `settle_time`      | float  | 0.3          | Wait after cd (seconds)   |
-| `[commands]`  | `left`             | string | br...        | Left pane command         |
-| `[commands]`  | `right`            | string | zsh          | Right pane command        |
-| `[worktrees]` | `alpha_forge_root` | string | null         | Worktree root (optional)  |
-| `[worktrees]` | `worktree_pattern` | string | _.worktree-_ | Glob pattern              |
-| `[[tabs]]`    | `dir`              | string | **required** | Directory path            |
-| `[[tabs]]`    | `name`             | string | basename     | Tab display name          |
+| Section       | Key                | Type   | Default        | Description               |
+| ------------- | ------------------ | ------ | -------------- | ------------------------- |
+| `[layout]`    | `left_pane_ratio`  | float  | 0.20           | Left pane width (0.0-1.0) |
+| `[layout]`    | `settle_time`      | float  | 0.3            | Wait after cd (seconds)   |
+| `[commands]`  | `left`             | string | br...          | Left pane command         |
+| `[commands]`  | `right`            | string | zsh            | Right pane command        |
+| `[worktrees]` | `alpha_forge_root` | string | null           | Worktree root (optional)  |
+| `[worktrees]` | `worktree_pattern` | string | `*.worktree-*` | Glob pattern              |
+| `[[tabs]]`    | `dir`              | string | **required**   | Directory path            |
+| `[[tabs]]`    | `name`             | string | basename       | Tab display name          |
 
 ## Troubleshooting
 

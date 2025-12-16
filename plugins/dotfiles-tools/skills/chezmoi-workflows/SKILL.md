@@ -21,9 +21,11 @@ AI-Assisted:
 
 Two-State System:
 
-- **Source State**: `~/.local/share/chezmoi/` (git repository)
+- **Source State**: `$(chezmoi source-path)` (git repository, default: `~/.local/share/chezmoi`)
 - **Target State**: `~/` (home directory)
 - **Remote**: GitHub dotfiles repository (private)
+
+**Note**: Source path is configurable via `sourceDir` in `~/.config/chezmoi/chezmoi.toml`
 
 ---
 
@@ -38,8 +40,8 @@ Two-State System:
 1. Verify drift: `chezmoi status`
 2. Show changes: `chezmoi diff [file]`
 3. Add to source state: `chezmoi add [file]` (auto-commits)
-4. Verify commit: `cd ~/.local/share/chezmoi && git log -1 --oneline`
-5. Push to remote: `cd ~/.local/share/chezmoi && git push`
+4. Verify commit: `chezmoi git -- log -1 --oneline`
+5. Push to remote: `chezmoi git -- push`
 
 ### Sync from Remote
 
@@ -58,7 +60,7 @@ Two-State System:
 
 1. Check drift: `chezmoi status`
 2. Re-add all: `chezmoi re-add`
-3. Push: `cd ~/.local/share/chezmoi && git push`
+3. Push: `chezmoi git -- push`
 
 ---
 
@@ -83,7 +85,7 @@ For detailed information, see:
 - [Configuration](./references/configuration.md) - chezmoi.toml settings and template handling
 - [Secret Detection](./references/secret-detection.md) - Fail-fast secret detection and resolution
 
-**Official Documentation**: https://www.chezmoi.io/reference/
+**Official Documentation**: <https://www.chezmoi.io/reference/>
 
 **Version Compatibility**:
 
