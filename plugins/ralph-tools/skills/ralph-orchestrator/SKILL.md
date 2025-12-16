@@ -1,6 +1,6 @@
 ---
 name: ralph-orchestrator
-description: Autonomous AI agent orchestration using the Ralph Wiggum technique - keeps AI in a loop until tasks complete. Use when mentioning "ralph", "orchestrator", "long-running", "autonomous agent", "loop until done", "overnight coding", "evolutionary development", "multi-iteration", "hands-off automation".
+description: Autonomous AI agent orchestration using the Ralph Wiggum technique - keeps AI in a loop until tasks complete. Use when mentioning "ralph", "ralph wiggum", "orchestrator", "long-running", "autonomous agent", "loop until done", "overnight coding", "evolutionary development", "multi-iteration", "hands-off automation".
 allowed-tools: Bash, Read, Write, Glob, Grep
 ---
 
