@@ -1,43 +1,40 @@
 # dotfiles-tools
 
-Chezmoi dotfile management plugin for Claude Code with natural language workflows.
+Chezmoi dotfile backup, sync, and version control for cross-machine configuration management.
 
 ## Skills
 
-| Skill                 | Description                                             |
-| --------------------- | ------------------------------------------------------- |
-| **chezmoi-workflows** | Track, sync, push dotfiles via natural language prompts |
+| Skill                 | Description                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| **chezmoi-workflows** | Dotfile tracking, sync, push, templates, secret detection, migration |
 
 ## Installation
 
 ```bash
-/plugin marketplace add terrylica/cc-skills
-/plugin install dotfiles-tools@cc-skills
+/plugin install cc-skills@dotfiles-tools
 ```
 
-## Usage
+## Capabilities
 
-Skills are model-invoked — Claude automatically activates them based on context.
+- **10 Workflows**: Status, track, sync, push, setup, source directory, remote, conflicts, validation
+- **Template Support**: Go templates with OS/arch conditionals
+- **Secret Detection**: Fail-fast on detected API keys, tokens, credentials
+- **Multi-Account SSH**: Directory-based GitHub account selection
+- **Private Repos**: Recommended for dotfile backup
 
-**Trigger phrases:**
+## Configuration
 
-- "I edited .zshrc. Track the changes." → chezmoi-workflows
-- "Sync my dotfiles from remote." → chezmoi-workflows
-- "Push my dotfile changes to GitHub." → chezmoi-workflows
-- "Check my dotfile status." → chezmoi-workflows
+The skill guides users through their own chezmoi setup:
 
-## Key Features
-
-- **6 Prompt Patterns**: Track changes, sync, push, status, track new, resolve conflicts
-- **SLO Validation**: Automatic availability, correctness, observability checks
-- **Template Support**: Works with chezmoi `.tmpl` files
-- **Secret Detection**: Fail-fast on detected secrets
+- Source directory: configurable (default `~/.local/share/chezmoi`)
+- Remote: user's own GitHub repository (private recommended)
+- Settings: `~/.config/chezmoi/chezmoi.toml`
 
 ## Requirements
 
 - Chezmoi 2.66.1+ (`brew install chezmoi`)
 - Git 2.51.1+
-- Platform: macOS (primary), Linux (secondary)
+- Platform: macOS, Linux
 
 ## License
 
