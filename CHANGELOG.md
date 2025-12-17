@@ -1,3 +1,10 @@
+## [4.7.1](https://github.com/terrylica/cc-skills/compare/v4.7.0...v4.7.1) (2025-12-17)
+
+
+### Bug Fixes
+
+* **dotfiles-tools:** use decision:block JSON for Claude visibility ([a8f20c3](https://github.com/terrylica/cc-skills/commit/a8f20c3b819a4b1f3dfbb1b0c25d1131cba29595))
+
 # [4.7.0](https://github.com/terrylica/cc-skills/compare/v4.6.1...v4.7.0) (2025-12-17)
 
 
