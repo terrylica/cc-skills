@@ -1,3 +1,10 @@
+# [4.8.0](https://github.com/terrylica/cc-skills/compare/v4.7.2...v4.8.0) (2025-12-17)
+
+
+### Features
+
+* **itp-hooks:** add hooks-development skill for PostToolUse visibility patterns ([c1de3ac](https://github.com/terrylica/cc-skills/commit/c1de3acbd0fd2d96f22b4438d67108b8d8c2edda))
+
 ## [4.7.2](https://github.com/terrylica/cc-skills/compare/v4.7.1...v4.7.2) (2025-12-17)
 
 ## [4.7.1](https://github.com/terrylica/cc-skills/compare/v4.7.0...v4.7.1) (2025-12-17)
