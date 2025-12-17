@@ -21,23 +21,26 @@ Chezmoi dotfile backup, sync, and version control for cross-machine configuratio
 
 ### PostToolUse: Chezmoi Sync Reminder
 
-| Trigger       | Files                 | Behavior                         |
-| ------------- | --------------------- | -------------------------------- |
-| Edit \| Write | chezmoi-managed files | INSTRUCTION to invoke skill/sync |
+| Trigger       | Files                 | Behavior                   |
+| ------------- | --------------------- | -------------------------- |
+| Edit \| Write | chezmoi-managed files | Reminder visible to Claude |
 
-When you edit a file tracked by chezmoi, the hook emits:
+When you edit a file tracked by chezmoi, Claude receives:
 
 ```
-INSTRUCTION: ~/.zshrc is tracked by chezmoi. Use Skill(dotfiles-tools:chezmoi-workflows) to sync.
-Quick: chezmoi add ~/.zshrc && chezmoi git -- push
+[CHEZMOI] ~/.zshrc is tracked by chezmoi. Sync with: chezmoi add ~/.zshrc && chezmoi git -- push.
+Or use Skill(dotfiles-tools:chezmoi-workflows).
 ```
 
 **Installation Required**: Hooks must be installed to `~/.claude/settings.json`:
 
 ```bash
-/dotfiles:hooks install
+/dotfiles-tools:hooks install
 # Restart Claude Code for changes to take effect
 ```
+
+**Technical Note**: Uses `decision: block` JSON format for Claude visibility
+(see ADR: 2025-12-17-posttooluse-hook-visibility in cc-skills source).
 
 **Performance**: Uses 5-minute cache of managed files list.
 

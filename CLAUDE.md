@@ -120,7 +120,36 @@ cc-skills/
 | `plugins/itp/commands/go.md`      | Core workflow definition                             |
 | `plugins/itp-hooks/hooks/`        | PreToolUse/PostToolUse enforcement                   |
 
+## Hooks Development
+
+**Key Insight**: PostToolUse hook stdout is only visible to Claude when JSON contains `"decision": "block"`.
+
+| Output Format                  | Claude Visibility |
+| ------------------------------ | ----------------- |
+| Plain text                     | ❌ Not visible    |
+| JSON without `decision: block` | ❌ Not visible    |
+| JSON with `decision: block`    | ✓ Visible         |
+
+**Pattern for hooks that communicate with Claude**:
+
+```bash
+# PostToolUse hook - use JSON with decision:block
+jq -n --arg reason "[HOOK] Your message" '{decision: "block", reason: $reason}'
+exit 0
+```
+
+**Detailed Reference**: [PostToolUse Hook Visibility ADR](./docs/adr/2025-12-17-posttooluse-hook-visibility.md)
+
+**Related ADRs**:
+
+- [PreToolUse/PostToolUse Hooks](./docs/adr/2025-12-06-pretooluse-posttooluse-hooks.md) - Architecture
+- [ITP Hooks Settings Installer](./docs/adr/2025-12-07-itp-hooks-settings-installer.md) - Installation
+
 ## Recent Lessons Learned
+
+**2025-12-17: PostToolUse Hook Visibility** ([ADR](./docs/adr/2025-12-17-posttooluse-hook-visibility.md))
+
+Created chezmoi sync reminder hook that executed correctly but output wasn't visible to Claude. Debug logging confirmed hook ran. Root cause: PostToolUse hooks require `"decision": "block"` in JSON output for Claude to see the reason. Fix: Changed from plain text to JSON with `decision: block`.
 
 **2025-12-15: Plugin Discovery Issue** ([ADR](./docs/adr/2025-12-14-alpha-forge-worktree-management.md))
 
