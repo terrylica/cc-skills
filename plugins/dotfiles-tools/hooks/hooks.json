@@ -1,0 +1,17 @@
+{
+  "description": "Chezmoi sync reminders for dotfile edits",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/chezmoi-sync-reminder.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
