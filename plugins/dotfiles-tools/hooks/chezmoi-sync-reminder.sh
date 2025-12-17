@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # chezmoi-sync-reminder.sh - PostToolUse hook for chezmoi file change detection
-# Emits INSTRUCTION when editing chezmoi-tracked dotfiles for deterministic skill invocation
+# Prompts Claude to sync chezmoi-tracked dotfiles after edits
 #
 # Trigger: PostToolUse on Edit|Write
-# Output: Plain text INSTRUCTION to stdout (more deterministic than JSON additionalContext)
+# Output: JSON with decision:block to ensure Claude sees the reminder
+# Reference: https://github.com/anthropics/claude-code/issues/3983
 # Plugin: dotfiles-tools (cc-skills marketplace)
 
 set -euo pipefail
@@ -36,9 +37,11 @@ if grep -qxF "$ABSOLUTE_PATH" "$CACHE_FILE" 2>/dev/null; then
     # Get relative path for display
     REL_PATH="${ABSOLUTE_PATH/#$HOME/~}"
 
-    # Output plain text INSTRUCTION (more deterministic than JSON additionalContext)
-    # INSTRUCTION prefix signals Claude to treat this as a command, not suggestion
-    echo "INSTRUCTION: $REL_PATH is tracked by chezmoi. Use Skill(dotfiles-tools:chezmoi-workflows) to sync. Quick: chezmoi add $REL_PATH && chezmoi git -- push"
+    # Output JSON with decision:block - REQUIRED for Claude to see the reason
+    # See: https://github.com/anthropics/claude-code/issues/3983
+    jq -n \
+        --arg reason "[CHEZMOI] $REL_PATH is tracked by chezmoi. Sync with: chezmoi add $REL_PATH && chezmoi git -- push. Or use Skill(dotfiles-tools:chezmoi-workflows)." \
+        '{decision: "block", reason: $reason}'
 fi
 
 exit 0
