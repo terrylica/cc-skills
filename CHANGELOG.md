@@ -1,3 +1,10 @@
+# [4.7.0](https://github.com/terrylica/cc-skills/compare/v4.6.1...v4.7.0) (2025-12-17)
+
+
+### Features
+
+* **dotfiles-tools:** add /dotfiles:hooks installer command ([7e568e8](https://github.com/terrylica/cc-skills/commit/7e568e8d7318f3a032de6162cf430734cabe2295))
+
 ## [4.6.1](https://github.com/terrylica/cc-skills/compare/v4.6.0...v4.6.1) (2025-12-17)
 
 
