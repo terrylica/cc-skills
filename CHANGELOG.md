@@ -1,3 +1,10 @@
+# [4.6.0](https://github.com/terrylica/cc-skills/compare/v4.5.0...v4.6.0) (2025-12-17)
+
+
+### Features
+
+* **dotfiles-tools:** add chezmoi sync reminder PostToolUse hook ([96f9fbd](https://github.com/terrylica/cc-skills/commit/96f9fbd70ecc8b82e22cc1b3063333992f6a45da))
+
 # [4.5.0](https://github.com/terrylica/cc-skills/compare/v4.4.0...v4.5.0) (2025-12-16)
 
 
