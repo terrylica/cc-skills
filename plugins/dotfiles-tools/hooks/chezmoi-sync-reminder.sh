@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # chezmoi-sync-reminder.sh - PostToolUse hook for chezmoi file change detection
-# Emits reminder when editing chezmoi-tracked dotfiles
+# Emits INSTRUCTION when editing chezmoi-tracked dotfiles for deterministic skill invocation
 #
 # Trigger: PostToolUse on Edit|Write
-# Output: Non-blocking JSON reminder to stdout
+# Output: Plain text INSTRUCTION to stdout (more deterministic than JSON additionalContext)
 # Plugin: dotfiles-tools (cc-skills marketplace)
 
 set -euo pipefail
@@ -36,11 +36,9 @@ if grep -qxF "$ABSOLUTE_PATH" "$CACHE_FILE" 2>/dev/null; then
     # Get relative path for display
     REL_PATH="${ABSOLUTE_PATH/#$HOME/~}"
 
-    # Build reminder message
-    REMINDER="[CHEZMOI] $REL_PATH was modified.\\nSync with: Skill(dotfiles-tools:chezmoi-workflows)\\nQuick: chezmoi add $REL_PATH && chezmoi git -- push"
-
-    # Output to stdout (JSON escaped)
-    echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"${REMINDER}\"}}"
+    # Output plain text INSTRUCTION (more deterministic than JSON additionalContext)
+    # INSTRUCTION prefix signals Claude to treat this as a command, not suggestion
+    echo "INSTRUCTION: $REL_PATH is tracked by chezmoi. Use Skill(dotfiles-tools:chezmoi-workflows) to sync. Quick: chezmoi add $REL_PATH && chezmoi git -- push"
 fi
 
 exit 0
