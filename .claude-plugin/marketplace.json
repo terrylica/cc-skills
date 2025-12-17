@@ -119,6 +119,7 @@
         "sync",
         "git"
       ],
+      "hooks": "./plugins/dotfiles-tools/hooks/hooks.json",
       "strict": false
     },
     {
