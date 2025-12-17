@@ -8,20 +8,35 @@ Chezmoi dotfile backup, sync, and version control for cross-machine configuratio
 | --------------------- | -------------------------------------------------------------------- |
 | **chezmoi-workflows** | Dotfile tracking, sync, push, templates, secret detection, migration |
 
+## Commands
+
+| Command                     | Description                            |
+| --------------------------- | -------------------------------------- |
+| `/dotfiles:hooks install`   | Add chezmoi hook to settings.json      |
+| `/dotfiles:hooks uninstall` | Remove chezmoi hook from settings.json |
+| `/dotfiles:hooks status`    | Show current installation state        |
+| `/dotfiles:hooks restore`   | List/restore backups                   |
+
 ## Hooks
 
 ### PostToolUse: Chezmoi Sync Reminder
 
-| Trigger       | Files                 | Behavior                      |
-| ------------- | --------------------- | ----------------------------- |
-| Edit \| Write | chezmoi-managed files | Non-blocking reminder to sync |
+| Trigger       | Files                 | Behavior                         |
+| ------------- | --------------------- | -------------------------------- |
+| Edit \| Write | chezmoi-managed files | INSTRUCTION to invoke skill/sync |
 
-When you edit a file tracked by chezmoi, you'll see:
+When you edit a file tracked by chezmoi, the hook emits:
 
 ```
-[CHEZMOI] ~/.zshrc was modified.
-Sync with: Skill(dotfiles-tools:chezmoi-workflows)
+INSTRUCTION: ~/.zshrc is tracked by chezmoi. Use Skill(dotfiles-tools:chezmoi-workflows) to sync.
 Quick: chezmoi add ~/.zshrc && chezmoi git -- push
+```
+
+**Installation Required**: Hooks must be installed to `~/.claude/settings.json`:
+
+```bash
+/dotfiles:hooks install
+# Restart Claude Code for changes to take effect
 ```
 
 **Performance**: Uses 5-minute cache of managed files list.
