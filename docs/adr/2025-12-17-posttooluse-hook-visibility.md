@@ -109,3 +109,4 @@ exit 0
 - [GitHub Issue #3983 - PostToolUse hook JSON output not processed](https://github.com/anthropics/claude-code/issues/3983)
 - [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks)
 - Related: [PreToolUse/PostToolUse Hooks ADR](/docs/adr/2025-12-06-pretooluse-posttooluse-hooks.md)
+- **Skill**: [hooks-development](/plugins/itp-hooks/skills/hooks-development/SKILL.md) - Templates, debugging guide, and patterns
