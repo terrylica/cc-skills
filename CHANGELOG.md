@@ -1,3 +1,10 @@
+## [4.6.1](https://github.com/terrylica/cc-skills/compare/v4.6.0...v4.6.1) (2025-12-17)
+
+
+### Bug Fixes
+
+* **dotfiles-tools:** use INSTRUCTION prefix for deterministic skill invocation ([29de9e4](https://github.com/terrylica/cc-skills/commit/29de9e41272f243041e27bc9b6208df4f4a35528))
+
 # [4.6.0](https://github.com/terrylica/cc-skills/compare/v4.5.0...v4.6.0) (2025-12-17)
 
 
