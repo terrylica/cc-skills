@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![References](https://img.shields.io/badge/References-11-blue.svg)]()
-[![Scripts](https://img.shields.io/badge/Scripts-1-green.svg)]()
+[![Scripts](https://img.shields.io/badge/Scripts-2-green.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Meta-skill for creating effective Claude Code skills with TodoWrite templates, security practices, and structural patterns.
