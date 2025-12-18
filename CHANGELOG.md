@@ -1,3 +1,10 @@
+## [4.8.1](https://github.com/terrylica/cc-skills/compare/v4.8.0...v4.8.1) (2025-12-18)
+
+
+### Bug Fixes
+
+* **docs:** align documentation with actual plugin/skill counts and paths ([6a89dfc](https://github.com/terrylica/cc-skills/commit/6a89dfcf35169bf8167880b61a4ab443eb3dd168))
+
 # [4.8.0](https://github.com/terrylica/cc-skills/compare/v4.7.2...v4.8.0) (2025-12-17)
 
 
