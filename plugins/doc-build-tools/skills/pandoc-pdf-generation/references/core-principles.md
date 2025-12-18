@@ -31,28 +31,37 @@ When tooling or workflows exist in `~/.claude/`, always use the canonical implem
 ### Examples
 
 ✅ **Correct - Use Canonical Implementation**:
+
 ```bash
-# Use production-proven build script with proper LaTeX configuration
-~/.claude/skills/pandoc-pdf-generation/assets/build-pdf.sh input.md output.pdf
+# Invoke the skill which uses production-proven build script
+Skill(doc-build-tools:pandoc-pdf-generation)
+
+# Or use the bundled build script directly (relative to skill location)
+./assets/build-pdf.sh input.md output.pdf
 ```
 
 ❌ **Wrong - Ad-Hoc Pandoc Command**:
+
 ```bash
 # Missing critical LaTeX preamble (\raggedright), will break bullet lists
 pandoc input.md -o output.pdf --pdf-engine=xelatex --toc
 ```
 
 ✅ **Correct - Symlink for Project Use**:
+
 ```bash
 # Create symlink to canonical script (git-friendly)
-ln -s ~/.claude/skills/pandoc-pdf-generation/assets/build-pdf.sh build-pdf.sh
+# Marketplace plugins install to: ~/.claude/plugins/cache/cc-skills/plugins/doc-build-tools/
+PLUGIN_PATH=~/.claude/plugins/cache/cc-skills/plugins/doc-build-tools
+ln -s "$PLUGIN_PATH/skills/pandoc-pdf-generation/assets/build-pdf.sh" build-pdf.sh
 ./build-pdf.sh
 ```
 
 ❌ **Wrong - Copy-Paste and Modify**:
+
 ```bash
 # Creates divergence, misses future updates to canonical version
-cp ~/.claude/skills/.../build-pdf.sh ./my-custom-build.sh
+cp path/to/build-pdf.sh ./my-custom-build.sh
 # Edit my-custom-build.sh...
 ```
 
@@ -93,6 +102,7 @@ All generated artifacts (PDFs, compiled binaries, deployed services) must be ver
 ### Examples for PDF Generation
 
 **Automated Verification**:
+
 ```bash
 # Check for broken bullet rendering (expect 0 matches)
 pdftotext output.pdf - | grep -E '^\w.*: -'
@@ -105,6 +115,7 @@ pdfinfo output.pdf | grep -E "Pages|File size"
 ```
 
 **Visual Verification Checklist**:
+
 - [ ] Bullet lists render as bullets (•), not inline dashes
 - [ ] Tables don't overflow page margins
 - [ ] All hyperlinks are clickable (no bare URLs visible)
@@ -113,6 +124,7 @@ pdfinfo output.pdf | grep -E "Pages|File size"
 - [ ] Table of contents links work correctly
 
 **Verification Scripts**:
+
 - Project-level skill: `pdf-generation-verification`
 - Comprehensive automated checks + reporting
 - Integration with build workflows
@@ -120,6 +132,7 @@ pdfinfo output.pdf | grep -E "Pages|File size"
 ### Failure Mode
 
 **Presenting unverified work creates reactive debugging cycles**:
+
 1. User receives unverified output
 2. User discovers formatting issue
 3. Developer investigates root cause
@@ -163,22 +176,26 @@ When a production failure occurs (like PDF bullet rendering), document the root 
 **PDF Bullet Rendering Failure** (November 2025):
 
 **Root Cause Analysis Created**:
+
 - Skills documentation: `troubleshooting-pandoc.md` → "Bullet Lists Rendering as Inline Text" section
 - Detailed technical explanation of LaTeX justified text breaking list structures
 - Test case verification showing when it fails vs. works
 
 **Skills Documentation Updated**:
+
 - `pandoc-pdf-generation/SKILL.md` - Added verification requirements
 - `pdf-generation-verification/SKILL.md` - Added bullet rendering checks
 - `pdf-generation-verification/references/pdf-best-practices.md` - Added LaTeX preamble requirements
 
 **Global Memory Updated**:
+
 - CLAUDE.md - Links to pandoc-pdf-generation skill
 - Reference to this principles document
 
 ### Why This Matters
 
 **Documentation transforms individual failures into organizational knowledge**:
+
 - Future work automatically benefits from past learnings
 - Prevents entire classes of errors, not just specific bugs
 - New team members (or AI agents in new sessions) inherit knowledge
@@ -189,18 +206,21 @@ When a production failure occurs (like PDF bullet rendering), document the root 
 While these principles were learned through PDF generation failures, they apply universally:
 
 ### Canonical Implementations
+
 - Build scripts for any compiled language
 - Deployment automation scripts
 - Configuration management tools
 - Testing frameworks
 
 ### Verification Requirements
+
 - Compiled binaries (run test suites)
 - Deployed services (health checks)
 - Database migrations (validation queries)
 - API responses (contract testing)
 
 ### Root Cause Documentation
+
 - Production outages (postmortem documents)
 - Security vulnerabilities (security advisories)
 - Performance regressions (performance analysis reports)
@@ -208,10 +228,11 @@ While these principles were learned through PDF generation failures, they apply 
 
 ## Related Resources
 
-- **PDF Generation Skill**: `~/.claude../SKILL.md`
-- **Troubleshooting Guide**: `~/.claude../troubleshooting-pandoc.md`
+- **PDF Generation Skill**: [SKILL.md](../SKILL.md) - Main skill documentation
+- **Troubleshooting Guide**: [troubleshooting-pandoc.md](./troubleshooting-pandoc.md)
 - **PDF Verification Skill**: Project-level `.claude/skills/pdf-generation-verification/SKILL.md` (when available)
 - **Global Memory**: `~/.claude/CLAUDE.md` - Hub-and-spoke navigation
+- **Skill Invocation**: `Skill(doc-build-tools:pandoc-pdf-generation)`
 
 ## Summary
 

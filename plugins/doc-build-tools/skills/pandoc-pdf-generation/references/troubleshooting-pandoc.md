@@ -103,7 +103,7 @@ The canonical build script includes this automatically:
 \raggedright
 ```
 
-**Location:** `~/.claude/skills/pandoc-pdf-generation/assets/table-spacing-template.tex` (lines 89-90)
+**Location:** `./assets/table-spacing-template.tex` (lines 89-90, relative to skill directory)
 
 **Verification:**
 
@@ -121,7 +121,7 @@ Manual visual inspection:
 
 **Prevention:**
 
-1. ✅ Always use canonical build script: `~/.claude/skills/pandoc-pdf-generation/assets/build-pdf.sh`
+1. ✅ Always invoke the skill: `Skill(doc-build-tools:pandoc-pdf-generation)`
 2. ❌ Never create ad-hoc `pandoc` commands without LaTeX preamble
 3. ✅ Verify all PDFs before presenting to users
 

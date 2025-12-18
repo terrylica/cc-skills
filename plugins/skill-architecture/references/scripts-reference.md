@@ -1,287 +1,162 @@
 **Skill**: [Skill Architecture](../SKILL.md)
 
-# Marketplace Scripts Reference
+# Scripts Reference
+
+This document covers scripts available in the cc-skills repository for plugin and skill development.
 
 ## Script Naming Conventions
 
 **Recommended**: `snake_case` for all new scripts.
 
-| Language | Convention   | Example                                   |
-| -------- | ------------ | ----------------------------------------- |
-| Python   | `snake_case` | `audit_hardcodes.py`, `validate_links.py` |
-| Shell    | `snake_case` | `init_project.sh`, `create_org_config.sh` |
+| Language   | Convention   | Example                                     |
+| ---------- | ------------ | ------------------------------------------- |
+| Python     | `snake_case` | `validate_links.py`, `verify_compliance.sh` |
+| Shell      | `snake_case` | `init_project.sh`, `create_org_config.sh`   |
+| JavaScript | `kebab-case` | `validate-plugins.mjs`, `sync-versions.mjs` |
 
 **Note**: Some legacy scripts use `kebab-case` (e.g., `publish-to-pypi.sh`, `install-dependencies.sh`). These are preserved for backwards compatibility. New scripts should use `snake_case`.
 
-Guide to using skill-creator scripts from the Anthropic marketplace.
+## Repository-Level Scripts
 
-## Script Locations
+Located in `/scripts/` at repository root:
 
-**Do not copy scripts to user skills** - Reference marketplace location:
+### validate-plugins.mjs
 
-```
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/
-├── init_skill.py (303 lines)
-├── package_skill.py (110 lines)
-└── quick_validate.py (65 lines)
-```
-
-## init_skill.py - Scaffold New Skills
-
-Generates skill template with proper structure.
-
-### Usage
+**Purpose**: Validates marketplace.json entries against actual plugin directories.
 
 ```bash
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/init_skill.py <skill-name> --path <output-directory>
+node scripts/validate-plugins.mjs           # Validate only
+node scripts/validate-plugins.mjs --fix     # Show fix instructions
+node scripts/validate-plugins.mjs --strict  # Fail on warnings too
 ```
 
-### Example
+**Validation Checks**:
+
+- Plugin directories must have marketplace.json entry
+- Required fields: name, description, version, source, etc.
+- Referenced source/hooks paths must exist
+
+### sync-versions.mjs
+
+**Purpose**: Synchronizes version numbers across all manifest files.
 
 ```bash
-# Create new skill in user skills directory
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/init_skill.py pdf-editor --path ~/.claude/skills/
-
-# Creates:
-~/.claude/skills/pdf-editor/
-├── SKILL.md (template with TODOs)
-├── scripts/
-│   └── example_script.py
-├── references/
-│   └── example_reference.md
-└── assets/
-    └── example_asset.txt
+node scripts/sync-versions.mjs <version>
 ```
 
-### What It Generates
+Auto-discovers plugins from marketplace.json and updates:
 
-**SKILL.md template** with:
+- `plugin.json`
+- `package.json`
+- `.claude-plugin/plugin.json`
+- `.claude-plugin/marketplace.json` (all plugin entries)
 
-- Proper YAML frontmatter
-- TODO placeholders for customization
-- Sections: About, Capabilities, Usage
-- Reference links template
+### install-hooks.sh
 
-**Example directories**:
-
-- `scripts/example_script.py` - Delete or customize
-- `references/example_reference.md` - Delete or customize
-- `assets/example_asset.txt` - Delete or customize
-
-### After Initialization
-
-1. Delete unused example files
-2. Fill in TODO placeholders
-3. Add actual scripts/references/assets
-4. Update description with trigger keywords
-5. **Validate with quick_validate.py** (see below)
-
-## quick_validate.py - Validation Only (Recommended)
-
-**Primary validation tool** - validates skill structure WITHOUT creating zip files.
-
-### CLI Usage (Primary Use Case)
+**Purpose**: Installs pre-commit hooks for plugin validation.
 
 ```bash
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/quick_validate.py <path/to/skill-folder>
+./scripts/install-hooks.sh
 ```
 
-### Example
+Installs git pre-commit hook that runs `validate-plugins.mjs` before each commit.
+
+## Skill-Architecture Plugin Scripts
+
+Located in `plugins/skill-architecture/scripts/`:
+
+### validate_links.py
+
+**Purpose**: Validates internal markdown links for portability.
 
 ```bash
-# Validate documentation-standards skill
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/quick_validate.py ~/.claude/skills/documentation-standards/
-
-# Output: "Skill is valid!" or error messages
+uv run plugins/skill-architecture/scripts/validate_links.py <path>
 ```
 
-### Validation Checks
+Ensures links use relative paths (`./`, `../`) for cross-installation compatibility.
 
-**YAML Frontmatter**:
+### verify-compliance.sh
 
-- [ ] Required fields: `name`, `description`
-- [ ] Name format: lowercase, hyphens, numbers only (no underscores!)
-- [ ] Name length: ≤64 chars
-- [ ] Description: no angle brackets (< >)
-- [ ] Valid YAML syntax
-
-**File Structure**:
-
-- [ ] SKILL.md exists
-- [ ] Proper directory organization
-
-### When to Use
-
-- ✅ **Local development** - validate before committing
-- ✅ **Iterative updates** - check after edits
-- ✅ **CI/CD pipelines** - automated validation
-- ✅ **Pre-commit hooks** - prevent invalid commits
-
-### Python API Usage (Advanced)
-
-```python
-from quick_validate import validate_skill
-
-valid, message = validate_skill("/path/to/skill")
-if not valid:
-    print(f"Validation failed: {message}")
-else:
-    print("Skill valid!")
-```
-
-## package_skill.py - Validate + Package (For claude.ai/Desktop Only)
-
-Validates skill structure AND creates distributable zip.
-
-**⚠️ IMPORTANT**: This is **NOT needed for Claude Code CLI**. Only use for claude.ai (web) or Claude Desktop where skills are uploaded as ZIP files.
-
-**For Claude Code CLI**: Skills are directories in `~/.claude/skills/` - no zips needed!
-
-### Usage
+**Purpose**: Validates skill conformance to structural patterns.
 
 ```bash
-# Package to current directory
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.py <path/to/skill-folder>
-
-# Package to specific output directory
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.py <path/to/skill-folder> ./dist
+bash plugins/skill-architecture/scripts/verify-compliance.sh <path/to/skill>
 ```
 
-### Example
+**Validation Checks**:
+
+- S1: SKILL.md ≤200 lines (progressive disclosure)
+- S2: Proper reference structure
+- S3: Description format compliance
+
+## ITP Plugin Scripts
+
+Located in `plugins/itp/scripts/`:
+
+### manage-hooks.sh
+
+**Purpose**: Install/uninstall ITP hooks to settings.json.
 
 ```bash
-# Package pdf-editor skill
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.py ~/.claude/skills/pdf-editor/
-
-# Output: pdf-editor.zip
+bash plugins/itp/scripts/manage-hooks.sh install
+bash plugins/itp/scripts/manage-hooks.sh uninstall
+bash plugins/itp/scripts/manage-hooks.sh status
 ```
 
-### When to Use
+### install-dependencies.sh
 
-**Claude Code CLI** (our environment):
-
-- ❌ **NEVER** - Skills are directories in `~/.claude/skills/`, no zips needed
-- ✅ Use `quick_validate.py` for validation instead
-
-**claude.ai (web) or Claude Desktop**:
-
-- ✅ Preparing skills for upload via "Upload skill" button
-- ✅ Distributing skills to users on those platforms
-
-### What It Does
-
-1. **Validates** using same checks as quick_validate.py
-2. **Creates zip** file with complete skill structure
-3. **Outputs** to current directory or specified location
-
-If validation fails, no zip is created.
-
-### Output
-
-**Success**: Creates `<skill-name>.zip` with complete skill structure:
-
-```
-pdf-editor.zip
-└── pdf-editor/
-    ├── SKILL.md
-    ├── scripts/
-    ├── references/
-    └── assets/
-```
-
-**Distribution**: Share zip file with users for installation.
-
-## quick_validate.py - Standalone Validation
-
-Validation module used by package_skill.py.
-
-### Usage
-
-```python
-from quick_validate import validate_skill
-
-errors = validate_skill("/path/to/skill")
-if errors:
-    print(f"Validation failed: {errors}")
-else:
-    print("Skill valid!")
-```
-
-### Use Cases
-
-- **Pre-commit hook**: Validate before committing
-- **CI/CD**: Automated validation in pipelines
-- **Custom tooling**: Build on validation logic
-
-### Example Integration
+**Purpose**: Install ITP workflow dependencies.
 
 ```bash
-# Git pre-commit hook
-#!/bin/bash
-python3 plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/quick_validate.py ~/.claude/skills/my-skill
-if [ $? -ne 0 ]; then
-    echo "Skill validation failed! Fix errors before committing."
-    exit 1
-fi
+bash plugins/itp/scripts/install-dependencies.sh --check   # Check only
+bash plugins/itp/scripts/install-dependencies.sh --install # Install missing
 ```
 
-## Version Tracking
+## Skill-Specific Scripts
 
-**Current Versions** (as of 2025-11-07):
+### PyPI Publishing
 
-- Marketplace: `anthropic-agent-skills` commit `c74d647`
-- init_skill.py: 303 lines
-- package_skill.py: 110 lines
-- quick_validate.py: 65 lines
+Located in `plugins/itp/skills/pypi-doppler/scripts/`:
 
-**Update Process**: See [SYNC-TRACKING.md](./SYNC-TRACKING.md)
-
-## Future Enhancements (User Modifications)
-
-Potential improvements to marketplace scripts:
-
-### PEP 723 Inline Dependencies
-
-Add to script headers:
-
-```python
-# /// script
-# dependencies = ["pyyaml>=6.0"]
-# ///
+```bash
+bash plugins/itp/skills/pypi-doppler/scripts/publish-to-pypi.sh
 ```
 
-Enables `uv run init_skill.py` without separate dependency install.
+**LOCAL-ONLY** publishing with CI detection guards.
 
-### Absolute Path Output
+### Semantic Release
 
-Modify print statements:
+Located in `plugins/itp/skills/semantic-release/scripts/`:
 
-```python
-# Current: print(f"Created: {skill_dir}")
-# Better:  print(f"Created: {skill_dir.resolve()}")
+```bash
+bash plugins/itp/skills/semantic-release/scripts/init_project.sh
+bash plugins/itp/skills/semantic-release/scripts/init_user_config.sh
+bash plugins/itp/skills/semantic-release/scripts/create_org_config.sh
 ```
 
-Matches iTerm2 Cmd+click requirement.
+## Creating New Plugins
 
-### Terry's Template Integration
+Use the `/itp:plugin-add` command instead of manual scaffolding:
 
-Update SKILL.md template to include:
+```bash
+/itp:plugin-add my-new-plugin
+```
 
-- Absolute path convention note
-- Link to ~/.claude/CLAUDE.md
-- PEP 723 example for scripts/
-- Reference to specifications/ for OpenAPI
+This command:
+
+1. Creates plugin directory structure
+2. Registers in marketplace.json
+3. Creates ADR and design spec
+4. Sets up validation
 
 ## Troubleshooting
 
-### "No module named 'yaml'"
+### "Plugin not found in marketplace"
 
-Install PyYAML:
+Run validation to identify unregistered plugins:
 
 ```bash
-pip install pyyaml
-# Or with uv
-uv pip install pyyaml
+node scripts/validate-plugins.mjs --fix
 ```
 
 ### "Permission denied"
@@ -289,14 +164,14 @@ uv pip install pyyaml
 Make scripts executable:
 
 ```bash
-chmod +x plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/*.py
+chmod +x scripts/*.sh
+chmod +x plugins/*/scripts/*.sh
 ```
 
-### "Skill directory already exists"
+### Pre-commit hook not running
 
-init_skill.py won't overwrite existing directories:
+Reinstall hooks:
 
 ```bash
-# Remove or rename existing directory first
-mv ~/.claude/skills/pdf-editor ~/.claude/skills/pdf-editor.backup
+./scripts/install-hooks.sh
 ```

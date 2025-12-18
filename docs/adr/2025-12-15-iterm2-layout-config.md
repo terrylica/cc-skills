@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: implemented
 date: 2025-12-15
 decision-maker: <user>ca
 consulted: [CurrentStateAnalysis, IndustryPatterns, RealWorldExamples, Plan]
