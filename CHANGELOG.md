@@ -1,3 +1,5 @@
+## [4.8.2](https://github.com/terrylica/cc-skills/compare/v4.8.1...v4.8.2) (2025-12-18)
+
 ## [4.8.1](https://github.com/terrylica/cc-skills/compare/v4.8.0...v4.8.1) (2025-12-18)
 
 
