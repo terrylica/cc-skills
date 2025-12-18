@@ -185,6 +185,24 @@ semantic-release analyzes commit messages to determine version bumps:
 - `BREAKING CHANGE:` or `feat!:` → MAJOR version bump (0.1.0 → 1.0.0)
 - `docs:`, `chore:`, `style:`, `refactor:`, `perf:`, `test:` → No version bump (by default)
 
+### Release Notes Visibility (Important)
+
+**Warning**: The `@semantic-release/release-notes-generator` (Angular preset) only includes these types in release notes:
+
+- `feat:` → **Features** section
+- `fix:` → **Bug Fixes** section
+- `perf:` → **Performance Improvements** section
+
+Other types (`docs:`, `chore:`, `refactor:`, etc.) trigger releases when configured but **do NOT appear in release notes**.
+
+**Recommendation**: For documentation changes that should be visible in release notes, use:
+
+```
+fix(docs): description of documentation improvement
+```
+
+This ensures the commit appears in the "Bug Fixes" section while still being semantically accurate (fixing documentation gaps is a fix).
+
 ### Marketplace Plugin Configuration (Always Bump)
 
 For Claude Code marketplace plugins, **every change requires a version bump** for users to receive updates.
