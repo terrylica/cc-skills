@@ -97,6 +97,36 @@ run = "cargo test"
 
 **Note**: `env` values are NOT passed to dependency tasks.
 
+### GitHub Token Verification Task
+
+For multi-account GitHub setups, add a verification task:
+
+```toml
+[tasks._verify-gh-auth]
+description = "Verify GitHub token matches expected account"
+hide = true  # Hidden helper task
+run = """
+expected="${GH_ACCOUNT:-}"
+if [ -z "$expected" ]; then
+  echo "GH_ACCOUNT not set - skipping verification"
+  exit 0
+fi
+actual=$(gh api user --jq '.login' 2>/dev/null || echo "")
+if [ "$actual" != "$expected" ]; then
+  echo "ERROR: GH_TOKEN authenticates as '$actual', expected '$expected'"
+  exit 1
+fi
+echo "✓ GitHub auth verified: $actual"
+"""
+
+[tasks.release]
+description = "Create semantic release"
+depends = ["_verify-gh-auth"]  # Verify before release
+run = "npx semantic-release --no-ci"
+```
+
+See [`mise-configuration` skill](../mise-configuration/SKILL.md#github-token-multi-account-patterns) for GH_TOKEN setup.
+
 ### Multi-Command Tasks
 
 ```toml

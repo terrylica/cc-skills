@@ -73,6 +73,21 @@ gh auth login
 
 **This is the minimum manual intervention possible** for local semantic-release with GitHub plugin functionality.
 
+### Multi-Account Authentication via mise [env]
+
+For multi-account GitHub setups, use mise `[env]` to set per-directory GH_TOKEN:
+
+```toml
+# ~/your-project/.mise.toml
+[env]
+GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-youraccountname') | trim }}"
+GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-youraccountname') | trim }}"
+```
+
+This overrides gh CLI's global authentication, ensuring semantic-release uses the correct account for each directory.
+
+See the [`mise-configuration` skill](../mise-configuration/SKILL.md#github-token-multi-account-patterns) for complete setup.
+
 ### Critical Standard: No Testing/Linting in GitHub Actions
 
 **This standard applies to ALL GitHub Actions workflows, not just semantic-release.**

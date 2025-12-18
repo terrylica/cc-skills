@@ -51,7 +51,7 @@ doppler secrets set PYPI_TOKEN="pypi-AgEI..." \
 
 **Important**: CLI doesn't support `--note`. Add notes via dashboard:
 
-1. https://dashboard.doppler.com
+1. <https://dashboard.doppler.com>
 2. Navigate: PROJECT → CONFIG → SECRET_NAME
 3. Edit → Add descriptive note
 
@@ -108,13 +108,31 @@ doppler run --project claude-config --config prd -- \
 After validation, document the usage pattern for the user:
 
 ```bash
-# Pattern 1: Doppler run (recommended)
+# Pattern 1: Doppler run (recommended for CI/scripts)
 doppler run --project PROJECT --config CONFIG -- COMMAND
 
 # Pattern 2: Manual export (for troubleshooting)
 export SECRET_NAME=$(doppler secrets get SECRET_NAME \
   --project PROJECT --config CONFIG --plain)
 ```
+
+### Step 5b: mise [env] Integration (Recommended for Local Development)
+
+For multi-account GitHub setups or per-directory credential needs, integrate Doppler secrets with mise `[env]`:
+
+```toml
+# .mise.toml
+[env]
+# Option A: Direct Doppler CLI fetch (slower, always fresh)
+GH_TOKEN = "{{ exec(command='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
+
+# Option B: Cache for performance (1 hour cache)
+GH_TOKEN = "{{ cache(key='gh_token', duration='1h', run='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
+```
+
+**Why mise [env]?** Doppler `doppler run` is session-scoped; mise `[env]` provides directory-scoped credentials that persist across commands.
+
+See [`mise-configuration` skill](../../../itp/skills/mise-configuration/SKILL.md#github-token-multi-account-patterns) for complete patterns.
 
 ## Common Patterns
 
@@ -155,6 +173,6 @@ done
 
 ## Reference
 
-- Doppler docs: https://docs.doppler.com/docs
+- Doppler docs: <https://docs.doppler.com/docs>
 - CLI install: `brew install dopplerhq/cli/doppler`
 - See [doppler-patterns.md](./references/doppler-patterns.md) for comprehensive patterns

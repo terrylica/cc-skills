@@ -235,6 +235,68 @@ min_version = "2024.9.5"
 6. **Test without mise** - verify script works using defaults
 7. **Test with mise** - verify activated shell uses `.mise.toml` values
 
+## GitHub Token Multi-Account Patterns
+
+For multi-account GitHub setups, mise `[env]` provides per-directory token configuration that overrides gh CLI's global authentication.
+
+### Token Storage
+
+Store tokens in a centralized, secure location:
+
+```bash
+mkdir -p ~/.claude/.secrets
+chmod 700 ~/.claude/.secrets
+
+# Create token files (one per account)
+gh auth login  # authenticate as account
+gh auth token > ~/.claude/.secrets/gh-token-accountname
+chmod 600 ~/.claude/.secrets/gh-token-*
+```
+
+### Per-Directory Configuration
+
+```toml
+# ~/.claude/.mise.toml (terrylica account)
+[env]
+GH_TOKEN = "{{ read_file(path=config_root ~ '/.secrets/gh-token-terrylica') | trim }}"
+GITHUB_TOKEN = "{{ read_file(path=config_root ~ '/.secrets/gh-token-terrylica') | trim }}"
+GH_ACCOUNT = "terrylica"  # For human reference only
+```
+
+```toml
+# ~/eon/.mise.toml (terrylica account - different directory)
+[env]
+GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terrylica') | trim }}"
+GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terrylica') | trim }}"
+GH_ACCOUNT = "terrylica"
+```
+
+### Alternative: 1Password Integration
+
+For enhanced security with automatic token rotation:
+
+```toml
+[env]
+GH_TOKEN = "{{ op_read('op://Engineering/GitHub Token/credential') }}"
+```
+
+With caching for performance:
+
+```toml
+[env]
+GH_TOKEN = "{{ cache(key='gh_token', duration='1h', run='op read op://Engineering/GitHub Token/credential') }}"
+```
+
+### Verification
+
+```bash
+for dir in ~/.claude ~/eon ~/own ~/scripts ~/459ecs; do
+  cd "$dir" && eval "$(mise hook-env -s bash)" && echo "$dir → $GH_ACCOUNT"
+done
+```
+
+**ADR Reference**: [GitHub Multi-Account Authentication](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md)
+
 ## Anti-Patterns
 
 | Anti-Pattern                | Why                    | Instead                                    |

@@ -79,6 +79,36 @@ For detailed information, see:
 
 ---
 
+## Using mise [env] for Local Development (Recommended)
+
+For local development, mise `[env]` provides a simpler alternative to `doppler run`:
+
+```toml
+# .mise.toml
+[env]
+# Fetch from Doppler with caching for performance
+PYPI_TOKEN = "{{ cache(key='pypi_token', duration='1h', run='doppler secrets get PYPI_TOKEN --project claude-config --config prd --plain') }}"
+
+# For GitHub multi-account setups
+GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-accountname') | trim }}"
+```
+
+**When to use mise [env]:**
+
+- Per-directory credential configuration
+- Multi-account GitHub setups
+- Credentials that persist across commands (not session-scoped)
+
+**When to use doppler run:**
+
+- CI/CD pipelines
+- Single-command credential scope
+- When you want credentials auto-cleared after command
+
+See [`mise-configuration` skill](../../../itp/skills/mise-configuration/SKILL.md) for complete patterns.
+
+---
+
 ## PyPI Publishing Policy
 
 <!-- ADR: 2025-12-10-clickhouse-skill-documentation-gaps -->
