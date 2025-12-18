@@ -1,3 +1,10 @@
+## [4.8.3](https://github.com/terrylica/cc-skills/compare/v4.8.2...v4.8.3) (2025-12-18)
+
+
+### Bug Fixes
+
+* **docs:** add release notes visibility warning to semantic-release skill ([3a3b7fd](https://github.com/terrylica/cc-skills/commit/3a3b7fdcd82587811dac44ec376d78a8e9ff0c61))
+
 ## [4.8.2](https://github.com/terrylica/cc-skills/compare/v4.8.1...v4.8.2) (2025-12-18)
 
 ## [4.8.1](https://github.com/terrylica/cc-skills/compare/v4.8.0...v4.8.1) (2025-12-18)
