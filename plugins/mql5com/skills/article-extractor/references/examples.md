@@ -23,14 +23,15 @@ What would you like to extract?
 
 ## Example 2: Direct URL (Valid)
 
-**User Input**: "Extract https://www.mql5.com/en/articles/19625"
+**User Input**: "Extract <https://www.mql5.com/en/articles/19625>"
 
 **Skill Actions**:
 
 1. Recognizes valid mql5.com URL
 1. Executes single extraction:
+
    ```bash
-   cd /Users/terryli/eon/mql5
+   cd $HOME/eon/mql5
    .venv/bin/python mql5_extract.py single https://www.mql5.com/en/articles/19625
    ```
 
@@ -44,7 +45,7 @@ What would you like to extract?
    Word count: 2,435
    Code blocks: 10
    Images: 9
-   Output: /Users/terryli/eon/mql5/mql5_articles/29210372/article_19625/
+   Output: $HOME/eon/mql5/mql5_articles/29210372/article_19625/
 ```
 
 ---
@@ -100,7 +101,7 @@ Confirm? (Or use --max-articles 5 to test first)
 **Skill Executes**:
 
 ```bash
-cd /Users/terryli/eon/mql5
+cd $HOME/eon/mql5
 .venv/bin/python mql5_extract.py discover-and-extract --user-id 29210372
 ```
 
@@ -113,7 +114,7 @@ cd /Users/terryli/eon/mql5
 **Skill Actions**:
 
 ```bash
-cd /Users/terryli/eon/mql5
+cd $HOME/eon/mql5
 .venv/bin/python mql5_extract.py discover-and-extract --user-id jslopes --max-articles 3
 ```
 
@@ -127,7 +128,7 @@ Limited to 3 articles
 
 ✅ Batch processing completed
 Total: 3, Successful: 3, Failed: 0
-Output: /Users/terryli/eon/mql5/mql5_articles/jslopes/
+Output: $HOME/eon/mql5/mql5_articles/jslopes/
 ```
 
 ---
@@ -185,7 +186,7 @@ head -3 /tmp/mql5_urls.txt
 **Skill Executes**:
 
 ```bash
-cd /Users/terryli/eon/mql5
+cd $HOME/eon/mql5
 .venv/bin/python mql5_extract.py batch /tmp/mql5_urls.txt
 ```
 
@@ -235,7 +236,7 @@ Resume command:
 ```
 
 ```bash
-cd /Users/terryli/eon/mql5
+cd $HOME/eon/mql5
 .venv/bin/python mql5_extract.py batch [original_file] --resume
 ```
 
@@ -254,7 +255,7 @@ Checkpoint file: .extraction_checkpoint.json
 **Skill Executes**:
 
 ```bash
-cd /Users/terryli/eon/mql5
+cd $HOME/eon/mql5
 .venv/bin/python mql5_extract.py --output /tmp/test_output single https://www.mql5.com/en/articles/19625
 ```
 

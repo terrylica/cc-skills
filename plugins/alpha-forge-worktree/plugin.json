@@ -1,9 +1,0 @@
-{
-  "name": "alpha-forge-worktree",
-  "version": "1.0.0",
-  "description": "Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection",
-  "author": {
-    "name": "Terry Li",
-    "url": "https://github.com/terrylica"
-  }
-}

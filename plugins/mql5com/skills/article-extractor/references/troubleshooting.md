@@ -93,7 +93,7 @@ If discovery would extract >10 articles, confirm with user before proceeding.
 
 ## Security Notes
 
-- Only executes within `/Users/terryli/eon/mql5`
+- Only executes within `$HOME/eon/mql5`
 - Uses virtual environment `.venv/bin/python`
 - No network tools allowed (uses Playwright internally)
 - Rate limiting enforced (2s between articles)

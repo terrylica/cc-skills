@@ -46,7 +46,7 @@
 **Command**:
 
 ```bash
-cd /Users/terryli/eon/mql5
+cd $HOME/eon/mql5
 curl -s "https://www.mql5.com/en/docs/python_metatrader5/mt5copyticksfrom_py" > page.html
 .venv/bin/python scripts/official_docs_extractor.py page.html "URL"
 ```
@@ -62,7 +62,7 @@ curl -s "https://www.mql5.com/en/docs/python_metatrader5/mt5copyticksfrom_py" > 
 **Command**:
 
 ```bash
-cd /Users/terryli/eon/mql5
+cd $HOME/eon/mql5
 ./scripts/extract_all_python_docs.sh
 ```
 
@@ -81,6 +81,6 @@ cd /Users/terryli/eon/mql5
 
 ### User Collections
 
-- **Primary Source**: https://www.mql5.com/en/users/29210372/publications
+- **Primary Source**: <https://www.mql5.com/en/users/29210372/publications>
 - **Author**: Allan Munene Mutiiria (77 technical articles)
 - **Content Type**: MQL5 trading strategy implementations

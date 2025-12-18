@@ -1,5 +1,5 @@
 ---
-status: implemented
+status: accepted
 date: 2025-12-06
 decision-maker: Terry Li
 consulted: [Plan-Agent]

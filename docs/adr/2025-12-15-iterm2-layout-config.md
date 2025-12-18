@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: implemented
 date: 2025-12-15
 decision-maker: Terry Li
 consulted: [CurrentStateAnalysis, IndustryPatterns, RealWorldExamples, Plan]

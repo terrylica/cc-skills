@@ -187,5 +187,5 @@ graph { label: "🏗️ Skill Architecture"; flow: east; }
 
 ## References
 
-- [Plugin Dev Skill Development](/plugins/plugin-dev/skills/skill-development/SKILL.md) - Anthropic's official guidelines
+- Anthropic's official skill development guidelines (external to this repository)
 - [devops-tools plugin](/plugins/devops-tools/) - Target plugin location

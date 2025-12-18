@@ -4,23 +4,27 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 
 ## Plugins
 
-| Plugin                                                  | Description                                                                                                      | Category     |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------ |
-| [skill-architecture](./plugins/skill-architecture/)     | Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns | development  |
-| [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release          | productivity |
-| [gh-tools](./plugins/gh-tools/)                         | GitHub workflow automation with intelligent GFM link validation for PRs                                          | development  |
-| [link-validator](./plugins/link-validator/)             | Validate markdown link portability in skills and plugins (relative paths for cross-installation compatibility)   | development  |
-| [devops-tools](./plugins/devops-tools/)                 | Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery                | devops       |
-| [dotfiles-tools](./plugins/dotfiles-tools/)             | Chezmoi dotfile management via natural language workflows                                                        | utilities    |
-| [doc-build-tools](./plugins/doc-build-tools/)           | LaTeX compilation, Pandoc PDF generation, environment setup, and table generation                                | documents    |
-| [doc-tools](./plugins/doc-tools/)                       | ASCII diagram validation and markdown documentation standards                                                    | documents    |
-| [quality-tools](./plugins/quality-tools/)               | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                          | quality      |
-| [productivity-tools](./plugins/productivity-tools/)     | Slash command generation for Claude Code                                                                         | productivity |
-| [mql5-tools](./plugins/mql5-tools/)                     | MQL5 indicator development patterns for MetaTrader 5                                                             | trading      |
-| [mql5com](./plugins/mql5com/)                           | MQL5.com operations: article extraction, Python workspace, log reading                                           | trading      |
-| [notification-tools](./plugins/notification-tools/)     | Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring                                | utilities    |
-| [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement: ASCII art blocking, graph-easy reminders                                               | enforcement  |
-| [alpha-forge-worktree](./plugins/alpha-forge-worktree/) | Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection                   | trading      |
+| Plugin                                                    | Description                                                                                                       | Category     |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------ |
+| [skill-architecture](./plugins/skill-architecture/)       | Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns  | development  |
+| [itp](./plugins/itp/)                                     | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release           | productivity |
+| [gh-tools](./plugins/gh-tools/)                           | GitHub workflow automation with intelligent GFM link validation for PRs                                           | development  |
+| [link-validator](./plugins/link-validator/)               | Validate markdown link portability in skills and plugins (relative paths for cross-installation compatibility)    | development  |
+| [devops-tools](./plugins/devops-tools/)                   | Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery                 | devops       |
+| [dotfiles-tools](./plugins/dotfiles-tools/)               | Chezmoi dotfile management via natural language workflows                                                         | utilities    |
+| [doc-build-tools](./plugins/doc-build-tools/)             | LaTeX compilation, Pandoc PDF generation, environment setup, and table generation                                 | documents    |
+| [doc-tools](./plugins/doc-tools/)                         | ASCII diagram validation and markdown documentation standards                                                     | documents    |
+| [quality-tools](./plugins/quality-tools/)                 | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                           | quality      |
+| [productivity-tools](./plugins/productivity-tools/)       | Slash command generation for Claude Code                                                                          | productivity |
+| [mql5-tools](./plugins/mql5-tools/)                       | MQL5 indicator development patterns for MetaTrader 5                                                              | trading      |
+| [mql5com](./plugins/mql5com/)                             | MQL5.com operations: article extraction, Python workspace, log reading                                            | trading      |
+| [notification-tools](./plugins/notification-tools/)       | Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring                                 | utilities    |
+| [itp-hooks](./plugins/itp-hooks/)                         | ITP workflow enforcement: ASCII art blocking, graph-easy reminders                                                | enforcement  |
+| [alpha-forge-worktree](./plugins/alpha-forge-worktree/)   | Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection                    | development  |
+| [link-checker](./plugins/link-checker/)                   | Universal link validation at session end: lychee broken link detection, path policy linting, ULID correlation IDs | quality      |
+| [git-account-validator](./plugins/git-account-validator/) | Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config         | enforcement  |
+| [ralph-tools](./plugins/ralph-tools/)                     | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete                    | automation   |
+| [iterm2-layout-config](./plugins/iterm2-layout-config/)   | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code           | development  |
 
 ## Terminology
 
@@ -99,7 +103,7 @@ Marketplace plugin commands display with the `plugin:command` format:
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (14 plugins)
+│   └── marketplace.json     # Plugin registry (19 plugins)
 ├── plugins/
 │   ├── skill-architecture/  # Meta-skill for creating skills
 │   ├── itp/                 # ADR-driven development workflow (10 bundled skills)

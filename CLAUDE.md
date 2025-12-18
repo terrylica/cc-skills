@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-Claude Code skills marketplace: **17 plugins** with **38 skills** for ADR-driven development workflows.
+Claude Code skills marketplace: **19 plugins** with **43 skills** for ADR-driven development workflows.
 
 **Key Documentation**:
 
@@ -78,8 +78,8 @@ node scripts/validate-plugins.mjs --strict  # Fail on warnings too
 ```
 cc-skills/
 ├── .claude-plugin/
-│   └── marketplace.json    ← Plugin registry (17 entries)
-├── plugins/                ← 17 marketplace plugins
+│   └── marketplace.json    ← Plugin registry (19 entries)
+├── plugins/                ← 19 marketplace plugins
 │   ├── itp/                ← Core workflow
 │   ├── skill-architecture/ ← Meta-skill for skill creation
 │   ├── alpha-forge-worktree/ ← Git worktree management (NEW)

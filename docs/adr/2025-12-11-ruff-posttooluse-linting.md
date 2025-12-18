@@ -176,7 +176,7 @@ graph { label: "🏗️ PostToolUse Hook Architecture"; flow: south; }
 ## Related Decisions
 
 - [ADR: Shell Command Portability](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
-- [ADR: GitHub Actions No Testing](/docs/adr/2025-11-21-github-actions-no-testing-linting.md)
+- GitHub Actions No Testing Policy (documented in global `~/.claude/CLAUDE.md`)
 
 ## Notes
 

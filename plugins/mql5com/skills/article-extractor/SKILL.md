@@ -12,7 +12,7 @@ Extract technical trading articles from mql5.com for training data collection. *
 
 **VALID requests:**
 
-- "Extract this mql5.com article: https://www.mql5.com/en/articles/19625"
+- "Extract this mql5.com article: <https://www.mql5.com/en/articles/19625>"
 - "Get all articles from MQL5 user 29210372"
 - "Download trading articles from mql5.com"
 - "Extract 5 MQL5 articles for testing"
@@ -27,12 +27,12 @@ If user requests non-mql5.com extraction, respond: "This skill extracts articles
 
 ## Repository Location
 
-Working directory: `/Users/terryli/eon/mql5`
+Working directory: `$HOME/eon/mql5` (adjust path for your environment)
 
 Always execute commands from this directory:
 
 ```bash
-cd /Users/terryli/eon/mql5
+cd "$HOME/eon/mql5"
 ```
 
 ## Valid Input Types
