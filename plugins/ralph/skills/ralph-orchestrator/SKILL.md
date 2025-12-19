@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Write, Glob, Grep
 
 ## Overview
 
+**IMPORTANT:** This skill teaches about the **Ralph Orchestrator CLI tool** (`ralph run` command), which is a standalone tool separate from the Ralph Plugin for Claude Code (`/ralph:*` commands). If you need to enable autonomous loop mode within Claude Code itself, use the `/ralph:start` command instead.
+
 Ralph Orchestrator is the production implementation of the **Ralph Wiggum technique** - a deceptively simple yet powerful approach to autonomous AI development. At its core, Ralph embodies a single idea: put an AI agent in a loop and let it iterate until the task is done.
 
 The technique was created by [Geoffrey Huntley](https://ghuntley.com/ralph/) and is named after Ralph Wiggum's famous quote: "Me fail English? That's unpossible!" Ralph embraces **deterministic failure in an undeterministic world** - it fails predictably but in ways you can address.
