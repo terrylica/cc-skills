@@ -127,6 +127,8 @@ run = "npx semantic-release --no-ci"
 
 See [`mise-configuration` skill](../mise-configuration/SKILL.md#github-token-multi-account-patterns) for GH_TOKEN setup.
 
+> **SSH ControlMaster Warning**: If using multi-account SSH, ensure `ControlMaster no` is set for GitHub hosts in `~/.ssh/config`. Cached connections can authenticate with the wrong account.
+
 ### Multi-Command Tasks
 
 ```toml

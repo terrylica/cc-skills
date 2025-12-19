@@ -235,7 +235,7 @@ min_version = "2024.9.5"
 6. **Test without mise** - verify script works using defaults
 7. **Test with mise** - verify activated shell uses `.mise.toml` values
 
-## GitHub Token Multi-Account Patterns
+## GitHub Token Multi-Account Patterns (MANDATORY for Multi-Account Setups)
 
 For multi-account GitHub setups, mise `[env]` provides per-directory token configuration that overrides gh CLI's global authentication.
 
@@ -271,6 +271,15 @@ GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terryli
 GH_ACCOUNT = "terrylica"
 ```
 
+### Variable Naming Convention
+
+| Variable       | Usage Context                                 | Example                     |
+| -------------- | --------------------------------------------- | --------------------------- |
+| `GH_TOKEN`     | mise [env], Doppler, verification tasks       | `.mise.toml`, shell scripts |
+| `GITHUB_TOKEN` | npm scripts, GitHub Actions, semantic-release | `package.json`, workflows   |
+
+**Rule**: Always set BOTH variables in mise [env] pointing to the same token file. Different tools check different variable names.
+
 ### Alternative: 1Password Integration
 
 For enhanced security with automatic token rotation:
@@ -296,6 +305,8 @@ done
 ```
 
 **ADR Reference**: [GitHub Multi-Account Authentication](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md)
+
+> **SSH ControlMaster Warning**: If using multi-account SSH, ensure `ControlMaster no` is set for GitHub hosts in `~/.ssh/config`. Cached connections can authenticate with the wrong account. See [semantic-release authentication](../semantic-release/references/authentication.md#controlmaster-cache-issues) for troubleshooting.
 
 ## Anti-Patterns
 
