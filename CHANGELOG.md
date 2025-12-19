@@ -1,3 +1,10 @@
+## [5.1.4](https://github.com/terrylica/cc-skills/compare/v5.1.3...v5.1.4) (2025-12-19)
+
+
+### Bug Fixes
+
+* **ralph:** use correct Stop hook schema per Claude Code docs ([5a1e2db](https://github.com/terrylica/cc-skills/commit/5a1e2dbe095c9e7c6dcae463617a09da72c515ad))
+
 ## [5.1.3](https://github.com/terrylica/cc-skills/compare/v5.1.2...v5.1.3) (2025-12-19)
 
 
