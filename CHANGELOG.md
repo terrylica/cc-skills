@@ -1,3 +1,10 @@
+## [5.1.3](https://github.com/terrylica/cc-skills/compare/v5.1.2...v5.1.3) (2025-12-19)
+
+
+### Bug Fixes
+
+* **git-account-validator:** change default to warn-only for network issues ([a139c06](https://github.com/terrylica/cc-skills/commit/a139c06689509588719d7222659ac601fa02da7c))
+
 ## [5.1.2](https://github.com/terrylica/cc-skills/compare/v5.1.1...v5.1.2) (2025-12-19)
 
 
