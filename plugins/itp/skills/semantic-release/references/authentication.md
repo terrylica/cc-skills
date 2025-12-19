@@ -167,7 +167,30 @@ ssh -O exit git@github.com 2>/dev/null
 ssh -T git@github.com  # Re-test after killing cache
 ```
 
-**Multi-Account Users**: If SSH authenticates as the wrong account, your SSH ControlMaster may be caching a stale connection. See [Local Release Workflow - ControlMaster Issues](./local-release-workflow.md#controlmaster-cache-issues) for detailed troubleshooting.
+**Multi-Account Users**: If SSH authenticates as the wrong account, your SSH ControlMaster may be caching a stale connection. See [ControlMaster Cache Issues](#controlmaster-cache-issues) below for detailed troubleshooting.
+
+### ControlMaster Cache Issues
+
+For multi-account GitHub setups, SSH ControlMaster can cache connections with stale authentication from a previous account. Even if account alignment checks pass, cached connections can cause "Repository not found" errors.
+
+**Symptoms**:
+- `ssh -T git@github.com` shows correct account
+- `gh auth status` shows correct account
+- Git operations still fail with "Repository not found"
+
+**Quick fix** (kill cached connections):
+
+```bash
+ssh -O exit git@github.com 2>/dev/null || pkill -f 'ssh.*github.com'
+```
+
+**Prevention** (recommended for multi-account setups):
+
+```sshconfig
+# ~/.ssh/config - Disable ControlMaster for GitHub
+Host github.com
+    ControlMaster no
+```
 
 ### "No GitHub token specified"
 

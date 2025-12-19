@@ -1,6 +1,6 @@
 ---
 name: hooks-development
-description: Claude Code hooks development guide covering PostToolUse visibility patterns, PreToolUse guards, and debugging. Use when creating hooks, troubleshooting hook output visibility, or when user mentions decision block, hook JSON output, or Claude Code hooks.
+description: Claude Code hooks development guide covering all 10 hook events lifecycle, PostToolUse visibility patterns, PreToolUse guards, Stop hook schema, and debugging. Use when creating hooks, troubleshooting hook output, understanding hook lifecycle, or when user mentions decision block, hook JSON output, stop hook, or Claude Code hooks.
 ---
 
 # Hooks Development
@@ -97,6 +97,7 @@ exit 0
 
 ## Reference Documentation
 
+- [Lifecycle Reference](./references/lifecycle-reference.md) - All 10 hook events, diagrams, use cases, configuration pitfalls
 - [Visibility Patterns](./references/visibility-patterns.md) - Full exit code and JSON schema details
 - [Hook Templates](./references/hook-templates.md) - Copy-paste templates for common patterns
 - [Debugging Guide](./references/debugging-guide.md) - Troubleshooting invisible output

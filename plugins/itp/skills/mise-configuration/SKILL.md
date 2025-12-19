@@ -235,7 +235,7 @@ min_version = "2024.9.5"
 6. **Test without mise** - verify script works using defaults
 7. **Test with mise** - verify activated shell uses `.mise.toml` values
 
-## GitHub Token Multi-Account Patterns (MANDATORY for Multi-Account Setups)
+## GitHub Token Multi-Account Patterns (MANDATORY for Multi-Account Setups) {#github-token-multi-account-patterns}
 
 For multi-account GitHub setups, mise `[env]` provides per-directory token configuration that overrides gh CLI's global authentication.
 
