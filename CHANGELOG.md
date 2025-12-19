@@ -1,3 +1,10 @@
+## [4.8.4](https://github.com/terrylica/cc-skills/compare/v4.8.3...v4.8.4) (2025-12-19)
+
+
+### Bug Fixes
+
+* **docs:** add GitHub token reference docs for mise multi-account setup ([bf4eb93](https://github.com/terrylica/cc-skills/commit/bf4eb936e75cdbc9d2084b8c1f2d0b96bc9818a5))
+
 ## [4.8.3](https://github.com/terrylica/cc-skills/compare/v4.8.2...v4.8.3) (2025-12-18)
 
 
