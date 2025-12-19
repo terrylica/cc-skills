@@ -1,3 +1,5 @@
+## [5.1.6](https://github.com/terrylica/cc-skills/compare/v5.1.5...v5.1.6) (2025-12-19)
+
 ## [5.1.5](https://github.com/terrylica/cc-skills/compare/v5.1.4...v5.1.5) (2025-12-19)
 
 
