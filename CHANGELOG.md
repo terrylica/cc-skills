@@ -1,3 +1,10 @@
+## [5.1.7](https://github.com/terrylica/cc-skills/compare/v5.1.6...v5.1.7) (2025-12-19)
+
+
+### Bug Fixes
+
+* **ralph:** add shell compatibility for macOS zsh ([dbd1722](https://github.com/terrylica/cc-skills/commit/dbd1722cb8608b1a8c0d63faf6133e959526babb))
+
 ## [5.1.6](https://github.com/terrylica/cc-skills/compare/v5.1.5...v5.1.6) (2025-12-19)
 
 ## [5.1.5](https://github.com/terrylica/cc-skills/compare/v5.1.4...v5.1.5) (2025-12-19)
