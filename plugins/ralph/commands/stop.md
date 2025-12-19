@@ -13,9 +13,10 @@ Immediately disable the Ralph Wiggum autonomous improvement loop.
 ```bash
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
-# Remove loop-enabled marker
+# Remove loop-enabled marker and timestamp
 if [[ -f "$PROJECT_DIR/.claude/loop-enabled" ]]; then
     rm "$PROJECT_DIR/.claude/loop-enabled"
+    rm -f "$PROJECT_DIR/.claude/loop-start-timestamp"
     echo "Ralph loop mode DEACTIVATED"
 else
     echo "Loop mode was not active"

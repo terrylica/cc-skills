@@ -196,7 +196,7 @@ The orchestrator will continue iterations until limits are reached.
 
 ---
 
-## 3. Test Suite Generation
+## 3. Test Suite Generation {#3-test-suite-generation}
 
 ```markdown
 # Task: Generate Comprehensive Test Suite
@@ -721,7 +721,7 @@ The orchestrator will continue iterations until limits are reached.
 
 ---
 
-## 10. Library/Package Creation
+## 10. Library/Package Creation {#10-librarypackage-creation}
 
 ```markdown
 # Task: Create Python Utility Library
@@ -816,7 +816,7 @@ The orchestrator will continue iterations until limits are reached.
 
 ---
 
-## 11. Greenfield Application
+## 11. Greenfield Application {#11-greenfield-application}
 
 ```markdown
 # Task: Build Task Management Application
