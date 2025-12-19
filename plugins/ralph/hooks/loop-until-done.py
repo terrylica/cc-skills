@@ -14,6 +14,11 @@ Schema correction based on Claude Code docs:
 The previous version used {"continue": false} to "allow stop" but this actually
 means "hard stop Claude entirely", which is why Claude showed "Stop hook
 prevented continuation".
+
+Conventions aligned with claude-agent-sdk-python:
+- Hook output uses SDK-compatible JSON fields (continue, decision, reason)
+- Time tracking uses project-level timestamp from /ralph:start invocation
+- Logging uses duration_ms convention where applicable
 """
 import json
 import logging
@@ -39,8 +44,24 @@ LOOP_THRESHOLD = 0.9
 WINDOW_SIZE = 5
 
 
-def get_elapsed_hours(session_id: str) -> float:
-    """Get elapsed time from session-start-tracker.sh timestamps."""
+def get_elapsed_hours(session_id: str, project_dir: str) -> float:
+    """Get elapsed time from loop start timestamp.
+
+    Priority:
+    1. Project-level .claude/loop-start-timestamp (created by /ralph:start)
+    2. Session timestamp (fallback for backwards compatibility)
+    """
+    # Priority 1: Project-level loop start timestamp
+    if project_dir:
+        loop_timestamp = Path(project_dir) / ".claude/loop-start-timestamp"
+        if loop_timestamp.exists():
+            try:
+                start_time = int(loop_timestamp.read_text().strip())
+                return (time.time() - start_time) / 3600
+            except (ValueError, OSError):
+                pass
+
+    # Priority 2: Session timestamp (fallback)
     timestamp_file = Path.home() / f".claude/automation/claude-orchestrator/state/session_timestamps/{session_id}.timestamp"
     if timestamp_file.exists():
         try:
@@ -229,10 +250,10 @@ def main():
         hard_stop("Loop stopped via kill switch (.claude/STOP_LOOP)")
         return
 
-    # Check #1: stop_hook_active → allow stop to prevent recursion
-    if stop_hook_active:
-        allow_stop("stop_hook_active=True, preventing recursion")
-        return
+    # NOTE: We intentionally do NOT exit early when stop_hook_active=True
+    # The stop_hook_active flag means "a hook blocked the previous stop" but
+    # for Ralph loops, we WANT to block multiple times until minimums are met.
+    # True infinite loop prevention is handled by max_iterations and max_hours.
 
     # ===== LOAD STATE =====
     state_file = STATE_DIR / f"sessions/{session_id}.json"
@@ -273,7 +294,7 @@ def main():
         except (json.JSONDecodeError, OSError):
             pass
 
-    elapsed = get_elapsed_hours(session_id)
+    elapsed = get_elapsed_hours(session_id, project_dir)
     iteration = state["iteration"] + 1
     recent_outputs: list[str] = state.get("recent_outputs", [])
 
@@ -287,8 +308,17 @@ def main():
             if lines:
                 last_entry = json.loads(lines[-1])
                 if last_entry.get("type") == "assistant":
-                    current_output = last_entry.get("message", {}).get("content", "")[:1000]
-        except (json.JSONDecodeError, KeyError, IndexError, OSError):
+                    # content is a list of content blocks, extract text from each
+                    content = last_entry.get("message", {}).get("content", [])
+                    if isinstance(content, list):
+                        text_parts = []
+                        for block in content:
+                            if isinstance(block, dict) and block.get("type") == "text":
+                                text_parts.append(block.get("text", ""))
+                        current_output = " ".join(text_parts)[:1000]
+                    elif isinstance(content, str):
+                        current_output = content[:1000]
+        except (json.JSONDecodeError, KeyError, IndexError, OSError, TypeError):
             pass
 
     # ===== COMPLETION CASCADE =====
