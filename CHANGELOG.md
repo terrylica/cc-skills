@@ -1,3 +1,10 @@
+## [5.1.5](https://github.com/terrylica/cc-skills/compare/v5.1.4...v5.1.5) (2025-12-19)
+
+
+### Bug Fixes
+
+* **ralph:** correct Stop hook for multi-iteration loops ([a9a0701](https://github.com/terrylica/cc-skills/commit/a9a0701bd9e3d45a51db6c5e7697b8cc2d802def))
+
 ## [5.1.4](https://github.com/terrylica/cc-skills/compare/v5.1.3...v5.1.4) (2025-12-19)
 
 
