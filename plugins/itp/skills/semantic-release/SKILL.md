@@ -80,8 +80,8 @@ For multi-account GitHub setups, use mise `[env]` to set per-directory GH_TOKEN:
 ```toml
 # ~/your-project/.mise.toml
 [env]
-GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-youraccountname') | trim }}"
-GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-youraccountname') | trim }}"
+GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-accountname') | trim }}"
+GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-accountname') | trim }}"
 ```
 
 This overrides gh CLI's global authentication, ensuring semantic-release uses the correct account for each directory.
