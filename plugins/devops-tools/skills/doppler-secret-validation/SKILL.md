@@ -125,10 +125,14 @@ For multi-account GitHub setups or per-directory credential needs, integrate Dop
 [env]
 # Option A: Direct Doppler CLI fetch (slower, always fresh)
 GH_TOKEN = "{{ exec(command='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
+GITHUB_TOKEN = "{{ exec(command='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
 
 # Option B: Cache for performance (1 hour cache)
 GH_TOKEN = "{{ cache(key='gh_token', duration='1h', run='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
+GITHUB_TOKEN = "{{ cache(key='gh_token', duration='1h', run='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
 ```
+
+**Note**: Set BOTH `GH_TOKEN` and `GITHUB_TOKEN` - different tools check different variable names (gh CLI vs npm scripts).
 
 **Why mise [env]?** Doppler `doppler run` is session-scoped; mise `[env]` provides directory-scoped credentials that persist across commands.
 
