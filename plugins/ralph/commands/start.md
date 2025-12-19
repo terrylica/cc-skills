@@ -50,9 +50,10 @@ if [[ "$HOOKS_INSTALLED" == "false" ]]; then
     exit 1
 fi
 
-# Create loop-enabled marker
+# Create loop-enabled marker and start timestamp
 mkdir -p "$PROJECT_DIR/.claude"
 touch "$PROJECT_DIR/.claude/loop-enabled"
+date +%s > "$PROJECT_DIR/.claude/loop-start-timestamp"
 
 # Apply POC config if requested
 if [[ "$ARGUMENTS" == *"--poc"* ]]; then
