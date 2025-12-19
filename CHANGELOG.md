@@ -1,3 +1,15 @@
+# [5.0.0](https://github.com/terrylica/cc-skills/compare/v4.8.4...v5.0.0) (2025-12-19)
+
+
+### Features
+
+* **ralph:** add autonomous loop hooks and slash commands ([a39ccc5](https://github.com/terrylica/cc-skills/commit/a39ccc57a3b9786b5fa6442306b627c1984b1c54))
+
+
+### BREAKING CHANGES
+
+* **ralph:** Plugin renamed from ralph-tools to ralph
+
 ## [4.8.4](https://github.com/terrylica/cc-skills/compare/v4.8.3...v4.8.4) (2025-12-19)
 
 
