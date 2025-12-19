@@ -1,0 +1,28 @@
+{
+  "description": "Ralph autonomous improvement engine - loop control and plan archival hooks",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/loop-until-done.py",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/archive-plan.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

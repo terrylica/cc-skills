@@ -348,10 +348,10 @@
       "strict": false
     },
     {
-      "name": "ralph-tools",
+      "name": "ralph",
       "description": "Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete. Long-running automation, evolutionary development",
       "version": "4.8.4",
-      "source": "./plugins/ralph-tools/",
+      "source": "./plugins/ralph/",
       "category": "automation",
       "author": {
         "name": "Terry Li",
@@ -366,6 +366,7 @@
         "evolutionary",
         "ai-loop"
       ],
+      "hooks": "./plugins/ralph/hooks/hooks.json",
       "strict": false
     },
     {
