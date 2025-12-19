@@ -23,7 +23,7 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [alpha-forge-worktree](./plugins/alpha-forge-worktree/)   | Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection                    | development  |
 | [link-checker](./plugins/link-checker/)                   | Universal link validation at session end: lychee broken link detection, path policy linting, ULID correlation IDs | quality      |
 | [git-account-validator](./plugins/git-account-validator/) | Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config         | enforcement  |
-| [ralph-tools](./plugins/ralph-tools/)                     | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete                    | automation   |
+| [ralph](./plugins/ralph/)                                 | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete                    | automation   |
 | [iterm2-layout-config](./plugins/iterm2-layout-config/)   | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code           | development  |
 
 ## Terminology

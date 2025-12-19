@@ -20,6 +20,8 @@ Enable the Ralph Wiggum autonomous improvement loop. Claude will continue workin
 ## Execution
 
 ```bash
+# Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
+/usr/bin/env bash << 'RALPH_START_SCRIPT'
 # Get project directory
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 SETTINGS="$HOME/.claude/settings.json"
@@ -36,9 +38,7 @@ fi
 
 # Warn if hooks not installed
 if [[ "$HOOKS_INSTALLED" == "false" ]]; then
-    echo "╔══════════════════════════════════════════╗"
-    echo "║  ⚠️  WARNING: Hooks not installed!        ║"
-    echo "╚══════════════════════════════════════════╝"
+    echo "WARNING: Hooks not installed!"
     echo ""
     echo "The loop will NOT work without hooks registered."
     echo ""
@@ -56,17 +56,13 @@ touch "$PROJECT_DIR/.claude/loop-enabled"
 date +%s > "$PROJECT_DIR/.claude/loop-start-timestamp"
 
 # Apply POC config if requested
-if [[ "$ARGUMENTS" == *"--poc"* ]]; then
+if [[ "${ARGUMENTS:-}" == *"--poc"* ]]; then
     echo '{"min_hours": 0.083, "max_hours": 0.167, "min_iterations": 10, "max_iterations": 20}' > "$PROJECT_DIR/.claude/loop-config.json"
-    echo "╔══════════════════════════════════════════╗"
-    echo "║  Ralph Loop: POC MODE                    ║"
-    echo "╚══════════════════════════════════════════╝"
+    echo "Ralph Loop: POC MODE"
     echo "Time limits: 5 min minimum / 10 min maximum"
     echo "Iterations: 10 minimum / 20 maximum"
 else
-    echo "╔══════════════════════════════════════════╗"
-    echo "║  Ralph Loop: PRODUCTION MODE             ║"
-    echo "╚══════════════════════════════════════════╝"
+    echo "Ralph Loop: PRODUCTION MODE"
     echo "Time limits: 4h minimum / 9h maximum"
     echo "Iterations: 50 minimum / 99 maximum"
 fi
@@ -77,10 +73,8 @@ echo "Marker: $PROJECT_DIR/.claude/loop-enabled"
 echo ""
 echo "To stop: /ralph:stop or create $PROJECT_DIR/.claude/STOP_LOOP"
 echo ""
-echo "────────────────────────────────────────────"
-echo "Note: If you just installed hooks, restart"
-echo "Claude Code for them to take effect."
-echo "────────────────────────────────────────────"
+echo "Note: If you just installed hooks, restart Claude Code for them to take effect."
+RALPH_START_SCRIPT
 ```
 
 Run the bash script above to enable loop mode.

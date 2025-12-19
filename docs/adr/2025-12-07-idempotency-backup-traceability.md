@@ -206,4 +206,4 @@ graph { label: "🏗️ Idempotency Pattern Flow"; flow: south; }
 
 ## References
 
-- [Global Plan (ephemeral)](/Users/terryli/.claude/plans/snoopy-baking-lerdorf.md)
+- Global Plan: `snoopy-baking-lerdorf.md` (ephemeral, local to author's machine)

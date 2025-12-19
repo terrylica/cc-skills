@@ -163,6 +163,5 @@ GITHUB_TOKEN = "{{ cache(key='gh_token', duration='1h', run='op read op://Engine
 
 ## References
 
-- [GitHub Multi-Account Authentication ADR](/docs/adr/2025-12-17-github-multi-account-authentication.md)
 - [mise env documentation](https://mise.jdx.dev/environments.html)
 - [semantic-release skill](../../semantic-release/SKILL.md)

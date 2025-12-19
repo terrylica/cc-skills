@@ -11,6 +11,8 @@ Immediately disable the Ralph Wiggum autonomous improvement loop.
 ## Execution
 
 ```bash
+# Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
+/usr/bin/env bash << 'RALPH_STOP_SCRIPT'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 # Remove loop-enabled marker and timestamp
@@ -32,6 +34,7 @@ fi
 echo ""
 echo "Remaining state files:"
 ls -la "$PROJECT_DIR/.claude/" 2>/dev/null | grep -E "(loop|session)" || echo "  (none)"
+RALPH_STOP_SCRIPT
 ```
 
 Run the bash script above to disable loop mode.
