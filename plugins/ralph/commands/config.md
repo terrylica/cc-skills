@@ -31,6 +31,8 @@ Based on `$ARGUMENTS`:
 ### For `show` or empty
 
 ```bash
+# Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
+/usr/bin/env bash << 'RALPH_CONFIG_SHOW'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 echo "=== Project Config ==="
 if [[ -f "$PROJECT_DIR/.claude/loop-config.json" ]]; then
@@ -42,14 +44,18 @@ fi
 echo ""
 echo "=== Global Config ==="
 cat "$HOME/.claude/automation/loop-orchestrator/config/loop_config.json" | python3 -m json.tool 2>/dev/null || echo "(not found)"
+RALPH_CONFIG_SHOW
 ```
 
 ### For `reset`
 
 ```bash
+# Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
+/usr/bin/env bash << 'RALPH_CONFIG_RESET'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 rm -f "$PROJECT_DIR/.claude/loop-config.json"
 echo "Project config reset. Using global defaults."
+RALPH_CONFIG_RESET
 ```
 
 ### For `edit`
