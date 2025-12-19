@@ -4,24 +4,16 @@
 # dependencies = ["rapidfuzz>=3.0.0,<4.0.0"]
 # ///
 """
-Autonomous improvement engine Stop hook.
+Autonomous improvement engine Stop hook - FIXED SCHEMA VERSION.
 
-CORRECTED Completion cascade (stop_hook_active FIRST):
-0.  Loop not enabled → ALLOW STOP (skip all loop logic)
-0.5 Kill switch file exists → ALLOW STOP + remove files
-1.  stop_hook_active → STOP (hook recursion prevention - MUST BE FIRST)
-2.  Max time (9h) → STOP
-3.  Max iterations (99) → STOP
-4.  Loop detected (RapidFuzz 90% similarity) → STOP
-5.  TASK_COMPLETE + min time (4h) + min iterations (50) → STOP
-6.  TASK_COMPLETE + under min → EXPLORE MODE
-7.  Not complete → CONTINUE
+Schema correction based on Claude Code docs:
+- To ALLOW stop: return {} (empty object) - NOT {"continue": false}
+- To CONTINUE (prevent stop): return {"decision": "block", "reason": "..."}
+- To HARD STOP: return {"continue": false} - overrides everything
 
-Loop Detection (State-of-the-Art):
-- Uses RapidFuzz library for fuzzy string matching (Levenshtein-based)
-- 90% similarity threshold (balanced: catches loops, avoids false positives)
-- 5-output sliding window (same as ralph-orchestrator)
-- Graceful degradation if library not installed
+The previous version used {"continue": false} to "allow stop" but this actually
+means "hard stop Claude entirely", which is why Claude showed "Stop hook
+prevented continuation".
 """
 import json
 import logging
@@ -42,9 +34,9 @@ logger = logging.getLogger(__name__)
 STATE_DIR = Path.home() / ".claude/automation/loop-orchestrator/state"
 CONFIG_FILE = STATE_DIR.parent / "config/loop_config.json"
 
-# Loop detection constants (same as ralph-orchestrator)
-LOOP_THRESHOLD = 0.9  # 90% similarity
-WINDOW_SIZE = 5       # 5 previous outputs
+# Loop detection constants
+LOOP_THRESHOLD = 0.9
+WINDOW_SIZE = 5
 
 
 def get_elapsed_hours(session_id: str) -> float:
@@ -75,19 +67,11 @@ def check_task_complete(plan_file: str | None) -> bool:
 
 
 def detect_loop(current_output: str, recent_outputs: list[str]) -> bool:
-    """Detect if agent is looping based on output similarity.
-
-    Uses RapidFuzz for fast fuzzy string matching (Levenshtein-based).
-    If current output is >90% similar to any recent output, loop detected.
-
-    This is the same approach used by ralph-orchestrator's SafetyGuard.
-    """
+    """Detect if agent is looping based on output similarity."""
     if not current_output:
         return False
-
     try:
         from rapidfuzz import fuzz
-
         for prev_output in recent_outputs:
             ratio = fuzz.ratio(current_output, prev_output) / 100.0
             if ratio >= LOOP_THRESHOLD:
@@ -95,7 +79,6 @@ def detect_loop(current_output: str, recent_outputs: list[str]) -> bool:
                 return True
         return False
     except ImportError:
-        # Graceful degradation: skip loop detection if rapidfuzz not installed
         logger.warning("RapidFuzz not installed, skipping loop detection")
         return False
 
@@ -106,17 +89,14 @@ def extract_section(content: str, header: str) -> str:
     in_section = False
     section_lines = []
     header_level = header.count('#')
-
     for line in lines:
         if line.strip().startswith(header):
             in_section = True
             continue
         if in_section:
-            # Stop at next header of same or higher level
             if line.strip().startswith('#') and line.strip().count('#') <= header_level:
                 break
             section_lines.append(line)
-
     return '\n'.join(section_lines).strip()
 
 
@@ -129,44 +109,26 @@ def build_continuation_prompt(
     config: dict,
     task_complete: bool
 ) -> str:
-    """Build context-rich, intelligent continuation prompt.
-
-    This is the "Ralph Wiggum" injection - what Claude sees when asked to continue.
-    Must be:
-    - Plan-aware: Use plan file as "genius memory"
-    - Context-aware: Know what was just done
-    - Momentum-preserving: Continue where it left off
-    - Dead-end avoiding: Don't repeat failed approaches
-    - User-decision respecting: Honor explicit user choices
-    """
+    """Build context-rich continuation prompt."""
     parts = []
-
-    # 1. STATUS HEADER
     remaining_hours = max(0, config["min_hours"] - elapsed)
     remaining_iters = max(0, config.get("min_iterations", 50) - iteration)
     mode = "EXPLORATION" if task_complete else "IMPLEMENTATION"
     parts.append(f"**{mode} MODE** | Iteration {iteration}/{config['max_iterations']} | {elapsed:.1f}h elapsed | {remaining_hours:.1f}h / {remaining_iters} iters remaining")
 
-    # 2. PLAN INTELLIGENCE ("Genius Memory")
     if plan_file and Path(plan_file).exists():
         try:
             plan_content = Path(plan_file).read_text()
-
-            # Extract current focus (what we should be working on)
             if "## Current Focus" in plan_content:
                 focus = extract_section(plan_content, "## Current Focus")
                 if focus:
                     parts.append(f"\n**CURRENT FOCUS**:\n{focus[:500]}")
-
-            # Extract dead ends to avoid (don't repeat failures)
             dead_ends = []
             for line in plan_content.split('\n'):
                 if 'dead end' in line.lower() or '❌' in line or 'AVOID:' in line:
                     dead_ends.append(line.strip())
             if dead_ends:
                 parts.append(f"\n**AVOID (already tried, failed)**:\n" + "\n".join(dead_ends[:5]))
-
-            # Extract user decisions to respect
             if "## User Decisions" in plan_content:
                 decisions = extract_section(plan_content, "## User Decisions")
                 if decisions:
@@ -174,12 +136,11 @@ def build_continuation_prompt(
         except OSError:
             pass
 
-    # 3. RECENT EXPLORATION LOG (momentum preservation)
     if project_dir:
         exploration_log = Path(project_dir) / ".claude/exploration_log.jsonl"
         if exploration_log.exists():
             try:
-                lines = exploration_log.read_text().strip().split('\n')[-3:]  # Last 3 entries
+                lines = exploration_log.read_text().strip().split('\n')[-3:]
                 recent = []
                 for line in lines:
                     if line.strip():
@@ -190,7 +151,6 @@ def build_continuation_prompt(
             except (json.JSONDecodeError, KeyError, OSError):
                 pass
 
-    # 4. GIT CONTEXT (what changed recently)
     if project_dir:
         try:
             result = subprocess.run(
@@ -205,41 +165,41 @@ def build_continuation_prompt(
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
 
-    # 5. ROLE AND EXPLORATION GUIDANCE
     if task_complete:
         parts.append("""
 **EXPLORATION MODE** - Task marked complete but minimum time/iterations not met.
-
-Act as **PM + Architect + Sr Engineer**. Systematically explore:
-
-1. **CODE QUALITY**: Refactoring, error handling, test coverage, type safety
-2. **ROBUSTNESS**: Edge cases, input validation, error recovery
-3. **DOCUMENTATION**: Docstrings, README updates, inline comments
-4. **PERFORMANCE**: Optimization opportunities, caching, lazy loading
-
-**CRITICAL RULES**:
-- Make decisions autonomously (no AskUserQuestion)
-- Log every decision to `.claude/exploration_log.jsonl` with format:
-  `{"timestamp": "...", "action": "...", "target": "...", "rationale": "...", "outcome": "..."}`
-- Run `semantic-release` on significant milestones for backtrackability
-- When truly done exploring, add `[x] TASK_COMPLETE` to plan file""")
+Continue exploring: code quality, robustness, documentation, performance.""")
     else:
         parts.append("""
-**IMPLEMENTATION MODE** - Original task not yet complete.
-
-Continue working on the primary task. Focus on:
-- Completing the core functionality first
-- Following the plan's implementation steps
-- Testing as you go
-
-When primary task is done, add `[x] TASK_COMPLETE` to plan file to enter exploration mode.""")
+**IMPLEMENTATION MODE** - Continue working on the primary task.""")
 
     return "\n".join(parts)
 
 
+def allow_stop(reason: str | None = None):
+    """Allow session to stop normally. Returns empty object per Claude Code docs."""
+    if reason:
+        logger.info(f"Allowing stop: {reason}")
+    # CORRECT: Empty object means "allow stop" - NOT {"continue": false}
+    print(json.dumps({}))
+
+
+def continue_session(reason: str):
+    """Prevent stop and continue session. Uses decision: block per Claude Code docs."""
+    logger.info(f"Continuing session: {reason[:100]}...")
+    # CORRECT: decision=block means "prevent stop, keep session alive"
+    print(json.dumps({"decision": "block", "reason": reason}))
+
+
+def hard_stop(reason: str):
+    """Hard stop Claude entirely. Uses continue: false which overrides everything."""
+    logger.info(f"Hard stopping: {reason}")
+    # continue=false means "hard stop" - use sparingly
+    print(json.dumps({"continue": False, "stopReason": reason}))
+
+
 def main():
     """Main entry point for the Stop hook."""
-    # CORRECT: Read hook input from stdin, not environment variable
     try:
         hook_input = json.load(sys.stdin) if not sys.stdin.isatty() else {}
     except json.JSONDecodeError:
@@ -251,62 +211,49 @@ def main():
 
     logger.info(f"Stop hook called: session={session_id}, stop_hook_active={stop_hook_active}")
 
-    # Use CLAUDE_PROJECT_DIR env var (available in ALL hooks, per research)
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
 
-    # ===== EARLY EXIT CHECKS (before loading state) =====
+    # ===== EARLY EXIT CHECKS =====
 
-    # Check #0: Loop mode not enabled for this repo → skip entirely
+    # Check #0: Loop mode not enabled → allow normal stop
     loop_enabled_file = Path(project_dir) / ".claude/loop-enabled" if project_dir else None
     if not loop_enabled_file or not loop_enabled_file.exists():
-        # Loop not enabled - allow normal stop behavior
-        logger.info("Loop not enabled for this repo, allowing stop")
-        print(json.dumps({"continue": False}))  # Stop hook: continue=false means allow stop
+        allow_stop("Loop not enabled for this repo")
         return
 
-    # Check #0.5: Kill switch file exists → stop immediately
+    # Check #0.5: Kill switch → hard stop
     kill_switch = Path(project_dir) / ".claude/STOP_LOOP"
     if kill_switch.exists():
-        kill_switch.unlink()  # Remove kill switch file
-        loop_enabled_file.unlink(missing_ok=True)  # Disable loop
-        logger.info("Kill switch activated, stopping loop")
-        print(json.dumps({
-            "continue": False,
-            "stopReason": "Loop stopped via kill switch (.claude/STOP_LOOP)"
-        }))
+        kill_switch.unlink()
+        loop_enabled_file.unlink(missing_ok=True)
+        hard_stop("Loop stopped via kill switch (.claude/STOP_LOOP)")
         return
 
-    # ===== COMPLETION CASCADE (CORRECTED Priority Order) =====
-
-    # 1. stop_hook_active → STOP (MUST BE FIRST per hooks lifecycle research)
+    # Check #1: stop_hook_active → allow stop to prevent recursion
     if stop_hook_active:
-        logger.info("stop_hook_active=True, allowing stop to prevent recursion")
-        print(json.dumps({"continue": False}))  # Stop hook: continue=false means allow stop
+        allow_stop("stop_hook_active=True, preventing recursion")
         return
 
-    # Load state (only after passing early exits)
+    # ===== LOAD STATE =====
     state_file = STATE_DIR / f"sessions/{session_id}.json"
     try:
         state = json.loads(state_file.read_text()) if state_file.exists() else {
             "iteration": 0,
-            "recent_outputs": [],  # Sliding window for loop detection
+            "recent_outputs": [],
             "plan_file": None
         }
     except (json.JSONDecodeError, OSError):
         state = {"iteration": 0, "recent_outputs": [], "plan_file": None}
 
-    # Load config (with environment variable overrides for POC testing)
+    # Load config
     try:
         config = json.loads(CONFIG_FILE.read_text()) if CONFIG_FILE.exists() else {
-            "min_hours": 4,
-            "max_hours": 9,
-            "min_iterations": 50,
-            "max_iterations": 99
+            "min_hours": 4, "max_hours": 9, "min_iterations": 50, "max_iterations": 99
         }
     except (json.JSONDecodeError, OSError):
         config = {"min_hours": 4, "max_hours": 9, "min_iterations": 50, "max_iterations": 99}
 
-    # Environment variable overrides for quick POC testing
+    # Environment variable overrides
     if os.environ.get("LOOP_MIN_HOURS"):
         config["min_hours"] = float(os.environ["LOOP_MIN_HOURS"])
     if os.environ.get("LOOP_MAX_HOURS"):
@@ -316,13 +263,23 @@ def main():
     if os.environ.get("LOOP_MAX_ITERATIONS"):
         config["max_iterations"] = int(os.environ["LOOP_MAX_ITERATIONS"])
 
+    # Also check project-level config
+    project_config = Path(project_dir) / ".claude/loop-config.json" if project_dir else None
+    if project_config and project_config.exists():
+        try:
+            proj_cfg = json.loads(project_config.read_text())
+            config.update(proj_cfg)
+            logger.info(f"Loaded project config: {proj_cfg}")
+        except (json.JSONDecodeError, OSError):
+            pass
+
     elapsed = get_elapsed_hours(session_id)
     iteration = state["iteration"] + 1
     recent_outputs: list[str] = state.get("recent_outputs", [])
 
     logger.info(f"Iteration {iteration}, elapsed {elapsed:.2f}h, config={config}")
 
-    # Extract current output from transcript for loop detection
+    # Extract current output for loop detection
     current_output = ""
     if transcript_path and Path(transcript_path).exists():
         try:
@@ -330,42 +287,37 @@ def main():
             if lines:
                 last_entry = json.loads(lines[-1])
                 if last_entry.get("type") == "assistant":
-                    current_output = last_entry.get("message", {}).get("content", "")[:1000]  # Limit for comparison
+                    current_output = last_entry.get("message", {}).get("content", "")[:1000]
         except (json.JSONDecodeError, KeyError, IndexError, OSError):
             pass
 
-    # 2. Max time (9h) → STOP
+    # ===== COMPLETION CASCADE =====
+
+    # Check #2: Max time → allow stop
     if elapsed >= config["max_hours"]:
-        logger.info(f"Max hours ({config['max_hours']}h) reached, stopping")
-        print(json.dumps({"continue": False, "stopReason": f"Maximum runtime ({config['max_hours']}h) reached."}))
+        allow_stop(f"Maximum runtime ({config['max_hours']}h) reached")
         return
 
-    # 3. Max iterations (99) → STOP
+    # Check #3: Max iterations → allow stop
     if iteration >= config["max_iterations"]:
-        logger.info(f"Max iterations ({config['max_iterations']}) reached, stopping")
-        print(json.dumps({"continue": False, "stopReason": f"Maximum iterations ({config['max_iterations']}) reached."}))
+        allow_stop(f"Maximum iterations ({config['max_iterations']}) reached")
         return
 
-    # 4. Loop detected (RapidFuzz 90% similarity) → STOP
+    # Check #4: Loop detected → allow stop
     if detect_loop(current_output, recent_outputs):
-        print(json.dumps({
-            "continue": False,
-            "stopReason": "Loop detected: agent producing repetitive outputs (>90% similar). Stopping to prevent infinite loop."
-        }))
+        allow_stop("Loop detected: agent producing repetitive outputs (>90% similar)")
         return
 
-    # 5. TASK_COMPLETE + min time (4h) met + min iterations (50) met → STOP
+    # Check #5: Task complete + minimums met → allow stop
     task_complete = check_task_complete(state.get("plan_file"))
     min_hours_met = elapsed >= config["min_hours"]
     min_iterations_met = iteration >= config.get("min_iterations", 50)
 
     if task_complete and min_hours_met and min_iterations_met:
-        logger.info("Task complete and all minimums met, stopping")
-        print(json.dumps({"continue": False, "stopReason": "Task complete. All minimum requirements met."}))
+        allow_stop("Task complete and all minimum requirements met")
         return
 
-    # ===== BUILD CONTEXT-RICH CONTINUATION PROMPT =====
-
+    # ===== CONTINUE SESSION =====
     reason = build_continuation_prompt(
         session_id=session_id,
         plan_file=state.get("plan_file"),
@@ -376,11 +328,11 @@ def main():
         task_complete=task_complete
     )
 
-    # Update state (maintain sliding window)
+    # Update state
     if current_output:
         recent_outputs.append(current_output)
         if len(recent_outputs) > WINDOW_SIZE:
-            recent_outputs = recent_outputs[-WINDOW_SIZE:]  # Keep last 5
+            recent_outputs = recent_outputs[-WINDOW_SIZE:]
 
     state["iteration"] = iteration
     state["recent_outputs"] = recent_outputs
@@ -392,9 +344,8 @@ def main():
     except OSError as e:
         logger.error(f"Failed to save state: {e}")
 
-    logger.info(f"Continuing loop: iteration={iteration}, task_complete={task_complete}")
-    # Stop hook: continue=true means prevent stop and continue session
-    print(json.dumps({"continue": True, "reason": reason}))
+    # CONTINUE the session
+    continue_session(reason)
 
 
 if __name__ == "__main__":
