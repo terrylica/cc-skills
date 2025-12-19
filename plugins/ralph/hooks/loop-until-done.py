@@ -261,7 +261,7 @@ def main():
     if not loop_enabled_file or not loop_enabled_file.exists():
         # Loop not enabled - allow normal stop behavior
         logger.info("Loop not enabled for this repo, allowing stop")
-        print(json.dumps({"decision": "allow"}))
+        print(json.dumps({"continue": False}))  # Stop hook: continue=false means allow stop
         return
 
     # Check #0.5: Kill switch file exists → stop immediately
@@ -271,8 +271,8 @@ def main():
         loop_enabled_file.unlink(missing_ok=True)  # Disable loop
         logger.info("Kill switch activated, stopping loop")
         print(json.dumps({
-            "decision": "allow",
-            "systemMessage": "Loop stopped via kill switch (.claude/STOP_LOOP)"
+            "continue": False,
+            "stopReason": "Loop stopped via kill switch (.claude/STOP_LOOP)"
         }))
         return
 
@@ -281,7 +281,7 @@ def main():
     # 1. stop_hook_active → STOP (MUST BE FIRST per hooks lifecycle research)
     if stop_hook_active:
         logger.info("stop_hook_active=True, allowing stop to prevent recursion")
-        print(json.dumps({"decision": "allow"}))
+        print(json.dumps({"continue": False}))  # Stop hook: continue=false means allow stop
         return
 
     # Load state (only after passing early exits)
@@ -337,20 +337,20 @@ def main():
     # 2. Max time (9h) → STOP
     if elapsed >= config["max_hours"]:
         logger.info(f"Max hours ({config['max_hours']}h) reached, stopping")
-        print(json.dumps({"decision": "allow", "systemMessage": f"Maximum runtime ({config['max_hours']}h) reached."}))
+        print(json.dumps({"continue": False, "stopReason": f"Maximum runtime ({config['max_hours']}h) reached."}))
         return
 
     # 3. Max iterations (99) → STOP
     if iteration >= config["max_iterations"]:
         logger.info(f"Max iterations ({config['max_iterations']}) reached, stopping")
-        print(json.dumps({"decision": "allow", "systemMessage": f"Maximum iterations ({config['max_iterations']}) reached."}))
+        print(json.dumps({"continue": False, "stopReason": f"Maximum iterations ({config['max_iterations']}) reached."}))
         return
 
     # 4. Loop detected (RapidFuzz 90% similarity) → STOP
     if detect_loop(current_output, recent_outputs):
         print(json.dumps({
-            "decision": "allow",
-            "systemMessage": "Loop detected: agent producing repetitive outputs (>90% similar). Stopping to prevent infinite loop."
+            "continue": False,
+            "stopReason": "Loop detected: agent producing repetitive outputs (>90% similar). Stopping to prevent infinite loop."
         }))
         return
 
@@ -361,7 +361,7 @@ def main():
 
     if task_complete and min_hours_met and min_iterations_met:
         logger.info("Task complete and all minimums met, stopping")
-        print(json.dumps({"decision": "allow", "systemMessage": "Task complete. All minimum requirements met."}))
+        print(json.dumps({"continue": False, "stopReason": "Task complete. All minimum requirements met."}))
         return
 
     # ===== BUILD CONTEXT-RICH CONTINUATION PROMPT =====
@@ -393,7 +393,8 @@ def main():
         logger.error(f"Failed to save state: {e}")
 
     logger.info(f"Continuing loop: iteration={iteration}, task_complete={task_complete}")
-    print(json.dumps({"decision": "block", "reason": reason}))
+    # Stop hook: continue=true means prevent stop and continue session
+    print(json.dumps({"continue": True, "reason": reason}))
 
 
 if __name__ == "__main__":
