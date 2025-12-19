@@ -1,3 +1,10 @@
+## [5.1.1](https://github.com/terrylica/cc-skills/compare/v5.1.0...v5.1.1) (2025-12-19)
+
+
+### Bug Fixes
+
+* **ralph:** improve status accuracy and hook validation ([73d3acc](https://github.com/terrylica/cc-skills/commit/73d3accbb9ea09f5929f9c26dc81823a8b53d50b))
+
 # [5.0.0](https://github.com/terrylica/cc-skills/compare/v4.8.4...v5.0.0) (2025-12-19)
 
 
