@@ -218,97 +218,47 @@ fi
 if [[ "$SSH_OUTPUT" =~ Hi\ ([^!]+)! ]]; then
     SSH_USER="${BASH_REMATCH[1]}"
 else
-    # SSH validation failed - BLOCK to prevent partial state from chained commands
-    # e.g., "git add && git commit && git push" would commit but fail to push
+    # SSH validation failed - determine if this is a NETWORK issue or AUTH issue
+    # Network issues: warn only (push will fail naturally)
+    # Auth issues: could mean wrong account - warn strongly but don't block
 
-    # Determine if this is a definite failure (should block) or transient (could warn)
-    IS_DEFINITE_FAILURE=false
-    if echo "$SSH_OUTPUT" | grep -qiE 'connection refused|no route to host|network is unreachable|permission denied|host key verification failed'; then
-        IS_DEFINITE_FAILURE=true
-    fi
+    # NEW DESIGN: Default to warn-only for network issues
+    # Only block on explicit account mismatch (handled in Step 5)
+    # Rationale: Network timeouts will cause git push to fail anyway,
+    # blocking just adds frustration. The hook's primary value is
+    # catching account mismatches, not network connectivity issues.
 
-    # Allow override via environment variable (for users who want warn-only behavior)
-    STRICT_MODE="${GIT_ACCOUNT_VALIDATOR_STRICT:-true}"
+    # Allow strict mode override for users who want blocking behavior
+    STRICT_MODE="${GIT_ACCOUNT_VALIDATOR_STRICT:-false}"  # Default changed to false
 
-    if [[ "$IS_DEFINITE_FAILURE" == "true" ]] || [[ "$STRICT_MODE" == "true" ]]; then
-        log_block "BLOCKED: SSH validation failed"
+    if [[ "$STRICT_MODE" == "true" ]]; then
+        log_block "BLOCKED: SSH validation failed (strict mode)"
         log_error "SSH output: $SSH_OUTPUT"
         log_error ""
-
-        # Warn about chained command risk
-        if [[ "$IS_CHAINED_COMMAND" == "true" ]]; then
-            log_error "⚠️  CHAINED COMMAND DETECTED"
-            log_error "Command: $COMMAND"
-            log_error ""
-            log_error "If allowed, earlier commands (git add, git commit) would succeed"
-            log_error "but git push would fail, leaving your repo in a partial state."
-            log_error ""
-        fi
-
-        log_error "This may indicate:"
-        log_error "  • Network issue (Connection refused/timeout)"
-        log_error "  • SSH key not loaded"
-        log_error "  • GitHub SSH service down"
-        log_error ""
-
-        # Suggest which key to load based on expected account
         log_error "Expected account: $EXPECTED_USER"
-        log_error ""
-
-        # Find matching identity file from SSH config (if it exists)
-        if [[ -f "$HOME/.ssh/config" ]]; then
-            # Try to find identity file for expected user
-            IDENTITY_FILE=$(grep -A5 "Match host github.com" "$HOME/.ssh/config" 2>/dev/null | \
-                            grep -i "IdentityFile.*${EXPECTED_USER}" | \
-                            head -1 | \
-                            awk '{print $2}' | \
-                            sed "s|~|$HOME|g") || true
-
-            if [[ -n "$IDENTITY_FILE" ]]; then
-                log_error "Try loading the SSH key:"
-                log_error "  ssh-add $IDENTITY_FILE"
-            else
-                # Fallback: suggest common pattern
-                log_error "Try loading the SSH key (common pattern):"
-                log_error "  ssh-add ~/.ssh/id_ed25519_${EXPECTED_USER}"
-            fi
-        else
-            log_error "Try loading the SSH key (common pattern):"
-            log_error "  ssh-add ~/.ssh/id_ed25519_${EXPECTED_USER}"
-        fi
-        log_error ""
-        log_error "Diagnostic commands:"
-        log_error "  1. Test port 22: nc -zv github.com 22"
-        log_error "  2. Test port 443: nc -zv github.com 443"
-        log_error "  3. Loaded keys: ssh-add -l"
-        log_error "  4. Test SSH (port 22): ssh -T git@github.com"
-        log_error "  5. Test SSH (port 443): ssh -T -p 443 git@ssh.github.com"
-        log_error ""
-        log_error "Note: Port 443 fallback was attempted automatically."
-        log_error "If port 22 is blocked, ensure your SSH key is loaded for port 443 auth."
-        log_error ""
-
-        # Show SSH config location for reference
-        if [[ -f "$HOME/.ssh/config" ]]; then
-            log_error "SSH config: ~/.ssh/config"
-            log_error "View Match directives: grep -A3 'Match host github.com' ~/.ssh/config"
-        fi
         log_error ""
         log_error "To disable strict mode: export GIT_ACCOUNT_VALIDATOR_STRICT=false"
         log_error ""
-        exit 2  # BLOCK - prevents partial state from chained commands
+        exit 2
     else
-        # Non-strict mode: warn but allow
+        # WARN-ONLY: Network issues shouldn't block the command
         log_info ""
-        log_info "⚠️  SSH VALIDATION WARNING - Cannot verify GitHub account"
+        log_info "⚠️  [git-account-validator] SSH validation inconclusive"
         log_info ""
-        log_info "SSH output: $SSH_OUTPUT"
+        log_info "Cannot verify GitHub account (likely network issue)."
         log_info "Expected account: $EXPECTED_USER"
         log_info ""
-        log_info "Proceeding anyway (strict mode disabled)."
-        log_info "If push fails, check: ssh -T git@github.com"
+
+        # Helpful diagnostics if SSH output indicates specific issue
+        if [[ -z "$SSH_OUTPUT" ]] || echo "$SSH_OUTPUT" | grep -qiE 'timed out|timeout'; then
+            log_info "Hint: Try flushing DNS cache:"
+            log_info "  sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder"
+            log_info ""
+        fi
+
+        log_info "Proceeding - git push will fail naturally if network is down."
         log_info ""
-        exit 0
+        exit 0  # ALLOW - let git push handle network errors
     fi
 fi
 
