@@ -1,3 +1,10 @@
+## [5.1.2](https://github.com/terrylica/cc-skills/compare/v5.1.1...v5.1.2) (2025-12-19)
+
+
+### Bug Fixes
+
+* **ralph:** use correct Stop hook JSON schema ([eb115d0](https://github.com/terrylica/cc-skills/commit/eb115d0fe925e713b5df3f345ea08a6a19035335))
+
 ## [5.1.1](https://github.com/terrylica/cc-skills/compare/v5.1.0...v5.1.1) (2025-12-19)
 
 
