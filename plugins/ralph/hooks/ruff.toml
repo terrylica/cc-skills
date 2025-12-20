@@ -1,0 +1,9 @@
+# Ruff configuration for Ralph hooks
+# ADR: 2025-12-20-ralph-rssi-eternal-loop
+
+# No line length limit - hooks have long template strings and log messages
+line-length = 999
+
+[lint]
+# Ignore line length check
+ignore = ["E501"]

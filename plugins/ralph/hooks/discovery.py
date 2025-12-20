@@ -8,11 +8,9 @@ for the RSSI autonomous exploration mode.
 import json
 import logging
 import re
-import subprocess
 from pathlib import Path
 
 from completion import has_frontmatter_value
-from validation import ensure_validation_tool
 
 # RSSI modules
 from rssi_discovery import rssi_scan_opportunities
