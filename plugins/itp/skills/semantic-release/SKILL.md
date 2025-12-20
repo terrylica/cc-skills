@@ -320,74 +320,39 @@ See [ADR Release Linking](./references/adr-release-linking.md) for detailed conf
 
 ## Quick Start
 
-### Step 1: Account Alignment Check (MANDATORY FIRST STEP)
+### Step 1: Verify Account (HTTPS-First)
 
-**CRITICAL**: For multi-account GitHub setups, verify the active `gh` account matches the expected account for the current directory BEFORE any release operation. This check is non-negotiable.
+**CRITICAL**: For multi-account GitHub setups, verify GH_TOKEN is set for the current directory.
 
-**Primary detection method: SSH Config**
-
-If your `~/.ssh/config` uses directory-based account selection (via `Match` directives), it is the **authoritative source** for which GitHub account should be used. The gh CLI must align with it.
-
-**Example SSH config pattern** (directory-based):
+**Quick verification** (2025-12-19+):
 
 ```bash
-# SSH config can define directory-based account selection via Match directives:
-Match host github.com exec "echo $PWD | grep -q '/path-pattern-a/'"
-    IdentityFile ~/.ssh/id_ed25519_account_a
+# Verify git remote is HTTPS
+git remote get-url origin
+# Expected: https://github.com/...
 
-Match host github.com exec "echo $PWD | grep -q '/path-pattern-b/'"
-    IdentityFile ~/.ssh/id_ed25519_account_b
+# Verify GH_TOKEN is set via mise [env]
+gh api user --jq '.login'
+# Expected: correct account for this directory
 ```
 
-**Autonomous detection sequence**:
-
-1. **Determine expected account from SSH** (if directory-based config exists):
-   - Test which SSH key is used: `ssh -T git@github.com`
-   - Output shows: `Hi <username>! You've successfully authenticated...`
-   - This username is the expected account for git operations
-
-2. **Identify active gh account**:
-   - Run: `gh auth status`
-   - Find the account marked "Active account: true"
-
-3. **Compare and auto-resolve**:
-   - If SSH username ≠ active gh account → **MISMATCH DETECTED**
-   - Auto-switch: `gh auth switch --user <ssh-username>`
-   - Verify: `gh auth status`
-
-**Why alignment matters**: Git push uses SSH authentication. GitHub API (semantic-release) uses gh token. If they authenticate as different accounts, you get "Repository not found" errors even for valid repositories.
-
-**Quick verification**:
+**If remote is SSH** (legacy):
 
 ```bash
-# SSH account (git operations)
-ssh -T git@github.com
-
-# gh account (API operations) - must match SSH
-gh auth status | grep -A1 "Active account: true"
+# Convert to HTTPS
+git-ssh-to-https
 ```
 
-**⚠️ ControlMaster Cache Warning**: If your SSH config uses `ControlMaster` for connection pooling, cached connections may persist with **stale authentication** from a previous account. Even if account alignment checks pass, cached connections can cause "Repository not found" errors.
+**If wrong account**:
 
-**Quick fix** (kill cached connections):
+Check mise [env] configuration:
 
 ```bash
-ssh -O exit git@github.com 2>/dev/null || pkill -f 'ssh.*github.com'
+# Verify mise config
+mise env | grep GH_TOKEN
 ```
 
-**Prevention** (recommended for multi-account setups):
-
-```sshconfig
-# ~/.ssh/config - Disable ControlMaster for GitHub
-Host github.com
-    ControlMaster no
-```
-
-See [Local Release Workflow - ControlMaster Issues](./references/local-release-workflow.md#controlmaster-cache-issues) for detailed troubleshooting.
-
-See [Local Release Workflow](./references/local-release-workflow.md) for complete detection sequence.
-
-See [Authentication Guide](./references/authentication.md) for SSH and gh CLI setup.
+See [Authentication Guide](./references/authentication.md) for HTTPS-first setup.
 
 ### Step 2: Initialize Project
 

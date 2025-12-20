@@ -2,26 +2,51 @@
 
 # Authentication for semantic-release
 
-## Authentication Priority Order
+> **2025-12-19 Update**: HTTPS-first authentication is now the primary method. SSH is retained as reference/fallback only. See [GitHub Multi-Account Authentication ADR](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md).
 
-semantic-release requires **two types of authentication**:
+## Authentication Priority Order (HTTPS-First)
 
-1. **Git operations** (push tags, commit changelog) → SSH keys
-2. **GitHub API** (create releases, update issues) → gh CLI web authentication
+semantic-release requires authentication for:
+
+1. **Git operations** (push tags, commit changelog) → HTTPS with credential helper
+2. **GitHub API** (create releases, update issues) → GH_TOKEN from mise [env]
 
 **Check in this order**:
 
-### Priority 1: SSH Keys (PRIMARY) ✅
+### Priority 1: HTTPS + Token (PRIMARY) ✅
 
-**Check first**: Verify SSH authentication for git operations
+**Check first**: Verify HTTPS remote and GH_TOKEN
 
-**Verify SSH setup**:
+**Verify setup**:
 
 ```bash
-# Check git remote uses SSH
+# Check git remote uses HTTPS
 git remote -v
-# Should show: git@github.com:username/repo.git
+# Should show: https://github.com/username/repo.git
 
+# Verify GH_TOKEN is set (via mise [env])
+gh api user --jq '.login'
+# Should show: expected account for this directory
+
+# Convert SSH remote to HTTPS if needed
+git-ssh-to-https
+```
+
+**Why HTTPS-first**:
+
+- ✅ No port 22 blocking issues (uses port 443)
+- ✅ No ProxyCommand flakiness in subprocesses
+- ✅ No ControlMaster caching bugs
+- ✅ No ssh-add key loading required
+- ✅ semantic-release just works
+
+### Priority 2: SSH (FALLBACK) ⚠️
+
+**Only use SSH if HTTPS is blocked**. Most networks allow HTTPS (port 443).
+
+**Verify SSH setup** (if needed):
+
+```bash
 # Test SSH authentication
 ssh -T git@github.com
 # Should show: "Hi username! You've successfully authenticated..."
@@ -174,6 +199,7 @@ ssh -T git@github.com  # Re-test after killing cache
 For multi-account GitHub setups, SSH ControlMaster can cache connections with stale authentication from a previous account. Even if account alignment checks pass, cached connections can cause "Repository not found" errors.
 
 **Symptoms**:
+
 - `ssh -T git@github.com` shows correct account
 - `gh auth status` shows correct account
 - Git operations still fail with "Repository not found"
