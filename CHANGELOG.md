@@ -1,3 +1,10 @@
+# [5.5.0](https://github.com/terrylica/cc-skills/compare/v5.4.0...v5.5.0) (2025-12-20)
+
+
+### Features
+
+* **statusline-tools:** add custom status line plugin with git status, link validation, and path linting ([6cbb11c](https://github.com/terrylica/cc-skills/commit/6cbb11c9edcbcf5968f2c29b0e54ff5a265177ab))
+
 # [5.4.0](https://github.com/terrylica/cc-skills/compare/v5.3.0...v5.4.0) (2025-12-20)
 
 
