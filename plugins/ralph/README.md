@@ -107,13 +107,34 @@ After validation, if minimum time/iterations not met:
 
 Ralph automatically discovers task files using a priority cascade:
 
+0. **Plan mode system-reminder** - When Claude Code is in plan mode, the assigned plan file
 1. **Transcript parsing** - Files accessed via Write/Edit/Read to `.claude/plans/`
 2. **ITP design specs** - Files with `implementation-status: in_progress` frontmatter
 3. **ITP ADRs** - Files with `status: accepted` frontmatter
 4. **Local plans** - Newest `.md` in project's `.claude/plans/`
 5. **Global plans** - Content-matched or newest in `~/.claude/plans/`
 
-Or specify explicitly: `/ralph:start -f path/to/task.md`
+**Options**:
+
+- Specify explicitly: `/ralph:start -f path/to/task.md`
+- Run without focus: `/ralph:start --no-focus` (100% autonomous, no plan tracking)
+
+### Focus File Confirmation
+
+When starting Ralph, you'll be asked to confirm the focus file:
+
+```
+Which focus mode for this Ralph session?
+○ Use discovered file    → [path to discovered file]
+○ Specify different file → You'll provide a custom path
+○ Run without focus      → 100% autonomous, no plan tracking
+```
+
+The `--no-focus` option is useful for:
+
+- Pure exploration/discovery tasks
+- When you want Ralph to work without tracking a specific plan
+- Tasks that don't have a corresponding plan file
 
 ### Safety Features
 
