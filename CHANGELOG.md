@@ -1,3 +1,10 @@
+## [5.8.4](https://github.com/terrylica/cc-skills/compare/v5.8.3...v5.8.4) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** handle None values in theme dict for web discovery ([5d2f2ee](https://github.com/terrylica/cc-skills/commit/5d2f2ee2ac49a9baa43f262c8034a120f1fd637e))
+
 ## [5.8.3](https://github.com/terrylica/cc-skills/compare/v5.8.2...v5.8.3) (2025-12-20)
 
 
