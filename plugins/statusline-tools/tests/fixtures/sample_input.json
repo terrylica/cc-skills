@@ -1,0 +1,10 @@
+{
+  "model": {
+    "name": "Claude Opus 4.5",
+    "id": "claude-opus-4-5-20251101"
+  },
+  "session_id": "test-session-12345",
+  "cost": {
+    "total_cost_usd": 0.25
+  }
+}

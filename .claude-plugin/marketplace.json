@@ -388,6 +388,27 @@
         "xdg"
       ],
       "strict": false
+    },
+    {
+      "name": "statusline-tools",
+      "description": "Custom status line with git status, link validation (L), and path linting (P) indicators",
+      "version": "5.4.0",
+      "source": "./plugins/statusline-tools/",
+      "category": "utilities",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "statusline",
+        "status-bar",
+        "git-status",
+        "lychee",
+        "link-validation",
+        "path-linting"
+      ],
+      "hooks": "./plugins/statusline-tools/hooks/hooks.json",
+      "strict": false
     }
   ]
 }
