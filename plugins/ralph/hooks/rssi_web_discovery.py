@@ -122,9 +122,9 @@ def generate_web_search_queries(theme: dict) -> list[str]:
     queries: list[str] = []
     current_year = datetime.now().year
 
-    domain = theme.get("domain", "")
-    keywords = theme.get("keywords", [])
-    description = theme.get("description", "") or ""
+    domain = theme.get("domain") or ""
+    keywords = theme.get("keywords") or []
+    description = theme.get("description") or ""
 
     if "claude" in description.lower() or "ai" in keywords or "claude-code" in keywords:
         queries.append(f"Claude Code CLI best practices {current_year}")
@@ -142,7 +142,7 @@ def generate_web_search_queries(theme: dict) -> list[str]:
         queries.append(f"developer automation trending features {current_year}")
         queries.append("CI/CD automation innovations")
 
-    if "cli" in theme.get("technologies", []):
+    if "cli" in (theme.get("technologies") or []):
         queries.append(f"CLI tool best practices Python {current_year}")
 
     # Generic improvement queries based on description
