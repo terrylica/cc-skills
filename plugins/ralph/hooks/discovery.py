@@ -1,6 +1,8 @@
 """File discovery and work opportunity scanning for Ralph hook.
 
-Provides the file discovery cascade and work opportunity scanning
+ADR: 2025-12-20-ralph-rssi-eternal-loop
+
+Provides the file discovery cascade and RSSI work opportunity scanning
 for the RSSI autonomous exploration mode.
 """
 import json
@@ -11,6 +13,14 @@ from pathlib import Path
 
 from completion import has_frontmatter_value
 from validation import ensure_validation_tool
+
+# RSSI modules
+from rssi_discovery import rssi_scan_opportunities
+from rssi_evolution import get_disabled_checks, get_prioritized_checks, suggest_capability_expansion
+from rssi_history import get_recent_commits_for_analysis, mine_session_history
+from rssi_knowledge import RSSIKnowledge
+from rssi_meta import analyze_discovery_effectiveness, get_meta_suggestions, improve_discovery_mechanism
+from rssi_web_discovery import get_quality_gate_instructions, web_search_for_ideas
 
 logger = logging.getLogger(__name__)
 
@@ -338,72 +348,125 @@ def discover_target_file(
 
 
 def scan_work_opportunities(project_dir: str) -> list[str]:
-    """Dynamically discover improvement opportunities in the project.
+    """RSSI-grade opportunity scanning - orchestrates all RSSI levels.
 
-    Checks:
-    1. Broken links (via lychee if available)
-    2. Directories with Python files but no README
-    3. ADR gaps (features without ADRs)
+    ADR: 2025-12-20-ralph-rssi-eternal-loop
+
+    RSSI Levels:
+    - Level 2: Dynamic Discovery (rssi_scan_opportunities)
+    - Level 3: History Mining (mine_session_history)
+    - Level 4: Self-Modification (improve_discovery_mechanism)
+    - Level 5: Meta-RSSI (analyze_discovery_effectiveness)
+    - Level 6: Web Discovery (web_search_for_ideas)
+
+    NEVER returns empty - always finds something to improve.
 
     Args:
         project_dir: Path to project root
 
     Returns:
-        List of opportunity descriptions (max 5)
+        List of opportunity descriptions. NEVER empty.
     """
     if not project_dir:
-        return []
+        # Even with no project, provide meta-opportunities
+        return ["Set up a project directory for RSSI scanning"]
 
-    opportunities: list[str] = []
     project_path = Path(project_dir)
+    opportunities: list[str] = []
 
-    # Check 1: Broken links (if lychee available)
-    if ensure_validation_tool("lychee"):
-        try:
-            result = subprocess.run(
-                ["lychee", "--no-progress", "-q", "--format", "json", "."],
-                cwd=project_dir,
-                capture_output=True,
-                timeout=LYCHEE_TIMEOUT
-            )
-            if result.returncode != 0 and result.stdout:
-                try:
-                    data = json.loads(result.stdout)
-                    broken = data.get("fail", [])
-                    if broken:
-                        opportunities.append(f"Fix {len(broken)} broken links")
-                except json.JSONDecodeError:
-                    pass
-        except (subprocess.TimeoutExpired, OSError) as e:
-            logger.warning(f"Lychee check failed: {e}")
+    # Load accumulated knowledge
+    knowledge = RSSIKnowledge.load()
+    knowledge.increment_iteration()
 
-    # Check 2: Directories with multiple Python files but no README
-    checked_dirs: set[Path] = set()
-    for py_file in project_path.rglob("*.py"):
-        parent = py_file.parent
-        if parent in checked_dirs:
-            continue
-        checked_dirs.add(parent)
+    # Level 2: Dynamic Discovery
+    disabled = get_disabled_checks()
+    prioritized = get_prioritized_checks()
+    level2_opportunities = rssi_scan_opportunities(
+        project_path,
+        disabled_checks=disabled,
+        prioritized_checks=prioritized,
+    )
+    opportunities.extend(level2_opportunities)
 
-        # Skip common non-source directories
-        if any(skip in parent.parts for skip in ["__pycache__", ".git", "node_modules", ".venv", "venv"]):
-            continue
+    # Level 3: History Mining
+    history_patterns = mine_session_history()
+    knowledge.add_patterns(history_patterns)
+    if history_patterns:
+        opportunities.extend(history_patterns[:2])  # Top 2 patterns
 
-        readme = parent / "README.md"
-        if not readme.exists():
-            py_files = list(parent.glob("*.py"))
-            if len(py_files) > 3:
-                rel_path = parent.relative_to(project_path) if parent != project_path else Path(".")
-                opportunities.append(f"Add README to {rel_path}")
+    # Add commit-based suggestions
+    commit_suggestions = get_recent_commits_for_analysis(project_path)
+    opportunities.extend(commit_suggestions)
 
-    # Check 3: Look for ADR gaps (if ITP structure exists)
-    adr_dir = project_path / "docs/adr"
-    if adr_dir.exists():
-        # Count ADRs
-        adr_count = len(list(adr_dir.glob("*.md")))
-        # Check for common features that might need ADRs
-        if (project_path / "plugins").exists() and adr_count < 3:
-            opportunities.append("Consider adding ADRs for plugin architecture decisions")
+    # Level 4: Self-Modification
+    improvements = improve_discovery_mechanism(project_path)
+    knowledge.apply_improvements(improvements)
+    # Log improvements but don't add to opportunities (internal)
 
-    # Cap at MAX_OPPORTUNITIES to avoid overwhelming
-    return opportunities[:MAX_OPPORTUNITIES]
+    # Level 5: Meta-RSSI
+    meta_analysis = analyze_discovery_effectiveness()
+    knowledge.evolve(meta_analysis)
+    meta_suggestions = get_meta_suggestions()
+    if meta_suggestions:
+        opportunities.extend(meta_suggestions[:2])  # Top 2 meta-suggestions
+
+    # Check if we should suggest capability expansion
+    capability_suggestions = suggest_capability_expansion(project_path)
+    if capability_suggestions:
+        opportunities.extend(capability_suggestions[:2])
+
+    # Persist accumulated knowledge
+    knowledge.persist()
+
+    # GUARANTEE: Never return empty (RSSI Tier 7 fallback)
+    if not opportunities:
+        opportunities = [
+            "Review recent git commits for documentation gaps",
+            "Analyze test coverage for recently changed files",
+            "Search for SOTA improvements in project domain",
+        ]
+
+    return opportunities
+
+
+def get_rssi_exploration_context(project_dir: str) -> dict:
+    """Get full RSSI context for exploration mode template.
+
+    Provides all data needed for the exploration-mode.md template.
+
+    Args:
+        project_dir: Path to project root
+
+    Returns:
+        Dict with opportunities, web_queries, missing_tools, quality_gate, etc.
+    """
+    project_path = Path(project_dir) if project_dir else None
+    knowledge = RSSIKnowledge.load()
+
+    context = {
+        "opportunities": scan_work_opportunities(project_dir),
+        "iteration": knowledge.iteration_count,
+        "accumulated_patterns": list(knowledge.commit_patterns.keys()),
+        "disabled_checks": knowledge.disabled_checks,
+        "effective_checks": knowledge.effective_checks,
+        "web_insights": knowledge.domain_insights,
+        "feature_ideas": knowledge.feature_ideas,
+        "overall_effectiveness": knowledge.overall_effectiveness,
+        "web_queries": [],
+        "missing_tools": [],
+        "quality_gate": get_quality_gate_instructions(),
+    }
+
+    if project_path:
+        # Level 6: Web Discovery queries
+        web_suggestions = web_search_for_ideas(project_path)
+        context["web_queries"] = [
+            s.replace('- WebSearch: "', "").rstrip('"')
+            for s in web_suggestions
+            if s.startswith("- WebSearch:")
+        ]
+
+        # Capability expansion suggestions
+        context["missing_tools"] = suggest_capability_expansion(project_path)
+
+    return context
