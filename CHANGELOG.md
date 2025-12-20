@@ -1,3 +1,10 @@
+## [5.8.2](https://github.com/terrylica/cc-skills/compare/v5.8.1...v5.8.2) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** remove invalid line-length from ruff.toml ([3152227](https://github.com/terrylica/cc-skills/commit/3152227d58902dbcaa43d1bb1827fb56ec24fe13))
+
 ## [5.8.1](https://github.com/terrylica/cc-skills/compare/v5.8.0...v5.8.1) (2025-12-20)
 
 # [5.8.0](https://github.com/terrylica/cc-skills/compare/v5.7.1...v5.8.0) (2025-12-20)
