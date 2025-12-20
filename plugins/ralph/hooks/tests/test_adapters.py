@@ -185,29 +185,38 @@ def test_alpha_forge_adapter_detection():
         print("✓ Alpha Forge adapter detects project correctly")
 
 
-def test_alpha_forge_warmup_phase():
-    """Alpha Forge needs 3 runs before convergence signals."""
+def test_alpha_forge_metrics_display():
+    """Alpha Forge provides informational metrics without influencing stopping.
+
+    The adapter now always returns should_continue=True with DEFAULT_CONFIDENCE,
+    deferring all stopping decisions to Ralph's native RSSI scheme.
+    """
     adapter = AlphaForgeAdapter()
 
-    # 0 runs
+    # 0 runs - informational only
     result = adapter.check_convergence([])
     assert result.should_continue is True
-    assert "Warmup" in result.reason
+    assert result.confidence == DEFAULT_CONFIDENCE
+    assert "No experiments" in result.reason
 
-    # 2 runs (still warmup)
+    # With runs - provides stats but still defers to RSSI
     metrics = [
         MetricsEntry("run_1", "2025-01-01T00:00:00", 0.5),
         MetricsEntry("run_2", "2025-01-01T01:00:00", 0.6),
     ]
     result = adapter.check_convergence(metrics)
     assert result.should_continue is True
-    assert "2/3" in result.reason
+    assert result.confidence == DEFAULT_CONFIDENCE
+    assert "Experiments: 2" in result.reason
 
-    print("✓ Alpha Forge warmup phase works correctly")
+    print("✓ Alpha Forge provides metrics display without influencing stopping")
 
 
-def test_alpha_forge_hard_limit():
-    """Alpha Forge stops at 99 experiments with override confidence."""
+def test_alpha_forge_many_experiments():
+    """Alpha Forge displays stats for many experiments without stopping.
+
+    The adapter defers all stopping decisions to RSSI, including hard limits.
+    """
     adapter = AlphaForgeAdapter()
 
     # Create 99 dummy metrics
@@ -218,14 +227,18 @@ def test_alpha_forge_hard_limit():
 
     result = adapter.check_convergence(metrics)
 
-    assert result.should_continue is False
-    assert result.confidence == OVERRIDE_CONFIDENCE
+    # Always defers to RSSI
+    assert result.should_continue is True
+    assert result.confidence == DEFAULT_CONFIDENCE
     assert "99" in result.reason
-    print("✓ Alpha Forge hard limit (99) works with override confidence")
+    print("✓ Alpha Forge displays stats for many experiments")
 
 
-def test_alpha_forge_robustness_threshold():
-    """Alpha Forge stops when WFE >= 0.5."""
+def test_alpha_forge_wfe_display():
+    """Alpha Forge displays WFE metric without influencing stopping.
+
+    WFE is shown for informational purposes only.
+    """
     adapter = AlphaForgeAdapter()
 
     metrics = [
@@ -236,20 +249,24 @@ def test_alpha_forge_robustness_threshold():
             "run_4",
             "2025-01-01T03:00:00",
             0.8,
-            secondary_metrics={"wfe": 0.55},  # Above threshold
+            secondary_metrics={"wfe": 0.55},
         ),
     ]
 
     result = adapter.check_convergence(metrics)
 
-    assert result.should_continue is False
-    assert result.confidence == SUGGEST_CONFIDENCE
+    # Always defers to RSSI
+    assert result.should_continue is True
+    assert result.confidence == DEFAULT_CONFIDENCE
     assert "WFE" in result.reason
-    print("✓ Alpha Forge robustness threshold works")
+    print("✓ Alpha Forge displays WFE metric")
 
 
-def test_alpha_forge_patience_exhausted():
-    """Alpha Forge stops when best config unchanged for 5 runs."""
+def test_alpha_forge_tracks_best_run():
+    """Alpha Forge tracks best Sharpe and runs since best.
+
+    The adapter provides informational stats but does not influence stopping.
+    """
     adapter = AlphaForgeAdapter()
 
     # Best sharpe at run_1, then 5 worse runs
@@ -264,10 +281,12 @@ def test_alpha_forge_patience_exhausted():
 
     result = adapter.check_convergence(metrics)
 
-    assert result.should_continue is False
-    assert result.confidence == SUGGEST_CONFIDENCE
-    assert "unchanged" in result.reason.lower()
-    print("✓ Alpha Forge patience exhausted works")
+    # Always defers to RSSI
+    assert result.should_continue is True
+    assert result.confidence == DEFAULT_CONFIDENCE
+    assert "best Sharpe=1.000" in result.reason
+    assert "5 since best" in result.reason
+    print("✓ Alpha Forge tracks best run and runs since best")
 
 
 def test_alpha_forge_metrics_history():
@@ -388,10 +407,10 @@ def run_all_tests():
         test_universal_adapter_no_metrics,
         # Alpha Forge adapter tests
         test_alpha_forge_adapter_detection,
-        test_alpha_forge_warmup_phase,
-        test_alpha_forge_hard_limit,
-        test_alpha_forge_robustness_threshold,
-        test_alpha_forge_patience_exhausted,
+        test_alpha_forge_metrics_display,
+        test_alpha_forge_many_experiments,
+        test_alpha_forge_wfe_display,
+        test_alpha_forge_tracks_best_run,
         test_alpha_forge_metrics_history,
         # Registry tests
         test_registry_auto_discovery,
