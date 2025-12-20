@@ -1,0 +1,23 @@
+# Lychee link checker configuration
+# https://lychee.cli.rs/configuration/
+
+# Root directory for resolving absolute paths (e.g., /docs/adr/...)
+# Must be set when checking files with root-relative links
+# Note: This is set dynamically by the calling script, not here
+
+# Exclude directories that should not be link-checked
+# Note: These are REGEX patterns, not globs
+exclude_path = [
+    # Test fixtures with intentionally broken links
+    "tests/fixtures/",
+    # Generated/copy directory (mirrors plugins/)
+    "^\\.claude-plugin/",
+    # Temporary research/scratch files
+    "^tmp/"
+]
+
+# Check offline only (no network requests)
+offline = true
+
+# Skip progress bar
+no_progress = true
