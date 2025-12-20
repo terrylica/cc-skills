@@ -1,9 +1,9 @@
 ---
 adr: 2025-12-07-setup-hooks-reminder
 source: ~/.claude/plans/polymorphic-conjuring-glade.md
-implementation-status: in_progress
-phase: phase-1
-last-updated: 2025-12-07
+implementation-status: completed
+phase: released
+last-updated: 2025-12-20
 ---
 
 # Implementation Spec: Add `/itp hooks` Reminder to Setup Command

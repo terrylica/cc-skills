@@ -1,9 +1,9 @@
 ---
 adr: 2025-12-08-mise-tasks-skill
 source: ~/.claude/plans/lucky-wondering-pizza.md
-implementation-status: in_progress
-phase: phase-1
-last-updated: 2025-12-08
+implementation-status: completed
+phase: released
+last-updated: 2025-12-20
 ---
 
 # Design Spec: Create mise-tasks Skill + Enhance mise-configuration Cross-Reference
