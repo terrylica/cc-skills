@@ -1,3 +1,10 @@
+# [5.2.0](https://github.com/terrylica/cc-skills/compare/v5.1.7...v5.2.0) (2025-12-20)
+
+
+### Features
+
+* **ralph:** add file discovery and argument parsing ([51c8dee](https://github.com/terrylica/cc-skills/commit/51c8dee9b88135cb9773ab8869b596ade9a35d1c))
+
 ## [5.1.7](https://github.com/terrylica/cc-skills/compare/v5.1.6...v5.1.7) (2025-12-19)
 
 
