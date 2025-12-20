@@ -17,9 +17,16 @@ set -euo pipefail
 # === Configuration ===
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
-HOOK_SCRIPT="${PLUGIN_ROOT}/hooks/lychee-stop-hook.sh"
 SETTINGS_FILE="${HOME}/.claude/settings.json"
 HOOK_TIMEOUT=30000
+
+# Use marketplace path with $HOME for portability and auto-updates
+# This path is version-agnostic - updates automatically when plugin updates
+MARKETPLACE_PATH='$HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools'
+HOOK_SCRIPT_SETTINGS="${MARKETPLACE_PATH}/hooks/lychee-stop-hook.sh"
+
+# For local validation, resolve the actual path
+HOOK_SCRIPT_RESOLVED="${HOME}/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools/hooks/lychee-stop-hook.sh"
 
 # Colors for output
 RED='\033[91m'
@@ -80,7 +87,7 @@ backup_settings() {
 
 # Check if our hook is already installed
 is_hook_installed() {
-    jq -e --arg script "$HOOK_SCRIPT" '
+    jq -e --arg script "$HOOK_SCRIPT_SETTINGS" '
         .hooks.Stop // [] |
         any(
             .hooks[]? |
@@ -96,8 +103,8 @@ cmd_install() {
     ensure_settings_file
 
     # Check if hook script exists
-    if [[ ! -x "$HOOK_SCRIPT" ]]; then
-        log_error "Hook script not found or not executable: $HOOK_SCRIPT"
+    if [[ ! -x "$HOOK_SCRIPT_RESOLVED" ]]; then
+        log_error "Hook script not found or not executable: $HOOK_SCRIPT_RESOLVED"
         exit 1
     fi
 
@@ -115,7 +122,7 @@ cmd_install() {
 
     # Add our hook to the Stop hooks array
     # Creates .hooks and .hooks.Stop if they don't exist
-    jq --arg script "$HOOK_SCRIPT" --argjson timeout "$HOOK_TIMEOUT" '
+    jq --arg script "$HOOK_SCRIPT_SETTINGS" --argjson timeout "$HOOK_TIMEOUT" '
         # Ensure hooks object exists
         .hooks //= {} |
         # Ensure Stop array exists
