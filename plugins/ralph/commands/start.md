@@ -132,12 +132,32 @@ if [[ -n "$TARGET_FILE" && ! -e "$TARGET_FILE" ]]; then
     echo ""
 fi
 
-# ===== CREATE MARKERS AND CONFIG =====
+# ===== STATE MACHINE TRANSITION =====
+# State machine: STOPPED → RUNNING → DRAINING → STOPPED
 mkdir -p "$PROJECT_DIR/.claude"
+
+# Check current state (if any)
+STATE_FILE="$PROJECT_DIR/.claude/ralph-state.json"
+CURRENT_STATE="stopped"
+if [[ -f "$STATE_FILE" ]]; then
+    CURRENT_STATE=$(jq -r '.state // "stopped"' "$STATE_FILE" 2>/dev/null || echo "stopped")
+fi
+
+# Validate state transition: STOPPED → RUNNING
+if [[ "$CURRENT_STATE" != "stopped" ]]; then
+    echo "ERROR: Loop already in state '$CURRENT_STATE'"
+    echo "       Run /ralph:stop first to reset state"
+    exit 1
+fi
+
+# Transition to RUNNING state
+echo '{"state": "running"}' > "$STATE_FILE"
+
+# Create legacy markers for backward compatibility
 touch "$PROJECT_DIR/.claude/loop-enabled"
 date +%s > "$PROJECT_DIR/.claude/loop-start-timestamp"
 
-# Build config JSON using jq for proper escaping
+# Build unified config JSON with all configurable values
 if $POC_MODE; then
     MIN_HOURS=0.083
     MAX_HOURS=0.167
@@ -150,7 +170,37 @@ else
     MAX_ITERS=99
 fi
 
+# Generate unified ralph-config.json (v2.0 schema)
 CONFIG_JSON=$(jq -n \
+    --arg state "running" \
+    --argjson poc_mode "$POC_MODE" \
+    --argjson no_focus "$NO_FOCUS" \
+    --arg target_file "$TARGET_FILE" \
+    --arg task_prompt "$TASK_PROMPT" \
+    --argjson min_hours "$MIN_HOURS" \
+    --argjson max_hours "$MAX_HOURS" \
+    --argjson min_iterations "$MIN_ITERS" \
+    --argjson max_iterations "$MAX_ITERS" \
+    '{
+        version: "2.0.0",
+        state: $state,
+        poc_mode: $poc_mode,
+        no_focus: $no_focus,
+        loop_limits: {
+            min_hours: $min_hours,
+            max_hours: $max_hours,
+            min_iterations: $min_iterations,
+            max_iterations: $max_iterations
+        }
+    }
+    + (if $target_file != "" then {target_file: $target_file} else {} end)
+    + (if $task_prompt != "" then {task_prompt: $task_prompt} else {} end)'
+)
+
+echo "$CONFIG_JSON" > "$PROJECT_DIR/.claude/ralph-config.json"
+
+# Legacy config for backward compatibility
+LEGACY_CONFIG=$(jq -n \
     --argjson min_hours "$MIN_HOURS" \
     --argjson max_hours "$MAX_HOURS" \
     --argjson min_iterations "$MIN_ITERS" \
@@ -168,8 +218,7 @@ CONFIG_JSON=$(jq -n \
     + (if $target_file != "" then {target_file: $target_file} else {} end)
     + (if $task_prompt != "" then {task_prompt: $task_prompt} else {} end)'
 )
-
-echo "$CONFIG_JSON" > "$PROJECT_DIR/.claude/loop-config.json"
+echo "$LEGACY_CONFIG" > "$PROJECT_DIR/.claude/loop-config.json"
 
 # ===== ADAPTER DETECTION =====
 # Detect project-specific adapter using Python
@@ -224,10 +273,11 @@ if [[ -n "$TASK_PROMPT" ]]; then
 fi
 
 echo ""
-echo "Status: ACTIVATED"
-echo "Marker: $PROJECT_DIR/.claude/loop-enabled"
+echo "State: RUNNING (was: $CURRENT_STATE)"
+echo "Config: $PROJECT_DIR/.claude/ralph-config.json"
 echo ""
-echo "To stop: /ralph:stop or create $PROJECT_DIR/.claude/STOP_LOOP"
+echo "To stop: /ralph:stop"
+echo "Kill switch: touch $PROJECT_DIR/.claude/STOP_LOOP"
 echo ""
 echo "Note: If you just installed hooks, restart Claude Code for them to take effect."
 RALPH_START_SCRIPT
