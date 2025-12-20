@@ -1,7 +1,7 @@
 ---
 description: Enable autonomous loop mode for long-running tasks
 allowed-tools: Read, Write, Bash
-argument-hint: "[--poc]"
+argument-hint: "[-f <file>] [--poc] [<task description>...]"
 ---
 
 # Ralph Loop: Start
@@ -15,7 +15,9 @@ Enable the Ralph Wiggum autonomous improvement loop. Claude will continue workin
 
 ## Arguments
 
+- `-f <file>`: Specify target file for completion tracking (plan, spec, or ADR)
 - `--poc`: Use proof-of-concept settings (5 min / 10 min limits, 10/20 iterations)
+- `<task description>`: Natural language task prompt (remaining text after flags)
 
 ## Execution
 
@@ -50,14 +52,81 @@ if [[ "$HOOKS_INSTALLED" == "false" ]]; then
     exit 1
 fi
 
-# Create loop-enabled marker and start timestamp
+# ===== ARGUMENT PARSING =====
+# Syntax: /ralph:start [-f <file>] [--poc] [<task description>...]
+
+ARGS="${ARGUMENTS:-}"
+TARGET_FILE=""
+POC_MODE=false
+TASK_PROMPT=""
+
+# Extract -f flag with regex (handles paths without spaces)
+if [[ "$ARGS" =~ -f[[:space:]]+([^[:space:]]+) ]]; then
+    TARGET_FILE="${BASH_REMATCH[1]}"
+    # Remove -f and path from ARGS for remaining processing
+    ARGS="${ARGS//-f ${TARGET_FILE}/}"
+fi
+
+# Detect --poc flag
+if [[ "$ARGS" == *"--poc"* ]]; then
+    POC_MODE=true
+    ARGS="${ARGS//--poc/}"
+fi
+
+# Remaining text after flags = task_prompt (trim whitespace)
+TASK_PROMPT=$(echo "$ARGS" | xargs 2>/dev/null || echo "$ARGS")
+
+# Resolve relative path to absolute
+if [[ -n "$TARGET_FILE" && "$TARGET_FILE" != /* ]]; then
+    TARGET_FILE="$PROJECT_DIR/$TARGET_FILE"
+fi
+
+# Validate file exists (warn but continue)
+if [[ -n "$TARGET_FILE" && ! -e "$TARGET_FILE" ]]; then
+    echo "WARNING: Target file does not exist: $TARGET_FILE"
+    echo "         Loop will proceed but file discovery may be used instead."
+    echo ""
+fi
+
+# ===== CREATE MARKERS AND CONFIG =====
 mkdir -p "$PROJECT_DIR/.claude"
 touch "$PROJECT_DIR/.claude/loop-enabled"
 date +%s > "$PROJECT_DIR/.claude/loop-start-timestamp"
 
-# Apply POC config if requested
-if [[ "${ARGUMENTS:-}" == *"--poc"* ]]; then
-    echo '{"min_hours": 0.083, "max_hours": 0.167, "min_iterations": 10, "max_iterations": 20}' > "$PROJECT_DIR/.claude/loop-config.json"
+# Build config JSON using jq for proper escaping
+if $POC_MODE; then
+    MIN_HOURS=0.083
+    MAX_HOURS=0.167
+    MIN_ITERS=10
+    MAX_ITERS=20
+else
+    MIN_HOURS=4
+    MAX_HOURS=9
+    MIN_ITERS=50
+    MAX_ITERS=99
+fi
+
+CONFIG_JSON=$(jq -n \
+    --argjson min_hours "$MIN_HOURS" \
+    --argjson max_hours "$MAX_HOURS" \
+    --argjson min_iterations "$MIN_ITERS" \
+    --argjson max_iterations "$MAX_ITERS" \
+    --arg target_file "$TARGET_FILE" \
+    --arg task_prompt "$TASK_PROMPT" \
+    '{
+        min_hours: $min_hours,
+        max_hours: $max_hours,
+        min_iterations: $min_iterations,
+        max_iterations: $max_iterations
+    }
+    + (if $target_file != "" then {target_file: $target_file} else {} end)
+    + (if $task_prompt != "" then {task_prompt: $task_prompt} else {} end)'
+)
+
+echo "$CONFIG_JSON" > "$PROJECT_DIR/.claude/loop-config.json"
+
+# ===== STATUS OUTPUT =====
+if $POC_MODE; then
     echo "Ralph Loop: POC MODE"
     echo "Time limits: 5 min minimum / 10 min maximum"
     echo "Iterations: 10 minimum / 20 maximum"
@@ -65,6 +134,16 @@ else
     echo "Ralph Loop: PRODUCTION MODE"
     echo "Time limits: 4h minimum / 9h maximum"
     echo "Iterations: 50 minimum / 99 maximum"
+fi
+
+if [[ -n "$TARGET_FILE" ]]; then
+    echo ""
+    echo "Target file: $TARGET_FILE"
+fi
+
+if [[ -n "$TASK_PROMPT" ]]; then
+    echo ""
+    echo "Task: $TASK_PROMPT"
 fi
 
 echo ""
