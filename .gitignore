@@ -16,3 +16,4 @@ npm-debug.log*
 # Build artifacts
 dist/
 build/
+__pycache__/
