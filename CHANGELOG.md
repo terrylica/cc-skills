@@ -1,3 +1,10 @@
+## [5.2.1](https://github.com/terrylica/cc-skills/compare/v5.2.0...v5.2.1) (2025-12-20)
+
+
+### Bug Fixes
+
+* **semantic-release:** simplify account verification to HTTPS-first workflow ([e0ae2a2](https://github.com/terrylica/cc-skills/commit/e0ae2a28e7cc3848f399b5632c47f2121b3b72ab))
+
 # [5.2.0](https://github.com/terrylica/cc-skills/compare/v5.1.7...v5.2.0) (2025-12-20)
 
 
