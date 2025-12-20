@@ -114,18 +114,18 @@ def main():
     print("3. Testing environment injection...")
     injected = test_env_injection(args.project, args.config, args.secret)
     if injected:
-        print(f"   ✓ Environment injection working\n")
+        print("   ✓ Environment injection working\n")
     else:
-        print(f"   ✗ Environment injection failed\n")
+        print("   ✗ Environment injection failed\n")
         sys.exit(1)
 
     # Summary
     print("=== Validation Summary ===")
-    print(f"✓ Secret exists in Doppler")
-    print(f"✓ Secret retrieval working")
-    print(f"✓ Environment injection working")
+    print("✓ Secret exists in Doppler")
+    print("✓ Secret retrieval working")
+    print("✓ Environment injection working")
     print(f"\n🎉 Secret '{args.secret}' is fully operational!")
-    print(f"\nUsage:")
+    print("\nUsage:")
     print(f"  doppler run --project {args.project} --config {args.config} -- <command>")
 
 

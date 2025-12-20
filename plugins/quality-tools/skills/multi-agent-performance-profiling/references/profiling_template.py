@@ -98,7 +98,7 @@ def profile_pipeline_example():
         is_bottleneck = "🔴 YES" if pct > 50 else ("🟡 MAYBE" if pct > 20 else "")
         print(f"{phase:<20} {duration:<15.3f} {pct:<15.1f} {is_bottleneck}")
 
-    print(f"\nMemory Usage:")
+    print("\nMemory Usage:")
     print(f"  Start: {mem_start:.1f} MB")
     print(f"  End: {mem_end:.1f} MB")
     print(f"  Peak: {mem_peak:.1f} MB")
@@ -113,10 +113,10 @@ def profile_pipeline_example():
     if primary_bottleneck[1] / total_time > 0.5:
         print(f"\n🔴 PRIMARY BOTTLENECK: {primary_bottleneck[0]}")
         print(f"   Accounts for {(primary_bottleneck[1] / total_time * 100):.1f}% of total time")
-        print(f"   Recommendation: Focus optimization efforts here first")
+        print("   Recommendation: Focus optimization efforts here first")
     else:
         print(f"\n🟡 NO SINGLE BOTTLENECK (largest phase: {primary_bottleneck[0]} at {(primary_bottleneck[1] / total_time * 100):.1f}%)")
-        print(f"   Recommendation: Optimize multiple phases or parallelize pipeline")
+        print("   Recommendation: Optimize multiple phases or parallelize pipeline")
 
     return results
 

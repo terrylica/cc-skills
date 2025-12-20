@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: F821
 """
 Agent N: [Agent Name] Validation
 
