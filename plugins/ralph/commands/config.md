@@ -1,28 +1,66 @@
 ---
 description: View or modify loop configuration
 allowed-tools: Read, Write, Bash, AskUserQuestion
-argument-hint: "[show|edit|reset]"
+argument-hint: "[show|edit|reset|set <key>=<value>]"
 ---
 
 # Ralph Loop: Config
 
-View or modify the Ralph Wiggum loop configuration.
+View or modify the Ralph Wiggum loop configuration (v2.0 unified schema).
 
 ## Arguments
 
-- `show` (default): Display current configuration
-- `edit`: Interactively modify settings
-- `reset`: Reset to global defaults
+- `show` (default): Display current configuration with all sections
+- `edit`: Interactively modify settings via AskUserQuestion
+- `reset`: Reset to defaults (removes project config)
+- `set <key>=<value>`: Set a specific config value (e.g., `set loop_limits.min_hours=2`)
 
-## Configuration Options
+## Configuration Schema (v2.0)
 
-| Setting                     | Default | Description                                |
-| --------------------------- | ------- | ------------------------------------------ |
-| `min_hours`                 | 4.0     | Minimum runtime before allowing completion |
-| `max_hours`                 | 9.0     | Maximum runtime (hard stop)                |
-| `min_iterations`            | 50      | Minimum iterations before completion       |
-| `max_iterations`            | 99      | Maximum iterations (safety limit)          |
-| `loop_similarity_threshold` | 0.90    | RapidFuzz threshold for loop detection     |
+The unified config file `.claude/ralph-config.json` contains all configurable values:
+
+### Loop Limits
+
+| Setting          | Default | POC Mode | Description                          |
+| ---------------- | ------- | -------- | ------------------------------------ |
+| `min_hours`      | 4.0     | 0.083    | Minimum runtime before completion    |
+| `max_hours`      | 9.0     | 0.167    | Maximum runtime (hard stop)          |
+| `min_iterations` | 50      | 10       | Minimum iterations before completion |
+| `max_iterations` | 99      | 20       | Maximum iterations (safety limit)    |
+
+### Loop Detection
+
+| Setting                | Default | Description                              |
+| ---------------------- | ------- | ---------------------------------------- |
+| `similarity_threshold` | 0.9     | RapidFuzz ratio for detecting repetition |
+| `window_size`          | 5       | Number of outputs to track for detection |
+
+### Completion Detection
+
+| Setting                         | Default | Description                              |
+| ------------------------------- | ------- | ---------------------------------------- |
+| `confidence_threshold`          | 0.7     | Minimum confidence to trigger completion |
+| `explicit_marker_confidence`    | 1.0     | Confidence for `[x] TASK_COMPLETE`       |
+| `frontmatter_status_confidence` | 0.95    | Confidence for `implementation-status`   |
+| `all_checkboxes_confidence`     | 0.9     | Confidence when all checkboxes checked   |
+| `no_pending_items_confidence`   | 0.85    | Confidence when has `[x]` but no `[ ]`   |
+| `semantic_phrases_confidence`   | 0.7     | Confidence for "task complete" phrases   |
+
+### Validation Phase
+
+| Setting                 | Default | Description                      |
+| ----------------------- | ------- | -------------------------------- |
+| `enabled`               | true    | Enable 3-round validation phase  |
+| `score_threshold`       | 0.8     | Score needed to pass validation  |
+| `max_iterations`        | 3       | Maximum validation cycles        |
+| `improvement_threshold` | 0.1     | Required improvement to continue |
+
+### Protection
+
+| Setting              | Default                                   | Description                       |
+| -------------------- | ----------------------------------------- | --------------------------------- |
+| `protected_files`    | `loop-enabled`, `ralph-config.json`, etc. | Files protected from deletion     |
+| `stop_script_marker` | `RALPH_STOP_SCRIPT`                       | Marker to bypass PreToolUse guard |
 
 ## Execution
 
@@ -34,16 +72,45 @@ Based on `$ARGUMENTS`:
 # Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
 /usr/bin/env bash << 'RALPH_CONFIG_SHOW'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-echo "=== Project Config ==="
-if [[ -f "$PROJECT_DIR/.claude/loop-config.json" ]]; then
-    cat "$PROJECT_DIR/.claude/loop-config.json" | python3 -m json.tool
+echo "=== Ralph Configuration (v2.0) ==="
+echo ""
+
+# State
+echo "--- State ---"
+STATE_FILE="$PROJECT_DIR/.claude/ralph-state.json"
+if [[ -f "$STATE_FILE" ]]; then
+    echo "State: $(jq -r '.state // "stopped"' "$STATE_FILE")"
 else
-    echo "(using global defaults)"
+    echo "State: stopped (no state file)"
+fi
+echo ""
+
+# Project config
+echo "--- Project Config ---"
+CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
+if [[ -f "$CONFIG_FILE" ]]; then
+    cat "$CONFIG_FILE" | python3 -m json.tool
+else
+    echo "(using defaults - no project config)"
+fi
+echo ""
+
+# Legacy config (if different)
+LEGACY_FILE="$PROJECT_DIR/.claude/loop-config.json"
+if [[ -f "$LEGACY_FILE" ]]; then
+    echo "--- Legacy Config (backward compat) ---"
+    cat "$LEGACY_FILE" | python3 -m json.tool
 fi
 
+# Global defaults
 echo ""
-echo "=== Global Config ==="
-cat "$HOME/.claude/automation/loop-orchestrator/config/loop_config.json" | python3 -m json.tool 2>/dev/null || echo "(not found)"
+echo "--- Global Defaults Location ---"
+echo "$HOME/.claude/ralph-defaults.json"
+if [[ -f "$HOME/.claude/ralph-defaults.json" ]]; then
+    cat "$HOME/.claude/ralph-defaults.json" | python3 -m json.tool
+else
+    echo "(not found - using built-in defaults)"
+fi
 RALPH_CONFIG_SHOW
 ```
 
@@ -53,23 +120,106 @@ RALPH_CONFIG_SHOW
 # Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
 /usr/bin/env bash << 'RALPH_CONFIG_RESET'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+rm -f "$PROJECT_DIR/.claude/ralph-config.json"
 rm -f "$PROJECT_DIR/.claude/loop-config.json"
-echo "Project config reset. Using global defaults."
+rm -f "$PROJECT_DIR/.claude/ralph-state.json"
+echo "Project config reset. Using built-in defaults."
+echo ""
+echo "To create global defaults, write to: $HOME/.claude/ralph-defaults.json"
 RALPH_CONFIG_RESET
+```
+
+### For `set <key>=<value>`
+
+```bash
+# Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
+/usr/bin/env bash << 'RALPH_CONFIG_SET'
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
+
+# Parse key=value from ARGUMENTS
+ARGS="${ARGUMENTS:-}"
+KEY_VALUE=$(echo "$ARGS" | sed 's/^set //')
+KEY=$(echo "$KEY_VALUE" | cut -d= -f1)
+VALUE=$(echo "$KEY_VALUE" | cut -d= -f2-)
+
+if [[ -z "$KEY" || -z "$VALUE" ]]; then
+    echo "Usage: /ralph:config set <key>=<value>"
+    echo "Example: /ralph:config set loop_limits.min_hours=2"
+    exit 1
+fi
+
+# Create config if doesn't exist
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo '{"version": "2.0.0"}' > "$CONFIG_FILE"
+fi
+
+# Use jq to set nested key (supports dot notation)
+# Convert dot notation to jq path: loop_limits.min_hours -> .loop_limits.min_hours
+JQ_PATH=".$(echo "$KEY" | sed 's/\./\./g')"
+
+# Detect if value is numeric or string
+if [[ "$VALUE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    # Numeric value
+    jq "$JQ_PATH = $VALUE" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+elif [[ "$VALUE" == "true" || "$VALUE" == "false" ]]; then
+    # Boolean value
+    jq "$JQ_PATH = $VALUE" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+else
+    # String value
+    jq "$JQ_PATH = \"$VALUE\"" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+fi
+
+echo "Set $KEY = $VALUE"
+echo ""
+cat "$CONFIG_FILE" | python3 -m json.tool
+RALPH_CONFIG_SET
 ```
 
 ### For `edit`
 
-Use the AskUserQuestion tool to prompt for new values, then write to `$PROJECT_DIR/.claude/loop-config.json`.
+Use the AskUserQuestion tool to prompt for new values across all configuration sections, then write to `$PROJECT_DIR/.claude/ralph-config.json`.
 
-Example config:
+Example full config:
 
 ```json
 {
-  "min_hours": 4.0,
-  "max_hours": 9.0,
-  "min_iterations": 50,
-  "max_iterations": 99,
-  "loop_similarity_threshold": 0.9
+  "version": "2.0.0",
+  "state": "stopped",
+  "poc_mode": false,
+  "no_focus": false,
+  "loop_limits": {
+    "min_hours": 4.0,
+    "max_hours": 9.0,
+    "min_iterations": 50,
+    "max_iterations": 99
+  },
+  "loop_detection": {
+    "similarity_threshold": 0.9,
+    "window_size": 5
+  },
+  "completion": {
+    "confidence_threshold": 0.7,
+    "explicit_marker_confidence": 1.0,
+    "frontmatter_status_confidence": 0.95,
+    "all_checkboxes_confidence": 0.9,
+    "no_pending_items_confidence": 0.85,
+    "semantic_phrases_confidence": 0.7,
+    "completion_phrases": ["task complete", "all done", "finished"]
+  },
+  "validation": {
+    "enabled": true,
+    "score_threshold": 0.8,
+    "max_iterations": 3,
+    "improvement_threshold": 0.1
+  },
+  "protection": {
+    "protected_files": [
+      ".claude/loop-enabled",
+      ".claude/ralph-config.json",
+      ".claude/ralph-state.json"
+    ],
+    "stop_script_marker": "RALPH_STOP_SCRIPT"
+  }
 }
 ```
