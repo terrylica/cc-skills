@@ -199,30 +199,6 @@ class TemplateLoader:
             overall_effectiveness=ctx.get("overall_effectiveness", 0.0),
         )
 
-    def render_status_header(
-        self,
-        mode: str,
-        iteration: int,
-        max_iterations: int,
-        elapsed: float,
-        remaining_hours: float,
-        remaining_iters: int
-    ) -> str:
-        """Render the status header line.
-
-        Returns:
-            Formatted status line
-        """
-        return self.render(
-            "status-header.md",
-            mode=mode,
-            iteration=iteration,
-            max_iterations=max_iterations,
-            elapsed=f"{elapsed:.1f}",
-            remaining_hours=f"{remaining_hours:.1f}",
-            remaining_iters=remaining_iters
-        )
-
     def render_adapter_status(
         self,
         adapter_name: str,
