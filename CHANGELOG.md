@@ -1,3 +1,10 @@
+# [5.7.0](https://github.com/terrylica/cc-skills/compare/v5.6.0...v5.7.0) (2025-12-20)
+
+
+### Features
+
+* **ralph:** add plan mode discovery and user confirmation flow ([f59cc83](https://github.com/terrylica/cc-skills/commit/f59cc83af3e6bfa480a1aeef030a49facdb5a5c9))
+
 # [5.6.0](https://github.com/terrylica/cc-skills/compare/v5.5.5...v5.6.0) (2025-12-20)
 
 
