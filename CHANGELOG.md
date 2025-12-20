@@ -1,3 +1,10 @@
+# [5.4.0](https://github.com/terrylica/cc-skills/compare/v5.3.0...v5.4.0) (2025-12-20)
+
+
+### Features
+
+* **ralph:** add multi-repository adapter architecture ([1ab4637](https://github.com/terrylica/cc-skills/commit/1ab46370872d3f440278915c427d98c7a4d7e27d))
+
 # [5.3.0](https://github.com/terrylica/cc-skills/compare/v5.2.2...v5.3.0) (2025-12-20)
 
 
