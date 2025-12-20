@@ -1,3 +1,10 @@
+# [5.6.0](https://github.com/terrylica/cc-skills/compare/v5.5.5...v5.6.0) (2025-12-20)
+
+
+### Features
+
+* **ralph:** add research experts and fix metrics display for Alpha Forge ([4f6a425](https://github.com/terrylica/cc-skills/commit/4f6a425c6f7b318b6db906ec09885aee5f045785))
+
 ## [5.5.5](https://github.com/terrylica/cc-skills/compare/v5.5.4...v5.5.5) (2025-12-20)
 
 
