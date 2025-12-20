@@ -1,3 +1,18 @@
+# [5.9.0](https://github.com/terrylica/cc-skills/compare/v5.8.7...v5.9.0) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** use kill switch for reliable /ralph:stop termination ([27454e6](https://github.com/terrylica/cc-skills/commit/27454e615ef55462cb9db3cf6359aa2e58c734fc))
+
+
+### Features
+
+* **ralph:** add SLO enforcement for Alpha Forge projects ([70b024e](https://github.com/terrylica/cc-skills/commit/70b024e053f7425d0016924a710bb8e012aae2ba))
+* **ralph:** add unified config schema with externalized magic numbers ([50eedb0](https://github.com/terrylica/cc-skills/commit/50eedb05ad8aea04c26d2bcbd8290f410f05d0c6))
+* **ralph:** enhance /ralph:config with v2.0 unified schema ([f31fb7c](https://github.com/terrylica/cc-skills/commit/f31fb7c3f3dde2e8330c4dfe14fc583e57413e95))
+* **ralph:** implement state machine in start/stop commands ([716cba3](https://github.com/terrylica/cc-skills/commit/716cba36eb8e5333572927e847cab259536ccf29))
+
 ## [5.8.7](https://github.com/terrylica/cc-skills/compare/v5.8.6...v5.8.7) (2025-12-20)
 
 
