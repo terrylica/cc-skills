@@ -1,3 +1,10 @@
+## [5.8.5](https://github.com/terrylica/cc-skills/compare/v5.8.4...v5.8.5) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** add explicit constraints to prevent self-termination ([f93a38a](https://github.com/terrylica/cc-skills/commit/f93a38aacedfd44ce26af2ee46661121bca82241))
+
 ## [5.8.4](https://github.com/terrylica/cc-skills/compare/v5.8.3...v5.8.4) (2025-12-20)
 
 
