@@ -145,7 +145,7 @@ cmd_install() {
 
     mv "$tmp_file" "$SETTINGS_FILE"
     log_success "Stop hook installed"
-    log_info "  Script:  $HOOK_SCRIPT"
+    log_info "  Script:  $HOOK_SCRIPT_SETTINGS"
     log_info "  Timeout: ${HOOK_TIMEOUT}ms"
     log_info "Restart Claude Code for changes to take effect"
 }
@@ -167,7 +167,7 @@ cmd_uninstall() {
     tmp_file=$(mktemp)
 
     # Remove entries that contain our hook script
-    jq --arg script "$HOOK_SCRIPT" '
+    jq --arg script "$HOOK_SCRIPT_SETTINGS" '
         .hooks.Stop = (
             .hooks.Stop // [] |
             map(
@@ -199,7 +199,7 @@ cmd_uninstall() {
 
     mv "$tmp_file" "$SETTINGS_FILE"
     log_success "Stop hook uninstalled"
-    log_info "  Removed: $HOOK_SCRIPT"
+    log_info "  Removed: $HOOK_SCRIPT_SETTINGS"
     log_info "Restart Claude Code for changes to take effect"
 }
 
