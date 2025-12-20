@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# Lint markdown files for non-repo-relative local paths
+# Repo-relative paths MUST start with / (e.g., /docs/foo.md)
+#
+# Violations:
+#   - ../foo.md (relative traversal)
+#   - foo/bar.md (missing leading /)
+#   - ./foo.md (explicit current dir)
+#
+# Allowed:
+#   - /docs/foo.md (repo-relative)
+#   - #anchor (fragment only)
+#   - https://... (external URL)
+#   - mailto:... (email)
+#   - Links inside code fences (```)
+#   - Inline code examples: `[text](url)`
+#   - Template variables: {{var}}, {var}
+#   - ASCII diagram placeholders: (...)
+
+set -euo pipefail
+
+WORKSPACE="${1:-$HOME/.claude}"
+
+# Check for marketplace repo markers FIRST (before any output)
+if [[ -f "$WORKSPACE/plugin.json" ]] || [[ -f "$WORKSPACE/.claude-plugin" ]]; then
+    echo "✅ Marketplace repo detected at: $WORKSPACE"
+    echo "   Relative paths (./  ../) are CORRECT for marketplace plugins."
+    exit 0
+fi
+
+# Check for explicit skip marker (for repos with third-party content using relative paths)
+if [[ -f "$WORKSPACE/.lint-skip-relative-paths" ]]; then
+    skip_reason=$(head -1 "$WORKSPACE/.lint-skip-relative-paths" 2>/dev/null || echo "Skip marker present")
+    echo "✅ Lint skip marker found at: $WORKSPACE"
+    echo "   Reason: $skip_reason"
+    exit 0
+fi
+
+echo "🔍 Scanning for non-repo-relative paths in: $WORKSPACE"
+echo "   Violations: paths not starting with / or http(s)"
+echo ""
+
+# Use Python for proper code fence tracking
+export WORKSPACE
+violations=$(python3 << 'PYTHON_SCRIPT'
+import os
+import re
+import sys
+
+workspace = os.environ.get('WORKSPACE', os.path.expanduser('~/.claude'))
+exclude_dirs = {'node_modules', 'plugins', '.git', '.venv', 'archive', 'scratch', 'plans', 'tmp', 'third_party'}
+
+# Pattern for markdown links with relative paths
+# Matches: [text](path) where path doesn't start with /, #, http, mailto
+link_pattern = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
+
+violations = []
+
+for root, dirs, files in os.walk(workspace):
+    # Exclude directories
+    dirs[:] = [d for d in dirs if d not in exclude_dirs]
+
+    for filename in files:
+        if not filename.endswith('.md'):
+            continue
+
+        filepath = os.path.join(root, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                lines = f.readlines()
+        except Exception:
+            continue
+
+        in_code_fence = False
+        for line_num, line in enumerate(lines, 1):
+            # Track code fence state
+            if line.strip().startswith('```'):
+                in_code_fence = not in_code_fence
+                continue
+
+            # Skip if inside code fence
+            if in_code_fence:
+                continue
+
+            # Skip inline code examples
+            if '`[' in line and '](' in line and ')`' in line:
+                continue
+
+            # Find all links in line
+            for match in link_pattern.finditer(line):
+                path = match.group(2)
+
+                # Skip allowed patterns
+                if path.startswith(('/', '#', 'http://', 'https://', 'mailto:')):
+                    continue
+
+                # Skip template variables
+                if path.startswith(('{', '{{')) or path == '...':
+                    continue
+
+                # This is a violation
+                violations.append(f"{filepath}:{line_num}:{line.rstrip()}")
+
+for v in violations:
+    print(v)
+PYTHON_SCRIPT
+)
+
+if [[ -z "$violations" ]]; then
+    echo "✅ No violations found. All local paths use repo-relative format (start with /)."
+    exit 0
+fi
+
+# Count violations
+count=$(echo "$violations" | wc -l | tr -d ' ')
+
+echo "❌ Found $count violation(s):"
+echo ""
+echo "$violations" | head -50
+
+if [[ $count -gt 50 ]]; then
+    echo ""
+    echo "... and $((count - 50)) more (showing first 50)"
+fi
+
+echo ""
+echo "📝 Fix: Convert relative paths to repo-relative paths starting with /"
+echo "   WRONG: [Link](../docs/foo.md)"
+echo "   WRONG: [Link](docs/foo.md)"
+echo "   RIGHT: [Link](/docs/foo.md)"
+
+exit 1
