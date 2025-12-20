@@ -1,7 +1,7 @@
 ---
 description: Enable autonomous loop mode for long-running tasks
-allowed-tools: Read, Write, Bash
-argument-hint: "[-f <file>] [--poc] [<task description>...]"
+allowed-tools: Read, Write, Bash, AskUserQuestion, Glob
+argument-hint: "[-f <file>] [--poc] [--no-focus] [<task description>...]"
 ---
 
 # Ralph Loop: Start
@@ -17,9 +17,46 @@ Enable the Ralph Wiggum autonomous improvement loop. Claude will continue workin
 
 - `-f <file>`: Specify target file for completion tracking (plan, spec, or ADR)
 - `--poc`: Use proof-of-concept settings (5 min / 10 min limits, 10/20 iterations)
+- `--no-focus`: Skip focus file tracking (100% autonomous, no plan file)
 - `<task description>`: Natural language task prompt (remaining text after flags)
 
-## Execution
+## Step 1: Focus File Confirmation
+
+**BEFORE running the bash script**, you MUST confirm the focus file with the user:
+
+1. **Check for explicit file**: If `-f <file>` was provided, use that path.
+
+2. **Check for --no-focus flag**: If `--no-focus` is present, skip to Step 2 with `NO_FOCUS=true`.
+
+3. **Discover focus file** (if no explicit file): Look for files in this priority order:
+   - Plan mode system-reminder (if in plan mode, the system-assigned plan file)
+   - ITP design specs with `implementation-status: in_progress` in `docs/design/*/spec.md`
+   - ITP ADRs with `status: accepted` in `docs/adr/*.md`
+   - Newest `.md` file in `.claude/plans/` (local or global)
+
+4. **Ask user to confirm** using AskUserQuestion:
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "Which focus mode for this Ralph session?",
+    header: "Focus Mode",
+    options: [
+      { label: "Use discovered file", description: "<path to discovered file>" },
+      { label: "Specify different file", description: "You'll provide a custom path" },
+      { label: "Run without focus", description: "100% autonomous, no plan tracking" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+1. **Handle response**:
+   - If "Use discovered file": Set `TARGET_FILE` to the discovered path
+   - If "Specify different file": Ask user for the path, then set `TARGET_FILE`
+   - If "Run without focus": Set `NO_FOCUS=true` (skip focus file tracking entirely)
+
+## Step 2: Execution
 
 ```bash
 # Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
@@ -53,11 +90,12 @@ if [[ "$HOOKS_INSTALLED" == "false" ]]; then
 fi
 
 # ===== ARGUMENT PARSING =====
-# Syntax: /ralph:start [-f <file>] [--poc] [<task description>...]
+# Syntax: /ralph:start [-f <file>] [--poc] [--no-focus] [<task description>...]
 
 ARGS="${ARGUMENTS:-}"
 TARGET_FILE=""
 POC_MODE=false
+NO_FOCUS=false
 TASK_PROMPT=""
 
 # Extract -f flag with regex (handles paths without spaces)
@@ -71,6 +109,12 @@ fi
 if [[ "$ARGS" == *"--poc"* ]]; then
     POC_MODE=true
     ARGS="${ARGS//--poc/}"
+fi
+
+# Detect --no-focus flag
+if [[ "$ARGS" == *"--no-focus"* ]]; then
+    NO_FOCUS=true
+    ARGS="${ARGS//--no-focus/}"
 fi
 
 # Remaining text after flags = task_prompt (trim whitespace)
@@ -111,13 +155,15 @@ CONFIG_JSON=$(jq -n \
     --argjson max_hours "$MAX_HOURS" \
     --argjson min_iterations "$MIN_ITERS" \
     --argjson max_iterations "$MAX_ITERS" \
+    --argjson no_focus "$NO_FOCUS" \
     --arg target_file "$TARGET_FILE" \
     --arg task_prompt "$TASK_PROMPT" \
     '{
         min_hours: $min_hours,
         max_hours: $max_hours,
         min_iterations: $min_iterations,
-        max_iterations: $max_iterations
+        max_iterations: $max_iterations,
+        no_focus: $no_focus
     }
     + (if $target_file != "" then {target_file: $target_file} else {} end)
     + (if $task_prompt != "" then {task_prompt: $task_prompt} else {} end)'
@@ -164,7 +210,10 @@ elif [[ "$ADAPTER_NAME" == "universal" ]]; then
     echo "  → Standard RSSI completion detection"
 fi
 
-if [[ -n "$TARGET_FILE" ]]; then
+if $NO_FOCUS; then
+    echo ""
+    echo "Focus mode: DISABLED (100% autonomous, no plan tracking)"
+elif [[ -n "$TARGET_FILE" ]]; then
     echo ""
     echo "Target file: $TARGET_FILE"
 fi
