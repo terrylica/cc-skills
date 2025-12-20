@@ -55,4 +55,4 @@ Use descriptive heredoc names matching the command:
 ### Reference
 
 - [ADR: Shell Command Portability](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
-- [CLAUDE.md Shell Portability Section](~/.claude/CLAUDE.md)
+- CLAUDE.md Shell Portability Section (see your local `~/.claude/CLAUDE.md`)

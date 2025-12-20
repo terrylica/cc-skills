@@ -57,27 +57,11 @@ The plugin implements autonomous operation through hooks:
    - Global defaults: `~/.claude/automation/loop-orchestrator/config/loop_config.json`
    - POC mode: `--poc` flag for short test runs (5-10 min, 10-20 iterations)
 
-## Skills
-
-### ralph-orchestrator
-
-Educational skill teaching the Ralph Orchestrator CLI tool (separate from this plugin).
-
-Use when learning about:
-
-- Autonomous AI orchestration concepts
-- Writing effective PROMPT.md files
-- Multi-agent workflows (Claude, Q Chat, Gemini, ACP)
-- Cost management and resource limits
-
-**Note:** The skill teaches about `ralph run` (standalone CLI), while `/ralph:*` commands are this Claude Code plugin.
-
 ## Files
 
 ```
 ralph/
 ├── README.md                   # This file
-├── ralph.yml                   # Plugin metadata
 ├── commands/                   # Slash commands
 │   ├── start.md
 │   ├── stop.md
@@ -85,18 +69,13 @@ ralph/
 │   ├── config.md
 │   └── hooks.md
 ├── hooks/                      # Hook implementations
+│   ├── hooks.json              # Hook registration
 │   ├── loop-until-done.py      # Stop hook
 │   └── archive-plan.sh         # PreToolUse hook
-└── skills/
-    └── ralph-orchestrator/     # Educational skill (CLI tool)
-        ├── SKILL.md
-        └── references/
-            ├── prompt-templates.md
-            └── troubleshooting.md
+└── scripts/
+    └── manage-hooks.sh         # Hook installation script
 ```
 
 ## Related
 
-- [Ralph Orchestrator CLI](https://github.com/mikeyobrien/ralph-orchestrator) - Standalone tool
 - [Geoffrey Huntley's Article](https://ghuntley.com/ralph/) - Original technique
-- [Claude Code Plugin Guide](https://paddo.dev/blog/ralph-wiggum-autonomous-loops/) - Integration guide
