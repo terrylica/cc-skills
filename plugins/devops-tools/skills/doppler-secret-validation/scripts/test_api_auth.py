@@ -75,9 +75,9 @@ def test_api_authentication(token: str, api_url: str) -> tuple[bool, str]:
             if e.code in [405, 404]:  # Method Not Allowed / Not Found
                 return (True, f"Authentication successful (code {e.code} expected)")
             elif e.code == 401:
-                return (False, f"Authentication failed: 401 Unauthorized")
+                return (False, "Authentication failed: 401 Unauthorized")
             elif e.code == 403:
-                return (False, f"Authentication failed: 403 Forbidden")
+                return (False, "Authentication failed: 403 Forbidden")
             else:
                 return (True, f"API responded: {e.code} (may indicate valid auth)")
 
@@ -99,7 +99,7 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"=== API Authentication Test ===")
+    print("=== API Authentication Test ===")
     print(f"Secret: {args.secret}")
     print(f"API URL: {args.api_url}\n")
 

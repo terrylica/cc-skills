@@ -249,7 +249,7 @@ def main() -> int:
     )
 
     run_id = log_to_mlflow(config, metrics, returns)
-    print(f"\nLogged to MLflow:")
+    print("\nLogged to MLflow:")
     print(f"  Experiment: {config.experiment_name}")
     print(f"  Run ID: {run_id}")
     print(f"  Metrics logged: {len(metrics)}")
