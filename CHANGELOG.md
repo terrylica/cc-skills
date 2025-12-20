@@ -1,3 +1,10 @@
+## [5.8.7](https://github.com/terrylica/cc-skills/compare/v5.8.6...v5.8.7) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** allow /ralph:stop to bypass loop guard ([c758374](https://github.com/terrylica/cc-skills/commit/c758374b1df5f5539e9711a213b75c8f55841e10))
+
 ## [5.8.6](https://github.com/terrylica/cc-skills/compare/v5.8.5...v5.8.6) (2025-12-20)
 
 
