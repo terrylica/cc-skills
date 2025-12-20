@@ -1,3 +1,10 @@
+# [5.3.0](https://github.com/terrylica/cc-skills/compare/v5.2.2...v5.3.0) (2025-12-20)
+
+
+### Features
+
+* **ralph:** modularize RSSI hooks into separation of concerns architecture ([bc4e050](https://github.com/terrylica/cc-skills/commit/bc4e050567a7de9db5e4a2823ef7d6e68b3cfe37))
+
 ## [5.2.2](https://github.com/terrylica/cc-skills/compare/v5.2.1...v5.2.2) (2025-12-20)
 
 ## [5.2.1](https://github.com/terrylica/cc-skills/compare/v5.2.0...v5.2.1) (2025-12-20)
