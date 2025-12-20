@@ -1,7 +1,7 @@
 ---
 description: "Configure statusline-tools status line and dependencies"
 allowed-tools: Read, Bash, TodoWrite, TodoRead
-argument-hint: "[install|uninstall|status|deps]"
+argument-hint: "[install|uninstall|status|deps|sync]"
 ---
 
 # Status Line Setup
@@ -10,12 +10,13 @@ Manage custom status line installation and dependencies.
 
 ## Actions
 
-| Action      | Description                                 |
-| ----------- | ------------------------------------------- |
-| `install`   | Install status line to settings.json        |
-| `uninstall` | Remove status line from settings.json       |
-| `status`    | Show current configuration and dependencies |
-| `deps`      | Install lychee via mise                     |
+| Action      | Description                                              |
+| ----------- | -------------------------------------------------------- |
+| `install`   | Install status line to settings.json                     |
+| `uninstall` | Remove status line from settings.json                    |
+| `status`    | Show current configuration and dependencies              |
+| `deps`      | Install lychee via mise                                  |
+| `sync`      | Create symlink at ~/.config/ccstatusline/ (auto-updates) |
 
 ## Execution
 

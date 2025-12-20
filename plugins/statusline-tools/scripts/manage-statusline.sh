@@ -19,8 +19,15 @@ set -euo pipefail
 # === Configuration ===
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
-STATUSLINE_SCRIPT="${PLUGIN_ROOT}/statusline/custom-statusline.sh"
 SETTINGS_FILE="${HOME}/.claude/settings.json"
+
+# Use marketplace path with $HOME for portability and auto-updates
+# This path is version-agnostic - updates automatically when plugin updates
+MARKETPLACE_PATH='$HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools'
+STATUSLINE_SCRIPT_SETTINGS="${MARKETPLACE_PATH}/statusline/custom-statusline.sh"
+
+# For local validation, resolve the actual path
+STATUSLINE_SCRIPT_RESOLVED="${HOME}/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools/statusline/custom-statusline.sh"
 
 # Colors for output
 RED='\033[91m'
@@ -85,33 +92,39 @@ cmd_install() {
     check_dependencies
     ensure_settings_file
 
-    # Check if statusline script exists
-    if [[ ! -x "$STATUSLINE_SCRIPT" ]]; then
-        log_error "Status line script not found or not executable: $STATUSLINE_SCRIPT"
+    # Validate script exists at marketplace location
+    if [[ ! -x "$STATUSLINE_SCRIPT_RESOLVED" ]]; then
+        log_error "Status line script not found at marketplace location"
+        log_error "  Expected: $STATUSLINE_SCRIPT_RESOLVED"
+        log_info "  Run '/plugin install cc-skills@statusline-tools' first"
         exit 1
     fi
 
-    # Check current state
-    local current
+    # Check current state - normalize $HOME for comparison
+    local current current_resolved
     current=$(jq -r '.statusLine.command // empty' "$SETTINGS_FILE" 2>/dev/null)
+    current_resolved="${current//\$HOME/$HOME}"
 
     if [[ -n "$current" ]]; then
-        if [[ "$current" == "$STATUSLINE_SCRIPT" ]]; then
-            log_success "Status line already installed and points to this plugin"
+        # Check if already pointing to marketplace (either $HOME or absolute form)
+        if [[ "$current" == "$STATUSLINE_SCRIPT_SETTINGS" ]] || \
+           [[ "$current_resolved" == "$STATUSLINE_SCRIPT_RESOLVED" ]]; then
+            log_success "Status line already installed (marketplace path)"
+            log_info "  Updates automatically with /plugin update"
             return 0
         fi
         log_warn "Replacing existing statusLine configuration"
         log_info "  Current: $current"
-        log_info "  New:     $STATUSLINE_SCRIPT"
+        log_info "  New:     $STATUSLINE_SCRIPT_SETTINGS"
     fi
 
     backup_settings
 
-    # Write new configuration atomically
+    # Write marketplace path with $HOME for portability
     local tmp_file
     tmp_file=$(mktemp)
 
-    jq --arg script "$STATUSLINE_SCRIPT" '.statusLine = {
+    jq --arg script "$STATUSLINE_SCRIPT_SETTINGS" '.statusLine = {
         "type": "command",
         "command": $script,
         "padding": 0
@@ -124,8 +137,9 @@ cmd_install() {
     fi
 
     mv "$tmp_file" "$SETTINGS_FILE"
-    log_success "Status line installed"
-    log_info "  Script: $STATUSLINE_SCRIPT"
+    log_success "Status line installed (marketplace path)"
+    log_info "  Script: $STATUSLINE_SCRIPT_SETTINGS"
+    log_info "  ✓ Auto-updates with /plugin update"
     log_info "Restart Claude Code for changes to take effect"
 }
 
@@ -168,43 +182,43 @@ cmd_status() {
     echo -e "${CYAN}=== statusline-tools Status ===${RESET}"
     echo ""
 
-    # Plugin root
-    echo -e "${CYAN}Plugin Root:${RESET}"
-    echo "  $PLUGIN_ROOT"
-    echo ""
-
-    # Status line script
-    echo -e "${CYAN}Status Line Script:${RESET}"
-    if [[ -x "$STATUSLINE_SCRIPT" ]]; then
-        echo -e "  ${GREEN}✓${RESET} $STATUSLINE_SCRIPT"
-    elif [[ -f "$STATUSLINE_SCRIPT" ]]; then
-        echo -e "  ${YELLOW}⚠${RESET} $STATUSLINE_SCRIPT (not executable)"
+    # Marketplace script location
+    echo -e "${CYAN}Marketplace Script:${RESET}"
+    if [[ -x "$STATUSLINE_SCRIPT_RESOLVED" ]]; then
+        echo -e "  ${GREEN}✓${RESET} $STATUSLINE_SCRIPT_SETTINGS"
+    elif [[ -f "$STATUSLINE_SCRIPT_RESOLVED" ]]; then
+        echo -e "  ${YELLOW}⚠${RESET} $STATUSLINE_SCRIPT_SETTINGS (not executable)"
     else
-        echo -e "  ${RED}✗${RESET} $STATUSLINE_SCRIPT (not found)"
+        echo -e "  ${RED}✗${RESET} $STATUSLINE_SCRIPT_SETTINGS (not installed)"
+        echo -e "  ${YELLOW}Run: /plugin install cc-skills@statusline-tools${RESET}"
     fi
     echo ""
 
     # Settings.json configuration
     echo -e "${CYAN}settings.json Configuration:${RESET}"
     if [[ -f "$SETTINGS_FILE" ]]; then
-        local status_type status_cmd status_padding
+        local status_type status_cmd status_padding status_cmd_resolved
         status_type=$(jq -r '.statusLine.type // empty' "$SETTINGS_FILE" 2>/dev/null)
         status_cmd=$(jq -r '.statusLine.command // empty' "$SETTINGS_FILE" 2>/dev/null)
         status_padding=$(jq -r '.statusLine.padding // "N/A"' "$SETTINGS_FILE" 2>/dev/null)
+        status_cmd_resolved="${status_cmd//\$HOME/$HOME}"
 
         if [[ -n "$status_type" ]]; then
             echo "  Type:    $status_type"
             echo "  Command: $status_cmd"
             echo "  Padding: $status_padding"
 
-            # Check if pointing to this plugin
-            if [[ "$status_cmd" == "$STATUSLINE_SCRIPT" ]]; then
-                echo -e "  ${GREEN}✓ Points to this plugin${RESET}"
+            # Check if pointing to marketplace path
+            if [[ "$status_cmd" == "$STATUSLINE_SCRIPT_SETTINGS" ]] || \
+               [[ "$status_cmd_resolved" == "$STATUSLINE_SCRIPT_RESOLVED" ]]; then
+                echo -e "  ${GREEN}✓ Marketplace path (auto-updates)${RESET}"
             else
-                echo -e "  ${YELLOW}⚠ Points to different script${RESET}"
+                echo -e "  ${YELLOW}⚠ Custom path (won't auto-update)${RESET}"
+                echo -e "  ${YELLOW}  Run: /statusline-tools:setup install${RESET}"
             fi
         else
             echo -e "  ${YELLOW}No statusLine configured${RESET}"
+            echo -e "  ${YELLOW}  Run: /statusline-tools:setup install${RESET}"
         fi
     else
         echo -e "  ${YELLOW}settings.json not found${RESET}"
