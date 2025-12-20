@@ -240,11 +240,10 @@ if [[ -n "$git_root" && -f "$git_root/.lint-relative-paths-results.txt" ]]; then
     path_violations=$(grep -oE 'Found [0-9]+ violation' "$git_root/.lint-relative-paths-results.txt" 2>/dev/null | grep -oE '[0-9]+' || echo 0)
 fi
 
-# Add link checker indicator (L=Links) - RED when errors, gray when clean
-git_changes="${git_changes} $(colorize_stat L $link_errors $RED)"
-
-# Add path violations indicator (P=Paths) - RED when violations, gray when clean
-git_changes="${git_changes} $(colorize_stat P $path_violations $RED)"
+# Add separator and link checker indicators (L=Links, P=Paths)
+# These are separate from git status, so use | delimiter
+link_status="$(colorize_stat L $link_errors $RED) $(colorize_stat P $path_violations $RED)"
+git_changes="${git_changes} | ${link_status}"
 
 # Get GitHub remote URL (convert SSH to HTTPS for browser link)
 get_github_url() {
