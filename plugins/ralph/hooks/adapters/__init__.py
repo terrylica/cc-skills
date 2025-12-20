@@ -15,7 +15,7 @@ To add a new adapter:
 3. The registry will auto-discover it on next Ralph start
 """
 
-from adapters.universal import UniversalAdapter
 from adapters.alpha_forge import AlphaForgeAdapter
+from adapters.universal import UniversalAdapter
 
 __all__ = ["UniversalAdapter", "AlphaForgeAdapter"]

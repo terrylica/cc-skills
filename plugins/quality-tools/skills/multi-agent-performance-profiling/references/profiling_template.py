@@ -21,7 +21,7 @@ def profile_pipeline_example():
     3. Add/remove phases as needed
     4. Run 3+ times and average results for accuracy
     """
-    results: Dict[str, float] = {}
+    results: dict[str, float] = {}
 
     # Optional: Track memory usage
     tracemalloc.start()

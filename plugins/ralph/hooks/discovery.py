@@ -14,10 +14,18 @@ from completion import has_frontmatter_value
 
 # RSSI modules
 from rssi_discovery import rssi_scan_opportunities
-from rssi_evolution import get_disabled_checks, get_prioritized_checks, suggest_capability_expansion
+from rssi_evolution import (
+    get_disabled_checks,
+    get_prioritized_checks,
+    suggest_capability_expansion,
+)
 from rssi_history import get_recent_commits_for_analysis, mine_session_history
 from rssi_knowledge import RSSIKnowledge
-from rssi_meta import analyze_discovery_effectiveness, get_meta_suggestions, improve_discovery_mechanism
+from rssi_meta import (
+    analyze_discovery_effectiveness,
+    get_meta_suggestions,
+    improve_discovery_mechanism,
+)
 from rssi_web_discovery import get_quality_gate_instructions, web_search_for_ideas
 
 logger = logging.getLogger(__name__)

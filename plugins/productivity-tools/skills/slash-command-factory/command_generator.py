@@ -3,9 +3,9 @@ Slash Command Generator
 Generates Claude Code slash command .md files with proper YAML frontmatter.
 """
 
-from typing import Dict, Any, List
 import json
 import os
+from typing import Any, Dict, List
 
 
 class SlashCommandGenerator:
@@ -15,13 +15,13 @@ class SlashCommandGenerator:
         """Initialize generator with presets."""
         self.presets = self._load_presets()
 
-    def _load_presets(self) -> Dict[str, Any]:
+    def _load_presets(self) -> dict[str, Any]:
         """Load preset commands from presets.json."""
         presets_path = os.path.join(os.path.dirname(__file__), 'presets.json')
-        with open(presets_path, 'r') as f:
+        with open(presets_path) as f:
             return json.load(f)
 
-    def generate_from_preset(self, preset_name: str) -> Dict[str, Any]:
+    def generate_from_preset(self, preset_name: str) -> dict[str, Any]:
         """
         Generate command from preset.
 
@@ -51,7 +51,7 @@ class SlashCommandGenerator:
             'supporting_folders': preset.get('supporting_folders', [])
         }
 
-    def generate_custom(self, answers: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_custom(self, answers: dict[str, Any]) -> dict[str, Any]:
         """
         Generate custom command from user answers.
 
@@ -161,7 +161,7 @@ class SlashCommandGenerator:
         purpose_lower = purpose.lower()
         return any(indicator in purpose_lower for indicator in arg_indicators)
 
-    def _create_argument_hint(self, answers: Dict[str, Any]) -> str:
+    def _create_argument_hint(self, answers: dict[str, Any]) -> str:
         """
         Create argument hint based on command purpose.
 
@@ -183,7 +183,7 @@ class SlashCommandGenerator:
         else:
             return '[input] [options]'
 
-    def _create_command_body_from_answers(self, answers: Dict[str, Any]) -> str:
+    def _create_command_body_from_answers(self, answers: dict[str, Any]) -> str:
         """Generate command body from user answers."""
 
         # Start with purpose
@@ -224,7 +224,7 @@ class SlashCommandGenerator:
 
         return ''.join(body_lines)
 
-    def _determine_folders(self, answers: Dict[str, Any]) -> List[str]:
+    def _determine_folders(self, answers: dict[str, Any]) -> list[str]:
         """Determine which supporting folders are needed."""
         folders = []
 
@@ -295,7 +295,7 @@ class SlashCommandGenerator:
 
         return command_name
 
-    def _determine_structure(self, answers: Dict[str, Any]) -> str:
+    def _determine_structure(self, answers: dict[str, Any]) -> str:
         """
         Determine which official structure pattern to use.
 

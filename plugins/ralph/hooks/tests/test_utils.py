@@ -15,14 +15,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import (
-    get_elapsed_hours,
-    detect_loop,
-    extract_section,
+    LOOP_THRESHOLD,
+    WINDOW_SIZE,
     allow_stop,
     continue_session,
+    detect_loop,
+    extract_section,
+    get_elapsed_hours,
     hard_stop,
-    WINDOW_SIZE,
-    LOOP_THRESHOLD,
 )
 
 
