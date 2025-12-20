@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .rssi_evolution import (
+from rssi_evolution import (
     disable_underperforming_check,
     get_learned_patterns,
     learn_project_pattern,
