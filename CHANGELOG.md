@@ -1,3 +1,10 @@
+## [5.5.1](https://github.com/terrylica/cc-skills/compare/v5.5.0...v5.5.1) (2025-12-20)
+
+
+### Bug Fixes
+
+* **statusline-tools:** resolve Stop hook failure from pipefail and file scanning ([e0913ef](https://github.com/terrylica/cc-skills/commit/e0913efa2ca14036a7539f44daf33e3bc9a792c2))
+
 # [5.5.0](https://github.com/terrylica/cc-skills/compare/v5.4.0...v5.5.0) (2025-12-20)
 
 
