@@ -7,6 +7,12 @@
 Provides metrics collection and display for Alpha Forge strategy research.
 Reads experiment outputs from outputs/runs/ without modifying the repository.
 
+SLO Enhancement: Adds methods for SLO enforcement:
+- get_prioritized_work() - Returns ROADMAP items sorted by priority
+- filter_opportunities() - Applies work policy blocklist
+- check_escalation() - Returns (should_escalate, reason)
+- get_slo_context() - Returns context for template rendering
+
 IMPORTANT: This adapter does NOT influence stopping decisions.
 All stopping is handled by Ralph's native RSSI scheme:
 - Task completion markers
@@ -16,8 +22,11 @@ All stopping is handled by Ralph's native RSSI scheme:
 - Loop detection
 """
 
+from __future__ import annotations
+
 import json
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -27,6 +36,11 @@ from core.protocols import (
     MetricsEntry,
     ProjectAdapter,
 )
+
+# Add hooks directory to path for SLO module imports
+HOOKS_DIR = Path(__file__).parent.parent
+if str(HOOKS_DIR) not in sys.path:
+    sys.path.insert(0, str(HOOKS_DIR))
 
 logger = logging.getLogger(__name__)
 
@@ -225,3 +239,141 @@ class AlphaForgeAdapter(ProjectAdapter):
             return "exploration"
         best_sharpe = max(m.primary_metric for m in metrics_history)
         return "attribution" if best_sharpe >= 1.0 else "exploration"
+
+    # ========== SLO ENFORCEMENT METHODS ==========
+
+    def get_prioritized_work(self, project_dir: Path) -> list:
+        """Get ROADMAP items sorted by priority.
+
+        Uses roadmap_parser to extract work items from ROADMAP.md.
+
+        Args:
+            project_dir: Path to Alpha Forge project root
+
+        Returns:
+            List of WorkItem objects sorted by priority (P0 first)
+        """
+        try:
+            from roadmap_parser import parse_roadmap
+
+            return parse_roadmap(project_dir)
+        except ImportError:
+            logger.warning("roadmap_parser not available")
+            return []
+
+    def filter_opportunities(self, opportunities: list[str]) -> list[str]:
+        """Filter opportunities using work policy blocklist.
+
+        Removes busywork opportunities (linter fixes, annotations, etc.)
+
+        Args:
+            opportunities: Raw list of opportunity descriptions
+
+        Returns:
+            Filtered list with busywork removed
+        """
+        try:
+            from alpha_forge_filter import get_allowed_opportunities
+
+            return get_allowed_opportunities(opportunities)
+        except ImportError:
+            logger.warning("alpha_forge_filter not available")
+            return opportunities
+
+    def check_escalation(
+        self,
+        work_item,
+        *,
+        changed_files: list[Path] | None = None,
+        lines_changed: int = 0,
+        project_dir: Path | None = None,
+    ) -> tuple[bool, str]:
+        """Check if work requires escalation to expert consultation.
+
+        Args:
+            work_item: WorkItem being evaluated
+            changed_files: List of files that would be changed
+            lines_changed: Number of lines changed so far
+            project_dir: Path to project root
+
+        Returns:
+            Tuple of (should_escalate, reason)
+        """
+        try:
+            from work_policy import check_escalation
+
+            roadmap_items = []
+            if project_dir:
+                roadmap_items = self.get_prioritized_work(project_dir)
+
+            result = check_escalation(
+                work_item,
+                changed_files=changed_files,
+                lines_changed=lines_changed,
+                roadmap_items=roadmap_items,
+            )
+            return result.should_escalate, result.message
+        except ImportError:
+            logger.warning("work_policy not available")
+            return False, "work_policy module not available"
+
+    def get_slo_context(
+        self,
+        project_dir: Path,
+        work_item=None,
+        iteration: int = 0,
+    ) -> dict:
+        """Get SLO context for template rendering.
+
+        Provides all context needed for alpha-forge-slo-experts.md template.
+
+        Args:
+            project_dir: Path to Alpha Forge project root
+            work_item: Current work item (optional)
+            iteration: Current RSSI iteration number
+
+        Returns:
+            Dict with context for template rendering
+        """
+        context = {
+            "iteration": iteration,
+            "current_phase": None,
+            "work_item": None,
+            "priority": "P1",
+            "lines_changed": 0,
+            "cross_package": False,
+            "roadmap_items_completed": 0,
+            "features_added": 0,
+            "busywork_skipped": 0,
+            "checkpoints_passed": 0,
+            "checkpoints_failed": 0,
+        }
+
+        # Get current phase from roadmap
+        try:
+            from roadmap_parser import get_current_phase
+
+            context["current_phase"] = get_current_phase(project_dir)
+        except ImportError:
+            pass
+
+        # Get metrics from value tracker
+        try:
+            from value_metrics import load_metrics
+
+            metrics = load_metrics(project_dir)
+            if metrics:
+                context["roadmap_items_completed"] = metrics.roadmap_items_completed
+                context["features_added"] = metrics.features_added
+                context["busywork_skipped"] = metrics.busywork_skipped
+                context["checkpoints_passed"] = metrics.checkpoints_passed
+                context["checkpoints_failed"] = metrics.checkpoints_failed
+        except ImportError:
+            pass
+
+        # Add work item context
+        if work_item:
+            context["work_item"] = work_item.title
+            context["priority"] = work_item.priority.name
+
+        return context

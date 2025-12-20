@@ -5,14 +5,20 @@ ADR: 2025-12-20-ralph-rssi-eternal-loop
 
 Dynamically discovers what tools are installed and uses them to find
 improvement opportunities. Never returns empty - always finds something.
+
+SLO Enhancement: For Alpha Forge projects, filters busywork opportunities
+and applies ruff --ignore for excluded rules.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import subprocess
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Subprocess timeout constants (seconds)
 RUFF_TIMEOUT_SECONDS = 30
@@ -83,6 +89,62 @@ def _discover_npm_scripts(package_json: Path) -> list[str]:
         return []
 
 
+def _is_alpha_forge_project(project_dir: Path) -> bool:
+    """Check if this is an Alpha Forge project.
+
+    Detection based on pyproject.toml containing 'alpha-forge' or 'alpha_forge'.
+    """
+    pyproject = project_dir / "pyproject.toml"
+    if not pyproject.exists():
+        return False
+
+    try:
+        content = pyproject.read_text()
+        return "alpha-forge" in content or "alpha_forge" in content
+    except OSError:
+        return False
+
+
+def _get_ruff_ignore_args(project_dir: Path) -> list[str]:
+    """Get ruff --ignore args for Alpha Forge projects.
+
+    Returns empty list for non-Alpha Forge projects.
+    """
+    if not _is_alpha_forge_project(project_dir):
+        return []
+
+    try:
+        from alpha_forge_filter import EXCLUDED_RUFF_RULES
+
+        return ["--ignore", ",".join(EXCLUDED_RUFF_RULES)]
+    except ImportError:
+        # Fallback if module not available
+        return ["--ignore", "E501,SIM,RUF,I,ANN,DTZ,PERF"]
+
+
+def _filter_opportunities_for_alpha_forge(
+    opportunities: list[str], project_dir: Path
+) -> list[str]:
+    """Filter busywork opportunities for Alpha Forge projects.
+
+    Returns original list for non-Alpha Forge projects.
+    """
+    if not _is_alpha_forge_project(project_dir):
+        return opportunities
+
+    try:
+        from alpha_forge_filter import get_allowed_opportunities
+
+        filtered = get_allowed_opportunities(opportunities)
+        skipped_count = len(opportunities) - len(filtered)
+        if skipped_count > 0:
+            logger.debug(f"SLO filter: skipped {skipped_count} busywork opportunities")
+        return filtered
+    except ImportError:
+        logger.warning("alpha_forge_filter not available, skipping SLO filtering")
+        return opportunities
+
+
 def rssi_scan_opportunities(
     project_dir: Path,
     disabled_checks: list[str] | None = None,
@@ -93,6 +155,9 @@ def rssi_scan_opportunities(
 
     Never returns empty - always finds something to improve.
     Uses dynamic capability discovery.
+
+    SLO Enhancement: For Alpha Forge projects, filters busywork opportunities
+    and applies ruff --ignore for excluded rules (E501, SIM, RUF, I, ANN, DTZ, PERF).
 
     Args:
         project_dir: Project directory to scan.
@@ -106,11 +171,22 @@ def rssi_scan_opportunities(
     opportunities: list[str] = []
     tools = discover_available_tools(project_dir)
 
+    # Get Alpha Forge-specific ruff ignore args
+    ruff_ignore_args = _get_ruff_ignore_args(project_dir)
+
     # TIER 1: Use available linters
     if tools.get("ruff") and "ruff" not in disabled:
         try:
+            ruff_cmd = [
+                "ruff",
+                "check",
+                ".",
+                "--select=F,E,W",
+                "--statistics",
+                "--quiet",
+            ] + ruff_ignore_args
             result = subprocess.run(
-                ["ruff", "check", ".", "--select=F,E,W", "--statistics", "--quiet"],
+                ruff_cmd,
                 cwd=project_dir,
                 capture_output=True,
                 text=True,
@@ -196,7 +272,14 @@ def rssi_scan_opportunities(
     opportunities.append("Review recent git commits for documentation gaps")
     opportunities.append("Analyze test coverage for recently changed files")
 
-    return opportunities  # NEVER returns empty due to Tier 7
+    # SLO FILTER: For Alpha Forge projects, filter busywork opportunities
+    opportunities = _filter_opportunities_for_alpha_forge(opportunities, project_dir)
+
+    # Ensure we still have opportunities after filtering (fallback to meta-improvement)
+    if not opportunities:
+        opportunities.append("Analyze test coverage for recently changed files")
+
+    return opportunities  # NEVER returns empty due to Tier 7 + fallback
 
 
 def _analyze_codebase_structure(project_dir: Path) -> list[str]:

@@ -32,7 +32,7 @@ from pathlib import Path
 
 # Import from modular components
 from completion import check_task_complete_rssi
-from core.config_schema import LoopState, load_state, save_state, transition_state
+from core.config_schema import LoopState, load_state, save_state
 from core.path_hash import build_state_file_path, load_session_state
 from core.registry import AdapterRegistry
 from discovery import (
@@ -55,6 +55,53 @@ from validation import (
     check_validation_exhausted,
     compute_validation_score,
 )
+
+
+def render_slo_experts(
+    adapter,
+    project_dir: str,
+    state: dict,
+    config: dict,
+    iteration: int,
+) -> str:
+    """Render SLO experts template for Alpha Forge projects.
+
+    Uses the adapter's get_slo_context() method to build context
+    for the alpha-forge-slo-experts.md template.
+
+    Args:
+        adapter: The active adapter (must have get_slo_context method)
+        project_dir: Path to project directory
+        state: Current loop state
+        config: Loop configuration
+        iteration: Current RSSI iteration
+
+    Returns:
+        Rendered SLO experts prompt, or empty string if not applicable
+    """
+    if not adapter or adapter.name != "alpha-forge":
+        return ""
+
+    if not hasattr(adapter, "get_slo_context"):
+        return ""
+
+    try:
+        # Get SLO context from adapter
+        slo_context = adapter.get_slo_context(
+            project_dir=Path(project_dir),
+            work_item=None,  # TODO: Pass current work item
+            iteration=iteration,
+        )
+
+        # Render the SLO experts template
+        loader = get_loader()
+        return loader.render(
+            "alpha-forge-slo-experts.md",
+            **slo_context,
+        )
+    except (FileNotFoundError, Exception) as e:
+        logger.warning(f"Failed to render SLO experts: {e}")
+        return ""
 
 # Configure logging
 logging.basicConfig(
@@ -223,6 +270,19 @@ def build_continuation_prompt(
             rssi_context=rssi_context,
         ))
 
+        # SLO experts for Alpha Forge in no_focus mode
+        adapter_name = state.get("adapter_name", "")
+        if adapter_name == "alpha-forge" and project_dir:
+            slo_prompt = render_slo_experts(
+                adapter=AdapterRegistry.get_adapter(Path(project_dir)),
+                project_dir=project_dir,
+                state=state,
+                config=config,
+                iteration=iteration,
+            )
+            if slo_prompt:
+                parts.append(slo_prompt)
+
     elif not task_complete:
         parts.append(loader.render("implementation-mode.md"))
 
@@ -254,8 +314,20 @@ def build_continuation_prompt(
             rssi_context=rssi_context,
         ))
 
-        # Research experts for adapter-specific strategy optimization
-        if adapter_name and adapter_convergence:
+        # SLO experts for Alpha Forge (enhanced version of research experts)
+        # Uses 6 experts with adaptive model selection
+        if adapter_name == "alpha-forge":
+            slo_prompt = render_slo_experts(
+                adapter=AdapterRegistry.get_adapter(Path(project_dir)) if project_dir else None,
+                project_dir=project_dir,
+                state=state,
+                config=config,
+                iteration=iteration,
+            )
+            if slo_prompt:
+                parts.append(slo_prompt)
+        # Research experts for other adapter-specific strategy optimization
+        elif adapter_name and adapter_convergence:
             expert_prompt = loader.render_research_experts(
                 adapter_name=adapter_name,
                 state=state,
