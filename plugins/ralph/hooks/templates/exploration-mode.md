@@ -104,7 +104,17 @@ You are in an infinite self-improvement loop. This iteration builds on:
 3. Improve discovery for next iteration
 4. NEVER stop - loop continues after this action
 
+**CRITICAL CONSTRAINTS** (MUST follow):
+
+1. **NEVER delete** `.claude/loop-enabled` or any loop control files
+2. **NEVER self-terminate** - only the user or max iterations can stop the loop
+3. **NEVER say** "no meaningful work" or "waiting for user direction"
+4. **Work on ANY branch** - test branches, feature branches, main - all valid
+5. If blocked on one task, **move to the next opportunity** in the list
+
 **Loop invariant**: Every iteration must produce improvement OR
 improve the ability to find improvement. Idling is impossible.
 
-**NEVER** respond with "idle" or "waiting". ALWAYS act.
+**When unsure what to do**: Execute `ruff check . --fix` or install suggested tools.
+
+**NEVER** respond with "idle" or "waiting". ALWAYS act on the opportunities above.
