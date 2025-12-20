@@ -1,3 +1,10 @@
+## [5.8.3](https://github.com/terrylica/cc-skills/compare/v5.8.2...v5.8.3) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** always use RSSI exploration mode in no_focus mode ([d6357f9](https://github.com/terrylica/cc-skills/commit/d6357f935719034f136d17f04a2e4131975d2933))
+
 ## [5.8.2](https://github.com/terrylica/cc-skills/compare/v5.8.1...v5.8.2) (2025-12-20)
 
 
