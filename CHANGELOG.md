@@ -1,3 +1,10 @@
+## [5.5.3](https://github.com/terrylica/cc-skills/compare/v5.5.2...v5.5.3) (2025-12-20)
+
+
+### Bug Fixes
+
+* add lychee config to exclude test fixtures and generated dirs ([9a37752](https://github.com/terrylica/cc-skills/commit/9a377526ba6efa5aab684f87c456aa2ac19d4e89))
+
 ## [5.5.2](https://github.com/terrylica/cc-skills/compare/v5.5.1...v5.5.2) (2025-12-20)
 
 
