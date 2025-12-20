@@ -1,9 +1,9 @@
 ---
 adr: 2025-12-05-itp-setup-todowrite-workflow
 source: ~/.claude/plans/memoized-cooking-nygaard.md
-implementation-status: in_progress
-phase: phase-1
-last-updated: 2025-12-05
+implementation-status: completed
+phase: released
+last-updated: 2025-12-20
 ---
 
 # Design Spec: TodoWrite-Driven Interactive Setup Workflow
