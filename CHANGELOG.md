@@ -1,3 +1,11 @@
+## [5.5.5](https://github.com/terrylica/cc-skills/compare/v5.5.4...v5.5.5) (2025-12-20)
+
+
+### Bug Fixes
+
+* **statusline-tools:** use HOOK_SCRIPT_RESOLVED for status display ([8b2383e](https://github.com/terrylica/cc-skills/commit/8b2383e52b2091519c9b03897b09fd5347973fd6))
+* **statusline-tools:** use HOOK_SCRIPT_SETTINGS for consistent logging ([0058144](https://github.com/terrylica/cc-skills/commit/0058144f023c194934708aff7d0e33a9f199fda5))
+
 ## [5.5.4](https://github.com/terrylica/cc-skills/compare/v5.5.3...v5.5.4) (2025-12-20)
 
 
