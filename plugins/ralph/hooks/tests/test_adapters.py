@@ -16,7 +16,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.path_hash import get_path_hash, build_state_file_path, load_session_state
 from core.protocols import (
-    ConvergenceResult,
     MetricsEntry,
     DEFAULT_CONFIDENCE,
     SUGGEST_CONFIDENCE,
