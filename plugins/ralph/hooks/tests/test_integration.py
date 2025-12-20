@@ -11,10 +11,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from completion import check_task_complete_rssi
-from discovery import discover_target_file, discover_plan_mode_file, scan_work_opportunities
+from discovery import (
+    discover_plan_mode_file,
+    discover_target_file,
+    scan_work_opportunities,
+)
 from template_loader import get_loader
 from utils import detect_loop
-from validation import compute_validation_score, check_validation_exhausted
+from validation import check_validation_exhausted, compute_validation_score
 
 
 def create_test_plan(tmp_dir: Path, content: str) -> Path:

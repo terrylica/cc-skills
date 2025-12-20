@@ -12,11 +12,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from completion import (
-    check_task_complete_rssi,
-    has_explicit_completion_marker,
-    count_checkboxes,
-    has_frontmatter_value,
     COMPLETION_CONFIDENCE_THRESHOLD,
+    check_task_complete_rssi,
+    count_checkboxes,
+    has_explicit_completion_marker,
+    has_frontmatter_value,
 )
 
 

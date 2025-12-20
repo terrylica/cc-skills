@@ -23,8 +23,8 @@ import argparse
 import os
 import subprocess
 import sys
-import urllib.request
 import urllib.error
+import urllib.request
 
 
 def get_token_from_env(secret_name: str) -> str | None:

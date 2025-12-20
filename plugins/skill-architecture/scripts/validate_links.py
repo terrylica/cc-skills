@@ -28,8 +28,8 @@ Exit Codes:
 
 import re
 import sys
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass

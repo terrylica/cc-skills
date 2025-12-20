@@ -10,11 +10,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from validation import (
-    compute_validation_score,
-    check_validation_exhausted,
-    aggregate_agent_results,
-    VALIDATION_SCORE_THRESHOLD,
     MAX_VALIDATION_ITERATIONS,
+    VALIDATION_SCORE_THRESHOLD,
+    aggregate_agent_results,
+    check_validation_exhausted,
+    compute_validation_score,
 )
 
 

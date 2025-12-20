@@ -34,21 +34,25 @@ from pathlib import Path
 from completion import check_task_complete_rssi
 from core.path_hash import build_state_file_path, load_session_state
 from core.registry import AdapterRegistry
-from discovery import discover_target_file, format_candidate_list, get_rssi_exploration_context
+from discovery import (
+    discover_target_file,
+    format_candidate_list,
+    get_rssi_exploration_context,
+)
 from template_loader import get_loader
 from utils import (
-    get_elapsed_hours,
-    detect_loop,
-    extract_section,
+    WINDOW_SIZE,
     allow_stop,
     continue_session,
+    detect_loop,
+    extract_section,
+    get_elapsed_hours,
     hard_stop,
-    WINDOW_SIZE,
 )
 from validation import (
-    compute_validation_score,
-    check_validation_exhausted,
     VALIDATION_SCORE_THRESHOLD,
+    check_validation_exhausted,
+    compute_validation_score,
 )
 
 # Configure logging

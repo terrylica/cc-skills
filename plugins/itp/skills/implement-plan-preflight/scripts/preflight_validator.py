@@ -15,8 +15,8 @@ Example:
 """
 
 import os
-import sys
 import re
+import sys
 from pathlib import Path
 
 # ADR: 2025-12-08-mise-env-centralized-config
