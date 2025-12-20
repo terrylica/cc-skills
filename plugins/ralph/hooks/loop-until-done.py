@@ -25,6 +25,7 @@ import logging
 import os
 import subprocess
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 # Import from modular components
@@ -190,7 +191,7 @@ def build_continuation_prompt(
         adapter_status = loader.render_adapter_status(
             adapter_name=adapter_name,
             adapter_convergence=adapter_convergence,
-            metrics_history=None  # Metrics not stored in state, render from convergence info
+            metrics_history=adapter_convergence.get("metrics_history")
         )
         if adapter_status:
             parts.append(adapter_status)
@@ -219,6 +220,17 @@ def build_continuation_prompt(
         opportunities = scan_work_opportunities(project_dir) if project_dir else []
         state["opportunities_discovered"] = opportunities
         parts.append(loader.render_exploration(opportunities))
+
+        # Research experts for adapter-specific strategy optimization
+        if adapter_name and adapter_convergence:
+            expert_prompt = loader.render_research_experts(
+                adapter_name=adapter_name,
+                state=state,
+                config=config,
+                metrics_history=adapter_convergence.get("metrics_history"),
+            )
+            if expert_prompt:
+                parts.append(expert_prompt)
 
     return "\n".join(parts)
 
@@ -426,6 +438,7 @@ def main():
                 "reason": convergence.reason,
                 "confidence": convergence.confidence,
                 "metrics_count": len(metrics),
+                "metrics_history": [asdict(m) for m in metrics[-10:]],  # Store last 10
             }
             logger.info(
                 f"Adapter convergence: continue={convergence.should_continue}, "

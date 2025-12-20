@@ -269,6 +269,67 @@ class TemplateLoader:
         except (TypeError, ValueError):
             return 0.0
 
+    def _compute_research_phase(self, metrics_history: list | None) -> str:
+        """Compute research phase from metrics history.
+
+        Phase determination (Alpha Forge specific):
+        - exploration: Best Sharpe < 1.0, allows up to 3 changes per iteration
+        - attribution: Best Sharpe >= 1.0, restricts to 1 change for attribution
+
+        Args:
+            metrics_history: List of metrics entries
+
+        Returns:
+            'exploration' or 'attribution' phase string
+        """
+        best_sharpe = self._extract_best_sharpe(metrics_history)
+        return "attribution" if best_sharpe >= 1.0 else "exploration"
+
+    def render_research_experts(
+        self,
+        adapter_name: str,
+        state: dict,
+        config: dict,
+        metrics_history: list | None = None,
+        research_phase: str | None = None
+    ) -> str:
+        """Render research experts template based on adapter type.
+
+        Spawns 5 parallel expert subagents for strategy research:
+        - risk-analyst, data-specialist, domain-expert, model-expert, feature-expert
+
+        Only Alpha Forge adapter supports research experts currently.
+
+        Args:
+            adapter_name: Name of the active adapter
+            state: Current loop state
+            config: Loop configuration
+            metrics_history: List of metrics entries (serialized dicts)
+            research_phase: 'exploration' or 'attribution' phase (auto-computed if None)
+
+        Returns:
+            Rendered research experts prompt, or empty string if not supported
+        """
+        if adapter_name == "alpha-forge":
+            # Auto-compute research phase from metrics if not provided
+            if research_phase is None:
+                research_phase = self._compute_research_phase(metrics_history)
+
+            try:
+                return self.render(
+                    "alpha-forge-research-experts.md",
+                    state=state,
+                    config=config,
+                    metrics_history=metrics_history or [],
+                    research_phase=research_phase,
+                    best_sharpe=self._extract_best_sharpe(metrics_history),
+                    iteration=state.get("iteration", 0),
+                )
+            except FileNotFoundError:
+                pass  # Fall through to empty return
+
+        return ""  # No research experts for unknown adapters
+
 
 # Global instance for convenience
 _loader: TemplateLoader | None = None
