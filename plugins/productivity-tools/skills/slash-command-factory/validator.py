@@ -6,7 +6,7 @@ Enforces official Anthropic patterns and best practices.
 
 import re
 import os
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 
 class CommandValidator:
@@ -136,13 +136,10 @@ class CommandValidator:
             return {'valid': False, 'issues': issues}
 
         # Check .md files are in root (not in subfolders)
-        for root, dirs, files in os.walk(folder_path):
+        for root, _dirs, files in os.walk(folder_path):
             for file in files:
-                if file.endswith('.md'):
-                    file_path = os.path.join(root, file)
-                    # Should be in root of folder
-                    if root != folder_path:
-                        issues.append(f".md file in subfolder (should be in root): {file}")
+                if file.endswith('.md') and root != folder_path:
+                    issues.append(f".md file in subfolder (should be in root): {file}")
 
         # Check folders are properly separated
         subfolders = [d for d in os.listdir(folder_path) if os.path.isdir(os.path.join(folder_path, d))]

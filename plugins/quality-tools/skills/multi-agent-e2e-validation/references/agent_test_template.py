@@ -17,7 +17,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-# ruff: noqa: E402
+# ruff: noqa: E402, F401
 from your_module import YourClass  # Replace with actual imports
 
 
