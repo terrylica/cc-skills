@@ -4,16 +4,26 @@ Provides multi-signal completion detection (RSSI-grade) that works
 with any file format (ADRs, specs, plans) without requiring explicit markers.
 """
 import logging
+import os
 from pathlib import Path
+
+from core.config_schema import CompletionConfig, load_config
 
 logger = logging.getLogger(__name__)
 
-# Completion detection constants
+# Legacy constants (deprecated - use config instead)
 COMPLETION_CONFIDENCE_THRESHOLD = 0.7
 COMPLETION_PHRASES = [
     "task complete", "all done", "finished",
     "implementation complete", "work complete"
 ]
+
+
+def get_completion_config() -> CompletionConfig:
+    """Get completion detection parameters from config."""
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
+    config = load_config(project_dir if project_dir else None)
+    return config.completion
 
 
 def has_frontmatter_value(content: str, key: str, value: str) -> bool:
@@ -125,14 +135,15 @@ def check_task_complete_rssi(plan_file: str | None) -> tuple[bool, str, float]:
     """RSSI-grade completion detection using multiple signals.
 
     Analyzes the plan file using 5 different signals to detect completion,
-    returning the highest confidence match.
+    returning the highest confidence match. Confidence levels are configurable
+    via .claude/ralph-config.json.
 
     Signals:
-    1. Explicit marker ([x] TASK_COMPLETE) - confidence 1.0
-    2. Frontmatter status (implementation-status: completed) - confidence 0.95
-    3. All checkboxes checked - confidence 0.9
-    4. No pending items (has [x] but no [ ]) - confidence 0.85
-    5. Semantic phrases ("task complete", "all done") - confidence 0.7
+    1. Explicit marker ([x] TASK_COMPLETE) - configurable confidence
+    2. Frontmatter status (implementation-status: completed) - configurable
+    3. All checkboxes checked - configurable
+    4. No pending items (has [x] but no [ ]) - configurable
+    5. Semantic phrases ("task complete", "all done") - configurable
 
     Args:
         plan_file: Path to the plan/task file
@@ -148,33 +159,36 @@ def check_task_complete_rssi(plan_file: str | None) -> tuple[bool, str, float]:
     except OSError:
         return False, "file read error", 0.0
 
+    # Load configurable confidence levels
+    cfg = get_completion_config()
+
     signals: list[tuple[str, float]] = []
 
     # Signal 1: Explicit markers (high confidence)
     if has_explicit_completion_marker(content):
-        signals.append(("explicit_marker", 1.0))
+        signals.append(("explicit_marker", cfg.explicit_marker_confidence))
 
     # Signal 2: YAML frontmatter status fields
     if has_frontmatter_value(content, "implementation-status", "completed"):
-        signals.append(("frontmatter_completed", 0.95))
+        signals.append(("frontmatter_completed", cfg.frontmatter_status_confidence))
     if has_frontmatter_value(content, "implementation-status", "complete"):
-        signals.append(("frontmatter_complete", 0.95))
+        signals.append(("frontmatter_complete", cfg.frontmatter_status_confidence))
     if has_frontmatter_value(content, "status", "implemented"):
-        signals.append(("adr_implemented", 0.95))
+        signals.append(("adr_implemented", cfg.frontmatter_status_confidence))
 
     # Signal 3: Checklist analysis - all items checked
     total, checked = count_checkboxes(content)
     if total > 0 and checked == total:
-        signals.append(("all_checkboxes_checked", 0.9))
+        signals.append(("all_checkboxes_checked", cfg.all_checkboxes_confidence))
 
-    # Signal 4: Semantic completion phrases
+    # Signal 4: Semantic completion phrases (from config)
     content_lower = content.lower()
-    if any(phrase in content_lower for phrase in COMPLETION_PHRASES):
-        signals.append(("semantic_phrase", 0.7))
+    if any(phrase in content_lower for phrase in cfg.completion_phrases):
+        signals.append(("semantic_phrase", cfg.semantic_phrases_confidence))
 
     # Signal 5: No unchecked items remain (but has checked items)
     if "[ ]" not in content and "[x]" in content.lower():
-        signals.append(("no_pending_items", 0.85))
+        signals.append(("no_pending_items", cfg.no_pending_items_confidence))
 
     # Return highest confidence signal
     if signals:
