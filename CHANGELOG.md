@@ -1,3 +1,10 @@
+## [5.8.6](https://github.com/terrylica/cc-skills/compare/v5.8.5...v5.8.6) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** add PreToolUse hook to guard loop control files ([89cb426](https://github.com/terrylica/cc-skills/commit/89cb42641772e6de7844b4d72bda4e02eb499865))
+
 ## [5.8.5](https://github.com/terrylica/cc-skills/compare/v5.8.4...v5.8.5) (2025-12-20)
 
 
