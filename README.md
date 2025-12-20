@@ -25,6 +25,7 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [git-account-validator](./plugins/git-account-validator/) | Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config         | enforcement  |
 | [ralph](./plugins/ralph/)                                 | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete                    | automation   |
 | [iterm2-layout-config](./plugins/iterm2-layout-config/)   | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code           | development  |
+| [statusline-tools](./plugins/statusline-tools/)           | Custom status line with git status, link validation (L), and path linting (P) indicators                          | utilities    |
 
 ## Terminology
 
@@ -103,21 +104,28 @@ Marketplace plugin commands display with the `plugin:command` format:
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (19 plugins)
+│   └── marketplace.json     # Plugin registry (20 plugins)
 ├── plugins/
-│   ├── skill-architecture/  # Meta-skill for creating skills
-│   ├── itp/                 # ADR-driven development workflow (10 bundled skills)
-│   ├── gh-tools/            # GitHub workflow automation
-│   ├── link-validator/      # Markdown link portability validation
-│   ├── devops-tools/        # Doppler credentials, secrets, MLflow, Telegram, recovery
-│   ├── dotfiles-tools/      # Chezmoi dotfile management
-│   ├── doc-build-tools/     # LaTeX + Pandoc PDF generation
-│   ├── doc-tools/           # ASCII diagrams + documentation standards
-│   ├── quality-tools/       # Code clones, E2E validation, profiling, schema
-│   ├── productivity-tools/  # Slash command generation
-│   ├── mql5-tools/          # MQL5 indicator development
-│   ├── mql5com/             # MQL5.com article extraction + Python workspace
-│   └── notification-tools/  # Telegram + Pushover notifications
+│   ├── skill-architecture/     # Meta-skill for creating skills
+│   ├── itp/                    # ADR-driven development workflow (10 bundled skills)
+│   ├── gh-tools/               # GitHub workflow automation
+│   ├── link-validator/         # Markdown link portability validation
+│   ├── devops-tools/           # Doppler credentials, secrets, MLflow, Telegram, recovery
+│   ├── dotfiles-tools/         # Chezmoi dotfile management
+│   ├── doc-build-tools/        # LaTeX + Pandoc PDF generation
+│   ├── doc-tools/              # ASCII diagrams + documentation standards
+│   ├── quality-tools/          # Code clones, E2E validation, profiling, schema
+│   ├── productivity-tools/     # Slash command generation
+│   ├── mql5-tools/             # MQL5 indicator development
+│   ├── mql5com/                # MQL5.com article extraction + Python workspace
+│   ├── notification-tools/     # Telegram + Pushover notifications
+│   ├── itp-hooks/              # ITP workflow enforcement hooks
+│   ├── link-checker/           # Universal link validation (lychee + path linting)
+│   ├── git-account-validator/  # Multi-account GitHub pre-push validation
+│   ├── alpha-forge-worktree/   # Git worktree management for alpha-forge
+│   ├── ralph/                  # Autonomous AI orchestration
+│   ├── iterm2-layout-config/   # iTerm2 workspace layout configuration
+│   └── statusline-tools/       # Custom status line with git/link indicators
 ├── plugin.json              # Root plugin config
 ├── package.json             # Node.js + semantic-release
 └── README.md
@@ -284,6 +292,113 @@ Features:
 - Message archiving for debugging
 
 **Triggers**: "watchexec notifications", "send to Telegram and Pushover", "monitor process restarts"
+
+### itp-hooks
+
+**ITP workflow enforcement via PreToolUse and PostToolUse hooks.**
+
+Features:
+
+- Hard block on manual ASCII art (exit code 2)
+- Ruff Python linting reminders
+- Graph-easy skill reminders for reproducibility
+- ADR/Design Spec sync reminders
+- Code-to-ADR traceability hints
+
+**Commands**: `/itp-hooks:hooks`
+
+**Triggers**: "ITP hooks", "block ASCII art", "enforce workflow standards"
+
+### link-checker
+
+**Universal link validation at session end using lychee.**
+
+Features:
+
+- Markdown link validation via lychee
+- Path policy linting (absolute paths, excessive parent traversal)
+- JSON output for programmatic integration
+- ULID correlation IDs for tracing
+- Cascade config resolution (repo → workspace → plugin default)
+
+**Triggers**: "validate links", "broken links", "lychee", "Stop hook validation"
+
+### git-account-validator
+
+**Pre-push validation for multi-account GitHub authentication.**
+
+Features:
+
+- Blocks HTTPS URLs (enforces SSH for multi-account)
+- Validates SSH authentication matches git config
+- Port 443 fallback support for restrictive networks
+- Prevents wrong-account pushes
+
+**Commands**: `/git-account-validator:hooks`
+
+**Triggers**: "multi-account GitHub", "prevent wrong account push", "SSH validation"
+
+### alpha-forge-worktree
+
+**Git worktree management for alpha-forge with ADR-style naming.**
+
+Features:
+
+- Natural language worktree creation
+- Automatic slug derivation from descriptions
+- Dynamic iTerm2 tab detection with acronym naming
+- Three modes: new branch, remote tracking, existing branch
+- Stale worktree cleanup
+
+**Commands**: `/alpha-forge-worktree:create`, `/alpha-forge-worktree:list`, `/alpha-forge-worktree:remove`
+
+**Triggers**: "create worktree", "alpha-forge worktree", "git worktree management"
+
+### ralph
+
+**Autonomous AI orchestration with Ralph Wiggum technique.**
+
+Features:
+
+- RSSI (Recursively Self-Improving Super Intelligence) loop mode
+- Multi-signal task completion detection
+- Validation exhaustion scoring
+- Plan archive preservation
+- Runtime limit configuration
+
+**Commands**: `/ralph:start`, `/ralph:stop`, `/ralph:status`, `/ralph:config`, `/ralph:hooks`
+
+**Triggers**: "autonomous mode", "keep working", "Ralph Wiggum", "loop until done"
+
+### iterm2-layout-config
+
+**iTerm2 workspace layout configuration with TOML-based configuration.**
+
+Features:
+
+- TOML-based workspace configuration
+- Private data separation (paths in `~/.config/iterm2/layout.toml`)
+- Publishable layout logic
+- XDG Base Directory compliance
+
+**Triggers**: "iTerm2 layout", "workspace configuration", "TOML workspace"
+
+### statusline-tools
+
+**Custom Claude Code status line with git status, link validation, and path linting indicators.**
+
+Features:
+
+- Git status indicators (modified, deleted, staged, untracked)
+- Remote tracking (ahead/behind commits)
+- Repository state (stash count, merge conflicts)
+- Link validation (broken links via lychee)
+- Path linting (repository-relative path violations)
+- Clickable GitHub URL to current branch
+
+**Commands**: `/statusline-tools:setup`, `/statusline-tools:hooks`
+
+**Triggers**: "status line", "git indicators", "link validation in status", "broken links indicator"
 
 ## License
 
