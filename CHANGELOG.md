@@ -1,3 +1,10 @@
+## [5.5.2](https://github.com/terrylica/cc-skills/compare/v5.5.1...v5.5.2) (2025-12-20)
+
+
+### Bug Fixes
+
+* **statusline-tools:** add separator between git status and link validation ([d9036aa](https://github.com/terrylica/cc-skills/commit/d9036aa853cb8775c865cf026c014e58f5647ef0))
+
 ## [5.5.1](https://github.com/terrylica/cc-skills/compare/v5.5.0...v5.5.1) (2025-12-20)
 
 
