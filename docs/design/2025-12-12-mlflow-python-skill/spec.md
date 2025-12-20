@@ -1,9 +1,9 @@
 ---
 adr: 2025-12-12-mlflow-python-skill
 source: ~/.claude/plans/peppy-yawning-hare.md
-implementation-status: in_progress
-phase: phase-1
-last-updated: 2025-12-12
+implementation-status: completed
+phase: released
+last-updated: 2025-12-20
 ---
 
 # Design Spec: Unified MLflow Python Skill with QuantStats Integration

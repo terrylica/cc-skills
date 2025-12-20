@@ -1,9 +1,9 @@
 ---
 adr: 2025-12-07-itp-hooks-settings-installer
 source: ~/.claude/plans/proud-doodling-penguin.md
-implementation-status: in_progress
-phase: phase-1
-last-updated: 2025-12-07
+implementation-status: completed
+phase: released
+last-updated: 2025-12-20
 ---
 
 # ITP Hooks Settings Installer - Implementation Spec
