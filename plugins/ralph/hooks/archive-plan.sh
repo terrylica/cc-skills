@@ -6,6 +6,24 @@
 # so we can capture the original content before it's overwritten.
 set -euo pipefail
 
+# ===== JQ AVAILABILITY CHECK (RSSI Enhancement) =====
+# jq is required for parsing hook input JSON. Try to install if missing.
+if ! command -v jq &> /dev/null; then
+    # Try mise install first (preferred tool manager)
+    if command -v mise &> /dev/null; then
+        mise install jq 2>/dev/null || true
+    fi
+    # Try brew install (macOS fallback)
+    if ! command -v jq &> /dev/null && command -v brew &> /dev/null; then
+        brew install jq 2>/dev/null || true
+    fi
+    # If still unavailable, block and notify user
+    if ! command -v jq &> /dev/null; then
+        echo '{"decision": "block", "reason": "jq is required for archive-plan.sh but could not be installed. Please install manually: brew install jq OR mise install jq"}'
+        exit 0  # Exit 0 with blocking JSON (hook protocol)
+    fi
+fi
+
 ARCHIVE_DIR="$HOME/.claude/automation/loop-orchestrator/state/archives"
 
 # Read hook input from stdin (CORRECT pattern per official docs)

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-Claude Code skills marketplace: **19 plugins** with **43 skills** for ADR-driven development workflows.
+Claude Code skills marketplace: **19 plugins** with **42 skills** for ADR-driven development workflows.
 
 **Key Documentation**:
 
@@ -24,9 +24,11 @@ Claude Code skills marketplace: **19 plugins** with **43 skills** for ADR-driven
 | Format files         | `prettier --write .`                |
 | Execute workflow     | `/itp:go feature-name -b`           |
 | Setup environment    | `/itp:setup`                        |
-| Manage hooks         | `/itp:hooks install`                |
+| Manage ITP hooks     | `/itp:hooks install`                |
 | **Validate plugins** | `node scripts/validate-plugins.mjs` |
 | Add new plugin       | `/itp:plugin-add plugin-name`       |
+| Start autonomous     | `/ralph:start`                      |
+| Stop autonomous      | `/ralph:stop`                       |
 
 ## Plugin Discovery (Critical)
 
@@ -81,8 +83,9 @@ cc-skills/
 │   └── marketplace.json    ← Plugin registry (19 entries)
 ├── plugins/                ← 19 marketplace plugins
 │   ├── itp/                ← Core workflow
+│   ├── ralph/              ← Autonomous loop mode (RSSI)
 │   ├── skill-architecture/ ← Meta-skill for skill creation
-│   ├── alpha-forge-worktree/ ← Git worktree management (NEW)
+│   ├── alpha-forge-worktree/ ← Git worktree management
 │   └── ...
 ├── docs/
 │   ├── adr/                ← Architecture Decision Records
@@ -119,6 +122,7 @@ cc-skills/
 | `scripts/validate-plugins.mjs`    | Plugin validation (pre-commit)                       |
 | `plugins/itp/commands/go.md`      | Core workflow definition                             |
 | `plugins/itp-hooks/hooks/`        | PreToolUse/PostToolUse enforcement                   |
+| `plugins/ralph/hooks/`            | RSSI autonomous loop hooks (Stop + Archive)          |
 
 ## Hooks Development
 
