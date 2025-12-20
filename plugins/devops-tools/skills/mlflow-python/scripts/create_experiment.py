@@ -106,7 +106,7 @@ def main() -> int:
         artifact_location=args.artifact_location,
     )
 
-    print(f"Experiment created:")
+    print("Experiment created:")
     print(f"  Name: {args.name}")
     print(f"  ID: {experiment_id}")
     if args.description:

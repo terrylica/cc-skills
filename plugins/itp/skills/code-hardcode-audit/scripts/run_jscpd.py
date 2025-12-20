@@ -82,7 +82,7 @@ def run_jscpd(target: Path, output_format: str = "text") -> int:
                     # Summary
                     stats = data.get("statistics", {})
                     total = stats.get("total", {})
-                    print(f"\nSummary:")
+                    print("\nSummary:")
                     print(f"  Files analyzed: {total.get('sources', 0)}")
                     print(f"  Lines analyzed: {total.get('lines', 0)}")
                     print(f"  Duplicates: {total.get('clones', 0)}")

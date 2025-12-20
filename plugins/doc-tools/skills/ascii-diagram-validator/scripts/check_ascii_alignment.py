@@ -221,7 +221,7 @@ def check_corner_connections(
                 column=col + 1,
                 severity=Severity.ERROR,
                 message=f"top-left corner '{char}' not connected to the right",
-                suggestion=f"Add horizontal line '─' or '═' after the corner"
+                suggestion="Add horizontal line '─' or '═' after the corner"
             ))
 
         if below is not None and below not in CONNECTS_UP and below not in ' \t\n' and below not in ARROWS:
@@ -246,7 +246,7 @@ def check_corner_connections(
                 column=col + 1,
                 severity=Severity.ERROR,
                 message=f"top-right corner '{char}' not connected to the left",
-                suggestion=f"Add horizontal line '─' or '═' before the corner"
+                suggestion="Add horizontal line '─' or '═' before the corner"
             ))
 
         if below is not None and below not in CONNECTS_UP and below not in ' \t\n' and below not in ARROWS:
@@ -271,7 +271,7 @@ def check_corner_connections(
                 column=col + 1,
                 severity=Severity.ERROR,
                 message=f"bottom-left corner '{char}' not connected to the right",
-                suggestion=f"Add horizontal line '─' or '═' after the corner"
+                suggestion="Add horizontal line '─' or '═' after the corner"
             ))
 
         if above is not None and above not in CONNECTS_DOWN and above not in ' \t\n' and above not in ARROWS:
@@ -296,7 +296,7 @@ def check_corner_connections(
                 column=col + 1,
                 severity=Severity.ERROR,
                 message=f"bottom-right corner '{char}' not connected to the left",
-                suggestion=f"Add horizontal line '─' or '═' before the corner"
+                suggestion="Add horizontal line '─' or '═' before the corner"
             ))
 
         if above is not None and above not in CONNECTS_DOWN and above not in ' \t\n' and above not in ARROWS:

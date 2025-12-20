@@ -187,7 +187,7 @@ class SlashCommandGenerator:
         """Generate command body from user answers."""
 
         # Start with purpose
-        body_lines = [f"Execute task: \"$ARGUMENTS\"\n"]
+        body_lines = ["Execute task: \"$ARGUMENTS\"\n"]
 
         # Add steps based on output type
         output_type = answers.get('output_type', 'analysis')
@@ -211,7 +211,7 @@ class SlashCommandGenerator:
         if answers.get('launches_agents'):
             agents = answers.get('agent_names', [])
             if agents:
-                body_lines.append(f"3. **Launch Agents**:\n")
+                body_lines.append("3. **Launch Agents**:\n")
                 for agent in agents:
                     body_lines.append(f"   - Launch {agent} for specialized task\n")
                 body_lines.append("\n")

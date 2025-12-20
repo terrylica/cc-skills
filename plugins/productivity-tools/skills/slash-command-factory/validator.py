@@ -224,13 +224,13 @@ class CommandValidator:
         # Check length
         word_count = len(name.split('-'))
         if word_count < 2:
-            errors.append(f"❌ Command name too short: needs at least 2 words (e.g., 'api-build')")
+            errors.append("❌ Command name too short: needs at least 2 words (e.g., 'api-build')")
         elif word_count > 4:
             errors.append(f"❌ Command name too long: maximum 4 words, found {word_count}")
 
         # Check invalid characters
         if re.search(r'[^a-z0-9-]', name):
-            errors.append(f"❌ Command name contains invalid characters. Use only [a-z0-9-]")
+            errors.append("❌ Command name contains invalid characters. Use only [a-z0-9-]")
 
         # Check for underscores (common mistake)
         if '_' in name:
@@ -239,7 +239,7 @@ class CommandValidator:
 
         # Check for camelCase or PascalCase
         if re.search(r'[A-Z]', name):
-            errors.append(f"❌ Command name must be lowercase only. No CamelCase or PascalCase.")
+            errors.append("❌ Command name must be lowercase only. No CamelCase or PascalCase.")
 
         return {
             'valid': len(errors) == 0,
