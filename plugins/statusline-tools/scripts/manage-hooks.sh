@@ -216,12 +216,12 @@ cmd_status() {
 
     # Hook script
     echo -e "${CYAN}Hook Script:${RESET}"
-    if [[ -x "$HOOK_SCRIPT" ]]; then
-        echo -e "  ${GREEN}✓${RESET} $HOOK_SCRIPT"
-    elif [[ -f "$HOOK_SCRIPT" ]]; then
-        echo -e "  ${YELLOW}⚠${RESET} $HOOK_SCRIPT (not executable)"
+    if [[ -x "$HOOK_SCRIPT_RESOLVED" ]]; then
+        echo -e "  ${GREEN}✓${RESET} $HOOK_SCRIPT_RESOLVED"
+    elif [[ -f "$HOOK_SCRIPT_RESOLVED" ]]; then
+        echo -e "  ${YELLOW}⚠${RESET} $HOOK_SCRIPT_RESOLVED (not executable)"
     else
-        echo -e "  ${RED}✗${RESET} $HOOK_SCRIPT (not found)"
+        echo -e "  ${RED}✗${RESET} $HOOK_SCRIPT_RESOLVED (not found)"
     fi
     echo ""
 
@@ -233,7 +233,7 @@ cmd_status() {
 
             # Show the hook details
             local hook_info
-            hook_info=$(jq -r --arg script "$HOOK_SCRIPT" '
+            hook_info=$(jq -r --arg script "$HOOK_SCRIPT_SETTINGS" '
                 .hooks.Stop[]? |
                 select(.hooks[]?.command == $script) |
                 .hooks[] |
@@ -255,7 +255,7 @@ cmd_status() {
     echo -e "${CYAN}Other Stop Hooks:${RESET}"
     if [[ -f "$SETTINGS_FILE" ]]; then
         local other_hooks
-        other_hooks=$(jq -r --arg script "$HOOK_SCRIPT" '
+        other_hooks=$(jq -r --arg script "$HOOK_SCRIPT_SETTINGS" '
             .hooks.Stop[]?.hooks[]? |
             select(.command != $script) |
             .command
