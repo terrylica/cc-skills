@@ -4,7 +4,9 @@
 # dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0"]
 # ///
 # ADR: Multi-Repository Adapter Architecture
+# ADR: 2025-12-20-ralph-rssi-eternal-loop
 # Adds project-specific convergence detection via adapter registry
+# Enhanced with RSSI eternal loop (Levels 2-6)
 """
 Autonomous improvement engine Stop hook - RSSI Enhanced.
 
@@ -32,7 +34,7 @@ from pathlib import Path
 from completion import check_task_complete_rssi
 from core.path_hash import build_state_file_path, load_session_state
 from core.registry import AdapterRegistry
-from discovery import discover_target_file, scan_work_opportunities, format_candidate_list
+from discovery import discover_target_file, format_candidate_list, get_rssi_exploration_context, scan_work_opportunities
 from template_loader import get_loader
 from utils import (
     get_elapsed_hours,
@@ -217,9 +219,17 @@ def build_continuation_prompt(
             )
 
     else:
-        opportunities = scan_work_opportunities(project_dir) if project_dir else []
+        # RSSI Eternal Loop: Get full exploration context with all levels
+        rssi_context = get_rssi_exploration_context(project_dir) if project_dir else {}
+        opportunities = rssi_context.get("opportunities", [])
         state["opportunities_discovered"] = opportunities
-        parts.append(loader.render_exploration(opportunities))
+        state["rssi_iteration"] = rssi_context.get("iteration", 0)
+
+        # Render exploration template with full RSSI context
+        parts.append(loader.render_exploration(
+            opportunities=opportunities,
+            rssi_context=rssi_context,
+        ))
 
         # Research experts for adapter-specific strategy optimization
         if adapter_name and adapter_convergence:

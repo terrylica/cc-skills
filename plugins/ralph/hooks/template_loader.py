@@ -158,16 +158,46 @@ class TemplateLoader:
 
         return ""
 
-    def render_exploration(self, opportunities: list[str] | None = None) -> str:
-        """Render the exploration mode prompt.
+    def render_exploration(
+        self,
+        opportunities: list[str] | None = None,
+        rssi_context: dict | None = None,
+    ) -> str:
+        """Render the exploration mode prompt with full RSSI context.
+
+        ADR: 2025-12-20-ralph-rssi-eternal-loop
 
         Args:
             opportunities: List of discovered work opportunities
+            rssi_context: Full RSSI context dict with keys:
+                - iteration: int - current RSSI loop iteration
+                - accumulated_patterns: list[str] - learned patterns
+                - disabled_checks: list[str] - ineffective checks disabled
+                - effective_checks: list[str] - prioritized by effectiveness
+                - web_insights: list[str] - domain insights from web
+                - feature_ideas: list[dict] - big feature proposals
+                - web_queries: list[str] - search queries to execute
+                - missing_tools: list[str] - capability expansion suggestions
+                - quality_gate: list[str] - SOTA quality gate instructions
 
         Returns:
             Rendered prompt string
         """
-        return self.render("exploration-mode.md", opportunities=opportunities or [])
+        ctx = rssi_context or {}
+        return self.render(
+            "exploration-mode.md",
+            opportunities=opportunities or [],
+            iteration=ctx.get("iteration", 0),
+            accumulated_patterns=ctx.get("accumulated_patterns", []),
+            disabled_checks=ctx.get("disabled_checks", []),
+            effective_checks=ctx.get("effective_checks", []),
+            web_insights=ctx.get("web_insights", []),
+            feature_ideas=ctx.get("feature_ideas", []),
+            web_queries=ctx.get("web_queries", []),
+            missing_tools=ctx.get("missing_tools", []),
+            quality_gate=ctx.get("quality_gate", []),
+            overall_effectiveness=ctx.get("overall_effectiveness", 0.0),
+        )
 
     def render_status_header(
         self,
