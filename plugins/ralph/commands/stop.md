@@ -13,7 +13,13 @@ Immediately disable the Ralph Wiggum autonomous improvement loop.
 ```bash
 # Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
 /usr/bin/env bash << 'RALPH_STOP_SCRIPT'
+# RALPH_STOP_SCRIPT marker - required for PreToolUse hook bypass
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+
+# Create kill switch FIRST as backup (not blocked by PreToolUse guard)
+# This ensures the Stop hook will see it and clean up properly
+touch "$PROJECT_DIR/.claude/STOP_LOOP"
+echo "Created kill switch for Stop hook"
 
 # Remove loop-enabled marker and timestamp
 if [[ -f "$PROJECT_DIR/.claude/loop-enabled" ]]; then
@@ -24,16 +30,10 @@ else
     echo "Loop mode was not active"
 fi
 
-# Also remove any kill switch if present
-if [[ -f "$PROJECT_DIR/.claude/STOP_LOOP" ]]; then
-    rm "$PROJECT_DIR/.claude/STOP_LOOP"
-    echo "Removed kill switch file"
-fi
-
 # Show remaining state files
 echo ""
 echo "Remaining state files:"
-ls -la "$PROJECT_DIR/.claude/" 2>/dev/null | grep -E "(loop|session)" || echo "  (none)"
+ls -la "$PROJECT_DIR/.claude/" 2>/dev/null | grep -E "(loop|session|STOP)" || echo "  (none)"
 RALPH_STOP_SCRIPT
 ```
 
