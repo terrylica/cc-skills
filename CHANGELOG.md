@@ -1,3 +1,15 @@
+# [5.8.0](https://github.com/terrylica/cc-skills/compare/v5.7.1...v5.8.0) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** use absolute import in rssi_meta.py ([690f137](https://github.com/terrylica/cc-skills/commit/690f1378e0eb3d444fc9e1753c9ad3591b82ab38))
+
+
+### Features
+
+* **ralph:** implement RSSI eternal loop architecture ([2b6bc06](https://github.com/terrylica/cc-skills/commit/2b6bc068b6cc2d2a546428f68f808d2159ae675b))
+
 ## [5.7.1](https://github.com/terrylica/cc-skills/compare/v5.7.0...v5.7.1) (2025-12-20)
 
 
