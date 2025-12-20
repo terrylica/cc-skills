@@ -4,14 +4,32 @@ Provides time tracking, loop detection, text extraction, and hook output helpers
 """
 import json
 import logging
+import os
 import time
 from pathlib import Path
 
+from core.config_schema import load_config
+
 logger = logging.getLogger(__name__)
 
-# Loop detection constants
+# Legacy constants (deprecated - use config instead)
+# Kept for backward compatibility with existing code
 LOOP_THRESHOLD = 0.9
 WINDOW_SIZE = 5
+
+
+def get_loop_detection_config() -> tuple[float, int]:
+    """Get loop detection parameters from config.
+
+    Returns:
+        Tuple of (similarity_threshold, window_size)
+    """
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
+    config = load_config(project_dir if project_dir else None)
+    return (
+        config.loop_detection.similarity_threshold,
+        config.loop_detection.window_size,
+    )
 
 
 def get_elapsed_hours(session_id: str, project_dir: str) -> float:
@@ -52,27 +70,38 @@ def get_elapsed_hours(session_id: str, project_dir: str) -> float:
     return 0.0
 
 
-def detect_loop(current_output: str, recent_outputs: list[str]) -> bool:
+def detect_loop(
+    current_output: str,
+    recent_outputs: list[str],
+    threshold: float | None = None,
+) -> bool:
     """Detect if agent is looping based on output similarity.
 
     Uses RapidFuzz for fuzzy string matching. If any recent output
-    is >= 90% similar to current output, considers it a loop.
+    is >= threshold similar to current output, considers it a loop.
 
     Args:
         current_output: Current assistant output
-        recent_outputs: List of recent outputs (up to WINDOW_SIZE)
+        recent_outputs: List of recent outputs (up to window_size from config)
+        threshold: Optional override for similarity threshold (default from config)
 
     Returns:
         True if loop detected, False otherwise
     """
     if not current_output:
         return False
+
+    # Get threshold from config if not provided
+    if threshold is None:
+        config_threshold, _ = get_loop_detection_config()
+        threshold = config_threshold
+
     try:
         from rapidfuzz import fuzz
         for prev_output in recent_outputs:
             ratio = fuzz.ratio(current_output, prev_output) / 100.0
-            if ratio >= LOOP_THRESHOLD:
-                logger.info(f"Loop detected: {ratio:.2%} similarity")
+            if ratio >= threshold:
+                logger.info(f"Loop detected: {ratio:.2%} similarity (threshold: {threshold})")
                 return True
         return False
     except ImportError:

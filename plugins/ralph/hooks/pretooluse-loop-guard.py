@@ -4,6 +4,9 @@
 Prevents Claude from bypassing the Stop hook by directly running
 Bash commands that delete .claude/loop-enabled or other loop files.
 
+Protected files and deletion patterns are configurable via
+.claude/ralph-config.json.
+
 ADR: /docs/adr/2025-12-20-ralph-rssi-eternal-loop.md
 """
 
@@ -12,43 +15,53 @@ import os
 import re
 import sys
 
-# Protected files that cannot be deleted via Bash
+from core.config_schema import ProtectionConfig, load_config
+
+# Legacy constants (deprecated - use config instead)
 PROTECTED_FILES = [
     ".claude/loop-enabled",
     ".claude/loop-start-timestamp",
     ".claude/loop-config.json",
 ]
 
-# Patterns that indicate deletion attempts
 DELETION_PATTERNS = [
-    r"\brm\b",           # rm command
-    r"\bunlink\b",       # unlink command
-    r"> /dev/null",      # Redirect to null (truncate)
-    r">\s*/dev/null",    # Redirect with space
-    r"truncate\b",       # truncate command
+    r"\brm\b",
+    r"\bunlink\b",
+    r"> /dev/null",
+    r">\s*/dev/null",
+    r"truncate\b",
 ]
 
-# Official /ralph:stop script marker - allow this to delete loop files
 RALPH_STOP_MARKER = "RALPH_STOP_SCRIPT"
+
+
+def get_protection_config() -> ProtectionConfig:
+    """Get protection parameters from config."""
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
+    config = load_config(project_dir if project_dir else None)
+    return config.protection
 
 
 def is_official_stop_script(command: str) -> bool:
     """Check if command is the official /ralph:stop script."""
-    return RALPH_STOP_MARKER in command
+    cfg = get_protection_config()
+    return cfg.stop_script_marker in command
 
 
 def is_deletion_command(command: str) -> bool:
     """Check if command attempts to delete protected files."""
-    # Check for deletion patterns
+    cfg = get_protection_config()
+
+    # Check for deletion patterns (from config)
     has_deletion_cmd = any(
-        re.search(pattern, command) for pattern in DELETION_PATTERNS
+        re.search(pattern, command) for pattern in cfg.deletion_patterns
     )
 
     if not has_deletion_cmd:
         return False
 
-    # Check if any protected file is mentioned
-    for protected_file in PROTECTED_FILES:
+    # Check if any protected file is mentioned (from config)
+    for protected_file in cfg.protected_files:
         # Check for full path or relative path
         if protected_file in command:
             return True
