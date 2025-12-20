@@ -5,6 +5,7 @@ for the RSSI autonomous exploration mode.
 """
 import json
 import logging
+import re
 import subprocess
 from pathlib import Path
 
@@ -16,6 +17,46 @@ logger = logging.getLogger(__name__)
 # Work opportunity scanning constants
 LYCHEE_TIMEOUT = 30
 MAX_OPPORTUNITIES = 5
+
+# Pattern to match plan mode system-reminder
+# Claude injects: "You should create your plan at /path/to/plan.md"
+PLAN_MODE_PATTERN = re.compile(r'create your plan at ([^\s"]+\.md)')
+
+
+def discover_plan_mode_file(transcript_path: str) -> str | None:
+    """Extract plan file from plan mode system-reminder.
+
+    Plan mode injects: "You should create your plan at /path/to/plan.md"
+    This takes priority over tool operations since it's the system-assigned file.
+
+    Args:
+        transcript_path: Path to the Claude transcript JSONL file
+
+    Returns:
+        Path to discovered plan file, or None. Returns the most recent match,
+        filtering out placeholder patterns from code examples.
+    """
+    if not transcript_path or not Path(transcript_path).exists():
+        return None
+
+    try:
+        content = Path(transcript_path).read_text()
+        matches = PLAN_MODE_PATTERN.findall(content)
+
+        # Filter out placeholder patterns from code examples
+        real_files = [
+            m for m in matches
+            if not m.startswith("/path/")
+            and "XXXX" not in m
+            and m.startswith("/")  # Must be absolute path
+        ]
+
+        if real_files:
+            logger.debug(f"Plan mode matches: {len(real_files)} real files found")
+            return real_files[-1]  # Last match = current plan
+    except OSError as e:
+        logger.warning(f"Failed to read transcript for plan mode detection: {e}")
+    return None
 
 
 def has_itp_structure(project_dir: str) -> bool:
@@ -218,6 +259,7 @@ def discover_target_file(
     """Discover task file with priority cascade.
 
     Priority order:
+    0. Plan mode system-reminder (system-assigned plan file)
     1. Transcript parsing (Write/Edit/Read to .claude/plans/)
     2. ITP design specs with implementation-status: in_progress
     3. ITP ADRs with status: accepted
@@ -232,6 +274,13 @@ def discover_target_file(
     Returns:
         (path, discovery_method, candidates) - path is None if multiple candidates
     """
+    # Priority 0: Plan mode system-assigned file (takes precedence)
+    if transcript_path:
+        plan_mode_file = discover_plan_mode_file(transcript_path)
+        if plan_mode_file:
+            logger.info(f"Discovered from plan mode: {plan_mode_file}")
+            return (plan_mode_file, "plan_mode", [])
+
     # Priority 1: Transcript parsing (Write/Edit/Read to .claude/plans/)
     if transcript_path:
         path = discover_from_transcript(transcript_path)
