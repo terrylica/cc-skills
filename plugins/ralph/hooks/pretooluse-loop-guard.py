@@ -28,6 +28,14 @@ DELETION_PATTERNS = [
     r"truncate\b",       # truncate command
 ]
 
+# Official /ralph:stop script marker - allow this to delete loop files
+RALPH_STOP_MARKER = "RALPH_STOP_SCRIPT"
+
+
+def is_official_stop_script(command: str) -> bool:
+    """Check if command is the official /ralph:stop script."""
+    return RALPH_STOP_MARKER in command
+
 
 def is_deletion_command(command: str) -> bool:
     """Check if command attempts to delete protected files."""
@@ -66,6 +74,11 @@ def main():
     command = tool_input.get("command", "")
 
     if not command:
+        print(json.dumps({"decision": "allow"}))
+        return
+
+    # Allow official /ralph:stop script to delete loop files
+    if is_official_stop_script(command):
         print(json.dumps({"decision": "allow"}))
         return
 
