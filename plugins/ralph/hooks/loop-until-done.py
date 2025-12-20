@@ -34,7 +34,7 @@ from pathlib import Path
 from completion import check_task_complete_rssi
 from core.path_hash import build_state_file_path, load_session_state
 from core.registry import AdapterRegistry
-from discovery import discover_target_file, format_candidate_list, get_rssi_exploration_context, scan_work_opportunities
+from discovery import discover_target_file, format_candidate_list, get_rssi_exploration_context
 from template_loader import get_loader
 from utils import (
     get_elapsed_hours,
