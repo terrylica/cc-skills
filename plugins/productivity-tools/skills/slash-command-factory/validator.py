@@ -4,15 +4,15 @@ Validates generated slash command files for proper format.
 Enforces official Anthropic patterns and best practices.
 """
 
-import re
 import os
-from typing import Dict, Any
+import re
+from typing import Any, Dict
 
 
 class CommandValidator:
     """Validate slash command .md files."""
 
-    def validate(self, command_content: str) -> Dict[str, any]:
+    def validate(self, command_content: str) -> dict[str, any]:
         """
         Validate complete command file content.
 
@@ -119,7 +119,7 @@ class CommandValidator:
 
         return len(issues) == 0, issues
 
-    def validate_folder_structure(self, folder_path: str) -> Dict[str, Any]:
+    def validate_folder_structure(self, folder_path: str) -> dict[str, Any]:
         """
         Validate command folder organization.
 
@@ -156,7 +156,7 @@ class CommandValidator:
             'issues': issues
         }
 
-    def validate_bash_permissions(self, allowed_tools: str) -> Dict[str, Any]:
+    def validate_bash_permissions(self, allowed_tools: str) -> dict[str, Any]:
         """
         Validate bash permissions are specific (not wildcards).
 
@@ -199,7 +199,7 @@ class CommandValidator:
             'warnings': warnings
         }
 
-    def validate_command_name(self, name: str) -> Dict[str, Any]:
+    def validate_command_name(self, name: str) -> dict[str, Any]:
         """
         Validate command name follows kebab-case convention.
 
@@ -246,7 +246,7 @@ class CommandValidator:
             'errors': errors
         }
 
-    def validate_arguments_usage(self, command_content: str) -> Dict[str, Any]:
+    def validate_arguments_usage(self, command_content: str) -> dict[str, Any]:
         """
         Validate uses $ARGUMENTS (not $1, $2, $3).
 
@@ -276,7 +276,7 @@ class CommandValidator:
             'warnings': warnings
         }
 
-    def validate_comprehensive(self, command_name: str, command_content: str, allowed_tools: str) -> Dict[str, Any]:
+    def validate_comprehensive(self, command_name: str, command_content: str, allowed_tools: str) -> dict[str, Any]:
         """
         Run all validations comprehensively.
 

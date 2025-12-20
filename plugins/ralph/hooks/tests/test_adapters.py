@@ -14,17 +14,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.path_hash import get_path_hash, build_state_file_path, load_session_state
+from adapters.alpha_forge import AlphaForgeAdapter
+from adapters.universal import UniversalAdapter
+from core.path_hash import build_state_file_path, get_path_hash, load_session_state
 from core.protocols import (
-    MetricsEntry,
     DEFAULT_CONFIDENCE,
-    SUGGEST_CONFIDENCE,
     OVERRIDE_CONFIDENCE,
+    SUGGEST_CONFIDENCE,
+    MetricsEntry,
 )
 from core.registry import AdapterRegistry
-from adapters.universal import UniversalAdapter
-from adapters.alpha_forge import AlphaForgeAdapter
-
 
 # ===== PATH HASH TESTS =====
 
