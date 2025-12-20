@@ -82,14 +82,15 @@ def build_continuation_prompt(
     task_complete: bool,
     discovery_method: str = "",
     candidate_files: list[str] | None = None,
-    state: dict | None = None
+    state: dict | None = None,
+    no_focus: bool = False,
 ) -> str:
     """Build context-rich continuation prompt with RSSI modes.
 
     Mode progression:
     1. IMPLEMENTATION - Working on checklist items (task_complete=False)
     2. VALIDATION - Multi-round validation after task complete
-    3. EXPLORATION - Discovery and self-improvement
+    3. EXPLORATION - Discovery and self-improvement (always in no_focus mode)
     """
     if state is None:
         state = {}
@@ -103,7 +104,10 @@ def build_continuation_prompt(
     validation_round = state.get("validation_round", 0)
     enable_validation = config.get("enable_validation_phase", True)
 
-    if not task_complete:
+    # In no_focus mode, ALWAYS use exploration (RSSI eternal loop)
+    if no_focus:
+        mode = "EXPLORATION"
+    elif not task_complete:
         mode = "IMPLEMENTATION"
     elif enable_validation and not validation_exhausted:
         mode = f"VALIDATION (Round {validation_round}/3)"
@@ -199,8 +203,22 @@ def build_continuation_prompt(
             parts.append(adapter_status)
 
     # Mode-specific prompts (loaded from templates/)
+    # In no_focus mode, ALWAYS use exploration (RSSI eternal loop)
 
-    if not task_complete:
+    if no_focus:
+        # RSSI Eternal Loop: Get full exploration context with all levels
+        rssi_context = get_rssi_exploration_context(project_dir) if project_dir else {}
+        opportunities = rssi_context.get("opportunities", [])
+        state["opportunities_discovered"] = opportunities
+        state["rssi_iteration"] = rssi_context.get("iteration", 0)
+
+        # Render exploration template with full RSSI context
+        parts.append(loader.render_exploration(
+            opportunities=opportunities,
+            rssi_context=rssi_context,
+        ))
+
+    elif not task_complete:
         parts.append(loader.render("implementation-mode.md"))
 
     elif enable_validation and not validation_exhausted:
@@ -518,7 +536,8 @@ def main():
         task_complete=task_complete,
         discovery_method=discovery_method,
         candidate_files=candidate_files,
-        state=state
+        state=state,
+        no_focus=no_focus,
     )
 
     if current_output:
