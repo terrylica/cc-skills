@@ -193,6 +193,82 @@ class TemplateLoader:
             remaining_iters=remaining_iters
         )
 
+    def render_adapter_status(
+        self,
+        adapter_name: str,
+        adapter_convergence: dict | None,
+        metrics_history: list | None = None
+    ) -> str:
+        """Render adapter-specific status for project-aware convergence.
+
+        Uses alpha-forge-convergence.md template for Alpha Forge projects,
+        or a generic format for other adapters.
+
+        Args:
+            adapter_name: Name of the active adapter
+            adapter_convergence: Convergence result dict with keys:
+                - should_continue: bool
+                - reason: str
+                - confidence: float
+                - metrics_count: int
+            metrics_history: Optional list of metrics entries
+
+        Returns:
+            Rendered adapter status string
+        """
+        if adapter_convergence is None:
+            return ""
+
+        # Only show adapter status if confidence > 0 (has opinion)
+        if adapter_convergence.get("confidence", 0) == 0:
+            return ""
+
+        # Use specialized template for Alpha Forge
+        if adapter_name == "alpha-forge":
+            try:
+                return self.render(
+                    "alpha-forge-convergence.md",
+                    adapter_name=adapter_name,
+                    metrics_count=adapter_convergence.get("metrics_count", 0),
+                    best_sharpe=self._extract_best_sharpe(metrics_history),
+                    convergence_reason=adapter_convergence.get("reason", ""),
+                    convergence_confidence=adapter_convergence.get("confidence", 0),
+                    should_continue=adapter_convergence.get("should_continue", True),
+                    metrics_history=metrics_history or []
+                )
+            except FileNotFoundError:
+                pass  # Fall through to generic format
+
+        # Generic adapter status format
+        confidence = adapter_convergence.get("confidence", 0)
+        reason = adapter_convergence.get("reason", "")
+        should_continue = adapter_convergence.get("should_continue", True)
+        metrics_count = adapter_convergence.get("metrics_count", 0)
+
+        status = "CONTINUE" if should_continue else "STOP"
+        confidence_label = "override" if confidence >= 1.0 else "suggest"
+
+        return (
+            f"\n**Adapter [{adapter_name}]**: {status} ({confidence_label})\n"
+            f"Metrics: {metrics_count} | Reason: {reason}"
+        )
+
+    def _extract_best_sharpe(self, metrics_history: list | None) -> float:
+        """Extract best Sharpe ratio from metrics history."""
+        if not metrics_history:
+            return 0.0
+
+        try:
+            sharpes = []
+            for m in metrics_history:
+                if hasattr(m, "primary_metric"):
+                    sharpes.append(m.primary_metric)
+                elif isinstance(m, dict):
+                    sharpes.append(m.get("primary_metric", 0))
+            return max(sharpes) if sharpes else 0.0
+        except (TypeError, ValueError):
+            return 0.0
+
 
 # Global instance for convenience
 _loader: TemplateLoader | None = None

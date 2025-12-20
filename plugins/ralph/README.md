@@ -145,6 +145,78 @@ touch .claude/STOP_LOOP  # Emergency stop
 }
 ```
 
+### Multi-Repository Adapter Architecture
+
+Ralph supports project-specific convergence detection via adapters. Each adapter provides:
+
+- **Detection**: Identifies project type from directory structure
+- **Metrics reading**: Extracts metrics from existing outputs (no target repo changes)
+- **Convergence logic**: Project-specific stopping conditions
+
+**Built-in Adapters**:
+
+| Adapter       | Detection                               | Convergence Signals                                      |
+| ------------- | --------------------------------------- | -------------------------------------------------------- |
+| `alpha-forge` | `pyproject.toml` contains "alpha-forge" | WFE threshold, diminishing returns, patience, hard limit |
+| `universal`   | Fallback (all projects)                 | Defers to RSSI completion detection                      |
+
+**Confidence-Based Decisions**:
+
+Adapters return confidence levels that determine RSSI interaction:
+
+- `0.0`: No opinion, defer to RSSI (default behavior)
+- `0.5`: Suggest stop, requires RSSI agreement
+- `1.0`: Override RSSI (hard limits like budget exhaustion)
+
+**Session State Isolation**:
+
+Sessions are isolated per project path using hashes:
+
+```
+sessions/{session_id}@{path_hash}.json
+```
+
+This enables safe operation across git worktrees with the same session ID.
+
+### Adding New Adapters
+
+Create a new adapter in `hooks/adapters/`:
+
+```python
+# hooks/adapters/my_project.py
+from pathlib import Path
+from core.protocols import ProjectAdapter, MetricsEntry, ConvergenceResult
+
+class MyProjectAdapter(ProjectAdapter):
+    name = "my-project"
+
+    def detect(self, project_dir: Path) -> bool:
+        """Return True if this is a my-project repo."""
+        return (project_dir / "my-project.yaml").exists()
+
+    def get_metrics_history(
+        self, project_dir: Path, start_time: str
+    ) -> list[MetricsEntry]:
+        """Read project-specific metrics from existing outputs."""
+        # Parse your project's output files
+        return []
+
+    def check_convergence(
+        self, metrics_history: list[MetricsEntry]
+    ) -> ConvergenceResult:
+        """Apply project-specific convergence logic."""
+        return ConvergenceResult(
+            should_continue=True,
+            reason="Still exploring",
+            confidence=0.0  # Defer to RSSI
+        )
+
+    def get_session_mode(self) -> str:
+        return "my-project-research"
+```
+
+The registry auto-discovers adapters on `/ralph:start` - no registration needed.
+
 ## Files
 
 ```
@@ -165,13 +237,26 @@ ralph/
 │   ├── utils.py                # Time tracking, loop detection
 │   ├── template_loader.py      # Jinja2 template rendering
 │   ├── archive-plan.sh         # PreToolUse hook
-│   └── templates/              # Prompt templates (Jinja2 markdown)
-│       ├── validation-round-1.md
-│       ├── validation-round-2.md
-│       ├── validation-round-3.md
-│       ├── exploration-mode.md
-│       ├── implementation-mode.md
-│       └── status-header.md
+│   ├── core/                   # Adapter infrastructure
+│   │   ├── protocols.py        # ProjectAdapter protocol
+│   │   ├── registry.py         # Auto-discovery registry
+│   │   └── path_hash.py        # Session state isolation
+│   ├── adapters/               # Project-type adapters
+│   │   ├── universal.py        # Fallback (RSSI behavior)
+│   │   └── alpha_forge.py      # Alpha Forge adapter
+│   ├── templates/              # Prompt templates (Jinja2 markdown)
+│   │   ├── validation-round-1.md
+│   │   ├── validation-round-2.md
+│   │   ├── validation-round-3.md
+│   │   ├── exploration-mode.md
+│   │   ├── implementation-mode.md
+│   │   ├── status-header.md
+│   │   └── alpha-forge-convergence.md
+│   └── tests/                  # Test suite
+│       ├── test_adapters.py    # Adapter system tests
+│       ├── test_completion.py
+│       ├── test_validation.py
+│       └── test_utils.py
 └── scripts/
     └── manage-hooks.sh         # Hook installation script
 ```
@@ -201,6 +286,7 @@ uv run tests/test_completion.py    # Multi-signal completion detection
 uv run tests/test_validation.py    # 3-round validation phase
 uv run tests/test_utils.py         # Loop detection, time tracking
 uv run tests/test_integration.py   # Full workflow simulation
+uv run tests/test_adapters.py      # Adapter system (20 tests)
 
 # Run POC validation task
 /ralph:start -f plugins/ralph/hooks/tests/poc-task.md --poc
@@ -214,6 +300,7 @@ uv run tests/test_integration.py   # Full workflow simulation
 | validation.py | Score computation, exhaustion detection, aggregation    |
 | utils.py      | Elapsed hours, loop detection, section extraction       |
 | integration   | Mode transitions, file discovery, workflow simulation   |
+| adapters      | Registry discovery, path hash, Alpha Forge convergence  |
 
 ## Related
 

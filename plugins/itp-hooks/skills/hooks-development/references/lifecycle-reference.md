@@ -396,59 +396,7 @@ Every hook can output these fields:
 
 ### Loop Prevention
 
-When `stop_hook_active` is `true` in Stop/SubagentStop, it means a hook already blocked the previous stop attempt.
-
-**CRITICAL INSIGHT (Verified 2025-12-19):** `stop_hook_active=true` does NOT mean "you must allow stop now". It simply indicates that a hook blocked previously. For multi-iteration loops (like Ralph Wiggum), you should:
-
-1. **Continue blocking** even when `stop_hook_active=true` if your exit conditions aren't met
-2. **Rely on max_hours/max_iterations** for true infinite loop prevention
-3. **Do NOT unconditionally exit** when `stop_hook_active=true`
-
-```python
-# WRONG - exits after only 2 iterations:
-if stop_hook_active:
-    allow_stop("stop_hook_active=True, preventing recursion")
-    return
-
-# CORRECT - continues until real exit conditions:
-# (no early exit for stop_hook_active)
-# Check max_time, max_iterations, task_complete instead
-```
-
-### Multi-Iteration Stop Hooks (Ralph Wiggum Pattern)
-
-For autonomous loops that continue for many iterations (10+), the Stop hook requires special handling:
-
-**Key implementation requirements:**
-
-1. **Timestamp source**: Create `.claude/loop-start-timestamp` when loop starts (not session start)
-2. **State persistence**: Store iteration count in session-specific state file
-3. **Content extraction**: Parse `message.content` as list of blocks, extract text
-4. **Exit conditions**: Use max_hours/max_iterations as hard limits, not `stop_hook_active`
-5. **Loop detection**: Compare recent outputs with rapidfuzz (90% similarity threshold)
-
-**Continue (block) when:**
-
-- min_time not met
-- min_iterations not met
-- task not complete
-
-**Allow stop when:**
-
-- max_time reached
-- max_iterations reached
-- loop detected (90% similar outputs)
-- task complete AND minimums met
-
-**Example state file** (`~/.claude/automation/loop-orchestrator/state/sessions/{session_id}.json`):
-
-```json
-{
-  "iteration": 5,
-  "recent_outputs": ["text from iter 4", "text from iter 3"],
-  "plan_file": "/path/to/plan.md"
-}
-```
+When `stop_hook_active` is `true` in Stop/SubagentStop, a hook is already active. Check the transcript to prevent infinite loops.
 
 ### Stop Hook Schema (Critical - Verified 2025-12-18)
 
@@ -486,57 +434,17 @@ def hard_stop(reason: str):
 
 ### Common Pitfalls
 
-| Pitfall                     | Problem                            | Solution                                                                                      |
-| --------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Session-locked hooks**    | Hook changes don't take effect     | Hooks snapshot at session start. Run `/hooks` to apply pending changes OR restart Claude Code |
-| **Script not executable**   | Hook silently fails                | Run `chmod +x script.sh` on all hook scripts                                                  |
-| **Non-zero exit codes**     | Hook blocks Claude unexpectedly    | Ensure scripts return 0 on success; non-zero = error                                          |
-| **Missing file matchers**   | Hook doesn't trigger on edits      | Use `Edit\|MultiEdit\|Write` to catch ALL file modifications                                  |
-| **Case sensitivity**        | Matcher doesn't match              | Matchers are case-sensitive: `Bash` ≠ `bash`                                                  |
-| **Relative paths**          | Script not found                   | Use `$CLAUDE_PROJECT_DIR` or absolute paths                                                   |
-| **Timeout too short**       | Hook killed mid-execution          | Default is 60s; increase for slow operations                                                  |
-| **JSON syntax errors**      | All hooks fail to load             | Validate with `cat settings.json \| python -m json.tool`                                      |
-| **Stop hook wrong schema**  | "Stop hook prevented continuation" | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                |
-| **stop_hook_active misuse** | Loop exits after 2 iterations      | Don't exit early on `stop_hook_active=true`; use max_time/max_iterations instead              |
-| **Transcript content type** | `TypeError: unhashable type`       | `message.content` is a list of content blocks, not a string; extract `.text` from each block  |
-
-### Transcript Content Extraction (Verified 2025-12-19)
-
-When reading `transcript_path` in Stop/SubagentStop hooks, the `message.content` field is a **list of content blocks**, not a string:
-
-```json
-{
-  "type": "assistant",
-  "message": {
-    "content": [
-      {"type": "text", "text": "The actual response text..."},
-      {"type": "tool_use", "name": "Bash", "input": {...}}
-    ]
-  }
-}
-```
-
-**Correct extraction pattern:**
-
-```python
-content = last_entry.get("message", {}).get("content", [])
-if isinstance(content, list):
-    text_parts = []
-    for block in content:
-        if isinstance(block, dict) and block.get("type") == "text":
-            text_parts.append(block.get("text", ""))
-    current_output = " ".join(text_parts)[:1000]
-elif isinstance(content, str):
-    current_output = content[:1000]  # Fallback for edge cases
-```
-
-**Common error if done wrong:**
-
-```
-TypeError: unhashable type: 'dict'
-```
-
-This occurs when passing the raw content list to string comparison functions like `rapidfuzz.fuzz.ratio()`.
+| Pitfall                    | Problem                            | Solution                                                                                      |
+| -------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Session-locked hooks**   | Hook changes don't take effect     | Hooks snapshot at session start. Run `/hooks` to apply pending changes OR restart Claude Code |
+| **Script not executable**  | Hook silently fails                | Run `chmod +x script.sh` on all hook scripts                                                  |
+| **Non-zero exit codes**    | Hook blocks Claude unexpectedly    | Ensure scripts return 0 on success; non-zero = error                                          |
+| **Missing file matchers**  | Hook doesn't trigger on edits      | Use `Edit\|MultiEdit\|Write` to catch ALL file modifications                                  |
+| **Case sensitivity**       | Matcher doesn't match              | Matchers are case-sensitive: `Bash` ≠ `bash`                                                  |
+| **Relative paths**         | Script not found                   | Use `$CLAUDE_PROJECT_DIR` or absolute paths                                                   |
+| **Timeout too short**      | Hook killed mid-execution          | Default is 60s; increase for slow operations                                                  |
+| **JSON syntax errors**     | All hooks fail to load             | Validate with `cat settings.json \| python -m json.tool`                                      |
+| **Stop hook wrong schema** | "Stop hook prevented continuation" | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                |
 
 ### Debugging Techniques
 

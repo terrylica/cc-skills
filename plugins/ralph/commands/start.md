@@ -125,6 +125,25 @@ CONFIG_JSON=$(jq -n \
 
 echo "$CONFIG_JSON" > "$PROJECT_DIR/.claude/loop-config.json"
 
+# ===== ADAPTER DETECTION =====
+# Detect project-specific adapter using Python
+HOOKS_DIR="$HOME/.claude/plugins/cache/cc-skills/plugins/ralph/hooks"
+ADAPTER_NAME="universal"
+if [[ -d "$HOOKS_DIR" ]]; then
+    ADAPTER_NAME=$(cd "$HOOKS_DIR" && python3 -c "
+import sys
+from pathlib import Path
+sys.path.insert(0, '.')
+try:
+    from core.registry import AdapterRegistry
+    AdapterRegistry.discover(Path('adapters'))
+    adapter = AdapterRegistry.get_adapter(Path('$PROJECT_DIR'))
+    print(adapter.name)
+except Exception:
+    print('universal')
+" 2>/dev/null || echo "universal")
+fi
+
 # ===== STATUS OUTPUT =====
 if $POC_MODE; then
     echo "Ralph Loop: POC MODE"
@@ -134,6 +153,15 @@ else
     echo "Ralph Loop: PRODUCTION MODE"
     echo "Time limits: 4h minimum / 9h maximum"
     echo "Iterations: 50 minimum / 99 maximum"
+fi
+
+echo ""
+echo "Adapter: $ADAPTER_NAME"
+if [[ "$ADAPTER_NAME" == "alpha-forge" ]]; then
+    echo "  → Expert-synthesis convergence (WFE, diminishing returns, patience)"
+    echo "  → Reads metrics from outputs/runs/*/summary.json"
+elif [[ "$ADAPTER_NAME" == "universal" ]]; then
+    echo "  → Standard RSSI completion detection"
 fi
 
 if [[ -n "$TARGET_FILE" ]]; then

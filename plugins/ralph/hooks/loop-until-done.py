@@ -3,6 +3,8 @@
 # requires-python = ">=3.11"
 # dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0"]
 # ///
+# ADR: Multi-Repository Adapter Architecture
+# Adds project-specific convergence detection via adapter registry
 """
 Autonomous improvement engine Stop hook - RSSI Enhanced.
 
@@ -27,6 +29,8 @@ from pathlib import Path
 
 # Import from modular components
 from completion import check_task_complete_rssi
+from core.path_hash import build_state_file_path, load_session_state
+from core.registry import AdapterRegistry
 from discovery import discover_target_file, scan_work_opportunities, format_candidate_list
 from template_loader import get_loader
 from utils import (
@@ -178,8 +182,20 @@ def build_continuation_prompt(
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
 
-    # Mode-specific prompts (loaded from templates/)
+    # Adapter-specific status (only shown if adapter has opinion)
     loader = get_loader()
+    adapter_name = state.get("adapter_name", "")
+    adapter_convergence = state.get("adapter_convergence")
+    if adapter_name and adapter_convergence:
+        adapter_status = loader.render_adapter_status(
+            adapter_name=adapter_name,
+            adapter_convergence=adapter_convergence,
+            metrics_history=None  # Metrics not stored in state, render from convergence info
+        )
+        if adapter_status:
+            parts.append(adapter_status)
+
+    # Mode-specific prompts (loaded from templates/)
 
     if not task_complete:
         parts.append(loader.render("implementation-mode.md"))
@@ -237,9 +253,11 @@ def main():
         return
 
     # ===== LOAD STATE =====
-    state_file = STATE_DIR / f"sessions/{session_id}.json"
+    # Use path hash for session state isolation (git worktree support)
+    state_file = build_state_file_path(STATE_DIR, session_id, project_dir)
     default_state = {
         "iteration": 0,
+        "started_at": "",  # ISO timestamp for adapter metrics filtering
         "recent_outputs": [],
         "plan_file": None,
         "discovered_file": None,
@@ -258,16 +276,11 @@ def main():
         "validation_score": 0.0,
         "validation_exhausted": False,
         "previous_finding_count": 0,
-        "agent_results": []
+        "agent_results": [],
+        "adapter_name": "",  # Active adapter for this session
+        "adapter_convergence": None,  # Last adapter convergence result
     }
-    try:
-        if state_file.exists():
-            loaded_state = json.loads(state_file.read_text())
-            state = {**default_state, **loaded_state}
-        else:
-            state = default_state
-    except (json.JSONDecodeError, OSError):
-        state = default_state
+    state = load_session_state(state_file, default_state)
 
     # Load config
     try:
@@ -296,6 +309,22 @@ def main():
             logger.info(f"Loaded project config: {proj_cfg}")
         except (json.JSONDecodeError, OSError):
             pass
+
+    # ===== ADAPTER DISCOVERY =====
+    # Auto-discover and select project-specific adapter
+    adapters_dir = Path(__file__).parent / "adapters"
+    AdapterRegistry.discover(adapters_dir)
+    adapter = AdapterRegistry.get_adapter(Path(project_dir)) if project_dir else None
+
+    if adapter:
+        state["adapter_name"] = adapter.name
+        logger.info(f"Using adapter: {adapter.name}")
+
+    # Set started_at on first iteration (for adapter metrics filtering)
+    if not state.get("started_at"):
+        from datetime import datetime, timezone
+        state["started_at"] = datetime.now(timezone.utc).isoformat()
+        logger.info(f"Session started at: {state['started_at']}")
 
     # ===== FILE DISCOVERY =====
     discovery_method = state.get("discovery_method", "")
@@ -380,6 +409,44 @@ def main():
     if task_complete:
         state["completion_signals"].append(completion_reason)
 
+    # ===== ADAPTER CONVERGENCE CHECK =====
+    # Project-specific convergence detection (requires RSSI agreement at confidence=0.5)
+    adapter_should_stop = False
+    adapter_reason = ""
+    adapter_confidence = 0.0
+
+    if adapter and project_dir:
+        try:
+            metrics = adapter.get_metrics_history(
+                Path(project_dir), state.get("started_at", "")
+            )
+            convergence = adapter.check_convergence(metrics)
+            state["adapter_convergence"] = {
+                "should_continue": convergence.should_continue,
+                "reason": convergence.reason,
+                "confidence": convergence.confidence,
+                "metrics_count": len(metrics),
+            }
+            logger.info(
+                f"Adapter convergence: continue={convergence.should_continue}, "
+                f"confidence={convergence.confidence:.2f}, reason={convergence.reason}"
+            )
+
+            # High confidence (1.0) = adapter overrides RSSI
+            # Medium confidence (0.5) = requires RSSI agreement
+            # Low confidence (0.0) = defer to RSSI
+            if convergence.confidence >= 1.0:
+                if not convergence.should_continue:
+                    allow_stop(f"Adapter override: {convergence.reason}")
+                    return
+                # If should_continue with high confidence, force continue below
+            elif convergence.confidence >= 0.5:
+                adapter_should_stop = not convergence.should_continue
+                adapter_reason = convergence.reason
+                adapter_confidence = convergence.confidence
+        except Exception as e:
+            logger.warning(f"Adapter convergence check failed: {e}")
+
     min_hours_met = elapsed >= config["min_hours"]
     min_iterations_met = iteration >= config.get("min_iterations", 50)
 
@@ -391,13 +458,24 @@ def main():
 
     validation_exhausted = state.get("validation_exhausted", False)
 
+    # Combined decision: RSSI + Adapter must agree at confidence=0.5
     if task_complete and min_hours_met and min_iterations_met:
         if not enable_validation or validation_exhausted:
-            allow_stop(
-                f"Task complete ({completion_reason}, confidence={completion_confidence:.2f}) "
-                "and all requirements met"
-            )
-            return
+            # Check if adapter also suggests stopping
+            if adapter_should_stop and adapter_confidence >= 0.5:
+                allow_stop(
+                    f"Converged: RSSI ({completion_reason}) + Adapter ({adapter_reason})"
+                )
+                return
+            # RSSI says complete but adapter doesn't agree - continue
+            if adapter and adapter_confidence >= 0.5 and not adapter_should_stop:
+                logger.info("RSSI complete but adapter wants to continue - continuing")
+            else:
+                allow_stop(
+                    f"Task complete ({completion_reason}, confidence={completion_confidence:.2f}) "
+                    "and all requirements met"
+                )
+                return
 
     # ===== CONTINUE SESSION =====
     reason = build_continuation_prompt(
