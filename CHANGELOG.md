@@ -1,3 +1,10 @@
+## [5.7.1](https://github.com/terrylica/cc-skills/compare/v5.7.0...v5.7.1) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ralph:** align adapter tests with RSSI-only stopping design ([61e8ead](https://github.com/terrylica/cc-skills/commit/61e8ead76be3d6a851bb4bd03eb8cc40a3ee37db))
+
 # [5.7.0](https://github.com/terrylica/cc-skills/compare/v5.6.0...v5.7.0) (2025-12-20)
 
 
