@@ -1,3 +1,10 @@
+## [5.5.4](https://github.com/terrylica/cc-skills/compare/v5.5.3...v5.5.4) (2025-12-20)
+
+
+### Bug Fixes
+
+* **statusline-tools:** use marketplace path for auto-updates ([0ae976d](https://github.com/terrylica/cc-skills/commit/0ae976d01536b0225541b5452fc7bcb5f16adb03))
+
 ## [5.5.3](https://github.com/terrylica/cc-skills/compare/v5.5.2...v5.5.3) (2025-12-20)
 
 
