@@ -22,6 +22,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-loop-guard.py",
+            "timeout": 5000
+          }
+        ]
       }
     ]
   }
