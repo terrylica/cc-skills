@@ -342,7 +342,14 @@ def main():
     discovery_method = state.get("discovery_method", "")
     candidate_files: list[str] = state.get("candidate_files", [])
 
-    if config.get("target_file"):
+    # Check for no_focus mode (100% autonomous, no plan tracking)
+    no_focus = config.get("no_focus", False)
+    if no_focus:
+        plan_file = None
+        discovery_method = "no_focus"
+        candidate_files = []
+        logger.info("No-focus mode: skipping file discovery")
+    elif config.get("target_file"):
         plan_file = config["target_file"]
         discovery_method = "explicit (-f flag)"
         candidate_files = []

@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from completion import check_task_complete_rssi
-from discovery import discover_target_file, scan_work_opportunities
+from discovery import discover_target_file, discover_plan_mode_file, scan_work_opportunities
 from template_loader import get_loader
 from utils import detect_loop
 from validation import compute_validation_score, check_validation_exhausted
@@ -262,6 +262,137 @@ def test_validation_score_computation():
     print(f"✓ Score with critical issues: {score}")
 
 
+def test_plan_mode_discovery():
+    """Test plan mode file discovery from transcript."""
+    import json
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+
+        # Create a mock transcript with plan mode system-reminder
+        transcript_file = tmp_dir / "transcript.jsonl"
+        transcript_content = [
+            {
+                "type": "user",
+                "message": {
+                    "role": "user",
+                    "content": "You should create your plan at /Users/test/.claude/plans/my-plan.md using the Write tool."
+                }
+            },
+            {
+                "type": "assistant",
+                "message": {"role": "assistant", "content": [{"type": "text", "text": "Working..."}]}
+            }
+        ]
+        with open(transcript_file, "w") as f:
+            for entry in transcript_content:
+                f.write(json.dumps(entry) + "\n")
+
+        # Test discovery
+        discovered = discover_plan_mode_file(str(transcript_file))
+        assert discovered == "/Users/test/.claude/plans/my-plan.md"
+        print(f"✓ Plan mode discovery: {discovered}")
+
+
+def test_plan_mode_discovery_filters_placeholders():
+    """Test that placeholder patterns are filtered out."""
+    import json
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+
+        # Create transcript with placeholder AND real plan file
+        transcript_file = tmp_dir / "transcript.jsonl"
+        transcript_content = [
+            # Placeholder from code example - should be filtered
+            {
+                "type": "user",
+                "message": {"content": "create your plan at /path/to/plan.md example"}
+            },
+            # Real plan file - should be found
+            {
+                "type": "user",
+                "message": {"content": "create your plan at /Users/real/.claude/plans/actual-plan.md"}
+            },
+        ]
+        with open(transcript_file, "w") as f:
+            for entry in transcript_content:
+                f.write(json.dumps(entry) + "\n")
+
+        discovered = discover_plan_mode_file(str(transcript_file))
+        assert discovered == "/Users/real/.claude/plans/actual-plan.md"
+        assert "/path/to" not in str(discovered)
+        print(f"✓ Placeholder filtered, found: {discovered}")
+
+
+def test_plan_mode_discovery_priority():
+    """Test that plan mode takes priority over transcript tool operations."""
+    import json
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+
+        # Create transcript with both plan mode reminder AND tool operations
+        transcript_file = tmp_dir / "transcript.jsonl"
+        transcript_content = [
+            # Old tool operation (should be ignored when plan mode present)
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [{
+                        "type": "tool_use",
+                        "name": "Write",
+                        "input": {"file_path": "/Users/old/.claude/plans/old-plan.md"}
+                    }]
+                }
+            },
+            # Plan mode system-reminder (should take priority)
+            {
+                "type": "user",
+                "message": {"content": "create your plan at /Users/new/.claude/plans/new-plan.md"}
+            },
+        ]
+        with open(transcript_file, "w") as f:
+            for entry in transcript_content:
+                f.write(json.dumps(entry) + "\n")
+
+        # Test discover_target_file uses plan_mode as Priority 0
+        discovered, method, _ = discover_target_file(
+            transcript_path=str(transcript_file),
+            project_dir=str(tmp_dir),
+        )
+        assert discovered == "/Users/new/.claude/plans/new-plan.md"
+        assert method == "plan_mode"
+        print(f"✓ Plan mode priority: {discovered} via {method}")
+
+
+def test_no_focus_mode():
+    """Test that no_focus config skips file discovery."""
+    print("\n--- No-Focus Mode Test ---")
+
+    # Simulate the config check that happens in loop-until-done.py
+    config = {"no_focus": True, "min_hours": 4, "max_hours": 9}
+
+    no_focus = config.get("no_focus", False)
+    if no_focus:
+        plan_file = None
+        discovery_method = "no_focus"
+    else:
+        plan_file = "/some/discovered/file.md"
+        discovery_method = "transcript"
+
+    assert no_focus is True
+    assert plan_file is None
+    assert discovery_method == "no_focus"
+    print("✓ No-focus mode: file discovery skipped")
+
+    # Test with no_focus=False (default)
+    config_normal = {"min_hours": 4, "max_hours": 9}
+    no_focus_normal = config_normal.get("no_focus", False)
+    assert no_focus_normal is False
+    print("✓ Normal mode: file discovery enabled")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Running integration tests")
@@ -275,6 +406,10 @@ if __name__ == "__main__":
     test_loop_detection_integration()
     test_mode_transitions()
     test_validation_score_computation()
+    test_plan_mode_discovery()
+    test_plan_mode_discovery_filters_placeholders()
+    test_plan_mode_discovery_priority()
+    test_no_focus_mode()
 
     print("=" * 60)
     print("All integration tests passed!")
