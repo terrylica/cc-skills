@@ -32,6 +32,7 @@ from pathlib import Path
 
 # Import from modular components
 from completion import check_task_complete_rssi
+from core.config_schema import LoopState, load_state, save_state, transition_state
 from core.path_hash import build_state_file_path, load_session_state
 from core.registry import AdapterRegistry
 from discovery import (
@@ -284,15 +285,35 @@ def main():
 
     # ===== EARLY EXIT CHECKS =====
 
+    # Check state machine first (new v2.0 architecture)
+    if project_dir:
+        current_state = load_state(project_dir)
+        if current_state == LoopState.STOPPED:
+            allow_stop("Loop state is STOPPED")
+            return
+        if current_state == LoopState.DRAINING:
+            # Complete the transition: DRAINING → STOPPED
+            save_state(project_dir, LoopState.STOPPED)
+            # Clean up kill switch if present
+            kill_switch = Path(project_dir) / ".claude/STOP_LOOP"
+            kill_switch.unlink(missing_ok=True)
+            hard_stop("Loop stopped via state transition (DRAINING → STOPPED)")
+            return
+
+    # Legacy check: loop-enabled file (backward compatibility)
     loop_enabled_file = Path(project_dir) / ".claude/loop-enabled" if project_dir else None
     if not loop_enabled_file or not loop_enabled_file.exists():
         allow_stop("Loop not enabled for this repo")
         return
 
+    # Legacy check: kill switch file
     kill_switch = Path(project_dir) / ".claude/STOP_LOOP"
     if kill_switch.exists():
         kill_switch.unlink()
         loop_enabled_file.unlink(missing_ok=True)
+        # Also update state machine
+        if project_dir:
+            save_state(project_dir, LoopState.STOPPED)
         hard_stop("Loop stopped via kill switch (.claude/STOP_LOOP)")
         return
 
