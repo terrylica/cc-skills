@@ -11,6 +11,69 @@ from core.config_schema import CompletionConfig, load_config
 
 logger = logging.getLogger(__name__)
 
+
+def get_corresponding_spec(adr_path: Path) -> Path | None:
+    """Find the design spec corresponding to an ADR.
+
+    ITP workflow convention:
+    - ADR: docs/adr/YYYY-MM-DD-slug.md
+    - Spec: docs/design/YYYY-MM-DD-slug/spec.md
+
+    Args:
+        adr_path: Path to ADR file
+
+    Returns:
+        Path to spec.md if found, None otherwise
+    """
+    # Check if this looks like an ADR path
+    if "/adr/" not in str(adr_path) or not adr_path.name.endswith(".md"):
+        return None
+
+    # Extract the slug (filename without .md)
+    slug = adr_path.stem  # e.g., "2025-12-20-ralph-itp-workflow-test"
+
+    # Look for spec in docs/design/{slug}/spec.md
+    project_root = adr_path.parent.parent.parent  # docs/adr/file.md -> project root
+    spec_path = project_root / "docs" / "design" / slug / "spec.md"
+
+    if spec_path.exists():
+        logger.debug(f"Found corresponding spec: {spec_path}")
+        return spec_path
+
+    return None
+
+
+def check_spec_completion(plan_file: str | None) -> tuple[bool, str]:
+    """Check if the corresponding spec shows completion.
+
+    For ADR files, also checks the design spec's implementation-status.
+
+    Args:
+        plan_file: Path to the plan/ADR file
+
+    Returns:
+        (is_complete, reason)
+    """
+    if not plan_file:
+        return False, "no file"
+
+    plan_path = Path(plan_file)
+    spec_path = get_corresponding_spec(plan_path)
+
+    if not spec_path:
+        return False, "no corresponding spec"
+
+    try:
+        content = spec_path.read_text()
+        if has_frontmatter_value(content, "implementation-status", "completed"):
+            return True, f"spec implementation-status: completed ({spec_path.name})"
+        if has_frontmatter_value(content, "implementation-status", "complete"):
+            return True, f"spec implementation-status: complete ({spec_path.name})"
+    except OSError as e:
+        logger.warning(f"Could not read spec: {e}")
+
+    return False, "spec not complete"
+
 # Legacy constants (deprecated - use config instead)
 COMPLETION_CONFIDENCE_THRESHOLD = 0.7
 COMPLETION_PHRASES = [
@@ -175,6 +238,12 @@ def check_task_complete_rssi(plan_file: str | None) -> tuple[bool, str, float]:
         signals.append(("frontmatter_complete", cfg.frontmatter_status_confidence))
     if has_frontmatter_value(content, "status", "implemented"):
         signals.append(("adr_implemented", cfg.frontmatter_status_confidence))
+
+    # Signal 2b: Corresponding spec completion (for ADR files)
+    # If focus file is an ADR, check the design spec's implementation-status
+    spec_complete, spec_reason = check_spec_completion(plan_file)
+    if spec_complete:
+        signals.append((spec_reason, cfg.frontmatter_status_confidence))
 
     # Signal 3: Checklist analysis - all items checked
     total, checked = count_checkboxes(content)

@@ -62,7 +62,11 @@ class AlphaForgeAdapter(ProjectAdapter):
     def detect(self, project_dir: Path) -> bool:
         """Check if this is an Research Repo repository.
 
-        Detection based on pyproject.toml containing 'research-repo' or 'alpha_forge'.
+        Detection strategy (any match returns True):
+        1. Root pyproject.toml contains 'research-repo' or 'alpha_forge'
+        2. Monorepo: packages/*/pyproject.toml contains 'research-repo'
+        3. Characteristic directory: packages/research-repo-core/ exists
+        4. Experiment outputs: outputs/runs/ directory exists
 
         Args:
             project_dir: Path to project root
@@ -70,16 +74,39 @@ class AlphaForgeAdapter(ProjectAdapter):
         Returns:
             True if Research Repo project detected
         """
+        # Strategy 1: Root pyproject.toml
         pyproject = project_dir / "pyproject.toml"
-        if not pyproject.exists():
-            return False
+        if pyproject.exists():
+            try:
+                content = pyproject.read_text()
+                if "research-repo" in content or "alpha_forge" in content:
+                    return True
+            except OSError:
+                pass
 
-        try:
-            content = pyproject.read_text()
-            return "research-repo" in content or "alpha_forge" in content
-        except OSError as e:
-            logger.warning(f"Could not read pyproject.toml: {e}")
-            return False
+        # Strategy 2: Monorepo package detection
+        packages_dir = project_dir / "packages"
+        if packages_dir.is_dir():
+            for pkg_pyproject in packages_dir.glob("*/pyproject.toml"):
+                try:
+                    content = pkg_pyproject.read_text()
+                    if "research-repo" in content or "alpha_forge" in content:
+                        logger.debug(f"Detected research-repo via {pkg_pyproject}")
+                        return True
+                except OSError:
+                    continue
+
+        # Strategy 3: Characteristic directory marker
+        if (project_dir / "packages" / "research-repo-core").is_dir():
+            logger.debug("Detected research-repo via packages/research-repo-core/")
+            return True
+
+        # Strategy 4: Experiment outputs directory (unique to research-repo)
+        if (project_dir / "outputs" / "runs").is_dir():
+            logger.debug("Detected research-repo via outputs/runs/")
+            return True
+
+        return False
 
     def get_metrics_history(
         self, project_dir: Path, start_time: str
