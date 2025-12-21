@@ -211,13 +211,19 @@ def build_continuation_prompt(
         parts.append(f"\n**TASK**: {task_prompt}")
 
     # Add discovery method and focus file
-    if plan_file and discovery_method:
+    # Special handling for Alpha Forge research sessions
+    if discovery_method == "alpha_forge_research" and candidate_files:
+        parts.append("\n**RESEARCH SESSIONS** (Read these to understand context):")
+        for i, session_path in enumerate(candidate_files, 1):
+            parts.append(f"  {i}. {session_path}")
+        parts.append("\nUse the Read tool to examine these research logs before continuing.")
+    elif plan_file and discovery_method:
         parts.append(f"\n**Focus file** (via {discovery_method}): {plan_file}")
     elif plan_file:
         parts.append(f"\n**Focus file**: {plan_file}")
 
-    # Add candidate files if multiple were found
-    if candidate_files and len(candidate_files) > 1:
+    # Add candidate files if multiple were found (not for alpha_forge_research)
+    if candidate_files and len(candidate_files) > 1 and discovery_method != "alpha_forge_research":
         parts.append(format_candidate_list(candidate_files, discovery_method.replace("_", " ")))
 
     # Extract context from plan file

@@ -198,6 +198,44 @@ def find_accepted_adr(project_dir: str) -> list[str]:
     return adrs
 
 
+def find_alpha_forge_research_sessions(project_dir: str, max_sessions: int = 3) -> list[str]:
+    """Find Alpha Forge research session logs, sorted by recency.
+
+    Alpha Forge stores research sessions in outputs/research_sessions/*/research_log.md.
+    Returns up to max_sessions most recent sessions for Claude to read.
+
+    Args:
+        project_dir: Path to Alpha Forge project root
+        max_sessions: Maximum number of sessions to return (default 3)
+
+    Returns:
+        List of research_log.md paths, sorted by mtime (newest first)
+    """
+    if not project_dir:
+        return []
+
+    sessions_dir = Path(project_dir) / "outputs" / "research_sessions"
+    if not sessions_dir.exists():
+        return []
+
+    research_logs = []
+    for session_dir in sessions_dir.iterdir():
+        if not session_dir.is_dir():
+            continue
+        research_log = session_dir / "research_log.md"
+        if research_log.exists():
+            research_logs.append(str(research_log))
+
+    if not research_logs:
+        return []
+
+    # Sort by modification time (newest first) and return top N
+    research_logs.sort(key=lambda p: Path(p).stat().st_mtime, reverse=True)
+    result = research_logs[:max_sessions]
+    logger.debug(f"Found {len(result)} Alpha Forge research sessions")
+    return result
+
+
 def find_newest_plan(plans_dir: Path) -> Path | None:
     """Find newest .md file in plans directory by modification time.
 
@@ -279,6 +317,7 @@ def discover_target_file(
     1. Transcript parsing (Write/Edit/Read to .claude/plans/)
     2. ITP design specs with implementation-status: in_progress
     3. ITP ADRs with status: accepted
+    3.5. Alpha Forge research sessions (outputs/research_sessions/*/research_log.md)
     4. Local .claude/plans/ (newest)
     5. Global plans (content match)
     6. Global plans (most recent fallback)
@@ -289,6 +328,7 @@ def discover_target_file(
 
     Returns:
         (path, discovery_method, candidates) - path is None if multiple candidates
+        For Alpha Forge, returns (primary_session, "alpha_forge_research", [all_sessions])
     """
     # Priority 0: Plan mode system-assigned file (takes precedence)
     if transcript_path:
@@ -323,6 +363,15 @@ def discover_target_file(
         elif len(adrs) > 1:
             logger.info(f"Multiple ITP ADRs found: {adrs}")
             return (None, "itp_adr", adrs)
+
+    # Priority 3.5: Alpha Forge research sessions
+    # Returns up to 3 most recent sessions for Claude to read
+    if project_dir and _is_alpha_forge_project(Path(project_dir)):
+        sessions = find_alpha_forge_research_sessions(project_dir, max_sessions=3)
+        if sessions:
+            # Return primary (most recent) as path, all sessions as candidates
+            logger.info(f"Discovered Alpha Forge research sessions: {len(sessions)}")
+            return (sessions[0], "alpha_forge_research", sessions)
 
     # Priority 4: Local .claude/plans/
     if project_dir:
