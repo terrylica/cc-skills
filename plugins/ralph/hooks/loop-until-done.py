@@ -130,13 +130,18 @@ def build_continuation_prompt(
     if not adapter_name and project_dir:
         adapter_name = _detect_alpha_forge_simple(project_dir)
 
-    # ===== NO_FOCUS MODE: Ultra-minimal output =====
+    # ===== NO_FOCUS MODE: Minimal but actionable =====
     if no_focus:
-        # Just iteration count and the core action loop
-        parts = [f"**RSSI** iter {iteration} | {elapsed:.1f}h"]
         if adapter_name == "alpha-forge":
-            parts.append("WebSearch SOTA → implement → /research → validate → repeat")
-        return " | ".join(parts)
+            return f"""**RSSI** iter {iteration} | {elapsed:.1f}h
+
+1. Read `research_log.md` for SOTA Queue
+2. Pick untested technique OR WebSearch if queue empty
+3. Implement in `src/alpha_forge/`
+4. Invoke `/research <strategy.yaml>`
+5. Check Sharpe/WFE → repeat"""
+        else:
+            return f"**RSSI** iter {iteration} | {elapsed:.1f}h | Continue autonomous work"
 
     # ===== FOCUSED MODE: Full context for implementation/validation =====
     parts = []
