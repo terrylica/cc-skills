@@ -40,6 +40,15 @@ def is_port_in_use(port: int) -> bool:
         return s.connect_ex(("localhost", port)) == 0
 
 
+def find_available_port(start_port: int, max_attempts: int = 10) -> int:
+    """Find an available port starting from start_port."""
+    for offset in range(max_attempts):
+        port = start_port + offset
+        if not is_port_in_use(port):
+            return port
+    raise RuntimeError(f"No available port found in range {start_port}-{start_port + max_attempts - 1}")
+
+
 def generate_player_html(
     cast_file: Path,
     output_dir: Path,
@@ -109,14 +118,18 @@ def main() -> int:
     )
     print(f"Created: {player_html}")
 
-    # Check/start server
+    # Always start a new server in the correct directory
+    # (existing servers may be serving different directories)
     if is_port_in_use(args.port):
-        print(f"HTTP server already running on port {args.port}")
+        actual_port = find_available_port(args.port + 1)
+        print(f"Port {args.port} in use, using port {actual_port}")
     else:
-        start_server(output_dir, args.port)
+        actual_port = args.port
+
+    start_server(output_dir, actual_port)
 
     # Output clickable URL
-    url = f"http://localhost:{args.port}/player.html"
+    url = f"http://localhost:{actual_port}/player.html"
     print()
     print("=" * 50)
     print(f"Open in browser: {url}")
