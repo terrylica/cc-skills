@@ -14,6 +14,7 @@ plugins:
         - { type: "test", release: "patch" }
         - { type: "build", release: "patch" }
         - { type: "ci", release: "patch" }
+        - { type: "revert", release: "patch" }
   - "@semantic-release/release-notes-generator"
   # ADR/Design Spec links + version sync via @semantic-release/exec
   # ADR: 2025-12-06-release-notes-adr-linking
