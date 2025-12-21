@@ -1,3 +1,10 @@
+## [6.3.1](https://github.com/terrylica/cc-skills/compare/v6.3.0...v6.3.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **statusline-tools:** correct two-line layout ([2479105](https://github.com/terrylica/cc-skills/commit/2479105f0d4ef2fc6f3f0d64070c1339b87cc59a))
+
 # [6.3.0](https://github.com/terrylica/cc-skills/compare/v6.2.0...v6.3.0) (2025-12-21)
 
 
