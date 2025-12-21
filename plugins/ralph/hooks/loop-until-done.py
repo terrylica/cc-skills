@@ -91,52 +91,6 @@ def _detect_alpha_forge_simple(project_dir: str) -> str:
     return ""
 
 
-def render_slo_experts(
-    adapter,
-    project_dir: str,
-    state: dict,
-    config: dict,
-    iteration: int,
-) -> str:
-    """Render SLO experts template for Alpha Forge projects.
-
-    Uses the adapter's get_slo_context() method to build context
-    for the alpha-forge-slo-experts.md template.
-
-    Args:
-        adapter: The active adapter (must have get_slo_context method)
-        project_dir: Path to project directory
-        state: Current loop state
-        config: Loop configuration
-        iteration: Current RSSI iteration
-
-    Returns:
-        Rendered SLO experts prompt, or empty string if not applicable
-    """
-    if not adapter or adapter.name != "alpha-forge":
-        return ""
-
-    if not hasattr(adapter, "get_slo_context"):
-        return ""
-
-    try:
-        # Get SLO context from adapter
-        slo_context = adapter.get_slo_context(
-            project_dir=Path(project_dir),
-            work_item=None,  # TODO: Pass current work item
-            iteration=iteration,
-        )
-
-        # Render the SLO experts template
-        loader = get_loader()
-        return loader.render(
-            "alpha-forge-slo-experts.md",
-            **slo_context,
-        )
-    except (FileNotFoundError, Exception) as e:
-        logger.warning(f"Failed to render SLO experts: {e}")
-        return ""
-
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
@@ -298,38 +252,23 @@ def build_continuation_prompt(
     # In no_focus mode, ALWAYS use exploration (RSSI eternal loop)
 
     if no_focus:
-        # RSSI Eternal Loop: Get full exploration context with all levels
+        # RSSI Eternal Loop: Concise status only (templates are in skills)
         rssi_context = get_rssi_exploration_context(project_dir) if project_dir else {}
         opportunities = rssi_context.get("opportunities", [])
         state["opportunities_discovered"] = opportunities
         state["rssi_iteration"] = rssi_context.get("iteration", 0)
 
-        # Get adapter info for template selection
-        # SIMPLIFIED: Detect alpha-forge directly, bypass adapter system for reliability
+        # Detect adapter for concise status
         adapter_name = state.get("adapter_name", "")
         if not adapter_name and project_dir:
             adapter_name = _detect_alpha_forge_simple(project_dir)
-        adapter_convergence = state.get("adapter_convergence")
-        metrics_history = adapter_convergence.get("metrics_history") if adapter_convergence else None
 
-        # Render exploration template with full RSSI context
-        # Uses adapter-specific template (e.g., alpha-forge-exploration.md) when available
-        parts.append(loader.render_exploration(
-            opportunities=opportunities,
-            rssi_context=rssi_context,
-            adapter_name=adapter_name,
-            metrics_history=metrics_history,
-        ))
-        if adapter_name == "alpha-forge" and project_dir:
-            slo_prompt = render_slo_experts(
-                adapter=AdapterRegistry.get_adapter(Path(project_dir)),
-                project_dir=project_dir,
-                state=state,
-                config=config,
-                iteration=iteration,
-            )
-            if slo_prompt:
-                parts.append(slo_prompt)
+        # Concise action prompt (NOT the full template)
+        if adapter_name == "alpha-forge":
+            parts.append("\n**ACTION**: Read `research_log.md` → pick next technique → invoke `/research`")
+            parts.append("**If stuck**: Run WebSearch for SOTA techniques → implement → test")
+        else:
+            parts.append("\n**ACTION**: Continue autonomous work. Check ROADMAP for priorities.")
 
     elif not task_complete:
         parts.append(loader.render("implementation-mode.md"))
@@ -355,46 +294,20 @@ def build_continuation_prompt(
             )
 
     else:
-        # RSSI Eternal Loop: Get full exploration context with all levels
+        # RSSI Eternal Loop: Concise status only (templates are in skills)
         rssi_context = get_rssi_exploration_context(project_dir) if project_dir else {}
         opportunities = rssi_context.get("opportunities", [])
         state["opportunities_discovered"] = opportunities
         state["rssi_iteration"] = rssi_context.get("iteration", 0)
 
-        # Get metrics history for Alpha Forge learning context
-        metrics_history = adapter_convergence.get("metrics_history") if adapter_convergence else None
-
-        # Render exploration template with full RSSI context
-        # Uses adapter-specific template (e.g., alpha-forge-exploration.md) when available
-        parts.append(loader.render_exploration(
-            opportunities=opportunities,
-            rssi_context=rssi_context,
-            adapter_name=adapter_name,
-            metrics_history=metrics_history,
-        ))
-
-        # SLO experts for Alpha Forge (enhanced version of research experts)
-        # Uses 6 experts with adaptive model selection
+        # Concise action prompt (NOT the full template or expert prompts)
         if adapter_name == "alpha-forge":
-            slo_prompt = render_slo_experts(
-                adapter=AdapterRegistry.get_adapter(Path(project_dir)) if project_dir else None,
-                project_dir=project_dir,
-                state=state,
-                config=config,
-                iteration=iteration,
-            )
-            if slo_prompt:
-                parts.append(slo_prompt)
-        # Research experts for other adapter-specific strategy optimization
-        elif adapter_name and adapter_convergence:
-            expert_prompt = loader.render_research_experts(
-                adapter_name=adapter_name,
-                state=state,
-                config=config,
-                metrics_history=adapter_convergence.get("metrics_history"),
-            )
-            if expert_prompt:
-                parts.append(expert_prompt)
+            parts.append("\n**ACTION**: Read `research_log.md` → pick next technique → invoke `/research`")
+            parts.append("**If stuck**: Run WebSearch for SOTA techniques → implement → test")
+        elif adapter_name:
+            parts.append(f"\n**ACTION**: Continue {adapter_name} optimization. Check metrics and iterate.")
+        else:
+            parts.append("\n**ACTION**: Continue autonomous work. Check ROADMAP for priorities.")
 
     return "\n".join(parts)
 
