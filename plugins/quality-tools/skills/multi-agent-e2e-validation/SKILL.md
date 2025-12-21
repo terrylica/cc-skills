@@ -10,6 +10,7 @@ description: Multi-agent parallel E2E validation workflow for database refactors
 Prescriptive workflow for spawning parallel validation agents to comprehensively test database refactors. Successfully identified 5 critical bugs (100% system failure rate) in QuestDB migration that would have shipped in production.
 
 **When to use this skill:**
+
 - Database refactors (e.g., v3.x file-based → v4.x QuestDB)
 - Schema migrations requiring validation
 - Bulk data ingestion pipeline testing
@@ -17,6 +18,7 @@ Prescriptive workflow for spawning parallel validation agents to comprehensively
 - Pre-release validation for database-centric systems
 
 **Key outcomes:**
+
 - Parallel agent execution for comprehensive coverage
 - Structured validation reporting (VALIDATION_FINDINGS.md)
 - Bug discovery with severity classification (Critical/Medium/Low)
@@ -27,12 +29,14 @@ Prescriptive workflow for spawning parallel validation agents to comprehensively
 ### 1. Validation Architecture (3-Layer Model)
 
 **Layer 1: Environment Setup**
+
 - Container orchestration (Colima/Docker)
 - Database deployment and schema application
 - Connectivity validation (ILP, PostgreSQL, HTTP ports)
 - Configuration file creation and validation
 
 **Layer 2: Data Flow Validation**
+
 - Bulk ingestion testing (CloudFront → QuestDB)
 - Performance benchmarking against SLOs
 - Multi-month data ingestion
@@ -40,6 +44,7 @@ Prescriptive workflow for spawning parallel validation agents to comprehensively
 - Type conversion validation (FLOAT→LONG casts)
 
 **Layer 3: Query Interface Validation**
+
 - High-level query methods (get_latest, get_range, execute_sql)
 - Edge cases (limit=1, cross-month boundaries)
 - Error handling (invalid symbols, dates, parameters)
@@ -48,6 +53,7 @@ Prescriptive workflow for spawning parallel validation agents to comprehensively
 ### 2. Agent Orchestration Pattern
 
 **Sequential vs Parallel Execution:**
+
 ```
 Agent 1 (Environment) → [SEQUENTIAL - prerequisite]
   ↓
@@ -58,6 +64,7 @@ Agent 3 (Query Interface) → [PARALLEL with Agent 2]
 **Dependency Rule**: Environment validation must pass before data flow/query validation
 
 **Dynamic Todo Management:**
+
 - Start with high-level plan (ADR-defined phases)
 - Prune completed agents from todo list
 - Grow todo list when bugs discovered (e.g., Bug #5 found by Agent 3)
@@ -66,6 +73,7 @@ Agent 3 (Query Interface) → [PARALLEL with Agent 2]
 ### 3. Validation Script Structure
 
 Each agent produces:
+
 1. **Test Script** (e.g., `test_bulk_loader.py`)
    - 5+ test functions with clear pass/fail criteria
    - Structured output (test name, result, details)
@@ -74,6 +82,7 @@ Each agent produces:
 3. **Findings Report** (bugs, severity, fix proposals)
 
 **Example Test Structure:**
+
 ```python
 def test_feature(conn):
     """Test 1: Feature description"""
@@ -102,11 +111,13 @@ def test_feature(conn):
 ### 4. Bug Classification and Tracking
 
 **Severity Levels:**
+
 - 🔴 **Critical**: 100% system failure (e.g., API mismatch, timestamp corruption)
 - 🟡 **Medium**: Degraded functionality (e.g., below SLO performance)
 - 🟢 **Low**: Minor issues, edge cases
 
 **Bug Report Format:**
+
 ```markdown
 #### Bug N: Descriptive Name (**SEVERITY** - Status)
 
@@ -128,6 +139,7 @@ def test_feature(conn):
 ### 5. Release Readiness Decision Framework
 
 **Go/No-Go Criteria:**
+
 ```
 BLOCKER = Any Critical bug unfixed
 SHIP = All Critical bugs fixed + (Medium bugs acceptable OR fixed)
@@ -135,6 +147,7 @@ DEFER = >3 Medium bugs unfixed OR any High-severity bug
 ```
 
 **Example Decision:**
+
 - 5 Critical bugs found → all fixed ✅
 - 1 Medium bug (performance 55% below SLO) → acceptable ✅
 - Verdict: **RELEASE READY**
@@ -147,22 +160,26 @@ DEFER = >3 Medium bugs unfixed OR any High-severity bug
 **Output**: Validation plan with 3-7 agents
 
 **Plan Structure:**
+
 ```markdown
 ## Validation Agents
 
 ### Agent 1: Environment Setup
+
 - Deploy QuestDB via Docker
 - Apply schema.sql
 - Validate connectivity (ILP, PG, HTTP)
 - Create .env configuration
 
 ### Agent 2: Bulk Loader Validation
+
 - Test CloudFront → QuestDB ingestion
 - Benchmark performance (target: >100K rows/sec)
 - Validate deduplication (re-ingestion test)
 - Multi-month ingestion test
 
 ### Agent 3: Query Interface Validation
+
 - Test get_latest() with various limits
 - Test get_range() with date boundaries
 - Test execute_sql() with parameterized queries
@@ -173,6 +190,7 @@ DEFER = >3 Medium bugs unfixed OR any High-severity bug
 ### Step 2: Execute Agent 1 (Environment)
 
 **Directory Structure:**
+
 ```
 tmp/e2e-validation/
   agent-1-env/
@@ -183,6 +201,7 @@ tmp/e2e-validation/
 ```
 
 **Validation Checklist:**
+
 - ✅ Container running
 - ✅ Ports accessible (9009 ILP, 8812 PG, 9000 HTTP)
 - ✅ Schema applied without errors
@@ -191,6 +210,7 @@ tmp/e2e-validation/
 ### Step 3: Execute Agents 2-3 in Parallel
 
 **Agent 2: Bulk Loader**
+
 ```
 tmp/e2e-validation/
   agent-2-bulk/
@@ -200,6 +220,7 @@ tmp/e2e-validation/
 ```
 
 **Agent 3: Query Interface**
+
 ```
 tmp/e2e-validation/
   agent-3-query/
@@ -208,6 +229,7 @@ tmp/e2e-validation/
 ```
 
 **Execution:**
+
 ```bash
 # Terminal 1
 cd tmp/e2e-validation/agent-2-bulk
@@ -221,6 +243,7 @@ uv run python test_query_interface.py
 ### Step 4: Document Findings in VALIDATION_FINDINGS.md
 
 **Template:**
+
 ```markdown
 # E2E Validation Findings Report
 
@@ -235,21 +258,24 @@ uv run python test_query_interface.py
 E2E validation discovered **N critical bugs** that would have caused [impact]:
 
 | Finding | Severity | Status | Impact       | Agent   |
-|---------|----------|--------|--------------|---------|
+| ------- | -------- | ------ | ------------ | ------- |
 | Bug 1   | Critical | Fixed  | 100% failure | Agent 2 |
 
 **Recommendation**: [RELEASE READY / BLOCKED / DEFER]
 
 ## Agent 1: Environment Setup - [STATUS]
+
 ...
 
 ## Agent 2: [Name] - [STATUS]
+
 ...
 ```
 
 ### Step 5: Iterate on Fixes
 
 **For each bug:**
+
 1. Document in VALIDATION_FINDINGS.md with 🔴/🟡/🟢 severity
 2. Apply fix to source code
 3. Re-run failing test
@@ -257,8 +283,9 @@ E2E validation discovered **N critical bugs** that would have caused [impact]:
 5. Commit with semantic message (e.g., `fix: correct timestamp parsing in CSV ingestion`)
 
 **Example Fix Commit:**
+
 ```bash
-git add src/gapless_crypto_data/collectors/questdb_bulk_loader.py
+git add src/gapless_crypto_clickhouse/collectors/questdb_bulk_loader.py
 git commit -m "fix: prevent pandas from treating first CSV column as index
 
 BREAKING CHANGE: All timestamps were defaulting to epoch 0 (1970-01)
@@ -271,6 +298,7 @@ Fixes #ABC-123"
 ### Step 6: Final Validation and Release Decision
 
 **Run all tests:**
+
 ```bash
 cd tmp/e2e-validation
 for agent in agent-*; do
@@ -282,6 +310,7 @@ done
 ```
 
 **Update VALIDATION_FINDINGS.md status:**
+
 - Count Critical bugs: X fixed, Y open
 - Count Medium bugs: X fixed, Y open
 - Apply decision framework
@@ -292,6 +321,7 @@ done
 **Context**: Migrating from file-based storage (v3.x) to QuestDB (v4.0.0)
 
 **Bugs Found:**
+
 1. 🔴 **Sender API mismatch** - Used non-existent `Sender.from_uri()` instead of `Sender.from_conf()`
 2. 🔴 **Type conversion** - `number_of_trades` sent as FLOAT, schema expects LONG
 3. 🔴 **Timestamp parsing** - pandas treating first column as index → epoch 0 timestamps
@@ -305,34 +335,42 @@ done
 ## Common Pitfalls
 
 ### 1. Skipping Environment Validation
+
 ❌ **Bad**: Assume Docker/database is working, jump to data ingestion tests
 ✅ **Good**: Agent 1 validates environment first, catches port conflicts, schema errors early
 
 ### 2. Serial Agent Execution
+
 ❌ **Bad**: Run Agent 2, wait for completion, then run Agent 3
 ✅ **Good**: Run Agent 2 & 3 in parallel (no dependency between them)
 
 ### 3. Manual Test Reporting
+
 ❌ **Bad**: Copy/paste test output into Slack/email
 ✅ **Good**: Structured VALIDATION_FINDINGS.md with severity, status, fix tracking
 
 ### 4. Ignoring Medium Bugs
+
 ❌ **Bad**: "Performance is 55% below SLO, but we'll fix it later"
 ✅ **Good**: Document in VALIDATION_FINDINGS.md, make explicit go/no-go decision
 
 ### 5. No Re-validation After Fixes
+
 ❌ **Bad**: Apply fix, assume it works, move on
 ✅ **Good**: Re-run failing test, update status in VALIDATION_FINDINGS.md
 
 ## Resources
 
 ### scripts/
+
 Not applicable - validation scripts are project-specific (stored in `tmp/e2e-validation/`)
 
 ### references/
+
 - `example_validation_findings.md` - Complete VALIDATION_FINDINGS.md template
 - `agent_test_template.py` - Template for creating validation test scripts
 - `bug_severity_classification.md` - Detailed severity criteria and examples
 
 ### assets/
+
 Not applicable - validation artifacts are project-specific

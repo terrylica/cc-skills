@@ -15,7 +15,7 @@ info:
     - version: 2.3.0
       date: 2025-10-07
       changes:
-        - Added second project-scoped token for gapless-crypto-data (gcd token)
+        - Added second project-scoped token for gapless-crypto-clickhouse (gcd token)
         - Documented multi-package token management strategy
         - Confirmed Doppler + bash -c pattern works for all project-scoped tokens
         - Updated examples to show per-package token variable naming
@@ -92,7 +92,7 @@ components:
                   type: string
                   example: "✅ WORKING"
 
-            gapless_crypto_data:
+            gapless_crypto_clickhouse:
               type: object
               properties:
                 doppler_secret_name:
@@ -106,7 +106,7 @@ components:
                   example: "gcd"
                 scope:
                   type: string
-                  example: "Project 'gapless-crypto-data'"
+                  example: "Project 'gapless-crypto-clickhouse'"
                 permissions:
                   type: string
                   example: "Upload packages"
@@ -134,10 +134,10 @@ components:
                   type: string
                   example: "doppler run --project claude-config --config dev --command='uv publish --token \"$PYPI_TOKEN\"'"
                   description: "Publish atr-adaptive-laguerre using PYPI_TOKEN (--command is idiomatic)"
-                gapless_crypto_data:
+                gapless_crypto_clickhouse:
                   type: string
                   example: "doppler run --project claude-config --config dev --command='uv publish --token \"$PYPI_TOKEN_GCD\"'"
-                  description: "Publish gapless-crypto-data using PYPI_TOKEN_GCD (--command is idiomatic)"
+                  description: "Publish gapless-crypto-clickhouse using PYPI_TOKEN_GCD (--command is idiomatic)"
 
             method_comparison:
               type: object
@@ -274,7 +274,7 @@ components:
 
             token_scope:
               type: string
-              example: "Use project-scoped tokens (e.g., 'aal' for atr-adaptive-laguerre, 'gcd' for gapless-crypto-data) instead of account-wide tokens"
+              example: "Use project-scoped tokens (e.g., 'aal' for atr-adaptive-laguerre, 'gcd' for gapless-crypto-clickhouse) instead of account-wide tokens"
               reason: "Limits blast radius if token is compromised, easier to audit per-package access"
 
             multi_package_strategy:
@@ -287,7 +287,7 @@ components:
                   description: "Use package abbreviation suffix for clarity"
                 pypi_token_naming:
                   type: string
-                  example: "aal (atr-adaptive-laguerre), gcd (gapless-crypto-data)"
+                  example: "aal (atr-adaptive-laguerre), gcd (gapless-crypto-clickhouse)"
                   description: "Create memorable abbreviations on PyPI side"
                 usage_pattern:
                   type: string
