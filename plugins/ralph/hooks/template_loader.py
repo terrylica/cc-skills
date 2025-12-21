@@ -207,17 +207,15 @@ class TemplateLoader:
             "overall_effectiveness": ctx.get("overall_effectiveness", 0.0),
         }
 
-        # Use Research Repo-specific template with metrics history
+        # Research Repo: ONLY use research-repo-exploration.md (no fallback)
         if adapter_name == "research-repo":
-            try:
-                return self.render(
-                    "research-repo-exploration.md",
-                    **common_ctx,
-                    metrics_history=metrics_history or [],
-                )
-            except FileNotFoundError:
-                pass  # Fall through to generic template
+            return self.render(
+                "research-repo-exploration.md",
+                **common_ctx,
+                metrics_history=metrics_history or [],
+            )
 
+        # All other projects: use generic template
         return self.render("exploration-mode.md", **common_ctx)
 
     def render_adapter_status(
