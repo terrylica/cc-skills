@@ -281,26 +281,21 @@ else
 fi
 
 # Two-line status:
-#   Line 1: branch (no trailing separator)
-#   Line 2: repo-path | git stats | github-url
-line1="${branch_color}↯ ${git_branch}${RESET}"
-line2="${GREEN}${repo_path}${RESET} | ${git_changes}"
+#   Line 1: repo-path | branch | git stats
+#   Line 2: github-url (or warning)
+line1="${GREEN}${repo_path}${RESET} | ${branch_color}↯ ${git_branch}${RESET} | ${git_changes}"
 
-# Append GitHub URL or warning to line 2 (color matches branch state)
+# Line 2: GitHub URL or warning (color matches branch state)
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
-        # Main/master: whitish gray
-        line2="${line2} | ${BRIGHT_BLACK}${github_url}${RESET}"
+        line2="${BRIGHT_BLACK}${github_url}${RESET}"
     else
-        # Feature branch: magenta (matches branch indicator)
-        line2="${line2} | ${MAGENTA}${github_url}${RESET}"
+        line2="${MAGENTA}${github_url}${RESET}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    # In a git repo but no remote configured
-    line2="${line2} | ${RED}⚠ no remote${RESET}"
+    line2="${RED}⚠ no remote${RESET}"
 else
-    # Not in a git repo at all
-    line2="${line2} | ${RED}⚠ no git${RESET}"
+    line2="${RED}⚠ no git${RESET}"
 fi
 
 echo -e "$line1"
