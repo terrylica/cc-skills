@@ -154,9 +154,9 @@ Before committing to an action, answer honestly:
 **SEARCH GOAL**: Find best practices to integrate into alpha-forge for:
 
 1. **Implementation** - Model architectures, feature engineering
-2. **Testing** - Unit tests, integration tests for ML pipelines
-3. **Backtesting** - Walk-forward, out-of-sample validation methods
-4. **Validation** - Overfitting prevention, cross-validation for time series
+2. **Backtesting** - Walk-forward, out-of-sample validation methods
+3. **Validation** - Overfitting prevention, cross-validation for time series
+4. **OOD Robustness** - Distribution shift detection, domain generalization
 
 **Search depth is DYNAMIC** - continue until you find actionable implementation details:
 
@@ -186,7 +186,7 @@ ROUND N (start N=1, increment until success):
 | Sharpe plateau          | Model improvements  | `"{model} attention mechanism improvement 2024"`           |
 | Poor features           | Feature engineering | `"crypto {asset} feature engineering best practices ML"`   |
 | Slow training           | Optimization        | `"{model} training optimization GPU batch size"`           |
-| No test coverage        | Testing practices   | `"ML pipeline unit testing pytest best practices"`         |
+| Distribution shift      | OOD robustness      | `"domain generalization distribution shift ML 2024"`       |
 
 **KEY: Search until you find HOW TO IMPLEMENT, not just WHAT exists.**
 

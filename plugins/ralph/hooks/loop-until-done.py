@@ -46,11 +46,6 @@ from utils import (
     get_elapsed_hours,
     hard_stop,
 )
-from validation import (
-    VALIDATION_SCORE_THRESHOLD,
-    check_validation_exhausted,
-    compute_validation_score,
-)
 
 
 def _detect_alpha_forge_simple(project_dir: str) -> str:
@@ -99,15 +94,6 @@ STATE_DIR = Path.home() / ".claude/automation/loop-orchestrator/state"
 CONFIG_FILE = STATE_DIR.parent / "config/loop_config.json"
 
 
-def build_validation_round_prompt(round_num: int, state: dict, config: dict) -> str:
-    """Generate validation round instructions for Claude.
-
-    Uses external markdown templates from templates/ directory.
-    """
-    loader = get_loader()
-    return loader.render_validation_round(round_num, state, config)
-
-
 def build_continuation_prompt(
     session_id: str,
     plan_file: str | None,
@@ -145,21 +131,12 @@ def build_continuation_prompt(
         else:
             return f"**RSSI** iter {iteration} | {elapsed:.1f}h | Continue autonomous work"
 
-    # ===== FOCUSED MODE: Full context for implementation/validation =====
+    # ===== FOCUSED MODE: Full context for implementation/exploration =====
     parts = []
     remaining_hours = max(0, config["min_hours"] - elapsed)
     remaining_iters = max(0, config.get("min_iterations", 50) - iteration)
 
-    validation_exhausted = state.get("validation_exhausted", False)
-    validation_round = state.get("validation_round", 0)
-    enable_validation = config.get("enable_validation_phase", True)
-
-    if not task_complete:
-        mode = "IMPLEMENTATION"
-    elif enable_validation and not validation_exhausted:
-        mode = f"VALIDATION (Round {validation_round}/3)"
-    else:
-        mode = "EXPLORATION"
+    mode = "IMPLEMENTATION" if not task_complete else "EXPLORATION"
 
     parts.append(
         f"**{mode}** | Iteration {iteration}/{config['max_iterations']} | "
@@ -177,28 +154,9 @@ def build_continuation_prompt(
 
     if not task_complete:
         parts.append(loader.render("implementation-mode.md"))
-
-    elif enable_validation and not validation_exhausted:
-        validation_round = state.get("validation_round", 0)
-        validation_round += 1
-        state["validation_round"] = validation_round
-        render_round = min(validation_round, 3)
-        logger.info(f"Validation round: {validation_round} (rendering round {render_round})")
-        parts.append(build_validation_round_prompt(render_round, state, config))
-
-        validation_score = state.get("validation_score", 0.0)
-        if validation_score > 0:
-            parts.append(
-                f"\n**Current validation score**: {validation_score:.2f} "
-                f"(need >= {VALIDATION_SCORE_THRESHOLD})"
-            )
-
     else:
-        # Exploration mode in focused context
-        if adapter_name == "alpha-forge":
-            parts.append("\n**ACTION**: WebSearch SOTA → implement → /research → validate → repeat")
-        else:
-            parts.append("\n**ACTION**: Continue autonomous work. Check ROADMAP for priorities.")
+        # Exploration mode - Alpha Forge exclusive
+        parts.append("\n**ACTION**: WebSearch SOTA → implement → /research → validate → repeat")
 
     return "\n".join(parts)
 
@@ -413,7 +371,7 @@ def main():
     BACKOFF_MULTIPLIER = 2  # Double the required interval each idle iteration
     MAX_INTERVAL = 300  # Cap at 5 minutes
     JITTER = 5  # Random jitter to prevent thundering herd
-    MAX_IDLE_BEFORE_EXPLORE = 3  # Force exploration after this many idle iterations
+    MAX_IDLE_BEFORE_EXPLORE = 1  # Zero tolerance: force exploration immediately on first idle
 
     # Calculate required interval with exponential backoff + jitter
     # Formula: min(base * 2^idle_count + jitter, max_interval)
@@ -529,14 +487,6 @@ def main():
     min_hours_met = elapsed >= config["min_hours"]
     min_iterations_met = iteration >= config.get("min_iterations", 50)
 
-    enable_validation = config.get("enable_validation_phase", True)
-    if task_complete and enable_validation:
-        state["validation_score"] = compute_validation_score(state)
-        if check_validation_exhausted(state):
-            state["validation_exhausted"] = True
-
-    validation_exhausted = state.get("validation_exhausted", False)
-
     # ===== NO-FOCUS MODE CONVERGENCE =====
     # In no_focus mode, there's no plan file so task_complete is always False.
     # Instead, rely on adapter convergence to decide when to stop.
@@ -555,33 +505,32 @@ def main():
             if "Work Item: None" in current_output or "no SLO-aligned work" in current_output.lower():
                 idle_iterations += 1
                 state["idle_iterations"] = idle_iterations
-                logger.info(f"Idle iteration detected: {idle_iterations}/5")
-                if idle_iterations >= 5:
-                    allow_stop(
-                        "No-focus mode: 5 consecutive idle iterations with no work items"
-                    )
-                    return
+                logger.info(f"Idle iteration detected: {idle_iterations}/1 - zero tolerance")
+                if idle_iterations >= 1:
+                    # Zero tolerance: force exploration immediately instead of allowing idle
+                    state["force_exploration"] = True
+                    state["idle_iterations"] = 0
+                    logger.info("Zero idle tolerance - forcing exploration mode")
             else:
                 state["idle_iterations"] = 0  # Reset if work is found
 
     # Combined decision: RSSI + Adapter must agree at confidence=0.5
     if task_complete and min_hours_met and min_iterations_met:
-        if not enable_validation or validation_exhausted:
-            # Check if adapter also suggests stopping
-            if adapter_should_stop and adapter_confidence >= 0.5:
-                allow_stop(
-                    f"Converged: RSSI ({completion_reason}) + Adapter ({adapter_reason})"
-                )
-                return
-            # RSSI says complete but adapter doesn't agree - continue
-            if adapter and adapter_confidence >= 0.5 and not adapter_should_stop:
-                logger.info("RSSI complete but adapter wants to continue - continuing")
-            else:
-                allow_stop(
-                    f"Task complete ({completion_reason}, confidence={completion_confidence:.2f}) "
-                    "and all requirements met"
-                )
-                return
+        # Check if adapter also suggests stopping
+        if adapter_should_stop and adapter_confidence >= 0.5:
+            allow_stop(
+                f"Converged: RSSI ({completion_reason}) + Adapter ({adapter_reason})"
+            )
+            return
+        # RSSI says complete but adapter doesn't agree - continue
+        if adapter and adapter_confidence >= 0.5 and not adapter_should_stop:
+            logger.info("RSSI complete but adapter wants to continue - continuing")
+        else:
+            allow_stop(
+                f"Task complete ({completion_reason}, confidence={completion_confidence:.2f}) "
+                "and all requirements met"
+            )
+            return
 
     # ===== CONTINUE SESSION =====
     reason = build_continuation_prompt(

@@ -16,7 +16,7 @@ This plugin adds autonomous loop mode to Claude Code through 5 commands and 2 ho
 
 **Hooks:**
 
-- **Stop hook** (`loop-until-done.py`) - RSSI-enhanced autonomous operation with stamina exponential backoff
+- **Stop hook** (`loop-until-done.py`) - RSSI-enhanced autonomous operation with zero idle tolerance
 - **PreToolUse hook** (`archive-plan.sh`) - Archives `.claude/plans/*.md` files before overwrite
 - **PreToolUse hook** (`pretooluse-loop-guard.py`) - Guards loop control files from deletion
 
@@ -34,15 +34,15 @@ Core principles guiding Ralph Wiggum's development:
 
 ### Autonomous Operation
 
-1. **Never Idle** — Ralph always finds or creates improvement opportunities. Saying "monitoring", "waiting", or "no work available" is forbidden. When stuck, WebSearch for SOTA techniques.
+1. **Never Idle** — Ralph always finds or creates improvement opportunities. Saying "monitoring", "waiting", or "no work available" is forbidden. Immediate forced exploration on first idle signal.
 
 2. **Knowledge Accumulates** — Each iteration builds on previous discoveries. Patterns, effective checks, and feature ideas persist across sessions.
 
 3. **Multi-Signal Decisions** — Completion requires multiple confidence signals (explicit markers, checkboxes, semantic phrases), not single indicators.
 
-### Architecture
+### Alpha Forge Exclusive
 
-1. **Adapter Extensibility** — Project-specific behavior via adapters (Alpha Forge, universal). Core loop remains generic; adapters provide convergence logic.
+1. **Single Project Focus** — Ralph Wiggum is dedicated exclusively to `~/eon/alpha-forge` ([EonLabs-Spartan/alpha-forge](https://github.com/EonLabs-Spartan/alpha-forge)). No generic adapter system.
 
 2. **User Override Always Wins** — Kill switch (`.claude/STOP_LOOP`), `/ralph:stop`, and manual intervention always work. The loop is eternal but never inescapable.
 
@@ -90,11 +90,10 @@ Ralph uses 3 Claude Code hooks working together:
 │  │                                                          │   │
 │  │  1. Check kill switch (.claude/STOP_LOOP)               │   │
 │  │  2. Check max time/iterations                           │   │
-│  │  3. Stamina exponential backoff (idle detection)        │   │
+│  │  3. Zero idle tolerance (force exploration)             │   │
 │  │  4. Task completion detection (multi-signal)            │   │
-│  │  5. Adapter convergence (project-specific)              │   │
-│  │  6. Validation phase (3 rounds)                         │   │
-│  │  7. Return prompt for next action OR allow stop         │   │
+│  │  5. Adapter convergence (Alpha Forge)                   │   │
+│  │  6. Return prompt for next action OR allow stop         │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -115,13 +114,6 @@ IMPLEMENTATION (working on checklist)
        ↓
    [task_complete = True]
        ↓
-VALIDATION (3 rounds, multi-perspective)
-   Round 1: Static analysis (parallel sub-agents)
-   Round 2: Semantic verification (sequential)
-   Round 3: Consistency audit (parallel)
-       ↓
-   [validation_exhausted = True]
-       ↓
 EXPLORATION (discovery + self-improvement)
        ↓
 ALLOW STOP (all conditions met)
@@ -141,32 +133,9 @@ Ralph detects task completion through multiple signals (not just explicit marker
 
 Completion triggers when confidence >= 0.7 (configurable).
 
-### Validation Phase (3 Rounds)
-
-After task completion, Ralph runs multi-perspective validation before exploration:
-
-**Round 1 - Static Analysis (Parallel)**
-
-- Linter agent (Ruff: BLE, S110, E722 violations)
-- Link validator (lychee: broken markdown links)
-- Secret scanner (hardcoded credentials)
-
-**Round 2 - Semantic Verification (Sequential)**
-
-- Reviews Round 1 findings
-- Verifies fixes were applied
-- Checks for regressions
-
-**Round 3 - Consistency Audit (Parallel)**
-
-- Doc-code alignment check
-- Test coverage gap analysis
-
-Validation exhausts when score >= 0.8 or max 3 iterations.
-
 ### Exploration/Discovery Mode
 
-After validation, if minimum time/iterations not met:
+After task completion, if minimum time/iterations not met:
 
 - Scans for work opportunities (broken links, missing READMEs)
 - Provides sub-agent spawning instructions
@@ -209,12 +178,11 @@ The `--no-focus` option is useful for:
 
 **Loop Detection**: Stops if outputs are >90% similar across 5 iterations (avoids infinite loops).
 
-**Idle Detection (Stamina Exponential Backoff)**: Prevents token-wasting "monitoring" loops:
+**Zero Idle Tolerance**: Prevents "monitoring" loops with immediate action:
 
-- Tracks time between iterations and real work done
-- Applies exponential backoff: 30s → 60s → 120s → 240s (capped at 5 min)
-- After 3 idle iterations, forces transition to exploration mode
-- Uses [stamina](https://stamina.hynek.me/)-style defaults for production reliability
+- Detects idle outputs ("Work Item: None", "no SLO-aligned work")
+- Immediately forces exploration mode on first idle signal
+- No waiting, no backoff — always take action
 
 **Loop Guard**: PreToolUse hook prevents Claude from deleting loop control files (`.claude/loop-enabled`, etc.)
 
@@ -329,11 +297,10 @@ ralph/
 │   └── hooks.md                # Install/uninstall hooks
 ├── hooks/                      # Hook implementations (modular)
 │   ├── hooks.json              # Hook registration (3 hooks)
-│   ├── loop-until-done.py      # Stop hook (main orchestrator + stamina backoff)
+│   ├── loop-until-done.py      # Stop hook (main orchestrator, zero idle tolerance)
 │   ├── archive-plan.sh         # PreToolUse hook (Write|Edit) - plan archival
 │   ├── pretooluse-loop-guard.py # PreToolUse hook (Bash) - file protection
 │   ├── completion.py           # Multi-signal completion detection
-│   ├── validation.py           # 3-round validation phase
 │   ├── discovery.py            # File discovery & work scanning
 │   ├── utils.py                # Time tracking, loop detection
 │   ├── template_loader.py      # Jinja2 template rendering
@@ -342,21 +309,16 @@ ralph/
 │   │   ├── registry.py         # Auto-discovery registry
 │   │   ├── config_schema.py    # Pydantic config models
 │   │   └── path_hash.py        # Session state isolation
-│   ├── adapters/               # Project-type adapters
-│   │   ├── universal.py        # Fallback (RSSI behavior)
+│   ├── adapters/               # Alpha Forge adapter (exclusive)
 │   │   └── alpha_forge.py      # Alpha Forge adapter
 │   ├── templates/              # Prompt templates (Jinja2 markdown)
 │   │   ├── implementation-mode.md   # Basic task continuation
-│   │   ├── validation-round-1.md    # Static analysis phase
-│   │   ├── validation-round-2.md    # Semantic verification
-│   │   ├── validation-round-3.md    # Consistency audit
 │   │   ├── exploration-mode.md      # RSSI eternal loop
 │   │   ├── alpha-forge-exploration.md # Alpha Forge OODA loop
 │   │   └── alpha-forge-convergence.md # Convergence prompts
 │   └── tests/                  # Test suite
 │       ├── test_adapters.py    # Adapter system tests
 │       ├── test_completion.py
-│       ├── test_validation.py
 │       └── test_utils.py
 └── scripts/
     └── manage-hooks.sh         # Hook installation script
@@ -384,12 +346,11 @@ uv run tests/run_all_tests.py
 
 # Run individual test files
 uv run tests/test_completion.py    # Multi-signal completion detection
-uv run tests/test_validation.py    # 3-round validation phase
 uv run tests/test_utils.py         # Loop detection, time tracking
 uv run tests/test_integration.py   # Full workflow simulation
 uv run tests/test_adapters.py      # Adapter system (20 tests)
 
-# Run POC validation task
+# Run POC task
 /ralph:start -f plugins/ralph/hooks/tests/poc-task.md --poc
 ```
 
@@ -398,7 +359,6 @@ uv run tests/test_adapters.py      # Adapter system (20 tests)
 | Module        | Tests                                                   |
 | ------------- | ------------------------------------------------------- |
 | completion.py | Explicit markers, checkboxes, frontmatter, RSSI signals |
-| validation.py | Score computation, exhaustion detection, aggregation    |
 | utils.py      | Elapsed hours, loop detection, section extraction       |
 | integration   | Mode transitions, file discovery, workflow simulation   |
 | adapters      | Registry discovery, path hash, Alpha Forge convergence  |

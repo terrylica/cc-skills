@@ -5,7 +5,7 @@
 """Adapter registry with auto-discovery.
 
 Scans the adapters/ directory and loads all ProjectAdapter implementations.
-Falls back to UniversalAdapter if no specific adapter matches.
+Alpha Forge exclusive: No universal fallback - Ralph only works with Alpha Forge.
 """
 
 import importlib.util
@@ -118,17 +118,14 @@ class AdapterRegistry:
                 logger.warning(f"Could not instantiate {attr_name}: {e}")
 
     @classmethod
-    def get_adapter(cls, project_dir: Path) -> ProjectAdapter:
-        """Return matching adapter or universal fallback.
+    def get_adapter(cls, project_dir: Path) -> ProjectAdapter | None:
+        """Return matching adapter (Alpha Forge exclusive, no universal fallback).
 
         Args:
             project_dir: Path to project root directory
 
         Returns:
-            The first adapter whose detect() returns True, or universal fallback
-
-        Raises:
-            RuntimeError: If no adapters discovered and no fallback available
+            The first adapter whose detect() returns True, or None if not Alpha Forge
         """
         if not cls._discovered:
             # Auto-discover if not already done
@@ -143,14 +140,9 @@ class AdapterRegistry:
             except Exception as e:
                 logger.warning(f"Adapter {adapter.name} detect() failed: {e}")
 
-        if cls._universal is not None:
-            logger.info("Using universal adapter (fallback)")
-            return cls._universal
-
-        raise RuntimeError(
-            "No adapters available and no universal fallback. "
-            "Ensure adapters/ directory contains at least universal.py"
-        )
+        # Alpha Forge exclusive: no fallback, return None for non-Alpha Forge projects
+        logger.info("No matching adapter found (Ralph is Alpha Forge exclusive)")
+        return None
 
     @classmethod
     def list_adapters(cls) -> list[str]:

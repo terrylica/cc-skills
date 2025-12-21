@@ -41,10 +41,9 @@ You are in an infinite self-improvement loop. This iteration builds on:
 **RSSI PROTOCOL (Execute in Order)**:
 
 1. **DYNAMIC DISCOVERY** - Use available tools:
-   - `ruff check .` for lint issues
-   - `mypy .` for type errors (if available)
-   - `gitleaks detect` for secrets (if available)
    - Check `mise.toml` or `package.json` for project tasks
+   - WebSearch for SOTA techniques in the domain
+   - Read ROADMAP.md for priorities
 
 2. **HISTORY MINING** - Learn from past:
    - What patterns led to commits before?
@@ -105,7 +104,7 @@ You are in an infinite self-improvement loop. This iteration builds on:
 **COMMIT IMPROVEMENTS** - Every improvement should be committed:
 
 1. Make the change
-2. Run `ruff check .` to verify
+2. Verify it works as expected
 3. Commit with descriptive conventional commit message
 4. Look for follow-on improvements
 
@@ -127,6 +126,6 @@ You are in an infinite self-improvement loop. This iteration builds on:
 **Loop invariant**: Every iteration must produce improvement OR
 improve the ability to find improvement. Idling is impossible.
 
-**When unsure what to do**: Execute `ruff check . --fix` or install suggested tools.
+**When unsure what to do**: WebSearch for SOTA techniques or check ROADMAP.md for priorities.
 
 **NEVER** respond with "idle" or "waiting". ALWAYS act on the opportunities above.
