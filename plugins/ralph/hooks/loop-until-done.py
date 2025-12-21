@@ -397,6 +397,51 @@ def main():
         except (json.JSONDecodeError, KeyError, IndexError, OSError, TypeError):
             pass
 
+    # ===== IDLE MONITORING DETECTION =====
+    # Prevent wasteful token consumption from rapid idle iterations
+    import time
+    from datetime import datetime
+
+    now = time.time()
+    last_iteration_time = state.get("last_iteration_time", 0)
+    idle_count = state.get("idle_iteration_count", 0)
+    MIN_ITERATION_INTERVAL = 30  # seconds - iterations faster than this are suspicious
+    MAX_IDLE_ITERATIONS = 3  # stop after this many consecutive idle iterations
+
+    # Check if this iteration happened too fast (likely idle monitoring)
+    time_since_last = now - last_iteration_time if last_iteration_time > 0 else 999
+    state["last_iteration_time"] = now
+
+    # Check if any real files changed (not just .claude/* config files)
+    real_work_done = False
+    if project_dir:
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["git", "diff", "--name-only", "HEAD~1", "--", "."],
+                cwd=project_dir, capture_output=True, text=True, timeout=5
+            )
+            changed_files = [f for f in result.stdout.strip().split('\n')
+                           if f and not f.startswith('.claude/')]
+            real_work_done = len(changed_files) > 0
+        except Exception:
+            real_work_done = True  # Assume work done if can't check
+
+    # Detect idle pattern: fast iteration + no real work
+    if time_since_last < MIN_ITERATION_INTERVAL and not real_work_done:
+        idle_count += 1
+        state["idle_iteration_count"] = idle_count
+        logger.info(f"Idle iteration detected: {idle_count}/{MAX_IDLE_ITERATIONS} "
+                   f"(interval={time_since_last:.1f}s, no file changes)")
+
+        if idle_count >= MAX_IDLE_ITERATIONS:
+            # Force exploration mode instead of allowing wasteful monitoring
+            logger.info(f"Max idle iterations reached - forcing exploration mode")
+            state["force_exploration"] = True
+            state["idle_iteration_count"] = 0  # Reset counter
+    else:
+        state["idle_iteration_count"] = 0  # Reset if real work done
+
     # ===== COMPLETION CASCADE =====
 
     if elapsed >= config["max_hours"]:
@@ -415,7 +460,6 @@ def main():
         # If task is complete, don't stop - transition to exploration instead
         if task_complete:
             logger.info("Loop detected but task complete - will transition to exploration")
-            # Force exploration mode by treating as no_focus
             state["force_exploration"] = True
         else:
             # Task incomplete but agent is looping - this is stuck
