@@ -1,3 +1,29 @@
+# [6.2.0](https://github.com/terrylica/cc-skills/compare/v6.1.0...v6.2.0) (2025-12-21)
+
+
+### Features
+
+* **devops-tools:** add AskUserQuestion-driven workflow to asciinema-player ([316b829](https://github.com/terrylica/cc-skills/commit/316b82909fe82b43383d316b9f9b9b50e80170c6))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-player/SKILL.md) - updated
+
+</details>
+
 # [6.1.0](https://github.com/terrylica/cc-skills/compare/v6.0.0...v6.1.0) (2025-12-21)
 
 
