@@ -92,17 +92,59 @@ def _discover_npm_scripts(package_json: Path) -> list[str]:
 def _is_alpha_forge_project(project_dir: Path) -> bool:
     """Check if this is an Alpha Forge project.
 
-    Detection based on pyproject.toml containing 'alpha-forge' or 'alpha_forge'.
-    """
-    pyproject = project_dir / "pyproject.toml"
-    if not pyproject.exists():
-        return False
+    Detection strategies (in order):
+    1. Root pyproject.toml contains 'alpha-forge' or 'alpha_forge'
+    2. Monorepo structure: packages/alpha-forge-*/pyproject.toml exists
+    3. Directory contains 'outputs/runs/' (Alpha Forge experiment outputs)
+    4. Parent directories contain alpha-forge markers (for subdirectory detection)
 
-    try:
-        content = pyproject.read_text()
-        return "alpha-forge" in content or "alpha_forge" in content
-    except OSError:
-        return False
+    Returns True if ANY detection strategy matches.
+    """
+    # Strategy 1: Root pyproject.toml
+    pyproject = project_dir / "pyproject.toml"
+    if pyproject.exists():
+        try:
+            content = pyproject.read_text()
+            if "alpha-forge" in content or "alpha_forge" in content:
+                return True
+        except OSError:
+            pass
+
+    # Strategy 2: Monorepo packages/alpha-forge-*/
+    packages_dir = project_dir / "packages"
+    if packages_dir.exists():
+        for pkg in packages_dir.iterdir():
+            if pkg.is_dir() and "alpha-forge" in pkg.name:
+                return True
+
+    # Strategy 3: Alpha Forge experiment outputs directory
+    if (project_dir / "outputs" / "runs").exists():
+        return True
+
+    # Strategy 4: Check parent directories (for when CWD is a subdirectory)
+    current = project_dir
+    for _ in range(5):  # Limit traversal depth
+        parent = current.parent
+        if parent == current:  # Reached root
+            break
+        # Check parent's pyproject.toml
+        parent_pyproject = parent / "pyproject.toml"
+        if parent_pyproject.exists():
+            try:
+                content = parent_pyproject.read_text()
+                if "alpha-forge" in content or "alpha_forge" in content:
+                    return True
+            except OSError:
+                pass
+        # Check for alpha-forge packages in parent
+        parent_packages = parent / "packages"
+        if parent_packages.exists():
+            for pkg in parent_packages.iterdir():
+                if pkg.is_dir() and "alpha-forge" in pkg.name:
+                    return True
+        current = parent
+
+    return False
 
 
 def _get_ruff_ignore_args(project_dir: Path) -> list[str]:

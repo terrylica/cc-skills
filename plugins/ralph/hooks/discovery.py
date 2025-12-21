@@ -424,15 +424,54 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     # Persist accumulated knowledge
     knowledge.persist()
 
+    # SLO FILTER: Apply busywork filter for Alpha Forge projects
+    # This catches opportunities added AFTER rssi_scan_opportunities()
+    # (commit suggestions, meta suggestions, capability expansion, fallback)
+    opportunities = _apply_alpha_forge_filter(opportunities, project_path)
+
     # GUARANTEE: Never return empty (RSSI Tier 7 fallback)
+    # For Alpha Forge: Use value-aligned fallbacks, not busywork
     if not opportunities:
-        opportunities = [
-            "Review recent git commits for documentation gaps",
-            "Analyze test coverage for recently changed files",
-            "Search for SOTA improvements in project domain",
-        ]
+        if _is_alpha_forge_project(project_path):
+            opportunities = [
+                "Check ROADMAP.md for next P0/P1 item",
+                "Search for SOTA approach to current ROADMAP priority",
+                "Review research_log.md for unexplored directions",
+            ]
+        else:
+            opportunities = [
+                "Review recent git commits for documentation gaps",
+                "Analyze test coverage for recently changed files",
+                "Search for SOTA improvements in project domain",
+            ]
 
     return opportunities
+
+
+def _is_alpha_forge_project(project_dir: Path) -> bool:
+    """Check if this is an Alpha Forge project (delegated to rssi_discovery)."""
+    try:
+        from rssi_discovery import _is_alpha_forge_project as check_alpha_forge
+        return check_alpha_forge(project_dir)
+    except ImportError:
+        return False
+
+
+def _apply_alpha_forge_filter(opportunities: list[str], project_dir: Path) -> list[str]:
+    """Apply busywork filter for Alpha Forge projects."""
+    if not _is_alpha_forge_project(project_dir):
+        return opportunities
+
+    try:
+        from alpha_forge_filter import get_allowed_opportunities
+        filtered = get_allowed_opportunities(opportunities)
+        skipped = len(opportunities) - len(filtered)
+        if skipped > 0:
+            logger.debug(f"Alpha Forge SLO filter: removed {skipped} busywork items")
+        return filtered
+    except ImportError:
+        logger.warning("alpha_forge_filter not available")
+        return opportunities
 
 
 def get_rssi_exploration_context(project_dir: str) -> dict:
