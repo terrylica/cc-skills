@@ -1,3 +1,10 @@
+# [5.23.0](https://github.com/terrylica/cc-skills/compare/v5.22.0...v5.23.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** exponential backoff for idle detection (stamina-style) ([b9c5f13](https://github.com/terrylica/cc-skills/commit/b9c5f13819342bcd05610e7a0dde6b54025bfca1))
+
 # [5.22.0](https://github.com/terrylica/cc-skills/compare/v5.21.5...v5.22.0) (2025-12-21)
 
 
