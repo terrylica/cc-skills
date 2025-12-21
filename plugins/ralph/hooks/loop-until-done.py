@@ -335,12 +335,17 @@ def build_continuation_prompt(
         parts.append(loader.render("implementation-mode.md"))
 
     elif enable_validation and not validation_exhausted:
+        # Advance validation round on each stop hook call
+        # Round 0 → 1 (initial), then 1 → 2 → 3 on subsequent calls
         validation_round = state.get("validation_round", 0)
-        if validation_round == 0:
-            state["validation_round"] = 1
-            validation_round = 1
+        validation_round += 1  # Advance to next round
+        state["validation_round"] = validation_round
 
-        parts.append(build_validation_round_prompt(validation_round, state, config))
+        # Cap at round 3 (if still in validation after round 3, repeat round 3)
+        render_round = min(validation_round, 3)
+
+        logger.info(f"Validation round: {validation_round} (rendering round {render_round})")
+        parts.append(build_validation_round_prompt(render_round, state, config))
 
         validation_score = state.get("validation_score", 0.0)
         if validation_score > 0:

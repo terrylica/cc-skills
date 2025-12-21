@@ -5,6 +5,18 @@ phase: validation
 round: 1
 ---
 
+## AUTONOMOUS MODE
+
+**CRITICAL**: You are running in AUTONOMOUS LOOP MODE.
+
+- DO NOT use AskUserQuestion
+- DO NOT ask "what should I work on next?"
+- DO NOT call /ralph:stop
+- DO NOT stop the session on your own
+- Make decisions autonomously and proceed to the next round
+
+---
+
 **VALIDATION ROUND 1** - Static Analysis (Parallel)
 
 Spawn the following sub-agents IN PARALLEL using Task tool:
@@ -25,4 +37,12 @@ Spawn the following sub-agents IN PARALLEL using Task tool:
 ```
 
 Timeout per agent: {{ timeout }}s
-Wait for all 3 to complete before proceeding to Round 2.
+
+---
+
+## AFTER ROUND 1 COMPLETES
+
+1. Wait for all 3 agents to complete
+2. Fix any CRITICAL issues found (do NOT ask user - fix autonomously)
+3. The loop will automatically advance to Round 2
+4. **DO NOT stop** - the validation phase requires completing all 3 rounds
