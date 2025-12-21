@@ -130,10 +130,12 @@ def build_continuation_prompt(
     if not adapter_name and project_dir:
         adapter_name = _detect_alpha_forge_simple(project_dir)
 
-    # ===== NO_FOCUS MODE: Minimal but actionable =====
-    if no_focus:
+    # ===== NO_FOCUS MODE or FORCE_EXPLORATION: Minimal but actionable =====
+    force_exploration = state.get("force_exploration", False)
+    if no_focus or force_exploration:
         if adapter_name == "alpha-forge":
-            return f"""**RSSI** iter {iteration} | {elapsed:.1f}h
+            prefix = "**RSSI→EXPLORE**" if force_exploration else "**RSSI**"
+            return f"""{prefix} iter {iteration} | {elapsed:.1f}h
 
 1. Read `research_log.md` for SOTA Queue
 2. Pick untested technique OR WebSearch if queue empty
@@ -405,11 +407,20 @@ def main():
         allow_stop(f"Maximum iterations ({config['max_iterations']}) reached")
         return
 
-    if detect_loop(current_output, recent_outputs):
-        allow_stop("Loop detected: agent producing repetitive outputs (>90% similar)")
-        return
-
+    # Check task_complete FIRST (before loop detection)
     task_complete, completion_reason, completion_confidence = check_task_complete_rssi(plan_file)
+
+    # Loop detection: only allow stop if we're NOT in a valid waiting state
+    if detect_loop(current_output, recent_outputs):
+        # If task is complete, don't stop - transition to exploration instead
+        if task_complete:
+            logger.info("Loop detected but task complete - will transition to exploration")
+            # Force exploration mode by treating as no_focus
+            state["force_exploration"] = True
+        else:
+            # Task incomplete but agent is looping - this is stuck
+            allow_stop("Loop detected: agent producing repetitive outputs (>90% similar)")
+            return
     state["last_completion_confidence"] = completion_confidence
     if task_complete:
         state["completion_signals"].append(completion_reason)
