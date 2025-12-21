@@ -1,3 +1,10 @@
+## [5.24.3](https://github.com/terrylica/cc-skills/compare/v5.24.2...v5.24.3) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** align dependencies with best practices, add design philosophy ([f00f872](https://github.com/terrylica/cc-skills/commit/f00f872584fd503616db0279391af3296a440744)), closes [Hi#Impact](https://github.com/Hi/issues/Impact)
+
 ## [5.24.2](https://github.com/terrylica/cc-skills/compare/v5.24.1...v5.24.2) (2025-12-21)
 
 ## [5.24.1](https://github.com/terrylica/cc-skills/compare/v5.24.0...v5.24.1) (2025-12-21)
