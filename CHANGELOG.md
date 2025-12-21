@@ -1,3 +1,10 @@
+# [5.13.0](https://github.com/terrylica/cc-skills/compare/v5.12.1...v5.13.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** show local repo version from package.json ([9798c88](https://github.com/terrylica/cc-skills/commit/9798c88a5767145fa1c121a818792c6ed3bffd2a))
+
 ## [5.12.1](https://github.com/terrylica/cc-skills/compare/v5.12.0...v5.12.1) (2025-12-21)
 
 
