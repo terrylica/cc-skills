@@ -1,3 +1,10 @@
+## [5.9.3](https://github.com/terrylica/cc-skills/compare/v5.9.2...v5.9.3) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** strict busywork filter for Alpha Forge eternal loop ([7d69c49](https://github.com/terrylica/cc-skills/commit/7d69c49f375c2ffd92f3d77adf594e26740c3a23))
+
 ## [5.9.2](https://github.com/terrylica/cc-skills/compare/v5.9.1...v5.9.2) (2025-12-21)
 
 
