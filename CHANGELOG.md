@@ -1,3 +1,16 @@
+# [5.16.0](https://github.com/terrylica/cc-skills/compare/v5.15.0...v5.16.0) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** correct adapter detection path in start.md ([80d309c](https://github.com/terrylica/cc-skills/commit/80d309c4497f79b77c4b0d8c05928a323e6ee2ff))
+
+
+### Features
+
+* **ralph:** auto-invoke /research command for Alpha Forge research sessions ([09d7033](https://github.com/terrylica/cc-skills/commit/09d7033caebbc6ccad9ecf16e21e55b3cced0bf6))
+* **ralph:** implement SOTA iterative patterns for Alpha Forge RSSI ([d71f150](https://github.com/terrylica/cc-skills/commit/d71f15049b088fa42a89897e71786211425e42d2))
+
 # [5.15.0](https://github.com/terrylica/cc-skills/compare/v5.14.0...v5.15.0) (2025-12-21)
 
 
