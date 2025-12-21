@@ -14,13 +14,19 @@ Play terminal session recordings (.cast files) in a browser with full playback c
 
 ## Version Requirements
 
-| Component        | Minimum Version | Reason                                     |
-| ---------------- | --------------- | ------------------------------------------ |
-| asciinema-player | **3.10.0**      | Required for asciicast v3 format support   |
-| Python           | 3.8+            | For HTTP server and serve_cast.py script   |
-| asciinema CLI    | 2.4.0+          | For recording (optional for playback only) |
+| Component        | Minimum Version | Strategy                                                     |
+| ---------------- | --------------- | ------------------------------------------------------------ |
+| asciinema-player | **3.10.0**      | Semver range `^3.10.0` auto-upgrades to latest 3.x on invoke |
+| Python           | 3.8+            | For HTTP server and serve_cast.py script                     |
+| asciinema CLI    | 2.4.0+          | For recording (optional for playback only)                   |
 
 > **CRITICAL**: asciinema-player < 3.10.0 does NOT support asciicast v3 format (delta timestamps). Playback will fail silently with a stuck play button.
+
+**Versioning Strategy**: The HTML template uses `@^3.10.0` semver range via jsDelivr CDN. This ensures:
+
+- **Minimum 3.10.0**: Required for asciicast v3 format support
+- **Auto-upgrade**: Each invocation fetches the latest compatible 3.x version
+- **Stability**: Major version locked to prevent breaking changes
 
 ---
 
