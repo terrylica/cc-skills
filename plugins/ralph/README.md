@@ -16,8 +16,9 @@ This plugin adds autonomous loop mode to Claude Code through 5 commands and 2 ho
 
 **Hooks:**
 
-- **Stop hook** (`loop-until-done.py`) - RSSI-enhanced autonomous operation
+- **Stop hook** (`loop-until-done.py`) - RSSI-enhanced autonomous operation with stamina exponential backoff
 - **PreToolUse hook** (`archive-plan.sh`) - Archives `.claude/plans/*.md` files before overwrite
+- **PreToolUse hook** (`pretooluse-loop-guard.py`) - Guards loop control files from deletion
 
 ## Quick Start
 
@@ -38,6 +39,48 @@ This plugin adds autonomous loop mode to Claude Code through 5 commands and 2 ho
 ```
 
 ## How It Works
+
+### Hook Architecture
+
+Ralph uses 3 Claude Code hooks working together:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    RALPH HOOK SYSTEM                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  PreToolUse Hooks (fire BEFORE tool execution)                  │
+│  ┌─────────────────────┐   ┌─────────────────────┐             │
+│  │ archive-plan.sh     │   │ pretooluse-loop-    │             │
+│  │ (Write|Edit)        │   │ guard.py (Bash)     │             │
+│  │                     │   │                     │             │
+│  │ Archives plan files │   │ Blocks deletion of  │             │
+│  │ before overwrite    │   │ loop control files  │             │
+│  └─────────────────────┘   └─────────────────────┘             │
+│                                                                 │
+│  Stop Hook (fires when Claude attempts to stop)                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                    loop-until-done.py                    │   │
+│  │                                                          │   │
+│  │  1. Check kill switch (.claude/STOP_LOOP)               │   │
+│  │  2. Check max time/iterations                           │   │
+│  │  3. Stamina exponential backoff (idle detection)        │   │
+│  │  4. Task completion detection (multi-signal)            │   │
+│  │  5. Adapter convergence (project-specific)              │   │
+│  │  6. Validation phase (3 rounds)                         │   │
+│  │  7. Return prompt for next action OR allow stop         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Hook Flow**:
+
+1. User runs `/ralph:start` → Creates `.claude/loop-enabled` + config
+2. Claude works on tasks, Stop hook fires when Claude finishes
+3. Stop hook returns `{"decision": "block", "reason": "..."}` with next prompt
+4. Claude continues working (loop repeats)
+5. Stop hook returns `{}` (empty) when truly complete → Session ends
 
 ### Mode Progression (RSSI Workflow)
 
@@ -139,6 +182,15 @@ The `--no-focus` option is useful for:
 ### Safety Features
 
 **Loop Detection**: Stops if outputs are >90% similar across 5 iterations (avoids infinite loops).
+
+**Idle Detection (Stamina Exponential Backoff)**: Prevents token-wasting "monitoring" loops:
+
+- Tracks time between iterations and real work done
+- Applies exponential backoff: 30s → 60s → 120s → 240s (capped at 5 min)
+- After 3 idle iterations, forces transition to exploration mode
+- Uses [stamina](https://stamina.hynek.me/)-style defaults for production reliability
+
+**Loop Guard**: PreToolUse hook prevents Claude from deleting loop control files (`.claude/loop-enabled`, etc.)
 
 **Kill Switch**: Create `.claude/STOP_LOOP` in project root for immediate termination:
 
@@ -244,35 +296,37 @@ The registry auto-discovers adapters on `/ralph:start` - no registration needed.
 ralph/
 ├── README.md                   # This file
 ├── commands/                   # Slash commands
-│   ├── start.md
-│   ├── stop.md
-│   ├── status.md
-│   ├── config.md
-│   └── hooks.md
+│   ├── start.md                # Enable loop mode
+│   ├── stop.md                 # Disable loop mode
+│   ├── status.md               # Show loop state
+│   ├── config.md               # View/modify limits
+│   └── hooks.md                # Install/uninstall hooks
 ├── hooks/                      # Hook implementations (modular)
-│   ├── hooks.json              # Hook registration
-│   ├── loop-until-done.py      # Stop hook (main orchestrator)
+│   ├── hooks.json              # Hook registration (3 hooks)
+│   ├── loop-until-done.py      # Stop hook (main orchestrator + stamina backoff)
+│   ├── archive-plan.sh         # PreToolUse hook (Write|Edit) - plan archival
+│   ├── pretooluse-loop-guard.py # PreToolUse hook (Bash) - file protection
 │   ├── completion.py           # Multi-signal completion detection
 │   ├── validation.py           # 3-round validation phase
 │   ├── discovery.py            # File discovery & work scanning
 │   ├── utils.py                # Time tracking, loop detection
 │   ├── template_loader.py      # Jinja2 template rendering
-│   ├── archive-plan.sh         # PreToolUse hook
 │   ├── core/                   # Adapter infrastructure
 │   │   ├── protocols.py        # ProjectAdapter protocol
 │   │   ├── registry.py         # Auto-discovery registry
+│   │   ├── config_schema.py    # Pydantic config models
 │   │   └── path_hash.py        # Session state isolation
 │   ├── adapters/               # Project-type adapters
 │   │   ├── universal.py        # Fallback (RSSI behavior)
 │   │   └── alpha_forge.py      # Alpha Forge adapter
 │   ├── templates/              # Prompt templates (Jinja2 markdown)
-│   │   ├── validation-round-1.md
-│   │   ├── validation-round-2.md
-│   │   ├── validation-round-3.md
-│   │   ├── exploration-mode.md
-│   │   ├── implementation-mode.md
-│   │   ├── status-header.md
-│   │   └── alpha-forge-convergence.md
+│   │   ├── implementation-mode.md   # Basic task continuation
+│   │   ├── validation-round-1.md    # Static analysis phase
+│   │   ├── validation-round-2.md    # Semantic verification
+│   │   ├── validation-round-3.md    # Consistency audit
+│   │   ├── exploration-mode.md      # RSSI eternal loop
+│   │   ├── alpha-forge-exploration.md # Alpha Forge OODA loop
+│   │   └── alpha-forge-convergence.md # Convergence prompts
 │   └── tests/                  # Test suite
 │       ├── test_adapters.py    # Adapter system tests
 │       ├── test_completion.py
@@ -288,6 +342,7 @@ ralph/
 
 - `rapidfuzz>=3.0.0,<4.0.0` - Fuzzy string matching for loop detection
 - `jinja2>=3.1.0,<4.0.0` - Template rendering for prompts
+- `stamina>=25.0.0,<26.0.0` - Production-grade exponential backoff for idle detection
 
 **System tools** (auto-installed via mise/brew if missing):
 
