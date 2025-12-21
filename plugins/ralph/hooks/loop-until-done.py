@@ -662,6 +662,33 @@ def main():
 
     validation_exhausted = state.get("validation_exhausted", False)
 
+    # ===== NO-FOCUS MODE CONVERGENCE =====
+    # In no_focus mode, there's no plan file so task_complete is always False.
+    # Instead, rely on adapter convergence to decide when to stop.
+    if no_focus and min_hours_met and min_iterations_met:
+        if adapter_should_stop and adapter_confidence >= 0.5:
+            allow_stop(
+                f"No-focus mode converged: Adapter ({adapter_reason}, "
+                f"confidence={adapter_confidence:.2f})"
+            )
+            return
+        # Also check for "idle loop" - no meaningful work for N consecutive iterations
+        idle_iterations = state.get("idle_iterations", 0)
+        if not adapter or adapter_confidence < 0.5:
+            # No adapter guidance - check for idle state
+            # If loop output contains "Work Item: None" repeatedly, increment idle counter
+            if "Work Item: None" in current_output or "no SLO-aligned work" in current_output.lower():
+                idle_iterations += 1
+                state["idle_iterations"] = idle_iterations
+                logger.info(f"Idle iteration detected: {idle_iterations}/5")
+                if idle_iterations >= 5:
+                    allow_stop(
+                        "No-focus mode: 5 consecutive idle iterations with no work items"
+                    )
+                    return
+            else:
+                state["idle_iterations"] = 0  # Reset if work is found
+
     # Combined decision: RSSI + Adapter must agree at confidence=0.5
     if task_complete and min_hours_met and min_iterations_met:
         if not enable_validation or validation_exhausted:
