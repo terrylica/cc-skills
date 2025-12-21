@@ -87,6 +87,22 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 SETTINGS="$HOME/.claude/settings.json"
 MARKER="ralph/hooks/"
 
+# ===== VERSION BANNER =====
+# Retrieve version from cache directory (source of truth: installed plugin version)
+RALPH_CACHE="$HOME/.claude/plugins/cache/cc-skills/ralph"
+if [[ -d "$RALPH_CACHE" ]]; then
+    # Get highest semantic version from cache directories (exclude 'local')
+    RALPH_VERSION=$(ls "$RALPH_CACHE" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+else
+    RALPH_VERSION="unknown"
+fi
+
+echo "========================================"
+echo "  RALPH WIGGUM v${RALPH_VERSION:-unknown}"
+echo "  Autonomous Loop Mode"
+echo "========================================"
+echo ""
+
 # Check if hooks are installed
 HOOKS_INSTALLED=false
 if command -v jq &>/dev/null && [[ -f "$SETTINGS" ]]; then
