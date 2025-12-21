@@ -259,7 +259,12 @@ echo "$LEGACY_CONFIG" > "$PROJECT_DIR/.claude/loop-config.json"
 
 # ===== ADAPTER DETECTION =====
 # Detect project-specific adapter using Python
-HOOKS_DIR="$HOME/.claude/plugins/cache/cc-skills/plugins/ralph/hooks"
+# Use same path logic as version detection above
+if [[ -d "$RALPH_CACHE/local" ]]; then
+    HOOKS_DIR="$RALPH_CACHE/local/hooks"
+else
+    HOOKS_DIR="$RALPH_CACHE/$RALPH_VERSION/hooks"
+fi
 ADAPTER_NAME="universal"
 if [[ -d "$HOOKS_DIR" ]]; then
     ADAPTER_NAME=$(cd "$HOOKS_DIR" && python3 -c "
