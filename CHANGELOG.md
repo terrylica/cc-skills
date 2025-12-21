@@ -1,3 +1,10 @@
+# [5.24.0](https://github.com/terrylica/cc-skills/compare/v5.23.0...v5.24.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** add idle command guard to block repetitive git status ([4551a7a](https://github.com/terrylica/cc-skills/commit/4551a7a619eeb61d0b39f03ba0cc31110c95fe9c))
+
 # [5.23.0](https://github.com/terrylica/cc-skills/compare/v5.22.0...v5.23.0) (2025-12-21)
 
 
