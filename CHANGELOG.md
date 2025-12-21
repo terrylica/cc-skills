@@ -1,3 +1,10 @@
+# [5.11.0](https://github.com/terrylica/cc-skills/compare/v5.10.4...v5.11.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** add Alpha Forge research session discovery ([71b30d9](https://github.com/terrylica/cc-skills/commit/71b30d9e1223a225d0b394c9bd3df78955dff9df))
+
 ## [5.10.4](https://github.com/terrylica/cc-skills/compare/v5.10.3...v5.10.4) (2025-12-21)
 
 
