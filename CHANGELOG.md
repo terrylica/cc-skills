@@ -1,3 +1,43 @@
+# [6.1.0](https://github.com/terrylica/cc-skills/compare/v6.0.0...v6.1.0) (2025-12-21)
+
+
+### Features
+
+* **devops-tools:** add asciinema-player skill for terminal recordings ([5cbc4d1](https://github.com/terrylica/cc-skills/commit/5cbc4d16ea2c0b8cd65d9239e14c77ccecbf1571))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-player/SKILL.md) - new
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/asciinema-player</strong> (1 file)</summary>
+
+- [Player Options Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-player/references/player-options.md) - new
+
+</details>
+
 # [6.0.0](https://github.com/terrylica/cc-skills/compare/v5.25.0...v6.0.0) (2025-12-21)
 
 
