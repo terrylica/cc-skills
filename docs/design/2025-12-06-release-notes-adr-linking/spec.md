@@ -6,7 +6,7 @@ phase: phase-3
 last-updated: 2025-12-06
 ---
 
-# ADR/Design Spec Links in Release Notes
+# Documentation Links in Release Notes
 
 **ADR**: [ADR/Design Spec Links in Release Notes](/docs/adr/2025-12-06-release-notes-adr-linking.md)
 
@@ -27,8 +27,8 @@ When semantic-release creates a GitHub release, the release notes only contain t
 
 Extend the existing `semantic-release` skill with ADR/Design Spec linking capability:
 
-1. Add `generate-adr-notes.mjs` to existing `scripts/` directory
-2. Create `references/adr-release-linking.md` following skill's reference pattern
+1. Add `generate-doc-notes.mjs` to existing `scripts/` directory
+2. Create `references/doc-release-linking.md` following skill's reference pattern
 3. Update `SKILL.md` with new section and reference link
 4. Update `resources.md` to document the new script
 5. Use `@semantic-release/exec` with `generateNotesCmd` in `.releaserc.yml`
@@ -55,17 +55,17 @@ Extend the existing `semantic-release` skill with ADR/Design Spec linking capabi
 
 | File                                                                    | Action     | Description                                             |
 | ----------------------------------------------------------------------- | ---------- | ------------------------------------------------------- |
-| `plugins/itp/skills/semantic-release/scripts/generate-adr-notes.mjs`    | **Create** | Shareable script for ADR/spec detection                 |
-| `plugins/itp/skills/semantic-release/references/adr-release-linking.md` | **Create** | Reference doc following skill's backlink pattern        |
+| `plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs`    | **Create** | Shareable script for ADR/spec detection                 |
+| `plugins/itp/skills/semantic-release/references/doc-release-linking.md` | **Create** | Reference doc following skill's backlink pattern        |
 | `plugins/itp/skills/semantic-release/SKILL.md`                          | **Modify** | Add section + reference link after Conventional Commits |
 | `plugins/itp/skills/semantic-release/references/resources.md`           | **Modify** | Document new script in hub document                     |
 | `.releaserc.yml` (cc-skills)                                            | **Modify** | Add `generateNotesCmd` as example usage                 |
 
 ## Implementation Tasks
 
-### Task 1: Create generate-adr-notes.mjs Script
+### Task 1: Create generate-doc-notes.mjs Script
 
-**Location**: `plugins/itp/skills/semantic-release/scripts/generate-adr-notes.mjs`
+**Location**: `plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs`
 
 **Key Features**:
 
@@ -85,7 +85,7 @@ Extend the existing `semantic-release` skill with ADR/Design Spec linking capabi
 
 ### Task 2: Create Reference Documentation
 
-**Location**: `plugins/itp/skills/semantic-release/references/adr-release-linking.md`
+**Location**: `plugins/itp/skills/semantic-release/references/doc-release-linking.md`
 
 **Follow skill's backlink pattern**:
 
@@ -115,14 +115,14 @@ Extend the existing `semantic-release` skill with ADR/Design Spec linking capabi
 # ADR/Design Spec links + version sync via @semantic-release/exec
 # ADR: 2025-12-06-release-notes-adr-linking
 - - "@semantic-release/exec"
-  - generateNotesCmd: 'node "$ADR_NOTES_SCRIPT" ${lastRelease.gitTag}'
+  - generateNotesCmd: 'node "$DOC_NOTES_SCRIPT" ${lastRelease.gitTag}'
     prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
 ```
 
-**Note**: Uses `$ADR_NOTES_SCRIPT` (no braces) because `@semantic-release/exec` processes commands through lodash templates which interpret `${...}` as JavaScript. Set the environment variable before running semantic-release:
+**Note**: Uses `$DOC_NOTES_SCRIPT` (no braces) because `@semantic-release/exec` processes commands through lodash templates which interpret `${...}` as JavaScript. Set the environment variable before running semantic-release:
 
 ```bash
-export ADR_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-adr-notes.mjs"
+export DOC_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-doc-notes.mjs"
 ```
 
 ## Validation Strategy
@@ -131,13 +131,13 @@ export ADR_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplace
 
 ```bash
 # Syntax check
-node --check plugins/itp/skills/semantic-release/scripts/generate-adr-notes.mjs
+node --check plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs
 
 # Execution with tag
-node plugins/itp/skills/semantic-release/scripts/generate-adr-notes.mjs v2.8.0
+node plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs v2.8.0
 
 # First release simulation
-node plugins/itp/skills/semantic-release/scripts/generate-adr-notes.mjs
+node plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs
 ```
 
 ### YAML Validation
@@ -156,9 +156,9 @@ node -e "require('js-yaml').load(require('fs').readFileSync('.releaserc.yml'))"
 
 | Gate          | Validation Command                      | Expected                 |
 | ------------- | --------------------------------------- | ------------------------ |
-| Script syntax | `node --check generate-adr-notes.mjs`   | Exit 0                   |
-| First release | `node generate-adr-notes.mjs` (no args) | Exit 0                   |
-| With tag      | `node generate-adr-notes.mjs v2.8.0`    | Markdown output or empty |
+| Script syntax | `node --check generate-doc-notes.mjs`   | Exit 0                   |
+| First release | `node generate-doc-notes.mjs` (no args) | Exit 0                   |
+| With tag      | `node generate-doc-notes.mjs v2.8.0`    | Markdown output or empty |
 | YAML valid    | YAML lint check                         | Exit 0                   |
 | Dry run       | `npx semantic-release --dry-run`        | No errors                |
 | Output format | Contains expected markdown headers      | All markers found        |
