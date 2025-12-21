@@ -1,3 +1,49 @@
+# [6.0.0](https://github.com/terrylica/cc-skills/compare/v5.25.0...v6.0.0) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** align implementation with design philosophy ([e7d7755](https://github.com/terrylica/cc-skills/commit/e7d775528b4dc08dee47c467418bd5e0235fa53c))
+
+
+### BREAKING CHANGES
+
+* **ralph:** Ralph is now Alpha Forge exclusive
+
+- Delete validation templates (linting/test coverage = busywork)
+- Remove validation.py and render_validation_round method
+- Zero idle tolerance: MAX_IDLE_BEFORE_EXPLORE = 1
+- Remove exponential backoff waiting pattern (immediate exploration)
+- Remove universal.py adapter (Alpha Forge only)
+- Update registry to return None for non-Alpha Forge projects
+- Update Design Philosophy: replace "Adapter Extensibility" with "Alpha Forge Exclusive"
+- Update README to reflect all changes
+- Remove busywork references from exploration templates
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated
+
+## Other Documentation
+
+### Other
+
+- [Example: If WebSearch found "Temporal Fusion Transformer"](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-exploration.md) - updated
+- [exploration-mode](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/exploration-mode.md) - updated
+- [validation-round-1](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/validation-round-1.md) - deleted
+- [validation-round-2](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/validation-round-2.md) - deleted
+- [validation-round-3](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/validation-round-3.md) - deleted
+
 # [5.25.0](https://github.com/terrylica/cc-skills/compare/v5.24.3...v5.25.0) (2025-12-21)
 
 
