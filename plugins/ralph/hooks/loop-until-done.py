@@ -49,7 +49,6 @@ from utils import (
     extract_section,
     get_elapsed_hours,
     hard_stop,
-    send_convergence_notification,
 )
 from validation import (
     VALIDATION_SCORE_THRESHOLD,
@@ -592,21 +591,15 @@ def main():
     # ===== COMPLETION CASCADE =====
 
     if elapsed >= config["max_hours"]:
-        reason = f"Maximum runtime ({config['max_hours']}h) reached"
-        send_convergence_notification(reason, elapsed, iteration, project_dir)
-        allow_stop(reason)
+        allow_stop(f"Maximum runtime ({config['max_hours']}h) reached")
         return
 
     if iteration >= config["max_iterations"]:
-        reason = f"Maximum iterations ({config['max_iterations']}) reached"
-        send_convergence_notification(reason, elapsed, iteration, project_dir)
-        allow_stop(reason)
+        allow_stop(f"Maximum iterations ({config['max_iterations']}) reached")
         return
 
     if detect_loop(current_output, recent_outputs):
-        reason = "Loop detected: agent producing repetitive outputs (>90% similar)"
-        send_convergence_notification(reason, elapsed, iteration, project_dir)
-        allow_stop(reason)
+        allow_stop("Loop detected: agent producing repetitive outputs (>90% similar)")
         return
 
     task_complete, completion_reason, completion_confidence = check_task_complete_rssi(plan_file)
@@ -643,9 +636,7 @@ def main():
             # Low confidence (0.0) = defer to RSSI
             if convergence.confidence >= 1.0:
                 if not convergence.should_continue:
-                    reason = f"Adapter override: {convergence.reason}"
-                    send_convergence_notification(reason, elapsed, iteration, project_dir)
-                    allow_stop(reason)
+                    allow_stop(f"Adapter override: {convergence.reason}")
                     return
                 # If should_continue with high confidence, force continue below
             elif convergence.confidence >= 0.5:
@@ -671,20 +662,18 @@ def main():
         if not enable_validation or validation_exhausted:
             # Check if adapter also suggests stopping
             if adapter_should_stop and adapter_confidence >= 0.5:
-                reason = f"Converged: RSSI ({completion_reason}) + Adapter ({adapter_reason})"
-                send_convergence_notification(reason, elapsed, iteration, project_dir)
-                allow_stop(reason)
+                allow_stop(
+                    f"Converged: RSSI ({completion_reason}) + Adapter ({adapter_reason})"
+                )
                 return
             # RSSI says complete but adapter doesn't agree - continue
             if adapter and adapter_confidence >= 0.5 and not adapter_should_stop:
                 logger.info("RSSI complete but adapter wants to continue - continuing")
             else:
-                reason = (
+                allow_stop(
                     f"Task complete ({completion_reason}, confidence={completion_confidence:.2f}) "
                     "and all requirements met"
                 )
-                send_convergence_notification(reason, elapsed, iteration, project_dir)
-                allow_stop(reason)
                 return
 
     # ===== CONTINUE SESSION =====
