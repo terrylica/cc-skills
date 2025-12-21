@@ -1,3 +1,10 @@
+## [5.9.1](https://github.com/terrylica/cc-skills/compare/v5.9.0...v5.9.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** improve adapter detection and completion for ITP workflow ([c311323](https://github.com/terrylica/cc-skills/commit/c311323d4300b63e12a4da15343f73acb2bedb65))
+
 # [5.9.0](https://github.com/terrylica/cc-skills/compare/v5.8.7...v5.9.0) (2025-12-20)
 
 
