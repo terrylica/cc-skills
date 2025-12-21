@@ -1,3 +1,10 @@
+# [5.20.0](https://github.com/terrylica/cc-skills/compare/v5.19.3...v5.20.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** dynamic iterative WebSearch for SOTA discovery ([a863788](https://github.com/terrylica/cc-skills/commit/a86378884c2178e1b5f2aa6ec6b0149d39c66cd4))
+
 ## [5.19.3](https://github.com/terrylica/cc-skills/compare/v5.19.2...v5.19.3) (2025-12-21)
 
 
