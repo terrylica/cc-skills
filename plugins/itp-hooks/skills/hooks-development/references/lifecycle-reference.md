@@ -445,6 +445,134 @@ def hard_stop(reason: str):
 | **Timeout too short**      | Hook killed mid-execution          | Default is 60s; increase for slow operations                                                  |
 | **JSON syntax errors**     | All hooks fail to load             | Validate with `cat settings.json \| python -m json.tool`                                      |
 | **Stop hook wrong schema** | "Stop hook prevented continuation" | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                |
+| **Local symlink caching**  | Edits to source not picked up      | Release new version, `/plugin install`, restart Claude Code (see Plugin Cache section below)  |
+
+```{=latex}
+\newpage
+```
+
+## Plugin Cache and Symlink Resolution (Lesson Learned 2025-12-21)
+
+### Plugin Cache Structure
+
+Plugins are stored in `~/.claude/plugins/cache/<marketplace>/<plugin-name>/`:
+
+```
+~/.claude/plugins/cache/cc-skills/ralph/
+├── 5.15.0/              # Released version (immutable)
+│   ├── commands/
+│   └── hooks/
+├── 5.16.0/              # Newer released version
+│   ├── commands/
+│   └── hooks/
+└── local -> /path/to/source/repo/plugins/ralph   # Development symlink
+```
+
+### Critical Insight: Version vs Content Resolution
+
+**Claude Code resolves version and content DIFFERENTLY:**
+
+| What                | Resolution Source      | Example                            |
+| ------------------- | ---------------------- | ---------------------------------- |
+| **Version display** | `local` symlink first  | Banner shows `v5.15.0 (local)`     |
+| **Skill content**   | VERSION DIRECTORY only | Executes code from `5.15.0/` cache |
+
+**The local symlink is for version detection, NOT skill execution.**
+
+This means:
+
+- Editing source files does NOT affect running sessions
+- Version banner shows `(local)` but code comes from version cache
+- Your fix appears to be "in" but isn't being used
+
+### Symptom: Fix Not Applied
+
+```
+========================================
+  RALPH WIGGUM v5.15.0 (local)        <-- Version from local symlink
+========================================
+
+Adapter: universal                     <-- OLD CODE from 5.15.0 cache!
+```
+
+Even though the source file has the fix, Claude Code reads skill content from the cached version directory.
+
+### Correct Update Workflow
+
+1. **Edit source file** - `plugins/ralph/commands/start.md`
+2. **Commit and push** - `git add . && git commit -m "fix: ..." && git push`
+3. **Release new version** - `npm run release` (creates v5.16.0)
+4. **Remove local symlink** (optional) - `rm ~/.claude/plugins/cache/cc-skills/ralph/local`
+5. **Reinstall plugin** - `/plugin install cc-skills`
+6. **Restart Claude Code** - Exit (Ctrl+C) and run `claude` again
+7. **Verify** - Banner shows `v5.16.0 (cache)` not `(local)`
+
+### Why Remove the Local Symlink?
+
+The local symlink can cause confusing behavior:
+
+| Symlink State | Version Banner    | Content Source | Confusion Level   |
+| ------------- | ----------------- | -------------- | ----------------- |
+| Present       | `v5.15.0 (local)` | `5.15.0/`      | HIGH - misleading |
+| Removed       | `v5.16.0 (cache)` | `5.16.0/`      | LOW - accurate    |
+
+When developing, the local symlink is useful for **version detection**. But for testing fixes, remove it to ensure you're using the released version.
+
+### zsh Compatibility: Heredoc Wrapper Required
+
+Skill markdown code blocks must use bash heredoc wrapper for zsh compatibility:
+
+**Correct (works in zsh):**
+
+```bash
+/usr/bin/env bash << 'SCRIPT_NAME'
+if [[ "$VAR" != "value" ]]; then
+    echo "bash-specific syntax works"
+fi
+SCRIPT_NAME
+```
+
+**Incorrect (fails in zsh):**
+
+```bash
+# Without heredoc, zsh interprets directly
+if [[ "$VAR" != "value" ]]; then  # ERROR: condition expected: \!=
+    echo "fails"
+fi
+```
+
+**Error signature:** `(eval):91: condition expected: \!=`
+
+This happens when Claude Code strips the heredoc wrapper and zsh tries to interpret bash-specific `!=` in `[[ ]]`.
+
+**Fix:** Always wrap skill bash code in heredoc per [ADR: Shell Command Portability](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
+
+### Diagnostic Commands
+
+```bash
+# Check symlink status
+ls -la ~/.claude/plugins/cache/cc-skills/<plugin>/local
+
+# Verify version content
+grep -A5 "PATTERN" ~/.claude/plugins/cache/cc-skills/<plugin>/<version>/commands/file.md
+
+# Compare local vs version
+diff <(cat ~/.../local/commands/file.md | grep "PATTERN") \
+     <(cat ~/.../5.16.0/commands/file.md | grep "PATTERN")
+
+# Remove local symlink for clean testing
+rm ~/.claude/plugins/cache/cc-skills/<plugin>/local
+```
+
+### Quick Reference: Fix Not Working Checklist
+
+- [ ] Fix is in source file? (`grep` the source)
+- [ ] Fix is committed and pushed? (`git status`)
+- [ ] New version released? (`git tag` shows new version)
+- [ ] Local symlink removed? (`ls -la .../local`)
+- [ ] Plugin reinstalled? (`/plugin install cc-skills`)
+- [ ] Claude Code restarted? (Exit and re-enter)
+- [ ] Banner shows new version + `(cache)`? (Not `(local)`)
 
 ### Debugging Techniques
 
