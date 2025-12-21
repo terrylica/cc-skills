@@ -165,7 +165,7 @@ Single command that handles prerequisites, sync, release, and push with SSH/HTTP
 release() {
     # Prerequisites
     command -v gh &>/dev/null || { echo "❌ gh CLI not installed"; return 1; }
-    command -v npx &>/dev/null || { echo "❌ npx not found"; return 1; }
+    command -v semantic-release &>/dev/null || { echo "❌ semantic-release not installed globally. Run: npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github @semantic-release/exec"; return 1; }
     gh auth status &>/dev/null || { echo "❌ gh not authenticated"; return 1; }
     git rev-parse --git-dir &>/dev/null || { echo "❌ Not a git repo"; return 1; }
     export GIT_OPTIONAL_LOCKS=0
@@ -192,8 +192,8 @@ release() {
         git push "$https_url" main --quiet || { echo "❌ Push failed (SSH and HTTPS)"; return 1; }
     fi
 
-    # Release
-    GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci "$@"
+    # Release (use global install to avoid macOS Gatekeeper issues with npx)
+    GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci "$@"
     local rc=$?
 
     # Post-release: verify pristine state
@@ -210,7 +210,7 @@ release() {
 
 **Features**:
 
-- Validates prerequisites (gh CLI, npx, authentication, git repo)
+- Validates prerequisites (gh CLI, global semantic-release, authentication, git repo)
 - Enforces main branch requirement
 - **Pre-flight**: Blocks release if working directory not clean
 - Syncs with remote before release (`git pull --rebase`)
