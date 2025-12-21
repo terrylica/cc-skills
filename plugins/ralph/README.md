@@ -20,6 +20,32 @@ This plugin adds autonomous loop mode to Claude Code through 5 commands and 2 ho
 - **PreToolUse hook** (`archive-plan.sh`) - Archives `.claude/plans/*.md` files before overwrite
 - **PreToolUse hook** (`pretooluse-loop-guard.py`) - Guards loop control files from deletion
 
+## Design Philosophy
+
+Core principles guiding Ralph Wiggum's development:
+
+### High-Impact Work Only
+
+1. **No Busywork** — Linting, formatting, type hints, docstrings, test coverage hunting, and refactoring for "readability" are FORBIDDEN. Every action must directly improve OOD-robust performance.
+
+2. **SOTA Evidence-Based** — All improvements must be grounded in state-of-the-art research. Use WebSearch to find 2024-2025 papers, GitHub repos, and tutorials before implementing. No guessing or ad-hoc solutions.
+
+3. **OOD-Robust Performance** — The goal is out-of-distribution robustness: Sharpe ratio, WFE (Walk-Forward Efficiency), and drawdown that generalize beyond training data. Distribution-shift resilience trumps in-sample metrics.
+
+### Autonomous Operation
+
+1. **Never Idle** — Ralph always finds or creates improvement opportunities. Saying "monitoring", "waiting", or "no work available" is forbidden. When stuck, WebSearch for SOTA techniques.
+
+2. **Knowledge Accumulates** — Each iteration builds on previous discoveries. Patterns, effective checks, and feature ideas persist across sessions.
+
+3. **Multi-Signal Decisions** — Completion requires multiple confidence signals (explicit markers, checkboxes, semantic phrases), not single indicators.
+
+### Architecture
+
+1. **Adapter Extensibility** — Project-specific behavior via adapters (Alpha Forge, universal). Core loop remains generic; adapters provide convergence logic.
+
+2. **User Override Always Wins** — Kill switch (`.claude/STOP_LOOP`), `/ralph:stop`, and manual intervention always work. The loop is eternal but never inescapable.
+
 ## Quick Start
 
 ```bash
@@ -342,7 +368,6 @@ ralph/
 
 - `rapidfuzz>=3.0.0,<4.0.0` - Fuzzy string matching for loop detection
 - `jinja2>=3.1.0,<4.0.0` - Template rendering for prompts
-- `stamina>=25.0.0,<26.0.0` - Production-grade exponential backoff for idle detection
 
 **System tools** (auto-installed via mise/brew if missing):
 
