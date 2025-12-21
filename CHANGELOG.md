@@ -1,3 +1,10 @@
+## [5.21.3](https://github.com/terrylica/cc-skills/compare/v5.21.2...v5.21.3) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** actionable RSSI hook with 5-step loop ([8f60322](https://github.com/terrylica/cc-skills/commit/8f60322da46da54f7bd6622cd69e849c852c896c))
+
 ## [5.21.2](https://github.com/terrylica/cc-skills/compare/v5.21.1...v5.21.2) (2025-12-21)
 
 
