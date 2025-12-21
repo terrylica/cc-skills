@@ -1,3 +1,10 @@
+# [5.15.0](https://github.com/terrylica/cc-skills/compare/v5.14.0...v5.15.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** auto-select focus files without prompting ([463a984](https://github.com/terrylica/cc-skills/commit/463a984c1faeecbd6afe7db4a8e553bfae0879b4))
+
 # [5.14.0](https://github.com/terrylica/cc-skills/compare/v5.13.0...v5.14.0) (2025-12-21)
 
 
