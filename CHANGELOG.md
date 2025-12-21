@@ -1,3 +1,10 @@
+# [5.17.0](https://github.com/terrylica/cc-skills/compare/v5.16.0...v5.17.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** add AUTONOMOUS MODE directive and SDK harness ([1de8eb4](https://github.com/terrylica/cc-skills/commit/1de8eb480c355c2cd61554eac9d0280e6a21fd3e))
+
 # [5.16.0](https://github.com/terrylica/cc-skills/compare/v5.15.0...v5.16.0) (2025-12-21)
 
 
