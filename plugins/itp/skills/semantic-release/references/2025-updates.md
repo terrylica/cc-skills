@@ -20,6 +20,7 @@
   - Automatic npm provenance attestations
   - GitHub Actions is trusted identity provider
   - Requires permissions:
+
     ```yaml
     permissions:
       id-token: write
@@ -27,6 +28,7 @@
       issues: write
       pull-requests: write
     ```
+
   - No `NPM_TOKEN` secret needed when publishing to npm
 
 ### Plugin Updates
@@ -36,6 +38,8 @@ All core plugins updated to latest stable versions (v25 compatible).
 Version source of truth: [`scripts/init_project.sh`](../scripts/init_project.sh) (lines 146-153)
 
 ## Workspace Support (2025)
+
+> **macOS Note**: Use global `semantic-release` to avoid Gatekeeper blocking `.node` files. See [Troubleshooting](./troubleshooting.md#macos-gatekeeper-blocks-node-files).
 
 ### pnpm Workspaces
 
@@ -50,6 +54,10 @@ npm install --save-dev @anolilab/semantic-release-pnpm
 Use `multi-semantic-release` or `@anolilab/multi-semantic-release`:
 
 ```bash
+# macOS (global install recommended)
+pnpm -r --workspace-concurrency=1 exec -- semantic-release --no-ci
+
+# Linux/CI (npx works without Gatekeeper issues)
 pnpm -r --workspace-concurrency=1 exec -- npx --no-install semantic-release
 ```
 
