@@ -1,3 +1,10 @@
+# [5.18.0](https://github.com/terrylica/cc-skills/compare/v5.17.0...v5.18.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** add DATA INTEGRITY constraints for real historical data ([8e20ad4](https://github.com/terrylica/cc-skills/commit/8e20ad4e0d9b5d65b6cc7a646057afb650f49c6f))
+
 # [5.17.0](https://github.com/terrylica/cc-skills/compare/v5.16.0...v5.17.0) (2025-12-21)
 
 
