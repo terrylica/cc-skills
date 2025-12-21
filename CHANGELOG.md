@@ -1,3 +1,10 @@
+# [5.14.0](https://github.com/terrylica/cc-skills/compare/v5.13.0...v5.14.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** fail fast when version cannot be determined ([676c23b](https://github.com/terrylica/cc-skills/commit/676c23ba9fc9d6df53a9036e832886030f060edc))
+
 # [5.13.0](https://github.com/terrylica/cc-skills/compare/v5.12.1...v5.13.0) (2025-12-21)
 
 
