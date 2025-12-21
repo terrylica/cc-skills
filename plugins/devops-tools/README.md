@@ -1,11 +1,12 @@
 # devops-tools
 
-DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
+DevOps automation plugin for Claude Code: asciinema player, ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
 
 ## Skills
 
 | Skill                           | Description                                                            |
 | ------------------------------- | ---------------------------------------------------------------------- |
+| **asciinema-player**            | Play .cast terminal recordings in browser with seek controls           |
 | **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management |
 | **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models        |
 | **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
@@ -27,6 +28,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 **Trigger phrases:**
 
+- "asciinema", ".cast file", "play recording", "terminal recording" → asciinema-player
 - "create ClickHouse user", "ClickHouse permissions" → clickhouse-cloud-management
 - "DBeaver config", "connection setup" → clickhouse-pydantic-config
 - "publish to PyPI" → doppler-workflows
@@ -36,6 +38,14 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "no conversations found to resume" → session-recovery
 
 ## Key Features
+
+### asciinema Player
+
+- Play .cast terminal recordings in browser
+- Full playback controls: seek bar, speed, pause
+- Keyboard shortcuts for navigation
+- Auto-start local HTTP server
+- Quick Tutorial output on invocation
 
 ### ClickHouse Cloud Management
 
