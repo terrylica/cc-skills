@@ -20,62 +20,32 @@ Enable the Ralph Wiggum autonomous improvement loop. Claude will continue workin
 - `--no-focus`: Skip focus file tracking (100% autonomous, no plan file)
 - `<task description>`: Natural language task prompt (remaining text after flags)
 
-## Step 1: Focus File Confirmation
+## Step 1: Focus File Discovery (Auto-Select)
 
-**BEFORE running the bash script**, you MUST confirm the focus file with the user:
+Discover and auto-select focus files WITHOUT prompting the user (autonomous mode):
 
-1. **Check for explicit file**: If `-f <file>` was provided, use that path.
+1. **Check for explicit file**: If `-f <file>` was provided, use that path. Skip to Step 2.
 
 2. **Check for --no-focus flag**: If `--no-focus` is present, skip to Step 2 with `NO_FOCUS=true`.
 
-3. **Discover focus file** (if no explicit file): Look for files in this priority order:
+3. **Auto-discover focus file** (if no explicit file):
+
+   **For Alpha Forge projects** (detected by `outputs/research_sessions/` existing):
+   - Auto-select up to 3 most recent `outputs/research_sessions/*/research_log.md` files
+   - NO user prompt - proceed directly to Step 2
+   - Store paths in config for the hook to read
+
+   **For other projects**, discover in priority order:
    - Plan mode system-reminder (if in plan mode, the system-assigned plan file)
    - ITP design specs with `implementation-status: in_progress` in `docs/design/*/spec.md`
    - ITP ADRs with `status: accepted` in `docs/adr/*.md`
-   - **Alpha Forge research sessions**: `outputs/research_sessions/*/research_log.md` (up to 3 most recent by mtime)
    - Newest `.md` file in `.claude/plans/` (local or global)
 
-4. **Ask user to confirm** using AskUserQuestion:
+4. **Only prompt if truly ambiguous** (multiple ITP specs or ADRs with same priority):
+   - Use AskUserQuestion to let user choose
+   - Otherwise, auto-select the most recent file and proceed
 
-   For Alpha Forge projects (detected by `outputs/research_sessions/` existing), include research sessions:
-
-   ```
-   AskUserQuestion({
-     questions: [{
-       question: "Which focus mode for this Ralph session?",
-       header: "Focus Mode",
-       options: [
-         { label: "Continue research sessions", description: "Focus on N most recent research_log.md files" },
-         { label: "Specify different file", description: "You'll provide a custom path" },
-         { label: "Run without focus", description: "100% autonomous, no plan tracking" }
-       ],
-       multiSelect: false
-     }]
-   })
-   ```
-
-   For other projects:
-
-   ```
-   AskUserQuestion({
-     questions: [{
-       question: "Which focus mode for this Ralph session?",
-       header: "Focus Mode",
-       options: [
-         { label: "Use discovered file", description: "<path to discovered file>" },
-         { label: "Specify different file", description: "You'll provide a custom path" },
-         { label: "Run without focus", description: "100% autonomous, no plan tracking" }
-       ],
-       multiSelect: false
-     }]
-   })
-   ```
-
-5. **Handle response**:
-   - If "Continue research sessions" (Alpha Forge): Store all discovered session paths for the hook to read
-   - If "Use discovered file": Set `TARGET_FILE` to the discovered path
-   - If "Specify different file": Ask user for the path, then set `TARGET_FILE`
-   - If "Run without focus": Set `NO_FOCUS=true` (skip focus file tracking entirely)
+5. **If nothing discovered**: Proceed with `NO_FOCUS=true` (exploration mode)
 
 ## Step 2: Execution
 
