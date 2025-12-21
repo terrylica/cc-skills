@@ -1,3 +1,10 @@
+# [5.21.0](https://github.com/terrylica/cc-skills/compare/v5.20.0...v5.21.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** goal-driven dynamic search depth for alpha-forge integration ([aa714ef](https://github.com/terrylica/cc-skills/commit/aa714ef6a15b58c55bfa9952a6e327ce729d5306))
+
 # [5.20.0](https://github.com/terrylica/cc-skills/compare/v5.19.3...v5.20.0) (2025-12-21)
 
 
