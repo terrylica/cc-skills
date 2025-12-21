@@ -1,3 +1,10 @@
+## [5.10.3](https://github.com/terrylica/cc-skills/compare/v5.10.2...v5.10.3) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** add parent directory detection to alpha-forge adapter ([406fb0e](https://github.com/terrylica/cc-skills/commit/406fb0e3be9076f11b5f239ce95ee3f62565af1d))
+
 ## [5.10.2](https://github.com/terrylica/cc-skills/compare/v5.10.1...v5.10.2) (2025-12-21)
 
 ## [5.10.1](https://github.com/terrylica/cc-skills/compare/v5.10.0...v5.10.1) (2025-12-21)
