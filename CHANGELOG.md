@@ -1,3 +1,10 @@
+# [5.22.0](https://github.com/terrylica/cc-skills/compare/v5.21.5...v5.22.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** deterministic idle detection to prevent token waste ([128ae77](https://github.com/terrylica/cc-skills/commit/128ae776de5ddd46015f029640f801662f4e1947))
+
 ## [5.21.5](https://github.com/terrylica/cc-skills/compare/v5.21.4...v5.21.5) (2025-12-21)
 
 
