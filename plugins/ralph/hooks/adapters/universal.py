@@ -63,7 +63,7 @@ class UniversalAdapter(ProjectAdapter):
         return []
 
     def check_convergence(
-        self, metrics_history: list[MetricsEntry]
+        self, metrics_history: list[MetricsEntry], project_dir: Path | None = None
     ) -> ConvergenceResult:
         """Defer to existing Ralph RSSI completion detection.
 
@@ -73,6 +73,7 @@ class UniversalAdapter(ProjectAdapter):
 
         Args:
             metrics_history: List of metrics (ignored for universal adapter)
+            project_dir: Project directory (ignored for universal adapter)
 
         Returns:
             ConvergenceResult with should_continue=True, confidence=0.0
