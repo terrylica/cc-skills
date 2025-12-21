@@ -1,3 +1,10 @@
+## [5.19.1](https://github.com/terrylica/cc-skills/compare/v5.19.0...v5.19.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **devops-tools,quality-tools:** update gapless-crypto-data to gapless-crypto-clickhouse ([4b4510d](https://github.com/terrylica/cc-skills/commit/4b4510da3520cad3fdbc116d729ee5e37bb5ecad))
+
 # [5.19.0](https://github.com/terrylica/cc-skills/compare/v5.18.0...v5.19.0) (2025-12-21)
 
 
