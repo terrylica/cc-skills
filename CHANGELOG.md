@@ -1,3 +1,57 @@
+# [5.25.0](https://github.com/terrylica/cc-skills/compare/v5.24.3...v5.25.0) (2025-12-21)
+
+
+### Features
+
+* **release-notes:** expand documentation linking to all markdown files ([86fb31e](https://github.com/terrylica/cc-skills/commit/86fb31e5ebeabe45b7093e3cee3f29ec02475b8e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Documentation Links in Release Notes](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-06-release-notes-adr-linking.md) | updated |
+| implemented | [Shell Command Portability for Zsh Compatibility](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-06-shell-command-portability-zsh.md) | coupled |
+| accepted | [mise Environment Variables as Centralized Configuration](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-08-mise-env-centralized-config.md) | updated |
+
+### Design Specs
+
+- [Documentation Links in Release Notes](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-06-release-notes-adr-linking/spec.md) (updated)
+- [Shell Command Portability for Zsh Compatibility](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-06-shell-command-portability-zsh/spec.md) (updated)
+- [mise Environment Variables as Centralized Configuration](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-08-mise-env-centralized-config/spec.md) (updated)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (3 files)</summary>
+
+- [Adr Release Linking](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/adr-release-linking.md) - deleted
+- [Documentation Linking in Release Notes](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/doc-release-linking.md) - new
+- [Resources](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/resources.md) - updated
+
+</details>
+
 ## [5.24.3](https://github.com/terrylica/cc-skills/compare/v5.24.2...v5.24.3) (2025-12-21)
 
 
