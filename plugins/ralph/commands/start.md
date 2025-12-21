@@ -321,3 +321,17 @@ RALPH_START_SCRIPT
 ```
 
 Run the bash script above to enable loop mode.
+
+## Step 3: Alpha Forge Research Session Handling
+
+**If this is an Alpha Forge project** (detected by `outputs/research_sessions/` existing):
+
+After enabling loop mode, **immediately invoke the `/research` command** to continue the research loop:
+
+1. Read the most recent `research_log.md` from `outputs/research_sessions/*/`
+2. Find the latest strategy configuration in `best_configs/` or extract from log
+3. Invoke: `/research <strategy.yaml> --iterations=5 --objective=sharpe`
+
+The `/research` command will orchestrate 5 expert subagents (feature-expert, model-expert, risk-analyst, data-specialist, domain-expert) and manage the experiment iteration loop autonomously.
+
+**Do NOT ask the user what to work on.** Just proceed with the research continuation.

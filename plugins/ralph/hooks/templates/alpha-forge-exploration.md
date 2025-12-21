@@ -10,6 +10,50 @@ adr: 2025-12-20-ralph-rssi-eternal-loop
 You are optimizing a **quantitative trading research platform**.
 Core mission: **OOS robustness** and **time series forecasting excellence**.
 
+## AUTONOMOUS MODE - NO USER PROMPTS
+
+**CRITICAL**: You are running in AUTONOMOUS LOOP MODE.
+
+- DO NOT use AskUserQuestion
+- DO NOT ask "what should I work on next?"
+- DO NOT wait for user confirmation
+- JUST PROCEED with the highest-priority ROADMAP item
+- Make decisions autonomously based on research findings
+
+---
+
+## RESEARCH SESSION CONTINUATION
+
+**When focus files are `research_log.md` from research sessions**:
+
+You MUST invoke the `/research` command to continue the research loop. The `/research` command orchestrates 5 expert subagents for systematic strategy optimization.
+
+**Protocol**:
+
+1. **Read the research_log.md** to understand:
+   - Current iteration number
+   - Last configuration tested
+   - Key insights and patterns discovered
+   - Deferred recommendations
+
+2. **Find the most recent strategy config**:
+   - Check `best_configs/` for saved configurations
+   - Or extract last DSL from research_log.md entries
+
+3. **Invoke the research command**:
+
+   ```
+   /research <path/to/strategy.yaml> --iterations=N --objective=sharpe
+   ```
+
+4. **Let /research handle the rest**:
+   - It spawns expert subagents (feature-expert, model-expert, risk-analyst, etc.)
+   - Runs experiments via `alpha_forge run`
+   - Logs results to research_log.md and research_summary.md
+   - Manages the convergence loop
+
+**Why /research?**: It's the most versatile command for Alpha Forge - spawns multiple specialized subagents, handles experiment execution, and maintains proper research documentation structure.
+
 ---
 
 ## LEARNING FROM HISTORY (Reinforcement)
