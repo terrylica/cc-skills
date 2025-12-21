@@ -1,3 +1,10 @@
+## [5.21.5](https://github.com/terrylica/cc-skills/compare/v5.21.4...v5.21.5) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** forbid idle monitoring loop that wastes tokens ([a263339](https://github.com/terrylica/cc-skills/commit/a263339bfa9711aa3f3e4dff305bf29fd2930d4e))
+
 ## [5.21.4](https://github.com/terrylica/cc-skills/compare/v5.21.3...v5.21.4) (2025-12-21)
 
 
