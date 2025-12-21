@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""PreToolUse hook: Guard loop control files from deletion.
+"""PreToolUse hook: Guard loop control files and prevent wasteful commands.
 
-Prevents Claude from bypassing the Stop hook by directly running
-Bash commands that delete .claude/loop-enabled or other loop files.
+Features:
+1. Prevents deletion of .claude/loop-enabled and other loop files
+2. Blocks repetitive low-value commands (git status) when called too frequently
 
 Protected files and deletion patterns are configurable via
 .claude/ralph-config.json.
@@ -14,8 +15,15 @@ import json
 import os
 import re
 import sys
+import time
+from pathlib import Path
 
 from core.config_schema import ProtectionConfig, load_config
+
+# Anti-idle: Block repetitive low-value commands
+IDLE_COMMANDS = ["git status", "git status --short", "git status -s"]
+IDLE_COOLDOWN_SECONDS = 30  # Minimum seconds between same idle command
+IDLE_STATE_FILE = Path.home() / ".claude/automation/loop-orchestrator/state/idle-guard.json"
 
 # Legacy constants (deprecated - use config instead)
 PROTECTED_FILES = [
@@ -33,6 +41,60 @@ DELETION_PATTERNS = [
 ]
 
 RALPH_STOP_MARKER = "RALPH_STOP_SCRIPT"
+
+
+def load_idle_state() -> dict:
+    """Load idle command tracking state."""
+    try:
+        if IDLE_STATE_FILE.exists():
+            return json.loads(IDLE_STATE_FILE.read_text())
+    except (json.JSONDecodeError, OSError):
+        pass
+    return {"last_commands": {}}
+
+
+def save_idle_state(state: dict) -> None:
+    """Save idle command tracking state."""
+    try:
+        IDLE_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        IDLE_STATE_FILE.write_text(json.dumps(state))
+    except OSError:
+        pass
+
+
+def is_idle_command_too_frequent(command: str) -> tuple[bool, str]:
+    """Check if an idle command is being called too frequently.
+
+    Returns (is_blocked, reason).
+    """
+    # Normalize command for matching
+    cmd_normalized = command.strip().lower()
+
+    # Check if this is an idle command
+    is_idle = any(idle_cmd in cmd_normalized for idle_cmd in IDLE_COMMANDS)
+    if not is_idle:
+        return False, ""
+
+    state = load_idle_state()
+    last_commands = state.get("last_commands", {})
+    now = time.time()
+
+    # Check if same command was called recently
+    last_time = last_commands.get(cmd_normalized, 0)
+    elapsed = now - last_time
+
+    if elapsed < IDLE_COOLDOWN_SECONDS:
+        return True, (
+            f"[IDLE GUARD] Blocking repetitive '{command}' (called {elapsed:.0f}s ago, "
+            f"cooldown is {IDLE_COOLDOWN_SECONDS}s). Do meaningful work instead."
+        )
+
+    # Update state with new timestamp
+    last_commands[cmd_normalized] = now
+    state["last_commands"] = last_commands
+    save_idle_state(state)
+
+    return False, ""
 
 
 def get_protection_config() -> ProtectionConfig:
@@ -93,6 +155,12 @@ def main():
     # Allow official /ralph:stop script to delete loop files
     if is_official_stop_script(command):
         print(json.dumps({"decision": "allow"}))
+        return
+
+    # Check for repetitive idle commands (git status spam)
+    is_blocked, block_reason = is_idle_command_too_frequent(command)
+    if is_blocked:
+        print(json.dumps({"decision": "block", "reason": block_reason}))
         return
 
     # Check if this is a deletion attempt on protected files
