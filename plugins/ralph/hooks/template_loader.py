@@ -9,7 +9,7 @@ from typing import Any
 
 # Jinja2 is optional - fall back to simple string replacement if not available
 try:
-    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
     JINJA2_AVAILABLE = True
 except ImportError:
     JINJA2_AVAILABLE = False
@@ -78,7 +78,8 @@ class TemplateLoader:
                 loader=FileSystemLoader(str(self.templates_dir)),
                 autoescape=select_autoescape(['html', 'xml']),
                 trim_blocks=True,
-                lstrip_blocks=True
+                lstrip_blocks=True,
+                undefined=StrictUndefined,  # Catch template variable typos
             )
         return self._env
 

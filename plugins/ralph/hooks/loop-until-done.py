@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0", "stamina>=25.0.0,<26.0.0"]
+# dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0"]
 # ///
 # ADR: Multi-Repository Adapter Architecture
 # ADR: 2025-12-20-ralph-rssi-eternal-loop
