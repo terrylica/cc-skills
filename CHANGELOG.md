@@ -1,3 +1,29 @@
+## [6.4.1](https://github.com/terrylica/cc-skills/compare/v6.4.0...v6.4.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **asciinema-player:** use semver range for auto-upgrade with minimum version ([fd42458](https://github.com/terrylica/cc-skills/commit/fd4245897bb2afddea2caa9822c81126a63acb49))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-player/SKILL.md) - updated
+
+</details>
+
 # [6.4.0](https://github.com/terrylica/cc-skills/compare/v6.3.1...v6.4.0) (2025-12-21)
 
 
