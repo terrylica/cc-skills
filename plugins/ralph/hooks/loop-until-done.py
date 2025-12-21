@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0"]
+# dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0", "stamina>=25.0.0,<26.0.0"]
 # ///
 # ADR: Multi-Repository Adapter Architecture
 # ADR: 2025-12-20-ralph-rssi-eternal-loop
@@ -397,18 +397,31 @@ def main():
         except (json.JSONDecodeError, KeyError, IndexError, OSError, TypeError):
             pass
 
-    # ===== IDLE MONITORING DETECTION =====
+    # ===== IDLE MONITORING DETECTION (with Stamina exponential backoff) =====
     # Prevent wasteful token consumption from rapid idle iterations
+    # Uses exponential backoff: require longer intervals as idle count increases
     import time
-    from datetime import datetime
+    import subprocess
+    import random
 
     now = time.time()
     last_iteration_time = state.get("last_iteration_time", 0)
     idle_count = state.get("idle_iteration_count", 0)
-    MIN_ITERATION_INTERVAL = 30  # seconds - iterations faster than this are suspicious
-    MAX_IDLE_ITERATIONS = 3  # stop after this many consecutive idle iterations
 
-    # Check if this iteration happened too fast (likely idle monitoring)
+    # Exponential backoff parameters (stamina-style defaults)
+    BASE_INTERVAL = 30  # Initial minimum interval (seconds)
+    BACKOFF_MULTIPLIER = 2  # Double the required interval each idle iteration
+    MAX_INTERVAL = 300  # Cap at 5 minutes
+    JITTER = 5  # Random jitter to prevent thundering herd
+    MAX_IDLE_BEFORE_EXPLORE = 3  # Force exploration after this many idle iterations
+
+    # Calculate required interval with exponential backoff + jitter
+    # Formula: min(base * 2^idle_count + jitter, max_interval)
+    required_interval = min(
+        BASE_INTERVAL * (BACKOFF_MULTIPLIER ** idle_count) + random.uniform(0, JITTER),
+        MAX_INTERVAL
+    )
+
     time_since_last = now - last_iteration_time if last_iteration_time > 0 else 999
     state["last_iteration_time"] = now
 
@@ -416,7 +429,6 @@ def main():
     real_work_done = False
     if project_dir:
         try:
-            import subprocess
             result = subprocess.run(
                 ["git", "diff", "--name-only", "HEAD~1", "--", "."],
                 cwd=project_dir, capture_output=True, text=True, timeout=5
@@ -427,19 +439,25 @@ def main():
         except Exception:
             real_work_done = True  # Assume work done if can't check
 
-    # Detect idle pattern: fast iteration + no real work
-    if time_since_last < MIN_ITERATION_INTERVAL and not real_work_done:
+    # Detect idle pattern: iteration faster than required backoff interval + no real work
+    if time_since_last < required_interval and not real_work_done:
         idle_count += 1
         state["idle_iteration_count"] = idle_count
-        logger.info(f"Idle iteration detected: {idle_count}/{MAX_IDLE_ITERATIONS} "
-                   f"(interval={time_since_last:.1f}s, no file changes)")
+        next_required = min(BASE_INTERVAL * (BACKOFF_MULTIPLIER ** idle_count), MAX_INTERVAL)
+        logger.info(
+            f"Idle iteration {idle_count}/{MAX_IDLE_BEFORE_EXPLORE}: "
+            f"interval={time_since_last:.1f}s < required={required_interval:.1f}s "
+            f"(next required: {next_required:.1f}s)"
+        )
 
-        if idle_count >= MAX_IDLE_ITERATIONS:
+        if idle_count >= MAX_IDLE_BEFORE_EXPLORE:
             # Force exploration mode instead of allowing wasteful monitoring
-            logger.info(f"Max idle iterations reached - forcing exploration mode")
+            logger.info(f"Exponential backoff exhausted - forcing exploration mode")
             state["force_exploration"] = True
             state["idle_iteration_count"] = 0  # Reset counter
     else:
+        if idle_count > 0:
+            logger.info(f"Real work detected - resetting idle counter from {idle_count}")
         state["idle_iteration_count"] = 0  # Reset if real work done
 
     # ===== COMPLETION CASCADE =====
