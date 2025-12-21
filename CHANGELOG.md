@@ -1,3 +1,10 @@
+## [5.19.3](https://github.com/terrylica/cc-skills/compare/v5.19.2...v5.19.3) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** make RSSI template action-oriented, forbid status-only responses ([66515d1](https://github.com/terrylica/cc-skills/commit/66515d17718e829679a8b528fc191ef681757703))
+
 ## [5.19.2](https://github.com/terrylica/cc-skills/compare/v5.19.1...v5.19.2) (2025-12-21)
 
 
