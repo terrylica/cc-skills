@@ -57,6 +57,40 @@ from validation import (
 )
 
 
+def _detect_alpha_forge_simple(project_dir: str) -> str:
+    """Simple alpha-forge detection - bypasses adapter system for reliability.
+
+    Checks current directory and up to 5 parent directories for alpha-forge markers.
+    Returns "alpha-forge" if detected, empty string otherwise.
+    """
+    current = Path(project_dir)
+    for _ in range(6):  # Current + 5 parents
+        # Check pyproject.toml
+        pyproject = current / "pyproject.toml"
+        if pyproject.exists():
+            try:
+                content = pyproject.read_text()
+                if "alpha-forge" in content or "alpha_forge" in content:
+                    return "alpha-forge"
+            except OSError:
+                pass
+        # Check packages/alpha-forge-*
+        packages = current / "packages"
+        if packages.is_dir():
+            for pkg in packages.iterdir():
+                if pkg.is_dir() and "alpha-forge" in pkg.name:
+                    return "alpha-forge"
+        # Check outputs/runs (unique to alpha-forge)
+        if (current / "outputs" / "runs").is_dir():
+            return "alpha-forge"
+        # Move to parent
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+    return ""
+
+
 def render_slo_experts(
     adapter,
     project_dir: str,
@@ -265,7 +299,10 @@ def build_continuation_prompt(
         state["rssi_iteration"] = rssi_context.get("iteration", 0)
 
         # Get adapter info for template selection
+        # SIMPLIFIED: Detect alpha-forge directly, bypass adapter system for reliability
         adapter_name = state.get("adapter_name", "")
+        if not adapter_name and project_dir:
+            adapter_name = _detect_alpha_forge_simple(project_dir)
         adapter_convergence = state.get("adapter_convergence")
         metrics_history = adapter_convergence.get("metrics_history") if adapter_convergence else None
 
