@@ -89,8 +89,9 @@ MARKER="ralph/hooks/"
 
 # ===== VERSION BANNER =====
 # Retrieve version from cache directory (source of truth: installed plugin version)
+# FAIL FAST: Exit if version cannot be determined (no fallbacks)
 RALPH_CACHE="$HOME/.claude/plugins/cache/cc-skills/ralph"
-RALPH_VERSION="unknown"
+RALPH_VERSION=""
 RALPH_SOURCE="cache"
 
 if [[ -d "$RALPH_CACHE" ]]; then
@@ -103,18 +104,31 @@ if [[ -d "$RALPH_CACHE" ]]; then
             # Navigate up from plugins/ralph to repo root to find package.json
             REPO_ROOT=$(cd "$LOCAL_PATH" && cd ../.. && pwd 2>/dev/null)
             if [[ -f "$REPO_ROOT/package.json" ]]; then
-                RALPH_VERSION=$(jq -r '.version // "unknown"' "$REPO_ROOT/package.json" 2>/dev/null)
+                RALPH_VERSION=$(jq -r '.version // empty' "$REPO_ROOT/package.json" 2>/dev/null)
             fi
         fi
-        [[ "$RALPH_VERSION" == "unknown" ]] && RALPH_VERSION="local-dev"
     else
         # Get highest semantic version from cache directories
         RALPH_VERSION=$(ls "$RALPH_CACHE" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
     fi
 fi
 
+# FAIL FAST: Version must be determined
+if [[ -z "$RALPH_VERSION" ]]; then
+    echo "ERROR: Cannot determine Ralph version!"
+    echo ""
+    echo "Possible causes:"
+    echo "  1. Plugin not installed: Run /plugin install cc-skills"
+    echo "  2. Local symlink broken: Check ~/.claude/plugins/cache/cc-skills/ralph/local"
+    echo "  3. Missing package.json in source repo"
+    echo ""
+    echo "Cache directory: $RALPH_CACHE"
+    echo "Source: $RALPH_SOURCE"
+    exit 1
+fi
+
 echo "========================================"
-echo "  RALPH WIGGUM v${RALPH_VERSION:-unknown} (${RALPH_SOURCE})"
+echo "  RALPH WIGGUM v${RALPH_VERSION} (${RALPH_SOURCE})"
 echo "  Autonomous Loop Mode"
 echo "========================================"
 echo ""
