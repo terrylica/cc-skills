@@ -1,3 +1,10 @@
+# [5.19.0](https://github.com/terrylica/cc-skills/compare/v5.18.0...v5.19.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** use gapless-crypto-clickhouse for historical data ([c516bec](https://github.com/terrylica/cc-skills/commit/c516becad68739e7542beb9b8f6164cc22c0209f))
+
 # [5.18.0](https://github.com/terrylica/cc-skills/compare/v5.17.0...v5.18.0) (2025-12-21)
 
 
