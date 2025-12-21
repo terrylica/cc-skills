@@ -90,20 +90,31 @@ MARKER="ralph/hooks/"
 # ===== VERSION BANNER =====
 # Retrieve version from cache directory (source of truth: installed plugin version)
 RALPH_CACHE="$HOME/.claude/plugins/cache/cc-skills/ralph"
+RALPH_VERSION="unknown"
+RALPH_SOURCE="cache"
+
 if [[ -d "$RALPH_CACHE" ]]; then
     # Check for 'local' directory first (development symlink takes priority)
     if [[ -d "$RALPH_CACHE/local" ]]; then
-        RALPH_VERSION="local-dev"
+        RALPH_SOURCE="local"
+        # Follow symlink to find source repo and read version from package.json
+        LOCAL_PATH=$(readlink -f "$RALPH_CACHE/local" 2>/dev/null || readlink "$RALPH_CACHE/local" 2>/dev/null)
+        if [[ -n "$LOCAL_PATH" ]]; then
+            # Navigate up from plugins/ralph to repo root to find package.json
+            REPO_ROOT=$(cd "$LOCAL_PATH" && cd ../.. && pwd 2>/dev/null)
+            if [[ -f "$REPO_ROOT/package.json" ]]; then
+                RALPH_VERSION=$(jq -r '.version // "unknown"' "$REPO_ROOT/package.json" 2>/dev/null)
+            fi
+        fi
+        [[ "$RALPH_VERSION" == "unknown" ]] && RALPH_VERSION="local-dev"
     else
         # Get highest semantic version from cache directories
         RALPH_VERSION=$(ls "$RALPH_CACHE" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
     fi
-else
-    RALPH_VERSION="unknown"
 fi
 
 echo "========================================"
-echo "  RALPH WIGGUM v${RALPH_VERSION:-unknown}"
+echo "  RALPH WIGGUM v${RALPH_VERSION:-unknown} (${RALPH_SOURCE})"
 echo "  Autonomous Loop Mode"
 echo "========================================"
 echo ""
