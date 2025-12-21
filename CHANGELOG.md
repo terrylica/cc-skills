@@ -1,3 +1,10 @@
+## [5.21.1](https://github.com/terrylica/cc-skills/compare/v5.21.0...v5.21.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** trim stop hook output to concise status only ([6bfc8d1](https://github.com/terrylica/cc-skills/commit/6bfc8d162d50ddceb8f59d88ca672707a81a8506))
+
 # [5.21.0](https://github.com/terrylica/cc-skills/compare/v5.20.0...v5.21.0) (2025-12-21)
 
 
