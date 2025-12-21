@@ -1,3 +1,10 @@
+## [5.19.2](https://github.com/terrylica/cc-skills/compare/v5.19.1...v5.19.2) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** add no-focus mode convergence detection ([05330ff](https://github.com/terrylica/cc-skills/commit/05330ffb12feaf7e6bf8a3be137d843ac1945ec7))
+
 ## [5.19.1](https://github.com/terrylica/cc-skills/compare/v5.19.0...v5.19.1) (2025-12-21)
 
 
