@@ -145,27 +145,87 @@ Before committing to an action, answer honestly:
 
 **If you cannot answer #5 with YES, find different work.**
 
-### WEB RESEARCH (P5 - SOTA Discovery)
+### WEB RESEARCH → IMPLEMENT → TEST (P5 - Dynamic SOTA)
 
-**Every 3rd iteration**, search for state-of-the-art techniques:
+**Every 3rd iteration OR when stuck**, execute this cycle:
 
-1. **Use WebSearch** with queries like:
-   - "algorithmic trading machine learning 2024 2025 state of the art"
-   - "time series forecasting neural network latest research"
-   - "quantitative finance feature engineering best practices"
-   - "walk-forward optimization overfitting prevention"
+#### Step 1: Iterative Search (SEED → EXPAND → DRILL)
 
-2. **Evaluate findings against current approach**:
-   - Is there a technique we haven't tried?
-   - Are we using outdated methods?
-   - What are top quant funds publishing about?
+**Round 1 - SEED (broad context-aware query):**
 
-3. **Integrate valuable discoveries**:
-   - Add to ROADMAP.md as new P1/P2 items
-   - Document in research_log.md for future reference
-   - Test via `/research` if promising
+```python
+# Build initial query from YOUR current state:
+current_model = "BiLSTM"  # from best_configs/
+bottleneck = "WFE < 0.5"  # from research_log.md
+```
 
-**Trigger condition**: `iteration % 3 == 0` OR when stuck (< 5% improvement for 2 sessions)
+```
+WebSearch("{current_model} {bottleneck} improvement 2024 2025")
+```
+
+**Round 2 - EXPAND (use keywords FROM Round 1 results):**
+
+Initial search results mention new terms. USE THOSE for deeper search:
+
+```
+# If Round 1 mentioned "attention mechanism":
+WebSearch("attention mechanism LSTM time series implementation")
+
+# If Round 1 mentioned "Temporal Fusion Transformer":
+WebSearch("Temporal Fusion Transformer crypto trading Python")
+
+# Extract 2-3 promising technique names and search each
+```
+
+**Round 3 - DRILL (find implementation code):**
+
+```
+WebSearch("{technique_from_round2} PyTorch implementation github")
+WebSearch("{technique_from_round2} code example step by step")
+```
+
+**PATTERN: Each search informs the next → Extract keywords → Search deeper → Until IMPLEMENTATION details found.**
+
+#### Step 2: Extract Actionable Techniques
+
+From search results, extract techniques as **implementation tickets**:
+
+```markdown
+## SOTA Queue (from WebSearch iteration {{ iteration }})
+
+| Technique          | Source | Implementation                    | Priority |
+| ------------------ | ------ | --------------------------------- | -------- |
+| [Name from search] | [URL]  | [How to implement in alpha-forge] | P1/P2    |
+```
+
+**Write this table to `research_log.md`** - this becomes your implementation backlog.
+
+#### Step 3: IMPLEMENT IMMEDIATELY
+
+**DO NOT just document. IMPLEMENT the top technique NOW:**
+
+1. Create/modify Python file in `src/alpha_forge/`
+2. Add to strategy YAML configuration
+3. Invoke `/research` to test it
+
+```python
+# Example: If WebSearch found "Temporal Fusion Transformer"
+# → Create src/alpha_forge/models/tft.py
+# → Add to strategy YAML: model_type: tft
+# → Run /research to evaluate
+```
+
+#### Step 4: Record Results
+
+After `/research` completes:
+
+- Did the SOTA technique improve Sharpe?
+- Update SOTA Queue with results
+- Move to next technique if no improvement
+
+**Trigger**: `iteration % 3 == 0` OR sharpe_delta < 5% for 2 sessions
+
+**CRITICAL**: WebSearch alone is worthless. The value is in IMPLEMENTING what you find.
 
 ---
 
@@ -175,14 +235,14 @@ Before committing to an action, answer honestly:
 
 After `/research` completes (or before starting new session):
 
-| Condition                           | Action       | Next Step                               |
-| ----------------------------------- | ------------ | --------------------------------------- |
-| Sharpe improved > 10%               | **CONTINUE** | Invoke `/research` with evolved config  |
-| Sharpe improved 5-10%               | **REFINE**   | Minor adjustments, invoke `/research`   |
-| Sharpe improved < 5% for 2 sessions | **PIVOT**    | Try SOTA technique, invoke `/research`  |
-| WFE < 0.5 (overfitting)             | **FIX**      | Add regularization, invoke `/research`  |
-| All experts: "no recommendations"   | **EXPLORE**  | Try new asset/model, invoke `/research` |
-| Sharpe regressed > 20%              | **REVERT**   | Use previous config, invoke `/research` |
+| Condition                           | Action       | Next Step                                   |
+| ----------------------------------- | ------------ | ------------------------------------------- |
+| Sharpe improved > 10%               | **CONTINUE** | Invoke `/research` with evolved config      |
+| Sharpe improved 5-10%               | **REFINE**   | Minor adjustments, invoke `/research`       |
+| Sharpe improved < 5% for 2 sessions | **PIVOT**    | WebSearch → implement finding → `/research` |
+| WFE < 0.5 (overfitting)             | **FIX**      | Add regularization, invoke `/research`      |
+| All experts: "no recommendations"   | **EXPLORE**  | Try new asset/model, invoke `/research`     |
+| Sharpe regressed > 20%              | **REVERT**   | Use previous config, invoke `/research`     |
 
 **CRITICAL: Every action ends with invoking `/research`. No exceptions.**
 
@@ -192,13 +252,14 @@ After `/research` completes (or before starting new session):
 IF WFE < 0.5:
     → FIX: Add dropout/regularization, invoke /research
 ELIF sharpe_delta < 5% for 2 consecutive sessions:
-    → PIVOT: Implement SOTA technique, invoke /research
+    → PIVOT: WebSearch for new technique → IMPLEMENT it → /research
 ELIF sharpe_delta > 10%:
     → CONTINUE: Evolve config, invoke /research
 ELSE:
     → REFINE: Small adjustments, invoke /research
 
 ALWAYS invoke /research. NEVER just report status.
+WebSearch findings must be IMPLEMENTED, not just documented.
 ```
 
 ---
@@ -218,20 +279,23 @@ ALWAYS invoke /research. NEVER just report status.
    YES → Fix it, then invoke /research to validate
    NO  → Go to step 3
 
-3. Are there SOTA techniques from web research not yet tested?
-   YES → Implement the highest-priority one, invoke /research
-   NO  → Go to step 4
+3. Check research_log.md for SOTA Queue (from previous WebSearch):
+   HAS UNTESTED TECHNIQUES → Pick top one, IMPLEMENT it, /research
+   QUEUE EMPTY → Go to step 4
 
-4. Can you improve the current best strategy?
-   YES → Modify config (features/lr/labels), invoke /research
-   NO  → Go to step 5
+4. Run WebSearch NOW to discover new techniques:
+   → Execute 3-5 searches (see PHASE 2 queries)
+   → Extract techniques to SOTA Queue in research_log.md
+   → IMPLEMENT the most promising one
+   → Invoke /research
 
-5. Create a NEW research direction:
-   - Pick unexplored asset pair
-   - Try different model architecture
-   - Test new feature combination
+5. If WebSearch yields nothing new:
+   - Pick unexplored asset pair (ETH, SOL, etc.)
+   - Try different model config (larger hidden, more layers)
    → Invoke /research with new config
 ```
+
+**KEY: Step 3-4 is WebSearch → IMPLEMENT → /research. Never skip implementation.**
 
 ### PRIMARY ACTION: Invoke /research
 
@@ -267,14 +331,16 @@ ALWAYS invoke /research. NEVER just report status.
 
 **DO NOT idle. Instead:**
 
-1. Check `research_log.md` for documented SOTA techniques
-2. Implement the first untested technique:
-   - Multi-Head Attention layer
-   - GRU model alternative
-   - CPCV validation
-   - Wavelet denoising
-3. Create the code (no ADR needed for <200 lines)
-4. Invoke `/research` to test it
+1. Check `research_log.md` for **SOTA Queue** (populated by WebSearch)
+2. Pick the **first untested technique** from the queue
+3. IMPLEMENT it in `src/alpha_forge/`:
+   - New model? → Create `models/<technique>.py`
+   - New feature? → Add to `features/` module
+   - New validation? → Modify `validation/` module
+4. Update strategy YAML to use the new implementation
+5. Invoke `/research` to test it
+
+**If SOTA Queue is empty → Run WebSearch NOW to populate it.**
 
 ### The Recursion
 
