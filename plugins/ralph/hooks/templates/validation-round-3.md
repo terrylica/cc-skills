@@ -5,6 +5,18 @@ phase: validation
 round: 3
 ---
 
+## AUTONOMOUS MODE
+
+**CRITICAL**: You are running in AUTONOMOUS LOOP MODE.
+
+- DO NOT use AskUserQuestion
+- DO NOT ask "what should I work on next?"
+- DO NOT call /ralph:stop
+- DO NOT stop the session on your own
+- Make decisions autonomously and proceed to exploration phase
+
+---
+
 **VALIDATION ROUND 3** - Consistency Audit (Parallel)
 
 Spawn in parallel:
@@ -24,3 +36,12 @@ After both complete, compute validation score:
 - All docs aligned = +0.1
 - Coverage gaps ≤2 = +0.1
 - Score >= 0.8 = VALIDATION COMPLETE → proceed to EXPLORATION
+
+---
+
+## AFTER ROUND 3 COMPLETES
+
+1. Calculate validation score based on findings
+2. If score >= 0.8, validation is COMPLETE - proceed to EXPLORATION phase
+3. If score < 0.8, the loop will continue improving until thresholds are met
+4. **DO NOT stop** - the loop will automatically transition to exploration phase

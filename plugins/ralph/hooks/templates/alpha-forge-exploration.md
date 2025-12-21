@@ -99,6 +99,28 @@ Before committing to an action, answer honestly:
 
 **If you cannot answer #5 with YES, find different work.**
 
+### WEB RESEARCH (P5 - SOTA Discovery)
+
+**Every 3rd iteration**, search for state-of-the-art techniques:
+
+1. **Use WebSearch** with queries like:
+   - "algorithmic trading machine learning 2024 2025 state of the art"
+   - "time series forecasting neural network latest research"
+   - "quantitative finance feature engineering best practices"
+   - "walk-forward optimization overfitting prevention"
+
+2. **Evaluate findings against current approach**:
+   - Is there a technique we haven't tried?
+   - Are we using outdated methods?
+   - What are top quant funds publishing about?
+
+3. **Integrate valuable discoveries**:
+   - Add to ROADMAP.md as new P1/P2 items
+   - Document in research_log.md for future reference
+   - Test via `/research` if promising
+
+**Trigger condition**: `iteration % 3 == 0` OR when stuck (< 5% improvement for 2 sessions)
+
 ---
 
 ## PHASE 3: DECIDE (Checkpoint Gate)
@@ -228,5 +250,16 @@ Only commit work that:
 
 ---
 
+## ITERATION STATUS
+
+**Current iteration**: {{ iteration }}
+{% if iteration % 3 == 0 %}
+⚠️ **WEB RESEARCH TRIGGERED** - This is iteration {{ iteration }} (divisible by 3).
+Execute WebSearch for SOTA techniques before proceeding with /research.
+{% endif %}
+
+---
+
 **NEVER idle. ALWAYS advance through OODA. ALWAYS log learnings for next iteration.**
 **Trust alpha-forge's /research for inner loop. Own the outer loop decisions.**
+**Every 3rd iteration: Search web for SOTA techniques to stay current.**
