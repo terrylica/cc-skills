@@ -25,7 +25,6 @@ Schema per Claude Code docs:
 import json
 import logging
 import os
-import subprocess
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -37,8 +36,6 @@ from core.path_hash import build_state_file_path, load_session_state
 from core.registry import AdapterRegistry
 from discovery import (
     discover_target_file,
-    format_candidate_list,
-    get_rssi_exploration_context,
 )
 from template_loader import get_loader
 from utils import (
@@ -46,7 +43,6 @@ from utils import (
     allow_stop,
     continue_session,
     detect_loop,
-    extract_section,
     get_elapsed_hours,
     hard_stop,
 )
@@ -125,29 +121,33 @@ def build_continuation_prompt(
     state: dict | None = None,
     no_focus: bool = False,
 ) -> str:
-    """Build context-rich continuation prompt with RSSI modes.
-
-    Mode progression:
-    1. IMPLEMENTATION - Working on checklist items (task_complete=False)
-    2. VALIDATION - Multi-round validation after task complete
-    3. EXPLORATION - Discovery and self-improvement (always in no_focus mode)
-    """
+    """Build continuation prompt - minimal for no_focus, detailed for focused mode."""
     if state is None:
         state = {}
 
+    # Detect adapter early
+    adapter_name = state.get("adapter_name", "")
+    if not adapter_name and project_dir:
+        adapter_name = _detect_alpha_forge_simple(project_dir)
+
+    # ===== NO_FOCUS MODE: Ultra-minimal output =====
+    if no_focus:
+        # Just iteration count and the core action loop
+        parts = [f"**RSSI** iter {iteration} | {elapsed:.1f}h"]
+        if adapter_name == "alpha-forge":
+            parts.append("WebSearch SOTA → implement → /research → validate → repeat")
+        return " | ".join(parts)
+
+    # ===== FOCUSED MODE: Full context for implementation/validation =====
     parts = []
     remaining_hours = max(0, config["min_hours"] - elapsed)
     remaining_iters = max(0, config.get("min_iterations", 50) - iteration)
 
-    # Determine current mode based on RSSI state
     validation_exhausted = state.get("validation_exhausted", False)
     validation_round = state.get("validation_round", 0)
     enable_validation = config.get("enable_validation_phase", True)
 
-    # In no_focus mode, ALWAYS use exploration (RSSI eternal loop)
-    if no_focus:
-        mode = "EXPLORATION"
-    elif not task_complete:
+    if not task_complete:
         mode = "IMPLEMENTATION"
     elif enable_validation and not validation_exhausted:
         mode = f"VALIDATION (Round {validation_round}/3)"
@@ -159,130 +159,23 @@ def build_continuation_prompt(
         f"{elapsed:.1f}h elapsed | {remaining_hours:.1f}h / {remaining_iters} iters remaining"
     )
 
-    # Add task_prompt from config if present
-    task_prompt = config.get("task_prompt", "")
-    if task_prompt:
-        parts.append(f"\n**TASK**: {task_prompt}")
-
-    # Add discovery method and focus file
-    # Special handling for Alpha Forge research sessions
-    if discovery_method == "alpha_forge_research" and candidate_files:
-        parts.append("\n**RESEARCH SESSIONS** (Read these to understand context):")
-        for i, session_path in enumerate(candidate_files, 1):
-            parts.append(f"  {i}. {session_path}")
-        parts.append("\nUse the Read tool to examine these research logs before continuing.")
-    elif plan_file and discovery_method:
+    # Focus file context (only in focused mode)
+    if plan_file and discovery_method:
         parts.append(f"\n**Focus file** (via {discovery_method}): {plan_file}")
     elif plan_file:
         parts.append(f"\n**Focus file**: {plan_file}")
 
-    # Add candidate files if multiple were found (not for alpha_forge_research)
-    if candidate_files and len(candidate_files) > 1 and discovery_method != "alpha_forge_research":
-        parts.append(format_candidate_list(candidate_files, discovery_method.replace("_", " ")))
-
-    # Extract context from plan file
-    if plan_file and Path(plan_file).exists():
-        try:
-            plan_content = Path(plan_file).read_text()
-            if "## Current Focus" in plan_content:
-                focus = extract_section(plan_content, "## Current Focus")
-                if focus:
-                    parts.append(f"\n**CURRENT FOCUS**:\n{focus[:500]}")
-            dead_ends = []
-            for line in plan_content.split('\n'):
-                if 'dead end' in line.lower() or '❌' in line or 'AVOID:' in line:
-                    dead_ends.append(line.strip())
-            if dead_ends:
-                parts.append("\n**AVOID (already tried, failed)**:\n" + "\n".join(dead_ends[:5]))
-            if "## User Decisions" in plan_content:
-                decisions = extract_section(plan_content, "## User Decisions")
-                if decisions:
-                    parts.append(f"\n**USER DECISIONS (must respect)**:\n{decisions[:500]}")
-        except OSError:
-            pass
-
-    # Add exploration log context
-    if project_dir:
-        exploration_log = Path(project_dir) / ".claude/exploration_log.jsonl"
-        if exploration_log.exists():
-            try:
-                lines = exploration_log.read_text().strip().split('\n')[-3:]
-                recent = []
-                for line in lines:
-                    if line.strip():
-                        entry = json.loads(line)
-                        recent.append(
-                            f"- [{entry.get('action', 'unknown')}] "
-                            f"{entry.get('target', '')} → {entry.get('outcome', '')}"
-                        )
-                if recent:
-                    parts.append("\n**RECENT ACTIONS** (continue from here):\n" + "\n".join(recent))
-            except (json.JSONDecodeError, KeyError, OSError):
-                pass
-
-    # Add git context
-    if project_dir:
-        try:
-            result = subprocess.run(
-                ["git", "diff", "--stat", "HEAD~3", "--", "."],
-                cwd=project_dir,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                parts.append(f"\n**RECENT GIT CHANGES**:\n```\n{result.stdout[:300]}\n```")
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-            pass
-
-    # Adapter-specific status (only shown if adapter has opinion)
+    # Mode-specific prompts
     loader = get_loader()
-    adapter_name = state.get("adapter_name", "")
-    adapter_convergence = state.get("adapter_convergence")
-    if adapter_name and adapter_convergence:
-        adapter_status = loader.render_adapter_status(
-            adapter_name=adapter_name,
-            adapter_convergence=adapter_convergence,
-            metrics_history=adapter_convergence.get("metrics_history")
-        )
-        if adapter_status:
-            parts.append(adapter_status)
 
-    # Mode-specific prompts (loaded from templates/)
-    # In no_focus mode, ALWAYS use exploration (RSSI eternal loop)
-
-    if no_focus:
-        # RSSI Eternal Loop: Concise status only (templates are in skills)
-        rssi_context = get_rssi_exploration_context(project_dir) if project_dir else {}
-        opportunities = rssi_context.get("opportunities", [])
-        state["opportunities_discovered"] = opportunities
-        state["rssi_iteration"] = rssi_context.get("iteration", 0)
-
-        # Detect adapter for concise status
-        adapter_name = state.get("adapter_name", "")
-        if not adapter_name and project_dir:
-            adapter_name = _detect_alpha_forge_simple(project_dir)
-
-        # Concise action prompt (NOT the full template)
-        if adapter_name == "alpha-forge":
-            parts.append("\n**ACTION**: Read `research_log.md` → pick next technique → invoke `/research`")
-            parts.append("**If stuck**: Run WebSearch for SOTA techniques → implement → test")
-        else:
-            parts.append("\n**ACTION**: Continue autonomous work. Check ROADMAP for priorities.")
-
-    elif not task_complete:
+    if not task_complete:
         parts.append(loader.render("implementation-mode.md"))
 
     elif enable_validation and not validation_exhausted:
-        # Advance validation round on each stop hook call
-        # Round 0 → 1 (initial), then 1 → 2 → 3 on subsequent calls
         validation_round = state.get("validation_round", 0)
-        validation_round += 1  # Advance to next round
+        validation_round += 1
         state["validation_round"] = validation_round
-
-        # Cap at round 3 (if still in validation after round 3, repeat round 3)
         render_round = min(validation_round, 3)
-
         logger.info(f"Validation round: {validation_round} (rendering round {render_round})")
         parts.append(build_validation_round_prompt(render_round, state, config))
 
@@ -294,18 +187,9 @@ def build_continuation_prompt(
             )
 
     else:
-        # RSSI Eternal Loop: Concise status only (templates are in skills)
-        rssi_context = get_rssi_exploration_context(project_dir) if project_dir else {}
-        opportunities = rssi_context.get("opportunities", [])
-        state["opportunities_discovered"] = opportunities
-        state["rssi_iteration"] = rssi_context.get("iteration", 0)
-
-        # Concise action prompt (NOT the full template or expert prompts)
+        # Exploration mode in focused context
         if adapter_name == "alpha-forge":
-            parts.append("\n**ACTION**: Read `research_log.md` → pick next technique → invoke `/research`")
-            parts.append("**If stuck**: Run WebSearch for SOTA techniques → implement → test")
-        elif adapter_name:
-            parts.append(f"\n**ACTION**: Continue {adapter_name} optimization. Check metrics and iterate.")
+            parts.append("\n**ACTION**: WebSearch SOTA → implement → /research → validate → repeat")
         else:
             parts.append("\n**ACTION**: Continue autonomous work. Check ROADMAP for priorities.")
 
