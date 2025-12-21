@@ -1,3 +1,10 @@
+## [5.21.2](https://github.com/terrylica/cc-skills/compare/v5.21.1...v5.21.2) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** ultra-minimal RSSI hook output for no_focus mode ([ce1200a](https://github.com/terrylica/cc-skills/commit/ce1200aea829e990baca0127d53399e1a67a6d4d))
+
 ## [5.21.1](https://github.com/terrylica/cc-skills/compare/v5.21.0...v5.21.1) (2025-12-21)
 
 
