@@ -1,3 +1,42 @@
+# [6.4.0](https://github.com/terrylica/cc-skills/compare/v6.3.1...v6.4.0) (2025-12-21)
+
+
+### Bug Fixes
+
+* **asciinema-player:** upgrade to v3.10.0 for asciicast v3 support ([44db67c](https://github.com/terrylica/cc-skills/commit/44db67c2240ba01b78accf3bd37553bb50c252d5))
+* **asciinema-player:** use available port when default is occupied ([fa55afc](https://github.com/terrylica/cc-skills/commit/fa55afcb9cb717d829429cdde721514ece925bb9))
+
+
+### Features
+
+* **asciinema-player:** redesign with mandatory AskUserQuestion flows and preflight checks ([d3985a8](https://github.com/terrylica/cc-skills/commit/d3985a808fd88406c57f25eebe29301516017a8f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-player/SKILL.md) - updated
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Example: If WebSearch found "Temporal Fusion Transformer"](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-exploration.md) - updated
+
 ## [6.3.1](https://github.com/terrylica/cc-skills/compare/v6.3.0...v6.3.1) (2025-12-21)
 
 
