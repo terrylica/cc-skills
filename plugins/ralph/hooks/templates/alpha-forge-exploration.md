@@ -14,6 +14,52 @@ Your role: **decide WHEN and HOW to invoke /research**, learning from each sessi
 
 ---
 
+## DATA INTEGRITY (NON-NEGOTIABLE)
+
+**CRITICAL**: All research MUST use REAL historical data. NEVER synthetic/fake data.
+
+### Mandatory Data Requirements
+
+| Requirement                          | Enforcement                                                        | Violation = STOP                   |
+| ------------------------------------ | ------------------------------------------------------------------ | ---------------------------------- |
+| **Real historical data ONLY**        | Use `gapless-crypto-data`, Binance API, or configured data sources | Creating fake OHLCV data           |
+| **No synthetic generation**          | Never generate price/volume data programmatically                  | Using `np.random`, fake generators |
+| **No paper trading during research** | Research = historical backtesting only                             | Connecting to live/paper feeds     |
+| **Immutable data periods**           | Train/valid/test splits are FIXED in strategy YAML                 | Modifying date ranges              |
+| **Source verification**              | Data must come from cache or authenticated API                     | Hardcoded price arrays             |
+
+### What This Means
+
+1. **Research phase = Historical backtesting ONLY**
+   - Use existing cached data from `data/cache/`
+   - Use `gapless-crypto-data` PyPI package for new data
+   - NEVER connect to live feeds or paper trading APIs
+
+2. **If data is missing**:
+   - Fetch from authenticated source (Binance Spot via gapless-crypto-data)
+   - Cache for reproducibility
+   - Document data source in experiment metadata
+
+3. **FORBIDDEN during research**:
+   - `np.random.randn()` for price simulation
+   - Synthetic market generators
+   - Live WebSocket connections
+   - Paper trading APIs (Alpaca paper, Binance testnet, etc.)
+
+### Verification
+
+Before any `/research` invocation, confirm:
+
+```
+✓ Data source: gapless-crypto-data or cached historical
+✓ Data type: Real OHLCV from Binance Spot
+✓ Mode: Historical backtest (NOT live/paper)
+```
+
+**If you cannot verify data authenticity, STOP and report.**
+
+---
+
 ## AUTONOMOUS MODE
 
 **CRITICAL**: You are running in AUTONOMOUS LOOP MODE.
