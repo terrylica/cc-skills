@@ -237,10 +237,10 @@ This establishes the baseline version for semantic-release.
 npm install
 
 # Dry run (no changes, just preview)
-GITHUB_TOKEN=dummy npx semantic-release --dry-run
+GITHUB_TOKEN=dummy semantic-release --dry-run
 
 # Real release (local, use gh CLI - ⚠️ AVOID manual tokens)
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release'
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release'
 ```
 
 ### Automated Releases via GitHub Actions
@@ -317,11 +317,11 @@ git push  # If ahead
 
 ```bash
 # For testing (dry-run doesn't need real credentials)
-GITHUB_TOKEN=dummy npx semantic-release --dry-run
+GITHUB_TOKEN=dummy semantic-release --dry-run
 
 # For real release - use gh CLI web auth (⚠️ NEVER create manual tokens)
 # First authenticate: gh auth login
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release'
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release'
 ```
 
 ### sed command fails on Linux
@@ -350,7 +350,7 @@ Set `TWINE_USERNAME` and `TWINE_PASSWORD` in GitHub Secrets.
 
 **Better: Use OIDC trusted publishing** (recommended 2025):
 
-1. Configure at https://pypi.org/manage/account/publishing/
+1. Configure at <https://pypi.org/manage/account/publishing/>
 2. Update workflow to use `pypa/gh-action-pypi-publish@release/v1`
 
 ## References

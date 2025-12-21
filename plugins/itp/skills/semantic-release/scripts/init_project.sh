@@ -75,6 +75,33 @@ else
 fi
 echo ""
 
+# Priority 3: Check global semantic-release (macOS only - avoids Gatekeeper issues)
+if [[ "$(uname)" == "Darwin" ]]; then
+    echo "Priority 3: Global semantic-release (macOS Gatekeeper workaround)"
+    if command -v semantic-release &> /dev/null; then
+        echo "✅ semantic-release installed globally"
+        echo "   Use 'semantic-release --no-ci' directly for local releases"
+    else
+        echo "⚠️  semantic-release not installed globally"
+        echo "   macOS Gatekeeper blocks npx .node files. Install globally:"
+        echo ""
+        echo "   npm install -g semantic-release @semantic-release/changelog \\"
+        echo "     @semantic-release/git @semantic-release/github @semantic-release/exec"
+        echo ""
+        echo "   Then clear quarantine (one-time after install or node upgrade):"
+        echo "   xattr -r -d com.apple.quarantine ~/.local/share/mise/installs/node/"
+        echo ""
+        echo "   See: $SKILL_DIR/references/troubleshooting.md#macos-gatekeeper-blocks-node-files"
+        echo ""
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    fi
+    echo ""
+fi
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -234,6 +261,12 @@ echo "Next steps:"
 echo "  1. git add ."
 echo "  2. git commit -m 'chore: setup semantic-release'"
 echo "  3. git push origin main"
+echo ""
+echo "Local release (macOS - use global install to avoid Gatekeeper):"
+echo "  /usr/bin/env bash -c 'GITHUB_TOKEN=\$(gh auth token) semantic-release --no-ci'"
+echo ""
+echo "CI release (GitHub Actions):"
+echo "  Automatically runs on push to main (uses local node_modules)"
 echo ""
 echo "Conventional Commits format:"
 echo "  feat: → MINOR (0.1.0 → 0.2.0)"

@@ -119,14 +119,16 @@ git push https://github.com/user/repo.git main
 Set environment and run:
 
 ```bash
-/usr/bin/env bash -c 'export GIT_OPTIONAL_LOCKS=0 && GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci'
+/usr/bin/env bash -c 'export GIT_OPTIONAL_LOCKS=0 && GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
 ```
 
 **For dry-run** (no changes):
 
 ```bash
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run'
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci --dry-run'
 ```
+
+> **Note**: Use `semantic-release` directly (global install) instead of `npx semantic-release` to avoid macOS Gatekeeper blocking `.node` native modules. See [Troubleshooting](./troubleshooting.md#macos-gatekeeper-blocks-node-files).
 
 ### Step 5: Verify Post-Release State
 
@@ -274,7 +276,7 @@ ssh -T git@github.com
 # Should show expected account
 
 # Retry release
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci'
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
 ```
 
 **Prevention (Recommended for Multi-Account Setups)**:

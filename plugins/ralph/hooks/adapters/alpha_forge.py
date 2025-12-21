@@ -67,9 +67,10 @@ class AlphaForgeAdapter(ProjectAdapter):
         2. Monorepo: packages/*/pyproject.toml contains 'alpha-forge'
         3. Characteristic directory: packages/alpha-forge-core/ exists
         4. Experiment outputs: outputs/runs/ directory exists
+        5. Parent directories contain alpha-forge markers (subdirectory detection)
 
         Args:
-            project_dir: Path to project root
+            project_dir: Path to project root (may be a subdirectory)
 
         Returns:
             True if Alpha Forge project detected
@@ -105,6 +106,34 @@ class AlphaForgeAdapter(ProjectAdapter):
         if (project_dir / "outputs" / "runs").is_dir():
             logger.debug("Detected alpha-forge via outputs/runs/")
             return True
+
+        # Strategy 5: Check parent directories (when CWD is a subdirectory)
+        current = project_dir
+        for _ in range(5):  # Limit traversal depth
+            parent = current.parent
+            if parent == current:  # Reached filesystem root
+                break
+            # Check parent's pyproject.toml
+            parent_pyproject = parent / "pyproject.toml"
+            if parent_pyproject.exists():
+                try:
+                    content = parent_pyproject.read_text()
+                    if "alpha-forge" in content or "alpha_forge" in content:
+                        logger.debug(f"Detected alpha-forge via parent: {parent}")
+                        return True
+                except OSError:
+                    pass
+            # Check for alpha-forge packages in parent
+            parent_packages = parent / "packages"
+            if parent_packages.is_dir():
+                if (parent_packages / "alpha-forge-core").is_dir():
+                    logger.debug(f"Detected alpha-forge via parent packages: {parent}")
+                    return True
+            # Check for outputs/runs in parent
+            if (parent / "outputs" / "runs").is_dir():
+                logger.debug(f"Detected alpha-forge via parent outputs: {parent}")
+                return True
+            current = parent
 
         return False
 

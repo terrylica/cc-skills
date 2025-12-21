@@ -369,15 +369,27 @@ PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/p
 
 Follow the [Local Release Workflow](./references/local-release-workflow.md) for the complete process.
 
+**One-time setup (recommended for macOS)**:
+
+```bash
+# Install globally to avoid macOS Gatekeeper issues with npx
+npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github @semantic-release/exec
+
+# Clear quarantine (required on macOS after install or node upgrade)
+xattr -r -d com.apple.quarantine ~/.local/share/mise/installs/node/
+```
+
 **Quick commands**:
 
 ```bash
 # Dry-run first (no changes)
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci --dry-run'
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci --dry-run'
 
 # Create actual release
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci'
+/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
 ```
+
+> **Note**: Use `semantic-release` directly (not `npx semantic-release`) to avoid macOS Gatekeeper blocking `.node` native modules. See [Troubleshooting](./references/troubleshooting.md#macos-gatekeeper-blocks-node-files).
 
 **Files updated instantly**: `package.json`, `CHANGELOG.md`, Git tags, GitHub release.
 
