@@ -564,7 +564,7 @@ def main():
             metrics = adapter.get_metrics_history(
                 Path(project_dir), state.get("started_at", "")
             )
-            convergence = adapter.check_convergence(metrics)
+            convergence = adapter.check_convergence(metrics, Path(project_dir))
             state["adapter_convergence"] = {
                 "should_continue": convergence.should_continue,
                 "reason": convergence.reason,

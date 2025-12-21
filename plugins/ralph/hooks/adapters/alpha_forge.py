@@ -192,28 +192,66 @@ class AlphaForgeAdapter(ProjectAdapter):
             logger.warning(f"Skipping {run_dir.name}: {e}")
             return None
 
+    def _detect_research_completion(self, project_dir: Path) -> tuple[bool, str]:
+        """Detect if a research session has completed.
+
+        Research is complete when:
+        1. research_summary.md exists in outputs/research_sessions/*/
+        2. best_configs/ directory has files
+
+        Args:
+            project_dir: Path to project root
+
+        Returns:
+            (is_complete, reason)
+        """
+        sessions_dir = project_dir / "outputs" / "research_sessions"
+        if not sessions_dir.is_dir():
+            return False, "no research sessions"
+
+        # Find most recent session (sorted by name = timestamp)
+        sessions = sorted(sessions_dir.iterdir(), reverse=True)
+        if not sessions:
+            return False, "no sessions found"
+
+        latest = sessions[0]
+        summary = latest / "research_summary.md"
+        best_configs = latest / "best_configs"
+
+        if summary.exists():
+            return True, f"research_summary.md found in {latest.name}"
+        if best_configs.is_dir() and any(best_configs.iterdir()):
+            return True, f"best_configs found in {latest.name}"
+
+        return False, "research in progress"
+
     def check_convergence(
-        self, metrics_history: list[MetricsEntry]
+        self, metrics_history: list[MetricsEntry], project_dir: Path | None = None
     ) -> ConvergenceResult:
-        """Provide metrics status for display only.
+        """Check for task convergence including research completion.
 
-        IMPORTANT: This adapter does NOT influence stopping decisions.
-        All stopping is handled by Ralph's native RSSI scheme:
-        - Task completion markers
-        - Time limits (min/max hours)
-        - Iteration limits (min/max iterations)
-        - Validation phase exhaustion
-        - Loop detection
-
-        This method provides informational status for display purposes only,
-        always returning DEFAULT_CONFIDENCE (0.0) to defer to RSSI.
+        Signals completion when:
+        1. Research session completed (research_summary.md exists)
+        2. Best configs saved (best_configs/ has files)
 
         Args:
             metrics_history: List of metrics from completed runs
+            project_dir: Path to project root (for research detection)
 
         Returns:
-            ConvergenceResult with DEFAULT_CONFIDENCE (never influences stopping)
+            ConvergenceResult with high confidence if research complete
         """
+        # Check for research session completion FIRST
+        if project_dir:
+            is_complete, reason = self._detect_research_completion(project_dir)
+            if is_complete:
+                logger.info(f"Research complete: {reason}")
+                return ConvergenceResult(
+                    converged=True,
+                    confidence=0.95,  # High confidence to trigger stop
+                    reason=f"Research session complete: {reason}",
+                    metrics={"research_complete": True},
+                )
         n = len(metrics_history)
 
         if n == 0:

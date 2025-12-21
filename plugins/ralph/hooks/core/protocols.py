@@ -109,12 +109,13 @@ class ProjectAdapter(Protocol):
         ...
 
     def check_convergence(
-        self, metrics_history: list[MetricsEntry]
+        self, metrics_history: list[MetricsEntry], project_dir: Path | None = None
     ) -> ConvergenceResult:
         """Determine if loop should continue based on metrics.
 
         Args:
             metrics_history: List of metrics from completed runs
+            project_dir: Optional project directory for additional checks
 
         Returns:
             ConvergenceResult with should_continue, reason, and confidence
