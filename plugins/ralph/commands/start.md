@@ -322,16 +322,43 @@ RALPH_START_SCRIPT
 
 Run the bash script above to enable loop mode.
 
-## Step 3: Alpha Forge Research Session Handling
+## Step 3: Alpha Forge - OODA Initialization
 
 **If this is an Alpha Forge project** (detected by `outputs/research_sessions/` existing):
 
-After enabling loop mode, **immediately invoke the `/research` command** to continue the research loop:
+After enabling loop mode, begin the OODA cycle immediately:
 
-1. Read the most recent `research_log.md` from `outputs/research_sessions/*/`
-2. Find the latest strategy configuration in `best_configs/` or extract from log
-3. Invoke: `/research <strategy.yaml> --iterations=5 --objective=sharpe`
+### OBSERVE
 
-The `/research` command will orchestrate 5 expert subagents (feature-expert, model-expert, risk-analyst, data-specialist, domain-expert) and manage the experiment iteration loop autonomously.
+1. Read `outputs/research_sessions/*/research_summary.md` (most recent)
+2. Read `outputs/research_sessions/*/research_log.md` for expert recommendations
+3. Check `ROADMAP.md` for current P0/P1 priorities
 
-**Do NOT ask the user what to work on.** Just proceed with the research continuation.
+### ORIENT
+
+1. Compare metrics to previous session (look for delta)
+2. Synthesize expert recommendations from research_log.md
+3. Self-critique: Does the planned approach align with ROADMAP?
+
+### DECIDE
+
+Use the checkpoint gate:
+
+- Sharpe improved > 10%? → CONTINUE
+- Sharpe improved < 5% for 2 sessions? → PIVOT to next ROADMAP item
+- WFE < 0.5? → STOP and address overfitting first
+
+### ACT
+
+Invoke `/research` with the appropriate strategy:
+
+```
+/research <path/to/strategy.yaml> --iterations=5 --objective=sharpe
+```
+
+Ralph RSSI is **supplementary** to alpha-forge's `/research`:
+
+- `/research` owns the inner loop (5 iterations, 5 expert subagents)
+- Ralph owns the outer loop (session-to-session learning, OODA decisions)
+
+**Do NOT ask the user what to work on.** Proceed autonomously through OODA.
