@@ -284,37 +284,44 @@ BREAKING CHANGE: All API calls now require API key in Authorization header.
 
 ---
 
-## ADR/Design Spec Linking
+## Documentation Linking in Release Notes
 
-Link Architecture Decision Records (ADRs) and Design Specs in release notes automatically.
+Automatically include links to **all documentation changes** in release notes, with AI-friendly categorization.
 
-### Quick Setup
+### Quick Setup (Hardcoded Path)
 
-**Step 1**: Set environment variable before running semantic-release:
-
-```bash
-export ADR_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-adr-notes.mjs"
-```
-
-**Step 2**: Add to `.releaserc.yml` before `@semantic-release/changelog`:
+Add to `.releaserc.yml` before `@semantic-release/changelog`:
 
 ```yaml
 - - "@semantic-release/exec"
-  - generateNotesCmd: 'node "$ADR_NOTES_SCRIPT" ${lastRelease.gitTag}'
+  - generateNotesCmd: "node plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs ${lastRelease.gitTag}"
 ```
 
-**Why?** `@semantic-release/exec` uses lodash templates which interpret `${...}` as JavaScript. Using `$VAR` (no braces) bypasses lodash and lets bash expand it.
+### What's Detected
+
+The script categorizes all changed markdown files:
+
+| Category             | Pattern                                  | Grouping                        |
+| -------------------- | ---------------------------------------- | ------------------------------- |
+| **ADRs**             | `docs/adr/YYYY-MM-DD-slug.md`            | Status table                    |
+| **Design Specs**     | `docs/design/YYYY-MM-DD-slug/spec.md`    | List with change type           |
+| **Skills**           | `plugins/*/skills/*/SKILL.md`            | Grouped by plugin (collapsible) |
+| **Plugin READMEs**   | `plugins/*/README.md`                    | Simple list                     |
+| **Skill References** | `plugins/*/skills/*/references/*.md`     | Grouped by skill (collapsible)  |
+| **Commands**         | `plugins/*/commands/*.md`                | Grouped by plugin               |
+| **Root Docs**        | `CLAUDE.md`, `README.md`, `CHANGELOG.md` | Simple list                     |
+| **General Docs**     | `docs/*.md` (excluding adr/, design/)    | Simple list                     |
 
 ### How It Works
 
-The script detects ADRs via:
-
-1. **Git diff**: Files changed in `docs/adr/*.md` and `docs/design/*/spec.md`
-2. **Commit parsing**: References like `ADR: 2025-12-06-slug` in commit messages
+1. **Git diff detection**: All `.md` files changed since the last release tag
+2. **Change type tracking**: Marks files as `new`, `updated`, `deleted`, or `renamed`
+3. **Commit parsing**: References like `ADR: 2025-12-06-slug` in commit messages
+4. **ADR-Design Spec coupling**: If one is changed, the corresponding pair is included
 
 Full HTTPS URLs are generated (required for GitHub release pages).
 
-See [ADR Release Linking](./references/adr-release-linking.md) for detailed configuration.
+See [Documentation Release Linking](./references/doc-release-linking.md) for detailed configuration.
 
 ---
 
@@ -445,5 +452,5 @@ For detailed information, see:
 - [`pypi-doppler` skill](../pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler credentials and CI detection guards
 - [Monorepo Support](./references/monorepo-support.md) - pnpm/npm workspaces configuration
 - [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
-- [ADR Release Linking](./references/adr-release-linking.md) - Auto-link ADRs and Design Specs in release notes
+- [ADR Release Linking](./references/doc-release-linking.md) - Auto-link ADRs and Design Specs in release notes
 - [Resources](./references/resources.md) - Scripts, templates, and asset documentation

@@ -8,7 +8,7 @@ clarification-iterations: 4
 perspectives: [ProviderToOtherComponents, EcosystemArtifact]
 ---
 
-# ADR: ADR/Design Spec Links in Release Notes
+# ADR: Documentation Links in Release Notes
 
 **Design Spec**: [Implementation Spec](/docs/design/2025-12-06-release-notes-adr-linking/spec.md)
 
@@ -62,7 +62,7 @@ graph { label: "⏮️ Before / ⏭️ After: Release Notes Enhancement"; flow: 
 ╎ After:                                                                                                                    ╎
 ╎                                                                                                                           ╎
 ╎ ┌─────────────────────────┐     ┌────────────────────────┐     ┌────────────────────────┐            ┌──────────────────┐ ╎
-╎ │    semantic-release     │     │ @semantic-release/exec │     │ generate-adr-notes.mjs │  appends   │  GitHub Release  │ ╎
+╎ │    semantic-release     │     │ @semantic-release/exec │     │ generate-doc-notes.mjs │  appends   │  GitHub Release  │ ╎
 ╎ │                         │ ──> │    generateNotesCmd    │ ──> │  (git diff + commits)  │ ─────────> │ (with ADR links) │ ╎
 ╎ └─────────────────────────┘     └────────────────────────┘     └────────────────────────┘            └──────────────────┘ ╎
 ╎   │                                                                                                    ∧                  ╎
@@ -85,7 +85,7 @@ graph { label: "⏭️ After: Release Notes with ADR Links"; flow: east; }
   [sr] { label: "semantic-release"; }
   [notes] { label: "release-notes-generator"; }
   [exec] { label: "@semantic-release/exec\ngenerateNotesCmd"; }
-  [script] { label: "generate-adr-notes.mjs\n(git diff + commits)"; }
+  [script] { label: "generate-doc-notes.mjs\n(git diff + commits)"; }
   [gh] { label: "GitHub Release\n(with ADR links)"; }
 )
 
@@ -164,7 +164,7 @@ Chosen option: **Option C (Union of both)**, because it provides the most comple
 ## Architecture
 
 ```
-🏗️ generate-adr-notes.mjs Architecture
+🏗️ generate-doc-notes.mjs Architecture
 
                          ╭──────────────────────────────╮
                          │      lastRelease.gitTag      │
@@ -205,7 +205,7 @@ Chosen option: **Option C (Union of both)**, because it provides the most comple
 <summary>graph-easy source</summary>
 
 ```
-graph { label: "🏗️ generate-adr-notes.mjs Architecture"; flow: south; }
+graph { label: "🏗️ generate-doc-notes.mjs Architecture"; flow: south; }
 
 [input] { label: "lastRelease.gitTag"; shape: rounded; }
 [repo] { label: "git remote get-url origin"; }
@@ -226,7 +226,52 @@ graph { label: "🏗️ generate-adr-notes.mjs Architecture"; flow: south; }
 
 </details>
 
+## Scope Expansion (2025-12-21)
+
+### Extended Documentation Coverage
+
+The original implementation focused on ADRs and Design Specs. This expansion extends to **all markdown documentation**, enabling AI coding agents and humans to see a complete picture of documentation changes in each release.
+
+### New Category Structure
+
+```
+1. Architecture Decisions
+   ├── ADRs (docs/adr/*.md) - with status table
+   └── Design Specs (docs/design/*/spec.md)
+
+2. Plugin Documentation
+   ├── Skills (plugins/*/skills/*/SKILL.md) - grouped by plugin
+   ├── Plugin READMEs (plugins/*/README.md)
+   └── Skill References (plugins/*/skills/*/references/*.md) - collapsible
+
+3. Repository Documentation
+   ├── Root docs (CLAUDE.md, README.md, CHANGELOG.md)
+   └── General docs (docs/*.md excluding adr/, design/)
+
+4. Commands & Other
+   ├── Commands (plugins/*/commands/*.md)
+   └── Other markdown files (catch-all)
+```
+
+### Rationale
+
+| Decision                 | Choice                      | Rationale                                                |
+| ------------------------ | --------------------------- | -------------------------------------------------------- |
+| **Expanded scope**       | All markdown files          | AI agents benefit from complete documentation visibility |
+| **Categorization**       | Hierarchical structure      | Clear organization for both human and machine readers    |
+| **Collapsible sections** | `<details>` HTML tags       | Prevents verbose release notes when many skills change   |
+| **Change type tracking** | new/updated/deleted/renamed | Clear indication of what happened to each file           |
+| **Script rename**        | `generate-doc-notes.mjs`    | Reflects broader scope beyond just ADRs                  |
+
+### Implementation Changes
+
+- Script renamed from `generate-adr-notes.mjs` to `generate-doc-notes.mjs`
+- Reference file renamed from `adr-release-linking.md` to `doc-release-linking.md`
+- Configuration updated to use hardcoded relative path (no env var needed)
+- Environment variable changed from `ADR_NOTES_SCRIPT` to `DOC_NOTES_SCRIPT` for shareable configs
+
 ## References
 
 - [semantic-release skill](/plugins/itp/skills/semantic-release/SKILL.md)
 - [@semantic-release/exec plugin](https://github.com/semantic-release/exec)
+- [Documentation Release Linking Reference](/plugins/itp/skills/semantic-release/references/doc-release-linking.md)

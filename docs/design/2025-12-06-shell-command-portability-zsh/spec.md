@@ -56,7 +56,7 @@ GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci
 **Before:**
 
 ```bash
-export ADR_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/...}/scripts/generate-adr-notes.mjs"
+export DOC_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/...}/scripts/generate-doc-notes.mjs"
 GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci
 ```
 
@@ -64,7 +64,7 @@ GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci
 
 ```bash
 /usr/bin/env bash -c '
-export ADR_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/...}/scripts/generate-adr-notes.mjs"
+export DOC_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/...}/scripts/generate-doc-notes.mjs"
 GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci
 '
 ```

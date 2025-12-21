@@ -104,7 +104,7 @@ gitleaks_timeout = int(os.environ.get("AUDIT_GITLEAKS_TIMEOUT", "120"))
 
 ```toml
 [env]
-# ADR integration paths (used by generate-adr-notes.mjs)
+# ADR integration paths (used by generate-doc-notes.mjs)
 ADR_DIR = "docs/adr"
 DESIGN_DIR = "docs/design"
 
@@ -118,7 +118,7 @@ description = "Execute semantic-release"
 run = "/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) npx semantic-release --no-ci'"
 ```
 
-### generate-adr-notes.mjs Changes (if applicable)
+### generate-doc-notes.mjs Changes (if applicable)
 
 ```javascript
 // Replace hardcoded paths (line 16-17)
@@ -244,7 +244,7 @@ ADR_REQUIRED_FIELDS = os.environ.get(
 ### Phase 4: semantic-release
 
 - [x] Create `.mise.toml` with `[env]` section
-- [x] Update `generate-adr-notes.mjs` if it has hardcoded paths
+- [x] Update `generate-doc-notes.mjs` if it has hardcoded paths
 
 ---
 

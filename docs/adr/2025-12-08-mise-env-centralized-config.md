@@ -204,7 +204,7 @@ graph { label: "🏗️ Configuration Architecture"; flow: east; }
 | `code-hardcode-audit`      | `.mise.toml`, `audit_hardcodes.py`     | `AUDIT_PARALLEL_WORKERS`, `*_TIMEOUT`        |
 | `pypi-doppler`             | `.mise.toml`, `publish-to-pypi.sh`     | `DOPPLER_PROJECT`, `DOPPLER_CONFIG`          |
 | `implement-plan-preflight` | `.mise.toml`, `preflight_validator.py` | `ADR_DIR`, `DESIGN_DIR`, `*_REQUIRED_FIELDS` |
-| `semantic-release`         | `.mise.toml`, `generate-adr-notes.mjs` | `ADR_DIR`, `DESIGN_DIR`                      |
+| `semantic-release`         | `.mise.toml`, `generate-doc-notes.mjs` | `ADR_DIR`, `DESIGN_DIR`                      |
 
 ### Configuration Pattern
 

@@ -20,9 +20,10 @@ plugins:
   # ADR: 2025-12-06-release-notes-adr-linking
   # ADR: 2025-12-05-centralized-version-management
   - - "@semantic-release/exec"
-    # generateNotesCmd temporarily disabled (ADR_NOTES_SCRIPT not set)
-    # - generateNotesCmd: 'node "$ADR_NOTES_SCRIPT" ${lastRelease.gitTag}'
-    - prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
+    # All documentation changes in release notes
+    # ADR: 2025-12-06-release-notes-adr-linking
+    - generateNotesCmd: 'node plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs ${lastRelease.gitTag}'
+      prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
   - "@semantic-release/changelog"
   # marketplace.json-only versioning: no individual plugin.json files
   - - "@semantic-release/git"
