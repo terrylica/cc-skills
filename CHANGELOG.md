@@ -1,3 +1,10 @@
+## [5.11.1](https://github.com/terrylica/cc-skills/compare/v5.11.0...v5.11.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** add Alpha Forge research sessions to start.md discovery ([8229f38](https://github.com/terrylica/cc-skills/commit/8229f38f336307211486fef19f5483591d8ae7af))
+
 # [5.11.0](https://github.com/terrylica/cc-skills/compare/v5.10.4...v5.11.0) (2025-12-21)
 
 
