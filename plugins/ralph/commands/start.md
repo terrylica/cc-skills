@@ -91,8 +91,13 @@ MARKER="ralph/hooks/"
 # Retrieve version from cache directory (source of truth: installed plugin version)
 RALPH_CACHE="$HOME/.claude/plugins/cache/cc-skills/ralph"
 if [[ -d "$RALPH_CACHE" ]]; then
-    # Get highest semantic version from cache directories (exclude 'local')
-    RALPH_VERSION=$(ls "$RALPH_CACHE" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+    # Check for 'local' directory first (development symlink takes priority)
+    if [[ -d "$RALPH_CACHE/local" ]]; then
+        RALPH_VERSION="local-dev"
+    else
+        # Get highest semantic version from cache directories
+        RALPH_VERSION=$(ls "$RALPH_CACHE" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+    fi
 else
     RALPH_VERSION="unknown"
 fi
