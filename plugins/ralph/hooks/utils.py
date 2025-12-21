@@ -175,3 +175,72 @@ def hard_stop(reason: str) -> None:
     """
     logger.info(f"Hard stopping: {reason}")
     print(json.dumps({"continue": False, "stopReason": reason}))
+
+
+def send_convergence_notification(
+    reason: str,
+    elapsed_hours: float,
+    iteration: int,
+    project_dir: str | None = None,
+) -> None:
+    """Send notification when Ralph loop converges/stops.
+
+    Uses Pushover via CNS config. Called when allow_stop() is about to be invoked.
+    Runs async to avoid blocking the hook.
+
+    Args:
+        reason: Reason for convergence/stop
+        elapsed_hours: Total elapsed hours
+        iteration: Final iteration number
+        project_dir: Project directory for context
+    """
+    import subprocess
+    import threading
+
+    def _send():
+        try:
+            cns_config = Path.home() / ".claude/automation/cns/config/cns_config.json"
+            if not cns_config.exists():
+                logger.debug("CNS config not found, skipping notification")
+                return
+
+            config = json.loads(cns_config.read_text())
+            pushover_user = config.get("pushover", {}).get("user_key", "")
+            pushover_token = config.get("pushover", {}).get("app_token", "")
+
+            if not pushover_user or not pushover_token:
+                logger.debug("Pushover not configured, skipping notification")
+                return
+
+            # Build notification
+            folder_name = Path(project_dir).name if project_dir else "unknown"
+            hours_display = f"{elapsed_hours:.1f}h" if elapsed_hours >= 1 else f"{int(elapsed_hours * 60)}m"
+
+            title = f"🎯 Ralph RSSI Converged"
+            message = (
+                f"📁 {folder_name}\n"
+                f"⏱️ {hours_display} | 🔄 {iteration} iterations\n\n"
+                f"{reason[:200]}"
+            )
+
+            # Send via curl (fire-and-forget)
+            subprocess.run(
+                [
+                    "curl", "-s", "--connect-timeout", "3",
+                    "-F", f"token={pushover_token}",
+                    "-F", f"user={pushover_user}",
+                    "-F", f"message={message}",
+                    "-F", f"title={title}",
+                    "-F", "sound=cosmic",
+                    "https://api.pushover.net/1/messages.json"
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+            )
+            logger.info("Ralph convergence notification sent")
+        except Exception as e:
+            logger.warning(f"Failed to send convergence notification: {e}")
+
+    # Run async to avoid blocking
+    threading.Thread(target=_send, daemon=True).start()
