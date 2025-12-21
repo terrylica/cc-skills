@@ -1,3 +1,10 @@
+## [5.9.2](https://github.com/terrylica/cc-skills/compare/v5.9.1...v5.9.2) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** detect research completion and stop loop ([7b60d70](https://github.com/terrylica/cc-skills/commit/7b60d70cd3ea07ea3e70dfee48cc07a3932f103c))
+
 ## [5.9.1](https://github.com/terrylica/cc-skills/compare/v5.9.0...v5.9.1) (2025-12-21)
 
 
