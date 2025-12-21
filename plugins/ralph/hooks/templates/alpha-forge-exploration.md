@@ -22,37 +22,34 @@ Core mission: **OOS robustness** and **time series forecasting excellence**.
 
 ---
 
-## RESEARCH SESSION CONTINUATION
+## RESEARCH SESSION CONTINUATION (PRIMARY PROTOCOL)
 
-**When focus files are `research_log.md` from research sessions**:
+**This takes PRECEDENCE over all other protocols below.**
 
-You MUST invoke the `/research` command to continue the research loop. The `/research` command orchestrates 5 expert subagents for systematic strategy optimization.
+When Ralph RSSI provides focus files as `research_log.md` from research sessions, you MUST use the `/research` command. This is the **recursive core of RSSI** for Alpha Forge.
 
-**Protocol**:
+### Decision Flow
 
-1. **Read the research_log.md** to understand:
-   - Current iteration number
-   - Last configuration tested
-   - Key insights and patterns discovered
-   - Deferred recommendations
+| Step | Action                        | Details                                                                             |
+| ---- | ----------------------------- | ----------------------------------------------------------------------------------- |
+| 1    | **Check focus files**         | Are they `research_log.md`? If YES → continue. If NO → use ITERATION PROTOCOL below |
+| 2    | **Read research_log.md**      | Understand: current iteration, best Sharpe, WFE status, last changes                |
+| 3    | **Find latest config**        | Check `best_configs/*.yaml` or extract from research_log.md                         |
+| 4    | **Invoke /research**          | `/research <strategy.yaml> --iterations=5` — this IS the recursion                  |
+| 5    | **After /research completes** | Ralph RSSI fires again → this template shown → GOTO step 1                          |
 
-2. **Find the most recent strategy config**:
-   - Check `best_configs/` for saved configurations
-   - Or extract last DSL from research_log.md entries
+### The Recursion Explained
 
-3. **Invoke the research command**:
+This is **not a one-time invocation**. Every time Ralph's RSSI loop continues:
 
-   ```
-   /research <path/to/strategy.yaml> --iterations=N --objective=sharpe
-   ```
+1. You receive this template
+2. Focus files are still research sessions
+3. You invoke `/research` again
+4. `/research` runs more iterations with 5 expert subagents
+5. Ralph's Stop hook fires, continues the loop
+6. **REPEAT** — this is the "Recursive" in RSSI
 
-4. **Let /research handle the rest**:
-   - It spawns expert subagents (feature-expert, model-expert, risk-analyst, etc.)
-   - Runs experiments via `alpha_forge run`
-   - Logs results to research_log.md and research_summary.md
-   - Manages the convergence loop
-
-**Why /research?**: It's the most versatile command for Alpha Forge - spawns multiple specialized subagents, handles experiment execution, and maintains proper research documentation structure.
+**Why /research?**: It orchestrates 5 expert subagents (feature-expert, model-expert, risk-analyst, data-specialist, domain-expert) for systematic optimization. By re-invoking it each RSSI iteration, we compound improvements across sessions.
 
 ---
 
@@ -222,7 +219,9 @@ Before implementing:
 
 ---
 
-## ITERATION PROTOCOL
+## ITERATION PROTOCOL (FALLBACK - when focus files are NOT research sessions)
+
+**Only use this if focus files are NOT `research_log.md`** (e.g., ROADMAP.md, ADRs, specs).
 
 1. **READ** research_log.md and metrics history (learn from past)
 2. **CHECK** ROADMAP.md for current priority
@@ -232,6 +231,8 @@ Before implementing:
 6. **LOG** results to research_log.md (for next iteration to learn)
 7. **COMMIT** if positive impact
 8. **CONTINUE** to next ROADMAP item
+
+**Note**: If your work creates a new research session or strategy config, consider invoking `/research` to properly test it with the 5-expert subagent system.
 
 ---
 
