@@ -20,23 +20,23 @@ Your role: **decide WHEN and HOW to invoke /research**, learning from each sessi
 
 ### Mandatory Data Requirements
 
-| Requirement                          | Enforcement                                                        | Violation = STOP                   |
-| ------------------------------------ | ------------------------------------------------------------------ | ---------------------------------- |
-| **Real historical data ONLY**        | Use `gapless-crypto-data`, Binance API, or configured data sources | Creating fake OHLCV data           |
-| **No synthetic generation**          | Never generate price/volume data programmatically                  | Using `np.random`, fake generators |
-| **No paper trading during research** | Research = historical backtesting only                             | Connecting to live/paper feeds     |
-| **Immutable data periods**           | Train/valid/test splits are FIXED in strategy YAML                 | Modifying date ranges              |
-| **Source verification**              | Data must come from cache or authenticated API                     | Hardcoded price arrays             |
+| Requirement                          | Enforcement                                                              | Violation = STOP                   |
+| ------------------------------------ | ------------------------------------------------------------------------ | ---------------------------------- |
+| **Real historical data ONLY**        | Use `gapless-crypto-clickhouse`, Binance API, or configured data sources | Creating fake OHLCV data           |
+| **No synthetic generation**          | Never generate price/volume data programmatically                        | Using `np.random`, fake generators |
+| **No paper trading during research** | Research = historical backtesting only                                   | Connecting to live/paper feeds     |
+| **Immutable data periods**           | Train/valid/test splits are FIXED in strategy YAML                       | Modifying date ranges              |
+| **Source verification**              | Data must come from cache or authenticated API                           | Hardcoded price arrays             |
 
 ### What This Means
 
 1. **Research phase = Historical backtesting ONLY**
    - Use existing cached data from `data/cache/`
-   - Use `gapless-crypto-data` PyPI package for new data
+   - Use `gapless-crypto-clickhouse` PyPI package for new data
    - NEVER connect to live feeds or paper trading APIs
 
 2. **If data is missing**:
-   - Fetch from authenticated source (Binance Spot via gapless-crypto-data)
+   - Fetch from authenticated source (Binance Spot via gapless-crypto-clickhouse)
    - Cache for reproducibility
    - Document data source in experiment metadata
 
@@ -51,8 +51,8 @@ Your role: **decide WHEN and HOW to invoke /research**, learning from each sessi
 Before any `/research` invocation, confirm:
 
 ```
-✓ Data source: gapless-crypto-data or cached historical
-✓ Data type: Real OHLCV from Binance Spot
+✓ Data source: gapless-crypto-clickhouse or cached historical
+✓ Data type: Real OHLCV from ClickHouse (sourced from Binance Spot)
 ✓ Mode: Historical backtest (NOT live/paper)
 ```
 
