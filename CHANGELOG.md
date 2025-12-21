@@ -1,3 +1,10 @@
+# [6.3.0](https://github.com/terrylica/cc-skills/compare/v6.2.0...v6.3.0) (2025-12-21)
+
+
+### Features
+
+* **statusline-tools:** change to two-line status format ([90fb9a4](https://github.com/terrylica/cc-skills/commit/90fb9a428d69dcf3dfb69e6c5f72baf890602b8f))
+
 # [6.2.0](https://github.com/terrylica/cc-skills/compare/v6.1.0...v6.2.0) (2025-12-21)
 
 
