@@ -1,3 +1,10 @@
+## [5.21.4](https://github.com/terrylica/cc-skills/compare/v5.21.3...v5.21.4) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** prevent premature stop when task complete but agent idling ([ff7ab6f](https://github.com/terrylica/cc-skills/commit/ff7ab6fb1cc58a93c8acb8b40eff958a3477fc3e))
+
 ## [5.21.3](https://github.com/terrylica/cc-skills/compare/v5.21.2...v5.21.3) (2025-12-21)
 
 
