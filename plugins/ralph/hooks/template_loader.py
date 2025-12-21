@@ -124,41 +124,6 @@ class TemplateLoader:
             # Fallback to simple replacement
             return _simple_render(body, context)
 
-    def render_validation_round(self, round_num: int, state: dict, config: dict) -> str:
-        """Render a validation round prompt.
-
-        Args:
-            round_num: Round number (1, 2, or 3)
-            state: Current loop state
-            config: Loop configuration
-
-        Returns:
-            Rendered prompt string
-        """
-        timeout = config.get("validation_timeout_poc", 30) if config.get("poc_mode") else config.get("validation_timeout_normal", 120)
-
-        if round_num == 1:
-            return self.render("validation-round-1.md", timeout=timeout)
-
-        elif round_num == 2:
-            round1_findings = state.get("validation_findings", {}).get("round1", {})
-            critical = round1_findings.get("critical", [])
-            medium = round1_findings.get("medium", [])
-
-            import json
-            return self.render(
-                "validation-round-2.md",
-                critical_count=len(critical),
-                medium_count=len(medium),
-                critical_issues=json.dumps(critical[:5], indent=2) if critical else "None",
-                medium_issues=json.dumps(medium[:5], indent=2) if medium else "None"
-            )
-
-        elif round_num == 3:
-            return self.render("validation-round-3.md", timeout=timeout)
-
-        return ""
-
     def render_exploration(
         self,
         opportunities: list[str] | None = None,
