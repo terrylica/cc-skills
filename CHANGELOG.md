@@ -1,3 +1,10 @@
+## [5.10.4](https://github.com/terrylica/cc-skills/compare/v5.10.3...v5.10.4) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** add simple alpha-forge detection failsafe ([70465e6](https://github.com/terrylica/cc-skills/commit/70465e600786d1d54ef011a715483048ef7dbe3f))
+
 ## [5.10.3](https://github.com/terrylica/cc-skills/compare/v5.10.2...v5.10.3) (2025-12-21)
 
 
