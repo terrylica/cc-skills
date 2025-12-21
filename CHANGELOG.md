@@ -1,3 +1,10 @@
+# [5.12.0](https://github.com/terrylica/cc-skills/compare/v5.11.1...v5.12.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** add version banner to /ralph:start ([80cb8ed](https://github.com/terrylica/cc-skills/commit/80cb8ed547aebadaa6e8bcac6399b96a6f26a002))
+
 ## [5.11.1](https://github.com/terrylica/cc-skills/compare/v5.11.0...v5.11.1) (2025-12-21)
 
 
