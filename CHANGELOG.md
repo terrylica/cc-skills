@@ -1,3 +1,17 @@
+# [5.10.0](https://github.com/terrylica/cc-skills/compare/v5.9.3...v5.10.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** add reinforcement learning with persistent artifacts for Alpha Forge ([f8ea147](https://github.com/terrylica/cc-skills/commit/f8ea14763f000c20dad2ed1ec1f0c9a8db017487))
+
+# [5.10.0](https://github.com/terrylica/cc-skills/compare/v5.9.3...v5.10.0) (2025-12-21)
+
+
+### Features
+
+* **ralph:** add reinforcement learning with persistent artifacts for Alpha Forge ([f8ea147](https://github.com/terrylica/cc-skills/commit/f8ea14763f000c20dad2ed1ec1f0c9a8db017487))
+
 ## [5.9.3](https://github.com/terrylica/cc-skills/compare/v5.9.2...v5.9.3) (2025-12-21)
 
 
