@@ -149,42 +149,46 @@ Before committing to an action, answer honestly:
 
 **Every 3rd iteration OR when stuck**, execute this cycle:
 
-#### Step 1: Iterative Search (SEED → EXPAND → DRILL)
+#### Step 1: Goal-Driven Iterative Search
 
-**Round 1 - SEED (broad context-aware query):**
+**SEARCH GOAL**: Find best practices to integrate into alpha-forge for:
 
-```python
-# Build initial query from YOUR current state:
-current_model = "BiLSTM"  # from best_configs/
-bottleneck = "WFE < 0.5"  # from research_log.md
-```
+1. **Implementation** - Model architectures, feature engineering
+2. **Testing** - Unit tests, integration tests for ML pipelines
+3. **Backtesting** - Walk-forward, out-of-sample validation methods
+4. **Validation** - Overfitting prevention, cross-validation for time series
 
-```
-WebSearch("{current_model} {bottleneck} improvement 2024 2025")
-```
-
-**Round 2 - EXPAND (use keywords FROM Round 1 results):**
-
-Initial search results mention new terms. USE THOSE for deeper search:
+**Search depth is DYNAMIC** - continue until you find actionable implementation details:
 
 ```
-# If Round 1 mentioned "attention mechanism":
-WebSearch("attention mechanism LSTM time series implementation")
+ROUND N (start N=1, increment until success):
 
-# If Round 1 mentioned "Temporal Fusion Transformer":
-WebSearch("Temporal Fusion Transformer crypto trading Python")
+  IF N == 1 (SEED):
+    → Build query from current bottleneck + model
+    → WebSearch("{current_bottleneck} {current_model} best practices 2024")
 
-# Extract 2-3 promising technique names and search each
+  IF N == 2+ (EXPAND):
+    → Extract technique names from Round N-1 results
+    → For each technique:
+        WebSearch("{technique} implementation PyTorch tutorial")
+        WebSearch("{technique} backtesting validation financial ML")
+
+  STOP CONDITION:
+    → Found code snippet OR GitHub repo OR step-by-step tutorial
+    → If Round 5 and still no implementation → pick simplest technique and prototype
 ```
 
-**Round 3 - DRILL (find implementation code):**
+**SEARCH QUERIES adapt to your current need:**
 
-```
-WebSearch("{technique_from_round2} PyTorch implementation github")
-WebSearch("{technique_from_round2} code example step by step")
-```
+| Current Problem         | Search Focus        | Example Query                                              |
+| ----------------------- | ------------------- | ---------------------------------------------------------- |
+| WFE < 0.5 (overfitting) | Validation methods  | `"{model} overfitting prevention walk-forward validation"` |
+| Sharpe plateau          | Model improvements  | `"{model} attention mechanism improvement 2024"`           |
+| Poor features           | Feature engineering | `"crypto {asset} feature engineering best practices ML"`   |
+| Slow training           | Optimization        | `"{model} training optimization GPU batch size"`           |
+| No test coverage        | Testing practices   | `"ML pipeline unit testing pytest best practices"`         |
 
-**PATTERN: Each search informs the next → Extract keywords → Search deeper → Until IMPLEMENTATION details found.**
+**KEY: Search until you find HOW TO IMPLEMENT, not just WHAT exists.**
 
 #### Step 2: Extract Actionable Techniques
 
