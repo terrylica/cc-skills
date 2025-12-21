@@ -15,27 +15,57 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Busywork patterns to soft-skip (filter from discovery)
+# These are micro-optimizations that don't align with ROADMAP goals
 BUSYWORK_PATTERNS: list[str] = [
-    r"Fix ruff issues:.*E501",  # Line too long
-    r"Fix ruff issues:.*SIM\d+",  # Simplifications
-    r"Fix ruff issues:.*RUF\d+",  # Ruff-specific
-    r"Fix ruff issues:.*I\d+",  # Import sorting
-    r"Fix ruff issues:.*ANN\d+",  # Annotations
-    r"Fix ruff issues:.*DTZ\d+",  # Datetime timezone
-    r"Fix ruff issues:.*PERF\d+",  # Micro-perf
-    r"Add module docstring:",  # Cosmetic docstrings
-    r"Add README to",  # Low-value documentation
+    # ALL ruff/linting issues are busywork for Alpha Forge
+    r"Fix ruff issues:",  # Any ruff issue
+    r"Fix .* issues:",  # Any linting issues
+    r"unused.*import",  # F401 style
+    r"import.*unused",  # F401 style
+    # Documentation busywork
+    r"Add module docstring:",
+    r"Add README to",
+    r"Add docstring",
+    r"missing docstring",
+    r"Verify docs for:",
+    r"documentation gaps",
+    # TODO/FIXME scanning (not actionable without context)
+    r"Address TODO",
+    r"Address FIXME",
+    r"TODO/FIXME",
+    # Security scans (run manually, not in loop)
+    r"Run gitleaks",
+    r"Run bandit",
+    r"security scan",
+    # Generic busywork
+    r"uncommitted changes",  # Git hygiene
+    r"Review \d+ uncommitted",
+    r"test coverage",  # Coverage hunting
+    r"Analyze test coverage",
+    r"sort imports",
+    r"format.*code",
+    r"Gather more data",  # Meta-busywork
+    r"running RSSI discovery",
 ]
 
 # Ruff rules to exclude from scanning (passed to ruff --ignore)
+# For Alpha Forge, we ignore ALL style rules - only real bugs matter
 EXCLUDED_RUFF_RULES: list[str] = [
-    "E501",  # Line too long
-    "SIM",  # Simplifications (prefix match)
-    "RUF",  # Ruff-specific (prefix match)
-    "I",  # Import sorting (prefix match)
-    "ANN",  # Type annotations (prefix match)
-    "DTZ",  # Datetime timezone (prefix match)
-    "PERF",  # Micro-optimizations (prefix match)
+    "E",  # All pycodestyle errors (style)
+    "W",  # All pycodestyle warnings (style)
+    "F401",  # Unused imports
+    "F841",  # Unused variables
+    "SIM",  # Simplifications
+    "RUF",  # Ruff-specific
+    "I",  # Import sorting
+    "ANN",  # Type annotations
+    "DTZ",  # Datetime timezone
+    "PERF",  # Micro-optimizations
+    "D",  # Docstrings
+    "ERA",  # Commented code
+    "T20",  # Print statements
+    "PLR",  # Pylint refactor
+    "C90",  # Complexity
 ]
 
 
