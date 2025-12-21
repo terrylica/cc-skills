@@ -175,47 +175,106 @@ Before committing to an action, answer honestly:
 
 After `/research` completes (or before starting new session):
 
-| Condition                           | Action       | Next Step                              |
-| ----------------------------------- | ------------ | -------------------------------------- |
-| Sharpe improved > 10%               | **CONTINUE** | Invoke `/research` with evolved config |
-| Sharpe improved 5-10%               | **REFINE**   | Minor adjustments, same direction      |
-| Sharpe improved < 5% for 2 sessions | **PIVOT**    | Try different approach from ROADMAP    |
-| WFE < 0.5 (overfitting)             | **STOP**     | Address overfitting before continuing  |
-| All experts: "no recommendations"   | **CONVERGE** | Session complete, document learnings   |
-| Sharpe regressed > 20%              | **REVERT**   | Return to previous best config         |
+| Condition                           | Action       | Next Step                               |
+| ----------------------------------- | ------------ | --------------------------------------- |
+| Sharpe improved > 10%               | **CONTINUE** | Invoke `/research` with evolved config  |
+| Sharpe improved 5-10%               | **REFINE**   | Minor adjustments, invoke `/research`   |
+| Sharpe improved < 5% for 2 sessions | **PIVOT**    | Try SOTA technique, invoke `/research`  |
+| WFE < 0.5 (overfitting)             | **FIX**      | Add regularization, invoke `/research`  |
+| All experts: "no recommendations"   | **EXPLORE**  | Try new asset/model, invoke `/research` |
+| Sharpe regressed > 20%              | **REVERT**   | Use previous config, invoke `/research` |
+
+**CRITICAL: Every action ends with invoking `/research`. No exceptions.**
 
 **Decision Formula:**
 
 ```
 IF WFE < 0.5:
-    → STOP (overfitting detected, must address first)
+    → FIX: Add dropout/regularization, invoke /research
 ELIF sharpe_delta < 5% for 2 consecutive sessions:
-    → Check ROADMAP for next P0/P1 item to PIVOT
+    → PIVOT: Implement SOTA technique, invoke /research
 ELIF sharpe_delta > 10%:
-    → CONTINUE with current direction
+    → CONTINUE: Evolve config, invoke /research
 ELSE:
-    → REFINE current approach
+    → REFINE: Small adjustments, invoke /research
+
+ALWAYS invoke /research. NEVER just report status.
 ```
 
 ---
 
-## PHASE 4: ACT
+## PHASE 4: ACT (MANDATORY)
 
-### PRIMARY PROTOCOL: Invoke /research
+**CRITICAL: You MUST take action every iteration. Never just report status.**
 
-When focus files are `research_log.md` from research sessions:
+### Decision Tree (Execute in Order)
 
-1. **Select strategy config** from `best_configs/` or `research_log.md`
-2. **Apply decision** from Phase 3:
-   - CONTINUE: Use evolved config
-   - REFINE: Apply small adjustments
-   - PIVOT: Start from different ROADMAP item
-   - REVERT: Use previous session's best config
-3. **Invoke the command:**
+```
+1. Is there a strategy YAML to test?
+   YES → Invoke /research immediately
+   NO  → Go to step 2
 
-   ```
-   /research <path/to/strategy.yaml> --iterations=5 --objective=sharpe
-   ```
+2. Is there a bug or regression in recent experiments?
+   YES → Fix it, then invoke /research to validate
+   NO  → Go to step 3
+
+3. Are there SOTA techniques from web research not yet tested?
+   YES → Implement the highest-priority one, invoke /research
+   NO  → Go to step 4
+
+4. Can you improve the current best strategy?
+   YES → Modify config (features/lr/labels), invoke /research
+   NO  → Go to step 5
+
+5. Create a NEW research direction:
+   - Pick unexplored asset pair
+   - Try different model architecture
+   - Test new feature combination
+   → Invoke /research with new config
+```
+
+### PRIMARY ACTION: Invoke /research
+
+**Every iteration should end with invoking `/research`:**
+
+```bash
+/research <path/to/strategy.yaml> --iterations=5 --objective=sharpe
+```
+
+**Strategy Selection Priority:**
+
+1. `best_configs/*.yaml` - Top performing from previous sessions
+2. `examples/03_machine_learning/*.yaml` - Template strategies
+3. Create new YAML based on SOTA findings
+
+### FORBIDDEN: Status-Only Responses
+
+**NEVER respond with only:**
+
+- "Research CONVERGED" without starting new research
+- "No SLO-aligned work available" without creating work
+- "Waiting for ADR" without drafting the ADR
+- "Session complete" without invoking /research
+
+**If you catch yourself about to say "no work available":**
+
+1. STOP
+2. Look at `research_log.md` for "Future Directions"
+3. Pick ONE and implement it
+4. Invoke `/research`
+
+### When ROADMAP P0/P1 is Busywork
+
+**DO NOT idle. Instead:**
+
+1. Check `research_log.md` for documented SOTA techniques
+2. Implement the first untested technique:
+   - Multi-Head Attention layer
+   - GRU model alternative
+   - CPCV validation
+   - Wavelet denoising
+3. Create the code (no ADR needed for <200 lines)
+4. Invoke `/research` to test it
 
 ### The Recursion
 
@@ -223,19 +282,13 @@ This is the **recursive core of RSSI**:
 
 1. You receive this template (OBSERVE)
 2. You analyze metrics and history (ORIENT)
-3. You decide: CONTINUE/REFINE/PIVOT/CONVERGE (DECIDE)
-4. You invoke `/research` (ACT)
+3. You decide: CONTINUE/REFINE/PIVOT (DECIDE)
+4. **You invoke `/research`** (ACT) ← MANDATORY
 5. `/research` runs with 5 expert subagents
 6. Ralph's Stop hook fires, continues the outer loop
 7. **REPEAT** — compounding improvements across sessions
 
-### FALLBACK: Non-Research Focus Files
-
-If focus files are NOT `research_log.md` (e.g., ROADMAP.md, ADRs):
-
-1. Read ROADMAP.md for current P0/P1 priority
-2. Implement the priority item
-3. If implementation creates new strategy, invoke `/research` to test it
+**NEVER skip step 4. ALWAYS invoke /research.**
 
 ---
 
@@ -306,6 +359,6 @@ Execute WebSearch for SOTA techniques before proceeding with /research.
 
 ---
 
-**NEVER idle. ALWAYS advance through OODA. ALWAYS log learnings for next iteration.**
-**Trust alpha-forge's /research for inner loop. Own the outer loop decisions.**
-**Every 3rd iteration: Search web for SOTA techniques to stay current.**
+**MANDATORY: Every iteration MUST end with invoking `/research`.**
+**FORBIDDEN: Saying "converged", "no work", or "waiting for ADR" without taking action.**
+**If stuck: Pick any strategy YAML and run `/research` on it. Action > Planning.**
