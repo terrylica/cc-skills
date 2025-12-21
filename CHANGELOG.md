@@ -1,3 +1,15 @@
+## [5.24.1](https://github.com/terrylica/cc-skills/compare/v5.24.0...v5.24.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **release:** add revert type to release rules ([66a5753](https://github.com/terrylica/cc-skills/commit/66a5753a022aa46ff4180da434e8001f21dcb8a8))
+
+
+### Reverts
+
+* **ralph:** remove redundant cooldown, use existing stamina backoff ([ab95990](https://github.com/terrylica/cc-skills/commit/ab95990d9b2f0bc9f2984dd51f2d8b93934d2c6f))
+
 # [5.24.0](https://github.com/terrylica/cc-skills/compare/v5.23.0...v5.24.0) (2025-12-21)
 
 
