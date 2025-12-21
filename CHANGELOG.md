@@ -1,3 +1,10 @@
+## [5.12.1](https://github.com/terrylica/cc-skills/compare/v5.12.0...v5.12.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ralph:** prefer local-dev when symlink directory exists ([fbe546e](https://github.com/terrylica/cc-skills/commit/fbe546ede847d448b440f683d88eb57f42b30dc1))
+
 # [5.12.0](https://github.com/terrylica/cc-skills/compare/v5.11.1...v5.12.0) (2025-12-21)
 
 
