@@ -12,127 +12,203 @@ Play terminal session recordings (.cast files) in a browser with full playback c
 
 ---
 
-## Default Workflow (AskUserQuestion-Driven)
+## Version Requirements
 
-**This skill prioritizes interactive file discovery.** When invoked, follow this flow:
+| Component        | Minimum Version | Reason                                     |
+| ---------------- | --------------- | ------------------------------------------ |
+| asciinema-player | **3.10.0**      | Required for asciicast v3 format support   |
+| Python           | 3.8+            | For HTTP server and serve_cast.py script   |
+| asciinema CLI    | 2.4.0+          | For recording (optional for playback only) |
 
-### Step 1: Discover Recordings
+> **CRITICAL**: asciinema-player < 3.10.0 does NOT support asciicast v3 format (delta timestamps). Playback will fail silently with a stuck play button.
+
+---
+
+## Workflow Phases (ALL MANDATORY)
+
+**IMPORTANT**: All phases are MANDATORY. Do NOT skip any phase. AskUserQuestion MUST be used at each decision point.
+
+### Phase 0: Preflight Checks
+
+**Purpose**: Verify all dependencies are installed with correct versions.
+
+#### Step 0.1: Check Dependencies
 
 ```bash
-# Search for .cast files in current workspace and common locations
-fd -e cast . --max-depth 5 2>/dev/null | head -20
+# Check Python version
+python3 --version
+
+# Check if asciinema CLI is installed (optional for playback)
+which asciinema && asciinema --version
 ```
 
-Also check these common locations:
+#### Step 0.2: Report Status and Ask for Installation
 
-- Current working directory
-- `./tmp/` subdirectory
-- `~/scripts/tmp/`
-- `~/.local/share/asciinema/`
+**MANDATORY AskUserQuestion** if any dependency is missing:
 
-### Step 2: Present Choices with AskUserQuestion
+```
+Question: "Some dependencies are missing or outdated. Install them?"
+Header: "Setup"
+Options:
+  - Label: "Install missing tools"
+    Description: "Will install: {list of missing tools}"
+  - Label: "Skip (playback only)"
+    Description: "Continue without asciinema CLI (can't record, only play)"
+  - Label: "Cancel"
+    Description: "Abort and fix manually"
+```
 
-**If recordings found**, use AskUserQuestion to let user select:
+#### Step 0.3: Install Missing Dependencies (if confirmed)
+
+```bash
+# macOS - Install asciinema CLI
+brew install asciinema
+
+# Linux (Debian/Ubuntu)
+sudo apt install asciinema
+
+# Linux (Fedora)
+sudo dnf install asciinema
+
+# Via pip (cross-platform)
+pip install asciinema
+```
+
+---
+
+### Phase 1: File Selection (MANDATORY)
+
+**Purpose**: Discover and select the recording to play.
+
+#### Step 1.1: Discover Recordings
+
+```bash
+# Search for .cast files in workspace and common locations
+fd -e cast . --max-depth 5 2>/dev/null | head -20
+
+# Also check common locations
+ls -la ~/scripts/tmp/*.cast 2>/dev/null
+ls -la ~/.local/share/asciinema/*.cast 2>/dev/null
+ls -la ./tmp/*.cast 2>/dev/null
+```
+
+#### Step 1.2: Present File Selection (MANDATORY AskUserQuestion)
+
+**If recordings found**:
 
 ```
 Question: "Which recording would you like to play?"
 Header: "Recording"
 Options:
   - Label: "{filename} ({size})"
-    Description: "Recorded {date}, {duration} duration"
+    Description: "Recorded {date}, {line_count} events"
   - Label: "{filename2} ({size})"
-    Description: "Recorded {date}, {duration} duration"
+    Description: "Recorded {date}, {line_count} events"
   - ... (up to 4 most recent)
 ```
 
-**If no recordings found**, inform user and ask for path:
+**If user provided path directly**, still confirm:
 
 ```
-"No .cast files found in the current workspace.
-
-To record a terminal session:
-  asciinema rec session.cast
-
-Or provide a path to an existing .cast file."
+Question: "Play this recording?"
+Header: "Confirm"
+Options:
+  - Label: "Yes, play {filename}"
+    Description: "{size}, {line_count} events"
+  - Label: "Choose different file"
+    Description: "Browse for other recordings"
 ```
 
-### Step 3: Optional Playback Preferences
-
-After file selection, optionally ask about preferences:
+**If no recordings found**:
 
 ```
-Question: "Customize playback settings?"
+Question: "No .cast files found. What would you like to do?"
+Header: "No Files"
+Options:
+  - Label: "Enter path manually"
+    Description: "Provide full path to .cast file"
+  - Label: "Record new session"
+    Description: "Start recording with: asciinema rec session.cast"
+  - Label: "Cancel"
+    Description: "Exit skill"
+```
+
+---
+
+### Phase 2: Playback Settings (MANDATORY)
+
+**Purpose**: Configure playback preferences before generating player.
+
+#### Step 2.1: Ask Playback Preferences (MANDATORY AskUserQuestion)
+
+```
+Question: "Choose playback settings:"
 Header: "Settings"
 Options:
   - Label: "Default (1x, monokai)"
-    Description: "Standard playback with monokai theme"
-  - Label: "Fast review (2x speed)"
+    Description: "Standard speed, dark theme"
+  - Label: "Fast review (2x)"
     Description: "Double speed for quick review"
+  - Label: "Presentation (1x, dracula)"
+    Description: "Slower pace, high contrast theme"
   - Label: "Custom"
     Description: "Choose speed and theme manually"
 ```
 
-### Step 4: Generate and Serve
-
-Run the player script and display the Quick Tutorial.
-
----
-
-## FIRST - TodoWrite Task Templates
-
-**MANDATORY**: Select and load the appropriate template into TodoWrite before any skill work.
-
-### Template A - Interactive Discovery (Default)
+**If "Custom" selected**, follow up with:
 
 ```
-1. Glob for *.cast files in workspace + common locations
-2. AskUserQuestion: present discovered files with sizes/dates
-3. AskUserQuestion: playback preferences (optional)
-4. Run serve_cast.py with selected file and options
-5. Verify HTTP server started
-6. Display Quick Tutorial output
-7. Provide clickable localhost URL
+Question: "Select playback speed:"
+Header: "Speed"
+Options:
+  - Label: "0.5x (slow)"
+    Description: "Half speed for detailed review"
+  - Label: "1x (normal)"
+    Description: "Original recording speed"
+  - Label: "2x (fast)"
+    Description: "Double speed"
+  - Label: "3x (very fast)"
+    Description: "Triple speed for long recordings"
 ```
 
-### Template B - Direct Playback (User Provided Path)
-
 ```
-1. Validate provided .cast file path exists
-2. Run serve_cast.py with path
-3. Verify HTTP server started
-4. Display Quick Tutorial output
-5. Provide clickable localhost URL
-```
-
-### Template C - Batch Discovery
-
-```
-1. Glob for *.cast files recursively
-2. Present full list with metadata (size, date, duration)
-3. AskUserQuestion: let user select multiple or single
-4. Generate player(s) as needed
-5. Display Quick Tutorial output
+Question: "Select color theme:"
+Header: "Theme"
+Options:
+  - Label: "monokai"
+    Description: "Dark theme with syntax colors (default)"
+  - Label: "dracula"
+    Description: "Purple-tinted dark theme"
+  - Label: "solarized-dark"
+    Description: "Solarized dark variant"
+  - Label: "nord"
+    Description: "Arctic, bluish theme"
 ```
 
 ---
 
-## Quick Start
+### Phase 3: Generate and Serve
+
+**Purpose**: Create HTML player and start HTTP server.
+
+#### Step 3.1: Generate Player
 
 ```bash
-# Generate player and start server
-uv run scripts/serve_cast.py ~/recordings/session.cast
-
-# With options
-uv run scripts/serve_cast.py session.cast --port 8080 --speed 2 --theme dracula
+cd {skill_directory}
+uv run scripts/serve_cast.py {cast_file} --port {port} --speed {speed} --theme {theme}
 ```
 
-Open: <http://localhost:8000/player.html>
+#### Step 3.2: Verify Server Started
 
----
+```bash
+# Check server is running
+curl -s http://localhost:{port}/player.html | head -5
 
-## Quick Tutorial Output (Display When Invoked)
+# Verify cast file is accessible
+curl -sI http://localhost:{port}/{cast_filename} | grep "200 OK"
+```
 
-When this skill is invoked, display the following to educate the user:
+#### Step 3.3: Display Quick Tutorial
 
 ````markdown
 ## asciinema Player Ready
@@ -156,27 +232,36 @@ When this skill is invoked, display the following to educate the user:
 - **Skip idle time:** Already capped at 2 seconds max
 - **Scrub timeline:** Click/drag the progress bar
 
-### Recording New Sessions
-
-```bash
-# Start recording
-asciinema rec my-session.cast
-
-# Stop recording
-exit  # or Ctrl+D
-```
-
-### Documentation
-
-- [asciinema-player docs](https://docs.asciinema.org/manual/player/)
-- [Player Options Reference](./references/player-options.md)
-
 ### Cleanup (when done)
 
 ```bash
-# Stop the HTTP server
 pkill -f "http.server {port}"
 ```
+````
+
+```
+
+---
+
+## TodoWrite Task Template (MANDATORY)
+
+**Load this template into TodoWrite before starting**:
+
+```
+
+1. [Preflight] Check Python 3 installed
+2. [Preflight] Check asciinema CLI (optional)
+3. [Preflight] AskUserQuestion: confirm installations if needed
+4. [Preflight] Install missing dependencies (if confirmed)
+5. [Selection] Discover .cast files in workspace
+6. [Selection] AskUserQuestion: file selection
+7. [Settings] AskUserQuestion: playback preferences
+8. [Settings] AskUserQuestion: custom speed/theme (if Custom selected)
+9. [Generate] Run serve_cast.py with options
+10. [Generate] Verify HTTP server started
+11. [Generate] Display Quick Tutorial
+12. [Generate] Provide clickable localhost URL
+
 ````
 
 ---
@@ -187,7 +272,7 @@ pkill -f "http.server {port}"
 
 ```bash
 uv run scripts/serve_cast.py <cast_file>
-```
+````
 
 **With options**:
 
@@ -220,13 +305,35 @@ uv run scripts/serve_cast.py <cast_file> --port 8080 --speed 2 --idle-limit 1 --
 
 ---
 
+## Troubleshooting
+
+### Player shows stuck play button, won't play
+
+**Cause**: asciicast v3 format not supported by player version < 3.10.0
+
+**Fix**: Ensure template uses asciinema-player >= 3.10.0 (check `assets/player-template.html`)
+
+### Server running but player can't load cast file
+
+**Cause**: HTTP server running from wrong directory
+
+**Fix**: The script now auto-detects port conflicts and starts a new server in the correct directory
+
+### Large files (>100MB) slow to load
+
+**Cause**: Browser must download and parse entire file before playback
+
+**Workaround**: Use `asciinema play file.cast` CLI for large files, or split recording
+
+---
+
 ## Bundled Resources
 
-| Resource                                                       | Purpose                         |
-| -------------------------------------------------------------- | ------------------------------- |
-| [scripts/serve_cast.py](./scripts/serve_cast.py)               | Generate player + start server  |
-| [assets/player-template.html](./assets/player-template.html)   | HTML template with placeholders |
-| [references/player-options.md](./references/player-options.md) | Full options reference          |
+| Resource                                                       | Purpose                        |
+| -------------------------------------------------------------- | ------------------------------ |
+| [scripts/serve_cast.py](./scripts/serve_cast.py)               | Generate player + start server |
+| [assets/player-template.html](./assets/player-template.html)   | HTML template (v3.10.0 player) |
+| [references/player-options.md](./references/player-options.md) | Full options reference         |
 
 ---
 
@@ -234,11 +341,12 @@ uv run scripts/serve_cast.py <cast_file> --port 8080 --speed 2 --idle-limit 1 --
 
 After modifying THIS skill:
 
-1. [ ] Update references/player-options.md if options changed
-2. [ ] Test with real .cast file
-3. [ ] Verify Quick Tutorial output is accurate
-4. [ ] Validate with quick_validate.py
-5. [ ] Update devops-tools/README.md if triggers changed
+1. [ ] Verify player-template.html uses asciinema-player >= 3.10.0
+2. [ ] Test with asciicast v3 format file
+3. [ ] Test preflight checks on clean system
+4. [ ] Verify all AskUserQuestion flows work
+5. [ ] Update references/player-options.md if options changed
+6. [ ] Validate with quick_validate.py
 
 ---
 
@@ -247,3 +355,4 @@ After modifying THIS skill:
 - [Player Options Reference](./references/player-options.md) - Full configuration options
 - [asciinema-player GitHub](https://github.com/asciinema/asciinema-player)
 - [asciinema docs](https://docs.asciinema.org/manual/player/)
+- [asciicast v3 format](https://docs.asciinema.org/manual/asciicast/v3/)

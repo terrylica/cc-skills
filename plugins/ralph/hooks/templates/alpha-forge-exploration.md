@@ -110,6 +110,28 @@ Read the **last 2-3 iteration summaries** from `research_summary.md`:
 
 This history is your **on-policy rollout memory** (RISE pattern).
 
+### DEFERRED RECOMMENDATIONS (P5 - Inner Loop Handoff)
+
+**Check `research_log.md` for any `deferred_recommendations` from previous /research sessions.**
+
+Experts flag IMMUTABLE parameter changes (data ranges, fees, splits) as deferred because they cannot be changed mid-session. These accumulate across sessions and must be evaluated by the outer loop.
+
+**If deferred_recommendations found:**
+
+1. **Evaluate** - Does this change align with current research goals?
+2. **If YES** - Create new strategy YAML incorporating the change, invoke `/research`
+3. **If NO** - Document rationale in `research_log.md` (why not adopting)
+
+**Common deferred recommendations:**
+
+| Parameter                 | Example Change     | Outer Loop Action                                |
+| ------------------------- | ------------------ | ------------------------------------------------ |
+| `backtest.params.fee_bps` | 1.0 → 5.0          | Create new YAML with updated fees, /research     |
+| `data.params.universe`    | Add SOL, ARB       | Verify listing dates, create new YAML, /research |
+| `splits.test`             | Extend test period | Create new YAML, /research from scratch          |
+
+**CRITICAL**: Deferred recommendations are expert-sourced insights. Do NOT ignore them indefinitely.
+
 ---
 
 ## PHASE 2: ORIENT
