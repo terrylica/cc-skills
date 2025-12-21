@@ -1,7 +1,7 @@
 ---
 name: asciinema-player
-description: Play .cast terminal recordings in browser with seek controls. TRIGGERS - asciinema, .cast file, terminal recording, play cast, recording playback, play recording. Generates HTML player, starts HTTP server, provides localhost link with Quick Tutorial.
-allowed-tools: Read, Bash, Write, Glob
+description: Play .cast terminal recordings in browser with seek controls. TRIGGERS - asciinema, .cast file, terminal recording, play cast, recording playback, play recording. Uses AskUserQuestion for interactive file selection, generates HTML player, starts HTTP server.
+allowed-tools: Read, Bash, Write, Glob, AskUserQuestion
 ---
 
 # asciinema-player
@@ -12,40 +12,106 @@ Play terminal session recordings (.cast files) in a browser with full playback c
 
 ---
 
+## Default Workflow (AskUserQuestion-Driven)
+
+**This skill prioritizes interactive file discovery.** When invoked, follow this flow:
+
+### Step 1: Discover Recordings
+
+```bash
+# Search for .cast files in current workspace and common locations
+fd -e cast . --max-depth 5 2>/dev/null | head -20
+```
+
+Also check these common locations:
+
+- Current working directory
+- `./tmp/` subdirectory
+- `~/scripts/tmp/`
+- `~/.local/share/asciinema/`
+
+### Step 2: Present Choices with AskUserQuestion
+
+**If recordings found**, use AskUserQuestion to let user select:
+
+```
+Question: "Which recording would you like to play?"
+Header: "Recording"
+Options:
+  - Label: "{filename} ({size})"
+    Description: "Recorded {date}, {duration} duration"
+  - Label: "{filename2} ({size})"
+    Description: "Recorded {date}, {duration} duration"
+  - ... (up to 4 most recent)
+```
+
+**If no recordings found**, inform user and ask for path:
+
+```
+"No .cast files found in the current workspace.
+
+To record a terminal session:
+  asciinema rec session.cast
+
+Or provide a path to an existing .cast file."
+```
+
+### Step 3: Optional Playback Preferences
+
+After file selection, optionally ask about preferences:
+
+```
+Question: "Customize playback settings?"
+Header: "Settings"
+Options:
+  - Label: "Default (1x, monokai)"
+    Description: "Standard playback with monokai theme"
+  - Label: "Fast review (2x speed)"
+    Description: "Double speed for quick review"
+  - Label: "Custom"
+    Description: "Choose speed and theme manually"
+```
+
+### Step 4: Generate and Serve
+
+Run the player script and display the Quick Tutorial.
+
+---
+
 ## FIRST - TodoWrite Task Templates
 
 **MANDATORY**: Select and load the appropriate template into TodoWrite before any skill work.
 
-### Template A - Play Single Recording
+### Template A - Interactive Discovery (Default)
 
 ```
-1. Identify .cast file path from user context
+1. Glob for *.cast files in workspace + common locations
+2. AskUserQuestion: present discovered files with sizes/dates
+3. AskUserQuestion: playback preferences (optional)
+4. Run serve_cast.py with selected file and options
+5. Verify HTTP server started
+6. Display Quick Tutorial output
+7. Provide clickable localhost URL
+```
+
+### Template B - Direct Playback (User Provided Path)
+
+```
+1. Validate provided .cast file path exists
 2. Run serve_cast.py with path
 3. Verify HTTP server started
-4. Display Quick Tutorial output (see below)
+4. Display Quick Tutorial output
 5. Provide clickable localhost URL
 ```
 
-### Template B - Discover and Play Recordings
+### Template C - Batch Discovery
 
 ```
-1. Glob for *.cast files in workspace/directory
-2. Present list of discovered recordings with sizes
-3. Let user select recording
-4. Run serve_cast.py for selected file
+1. Glob for *.cast files recursively
+2. Present full list with metadata (size, date, duration)
+3. AskUserQuestion: let user select multiple or single
+4. Generate player(s) as needed
 5. Display Quick Tutorial output
-6. Provide clickable localhost URL
-```
-
-### Template C - Customize Playback
-
-```
-1. Identify .cast file from user
-2. Ask about speed preference (default 1x)
-3. Ask about theme preference (default monokai)
-4. Run serve_cast.py with custom options
-5. Display Quick Tutorial output
-6. Provide clickable localhost URL
 ```
 
 ---
@@ -61,15 +127,6 @@ uv run scripts/serve_cast.py session.cast --port 8080 --speed 2 --theme dracula
 ```
 
 Open: <http://localhost:8000/player.html>
-
----
-
-## Workflow
-
-1. **Detect** - Identify .cast file path from user mention or Glob discovery
-2. **Generate** - Run `serve_cast.py` to create player.html from template
-3. **Server** - Check if HTTP server running; start if not
-4. **Output** - Display Quick Tutorial and provide clickable link
 
 ---
 
@@ -99,6 +156,16 @@ When this skill is invoked, display the following to educate the user:
 - **Skip idle time:** Already capped at 2 seconds max
 - **Scrub timeline:** Click/drag the progress bar
 
+### Recording New Sessions
+
+```bash
+# Start recording
+asciinema rec my-session.cast
+
+# Stop recording
+exit  # or Ctrl+D
+```
+
 ### Documentation
 
 - [asciinema-player docs](https://docs.asciinema.org/manual/player/)
@@ -112,8 +179,6 @@ pkill -f "http.server {port}"
 ```
 ````
 
-````
-
 ---
 
 ## Script Usage
@@ -122,7 +187,7 @@ pkill -f "http.server {port}"
 
 ```bash
 uv run scripts/serve_cast.py <cast_file>
-````
+```
 
 **With options**:
 
