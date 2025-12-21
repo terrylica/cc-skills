@@ -5,6 +5,26 @@ phase: exploration
 adapter: alpha-forge
 ---
 
+## ALPHA FORGE MISSION (ALL EXPERTS MUST FOLLOW)
+
+**PRIMARY GOALS** (in order of priority):
+
+1. **OOS Robustness** - Out-of-sample performance is the ONLY metric that matters
+2. **Time Series Forecasting** - State-of-the-art prediction capabilities
+3. **ROADMAP Alignment** - Every action must advance ROADMAP.md items
+
+**FORBIDDEN BUSYWORK** (SKIP IMMEDIATELY - Zero value for OOS/forecasting):
+
+- Linting, formatting, style fixes (ruff, pylint, mypy)
+- Docstrings, READMEs, comments, documentation
+- Type hints, annotations, TODO scanning
+- Test coverage hunting, security scans
+- Dependency updates, refactoring for "readability"
+
+**SOTA REQUIREMENT**: Only use well-maintained libraries (last release < 6 months, active issues).
+
+---
+
 ## Alpha Forge Research Experts
 
 **Research Phase**: {{ research_phase | upper }}

@@ -162,10 +162,15 @@ class TemplateLoader:
         self,
         opportunities: list[str] | None = None,
         rssi_context: dict | None = None,
+        adapter_name: str | None = None,
+        metrics_history: list | None = None,
     ) -> str:
         """Render the exploration mode prompt with full RSSI context.
 
         ADR: 2025-12-20-ralph-rssi-eternal-loop
+
+        Uses adapter-specific templates when available (e.g., alpha-forge-exploration.md
+        for Alpha Forge projects) to provide domain-specific guidance.
 
         Args:
             opportunities: List of discovered work opportunities
@@ -179,25 +184,41 @@ class TemplateLoader:
                 - web_queries: list[str] - search queries to execute
                 - missing_tools: list[str] - capability expansion suggestions
                 - quality_gate: list[str] - SOTA quality gate instructions
+            adapter_name: Name of the active adapter (e.g., "alpha-forge")
+            metrics_history: Project-specific metrics history (for Alpha Forge)
 
         Returns:
             Rendered prompt string
         """
         ctx = rssi_context or {}
-        return self.render(
-            "exploration-mode.md",
-            opportunities=opportunities or [],
-            iteration=ctx.get("iteration", 0),
-            accumulated_patterns=ctx.get("accumulated_patterns", []),
-            disabled_checks=ctx.get("disabled_checks", []),
-            effective_checks=ctx.get("effective_checks", []),
-            web_insights=ctx.get("web_insights", []),
-            feature_ideas=ctx.get("feature_ideas", []),
-            web_queries=ctx.get("web_queries", []),
-            missing_tools=ctx.get("missing_tools", []),
-            quality_gate=ctx.get("quality_gate", []),
-            overall_effectiveness=ctx.get("overall_effectiveness", 0.0),
-        )
+
+        # Common context variables
+        common_ctx = {
+            "opportunities": opportunities or [],
+            "iteration": ctx.get("iteration", 0),
+            "accumulated_patterns": ctx.get("accumulated_patterns", []),
+            "disabled_checks": ctx.get("disabled_checks", []),
+            "effective_checks": ctx.get("effective_checks", []),
+            "web_insights": ctx.get("web_insights", []),
+            "feature_ideas": ctx.get("feature_ideas", []),
+            "web_queries": ctx.get("web_queries", []),
+            "missing_tools": ctx.get("missing_tools", []),
+            "quality_gate": ctx.get("quality_gate", []),
+            "overall_effectiveness": ctx.get("overall_effectiveness", 0.0),
+        }
+
+        # Use Alpha Forge-specific template with metrics history
+        if adapter_name == "alpha-forge":
+            try:
+                return self.render(
+                    "alpha-forge-exploration.md",
+                    **common_ctx,
+                    metrics_history=metrics_history or [],
+                )
+            except FileNotFoundError:
+                pass  # Fall through to generic template
+
+        return self.render("exploration-mode.md", **common_ctx)
 
     def render_adapter_status(
         self,

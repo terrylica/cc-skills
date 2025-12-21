@@ -16,36 +16,133 @@ from enum import Enum
 
 # Busywork patterns to soft-skip (filter from discovery)
 # These are micro-optimizations that don't align with ROADMAP goals
+# Alpha Forge goal: OOS robustness + time series forecasting excellence
 BUSYWORK_PATTERNS: list[str] = [
-    # ALL ruff/linting issues are busywork for Alpha Forge
-    r"Fix ruff issues:",  # Any ruff issue
-    r"Fix .* issues:",  # Any linting issues
-    r"unused.*import",  # F401 style
-    r"import.*unused",  # F401 style
-    # Documentation busywork
-    r"Add module docstring:",
-    r"Add README to",
+    # === LINTING/STYLE (zero functional value) ===
+    r"Fix ruff issues:",
+    r"Fix .* issues:",
+    r"Fix pylint",
+    r"Fix mypy",
+    r"Fix flake8",
+    r"unused.*import",
+    r"import.*unused",
+    r"sort imports",
+    r"format.*code",
+    r"line too long",
+    r"trailing whitespace",
+    r"missing.*blank line",
+    r"E501|E302|E303|W291|W293",  # Specific style codes
+    # === DOCUMENTATION (not the goal) ===
+    r"Add module docstring",
+    r"Add README",
     r"Add docstring",
     r"missing docstring",
     r"Verify docs for:",
     r"documentation gaps",
-    # TODO/FIXME scanning (not actionable without context)
+    r"update.*README",
+    r"update.*CHANGELOG",
+    r"add.*comment",
+    r"improve.*comment",
+    # === TYPE HINTS (cosmetic for working code) ===
+    r"Add type hint",
+    r"missing.*annotation",
+    r"type annotation",
+    r"ANN\d+",
+    # === TODO/FIXME (not actionable without context) ===
     r"Address TODO",
     r"Address FIXME",
     r"TODO/FIXME",
-    # Security scans (run manually, not in loop)
+    r"\d+ files.*TODO",
+    # === SECURITY SCANS (run manually, not in loop) ===
     r"Run gitleaks",
     r"Run bandit",
     r"security scan",
-    # Generic busywork
-    r"uncommitted changes",  # Git hygiene
-    r"Review \d+ uncommitted",
-    r"test coverage",  # Coverage hunting
+    r"secret.*scan",
+    # === TEST COVERAGE HUNTING (not the goal) ===
+    r"test coverage",
     r"Analyze test coverage",
-    r"sort imports",
-    r"format.*code",
-    r"Gather more data",  # Meta-busywork
+    r"increase coverage",
+    r"add.*test.*for",
+    r"missing.*test",
+    r"0%.*coverage",
+    # === GIT HYGIENE (not functional) ===
+    r"uncommitted changes",
+    r"Review \d+ uncommitted",
+    r"commit message",
+    r"git.*clean",
+    # === REFACTORING WITHOUT PURPOSE ===
+    r"rename.*variable",
+    r"extract.*function",
+    r"simplify.*code",
+    r"reduce.*complexity",
+    r"DRY.*violation",
+    r"code.*smell",
+    r"refactor.*for.*readability",
+    # === META-BUSYWORK ===
+    r"Gather more data",
     r"running RSSI discovery",
+    r"discover.*opportunities",
+    # === DEPENDENCY CHURN (unless security) ===
+    r"update.*dependency",
+    r"bump.*version",
+    r"upgrade.*package",
+    # === CI/CD TWEAKS ===
+    r"update.*workflow",
+    r"fix.*CI",
+    r"update.*pre-commit",
+    r"update.*config",
+]
+
+# High-value patterns that SHOULD be worked on (for reference/logging)
+# These align with Alpha Forge ROADMAP: OOS robustness + time series forecasting
+VALUE_ALIGNED_PATTERNS: list[str] = [
+    # === ROADMAP ITEMS ===
+    r"ROADMAP",
+    r"Phase \d",
+    r"milestone",
+    # === OOS ROBUSTNESS (core goal) ===
+    r"out.of.sample",
+    r"OOS",
+    r"walk.forward",
+    r"WFE",  # Walk-Forward Efficiency
+    r"overfitting",
+    r"generalization",
+    r"robustness",
+    r"regime.*detection",
+    r"regime.*change",
+    # === TIME SERIES FORECASTING (core goal) ===
+    r"time.series",
+    r"forecast",
+    r"prediction",
+    r"LSTM|GRU|Transformer",
+    r"attention.*mechanism",
+    r"temporal",
+    r"sequence.*model",
+    # === FEATURE ENGINEERING ===
+    r"feature.*engineer",
+    r"technical.*indicator",
+    r"alpha.*factor",
+    r"signal.*generat",
+    # === MODEL ARCHITECTURE ===
+    r"model.*architect",
+    r"hyperparameter",
+    r"neural.*network",
+    r"ensemble",
+    r"stacking",
+    # === DATA PIPELINE ===
+    r"data.*pipeline",
+    r"data.*quality",
+    r"data.*validation",
+    r"missing.*data.*handl",
+    # === RISK MANAGEMENT ===
+    r"risk.*manag",
+    r"position.*sizing",
+    r"drawdown",
+    r"Sharpe|Sortino|Calmar",
+    # === BACKTESTING ===
+    r"backtest",
+    r"simulation",
+    r"historical.*test",
 ]
 
 # Ruff rules to exclude from scanning (passed to ruff --ignore)

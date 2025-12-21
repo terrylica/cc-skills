@@ -264,14 +264,19 @@ def build_continuation_prompt(
         state["opportunities_discovered"] = opportunities
         state["rssi_iteration"] = rssi_context.get("iteration", 0)
 
+        # Get adapter info for template selection
+        adapter_name = state.get("adapter_name", "")
+        adapter_convergence = state.get("adapter_convergence")
+        metrics_history = adapter_convergence.get("metrics_history") if adapter_convergence else None
+
         # Render exploration template with full RSSI context
+        # Uses adapter-specific template (e.g., alpha-forge-exploration.md) when available
         parts.append(loader.render_exploration(
             opportunities=opportunities,
             rssi_context=rssi_context,
+            adapter_name=adapter_name,
+            metrics_history=metrics_history,
         ))
-
-        # SLO experts for Alpha Forge in no_focus mode
-        adapter_name = state.get("adapter_name", "")
         if adapter_name == "alpha-forge" and project_dir:
             slo_prompt = render_slo_experts(
                 adapter=AdapterRegistry.get_adapter(Path(project_dir)),
@@ -308,10 +313,16 @@ def build_continuation_prompt(
         state["opportunities_discovered"] = opportunities
         state["rssi_iteration"] = rssi_context.get("iteration", 0)
 
+        # Get metrics history for Alpha Forge learning context
+        metrics_history = adapter_convergence.get("metrics_history") if adapter_convergence else None
+
         # Render exploration template with full RSSI context
+        # Uses adapter-specific template (e.g., alpha-forge-exploration.md) when available
         parts.append(loader.render_exploration(
             opportunities=opportunities,
             rssi_context=rssi_context,
+            adapter_name=adapter_name,
+            metrics_history=metrics_history,
         ))
 
         # SLO experts for Alpha Forge (enhanced version of research experts)
