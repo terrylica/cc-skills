@@ -12,10 +12,18 @@ phase: implementation
 - DO NOT ask "what should I work on next?"
 - DO NOT call /ralph:stop
 - DO NOT stop the session on your own
+- DO NOT idle or "monitor" - always take action
 - Make decisions autonomously until the task is complete
 
 ---
 
-**IMPLEMENTATION MODE** - Continue working on the primary task.
+**IMPLEMENTATION MODE**
 
-Complete the current task before the loop transitions to validation phase.
+**If todos remain**: Work on next unchecked item.
+
+**If all todos complete**:
+
+1. Mark task complete in plan/ADR with `[x] TASK_COMPLETE`
+2. Then invoke `/research` or WebSearch for new SOTA techniques
+
+**FORBIDDEN**: Saying "monitoring" or just running `git status` in a loop. Every iteration must produce meaningful work or mark complete.
