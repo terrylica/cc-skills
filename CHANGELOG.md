@@ -1,3 +1,34 @@
+# [7.2.0](https://github.com/terrylica/cc-skills/compare/v7.1.0...v7.2.0) (2025-12-22)
+
+
+### Features
+
+* **devops-tools:** add asciinema-recorder skill for recording Claude Code sessions ([bc52a73](https://github.com/terrylica/cc-skills/commit/bc52a7366694a901a574ee778fe2f05c7316f2cb))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-recorder/SKILL.md) - new
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated
+
 # [7.1.0](https://github.com/terrylica/cc-skills/compare/v7.0.0...v7.1.0) (2025-12-22)
 
 
