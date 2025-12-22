@@ -1,3 +1,58 @@
+# [7.0.0](https://github.com/terrylica/cc-skills/compare/v6.5.1...v7.0.0) (2025-12-22)
+
+
+* feat(asciinema-player)!: rewrite for iTerm2-only playback ([c23d646](https://github.com/terrylica/cc-skills/commit/c23d64642dbcabdc0ecd95c67c79f4bd6bc2c49e))
+
+
+### BREAKING CHANGES
+
+* Browser-based player removed. Now uses iTerm2 CLI only.
+
+Why:
+- Browser player crashes on large files (>100MB) due to 4GB memory limit
+- iTerm2 CLI streams from disk with minimal memory usage
+- Instant startup vs slow download+parse
+
+Changes:
+- Remove browser player (serve_cast.py, player-template.html)
+- Add iTerm2 requirement check in preflight
+- Use AppleScript to spawn clean window (bypasses default arrangements)
+- AskUserQuestion for speed: 2x, 6x, 16x, custom
+- AskUserQuestion for options: idle limit, loop, resize, markers (multi-select)
+- Add CLI options reference table
+- Add AppleScript reference for clean window creation
+
+Platform: macOS only (requires iTerm2)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-player/SKILL.md) - updated
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/asciinema-player</strong> (1 file)</summary>
+
+- [Player Options](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-player/references/player-options.md) - deleted
+
+</details>
+
 ## [6.5.1](https://github.com/terrylica/cc-skills/compare/v6.5.0...v6.5.1) (2025-12-22)
 
 # [6.5.0](https://github.com/terrylica/cc-skills/compare/v6.4.1...v6.5.0) (2025-12-22)
