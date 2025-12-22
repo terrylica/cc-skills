@@ -1,3 +1,31 @@
+## [7.5.1](https://github.com/terrylica/cc-skills/compare/v7.5.0...v7.5.1) (2025-12-22)
+
+
+### Bug Fixes
+
+* **ralph:** prevent orphaned running state on script failure ([b21369c](https://github.com/terrylica/cc-skills/commit/b21369c2d6519243f898970f223860255769385f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (3 commands)</summary>
+
+- [Ralph SDK Harness](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/harness.md) - updated
+- [Ralph Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/hooks.md) - updated
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated
+
+</details>
+
 # [7.5.0](https://github.com/terrylica/cc-skills/compare/v7.4.0...v7.5.0) (2025-12-22)
 
 
