@@ -1,3 +1,29 @@
+## [7.2.2](https://github.com/terrylica/cc-skills/compare/v7.2.1...v7.2.2) (2025-12-22)
+
+
+### Bug Fixes
+
+* **devops-tools:** remove -c flag from asciinema-recorder ([d646014](https://github.com/terrylica/cc-skills/commit/d646014686bea050f11fffd47e7b80ff8b09c1b7))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-recorder/SKILL.md) - updated
+
+</details>
+
 ## [7.2.1](https://github.com/terrylica/cc-skills/compare/v7.2.0...v7.2.1) (2025-12-22)
 
 
