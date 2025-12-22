@@ -30,7 +30,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 **Trigger phrases:**
 
 - "asciinema", ".cast file", "play recording", "terminal recording" → asciinema-player
-- "record session", "asciinema record", "capture terminal", "demo recording" → asciinema-recorder
+- "record session", "asciinema record", "capture terminal", "demo recording", "record ASCII", "ASCII terminal", "terminal screen capture", "shell screen capture", "ASCII screen capture", "screen recording" → asciinema-recorder
 - "create ClickHouse user", "ClickHouse permissions" → clickhouse-cloud-management
 - "DBeaver config", "connection setup" → clickhouse-pydantic-config
 - "publish to PyPI" → doppler-workflows
