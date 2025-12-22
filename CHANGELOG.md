@@ -1,3 +1,10 @@
+# [6.5.0](https://github.com/terrylica/cc-skills/compare/v6.4.1...v6.5.0) (2025-12-22)
+
+
+### Features
+
+* **dotfiles-tools:** enhance chezmoi hook to detect untracked config files ([ff71693](https://github.com/terrylica/cc-skills/commit/ff7169337f0583a803708ea98e3a5fe432235da8))
+
 ## [6.4.1](https://github.com/terrylica/cc-skills/compare/v6.4.0...v6.4.1) (2025-12-21)
 
 
