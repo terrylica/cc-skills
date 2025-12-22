@@ -21,16 +21,20 @@ Safe and unsafe patterns for referencing bundled scripts and files in Claude Cod
 For marketplace plugins, use explicit fallback to the marketplace installation path:
 
 ```bash
+/usr/bin/env bash << 'PATH_PATTERNS_SCRIPT_EOF'
 # Environment-agnostic with explicit marketplace fallback
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/<publisher>/<plugin-name>}"
 bash "$PLUGIN_DIR/scripts/my-script.sh"
+PATH_PATTERNS_SCRIPT_EOF
 ```
 
 **Example** (itp plugin):
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
+PREFLIGHT_EOF
 ```
 
 **Why it works**: When `${CLAUDE_PLUGIN_ROOT}` isn't set (which is the case in markdown files due to bug #9354), the explicit fallback path is used.
@@ -50,10 +54,12 @@ See [Security Practices](./references/security-practices.md) for details.
 Inside bash scripts (not markdown), self-relative paths work:
 
 ```bash
+/usr/bin/env bash << 'PATH_PATTERNS_SCRIPT_EOF_2'
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
 # Now use $PLUGIN_DIR for other resources
+PATH_PATTERNS_SCRIPT_EOF_2
 ```
 
 **Why it works**: `${BASH_SOURCE[0]}` is set correctly when the script runs.
@@ -65,9 +71,11 @@ PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
 ### Pattern 1: `$(dirname "$0")` in Markdown
 
 ```bash
+/usr/bin/env bash << 'PATH_PATTERNS_SCRIPT_EOF_3'
 # ❌ DOES NOT WORK in command/skill markdown files
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
+PATH_PATTERNS_SCRIPT_EOF_3
 ```
 
 **Why it fails**: `$0` is not set to the markdown file path when Claude reads the file. The expansion produces garbage or empty string.
@@ -75,8 +83,10 @@ PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
 ### Pattern 2: Bare `${CLAUDE_PLUGIN_ROOT}` Without Fallback
 
 ```bash
+/usr/bin/env bash << 'PATH_PATTERNS_SCRIPT_EOF_4'
 # ❌ DOES NOT WORK - no fallback when variable unset
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/my-script.sh"
+PATH_PATTERNS_SCRIPT_EOF_4
 ```
 
 **Why it fails**: Due to bug #9354, `${CLAUDE_PLUGIN_ROOT}` is not expanded in markdown files, resulting in `/scripts/my-script.sh` (missing the plugin path).
@@ -198,12 +208,15 @@ If you find unsafe patterns in existing skills:
 2. **Replace** with explicit fallback:
 
    ```bash
+/usr/bin/env bash << 'PATH_PATTERNS_SCRIPT_EOF_5'
    # Before (broken)
    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
    PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
 
    # After (works)
    PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/<publisher>/<plugin>}"
-   ```
+   
+PATH_PATTERNS_SCRIPT_EOF_5
+```
 
 3. **Test** by running the command/skill and verifying scripts execute correctly.

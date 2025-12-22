@@ -24,6 +24,7 @@ Run these checks in order. Each layer depends on the previous.
 ### Layer 1: Package Manager
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 # Detect OS and set package manager
 case "$(uname -s)" in
   Darwin) PM="brew" ;;
@@ -32,6 +33,7 @@ case "$(uname -s)" in
 esac
 command -v $PM &>/dev/null || { echo "ERROR: $PM not installed"; exit 1; }
 echo "✓ Package manager: $PM"
+SETUP_EOF
 ```
 
 ### Layer 2: Perl + cpanminus (mise-first approach)
@@ -94,6 +96,7 @@ echo "[Test] -> [OK]" | graph-easy &>/dev/null && echo "✓ graph-easy ready"
 ### All-in-One Preflight Script
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # Copy-paste this entire block to ensure graph-easy is ready (macOS + Linux)
 # Prefers mise for unified cross-platform tool management
 
@@ -124,6 +127,7 @@ command -v graph-easy &>/dev/null || {
 }
 # Test actual functionality (--version hangs waiting for stdin AND exits with code 2)
 echo "[Test] -> [OK]" | graph-easy &>/dev/null && echo "✓ graph-easy ready"
+PREFLIGHT_EOF
 ```
 
 ---

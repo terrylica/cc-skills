@@ -54,9 +54,11 @@ Error: Semgrep rules not found: /path/to/assets/semgrep-hardcode-rules.yaml
 **Fix**: Verify rules file exists:
 
 ```bash
+/usr/bin/env bash << 'TROUBLESHOOTING_SCRIPT_EOF'
 # Environment-agnostic path
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 ls "$PLUGIN_DIR/skills/code-hardcode-audit/assets/semgrep-hardcode-rules.yaml"
+TROUBLESHOOTING_SCRIPT_EOF
 ```
 
 ### Too many false positives

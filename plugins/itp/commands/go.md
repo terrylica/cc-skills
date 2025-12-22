@@ -282,6 +282,7 @@ These modes are **mutually exclusive**. `-c` cannot be combined with `slug` or `
 **Detect branch and show expected workflow before starting.**
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 CURRENT_BRANCH=$(git branch --show-current)
 WILL_BE_ON_MAIN=true
 
@@ -294,6 +295,7 @@ fi
 if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
   WILL_BE_ON_MAIN=false
 fi
+GIT_EOF
 ```
 
 **Show workflow preview based on branch and flags:**
@@ -375,9 +377,11 @@ The skill provides:
 Run validator:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # Environment-agnostic path (explicit fallback for marketplace installation)
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 uv run "$PLUGIN_DIR/skills/implement-plan-preflight/scripts/preflight_validator.py" $ADR_ID
+PREFLIGHT_EOF
 ```
 
 Or verify manually:
@@ -548,6 +552,7 @@ prettier --write --no-config --parser markdown --prose-wrap preserve \
 ### 2.2 Push to GitHub
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF_2'
 git add docs/adr/$ADR_ID.md docs/design/$ADR_ID/
 git commit -m "docs: add ADR and design spec for <slug>"
 
@@ -556,17 +561,20 @@ git push -u origin <type>/$ADR_ID
 
 # If working on current branch (default):
 git push origin $(git branch --show-current)
+GIT_EOF_2
 ```
 
 ### 2.3 Open in Browser
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF_3'
 # Get repo URL and current branch
 REPO_URL=$(gh repo view --json url -q .url)
 BRANCH=$(git branch --show-current)
 
 open "$REPO_URL/blob/$BRANCH/docs/adr/$ADR_ID.md"
 open "$REPO_URL/blob/$BRANCH/docs/design/$ADR_ID/spec.md"
+GIT_EOF_3
 ```
 
 ### Phase 2 Success Criteria
@@ -589,6 +597,7 @@ Parse flags from invocation:
 - `PUBLISH_FLAG`: true if `-p` or `--publish` provided
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_2'
 # Check branch
 CURRENT_BRANCH=$(git branch --show-current)
 
@@ -597,6 +606,7 @@ RELEASE_FLAG=false
 PUBLISH_FLAG=false
 [[ "$ARGUMENTS" =~ -r|--release ]] && RELEASE_FLAG=true
 [[ "$ARGUMENTS" =~ -p|--publish ]] && PUBLISH_FLAG=true
+PREFLIGHT_EOF_2
 ```
 
 **Case 1: Feature Branch (not main/master)**

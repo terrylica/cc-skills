@@ -364,12 +364,14 @@ See [Authentication Guide](./references/authentication.md) for HTTPS-first setup
 ### Step 2: Initialize Project
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 cd /path/to/project
 # Environment-agnostic path
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 "$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --user
 # Or --org mycompany/semantic-release-config
 # Or --inline
+CONFIG_EOF
 ```
 
 ### Step 3: Run Release Locally
@@ -389,11 +391,13 @@ xattr -r -d com.apple.quarantine ~/.local/share/mise/installs/node/
 **Quick commands**:
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 # Dry-run first (no changes)
 /usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci --dry-run'
 
 # Create actual release
 /usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
+SKILL_SCRIPT_EOF
 ```
 
 > **Note**: Use `semantic-release` directly (not `npx semantic-release`) to avoid macOS Gatekeeper blocking `.node` native modules. See [Troubleshooting](./references/troubleshooting.md#macos-gatekeeper-blocks-node-files).
@@ -414,6 +418,7 @@ The workflow guides you through:
 **Quick setup**:
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 # Install Doppler CLI for secure token management
 brew install dopplerhq/cli/doppler
 
@@ -427,6 +432,7 @@ chmod +x scripts/publish-to-pypi.sh
 
 # After semantic-release creates GitHub release:
 ./scripts/publish-to-pypi.sh  # 30 seconds vs 3-5 minutes with GitHub Actions
+SETUP_EOF
 ```
 
 See [`pypi-doppler` skill](../pypi-doppler/SKILL.md) for complete workflow with CI detection guards.

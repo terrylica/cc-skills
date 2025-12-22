@@ -53,8 +53,10 @@ export MLFLOW_TRACKING_PASSWORD="<password>"
 ### Verify Connection
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 cd ${CLAUDE_PLUGIN_ROOT}/skills/mlflow-python
 uv run scripts/query_experiments.py experiments
+SKILL_SCRIPT_EOF
 ```
 
 ## Quick Start Workflows
@@ -62,12 +64,14 @@ uv run scripts/query_experiments.py experiments
 ### A. Log Backtest Results (Primary Use Case)
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF_2'
 cd ${CLAUDE_PLUGIN_ROOT}/skills/mlflow-python
 uv run scripts/log_backtest.py \
   --experiment "crypto-backtests" \
   --run-name "btc_momentum_v2" \
   --returns path/to/returns.csv \
   --params '{"strategy": "momentum", "timeframe": "1h"}'
+SKILL_SCRIPT_EOF_2
 ```
 
 ### B. Search Experiments

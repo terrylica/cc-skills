@@ -300,6 +300,7 @@ Fixes #ABC-123"
 **Run all tests:**
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 cd tmp/e2e-validation
 for agent in agent-*; do
     echo "=== Running $agent ==="
@@ -307,6 +308,7 @@ for agent in agent-*; do
     uv run python test_*.py
     cd ..
 done
+SKILL_SCRIPT_EOF
 ```
 
 **Update VALIDATION_FINDINGS.md status:**

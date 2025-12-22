@@ -5,6 +5,7 @@ Complete implementation of the idle-detection chunking system for asciinema reco
 ## idle-chunker.sh
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 #!/usr/bin/env bash
 # idle-chunker.sh - Creates zstd chunks during recording idle periods
 #
@@ -169,6 +170,7 @@ if [[ -f "$CAST_FILE" ]]; then
 fi
 
 log "Idle chunker finished (${chunk_count} chunks created)"
+PREFLIGHT_EOF
 ```
 
 ## Usage Examples

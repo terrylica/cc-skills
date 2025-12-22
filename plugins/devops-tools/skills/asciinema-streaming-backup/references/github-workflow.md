@@ -218,10 +218,12 @@ paths: ["chunks/**/*.zst"] # Must match your chunk location
 Verify chunks are sequential (no gaps or overlaps):
 
 ```bash
+/usr/bin/env bash << 'GITHUB_WORKFLOW_SCRIPT_EOF'
 for f in chunks/*.zst; do
   echo "=== $f ==="
   zstd -d -c "$f" | head -1
 done
+GITHUB_WORKFLOW_SCRIPT_EOF
 ```
 
 ### Workflow not triggering

@@ -31,9 +31,11 @@ data = {
 **HTML Escaping** (Bash):
 
 ```bash
+/usr/bin/env bash << 'TELEGRAM_HTML_SCRIPT_EOF'
 # Escape special chars before sending
 ESCAPED=$(echo "$text" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
 MESSAGE="<b>Alert</b>: <code>$ESCAPED</code>"
+TELEGRAM_HTML_SCRIPT_EOF
 ```
 
 ### Message Template
@@ -41,6 +43,7 @@ MESSAGE="<b>Alert</b>: <code>$ESCAPED</code>"
 **Simplified format**:
 
 ```bash
+/usr/bin/env bash << 'TELEGRAM_HTML_SCRIPT_EOF_2'
 # Build session debug line
 SESSION_DEBUG_LINE="session=$CLAUDE_SESSION_ID | debug=~/.claude/debug/\${session}.txt"
 
@@ -61,6 +64,7 @@ MESSAGE="$EMOJI <b>Bot Crashed</b>
 
 <b>Exit Code</b>: $EXIT_CODE
 $CRASH_INFO"
+TELEGRAM_HTML_SCRIPT_EOF_2
 ```
 
 **Why this format**:

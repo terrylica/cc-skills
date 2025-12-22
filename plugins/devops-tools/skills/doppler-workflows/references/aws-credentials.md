@@ -40,6 +40,7 @@ AWS_ROTATION_INTERVAL_DAYS  # e.g., 90
 **Step 2: Store in Doppler**
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 echo -n 'AKIAIOSFODNN7EXAMPLE' | doppler secrets set AWS_ACCESS_KEY_ID \
   --project aws-credentials --config dev
 
@@ -50,14 +51,17 @@ echo -n 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' | \
 doppler secrets set AWS_LAST_ROTATED_DATE \
   --project aws-credentials --config dev \
   --value "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+CONFIG_EOF
 ```
 
 **Step 3: Verify Injection**
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_2'
 doppler run --project aws-credentials --config dev \
   --command='echo "KEY: ${#AWS_ACCESS_KEY_ID}; SECRET: ${#AWS_SECRET_ACCESS_KEY}"'
 # Expected: KEY: 20; SECRET: 40
+CONFIG_EOF_2
 ```
 
 **Step 4: Test AWS Access**

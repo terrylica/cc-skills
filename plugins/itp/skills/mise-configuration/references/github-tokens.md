@@ -79,10 +79,12 @@ GH_ACCOUNT = "terrylica"
 ## Account Alignment Verification
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF'
 # Verify all directories use correct account
 for dir in ~/.claude ~/eon ~/own ~/scripts ~/459ecs; do
   cd "$dir" && eval "$(mise hook-env -s bash)" && echo "$dir → $(gh api user --jq '.login')"
 done
+VALIDATE_EOF
 ```
 
 ## SSH ControlMaster Warning
@@ -139,8 +141,11 @@ See [semantic-release authentication](../../semantic-release/references/authenti
 3. Test token directly:
 
    ```bash
+/usr/bin/env bash << 'GITHUB_TOKENS_SCRIPT_EOF'
    GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-accountname) gh api user --jq '.login'
-   ```
+   
+GITHUB_TOKENS_SCRIPT_EOF
+```
 
 ### Token Expired
 

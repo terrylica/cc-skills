@@ -299,9 +299,11 @@ GH_TOKEN = "{{ cache(key='gh_token', duration='1h', run='op read op://Engineerin
 ### Verification
 
 ```bash
+/usr/bin/env bash << 'MISE_EOF'
 for dir in ~/.claude ~/eon ~/own ~/scripts ~/459ecs; do
   cd "$dir" && eval "$(mise hook-env -s bash)" && echo "$dir → $GH_ACCOUNT"
 done
+MISE_EOF
 ```
 
 **ADR Reference**: [GitHub Multi-Account Authentication](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md)

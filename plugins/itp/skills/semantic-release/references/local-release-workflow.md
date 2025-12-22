@@ -119,13 +119,17 @@ git push https://github.com/user/repo.git main
 Set environment and run:
 
 ```bash
+/usr/bin/env bash << 'LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF'
 /usr/bin/env bash -c 'export GIT_OPTIONAL_LOCKS=0 && GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
+LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF
 ```
 
 **For dry-run** (no changes):
 
 ```bash
+/usr/bin/env bash << 'LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF_2'
 /usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci --dry-run'
+LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF_2
 ```
 
 > **Note**: Use `semantic-release` directly (global install) instead of `npx semantic-release` to avoid macOS Gatekeeper blocking `.node` native modules. See [Troubleshooting](./troubleshooting.md#macos-gatekeeper-blocks-node-files).
@@ -262,6 +266,7 @@ ssh -T git@github.com
 **Resolution**:
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF'
 # Option 1: Kill cached connection via SSH
 ssh -O exit git@github.com
 
@@ -277,6 +282,7 @@ ssh -T git@github.com
 
 # Retry release
 /usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
+VALIDATE_EOF
 ```
 
 **Prevention (Recommended for Multi-Account Setups)**:
@@ -323,7 +329,9 @@ Host github.com
 **Check commit types**:
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 git log $(git describe --tags --abbrev=0)..HEAD --oneline
+GIT_EOF
 ```
 
 Only these trigger releases:

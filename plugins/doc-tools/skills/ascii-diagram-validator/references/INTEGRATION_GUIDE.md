@@ -312,6 +312,7 @@ jobs:
 ### Pre-commit Hook
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 #!/bin/bash
 # .git/hooks/pre-commit
 
@@ -338,11 +339,13 @@ fi
 
 echo "✓ All ASCII art properly aligned"
 exit 0
+PREFLIGHT_EOF
 ```
 
 ### Shell Script Batch Processing
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_2'
 #!/bin/bash
 # check_all_docs.sh
 
@@ -380,6 +383,7 @@ else
   rmdir "$REPORT_DIR" 2>/dev/null
   exit 0
 fi
+PREFLIGHT_EOF_2
 ```
 
 ## Output Format Examples

@@ -49,8 +49,10 @@ Mark each todo as `in_progress` before starting, `completed` when done.
 ### Todo 1: Detect Platform
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 source "$PLUGIN_DIR/scripts/install-dependencies.sh" --detect-only
+SETUP_EOF
 ```
 
 Platform detection sets: `OS`, `PM` (package manager), `HAS_MISE`
@@ -184,8 +186,10 @@ options:
 Run installation commands for missing tools only:
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF_2'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --install
+SETUP_EOF_2
 ```
 
 **If user selected "Skip"**:
@@ -199,8 +203,10 @@ bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --install
 Re-run checks to confirm tools are now available:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
+PREFLIGHT_EOF
 ```
 
 Mark todo completed only if verification passes.
@@ -268,6 +274,7 @@ npx semantic-release --version
 ### Permission errors with npm
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 # Fix npm permissions
 mkdir -p ~/.npm-global
 npm config set prefix '~/.npm-global'
@@ -276,6 +283,7 @@ npm config set prefix '~/.npm-global'
 SHELL_RC="$([[ "$SHELL" == */zsh ]] && echo ~/.zshrc || echo ~/.bashrc)"
 echo 'export PATH=~/.npm-global/bin:$PATH' >> "$SHELL_RC"
 source "$SHELL_RC"
+CONFIG_EOF
 ```
 
 ---

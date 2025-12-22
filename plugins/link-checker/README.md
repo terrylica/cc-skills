@@ -91,8 +91,10 @@ The plugin searches for lychee configuration in this order:
 Test the hook directly:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 cd /path/to/workspace
 echo '{"cwd": "'"$(pwd)"'"}' | uv run ~/.claude/plugins/marketplaces/cc-skills/plugins/link-checker/hooks/stop-link-check.py
+PREFLIGHT_EOF
 ```
 
 ## Architecture

@@ -68,8 +68,10 @@ This is the most common workflow. User provides a natural language description, 
 **CRITICAL**: Before proceeding, check that main worktree is on `main` branch.
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 cd ~/eon/alpha-forge
 CURRENT=$(git branch --show-current)
+GIT_EOF
 ```
 
 **If NOT on main/master**:
@@ -144,6 +146,7 @@ If user needs a different branch, they can select "Other" and provide the branch
 ### Step 6: Construct Branch Name
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 TYPE="feat"           # From Step 4
 DATE=$(date +%Y-%m-%d)
 SLUG="sharpe-statistical-validation"  # From Step 1
@@ -151,25 +154,30 @@ BASE="main"           # From Step 5
 
 BRANCH="${TYPE}/${DATE}-${SLUG}"
 # Result: feat/2025-12-15-sharpe-statistical-validation
+SKILL_SCRIPT_EOF
 ```
 
 ### Step 7: Create Worktree (Atomic)
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF_2'
 cd ~/eon/alpha-forge
 
 WORKTREE_PATH="$HOME/eon/alpha-forge.worktree-${DATE}-${SLUG}"
 
 # Atomic branch + worktree creation
 git worktree add -b "${BRANCH}" "${WORKTREE_PATH}" "origin/${BASE}"
+GIT_EOF_2
 ```
 
 ### Step 8: Generate Tab Name and Report
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF_2'
 # Generate acronym from slug
 ACRONYM=$(echo "$SLUG" | tr '-' '\n' | cut -c1 | tr -d '\n')
 TAB_NAME="AF-${ACRONYM}"
+SKILL_SCRIPT_EOF_2
 ```
 
 Report success:
@@ -198,6 +206,7 @@ When user specifies `origin/branch-name`, create a local tracking branch.
 ### Workflow
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF_3'
 cd ~/eon/alpha-forge
 git fetch --all --prune
 
@@ -218,6 +227,7 @@ WORKTREE_PATH="$HOME/eon/alpha-forge.worktree-${DATE}-${SLUG}"
 
 # Create tracking branch + worktree
 git worktree add -b "${LOCAL_BRANCH}" "${WORKTREE_PATH}" "${REMOTE_BRANCH}"
+GIT_EOF_3
 ```
 
 ---
@@ -233,6 +243,7 @@ When user specifies a local branch name (without `origin/`), use it directly.
 ### Workflow
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF'
 cd ~/eon/alpha-forge
 
 BRANCH="feat/2025-12-15-my-feature"
@@ -258,6 +269,7 @@ WORKTREE_PATH="$HOME/eon/alpha-forge.worktree-${DATE}-${SLUG}"
 
 # Create worktree for existing branch (no -b flag)
 git worktree add "${WORKTREE_PATH}" "${BRANCH}"
+VALIDATE_EOF
 ```
 
 ---
@@ -293,6 +305,7 @@ git worktree add "${WORKTREE_PATH}" "${BRANCH}"
 Check for worktrees whose branches are already merged to main:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 cd ~/eon/alpha-forge
 
 # Get branches merged to main
@@ -306,6 +319,7 @@ git worktree list --porcelain | grep '^branch' | cut -d' ' -f2 | while read bran
         echo "STALE: $branch_name at $path"
     fi
 done
+PREFLIGHT_EOF
 ```
 
 If stale worktrees found, prompt user to cleanup using AskUserQuestion.

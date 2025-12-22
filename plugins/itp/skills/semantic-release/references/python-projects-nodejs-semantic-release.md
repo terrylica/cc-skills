@@ -233,6 +233,7 @@ This establishes the baseline version for semantic-release.
 ### Local Testing
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 # Install dependencies
 npm install
 
@@ -241,6 +242,7 @@ GITHUB_TOKEN=dummy semantic-release --dry-run
 
 # Real release (local, use gh CLI - ⚠️ AVOID manual tokens)
 /usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release'
+SETUP_EOF
 ```
 
 ### Automated Releases via GitHub Actions
@@ -316,12 +318,14 @@ git push  # If ahead
 **Solution** (⚠️ AVOID manual tokens):
 
 ```bash
+/usr/bin/env bash << 'PYTHON_PROJECTS_NODEJS_SEMANTIC_RELEASE_SCRIPT_EOF'
 # For testing (dry-run doesn't need real credentials)
 GITHUB_TOKEN=dummy semantic-release --dry-run
 
 # For real release - use gh CLI web auth (⚠️ NEVER create manual tokens)
 # First authenticate: gh auth login
 /usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release'
+PYTHON_PROJECTS_NODEJS_SEMANTIC_RELEASE_SCRIPT_EOF
 ```
 
 ### sed command fails on Linux

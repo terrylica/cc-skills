@@ -43,11 +43,13 @@ The operation fails immediately. The file is NOT added to the repository.
 Edit the file to remove the hardcoded secret:
 
 ```bash
+/usr/bin/env bash << 'SECRET_DETECTION_SCRIPT_EOF'
 # Before
 export API_KEY="sk-abc123..."
 
 # After
 export API_KEY="${API_KEY:-}"  # Set via environment
+SECRET_DETECTION_SCRIPT_EOF
 ```
 
 Then retry:
@@ -61,8 +63,10 @@ chezmoi add ~/.zshrc
 Convert to template that pulls from secure source:
 
 ```bash
+/usr/bin/env bash << 'SECRET_DETECTION_SCRIPT_EOF_2'
 # Rename in source
 mv "$(chezmoi source-path)/dot_zshrc" "$(chezmoi source-path)/dot_zshrc.tmpl"
+SECRET_DETECTION_SCRIPT_EOF_2
 ```
 
 Edit template to use password manager:

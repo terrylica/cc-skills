@@ -46,11 +46,13 @@ $MQL5_ROOT/Program Files/MetaTrader 5/MQL5/Logs/YYYYMMDD.log
 ### 1. Construct today's log path
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 # Determine current date
 TODAY=$(date +"%Y%m%d")
 
 # Build absolute path
 LOG_FILE="$MQL5_ROOT/Program Files/MetaTrader 5/MQL5/Logs/${TODAY}.log"
+SKILL_SCRIPT_EOF
 ```
 
 ### 2. Read the entire log file

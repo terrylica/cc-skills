@@ -38,6 +38,7 @@ latexmk -gg -pdf document.tex
 ### Build with Options
 
 ```bash
+/usr/bin/env bash << 'COMMON_COMMANDS_SCRIPT_EOF'
 # Enable SyncTeX (for Skim integration)
 latexmk -pdf -synctex=1 document.tex
 
@@ -49,4 +50,5 @@ latexmk -pdfxe document.tex
 
 # Verbose output for debugging
 latexmk -pdf -verbose document.tex
+COMMON_COMMANDS_SCRIPT_EOF
 ```

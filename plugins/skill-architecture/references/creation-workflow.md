@@ -87,6 +87,32 @@ plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/init_skill.py 
 
 Implement planned resources from Step 2:
 
+### Step 4.1: Bash Compatibility Check (MANDATORY)
+
+If your skill contains bash code blocks:
+
+1. **Wrap all code blocks** with heredoc:
+
+   ```bash
+   /usr/bin/env bash << 'YOUR_SCRIPT_EOF'
+   # ... your bash code ...
+   YOUR_SCRIPT_EOF
+   ```
+
+2. **Avoid non-portable patterns**:
+   - ❌ `declare -A` → ✅ parallel indexed arrays
+   - ❌ `grep -P` → ✅ `grep -E` + awk
+   - ❌ `BASH_REMATCH` outside heredoc → ✅ inside heredoc
+   - ❌ `\!=` in conditionals → ✅ `!=` directly
+
+3. **Run validation**:
+
+   ```bash
+   uv run scripts/validate_links.py plugins/your-plugin/skills/your-skill/
+   ```
+
+See [Bash Compatibility Reference](./bash-compatibility.md) for detailed patterns and examples.
+
 - Write scripts in `scripts/`
 - Document schemas/APIs in `references/`
 - Add templates to `assets/`

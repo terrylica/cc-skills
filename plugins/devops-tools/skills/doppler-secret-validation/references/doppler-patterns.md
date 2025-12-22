@@ -74,12 +74,14 @@ doppler run --project claude-config --config prd -- bash -c 'echo $SECRET_NAME'
 ### Export Secret to Environment
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 # Export for current shell
 export SECRET_NAME=$(doppler secrets get SECRET_NAME \
   --project PROJECT --config CONFIG --plain)
 
 # Use in commands
 command --token $SECRET_NAME
+CONFIG_EOF
 ```
 
 ## Validation Workflow
@@ -104,15 +106,19 @@ doppler secrets get PYPI_TOKEN --project claude-config --config prd --plain
 ### 3. Test Retrieval
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_2'
 TOKEN=$(doppler secrets get PYPI_TOKEN --project claude-config --config prd --plain)
 echo "Length: ${#TOKEN}"
+CONFIG_EOF_2
 ```
 
 ### 4. Test Environment Injection
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_3'
 doppler run --project claude-config --config prd -- \
   bash -c 'echo "Token available: ${PYPI_TOKEN:0:20}..."'
+CONFIG_EOF_3
 ```
 
 ## Tool Integration Patterns
@@ -120,6 +126,7 @@ doppler run --project claude-config --config prd -- \
 ### uv Publish
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_4'
 # Method 1: Doppler auto-injects PYPI_TOKEN
 doppler run --project claude-config --config prd -- uv publish
 
@@ -127,11 +134,13 @@ doppler run --project claude-config --config prd -- uv publish
 export PYPI_TOKEN=$(doppler secrets get PYPI_TOKEN \
   --project claude-config --config prd --plain)
 uv publish --token $PYPI_TOKEN
+CONFIG_EOF_4
 ```
 
 ### twine Upload
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_5'
 # Method 1: Doppler run (uses PYPI_TOKEN as password)
 doppler run --project claude-config --config prd -- \
   twine upload dist/* --username __token__
@@ -141,6 +150,7 @@ export TWINE_PASSWORD=$(doppler secrets get PYPI_TOKEN \
   --project claude-config --config prd --plain)
 export TWINE_USERNAME=__token__
 twine upload dist/*
+CONFIG_EOF_5
 ```
 
 ### GitHub Actions
@@ -164,11 +174,13 @@ twine upload dist/*
 ### 1. Never Log Secrets
 
 ```bash
+/usr/bin/env bash << 'DOPPLER_PATTERNS_SCRIPT_EOF'
 # ✗ BAD: Logs secret
 echo "Token: $PYPI_TOKEN"
 
 # ✓ GOOD: Masks secret
 echo "Token: ${PYPI_TOKEN:0:20}..."
+DOPPLER_PATTERNS_SCRIPT_EOF
 ```
 
 ### 2. Use --plain for Scripts Only
@@ -184,11 +196,13 @@ doppler secrets get TOKEN --project foo --config bar --plain | command
 ### 3. Prefer doppler run Over Export
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_6'
 # ✓ BEST: Scoped to single command
 doppler run --project foo --config bar -- command
 
 # ⚠ OK: Exported to shell session (risk if shell shared)
 export TOKEN=$(doppler secrets get TOKEN --project foo --config bar --plain)
+CONFIG_EOF_6
 ```
 
 ### 4. Use Separate Configs for Environments

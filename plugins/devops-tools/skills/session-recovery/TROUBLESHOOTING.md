@@ -8,6 +8,7 @@ find ~/.claude/projects -name "*.jsonl" -type f | wc -l
 ### Fix
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF'
 # Immediate fix (current shell only)
 export HOME=/home/$(whoami)
 
@@ -16,6 +17,7 @@ echo "test" | claude --dangerously-skip-permissions --model sonnet
 
 # Verify new session appears
 find ~/.claude/projects -name "*.jsonl" -type f -newermt "1 minute ago"
+VALIDATE_EOF
 ```
 
 ### Prevention
@@ -59,6 +61,7 @@ find ~/.claude/projects -name "*.jsonl" -type f -newermt "1 minute ago"
 1. **Monitor Session File Creation**
 
    ```bash
+/usr/bin/env bash << 'TROUBLESHOOTING_SCRIPT_EOF'
    # Count before
    BEFORE=$(find ~/.claude/projects -name "*.jsonl" | wc -l)
 
@@ -69,7 +72,9 @@ find ~/.claude/projects -name "*.jsonl" -type f -newermt "1 minute ago"
    AFTER=$(find ~/.claude/projects -name "*.jsonl" | wc -l)
    echo "Before: $BEFORE, After: $AFTER"
    # Should show increase of 1
-   ```
+   
+TROUBLESHOOTING_SCRIPT_EOF
+```
 
 1. **Check for Sessions in Wrong Locations**
 
@@ -137,6 +142,7 @@ bash ~/.claude/tools/session-recovery.sh
 ### Manual Recovery
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF_2'
 # Step 1: Backup existing sessions
 cp -r ~/.claude/projects ~/.claude/projects.backup
 
@@ -149,6 +155,7 @@ echo "Sessions after: $(find ~/.claude/projects -name '*.jsonl' | wc -l)"
 
 # Step 4: Test resume
 claude -r
+VALIDATE_EOF_2
 ```
 
 ## Key Learnings

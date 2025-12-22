@@ -83,6 +83,7 @@ Think of it as: **"block" = "break into Claude's attention"** rather than "block
 From `chezmoi-sync-reminder.sh`:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -105,6 +106,7 @@ if grep -qxF "$ABSOLUTE_PATH" "$CACHE_FILE" 2>/dev/null; then
 fi
 
 exit 0
+PREFLIGHT_EOF
 ```
 
 ## What Claude Sees

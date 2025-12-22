@@ -35,7 +35,9 @@ Files ending in `.tmpl` in source directory are Go templates.
 ### 1. Identify Template
 
 ```bash
+/usr/bin/env bash << 'CONFIGURATION_SCRIPT_EOF'
 ls "$(chezmoi source-path)/dot_zshrc.tmpl" 2>/dev/null && echo "Is template"
+CONFIGURATION_SCRIPT_EOF
 ```
 
 ### 2. Edit Template
@@ -49,7 +51,9 @@ Or edit source file directly in `$(chezmoi source-path)/`.
 ### 3. Test Rendering
 
 ```bash
+/usr/bin/env bash << 'CONFIGURATION_SCRIPT_EOF_2'
 chezmoi execute-template < "$(chezmoi source-path)/dot_zshrc.tmpl"
+CONFIGURATION_SCRIPT_EOF_2
 ```
 
 ### 4. Apply to Home

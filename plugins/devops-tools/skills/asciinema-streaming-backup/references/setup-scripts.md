@@ -7,6 +7,7 @@ Complete setup and validation scripts for the asciinema streaming backup system.
 Validates all required tools are installed.
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 #!/usr/bin/env bash
 # preflight-check.sh - Validates all requirements with self-correction
 #
@@ -112,6 +113,7 @@ if [[ ${#WARNINGS[@]} -gt 0 ]]; then
     log "  - $w"
   done
 fi
+PREFLIGHT_EOF
 ```
 
 ## setup-orphan-branch.sh
@@ -119,6 +121,7 @@ fi
 Creates the orphan branch with GitHub Actions workflow.
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_2'
 #!/usr/bin/env bash
 # setup-orphan-branch.sh - Creates gh-recordings orphan branch
 #
@@ -355,6 +358,7 @@ log ""
 log "To start recording:"
 log "  1. asciinema rec /path/to/session.cast"
 log "  2. $LOCAL_DIR/idle-chunker.sh /path/to/session.cast"
+PREFLIGHT_EOF_2
 ```
 
 ## validate-system.sh
@@ -362,6 +366,7 @@ log "  2. $LOCAL_DIR/idle-chunker.sh /path/to/session.cast"
 Complete system validation with self-correction.
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_3'
 #!/usr/bin/env bash
 # validate-system.sh - Full system validation
 #
@@ -500,6 +505,7 @@ if [[ ${#FIXES[@]} -gt 0 ]]; then
 fi
 
 exit 1
+PREFLIGHT_EOF_3
 ```
 
 ## test-workflow.sh
@@ -507,6 +513,7 @@ exit 1
 Test the complete workflow end-to-end.
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF'
 #!/usr/bin/env bash
 # test-workflow.sh - End-to-end workflow test
 #
@@ -599,4 +606,5 @@ rm -f chunks/test_*.zst
 
 log ""
 log "=== All Tests Passed ==="
+VALIDATE_EOF
 ```

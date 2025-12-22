@@ -170,7 +170,8 @@ class FilterResult(Enum):
     """Result of filtering an opportunity."""
 
     ALLOW = "allow"  # Opportunity is value-aligned, proceed
-    SKIP = "skip"  # Opportunity is busywork, soft-skip
+    SKIP = "skip"  # Opportunity is busywork, soft-skip (can still be chosen as fallback)
+    BLOCK = "block"  # Opportunity is busywork AND research CONVERGED, hard-block (cannot be chosen)
     ESCALATE = "escalate"  # Opportunity needs expert review
 
 
@@ -203,12 +204,15 @@ def filter_opportunities(
     opportunities: list[str],
     *,
     allow_busywork: bool = False,
+    research_converged: bool = False,
 ) -> list[FilteredOpportunity]:
     """Filter opportunities to remove busywork.
 
     Args:
         opportunities: Raw list of opportunity descriptions
         allow_busywork: If True, allow busywork (for debugging)
+        research_converged: If True, HARD-BLOCK busywork (cannot be chosen at all).
+            When research is CONVERGED, only /research invocations are allowed.
 
     Returns:
         List of FilteredOpportunity with results
@@ -219,14 +223,26 @@ def filter_opportunities(
         is_bw, pattern = is_busywork(opp)
 
         if is_bw and not allow_busywork:
-            results.append(
-                FilteredOpportunity(
-                    opportunity=opp,
-                    result=FilterResult.SKIP,
-                    reason="Matches busywork pattern",
-                    matched_pattern=pattern,
+            if research_converged:
+                # Hard-block busywork when research is CONVERGED
+                results.append(
+                    FilteredOpportunity(
+                        opportunity=opp,
+                        result=FilterResult.BLOCK,
+                        reason="CONVERGED: Only /research allowed, busywork hard-blocked",
+                        matched_pattern=pattern,
+                    )
                 )
-            )
+            else:
+                # Soft-skip busywork (can still be chosen as fallback)
+                results.append(
+                    FilteredOpportunity(
+                        opportunity=opp,
+                        result=FilterResult.SKIP,
+                        reason="Matches busywork pattern",
+                        matched_pattern=pattern,
+                    )
+                )
         else:
             results.append(
                 FilteredOpportunity(
@@ -276,6 +292,7 @@ def summarize_filter_results(filtered: list[FilteredOpportunity]) -> dict[str, i
         "total": len(filtered),
         "allowed": 0,
         "skipped": 0,
+        "blocked": 0,
         "escalated": 0,
     }
 
@@ -284,6 +301,8 @@ def summarize_filter_results(filtered: list[FilteredOpportunity]) -> dict[str, i
             counts["allowed"] += 1
         elif f.result == FilterResult.SKIP:
             counts["skipped"] += 1
+        elif f.result == FilterResult.BLOCK:
+            counts["blocked"] += 1
         elif f.result == FilterResult.ESCALATE:
             counts["escalated"] += 1
 

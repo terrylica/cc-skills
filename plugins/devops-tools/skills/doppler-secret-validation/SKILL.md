@@ -60,11 +60,13 @@ doppler secrets set PYPI_TOKEN="pypi-AgEI..." \
 Use the bundled validation script:
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF'
 cd ${CLAUDE_PLUGIN_ROOT}/skills/doppler-secret-validation
 uv run scripts/validate_secret.py \
   --project PROJECT \
   --config CONFIG \
   --secret SECRET_NAME
+VALIDATE_EOF
 ```
 
 This validates:
@@ -87,11 +89,13 @@ uv run scripts/validate_secret.py \
 Use the bundled auth test script (adapt test_api_authentication() for specific API):
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 cd ${CLAUDE_PLUGIN_ROOT}/skills/doppler-secret-validation
 doppler run --project PROJECT --config CONFIG -- \
   uv run scripts/test_api_auth.py \
     --secret SECRET_NAME \
     --api-url API_ENDPOINT
+CONFIG_EOF
 ```
 
 **Example (PyPI)**:
@@ -108,12 +112,14 @@ doppler run --project claude-config --config prd -- \
 After validation, document the usage pattern for the user:
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_2'
 # Pattern 1: Doppler run (recommended for CI/scripts)
 doppler run --project PROJECT --config CONFIG -- COMMAND
 
 # Pattern 2: Manual export (for troubleshooting)
 export SECRET_NAME=$(doppler secrets get SECRET_NAME \
   --project PROJECT --config CONFIG --plain)
+CONFIG_EOF_2
 ```
 
 ### Step 5b: mise [env] Integration (Recommended for Local Development)
@@ -155,11 +161,13 @@ doppler secrets set TOKEN="dev-value" --project foo --config dev
 ### Verify Secret Across Configs
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_3'
 for config in dev stg prd; do
   echo "=== $config ==="
   doppler secrets get TOKEN --project foo --config $config --plain | head -c 20
   echo "..."
 done
+CONFIG_EOF_3
 ```
 
 ## Security Guidelines

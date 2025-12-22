@@ -52,10 +52,12 @@ This skill provides **local-only PyPI publishing** using Doppler for secure cred
 **Usage**: Copy to your project's `scripts/` directory:
 
 ```bash
+/usr/bin/env bash << 'DOPPLER_EOF'
 # Environment-agnostic path
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cp "$PLUGIN_DIR/skills/pypi-doppler/scripts/publish-to-pypi.sh" scripts/
 chmod +x scripts/publish-to-pypi.sh
+DOPPLER_EOF
 ```
 
 ---
@@ -200,6 +202,7 @@ git pull origin main
 ### Using Bundled Script (Recommended)
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 # First time: copy script from skill to your project (environment-agnostic)
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cp "$PLUGIN_DIR/skills/pypi-doppler/scripts/publish-to-pypi.sh" scripts/
@@ -210,6 +213,7 @@ git pull origin main
 
 # Publish using local copy of bundled script
 ./scripts/publish-to-pypi.sh
+GIT_EOF
 ```
 
 **Bundled script features**:
@@ -225,6 +229,7 @@ git pull origin main
 For manual publishing without the canonical script:
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 # Retrieve token from Doppler
 PYPI_TOKEN=$(doppler secrets get PYPI_TOKEN \
   --project claude-config \
@@ -236,6 +241,7 @@ uv build
 
 # Publish to PyPI
 UV_PUBLISH_TOKEN="${PYPI_TOKEN}" uv publish
+CONFIG_EOF
 ```
 
 **⚠️ WARNING**: Manual publishing bypasses CI detection guards and repository verification. Use canonical script unless you have a specific reason not to.
@@ -459,11 +465,13 @@ The script doesn't force any particular installation method.
 **Fix**: Never source shell config files in scripts. The bundled script uses:
 
 ```bash
+/usr/bin/env bash << 'MISE_EOF'
 # CORRECT - safe for non-interactive shells
 eval "$(mise activate bash 2>/dev/null)" || true
 
 # WRONG - hangs in non-interactive shells
 source ~/.zshrc
+MISE_EOF
 ```
 
 ---
@@ -487,13 +495,16 @@ To test publishing workflow without affecting production:
 3. **Modify publish script temporarily**:
 
    ```bash
+/usr/bin/env bash << 'DOPPLER_EOF_2'
    # In scripts/publish-to-pypi.sh, change:
    uv publish --token "${PYPI_TOKEN}"
 
    # To:
    TESTPYPI_TOKEN=$(doppler secrets get TESTPYPI_TOKEN --plain)
    uv publish --repository testpypi --token "${TESTPYPI_TOKEN}"
-   ```
+   
+DOPPLER_EOF_2
+```
 
 4. **Test publish**:
 

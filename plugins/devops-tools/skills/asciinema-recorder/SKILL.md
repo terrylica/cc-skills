@@ -65,15 +65,19 @@ pip install asciinema
 Extract workspace name from `$PWD`:
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 WORKSPACE=$(basename "$PWD")
 echo "Workspace: $WORKSPACE"
+SKILL_SCRIPT_EOF
 ```
 
 #### Step 1.2: Generate Datetime
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF_2'
 DATETIME=$(date +%Y-%m-%d_%H-%M)
 echo "Datetime: $DATETIME"
+SKILL_SCRIPT_EOF_2
 ```
 
 #### Step 1.3: Construct Command
@@ -81,8 +85,10 @@ echo "Datetime: $DATETIME"
 Build the full recording command:
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF_3'
 # Command format
 asciinema rec $PWD/tmp/${WORKSPACE}_${DATETIME}.cast
+SKILL_SCRIPT_EOF_3
 ```
 
 **Example output (for a project called "my-app"):**

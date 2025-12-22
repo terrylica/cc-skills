@@ -13,11 +13,13 @@ chezmoi git -- remote -v 2>/dev/null || echo "NO REMOTE"
 ### 2. Install
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 # macOS
 brew install chezmoi
 
 # Linux
 sh -c "$(curl -fsLS get.chezmoi.io)"
+SETUP_EOF
 ```
 
 ### 3. Initialize
@@ -42,12 +44,14 @@ chezmoi apply
 ### Create Private Repository
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 # Using gh CLI (recommended)
 gh repo create dotfiles --private --source="$(chezmoi source-path)" --push
 
 # Or manually after creating repo on github.com:
 chezmoi git -- remote add origin git@github.com:<username>/dotfiles.git
 chezmoi git -- push -u origin main
+GIT_EOF
 ```
 
 ### Change Remote
@@ -67,6 +71,7 @@ Default: `~/.local/share/chezmoi`
 To use custom location:
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF'
 # 1. Move existing source
 mv "$(chezmoi source-path)" ~/path/to/dotfiles
 
@@ -77,6 +82,7 @@ EOF
 
 # 3. Verify
 chezmoi source-path
+VALIDATE_EOF
 ```
 
 ---
@@ -186,6 +192,8 @@ chezmoi git -- remote set-url origin https://github.com/<username>/dotfiles.git
 ### Source directory not found
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 grep sourceDir ~/.config/chezmoi/chezmoi.toml
 ls -la "$(chezmoi source-path)" || echo "Directory missing"
+CONFIG_EOF
 ```

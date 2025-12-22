@@ -353,6 +353,33 @@ WebSearch findings must be IMPLEMENTED, not just documented.
 3. Pick ONE and implement it
 4. Invoke `/research`
 
+### When Research is CONVERGED
+
+{% if research_converged %}
+⚠️ **RESEARCH CONVERGED** - Busywork is HARD-BLOCKED.
+
+**FORBIDDEN** (will be blocked by filter):
+
+- Documentation updates (README, CHANGELOG, docs/)
+- ROADMAP tasks that are NOT new research objectives
+- Type hints, docstrings, comments
+- Linting, formatting, refactoring
+- Any non-research work
+
+**ALLOWED**:
+
+- `/research` with new strategy variants or assets
+- WebSearch for new SOTA techniques → IMPLEMENT → `/research`
+- Implementing SOTA Queue items → `/research`
+
+**If SOTA Queue is empty AND you have nothing to research:**
+
+- Run WebSearch to find new research directions
+- Consider new assets, new model architectures, new features
+- If truly exhausted all directions, you may stop the loop
+
+{% else %}
+
 ### When ROADMAP P0/P1 is Busywork
 
 **DO NOT idle. Instead:**
@@ -367,6 +394,7 @@ WebSearch findings must be IMPLEMENTED, not just documented.
 5. Invoke `/research` to test it
 
 **If SOTA Queue is empty → Run WebSearch NOW to populate it.**
+{% endif %}
 
 ### The Recursion
 

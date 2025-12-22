@@ -50,7 +50,7 @@ Complete system for streaming asciinema recordings to GitHub with automatic brot
 **Purpose**: Verify all tools installed, offer self-correction if missing.
 
 ```bash
-#!/usr/bin/env bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # preflight-check.sh - Validates all requirements
 
 MISSING=()
@@ -78,6 +78,7 @@ if [[ "${ASCIINEMA_VERSION%%.*}" -lt 3 ]]; then
 fi
 
 echo "All requirements satisfied"
+PREFLIGHT_EOF
 ```
 
 **AskUserQuestion** (if tools missing):
@@ -118,70 +119,83 @@ Probe these 5 sources to detect GitHub accounts:
 #### Detection Script
 
 ```bash
-#!/usr/bin/env bash
+/usr/bin/env bash << 'DETECT_ACCOUNTS_EOF'
 # detect-github-accounts.sh - Probe all sources for GitHub accounts
+# Uses portable parallel arrays (works in bash 3.2+ and when wrapped for zsh)
 
-declare -A ACCOUNTS  # account -> detection sources
+ACCOUNT_NAMES=()
+ACCOUNT_SOURCES=()
 
 log() { echo "[detect] $*"; }
+
+# Helper: add account with source (updates existing or appends new)
+add_account() {
+  local account="$1" source="$2"
+  local idx
+  for idx in "${!ACCOUNT_NAMES[@]}"; do
+    if [[ "${ACCOUNT_NAMES[$idx]}" == "$account" ]]; then
+      ACCOUNT_SOURCES[$idx]+="$source "
+      return
+    fi
+  done
+  ACCOUNT_NAMES+=("$account")
+  ACCOUNT_SOURCES+=("$source ")
+}
 
 # 1. SSH config Match directives
 if [[ -f ~/.ssh/config ]]; then
   while IFS= read -r line; do
     if [[ "$line" =~ IdentityFile.*id_ed25519_([a-zA-Z0-9_-]+) ]]; then
-      account="${BASH_REMATCH[1]}"
-      ACCOUNTS["$account"]+="ssh-config "
+      add_account "${BASH_REMATCH[1]}" "ssh-config"
     fi
   done < ~/.ssh/config
 fi
 
 # 2. SSH key filenames
 for keyfile in ~/.ssh/id_ed25519_*; do
-  if [[ -f "$keyfile" && ! "$keyfile" =~ \.pub$ ]]; then
+  if [[ -f "$keyfile" && "$keyfile" != *.pub ]]; then
     account=$(basename "$keyfile" | sed 's/id_ed25519_//')
-    ACCOUNTS["$account"]+="ssh-key "
+    add_account "$account" "ssh-key"
   fi
 done
 
 # 3. gh CLI authenticated accounts
 if command -v gh &>/dev/null; then
   while IFS= read -r account; do
-    [[ -n "$account" ]] && ACCOUNTS["$account"]+="gh-cli "
-  done < <(gh auth status 2>&1 | grep -oP '(?<=Logged in to github.com account )[a-zA-Z0-9_-]+')
+    [[ -n "$account" ]] && add_account "$account" "gh-cli"
+  done < <(gh auth status 2>&1 | grep -oE 'Logged in to github.com account [a-zA-Z0-9_-]+' | awk '{print $NF}')
 fi
 
 # 4. mise env GH_ACCOUNT
 if [[ -f .mise.toml ]]; then
-  account=$(grep -oP '(?<=GH_ACCOUNT\s*=\s*")[^"]+' .mise.toml 2>/dev/null)
-  [[ -n "$account" ]] && ACCOUNTS["$account"]+="mise-env "
+  account=$(grep -E 'GH_ACCOUNT\s*=' .mise.toml 2>/dev/null | sed 's/.*=\s*"\([^"]*\)".*/\1/')
+  [[ -n "$account" ]] && add_account "$account" "mise-env"
 fi
 
 # 5. git config user.name
 git_user=$(git config user.name 2>/dev/null)
-[[ -n "$git_user" ]] && ACCOUNTS["$git_user"]+="git-config "
+[[ -n "$git_user" ]] && add_account "$git_user" "git-config"
 
 # Score and display
 log "=== Detected GitHub Accounts ==="
-for account in "${!ACCOUNTS[@]}"; do
-  sources="${ACCOUNTS[$account]}"
-  count=$(echo "$sources" | wc -w)
-  log "$account: $count sources ($sources)"
-done
-
-# Find recommended (most sources)
 RECOMMENDED=""
 MAX_SOURCES=0
-for account in "${!ACCOUNTS[@]}"; do
-  count=$(echo "${ACCOUNTS[$account]}" | wc -w)
+for idx in "${!ACCOUNT_NAMES[@]}"; do
+  account="${ACCOUNT_NAMES[$idx]}"
+  sources="${ACCOUNT_SOURCES[$idx]}"
+  count=$(echo "$sources" | wc -w | tr -d ' ')
+  log "$account: $count sources ($sources)"
   if (( count > MAX_SOURCES )); then
     MAX_SOURCES=$count
     RECOMMENDED="$account"
+    RECOMMENDED_SOURCES="$sources"
   fi
 done
 
 echo ""
 echo "RECOMMENDED=$RECOMMENDED"
-echo "SOURCES=${ACCOUNTS[$RECOMMENDED]}"
+echo "SOURCES=$RECOMMENDED_SOURCES"
+DETECT_ACCOUNTS_EOF
 ```
 
 #### AskUserQuestion
@@ -201,15 +215,66 @@ AskUserQuestion:
 **Post-Selection**: If user selects an account, ensure gh CLI is using that account:
 
 ```bash
+/usr/bin/env bash << 'POST_SELECT_EOF'
 # Ensure gh CLI is authenticated as selected account
-SELECTED_ACCOUNT="terrylica"  # From user selection
+SELECTED_ACCOUNT="${1:?Usage: provide selected account}"
 
 if ! gh auth status 2>&1 | grep -q "Logged in to github.com account $SELECTED_ACCOUNT"; then
   echo "Switching gh CLI to account: $SELECTED_ACCOUNT"
   gh auth switch --user "$SELECTED_ACCOUNT" 2>/dev/null || \
     echo "Warning: Could not switch accounts. Manual auth may be needed."
 fi
+POST_SELECT_EOF
 ```
+
+---
+
+### Phase 1.5: Current Repository Detection
+
+**Purpose**: Detect current git repository context to provide intelligent defaults for Phase 2 questions.
+
+#### Detection Script
+
+```bash
+/usr/bin/env bash << 'DETECT_REPO_EOF'
+# Detect current repository context for intelligent defaults
+
+CURRENT_REPO_URL=""
+CURRENT_REPO_OWNER=""
+CURRENT_REPO_NAME=""
+DETECTED_FROM=""
+
+# Check if we're in a git repository
+if git rev-parse --git-dir &>/dev/null; then
+  # Try origin remote first
+  if git remote get-url origin &>/dev/null; then
+    CURRENT_REPO_URL=$(git remote get-url origin)
+    DETECTED_FROM="origin remote"
+  # Fallback to first available remote
+  elif [[ -n "$(git remote)" ]]; then
+    REMOTE=$(git remote | head -1)
+    CURRENT_REPO_URL=$(git remote get-url "$REMOTE")
+    DETECTED_FROM="$REMOTE remote"
+  fi
+
+  # Parse owner and name from URL (SSH or HTTPS)
+  if [[ -n "$CURRENT_REPO_URL" ]]; then
+    if [[ "$CURRENT_REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
+      CURRENT_REPO_OWNER="${BASH_REMATCH[1]}"
+      CURRENT_REPO_NAME="${BASH_REMATCH[2]%.git}"
+    fi
+  fi
+fi
+
+# Output for Claude to parse
+echo "CURRENT_REPO_URL=$CURRENT_REPO_URL"
+echo "CURRENT_REPO_OWNER=$CURRENT_REPO_OWNER"
+echo "CURRENT_REPO_NAME=$CURRENT_REPO_NAME"
+echo "DETECTED_FROM=$DETECTED_FROM"
+DETECT_REPO_EOF
+```
+
+**Claude Action**: Store detected values (`CURRENT_REPO_OWNER`, `CURRENT_REPO_NAME`, `DETECTED_FROM`) for use in subsequent AskUserQuestion calls. If no repo detected, proceed without defaults.
 
 ---
 
@@ -219,18 +284,38 @@ fi
 
 #### 2.1 Repository URL
 
+**If current repo detected** (from Phase 1.5):
+
+```yaml
+AskUserQuestion:
+  question: "Which repository should store the recordings?"
+  header: "Repository"
+  options:
+    - label: "${CURRENT_REPO_OWNER}/${CURRENT_REPO_NAME} (Recommended)"
+      description: "Current repo detected from ${DETECTED_FROM}"
+    - label: "Create dedicated repo: ${GITHUB_ACCOUNT}/asciinema-recordings"
+      description: "Separate repository for all recordings"
+    - label: "Enter different repository"
+      description: "Specify another repository (user/repo format)"
+```
+
+**If no current repo detected**:
+
 ```yaml
 AskUserQuestion:
   question: "Enter the GitHub repository URL for storing recordings:"
   header: "Repository URL"
   options:
-    - label: "Enter repository"
+    - label: "Create dedicated repo: ${GITHUB_ACCOUNT}/asciinema-recordings"
+      description: "Separate repository for all recordings (Recommended)"
+    - label: "Enter repository manually"
       description: "SSH (git@github.com:user/repo.git), HTTPS, or shorthand (user/repo)"
 ```
 
 **URL Normalization** (handles multiple formats):
 
 ```bash
+/usr/bin/env bash << 'NORMALIZE_URL_EOF'
 # Normalize to SSH format for consistent handling
 normalize_repo_url() {
   local url="$1"
@@ -240,12 +325,29 @@ normalize_repo_url() {
     echo "git@github.com:${url}.git"
   # HTTPS: https://github.com/user/repo -> git@github.com:user/repo.git
   elif [[ "$url" =~ ^https://github\.com/([^/]+)/([^/]+)/?$ ]]; then
-    echo "git@github.com:${BASH_REMATCH[1]}/${BASH_REMATCH[2]}.git"
+    echo "git@github.com:${BASH_REMATCH[1]}/${BASH_REMATCH[2]%.git}.git"
   # Already SSH format
   else
     echo "$url"
   fi
 }
+
+URL="${1:?Usage: provide URL to normalize}"
+normalize_repo_url "$URL"
+NORMALIZE_URL_EOF
+```
+
+**Confirmation for free-form input** (if user selected "Enter different/manually"):
+
+```yaml
+AskUserQuestion:
+  question: "You entered '${USER_INPUT}'. Normalized to: ${NORMALIZED_URL}. Is this correct?"
+  header: "Confirm Repository"
+  options:
+    - label: "Yes, use ${NORMALIZED_URL}"
+      description: "Proceed with this repository"
+    - label: "No, let me re-enter"
+      description: "Go back to repository selection"
 ```
 
 #### 2.2 Recording Directory
@@ -255,11 +357,13 @@ AskUserQuestion:
   question: "Where should recordings be stored locally?"
   header: "Recording Directory"
   options:
-    - label: "~/asciinema_recordings/${REPO_NAME} (Recommended)"
-      description: "Default location, organized by repository"
+    - label: "~/asciinema_recordings/${RESOLVED_REPO_NAME} (Recommended)"
+      description: "Example: ~/asciinema_recordings/alpha-forge"
     - label: "Custom path"
       description: "Enter a different directory path"
 ```
+
+**Note**: `${RESOLVED_REPO_NAME}` is the actual repo name from Phase 1.5 or Phase 2.1, not a variable placeholder. Display the concrete path to user.
 
 #### 2.3 Branch Name
 
@@ -268,13 +372,17 @@ AskUserQuestion:
   question: "What should the orphan branch be named?"
   header: "Branch Name"
   options:
-    - label: "gh-recordings (Recommended)"
-      description: "Standard naming convention"
+    - label: "asciinema-recordings (Recommended)"
+      description: "Matches ~/asciinema_recordings/ parent directory pattern"
+    - label: "gh-recordings"
+      description: "GitHub-prefixed alternative (gh = GitHub storage)"
     - label: "recordings"
-      description: "Simpler alternative"
+      description: "Minimal name"
     - label: "Custom"
       description: "Enter a custom branch name"
 ```
+
+**Naming Convention**: The default `asciinema-recordings` matches the parent directory `~/asciinema_recordings/` for consistency.
 
 ---
 
@@ -382,15 +490,19 @@ AskUserQuestion:
 #### Check for Existing Branch
 
 ```bash
+/usr/bin/env bash << 'CHECK_BRANCH_EOF'
 # Check if branch exists on remote
-BRANCH="gh-recordings"  # From Phase 2
+REPO_URL="${1:?Usage: provide repo URL}"
+BRANCH="${2:-asciinema-recordings}"  # From Phase 2 (default changed)
+
 if git ls-remote --heads "$REPO_URL" "$BRANCH" 2>/dev/null | grep -q "$BRANCH"; then
   echo "Branch '$BRANCH' already exists on remote"
-  BRANCH_EXISTS=true
+  echo "BRANCH_EXISTS=true"
 else
   echo "Branch '$BRANCH' does not exist"
-  BRANCH_EXISTS=false
+  echo "BRANCH_EXISTS=false"
 fi
+CHECK_BRANCH_EOF
 ```
 
 #### AskUserQuestion (if branch exists)
@@ -413,12 +525,12 @@ AskUserQuestion:
 #### Branch Creation (if new)
 
 ```bash
-#!/usr/bin/env bash
-# setup-orphan-branch.sh - Creates gh-recordings orphan branch
+/usr/bin/env bash << 'SETUP_ORPHAN_EOF'
+# setup-orphan-branch.sh - Creates asciinema-recordings orphan branch
 
-REPO_URL="$1"
-BRANCH="${2:-gh-recordings}"
-LOCAL_DIR="$3"
+REPO_URL="${1:?Usage: setup-orphan-branch.sh <repo_url> [branch] [local_dir] [brotli_level]}"
+BRANCH="${2:-asciinema-recordings}"  # Default changed to match parent dir pattern
+LOCAL_DIR="${3:-$HOME/asciinema_recordings/$(basename "$REPO_URL" .git)}"
 BROTLI_LEVEL="${4:-9}"  # Embedded from Phase 3 selection
 
 # Create temporary clone for setup
@@ -516,6 +628,7 @@ cd -
 mkdir -p "$(dirname "$LOCAL_DIR")"
 git clone --single-branch --branch "$BRANCH" --depth 1 "$REPO_URL" "$LOCAL_DIR"
 echo "Setup complete: $LOCAL_DIR"
+SETUP_ORPHAN_EOF
 ```
 
 ---
@@ -527,6 +640,11 @@ echo "Setup complete: $LOCAL_DIR"
 #### Setup Local Directory
 
 ```bash
+/usr/bin/env bash << 'SETUP_LOCAL_EOF'
+REPO_NAME="${1:?Usage: provide repo name}"
+REPO_URL="${2:?Usage: provide repo URL}"
+BRANCH="${3:-asciinema-recordings}"
+
 LOCAL_DIR="$HOME/asciinema_recordings/${REPO_NAME}"
 
 # Ensure directories exist
@@ -537,6 +655,9 @@ mkdir -p "$LOCAL_DIR/archives"
 if [[ ! -d "$LOCAL_DIR/.git" ]]; then
   git clone --single-branch --branch "$BRANCH" --depth 1 "$REPO_URL" "$LOCAL_DIR"
 fi
+
+echo "LOCAL_DIR=$LOCAL_DIR"
+SETUP_LOCAL_EOF
 ```
 
 #### Generate Customized idle-chunker.sh
@@ -544,11 +665,13 @@ fi
 Generate the chunker script with user-selected parameters embedded:
 
 ```bash
-# Parameters from Phase 3
-IDLE_THRESHOLD="${IDLE_THRESHOLD:-30}"
-ZSTD_LEVEL="${ZSTD_LEVEL:-3}"
-POLL_INTERVAL="${POLL_INTERVAL:-5}"
-PUSH_ENABLED="${PUSH_ENABLED:-true}"
+/usr/bin/env bash << 'GEN_CHUNKER_EOF'
+# Parameters from Phase 3 (passed as arguments)
+LOCAL_DIR="${1:?Usage: provide LOCAL_DIR}"
+IDLE_THRESHOLD="${2:-30}"
+ZSTD_LEVEL="${3:-3}"
+POLL_INTERVAL="${4:-5}"
+PUSH_ENABLED="${5:-true}"
 
 cat > "$LOCAL_DIR/idle-chunker.sh" << CHUNKER_EOF
 #!/usr/bin/env bash
@@ -579,7 +702,7 @@ echo "Idle threshold: \${IDLE_THRESHOLD}s | zstd level: \${ZSTD_LEVEL} | Poll: \
 while [[ -f "\$CAST_FILE" ]] || sleep 2; do
   [[ -f "\$CAST_FILE" ]] || continue
   mtime=\$(stat -f%m "\$CAST_FILE" 2>/dev/null || stat -c%Y "\$CAST_FILE")
-  idle=\$((\ $(date +%s) - mtime))
+  idle=\$((\$(date +%s) - mtime))
   size=\$(stat -f%z "\$CAST_FILE" 2>/dev/null || stat -c%s "\$CAST_FILE")
 
   if (( idle >= IDLE_THRESHOLD && size > last_pos )); then
@@ -600,11 +723,14 @@ done
 CHUNKER_EOF
 
 chmod +x "$LOCAL_DIR/idle-chunker.sh"
+echo "Generated: $LOCAL_DIR/idle-chunker.sh"
+GEN_CHUNKER_EOF
 ```
 
 #### Display Configuration Summary
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 echo ""
 echo "=== Setup Complete ==="
 echo ""
@@ -623,6 +749,7 @@ echo ""
 echo "To start recording:"
 echo "  1. asciinema rec /path/to/session.cast"
 echo "  2. $LOCAL_DIR/idle-chunker.sh /path/to/session.cast"
+SETUP_EOF
 ```
 
 ---
@@ -774,6 +901,7 @@ If any test fails, Claude displays inline troubleshooting:
 ### First-Time Setup
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # 1. Check requirements
 for tool in asciinema zstd brotli git gh; do
   command -v "$tool" &>/dev/null && echo "$tool: OK" || echo "$tool: MISSING"
@@ -785,17 +913,20 @@ REPO="git@github.com:YOUR/REPO.git"
 
 # 3. Validate setup
 ./validate-setup.sh "$HOME/asciinema_recordings/REPO"
+PREFLIGHT_EOF
 ```
 
 ### Recording Session
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 # Terminal 1: Start recording
 WORKSPACE=$(basename "$PWD")
 asciinema rec $PWD/tmp/${WORKSPACE}_$(date +%Y-%m-%d_%H-%M).cast
 
 # Terminal 2: Start idle-chunker
 ~/asciinema_recordings/REPO/idle-chunker.sh $PWD/tmp/${WORKSPACE}_*.cast
+SKILL_SCRIPT_EOF
 ```
 
 ---
@@ -889,10 +1020,12 @@ grep -A2 "branches:" ~/asciinema_recordings/REPO/.github/workflows/recompress.ym
 **Fix**: Ensure idle-chunker uses `last_chunk_pos` to avoid overlap:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_2'
 # Check for overlaps - each chunk should be sequential
 for f in chunks/*.zst; do
   zstd -d "$f" -c | head -1
 done
+PREFLIGHT_EOF_2
 ```
 
 ---

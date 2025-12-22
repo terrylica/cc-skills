@@ -68,6 +68,7 @@ doppler secrets notes set AWS_ACCESS_KEY_ID_OLD \
 Create new AWS access key and pipe directly to Doppler:
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 # Create key and save to temp file
 aws iam create-access-key --user-name <username> --profile <profile> --output json > /tmp/new_aws_key.json
 
@@ -85,6 +86,7 @@ shred -u /tmp/new_aws_key.json 2>/dev/null || rm -f /tmp/new_aws_key.json
 doppler secrets notes set AWS_ACCESS_KEY_ID \
   "PRIMARY - Created $(date +%Y-%m-%d) via secure rotation. Replaces AWS_ACCESS_KEY_ID_OLD after security exposure. This is the active production credential." \
   --project aws-credentials
+CONFIG_EOF
 ```
 
 ### Phase 3: Testing Period (Both Keys Active)
@@ -111,6 +113,7 @@ aws sts get-caller-identity --profile <profile>
 **⚠️ Only proceed after confirming new credential works perfectly**
 
 ```bash
+/usr/bin/env bash << 'DOPPLER_EOF'
 # Delete old AWS IAM key
 aws iam delete-access-key --access-key-id AKIAXXXXXXXXXX --user-name <username> --profile <profile>
 
@@ -118,6 +121,7 @@ aws iam delete-access-key --access-key-id AKIAXXXXXXXXXX --user-name <username> 
 doppler secrets notes set AWS_ACCESS_KEY_ID_OLD \
   "ARCHIVED - Created 2025-XX-XX, exposed 2025-XX-XX, AWS IAM key deleted $(date +%Y-%m-%d). Kept for audit trail. No longer valid in AWS." \
   --project aws-credentials
+DOPPLER_EOF
 ```
 
 ---
@@ -147,6 +151,7 @@ aws logs describe-log-groups --region us-west-2 --max-items 100
 ### Generate Comprehensive Report
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_2'
 # Run comprehensive audit (15+ services)
 # Store results in /tmp/aws_*.json files
 # Generate JSON report: /tmp/aws_access_report.json
@@ -161,6 +166,7 @@ date -u +"%Y-%m-%dT%H:%M:%SZ" | doppler secrets set AWS_LAST_AUDIT_DATE --projec
 doppler secrets notes set AWS_ACCESS_INVENTORY_REPORT \
   "Complete AWS resource inventory (JSON format) generated $(date +%Y-%m-%d). Documents all accessible services, resources, IAM permissions, and credential verification results. Generated via read-only audit commands. Use this for: compliance audits, permission reviews, onboarding documentation." \
   --project aws-credentials
+CONFIG_EOF_2
 ```
 
 ---
@@ -321,6 +327,7 @@ aws --version
 ### Need to rollback to old credential
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_3'
 # Copy OLD credentials to primary names
 doppler secrets get AWS_ACCESS_KEY_ID_OLD --plain | \
   doppler secrets set AWS_ACCESS_KEY_ID --project aws-credentials --config dev
@@ -332,6 +339,7 @@ doppler secrets get AWS_SECRET_ACCESS_KEY_OLD --plain | \
 doppler secrets notes set AWS_ACCESS_KEY_ID \
   "ROLLED BACK - Restored from AWS_ACCESS_KEY_ID_OLD on $(date +%Y-%m-%d) due to [reason]" \
   --project aws-credentials
+CONFIG_EOF_3
 ```
 
 ---

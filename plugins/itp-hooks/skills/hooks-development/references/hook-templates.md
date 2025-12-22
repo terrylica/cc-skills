@@ -7,6 +7,7 @@ Copy-paste templates for common hook patterns.
 Use when you want Claude to see a message but NOT block the operation.
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 #!/usr/bin/env bash
 # PostToolUse hook - non-blocking reminder
 # Trigger: PostToolUse on Edit|Write (configure in hooks.json)
@@ -31,6 +32,7 @@ if [[ "$FILE_PATH" == *"some_pattern"* ]]; then
 fi
 
 exit 0
+PREFLIGHT_EOF
 ```
 
 ### hooks.json Entry
@@ -57,6 +59,7 @@ exit 0
 Use when you want to STOP an operation from proceeding.
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_2'
 #!/usr/bin/env bash
 # PreToolUse hook - blocking guard
 # Trigger: PreToolUse on Bash (configure in hooks.json)
@@ -78,6 +81,7 @@ if [[ "$COMMAND" == *"rm -rf"* ]]; then
 fi
 
 exit 0
+PREFLIGHT_EOF_2
 ```
 
 ### hooks.json Entry
@@ -104,6 +108,7 @@ exit 0
 Use when you need to check against a list that's expensive to generate.
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_3'
 #!/usr/bin/env bash
 # PostToolUse hook with caching
 
@@ -133,6 +138,7 @@ if grep -qxF "$ABSOLUTE_PATH" "$CACHE_FILE" 2>/dev/null; then
 fi
 
 exit 0
+PREFLIGHT_EOF_3
 ```
 
 ## Bash Boilerplate
@@ -140,6 +146,7 @@ exit 0
 Common patterns used across hooks:
 
 ```bash
+/usr/bin/env bash << 'HOOK_TEMPLATES_SCRIPT_EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -166,6 +173,7 @@ jq -n \
             additionalContext: $context
         }
     }'
+HOOK_TEMPLATES_SCRIPT_EOF
 ```
 
 ## Testing Your Hook

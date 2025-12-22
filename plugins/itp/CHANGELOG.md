@@ -147,6 +147,7 @@ If you installed manually to `~/.claude/`:
 Script paths now use environment detection:
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 # Old (manual only)
 bash ~/.claude/skills/itp/scripts/install-dependencies.sh
 
@@ -154,4 +155,5 @@ bash ~/.claude/skills/itp/scripts/install-dependencies.sh
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh"
+SETUP_EOF
 ```

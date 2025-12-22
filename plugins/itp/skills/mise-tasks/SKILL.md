@@ -318,9 +318,11 @@ usage = 'flag "--port <port>" env="PORT" default="8080"'
 In `run` scripts, arguments become `usage_<name>` environment variables:
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 ${usage_environment}      # Required arg value
 ${usage_verbose:-false}   # Boolean flag with default
 ${usage_output}           # Flag with value
+SKILL_SCRIPT_EOF
 ```
 
 **DEPRECATION WARNING**: The Tera template method (`{{arg(name="...")}}`) will be removed in mise 2026.11.0. Use `usage` spec instead.

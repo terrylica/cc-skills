@@ -21,6 +21,7 @@ doppler run --project claude-config --config dev \
 **Create New Token:**
 
 ```bash
+/usr/bin/env bash << 'VALIDATE_EOF'
 # Step 1: Create project-scoped token on PyPI
 # Go to: https://pypi.org/manage/account/token/
 # Select specific project (NOT account-wide)
@@ -37,6 +38,7 @@ doppler run --project claude-config --config dev \
 # Step 4: Test publish
 doppler run --project claude-config --config dev \
   --command='uv publish --token "$PYPI_TOKEN_XXX"'
+VALIDATE_EOF
 ```
 
 ### PyPI Troubleshooting

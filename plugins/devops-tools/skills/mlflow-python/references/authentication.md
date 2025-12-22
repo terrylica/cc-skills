@@ -60,8 +60,10 @@ MLFLOW_TRACKING_PASSWORD=your_password_here
 Test authentication with:
 
 ```bash
+/usr/bin/env bash << 'AUTHENTICATION_SCRIPT_EOF'
 cd ${CLAUDE_PLUGIN_ROOT}/skills/mlflow-python
 uv run scripts/query_experiments.py experiments
+AUTHENTICATION_SCRIPT_EOF
 ```
 
 Expected output: List of experiments on the server.

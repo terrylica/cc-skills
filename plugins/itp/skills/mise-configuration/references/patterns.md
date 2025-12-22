@@ -440,6 +440,7 @@ if __name__ == "__main__":
 ## Bash Pattern
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -456,6 +457,7 @@ main() {
 }
 
 main "$@"
+CONFIG_EOF
 ```
 
 **Key points:**

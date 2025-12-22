@@ -221,24 +221,60 @@ class AlphaForgeAdapter(ProjectAdapter):
             logger.warning(f"Skipping {run_dir.name}: {e}")
             return None
 
+    def _check_research_converged(self, project_dir: Path) -> bool:
+        """Check if latest research session shows CONVERGED status.
+
+        Parses the most recent research_log.md in outputs/research_sessions/
+        and looks for "Status: CONVERGED" or "CONVERGED" in the header.
+
+        Args:
+            project_dir: Path to Alpha Forge project root
+
+        Returns:
+            True if research is explicitly marked as CONVERGED
+        """
+        sessions_dir = project_dir / "outputs" / "research_sessions"
+        if not sessions_dir.exists():
+            return False
+
+        # Find most recent research_log.md by directory name (timestamp-based)
+        session_dirs = sorted(
+            [d for d in sessions_dir.iterdir() if d.is_dir() and d.name.startswith("research_")],
+            reverse=True,
+        )
+        if not session_dirs:
+            return False
+
+        latest_log = session_dirs[0] / "research_log.md"
+        if not latest_log.exists():
+            return False
+
+        try:
+            content = latest_log.read_text()
+            # Check header (first 30 lines) for CONVERGED status
+            header_lines = content.split("\n")[:30]
+            header_text = "\n".join(header_lines)
+            return "Status: CONVERGED" in header_text or "CONVERGED" in header_text
+        except OSError:
+            return False
+
     def check_convergence(
         self, metrics_history: list[MetricsEntry], project_dir: Path | None = None
     ) -> ConvergenceResult:
-        """Provide metrics status - NEVER stops the loop.
+        """Provide metrics status and detect explicit CONVERGED state.
 
         Alpha Forge uses eternal RSSI loop. This adapter:
         - Provides metrics for display
-        - NEVER signals completion (returns 0.0 confidence)
-        - Busywork filtering is handled by alpha_forge_filter.py
-
-        The loop continues forever, but only ROADMAP-aligned work is allowed.
+        - Detects explicit CONVERGED status in research_log.md
+        - When CONVERGED, sets converged=True to hard-block busywork
+        - Still defers stopping decisions to RSSI (confidence=0.0)
 
         Args:
             metrics_history: List of metrics from completed runs
-            project_dir: Path to project root (unused - no stopping)
+            project_dir: Path to project root for CONVERGED detection
 
         Returns:
-            ConvergenceResult with DEFAULT_CONFIDENCE (never stops)
+            ConvergenceResult with converged=True if research is CONVERGED
         """
         n = len(metrics_history)
 
@@ -259,6 +295,20 @@ class AlphaForgeAdapter(ProjectAdapter):
         latest = metrics_history[-1]
         wfe = latest.secondary_metrics.get("wfe")
         wfe_info = f", WFE={wfe:.2f}" if wfe is not None else ""
+
+        # Check for explicit CONVERGED status in research_log.md
+        is_converged = False
+        if project_dir:
+            is_converged = self._check_research_converged(project_dir)
+
+        if is_converged:
+            logger.info("Research CONVERGED detected - busywork will be hard-blocked")
+            return ConvergenceResult(
+                should_continue=True,  # Still defer stopping to RSSI
+                reason=f"CONVERGED: Sharpe={best_sharpe:.3f}{wfe_info}. Only /research allowed.",
+                confidence=DEFAULT_CONFIDENCE,  # Don't influence stopping
+                converged=True,  # Signal to hard-block busywork
+            )
 
         # Build informational status (for display only)
         return ConvergenceResult(
