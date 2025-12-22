@@ -53,6 +53,8 @@ uv pip show claude-agent-sdk || echo "SDK not installed"
 The harness runs OUTSIDE of Claude Code and controls it programmatically.
 
 ```bash
+# Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
+/usr/bin/env bash << 'RALPH_HARNESS_SCRIPT'
 cd "${CLAUDE_PROJECT_DIR}"
 
 # Parse arguments
@@ -85,6 +87,7 @@ else
     echo "Run: /plugin install cc-skills"
     exit 1
 fi
+RALPH_HARNESS_SCRIPT
 ```
 
 ## When to Use
