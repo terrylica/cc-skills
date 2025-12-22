@@ -1,3 +1,45 @@
+# [7.3.0](https://github.com/terrylica/cc-skills/compare/v7.2.2...v7.3.0) (2025-12-22)
+
+
+### Features
+
+* **devops-tools:** add asciinema-streaming-backup skill ([ee5fb0f](https://github.com/terrylica/cc-skills/commit/ee5fb0f11a62051b776a3ed4099371da5c29f730))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-streaming-backup](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/SKILL.md) - new
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/asciinema-streaming-backup</strong> (3 files)</summary>
+
+- [GitHub Actions Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/references/github-workflow.md) - new
+- [Idle Chunker Script](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/references/idle-chunker.md) - new
+- [Setup Scripts](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/references/setup-scripts.md) - new
+
+</details>
+
 ## [7.2.2](https://github.com/terrylica/cc-skills/compare/v7.2.1...v7.2.2) (2025-12-22)
 
 
