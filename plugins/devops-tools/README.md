@@ -1,12 +1,13 @@
 # devops-tools
 
-DevOps automation plugin for Claude Code: asciinema player, ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
+DevOps automation plugin for Claude Code: asciinema player and recorder, ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
 
 ## Skills
 
 | Skill                           | Description                                                            |
 | ------------------------------- | ---------------------------------------------------------------------- |
-| **asciinema-player**            | Play .cast terminal recordings in browser with seek controls           |
+| **asciinema-player**            | Play .cast terminal recordings in iTerm2 with CLI controls             |
+| **asciinema-recorder**          | Record Claude Code sessions with dynamic workspace-based filenames     |
 | **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management |
 | **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models        |
 | **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
@@ -29,6 +30,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 **Trigger phrases:**
 
 - "asciinema", ".cast file", "play recording", "terminal recording" → asciinema-player
+- "record session", "asciinema record", "capture terminal", "demo recording" → asciinema-recorder
 - "create ClickHouse user", "ClickHouse permissions" → clickhouse-cloud-management
 - "DBeaver config", "connection setup" → clickhouse-pydantic-config
 - "publish to PyPI" → doppler-workflows
@@ -41,11 +43,17 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 ### asciinema Player
 
-- Play .cast terminal recordings in browser
-- Full playback controls: seek bar, speed, pause
-- Keyboard shortcuts for navigation
-- Auto-start local HTTP server
-- Quick Tutorial output on invocation
+- Play .cast terminal recordings in iTerm2 (handles large files >100MB)
+- Full playback controls: speed (2x, 6x, 16x), pause, step
+- Spawns clean iTerm2 window via AppleScript
+- Interactive speed and options selection
+
+### asciinema Recorder
+
+- Record Claude Code sessions with asciinema
+- Dynamic filename generation (workspace + datetime)
+- Saves to workspace tmp/ folder (gitignored)
+- Step-by-step guidance for recording workflow
 
 ### ClickHouse Cloud Management
 
