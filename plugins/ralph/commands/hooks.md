@@ -23,9 +23,12 @@ Claude Code only loads hooks from settings.json, not from plugin hooks.json file
 Parse `$ARGUMENTS` and run the management script:
 
 ```bash
+# Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
+/usr/bin/env bash << 'RALPH_HOOKS_SCRIPT'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/ralph}"
 ACTION="${ARGUMENTS:-status}"
 bash "$PLUGIN_DIR/scripts/manage-hooks.sh" $ACTION
+RALPH_HOOKS_SCRIPT
 ```
 
 ## Post-Action Reminder
