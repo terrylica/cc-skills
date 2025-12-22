@@ -8,6 +8,7 @@ DevOps automation plugin for Claude Code: asciinema player and recorder, ClickHo
 | ------------------------------- | ---------------------------------------------------------------------- |
 | **asciinema-player**            | Play .cast terminal recordings in iTerm2 with CLI controls             |
 | **asciinema-recorder**          | Record Claude Code sessions with dynamic workspace-based filenames     |
+| **asciinema-streaming-backup**  | Real-time recording backup to GitHub with idle-chunking and brotli     |
 | **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management |
 | **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models        |
 | **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
@@ -31,6 +32,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 - "asciinema", ".cast file", "play recording", "terminal recording" → asciinema-player
 - "record session", "asciinema record", "capture terminal", "demo recording", "record ASCII", "ASCII terminal", "terminal screen capture", "shell screen capture", "ASCII screen capture", "screen recording" → asciinema-recorder
+- "streaming backup", "recording backup", "asciinema backup", "continuous recording", "session backup", "orphan branch recording", "zstd streaming", "chunked recording", "real-time backup", "github recording storage" → asciinema-streaming-backup
 - "create ClickHouse user", "ClickHouse permissions" → clickhouse-cloud-management
 - "DBeaver config", "connection setup" → clickhouse-pydantic-config
 - "publish to PyPI" → doppler-workflows
@@ -54,6 +56,15 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Dynamic filename generation (workspace + datetime)
 - Saves to workspace tmp/ folder (gitignored)
 - Step-by-step guidance for recording workflow
+
+### asciinema Streaming Backup
+
+- Real-time backup to GitHub orphan branch (isolated history)
+- Idle-detection chunking (chunks during 30s+ inactivity)
+- zstd streaming compression (concatenatable frames)
+- GitHub Actions auto-recompression to brotli (~300x compression)
+- Self-correcting validation with auto-fix
+- Complete setup scripts and workflow templates
 
 ### ClickHouse Cloud Management
 
