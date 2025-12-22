@@ -1,3 +1,29 @@
+# [7.4.0](https://github.com/terrylica/cc-skills/compare/v7.3.0...v7.4.0) (2025-12-22)
+
+
+### Features
+
+* **asciinema-streaming-backup:** add AskUserQuestion flows and GitHub account detection ([03affac](https://github.com/terrylica/cc-skills/commit/03affacf523bb14ffd9dd9fa8f4e7f159c6f7fb5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-streaming-backup](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/SKILL.md) - updated
+
+</details>
+
 # [7.3.0](https://github.com/terrylica/cc-skills/compare/v7.2.2...v7.3.0) (2025-12-22)
 
 
