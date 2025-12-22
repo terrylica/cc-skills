@@ -100,9 +100,11 @@ Take first character of each hyphen-separated word in the slug:
 ### Algorithm
 
 ```bash
+/usr/bin/env bash << 'NAMING_CONVENTIONS_SCRIPT_EOF'
 slug="sharpe-statistical-validation"
 acronym=$(echo "$slug" | tr '-' '\n' | cut -c1 | tr -d '\n')
 # Result: ssv
+NAMING_CONVENTIONS_SCRIPT_EOF
 ```
 
 ### Uniqueness

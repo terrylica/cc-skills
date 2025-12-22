@@ -53,7 +53,9 @@ Add to your `.releaserc.yml` **before** `@semantic-release/changelog`:
 For projects using the installed plugin:
 
 ```bash
+/usr/bin/env bash << 'DOC_RELEASE_LINKING_SCRIPT_EOF'
 export DOC_NOTES_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}/skills/semantic-release/scripts/generate-doc-notes.mjs"
+DOC_RELEASE_LINKING_SCRIPT_EOF
 ```
 
 Then in `.releaserc.yml`:

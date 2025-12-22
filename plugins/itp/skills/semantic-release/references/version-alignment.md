@@ -125,6 +125,7 @@ func main() {
 Before release, audit for hardcoded version strings:
 
 ```bash
+/usr/bin/env bash << 'VERSION_ALIGNMENT_SCRIPT_EOF'
 # Python: Find hardcoded version patterns (environment-agnostic path)
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 uv run --script "$PLUGIN_DIR/skills/code-hardcode-audit/scripts/audit_hardcodes.py" -- src/
@@ -132,6 +133,7 @@ uv run --script "$PLUGIN_DIR/skills/code-hardcode-audit/scripts/audit_hardcodes.
 # Grep for suspicious patterns
 grep -rn "__version__ = " src/
 grep -rn "VERSION = " src/
+VERSION_ALIGNMENT_SCRIPT_EOF
 ```
 
 See [`code-hardcode-audit` skill](../../code-hardcode-audit/SKILL.md) for comprehensive detection.

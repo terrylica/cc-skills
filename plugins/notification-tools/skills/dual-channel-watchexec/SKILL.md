@@ -34,8 +34,10 @@ MESSAGE="<b>Alert</b>: <code>file.py</code>"
 **Pushover**: Plain text ONLY
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 # Strip HTML tags before sending
 MESSAGE_PLAIN=$(echo "$MESSAGE_HTML" | sed 's/<[^>]*>//g')
+SKILL_SCRIPT_EOF
 ```
 
 **Why HTML for Telegram**:
@@ -51,6 +53,7 @@ MESSAGE_PLAIN=$(echo "$MESSAGE_HTML" | sed 's/<[^>]*>//g')
 ### Send to Both Channels
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF_2'
 # 1. Build HTML message for Telegram
 MESSAGE_HTML="<b>File</b>: <code>handler_classes.py</code>"
 
@@ -66,6 +69,7 @@ curl -s -d "chat_id=$CHAT_ID" \
 # 4. Send to Pushover with plain text
 curl -s --form-string "message=$MESSAGE_PLAIN" \
   https://api.pushover.net/1/messages.json
+SKILL_SCRIPT_EOF_2
 ```
 
 ### Execution Pattern

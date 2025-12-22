@@ -36,8 +36,10 @@ Arguments → Parse watchexec info → Build HTML message → Archive → Send (
 #### 1. HTML Escaping Function
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF'
 # Escape only 3 characters for HTML: & < >
 ESCAPED=$(echo "$text" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+REFERENCE_SCRIPT_EOF
 ```
 
 **Why this works**:
@@ -123,6 +125,7 @@ esac
 #### 5. Message Archiving
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF_2'
 MESSAGE_ARCHIVE_FILE="$MESSAGE_ARCHIVE_DIR/$(date '+%Y%m%d-%H%M%S')-$REASON-$PID.txt"
 
 cat > "$MESSAGE_ARCHIVE_FILE" <<ARCHIVE_EOF
@@ -142,6 +145,7 @@ $(cat "$WATCHEXEC_INFO_FILE" 2>/dev/null || echo "Not available")
 $(cat "$CRASH_CONTEXT_FILE" 2>/dev/null || echo "Not available")
 ========================================================================
 ARCHIVE_EOF
+REFERENCE_SCRIPT_EOF_2
 ```
 
 **Why archive**:
@@ -156,6 +160,7 @@ ARCHIVE_EOF
 ### Restart Detection Logic
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF_3'
 FIRST_RUN_MARKER="/tmp/watchexec_first_run_$$"
 
 if [[ ! -f "$FIRST_RUN_MARKER" ]]; then
@@ -175,6 +180,7 @@ if [[ $EXIT_CODE -ne 0 ]]; then
     # Send crash notification
     "$NOTIFY_SCRIPT" "crash" "$EXIT_CODE" "$INFO_FILE" "$CRASH_CONTEXT" &
 fi
+REFERENCE_SCRIPT_EOF_3
 ```
 
 **State transitions**:
@@ -190,6 +196,7 @@ fi
 **Solution**: Use `stat` to check modification time directly
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF_4'
 NOW=$(date +%s)
 FILE_MTIME=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null)
 AGE=$((NOW - FILE_MTIME))
@@ -197,6 +204,7 @@ AGE=$((NOW - FILE_MTIME))
 if [[ $AGE -lt 60 ]]; then
     echo "File modified ${AGE}s ago"
 fi
+REFERENCE_SCRIPT_EOF_4
 ```
 
 **Platform compatibility**:
@@ -208,6 +216,7 @@ fi
 ### Crash Context Capture
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF_5'
 CRASH_CONTEXT="/tmp/crash_context_$$.txt"
 
 # Last 20 lines of main log
@@ -221,6 +230,7 @@ fi
 
 # Send in background (non-blocking)
 "$NOTIFY_SCRIPT" "crash" "$EXIT_CODE" "$INFO_FILE" "$CRASH_CONTEXT" &
+REFERENCE_SCRIPT_EOF_5
 ```
 
 **Why last N lines**:
@@ -234,6 +244,7 @@ fi
 ### Pattern 1: Environment Variables (Simple)
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF_6'
 # ~/.bashrc or ~/.zshrc
 export TELEGRAM_BOT_TOKEN="1234567890:ABC..."
 export TELEGRAM_CHAT_ID="-1001234567890"
@@ -245,6 +256,7 @@ if [[ -z "${TELEGRAM_BOT_TOKEN:-}" ]]; then
     echo "Error: TELEGRAM_BOT_TOKEN not set"
     exit 1
 fi
+REFERENCE_SCRIPT_EOF_6
 ```
 
 **Pros**: Simple, works everywhere
@@ -254,6 +266,7 @@ fi
 
 **For Pushover** (notifications/dev):
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 # Install Doppler CLI
 brew install dopplerhq/cli/doppler
 
@@ -270,10 +283,12 @@ export PUSHOVER_USER_KEY=$(doppler secrets get PUSHOVER_USER_KEY \
 # Run with Doppler
 doppler run --project notifications --config dev -- \
   watchexec --restart -- ./bot-wrapper.sh
+SETUP_EOF
 ```
 
 **For Telegram** (generic):
 ```bash
+/usr/bin/env bash << 'DOPPLER_EOF'
 # Set secrets
 doppler secrets set TELEGRAM_BOT_TOKEN --value "..."
 doppler secrets set TELEGRAM_CHAT_ID --value "..."
@@ -281,6 +296,7 @@ doppler secrets set TELEGRAM_CHAT_ID --value "..."
 # Load in script
 export TELEGRAM_BOT_TOKEN=$(doppler secrets get TELEGRAM_BOT_TOKEN --plain)
 export TELEGRAM_CHAT_ID=$(doppler secrets get TELEGRAM_CHAT_ID --plain)
+DOPPLER_EOF
 ```
 
 **Pros**: Encrypted, team sync, audit trail, rotation
@@ -289,6 +305,7 @@ export TELEGRAM_CHAT_ID=$(doppler secrets get TELEGRAM_CHAT_ID --plain)
 ### Pattern 3: macOS Keychain
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF_7'
 # Store secret
 security add-generic-password \
     -s 'telegram-bot-token' \
@@ -300,6 +317,7 @@ TELEGRAM_BOT_TOKEN=$(security find-generic-password \
     -s 'telegram-bot-token' \
     -a "$USER" \
     -w)
+REFERENCE_SCRIPT_EOF_7
 ```
 
 **Pros**: OS-level encryption, native macOS
@@ -385,6 +403,7 @@ watchexec \
 ### HTML Entity Escaping
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF_8'
 # Required escaping
 &  → &amp;   # Must be first to avoid double-escaping
 <  → &lt;
@@ -398,6 +417,7 @@ escape_html() {
 # Usage
 FILENAME=$(basename "$file" | escape_html)
 MESSAGE="Modified: <code>$FILENAME</code>"
+REFERENCE_SCRIPT_EOF_8
 ```
 
 **Order matters**: Always escape `&` first, otherwise you'll double-escape the `&` in `&lt;` and `&gt;`.
@@ -431,8 +451,10 @@ File: $CHANGED_FILE"
 **To strip HTML tags from Telegram message**:
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF_9'
 # Remove all <tag> and </tag>
 PLAIN_TEXT=$(echo "$HTML_MESSAGE" | sed 's/<[^>]*>//g')
+REFERENCE_SCRIPT_EOF_9
 ```
 
 ## Testing Procedures
@@ -505,11 +527,13 @@ MAIN_SCRIPT=./crash-test.py ./bot-wrapper.sh
 **Debug**:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # Check archived message
 cat logs/notification-archive/$(ls -t logs/notification-archive/ | head -1)
 
 # Validate HTML structure
 echo "$MESSAGE" | grep -E '<[^>]*$'  # Check for unclosed tags
+PREFLIGHT_EOF
 ```
 
 ### File Detection Not Working

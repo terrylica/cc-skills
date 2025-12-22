@@ -419,6 +419,7 @@ echo "Exit code: $?"
 ### Pre-commit Hook
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 #!/bin/bash
 # .git/hooks/pre-commit
 
@@ -432,6 +433,7 @@ for file in $(git diff --cached --name-only | grep '\.md$'); do
     fi
   fi
 done
+PREFLIGHT_EOF
 ```
 
 ## Algorithm Implementation Checklist

@@ -5,6 +5,7 @@
 **Load from Doppler** (notifications/dev):
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 # Canonical source for Pushover credentials
 export PUSHOVER_APP_TOKEN=$(doppler secrets get PUSHOVER_APP_TOKEN \
   --project notifications \
@@ -14,6 +15,7 @@ export PUSHOVER_USER_KEY=$(doppler secrets get PUSHOVER_USER_KEY \
   --project notifications \
   --config dev \
   --plain)
+CONFIG_EOF
 ```
 
 See: `credential-management.md` for fallback patterns (JSON config, local override)
@@ -46,6 +48,7 @@ curl -s \
 **Pushover uses plain text only** - MUST strip HTML tags before sending:
 
 ```bash
+/usr/bin/env bash << 'PUSHOVER_INTEGRATION_SCRIPT_EOF'
 # ❌ WRONG - Pushover will display literal HTML tags
 PUSHOVER_MESSAGE="<b>Alert</b>: <code>file.py</code>"
 # User sees: <b>Alert</b>: <code>file.py</code>
@@ -54,6 +57,7 @@ PUSHOVER_MESSAGE="<b>Alert</b>: <code>file.py</code>"
 CHANGED_FILES_PLAIN=$(echo "$CHANGED_FILES" | sed 's/<[^>]*>//g')
 PUSHOVER_MESSAGE="Alert: $CHANGED_FILES_PLAIN"
 # User sees: Alert: file.py
+PUSHOVER_INTEGRATION_SCRIPT_EOF
 ```
 
 **Why This Matters**:
@@ -66,10 +70,12 @@ PUSHOVER_MESSAGE="Alert: $CHANGED_FILES_PLAIN"
 **Pattern**: Build message in HTML for Telegram, then strip tags for Pushover:
 
 ```bash
+/usr/bin/env bash << 'PUSHOVER_INTEGRATION_SCRIPT_EOF_2'
 # 1. Build HTML message for Telegram
 MESSAGE_HTML="<b>File</b>: <code>handler_classes.py</code>"
 
 # 2. Strip HTML for Pushover
 MESSAGE_PLAIN=$(echo "$MESSAGE_HTML" | sed 's/<[^>]*>//g')
 # Result: "File: handler_classes.py"
+PUSHOVER_INTEGRATION_SCRIPT_EOF_2
 ```

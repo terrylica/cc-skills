@@ -15,14 +15,18 @@ Sequential execution steps for the Preflight phase. Execute in order - do not sk
 ### Generate ADR ID
 
 ```bash
+/usr/bin/env bash << 'WORKFLOW_STEPS_SCRIPT_EOF'
 ADR_ID="$(date +%Y-%m-%d)-<slug>"
+WORKFLOW_STEPS_SCRIPT_EOF
 ```
 
 ### Detect Primary Branch
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 PRIMARY=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
 [ -z "$PRIMARY" ] && PRIMARY="main"  # fallback
+GIT_EOF
 ```
 
 ### Create Branch

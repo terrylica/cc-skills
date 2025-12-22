@@ -403,6 +403,7 @@ For manual installation, use `~/.claude/` paths. The `${CLAUDE_PLUGIN_ROOT}` var
 ### Permission errors with npm
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 mkdir -p ~/.npm-global
 npm config set prefix '~/.npm-global'
 
@@ -410,6 +411,7 @@ npm config set prefix '~/.npm-global'
 SHELL_RC="$([[ "$SHELL" == */zsh ]] && echo ~/.zshrc || echo ~/.bashrc)"
 echo 'export PATH=~/.npm-global/bin:$PATH' >> "$SHELL_RC"
 source "$SHELL_RC"
+CONFIG_EOF
 ```
 
 ## License

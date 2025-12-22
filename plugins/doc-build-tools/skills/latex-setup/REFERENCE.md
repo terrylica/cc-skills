@@ -60,7 +60,9 @@ brew install --cask mactex-no-gui
 After installation, update PATH:
 
 ```bash
+/usr/bin/env bash << 'REFERENCE_SCRIPT_EOF'
 eval "$(/usr/libexec/path_helper)"
+REFERENCE_SCRIPT_EOF
 ```
 
 Verify:

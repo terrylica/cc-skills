@@ -49,6 +49,7 @@ Claude Code uses `$HOME` environment variable to determine session storage locat
 ### Diagnosis
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # Step 1: Check current HOME
 echo "Current HOME: $HOME"
 
@@ -57,6 +58,7 @@ echo "Expected HOME: $(getent passwd $(whoami) | cut -d: -f6)"
 
 # Step 3: Find where Claude is actually writing
 find /tmp -name "*.jsonl" -path "*/.claude/projects/*" 2>/dev/null
+PREFLIGHT_EOF
 ```
 
 ---

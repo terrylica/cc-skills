@@ -247,6 +247,7 @@ doppler secrets get PYPI_TOKEN --plain | head -c 50
 **File**: `scripts/publish-to-pypi.sh`
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 #!/bin/bash
 # Quick PyPI Publishing Script
 # Requires: Doppler CLI with PYPI_TOKEN secret
@@ -298,6 +299,7 @@ curl -s https://pypi.org/pypi/${PACKAGE_NAME}/${CURRENT_VERSION}/json > /dev/nul
   echo "   ⏳ Still propagating (check in 30 seconds)"
 
 echo -e "\n✅ Complete! Published v${CURRENT_VERSION} to PyPI"
+PREFLIGHT_EOF
 ```
 
 Make executable:

@@ -6,6 +6,7 @@
 ### Phase 1: Detection
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 # Create working directory
 mkdir -p /tmp/dry-audit-$(date +%Y%m%d)
 cd /tmp/dry-audit-$(date +%Y%m%d)
@@ -13,6 +14,7 @@ cd /tmp/dry-audit-$(date +%Y%m%d)
 # Run both tools
 pmd cpd -d /path/to/project -l python --minimum-tokens 20 -f markdown > pmd-cpd.md
 semgrep --config=/path/to/clone-rules.yaml --sarif --quiet /path/to/project > semgrep.sarif
+CONFIG_EOF
 ```
 
 ### Phase 2: Analysis

@@ -78,12 +78,14 @@ chezmoi git -- push               # 2. Push to remote
 ## Workflow: Resolve Conflicts
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 chezmoi git -- status             # 1. Identify conflicts
 # Edit conflicted files in $(chezmoi source-path)
 chezmoi git -- add <files>        # 2. Stage resolved
 chezmoi git -- commit -m "Resolve conflicts"
 chezmoi apply                     # 3. Apply to home
 chezmoi git -- push               # 4. Push resolution
+GIT_EOF
 ```
 
 ---

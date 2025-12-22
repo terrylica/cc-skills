@@ -535,10 +535,12 @@ SCRIPT_NAME
 **Incorrect (fails in zsh):**
 
 ```bash
+/usr/bin/env bash << 'LIFECYCLE_REFERENCE_SCRIPT_EOF'
 # Without heredoc, zsh interprets directly
 if [[ "$VAR" != "value" ]]; then  # ERROR: condition expected: \!=
     echo "fails"
 fi
+LIFECYCLE_REFERENCE_SCRIPT_EOF
 ```
 
 **Error signature:** `(eval):91: condition expected: \!=`
