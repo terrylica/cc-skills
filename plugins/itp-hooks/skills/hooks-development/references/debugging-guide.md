@@ -11,6 +11,7 @@ This is the most common issue. Work through this checklist:
 Add debug logging to your hook:
 
 ```bash
+/usr/bin/env bash << 'DEBUGGING_GUIDE_SCRIPT_EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -19,6 +20,7 @@ echo "$(date): Hook fired" >> /tmp/my-hook-debug.log
 echo "PAYLOAD: $(cat)" >> /tmp/my-hook-debug.log
 
 # ... rest of hook
+DEBUGGING_GUIDE_SCRIPT_EOF
 ```
 
 After editing a matching file, check:
@@ -145,28 +147,36 @@ exit 2
 ### Pitfall 4: Silent Failures
 
 ```bash
+/usr/bin/env bash << 'DEBUGGING_GUIDE_SCRIPT_EOF_2'
 # WRONG - jq error silently swallowed
 PAYLOAD=$(cat)
 FILE_PATH=$(echo "$PAYLOAD" | jq -r '.wrong.path')  # Returns empty, no error
+DEBUGGING_GUIDE_SCRIPT_EOF_2
 ```
 
 ```bash
+/usr/bin/env bash << 'DEBUGGING_GUIDE_SCRIPT_EOF_3'
 # BETTER - Explicit error handling
 FILE_PATH=$(echo "$PAYLOAD" | jq -r '.tool_input.file_path // empty')
 [[ -z "$FILE_PATH" ]] && exit 0
+DEBUGGING_GUIDE_SCRIPT_EOF_3
 ```
 
 ### Pitfall 5: Not Handling Missing Fields
 
 ```bash
+/usr/bin/env bash << 'DEBUGGING_GUIDE_SCRIPT_EOF_4'
 # WRONG - Fails if file_path missing
 FILE_PATH=$(echo "$PAYLOAD" | jq -r '.tool_input.file_path')
+DEBUGGING_GUIDE_SCRIPT_EOF_4
 ```
 
 ```bash
+/usr/bin/env bash << 'DEBUGGING_GUIDE_SCRIPT_EOF_5'
 # CORRECT - Graceful fallback
 FILE_PATH=$(echo "$PAYLOAD" | jq -r '.tool_input.file_path // empty')
 [[ -z "$FILE_PATH" ]] && exit 0
+DEBUGGING_GUIDE_SCRIPT_EOF_5
 ```
 
 ## Quick Diagnostic Script
@@ -174,6 +184,7 @@ FILE_PATH=$(echo "$PAYLOAD" | jq -r '.tool_input.file_path // empty')
 Save as `test-hook.sh`:
 
 ```bash
+/usr/bin/env bash << 'DEBUGGING_GUIDE_SCRIPT_EOF_6'
 #!/usr/bin/env bash
 # Test a hook manually
 
@@ -206,6 +217,7 @@ if [[ $EXIT_CODE -eq 0 ]] && echo "$OUTPUT" | jq -e '.decision == "block"' >/dev
 else
     echo "=== FAIL: Missing decision:block or wrong exit code ==="
 fi
+DEBUGGING_GUIDE_SCRIPT_EOF_6
 ```
 
 Usage:

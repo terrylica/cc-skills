@@ -89,9 +89,11 @@ brew install chezmoi                   # macOS
 ### Initialize (fresh start)
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 chezmoi init                           # Create empty source
 chezmoi add ~/.zshrc ~/.gitconfig      # Add first files
 gh repo create dotfiles --private --source="$(chezmoi source-path)" --push
+CONFIG_EOF
 ```
 
 ### Initialize (clone existing)
@@ -108,7 +110,9 @@ chezmoi apply                          # Deploy to home directory
 Move source to custom location (e.g., for multi-account SSH):
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 mv "$(chezmoi source-path)" ~/path/to/dotfiles
+SKILL_SCRIPT_EOF
 ```
 
 Edit `~/.config/chezmoi/chezmoi.toml`:
@@ -140,6 +144,7 @@ chezmoi git -- push -u origin main                                    # Push to 
 ## 9. Resolve Merge Conflicts
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 chezmoi git -- status                  # 1. Identify conflicted files
 chezmoi git -- diff                    # 2. Review conflicts
 # Manually edit files in $(chezmoi source-path)
@@ -147,6 +152,7 @@ chezmoi git -- add <resolved-files>    # 3. Stage resolved files
 chezmoi git -- commit -m "Resolve merge conflict"
 chezmoi apply                          # 4. Apply to home directory
 chezmoi git -- push                    # 5. Push resolution
+GIT_EOF
 ```
 
 ---

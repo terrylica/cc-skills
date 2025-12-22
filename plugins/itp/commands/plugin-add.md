@@ -30,6 +30,7 @@ DO NOT:
 Before executing TodoWrite, verify you're in a marketplace directory:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # Check for marketplace.json in cwd
 if [ -f ".claude-plugin/marketplace.json" ]; then
   echo "✅ Marketplace detected: $(jq -r .name .claude-plugin/marketplace.json)"
@@ -37,6 +38,7 @@ else
   echo "❌ Not a marketplace directory. Run from a marketplace root."
   exit 1
 fi
+PREFLIGHT_EOF
 ```
 
 ### Step 0.2: Execute MANDATORY TodoWrite
@@ -120,6 +122,7 @@ TodoWrite with todos:
 First, confirm we're in a marketplace directory:
 
 ```bash
+/usr/bin/env bash << 'PLUGIN_ADD_SCRIPT_EOF'
 # Must have .claude-plugin/marketplace.json
 ls -la .claude-plugin/marketplace.json
 
@@ -127,6 +130,7 @@ ls -la .claude-plugin/marketplace.json
 MARKETPLACE_NAME=$(jq -r .name .claude-plugin/marketplace.json)
 MARKETPLACE_VERSION=$(jq -r .version .claude-plugin/marketplace.json)
 echo "Marketplace: $MARKETPLACE_NAME v$MARKETPLACE_VERSION"
+PLUGIN_ADD_SCRIPT_EOF
 ```
 
 ### 0.2 Interactive Prompts
@@ -184,12 +188,14 @@ AskUserQuestion with questions:
 **Store responses:**
 
 ```bash
+/usr/bin/env bash << 'PLUGIN_ADD_SCRIPT_EOF_2'
 PLUGIN_NAME="${ARGUMENTS:-<from-q1>}"
 PLUGIN_CATEGORY="<from-q2>"
 HAS_SKILLS=<true|false>
 HAS_HOOKS=<true|false>
 HAS_COMMANDS=<true|false>
 HAS_AGENTS=<true|false>
+PLUGIN_ADD_SCRIPT_EOF_2
 ```
 
 ### 0.3 Confirm Plugin Doesn't Exist
@@ -259,7 +265,9 @@ mkdir -p plugins/$PLUGIN_NAME/agents
 Get version from marketplace for consistency:
 
 ```bash
+/usr/bin/env bash << 'PLUGIN_ADD_SCRIPT_EOF_3'
 MARKETPLACE_VERSION=$(jq -r .version .claude-plugin/marketplace.json)
+PLUGIN_ADD_SCRIPT_EOF_3
 ```
 
 Create `plugins/$PLUGIN_NAME/plugin.json`:
@@ -289,7 +297,9 @@ This skill:
 **ADR ID Format:**
 
 ```bash
+/usr/bin/env bash << 'PLUGIN_ADD_SCRIPT_EOF_4'
 ADR_ID="$(date +%Y-%m-%d)-$PLUGIN_NAME"
+PLUGIN_ADD_SCRIPT_EOF_4
 ```
 
 ### Phase 1 Gate
@@ -469,7 +479,9 @@ ADR: $ADR_ID"
 ### 4.3 Push to Remote
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 git push origin $(git branch --show-current)
+GIT_EOF
 ```
 
 ### 4.4 Semantic Release
@@ -486,7 +498,9 @@ This skill:
 **Invoke with CI=false for local execution:**
 
 ```bash
+/usr/bin/env bash << 'PLUGIN_ADD_SCRIPT_EOF_5'
 /usr/bin/env bash -c 'CI=false GITHUB_TOKEN=$(gh auth token) npm run release'
+PLUGIN_ADD_SCRIPT_EOF_5
 ```
 
 ### Phase 4 Success Criteria

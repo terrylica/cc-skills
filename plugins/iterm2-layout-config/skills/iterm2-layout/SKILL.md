@@ -66,6 +66,7 @@ dir = "~/Documents"  # name defaults to "Documents"
 ### First-Time Setup
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 # 1. Ensure config directory exists
 mkdir -p ~/.config/iterm2
 
@@ -76,6 +77,7 @@ cp ~/scripts/iterm2/layout.example.toml ~/.config/iterm2/layout.toml
 # Add [[tabs]] entries for each workspace
 
 # 4. Restart iTerm2 to test
+CONFIG_EOF
 ```
 
 ### Adding a New Tab

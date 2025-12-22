@@ -80,6 +80,7 @@ echo "ERROR something" # Should be "ERROR: something"
 If using color, define constants at script top:
 
 ```bash
+/usr/bin/env bash << 'ERROR_MESSAGE_STYLE_SCRIPT_EOF'
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -88,6 +89,7 @@ NC='\033[0m'  # No Color
 echo -e "${RED}ERROR:${NC} Description"
 echo -e "${GREEN}✓${NC} Success"
 echo -e "${YELLOW}WARNING:${NC} Caution"
+ERROR_MESSAGE_STYLE_SCRIPT_EOF
 ```
 
 ## Validator Scripts

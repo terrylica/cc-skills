@@ -30,9 +30,11 @@ Claude Code only loads hooks from settings.json, not from plugin.json files. Thi
 Parse `$ARGUMENTS` and run the management script:
 
 ```bash
+/usr/bin/env bash << 'HOOKS_SCRIPT_EOF'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 ACTION="${ARGUMENTS:-status}"
 bash "$PLUGIN_DIR/scripts/manage-hooks.sh" $ACTION
+HOOKS_SCRIPT_EOF
 ```
 
 ## Post-Action Reminder

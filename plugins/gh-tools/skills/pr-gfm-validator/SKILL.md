@@ -43,6 +43,7 @@ https://github.com/{owner}/{repo}/blob/{branch}/docs/adr/file.md
 Before any PR operation, gather repository context:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # Get repo owner and name
 gh repo view --json nameWithOwner --jq '.nameWithOwner'
 
@@ -55,6 +56,7 @@ if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
   echo "On default branch - no conversion needed"
   exit 0
 fi
+PREFLIGHT_EOF
 ```
 
 ### Step 2: Identify Links to Convert
@@ -121,6 +123,7 @@ After conversion, verify:
 When creating a PR, apply this workflow automatically:
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 # 1. Get context
 REPO_INFO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 OWNER=$(echo "$REPO_INFO" | cut -d'/' -f1)
@@ -132,6 +135,7 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 # 3. Create PR with converted body
 gh pr create --title "..." --body "$CONVERTED_BODY"
+GIT_EOF
 ```
 
 ---

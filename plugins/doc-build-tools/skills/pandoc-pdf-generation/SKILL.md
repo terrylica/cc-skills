@@ -31,6 +31,7 @@ This skill provides production-proven assets in `${CLAUDE_PLUGIN_ROOT}/skills/pa
 ### From Any Project
 
 ```bash
+/usr/bin/env bash << 'DETECT_EOF'
 # Create symlink once per project (git-friendly)
 ln -s ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/build-pdf.sh build-pdf.sh
 
@@ -45,6 +46,7 @@ ln -s ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/build-pdf.sh bui
 
 # Explicit input/output
 ./build-pdf.sh input.md output.pdf
+DETECT_EOF
 ```
 
 **Options:**
@@ -90,6 +92,7 @@ pandoc file.md -o file.pdf \
 ### Manual Command (With LaTeX Preamble)
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 pandoc document.md \
   -o document.pdf \
   --pdf-engine=xelatex \
@@ -99,6 +102,7 @@ pandoc document.md \
   -V geometry:margin=1in \
   -V mainfont="DejaVu Sans" \
   -H ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/table-spacing-template.tex
+SKILL_SCRIPT_EOF
 ```
 
 ---

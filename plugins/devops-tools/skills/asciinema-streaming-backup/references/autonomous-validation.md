@@ -28,6 +28,7 @@
 Execute this script via Bash tool to run all autonomous tests:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 #!/usr/bin/env bash
 # autonomous-validation.sh - Claude runs this automatically
 # Usage: autonomous-validation.sh <repo_dir> <repo_url> [branch_name]
@@ -203,6 +204,7 @@ echo "║  AUTONOMOUS TESTS: $PASSED passed, $FAILED failed"
 echo "╚═════════════════════════════════════════════════════════════════╝"
 
 [[ $FAILED -eq 0 ]] && exit 0 || exit 1
+PREFLIGHT_EOF
 ```
 
 ---
@@ -250,6 +252,7 @@ options:
 **After user confirms**, Claude validates autonomously:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_2'
 # Claude runs after user confirms
 CAST_FILE="$HOME/asciinema_recordings/test_session.cast"
 
@@ -273,6 +276,7 @@ if [[ -f "$CAST_FILE" ]]; then
 else
   echo "  ✗ test_session.cast NOT found"
 fi
+PREFLIGHT_EOF_2
 ```
 
 ### Live Chunker Test (Optional)
@@ -321,6 +325,7 @@ options:
 **After user confirms**, Claude validates:
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_3'
 # Check if chunks were created
 REPO_DIR="$HOME/asciinema_recordings/<repo>"
 CHUNKS=$(find "$REPO_DIR/chunks" -name "*.zst" 2>/dev/null | wc -l)
@@ -336,6 +341,7 @@ if [[ $CHUNKS -gt 0 ]]; then
 else
   echo "  ✗ No chunks found in $REPO_DIR/chunks/"
 fi
+PREFLIGHT_EOF_3
 ```
 
 ---

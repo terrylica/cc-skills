@@ -55,6 +55,7 @@ Update `.github/workflows/release.yml`:
 **Solution (Recommended): Install globally instead of using npx**
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 # One-time setup: Install semantic-release globally
 npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github @semantic-release/exec
 
@@ -63,6 +64,7 @@ xattr -r -d com.apple.quarantine ~/.local/share/mise/installs/node/
 
 # Use semantic-release directly (not npx)
 /usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
+SETUP_EOF
 ```
 
 **Why this works**: Global install downloads packages once. Clearing quarantine once is sufficient until Node.js is upgraded.

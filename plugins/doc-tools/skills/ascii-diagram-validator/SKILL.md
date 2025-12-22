@@ -56,19 +56,25 @@ Cross:   ╬
 ### Validate a Single File
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py docs/ARCHITECTURE.md
+PREFLIGHT_EOF
 ```
 
 ### Validate Multiple Files
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_2'
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py docs/*.md
+PREFLIGHT_EOF_2
 ```
 
 ### Validate Directory
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_3'
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py docs/
+PREFLIGHT_EOF_3
 ```
 
 ## Output Format
@@ -121,12 +127,14 @@ When Claude Code creates or edits ASCII diagrams:
 ### Example Workflow
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF_4'
 # After editing docs/ARCHITECTURE.md
 uv run ${CLAUDE_PLUGIN_ROOT}/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py docs/ARCHITECTURE.md
 
 # If errors found, Claude Code can read the output and fix:
 # docs/ARCHITECTURE.md:45:12: error: vertical connector '│' at column 12 has no matching character above
 # → Edit line 44, column 12 to add the missing connector
+PREFLIGHT_EOF_4
 ```
 
 ## Limitations

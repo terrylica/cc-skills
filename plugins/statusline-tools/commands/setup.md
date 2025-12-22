@@ -22,9 +22,11 @@ Manage custom status line installation and dependencies.
 Parse `$ARGUMENTS` and run the management script:
 
 ```bash
+/usr/bin/env bash << 'SETUP_SCRIPT_EOF'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools}"
 ACTION="${ARGUMENTS:-status}"
 bash "$PLUGIN_DIR/scripts/manage-statusline.sh" $ACTION
+SETUP_SCRIPT_EOF
 ```
 
 ## Post-Action Reminder

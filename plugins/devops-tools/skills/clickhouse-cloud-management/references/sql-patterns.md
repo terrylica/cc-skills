@@ -249,9 +249,11 @@ openssl rand -base64 16 | tr -d '/+=' | head -c 16
 ### Audit Commands
 
 ```bash
+/usr/bin/env bash << 'SQL_PATTERNS_SCRIPT_EOF'
 # List all users and their grants
 for user in $(curl -s "https://default:$PASSWORD@$HOST:443/" --data-binary "SHOW USERS" | tr '\n' ' '); do
   echo "=== $user ==="
   curl -s "https://default:$PASSWORD@$HOST:443/" --data-binary "SHOW GRANTS FOR $user"
 done
+SQL_PATTERNS_SCRIPT_EOF
 ```

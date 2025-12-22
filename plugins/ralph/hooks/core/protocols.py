@@ -46,11 +46,14 @@ class ConvergenceResult:
             - 0.0: No opinion, defer to existing RSSI logic
             - 0.5: Suggests stop, requires RSSI agreement
             - 1.0: Hard limit, overrides RSSI (e.g., budget exhausted)
+        converged: True if research has explicitly converged (e.g., research_log.md
+            shows "Status: CONVERGED"). Used to hard-block busywork.
     """
 
     should_continue: bool
     reason: str
     confidence: float = DEFAULT_CONFIDENCE
+    converged: bool = False
 
 
 @runtime_checkable

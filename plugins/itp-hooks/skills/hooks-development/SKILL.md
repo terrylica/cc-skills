@@ -40,6 +40,7 @@ Guide for developing Claude Code hooks with proper output visibility patterns.
 ## Minimal Working Pattern
 
 ```bash
+/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -57,6 +58,7 @@ if [[ condition_met ]]; then
 fi
 
 exit 0
+SKILL_SCRIPT_EOF
 ```
 
 **Key points**:

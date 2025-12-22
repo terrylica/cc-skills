@@ -36,6 +36,8 @@ sudo tlmgr install <package-name>
 ### Issue: Permission errors
 
 ```bash
+/usr/bin/env bash << 'TROUBLESHOOTING_SCRIPT_EOF'
 # Fix permissions on TeX Live directory
 sudo chown -R $(whoami):staff /usr/local/texlive/2025/texmf-var
+TROUBLESHOOTING_SCRIPT_EOF
 ```

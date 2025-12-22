@@ -106,6 +106,12 @@ After ANY skill work, verify:
   - No hardcoded `/Users/<user>` or `/home/<user>` (use `$HOME`)
   - No hardcoded `/tmp` in Python (use `tempfile.TemporaryDirectory`)
   - No hardcoded binary paths (use `command -v` or PATH)
+- [ ] Bash compatibility verified (see [Bash Compatibility](./references/bash-compatibility.md)):
+  - All bash code blocks wrapped with `/usr/bin/env bash << 'NAME_EOF'`
+  - No `declare -A` (associative arrays) - use parallel indexed arrays
+  - No `grep -P` (Perl regex) - use `grep -E` with awk
+  - No `\!=` in conditionals - use `!=` directly
+  - Heredoc EOF marker is descriptive (e.g., `PREFLIGHT_EOF`)
 
 ---
 

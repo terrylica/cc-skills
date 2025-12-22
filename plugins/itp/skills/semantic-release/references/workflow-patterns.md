@@ -13,10 +13,12 @@ Use for solo projects where you want consistent personal defaults.
 **1. Create User Config** (One-time setup)
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF'
 # Environment-agnostic path
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cd "$PLUGIN_DIR/skills/semantic-release"
 ./scripts/init_user_config.sh
+CONFIG_EOF
 ```
 
 Creates `~/semantic-release-config/` with:
@@ -43,9 +45,11 @@ npm publish --access public
 **4. Use in Projects**
 
 ```bash
+/usr/bin/env bash << 'WORKFLOW_PATTERNS_SCRIPT_EOF'
 cd /path/to/project
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 "$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --user
+WORKFLOW_PATTERNS_SCRIPT_EOF
 ```
 
 This creates project `.releaserc.yml`:
@@ -80,10 +84,12 @@ Use for company/team projects requiring shared standards.
 **1. Create Organization Config** (Team lead, one-time)
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_2'
 # Environment-agnostic path
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 cd "$PLUGIN_DIR/skills/semantic-release"
 ./scripts/create_org_config.sh mycompany semantic-release-config ~/org-configs/
+CONFIG_EOF_2
 ```
 
 Creates `~/org-configs/semantic-release-config/` with npm package structure.
@@ -106,9 +112,11 @@ npm publish --access public
 **4. Use in Team Projects** (All team members)
 
 ```bash
+/usr/bin/env bash << 'CONFIG_EOF_3'
 cd /path/to/team-project
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 "$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --org mycompany/semantic-release-config
+CONFIG_EOF_3
 ```
 
 This creates project `.releaserc.yml`:
@@ -137,9 +145,11 @@ Use for one-off projects with unique requirements.
 **Initialize with Inline Config**
 
 ```bash
+/usr/bin/env bash << 'WORKFLOW_PATTERNS_SCRIPT_EOF_2'
 cd /path/to/project
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
 "$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --inline
+WORKFLOW_PATTERNS_SCRIPT_EOF_2
 ```
 
 This creates self-contained `.releaserc.yml` with all configuration inline (no extends).
@@ -162,6 +172,7 @@ git push --follow-tags origin main
 Single command that handles prerequisites, sync, release, and push with SSH/HTTPS fallback:
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 release() {
     # Prerequisites
     command -v gh &>/dev/null || { echo "❌ gh CLI not installed"; return 1; }
@@ -206,6 +217,7 @@ release() {
 
     return $rc
 }
+SETUP_EOF
 ```
 
 **Features**:

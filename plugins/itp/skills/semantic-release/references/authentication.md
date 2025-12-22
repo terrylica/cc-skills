@@ -227,6 +227,7 @@ Host github.com
 **Fix** (web-based authentication):
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # 1. Check gh CLI authentication
 gh auth status
 
@@ -239,6 +240,7 @@ cat package.json | grep -A 2 "release"
 
 # 4. Should show: GITHUB_TOKEN=$(gh auth token)
 # Note: gh auth token retrieves credentials - never create manual tokens
+PREFLIGHT_EOF
 ```
 
 **Web-based authentication only** - gh CLI handles everything!
