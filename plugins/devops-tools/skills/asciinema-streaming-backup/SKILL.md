@@ -10,7 +10,6 @@ Complete system for streaming asciinema recordings to GitHub with automatic brot
 
 > **Platform**: macOS, Linux
 > **Isolation**: Uses Git orphan branch (separate history, cannot pollute main)
-> **Setup**: GitHub CLI (`gh`) for all GitHub operations
 
 ---
 
@@ -24,7 +23,7 @@ Complete system for streaming asciinema recordings to GitHub with automatic brot
          │                                        │
          │ Idle ≥30s triggers chunk               │ Separate history
          ▼                                        │ Cannot PR to main
-    ~/asciinema_recordings/                       ▼
+    ~/asciinema_recordings/                                 ▼
     └── repo-name/                          .github/workflows/
         └── chunks/*.zst                    └── recompress.yml
 ```
@@ -46,28 +45,27 @@ Complete system for streaming asciinema recordings to GitHub with automatic brot
 
 ## Workflow Phases
 
-### Phase 0: Preflight - Tool Validation
+### Phase 0: Preflight Validation
 
 **Purpose**: Verify all tools installed, offer self-correction if missing.
 
 ```bash
 #!/usr/bin/env bash
-# preflight-tools.sh - Validates all tool requirements
+# preflight-check.sh - Validates all requirements
 
 MISSING=()
 
+# Check each tool
 for tool in asciinema zstd brotli git gh; do
-  if command -v "$tool" &>/dev/null; then
-    echo "✓ $tool: $(command -v "$tool")"
-  else
+  if ! command -v "$tool" &>/dev/null; then
     MISSING+=("$tool")
-    echo "✗ $tool: MISSING"
   fi
 done
 
 if [[ ${#MISSING[@]} -gt 0 ]]; then
+  echo "Missing tools: ${MISSING[*]}"
   echo ""
-  echo "Install missing tools:"
+  echo "Install with:"
   echo "  brew install ${MISSING[*]}"
   exit 1
 fi
@@ -75,290 +73,375 @@ fi
 # Check asciinema version (need 3.0+ for Rust version)
 ASCIINEMA_VERSION=$(asciinema --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
 if [[ "${ASCIINEMA_VERSION%%.*}" -lt 3 ]]; then
-  echo ""
-  echo "⚠ asciinema $ASCIINEMA_VERSION detected. Version 3.0+ recommended."
-  echo "  Upgrade: brew upgrade asciinema"
+  echo "Warning: asciinema $ASCIINEMA_VERSION detected. Version 3.0+ recommended."
+  echo "Upgrade: brew upgrade asciinema"
 fi
 
-echo ""
-echo "✓ All required tools installed"
+echo "All requirements satisfied"
 ```
+
+**AskUserQuestion** (if tools missing):
+
+```yaml
+AskUserQuestion:
+  question: "Required tools are missing. How would you like to proceed?"
+  header: "Preflight Check"
+  options:
+    - label: "Install all missing tools (Recommended)"
+      description: "Run: brew install ${MISSING[*]}"
+    - label: "Show manual installation commands"
+      description: "Display commands without executing"
+    - label: "Continue anyway (may fail later)"
+      description: "Skip installation and proceed"
+```
+
+**Self-Correction**: If tools are missing, generate installation command and offer to run it.
 
 ---
 
-### Phase 1: Preflight - GitHub Account Detection
+### Phase 1: GitHub Account Detection
 
-**Purpose**: Detect available GitHub accounts/users from multiple sources.
+**Purpose**: Detect available GitHub accounts and let user choose which to use for recording storage.
 
-**Detection Sources** (in priority order):
+#### Detection Sources
 
-1. **SSH Config** (`~/.ssh/config`) - Host aliases like `github.com-personal`
-2. **gh CLI** (`gh auth status`) - Authenticated GitHub accounts
-3. **mise env** (`.mise.toml`) - `GH_TOKEN`, `GITHUB_USER` variables
-4. **git config** - `user.name`, `user.email` per directory
-5. **gitconfig includes** - Conditional includes based on directory
+Probe these 5 sources to detect GitHub accounts:
+
+| Source     | Command                                | What it finds                                     |
+| ---------- | -------------------------------------- | ------------------------------------------------- |
+| SSH config | `grep -A5 "Host github" ~/.ssh/config` | Match directives with IdentityFile                |
+| SSH keys   | `ls ~/.ssh/id_ed25519_*`               | Account-named keys (e.g., `id_ed25519_terrylica`) |
+| gh CLI     | `gh auth status`                       | Authenticated accounts                            |
+| mise env   | `grep GH_ACCOUNT .mise.toml`           | GH_ACCOUNT variable                               |
+| git config | `git config user.name`                 | Global git username                               |
+
+#### Detection Script
 
 ```bash
 #!/usr/bin/env bash
-# detect-github-accounts.sh - Discovers available GitHub accounts
+# detect-github-accounts.sh - Probe all sources for GitHub accounts
 
-echo "=== Detecting GitHub Accounts ==="
-echo ""
+declare -A ACCOUNTS  # account -> detection sources
 
-ACCOUNTS=()
+log() { echo "[detect] $*"; }
 
-# 1. SSH Config - Look for github.com-* host aliases
-echo "--- SSH Config ---"
+# 1. SSH config Match directives
 if [[ -f ~/.ssh/config ]]; then
-  SSH_HOSTS=$(grep -E "^Host github\.com-" ~/.ssh/config | awk '{print $2}' | sort -u)
-  if [[ -n "$SSH_HOSTS" ]]; then
-    while IFS= read -r host; do
-      # Extract username from IdentityFile path or host suffix
-      USERNAME=$(echo "$host" | sed 's/github.com-//')
-      echo "  SSH: $host → $USERNAME"
-      ACCOUNTS+=("ssh:$USERNAME:$host")
-    done <<< "$SSH_HOSTS"
-  else
-    echo "  No github.com-* aliases found"
-  fi
-else
-  echo "  ~/.ssh/config not found"
+  while IFS= read -r line; do
+    if [[ "$line" =~ IdentityFile.*id_ed25519_([a-zA-Z0-9_-]+) ]]; then
+      account="${BASH_REMATCH[1]}"
+      ACCOUNTS["$account"]+="ssh-config "
+    fi
+  done < ~/.ssh/config
 fi
 
-# 2. gh CLI authenticated accounts
-echo ""
-echo "--- GitHub CLI (gh) ---"
+# 2. SSH key filenames
+for keyfile in ~/.ssh/id_ed25519_*; do
+  if [[ -f "$keyfile" && ! "$keyfile" =~ \.pub$ ]]; then
+    account=$(basename "$keyfile" | sed 's/id_ed25519_//')
+    ACCOUNTS["$account"]+="ssh-key "
+  fi
+done
+
+# 3. gh CLI authenticated accounts
 if command -v gh &>/dev/null; then
-  GH_ACCOUNTS=$(gh auth status 2>&1 | grep -E "Logged in to github" | sed 's/.*as \([^ ]*\).*/\1/')
-  if [[ -n "$GH_ACCOUNTS" ]]; then
-    while IFS= read -r user; do
-      echo "  gh: $user"
-      ACCOUNTS+=("gh:$user:github.com")
-    done <<< "$GH_ACCOUNTS"
-  else
-    echo "  No authenticated accounts"
-  fi
-else
-  echo "  gh CLI not installed"
+  while IFS= read -r account; do
+    [[ -n "$account" ]] && ACCOUNTS["$account"]+="gh-cli "
+  done < <(gh auth status 2>&1 | grep -oP '(?<=Logged in to github.com account )[a-zA-Z0-9_-]+')
 fi
 
-# 3. mise env (current directory)
-echo ""
-echo "--- mise env ---"
+# 4. mise env GH_ACCOUNT
 if [[ -f .mise.toml ]]; then
-  MISE_USER=$(grep -E "GITHUB_USER|GH_USER" .mise.toml | head -1 | sed 's/.*= *"\([^"]*\)".*/\1/')
-  if [[ -n "$MISE_USER" ]]; then
-    echo "  mise: $MISE_USER (from .mise.toml)"
-    ACCOUNTS+=("mise:$MISE_USER:mise")
-  else
-    echo "  No GITHUB_USER in .mise.toml"
-  fi
-elif command -v mise &>/dev/null; then
-  MISE_USER=$(mise env 2>/dev/null | grep -E "GITHUB_USER|GH_USER" | head -1 | cut -d= -f2 | tr -d '"')
-  if [[ -n "$MISE_USER" ]]; then
-    echo "  mise: $MISE_USER (from environment)"
-    ACCOUNTS+=("mise:$MISE_USER:mise")
-  else
-    echo "  No GITHUB_USER in mise env"
-  fi
-else
-  echo "  mise not available"
+  account=$(grep -oP '(?<=GH_ACCOUNT\s*=\s*")[^"]+' .mise.toml 2>/dev/null)
+  [[ -n "$account" ]] && ACCOUNTS["$account"]+="mise-env "
 fi
 
-# 4. Git config (global and local)
-echo ""
-echo "--- Git Config ---"
-GIT_USER=$(git config user.name 2>/dev/null)
-GIT_EMAIL=$(git config user.email 2>/dev/null)
-if [[ -n "$GIT_USER" ]]; then
-  echo "  git: $GIT_USER <$GIT_EMAIL>"
-  ACCOUNTS+=("git:$GIT_USER:$GIT_EMAIL")
-fi
+# 5. git config user.name
+git_user=$(git config user.name 2>/dev/null)
+[[ -n "$git_user" ]] && ACCOUNTS["$git_user"]+="git-config "
 
-# 5. Check for gitconfig includeIf patterns
-echo ""
-echo "--- Gitconfig Includes ---"
-if [[ -f ~/.gitconfig ]]; then
-  INCLUDES=$(grep -A1 "includeIf" ~/.gitconfig 2>/dev/null | grep "path" | sed 's/.*path = //')
-  if [[ -n "$INCLUDES" ]]; then
-    echo "  Found conditional includes:"
-    echo "$INCLUDES" | while read -r inc; do
-      echo "    - $inc"
-    done
-  else
-    echo "  No conditional includes"
+# Score and display
+log "=== Detected GitHub Accounts ==="
+for account in "${!ACCOUNTS[@]}"; do
+  sources="${ACCOUNTS[$account]}"
+  count=$(echo "$sources" | wc -w)
+  log "$account: $count sources ($sources)"
+done
+
+# Find recommended (most sources)
+RECOMMENDED=""
+MAX_SOURCES=0
+for account in "${!ACCOUNTS[@]}"; do
+  count=$(echo "${ACCOUNTS[$account]}" | wc -w)
+  if (( count > MAX_SOURCES )); then
+    MAX_SOURCES=$count
+    RECOMMENDED="$account"
   fi
-fi
+done
 
-# Summary
 echo ""
-echo "=== Detected Accounts ==="
-if [[ ${#ACCOUNTS[@]} -eq 0 ]]; then
-  echo "  No GitHub accounts detected!"
-  echo "  Run: gh auth login"
-else
-  for acc in "${ACCOUNTS[@]}"; do
-    echo "  - $acc"
-  done
+echo "RECOMMENDED=$RECOMMENDED"
+echo "SOURCES=${ACCOUNTS[$RECOMMENDED]}"
+```
+
+#### AskUserQuestion
+
+```yaml
+AskUserQuestion:
+  question: "Which GitHub account should be used for recording storage?"
+  header: "GitHub Account Selection"
+  options:
+    - label: "${RECOMMENDED} (Recommended)"
+      description: "Detected via: ${SOURCES}"
+    # Additional detected accounts appear here dynamically
+    - label: "Enter manually"
+      description: "Type a GitHub username not listed above"
+```
+
+**Post-Selection**: If user selects an account, ensure gh CLI is using that account:
+
+```bash
+# Ensure gh CLI is authenticated as selected account
+SELECTED_ACCOUNT="terrylica"  # From user selection
+
+if ! gh auth status 2>&1 | grep -q "Logged in to github.com account $SELECTED_ACCOUNT"; then
+  echo "Switching gh CLI to account: $SELECTED_ACCOUNT"
+  gh auth switch --user "$SELECTED_ACCOUNT" 2>/dev/null || \
+    echo "Warning: Could not switch accounts. Manual auth may be needed."
 fi
 ```
 
 ---
 
-### Phase 2: Interactive Configuration (AskUserQuestion)
+### Phase 2: Core Configuration
 
-**Purpose**: Confirm parameters with user before setup.
+**Purpose**: Gather essential configuration from user.
 
-#### Question Flow 1: GitHub Account Selection
+#### 2.1 Repository URL
 
-After detecting accounts, present options to user:
-
-```markdown
-## AskUserQuestion: GitHub Account
-
-**Question**: "Which GitHub account should be used for this recording storage?"
-
-**Header**: "GitHub"
-
-**Options** (from detection):
-
-- Option 1: "{detected_username_1}" - "Detected from SSH config (github.com-personal)"
-- Option 2: "{detected_username_2}" - "Detected from gh CLI authentication"
-- Option 3: "{detected_username_3}" - "Detected from mise env"
-  (User can always select "Other" for custom input)
-
-**multiSelect**: false
+```yaml
+AskUserQuestion:
+  question: "Enter the GitHub repository URL for storing recordings:"
+  header: "Repository URL"
+  options:
+    - label: "Enter repository"
+      description: "SSH (git@github.com:user/repo.git), HTTPS, or shorthand (user/repo)"
 ```
 
-#### Question Flow 2: Repository Selection
+**URL Normalization** (handles multiple formats):
 
-```markdown
-## AskUserQuestion: Repository
+```bash
+# Normalize to SSH format for consistent handling
+normalize_repo_url() {
+  local url="$1"
 
-**Question**: "Which repository should store the recordings?"
-
-**Header**: "Repository"
-
-**Options**:
-
-- Option 1: "{current_repo}" - "Current workspace repository (Recommended)"
-- Option 2: "dedicated-recordings" - "Create a dedicated recordings repository"
-- Option 3: "existing-private" - "Use an existing private repository"
-  (User can always select "Other" for custom input)
-
-**multiSelect**: false
+  # Shorthand: user/repo -> git@github.com:user/repo.git
+  if [[ "$url" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
+    echo "git@github.com:${url}.git"
+  # HTTPS: https://github.com/user/repo -> git@github.com:user/repo.git
+  elif [[ "$url" =~ ^https://github\.com/([^/]+)/([^/]+)/?$ ]]; then
+    echo "git@github.com:${BASH_REMATCH[1]}/${BASH_REMATCH[2]}.git"
+  # Already SSH format
+  else
+    echo "$url"
+  fi
+}
 ```
 
-#### Question Flow 3: Local Folder Path
+#### 2.2 Recording Directory
 
-```markdown
-## AskUserQuestion: Local Path
-
-**Question**: "Where should the local recording storage be located?"
-
-**Header**: "Local Path"
-
-**Options**:
-
-- Option 1: "~/asciinema_recordings/{repo}" - "Default recommended location (Recommended)"
-- Option 2: "~/recordings/{repo}" - "Alternative short path"
-- Option 3: "./.recordings" - "Inside current workspace (gitignored)"
-  (User can always select "Other" for custom input)
-
-**multiSelect**: false
+```yaml
+AskUserQuestion:
+  question: "Where should recordings be stored locally?"
+  header: "Recording Directory"
+  options:
+    - label: "~/asciinema_recordings/${REPO_NAME} (Recommended)"
+      description: "Default location, organized by repository"
+    - label: "Custom path"
+      description: "Enter a different directory path"
 ```
 
-#### Question Flow 4: Idle Threshold
+#### 2.3 Branch Name
 
-```markdown
-## AskUserQuestion: Chunk Timing
-
-**Question**: "How many seconds of idle time before creating a chunk?"
-
-**Header**: "Idle Time"
-
-**Options**:
-
-- Option 1: "30 seconds" - "Balanced: good chunk size, reasonable frequency (Recommended)"
-- Option 2: "15 seconds" - "Frequent: smaller chunks, more commits"
-- Option 3: "60 seconds" - "Infrequent: larger chunks, fewer commits"
-- Option 4: "120 seconds" - "Minimal: only during extended pauses"
-
-**multiSelect**: false
+```yaml
+AskUserQuestion:
+  question: "What should the orphan branch be named?"
+  header: "Branch Name"
+  options:
+    - label: "gh-recordings (Recommended)"
+      description: "Standard naming convention"
+    - label: "recordings"
+      description: "Simpler alternative"
+    - label: "Custom"
+      description: "Enter a custom branch name"
 ```
 
 ---
 
-### Phase 3: Repository Setup
+### Phase 3: Advanced Configuration
 
-**Purpose**: Create orphan branch with GitHub Actions workflow using GitHub CLI.
+**Purpose**: Allow customization of compression and behavior parameters.
 
-**Important**: All GitHub operations use `gh` CLI (not raw git push).
+#### Configuration Parameters
+
+| Parameter      | Default | Options                                     |
+| -------------- | ------- | ------------------------------------------- |
+| Idle threshold | 30s     | 15s, 30s (Recommended), 60s, Custom (5-300) |
+| zstd level     | 3       | 1 (fast), 3 (Recommended), 6, Custom (1-22) |
+| Brotli level   | 9       | 6, 9 (Recommended), 11, Custom (1-11)       |
+| Auto-push      | Yes     | Yes (Recommended), No                       |
+| Poll interval  | 5s      | 2s, 5s (Recommended), 10s                   |
+
+#### AskUserQuestion Sequence
+
+**3.1 Idle Threshold**:
+
+```yaml
+AskUserQuestion:
+  question: "How long should the chunker wait before creating a chunk?"
+  header: "Idle Threshold"
+  options:
+    - label: "15 seconds"
+      description: "More frequent chunks, smaller files"
+    - label: "30 seconds (Recommended)"
+      description: "Balanced chunk size and frequency"
+    - label: "60 seconds"
+      description: "Larger chunks, less frequent uploads"
+    - label: "Custom (5-300 seconds)"
+      description: "Enter a custom threshold"
+```
+
+**3.2 zstd Compression Level**:
+
+```yaml
+AskUserQuestion:
+  question: "What zstd compression level for streaming chunks?"
+  header: "zstd Level"
+  options:
+    - label: "1 (Fast)"
+      description: "Fastest compression, larger files"
+    - label: "3 (Recommended)"
+      description: "Good balance of speed and compression"
+    - label: "6 (Better compression)"
+      description: "Slower but smaller chunks"
+    - label: "Custom (1-22)"
+      description: "Enter a custom level"
+```
+
+**3.3 Brotli Compression Level**:
+
+```yaml
+AskUserQuestion:
+  question: "What brotli compression level for final archives?"
+  header: "Brotli Level"
+  options:
+    - label: "6"
+      description: "Faster archival, slightly larger files"
+    - label: "9 (Recommended)"
+      description: "Great compression with reasonable speed"
+    - label: "11 (Maximum)"
+      description: "Best compression, slowest (may timeout on large files)"
+    - label: "Custom (1-11)"
+      description: "Enter a custom level"
+```
+
+**3.4 Auto-Push**:
+
+```yaml
+AskUserQuestion:
+  question: "Should chunks be automatically pushed to GitHub?"
+  header: "Auto-Push"
+  options:
+    - label: "Yes (Recommended)"
+      description: "Push immediately after each chunk"
+    - label: "No"
+      description: "Manual push when ready"
+```
+
+**3.5 Poll Interval**:
+
+```yaml
+AskUserQuestion:
+  question: "How often should the chunker check for idle state?"
+  header: "Poll Interval"
+  options:
+    - label: "2 seconds"
+      description: "More responsive, slightly higher CPU"
+    - label: "5 seconds (Recommended)"
+      description: "Good balance"
+    - label: "10 seconds"
+      description: "Lower resource usage"
+```
+
+---
+
+### Phase 4: Orphan Branch Setup
+
+**Purpose**: Create or configure the orphan branch with GitHub Actions workflow.
+
+#### Check for Existing Branch
+
+```bash
+# Check if branch exists on remote
+BRANCH="gh-recordings"  # From Phase 2
+if git ls-remote --heads "$REPO_URL" "$BRANCH" 2>/dev/null | grep -q "$BRANCH"; then
+  echo "Branch '$BRANCH' already exists on remote"
+  BRANCH_EXISTS=true
+else
+  echo "Branch '$BRANCH' does not exist"
+  BRANCH_EXISTS=false
+fi
+```
+
+#### AskUserQuestion (if branch exists)
+
+```yaml
+AskUserQuestion:
+  question: "Branch '${BRANCH}' already exists on remote. How should we proceed?"
+  header: "Existing Branch"
+  options:
+    - label: "Clone locally (Recommended)"
+      description: "Use existing branch, clone to local directory"
+    - label: "Reset and recreate fresh"
+      description: "Delete remote branch and start over (DESTRUCTIVE)"
+    - label: "Keep existing and verify"
+      description: "Check existing setup matches configuration"
+    - label: "Show manual instructions"
+      description: "Display commands without executing"
+```
+
+#### Branch Creation (if new)
 
 ```bash
 #!/usr/bin/env bash
-# setup-orphan-branch.sh
+# setup-orphan-branch.sh - Creates gh-recordings orphan branch
 
-GITHUB_USER="$1"      # From AskUserQuestion
-REPO_NAME="$2"        # From AskUserQuestion
-LOCAL_BASE="$3"       # From AskUserQuestion (default: ~/asciinema_recordings)
-IDLE_THRESHOLD="$4"   # From AskUserQuestion (default: 30)
+REPO_URL="$1"
+BRANCH="${2:-gh-recordings}"
+LOCAL_DIR="$3"
+BROTLI_LEVEL="${4:-9}"  # Embedded from Phase 3 selection
 
-BRANCH="gh-recordings"
-LOCAL_DIR="${LOCAL_BASE}/${REPO_NAME}"
+# Create temporary clone for setup
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
 
-# Construct repo URL using detected SSH host or default
-if [[ -n "$SSH_HOST" ]]; then
-  REPO_URL="git@${SSH_HOST}:${GITHUB_USER}/${REPO_NAME}.git"
-else
-  REPO_URL="git@github.com:${GITHUB_USER}/${REPO_NAME}.git"
-fi
+git clone --depth 1 "$REPO_URL" "$TEMP_DIR"
+cd "$TEMP_DIR"
 
-echo "=== Setup Configuration ==="
-echo "  GitHub User: $GITHUB_USER"
-echo "  Repository: $REPO_NAME"
-echo "  Repo URL: $REPO_URL"
-echo "  Local Path: $LOCAL_DIR"
-echo "  Idle Threshold: ${IDLE_THRESHOLD}s"
-echo ""
+# Create orphan branch
+git checkout --orphan "$BRANCH"
+git rm -rf .
 
-# Check if orphan branch exists remotely
-if git ls-remote --heads "$REPO_URL" "$BRANCH" 2>/dev/null | grep -q "$BRANCH"; then
-  echo "✓ Orphan branch '$BRANCH' already exists"
+# Setup directory structure
+mkdir -p .github/workflows chunks archives
 
-  if [[ -d "$LOCAL_DIR" ]]; then
-    echo "✓ Local clone exists, pulling latest..."
-    git -C "$LOCAL_DIR" pull
-  else
-    echo "→ Cloning to: $LOCAL_DIR"
-    mkdir -p "$(dirname "$LOCAL_DIR")"
-    git clone --single-branch --branch "$BRANCH" --depth 1 "$REPO_URL" "$LOCAL_DIR"
-  fi
-else
-  echo "→ Creating orphan branch '$BRANCH'..."
-
-  # Use gh CLI to ensure proper authentication
-  TEMP_DIR=$(mktemp -d)
-  trap "rm -rf $TEMP_DIR" EXIT
-
-  # Clone using gh CLI (handles auth automatically)
-  gh repo clone "${GITHUB_USER}/${REPO_NAME}" "$TEMP_DIR" -- --depth 1
-  cd "$TEMP_DIR"
-
-  # Create orphan branch
-  git checkout --orphan "$BRANCH"
-  git rm -rf .
-
-  # Setup directory structure
-  mkdir -p .github/workflows chunks archives
-
-  # Create workflow (see references/github-workflow.md for full version)
-  cat > .github/workflows/recompress.yml << 'WORKFLOW_EOF'
+# Create workflow with user-selected brotli level (EMBEDDED at creation time)
+cat > .github/workflows/recompress.yml << WORKFLOW_EOF
 name: Recompress to Brotli
 
 on:
   push:
-    branches: [gh-recordings]
+    branches: [$BRANCH]
     paths: ['chunks/**/*.zst']
   workflow_dispatch:
 
@@ -370,246 +453,460 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install tools
+      - name: Install compression tools
         run: sudo apt-get update && sudo apt-get install -y zstd brotli
 
-      - name: Recompress chunks
+      - name: Recompress chunks to brotli
         run: |
           if compgen -G "chunks/*.zst" > /dev/null; then
             mkdir -p archives
-            ARCHIVE="session_$(date +%Y%m%d_%H%M%S).cast.br"
-            ls -1 chunks/*.zst | sort | xargs cat | zstd -d | brotli -9 -o "archives/$ARCHIVE"
+            ARCHIVE_NAME="archive_\$(date +%Y%m%d_%H%M%S).cast.br"
+            ls -1 chunks/*.zst | sort | xargs cat | zstd -d | brotli -${BROTLI_LEVEL} -o "archives/\$ARCHIVE_NAME"
             rm -f chunks/*.zst
-            echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
+            echo "Created: archives/\$ARCHIVE_NAME"
+            echo "ARCHIVE_NAME=\$ARCHIVE_NAME" >> \$GITHUB_ENV
+          else
+            echo "No chunks to process"
           fi
 
-      - name: Commit
-        if: env.ARCHIVE != ''
+      - name: Commit archive
+        if: env.ARCHIVE_NAME != ''
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: archive to brotli (${{ env.ARCHIVE }})"
+          commit_message: "chore: archive recording to brotli (\${{ env.ARCHIVE_NAME }})"
           file_pattern: 'archives/*.br chunks/'
 WORKFLOW_EOF
 
-  # Create READMEs
-  cat > chunks/README.md << 'EOF'
-# Chunks
-Streaming zstd-compressed recording chunks.
-Auto-deleted after archival to brotli.
-EOF
+# Create placeholder files
+echo '# Recording chunks (zstd compressed)' > chunks/README.md
+echo '# Brotli archives (final compressed)' > archives/README.md
 
-  cat > archives/README.md << 'EOF'
-# Archives
-Final brotli-compressed recordings.
-~300x compression ratio.
-EOF
-
-  cat > README.md << 'EOF'
+# Create README
+cat > README.md << 'README_EOF'
 # Recording Storage (Orphan Branch)
 
-This branch stores asciinema recording backups.
-Completely isolated from main codebase history.
+This branch stores asciinema recording backups. It is completely isolated from the main codebase.
 
 ## Structure
-- `chunks/` - Streaming zstd chunks (temporary)
-- `archives/` - Brotli archives (permanent)
+
+- `chunks/` - Streaming zstd-compressed chunks (auto-deleted after archival)
+- `archives/` - Final brotli-compressed recordings (~300x compression)
+
+## How It Works
+
+1. Local idle-chunker monitors asciinema recording
+2. When idle ≥30s, creates zstd chunk and pushes here
+3. GitHub Action concatenates chunks and recompresses to brotli
+4. Chunks are deleted, archive is retained
 
 ## Isolation Guarantee
-This is an orphan branch with no shared history.
+
+This is an orphan branch with no shared history with main.
 Git refuses to merge: "refusing to merge unrelated histories"
-EOF
+README_EOF
 
-  # Commit and push
-  git add .
-  git commit -m "init: recording storage (orphan branch)"
-  git push -u origin "$BRANCH"
+# Commit and push
+git add .
+git commit -m "init: recording storage (orphan branch)"
+git push -u origin "$BRANCH"
 
-  # Clone to local recordings directory
-  cd -
-  mkdir -p "$(dirname "$LOCAL_DIR")"
+cd -
+
+# Clone to local recordings directory
+mkdir -p "$(dirname "$LOCAL_DIR")"
+git clone --single-branch --branch "$BRANCH" --depth 1 "$REPO_URL" "$LOCAL_DIR"
+echo "Setup complete: $LOCAL_DIR"
+```
+
+---
+
+### Phase 5: Local Environment Setup
+
+**Purpose**: Configure local directory and generate chunker script with user parameters.
+
+#### Setup Local Directory
+
+```bash
+LOCAL_DIR="$HOME/asciinema_recordings/${REPO_NAME}"
+
+# Ensure directories exist
+mkdir -p "$LOCAL_DIR/chunks"
+mkdir -p "$LOCAL_DIR/archives"
+
+# Clone if not present
+if [[ ! -d "$LOCAL_DIR/.git" ]]; then
   git clone --single-branch --branch "$BRANCH" --depth 1 "$REPO_URL" "$LOCAL_DIR"
 fi
+```
 
-# Install idle-chunker with configured threshold
+#### Generate Customized idle-chunker.sh
+
+Generate the chunker script with user-selected parameters embedded:
+
+```bash
+# Parameters from Phase 3
+IDLE_THRESHOLD="${IDLE_THRESHOLD:-30}"
+ZSTD_LEVEL="${ZSTD_LEVEL:-3}"
+POLL_INTERVAL="${POLL_INTERVAL:-5}"
+PUSH_ENABLED="${PUSH_ENABLED:-true}"
+
 cat > "$LOCAL_DIR/idle-chunker.sh" << CHUNKER_EOF
 #!/usr/bin/env bash
-# idle-chunker.sh - Auto-generated with threshold: ${IDLE_THRESHOLD}s
+# idle-chunker.sh - Generated with user configuration
+#
+# Configuration (embedded from setup):
+#   IDLE_THRESHOLD=${IDLE_THRESHOLD}
+#   ZSTD_LEVEL=${ZSTD_LEVEL}
+#   POLL_INTERVAL=${POLL_INTERVAL}
+#   PUSH_ENABLED=${PUSH_ENABLED}
+
+set -euo pipefail
+
 CAST_FILE="\${1:?Usage: idle-chunker.sh <cast_file>}"
-IDLE_THRESHOLD="${IDLE_THRESHOLD}"
+
+# Embedded configuration
+IDLE_THRESHOLD=${IDLE_THRESHOLD}
+ZSTD_LEVEL=${ZSTD_LEVEL}
+POLL_INTERVAL=${POLL_INTERVAL}
+PUSH_ENABLED=${PUSH_ENABLED}
+
 cd "\$(dirname "\$0")"
 last_pos=0
-echo "Monitoring: \$CAST_FILE (idle threshold: \${IDLE_THRESHOLD}s)"
+
+echo "Monitoring: \$CAST_FILE"
+echo "Idle threshold: \${IDLE_THRESHOLD}s | zstd level: \${ZSTD_LEVEL} | Poll: \${POLL_INTERVAL}s"
+
 while [[ -f "\$CAST_FILE" ]] || sleep 2; do
   [[ -f "\$CAST_FILE" ]] || continue
   mtime=\$(stat -f%m "\$CAST_FILE" 2>/dev/null || stat -c%Y "\$CAST_FILE")
-  idle=\$(($(date +%s) - mtime))
+  idle=\$((\ $(date +%s) - mtime))
   size=\$(stat -f%z "\$CAST_FILE" 2>/dev/null || stat -c%s "\$CAST_FILE")
+
   if (( idle >= IDLE_THRESHOLD && size > last_pos )); then
     chunk="chunks/chunk_\$(date +%Y%m%d_%H%M%S).cast"
     tail -c +\$((last_pos + 1)) "\$CAST_FILE" > "\$chunk"
-    zstd -3 --rm "\$chunk"
-    git add chunks/ && git commit -m "chunk \$(date +%H:%M)" && git push
+    zstd -\${ZSTD_LEVEL} --rm "\$chunk"
+
+    if [[ "\$PUSH_ENABLED" == "true" ]]; then
+      git add chunks/ && git commit -m "chunk \$(date +%H:%M)" && git push
+    fi
+
     last_pos=\$size
     echo "[\$(date +%H:%M:%S)] Created: \${chunk}.zst"
   fi
-  sleep 5
+
+  sleep \$POLL_INTERVAL
 done
 CHUNKER_EOF
-chmod +x "$LOCAL_DIR/idle-chunker.sh"
 
+chmod +x "$LOCAL_DIR/idle-chunker.sh"
+```
+
+#### Display Configuration Summary
+
+```bash
 echo ""
 echo "=== Setup Complete ==="
-echo "  Local: $LOCAL_DIR"
-echo "  Chunker: $LOCAL_DIR/idle-chunker.sh"
+echo ""
+echo "Configuration:"
+echo "  Repository: $REPO_URL"
+echo "  Branch: $BRANCH"
+echo "  Local directory: $LOCAL_DIR"
+echo ""
+echo "Parameters:"
+echo "  Idle threshold: ${IDLE_THRESHOLD}s"
+echo "  zstd level: $ZSTD_LEVEL"
+echo "  Brotli level: $BROTLI_LEVEL"
+echo "  Auto-push: $PUSH_ENABLED"
+echo "  Poll interval: ${POLL_INTERVAL}s"
+echo ""
+echo "To start recording:"
+echo "  1. asciinema rec /path/to/session.cast"
+echo "  2. $LOCAL_DIR/idle-chunker.sh /path/to/session.cast"
 ```
 
 ---
 
-### Phase 4: Validation & Self-Correction
+### Phase 6: Autonomous Validation
 
-**Purpose**: Validate entire system and auto-fix issues.
+**Purpose**: Claude executes validation tests automatically, displaying results in CLI. Only interrupts user when human action is required.
 
-See [references/setup-scripts.md](./references/setup-scripts.md) for complete validation scripts.
+#### Validation Test Categories
+
+| Test                        | Autonomous? | Reason                      |
+| --------------------------- | ----------- | --------------------------- |
+| 1. Tool preflight           | ✅ YES      | Bash checks tools           |
+| 2. zstd round-trip          | ✅ YES      | Synthetic test data         |
+| 3. Brotli round-trip        | ✅ YES      | Synthetic test data         |
+| 4. zstd concatenation       | ✅ YES      | Critical for streaming      |
+| 5. Git/gh auth check        | ✅ YES      | Query auth status           |
+| 6. Orphan branch validation | ✅ YES      | Check remote/local          |
+| 7. Workflow file check      | ✅ YES      | Read file contents          |
+| 8. GitHub Actions trigger   | ✅ YES      | `gh workflow run` + watch   |
+| 9. Recording test           | ❌ USER     | Requires starting asciinema |
+| 10. Chunker live test       | ❌ USER     | Requires active recording   |
+
+#### Autonomous Execution
+
+Claude runs the validation script and displays formatted results:
+
+```
+╔════════════════════════════════════════════════════════════════╗
+║ AUTONOMOUS VALIDATION - Claude Code Executes All Tests         ║
+╠════════════════════════════════════════════════════════════════╣
+║                                                                 ║
+║  Phase 1: Tool Check                                           ║
+║  ─────────────────                                             ║
+║  [RUN] Checking asciinema... ✓ installed (v3.0.0)              ║
+║  [RUN] Checking zstd... ✓ installed (v1.5.5)                   ║
+║  [RUN] Checking brotli... ✓ installed (v1.1.0)                 ║
+║  [RUN] Checking git... ✓ installed (v2.43.0)                   ║
+║  [RUN] Checking gh... ✓ installed (v2.40.0)                    ║
+║                                                                 ║
+║  Phase 2: Compression Tests                                    ║
+║  ────────────────────────                                      ║
+║  [RUN] zstd round-trip... ✓ PASSED                             ║
+║  [RUN] brotli round-trip... ✓ PASSED                           ║
+║  [RUN] zstd concatenation... ✓ PASSED (critical for streaming) ║
+║                                                                 ║
+║  Phase 3: Repository Validation                                ║
+║  ─────────────────────────────                                 ║
+║  [RUN] Checking gh auth... ✓ authenticated as terrylica        ║
+║  [RUN] Checking orphan branch... ✓ gh-recordings exists        ║
+║  [RUN] Checking local clone... ✓ ~/asciinema_recordings/repo   ║
+║  [RUN] Checking workflow file... ✓ recompress.yml present      ║
+║                                                                 ║
+║  Phase 4: GitHub Actions Test                                  ║
+║  ─────────────────────────────                                 ║
+║  [RUN] Triggering workflow_dispatch... ✓ triggered             ║
+║  [RUN] Watching run #12345... ⏳ in_progress                   ║
+║  [RUN] Watching run #12345... ✓ completed (success)            ║
+║                                                                 ║
+║  ═══════════════════════════════════════════════════════════   ║
+║  AUTONOMOUS TESTS: 8/8 PASSED                                  ║
+║  ═══════════════════════════════════════════════════════════   ║
+╚════════════════════════════════════════════════════════════════╝
+```
+
+#### User-Required Tests
+
+Only TWO tests require user action:
+
+**Test 9: Recording Validation**
+
+```yaml
+AskUserQuestion:
+  question: "Ready to test recording? This requires you to start asciinema in another terminal."
+  header: "Recording Test"
+  options:
+    - label: "Guide me through it (Recommended)"
+      description: "Step-by-step instructions"
+    - label: "Skip this test"
+      description: "I'll verify manually later"
+    - label: "I've already verified recording works"
+      description: "Mark as passed"
+```
+
+If "Guide me through it" selected, display:
+
+```
+╔════════════════════════════════════════════════════════════════╗
+║ USER ACTION REQUIRED: Recording Test                           ║
+╠════════════════════════════════════════════════════════════════╣
+║                                                                 ║
+║  In a NEW terminal, run:                                       ║
+║  ┌────────────────────────────────────────────────────────┐    ║
+║  │ asciinema rec ~/asciinema_recordings/test_session.cast │    ║
+║  └────────────────────────────────────────────────────────┘    ║
+║                                                                 ║
+║  Then type a few commands and exit with Ctrl+D                 ║
+║                                                                 ║
+║  Come back here when done.                                     ║
+╚════════════════════════════════════════════════════════════════╝
+```
+
+Then Claude autonomously validates the created file:
+
+```bash
+# Claude runs after user confirms:
+[RUN] Checking test_session.cast exists... ✓
+[RUN] Validating JSON header... ✓ {"version": 2, ...}
+[RUN] Checking line count... ✓ 23 events recorded
+```
+
+**Test 10: Chunker Live Test**
+
+```yaml
+AskUserQuestion:
+  question: "Ready to test live chunking? This requires running recording + chunker simultaneously."
+  header: "Chunker Test"
+  options:
+    - label: "Guide me (Recommended)"
+      description: "Two-terminal workflow instructions"
+    - label: "Skip - I trust the setup"
+      description: "Skip live test"
+```
+
+#### Full Validation Script
+
+See [references/autonomous-validation.md](./references/autonomous-validation.md) for the complete validation script.
+
+#### Troubleshooting on Failure
+
+If any test fails, Claude displays inline troubleshooting:
+
+```
+[RUN] Checking gh auth... ✗ FAILED
+
+      Troubleshooting:
+      1. Run: gh auth login
+      2. Select: GitHub.com
+      3. Choose: HTTPS or SSH
+      4. Follow prompts to authenticate
+
+      Then re-run validation.
+```
 
 ---
 
-## AskUserQuestion Integration Summary
+## Quick Start
 
-When this skill is invoked, use AskUserQuestion tool in this sequence:
-
-### Step 1: Run Detection Scripts
+### First-Time Setup
 
 ```bash
-# Detect tools
+# 1. Check requirements
 for tool in asciinema zstd brotli git gh; do
-  command -v "$tool" &>/dev/null && echo "✓ $tool" || echo "✗ $tool"
+  command -v "$tool" &>/dev/null && echo "$tool: OK" || echo "$tool: MISSING"
 done
 
-# Detect GitHub accounts (see Phase 1 script)
+# 2. Create orphan branch (replace with your repo)
+REPO="git@github.com:YOUR/REPO.git"
+./setup-orphan-branch.sh "$REPO"
+
+# 3. Validate setup
+./validate-setup.sh "$HOME/asciinema_recordings/REPO"
 ```
 
-### Step 2: Present Questions
-
-Based on detection results, ask:
-
-1. **GitHub Account** - From detected accounts
-2. **Repository** - Current workspace or dedicated repo
-3. **Local Path** - Default: `~/asciinema_recordings/{repo}`
-4. **Idle Threshold** - Default: 30 seconds
-
-### Step 3: Execute Setup
-
-With confirmed parameters, run Phase 3 setup script.
-
-### Step 4: Validate and Display Instructions
-
-````markdown
-## Setup Complete!
-
-**Local Storage**: ~/asciinema_recordings/{repo}
-**Orphan Branch**: gh-recordings (isolated from main)
-**GitHub Actions**: Auto-recompresses chunks to brotli
-
-### To Start Recording:
-
-**Terminal 1** (recording):
+### Recording Session
 
 ```bash
-asciinema rec $PWD/tmp/{workspace}_{datetime}.cast
-```
-````
+# Terminal 1: Start recording
+WORKSPACE=$(basename "$PWD")
+asciinema rec $PWD/tmp/${WORKSPACE}_$(date +%Y-%m-%d_%H-%M).cast
 
-**Terminal 2** (chunker):
-
-```bash
-~/asciinema_recordings/{repo}/idle-chunker.sh $PWD/tmp/*.cast
-```
-
+# Terminal 2: Start idle-chunker
+~/asciinema_recordings/REPO/idle-chunker.sh $PWD/tmp/${WORKSPACE}_*.cast
 ```
 
 ---
 
 ## TodoWrite Task Templates
 
-### Template: Full Interactive Setup
+### Template: Full Setup
 
 ```
+1. [Preflight] Validate all tools installed (asciinema, zstd, brotli, git, gh)
+2. [Preflight] AskUserQuestion: offer installation for missing tools
+3. [Account] Detect GitHub accounts from 5 sources
+4. [Account] AskUserQuestion: select GitHub account
+5. [Config] AskUserQuestion: repository URL
+6. [Config] AskUserQuestion: recording directory
+7. [Config] AskUserQuestion: branch name
+8. [Advanced] AskUserQuestion: idle threshold
+9. [Advanced] AskUserQuestion: zstd level
+10. [Advanced] AskUserQuestion: brotli level
+11. [Advanced] AskUserQuestion: auto-push
+12. [Advanced] AskUserQuestion: poll interval
+13. [Branch] Check if orphan branch exists on remote
+14. [Branch] AskUserQuestion: handle existing branch
+15. [Branch] Create orphan branch if needed
+16. [Branch] Create GitHub Actions workflow with embedded parameters
+17. [Local] Clone orphan branch to ~/asciinema_recordings/
+18. [Local] Generate idle-chunker.sh with embedded parameters
+19. [Validate] Run autonomous validation (8 tests)
+20. [Validate] AskUserQuestion: recording test (user action)
+21. [Validate] AskUserQuestion: chunker live test (user action)
+22. [Guide] Display configuration summary and usage instructions
+```
 
-1. [Preflight] Check required tools (asciinema, zstd, brotli, git, gh)
-2. [Preflight] Offer installation for missing tools via Homebrew
-3. [Detection] Scan SSH config for github.com-\* host aliases
-4. [Detection] Check gh CLI authenticated accounts
-5. [Detection] Check mise env for GITHUB_USER/GH_TOKEN
-6. [Detection] Check git config for user.name/email
-7. [AskUser] Present GitHub account options from detection
-8. [AskUser] Confirm repository selection
-9. [AskUser] Confirm local storage path (default: ~/asciinema_recordings/)
-10. [AskUser] Confirm idle threshold (default: 30s)
-11. [Setup] Check if orphan branch exists on remote
-12. [Setup] Create orphan branch via gh CLI if missing
-13. [Setup] Install GitHub Actions workflow
-14. [Setup] Clone orphan branch to local path
-15. [Setup] Install idle-chunker.sh with configured threshold
-16. [Validate] Verify local directory structure
-17. [Validate] Test compression round-trip
-18. [Guide] Display recording start instructions
+### Template: Recording Session
 
-````
-
----
-
-## Key Design Decisions
-
-| Decision                       | Rationale                                          |
-| ------------------------------ | -------------------------------------------------- |
-| **Default: ~/asciinema_recordings/** | Clear purpose, not confused with other recordings |
-| **zstd for streaming**         | Supports frame concatenation (brotli doesn't)      |
-| **brotli for archival**        | Best compression ratio (~300x for .cast files)     |
-| **Orphan branch**              | Complete isolation, can't pollute main history     |
-| **gh CLI for setup**           | Handles auth automatically, consistent experience  |
-| **Multi-account detection**    | Different repos may need different GitHub users    |
-| **30s default idle**           | Balances chunk size vs frequency                   |
+```
+1. [Context] Detect workspace from $PWD
+2. [Context] Generate datetime for filename
+3. [Context] Ensure tmp/ directory exists
+4. [Command] Generate asciinema rec command
+5. [Command] Generate idle-chunker command
+6. [Guide] Display two-terminal workflow instructions
+```
 
 ---
 
 ## Troubleshooting
 
-### "Multiple GitHub accounts detected"
-
-This is expected! Different repositories may belong to different accounts.
-
-**Fix**: The skill detects all available accounts and asks you to choose the correct one per repository.
-
 ### "Cannot push to orphan branch"
 
-**Cause**: Wrong GitHub account or authentication issue.
+**Cause**: Authentication or permissions issue.
 
 **Fix**:
 
 ```bash
-# Check which account gh is using
+# Check gh auth status
 gh auth status
-
-# Switch account if needed
-gh auth switch
 
 # Re-authenticate if needed
 gh auth login
-````
+```
 
-### "SSH permission denied"
+### "Chunks not being created"
 
-**Cause**: SSH key not associated with the selected GitHub account.
+**Cause**: Idle threshold not reached, or file not growing.
+
+**Fix**:
+
+- Verify recording is active: `tail -f $CAST_FILE`
+- Lower threshold: `IDLE_THRESHOLD=15`
+- Check file permissions
+
+### "GitHub Action not triggering"
+
+**Cause**: Workflow file missing or wrong branch filter.
 
 **Fix**:
 
 ```bash
-# Test SSH connection with specific host alias
-ssh -T git@github.com-personal
+# Verify workflow exists
+cat ~/asciinema_recordings/REPO/.github/workflows/recompress.yml
 
-# Add key to ssh-agent
-ssh-add ~/.ssh/id_ed25519_personal
+# Check branch filter includes gh-recordings
+grep -A2 "branches:" ~/asciinema_recordings/REPO/.github/workflows/recompress.yml
 ```
+
+### "Brotli archive empty or corrupted"
+
+**Cause**: zstd chunks not concatenating properly (overlapping data).
+
+**Fix**: Ensure idle-chunker uses `last_chunk_pos` to avoid overlap:
+
+```bash
+# Check for overlaps - each chunk should be sequential
+for f in chunks/*.zst; do
+  zstd -d "$f" -c | head -1
+done
+```
+
+---
+
+## Key Design Decisions
+
+| Decision                | Rationale                                          |
+| ----------------------- | -------------------------------------------------- |
+| **zstd for streaming**  | Supports frame concatenation (brotli doesn't)      |
+| **brotli for archival** | Best compression ratio (~300x for .cast files)     |
+| **Orphan branch**       | Complete isolation, can't pollute main history     |
+| **Idle-based chunking** | Semantic breakpoints, not mid-output splits        |
+| **Shallow clone**       | Minimal disk usage, can't accidentally access main |
+| **30s idle threshold**  | Balances chunk frequency vs semantic completeness  |
 
 ---
 
@@ -618,6 +915,7 @@ ssh-add ~/.ssh/id_ed25519_personal
 - [Idle Chunker Script](./references/idle-chunker.md) - Complete chunker implementation
 - [GitHub Workflow](./references/github-workflow.md) - Full Actions workflow
 - [Setup Scripts](./references/setup-scripts.md) - All setup and validation scripts
+- [Autonomous Validation](./references/autonomous-validation.md) - Validation script and user-required tests
 - [asciinema 3.0 Docs](https://docs.asciinema.org/)
 - [zstd Frame Format](https://github.com/facebook/zstd)
 - [Git Orphan Branches](https://graphite.dev/guides/git-orphan-branches)

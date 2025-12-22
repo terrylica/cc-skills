@@ -12,7 +12,7 @@ Complete implementation of the idle-detection chunking system for asciinema reco
 #
 # Arguments:
 #   cast_file       - Path to the active .cast recording file
-#   recordings_dir  - Path to the orphan branch clone (e.g., ~/recordings/repo-name)
+#   recordings_dir  - Path to the orphan branch clone (e.g., ~/asciinema_recordings/repo-name)
 #   idle_threshold  - Seconds of inactivity before chunking (default: 30)
 #
 # Environment:
@@ -31,6 +31,8 @@ IDLE_THRESHOLD="${3:-30}"
 CHUNK_PREFIX="${CHUNK_PREFIX:-chunk}"
 PUSH_ENABLED="${PUSH_ENABLED:-true}"
 VERBOSE="${VERBOSE:-false}"
+ZSTD_LEVEL="${ZSTD_LEVEL:-3}"
+POLL_INTERVAL="${POLL_INTERVAL:-5}"
 
 # State
 last_chunk_pos=0
@@ -121,7 +123,7 @@ while true; do
       tail -c +"$((last_chunk_pos + 1))" "$CAST_FILE" > "chunks/$chunk_name"
 
       # Compress with zstd
-      zstd -3 --rm "chunks/$chunk_name"
+      zstd -${ZSTD_LEVEL} --rm "chunks/$chunk_name"
 
       log "Created: chunks/${chunk_name}.zst (${new_bytes} bytes, chunk #${chunk_count})"
 
@@ -140,11 +142,11 @@ while true; do
       last_chunk_pos=$current_size
 
       # Reset idle detection (wait for new content)
-      sleep 5
+      sleep $POLL_INTERVAL
     fi
   fi
 
-  sleep 5
+  sleep $POLL_INTERVAL
 done
 
 # Final chunk if there's remaining data
@@ -155,7 +157,7 @@ if [[ -f "$CAST_FILE" ]]; then
     chunk_name="${CHUNK_PREFIX}_$(date +%Y%m%d_%H%M%S)_final.cast"
 
     tail -c +"$((last_chunk_pos + 1))" "$CAST_FILE" > "chunks/$chunk_name"
-    zstd -3 --rm "chunks/$chunk_name"
+    zstd -${ZSTD_LEVEL} --rm "chunks/$chunk_name"
 
     log "Created final chunk: chunks/${chunk_name}.zst"
 
@@ -178,32 +180,32 @@ log "Idle chunker finished (${chunk_count} chunks created)"
 asciinema rec ~/project/tmp/session.cast
 
 # Start chunker in terminal 2
-~/recordings/my-repo/idle-chunker.sh ~/project/tmp/session.cast ~/recordings/my-repo
+~/asciinema_recordings/my-repo/idle-chunker.sh ~/project/tmp/session.cast ~/asciinema_recordings/my-repo
 ```
 
 ### With Custom Threshold
 
 ```bash
 # Chunk after 15 seconds of idle (more frequent)
-idle-chunker.sh session.cast ~/recordings/repo 15
+idle-chunker.sh session.cast ~/asciinema_recordings/repo 15
 
 # Chunk after 60 seconds of idle (less frequent)
-idle-chunker.sh session.cast ~/recordings/repo 60
+idle-chunker.sh session.cast ~/asciinema_recordings/repo 60
 ```
 
 ### Debug Mode
 
 ```bash
-VERBOSE=true idle-chunker.sh session.cast ~/recordings/repo
+VERBOSE=true idle-chunker.sh session.cast ~/asciinema_recordings/repo
 ```
 
 ### Disable Auto-Push (Manual Control)
 
 ```bash
-PUSH_ENABLED=false idle-chunker.sh session.cast ~/recordings/repo
+PUSH_ENABLED=false idle-chunker.sh session.cast ~/asciinema_recordings/repo
 
 # Push manually when ready
-cd ~/recordings/repo && git push
+cd ~/asciinema_recordings/repo && git push
 ```
 
 ## How It Works
