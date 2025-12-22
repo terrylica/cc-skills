@@ -14,7 +14,7 @@ Generate ready-to-copy commands for recording Claude Code sessions with asciinem
 
 ## Why This Skill?
 
-asciinema recordings must **wrap** the program being recorded. This skill generates the correct command with:
+This skill generates ready-to-copy recording commands with:
 
 - Dynamic workspace-based filename
 - Datetime stamp for uniqueness
@@ -82,13 +82,13 @@ Build the full recording command:
 
 ```bash
 # Command format
-asciinema rec -c "claude" $PWD/tmp/${WORKSPACE}_${DATETIME}.cast
+asciinema rec $PWD/tmp/${WORKSPACE}_${DATETIME}.cast
 ```
 
 **Example output (for a project called "my-app"):**
 
 ```bash
-asciinema rec -c "claude" /home/user/projects/my-app/tmp/my-app_2025-12-21_14-30.cast
+asciinema rec /home/user/projects/my-app/tmp/my-app_2025-12-21_14-30.cast
 ```
 
 #### Step 1.4: Ensure tmp/ Directory Exists
@@ -110,10 +110,11 @@ Present these instructions:
 
 1. **Exit Claude Code** - Type `exit` or press `Ctrl+D`
 2. **Copy the command** shown above
-3. **Paste and run** in your terminal
-4. Claude Code starts **inside** the recording
+3. **Paste and run** in your terminal (starts a recorded shell)
+4. **Run `claude`** to start Claude Code inside the recording
 5. Work normally - everything is captured
-6. **End recording** - Type `exit` or press `Ctrl+D` again
+6. **Exit Claude Code** - Type `exit` or press `Ctrl+D`
+7. **Exit the recording shell** - Type `exit` or press `Ctrl+D` again
 
 Your recording will be saved to:
 `$PWD/tmp/{workspace}_{datetime}.cast`
@@ -168,12 +169,11 @@ After modifying this skill:
 
 ## CLI Options Reference
 
-| Option  | Flag | Description                         |
-| ------- | ---- | ----------------------------------- |
-| Command | `-c` | Command to run inside recording     |
-| Title   | `-t` | Recording title (for asciinema.org) |
-| Quiet   | `-q` | Suppress status messages            |
-| Append  | `--` | Append to existing recording        |
+| Option | Flag | Description                         |
+| ------ | ---- | ----------------------------------- |
+| Title  | `-t` | Recording title (for asciinema.org) |
+| Quiet  | `-q` | Suppress status messages            |
+| Append | `-a` | Append to existing recording        |
 
 ---
 
