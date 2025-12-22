@@ -120,14 +120,21 @@ def build_continuation_prompt(
     force_exploration = state.get("force_exploration", False)
     if no_focus or force_exploration:
         if adapter_name == "alpha-forge":
+            # Use full template with CONVERGED detection for proper busywork blocking
+            loader = get_loader()
+            rssi_context = {
+                "iteration": iteration,
+                "adapter_convergence": state.get("adapter_convergence"),
+            }
+            metrics_history = state.get("adapter_convergence", {}).get("metrics_history", [])
             prefix = "**RSSI→EXPLORE**" if force_exploration else "**RSSI**"
-            return f"""{prefix} iter {iteration} | {elapsed:.1f}h
-
-1. Read `research_log.md` for SOTA Queue
-2. Pick untested technique OR WebSearch if queue empty
-3. Implement in `src/alpha_forge/`
-4. Invoke `/research <strategy.yaml>`
-5. Check Sharpe/WFE → repeat"""
+            prompt = loader.render_exploration(
+                opportunities=[],
+                rssi_context=rssi_context,
+                adapter_name=adapter_name,
+                metrics_history=metrics_history,
+            )
+            return f"{prefix} iter {iteration} | {elapsed:.1f}h\n\n{prompt}"
         else:
             return f"**RSSI** iter {iteration} | {elapsed:.1f}h | Continue autonomous work"
 
@@ -461,6 +468,7 @@ def main():
                 "should_continue": convergence.should_continue,
                 "reason": convergence.reason,
                 "confidence": convergence.confidence,
+                "converged": convergence.converged,  # For hard-blocking busywork
                 "metrics_count": len(metrics),
                 "metrics_history": [asdict(m) for m in metrics[-10:]],  # Store last 10
             }

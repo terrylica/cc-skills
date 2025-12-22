@@ -175,10 +175,15 @@ class TemplateLoader:
 
         # Alpha Forge: ONLY use alpha-forge-exploration.md (no fallback)
         if adapter_name == "alpha-forge":
+            # Check if research is converged (from adapter_convergence in rssi_context)
+            adapter_conv = ctx.get("adapter_convergence", {})
+            research_converged = adapter_conv.get("converged", False) if adapter_conv else False
+
             return self.render(
                 "alpha-forge-exploration.md",
                 **common_ctx,
                 metrics_history=metrics_history or [],
+                research_converged=research_converged,
             )
 
         # All other projects: use generic template
