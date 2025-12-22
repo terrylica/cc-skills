@@ -1,3 +1,34 @@
+## [7.2.1](https://github.com/terrylica/cc-skills/compare/v7.2.0...v7.2.1) (2025-12-22)
+
+
+### Bug Fixes
+
+* **devops-tools:** expand asciinema-recorder trigger phrases ([2a01131](https://github.com/terrylica/cc-skills/commit/2a011311e635c4abcf26eea9c00692d732e6952d))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-recorder/SKILL.md) - updated
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated
+
 # [7.2.0](https://github.com/terrylica/cc-skills/compare/v7.1.0...v7.2.0) (2025-12-22)
 
 
