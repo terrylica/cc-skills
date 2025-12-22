@@ -1,3 +1,10 @@
+# [7.1.0](https://github.com/terrylica/cc-skills/compare/v7.0.0...v7.1.0) (2025-12-22)
+
+
+### Features
+
+* **statusline-tools:** add UTC timestamp with date to status line ([44030fe](https://github.com/terrylica/cc-skills/commit/44030fee4b9e84666061026544fd270890573868))
+
 # [7.0.0](https://github.com/terrylica/cc-skills/compare/v6.5.1...v7.0.0) (2025-12-22)
 
 
