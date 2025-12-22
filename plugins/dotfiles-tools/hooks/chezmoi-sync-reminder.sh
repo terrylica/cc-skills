@@ -43,6 +43,8 @@ fi
 # =============================================================================
 # CASE 1: File IS tracked by chezmoi - remind to sync
 # =============================================================================
+# NOTE: decision:block is REQUIRED for Claude to see the reason field
+# See: https://github.com/anthropics/claude-code/issues/3983
 if grep -qxF "$ABSOLUTE_PATH" "$CACHE_FILE" 2>/dev/null; then
     REL_PATH="${ABSOLUTE_PATH/#$HOME/~}"
     jq -n \
@@ -114,6 +116,8 @@ is_config_file() {
 }
 
 # Check if this is a config file worth suggesting
+# NOTE: decision:block is REQUIRED for Claude to see the reason field
+# See: https://github.com/anthropics/claude-code/issues/3983
 if is_config_file "$ABSOLUTE_PATH"; then
     REL_PATH="${ABSOLUTE_PATH/#$HOME/~}"
     jq -n \
