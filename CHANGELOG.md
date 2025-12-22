@@ -1,3 +1,340 @@
+# [7.6.0](https://github.com/terrylica/cc-skills/compare/v7.5.1...v7.6.0) (2025-12-22)
+
+
+### Bug Fixes
+
+* **ralph:** use exploration template for CONVERGED busywork blocking ([f9d96db](https://github.com/terrylica/cc-skills/commit/f9d96db23ea7c2c7fd3439f8e503819e2f0d7e72))
+
+
+### Features
+
+* **skill-architecture:** enforce bash compatibility in skill creation ([899b406](https://github.com/terrylica/cc-skills/commit/899b40653245488bb94bc77e316e2484ef468164))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [Skill Bash Compatibility Enforcement](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-skill-bash-compatibility-enforcement.md) | new |
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>alpha-forge-worktree</strong> (1 change)</summary>
+
+- [worktree-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (5 changes)</summary>
+
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-recorder/SKILL.md) - updated
+- [asciinema-streaming-backup](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/SKILL.md) - updated
+- [doppler-secret-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-secret-validation/SKILL.md) - updated
+- [mlflow-python](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/mlflow-python/SKILL.md) - updated
+- [session-recovery](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-recovery/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>doc-build-tools</strong> (1 change)</summary>
+
+- [pandoc-pdf-generation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-build-tools/skills/pandoc-pdf-generation/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [ascii-diagram-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 change)</summary>
+
+- [chezmoi-workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [pr-gfm-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/pr-gfm-validator/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 change)</summary>
+
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/skills/iterm2-layout/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (6 changes)</summary>
+
+- [adr-graph-easy-architect](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/adr-graph-easy-architect/SKILL.md) - updated
+- [graph-easy](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/graph-easy/SKILL.md) - updated
+- [mise Configuration SSoT](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/SKILL.md) - updated
+- [mise Tasks Orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/SKILL.md) - updated
+- [pypi-doppler](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/pypi-doppler/SKILL.md) - updated
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 change)</summary>
+
+- [hooks-development](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>mql5com</strong> (1 change)</summary>
+
+- [log-reader](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5com/skills/log-reader/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>notification-tools</strong> (1 change)</summary>
+
+- [dual-channel-watchexec-notifications](https://github.com/terrylica/cc-skills/blob/main/plugins/notification-tools/skills/dual-channel-watchexec/SKILL.md) - updated
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [multi-agent-e2e-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-e2e-validation/SKILL.md) - updated
+
+</details>
+
+
+### Plugin Skills
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/SKILL.md) - updated
+
+### Plugin READMEs
+
+- [ITP Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/README.md) - updated
+- [Link Checker Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/link-checker/README.md) - updated
+
+### Skill References
+
+<details>
+<summary><strong>alpha-forge-worktree/worktree-manager</strong> (1 file)</summary>
+
+- [Alpha-Forge Worktree Naming Conventions](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/references/naming-conventions.md) - updated
+
+</details>
+
+<details>
+<summary><strong>devops-tools/asciinema-streaming-backup</strong> (4 files)</summary>
+
+- [Autonomous Validation Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/references/autonomous-validation.md) - updated
+- [GitHub Actions Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/references/github-workflow.md) - updated
+- [Idle Chunker Script](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/references/idle-chunker.md) - updated
+- [Setup Scripts](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-streaming-backup/references/setup-scripts.md) - updated
+
+</details>
+
+<details>
+<summary><strong>devops-tools/clickhouse-cloud-management</strong> (1 file)</summary>
+
+- [SQL Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/clickhouse-cloud-management/references/sql-patterns.md) - updated
+
+</details>
+
+<details>
+<summary><strong>devops-tools/doppler-secret-validation</strong> (1 file)</summary>
+
+- [Doppler CLI Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-secret-validation/references/doppler-patterns.md) - updated
+
+</details>
+
+<details>
+<summary><strong>devops-tools/doppler-workflows</strong> (2 files)</summary>
+
+- [Use AWS credentials](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-workflows/references/aws-credentials.md) - updated
+- [Publish package](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-workflows/references/pypi-publishing.md) - updated
+
+</details>
+
+<details>
+<summary><strong>devops-tools/mlflow-python</strong> (1 file)</summary>
+
+- [Authentication Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/mlflow-python/references/authentication.md) - updated
+
+</details>
+
+<details>
+<summary><strong>doc-build-tools/latex-build</strong> (1 file)</summary>
+
+- [PDF output](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-build-tools/skills/latex-build/references/common-commands.md) - updated
+
+</details>
+
+<details>
+<summary><strong>doc-build-tools/latex-setup</strong> (1 file)</summary>
+
+- [Add to ~/.zshrc or ~/.bash_profile](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-build-tools/skills/latex-setup/references/troubleshooting.md) - updated
+
+</details>
+
+<details>
+<summary><strong>doc-tools/ascii-diagram-validator</strong> (2 files)</summary>
+
+- [ASCII Alignment Checker - Integration Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/references/INTEGRATION_GUIDE.md) - updated
+- [ASCII Alignment Checker - Script Design Report](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/references/SCRIPT_DESIGN_REPORT.md) - updated
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools/chezmoi-workflows</strong> (4 files)</summary>
+
+- [Configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/references/configuration.md) - updated
+- [Prompt Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/references/prompt-patterns.md) - updated
+- [Secret Detection](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/references/secret-detection.md) - updated
+- [macOS](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/references/setup.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (4 files)</summary>
+
+- [Debugging Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/debugging-guide.md) - updated
+- [Hook Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/hook-templates.md) - updated
+- [Without heredoc, zsh interprets directly](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated
+- [Hook Visibility Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/visibility-patterns.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp/code-hardcode-audit</strong> (1 file)</summary>
+
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/code-hardcode-audit/references/troubleshooting.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp/implement-plan-preflight</strong> (1 file)</summary>
+
+- [Preflight Workflow Steps](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/implement-plan-preflight/references/workflow-steps.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp/mise-configuration</strong> (2 files)</summary>
+
+- [GitHub Token Multi-Account Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/references/github-tokens.md) - updated
+- [mise [env] Code Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/references/patterns.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp/semantic-release</strong> (8 files)</summary>
+
+- [Authentication for semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/authentication.md) - updated
+- [Documentation Linking in Release Notes](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/doc-release-linking.md) - updated
+- [Local Release Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated
+- [PyPI Publishing with Doppler Secret Management](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/pypi-publishing-with-doppler.md) - updated
+- [Python Projects with semantic-release (Node.js) - 2025 Production Pattern](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/python-projects-nodejs-semantic-release.md) - updated
+- [Install Node.js 24 LTS (using mise)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/troubleshooting.md) - updated
+- [Version Alignment Standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/version-alignment.md) - updated
+- [Environment-agnostic path](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/workflow-patterns.md) - updated
+
+</details>
+
+<details>
+<summary><strong>notification-tools/dual-channel-watchexec</strong> (5 files)</summary>
+
+- [❌ WRONG - Sends HTML to Pushover](https://github.com/terrylica/cc-skills/blob/main/plugins/notification-tools/skills/dual-channel-watchexec/references/common-pitfalls.md) - updated
+- [Load Pushover credentials from Doppler](https://github.com/terrylica/cc-skills/blob/main/plugins/notification-tools/skills/dual-channel-watchexec/references/credential-management.md) - updated
+- [Canonical source for Pushover credentials](https://github.com/terrylica/cc-skills/blob/main/plugins/notification-tools/skills/dual-channel-watchexec/references/pushover-integration.md) - updated
+- [Python API call](https://github.com/terrylica/cc-skills/blob/main/plugins/notification-tools/skills/dual-channel-watchexec/references/telegram-html.md) - updated
+- [Use stat to check modification time](https://github.com/terrylica/cc-skills/blob/main/plugins/notification-tools/skills/dual-channel-watchexec/references/watchexec-patterns.md) - updated
+
+</details>
+
+<details>
+<summary><strong>quality-tools/code-clone-assistant</strong> (1 file)</summary>
+
+- [Create working directory](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/code-clone-assistant/references/complete-workflow.md) - updated
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 command)</summary>
+
+- [Dotfiles Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/commands/hooks.md) - updated
+
+</details>
+
+<details>
+<summary><strong>git-account-validator</strong> (1 command)</summary>
+
+- [Git Account Validator Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/git-account-validator/commands/hooks.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (4 commands)</summary>
+
+- [⛔ ITP Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/go.md) - updated
+- [ITP Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/hooks.md) - updated
+- [⛔ Add Plugin to Marketplace — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/plugin-add.md) - updated
+- [ITP Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/setup.md) - updated
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [ITP Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/hooks.md) - updated
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (2 commands)</summary>
+
+- [Status Line Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/hooks.md) - updated
+- [Status Line Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/setup.md) - updated
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [AWS Credentials Management with Doppler](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-workflows/AWS_WORKFLOW.md) - updated
+- [Step 4: List all sessions currently stored](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-recovery/TROUBLESHOOTING.md) - updated
+- [Modern LaTeX Workflow for macOS (2025)](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-build-tools/skills/latex-setup/REFERENCE.md) - updated
+- [[3.0.0](https://github.com/terrylica/cc-skills/compare/v2.0.0...v3.0.0) (2025-12-04)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/CHANGELOG.md) - updated
+- [Implementation Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/notification-tools/skills/dual-channel-watchexec/reference.md) - updated
+- [Example: If WebSearch found "Temporal Fusion Transformer"](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-exploration.md) - updated
+- [Bash Compatibility for Skills](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/references/bash-compatibility.md) - new
+- [Creation Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/references/creation-workflow.md) - updated
+- [Error Message Style Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/references/error-message-style.md) - updated
+- [Path Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/references/path-patterns.md) - updated
+
 ## [7.5.1](https://github.com/terrylica/cc-skills/compare/v7.5.0...v7.5.1) (2025-12-22)
 
 
