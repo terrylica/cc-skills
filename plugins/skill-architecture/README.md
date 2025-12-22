@@ -1,8 +1,8 @@
 # Skill Architecture Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![References](https://img.shields.io/badge/References-11-blue.svg)]()
-[![Scripts](https://img.shields.io/badge/Scripts-2-green.svg)]()
+[![References](https://img.shields.io/badge/References-12-blue.svg)]()
+[![Scripts](https://img.shields.io/badge/Scripts-3-green.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Meta-skill for creating effective Claude Code skills with TodoWrite templates, security practices, and structural patterns.
@@ -227,6 +227,7 @@ After any skill work, verify:
 | [`token-efficiency.md`](references/token-efficiency.md)             | Context optimization strategies                                         |
 | [`advanced-topics.md`](references/advanced-topics.md)               | CLI vs API, composition, known bugs                                     |
 | [`validation-reference.md`](references/validation-reference.md)     | Quality checklist and validation                                        |
+| [`bash-compatibility.md`](references/bash-compatibility.md)         | Bash/zsh compatibility patterns for macOS                               |
 | [`SYNC-TRACKING.md`](references/SYNC-TRACKING.md)                   | Marketplace version tracking                                            |
 | [`evolution-log.md`](references/evolution-log.md)                   | This skill's change history                                             |
 
