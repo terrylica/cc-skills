@@ -4,18 +4,18 @@ DevOps automation plugin for Claude Code: asciinema player and recorder, ClickHo
 
 ## Skills
 
-| Skill                           | Description                                                            |
-| ------------------------------- | ---------------------------------------------------------------------- |
-| **asciinema-player**            | Play .cast terminal recordings in iTerm2 with CLI controls             |
-| **asciinema-recorder**          | Record Claude Code sessions with dynamic workspace-based filenames     |
-| **asciinema-streaming-backup**  | Real-time recording backup to GitHub with idle-chunking and brotli     |
-| **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management |
-| **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models        |
-| **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
-| **doppler-secret-validation**   | Add, validate, and test API tokens/credentials in Doppler              |
-| **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting    |
-| **mlflow-python**               | Log backtest metrics, query experiments, QuantStats integration        |
-| **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems     |
+| Skill                           | Description                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **asciinema-player**            | Play .cast terminal recordings in iTerm2 with CLI controls                                            |
+| **asciinema-recorder**          | Record Claude Code sessions with dynamic workspace-based filenames                                    |
+| **asciinema-streaming-backup**  | Real-time recording backup to GitHub with interactive setup, idle-chunking, and autonomous validation |
+| **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management                                |
+| **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models                                       |
+| **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns                                      |
+| **doppler-secret-validation**   | Add, validate, and test API tokens/credentials in Doppler                                             |
+| **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting                                   |
+| **mlflow-python**               | Log backtest metrics, query experiments, QuantStats integration                                       |
+| **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems                                    |
 
 ## Installation
 
@@ -60,11 +60,13 @@ Skills are model-invoked — Claude automatically activates them based on contex
 ### asciinema Streaming Backup
 
 - Real-time backup to GitHub orphan branch (isolated history)
-- Idle-detection chunking (chunks during 30s+ inactivity)
-- zstd streaming compression (concatenatable frames)
+- **Interactive configuration** with AskUserQuestion flows for all parameters
+- **GitHub account detection** from SSH keys, gh CLI, mise env, git config
+- Idle-detection chunking with configurable threshold (default 30s)
+- zstd streaming compression with configurable level (concatenatable frames)
 - GitHub Actions auto-recompression to brotli (~300x compression)
-- Self-correcting validation with auto-fix
-- Complete setup scripts and workflow templates
+- **Autonomous validation**: 8 tests run automatically, only 2 require user action
+- Self-correcting setup with inline troubleshooting
 
 ### ClickHouse Cloud Management
 

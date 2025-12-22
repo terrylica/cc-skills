@@ -128,18 +128,65 @@ Creates the orphan branch with GitHub Actions workflow.
 # Creates:
 #   - Orphan branch 'gh-recordings' with separate history
 #   - GitHub Actions workflow for brotli recompression
-#   - Local clone at ~/recordings/<repo-name>/
+#   - Local clone at ~/asciinema_recordings/<repo-name>/
 
 set -euo pipefail
 
 REPO_URL="${1:?Usage: setup-orphan-branch.sh <repo_url>}"
 BRANCH="gh-recordings"
+BROTLI_LEVEL="${BROTLI_LEVEL:-9}"
 
 # Extract repo name from URL
 REPO_NAME=$(basename "$REPO_URL" .git)
-LOCAL_DIR="$HOME/recordings/$REPO_NAME"
+LOCAL_DIR="$HOME/asciinema_recordings/$REPO_NAME"
 
 log() { echo "[setup] $*"; }
+
+# Detect GitHub account from gh auth
+detect_github_account() {
+  log "Detecting GitHub accounts..."
+  ACCOUNTS=$(gh auth status 2>&1 | grep -oE 'Logged in to github.com account [^ ]+' | awk '{print $NF}' || true)
+
+  if [[ -z "$ACCOUNTS" ]]; then
+    log "ERROR: No GitHub accounts found. Run 'gh auth login' first."
+    exit 1
+  fi
+
+  ACTIVE_ACCOUNT=$(gh auth status 2>&1 | grep -A1 'github.com' | grep 'Active account: true' -B1 | head -1 | awk '{print $NF}' || echo "$ACCOUNTS" | head -1)
+  log "Active GitHub account: $ACTIVE_ACCOUNT"
+
+  # Check if correct account for this repo
+  REPO_OWNER=$(echo "$REPO_URL" | sed -E 's|.*github.com[:/]([^/]+)/.*|\1|')
+  if [[ "$ACTIVE_ACCOUNT" != "$REPO_OWNER" ]]; then
+    log "Switching to account: $REPO_OWNER"
+    if ! gh auth switch --user "$REPO_OWNER" 2>/dev/null; then
+      log "WARNING: Could not switch to $REPO_OWNER, using $ACTIVE_ACCOUNT"
+    fi
+  fi
+
+  SELECTED_ACCOUNT="${REPO_OWNER:-$ACTIVE_ACCOUNT}"
+}
+
+# Get SSH key for selected account
+get_ssh_key() {
+  local account="$1"
+  local key_path="$HOME/.ssh/id_ed25519_${account}"
+
+  if [[ -f "$key_path" ]]; then
+    echo "$key_path"
+  elif [[ -f "$HOME/.ssh/id_ed25519" ]]; then
+    echo "$HOME/.ssh/id_ed25519"
+  else
+    echo ""
+  fi
+}
+
+detect_github_account
+SSH_KEY=$(get_ssh_key "$SELECTED_ACCOUNT")
+if [[ -n "$SSH_KEY" ]]; then
+  export GIT_SSH_COMMAND="ssh -i $SSH_KEY"
+  log "Using SSH key: $SSH_KEY"
+fi
 
 log "Repository: $REPO_URL"
 log "Branch: $BRANCH"
@@ -180,8 +227,8 @@ git rm -rf .
 # Setup directory structure
 mkdir -p .github/workflows chunks archives
 
-# Create GitHub Actions workflow
-cat > .github/workflows/recompress.yml << 'WORKFLOW_EOF'
+# Create GitHub Actions workflow (brotli level embedded at creation time)
+cat > .github/workflows/recompress.yml << WORKFLOW_EOF
 name: Recompress to Brotli
 
 on:
@@ -206,17 +253,17 @@ jobs:
         run: |
           if compgen -G "chunks/*.zst" > /dev/null; then
             mkdir -p archives
-            ARCHIVE="session_$(date +%Y%m%d_%H%M%S).cast.br"
-            ls -1 chunks/*.zst | sort | xargs cat | zstd -d | brotli -9 -o "archives/$ARCHIVE"
+            ARCHIVE="session_\$(date +%Y%m%d_%H%M%S).cast.br"
+            ls -1 chunks/*.zst | sort | xargs cat | zstd -d | brotli -${BROTLI_LEVEL} -o "archives/\$ARCHIVE"
             rm -f chunks/*.zst
-            echo "ARCHIVE=$ARCHIVE" >> $GITHUB_ENV
+            echo "ARCHIVE=\$ARCHIVE" >> \$GITHUB_ENV
           fi
 
       - name: Commit
         if: env.ARCHIVE != ''
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: archive to brotli (${{ env.ARCHIVE }})"
+          commit_message: "chore: archive to brotli (\${{ env.ARCHIVE }})"
           file_pattern: 'archives/*.br chunks/'
 WORKFLOW_EOF
 
@@ -325,7 +372,7 @@ set -euo pipefail
 REPO_URL="${1:?Usage: validate-system.sh <repo_url> [--fix]}"
 FIX_MODE="${2:-}"
 REPO_NAME=$(basename "$REPO_URL" .git)
-LOCAL_DIR="$HOME/recordings/$REPO_NAME"
+LOCAL_DIR="$HOME/asciinema_recordings/$REPO_NAME"
 
 ERRORS=()
 FIXES=()
