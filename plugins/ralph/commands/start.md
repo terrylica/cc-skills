@@ -190,6 +190,20 @@ fi
 # Transition to RUNNING state
 echo '{"state": "running"}' > "$STATE_FILE"
 
+# ERROR TRAP: Reset state if script fails from this point forward
+# This prevents orphaned "running" state when setup fails (e.g., adapter detection, config parsing)
+cleanup_on_error() {
+    echo ""
+    echo "ERROR: Script failed after state transition. Resetting state to 'stopped'."
+    echo '{"state": "stopped"}' > "$STATE_FILE"
+    rm -f "$PROJECT_DIR/.claude/loop-enabled"
+    rm -f "$PROJECT_DIR/.claude/loop-start-timestamp"
+    rm -f "$PROJECT_DIR/.claude/ralph-config.json"
+    rm -f "$PROJECT_DIR/.claude/loop-config.json"
+    exit 1
+}
+trap cleanup_on_error ERR
+
 # Create legacy markers for backward compatibility
 touch "$PROJECT_DIR/.claude/loop-enabled"
 date +%s > "$PROJECT_DIR/.claude/loop-start-timestamp"
