@@ -446,6 +446,41 @@ Only commit work that:
 
 ---
 
+## USER GUIDANCE
+
+{% if forbidden_items %}
+
+### FORBIDDEN (User-Defined)
+
+**In addition to built-in SLO filters, YOU SHALL NOT work on:**
+
+{% for item in forbidden_items %}
+
+- {{ item }}
+  {% endfor %}
+
+⚠️ These are user-specified constraints. If you find yourself about to work on any of these, STOP and find alternative work.
+{% endif %}
+
+{% if encouraged_items %}
+
+### ENCOURAGED (User Priorities)
+
+**Focus your work on these high-value areas:**
+
+{% for item in encouraged_items %}
+{{ loop.index }}. **{{ item }}**
+{% endfor %}
+
+✅ These override forbidden patterns. If an opportunity matches both forbidden AND encouraged, proceed with the work.
+{% endif %}
+
+{% if not forbidden_items and not encouraged_items %}
+_No custom guidance configured. Using default SLO filters._
+{% endif %}
+
+---
+
 ## LEARNING CONTEXT
 
 {% if accumulated_patterns %}

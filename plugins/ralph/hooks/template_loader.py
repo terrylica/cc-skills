@@ -179,11 +179,18 @@ class TemplateLoader:
             adapter_conv = ctx.get("adapter_convergence", {})
             research_converged = adapter_conv.get("converged", False) if adapter_conv else False
 
+            # Extract user guidance for template (natural language lists)
+            guidance = ctx.get("guidance", {})
+            forbidden_items = guidance.get("forbidden", []) if guidance else []
+            encouraged_items = guidance.get("encouraged", []) if guidance else []
+
             return self.render(
                 "alpha-forge-exploration.md",
                 **common_ctx,
                 metrics_history=metrics_history or [],
                 research_converged=research_converged,
+                forbidden_items=forbidden_items,
+                encouraged_items=encouraged_items,
             )
 
         # All other projects: use generic template

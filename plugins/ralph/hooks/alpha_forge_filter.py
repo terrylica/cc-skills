@@ -200,19 +200,51 @@ def is_busywork(opportunity: str) -> tuple[bool, str | None]:
     return False, None
 
 
+def _matches_natural_language(
+    opportunity: str,
+    phrases: list[str],
+) -> str | None:
+    """Case-insensitive substring matching for natural language phrases.
+
+    Used for user-provided guidance (forbidden/encouraged lists).
+
+    Args:
+        opportunity: The opportunity description to check
+        phrases: List of natural language phrases to match
+
+    Returns:
+        First matching phrase, or None if no match
+    """
+    opp_lower = opportunity.lower()
+    for phrase in phrases:
+        if phrase.lower() in opp_lower:
+            return phrase
+    return None
+
+
 def filter_opportunities(
     opportunities: list[str],
     *,
     allow_busywork: bool = False,
     research_converged: bool = False,
+    custom_forbidden: list[str] | None = None,
+    custom_encouraged: list[str] | None = None,
 ) -> list[FilteredOpportunity]:
-    """Filter opportunities to remove busywork.
+    """Filter opportunities with user guidance support.
+
+    Priority order (encouraged-wins):
+    1. Check encouraged phrases FIRST (if match → ALLOW, override any forbidden)
+    2. Check built-in BUSYWORK_PATTERNS (regex)
+    3. Check custom_forbidden phrases (natural language substring)
+    4. Default to ALLOW
 
     Args:
         opportunities: Raw list of opportunity descriptions
         allow_busywork: If True, allow busywork (for debugging)
         research_converged: If True, HARD-BLOCK busywork (cannot be chosen at all).
             When research is CONVERGED, only /research invocations are allowed.
+        custom_forbidden: User-provided forbidden phrases (natural language)
+        custom_encouraged: User-provided encouraged phrases (natural language, overrides forbidden)
 
     Returns:
         List of FilteredOpportunity with results
@@ -220,8 +252,31 @@ def filter_opportunities(
     results: list[FilteredOpportunity] = []
 
     for opp in opportunities:
+        # Priority 1: Check ENCOURAGED FIRST (natural language, overrides all)
+        if custom_encouraged:
+            enc_match = _matches_natural_language(opp, custom_encouraged)
+            if enc_match:
+                results.append(
+                    FilteredOpportunity(
+                        opportunity=opp,
+                        result=FilterResult.ALLOW,
+                        reason=f"Encouraged: matches '{enc_match}'",
+                        matched_pattern=enc_match,
+                    )
+                )
+                continue  # Skip forbidden checks
+
+        # Priority 2: Check built-in BUSYWORK_PATTERNS (regex)
         is_bw, pattern = is_busywork(opp)
 
+        # Priority 3: Check custom_forbidden (natural language)
+        if custom_forbidden and not is_bw:
+            custom_match = _matches_natural_language(opp, custom_forbidden)
+            if custom_match:
+                is_bw = True
+                pattern = custom_match
+
+        # Apply filter result
         if is_bw and not allow_busywork:
             if research_converged:
                 # Hard-block busywork when research is CONVERGED
@@ -239,7 +294,7 @@ def filter_opportunities(
                     FilteredOpportunity(
                         opportunity=opp,
                         result=FilterResult.SKIP,
-                        reason="Matches busywork pattern",
+                        reason=f"Matches forbidden: '{pattern}'",
                         matched_pattern=pattern,
                     )
                 )
@@ -255,18 +310,32 @@ def filter_opportunities(
     return results
 
 
-def get_allowed_opportunities(opportunities: list[str]) -> list[str]:
+def get_allowed_opportunities(
+    opportunities: list[str],
+    *,
+    research_converged: bool = False,
+    custom_forbidden: list[str] | None = None,
+    custom_encouraged: list[str] | None = None,
+) -> list[str]:
     """Get only the allowed (non-busywork) opportunities.
 
-    Convenience function for simple filtering.
+    Convenience function for simple filtering with user guidance support.
 
     Args:
         opportunities: Raw list of opportunity descriptions
+        research_converged: If True, HARD-BLOCK busywork
+        custom_forbidden: User-provided forbidden phrases (natural language)
+        custom_encouraged: User-provided encouraged phrases (overrides forbidden)
 
     Returns:
         Filtered list with busywork removed
     """
-    filtered = filter_opportunities(opportunities)
+    filtered = filter_opportunities(
+        opportunities,
+        research_converged=research_converged,
+        custom_forbidden=custom_forbidden,
+        custom_encouraged=custom_encouraged,
+    )
     return [f.opportunity for f in filtered if f.result == FilterResult.ALLOW]
 
 

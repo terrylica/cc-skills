@@ -98,6 +98,121 @@ Based on selection:
 
 **If `--poc` or `--production` flag was provided**: Skip this step entirely (backward compatible).
 
+## Step 1.6: Session Guidance (Alpha Forge Only)
+
+**Only for Alpha Forge projects** (detected by adapter). Other projects skip to Step 2.
+
+### 1.6.1: Check for Previous Guidance
+
+After Step 1.5 completes, check if guidance exists in the config file:
+
+```bash
+GUIDANCE_EXISTS="false"
+if [[ -f "$PROJECT_DIR/.claude/ralph-config.json" ]]; then
+    GUIDANCE_EXISTS=$(jq -r 'if .guidance then "true" else "false" end' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null || echo "false")
+fi
+```
+
+### 1.6.2: Binary Keep/Reconfigure (If Previous Exists)
+
+If `GUIDANCE_EXISTS == "true"`:
+
+Use AskUserQuestion:
+
+- question: "Previous session had custom guidance. Keep it or reconfigure?"
+  header: "Guidance"
+  options:
+  - label: "Keep existing guidance (Recommended)"
+    description: "Use stored forbidden/encouraged lists from last session"
+  - label: "Reconfigure guidance"
+    description: "Set new forbidden/encouraged lists"
+    multiSelect: false
+
+- If "Keep existing" → Skip to Step 2 (guidance already in config)
+- If "Reconfigure" → Continue to 1.6.3
+
+### 1.6.3: Forbidden Items (multiSelect, closed list)
+
+Use AskUserQuestion:
+
+- question: "What should RSSI avoid? (Select all that apply)"
+  header: "Forbidden"
+  multiSelect: true
+  options:
+  - label: "Documentation updates"
+    description: "README, CHANGELOG, docstrings, comments"
+  - label: "Dependency upgrades"
+    description: "Version bumps, renovate PRs, package updates"
+  - label: "Test coverage expansion"
+    description: "Adding tests for untested code"
+  - label: "Linting/formatting"
+    description: "Style issues, import sorting, code formatting"
+  - label: "CI/CD modifications"
+    description: "Workflow files, GitHub Actions, pipelines"
+
+### 1.6.4: Custom Forbidden (Follow-up)
+
+After multiSelect, ask for custom additions:
+
+Use AskUserQuestion:
+
+- question: "Add custom forbidden items? (comma-separated)"
+  header: "Custom"
+  multiSelect: false
+  options:
+  - label: "Enter custom items"
+    description: "Type additional forbidden phrases, e.g., 'database migrations, API changes'"
+  - label: "Skip custom items"
+    description: "Use only selected categories above"
+
+If "Enter custom items" selected → Parse user's "Other" input, split by comma, trim whitespace.
+
+### 1.6.5: Encouraged Items (multiSelect, closed list)
+
+Use AskUserQuestion:
+
+- question: "What should RSSI prioritize? (Select all that apply)"
+  header: "Encouraged"
+  multiSelect: true
+  options:
+  - label: "ROADMAP P0 items"
+    description: "Highest priority tasks from project roadmap"
+  - label: "Performance improvements"
+    description: "Speed, memory, efficiency optimizations"
+  - label: "Bug fixes"
+    description: "Fix known issues and regressions"
+  - label: "Research experiments"
+    description: "Try new approaches (Alpha Forge /research)"
+
+### 1.6.6: Custom Encouraged (Follow-up)
+
+Same pattern as 1.6.4:
+
+Use AskUserQuestion:
+
+- question: "Add custom encouraged items? (comma-separated)"
+  header: "Custom"
+  multiSelect: false
+  options:
+  - label: "Enter custom items"
+    description: "Type additional encouraged phrases, e.g., 'Sharpe ratio, feature engineering'"
+  - label: "Skip custom items"
+    description: "Use only selected categories above"
+
+### 1.6.7: Update Config
+
+Merge selections and write to config. The guidance section will be added to `ralph-config.json`:
+
+```json
+{
+  "guidance": {
+    "forbidden": ["Documentation updates", "Dependency upgrades"],
+    "encouraged": ["ROADMAP P0 items", "Research experiments"],
+    "timestamp": "2025-12-22T10:00:00Z"
+  }
+}
+```
+
 ## Step 2: Execution
 
 ```bash

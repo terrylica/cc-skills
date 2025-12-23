@@ -131,9 +131,22 @@ def build_continuation_prompt(
         if adapter_name == "alpha-forge":
             # Use full template with CONVERGED detection for proper busywork blocking
             loader = get_loader()
+
+            # Load user guidance from ralph-config.json (natural language lists)
+            guidance = {}
+            if project_dir:
+                ralph_config_file = Path(project_dir) / ".claude/ralph-config.json"
+                if ralph_config_file.exists():
+                    try:
+                        ralph_config = json.loads(ralph_config_file.read_text())
+                        guidance = ralph_config.get("guidance", {})
+                    except (json.JSONDecodeError, OSError):
+                        pass  # Graceful fallback to empty guidance
+
             rssi_context = {
                 "iteration": iteration,
                 "adapter_convergence": state.get("adapter_convergence"),
+                "guidance": guidance,  # User-provided forbidden/encouraged lists
             }
             metrics_history = state.get("adapter_convergence", {}).get("metrics_history", [])
             prefix = "**RSSI→EXPLORE**" if force_exploration else "**RSSI**"
