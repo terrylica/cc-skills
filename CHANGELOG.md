@@ -1,3 +1,31 @@
+# [7.13.0](https://github.com/terrylica/cc-skills/compare/v7.12.0...v7.13.0) (2025-12-23)
+
+
+### Features
+
+* **ralph:** add 5-part autonomous loop enhancement ([083652e](https://github.com/terrylica/cc-skills/commit/083652e5ed1edecc8d9345f1679274a541d2d39e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (3 commands)</summary>
+
+- [Ralph Loop: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/audit-now.md) - new (+110)
+- [Ralph Loop: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/encourage.md) - new (+90)
+- [Ralph Loop: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/forbid.md) - new (+100)
+
+</details>
+
 # [7.12.0](https://github.com/terrylica/cc-skills/compare/v7.11.1...v7.12.0) (2025-12-23)
 
 
