@@ -74,14 +74,6 @@ def check_spec_completion(plan_file: str | None) -> tuple[bool, str]:
 
     return False, "spec not complete"
 
-# Legacy constants (deprecated - use config instead)
-COMPLETION_CONFIDENCE_THRESHOLD = 0.7
-COMPLETION_PHRASES = [
-    "task complete", "all done", "finished",
-    "implementation complete", "work complete"
-]
-
-
 def get_completion_config() -> CompletionConfig:
     """Get completion detection parameters from config."""
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
@@ -161,39 +153,6 @@ def count_checkboxes(content: str) -> tuple[int, int]:
     return total, checked
 
 
-def check_task_complete(plan_file: str | None) -> tuple[bool, str]:
-    """Check for completion via frontmatter status OR checklist markers.
-
-    Legacy function - use check_task_complete_rssi for multi-signal detection.
-
-    Returns:
-        (is_complete, reason) - reason describes how completion was detected
-    """
-    if not plan_file or not Path(plan_file).exists():
-        return False, "no file to check"
-    try:
-        content = Path(plan_file).read_text()
-
-        # Method 1: YAML frontmatter status field
-        if has_frontmatter_value(content, "implementation-status", "completed"):
-            return True, "implementation-status: completed"
-        if has_frontmatter_value(content, "implementation-status", "complete"):
-            return True, "implementation-status: complete"
-
-        # Method 2: Checklist markers (flexible formats)
-        for line in content.split('\n'):
-            line_stripped = line.strip()
-            if any([
-                line_stripped in ('- [x] TASK_COMPLETE', '[x] TASK_COMPLETE'),
-                line_stripped in ('* [x] TASK_COMPLETE', '[X] TASK_COMPLETE'),
-                'TASK_COMPLETE' in line_stripped and ('[x]' in line_stripped.lower()),
-            ]):
-                return True, "checklist: TASK_COMPLETE"
-    except OSError:
-        pass
-    return False, "not complete"
-
-
 def check_task_complete_rssi(plan_file: str | None) -> tuple[bool, str, float]:
     """RSSI-grade completion detection using multiple signals.
 
@@ -266,3 +225,136 @@ def check_task_complete_rssi(plan_file: str | None) -> tuple[bool, str, float]:
         return True, best[0], best[1]
 
     return False, "not_complete", 0.0
+
+
+def check_validation_complete(validation_findings: dict) -> tuple[bool, str, list[str]]:
+    """Check if all 5 validation rounds have passed.
+
+    5-Round Validation System:
+    - Round 1: Critical Issues (no critical issues remaining)
+    - Round 2: Verification (all fixes verified, no failures)
+    - Round 3: Documentation (no doc issues, no coverage gaps)
+    - Round 4: Adversarial Probing (probing complete, no edge case failures)
+    - Round 5: Cross-Period Robustness (all regimes tested, score > 0)
+
+    Args:
+        validation_findings: Dict with round1-round5 data from session state
+
+    Returns:
+        Tuple of (all_passed, summary, incomplete_rounds)
+    """
+    incomplete_rounds: list[str] = []
+    failed_round_numbers: set[int] = set()
+
+    # Round 1: Critical Issues
+    round1 = validation_findings.get("round1", {})
+    if round1.get("critical", []):
+        incomplete_rounds.append("Round 1: Critical issues remain")
+        failed_round_numbers.add(1)
+
+    # Round 2: Verification
+    round2 = validation_findings.get("round2", {})
+    if round2.get("failed", []):
+        incomplete_rounds.append("Round 2: Verification failures")
+        failed_round_numbers.add(2)
+
+    # Round 3: Documentation
+    round3 = validation_findings.get("round3", {})
+    if round3.get("doc_issues", []) or round3.get("coverage_gaps", []):
+        incomplete_rounds.append("Round 3: Documentation/coverage gaps")
+        failed_round_numbers.add(3)
+
+    # Round 4: Adversarial Probing (can have multiple issues)
+    round4 = validation_findings.get("round4", {})
+    if not round4.get("probing_complete", False):
+        incomplete_rounds.append("Round 4: Adversarial probing incomplete")
+        failed_round_numbers.add(4)
+    if round4.get("edge_cases_failed", []):
+        incomplete_rounds.append("Round 4: Edge case failures")
+        failed_round_numbers.add(4)
+
+    # Round 5: Cross-Period Robustness (can have multiple issues)
+    round5 = validation_findings.get("round5", {})
+    if not round5.get("regimes_tested", []):
+        incomplete_rounds.append("Round 5: No regimes tested")
+        failed_round_numbers.add(5)
+    if round5.get("robustness_score", 0.0) <= 0.0:
+        incomplete_rounds.append("Round 5: Robustness score is 0")
+        failed_round_numbers.add(5)
+
+    all_passed = len(failed_round_numbers) == 0
+    passed_count = 5 - len(failed_round_numbers)
+
+    if all_passed:
+        summary = "All 5 validation rounds passed"
+    else:
+        summary = f"{passed_count}/5 rounds passed"
+
+    return all_passed, summary, incomplete_rounds
+
+
+def get_validation_round_status(validation_findings: dict) -> dict[str, str]:
+    """Get status of each validation round for display.
+
+    Args:
+        validation_findings: Dict with round1-round5 data from session state
+
+    Returns:
+        Dict mapping round names to status strings
+    """
+    status = {}
+
+    # Round 1
+    round1 = validation_findings.get("round1", {})
+    critical = len(round1.get("critical", []))
+    medium = len(round1.get("medium", []))
+    low = len(round1.get("low", []))
+    if critical == 0 and medium == 0:
+        status["Round 1: Critical Issues"] = "✓ Passed"
+    else:
+        status["Round 1: Critical Issues"] = f"✗ {critical} critical, {medium} medium, {low} low"
+
+    # Round 2
+    round2 = validation_findings.get("round2", {})
+    verified = len(round2.get("verified", []))
+    failed = len(round2.get("failed", []))
+    if failed == 0 and verified > 0:
+        status["Round 2: Verification"] = f"✓ {verified} verified"
+    elif failed > 0:
+        status["Round 2: Verification"] = f"✗ {failed} failed"
+    else:
+        status["Round 2: Verification"] = "○ Not started"
+
+    # Round 3
+    round3 = validation_findings.get("round3", {})
+    doc_issues = len(round3.get("doc_issues", []))
+    coverage_gaps = len(round3.get("coverage_gaps", []))
+    if doc_issues == 0 and coverage_gaps == 0:
+        status["Round 3: Documentation"] = "✓ Passed"
+    else:
+        status["Round 3: Documentation"] = f"✗ {doc_issues} doc issues, {coverage_gaps} gaps"
+
+    # Round 4
+    round4 = validation_findings.get("round4", {})
+    probing_complete = round4.get("probing_complete", False)
+    edge_cases_failed = len(round4.get("edge_cases_failed", []))
+    math_validated = len(round4.get("math_validated", []))
+    if probing_complete and edge_cases_failed == 0:
+        status["Round 4: Adversarial"] = f"✓ {math_validated} math validated"
+    elif edge_cases_failed > 0:
+        status["Round 4: Adversarial"] = f"✗ {edge_cases_failed} edge cases failed"
+    else:
+        status["Round 4: Adversarial"] = "○ Not started"
+
+    # Round 5
+    round5 = validation_findings.get("round5", {})
+    regimes_tested = round5.get("regimes_tested", [])
+    robustness_score = round5.get("robustness_score", 0.0)
+    if regimes_tested and robustness_score > 0:
+        status["Round 5: Robustness"] = f"✓ Score: {robustness_score:.2f}"
+    elif regimes_tested:
+        status["Round 5: Robustness"] = f"✗ Score: {robustness_score:.2f}"
+    else:
+        status["Round 5: Robustness"] = "○ Not started"
+
+    return status

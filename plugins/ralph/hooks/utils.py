@@ -14,9 +14,7 @@ from core.config_schema import load_config
 
 logger = logging.getLogger(__name__)
 
-# Legacy constants (deprecated - use config instead)
-# Kept for backward compatibility with existing code
-LOOP_THRESHOLD = 0.9
+# Window size for loop detection (used by detect_loop)
 WINDOW_SIZE = 5
 
 
@@ -74,12 +72,6 @@ def get_wall_clock_hours(session_id: str, project_dir: str) -> float:
         except (ValueError, OSError):
             pass
     return 0.0
-
-
-# Backward compatibility alias
-def get_elapsed_hours(session_id: str, project_dir: str) -> float:
-    """Deprecated: Use get_wall_clock_hours() instead."""
-    return get_wall_clock_hours(session_id, project_dir)
 
 
 def update_runtime(state: dict, current_time: float, gap_threshold: int = 300) -> float:
