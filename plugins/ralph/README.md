@@ -213,7 +213,7 @@ Ralph implements a 5-layer observability system to ensure users always know when
 **Approaching Limits Warning** (in continuation prompt):
 
 ```
-**IMPLEMENTATION** | Iteration 95/99 | 8.5h/9.0h elapsed | 0.0h / 0 iters to min
+**IMPLEMENTATION** | Iteration 95/99 | Runtime: 8.5h/9.0h | Wall: 12.0h | 0.0h / 0 iters to min
 **WARNING**: Approaching limits (0.5h / 4 iters to max)
 ```
 
@@ -225,6 +225,41 @@ Type: Normal
 Reason: Maximum runtime (9h) reached
 Time: 2025-12-22T21:32:27Z
 Session: cbe3a408...
+```
+
+### Dual Time Tracking (v7.9.0+)
+
+Ralph tracks **two time metrics** to ensure accurate limit enforcement even when the CLI is closed:
+
+| Metric         | Description                        | Used For              |
+| -------------- | ---------------------------------- | --------------------- |
+| **Runtime**    | CLI active time (excludes pauses)  | Limit enforcement     |
+| **Wall-clock** | Calendar time since `/ralph:start` | Informational display |
+
+**Why this matters**: If you close Claude Code overnight:
+
+- Start at 6 PM, work 2 hours, close at 8 PM
+- Reopen at 8 AM next day (12 hours later)
+- **Before v7.9.0**: "Maximum runtime (9h) reached" after only 2 hours of work
+- **After v7.9.0**: Runtime shows 2.0h, wall-clock shows 14.0h — limits use runtime
+
+**Display Format** (in continuation prompt):
+
+```
+**IMPLEMENTATION** | Iteration 42/99 | Runtime: 3.2h/9.0h | Wall: 15.0h | 0.8h / 8 iters to min
+```
+
+**Gap Detection**: If more than 5 minutes pass between Stop hook calls, the CLI was closed — that time is excluded from runtime.
+
+**Status Display** (`/ralph:status`):
+
+```
+=== Time Tracking ===
+Runtime (CLI active): 3.20h
+Wall-clock (since start): 15.00h
+
+Note: Runtime = actual CLI working time (pauses excluded)
+      Wall-clock = calendar time since /ralph:start
 ```
 
 ### Configuration

@@ -34,8 +34,12 @@ def get_loop_detection_config() -> tuple[float, int]:
     )
 
 
-def get_elapsed_hours(session_id: str, project_dir: str) -> float:
-    """Get elapsed time from loop start timestamp.
+def get_wall_clock_hours(session_id: str, project_dir: str) -> float:
+    """Get wall-clock elapsed time from loop start timestamp.
+
+    This returns the total calendar time since /ralph:start, including any
+    periods when Claude Code CLI was closed. For CLI runtime tracking, use
+    get_runtime_hours() instead.
 
     Priority:
     1. Project-level .claude/loop-start-timestamp (created by /ralph:start)
@@ -46,7 +50,7 @@ def get_elapsed_hours(session_id: str, project_dir: str) -> float:
         project_dir: Path to project root
 
     Returns:
-        Elapsed hours since loop started
+        Wall-clock elapsed hours since loop started
     """
     # Priority 1: Project-level loop start timestamp
     if project_dir:
@@ -70,6 +74,61 @@ def get_elapsed_hours(session_id: str, project_dir: str) -> float:
         except (ValueError, OSError):
             pass
     return 0.0
+
+
+# Backward compatibility alias
+def get_elapsed_hours(session_id: str, project_dir: str) -> float:
+    """Deprecated: Use get_wall_clock_hours() instead."""
+    return get_wall_clock_hours(session_id, project_dir)
+
+
+def update_runtime(state: dict, current_time: float, gap_threshold: int = 300) -> float:
+    """Update accumulated runtime based on gap detection.
+
+    Tracks CLI active time by detecting gaps between hook calls.
+    If gap > threshold, CLI was closed - don't count that time.
+    If gap <= threshold, CLI was active - add to runtime.
+
+    Args:
+        state: Session state dict (will be mutated with new values)
+        current_time: Current Unix timestamp (time.time())
+        gap_threshold: Seconds before gap indicates CLI closure (default 300 = 5 min)
+
+    Returns:
+        Updated accumulated runtime in seconds
+    """
+    last_hook = state.get("last_hook_timestamp", 0.0)
+    accumulated = state.get("accumulated_runtime_seconds", 0.0)
+
+    if last_hook > 0:
+        gap = current_time - last_hook
+        if gap < gap_threshold:
+            # Normal iteration - CLI was active, add to runtime
+            accumulated += gap
+        else:
+            # CLI was closed - don't add gap time
+            logger.info(f"CLI pause detected: {gap:.0f}s gap > {gap_threshold}s threshold, not counting")
+
+    # Update state with new values
+    state["last_hook_timestamp"] = current_time
+    state["accumulated_runtime_seconds"] = accumulated
+
+    return accumulated
+
+
+def get_runtime_hours(state: dict) -> float:
+    """Get accumulated CLI runtime in hours.
+
+    This returns the total time Claude Code CLI was actually running,
+    excluding periods when the CLI was closed.
+
+    Args:
+        state: Session state dict containing accumulated_runtime_seconds
+
+    Returns:
+        Accumulated runtime in hours
+    """
+    return state.get("accumulated_runtime_seconds", 0.0) / 3600
 
 
 def detect_loop(

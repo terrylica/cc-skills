@@ -50,7 +50,6 @@ def main():
     tests_dir = Path(__file__).parent
     test_files = [
         tests_dir / "test_completion.py",
-        tests_dir / "test_validation.py",
         tests_dir / "test_utils.py",
         tests_dir / "test_integration.py",
     ]

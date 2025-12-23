@@ -31,7 +31,7 @@ from pathlib import Path
 
 # Import from modular components
 from completion import check_task_complete_rssi
-from core.config_schema import LoopState, load_state, save_state
+from core.config_schema import LoopState, load_config, load_state, save_state
 from core.path_hash import build_state_file_path, load_session_state
 from core.registry import AdapterRegistry
 from discovery import (
@@ -43,8 +43,10 @@ from utils import (
     allow_stop,
     continue_session,
     detect_loop,
-    get_elapsed_hours,
+    get_runtime_hours,
+    get_wall_clock_hours,
     hard_stop,
+    update_runtime,
 )
 
 
@@ -98,7 +100,8 @@ def build_continuation_prompt(
     session_id: str,
     plan_file: str | None,
     project_dir: str,
-    elapsed: float,
+    runtime_hours: float,
+    wall_hours: float,
     iteration: int,
     config: dict,
     task_complete: bool,
@@ -107,7 +110,12 @@ def build_continuation_prompt(
     state: dict | None = None,
     no_focus: bool = False,
 ) -> str:
-    """Build continuation prompt - minimal for no_focus, detailed for focused mode."""
+    """Build continuation prompt - minimal for no_focus, detailed for focused mode.
+
+    Args:
+        runtime_hours: CLI active time (used for limit enforcement)
+        wall_hours: Calendar time since start (informational)
+    """
     if state is None:
         state = {}
 
@@ -120,7 +128,7 @@ def build_continuation_prompt(
     force_exploration = state.get("force_exploration", False)
     if no_focus or force_exploration:
         # Calculate remaining for header (show limits for visibility)
-        time_to_max = max(0, config["max_hours"] - elapsed)
+        time_to_max = max(0, config["max_hours"] - runtime_hours)
         iters_to_max = max(0, config["max_iterations"] - iteration)
 
         # Warning suffix if approaching limits
@@ -158,21 +166,23 @@ def build_continuation_prompt(
             )
             header = (
                 f"{prefix} iter {iteration}/{config['max_iterations']} | "
-                f"{elapsed:.1f}h/{config['max_hours']}h{warning}"
+                f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | "
+                f"Wall: {wall_hours:.1f}h{warning}"
             )
             return f"{header}\n\n{prompt}"
         else:
             return (
                 f"**RSSI** iter {iteration}/{config['max_iterations']} | "
-                f"{elapsed:.1f}h/{config['max_hours']}h{warning} | "
+                f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | "
+                f"Wall: {wall_hours:.1f}h{warning} | "
                 "Continue autonomous work"
             )
 
     # ===== FOCUSED MODE: Full context for implementation/exploration =====
     parts = []
-    remaining_hours = max(0, config["min_hours"] - elapsed)
+    remaining_hours = max(0, config["min_hours"] - runtime_hours)
     remaining_iters = max(0, config.get("min_iterations", 50) - iteration)
-    time_to_max = max(0, config["max_hours"] - elapsed)
+    time_to_max = max(0, config["max_hours"] - runtime_hours)
     iters_to_max = config["max_iterations"] - iteration
 
     mode = "IMPLEMENTATION" if not task_complete else "EXPLORATION"
@@ -187,7 +197,7 @@ def build_continuation_prompt(
 
     parts.append(
         f"**{mode}** | Iteration {iteration}/{config['max_iterations']} | "
-        f"{elapsed:.1f}h/{config['max_hours']}h elapsed | "
+        f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | Wall: {wall_hours:.1f}h | "
         f"{remaining_hours:.1f}h / {remaining_iters} iters to min"
         f"{warning_suffix}"
     )
@@ -286,6 +296,9 @@ def main():
         "agent_results": [],
         "adapter_name": "",  # Active adapter for this session
         "adapter_convergence": None,  # Last adapter convergence result
+        # Runtime tracking (v7.9.0): CLI active time vs wall-clock
+        "accumulated_runtime_seconds": 0.0,  # Total CLI runtime (excludes pauses)
+        "last_hook_timestamp": 0.0,  # For gap detection between hook calls
     }
     state = load_session_state(state_file, default_state)
 
@@ -378,11 +391,23 @@ def main():
     state["candidate_files"] = candidate_files
     state["plan_file"] = plan_file
 
-    elapsed = get_elapsed_hours(session_id, project_dir)
+    # ===== RUNTIME TRACKING (v7.9.0) =====
+    # Track CLI active time (runtime) vs calendar time (wall-clock)
+    # Runtime excludes periods when CLI was closed; used for all limit enforcement
+    import time as time_module
+    ralph_config = load_config(project_dir if project_dir else None)
+    gap_threshold = ralph_config.loop_limits.cli_gap_threshold_seconds
+    update_runtime(state, time_module.time(), gap_threshold)
+    runtime_hours = get_runtime_hours(state)
+    wall_hours = get_wall_clock_hours(session_id, project_dir)
+
     iteration = state["iteration"] + 1
     recent_outputs: list[str] = state.get("recent_outputs", [])
 
-    logger.info(f"Iteration {iteration}, elapsed {elapsed:.2f}h, config={config}")
+    logger.info(
+        f"Iteration {iteration}, runtime {runtime_hours:.2f}h, "
+        f"wall {wall_hours:.2f}h, config={config}"
+    )
 
     # Extract current output for loop detection
     current_output = ""
@@ -469,7 +494,7 @@ def main():
 
     # ===== COMPLETION CASCADE =====
 
-    if elapsed >= config["max_hours"]:
+    if runtime_hours >= config["max_hours"]:
         allow_stop(f"Maximum runtime ({config['max_hours']}h) reached")
         return
 
@@ -534,7 +559,7 @@ def main():
         except Exception as e:
             logger.warning(f"Adapter convergence check failed: {e}")
 
-    min_hours_met = elapsed >= config["min_hours"]
+    min_hours_met = runtime_hours >= config["min_hours"]
     min_iterations_met = iteration >= config.get("min_iterations", 50)
 
     # ===== NO-FOCUS MODE CONVERGENCE =====
@@ -587,7 +612,8 @@ def main():
         session_id=session_id,
         plan_file=plan_file,
         project_dir=project_dir,
-        elapsed=elapsed,
+        runtime_hours=runtime_hours,
+        wall_hours=wall_hours,
         iteration=iteration,
         config=config,
         task_complete=task_complete,
