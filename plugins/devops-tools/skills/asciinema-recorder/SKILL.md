@@ -1,7 +1,7 @@
 ---
 name: asciinema-recorder
 description: Record Claude Code sessions with asciinema. TRIGGERS - record session, asciinema record, capture terminal, record claude, demo recording, record ASCII, ASCII terminal, terminal screen capture, shell screen capture, ASCII screen capture, screen recording. Generates ready-to-copy commands with dynamic workspace-based filenames.
-allowed-tools: Read, Bash, Glob
+allowed-tools: Read, Bash, Glob, AskUserQuestion
 ---
 
 # asciinema-recorder
@@ -41,26 +41,116 @@ This skill generates ready-to-copy recording commands with:
 which asciinema && asciinema --version
 ```
 
-If missing, provide installation command:
+If asciinema is NOT installed, use AskUserQuestion:
 
-```bash
-# macOS
-brew install asciinema
+- question: "asciinema not found. How would you like to proceed?"
+  header: "Setup"
+  multiSelect: false
+  options:
+  - label: "Install asciinema (Recommended)"
+    description: "Run: brew install asciinema (macOS) or apt install asciinema (Linux)"
+  - label: "Show manual instructions"
+    description: "Display installation commands for all platforms"
+  - label: "Cancel"
+    description: "Exit without recording"
 
-# Linux (apt)
-sudo apt install asciinema
+Based on selection:
 
-# Linux (pip)
-pip install asciinema
-```
+- **"Install asciinema"** → Run appropriate install command based on OS:
+
+  ```bash
+  # macOS
+  brew install asciinema
+
+  # Linux (apt)
+  sudo apt install asciinema
+
+  # Linux (pip)
+  pip install asciinema
+  ```
+
+  Then proceed to Phase 1.0.
+
+- **"Show manual instructions"** → Display the commands above, then exit skill.
+
+- **"Cancel"** → Exit skill without action.
 
 ---
 
-### Phase 1: Detect Context & Generate Command
+### Phase 1.0: Recording Location
+
+**Purpose**: Let user choose where to save the recording.
+
+Use AskUserQuestion:
+
+- question: "Where should the recording be saved?"
+  header: "Location"
+  multiSelect: false
+  options:
+  - label: "$PWD/tmp/ (Recommended)"
+    description: "Project tmp directory (gitignored)"
+  - label: "~/asciinema/"
+    description: "Global recordings directory"
+  - label: "Custom path"
+    description: "Specify your own directory"
+
+Based on selection:
+
+- **"$PWD/tmp/"** → Set `OUTPUT_DIR="$PWD/tmp"`
+- **"~/asciinema/"** → Set `OUTPUT_DIR="$HOME/asciinema"` and create if missing: `mkdir -p ~/asciinema`
+- **"Custom path"** → Use user's "Other" input as `OUTPUT_DIR`
+
+---
+
+### Phase 1.1: Recording Options
+
+**Purpose**: Let user configure recording behavior.
+
+Use AskUserQuestion:
+
+- question: "Which recording options would you like?"
+  header: "Options"
+  multiSelect: true
+  options:
+  - label: "Add title/description"
+    description: "Include session title in recording metadata (-t flag)"
+  - label: "Disable idle time limit"
+    description: "Keep full pauses instead of 2s max (--idle-time-limit 0)"
+  - label: "Quiet mode"
+    description: "Suppress asciinema status messages (-q flag)"
+
+Based on selections, build command flags:
+
+- **"Add title"** → Continue to title selection question, add `-t "title"` flag
+- **"Disable idle time limit"** → Add `--idle-time-limit 0` flag
+- **"Quiet mode"** → Add `-q` flag
+
+**If "Add title" was selected**, follow up with:
+
+- question: "Enter a title for this recording:"
+  header: "Title"
+  multiSelect: false
+  options:
+  - label: "Use workspace name"
+    description: "Title: ${WORKSPACE}"
+  - label: "Use workspace + datetime"
+    description: "Title: ${WORKSPACE} ${DATETIME}"
+  - label: "Custom title"
+    description: "Enter your own title"
+
+Based on title selection:
+
+- **"Use workspace name"** → Set `TITLE="${WORKSPACE}"`
+- **"Use workspace + datetime"** → Set `TITLE="${WORKSPACE} ${DATETIME}"`
+- **"Custom title"** → Use user's "Other" input as `TITLE`
+
+---
+
+### Phase 1.2: Detect Context & Generate Command
 
 **Purpose**: Generate a copy-paste ready recording command.
 
-#### Step 1.1: Detect Workspace
+#### Step 1.2.1: Detect Workspace
 
 Extract workspace name from `$PWD`:
 
@@ -71,7 +161,7 @@ echo "Workspace: $WORKSPACE"
 SKILL_SCRIPT_EOF
 ```
 
-#### Step 1.2: Generate Datetime
+#### Step 1.2.2: Generate Datetime
 
 ```bash
 /usr/bin/env bash << 'SKILL_SCRIPT_EOF_2'
@@ -80,27 +170,44 @@ echo "Datetime: $DATETIME"
 SKILL_SCRIPT_EOF_2
 ```
 
-#### Step 1.3: Construct Command
+#### Step 1.2.3: Ensure Output Directory Exists
 
-Build the full recording command:
+Create the output directory selected in Phase 1.0:
 
 ```bash
-/usr/bin/env bash << 'SKILL_SCRIPT_EOF_3'
-# Command format
-asciinema rec $PWD/tmp/${WORKSPACE}_${DATETIME}.cast
-SKILL_SCRIPT_EOF_3
+mkdir -p "${OUTPUT_DIR}"
 ```
 
-**Example output (for a project called "my-app"):**
+#### Step 1.2.4: Construct Command
+
+Build the recording command using:
+
+- `OUTPUT_DIR` from Phase 1.0 (location selection)
+- Flags from Phase 1.1 (options selection)
+- `TITLE` if "Add title" was selected
 
 ```bash
+# Base command
+CMD="asciinema rec"
+
+# Add flags from Phase 1.1 options
+# (Claude builds this based on user selections)
+
+# Final command format:
+asciinema rec ${FLAGS} "${OUTPUT_DIR}/${WORKSPACE}_${DATETIME}.cast"
+```
+
+**Example outputs:**
+
+```bash
+# Default (no options selected):
 asciinema rec /home/user/projects/my-app/tmp/my-app_2025-12-21_14-30.cast
-```
 
-#### Step 1.4: Ensure tmp/ Directory Exists
+# With title + quiet mode:
+asciinema rec -t "my-app Demo" -q /home/user/projects/my-app/tmp/my-app_2025-12-21_14-30.cast
 
-```bash
-mkdir -p $PWD/tmp
+# With all options:
+asciinema rec -t "my-app 2025-12-21 14:30" -q --idle-time-limit 0 ~/asciinema/my-app_2025-12-21_14-30.cast
 ```
 
 ---
