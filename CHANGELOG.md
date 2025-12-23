@@ -1,3 +1,46 @@
+# [7.11.0](https://github.com/terrylica/cc-skills/compare/v7.10.0...v7.11.0) (2025-12-23)
+
+
+### Features
+
+* **notion-api:** add Notion API plugin with notion-client SDK ([0e8dd69](https://github.com/terrylica/cc-skills/commit/0e8dd69e9c6536e363cf6e56ae5935afb49859e6))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>notion-api</strong> (1 change)</summary>
+
+- [notion-sdk](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/SKILL.md) - new (+175)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Notion API Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/README.md) - new (+86)
+
+### Skill References
+
+<details>
+<summary><strong>notion-api/notion-sdk</strong> (4 files)</summary>
+
+- [Notion Block Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/references/block-types.md) - new (+329)
+- [Pagination Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/references/pagination.md) - new (+176)
+- [Notion Property Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/references/property-types.md) - new (+255)
+- [Rich Text Formatting Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/references/rich-text.md) - new (+239)
+
+</details>
+
 # [7.10.0](https://github.com/terrylica/cc-skills/compare/v7.9.0...v7.10.0) (2025-12-23)
 
 
