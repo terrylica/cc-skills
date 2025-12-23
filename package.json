@@ -5,7 +5,8 @@
   "description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI",
   "scripts": {
     "release": "semantic-release",
-    "release:dry": "semantic-release --dry-run"
+    "release:dry": "semantic-release --dry-run",
+    "postrelease": "git fetch origin main:refs/remotes/origin/main --no-tags || true"
   },
   "repository": {
     "type": "git",

@@ -24,28 +24,40 @@ TEMPLATES_DIR="$SKILL_DIR/assets/templates"
 MODE=""
 CONFIG_PACKAGE=""
 
-# Check authentication (Priority 1: SSH, Priority 2: gh CLI)
+# Check authentication (Priority 1: HTTPS + Token, Priority 2: SSH fallback)
+# Per authentication.md (2025-12-19+): HTTPS-first is primary method
 echo "🔍 Checking authentication..."
 echo ""
 
-# Priority 1: Check SSH authentication
-echo "Priority 1: SSH Keys (git operations)"
-if git remote -v 2>/dev/null | grep -q "git@github.com"; then
-    echo "✅ Git remote uses SSH"
+# Priority 1: Check HTTPS + GH_TOKEN (per authentication.md 2025-12-19+)
+echo "Priority 1: HTTPS + Token (primary)"
+if git remote -v 2>/dev/null | grep -q "https://github.com"; then
+    echo "✅ Git remote uses HTTPS"
+    if gh api user --jq '.login' &>/dev/null; then
+        ACCOUNT=$(gh api user --jq '.login')
+        echo "✅ GH_TOKEN active for account: $ACCOUNT"
+    else
+        echo "⚠️  GH_TOKEN not set or invalid"
+        echo "   Check mise [env] configuration for this directory"
+        echo "   See: $SKILL_DIR/references/authentication.md"
+    fi
+elif git remote -v 2>/dev/null | grep -q "git@github.com"; then
+    echo "ℹ️  Git remote uses SSH (legacy)"
+    echo "   Consider: git-ssh-to-https (HTTPS-first recommended)"
+    echo "   See: $SKILL_DIR/references/authentication.md"
     if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
         echo "✅ SSH authentication working"
     else
         echo "⚠️  SSH remote configured but authentication may not be working"
         echo "   Test: ssh -T git@github.com"
-        echo "   See: $SKILL_DIR/references/authentication.md"
     fi
 else
-    echo "ℹ️  Git remote not using SSH (or not in a git repo yet)"
+    echo "ℹ️  Not in a git repo yet, or no remote configured"
 fi
 echo ""
 
-# Priority 2: Check GitHub CLI web authentication
-echo "Priority 2: GitHub CLI (GitHub API operations)"
+# Priority 2: Check GitHub CLI web authentication (for API operations)
+echo "Priority 2: GitHub CLI (API operations)"
 if command -v gh &> /dev/null; then
     if gh auth status &> /dev/null; then
         echo "✅ GitHub CLI authenticated (web-based)"
@@ -167,7 +179,9 @@ esac
 
 # Configure package.json
 echo "Configuring package.json..."
-npm pkg set scripts.release="semantic-release"
+npm pkg set scripts.release="semantic-release --no-ci"
+npm pkg set scripts.release:dry="semantic-release --no-ci --dry-run"
+npm pkg set scripts.postrelease="git fetch origin main:refs/remotes/origin/main --no-tags || true"
 npm pkg set version="0.0.0-development"
 npm pkg set engines.node=">=22.14.0"
 
@@ -213,6 +227,10 @@ plugins:
     - assets:
         - CHANGELOG.md
         - package.json
+  # Push commit and tags after @semantic-release/git creates them
+  # Belt-and-suspenders: ensures push happens even in --no-ci mode
+  - - "@semantic-release/exec"
+    - successCmd: "/usr/bin/env bash -c 'git push --follow-tags origin main'"
   - "@semantic-release/github"
 EOF
         ;;
@@ -262,14 +280,20 @@ echo "  1. git add ."
 echo "  2. git commit -m 'chore: setup semantic-release'"
 echo "  3. git push origin main"
 echo ""
-echo "Local release (macOS - use global install to avoid Gatekeeper):"
+echo "Local release (auto-pushes via successCmd + postrelease):"
+echo "  npm run release:dry   # Preview changes"
+echo "  npm run release       # Create release (auto-pushes)"
+echo ""
+echo "  Or with global install (macOS Gatekeeper workaround):"
 echo "  /usr/bin/env bash -c 'GITHUB_TOKEN=\$(gh auth token) semantic-release --no-ci'"
 echo ""
 echo "CI release (GitHub Actions):"
-echo "  Automatically runs on push to main (uses local node_modules)"
+echo "  Automatically runs on push to main"
 echo ""
 echo "Conventional Commits format:"
 echo "  feat: → MINOR (0.1.0 → 0.2.0)"
 echo "  fix: → PATCH (0.1.0 → 0.1.1)"
 echo "  BREAKING CHANGE: → MAJOR (0.1.0 → 1.0.0)"
+echo ""
+echo "See: $SKILL_DIR/references/local-release-workflow.md for canonical 4-phase workflow"
 echo ""

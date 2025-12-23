@@ -30,9 +30,11 @@ The script uses a **union approach** to detect documentation:
 
 1. **Git diff detection**: All `.md` files changed since the last release tag
 2. **Change type tracking**: Marks files as `new`, `updated`, `deleted`, or `renamed`
-3. **Commit message parsing**: References like `ADR: 2025-12-06-slug` in commit bodies
-4. **ADR-Design Spec coupling**: If one is changed, the corresponding pair is included
-5. **Full HTTPS URLs**: Required for GitHub release pages (relative links don't work)
+3. **Line count delta**: Shows additions/deletions via `git diff --numstat` (e.g., `+152/-3`)
+4. **Rename context**: Preserves old path for renamed files (e.g., `renamed from \`old/path\``)
+5. **Commit message parsing**: References like `ADR: 2025-12-06-slug` in commit bodies
+6. **ADR-Design Spec coupling**: If one is changed, the corresponding pair is included
+7. **Full HTTPS URLs**: Required for GitHub release pages (relative links don't work)
 
 ## Configuration
 
@@ -77,7 +79,7 @@ Then in `.releaserc.yml`:
 
 ## Output Format
 
-The script generates categorized markdown (example):
+The script generates categorized markdown with line count deltas (example):
 
 ```markdown
 ---
@@ -88,14 +90,15 @@ The script generates categorized markdown (example):
 
 ### ADRs
 
-| Status   | ADR                                     | Change  |
-| -------- | --------------------------------------- | ------- |
-| accepted | [Ralph RSSI Architecture](blob-url)     | new     |
-| accepted | [PostToolUse Hook Visibility](blob-url) | updated |
+| Status   | ADR                                     | Change            |
+| -------- | --------------------------------------- | ----------------- |
+| accepted | [Ralph RSSI Architecture](blob-url)     | new (+152)        |
+| accepted | [PostToolUse Hook Visibility](blob-url) | updated (+45/-12) |
 
 ### Design Specs
 
-- [Ralph RSSI Spec](blob-url) (new)
+- [Ralph RSSI Spec](blob-url) - new (+89)
+- [Auth Flow Spec](blob-url) - renamed from `docs/design/old-auth/spec.md` (+5/-3)
 
 ## Plugin Documentation
 
@@ -104,21 +107,33 @@ The script generates categorized markdown (example):
 <details>
 <summary><strong>itp</strong> (2 changes)</summary>
 
-- [semantic-release](blob-url) - updated
-- [mise-configuration](blob-url) - updated
+- [semantic-release](blob-url) - updated (+67/-23)
+- [mise-configuration](blob-url) - updated (+12)
 
 </details>
 
 ### Plugin READMEs
 
-- [ralph](blob-url) - updated
+- [ralph](blob-url) - updated (+8/-2)
 
 ## Repository Documentation
 
 ### Root Documentation
 
-- [README.md](blob-url) - updated
+- [README.md](blob-url) - updated (+15/-5)
 ```
+
+### Change Info Formats
+
+| Scenario           | Format                              | Example                                |
+| ------------------ | ----------------------------------- | -------------------------------------- |
+| New file           | `new (+N)`                          | `new (+152)`                           |
+| Updated (add only) | `updated (+N)`                      | `updated (+45)`                        |
+| Updated (del only) | `updated (-N)`                      | `updated (-12)`                        |
+| Updated (both)     | `updated (+N/-M)`                   | `updated (+45/-12)`                    |
+| Renamed            | `renamed from \`old/path\` (+N/-M)` | `renamed from \`docs/old.md\` (+5/-3)` |
+| Deleted            | `deleted`                           | `deleted`                              |
+| No line stats      | `changeType` only                   | `updated` (fallback if numstat fails)  |
 
 ## ADR Reference in Commits
 
@@ -136,15 +151,17 @@ The script will detect this reference and include the ADR in release notes.
 
 ## Edge Cases
 
-| Scenario        | Behavior                                             |
-| --------------- | ---------------------------------------------------- |
-| No docs changed | Script exits silently (no section added)             |
-| First release   | Uses `git ls-files` to find all tracked docs         |
-| File deleted    | Shows with `deleted` change type                     |
-| File renamed    | Shows with `renamed` change type                     |
-| No H1 in file   | Uses filename/slug as fallback title                 |
-| Missing file    | Referenced commits are skipped if file doesn't exist |
-| Empty category  | Category section is omitted entirely                 |
+| Scenario        | Behavior                                                      |
+| --------------- | ------------------------------------------------------------- |
+| No docs changed | Script exits silently (no section added)                      |
+| First release   | Uses `git ls-files` to find all tracked docs                  |
+| File deleted    | Shows with `deleted` change type (no line stats)              |
+| File renamed    | Shows old path: `renamed from \`old/path\`` with line delta   |
+| No H1 in file   | Uses filename/slug as fallback title                          |
+| Missing file    | Referenced commits are skipped if file doesn't exist          |
+| Empty category  | Category section is omitted entirely                          |
+| Binary file     | Line stats show as `0` (git numstat returns `-` for binaries) |
+| No line changes | Line delta omitted, just shows change type                    |
 
 ## Requirements
 

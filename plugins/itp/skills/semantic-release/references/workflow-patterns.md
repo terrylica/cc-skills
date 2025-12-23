@@ -60,22 +60,21 @@ extends: "@username/semantic-release-config"
 
 **5. Run Releases Locally** (Primary workflow)
 
+Follow the [Local Release Workflow](./local-release-workflow.md) for the canonical 4-phase process.
+
 ```bash
-# Test release (no changes)
-npm run release:dry
-
-# Create release locally (instant, files update immediately)
-npm run release
-
-# Push release commit and tags
-git push --follow-tags origin main
+npm run release:dry   # Preview changes
+npm run release       # Create release (auto-pushes via successCmd + postrelease)
 ```
+
+**Note**: Push is handled automatically - no manual `git push` needed.
 
 **Advantages over GitHub Actions:**
 
 - ⚡ Instant (vs 2-5 minute CI/CD wait)
 - ✅ Immediate local file sync
 - ✅ No `git pull` required to continue working
+- ✅ Automatic push via successCmd
 
 ### Pattern B: Team Projects (Level 3 + Level 4)
 
@@ -127,13 +126,11 @@ extends: "@mycompany/semantic-release-config"
 
 **5. Run Releases Locally** (Recommended)
 
-```bash
-# Test release
-npm run release:dry
+Follow the [Local Release Workflow](./local-release-workflow.md) for the canonical 4-phase process.
 
-# Create release locally (faster than GitHub Actions)
-npm run release
-git push --follow-tags origin main
+```bash
+npm run release:dry   # Preview changes
+npm run release       # Create release (auto-pushes)
 ```
 
 **Note**: GitHub Actions option available but not recommended due to 2-5 minute delay vs instant local releases.
@@ -156,88 +153,24 @@ This creates self-contained `.releaserc.yml` with all configuration inline (no e
 
 **Run Releases Locally**
 
-```bash
-# Test release
-npm run release:dry
+Follow the [Local Release Workflow](./local-release-workflow.md) for the canonical 4-phase process.
 
-# Create release (instant local execution)
-npm run release
-git push --follow-tags origin main
+```bash
+npm run release:dry   # Preview changes
+npm run release       # Create release (auto-pushes)
 ```
 
 **Local releases recommended** - Avoid GitHub Actions 2-5 minute wait, get instant file updates.
 
 ### All-in-One Release Function
 
-Single command that handles prerequisites, sync, release, and push with SSH/HTTPS fallback:
+For a shell function that handles the complete 4-phase workflow (PREFLIGHT → SYNC → RELEASE → POSTFLIGHT), see the [Local Release Workflow Quick Reference](./local-release-workflow.md#quick-reference).
 
-```bash
-/usr/bin/env bash << 'SETUP_EOF'
-release() {
-    # Prerequisites
-    command -v gh &>/dev/null || { echo "❌ gh CLI not installed"; return 1; }
-    command -v semantic-release &>/dev/null || { echo "❌ semantic-release not installed globally. Run: npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github @semantic-release/exec"; return 1; }
-    gh auth status &>/dev/null || { echo "❌ gh not authenticated"; return 1; }
-    git rev-parse --git-dir &>/dev/null || { echo "❌ Not a git repo"; return 1; }
-    export GIT_OPTIONAL_LOCKS=0
-
-    local branch=$(git branch --show-current)
-    [[ "$branch" == "main" ]] || { echo "❌ Not on main (on: $branch)"; return 1; }
-
-    # Require clean working directory before release
-    if [[ -n $(git status --porcelain) ]]; then
-        echo "❌ Working directory not clean. Commit or discard changes first:"
-        git status --short
-        return 1
-    fi
-
-    # Get remote URL and derive HTTPS fallback
-    local remote_url=$(git remote get-url origin)
-    local https_url=$(echo "$remote_url" | sed -E 's|git@github\.com:|https://github.com/|; s|\.git$||').git
-
-    # Sync with remote (SSH first, fallback to HTTPS)
-    git pull --rebase origin main --quiet || { echo "❌ Pull failed"; return 1; }
-
-    if ! git push origin main --quiet 2>/dev/null; then
-        echo "⚠️  SSH push failed, trying HTTPS..."
-        git push "$https_url" main --quiet || { echo "❌ Push failed (SSH and HTTPS)"; return 1; }
-    fi
-
-    # Release (use global install to avoid macOS Gatekeeper issues with npx)
-    GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci "$@"
-    local rc=$?
-
-    # Post-release: verify pristine state
-    if [[ -n $(git status --porcelain) ]]; then
-        echo "⚠️  Post-release: unexpected uncommitted changes"
-        git status --short
-    else
-        echo "✅ Pristine"
-    fi
-
-    return $rc
-}
-SETUP_EOF
-```
-
-**Features**:
+**Key features**:
 
 - Validates prerequisites (gh CLI, global semantic-release, authentication, git repo)
 - Enforces main branch requirement
-- **Pre-flight**: Blocks release if working directory not clean
-- Syncs with remote before release (`git pull --rebase`)
-- SSH → HTTPS automatic fallback for push
-- Passes additional args to semantic-release (`release --dry-run`)
-- **Post-flight**: Verifies pristine state after release
-
-**SSH/HTTPS Fallback**:
-
-- Derives HTTPS URL from SSH remote (`git@github.com:user/repo.git` → `https://github.com/user/repo.git`)
-- If SSH push fails, automatically retries with HTTPS
-- Clear error messages indicating which method failed
-
-**Pristine State Guarantee**:
-
-- Pre-release: Refuses to run with modified/staged/untracked files
-- Post-release: Confirms `✅ Pristine` or warns of unexpected changes
-- Exit code preserved from semantic-release for scripting
+- **Preflight**: Blocks release if working directory not clean or no releasable commits
+- **Sync**: Pull with rebase, push before release
+- **Release**: Execute semantic-release with automatic push via successCmd
+- **Postflight**: Verifies pristine state, updates tracking refs

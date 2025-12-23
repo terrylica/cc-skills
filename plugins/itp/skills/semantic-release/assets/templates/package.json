@@ -6,7 +6,9 @@
     "node": ">=22.14.0"
   },
   "scripts": {
-    "release": "semantic-release"
+    "release": "semantic-release --no-ci",
+    "release:dry": "semantic-release --no-ci --dry-run",
+    "postrelease": "git fetch origin main:refs/remotes/origin/main --no-tags || true"
   },
   "repository": {
     "type": "git",

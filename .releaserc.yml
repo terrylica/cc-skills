@@ -35,4 +35,8 @@ plugins:
         - .claude-plugin/marketplace.json
         - plugins/itp-hooks/plugin.json
       message: "chore(release): ${nextRelease.version} [skip ci]"
+  # Push commit and tags after @semantic-release/git creates them
+  # Belt-and-suspenders: ensures push happens even in --no-ci mode
+  - - "@semantic-release/exec"
+    - successCmd: "/usr/bin/env bash -c 'git push --follow-tags origin main'"
   - "@semantic-release/github"

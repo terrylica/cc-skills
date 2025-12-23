@@ -8,6 +8,7 @@
  *
  * ADR: 2025-12-06-release-notes-adr-linking
  * Scope Expansion: 2025-12-21 - Extended to all markdown documentation
+ * Enhancement: 2025-12-23 - Added line count delta (+N/-M) and rename context tracking
  */
 
 import { execSync } from "child_process";
@@ -102,8 +103,29 @@ const REPO_URL = getRepoUrl();
 const LAST_TAG = process.argv[2] || "";
 
 /**
+ * Parse git diff --numstat output for line count statistics
+ */
+function parseNumstat(output) {
+  if (!output) return {};
+  const stats = {};
+  for (const line of output.split("\n")) {
+    if (!line.trim()) continue;
+    const [added, deleted, ...pathParts] = line.split("\t");
+    const path = pathParts.join("\t");
+    if (path) {
+      stats[path] = {
+        added: added === "-" ? 0 : parseInt(added, 10),
+        deleted: deleted === "-" ? 0 : parseInt(deleted, 10),
+      };
+    }
+  }
+  return stats;
+}
+
+/**
  * Get changed files with change type via git diff
  * For first release (no tag), uses git ls-files to get all tracked files
+ * Enhanced: Includes line count delta and old path for renames
  */
 function getChangedFilesWithType() {
   try {
@@ -115,29 +137,66 @@ function getChangedFilesWithType() {
     const output = execSync(cmd, { encoding: "utf8" }).trim();
     if (!output) return [];
 
+    // Get line count statistics
+    let lineStats = {};
+    if (LAST_TAG) {
+      try {
+        const numstatCmd = `git diff ${LAST_TAG}..HEAD --numstat`;
+        const numstatOutput = execSync(numstatCmd, { encoding: "utf8" }).trim();
+        lineStats = parseNumstat(numstatOutput);
+      } catch {
+        // Silently continue without line stats
+      }
+    }
+
     if (!LAST_TAG) {
       // First release: all files are "Added"
       return output
         .split("\n")
         .filter((path) => path.endsWith(".md"))
-        .map((path) => ({ path, changeType: "new" }));
+        .map((path) => ({
+          path,
+          changeType: "new",
+          linesAdded: lineStats[path]?.added || 0,
+          linesDeleted: lineStats[path]?.deleted || 0,
+        }));
     }
 
     return output
       .split("\n")
       .map((line) => {
-        const [status, ...pathParts] = line.split("\t");
-        const path = pathParts.join("\t"); // Handle paths with tabs
+        const parts = line.split("\t");
+        const status = parts[0];
+
+        // Handle renames: R100\told-path\tnew-path
+        if (status.startsWith("R")) {
+          const oldPath = parts[1];
+          const newPath = parts[2];
+          return {
+            path: newPath,
+            oldPath: oldPath, // Preserve old path for context
+            changeType: "renamed",
+            renameScore: parseInt(status.substring(1), 10),
+            linesAdded: lineStats[newPath]?.added || 0,
+            linesDeleted: lineStats[newPath]?.deleted || 0,
+          };
+        }
+
+        const path = parts.slice(1).join("\t");
         const changeType =
           {
             A: "new",
             C: "new",
             M: "updated",
-            R: "renamed",
             D: "deleted",
           }[status[0]] || "updated";
 
-        return { path, changeType };
+        return {
+          path,
+          changeType,
+          linesAdded: lineStats[path]?.added || 0,
+          linesDeleted: lineStats[path]?.deleted || 0,
+        };
       })
       .filter(({ path }) => path.endsWith(".md"));
   } catch {
@@ -293,13 +352,12 @@ function renderAdrSection(files) {
   output += "| Status | ADR | Change |\n";
   output += "|--------|-----|--------|\n";
 
-  for (const { path, changeType } of files.sort((a, b) =>
-    a.path.localeCompare(b.path)
-  )) {
+  for (const file of files.sort((a, b) => a.path.localeCompare(b.path))) {
+    const { path } = file;
     const title = extractTitle(path, "adr") || getFallbackTitle(path, "adr");
     const status = extractStatus(path);
     const url = `${REPO_URL}/blob/main/${path}`;
-    output += `| ${status} | [${title}](${url}) | ${changeType} |\n`;
+    output += `| ${status} | [${title}](${url}) | ${formatChangeInfo(file)} |\n`;
   }
 
   return output;
@@ -311,13 +369,12 @@ function renderAdrSection(files) {
 function renderDesignSpecSection(files) {
   let output = "\n### Design Specs\n\n";
 
-  for (const { path, changeType } of files.sort((a, b) =>
-    a.path.localeCompare(b.path)
-  )) {
+  for (const file of files.sort((a, b) => a.path.localeCompare(b.path))) {
+    const { path } = file;
     const title =
       extractTitle(path, "designSpec") || getFallbackTitle(path, "designSpec");
     const url = `${REPO_URL}/blob/main/${path}`;
-    output += `- [${title}](${url}) (${changeType})\n`;
+    output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
   }
 
   return output;
@@ -343,16 +400,17 @@ function renderSkillsSection(files) {
     const pluginFiles = byPlugin[plugin];
     output += `<details>\n<summary><strong>${plugin}</strong> (${pluginFiles.length} ${pluginFiles.length === 1 ? "change" : "changes"})</summary>\n\n`;
 
-    for (const { path, changeType } of pluginFiles.sort((a, b) =>
+    for (const file of pluginFiles.sort((a, b) =>
       a.path.localeCompare(b.path)
     )) {
+      const { path } = file;
       const skillName = path.match(/skills\/([\w-]+)\/SKILL\.md$/)?.[1];
       const title =
         extractTitle(path, "skill") ||
         skillName?.replace(/-/g, " ") ||
         getFallbackTitle(path, "skill");
       const url = `${REPO_URL}/blob/main/${path}`;
-      output += `- [${title}](${url}) - ${changeType}\n`;
+      output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
     }
 
     output += "\n</details>\n\n";
@@ -383,16 +441,17 @@ function renderSkillReferencesSection(files) {
     const skillFiles = bySkill[key];
     output += `<details>\n<summary><strong>${key}</strong> (${skillFiles.length} ${skillFiles.length === 1 ? "file" : "files"})</summary>\n\n`;
 
-    for (const { path, changeType } of skillFiles.sort((a, b) =>
+    for (const file of skillFiles.sort((a, b) =>
       a.path.localeCompare(b.path)
     )) {
+      const { path } = file;
       const refName = path.match(/references\/([\w-]+)\.md$/)?.[1];
       const title =
         extractTitle(path, "skillReference") ||
         refName?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ||
         getFallbackTitle(path, "skillReference");
       const url = `${REPO_URL}/blob/main/${path}`;
-      output += `- [${title}](${url}) - ${changeType}\n`;
+      output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
     }
 
     output += "\n</details>\n\n";
@@ -421,14 +480,15 @@ function renderCommandsSection(files) {
     const pluginFiles = byPlugin[plugin];
     output += `<details>\n<summary><strong>${plugin}</strong> (${pluginFiles.length} ${pluginFiles.length === 1 ? "command" : "commands"})</summary>\n\n`;
 
-    for (const { path, changeType } of pluginFiles.sort((a, b) =>
+    for (const file of pluginFiles.sort((a, b) =>
       a.path.localeCompare(b.path)
     )) {
+      const { path } = file;
       const cmdName = path.match(/commands\/([\w-]+)\.md$/)?.[1];
       const title =
         extractTitle(path, "command") || cmdName || getFallbackTitle(path, "command");
       const url = `${REPO_URL}/blob/main/${path}`;
-      output += `- [${title}](${url}) - ${changeType}\n`;
+      output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
     }
 
     output += "\n</details>\n\n";
@@ -438,18 +498,44 @@ function renderCommandsSection(files) {
 }
 
 /**
+ * Format change info with line counts and rename context
+ * Examples: "new (+152)", "updated (+5/-3)", "renamed from `old/path`"
+ */
+function formatChangeInfo(file) {
+  const { changeType, linesAdded, linesDeleted, oldPath } = file;
+
+  // Build line delta string
+  let lineDelta = "";
+  if (linesAdded > 0 || linesDeleted > 0) {
+    if (linesAdded > 0 && linesDeleted > 0) {
+      lineDelta = ` (+${linesAdded}/-${linesDeleted})`;
+    } else if (linesAdded > 0) {
+      lineDelta = ` (+${linesAdded})`;
+    } else if (linesDeleted > 0) {
+      lineDelta = ` (-${linesDeleted})`;
+    }
+  }
+
+  // Special handling for renames
+  if (changeType === "renamed" && oldPath) {
+    return `renamed from \`${oldPath}\`${lineDelta}`;
+  }
+
+  return `${changeType}${lineDelta}`;
+}
+
+/**
  * Render simple list for categories without grouping
  */
 function renderSimpleList(header, files) {
   let output = `\n### ${header}\n\n`;
 
-  for (const { path, changeType, category } of files.sort((a, b) =>
-    a.path.localeCompare(b.path)
-  )) {
+  for (const file of files.sort((a, b) => a.path.localeCompare(b.path))) {
+    const { path, category } = file;
     const title =
       extractTitle(path, category) || getFallbackTitle(path, category);
     const url = `${REPO_URL}/blob/main/${path}`;
-    output += `- [${title}](${url}) - ${changeType}\n`;
+    output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
   }
 
   return output;
@@ -458,14 +544,13 @@ function renderSimpleList(header, files) {
 // Main logic
 const changedFiles = getChangedFilesWithType();
 
-// Categorize all changed files
+// Categorize all changed files (preserve line stats and rename info)
 const categorizedFiles = [];
-for (const { path, changeType } of changedFiles) {
-  const result = categorizeFile(path);
+for (const file of changedFiles) {
+  const result = categorizeFile(file.path);
   if (result) {
     categorizedFiles.push({
-      path,
-      changeType,
+      ...file, // Preserves path, changeType, linesAdded, linesDeleted, oldPath, renameScore
       category: result.category,
       match: result.match,
     });
