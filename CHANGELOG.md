@@ -1,3 +1,29 @@
+## [7.11.1](https://github.com/terrylica/cc-skills/compare/v7.11.0...v7.11.1) (2025-12-23)
+
+
+### Bug Fixes
+
+* **ralph:** always prompt for preset confirmation before loop start ([86596f9](https://github.com/terrylica/cc-skills/commit/86596f9fdfee72ab42eb6f1e4e7742260667a537))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+38/-10)
+
+</details>
+
 # [7.11.0](https://github.com/terrylica/cc-skills/compare/v7.10.0...v7.11.0) (2025-12-23)
 
 
