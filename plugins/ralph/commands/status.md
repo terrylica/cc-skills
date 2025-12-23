@@ -79,10 +79,30 @@ if [[ -f "$PROJECT_DIR/.claude/loop-config.json" ]]; then
     echo ""
 fi
 
-# Show session state if exists
-if [[ -f "$PROJECT_DIR/.claude/loop-state.json" ]]; then
+# Show session state if exists (ralph-state.json is canonical, loop-state.json is legacy)
+if [[ -f "$PROJECT_DIR/.claude/ralph-state.json" ]]; then
     echo "=== Session State ==="
-    cat "$PROJECT_DIR/.claude/loop-state.json" | python3 -m json.tool 2>/dev/null || cat "$PROJECT_DIR/.claude/loop-state.json"
+    cat "$PROJECT_DIR/.claude/ralph-state.json" | python3 -m json.tool 2>/dev/null || cat "$PROJECT_DIR/.claude/ralph-state.json"
+    echo ""
+fi
+
+# Show last stop reason if exists
+STOP_CACHE="$HOME/.claude/ralph-stop-reason.json"
+if [[ -f "$STOP_CACHE" ]]; then
+    echo "=== Last Stop Reason ==="
+    LAST_STOP=$(jq -r '.reason // "Unknown"' "$STOP_CACHE")
+    STOP_TIME=$(jq -r '.timestamp // "Unknown"' "$STOP_CACHE")
+    STOP_TYPE=$(jq -r '.type // "normal"' "$STOP_CACHE")
+    STOP_SESSION=$(jq -r '.session_id // "Unknown"' "$STOP_CACHE")
+
+    if [[ "$STOP_TYPE" == "hard" ]]; then
+        echo "Type: HARD STOP"
+    else
+        echo "Type: Normal"
+    fi
+    echo "Reason: $LAST_STOP"
+    echo "Time: $STOP_TIME"
+    echo "Session: ${STOP_SESSION:0:8}..."
     echo ""
 fi
 

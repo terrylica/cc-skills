@@ -119,6 +119,15 @@ def build_continuation_prompt(
     # ===== NO_FOCUS MODE or FORCE_EXPLORATION: Minimal but actionable =====
     force_exploration = state.get("force_exploration", False)
     if no_focus or force_exploration:
+        # Calculate remaining for header (show limits for visibility)
+        time_to_max = max(0, config["max_hours"] - elapsed)
+        iters_to_max = max(0, config["max_iterations"] - iteration)
+
+        # Warning suffix if approaching limits
+        warning = ""
+        if time_to_max < 1.0 or iters_to_max < 5:
+            warning = " | **ENDING SOON**"
+
         if adapter_name == "alpha-forge":
             # Use full template with CONVERGED detection for proper busywork blocking
             loader = get_loader()
@@ -134,20 +143,40 @@ def build_continuation_prompt(
                 adapter_name=adapter_name,
                 metrics_history=metrics_history,
             )
-            return f"{prefix} iter {iteration} | {elapsed:.1f}h\n\n{prompt}"
+            header = (
+                f"{prefix} iter {iteration}/{config['max_iterations']} | "
+                f"{elapsed:.1f}h/{config['max_hours']}h{warning}"
+            )
+            return f"{header}\n\n{prompt}"
         else:
-            return f"**RSSI** iter {iteration} | {elapsed:.1f}h | Continue autonomous work"
+            return (
+                f"**RSSI** iter {iteration}/{config['max_iterations']} | "
+                f"{elapsed:.1f}h/{config['max_hours']}h{warning} | "
+                "Continue autonomous work"
+            )
 
     # ===== FOCUSED MODE: Full context for implementation/exploration =====
     parts = []
     remaining_hours = max(0, config["min_hours"] - elapsed)
     remaining_iters = max(0, config.get("min_iterations", 50) - iteration)
+    time_to_max = max(0, config["max_hours"] - elapsed)
+    iters_to_max = config["max_iterations"] - iteration
 
     mode = "IMPLEMENTATION" if not task_complete else "EXPLORATION"
 
+    # Warning suffix when approaching limits
+    warning_suffix = ""
+    if time_to_max < 1.0 or iters_to_max < 5:
+        warning_suffix = (
+            f"\n**WARNING**: Approaching limits "
+            f"({time_to_max:.1f}h / {iters_to_max} iters to max)"
+        )
+
     parts.append(
         f"**{mode}** | Iteration {iteration}/{config['max_iterations']} | "
-        f"{elapsed:.1f}h elapsed | {remaining_hours:.1f}h / {remaining_iters} iters remaining"
+        f"{elapsed:.1f}h/{config['max_hours']}h elapsed | "
+        f"{remaining_hours:.1f}h / {remaining_iters} iters to min"
+        f"{warning_suffix}"
     )
 
     # Focus file context (only in focused mode)
