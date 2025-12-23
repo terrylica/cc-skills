@@ -429,6 +429,9 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     project_path = Path(project_dir)
     opportunities: list[str] = []
 
+    # Load user guidance from ralph-config.json (forbidden/encouraged lists)
+    guidance = _load_guidance(project_path)
+
     # Load accumulated knowledge
     knowledge = RSSIKnowledge.load()
     knowledge.increment_iteration()
@@ -440,6 +443,7 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
         project_path,
         disabled_checks=disabled,
         prioritized_checks=prioritized,
+        guidance=guidance,  # Pass user guidance for filtering
     )
     opportunities.extend(level2_opportunities)
 
@@ -476,7 +480,7 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     # SLO FILTER: Apply busywork filter for Alpha Forge projects
     # This catches opportunities added AFTER rssi_scan_opportunities()
     # (commit suggestions, meta suggestions, capability expansion, fallback)
-    opportunities = _apply_alpha_forge_filter(opportunities, project_path)
+    opportunities = _apply_alpha_forge_filter(opportunities, project_path, guidance)
 
     # GUARANTEE: Never return empty (RSSI Tier 7 fallback)
     # For Alpha Forge: Use value-aligned fallbacks, not busywork
@@ -506,14 +510,63 @@ def _is_alpha_forge_project(project_dir: Path) -> bool:
         return False
 
 
-def _apply_alpha_forge_filter(opportunities: list[str], project_dir: Path) -> list[str]:
-    """Apply busywork filter for Alpha Forge projects."""
+def _load_guidance(project_dir: Path) -> dict | None:
+    """Load user guidance from ralph-config.json.
+
+    Guidance contains 'forbidden' and 'encouraged' lists for filtering.
+
+    Args:
+        project_dir: Path to project root
+
+    Returns:
+        Guidance dict or None if not found/invalid
+    """
+    config_file = project_dir / ".claude" / "ralph-config.json"
+    if not config_file.exists():
+        return None
+
+    try:
+        config = json.loads(config_file.read_text())
+        guidance = config.get("guidance")
+        if guidance:
+            logger.debug(f"Loaded guidance: {len(guidance.get('forbidden', []))} forbidden, "
+                        f"{len(guidance.get('encouraged', []))} encouraged")
+        return guidance
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"Failed to load guidance from {config_file}: {e}")
+        return None
+
+
+def _apply_alpha_forge_filter(
+    opportunities: list[str],
+    project_dir: Path,
+    guidance: dict | None = None,
+) -> list[str]:
+    """Apply busywork filter for Alpha Forge projects.
+
+    Args:
+        opportunities: Raw list of opportunity descriptions
+        project_dir: Path to project root
+        guidance: User-provided guidance dict with 'forbidden' and 'encouraged' lists
+
+    Returns:
+        Filtered list with busywork and user-forbidden items removed
+    """
     if not _is_alpha_forge_project(project_dir):
         return opportunities
 
     try:
         from alpha_forge_filter import get_allowed_opportunities
-        filtered = get_allowed_opportunities(opportunities)
+
+        # Extract user guidance lists
+        custom_forbidden = guidance.get("forbidden") if guidance else None
+        custom_encouraged = guidance.get("encouraged") if guidance else None
+
+        filtered = get_allowed_opportunities(
+            opportunities,
+            custom_forbidden=custom_forbidden,
+            custom_encouraged=custom_encouraged,
+        )
         skipped = len(opportunities) - len(filtered)
         if skipped > 0:
             logger.debug(f"Alpha Forge SLO filter: removed {skipped} busywork items")

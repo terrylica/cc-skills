@@ -30,6 +30,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from core.project_detection import is_alpha_forge_project
 from core.protocols import (
     DEFAULT_CONFIDENCE,
     ConvergenceResult,
@@ -62,12 +63,7 @@ class AlphaForgeAdapter(ProjectAdapter):
     def detect(self, project_dir: Path) -> bool:
         """Check if this is an Alpha Forge repository.
 
-        Detection strategy (any match returns True):
-        1. Root pyproject.toml contains 'alpha-forge' or 'alpha_forge'
-        2. Monorepo: packages/*/pyproject.toml contains 'alpha-forge'
-        3. Characteristic directory: packages/alpha-forge-core/ exists
-        4. Experiment outputs: outputs/runs/ directory exists
-        5. Parent directories contain alpha-forge markers (subdirectory detection)
+        Uses consolidated detection from core.project_detection module.
 
         Args:
             project_dir: Path to project root (may be a subdirectory)
@@ -75,67 +71,7 @@ class AlphaForgeAdapter(ProjectAdapter):
         Returns:
             True if Alpha Forge project detected
         """
-        # Strategy 1: Root pyproject.toml
-        pyproject = project_dir / "pyproject.toml"
-        if pyproject.exists():
-            try:
-                content = pyproject.read_text()
-                if "alpha-forge" in content or "alpha_forge" in content:
-                    return True
-            except OSError:
-                pass
-
-        # Strategy 2: Monorepo package detection
-        packages_dir = project_dir / "packages"
-        if packages_dir.is_dir():
-            for pkg_pyproject in packages_dir.glob("*/pyproject.toml"):
-                try:
-                    content = pkg_pyproject.read_text()
-                    if "alpha-forge" in content or "alpha_forge" in content:
-                        logger.debug(f"Detected alpha-forge via {pkg_pyproject}")
-                        return True
-                except OSError:
-                    continue
-
-        # Strategy 3: Characteristic directory marker
-        if (project_dir / "packages" / "alpha-forge-core").is_dir():
-            logger.debug("Detected alpha-forge via packages/alpha-forge-core/")
-            return True
-
-        # Strategy 4: Experiment outputs directory (unique to alpha-forge)
-        if (project_dir / "outputs" / "runs").is_dir():
-            logger.debug("Detected alpha-forge via outputs/runs/")
-            return True
-
-        # Strategy 5: Check parent directories (when CWD is a subdirectory)
-        current = project_dir
-        for _ in range(5):  # Limit traversal depth
-            parent = current.parent
-            if parent == current:  # Reached filesystem root
-                break
-            # Check parent's pyproject.toml
-            parent_pyproject = parent / "pyproject.toml"
-            if parent_pyproject.exists():
-                try:
-                    content = parent_pyproject.read_text()
-                    if "alpha-forge" in content or "alpha_forge" in content:
-                        logger.debug(f"Detected alpha-forge via parent: {parent}")
-                        return True
-                except OSError:
-                    pass
-            # Check for alpha-forge packages in parent
-            parent_packages = parent / "packages"
-            if parent_packages.is_dir():
-                if (parent_packages / "alpha-forge-core").is_dir():
-                    logger.debug(f"Detected alpha-forge via parent packages: {parent}")
-                    return True
-            # Check for outputs/runs in parent
-            if (parent / "outputs" / "runs").is_dir():
-                logger.debug(f"Detected alpha-forge via parent outputs: {parent}")
-                return True
-            current = parent
-
-        return False
+        return is_alpha_forge_project(project_dir)
 
     def get_metrics_history(
         self, project_dir: Path, start_time: str
@@ -364,21 +300,35 @@ class AlphaForgeAdapter(ProjectAdapter):
             logger.warning("roadmap_parser not available")
             return []
 
-    def filter_opportunities(self, opportunities: list[str]) -> list[str]:
+    def filter_opportunities(
+        self,
+        opportunities: list[str],
+        guidance: dict | None = None,
+    ) -> list[str]:
         """Filter opportunities using work policy blocklist.
 
         Removes busywork opportunities (linter fixes, annotations, etc.)
+        and user-forbidden items.
 
         Args:
             opportunities: Raw list of opportunity descriptions
+            guidance: User-provided guidance dict with 'forbidden' and 'encouraged' lists
 
         Returns:
-            Filtered list with busywork removed
+            Filtered list with busywork and user-forbidden items removed
         """
         try:
             from alpha_forge_filter import get_allowed_opportunities
 
-            return get_allowed_opportunities(opportunities)
+            # Extract user guidance lists
+            custom_forbidden = guidance.get("forbidden") if guidance else None
+            custom_encouraged = guidance.get("encouraged") if guidance else None
+
+            return get_allowed_opportunities(
+                opportunities,
+                custom_forbidden=custom_forbidden,
+                custom_encouraged=custom_encouraged,
+            )
         except ImportError:
             logger.warning("alpha_forge_filter not available")
             return opportunities

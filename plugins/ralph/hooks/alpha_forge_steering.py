@@ -104,6 +104,47 @@ HIGH_VALUE_WORK = """
 - Backtesting accuracy
 """
 
+# Mathematical validation requirements (Round 4: Adversarial Probing)
+MATHEMATICAL_VALIDATION = """
+## MATHEMATICAL CORRECTNESS REQUIREMENTS (Mandatory for ALL Math Code)
+
+When writing ANY code involving mathematical formulas:
+
+### 1. Authoritative Source Citation (REQUIRED)
+- MUST cite source: academic paper, official library docs, or standard textbook
+- MUST verify implementation matches source formula exactly
+- MUST document edge cases defined by the mathematical source
+
+### 2. Edge Case Handling (REQUIRED)
+MUST handle these scenarios with explicit code:
+- **Division by zero** -> Return NaN or raise clear exception
+- **Impossible values** -> Assert/raise immediately (WFE > 1.0, negative std)
+- **Extreme values** -> Log warning for suspicious results (|Sharpe| > 5)
+- **NaN/Inf input** -> Propagate or handle explicitly (document choice)
+
+### 3. Test Requirements (REQUIRED)
+For EACH mathematical formula, create:
+- **Golden value test**: Compare against authoritative pre-computed value
+- **Property-based test (Hypothesis)**: Test mathematical invariants
+- **Edge case test**: All critical scenarios from #2
+
+### 4. Documentation Format
+Add this comment block above each math function:
+```
+# MATH VALIDATION:
+# Source: [URL or citation]
+# Formula: [mathematical notation]
+# Edge cases: [list]
+# Tested: [test file:function]
+```
+
+### Forbidden Patterns
+- Writing math code WITHOUT tests
+- Trusting formula "looks right" without authoritative source
+- Ignoring edge cases "because they rarely happen"
+- Testing only happy path (consistent output != correct math)
+"""
+
 
 def get_steering_prompt(include_forbidden: bool = True) -> str:
     """Get the full Alpha Forge steering prompt.
@@ -117,7 +158,7 @@ def get_steering_prompt(include_forbidden: bool = True) -> str:
     parts = [ALPHA_FORGE_VALUES]
     if include_forbidden:
         parts.append(FORBIDDEN_WORK)
-    parts.extend([SOTA_GUIDANCE, HIGH_VALUE_WORK])
+    parts.extend([SOTA_GUIDANCE, HIGH_VALUE_WORK, MATHEMATICAL_VALIDATION])
     return "\n".join(parts)
 
 

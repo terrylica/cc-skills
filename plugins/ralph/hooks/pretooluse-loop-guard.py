@@ -20,24 +20,6 @@ import sys
 
 from core.config_schema import ProtectionConfig, load_config
 
-# Legacy constants (deprecated - use config instead)
-PROTECTED_FILES = [
-    ".claude/loop-enabled",
-    ".claude/loop-start-timestamp",
-    ".claude/loop-config.json",
-]
-
-DELETION_PATTERNS = [
-    r"\brm\b",
-    r"\bunlink\b",
-    r"> /dev/null",
-    r">\s*/dev/null",
-    r"truncate\b",
-]
-
-RALPH_STOP_MARKER = "RALPH_STOP_SCRIPT"
-
-
 def get_protection_config() -> ProtectionConfig:
     """Get protection parameters from config."""
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
@@ -45,9 +27,18 @@ def get_protection_config() -> ProtectionConfig:
     return config.protection
 
 
-def is_official_stop_script(command: str) -> bool:
-    """Check if command is the official /ralph:stop script."""
+def is_official_ralph_command(command: str) -> bool:
+    """Check if command is an official Ralph command with bypass marker.
+
+    Any command containing a registered bypass marker (e.g., RALPH_STOP_SCRIPT,
+    RALPH_ENCOURAGE_SCRIPT) is allowed to operate on protected files.
+    """
     cfg = get_protection_config()
+    # Check new bypass_markers list first
+    for marker in cfg.bypass_markers:
+        if marker in command:
+            return True
+    # Fallback to legacy single marker for backward compatibility
     return cfg.stop_script_marker in command
 
 
@@ -93,8 +84,8 @@ def main():
         print(json.dumps({"decision": "allow"}))
         return
 
-    # Allow official /ralph:stop script to delete loop files
-    if is_official_stop_script(command):
+    # Allow official Ralph commands to operate on protected files
+    if is_official_ralph_command(command):
         print(json.dumps({"decision": "allow"}))
         return
 

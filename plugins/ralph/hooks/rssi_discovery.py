@@ -165,11 +165,21 @@ def _get_ruff_ignore_args(project_dir: Path) -> list[str]:
 
 
 def _filter_opportunities_for_alpha_forge(
-    opportunities: list[str], project_dir: Path
+    opportunities: list[str],
+    project_dir: Path,
+    guidance: dict | None = None,
 ) -> list[str]:
     """Filter busywork opportunities for Alpha Forge projects.
 
     Returns original list for non-Alpha Forge projects.
+
+    Args:
+        opportunities: Raw list of opportunity descriptions
+        project_dir: Path to project root
+        guidance: User-provided guidance dict with 'forbidden' and 'encouraged' lists
+
+    Returns:
+        Filtered list with busywork and user-forbidden items removed
     """
     if not _is_alpha_forge_project(project_dir):
         return opportunities
@@ -177,7 +187,15 @@ def _filter_opportunities_for_alpha_forge(
     try:
         from alpha_forge_filter import get_allowed_opportunities
 
-        filtered = get_allowed_opportunities(opportunities)
+        # Extract user guidance lists
+        custom_forbidden = guidance.get("forbidden") if guidance else None
+        custom_encouraged = guidance.get("encouraged") if guidance else None
+
+        filtered = get_allowed_opportunities(
+            opportunities,
+            custom_forbidden=custom_forbidden,
+            custom_encouraged=custom_encouraged,
+        )
         skipped_count = len(opportunities) - len(filtered)
         if skipped_count > 0:
             logger.debug(f"SLO filter: skipped {skipped_count} busywork opportunities")
@@ -191,6 +209,7 @@ def rssi_scan_opportunities(
     project_dir: Path,
     disabled_checks: list[str] | None = None,
     prioritized_checks: list[str] | None = None,
+    guidance: dict | None = None,
 ) -> list[str]:
     """
     RSSI-grade opportunity scanning.
@@ -205,6 +224,7 @@ def rssi_scan_opportunities(
         project_dir: Project directory to scan.
         disabled_checks: Checks to skip (from evolution state).
         prioritized_checks: Checks to run first (ordered by effectiveness).
+        guidance: User-provided guidance dict with 'forbidden' and 'encouraged' lists.
 
     Returns:
         List of improvement opportunities. NEVER empty.
@@ -315,7 +335,8 @@ def rssi_scan_opportunities(
     opportunities.append("Analyze test coverage for recently changed files")
 
     # SLO FILTER: For Alpha Forge projects, filter busywork opportunities
-    opportunities = _filter_opportunities_for_alpha_forge(opportunities, project_dir)
+    # Pass user guidance (forbidden/encouraged lists) for enforcement
+    opportunities = _filter_opportunities_for_alpha_forge(opportunities, project_dir, guidance)
 
     # Ensure we still have opportunities after filtering (fallback to meta-improvement)
     if not opportunities:

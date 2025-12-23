@@ -267,17 +267,33 @@ def filter_opportunities(
                 continue  # Skip forbidden checks
 
         # Priority 2: Check built-in BUSYWORK_PATTERNS (regex)
-        is_bw, pattern = is_busywork(opp)
+        is_builtin_bw, builtin_pattern = is_busywork(opp)
 
-        # Priority 3: Check custom_forbidden (natural language)
-        if custom_forbidden and not is_bw:
+        # Priority 3: Check custom_forbidden (natural language) - HARD BLOCK
+        is_user_forbidden = False
+        user_forbidden_pattern = None
+        if custom_forbidden:
             custom_match = _matches_natural_language(opp, custom_forbidden)
             if custom_match:
-                is_bw = True
-                pattern = custom_match
+                is_user_forbidden = True
+                user_forbidden_pattern = custom_match
 
-        # Apply filter result
-        if is_bw and not allow_busywork:
+        # Apply filter result with priority:
+        # 1. User-forbidden → BLOCK (user explicitly said no)
+        # 2. Built-in busywork + CONVERGED → BLOCK
+        # 3. Built-in busywork → SKIP (soft, can be fallback)
+        # 4. Otherwise → ALLOW
+        if is_user_forbidden and not allow_busywork:
+            # User explicitly forbade this - HARD BLOCK always
+            results.append(
+                FilteredOpportunity(
+                    opportunity=opp,
+                    result=FilterResult.BLOCK,
+                    reason=f"User-forbidden: '{user_forbidden_pattern}'",
+                    matched_pattern=user_forbidden_pattern,
+                )
+            )
+        elif is_builtin_bw and not allow_busywork:
             if research_converged:
                 # Hard-block busywork when research is CONVERGED
                 results.append(
@@ -285,17 +301,17 @@ def filter_opportunities(
                         opportunity=opp,
                         result=FilterResult.BLOCK,
                         reason="CONVERGED: Only /research allowed, busywork hard-blocked",
-                        matched_pattern=pattern,
+                        matched_pattern=builtin_pattern,
                     )
                 )
             else:
-                # Soft-skip busywork (can still be chosen as fallback)
+                # Soft-skip built-in busywork (can still be chosen as fallback)
                 results.append(
                     FilteredOpportunity(
                         opportunity=opp,
                         result=FilterResult.SKIP,
-                        reason=f"Matches forbidden: '{pattern}'",
-                        matched_pattern=pattern,
+                        reason=f"Built-in busywork: '{builtin_pattern}'",
+                        matched_pattern=builtin_pattern,
                     )
                 )
         else:

@@ -62,21 +62,45 @@ class CompletionConfig:
 
 @dataclass
 class ValidationConfig:
-    """Configuration for multi-round validation phase."""
+    """Configuration for multi-round validation phase.
+
+    5-Round Validation System:
+    - Round 1: Critical Issues (ruff errors, imports, syntax)
+    - Round 2: Verification (verify fixes, regression check)
+    - Round 3: Documentation (docstrings, coverage gaps)
+    - Round 4: Adversarial Probing (edge cases, math validation)
+    - Round 5: Cross-Period Robustness (Bull/Bear/Sideways regime testing)
+    """
     enabled: bool = True
     score_threshold: float = 0.8  # Score needed to consider validation complete
-    max_iterations: int = 3  # Maximum validation cycles
+    max_rounds: int = 5  # 5-round validation (expanded from 3)
     improvement_threshold: float = 0.1  # 10% improvement required to continue
 
-    # Score weights (must sum to 1.0)
-    weight_no_critical_issues: float = 0.5
-    weight_no_medium_issues: float = 0.3
-    weight_no_doc_issues: float = 0.1
-    weight_low_coverage_gaps: float = 0.1
+    # Score weights per round (must sum to 1.0)
+    weight_round1_critical: float = 0.25  # Critical Issues
+    weight_round2_verification: float = 0.20  # Verification
+    weight_round3_documentation: float = 0.15  # Documentation
+    weight_round4_adversarial: float = 0.20  # Adversarial Probing + Math Validation
+    weight_round5_robustness: float = 0.20  # Cross-Period Robustness
 
     # POC mode timeout (seconds)
     timeout_poc: int = 30
     timeout_normal: int = 120
+
+    # Round 4: Adversarial Probing settings
+    edge_case_categories: list[str] = field(default_factory=lambda: [
+        "division_by_zero",
+        "impossible_values",
+        "extreme_values",
+        "nan_inf_propagation",
+    ])
+
+    # Round 5: Cross-Period Robustness settings
+    market_regimes: list[str] = field(default_factory=lambda: [
+        "bull",
+        "bear",
+        "sideways",
+    ])
 
 
 @dataclass
@@ -120,7 +144,20 @@ class ProtectionConfig:
         r"truncate\b",
     ])
 
-    # Bypass marker for official /ralph:stop
+    # Bypass markers for official Ralph commands
+    # Any command containing one of these markers bypasses deletion protection
+    bypass_markers: list[str] = field(default_factory=lambda: [
+        "RALPH_STOP_SCRIPT",
+        "RALPH_START_SCRIPT",
+        "RALPH_ENCOURAGE_SCRIPT",
+        "RALPH_FORBID_SCRIPT",
+        "RALPH_AUDIT_SCRIPT",
+        "RALPH_STATUS_SCRIPT",
+        "RALPH_HARNESS_SCRIPT",
+        "RALPH_HOOKS_SCRIPT",
+    ])
+
+    # Legacy: single marker for backward compatibility
     stop_script_marker: str = "RALPH_STOP_SCRIPT"
 
 

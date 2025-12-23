@@ -33,10 +33,12 @@ from pathlib import Path
 from completion import check_task_complete_rssi
 from core.config_schema import LoopState, load_config, load_state, save_state
 from core.path_hash import build_state_file_path, load_session_state
+from core.project_detection import is_alpha_forge_project
 from core.registry import AdapterRegistry
 from discovery import (
     discover_target_file,
 )
+from todo_sync import format_todo_instruction, generate_todo_items
 from template_loader import get_loader
 from utils import (
     WINDOW_SIZE,
@@ -51,36 +53,12 @@ from utils import (
 
 
 def _detect_alpha_forge_simple(project_dir: str) -> str:
-    """Simple alpha-forge detection - bypasses adapter system for reliability.
+    """Detect alpha-forge project using consolidated detection.
 
-    Checks current directory and up to 5 parent directories for alpha-forge markers.
     Returns "alpha-forge" if detected, empty string otherwise.
     """
-    current = Path(project_dir)
-    for _ in range(6):  # Current + 5 parents
-        # Check pyproject.toml
-        pyproject = current / "pyproject.toml"
-        if pyproject.exists():
-            try:
-                content = pyproject.read_text()
-                if "alpha-forge" in content or "alpha_forge" in content:
-                    return "alpha-forge"
-            except OSError:
-                pass
-        # Check packages/alpha-forge-*
-        packages = current / "packages"
-        if packages.is_dir():
-            for pkg in packages.iterdir():
-                if pkg.is_dir() and "alpha-forge" in pkg.name:
-                    return "alpha-forge"
-        # Check outputs/runs (unique to alpha-forge)
-        if (current / "outputs" / "runs").is_dir():
-            return "alpha-forge"
-        # Move to parent
-        parent = current.parent
-        if parent == current:
-            break
-        current = parent
+    if is_alpha_forge_project(project_dir):
+        return "alpha-forge"
     return ""
 
 
@@ -169,7 +147,14 @@ def build_continuation_prompt(
                 f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | "
                 f"Wall: {wall_hours:.1f}h{warning}"
             )
-            return f"{header}\n\n{prompt}"
+            # Add todo sync for no_focus mode
+            todo_suffix = ""
+            if state:
+                todo_items = generate_todo_items(state)
+                todo_instruction = format_todo_instruction(todo_items)
+                if todo_instruction:
+                    todo_suffix = f"\n\n{todo_instruction}"
+            return f"{header}\n\n{prompt}{todo_suffix}"
         else:
             return (
                 f"**RSSI** iter {iteration}/{config['max_iterations']} | "
@@ -217,6 +202,13 @@ def build_continuation_prompt(
         # Exploration mode - Alpha Forge exclusive
         parts.append("\n**ACTION**: WebSearch SOTA → implement → /research → validate → repeat")
 
+    # Todo sync instruction (mirrors state to Claude's visible todo list)
+    if state:
+        todo_items = generate_todo_items(state)
+        todo_instruction = format_todo_instruction(todo_items)
+        if todo_instruction:
+            parts.append(f"\n{todo_instruction}")
+
     return "\n".join(parts)
 
 
@@ -252,18 +244,10 @@ def main():
             hard_stop("Loop stopped via state transition (DRAINING → STOPPED)")
             return
 
-    # Legacy check: loop-enabled file (backward compatibility)
-    loop_enabled_file = Path(project_dir) / ".claude/loop-enabled" if project_dir else None
-    if not loop_enabled_file or not loop_enabled_file.exists():
-        allow_stop("Loop not enabled for this repo")
-        return
-
-    # Legacy check: kill switch file
-    kill_switch = Path(project_dir) / ".claude/STOP_LOOP"
-    if kill_switch.exists():
+    # Emergency kill switch file (user can create .claude/STOP_LOOP to force stop)
+    kill_switch = Path(project_dir) / ".claude/STOP_LOOP" if project_dir else None
+    if kill_switch and kill_switch.exists():
         kill_switch.unlink()
-        loop_enabled_file.unlink(missing_ok=True)
-        # Also update state machine
         if project_dir:
             save_state(project_dir, LoopState.STOPPED)
         hard_stop("Loop stopped via kill switch (.claude/STOP_LOOP)")
@@ -286,9 +270,16 @@ def main():
         "validation_round": 0,
         "validation_iteration": 0,
         "validation_findings": {
+            # Round 1: Critical Issues (ruff errors, imports, syntax)
             "round1": {"critical": [], "medium": [], "low": []},
+            # Round 2: Verification (verify fixes, regression check)
             "round2": {"verified": [], "failed": []},
-            "round3": {"doc_issues": [], "coverage_gaps": []}
+            # Round 3: Documentation (docstrings, coverage gaps)
+            "round3": {"doc_issues": [], "coverage_gaps": []},
+            # Round 4: Adversarial Probing (edge cases, math validation)
+            "round4": {"edge_cases_tested": [], "edge_cases_failed": [], "math_validated": [], "probing_complete": False},
+            # Round 5: Cross-Period Robustness (Bull/Bear/Sideways)
+            "round5": {"regimes_tested": [], "regime_results": {}, "robustness_score": 0.0},
         },
         "validation_score": 0.0,
         "validation_exhausted": False,
@@ -400,6 +391,24 @@ def main():
     update_runtime(state, time_module.time(), gap_threshold)
     runtime_hours = get_runtime_hours(state)
     wall_hours = get_wall_clock_hours(session_id, project_dir)
+
+    # ===== FORCE VALIDATION CHECK (for /ralph:audit-now) =====
+    # Check if user triggered immediate validation via /ralph:audit-now
+    if project_dir:
+        ralph_config_file = Path(project_dir) / ".claude/ralph-config.json"
+        if ralph_config_file.exists():
+            try:
+                ralph_config_raw = json.loads(ralph_config_file.read_text())
+                force_validation = ralph_config_raw.get("force_validation", {})
+                if force_validation.get("enabled"):
+                    round_num = force_validation.get("round") or 1
+                    state["validation_round"] = round_num
+                    logger.info(f"Force validation enabled via /ralph:audit-now, entering round {round_num}")
+                    # Clear the flag to prevent repeated triggering
+                    ralph_config_raw["force_validation"]["enabled"] = False
+                    ralph_config_file.write_text(json.dumps(ralph_config_raw, indent=2))
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Failed to check force_validation flag: {e}")
 
     iteration = state["iteration"] + 1
     recent_outputs: list[str] = state.get("recent_outputs", [])
