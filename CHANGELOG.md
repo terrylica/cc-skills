@@ -1,3 +1,41 @@
+# [7.10.0](https://github.com/terrylica/cc-skills/compare/v7.9.0...v7.10.0) (2025-12-23)
+
+
+### Features
+
+* **semantic-release:** add auto-push workflow and HTTPS-first authentication ([f3d1a59](https://github.com/terrylica/cc-skills/commit/f3d1a596ebd8e73c88d175c59fdbb8f5f492f458))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+17/-22)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (3 files)</summary>
+
+- [Documentation Linking in Release Notes](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/doc-release-linking.md) - updated (+39/-22)
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+219/-276)
+- [Environment-agnostic path](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/workflow-patterns.md) - updated (+21/-88)
+
+</details>
+
 # [7.9.0](https://github.com/terrylica/cc-skills/compare/v7.8.0...v7.9.0) (2025-12-23)
 
 
