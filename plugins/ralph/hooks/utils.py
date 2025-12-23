@@ -5,7 +5,9 @@ Provides time tracking, loop detection, text extraction, and hook output helpers
 import json
 import logging
 import os
+import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 from core.config_schema import load_config
@@ -137,17 +139,49 @@ def extract_section(content: str, header: str) -> str:
     return '\n'.join(section_lines).strip()
 
 
+def _write_stop_cache(reason: str, decision: str, stop_type: str = "normal") -> None:
+    """Write stop reason to cache file for observability.
+
+    Best-effort: failures logged but don't block stop.
+
+    Args:
+        reason: Why the session stopped
+        decision: The hook decision ("stop" or "hard_stop")
+        stop_type: Type of stop ("normal" or "hard")
+    """
+    try:
+        stop_cache = Path.home() / ".claude" / "ralph-stop-reason.json"
+        stop_cache.parent.mkdir(parents=True, exist_ok=True)
+
+        # Get session context for correlation
+        project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
+        session_id = os.environ.get("CLAUDE_SESSION_ID", "unknown")
+
+        stop_cache.write_text(json.dumps({
+            "timestamp": datetime.now().isoformat(),
+            "reason": reason,
+            "decision": decision,
+            "type": stop_type,
+            "session_id": session_id,
+            "project_dir": project_dir,
+        }))
+    except OSError as e:
+        logger.warning(f"Failed to write stop cache: {e}")
+
+
 def allow_stop(reason: str | None = None) -> None:
-    """Allow session to stop normally.
+    """Allow session to stop with visible notification.
 
     Returns empty object per Claude Code docs.
     CORRECT: Empty object means "allow stop" - NOT {"continue": false}
 
     Args:
-        reason: Optional reason for logging
+        reason: Optional reason for stopping (will be logged, cached, and shown to user)
     """
     if reason:
         logger.info(f"Allowing stop: {reason}")
+        _write_stop_cache(reason, "stop", "normal")
+        print(f"\n[RALPH] Session stopped: {reason}\n", file=sys.stderr)
     print(json.dumps({}))
 
 
@@ -165,13 +199,15 @@ def continue_session(reason: str) -> None:
 
 
 def hard_stop(reason: str) -> None:
-    """Hard stop Claude entirely.
+    """Hard stop Claude entirely with visibility.
 
     Uses continue: false which overrides everything.
     Use sparingly - this terminates the session immediately.
 
     Args:
-        reason: Reason for hard stop
+        reason: Reason for hard stop (will be logged, cached, and shown to user)
     """
     logger.info(f"Hard stopping: {reason}")
+    _write_stop_cache(reason, "hard_stop", "hard")
+    print(f"\n[RALPH] HARD STOP: {reason}\n", file=sys.stderr)
     print(json.dumps({"continue": False, "stopReason": reason}))
