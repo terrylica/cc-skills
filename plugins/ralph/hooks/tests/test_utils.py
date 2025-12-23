@@ -21,13 +21,15 @@ from utils import (
     continue_session,
     detect_loop,
     extract_section,
-    get_elapsed_hours,
+    get_runtime_hours,
+    get_wall_clock_hours,
     hard_stop,
+    update_runtime,
 )
 
 
-def test_elapsed_hours():
-    """Test elapsed time calculation from timestamp file."""
+def test_wall_clock_hours():
+    """Test wall-clock time calculation from timestamp file."""
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
 
@@ -40,14 +42,146 @@ def test_elapsed_hours():
         two_hours_ago = int(time.time()) - (2 * 3600)
         timestamp_file.write_text(str(two_hours_ago))
 
-        elapsed = get_elapsed_hours("test-session", str(tmp_dir))
+        elapsed = get_wall_clock_hours("test-session", str(tmp_dir))
         assert 1.9 <= elapsed <= 2.1, f"Expected ~2 hours, got {elapsed}"
-        print(f"✓ Elapsed hours: {elapsed:.2f}")
+        print(f"✓ Wall-clock hours: {elapsed:.2f}")
 
     # No timestamp file - should return 0
-    elapsed_no_file = get_elapsed_hours("nonexistent", "/tmp/nonexistent")
+    elapsed_no_file = get_wall_clock_hours("nonexistent", "/tmp/nonexistent")
     assert elapsed_no_file == 0.0
     print("✓ Missing timestamp returns 0.0")
+
+
+def test_update_runtime_normal_iteration():
+    """Test runtime accumulation during normal CLI operation."""
+    state = {
+        "accumulated_runtime_seconds": 0.0,
+        "last_hook_timestamp": 0.0,
+    }
+
+    # First call - no previous timestamp, should initialize
+    t1 = 1000.0
+    result = update_runtime(state, t1, gap_threshold=300)
+    assert result == 0.0, "First call should return 0 (no previous timestamp)"
+    assert state["last_hook_timestamp"] == t1
+    assert state["accumulated_runtime_seconds"] == 0.0
+    print("✓ First call initializes timestamp, runtime=0")
+
+    # Second call after 60 seconds (normal iteration)
+    t2 = t1 + 60  # 60 seconds later
+    result = update_runtime(state, t2, gap_threshold=300)
+    assert 59.9 <= result <= 60.1, f"Expected ~60s runtime, got {result}"
+    assert state["last_hook_timestamp"] == t2
+    print(f"✓ Normal 60s iteration: runtime={result:.1f}s")
+
+    # Third call after another 30 seconds
+    t3 = t2 + 30
+    result = update_runtime(state, t3, gap_threshold=300)
+    assert 89.9 <= result <= 90.1, f"Expected ~90s runtime, got {result}"
+    print(f"✓ Accumulated runtime: {result:.1f}s")
+
+
+def test_update_runtime_gap_detection():
+    """Test that CLI pause (gap > threshold) is NOT counted as runtime."""
+    state = {
+        "accumulated_runtime_seconds": 100.0,  # Start with 100s runtime
+        "last_hook_timestamp": 1000.0,
+    }
+
+    # Gap of 600 seconds (10 minutes) - exceeds 300s threshold
+    # This simulates user closing CLI for 10 minutes
+    t_after_gap = 1000.0 + 600
+    result = update_runtime(state, t_after_gap, gap_threshold=300)
+
+    # Runtime should NOT increase - gap indicates CLI was closed
+    assert result == 100.0, f"Expected 100s (gap not counted), got {result}"
+    assert state["last_hook_timestamp"] == t_after_gap
+    print(f"✓ Gap of 600s detected - runtime unchanged at {result:.1f}s")
+
+
+def test_update_runtime_edge_cases():
+    """Test edge cases for runtime tracking."""
+    # Test exactly at threshold boundary
+    state = {
+        "accumulated_runtime_seconds": 50.0,
+        "last_hook_timestamp": 1000.0,
+    }
+
+    # Gap exactly at threshold (300s) - should be counted as active
+    t_at_threshold = 1000.0 + 299  # Just under threshold
+    result = update_runtime(state, t_at_threshold, gap_threshold=300)
+    assert 348.9 <= result <= 349.1, f"Expected ~349s, got {result}"
+    print(f"✓ Gap at 299s (under threshold): runtime={result:.1f}s")
+
+    # Gap just over threshold - should NOT be counted
+    state2 = {
+        "accumulated_runtime_seconds": 50.0,
+        "last_hook_timestamp": 1000.0,
+    }
+    t_over_threshold = 1000.0 + 301  # Just over threshold
+    result2 = update_runtime(state2, t_over_threshold, gap_threshold=300)
+    assert result2 == 50.0, f"Expected 50s (gap not counted), got {result2}"
+    print(f"✓ Gap at 301s (over threshold): runtime unchanged at {result2:.1f}s")
+
+
+def test_get_runtime_hours():
+    """Test conversion of accumulated seconds to hours."""
+    # Test with 0 seconds
+    state_zero = {"accumulated_runtime_seconds": 0.0}
+    assert get_runtime_hours(state_zero) == 0.0
+    print("✓ Zero seconds = 0.0 hours")
+
+    # Test with 1 hour (3600 seconds)
+    state_one_hour = {"accumulated_runtime_seconds": 3600.0}
+    assert get_runtime_hours(state_one_hour) == 1.0
+    print("✓ 3600 seconds = 1.0 hour")
+
+    # Test with 2.5 hours (9000 seconds)
+    state_partial = {"accumulated_runtime_seconds": 9000.0}
+    assert get_runtime_hours(state_partial) == 2.5
+    print("✓ 9000 seconds = 2.5 hours")
+
+    # Test with missing key (defaults to 0)
+    state_missing = {}
+    assert get_runtime_hours(state_missing) == 0.0
+    print("✓ Missing key defaults to 0.0 hours")
+
+
+def test_runtime_overnight_scenario():
+    """Simulate overnight pause scenario from the plan.
+
+    Scenario:
+    - Start at 6 PM, work for 2 hours (7200 seconds)
+    - Close CLI at 8 PM
+    - Reopen at 8 AM (12 hours later)
+    - Runtime should still be ~2 hours, not 14 hours
+    """
+    state = {
+        "accumulated_runtime_seconds": 0.0,
+        "last_hook_timestamp": 0.0,
+    }
+
+    # Simulate 2 hours of work with 1-minute iterations
+    base_time = 1000.0
+    for i in range(120):  # 120 iterations of 1 minute each = 2 hours
+        current_time = base_time + (i * 60)
+        update_runtime(state, current_time, gap_threshold=300)
+
+    runtime_before_pause = get_runtime_hours(state)
+    assert 1.9 <= runtime_before_pause <= 2.1, f"Expected ~2h before pause, got {runtime_before_pause}"
+    print(f"✓ Before overnight pause: runtime={runtime_before_pause:.2f}h")
+
+    # Simulate 12-hour overnight pause (43200 seconds)
+    last_time = base_time + (119 * 60)
+    morning_time = last_time + 43200  # 12 hours later
+
+    update_runtime(state, morning_time, gap_threshold=300)
+    runtime_after_pause = get_runtime_hours(state)
+
+    # Runtime should still be ~2 hours (overnight gap not counted)
+    assert 1.9 <= runtime_after_pause <= 2.1, f"Expected ~2h after pause, got {runtime_after_pause}"
+    print(f"✓ After overnight pause: runtime={runtime_after_pause:.2f}h (unchanged)")
+    print("✓ Overnight scenario validated - gap correctly excluded")
 
 
 def test_loop_detection():
@@ -157,10 +291,27 @@ if __name__ == "__main__":
     print("Running utils.py unit tests")
     print("=" * 60)
 
-    test_elapsed_hours()
+    # Time tracking tests (v7.9.0 dual time tracking)
+    print("\n--- Wall-Clock Time ---")
+    test_wall_clock_hours()
+
+    print("\n--- Runtime Tracking (v7.9.0) ---")
+    test_update_runtime_normal_iteration()
+    test_update_runtime_gap_detection()
+    test_update_runtime_edge_cases()
+    test_get_runtime_hours()
+    test_runtime_overnight_scenario()
+
+    print("\n--- Loop Detection ---")
     test_loop_detection()
+
+    print("\n--- Section Extraction ---")
     test_extract_section()
+
+    print("\n--- Hook Outputs ---")
     test_hook_outputs()
+
+    print("\n--- Constants ---")
     test_constants()
 
     print("=" * 60)

@@ -81,7 +81,11 @@ class ValidationConfig:
 
 @dataclass
 class LoopLimitsConfig:
-    """Configuration for loop time/iteration limits."""
+    """Configuration for loop time/iteration limits.
+
+    Note: min_hours/max_hours refer to CLI runtime (active time), not wall-clock.
+    The cli_gap_threshold_seconds determines when gaps indicate CLI closure.
+    """
     min_hours: float = 4.0
     max_hours: float = 9.0
     min_iterations: int = 50
@@ -92,6 +96,9 @@ class LoopLimitsConfig:
     poc_max_hours: float = 0.167  # 10 minutes
     poc_min_iterations: int = 10
     poc_max_iterations: int = 20
+
+    # CLI pause detection: gap > threshold = CLI was closed, don't count as runtime
+    cli_gap_threshold_seconds: int = 300  # 5 minutes
 
 
 @dataclass

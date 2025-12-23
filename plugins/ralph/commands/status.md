@@ -86,6 +86,43 @@ if [[ -f "$PROJECT_DIR/.claude/ralph-state.json" ]]; then
     echo ""
 fi
 
+# Show time tracking (v7.9.0: dual time tracking)
+echo "=== Time Tracking ==="
+# Runtime: from session state (accumulated_runtime_seconds)
+STATE_DIR="$HOME/.claude/automation/loop-orchestrator/state/sessions"
+if [[ -d "$STATE_DIR" ]]; then
+    # Find the most recent session state file for this project
+    SESSION_STATE=$(find "$STATE_DIR" -name "*.json" -exec grep -l "\"accumulated_runtime_seconds\"" {} \; 2>/dev/null | head -1)
+    if [[ -n "$SESSION_STATE" ]] && [[ -f "$SESSION_STATE" ]]; then
+        RUNTIME_SECS=$(jq -r '.accumulated_runtime_seconds // 0' "$SESSION_STATE")
+        if [[ "$RUNTIME_SECS" != "null" ]] && [[ "$RUNTIME_SECS" != "0" ]]; then
+            RUNTIME_HOURS=$(echo "scale=2; $RUNTIME_SECS / 3600" | bc)
+            echo "Runtime (CLI active): ${RUNTIME_HOURS}h"
+        else
+            echo "Runtime (CLI active): 0.00h (session just started)"
+        fi
+    else
+        echo "Runtime (CLI active): N/A (no session state)"
+    fi
+else
+    echo "Runtime (CLI active): N/A (state directory not found)"
+fi
+
+# Wall-clock: from loop-start-timestamp
+if [[ -f "$PROJECT_DIR/.claude/loop-start-timestamp" ]]; then
+    START_TS=$(cat "$PROJECT_DIR/.claude/loop-start-timestamp")
+    NOW_TS=$(date +%s)
+    WALL_SECS=$((NOW_TS - START_TS))
+    WALL_HOURS=$(echo "scale=2; $WALL_SECS / 3600" | bc)
+    echo "Wall-clock (since start): ${WALL_HOURS}h"
+else
+    echo "Wall-clock (since start): N/A (loop not started)"
+fi
+echo ""
+echo "Note: Runtime = actual CLI working time (pauses excluded)"
+echo "      Wall-clock = calendar time since /ralph:start"
+echo ""
+
 # Show last stop reason if exists
 STOP_CACHE="$HOME/.claude/ralph-stop-reason.json"
 if [[ -f "$STOP_CACHE" ]]; then
