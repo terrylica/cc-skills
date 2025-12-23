@@ -1,3 +1,41 @@
+# [7.9.0](https://github.com/terrylica/cc-skills/compare/v7.8.0...v7.9.0) (2025-12-23)
+
+
+### Features
+
+* **ralph:** add dual time tracking (runtime + wall-clock) ([222bc18](https://github.com/terrylica/cc-skills/commit/222bc189cb1fe10f72db419d104a33dec186ea4f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [Ralph Dual Time Tracking (Runtime + Wall-Clock)](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-ralph-dual-time-tracking.md) | new |
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/status.md) - updated
+
+</details>
+
 # [7.8.0](https://github.com/terrylica/cc-skills/compare/v7.7.1...v7.8.0) (2025-12-23)
 
 
