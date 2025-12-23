@@ -12,9 +12,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from completion import (
-    COMPLETION_CONFIDENCE_THRESHOLD,
     check_task_complete_rssi,
+    check_validation_complete,
     count_checkboxes,
+    get_completion_config,
     has_explicit_completion_marker,
     has_frontmatter_value,
 )
@@ -145,9 +146,73 @@ def test_multi_signal_detection():
 
 
 def test_confidence_threshold():
-    """Verify threshold constant."""
-    assert COMPLETION_CONFIDENCE_THRESHOLD == 0.7
-    print(f"✓ Confidence threshold: {COMPLETION_CONFIDENCE_THRESHOLD}")
+    """Verify config-based confidence thresholds."""
+    cfg = get_completion_config()
+    # Semantic phrases should have reasonable confidence
+    assert 0.5 <= cfg.semantic_phrases_confidence <= 1.0
+    # Explicit markers should have highest confidence
+    assert cfg.explicit_marker_confidence == 1.0
+    print(f"✓ Semantic phrases confidence: {cfg.semantic_phrases_confidence}")
+    print(f"✓ Explicit marker confidence: {cfg.explicit_marker_confidence}")
+
+
+def test_validation_complete():
+    """Test 5-round validation completion check."""
+    # Test 1: All rounds pass (empty findings)
+    empty_findings = {
+        "round1": {"critical": [], "medium": [], "low": []},
+        "round2": {"verified": ["fix1"], "failed": []},
+        "round3": {"doc_issues": [], "coverage_gaps": []},
+        "round4": {"edge_cases_tested": ["test1"], "edge_cases_failed": [], "probing_complete": True},
+        "round5": {"regimes_tested": ["bull", "bear"], "regime_results": {}, "robustness_score": 0.75},
+    }
+    all_passed, summary, incomplete = check_validation_complete(empty_findings)
+    assert all_passed is True, f"Expected all passed, got {incomplete}"
+    assert summary == "All 5 validation rounds passed"
+    print("✓ All rounds pass: correct")
+
+    # Test 2: Round 1 fails (critical issues)
+    round1_fail = {
+        "round1": {"critical": ["error1"], "medium": [], "low": []},
+        "round2": {"verified": [], "failed": []},
+        "round3": {"doc_issues": [], "coverage_gaps": []},
+        "round4": {"probing_complete": True, "edge_cases_failed": []},
+        "round5": {"regimes_tested": ["bull"], "robustness_score": 0.5},
+    }
+    all_passed, summary, incomplete = check_validation_complete(round1_fail)
+    assert all_passed is False
+    assert summary == "4/5 rounds passed"
+    print("✓ Round 1 fails: correct")
+
+    # Test 3: Round 4 has BOTH issues (probing incomplete AND edge case failures)
+    # This tests the bug fix: should count as 1 failed round, not 2
+    round4_both_issues = {
+        "round1": {"critical": [], "medium": [], "low": []},
+        "round2": {"verified": [], "failed": []},
+        "round3": {"doc_issues": [], "coverage_gaps": []},
+        "round4": {"probing_complete": False, "edge_cases_failed": ["case1"]},  # BOTH issues
+        "round5": {"regimes_tested": ["bull"], "robustness_score": 0.5},
+    }
+    all_passed, summary, incomplete = check_validation_complete(round4_both_issues)
+    assert all_passed is False
+    # Key test: should be 4/5 (only round 4 failed), NOT 3/5 (2 issues but 1 round)
+    assert summary == "4/5 rounds passed", f"Expected '4/5 rounds passed', got '{summary}'"
+    assert len(incomplete) == 2  # 2 issue descriptions
+    print("✓ Round 4 both issues: correctly counts as 1 failed round")
+
+    # Test 4: Multiple rounds fail
+    multi_fail = {
+        "round1": {"critical": ["err"], "medium": [], "low": []},
+        "round2": {"verified": [], "failed": ["fix1"]},
+        "round3": {"doc_issues": [], "coverage_gaps": []},
+        "round4": {"probing_complete": True, "edge_cases_failed": []},
+        "round5": {"regimes_tested": [], "robustness_score": 0.0},  # BOTH issues
+    }
+    all_passed, summary, incomplete = check_validation_complete(multi_fail)
+    assert all_passed is False
+    # Rounds 1, 2, 5 fail = 2/5 pass
+    assert summary == "2/5 rounds passed", f"Expected '2/5 rounds passed', got '{summary}'"
+    print("✓ Multiple rounds fail: correct")
 
 
 if __name__ == "__main__":
@@ -160,6 +225,7 @@ if __name__ == "__main__":
     test_frontmatter_detection()
     test_multi_signal_detection()
     test_confidence_threshold()
+    test_validation_complete()
 
     print("=" * 60)
     print("All completion tests passed!")

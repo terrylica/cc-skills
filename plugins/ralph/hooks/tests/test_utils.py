@@ -15,12 +15,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import (
-    LOOP_THRESHOLD,
     WINDOW_SIZE,
     allow_stop,
     continue_session,
     detect_loop,
     extract_section,
+    get_loop_detection_config,
     get_runtime_hours,
     get_wall_clock_hours,
     hard_stop,
@@ -279,11 +279,16 @@ def test_hook_outputs():
 
 
 def test_constants():
-    """Verify utility constants."""
+    """Verify utility constants and config-based thresholds."""
     assert WINDOW_SIZE == 5
-    assert LOOP_THRESHOLD == 0.9
     print(f"✓ Window size: {WINDOW_SIZE}")
-    print(f"✓ Loop threshold: {LOOP_THRESHOLD}")
+
+    # Loop threshold is now config-based
+    threshold, window = get_loop_detection_config()
+    assert 0.7 <= threshold <= 1.0, f"Threshold {threshold} out of reasonable range"
+    assert window >= 1, f"Window {window} must be positive"
+    print(f"✓ Loop threshold (from config): {threshold}")
+    print(f"✓ Window size (from config): {window}")
 
 
 if __name__ == "__main__":

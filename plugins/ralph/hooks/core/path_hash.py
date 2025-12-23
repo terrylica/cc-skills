@@ -96,27 +96,13 @@ def load_session_state(state_file: Path, default_state: dict) -> dict:
         >>> default = {"iteration": 0, "recent_outputs": []}
         >>> state = load_session_state(Path("sessions/abc@1234.json"), default)
     """
-    # Try new format first
     if state_file.exists():
         try:
             loaded = json.loads(state_file.read_text())
-            logger.debug(f"Loaded state from new format: {state_file.name}")
+            logger.debug(f"Loaded state from: {state_file.name}")
             return {**default_state, **loaded}
         except (json.JSONDecodeError, OSError) as e:
             logger.warning(f"Failed to parse state file {state_file.name}: {e}")
-
-    # Fallback to old format (for backward compatibility during migration)
-    if "@" in state_file.name:
-        session_id = state_file.name.split("@")[0]
-        old_state_file = state_file.parent / f"{session_id}.json"
-
-        if old_state_file.exists():
-            try:
-                loaded = json.loads(old_state_file.read_text())
-                logger.info(f"Loaded state from old format (fallback): {old_state_file.name}")
-                return {**default_state, **loaded}
-            except (json.JSONDecodeError, OSError) as e:
-                logger.warning(f"Failed to parse old format state: {e}")
 
     logger.debug("No existing state found, using defaults")
     return default_state
