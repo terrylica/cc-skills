@@ -1,3 +1,33 @@
+## [7.7.1](https://github.com/terrylica/cc-skills/compare/v7.7.0...v7.7.1) (2025-12-23)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [Ralph Stop Visibility Observability](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-ralph-stop-visibility-observability.md) | new |
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated
+
 # [7.7.0](https://github.com/terrylica/cc-skills/compare/v7.6.0...v7.7.0) (2025-12-23)
 
 
