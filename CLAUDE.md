@@ -122,7 +122,7 @@ cc-skills/
 | `scripts/validate-plugins.mjs`    | Plugin validation (pre-commit)                       |
 | `plugins/itp/commands/go.md`      | Core workflow definition                             |
 | `plugins/itp-hooks/hooks/`        | PreToolUse/PostToolUse enforcement                   |
-| `plugins/ralph/hooks/`            | RSSI autonomous loop hooks (Stop + Archive)          |
+| `plugins/ralph/hooks/`            | RSSI autonomous loop hooks (Stop + 2 PreToolUse)     |
 
 ## Hooks Development
 
