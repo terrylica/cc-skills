@@ -1,3 +1,34 @@
+# [7.7.0](https://github.com/terrylica/cc-skills/compare/v7.6.0...v7.7.0) (2025-12-23)
+
+
+### Features
+
+* **ralph:** add 5-layer stop visibility observability system ([ada180c](https://github.com/terrylica/cc-skills/commit/ada180c839be43255d9365671f48569c41f82954))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Skill Architecture Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/README.md) - updated
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (2 commands)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated
+- [Ralph Loop: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/status.md) - updated
+
+</details>
+
 # [7.6.0](https://github.com/terrylica/cc-skills/compare/v7.5.1...v7.6.0) (2025-12-22)
 
 
