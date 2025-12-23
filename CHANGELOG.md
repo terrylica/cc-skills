@@ -1,3 +1,36 @@
+# [7.8.0](https://github.com/terrylica/cc-skills/compare/v7.7.1...v7.8.0) (2025-12-23)
+
+
+### Features
+
+* **ralph:** add user guidance lists for RSSI autonomous loop ([ce57dd0](https://github.com/terrylica/cc-skills/commit/ce57dd04a9d59688ef9eb7d554cab9705723787b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Example: If WebSearch found "Temporal Fusion Transformer"](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-exploration.md) - updated
+
 ## [7.7.1](https://github.com/terrylica/cc-skills/compare/v7.7.0...v7.7.1) (2025-12-23)
 
 
