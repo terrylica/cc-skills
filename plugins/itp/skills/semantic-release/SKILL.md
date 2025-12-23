@@ -376,7 +376,23 @@ CONFIG_EOF
 
 ### Step 3: Run Release Locally
 
-Follow the [Local Release Workflow](./references/local-release-workflow.md) for the complete process.
+Follow the [Local Release Workflow](./references/local-release-workflow.md) for the complete 4-phase process (PREFLIGHT → SYNC → RELEASE → POSTFLIGHT).
+
+**Quick commands**:
+
+```bash
+npm run release:dry   # Preview changes (no modifications)
+npm run release       # Create release (auto-pushes via successCmd + postrelease)
+```
+
+**What happens automatically**:
+
+1. Version bump determined from commits
+2. `CHANGELOG.md` updated
+3. Release commit + tag created
+4. **Git push via successCmd** (belt-and-suspenders)
+5. GitHub release created via API
+6. **Tracking refs updated via postrelease**
 
 **One-time setup (recommended for macOS)**:
 
@@ -388,28 +404,7 @@ npm install -g semantic-release @semantic-release/changelog @semantic-release/gi
 xattr -r -d com.apple.quarantine ~/.local/share/mise/installs/node/
 ```
 
-**Quick commands**:
-
-```bash
-/usr/bin/env bash << 'SKILL_SCRIPT_EOF'
-# Dry-run first (no changes)
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci --dry-run'
-
-# Create actual release
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
-SKILL_SCRIPT_EOF
-```
-
 > **Note**: Use `semantic-release` directly (not `npx semantic-release`) to avoid macOS Gatekeeper blocking `.node` native modules. See [Troubleshooting](./references/troubleshooting.md#macos-gatekeeper-blocks-node-files).
-
-**Files updated instantly**: `package.json`, `CHANGELOG.md`, Git tags, GitHub release.
-
-The workflow guides you through:
-
-- Prerequisites verification and resolution
-- Remote sync with SSH→HTTPS fallback
-- Issue diagnosis and autonomous resolution
-- Post-release state verification
 
 ### Step 4: PyPI Publishing (Python Projects)
 
