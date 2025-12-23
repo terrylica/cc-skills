@@ -1,7 +1,7 @@
 ---
 description: Enable autonomous loop mode for long-running tasks
 allowed-tools: Read, Write, Bash, AskUserQuestion, Glob
-argument-hint: "[-f <file>] [--poc] [--no-focus] [<task description>...]"
+argument-hint: "[-f <file>] [--poc | --production] [--no-focus] [<task description>...]"
 ---
 
 # Ralph Loop: Start
@@ -17,6 +17,7 @@ Enable the Ralph Wiggum autonomous improvement loop. Claude will continue workin
 
 - `-f <file>`: Specify target file for completion tracking (plan, spec, or ADR)
 - `--poc`: Use proof-of-concept settings (5 min / 10 min limits, 10/20 iterations)
+- `--production`: Use production settings (4h / 9h limits, 50/99 iterations) - skips preset prompt
 - `--no-focus`: Skip focus file tracking (100% autonomous, no plan file)
 - `<task description>`: Natural language task prompt (remaining text after flags)
 
@@ -46,6 +47,56 @@ Discover and auto-select focus files WITHOUT prompting the user (autonomous mode
    - Otherwise, auto-select the most recent file and proceed
 
 5. **If nothing discovered**: Proceed with `NO_FOCUS=true` (exploration mode)
+
+## Step 1.5: Preset Selection (Conditional)
+
+**Only prompt if no preset flag (`--poc` or `--production`) was provided.**
+
+If the arguments do NOT contain `--poc` AND do NOT contain `--production`:
+
+Use AskUserQuestion with questions:
+
+- question: "Select loop configuration preset:"
+  header: "Preset"
+  options:
+  - label: "Production Mode (Recommended)"
+    description: "4h-9h, 50-99 iterations - standard autonomous work"
+  - label: "POC Mode (Fast)"
+    description: "5min-10min, 10-20 iterations - ideal for testing"
+  - label: "Custom"
+    description: "Specify your own time/iteration limits"
+    multiSelect: false
+
+Based on selection:
+
+- **"Production Mode"** → Proceed to Step 2 with production defaults
+- **"POC Mode"** → Proceed to Step 2 with POC settings
+- **"Custom"** → Ask follow-up questions for time/iteration limits:
+
+  Use AskUserQuestion with questions:
+  - question: "Select time limits:"
+    header: "Time"
+    options:
+    - label: "1h - 2h"
+      description: "Short session"
+    - label: "2h - 4h"
+      description: "Medium session"
+    - label: "4h - 9h (Production)"
+      description: "Standard session"
+      multiSelect: false
+
+  - question: "Select iteration limits:"
+    header: "Iterations"
+    options:
+    - label: "10 - 20"
+      description: "Quick test"
+    - label: "25 - 50"
+      description: "Medium session"
+    - label: "50 - 99 (Production)"
+      description: "Standard session"
+      multiSelect: false
+
+**If `--poc` or `--production` flag was provided**: Skip this step entirely (backward compatible).
 
 ## Step 2: Execution
 
@@ -148,6 +199,13 @@ if [[ "$ARGS" == *"--poc"* ]]; then
     ARGS="${ARGS//--poc/}"
 fi
 
+# Detect --production flag (skips preset prompt, uses production defaults)
+PRODUCTION_MODE=false
+if [[ "$ARGS" == *"--production"* ]]; then
+    PRODUCTION_MODE=true
+    ARGS="${ARGS//--production/}"
+fi
+
 # Detect --no-focus flag
 if [[ "$ARGS" == *"--no-focus"* ]]; then
     NO_FOCUS=true
@@ -208,17 +266,27 @@ trap cleanup_on_error ERR
 touch "$PROJECT_DIR/.claude/loop-enabled"
 date +%s > "$PROJECT_DIR/.claude/loop-start-timestamp"
 
+# Clear previous stop reason cache (new session = fresh slate)
+rm -f "$HOME/.claude/ralph-stop-reason.json"
+
 # Build unified config JSON with all configurable values
+# Note: --poc and --production flags skip preset prompts (backward compatibility)
 if $POC_MODE; then
     MIN_HOURS=0.083
     MAX_HOURS=0.167
     MIN_ITERS=10
     MAX_ITERS=20
-else
+elif $PRODUCTION_MODE; then
     MIN_HOURS=4
     MAX_HOURS=9
     MIN_ITERS=50
     MAX_ITERS=99
+else
+    # Default: Production settings (will be overridden by AskUserQuestion if no preset flag)
+    MIN_HOURS=${SELECTED_MIN_HOURS:-4}
+    MAX_HOURS=${SELECTED_MAX_HOURS:-9}
+    MIN_ITERS=${SELECTED_MIN_ITERS:-50}
+    MAX_ITERS=${SELECTED_MAX_ITERS:-99}
 fi
 
 # Generate unified ralph-config.json (v2.0 schema)
@@ -300,10 +368,14 @@ if $POC_MODE; then
     echo "Ralph Loop: POC MODE"
     echo "Time limits: 5 min minimum / 10 min maximum"
     echo "Iterations: 10 minimum / 20 maximum"
-else
-    echo "Ralph Loop: PRODUCTION MODE"
+elif $PRODUCTION_MODE; then
+    echo "Ralph Loop: PRODUCTION MODE (via --production flag)"
     echo "Time limits: 4h minimum / 9h maximum"
     echo "Iterations: 50 minimum / 99 maximum"
+else
+    echo "Ralph Loop: PRODUCTION MODE"
+    echo "Time limits: ${MIN_HOURS}h minimum / ${MAX_HOURS}h maximum"
+    echo "Iterations: ${MIN_ITERS} minimum / ${MAX_ITERS} maximum"
 fi
 
 echo ""
