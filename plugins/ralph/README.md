@@ -4,7 +4,7 @@ Keep Claude Code working autonomously until tasks are complete - implements the 
 
 ## What This Plugin Does
 
-This plugin adds autonomous loop mode to Claude Code through 5 commands and 2 hooks:
+This plugin adds autonomous loop mode to Claude Code through 5 commands and 3 hooks:
 
 **Commands:**
 
@@ -190,6 +190,41 @@ The `--no-focus` option is useful for:
 
 ```bash
 touch .claude/STOP_LOOP  # Emergency stop
+```
+
+### Stop Visibility Observability (v7.7.0+)
+
+Ralph implements a 5-layer observability system to ensure users always know when and why sessions stop:
+
+| Layer | Feature                                    | Visibility                                      |
+| ----- | ------------------------------------------ | ----------------------------------------------- |
+| 1     | stderr notification                        | Terminal (immediate)                            |
+| 2     | Cache file with session correlation        | Persistent (`~/.claude/ralph-stop-reason.json`) |
+| 3     | Progress headers with warnings             | Claude sees in continuation prompt              |
+| 4     | `/ralph:status` displays last stop reason  | On-demand check                                 |
+| 5     | Automatic cache clearing on `/ralph:start` | Fresh slate per session                         |
+
+**Terminal Output** (stderr - visible to user, not Claude):
+
+```
+[RALPH] Session stopped: Maximum runtime (9h) reached
+```
+
+**Approaching Limits Warning** (in continuation prompt):
+
+```
+**IMPLEMENTATION** | Iteration 95/99 | 8.5h/9.0h elapsed | 0.0h / 0 iters to min
+**WARNING**: Approaching limits (0.5h / 4 iters to max)
+```
+
+**Post-Session** (`/ralph:status`):
+
+```
+=== Last Stop Reason ===
+Type: Normal
+Reason: Maximum runtime (9h) reached
+Time: 2025-12-22T21:32:27Z
+Session: cbe3a408...
 ```
 
 ### Configuration
