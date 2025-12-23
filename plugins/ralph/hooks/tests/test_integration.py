@@ -18,7 +18,6 @@ from discovery import (
 )
 from template_loader import get_loader
 from utils import detect_loop
-from validation import check_validation_exhausted, compute_validation_score
 
 
 def create_test_plan(tmp_dir: Path, content: str) -> Path:
@@ -54,8 +53,8 @@ implementation-status: in_progress
         print(f"✓ Incomplete task: complete={complete}, reason={reason}")
 
 
-def test_full_workflow_complete_needs_validation():
-    """Test workflow with complete task - should enter validation."""
+def test_full_workflow_complete():
+    """Test workflow with complete task."""
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
 
@@ -77,52 +76,14 @@ implementation-status: in_progress
         assert confidence == 0.9
         print(f"✓ Complete task: reason={reason}, confidence={confidence}")
 
-        # State should indicate validation needed
-        state = {
-            "validation_round": 0,
-            "validation_iteration": 0,
-            "validation_score": 0.0,
-            "validation_exhausted": False,
-        }
-        assert check_validation_exhausted(state) is False
-        print("✓ Validation not exhausted - should enter validation phase")
 
-        # Render validation round 1 prompt
-        loader = get_loader()
-        prompt = loader.render_validation_round(
-            1,
-            {"validation_findings": {"round1": {"critical": [], "medium": [], "low": []}}},
-            {},
-        )
-        assert "VALIDATION ROUND 1" in prompt
-        assert "Linter Agent" in prompt
-        print("✓ Validation round 1 prompt generated")
-
-
-def test_full_workflow_validation_exhausted():
-    """Test workflow after validation complete - should enter exploration."""
-    state = {
-        "validation_round": 3,
-        "validation_iteration": 1,
-        "validation_score": 0.85,
-        "validation_exhausted": False,
-        "validation_findings": {
-            "round1": {"critical": [], "medium": [], "low": []},
-            "round2": {"verified": [], "failed": []},
-            "round3": {"doc_issues": [], "coverage_gaps": []},
-        },
-    }
-
-    # Check exhaustion
-    exhausted = check_validation_exhausted(state)
-    assert exhausted is True
-    print(f"✓ Validation exhausted: score={state['validation_score']}")
-
-    # Render exploration prompt
+def test_exploration_prompt():
+    """Test exploration mode prompt rendering."""
     loader = get_loader()
     opportunities = ["Fix 2 broken links", "Add README to src/utils/"]
     prompt = loader.render_exploration(opportunities)
-    assert "DISCOVERY MODE" in prompt
+    # Template uses "AUTONOMOUS MODE" and "RSSI ETERNAL LOOP"
+    assert "AUTONOMOUS MODE" in prompt or "RSSI" in prompt
     assert "Fix 2 broken links" in prompt
     print("✓ Exploration prompt with opportunities generated")
 
@@ -237,33 +198,6 @@ def test_mode_transitions():
         mode = "ALLOW_STOP" if state["validation_exhausted"] and min_hours_met else "OTHER"
         assert mode == "ALLOW_STOP"
         print(f"4. {mode} - All conditions met")
-
-
-def test_validation_score_computation():
-    """Test validation score calculation."""
-    # Perfect state - no issues
-    perfect_state = {
-        "validation_findings": {
-            "round1": {"critical": [], "medium": [], "low": []},
-            "round2": {"verified": [], "failed": []},
-            "round3": {"doc_issues": [], "coverage_gaps": []},
-        }
-    }
-    score = compute_validation_score(perfect_state)
-    assert score == 1.0
-    print(f"✓ Perfect score: {score}")
-
-    # State with critical issues
-    critical_state = {
-        "validation_findings": {
-            "round1": {"critical": ["issue1"], "medium": [], "low": []},
-            "round2": {"verified": [], "failed": []},
-            "round3": {"doc_issues": [], "coverage_gaps": []},
-        }
-    }
-    score = compute_validation_score(critical_state)
-    assert score < 0.8  # Should fail threshold
-    print(f"✓ Score with critical issues: {score}")
 
 
 def test_plan_mode_discovery():
@@ -403,13 +337,12 @@ if __name__ == "__main__":
     print("=" * 60)
 
     test_full_workflow_incomplete()
-    test_full_workflow_complete_needs_validation()
-    test_full_workflow_validation_exhausted()
+    test_full_workflow_complete()
+    test_exploration_prompt()
     test_file_discovery_cascade()
     test_work_opportunity_scanning()
     test_loop_detection_integration()
     test_mode_transitions()
-    test_validation_score_computation()
     test_plan_mode_discovery()
     test_plan_mode_discovery_filters_placeholders()
     test_plan_mode_discovery_priority()
