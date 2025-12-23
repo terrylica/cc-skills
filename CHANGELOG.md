@@ -1,3 +1,29 @@
+# [7.12.0](https://github.com/terrylica/cc-skills/compare/v7.11.1...v7.12.0) (2025-12-23)
+
+
+### Features
+
+* **asciinema-recorder:** add AskUserQuestion flows for interactive recording setup ([f0cdc8d](https://github.com/terrylica/cc-skills/commit/f0cdc8d6638cfac16eda72f0666ffa4bc6c015da))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/asciinema-recorder/SKILL.md) - updated (+130/-23)
+
+</details>
+
 ## [7.11.1](https://github.com/terrylica/cc-skills/compare/v7.11.0...v7.11.1) (2025-12-23)
 
 
