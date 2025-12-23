@@ -48,16 +48,47 @@ Discover and auto-select focus files WITHOUT prompting the user (autonomous mode
 
 5. **If nothing discovered**: Proceed with `NO_FOCUS=true` (exploration mode)
 
-## Step 1.5: Preset Selection (Conditional)
+## Step 1.5: Preset Confirmation (ALWAYS)
 
-**Only prompt if no preset flag (`--poc` or `--production`) was provided.**
+**ALWAYS prompt for preset confirmation.** Flags pre-select the option but user confirms before execution.
 
-If the arguments do NOT contain `--poc` AND do NOT contain `--production`:
+**If `--poc` flag was provided:**
+
+Use AskUserQuestion with questions:
+
+- question: "Confirm loop configuration:"
+  header: "Preset"
+  multiSelect: false
+  options:
+  - label: "POC Mode (Recommended)"
+    description: "5min-10min, 10-20 iterations - selected via --poc flag"
+  - label: "Production Mode"
+    description: "4h-9h, 50-99 iterations"
+  - label: "Custom"
+    description: "Specify your own time/iteration limits"
+
+**If `--production` flag was provided:**
+
+Use AskUserQuestion with questions:
+
+- question: "Confirm loop configuration:"
+  header: "Preset"
+  multiSelect: false
+  options:
+  - label: "Production Mode (Recommended)"
+    description: "4h-9h, 50-99 iterations - selected via --production flag"
+  - label: "POC Mode"
+    description: "5min-10min, 10-20 iterations"
+  - label: "Custom"
+    description: "Specify your own time/iteration limits"
+
+**If no preset flag was provided:**
 
 Use AskUserQuestion with questions:
 
 - question: "Select loop configuration preset:"
   header: "Preset"
+  multiSelect: false
   options:
   - label: "Production Mode (Recommended)"
     description: "4h-9h, 50-99 iterations - standard autonomous work"
@@ -65,17 +96,17 @@ Use AskUserQuestion with questions:
     description: "5min-10min, 10-20 iterations - ideal for testing"
   - label: "Custom"
     description: "Specify your own time/iteration limits"
-    multiSelect: false
 
 Based on selection:
 
-- **"Production Mode"** → Proceed to Step 2 with production defaults
-- **"POC Mode"** → Proceed to Step 2 with POC settings
+- **"Production Mode"** → Proceed to Step 1.6 (if Alpha Forge) or Step 2 with production defaults
+- **"POC Mode"** → Proceed to Step 1.6 (if Alpha Forge) or Step 2 with POC settings
 - **"Custom"** → Ask follow-up questions for time/iteration limits:
 
   Use AskUserQuestion with questions:
   - question: "Select time limits:"
     header: "Time"
+    multiSelect: false
     options:
     - label: "1h - 2h"
       description: "Short session"
@@ -83,10 +114,10 @@ Based on selection:
       description: "Medium session"
     - label: "4h - 9h (Production)"
       description: "Standard session"
-      multiSelect: false
 
   - question: "Select iteration limits:"
     header: "Iterations"
+    multiSelect: false
     options:
     - label: "10 - 20"
       description: "Quick test"
@@ -94,9 +125,6 @@ Based on selection:
       description: "Medium session"
     - label: "50 - 99 (Production)"
       description: "Standard session"
-      multiSelect: false
-
-**If `--poc` or `--production` flag was provided**: Skip this step entirely (backward compatible).
 
 ## Step 1.6: Session Guidance (Alpha Forge Only)
 
