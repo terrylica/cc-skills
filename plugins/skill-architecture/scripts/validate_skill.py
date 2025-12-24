@@ -289,21 +289,31 @@ def validate_structure(skill_path: Path) -> list[ValidationResult]:
 def validate_links(skill_path: Path) -> list[ValidationResult]:
     """Validate markdown links use relative paths."""
     results = []
-    skill_md = skill_path / "SKILL.md"
 
-    if not skill_md.exists():
+    # Check all markdown files
+    md_files = list(skill_path.glob("**/*.md"))
+    if not md_files:
         return results
 
-    content = skill_md.read_text()
+    total_absolute_links = 0
 
-    # Find absolute links (starting with /)
-    absolute_links = re.findall(r'\[([^\]]+)\]\(/[^)]+\)', content)
+    for md_file in md_files:
+        content = md_file.read_text()
 
-    if absolute_links:
+        # Remove code blocks before checking (links in examples are OK)
+        content_no_code = re.sub(r'```.*?```', '', content, flags=re.DOTALL)
+        # Remove inline code (backticks) - also examples
+        content_no_code = re.sub(r'`[^`]+`', '', content_no_code)
+
+        # Find absolute links (starting with /)
+        absolute_links = re.findall(r'\[([^\]]+)\]\(/[^)]+\)', content_no_code)
+        total_absolute_links += len(absolute_links)
+
+    if total_absolute_links > 0:
         results.append(ValidationResult(
             check="link_portability",
             passed=False,
-            message=f"Found {len(absolute_links)} absolute links (use relative ./)",
+            message=f"Found {total_absolute_links} absolute links (use relative ./)",
             severity="error",
             fix_suggestion="Change '/path/to/file.md' to './path/to/file.md'"
         ))
@@ -325,12 +335,14 @@ def validate_bash_blocks(skill_path: Path) -> list[ValidationResult]:
     md_files = list(skill_path.glob("**/*.md"))
 
     unwrapped_blocks = 0
+    # Patterns that require heredoc wrapper for zsh compatibility
+    # Use line-start anchors (^\s*) for keywords to avoid false positives in comments
     bash_specific_patterns = [
-        r'\$\(',           # Command substitution
-        r'\[\[',           # Bash conditional
-        r'declare\s',      # Declare statement
-        r'local\s',        # Local variable
-        r'\bfunction\s',   # Function keyword
+        (r'\$\(', 0),                    # Command substitution $(...)
+        (r'\[\[', 0),                    # Bash conditional [[ ]]
+        (r'^\s*declare\s', re.MULTILINE),  # Declare at line start
+        (r'^\s*local\s', re.MULTILINE),    # Local at line start
+        (r'^\s*function\s', re.MULTILINE), # Function at line start
     ]
 
     for md_file in md_files:
@@ -341,7 +353,10 @@ def validate_bash_blocks(skill_path: Path) -> list[ValidationResult]:
 
         for block in blocks:
             # Check if block has bash-specific syntax
-            has_bash_syntax = any(re.search(p, block) for p in bash_specific_patterns)
+            has_bash_syntax = any(
+                re.search(pattern, block, flags) if flags else re.search(pattern, block)
+                for pattern, flags in bash_specific_patterns
+            )
             has_heredoc = '/usr/bin/env bash' in block
 
             if has_bash_syntax and not has_heredoc:
