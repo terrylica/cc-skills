@@ -1,3 +1,36 @@
+## [7.14.2](https://github.com/terrylica/cc-skills/compare/v7.14.1...v7.14.2) (2025-12-24)
+
+
+### Bug Fixes
+
+* **skills:** improve YAML frontmatter with TRIGGERS and allowed-tools ([99ba698](https://github.com/terrylica/cc-skills/commit/99ba698927415f8e46887dd34982e99f1dd95890))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+2/-1)
+
+</details>
+
+<details>
+<summary><strong>notion-api</strong> (1 change)</summary>
+
+- [notion-sdk](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/SKILL.md) - updated (+2/-1)
+
+</details>
+
 ## [7.14.1](https://github.com/terrylica/cc-skills/compare/v7.14.0...v7.14.1) (2025-12-24)
 
 
