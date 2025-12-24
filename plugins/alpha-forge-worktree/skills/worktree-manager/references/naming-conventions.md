@@ -152,4 +152,4 @@ Acronyms are deterministic - same slug always produces same acronym. Collisions 
 ## Related
 
 - [SKILL.md](../SKILL.md) - Main skill documentation
-- [ADR](../../../../../docs/adr/2025-12-14-alpha-forge-worktree-management.md) - Architecture decision
+- [ADR](/docs/adr/2025-12-14-alpha-forge-worktree-management.md) - Architecture decision

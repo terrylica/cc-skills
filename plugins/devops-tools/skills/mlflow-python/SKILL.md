@@ -12,7 +12,7 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Unified read/write MLflow operations via Python API with QuantStats integration for comprehensive trading metrics.
 
-**ADR**: [2025-12-12-mlflow-python-skill](../../../../docs/adr/2025-12-12-mlflow-python-skill.md)
+**ADR**: [2025-12-12-mlflow-python-skill](/docs/adr/2025-12-12-mlflow-python-skill.md)
 
 ## When to Use This Skill
 

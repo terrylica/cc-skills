@@ -205,4 +205,4 @@ worktree_pattern = "alpha-forge.worktree-*"
 - [iTerm2 Python API](https://iterm2.com/python-api/)
 - [TOML Specification](https://toml.io/)
 - [XDG Base Directory Spec](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
-- [ADR: iTerm2 Layout Config](../../../../docs/adr/2025-12-15-iterm2-layout-config.md)
+- [ADR: iTerm2 Layout Config](/docs/adr/2025-12-15-iterm2-layout-config.md)

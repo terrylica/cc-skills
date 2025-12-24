@@ -287,7 +287,13 @@ def validate_structure(skill_path: Path) -> list[ValidationResult]:
 
 
 def validate_links(skill_path: Path) -> list[ValidationResult]:
-    """Validate markdown links use relative paths."""
+    """Validate markdown links use appropriate path formats.
+
+    Link conventions for marketplace plugins:
+    - Skill-internal files (references/, scripts/): Use ./  or ../ relative paths
+    - Repo files NOT part of skill (ADRs, design specs): Use /docs/... repo-relative
+    - External resources: Use https://... URLs
+    """
     results = []
 
     # Check all markdown files
@@ -295,7 +301,11 @@ def validate_links(skill_path: Path) -> list[ValidationResult]:
     if not md_files:
         return results
 
-    total_absolute_links = 0
+    # Allowed repo-relative paths (files not part of skill bundle)
+    allowed_repo_paths = ["/docs/"]
+
+    bad_absolute_links = 0
+    bad_github_urls = 0
 
     for md_file in md_files:
         content = md_file.read_text()
@@ -305,23 +315,41 @@ def validate_links(skill_path: Path) -> list[ValidationResult]:
         # Remove inline code (backticks) - also examples
         content_no_code = re.sub(r'`[^`]+`', '', content_no_code)
 
-        # Find absolute links (starting with /)
-        absolute_links = re.findall(r'\[([^\]]+)\]\(/[^)]+\)', content_no_code)
-        total_absolute_links += len(absolute_links)
+        # Find all absolute links (starting with /)
+        absolute_links = re.findall(r'\[[^\]]+\]\((/[^)]+)\)', content_no_code)
+        for link in absolute_links:
+            # Allow /docs/ paths (ADRs, design specs, etc.)
+            if not any(link.startswith(allowed) for allowed in allowed_repo_paths):
+                bad_absolute_links += 1
 
-    if total_absolute_links > 0:
+        # Find GitHub URLs pointing to this repo (should use relative or /docs/ instead)
+        github_repo_urls = re.findall(
+            r'\[[^\]]+\]\((https://github\.com/terrylica/cc-skills/blob/[^)]+)\)',
+            content_no_code
+        )
+        bad_github_urls += len(github_repo_urls)
+
+    errors = []
+
+    if bad_absolute_links > 0:
+        errors.append(f"{bad_absolute_links} absolute paths not in /docs/")
+
+    if bad_github_urls > 0:
+        errors.append(f"{bad_github_urls} GitHub URLs to this repo (use relative or /docs/)")
+
+    if errors:
         results.append(ValidationResult(
             check="link_portability",
             passed=False,
-            message=f"Found {total_absolute_links} absolute links (use relative ./)",
+            message=f"Found {', '.join(errors)}",
             severity="error",
-            fix_suggestion="Change '/path/to/file.md' to './path/to/file.md'"
+            fix_suggestion="Skill files: use ./ or ../ | Repo docs: use /docs/... | External: use https://..."
         ))
     else:
         results.append(ValidationResult(
             check="link_portability",
             passed=True,
-            message="All links use relative paths"
+            message="All links use appropriate path formats"
         ))
 
     return results
