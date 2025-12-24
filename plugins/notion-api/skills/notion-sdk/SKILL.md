@@ -26,7 +26,7 @@ AskUserQuestion(questions=[{
 After user provides token:
 
 1. Validate format (must start with `ntn_` or `secret_`)
-2. Test with `validate_token()` from `scripts/notion_client.py`
+2. Test with `validate_token()` from `scripts/notion_wrapper.py`
 3. Remind user: **Each page/database must be shared with the integration**
 
 ## Quick Start
@@ -109,7 +109,7 @@ for page in results:
 
 | Script              | Purpose                                       |
 | ------------------- | --------------------------------------------- |
-| `notion_client.py`  | Client setup, token validation, retry wrapper |
+| `notion_wrapper.py` | Client setup, token validation, retry wrapper |
 | `create_page.py`    | Create pages, property builders               |
 | `add_blocks.py`     | Append blocks, block type builders            |
 | `query_database.py` | Query, filter, sort, search                   |
@@ -147,6 +147,129 @@ for page in results:
 - User permissions management
 - Template creation/management
 - Billing/subscription access
+
+## API Behavior Patterns
+
+Insights discovered through integration testing (test citations for verification).
+
+### Rate Limiting & Retry Logic
+
+`api_call_with_retry()` handles transient failures automatically:
+
+| Error Type       | Behavior          | Wait Strategy                            |
+| ---------------- | ----------------- | ---------------------------------------- |
+| 429 Rate Limited | Retries           | Respects Retry-After header (default 1s) |
+| 500 Server Error | Retries           | Exponential backoff: 1s, 2s, 4s          |
+| Auth/Validation  | Fails immediately | No retry                                 |
+
+_Citation: `test_client.py::TestRetryLogic` (lines 146-193)_
+
+### Read-After-Write Consistency
+
+Newly created blocks may not be immediately queryable. Add 0.5s minimum delay:
+
+```python
+append_blocks(client, page_id, blocks)
+time.sleep(0.5)  # Eventual consistency delay
+children = client.blocks.children.list(page_id)
+```
+
+_Citation: `test_integration.py::TestBlockAppend::test_retrieve_appended_blocks` (line 298)_
+
+### v2.6.0 API Migration
+
+| Old Pattern                     | New Pattern (v2.6.0+)              |
+| ------------------------------- | ---------------------------------- |
+| `client.databases.query()`      | `client.data_sources.query()`      |
+| `filter: {"value": "database"}` | `filter: {"value": "data_source"}` |
+
+_Citation: `test_integration.py::TestDatabaseQuery` (line 110)_
+
+### Archive-Only Deletion
+
+Pages cannot be permanently deleted via API - only archived (moved to trash):
+
+```python
+client.pages.update(page_id, archived=True)  # Trash, not delete
+```
+
+_Citation: `test_integration.py` cleanup fixture (lines 72-76)_
+
+## Edge Cases & Validation
+
+### Property Builder Edge Cases
+
+| Input             | Behavior                      | Valid? |
+| ----------------- | ----------------------------- | ------ |
+| Empty string `""` | Creates empty content         | Yes    |
+| Empty array `[]`  | Clears multi-select/relations | Yes    |
+| `None` for number | Clears property value         | Yes    |
+| Zero `0`          | Valid number (not falsy)      | Yes    |
+| Negative `-42`    | Valid number                  | Yes    |
+| Unicode/emoji     | Fully preserved               | Yes    |
+
+_Citation: `test_property_builders.py::TestPropertyBuildersEdgeCases` (lines 302-341)_
+
+### Input Validation Responsibility
+
+Builders are intentionally permissive - validation happens at API level:
+
+| Property | Builder Accepts | API Validates    |
+| -------- | --------------- | ---------------- |
+| Date     | Any string      | ISO 8601 only    |
+| URL      | Any string      | Valid URL format |
+| Checkbox | Truthy values   | Boolean expected |
+
+**Best Practice**: Validate in your application before building properties.
+
+_Citation: `test_property_builders.py::TestPropertyBuildersInvalidInputs` (lines 347-376)_
+
+### Token Validation
+
+- Case-sensitive: Only lowercase `ntn_` and `secret_` valid
+- Format check happens before API call (saves unnecessary requests)
+- Empty/whitespace tokens rejected immediately
+
+_Citation: `test_client.py::TestClientEdgeCases` (lines 196-224)_
+
+## Query & Filter Patterns
+
+### Compound Filter Composition
+
+```python
+# Empty compound (matches all)
+and_filter()  # {"and": []}
+
+# Deep nesting supported
+and_filter(
+    or_filter(filter_a, filter_b),
+    and_filter(filter_c, filter_d)
+)
+```
+
+_Citation: `test_filter_builders.py::TestFilterEdgeCases` (lines 323-360)_
+
+### Filter Limitations
+
+Filters don't exclude NULL properties - check in Python:
+
+```python
+if row["properties"]["Rating"]["number"] is not None:
+    # Process non-null values
+```
+
+_Citation: `test_integration.py::TestDatabaseQuery::test_query_database_with_filter` (lines 120-135)_
+
+### Pagination Invariants
+
+| Condition          | `has_more` | `next_cursor`      |
+| ------------------ | ---------- | ------------------ |
+| More results exist | `True`     | Present, non-None  |
+| No more results    | `False`    | May be absent/None |
+
+Always check `has_more` before using `next_cursor`.
+
+_Citation: `test_integration.py::TestDatabaseQuery::test_query_database_with_pagination` (lines 137-151)_
 
 ## Error Handling
 
