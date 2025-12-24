@@ -1,3 +1,48 @@
+# [7.14.0](https://github.com/terrylica/cc-skills/compare/v7.13.0...v7.14.0) (2025-12-24)
+
+
+### Features
+
+* **notion-api:** add test suite and documentation insights from integration testing ([8934bea](https://github.com/terrylica/cc-skills/commit/8934bea30b16bc240e14ea5173667f4ccb793d18))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+44)
+
+</details>
+
+<details>
+<summary><strong>notion-api</strong> (1 change)</summary>
+
+- [notion-sdk](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/SKILL.md) - updated (+125/-2)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>notion-api/notion-sdk</strong> (3 files)</summary>
+
+- [Notion Block Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/references/block-types.md) - updated (+37)
+- [Pagination Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/references/pagination.md) - updated (+30)
+- [Notion Property Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/references/property-types.md) - updated (+34)
+
+</details>
+
 # [7.13.0](https://github.com/terrylica/cc-skills/compare/v7.12.0...v7.13.0) (2025-12-23)
 
 
