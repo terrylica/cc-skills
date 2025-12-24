@@ -108,7 +108,15 @@ cc-skills/
 
 **Adding Plugins**: Use `/itp:plugin-add plugin-name` - handles marketplace.json registration automatically.
 
-**Link Conventions**: Marketplace plugins use **relative paths** (`./`, `../`) - absolute paths break when installed to `~/.claude/skills/`.
+**Link Conventions**: Marketplace plugins use context-specific paths:
+
+| Link Target             | Format                  | Example                          |
+| ----------------------- | ----------------------- | -------------------------------- |
+| Skill-internal files    | Relative (`./`, `../`)  | `[Guide](./references/guide.md)` |
+| Repo docs (ADRs, specs) | Repo-root (`/docs/...`) | `[ADR](/docs/adr/file.md)`       |
+| External resources      | Full URL                | `[Docs](https://example.com)`    |
+
+**Why**: Skill-internal files must use relative paths (absolute paths break when installed to `~/.claude/skills/`). ADRs and design specs are NOT bundled with installed plugins, so `/docs/` paths serve as source repo references.
 
 **Release**: Semantic-release with conventional commits. ALL commit types trigger patch releases (marketplace constraint).
 
