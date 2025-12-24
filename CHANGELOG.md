@@ -1,3 +1,29 @@
+## [7.14.1](https://github.com/terrylica/cc-skills/compare/v7.14.0...v7.14.1) (2025-12-24)
+
+
+### Bug Fixes
+
+* **semantic-release:** add bash heredoc wrappers for zsh compatibility ([1e04d40](https://github.com/terrylica/cc-skills/commit/1e04d40ae4f369c0e8501cc587d0c5259d4490e9))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+10)
+
+</details>
+
 # [7.14.0](https://github.com/terrylica/cc-skills/compare/v7.13.0...v7.14.0) (2025-12-24)
 
 
