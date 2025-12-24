@@ -1,3 +1,60 @@
+## [7.15.3](https://github.com/terrylica/cc-skills/compare/v7.15.2...v7.15.3) (2025-12-24)
+
+
+### Bug Fixes
+
+* **validator:** correct link convention for marketplace plugins ([840f150](https://github.com/terrylica/cc-skills/commit/840f150a43dc1f8ea174ed85cbb43ec531c55a3e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>alpha-forge-worktree</strong> (1 change)</summary>
+
+- [worktree-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/SKILL.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [mlflow-python](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/mlflow-python/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 change)</summary>
+
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/skills/iterm2-layout/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>alpha-forge-worktree/worktree-manager</strong> (1 file)</summary>
+
+- [Alpha-Forge Worktree Naming Conventions](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/references/naming-conventions.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [Without heredoc, zsh interprets directly](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+1/-1)
+
+</details>
+
 ## [7.15.2](https://github.com/terrylica/cc-skills/compare/v7.15.1...v7.15.2) (2025-12-24)
 
 
