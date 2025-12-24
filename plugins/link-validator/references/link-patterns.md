@@ -1,35 +1,43 @@
 # Link Patterns Reference
 
-Comprehensive guide to markdown link patterns and portability validation.
+Comprehensive guide to markdown link patterns and portability validation for marketplace plugins.
 
 **Parent**: [Link Validator Skill](../SKILL.md)
 
 ---
 
+## Link Convention Summary
+
+| Link Target             | Format                  | Example                          |
+| ----------------------- | ----------------------- | -------------------------------- |
+| Skill-internal files    | Relative (`./`, `../`)  | `[Guide](./references/guide.md)` |
+| Repo docs (ADRs, specs) | Repo-root (`/docs/...`) | `[ADR](/docs/adr/file.md)`       |
+| External resources      | Full URL                | `[Docs](https://example.com)`    |
+
+**Key Insight**: ADRs and design specs are NOT bundled with installed plugins, so `/docs/` paths serve as source repo references rather than functional links.
+
+---
+
 ## Violation Patterns
 
-The validator detects absolute repository paths that break when skills are installed elsewhere.
-
-### Detection Regex
-
-```regex
-^/(?!/)(?!https?:)(?!#)
-```
-
-**Breakdown:**
-
-- `^/` - Starts with forward slash
-- `(?!//)` - NOT followed by another slash (excludes `//cdn...`)
-- `(?!https?:)` - NOT followed by `http:` or `https:`
-- `(?!#)` - NOT followed by `#` (excludes anchors)
+The validator detects paths that should use relative format but don't.
 
 ### Examples of Violations
 
-| Link                               | Why It's a Violation                                       |
-| ---------------------------------- | ---------------------------------------------------------- |
-| `[Guide](/skills/foo/guide.md)`    | Absolute repo path - won't exist in installed location     |
-| `[ADR](/docs/adr/2025-01-01.md)`   | Absolute repo path - repo structure not preserved          |
-| `[Script](/plugins/bar/script.sh)` | Absolute repo path - plugin installs to different location |
+| Link                               | Why It's a Violation                                     |
+| ---------------------------------- | -------------------------------------------------------- |
+| `[Guide](/skills/foo/guide.md)`    | Skill-internal file - should use `./references/guide.md` |
+| `[Script](/plugins/bar/script.sh)` | Skill-internal file - should use `./scripts/script.sh`   |
+| GitHub URL to this repo            | In-repo file - should use `/docs/` or relative path      |
+
+### Allowed Repo-Root Paths
+
+These `/` paths are **valid** because they reference repo-level documentation not bundled with skills:
+
+| Link                                | Why It's Allowed                            |
+| ----------------------------------- | ------------------------------------------- |
+| `[ADR](/docs/adr/2025-01-01.md)`    | ADRs are repo-level docs, not part of skill |
+| `[Spec](/docs/design/slug/spec.md)` | Design specs are repo-level, not bundled    |
 
 ---
 
@@ -184,9 +192,11 @@ skill-root/references/a/b.md  → depth 2
 ### Installation Test
 
 1. Copy skill to different location:
+
    ```bash
    cp -r ~/.claude/skills/my-skill /tmp/test-skill
    ```
+
 2. Run validator on new location
 3. Manually verify links resolve in new context
 
