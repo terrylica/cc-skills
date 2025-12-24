@@ -1,6 +1,7 @@
 ---
 name: semantic-release
-description: Automates semantic versioning and releases using Node.js semantic-release v25+ for all languages. Use when setting up automated releases, creating shareable configs, or configuring GitHub Actions.
+description: Automate versioning with Node.js semantic-release v25+. TRIGGERS - npm run release, version bump, changelog, conventional commits, release automation.
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 ---
 
 # semantic-release
