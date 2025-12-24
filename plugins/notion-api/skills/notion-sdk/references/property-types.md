@@ -253,3 +253,37 @@ properties = {
 | `validation_error` | Property doesn't exist in database | Check database schema               |
 | `validation_error` | Wrong property type                | Match type to schema                |
 | `validation_error` | Select option doesn't exist        | Create option first or use existing |
+
+## Edge Cases (from Testing)
+
+### Empty and Null Values
+
+- Empty strings create empty content (valid for title/rich_text)
+- Empty arrays clear multi-select and relation properties
+- None clears number/date properties
+
+```python
+title_property("")          # Creates empty title - valid
+multi_select_property([])   # Clears all selections - valid
+number_property(None)       # Clears number value - valid
+```
+
+### Unicode Support
+
+All Unicode characters preserved in text properties:
+
+```python
+title_property("Task 🚀")           # Emoji preserved
+title_property("日本語テキスト")      # CJK characters preserved
+rich_text_property("Café résumé")   # Accented characters preserved
+```
+
+### Numeric Edge Cases
+
+```python
+number_property(0)      # Zero is valid (not treated as falsy)
+number_property(-42)    # Negative numbers valid
+number_property(3.14159)  # Float precision preserved
+```
+
+_Verified in: `test_property_builders.py::TestPropertyBuildersEdgeCases`_

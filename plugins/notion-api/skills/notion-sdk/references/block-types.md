@@ -327,3 +327,40 @@ blocks = [
 | `heading_*`          | No                 |
 | `code`               | No                 |
 | `divider`            | No                 |
+
+## Constraints (from Testing)
+
+### Block Limits
+
+- Max **1000 blocks** per `append_blocks()` call
+- Exceeding limit raises `ValueError`
+
+```python
+# For large content, batch into multiple calls
+for i in range(0, len(blocks), 1000):
+    append_blocks(client, page_id, blocks[i:i+1000])
+```
+
+### Heading Levels
+
+- Only levels 1, 2, 3 valid
+- Level 4+ or 0 raises `ValueError`
+
+```python
+heading("Valid", level=3)   # OK
+heading("Invalid", level=4)  # Raises ValueError
+```
+
+### Content Preservation
+
+- Multiline code preserved exactly (whitespace, newlines)
+- Unicode emoji in callout icons preserved
+- Toggle blocks without children omit the `children` key
+
+```python
+code_block("def f():\n    return 42")  # Newlines preserved
+callout("Note", emoji="🚀")             # Emoji preserved
+toggle("Empty toggle")                  # No children key in output
+```
+
+_Verified in: `test_block_builders.py::TestBlockBuildersInvalidInputs`_

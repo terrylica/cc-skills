@@ -440,6 +440,50 @@ Repository Settings → Actions → General → Workflow permissions → Enable 
 
 ---
 
+## Common Pitfalls
+
+### Dirty Working Directory
+
+**Symptom**: After release, `git status` shows version files as modified with OLD versions.
+
+**Cause**: Files were staged before release started. semantic-release commits from working copy, but git index cache may show stale state.
+
+**Prevention**: Always start with clean working directory:
+
+```bash
+# Check before release
+git status --porcelain
+# Should output nothing
+
+# If dirty, either:
+git stash           # Stash changes
+git commit -m "..."  # Commit changes
+git checkout -- .   # Discard changes
+```
+
+**Recovery**: If you see stale versions after release:
+
+```bash
+git update-index --refresh
+git status  # Should now show clean
+```
+
+**Automated guards**: The cc-skills `.releaserc.yml` includes:
+
+- **verifyConditions preflight**: Blocks release if working directory is dirty
+- **successCmd index refresh**: Automatically refreshes git index after push
+
+### Pre-Release Checklist
+
+Before running `npm run release`:
+
+1. ✅ All changes committed
+2. ✅ No staged files (`git diff --cached` is empty)
+3. ✅ No untracked files in version-synced paths
+4. ✅ Branch is up-to-date with remote
+
+---
+
 ## Reference Documentation
 
 For detailed information, see:

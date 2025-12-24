@@ -174,3 +174,33 @@ except APIResponseError as e:
     else:
         raise
 ```
+
+## Read-After-Write Consistency
+
+Newly created content may not be immediately available for query due to eventual consistency.
+
+### Minimum Delay Required
+
+```python
+import time
+
+# After creating or appending content
+append_blocks(client, page_id, blocks)
+
+# Wait before reading back
+time.sleep(0.5)  # 0.5s minimum recommended
+
+# Now query is consistent
+children = client.blocks.children.list(page_id)
+```
+
+### When This Applies
+
+| Operation                                       | Delay Needed          |
+| ----------------------------------------------- | --------------------- |
+| `append_blocks()` then `blocks.children.list()` | Yes (0.5s)            |
+| `pages.create()` then `search()`                | Yes (may need longer) |
+| `pages.update()` then `pages.retrieve()`        | Usually not           |
+| Query same database twice                       | No                    |
+
+_Verified in: `test_integration.py::TestBlockAppend::test_retrieve_appended_blocks`_
