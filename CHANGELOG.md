@@ -1,3 +1,68 @@
+## [7.15.1](https://github.com/terrylica/cc-skills/compare/v7.15.0...v7.15.1) (2025-12-24)
+
+
+### Bug Fixes
+
+* **skills:** apply validate_skill.py to all production skills ([61bf292](https://github.com/terrylica/cc-skills/commit/61bf2921c58185f74bbd339f7cea64b1c3c2ef5b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>alpha-forge-worktree</strong> (1 change)</summary>
+
+- [worktree-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/SKILL.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [mlflow-python](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/mlflow-python/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 change)</summary>
+
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/skills/iterm2-layout/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (2 changes)</summary>
+
+- [mise-configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/SKILL.md) - updated (+3/-2)
+- [mise-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/SKILL.md) - updated (+3/-2)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>alpha-forge-worktree/worktree-manager</strong> (1 file)</summary>
+
+- [Alpha-Forge Worktree Naming Conventions](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/references/naming-conventions.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [Without heredoc, zsh interprets directly](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+1/-1)
+
+</details>
+
 # [7.15.0](https://github.com/terrylica/cc-skills/compare/v7.14.2...v7.15.0) (2025-12-24)
 
 
