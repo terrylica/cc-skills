@@ -436,5 +436,5 @@ The `default-layout.py` script auto-discovers worktrees:
 ## References
 
 - [Naming Conventions](./references/naming-conventions.md)
-- [ADR: research-repo Git Worktree Management](../../../../docs/adr/2025-12-14-research-repo-worktree-management.md)
-- [Design Spec](../../../../docs/design/2025-12-14-research-repo-worktree-management/spec.md)
+- [ADR: research-repo Git Worktree Management](/docs/adr/2025-12-14-research-repo-worktree-management.md)
+- [Design Spec](/docs/design/2025-12-14-research-repo-worktree-management/spec.md)
