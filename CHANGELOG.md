@@ -1,3 +1,10 @@
+# [7.15.0](https://github.com/terrylica/cc-skills/compare/v7.14.2...v7.15.0) (2025-12-24)
+
+
+### Features
+
+* **skill-architecture:** add comprehensive skill validator with interactive clarification ([5d6bdcf](https://github.com/terrylica/cc-skills/commit/5d6bdcfb284aca33b714bf9d8aca609d04d79790))
+
 ## [7.14.2](https://github.com/terrylica/cc-skills/compare/v7.14.1...v7.14.2) (2025-12-24)
 
 
