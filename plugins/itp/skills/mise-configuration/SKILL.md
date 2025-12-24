@@ -1,6 +1,7 @@
 ---
-name: mise Configuration SSoT
-description: This skill should be used when the user asks to "configure environment variables", "use mise env", "add mise configuration", "refactor hardcoded values", "centralize configuration", "set up Python venv", "mise templates", mentions "mise [env]", "mise.toml", "[settings]", "[tools]", or needs guidance on environment variable patterns with backward compatibility.
+name: mise-configuration
+description: Configure environment via mise [env] SSoT. TRIGGERS - mise env, mise.toml, environment variables, centralize config, Python venv, mise templates.
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 ---
 
 # mise Configuration as Single Source of Truth

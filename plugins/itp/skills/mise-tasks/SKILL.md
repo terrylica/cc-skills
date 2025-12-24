@@ -1,6 +1,7 @@
 ---
-name: mise Tasks Orchestration
-description: Use when user mentions "mise tasks", "task runner", "depends", "depends_post", "mise run", task dependencies, workflow automation, or needs to orchestrate multi-step project workflows. Also invoke when mise-configuration detects workflow opportunities.
+name: mise-tasks
+description: Orchestrate workflows with mise [tasks]. TRIGGERS - mise tasks, mise run, task runner, depends, depends_post, workflow automation, task dependencies.
+allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 ---
 
 # mise Tasks Orchestration
