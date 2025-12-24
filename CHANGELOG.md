@@ -1,3 +1,30 @@
+## [7.15.4](https://github.com/terrylica/cc-skills/compare/v7.15.3...v7.15.4) (2025-12-24)
+
+
+### Bug Fixes
+
+* **docs:** update link convention documentation for marketplace plugins ([2caf502](https://github.com/terrylica/cc-skills/commit/2caf502ab8daee3b2d7df8bc19d56767b436eab6))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+9/-1)
+
+## Other Documentation
+
+### Other
+
+- [Link Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/link-validator/references/link-patterns.md) - updated (+27/-17)
+
 ## [7.15.3](https://github.com/terrylica/cc-skills/compare/v7.15.2...v7.15.3) (2025-12-24)
 
 
