@@ -1,6 +1,7 @@
 ---
 name: notion-sdk
-description: Programmatically control Notion using notion-client Python SDK. Create pages in databases, manipulate blocks, query and filter data. Use when user wants to automate Notion, create pages via API, add content programmatically, query database entries, or build Notion integrations. PREFLIGHT - requires Notion Integration Token from notion.so/my-integrations.
+description: Control Notion via Python SDK. TRIGGERS - Notion API, create page, query database, add blocks, automate Notion. PREFLIGHT - requires token from notion.so/my-integrations.
+allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 ---
 
 # Notion SDK Skill
