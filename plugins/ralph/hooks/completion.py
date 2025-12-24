@@ -5,6 +5,7 @@ with any file format (ADRs, specs, plans) without requiring explicit markers.
 """
 import logging
 import os
+import re
 from pathlib import Path
 
 from core.config_schema import CompletionConfig, load_config
@@ -210,8 +211,11 @@ def check_task_complete_rssi(plan_file: str | None) -> tuple[bool, str, float]:
         signals.append(("all_checkboxes_checked", cfg.all_checkboxes_confidence))
 
     # Signal 4: Semantic completion phrases (from config)
+    # Use word-boundary matching to prevent false positives like
+    # "**Implementation Complete**: All 12 models" matching "implementation complete"
     content_lower = content.lower()
-    if any(phrase in content_lower for phrase in cfg.completion_phrases):
+    phrase_pattern = r"\b(" + "|".join(re.escape(p) for p in cfg.completion_phrases) + r")\b"
+    if re.search(phrase_pattern, content_lower):
         signals.append(("semantic_phrase", cfg.semantic_phrases_confidence))
 
     # Signal 5: No unchecked items remain (but has checked items)

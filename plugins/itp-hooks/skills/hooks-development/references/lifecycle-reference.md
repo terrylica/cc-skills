@@ -547,7 +547,7 @@ LIFECYCLE_REFERENCE_SCRIPT_EOF
 
 This happens when Claude Code strips the heredoc wrapper and zsh tries to interpret bash-specific `!=` in `[[ ]]`.
 
-**Fix:** Always wrap skill bash code in heredoc per [ADR: Shell Command Portability](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-06-shell-command-portability-zsh.md)
+**Fix:** Always wrap skill bash code in heredoc per [ADR: Shell Command Portability](../../../../../docs/adr/2025-12-06-shell-command-portability-zsh.md)
 
 ### Diagnostic Commands
 

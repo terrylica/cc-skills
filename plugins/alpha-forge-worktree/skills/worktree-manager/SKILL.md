@@ -436,5 +436,5 @@ The `default-layout.py` script auto-discovers worktrees:
 ## References
 
 - [Naming Conventions](./references/naming-conventions.md)
-- [ADR: Alpha-Forge Git Worktree Management](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-14-alpha-forge-worktree-management.md)
-- [Design Spec](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-14-alpha-forge-worktree-management/spec.md)
+- [ADR: Alpha-Forge Git Worktree Management](../../../../docs/adr/2025-12-14-alpha-forge-worktree-management.md)
+- [Design Spec](../../../../docs/design/2025-12-14-alpha-forge-worktree-management/spec.md)

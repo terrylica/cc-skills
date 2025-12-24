@@ -50,6 +50,12 @@ from utils import (
     hard_stop,
     update_runtime,
 )
+from rssi_evolution import (
+    get_learned_patterns,
+    get_disabled_checks,
+    get_prioritized_checks,
+    suggest_capability_expansion,
+)
 
 
 def _detect_alpha_forge_simple(project_dir: str) -> str:
@@ -72,6 +78,47 @@ logger = logging.getLogger(__name__)
 
 STATE_DIR = Path.home() / ".claude/automation/loop-orchestrator/state"
 CONFIG_FILE = STATE_DIR.parent / "config/loop_config.json"
+
+
+def _build_web_queries(state: dict, adapter_conv: dict | None) -> list[str]:
+    """Build dynamic WebSearch queries based on current bottlenecks.
+
+    Analyzes metrics history to suggest relevant search queries.
+
+    Args:
+        state: Session state dict
+        adapter_conv: Adapter convergence dict (may be None)
+
+    Returns:
+        List of up to 3 search queries
+    """
+    queries: list[str] = []
+
+    if not adapter_conv:
+        return ["project improvement SOTA 2024"]
+
+    metrics = adapter_conv.get("metrics_history", [])
+    if metrics:
+        latest = metrics[-1] if isinstance(metrics[-1], dict) else {}
+        # Check for overfitting (WFE < 0.5)
+        wfe = latest.get("wfe", 1.0) if isinstance(latest, dict) else getattr(latest, "wfe", 1.0)
+        if wfe < 0.5:
+            queries.append("overfitting prevention walk-forward validation ML")
+
+        # Check for plateau (< 5% improvement)
+        if len(metrics) >= 2:
+            prev = metrics[-2]
+            prev_sharpe = prev.get("primary_metric", 0) if isinstance(prev, dict) else 0
+            curr_sharpe = latest.get("primary_metric", 0) if isinstance(latest, dict) else 0
+            if prev_sharpe > 0 and curr_sharpe > 0:
+                delta = (curr_sharpe - prev_sharpe) / prev_sharpe
+                if delta < 0.05:
+                    queries.append("transformer time series forecasting improvement 2024")
+
+    if not queries:
+        queries.append("ML trading strategy SOTA 2024")
+
+    return queries[:3]
 
 
 def build_continuation_prompt(
@@ -129,12 +176,38 @@ def build_continuation_prompt(
                     except (json.JSONDecodeError, OSError):
                         pass  # Graceful fallback to empty guidance
 
+            # Build complete RSSI context with all template variables
+            adapter_conv = state.get("adapter_convergence", {})
             rssi_context = {
+                # Core iteration tracking
                 "iteration": iteration,
-                "adapter_convergence": state.get("adapter_convergence"),
+                "adapter_convergence": adapter_conv,
                 "guidance": guidance,  # User-provided forbidden/encouraged lists
+                # RSSI evolution state (Level 4: Self-Modification)
+                "accumulated_patterns": list(get_learned_patterns().keys()),
+                "disabled_checks": get_disabled_checks(),
+                "effective_checks": get_prioritized_checks(),
+                # Validation state (5-round system)
+                "validation_round": state.get("validation_round", 0),
+                "validation_findings": state.get("validation_findings", {}),
+                # Feature discovery
+                "feature_ideas": state.get("feature_ideas", []),
+                "web_insights": state.get("web_insights", []),
+                # Capability expansion
+                "missing_tools": suggest_capability_expansion(Path(project_dir)) if project_dir else [],
+                # Quality gate
+                "quality_gate": [
+                    "- Verify implementation matches SOTA paper/source",
+                    "- Run backtest on validation period",
+                    "- Check for data leakage",
+                    "- Ensure WFE > 0.5 before committing",
+                ],
+                # Web research
+                "web_queries": _build_web_queries(state, adapter_conv),
+                # Research convergence
+                "research_converged": adapter_conv.get("converged", False) if adapter_conv else False,
             }
-            metrics_history = state.get("adapter_convergence", {}).get("metrics_history", [])
+            metrics_history = adapter_conv.get("metrics_history", []) if adapter_conv else []
             prefix = "**RSSI→EXPLORE**" if force_exploration else "**RSSI**"
             prompt = loader.render_exploration(
                 opportunities=[],
@@ -156,12 +229,42 @@ def build_continuation_prompt(
                     todo_suffix = f"\n\n{todo_instruction}"
             return f"{header}\n\n{prompt}{todo_suffix}"
         else:
-            return (
+            # Generic exploration mode for all non-Alpha-Forge projects
+            # Uses exploration template with RSSI protocol for any project type
+            loader = get_loader()
+            rssi_context = {
+                "iteration": iteration,
+                "accumulated_patterns": list(get_learned_patterns().keys()),
+                "disabled_checks": get_disabled_checks(),
+                "effective_checks": get_prioritized_checks(),
+                "web_insights": state.get("web_insights", []) if state else [],
+                "feature_ideas": state.get("feature_ideas", []) if state else [],
+                "web_queries": ["project improvement SOTA 2024"],
+                "missing_tools": suggest_capability_expansion(Path(project_dir)) if project_dir else [],
+                "quality_gate": [],
+            }
+
+            prompt = loader.render_exploration(
+                opportunities=[],
+                rssi_context=rssi_context,
+                adapter_name=None,
+                metrics_history=[],
+            )
+
+            header = (
                 f"**RSSI** iter {iteration}/{config['max_iterations']} | "
                 f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | "
-                f"Wall: {wall_hours:.1f}h{warning} | "
-                "Continue autonomous work"
+                f"Wall: {wall_hours:.1f}h{warning}"
             )
+
+            todo_suffix = ""
+            if state:
+                todo_items = generate_todo_items(state)
+                todo_instruction = format_todo_instruction(todo_items)
+                if todo_instruction:
+                    todo_suffix = f"\n\n{todo_instruction}"
+
+            return f"{header}\n\n{prompt}{todo_suffix}"
 
     # ===== FOCUSED MODE: Full context for implementation/exploration =====
     parts = []
