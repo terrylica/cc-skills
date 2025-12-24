@@ -22,6 +22,7 @@ npm run release       # Execute release (auto-pushes via successCmd + postreleas
 **Alternative**: All-in-one shell function (add to `~/.zshrc`):
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 release() {
     # PHASE 1: PREFLIGHT
     command -v gh &>/dev/null || { echo "FAIL: gh CLI not installed"; return 1; }
@@ -65,6 +66,7 @@ release() {
     echo "Latest release:"
     gh release list --limit 1
 }
+PREFLIGHT_EOF
 ```
 
 ---
@@ -122,8 +124,10 @@ gh auth switch --user <expected-username>
 **MANDATORY**: Verify version-bumping commits exist before proceeding.
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
 git log "${LAST_TAG}..HEAD" --oneline | grep -E "^[a-f0-9]+ (feat|fix|BREAKING)"
+GIT_EOF
 ```
 
 **If no releasable commits**:
@@ -166,17 +170,21 @@ git push origin main
 ### 3.1 Dry-Run (Recommended First)
 
 ```bash
+/usr/bin/env bash << 'LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF'
 npm run release:dry
 # Or:
 /usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci --dry-run'
+LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF
 ```
 
 ### 3.2 Execute Release
 
 ```bash
+/usr/bin/env bash << 'LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF_2'
 npm run release
 # Or:
 /usr/bin/env bash -c 'export GIT_OPTIONAL_LOCKS=0 && GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
+LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF_2
 ```
 
 **What happens**:
@@ -327,7 +335,9 @@ xattr -r -d com.apple.quarantine ~/.local/share/mise/installs/node/
 **Check**:
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF_2'
 git log $(git describe --tags --abbrev=0)..HEAD --oneline
+GIT_EOF_2
 ```
 
 Only these trigger releases:
