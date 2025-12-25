@@ -144,12 +144,12 @@ graph { label: "Ralph Alpha-Forge Workflow"; flow: south; }
 
 When Ralph blocks a stop, it injects this research methodology:
 
-| Phase       | What Claude Does                                                                                                                                                                                                                                                                                            |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **OBSERVE** | Read [`research_summary.md`](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/outputs/research_sessions), [`ROADMAP.md`](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/ROADMAP.md), [`outputs/runs/summary.json`](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/outputs/runs) |
-| **ORIENT**  | Synthesize expert recommendations from `research_log.md`, check ROADMAP alignment, review `deferred_recommendations` and `SOTA Queue`                                                                                                                                                                       |
-| **DECIDE**  | Apply decision formula based on Sharpe/WFE metrics (see below)                                                                                                                                                                                                                                              |
-| **ACT**     | Execute `/research strategy.yaml` using templates from [`examples/03_machine_learning/`](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/examples/03_machine_learning), write code to [`src/alpha_forge/`](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/src/alpha_forge)               |
+| Phase       | What Claude Does                                                                                                                                                                                                                                                                              |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **OBSERVE** | Read `research_summary.md` _(local)_, [`ROADMAP.md`](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/ROADMAP.md), `outputs/runs/summary.json` _(local)_                                                                                                                              |
+| **ORIENT**  | Synthesize expert recommendations from `research_log.md`, check ROADMAP alignment, review `deferred_recommendations` and `SOTA Queue`                                                                                                                                                         |
+| **DECIDE**  | Apply decision formula based on Sharpe/WFE metrics (see below)                                                                                                                                                                                                                                |
+| **ACT**     | Execute `/research strategy.yaml` using templates from [`examples/03_machine_learning/`](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/examples/03_machine_learning), write code to [`src/alpha_forge/`](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/src/alpha_forge) |
 
 ### OODA File Access
 
@@ -416,20 +416,20 @@ graph { label: "Alpha-Forge Data Flow"; flow: east; }
 
 ## Key Files in Alpha-Forge
 
-| File                                                                                                                                   | OODA Phase                | Ralph Action                                          |
-| -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------- |
-| [ROADMAP.md](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/ROADMAP.md)                                                      | OBSERVE, ORIENT           | Reads P0/P1/P2 priorities                             |
-| [.claude/ralph-config.json](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/.claude/ralph-config.json)                        | Session Start             | Reads limits, forbidden, encouraged, GPU              |
-| [outputs/runs/\*/summary.json](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/outputs/runs)                                  | OBSERVE, DECIDE           | Reads Sharpe, WFE, CAGR, maxDD, Sortino, Calmar       |
-| [outputs/research_sessions/\*/research_log.md](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/outputs/research_sessions)     | OBSERVE, ORIENT, Converge | Reads CONVERGED, deferred_recommendations, SOTA Queue |
-| [outputs/research_sessions/\*/research_summary.md](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/outputs/research_sessions) | OBSERVE                   | Reads metrics table                                   |
-| [examples/03_machine_learning/\*.yaml](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/examples/03_machine_learning)          | ACT                       | Reads template strategies                             |
-| [src/alpha_forge/models/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/src/alpha_forge/models)                             | ACT                       | Writes model implementations                          |
-| [src/alpha_forge/features/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/src/alpha_forge/features)                         | ACT                       | Writes feature engineering                            |
-| [pyproject.toml](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/pyproject.toml)                                              | Session Start             | Project detection                                     |
-| [data/cache/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/data/cache)                                                     | ACT                       | Data source for backtests                             |
-| [.claude/agents/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/.claude/agents)                                             | Context                   | 15 agent definitions                                  |
-| [.claude/commands/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/.claude/commands)                                         | Context                   | 4 custom commands                                     |
+| File                                                                                                                          | OODA Phase                | Ralph Action                                          |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------- |
+| [ROADMAP.md](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/ROADMAP.md)                                             | OBSERVE, ORIENT           | Reads P0/P1/P2 priorities                             |
+| [.claude/ralph-config.json](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/.claude/ralph-config.json)               | Session Start             | Reads limits, forbidden, encouraged, GPU              |
+| `outputs/runs/*/summary.json` _(local runtime, gitignored)_                                                                   | OBSERVE, DECIDE           | Reads Sharpe, WFE, CAGR, maxDD, Sortino, Calmar       |
+| `outputs/research_sessions/*/research_log.md` _(local runtime, gitignored)_                                                   | OBSERVE, ORIENT, Converge | Reads CONVERGED, deferred_recommendations, SOTA Queue |
+| `outputs/research_sessions/*/research_summary.md` _(local runtime, gitignored)_                                               | OBSERVE                   | Reads metrics table                                   |
+| [examples/03_machine_learning/\*.yaml](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/examples/03_machine_learning) | ACT                       | Reads template strategies                             |
+| [src/alpha_forge/models/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/src/alpha_forge/models)                    | ACT                       | Writes model implementations                          |
+| [src/alpha_forge/features/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/src/alpha_forge/features)                | ACT                       | Writes feature engineering                            |
+| [pyproject.toml](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/pyproject.toml)                                     | Session Start             | Project detection                                     |
+| [data/cache/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/data/cache)                                            | ACT                       | Data source for backtests                             |
+| [.claude/agents/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/.claude/agents)                                    | Context                   | 15 agent definitions                                  |
+| [.claude/commands/](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/.claude/commands)                                | Context                   | 4 custom commands                                     |
 
 ---
 
