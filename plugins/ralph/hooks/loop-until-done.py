@@ -339,6 +339,25 @@ def main():
 
     # ===== EARLY EXIT CHECKS =====
 
+    # Global stop signal (version-agnostic, v7.16.2+)
+    # This file is created by /ralph:stop and checked by ALL hook versions
+    global_stop = Path.home() / ".claude/ralph-global-stop.json"
+    if global_stop.exists():
+        try:
+            import time
+            global_data = json.loads(global_stop.read_text())
+            # Check if signal is recent (within 5 minutes)
+            if global_data.get("state") == "stopped":
+                # Clean up the global stop file
+                global_stop.unlink(missing_ok=True)
+                # Also update project state if we know the project
+                if project_dir:
+                    save_state(project_dir, LoopState.STOPPED)
+                hard_stop("Loop stopped via global stop signal (~/.claude/ralph-global-stop.json)")
+                return
+        except (json.JSONDecodeError, OSError):
+            pass
+
     # Check state machine first (new v2.0 architecture)
     if project_dir:
         current_state = load_state(project_dir)
