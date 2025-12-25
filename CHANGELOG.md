@@ -1,3 +1,29 @@
+## [7.16.2](https://github.com/terrylica/cc-skills/compare/v7.16.1...v7.16.2) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ralph:** add global stop signal for version-agnostic stop ([dbcd448](https://github.com/terrylica/cc-skills/commit/dbcd448d91e2461c1a804b62e622f5628cca0a14))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/stop.md) - updated (+7/-5)
+
+</details>
+
 ## [7.16.1](https://github.com/terrylica/cc-skills/compare/v7.16.0...v7.16.1) (2025-12-25)
 
 
