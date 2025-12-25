@@ -7,12 +7,21 @@ import re
 from pathlib import Path
 from typing import Any
 
-# Jinja2 is optional - fall back to simple string replacement if not available
+# Jinja2 is REQUIRED for ralph templates (declared in PEP 723 script metadata)
+# The templates use advanced features (for loops, filters, nested access) that
+# cannot be reasonably implemented in a fallback renderer.
 try:
     from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
     JINJA2_AVAILABLE = True
 except ImportError:
     JINJA2_AVAILABLE = False
+    import warnings
+    warnings.warn(
+        "Jinja2 not available. Ralph templates require Jinja2 for proper rendering. "
+        "Run via 'uv run' to auto-install dependencies, or: pip install jinja2>=3.1.0",
+        RuntimeWarning,
+        stacklevel=2
+    )
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -172,6 +181,9 @@ class TemplateLoader:
 
         Returns:
             Rendered template string
+
+        Raises:
+            RuntimeError: If template uses advanced Jinja2 features but Jinja2 unavailable
         """
         metadata, body = self.load(template_name)
 
@@ -179,7 +191,23 @@ class TemplateLoader:
             template = self.env.from_string(body)
             return template.render(**context)
         else:
-            # Fallback to simple replacement
+            # Check if template uses features the fallback can't handle
+            unsupported = []
+            if re.search(r'\{%\s*for\s+', body):
+                unsupported.append("for loops")
+            if re.search(r'\|(?:length|format|default|upper|lower)', body):
+                unsupported.append("filters (|length, |format, |default)")
+            if re.search(r'\[-?\d+:?\]', body):
+                unsupported.append("list slicing")
+
+            if unsupported:
+                raise RuntimeError(
+                    f"Template '{template_name}' uses Jinja2 features not supported by fallback: "
+                    f"{', '.join(unsupported)}. "
+                    f"Install Jinja2: pip install jinja2>=3.1.0, or run via 'uv run'."
+                )
+
+            # Fallback to simple replacement (only for basic templates)
             return _simple_render(body, context)
 
     def render_exploration(
