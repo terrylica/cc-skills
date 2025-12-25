@@ -1,21 +1,20 @@
 # devops-tools
 
-DevOps automation plugin for Claude Code: asciinema player and recorder, ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
+DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
+
+> **Migration Notice**: asciinema skills (player, recorder, streaming-backup) have moved to the dedicated `asciinema-tools` plugin. Install with `/plugin install asciinema-tools@cc-skills`.
 
 ## Skills
 
-| Skill                           | Description                                                                                           |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **asciinema-player**            | Play .cast terminal recordings in iTerm2 with CLI controls                                            |
-| **asciinema-recorder**          | Record Claude Code sessions with dynamic workspace-based filenames                                    |
-| **asciinema-streaming-backup**  | Real-time recording backup to GitHub with interactive setup, idle-chunking, and autonomous validation |
-| **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management                                |
-| **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models                                       |
-| **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns                                      |
-| **doppler-secret-validation**   | Add, validate, and test API tokens/credentials in Doppler                                             |
-| **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting                                   |
-| **mlflow-python**               | Log backtest metrics, query experiments, QuantStats integration                                       |
-| **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems                                    |
+| Skill                           | Description                                                            |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management |
+| **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models        |
+| **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
+| **doppler-secret-validation**   | Add, validate, and test API tokens/credentials in Doppler              |
+| **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting    |
+| **mlflow-python**               | Log backtest metrics, query experiments, QuantStats integration        |
+| **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems     |
 
 ## Installation
 
@@ -30,43 +29,15 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 **Trigger phrases:**
 
-- "asciinema", ".cast file", "play recording", "terminal recording" → asciinema-player
-- "record session", "asciinema record", "capture terminal", "demo recording", "record ASCII", "ASCII terminal", "terminal screen capture", "shell screen capture", "ASCII screen capture", "screen recording" → asciinema-recorder
-- "streaming backup", "recording backup", "asciinema backup", "continuous recording", "session backup", "orphan branch recording", "zstd streaming", "chunked recording", "real-time backup", "github recording storage" → asciinema-streaming-backup
-- "create ClickHouse user", "ClickHouse permissions" → clickhouse-cloud-management
-- "DBeaver config", "connection setup" → clickhouse-pydantic-config
-- "publish to PyPI" → doppler-workflows
-- "add to Doppler", "validate token" → doppler-secret-validation
-- "telegram bot", "bot status", "restart bot" → telegram-bot-management
-- "log backtest", "MLflow metrics", "search runs" → mlflow-python
-- "no conversations found to resume" → session-recovery
+- "create ClickHouse user", "ClickHouse permissions" -> clickhouse-cloud-management
+- "DBeaver config", "connection setup" -> clickhouse-pydantic-config
+- "publish to PyPI" -> doppler-workflows
+- "add to Doppler", "validate token" -> doppler-secret-validation
+- "telegram bot", "bot status", "restart bot" -> telegram-bot-management
+- "log backtest", "MLflow metrics", "search runs" -> mlflow-python
+- "no conversations found to resume" -> session-recovery
 
 ## Key Features
-
-### asciinema Player
-
-- Play .cast terminal recordings in iTerm2 (handles large files >100MB)
-- Full playback controls: speed (2x, 6x, 16x), pause, step
-- Spawns clean iTerm2 window via AppleScript
-- Interactive speed and options selection
-
-### asciinema Recorder
-
-- Record Claude Code sessions with asciinema
-- Dynamic filename generation (workspace + datetime)
-- Saves to workspace tmp/ folder (gitignored)
-- Step-by-step guidance for recording workflow
-
-### asciinema Streaming Backup
-
-- Real-time backup to GitHub orphan branch (isolated history)
-- **Interactive configuration** with AskUserQuestion flows for all parameters
-- **GitHub account detection** from SSH keys, gh CLI, mise env, git config
-- Idle-detection chunking with configurable threshold (default 30s)
-- zstd streaming compression with configurable level (concatenatable frames)
-- GitHub Actions auto-recompression to brotli (~300x compression)
-- **Autonomous validation**: 8 tests run automatically, only 2 require user action
-- Self-correcting setup with inline troubleshooting
 
 ### ClickHouse Cloud Management
 
