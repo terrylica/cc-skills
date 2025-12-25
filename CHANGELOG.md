@@ -1,3 +1,10 @@
+## [7.16.3](https://github.com/terrylica/cc-skills/compare/v7.16.2...v7.16.3) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ralph:** support nested dict access in fallback template renderer ([65d52b7](https://github.com/terrylica/cc-skills/commit/65d52b76e2458845d683b866095496daaccad16d))
+
 ## [7.16.2](https://github.com/terrylica/cc-skills/compare/v7.16.1...v7.16.2) (2025-12-25)
 
 
