@@ -133,13 +133,15 @@ check_parents() {
 }
 check_parents "$(pwd)"
 
+# Method 4: Create global stop signal (version-agnostic, works across cached versions)
+# This signal is checked by the Stop hook BEFORE any project-specific checks
+echo '{"state": "stopped", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$HOME/.claude/ralph-global-stop.json"
+echo "  [global] Created ~/.claude/ralph-global-stop.json"
+((STOPPED_COUNT++))
+
 # Summary
 echo ""
-if [[ $STOPPED_COUNT -eq 0 ]]; then
-    echo "No active sessions found."
-else
-    echo "Stopped $STOPPED_COUNT session(s)."
-fi
+echo "Stopped $STOPPED_COUNT location(s)."
 echo "Loop stop complete."
 RALPH_STOP_SCRIPT
 ```
