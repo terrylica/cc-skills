@@ -14,61 +14,133 @@ Immediately disable the Ralph Wiggum autonomous improvement loop.
 # Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
 /usr/bin/env bash << 'RALPH_STOP_SCRIPT'
 # RALPH_STOP_SCRIPT marker - required for PreToolUse hook bypass
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-STATE_FILE="$PROJECT_DIR/.claude/ralph-state.json"
-CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
 
-# ===== STATE MACHINE TRANSITION =====
-# State machine: RUNNING → DRAINING → STOPPED (async fire-and-forget)
-CURRENT_STATE="stopped"
-if [[ -f "$STATE_FILE" ]]; then
-    CURRENT_STATE=$(jq -r '.state // "stopped"' "$STATE_FILE" 2>/dev/null || echo "stopped")
-fi
+# ===== HOLISTIC PROJECT DIRECTORY RESOLUTION =====
+# Uses multiple detection methods with priority and validation
+# Fix for: cross-directory invocation bug (v7.16.0)
 
-echo "Current state: $CURRENT_STATE"
+resolve_project_dir() {
+    local resolved=""
 
-# Handle state transitions
-case "$CURRENT_STATE" in
-    "running")
-        # Transition to DRAINING (async - Stop hook will complete to STOPPED)
-        echo '{"state": "draining"}' > "$STATE_FILE"
-        echo "State transition: RUNNING → DRAINING"
-        ;;
-    "draining")
-        # Already draining, force to STOPPED
-        echo '{"state": "stopped"}' > "$STATE_FILE"
-        echo "State transition: DRAINING → STOPPED (forced)"
-        ;;
-    "stopped")
-        echo "Loop already stopped"
-        ;;
-    *)
-        echo "Unknown state '$CURRENT_STATE', resetting to STOPPED"
-        echo '{"state": "stopped"}' > "$STATE_FILE"
-        ;;
-esac
+    # Priority 1: CLAUDE_PROJECT_DIR (highest priority - set by Claude Code)
+    if [[ -n "${CLAUDE_PROJECT_DIR:-}" && -d "$CLAUDE_PROJECT_DIR" ]]; then
+        resolved="$CLAUDE_PROJECT_DIR"
+    fi
 
-# Create kill switch as backup (not blocked by PreToolUse guard)
-# This ensures the Stop hook will see it and complete the transition
-touch "$PROJECT_DIR/.claude/STOP_LOOP"
-echo "Created kill switch signal"
+    # Priority 2: Git root (provides repo boundary)
+    if [[ -z "$resolved" ]]; then
+        local git_root
+        git_root=$(git rev-parse --show-toplevel 2>/dev/null)
+        if [[ -n "$git_root" && -d "$git_root" ]]; then
+            resolved="$git_root"
+        fi
+    fi
 
-# Update config state
-if [[ -f "$CONFIG_FILE" ]]; then
-    jq '.state = "stopped"' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
-fi
+    # Priority 3: pwd (lowest priority fallback)
+    if [[ -z "$resolved" ]]; then
+        resolved="$(pwd)"
+    fi
 
-# Remove legacy loop-enabled markers
-if [[ -f "$PROJECT_DIR/.claude/loop-enabled" ]]; then
-    rm "$PROJECT_DIR/.claude/loop-enabled"
+    echo "$resolved"
+}
+
+# ===== SESSION DISCOVERY =====
+SESSIONS_DIR="$HOME/.claude/automation/loop-orchestrator/state/sessions"
+STOPPED_COUNT=0
+declare -A STOPPED_PROJECTS  # Track already-stopped projects (dedup)
+
+stop_project() {
+    local PROJECT_DIR="$1"
+    local SOURCE="$2"
+    local STATE_FILE="$PROJECT_DIR/.claude/ralph-state.json"
+    local CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
+
+    # Skip if already stopped this project (dedup)
+    if [[ -n "${STOPPED_PROJECTS[$PROJECT_DIR]:-}" ]]; then
+        return 0
+    fi
+
+    # Skip if no .claude directory (not a Ralph-enabled project)
+    if [[ ! -d "$PROJECT_DIR/.claude" ]]; then
+        return 0
+    fi
+
+    # Set state to stopped
+    echo '{"state": "stopped"}' > "$STATE_FILE"
+
+    # Create kill switch
+    touch "$PROJECT_DIR/.claude/STOP_LOOP"
+
+    # Update config if exists
+    if [[ -f "$CONFIG_FILE" ]]; then
+        jq '.state = "stopped"' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+    fi
+
+    # Clean legacy markers
+    rm -f "$PROJECT_DIR/.claude/loop-enabled"
     rm -f "$PROJECT_DIR/.claude/loop-start-timestamp"
-    echo "Cleaned up legacy markers"
+
+    echo "  [$SOURCE] Stopped: $PROJECT_DIR"
+    STOPPED_PROJECTS["$PROJECT_DIR"]=1
+    ((STOPPED_COUNT++))
+}
+
+echo "Discovering active sessions (holistic resolution)..."
+
+# Method 1: Scan session state files for project_path
+if [[ -d "$SESSIONS_DIR" ]]; then
+    for STATE_FILE in "$SESSIONS_DIR"/*.json; do
+        [[ -f "$STATE_FILE" ]] || continue
+
+        PROJECT_PATH=$(jq -r '.project_path // empty' "$STATE_FILE" 2>/dev/null)
+
+        if [[ -n "$PROJECT_PATH" && -d "$PROJECT_PATH" ]]; then
+            stop_project "$PROJECT_PATH" "session-state"
+
+            # Also update session state to prevent continuation
+            jq '.adapter_convergence.should_continue = false' "$STATE_FILE" > "$STATE_FILE.tmp" \
+                && mv "$STATE_FILE.tmp" "$STATE_FILE"
+        fi
+    done
 fi
 
-# Final state
+# Method 2: Resolve current context using holistic detection
+CURRENT_PROJECT=$(resolve_project_dir)
+if [[ -d "$CURRENT_PROJECT/.claude" ]]; then
+    CURRENT_STATE=$(jq -r '.state // "stopped"' "$CURRENT_PROJECT/.claude/ralph-state.json" 2>/dev/null || echo "stopped")
+    if [[ "$CURRENT_STATE" != "stopped" ]]; then
+        stop_project "$CURRENT_PROJECT" "holistic"
+    fi
+fi
+
+# Method 3: Check parent directories for nested repos (monorepo support)
+check_parents() {
+    local dir="$1"
+    local max_depth=3
+    local depth=0
+
+    while [[ "$dir" != "/" && $depth -lt $max_depth ]]; do
+        if [[ -f "$dir/.claude/ralph-state.json" ]]; then
+            local state
+            state=$(jq -r '.state // "stopped"' "$dir/.claude/ralph-state.json" 2>/dev/null || echo "stopped")
+            if [[ "$state" != "stopped" ]]; then
+                stop_project "$dir" "parent-walk"
+            fi
+        fi
+        dir=$(dirname "$dir")
+        ((depth++))
+    done
+}
+check_parents "$(pwd)"
+
+# Summary
 echo ""
-echo "Final state: $(jq -r '.state' "$STATE_FILE" 2>/dev/null || echo 'stopped')"
-echo "Loop stop requested. Session will terminate on next Stop hook check."
+if [[ $STOPPED_COUNT -eq 0 ]]; then
+    echo "No active sessions found."
+else
+    echo "Stopped $STOPPED_COUNT session(s)."
+fi
+echo "Loop stop complete."
 RALPH_STOP_SCRIPT
 ```
 
