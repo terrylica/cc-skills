@@ -1,3 +1,95 @@
+# [7.16.0](https://github.com/terrylica/cc-skills/compare/v7.15.4...v7.16.0) (2025-12-25)
+
+
+### Features
+
+* **ralph:** add GPU infrastructure awareness for alpha-forge ([d203158](https://github.com/terrylica/cc-skills/commit/d20315884bcc3516143ef602ee3e8b4bf280cbab))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [asciinema-tools Plugin Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-24-asciinema-tools-plugin.md) | new (+180) |
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>asciinema-tools</strong> (6 changes)</summary>
+
+- [asciinema-analyzer](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-analyzer/SKILL.md) - new (+378)
+- [asciinema-cast-format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-cast-format/SKILL.md) - new (+215)
+- [asciinema-converter](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/SKILL.md) - new (+324)
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-player/SKILL.md) - renamed from `plugins/devops-tools/skills/asciinema-player/SKILL.md`
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-recorder/SKILL.md) - renamed from `plugins/devops-tools/skills/asciinema-recorder/SKILL.md`
+- [asciinema-streaming-backup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/SKILL.md) - renamed from `plugins/devops-tools/skills/asciinema-streaming-backup/SKILL.md`
+
+</details>
+
+
+### Plugin READMEs
+
+- [asciinema-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/README.md) - new (+149)
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+19/-48)
+
+### Skill References
+
+<details>
+<summary><strong>asciinema-tools/asciinema-analyzer</strong> (2 files)</summary>
+
+- [Analysis Tiers Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-analyzer/references/analysis-tiers.md) - new (+276)
+- [Domain Keywords Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-analyzer/references/domain-keywords.md) - new (+202)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/asciinema-streaming-backup</strong> (4 files)</summary>
+
+- [Autonomous Validation Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/references/autonomous-validation.md) - renamed from `plugins/devops-tools/skills/asciinema-streaming-backup/references/autonomous-validation.md`
+- [GitHub Actions Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/references/github-workflow.md) - renamed from `plugins/devops-tools/skills/asciinema-streaming-backup/references/github-workflow.md`
+- [Idle Chunker Script](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/references/idle-chunker.md) - renamed from `plugins/devops-tools/skills/asciinema-streaming-backup/references/idle-chunker.md`
+- [Setup Scripts](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/references/setup-scripts.md) - renamed from `plugins/devops-tools/skills/asciinema-streaming-backup/references/setup-scripts.md`
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (11 commands)</summary>
+
+- [/asciinema-tools:analyze](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/analyze.md) - new (+46)
+- [/asciinema-tools:backup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/backup.md) - new (+39)
+- [/asciinema-tools:bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/bootstrap.md) - new (+247)
+- [/asciinema-tools:convert](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/convert.md) - new (+42)
+- [/asciinema-tools:format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/format.md) - new (+35)
+- [/asciinema-tools:full-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/full-workflow.md) - new (+53)
+- [/asciinema-tools:hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/hooks.md) - new (+52)
+- [/asciinema-tools:play](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/play.md) - new (+39)
+- [/asciinema-tools:post-session](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/post-session.md) - new (+50)
+- [/asciinema-tools:record](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/record.md) - new (+36)
+- [/asciinema-tools:setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/setup.md) - new (+48)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Example: If WebSearch found "Temporal Fusion Transformer"](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-exploration.md) - updated (+24)
+
 ## [7.15.4](https://github.com/terrylica/cc-skills/compare/v7.15.3...v7.15.4) (2025-12-24)
 
 
