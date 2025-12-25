@@ -479,6 +479,30 @@ Only commit work that:
 _No custom guidance configured. Using default SLO filters._
 {% endif %}
 
+{% if gpu_infrastructure and gpu_infrastructure.available %}
+
+---
+
+## GPU INFRASTRUCTURE
+
+**Remote GPU**: `{{ gpu_infrastructure.host }}` — {{ gpu_infrastructure.gpu }}
+
+| Use Remote For                     | Keep Local              |
+| ---------------------------------- | ----------------------- |
+| Model training (90+ architectures) | Feature engineering     |
+| Batch inference (large datasets)   | Backtesting (CPU-bound) |
+| CUDA-accelerated computation       | Quick code iteration    |
+
+**Execution Patterns**:
+
+1. **Git Pull + Run**: `{{ gpu_infrastructure.ssh_cmd }} 'cd ~/eon/alpha-forge && git pull && uv run alpha_forge run <yaml>'`
+2. **Rsync + Run**: Sync uncommitted changes, run remotely, rsync results back
+3. **Distributed (SOTA)**: PyTorch DDP, Horovod, NCCL backend for multi-GPU
+
+**Best Practice**: Use checkpointing for fault tolerance on long training runs.
+
+{% endif %}
+
 ---
 
 ## LEARNING CONTEXT

@@ -171,6 +171,7 @@ class TemplateLoader:
             "missing_tools": ctx.get("missing_tools", []),
             "quality_gate": ctx.get("quality_gate", []),
             "overall_effectiveness": ctx.get("overall_effectiveness", 0.0),
+            "gpu_infrastructure": ctx.get("gpu_infrastructure", {}),
         }
 
         # Alpha Forge: ONLY use alpha-forge-exploration.md (no fallback)

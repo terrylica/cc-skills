@@ -206,6 +206,13 @@ def build_continuation_prompt(
                 "web_queries": _build_web_queries(state, adapter_conv),
                 # Research convergence
                 "research_converged": adapter_conv.get("converged", False) if adapter_conv else False,
+                # GPU infrastructure for remote training (littleblack server)
+                "gpu_infrastructure": {
+                    "available": True,
+                    "host": "littleblack",
+                    "gpu": "RTX 2080 Ti (11GB)",
+                    "ssh_cmd": "ssh kab@littleblack",
+                },
             }
             metrics_history = adapter_conv.get("metrics_history", []) if adapter_conv else []
             prefix = "**RSSI→EXPLORE**" if force_exploration else "**RSSI**"
