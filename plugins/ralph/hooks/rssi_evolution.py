@@ -14,7 +14,9 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-EVOLUTION_LOG = Path.home() / ".claude/automation/loop-orchestrator/state/rssi-evolution.json"
+from core.constants import STATE_DIR
+
+EVOLUTION_LOG = STATE_DIR / "rssi-evolution.json"
 
 
 def load_evolution_state() -> dict:

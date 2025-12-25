@@ -9,6 +9,14 @@ TodoWrite is a mirror for user visibility only.
 
 from typing import Any
 
+from core.constants import (
+    ROUND_ADVERSARIAL,
+    ROUND_DOCUMENTATION,
+    ROUND_ROBUSTNESS,
+    ROUND_VERIFICATION,
+    TODO_CONTENT_MAX_LENGTH,
+)
+
 
 def generate_todo_items(state: dict) -> list[dict[str, Any]]:
     """Generate TodoWrite-compatible items from Ralph session state.
@@ -86,13 +94,13 @@ def _round_has_issues(round_num: int, round_data: dict) -> bool:
     """
     if round_num == 1:
         return bool(round_data.get("critical", []))
-    elif round_num == 2:
+    elif round_num == ROUND_VERIFICATION:
         return bool(round_data.get("failed", []))
-    elif round_num == 3:
+    elif round_num == ROUND_DOCUMENTATION:
         return bool(round_data.get("doc_issues", []) or round_data.get("coverage_gaps", []))
-    elif round_num == 4:
+    elif round_num == ROUND_ADVERSARIAL:
         return bool(round_data.get("edge_cases_failed", []))
-    elif round_num == 5:
+    elif round_num == ROUND_ROBUSTNESS:
         return round_data.get("robustness_score", 0.0) <= 0.0
     return False
 
@@ -143,8 +151,8 @@ def get_compact_status(state: dict) -> str:
     current_work = state.get("current_work_item", "autonomous")
 
     # Truncate work item if too long
-    if len(current_work) > 30:
-        current_work = current_work[:27] + "..."
+    if len(current_work) > TODO_CONTENT_MAX_LENGTH:
+        current_work = current_work[:TODO_CONTENT_MAX_LENGTH - 3] + "..."
 
     if validation_round > 0:
         return f"Iter {iteration} | Validation {validation_round}/5 | {current_work}"

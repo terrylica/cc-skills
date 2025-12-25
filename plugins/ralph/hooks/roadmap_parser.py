@@ -29,6 +29,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.constants import MAX_PRIORITY_VALUE
 from work_policy import Priority, WorkItem
 
 
@@ -152,7 +153,7 @@ def _parse_roadmap_file(roadmap_path: Path) -> list[WorkItem]:
         priority_match = re.search(priority_pattern, line)
         if priority_match:
             p_num = int(priority_match.group(2))
-            current_priority = Priority(p_num) if p_num <= 2 else Priority.P2
+            current_priority = Priority(p_num) if p_num <= MAX_PRIORITY_VALUE else Priority.P2
             continue
 
         # Check for list items (potential work items)

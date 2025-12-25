@@ -11,6 +11,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from core.constants import (
+    CAPABILITY_EXPANSION_THRESHOLD,
+    DEFAULT_COVERAGE_THRESHOLD,
+    DISCOVERY_LOW_EFFECTIVENESS,
+    HIGH_EFFECTIVENESS_THRESHOLD,
+    LOW_EFFECTIVENESS_THRESHOLD,
+    MIN_SAMPLES_FOR_DISABLING,
+    MIN_SAMPLES_FOR_EVALUATION,
+    VERY_LOW_EFFECTIVENESS_THRESHOLD,
+)
 from rssi_evolution import (
     disable_underperforming_check,
     get_learned_patterns,
@@ -19,14 +29,6 @@ from rssi_evolution import (
     propose_new_check,
     save_evolution_state,
 )
-
-# Effectiveness thresholds
-MIN_SAMPLES_FOR_EVALUATION = 5
-MIN_SAMPLES_FOR_DISABLING = 10
-LOW_EFFECTIVENESS_THRESHOLD = 0.2
-VERY_LOW_EFFECTIVENESS_THRESHOLD = 0.1
-HIGH_EFFECTIVENESS_THRESHOLD = 0.7
-DEFAULT_COVERAGE_THRESHOLD = 80
 
 
 def analyze_discovery_effectiveness() -> dict:
@@ -63,7 +65,7 @@ def analyze_discovery_effectiveness() -> dict:
     overall_rate = total_hits / total
     recommendations: list[str] = []
 
-    if overall_rate < 0.3:
+    if overall_rate < DISCOVERY_LOW_EFFECTIVENESS:
         recommendations.append(
             "Discovery is finding issues but not leading to commits. "
             "Consider more targeted checks."
@@ -179,11 +181,11 @@ def get_meta_suggestions() -> list[str]:
 
     effectiveness = analysis["overall_effectiveness"]
 
-    if effectiveness < 0.3:
+    if effectiveness < DISCOVERY_LOW_EFFECTIVENESS:
         suggestions.append("Focus on high-impact checks: lint errors, type errors, security issues")
         suggestions.append("Consider reducing scope to most impactful improvements")
 
-    if effectiveness > 0.7:
+    if effectiveness > HIGH_EFFECTIVENESS_THRESHOLD:
         suggestions.append("Discovery is effective - consider expanding check coverage")
         suggestions.append("Try more ambitious improvements: refactoring, architecture changes")
 
@@ -207,4 +209,4 @@ def should_expand_capabilities() -> bool:
         return False
 
     # Expand if effectiveness is moderate to high
-    return analysis["overall_effectiveness"] >= 0.5
+    return analysis["overall_effectiveness"] >= CAPABILITY_EXPANSION_THRESHOLD

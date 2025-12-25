@@ -25,6 +25,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
+from core.constants import OUTPUT_LENGTH_WARNING
+
 
 class Priority(Enum):
     """Work item priority levels."""
@@ -166,10 +168,10 @@ def check_escalation(
     reasons: list[EscalationReason] = []
     messages: list[str] = []
 
-    # Check for large changes (>200 lines)
-    if lines_changed > 200:
+    # Check for large changes
+    if lines_changed > OUTPUT_LENGTH_WARNING:
         reasons.append(EscalationReason.LARGE_CHANGE)
-        messages.append(f"Change exceeds 200 lines ({lines_changed})")
+        messages.append(f"Change exceeds {OUTPUT_LENGTH_WARNING} lines ({lines_changed})")
 
     # Check for cross-package changes
     if changed_files:

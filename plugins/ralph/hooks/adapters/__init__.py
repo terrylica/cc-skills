@@ -17,8 +17,7 @@ To add a new adapter:
 
 from adapters.alpha_forge import AlphaForgeAdapter
 
-# Note: UniversalAdapter was planned but not implemented.
-# Ralph is currently Research Repo exclusive (see core/registry.py).
-# The registry returns None for non-Research Repo projects.
+# Note: UniversalAdapter intentionally omitted - Ralph is Research Repo exclusive.
+# See core/registry.py for details. Registry returns None for non-Research Repo projects.
 
 __all__ = ["AlphaForgeAdapter"]
