@@ -44,19 +44,77 @@ def parse_frontmatter(content: str) -> tuple[dict[str, str], str]:
     return metadata, body.strip()
 
 
+def _resolve_path(context: dict[str, Any], path: str) -> Any:
+    """Resolve a dotted path like 'gpu_infrastructure.host' from context.
+
+    Args:
+        context: Template context dict
+        path: Dotted path string (e.g., 'foo.bar.baz')
+
+    Returns:
+        Resolved value or None if path doesn't exist
+    """
+    parts = path.split(".")
+    value = context
+    for part in parts:
+        if isinstance(value, dict) and part in value:
+            value = value[part]
+        else:
+            return None
+    return value
+
+
 def _simple_render(template: str, context: dict[str, Any]) -> str:
     """Fallback renderer using simple {{ var }} replacement.
 
-    Handles basic variable substitution only (no loops/conditionals).
+    Handles basic variable substitution including nested dict access
+    (e.g., {{ gpu_infrastructure.host }}). Does not support loops/conditionals.
     """
     result = template
-    for key, value in context.items():
-        placeholder = "{{ " + key + " }}"
-        if isinstance(value, (list, dict)):
-            value = str(value)
-        result = result.replace(placeholder, str(value))
 
-    # Also handle {%...%} blocks by removing them (best effort)
+    # Handle nested access patterns like {{ foo.bar.baz }}
+    var_pattern = re.compile(r'\{\{\s*([a-zA-Z_][a-zA-Z0-9_\.]*)\s*\}\}')
+    for match in var_pattern.finditer(template):
+        path = match.group(1)
+        value = _resolve_path(context, path)
+        if value is not None:
+            if isinstance(value, (list, dict)):
+                value = str(value)
+            result = result.replace(match.group(0), str(value))
+
+    # Handle {% if var %} ... {% endif %} blocks (basic support)
+    # Remove blocks where condition is falsy
+    if_pattern = re.compile(
+        r'\{%\s*if\s+([a-zA-Z_][a-zA-Z0-9_\.]*)\s+and\s+([a-zA-Z_][a-zA-Z0-9_\.]*)\s*%\}'
+        r'(.*?)'
+        r'\{%\s*endif\s*%\}',
+        re.DOTALL
+    )
+    for match in if_pattern.finditer(result):
+        cond1 = _resolve_path(context, match.group(1))
+        cond2 = _resolve_path(context, match.group(2))
+        if cond1 and cond2:
+            # Keep the content, remove the tags
+            result = result.replace(match.group(0), match.group(3))
+        else:
+            # Remove the entire block
+            result = result.replace(match.group(0), "")
+
+    # Handle simpler {% if var %} ... {% endif %} blocks
+    simple_if_pattern = re.compile(
+        r'\{%\s*if\s+([a-zA-Z_][a-zA-Z0-9_\.]*)\s*%\}'
+        r'(.*?)'
+        r'\{%\s*endif\s*%\}',
+        re.DOTALL
+    )
+    for match in simple_if_pattern.finditer(result):
+        cond = _resolve_path(context, match.group(1))
+        if cond:
+            result = result.replace(match.group(0), match.group(2))
+        else:
+            result = result.replace(match.group(0), "")
+
+    # Remove any remaining {%...%} blocks (best effort)
     result = re.sub(r'\{%.*?%\}', '', result, flags=re.DOTALL)
 
     return result
