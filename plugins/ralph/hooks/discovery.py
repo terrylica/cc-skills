@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from completion import has_frontmatter_value
+from core.project_detection import is_alpha_forge_project
 
 # RSSI modules
 from rssi_discovery import rssi_scan_opportunities
@@ -31,7 +32,6 @@ from rssi_web_discovery import get_quality_gate_instructions, web_search_for_ide
 logger = logging.getLogger(__name__)
 
 # Work opportunity scanning constants
-LYCHEE_TIMEOUT = 30
 MAX_OPPORTUNITIES = 5
 
 # Pattern to match plan mode system-reminder
@@ -366,7 +366,7 @@ def discover_target_file(
 
     # Priority 3.5: Alpha Forge research sessions
     # Returns up to 3 most recent sessions for Claude to read
-    if project_dir and _is_alpha_forge_project(Path(project_dir)):
+    if project_dir and is_alpha_forge_project(Path(project_dir)):
         sessions = find_alpha_forge_research_sessions(project_dir, max_sessions=3)
         if sessions:
             # Return primary (most recent) as path, all sessions as candidates
@@ -485,7 +485,7 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     # GUARANTEE: Never return empty (RSSI Tier 7 fallback)
     # For Alpha Forge: Use value-aligned fallbacks, not busywork
     if not opportunities:
-        if _is_alpha_forge_project(project_path):
+        if is_alpha_forge_project(project_path):
             opportunities = [
                 "Check ROADMAP.md for next P0/P1 item",
                 "Search for SOTA approach to current ROADMAP priority",
@@ -499,15 +499,6 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
             ]
 
     return opportunities
-
-
-def _is_alpha_forge_project(project_dir: Path) -> bool:
-    """Check if this is an Alpha Forge project (delegated to rssi_discovery)."""
-    try:
-        from rssi_discovery import _is_alpha_forge_project as check_alpha_forge
-        return check_alpha_forge(project_dir)
-    except ImportError:
-        return False
 
 
 def _load_guidance(project_dir: Path) -> dict | None:
@@ -552,7 +543,7 @@ def _apply_alpha_forge_filter(
     Returns:
         Filtered list with busywork and user-forbidden items removed
     """
-    if not _is_alpha_forge_project(project_dir):
+    if not is_alpha_forge_project(project_dir):
         return opportunities
 
     try:

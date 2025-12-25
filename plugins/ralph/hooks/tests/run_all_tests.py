@@ -20,11 +20,14 @@ from pathlib import Path
 
 
 def run_test_file(test_file: Path, verbose: bool = False) -> tuple[bool, float]:
-    """Run a single test file and return (success, duration)."""
+    """Run a single test file and return (success, duration).
+
+    Uses 'uv run' to properly handle PEP 723 inline script dependencies.
+    """
     start = time.time()
     try:
         result = subprocess.run(
-            [sys.executable, str(test_file)],
+            ["uv", "run", str(test_file)],
             capture_output=not verbose,
             text=True,
             cwd=test_file.parent,

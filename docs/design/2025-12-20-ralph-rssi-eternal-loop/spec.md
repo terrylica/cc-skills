@@ -1,9 +1,10 @@
 ---
 adr: 2025-12-20-ralph-rssi-eternal-loop
 source: ~/.claude/plans/optimized-twirling-river.md
-implementation-status: in_progress
-phase: phase-1
-last-updated: 2025-12-20
+implementation-status: completed
+phase: phase-3
+last-updated: 2025-12-25
+validated: 2025-12-25
 ---
 
 # Design Spec: Ralph RSSI Eternal Loop Architecture
@@ -196,3 +197,28 @@ All solutions must meet one of:
 | `plugins/ralph/hooks/discovery.py`                  | Orchestrate RSSI modules |
 | `plugins/ralph/hooks/templates/exploration-mode.md` | Full RSSI template       |
 | `plugins/ralph/hooks/loop-until-done.py`            | Integrate eternal loop   |
+
+## Bug Fix: Cross-Directory Stop (v7.16.0+)
+
+**Issue**: `/ralph:stop` wrote state to wrong project when invoked from different directory.
+
+**Root Cause**: `stop.md` fell back to `$(pwd)` instead of session's `CLAUDE_PROJECT_DIR`.
+
+### Fix Components
+
+- [x] `stop.md`: 4-method holistic resolution (session-state, holistic, parent-walk, global-stop)
+- [x] `loop-until-done.py`: Add `project_path` field to session state
+- [x] `loop-until-done.py`: Check global stop signal FIRST (version-agnostic)
+- [x] `core/constants.py`: Centralize magic numbers (PLR2004 compliance)
+
+### Verification (2025-12-25)
+
+| Check                         | Status | Evidence                                       |
+| ----------------------------- | ------ | ---------------------------------------------- |
+| stop.md has 4 methods         | ✅     | `grep -c "Method [1-4]:" → 4`                  |
+| project_path in default_state | ✅     | Line 412: `"project_path": ""`                 |
+| Global stop signal check      | ✅     | Lines 363-380: checks `ralph-global-stop.json` |
+| Observability logging         | ✅     | Lines 357, 377, 385, 395, 404, 451             |
+| E2E cross-directory test      | ✅     | Global stop prevents hook continuation         |
+| Unit tests pass               | ✅     | 3/3 tests pass (0.23s)                         |
+| PLR2004 production code       | ✅     | 0 violations (was 27+)                         |

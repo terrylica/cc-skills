@@ -27,11 +27,27 @@ import logging
 import os
 import sys
 from dataclasses import asdict
+from datetime import datetime
 from pathlib import Path
 
 # Import from modular components
 from completion import check_task_complete_rssi
-from core.config_schema import LoopState, load_config, load_state, save_state
+from core.config_schema import LoopLimitsConfig, LoopState, load_config, load_state, save_state
+from core.constants import (
+    ADAPTER_CONFIDENCE_THRESHOLD,
+    BACKOFF_BASE_INTERVAL,
+    BACKOFF_JITTER,
+    BACKOFF_MAX_INTERVAL,
+    BACKOFF_MULTIPLIER,
+    CONFIG_DIR,
+    IMPROVEMENT_PLATEAU_THRESHOLD,
+    ITERATIONS_WARNING_THRESHOLD,
+    MAX_IDLE_BEFORE_EXPLORE,
+    MIN_METRICS_FOR_COMPARISON,
+    STATE_DIR,
+    TIME_WARNING_THRESHOLD_HOURS,
+    WFE_OVERFITTING_THRESHOLD,
+)
 from core.path_hash import build_state_file_path, load_session_state
 from core.project_detection import is_alpha_forge_project
 from core.registry import AdapterRegistry
@@ -72,12 +88,11 @@ def _detect_alpha_forge_simple(project_dir: str) -> str:
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler(Path.home() / '.claude/automation/loop-orchestrator/state/loop-hook.log')]
+    handlers=[logging.FileHandler(STATE_DIR / 'loop-hook.log')]
 )
 logger = logging.getLogger(__name__)
 
-STATE_DIR = Path.home() / ".claude/automation/loop-orchestrator/state"
-CONFIG_FILE = STATE_DIR.parent / "config/loop_config.json"
+CONFIG_FILE = CONFIG_DIR / "loop_config.json"
 
 
 def _build_web_queries(state: dict, adapter_conv: dict | None) -> list[str]:
@@ -94,29 +109,33 @@ def _build_web_queries(state: dict, adapter_conv: dict | None) -> list[str]:
     """
     queries: list[str] = []
 
+    # Use year range to cover both current and previous year for SOTA research
+    current_year = datetime.now().year
+    year_range = f"{current_year - 1}-{current_year}"
+
     if not adapter_conv:
-        return ["project improvement SOTA 2024"]
+        return [f"project improvement SOTA {year_range}"]
 
     metrics = adapter_conv.get("metrics_history", [])
     if metrics:
         latest = metrics[-1] if isinstance(metrics[-1], dict) else {}
         # Check for overfitting (WFE < 0.5)
         wfe = latest.get("wfe", 1.0) if isinstance(latest, dict) else getattr(latest, "wfe", 1.0)
-        if wfe < 0.5:
+        if wfe < WFE_OVERFITTING_THRESHOLD:
             queries.append("overfitting prevention walk-forward validation ML")
 
         # Check for plateau (< 5% improvement)
-        if len(metrics) >= 2:
+        if len(metrics) >= MIN_METRICS_FOR_COMPARISON:
             prev = metrics[-2]
             prev_sharpe = prev.get("primary_metric", 0) if isinstance(prev, dict) else 0
             curr_sharpe = latest.get("primary_metric", 0) if isinstance(latest, dict) else 0
             if prev_sharpe > 0 and curr_sharpe > 0:
                 delta = (curr_sharpe - prev_sharpe) / prev_sharpe
-                if delta < 0.05:
-                    queries.append("transformer time series forecasting improvement 2024")
+                if delta < IMPROVEMENT_PLATEAU_THRESHOLD:
+                    queries.append(f"transformer time series forecasting improvement {year_range}")
 
     if not queries:
-        queries.append("ML trading strategy SOTA 2024")
+        queries.append(f"ML trading strategy SOTA {year_range}")
 
     return queries[:3]
 
@@ -158,23 +177,28 @@ def build_continuation_prompt(
 
         # Warning suffix if approaching limits
         warning = ""
-        if time_to_max < 1.0 or iters_to_max < 5:
+        if time_to_max < TIME_WARNING_THRESHOLD_HOURS or iters_to_max < ITERATIONS_WARNING_THRESHOLD:
             warning = " | **ENDING SOON**"
 
         if adapter_name == "alpha-forge":
             # Use full template with CONVERGED detection for proper busywork blocking
             loader = get_loader()
 
-            # Load user guidance from ralph-config.json (natural language lists)
+            # Load user guidance and GPU infrastructure from ralph-config.json
             guidance = {}
+            gpu_infrastructure = {}
             if project_dir:
                 ralph_config_file = Path(project_dir) / ".claude/ralph-config.json"
                 if ralph_config_file.exists():
                     try:
                         ralph_config = json.loads(ralph_config_file.read_text())
                         guidance = ralph_config.get("guidance", {})
+                        # GPU infrastructure from config (user-configurable)
+                        gpu_cfg = ralph_config.get("gpu_infrastructure", {})
+                        if gpu_cfg.get("available", False):
+                            gpu_infrastructure = gpu_cfg
                     except (json.JSONDecodeError, OSError):
-                        pass  # Graceful fallback to empty guidance
+                        pass  # Graceful fallback to empty
 
             # Build complete RSSI context with all template variables
             adapter_conv = state.get("adapter_convergence", {})
@@ -183,6 +207,8 @@ def build_continuation_prompt(
                 "iteration": iteration,
                 "adapter_convergence": adapter_conv,
                 "guidance": guidance,  # User-provided forbidden/encouraged lists
+                # Project directory for dynamic template paths
+                "project_dir": project_dir or "",
                 # RSSI evolution state (Level 4: Self-Modification)
                 "accumulated_patterns": list(get_learned_patterns().keys()),
                 "disabled_checks": get_disabled_checks(),
@@ -206,13 +232,8 @@ def build_continuation_prompt(
                 "web_queries": _build_web_queries(state, adapter_conv),
                 # Research convergence
                 "research_converged": adapter_conv.get("converged", False) if adapter_conv else False,
-                # GPU infrastructure for remote training (littleblack server)
-                "gpu_infrastructure": {
-                    "available": True,
-                    "host": "littleblack",
-                    "gpu": "RTX 2080 Ti (11GB)",
-                    "ssh_cmd": "ssh kab@littleblack",
-                },
+                # GPU infrastructure from config (user-configurable per project)
+                "gpu_infrastructure": gpu_infrastructure,
             }
             metrics_history = adapter_conv.get("metrics_history", []) if adapter_conv else []
             prefix = "**RSSI→EXPLORE**" if force_exploration else "**RSSI**"
@@ -246,7 +267,7 @@ def build_continuation_prompt(
                 "effective_checks": get_prioritized_checks(),
                 "web_insights": state.get("web_insights", []) if state else [],
                 "feature_ideas": state.get("feature_ideas", []) if state else [],
-                "web_queries": ["project improvement SOTA 2024"],
+                "web_queries": [f"project improvement SOTA {datetime.now().year - 1}-{datetime.now().year}"],
                 "missing_tools": suggest_capability_expansion(Path(project_dir)) if project_dir else [],
                 "quality_gate": [],
             }
@@ -284,7 +305,7 @@ def build_continuation_prompt(
 
     # Warning suffix when approaching limits
     warning_suffix = ""
-    if time_to_max < 1.0 or iters_to_max < 5:
+    if time_to_max < TIME_WARNING_THRESHOLD_HOURS or iters_to_max < ITERATIONS_WARNING_THRESHOLD:
         warning_suffix = (
             f"\n**WARNING**: Approaching limits "
             f"({time_to_max:.1f}h / {iters_to_max} iters to max)"
@@ -429,13 +450,18 @@ def main():
         state["project_path"] = project_dir
         logger.info(f"Saved project_path for session discovery: {project_dir}")
 
-    # Load config
+    # Load config with defaults from LoopLimitsConfig
+    defaults = LoopLimitsConfig()
+    default_config = {
+        "min_hours": defaults.min_hours,
+        "max_hours": defaults.max_hours,
+        "min_iterations": defaults.min_iterations,
+        "max_iterations": defaults.max_iterations,
+    }
     try:
-        config = json.loads(CONFIG_FILE.read_text()) if CONFIG_FILE.exists() else {
-            "min_hours": 4, "max_hours": 9, "min_iterations": 50, "max_iterations": 99
-        }
+        config = json.loads(CONFIG_FILE.read_text()) if CONFIG_FILE.exists() else default_config
     except (json.JSONDecodeError, OSError):
-        config = {"min_hours": 4, "max_hours": 9, "min_iterations": 50, "max_iterations": 99}
+        config = default_config
 
     # Environment variable overrides
     if os.environ.get("LOOP_MIN_HOURS"):
@@ -585,18 +611,11 @@ def main():
     last_iteration_time = state.get("last_iteration_time", 0)
     idle_count = state.get("idle_iteration_count", 0)
 
-    # Exponential backoff parameters (stamina-style defaults)
-    BASE_INTERVAL = 30  # Initial minimum interval (seconds)
-    BACKOFF_MULTIPLIER = 2  # Double the required interval each idle iteration
-    MAX_INTERVAL = 300  # Cap at 5 minutes
-    JITTER = 5  # Random jitter to prevent thundering herd
-    MAX_IDLE_BEFORE_EXPLORE = 1  # Zero tolerance: force exploration immediately on first idle
-
     # Calculate required interval with exponential backoff + jitter
     # Formula: min(base * 2^idle_count + jitter, max_interval)
     required_interval = min(
-        BASE_INTERVAL * (BACKOFF_MULTIPLIER ** idle_count) + random.uniform(0, JITTER),
-        MAX_INTERVAL
+        BACKOFF_BASE_INTERVAL * (BACKOFF_MULTIPLIER ** idle_count) + random.uniform(0, BACKOFF_JITTER),
+        BACKOFF_MAX_INTERVAL
     )
 
     time_since_last = now - last_iteration_time if last_iteration_time > 0 else 999
@@ -620,7 +639,7 @@ def main():
     if time_since_last < required_interval and not real_work_done:
         idle_count += 1
         state["idle_iteration_count"] = idle_count
-        next_required = min(BASE_INTERVAL * (BACKOFF_MULTIPLIER ** idle_count), MAX_INTERVAL)
+        next_required = min(BACKOFF_BASE_INTERVAL * (BACKOFF_MULTIPLIER ** idle_count), BACKOFF_MAX_INTERVAL)
         logger.info(
             f"Idle iteration {idle_count}/{MAX_IDLE_BEFORE_EXPLORE}: "
             f"interval={time_since_last:.1f}s < required={required_interval:.1f}s "
@@ -629,7 +648,7 @@ def main():
 
         if idle_count >= MAX_IDLE_BEFORE_EXPLORE:
             # Force exploration mode instead of allowing wasteful monitoring
-            logger.info(f"Exponential backoff exhausted - forcing exploration mode")
+            logger.info("Exponential backoff exhausted - forcing exploration mode")
             state["force_exploration"] = True
             state["idle_iteration_count"] = 0  # Reset counter
     else:
@@ -697,7 +716,7 @@ def main():
                     allow_stop(f"Adapter override: {convergence.reason}")
                     return
                 # If should_continue with high confidence, force continue below
-            elif convergence.confidence >= 0.5:
+            elif convergence.confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
                 adapter_should_stop = not convergence.should_continue
                 adapter_reason = convergence.reason
                 adapter_confidence = convergence.confidence
@@ -711,7 +730,7 @@ def main():
     # In no_focus mode, there's no plan file so task_complete is always False.
     # Instead, rely on adapter convergence to decide when to stop.
     if no_focus and min_hours_met and min_iterations_met:
-        if adapter_should_stop and adapter_confidence >= 0.5:
+        if adapter_should_stop and adapter_confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
             allow_stop(
                 f"No-focus mode converged: Adapter ({adapter_reason}, "
                 f"confidence={adapter_confidence:.2f})"
@@ -719,7 +738,7 @@ def main():
             return
         # Also check for "idle loop" - no meaningful work for N consecutive iterations
         idle_iterations = state.get("idle_iterations", 0)
-        if not adapter or adapter_confidence < 0.5:
+        if not adapter or adapter_confidence < ADAPTER_CONFIDENCE_THRESHOLD:
             # No adapter guidance - check for idle state
             # If loop output contains "Work Item: None" repeatedly, increment idle counter
             if "Work Item: None" in current_output or "no SLO-aligned work" in current_output.lower():
@@ -737,13 +756,13 @@ def main():
     # Combined decision: RSSI + Adapter must agree at confidence=0.5
     if task_complete and min_hours_met and min_iterations_met:
         # Check if adapter also suggests stopping
-        if adapter_should_stop and adapter_confidence >= 0.5:
+        if adapter_should_stop and adapter_confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
             allow_stop(
                 f"Converged: RSSI ({completion_reason}) + Adapter ({adapter_reason})"
             )
             return
         # RSSI says complete but adapter doesn't agree - continue
-        if adapter and adapter_confidence >= 0.5 and not adapter_should_stop:
+        if adapter and adapter_confidence >= ADAPTER_CONFIDENCE_THRESHOLD and not adapter_should_stop:
             logger.info("RSSI complete but adapter wants to continue - continuing")
         else:
             allow_stop(

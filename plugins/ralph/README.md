@@ -2,6 +2,8 @@
 
 Keep Claude Code working autonomously until tasks are complete - implements the Ralph Wiggum technique as Claude Code hooks with **RSSI** (Recursively Self-Improving Super Intelligence) capabilities.
 
+> **New to Ralph?** Start with [MENTAL-MODEL.md](./MENTAL-MODEL.md) for a conceptual overview of how Ralph drives autonomous research for Alpha-Forge.
+
 ## What This Plugin Does
 
 This plugin adds autonomous loop mode to Claude Code through 5 commands and 3 hooks:
@@ -40,9 +42,9 @@ Core principles guiding Ralph Wiggum's development:
 
 3. **Multi-Signal Decisions** — Completion requires multiple confidence signals (explicit markers, checkboxes, semantic phrases), not single indicators.
 
-### Alpha Forge Exclusive
+### Alpha Forge Optimized
 
-1. **Single Project Focus** — Ralph Wiggum is dedicated exclusively to `~/eon/alpha-forge` ([EonLabs-Spartan/alpha-forge](https://github.com/EonLabs-Spartan/alpha-forge)). No generic adapter system.
+1. **Alpha Forge First** — Ralph has specialized adapter support for Alpha Forge projects with metrics-based convergence detection. Other projects use RSSI completion detection.
 
 2. **User Override Always Wins** — Kill switch (`.claude/STOP_LOOP`), `/ralph:stop`, and manual intervention always work. The loop is eternal but never inescapable.
 
@@ -295,7 +297,8 @@ Ralph supports project-specific convergence detection via adapters. Each adapter
 | Adapter       | Detection                               | Convergence Signals                                      |
 | ------------- | --------------------------------------- | -------------------------------------------------------- |
 | `alpha-forge` | `pyproject.toml` contains "alpha-forge" | WFE threshold, diminishing returns, patience, hard limit |
-| `universal`   | Fallback (all projects)                 | Defers to RSSI completion detection                      |
+
+Non-Alpha Forge projects use RSSI completion detection directly (no adapter needed).
 
 **Confidence-Based Decisions**:
 
@@ -383,9 +386,8 @@ ralph/
 │   │   └── alpha_forge.py      # Alpha Forge adapter
 │   ├── templates/              # Prompt templates (Jinja2 markdown)
 │   │   ├── implementation-mode.md   # Basic task continuation
-│   │   ├── exploration-mode.md      # RSSI eternal loop
-│   │   ├── alpha-forge-exploration.md # Alpha Forge OODA loop
-│   │   └── alpha-forge-convergence.md # Convergence prompts
+│   │   ├── exploration-mode.md      # RSSI eternal loop (generic)
+│   │   └── alpha-forge-exploration.md # Alpha Forge OODA loop
 │   └── tests/                  # Test suite
 │       ├── test_adapters.py    # Adapter system tests
 │       ├── test_completion.py

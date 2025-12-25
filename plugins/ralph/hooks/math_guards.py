@@ -8,6 +8,14 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
+from core.constants import (
+    RETURNS_EXTREME_THRESHOLD,
+    SHARPE_STRATEGY_FLAW,
+    SHARPE_SUSPICIOUS_HIGH,
+    WFE_SEVERE_OVERFITTING,
+    WFE_UNUSUALLY_HIGH,
+)
+
 
 @dataclass
 class MathValidationResult:
@@ -46,11 +54,11 @@ def validate_sharpe(value: float) -> MathValidationResult:
     if math.isinf(value):
         errors_list.append("Sharpe is Inf (impossible - check calculation)")
         return MathValidationResult(False, value, [], errors_list)
-    if abs(value) > 5.0:
-        warnings_list.append(f"Sharpe {value:.2f} > 5 is suspicious (overfitting?)")
-    if value < -3.0:
+    if abs(value) > SHARPE_SUSPICIOUS_HIGH:
+        warnings_list.append(f"Sharpe {value:.2f} > {SHARPE_SUSPICIOUS_HIGH} is suspicious (overfitting?)")
+    if value < SHARPE_STRATEGY_FLAW:
         warnings_list.append(
-            f"Sharpe {value:.2f} < -3 suggests fundamental strategy flaw"
+            f"Sharpe {value:.2f} < {SHARPE_STRATEGY_FLAW} suggests fundamental strategy flaw"
         )
 
     return MathValidationResult(True, value, warnings_list, errors_list)
@@ -88,11 +96,11 @@ def validate_wfe(value: float) -> MathValidationResult:
     if value < 0.0:
         errors_list.append(f"WFE {value:.2f} < 0 is mathematically impossible")
         return MathValidationResult(False, value, [], errors_list)
-    if value < 0.1:
-        warnings_list.append(f"WFE {value:.2f} < 0.1 indicates severe overfitting")
-    if value > 0.95:
+    if value < WFE_SEVERE_OVERFITTING:
+        warnings_list.append(f"WFE {value:.2f} < {WFE_SEVERE_OVERFITTING} indicates severe overfitting")
+    if value > WFE_UNUSUALLY_HIGH:
         warnings_list.append(
-            f"WFE {value:.2f} > 0.95 is unusually high (verify calculation)"
+            f"WFE {value:.2f} > {WFE_UNUSUALLY_HIGH} is unusually high (verify calculation)"
         )
 
     return MathValidationResult(True, value, warnings_list, errors_list)
@@ -163,7 +171,7 @@ def validate_returns(value: float) -> MathValidationResult:
         return MathValidationResult(
             False, value, [], [f"Returns {value:.2%} < -100% is impossible"]
         )
-    if abs(value) > 10.0:
+    if abs(value) > RETURNS_EXTREME_THRESHOLD:
         warnings_list.append(
             f"Returns {value:.2%} is extreme (verify calculation)"
         )

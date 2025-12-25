@@ -22,20 +22,21 @@ class AdapterRegistry:
 
     The registry scans the adapters/ directory on initialization and loads
     all classes that implement the ProjectAdapter protocol. When get_adapter()
-    is called, it tries each adapter's detect() method until one matches,
-    falling back to the universal adapter if none match.
+    is called, it tries each adapter's detect() method until one matches.
+
+    Note: Ralph is Alpha Forge exclusive - returns None for non-Alpha Forge projects.
 
     Example:
         # Initialize registry (scans adapters/ directory)
         AdapterRegistry.discover(Path(__file__).parent.parent / "adapters")
 
-        # Get adapter for a project
+        # Get adapter for a project (returns None if not Alpha Forge)
         adapter = AdapterRegistry.get_adapter(Path("/path/to/project"))
-        print(f"Using adapter: {adapter.name}")
+        if adapter:
+            print(f"Using adapter: {adapter.name}")
     """
 
     _adapters: list[ProjectAdapter] = []
-    _universal: ProjectAdapter | None = None
     _discovered: bool = False
 
     @classmethod
@@ -53,7 +54,6 @@ class AdapterRegistry:
             return
 
         cls._adapters = []
-        cls._universal = None
 
         for py_file in sorted(adapters_dir.glob("*.py")):
             if py_file.name.startswith("_"):
@@ -65,10 +65,7 @@ class AdapterRegistry:
                 logger.error(f"Failed to load adapter from {py_file.name}: {e}")
 
         cls._discovered = True
-        logger.info(
-            f"Discovered {len(cls._adapters)} adapters + "
-            f"{'universal fallback' if cls._universal else 'no fallback'}"
-        )
+        logger.info(f"Discovered {len(cls._adapters)} adapter(s)")
 
     @classmethod
     def _load_adapter_module(cls, py_file: Path) -> None:
@@ -106,14 +103,8 @@ class AdapterRegistry:
 
             try:
                 adapter = attr()
-                if adapter.name == "universal":
-                    cls._universal = adapter
-                    logger.debug(f"Registered universal adapter from {py_file.name}")
-                else:
-                    cls._adapters.append(adapter)
-                    logger.debug(
-                        f"Registered adapter '{adapter.name}' from {py_file.name}"
-                    )
+                cls._adapters.append(adapter)
+                logger.debug(f"Registered adapter '{adapter.name}' from {py_file.name}")
             except Exception as e:
                 logger.warning(f"Could not instantiate {attr_name}: {e}")
 
@@ -151,14 +142,10 @@ class AdapterRegistry:
         Returns:
             List of adapter name strings
         """
-        names = [a.name for a in cls._adapters]
-        if cls._universal:
-            names.append(cls._universal.name)
-        return names
+        return [a.name for a in cls._adapters]
 
     @classmethod
     def reset(cls) -> None:
         """Reset registry state (for testing)."""
         cls._adapters = []
-        cls._universal = None
         cls._discovered = False

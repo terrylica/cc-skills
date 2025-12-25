@@ -52,7 +52,7 @@ Before any `/research` invocation, confirm:
 
 ```
 ✓ Data source: gapless-crypto-clickhouse or cached historical
-✓ Data type: Real OHLCV from ClickHouse (sourced from Binance Spot)
+✓ Data type: Real OHLCV from ClickHouse (sourced from Binance Spot/Futures)
 ✓ Mode: Historical backtest (NOT live/paper)
 ```
 
@@ -495,7 +495,7 @@ _No custom guidance configured. Using default SLO filters._
 
 **Execution Patterns**:
 
-1. **Git Pull + Run**: `{{ gpu_infrastructure.ssh_cmd }} 'cd ~/eon/alpha-forge && git pull && uv run alpha_forge run <yaml>'`
+1. **Git Pull + Run**: `{{ gpu_infrastructure.ssh_cmd }} 'cd {{ project_dir }} && git pull && uv run alpha_forge run <yaml>'`
 2. **Rsync + Run**: Sync uncommitted changes, run remotely, rsync results back
 3. **Distributed (SOTA)**: PyTorch DDP, Horovod, NCCL backend for multi-GPU
 

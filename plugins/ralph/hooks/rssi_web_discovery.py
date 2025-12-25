@@ -14,6 +14,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from core.constants import MIN_STARS_FOR_ADOPTION
+
 # Quality gate thresholds
 MAX_DAYS_SINCE_LAST_COMMIT = 180  # 6 months
 
@@ -290,7 +292,7 @@ def evaluate_solution_quality(solution: dict) -> dict:
 
     # Check stars (optional quality signal)
     stars = solution.get("stars", 0)
-    if stars < 100 and not result["is_sota"]:
+    if stars < MIN_STARS_FOR_ADOPTION and not result["is_sota"]:
         result["recommendation"] += " Low community adoption."
 
     return result

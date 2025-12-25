@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from core.config_schema import load_config
+from core.constants import CLI_GAP_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ def get_wall_clock_hours(session_id: str, project_dir: str) -> float:
     return 0.0
 
 
-def update_runtime(state: dict, current_time: float, gap_threshold: int = 300) -> float:
+def update_runtime(state: dict, current_time: float, gap_threshold: int = CLI_GAP_THRESHOLD) -> float:
     """Update accumulated runtime based on gap detection.
 
     Tracks CLI active time by detecting gaps between hook calls.
@@ -84,7 +85,7 @@ def update_runtime(state: dict, current_time: float, gap_threshold: int = 300) -
     Args:
         state: Session state dict (will be mutated with new values)
         current_time: Current Unix timestamp (time.time())
-        gap_threshold: Seconds before gap indicates CLI closure (default 300 = 5 min)
+        gap_threshold: Seconds before gap indicates CLI closure (default CLI_GAP_THRESHOLD)
 
     Returns:
         Updated accumulated runtime in seconds

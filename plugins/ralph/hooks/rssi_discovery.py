@@ -18,13 +18,14 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from core.config_schema import SubprocessTimeoutConfig
+from core.constants import MIN_PY_FILES_FOR_README, SAMPLE_FILES_LIMIT
+from core.project_detection import is_alpha_forge_project
+
 logger = logging.getLogger(__name__)
 
-# Subprocess timeout constants (seconds)
-RUFF_TIMEOUT_SECONDS = 30
-MYPY_TIMEOUT_SECONDS = 60
-GIT_TIMEOUT_SECONDS = 10
-GREP_TIMEOUT_SECONDS = 30
+# Default timeouts (can be overridden via config)
+DEFAULT_TIMEOUTS = SubprocessTimeoutConfig()
 
 
 def discover_available_tools(project_dir: Path) -> dict[str, bool | list[str]]:
@@ -89,70 +90,12 @@ def _discover_npm_scripts(package_json: Path) -> list[str]:
         return []
 
 
-def _is_alpha_forge_project(project_dir: Path) -> bool:
-    """Check if this is an Alpha Forge project.
-
-    Detection strategies (in order):
-    1. Root pyproject.toml contains 'alpha-forge' or 'alpha_forge'
-    2. Monorepo structure: packages/alpha-forge-*/pyproject.toml exists
-    3. Directory contains 'outputs/runs/' (Alpha Forge experiment outputs)
-    4. Parent directories contain alpha-forge markers (for subdirectory detection)
-
-    Returns True if ANY detection strategy matches.
-    """
-    # Strategy 1: Root pyproject.toml
-    pyproject = project_dir / "pyproject.toml"
-    if pyproject.exists():
-        try:
-            content = pyproject.read_text()
-            if "alpha-forge" in content or "alpha_forge" in content:
-                return True
-        except OSError:
-            pass
-
-    # Strategy 2: Monorepo packages/alpha-forge-*/
-    packages_dir = project_dir / "packages"
-    if packages_dir.exists():
-        for pkg in packages_dir.iterdir():
-            if pkg.is_dir() and "alpha-forge" in pkg.name:
-                return True
-
-    # Strategy 3: Alpha Forge experiment outputs directory
-    if (project_dir / "outputs" / "runs").exists():
-        return True
-
-    # Strategy 4: Check parent directories (for when CWD is a subdirectory)
-    current = project_dir
-    for _ in range(5):  # Limit traversal depth
-        parent = current.parent
-        if parent == current:  # Reached root
-            break
-        # Check parent's pyproject.toml
-        parent_pyproject = parent / "pyproject.toml"
-        if parent_pyproject.exists():
-            try:
-                content = parent_pyproject.read_text()
-                if "alpha-forge" in content or "alpha_forge" in content:
-                    return True
-            except OSError:
-                pass
-        # Check for alpha-forge packages in parent
-        parent_packages = parent / "packages"
-        if parent_packages.exists():
-            for pkg in parent_packages.iterdir():
-                if pkg.is_dir() and "alpha-forge" in pkg.name:
-                    return True
-        current = parent
-
-    return False
-
-
 def _get_ruff_ignore_args(project_dir: Path) -> list[str]:
     """Get ruff --ignore args for Alpha Forge projects.
 
     Returns empty list for non-Alpha Forge projects.
     """
-    if not _is_alpha_forge_project(project_dir):
+    if not is_alpha_forge_project(project_dir):
         return []
 
     try:
@@ -181,7 +124,7 @@ def _filter_opportunities_for_alpha_forge(
     Returns:
         Filtered list with busywork and user-forbidden items removed
     """
-    if not _is_alpha_forge_project(project_dir):
+    if not is_alpha_forge_project(project_dir):
         return opportunities
 
     try:
@@ -252,7 +195,7 @@ def rssi_scan_opportunities(
                 cwd=project_dir,
                 capture_output=True,
                 text=True,
-                timeout=RUFF_TIMEOUT_SECONDS,
+                timeout=DEFAULT_TIMEOUTS.ruff,
             )
             if result.stdout.strip():
                 first_line = result.stdout.split("\n")[0]
@@ -267,7 +210,7 @@ def rssi_scan_opportunities(
                 cwd=project_dir,
                 capture_output=True,
                 text=True,
-                timeout=MYPY_TIMEOUT_SECONDS,
+                timeout=DEFAULT_TIMEOUTS.mypy,
             )
             if "error" in result.stdout:
                 count = result.stdout.count("error:")
@@ -283,7 +226,7 @@ def rssi_scan_opportunities(
                 cwd=project_dir,
                 capture_output=True,
                 text=True,
-                timeout=GIT_TIMEOUT_SECONDS,
+                timeout=DEFAULT_TIMEOUTS.git,
             )
             if result.stdout.strip():
                 lines = [ln for ln in result.stdout.strip().split("\n") if ln]
@@ -299,7 +242,7 @@ def rssi_scan_opportunities(
                 cwd=project_dir,
                 capture_output=True,
                 text=True,
-                timeout=GREP_TIMEOUT_SECONDS,
+                timeout=DEFAULT_TIMEOUTS.grep,
             )
             if result.stdout.strip():
                 files = [f for f in result.stdout.strip().split("\n") if f]
@@ -350,9 +293,9 @@ def _analyze_codebase_structure(project_dir: Path) -> list[str]:
     findings: list[str] = []
 
     try:
-        # Files without docstrings (sample first 5)
+        # Files without docstrings (sample first N)
         py_files = list(project_dir.rglob("*.py"))
-        for py_file in py_files[:5]:
+        for py_file in py_files[:SAMPLE_FILES_LIMIT]:
             try:
                 content = py_file.read_text()
                 # Skip empty files and __init__.py
@@ -372,7 +315,7 @@ def _analyze_codebase_structure(project_dir: Path) -> list[str]:
             if subdir.is_dir() and not subdir.name.startswith("."):
                 try:
                     py_count = len(list(subdir.glob("*.py")))
-                    if py_count >= 3 and not (subdir / "README.md").exists():
+                    if py_count >= MIN_PY_FILES_FOR_README and not (subdir / "README.md").exists():
                         findings.append(f"Add README to {subdir.name}/ ({py_count} Python files)")
                         break  # One at a time
                 except OSError:

@@ -12,9 +12,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 
-KNOWLEDGE_FILE = Path.home() / ".claude/automation/loop-orchestrator/state/rssi-knowledge.json"
+from core.constants import STATE_DIR
+
+KNOWLEDGE_FILE = STATE_DIR / "rssi-knowledge.json"
 
 
 @dataclass

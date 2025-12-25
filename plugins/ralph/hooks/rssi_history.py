@@ -13,7 +13,7 @@ import json
 import subprocess
 from pathlib import Path
 
-STATE_DIR = Path.home() / ".claude/automation/loop-orchestrator/state"
+from core.constants import STATE_DIR
 
 # History analysis constants
 DEFAULT_COMMIT_DAYS = 7

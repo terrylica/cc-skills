@@ -162,11 +162,37 @@ class ProtectionConfig:
 
 
 @dataclass
+class SubprocessTimeoutConfig:
+    """Configuration for subprocess execution timeouts (seconds).
+
+    Used by RSSI discovery to limit time spent on external tool calls.
+    """
+    ruff: int = 30  # Ruff linter timeout
+    mypy: int = 60  # Mypy type checker timeout
+    git: int = 10  # Git commands timeout
+    grep: int = 30  # Grep/search commands timeout
+    lychee: int = 30  # Link checker timeout
+
+
+@dataclass
 class GracefulShutdownConfig:
     """Configuration for DRAINING state behavior."""
     grace_period_seconds: int = 30  # Max time to wait in DRAINING state
     check_interval_seconds: float = 0.5  # How often to check for completion
     force_kill_on_timeout: bool = True  # Force cleanup after grace period
+
+
+@dataclass
+class GpuInfrastructureConfig:
+    """Configuration for remote GPU infrastructure (Alpha Forge projects).
+
+    This enables Ralph to suggest remote GPU execution for training-heavy tasks.
+    Configure per-project in .claude/ralph-config.json.
+    """
+    available: bool = False  # Set to True to enable GPU suggestions
+    host: str = ""  # SSH hostname (e.g., "littleblack")
+    gpu: str = ""  # GPU description (e.g., "RTX 2080 Ti (11GB)")
+    ssh_cmd: str = ""  # Full SSH command (e.g., "ssh kab@littleblack")
 
 
 @dataclass
@@ -182,6 +208,8 @@ class RalphConfig:
     loop_limits: LoopLimitsConfig = field(default_factory=LoopLimitsConfig)
     protection: ProtectionConfig = field(default_factory=ProtectionConfig)
     graceful_shutdown: GracefulShutdownConfig = field(default_factory=GracefulShutdownConfig)
+    gpu_infrastructure: GpuInfrastructureConfig = field(default_factory=GpuInfrastructureConfig)
+    subprocess_timeouts: SubprocessTimeoutConfig = field(default_factory=SubprocessTimeoutConfig)
 
     # Session-specific (set by /ralph:start)
     target_file: str | None = None

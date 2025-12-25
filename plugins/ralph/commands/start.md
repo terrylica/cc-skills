@@ -490,7 +490,7 @@ if [[ -d "$RALPH_CACHE/local" ]]; then
 else
     HOOKS_DIR="$RALPH_CACHE/$RALPH_VERSION/hooks"
 fi
-ADAPTER_NAME="universal"
+ADAPTER_NAME=""
 if [[ -d "$HOOKS_DIR" ]]; then
     ADAPTER_NAME=$(cd "$HOOKS_DIR" && python3 -c "
 import sys
@@ -500,10 +500,13 @@ try:
     from core.registry import AdapterRegistry
     AdapterRegistry.discover(Path('adapters'))
     adapter = AdapterRegistry.get_adapter(Path('$PROJECT_DIR'))
-    print(adapter.name)
+    if adapter:
+        print(adapter.name)
+    else:
+        print('')
 except Exception:
-    print('universal')
-" 2>/dev/null || echo "universal")
+    print('')
+" 2>/dev/null || echo "")
 fi
 
 # ===== STATUS OUTPUT =====
@@ -522,12 +525,14 @@ else
 fi
 
 echo ""
-echo "Adapter: $ADAPTER_NAME"
 if [[ "$ADAPTER_NAME" == "alpha-forge" ]]; then
+    echo "Adapter: alpha-forge"
     echo "  → Expert-synthesis convergence (WFE, diminishing returns, patience)"
     echo "  → Reads metrics from outputs/runs/*/summary.json"
-elif [[ "$ADAPTER_NAME" == "universal" ]]; then
-    echo "  → Standard RSSI completion detection"
+else
+    echo "Adapter: none (RSSI completion detection only)"
+    echo "  → Standard multi-signal completion detection"
+    echo "  → Note: Ralph is optimized for Alpha Forge projects"
 fi
 
 if $NO_FOCUS; then
