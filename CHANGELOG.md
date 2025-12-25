@@ -1,3 +1,57 @@
+## [7.16.5](https://github.com/terrylica/cc-skills/compare/v7.16.4...v7.16.5) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ralph:** audit fixes, constants centralization, and MENTAL-MODEL.md ([c544eb4](https://github.com/terrylica/cc-skills/commit/c544eb4866f2332ad66865a59e4be54ca1118dcb))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) | coupled |
+
+### Design Specs
+
+- [Design Spec: Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - updated (+29/-3)
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+8/-6)
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (2 commands)</summary>
+
+- [Ralph Loop: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/config.md) - updated (+22)
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+12/-7)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [alpha-forge-convergence](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-convergence.md) - deleted (-32)
+- [Example: If WebSearch found "Temporal Fusion Transformer"](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-exploration.md) - updated (+2/-2)
+- [alpha-forge-research-experts](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-research-experts.md) - deleted (-209)
+- [alpha-forge-slo-experts](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-slo-experts.md) - deleted (-347)
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - new (+141)
+
 ## [7.16.4](https://github.com/terrylica/cc-skills/compare/v7.16.3...v7.16.4) (2025-12-25)
 
 
