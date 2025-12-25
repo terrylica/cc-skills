@@ -1,3 +1,10 @@
+## [7.16.4](https://github.com/terrylica/cc-skills/compare/v7.16.3...v7.16.4) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ralph:** fail loudly when Jinja2 unavailable for complex templates ([d0fc686](https://github.com/terrylica/cc-skills/commit/d0fc6869de42d4c1bb7b72f84358b639710149a6))
+
 ## [7.16.3](https://github.com/terrylica/cc-skills/compare/v7.16.2...v7.16.3) (2025-12-25)
 
 
