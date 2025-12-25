@@ -1,3 +1,24 @@
+## [7.16.6](https://github.com/terrylica/cc-skills/compare/v7.16.5...v7.16.6) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ralph:** add 5 graph-easy diagrams and 16 hyperlinks to MENTAL-MODEL.md ([adab79b](https://github.com/terrylica/cc-skills/commit/adab79bec2356cc686486e311d0138d5f8fb4702))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+354/-57)
+
 ## [7.16.5](https://github.com/terrylica/cc-skills/compare/v7.16.4...v7.16.5) (2025-12-25)
 
 
