@@ -1,3 +1,24 @@
+## [7.16.7](https://github.com/terrylica/cc-skills/compare/v7.16.6...v7.16.7) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ralph:** remove broken links to gitignored runtime directories ([0b4213c](https://github.com/terrylica/cc-skills/commit/0b4213c6de266188738a3739f930a64a43856812))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+20/-20)
+
 ## [7.16.6](https://github.com/terrylica/cc-skills/compare/v7.16.5...v7.16.6) (2025-12-25)
 
 
