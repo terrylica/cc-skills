@@ -1043,6 +1043,19 @@ PREFLIGHT_EOF_2
 
 ---
 
+## Post-Change Checklist
+
+After modifying this skill:
+
+1. [ ] Orphan branch creation scripts use heredoc wrapper
+2. [ ] All bash blocks compatible with zsh (no declare -A, no grep -P)
+3. [ ] GitHub Actions workflow validates brotli recompression
+4. [ ] Idle chunker handles both macOS and Linux stat syntax
+5. [ ] Detection flow outputs parseable key=value format
+6. [ ] References validate links to external documentation
+
+---
+
 ## Reference Documentation
 
 - [Idle Chunker Script](./references/idle-chunker.md) - Complete chunker implementation

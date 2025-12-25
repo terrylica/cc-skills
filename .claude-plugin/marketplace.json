@@ -430,6 +430,27 @@
         "automation"
       ],
       "strict": false
+    },
+    {
+      "name": "asciinema-tools",
+      "description": "Terminal recording automation: asciinema capture, playback, streaming backup, cast format conversion, and semantic analysis",
+      "version": "7.15.4",
+      "source": "./plugins/asciinema-tools/",
+      "category": "utilities",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "asciinema",
+        "recording",
+        "terminal",
+        "cast",
+        "streaming",
+        "backup",
+        "analysis"
+      ],
+      "strict": false
     }
   ]
 }

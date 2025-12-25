@@ -335,6 +335,18 @@ The CLI player streams from disk, so file size doesn't cause memory issues. Howe
 
 ---
 
+## Post-Change Checklist
+
+After modifying this skill:
+
+1. [ ] Preflight checks verify iTerm2 and asciinema
+2. [ ] AskUserQuestion phases use proper multiSelect where applicable
+3. [ ] AppleScript uses heredoc wrapper for bash compatibility
+4. [ ] Speed options match CLI capability (-s flag)
+5. [ ] TodoWrite template matches actual workflow phases
+
+---
+
 ## Reference Documentation
 
 - [asciinema play Usage](https://docs.asciinema.org/manual/cli/usage/)
