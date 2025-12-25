@@ -342,6 +342,7 @@ def main():
     # Check state machine first (new v2.0 architecture)
     if project_dir:
         current_state = load_state(project_dir)
+        logger.info(f"State check: project={project_dir}, state={current_state.value}")
         if current_state == LoopState.STOPPED:
             allow_stop("Loop state is STOPPED")
             return
@@ -368,6 +369,7 @@ def main():
     state_file = build_state_file_path(STATE_DIR, session_id, project_dir)
     default_state = {
         "iteration": 0,
+        "project_path": "",  # Original project directory for reverse lookup (stop fix)
         "started_at": "",  # ISO timestamp for adapter metrics filtering
         "recent_outputs": [],
         "plan_file": None,
@@ -402,6 +404,11 @@ def main():
         "last_hook_timestamp": 0.0,  # For gap detection between hook calls
     }
     state = load_session_state(state_file, default_state)
+
+    # Persist project_path for stop command discovery (v7.16.0)
+    if not state.get("project_path") and project_dir:
+        state["project_path"] = project_dir
+        logger.info(f"Saved project_path for session discovery: {project_dir}")
 
     # Load config
     try:
