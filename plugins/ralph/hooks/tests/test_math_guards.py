@@ -9,7 +9,6 @@ Tests use two strategies:
 2. Edge case tests - Critical scenarios (division by zero, impossible values, etc.)
 """
 
-import math
 import sys
 from pathlib import Path
 
@@ -17,7 +16,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from math_guards import (
-    MathValidationResult,
     validate_drawdown,
     validate_metric,
     validate_metrics_batch,

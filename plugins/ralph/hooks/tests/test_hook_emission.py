@@ -601,8 +601,6 @@ State Space Transformer with Mamba backbone.
 
         output, stderr = run_hook(tmp_path, {"session_id": "test-prod-3"})
 
-        reason = output.get("reason", "")
-
         # Should continue (research not complete)
         assert output.get("decision") == "block", f"Unexpected stop with unexplored directions: {output}"
 
