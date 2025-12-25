@@ -1,3 +1,29 @@
+## [7.16.1](https://github.com/terrylica/cc-skills/compare/v7.16.0...v7.16.1) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ralph:** session-aware stop with holistic project directory resolution ([5f68a57](https://github.com/terrylica/cc-skills/commit/5f68a57b79a7b64a4a7b0db5202f883143b54067))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/stop.md) - updated (+121/-49)
+
+</details>
+
 # [7.16.0](https://github.com/terrylica/cc-skills/compare/v7.15.4...v7.16.0) (2025-12-25)
 
 
