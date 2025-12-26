@@ -1,3 +1,24 @@
+## [8.1.11](https://github.com/terrylica/cc-skills/compare/v8.1.10...v8.1.11) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** add git remote detection for sparse checkouts/branches ([474246c](https://github.com/terrylica/cc-skills/commit/474246ca95b8ce3f690a2fd11842229b4628c6be))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Ralph Hook Validation - Alpha-Forge Comprehensive Test Suite](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/ALPHA-FORGE-VALIDATION-PROMPT.md) - updated (+34/-2)
+
 ## [8.1.10](https://github.com/terrylica/cc-skills/compare/v8.1.9...v8.1.10) (2025-12-26)
 
 
