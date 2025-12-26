@@ -101,15 +101,17 @@ fi
 # - continue: boolean (optional) - whether to allow stop
 # - suppressOutput: boolean (optional)
 # - stopReason: string (optional)
-# - systemMessage: string (optional) - informational context for Claude
+# - decision: "block" + reason - BLOCKS stopping AND injects reason into Claude context
+# - systemMessage: string (optional) - UI-only, Claude does NOT see this!
 #
-# This hook is INFORMATIONAL, not blocking. Use systemMessage for visibility.
-# Include actual violation details so Claude can act on them.
+# CRITICAL INSIGHT: systemMessage is UI-only (shown to user, not to Claude).
+# To make Claude SEE and ACT on violations, we must use decision:"block" + reason.
+# This blocks stopping AND injects the reason into Claude's conversation context.
 TOTAL_ISSUES=$((${LYCHEE_ERRORS:-0} + ${PATH_VIOLATIONS:-0}))
 
 if [[ "$TOTAL_ISSUES" -gt 0 ]]; then
     # Build detailed message with actual violations
-    MSG="[LINK VALIDATION] Session ended with $TOTAL_ISSUES issue(s):\n\n"
+    MSG="[LINK VALIDATION] Found $TOTAL_ISSUES issue(s) that must be fixed before stopping:\n\n"
 
     # Include lychee errors if any
     if [[ "${LYCHEE_ERRORS:-0}" -gt 0 ]] && [[ -f "$LYCHEE_CACHE" ]]; then
@@ -130,11 +132,13 @@ if [[ "$TOTAL_ISSUES" -gt 0 ]]; then
         MSG+="$LINT_DETAILS\n"
     fi
 
-    MSG+="\nFix these before the session truly ends."
+    MSG+="\nFix these markdown link issues, then the session can end cleanly."
 
-    # Use systemMessage for Stop hooks - visible to Claude but non-blocking
-    # Use printf to handle \n escapes, then jq for JSON
-    printf '%s' "$MSG" | jq -Rs '{systemMessage: .}'
+    # Use decision:"block" + reason to:
+    # 1. BLOCK stopping (force Claude to continue)
+    # 2. INJECT reason into Claude's context (so Claude can see and fix issues)
+    # This is different from systemMessage which is UI-only!
+    printf '%s' "$MSG" | jq -Rs '{decision: "block", reason: .}'
 fi
 
 # Always exit 0 (non-blocking hook)
