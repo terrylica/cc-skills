@@ -86,7 +86,9 @@ check_dependencies() {
 
 validate_json() {
     local file="$1"
-    if ! jq empty "$file" 2>/dev/null; then
+    local jq_error
+    if ! jq_error=$(jq empty "$file" 2>&1); then
+        echo "[ralph] JSON validation failed: $jq_error" >&2
         return 1
     fi
     return 0
@@ -102,11 +104,17 @@ ensure_settings_exists() {
 }
 
 create_backup() {
-    mkdir -p "$BACKUP_DIR"
+    if ! mkdir -p "$BACKUP_DIR" 2>&1; then
+        echo "[ralph] Failed to create backup directory: $BACKUP_DIR" >&2
+        return 1
+    fi
     local timestamp
     timestamp=$(date +%Y%m%d_%H%M%S)
     local backup_file="$BACKUP_DIR/settings.json.backup.$timestamp"
-    cp "$SETTINGS" "$backup_file"
+    if ! cp "$SETTINGS" "$backup_file" 2>&1; then
+        echo "[ralph] Failed to create backup: $backup_file" >&2
+        return 1
+    fi
     echo "$timestamp"
 }
 
@@ -116,7 +124,14 @@ is_installed() {
 }
 
 count_hooks() {
-    jq '[.hooks | to_entries[] | .value[] | .hooks[] | select(.command | contains("'"$MARKER"'"))] | length' "$SETTINGS" 2>/dev/null || echo "0"
+    local count
+    local jq_error
+    if ! count=$(jq '[.hooks | to_entries[] | .value[] | .hooks[] | select(.command | contains("'"$MARKER"'"))] | length' "$SETTINGS" 2>&1); then
+        echo "[ralph] Failed to count hooks: $count" >&2
+        echo "0"
+        return 1
+    fi
+    echo "$count"
 }
 
 # === Core Operations ===
@@ -130,7 +145,12 @@ do_status() {
         info "ralph hooks are INSTALLED ($count hook entries found)"
         echo ""
         echo "Installed hooks:"
-        jq -r '.hooks | to_entries[] | select(.value[] | .hooks[] | .command | contains("'"$MARKER"'")) | "  - \(.key)"' "$SETTINGS" | sort -u
+        local hooks_list
+        if ! hooks_list=$(jq -r '.hooks | to_entries[] | select(.value[] | .hooks[] | .command | contains("'"$MARKER"'")) | "  - \(.key)"' "$SETTINGS" 2>&1); then
+            echo "[ralph] Failed to list hooks: $hooks_list" >&2
+        else
+            echo "$hooks_list" | sort -u
+        fi
         return 0
     else
         info "ralph hooks are NOT installed"
@@ -176,8 +196,12 @@ do_install() {
     # Prepare hook entries using jq for proper JSON escaping
     local stop_entry
     local pretooluse_entry
-    stop_entry=$(jq -n --arg cmd "$stop_cmd" '{"hooks":[{"type":"command","command":$cmd,"timeout":30000}]}')
-    pretooluse_entry=$(jq -n --arg cmd "$pretooluse_cmd" '{"hooks":[{"matcher":"Write|Edit","hooks":[{"type":"command","command":$cmd,"timeout":5000}]}]}')
+    if ! stop_entry=$(jq -n --arg cmd "$stop_cmd" '{"hooks":[{"type":"command","command":$cmd,"timeout":30000}]}' 2>&1); then
+        die "Failed to create Stop hook entry: $stop_entry"
+    fi
+    if ! pretooluse_entry=$(jq -n --arg cmd "$pretooluse_cmd" '{"hooks":[{"matcher":"Write|Edit","hooks":[{"type":"command","command":$cmd,"timeout":5000}]}]}' 2>&1); then
+        die "Failed to create PreToolUse hook entry: $pretooluse_entry"
+    fi
 
     # Create temp file for atomic write
     local temp_file
@@ -185,13 +209,17 @@ do_install() {
     trap 'rm -f "$temp_file"' EXIT
 
     # Apply modifications using jq
-    jq --argjson stop "$stop_entry" --argjson pre "$pretooluse_entry" '
+    local jq_result
+    if ! jq_result=$(jq --argjson stop "$stop_entry" --argjson pre "$pretooluse_entry" '
         .hooks //= {} |
         .hooks.Stop //= [] |
         .hooks.Stop += [$stop] |
         .hooks.PreToolUse //= [] |
         .hooks.PreToolUse += [$pre]
-    ' "$SETTINGS" > "$temp_file"
+    ' "$SETTINGS" 2>&1); then
+        die "Failed to modify settings.json: $jq_result"
+    fi
+    echo "$jq_result" > "$temp_file"
 
     # Validate the new JSON
     if ! validate_json "$temp_file"; then
@@ -199,11 +227,15 @@ do_install() {
     fi
 
     # Atomic move
-    mv "$temp_file" "$SETTINGS"
+    if ! mv "$temp_file" "$SETTINGS" 2>&1; then
+        die "Failed to write settings.json"
+    fi
     trap - EXIT
 
     # Record installation timestamp for restart detection
-    date +%s > "$INSTALL_TIMESTAMP_FILE"
+    if ! date +%s > "$INSTALL_TIMESTAMP_FILE" 2>&1; then
+        echo "[ralph] Warning: Failed to record install timestamp" >&2
+    fi
 
     info "ralph hooks installed successfully!"
     echo ""
@@ -237,7 +269,8 @@ do_uninstall() {
     trap 'rm -f "$temp_file"' EXIT
 
     # Remove entries containing marker from all hook arrays
-    jq '
+    local jq_result
+    if ! jq_result=$(jq '
         .hooks |= (
             to_entries | map(
                 .value |= map(
@@ -245,7 +278,10 @@ do_uninstall() {
                 )
             ) | from_entries
         )
-    ' "$SETTINGS" > "$temp_file"
+    ' "$SETTINGS" 2>&1); then
+        die "Failed to modify settings.json: $jq_result"
+    fi
+    echo "$jq_result" > "$temp_file"
 
     # Validate the new JSON
     if ! validate_json "$temp_file"; then
@@ -253,20 +289,28 @@ do_uninstall() {
     fi
 
     # Atomic move
-    mv "$temp_file" "$SETTINGS"
+    if ! mv "$temp_file" "$SETTINGS" 2>&1; then
+        die "Failed to write settings.json"
+    fi
     trap - EXIT
 
     # Clean up global Ralph files
     if [[ -f "$INSTALL_TIMESTAMP_FILE" ]]; then
-        rm -f "$INSTALL_TIMESTAMP_FILE"
-        info "Removed install timestamp file"
+        if ! rm "$INSTALL_TIMESTAMP_FILE" 2>&1; then
+            echo "[ralph] Warning: Failed to remove install timestamp" >&2
+        else
+            info "Removed install timestamp file"
+        fi
     fi
 
     # Remove stop reason cache (stale after uninstall)
     local stop_reason_file="$HOME/.claude/ralph-stop-reason.json"
     if [[ -f "$stop_reason_file" ]]; then
-        rm -f "$stop_reason_file"
-        info "Removed stop reason cache"
+        if ! rm "$stop_reason_file" 2>&1; then
+            echo "[ralph] Warning: Failed to remove stop reason cache" >&2
+        else
+            info "Removed stop reason cache"
+        fi
     fi
 
     info "ralph hooks uninstalled successfully!"
