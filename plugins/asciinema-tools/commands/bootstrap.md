@@ -1,38 +1,42 @@
 ---
-description: Pre-session bootstrap - sets up orphan branch, recording and streaming BEFORE entering Claude Code. TRIGGERS - bootstrap, pre-session, start streaming, before claude.
+description: Pre-session bootstrap - generates script to start recording BEFORE entering Claude Code. Chunking handled by daemon. TRIGGERS - bootstrap, pre-session, start recording, before claude.
 allowed-tools: Bash, AskUserQuestion, Glob, Write, Read
-argument-hint: "[-r repo] [-b branch] [--setup-orphan] [--idle N] [--zstd N] [-y|--yes]"
+argument-hint: "[-r repo] [-b branch] [--setup-orphan] [-y|--yes]"
 ---
 
 # /asciinema-tools:bootstrap
 
-Generate a bootstrap script that runs OUTSIDE Claude Code CLI to set up automatic session recording and streaming to GitHub.
+Generate a bootstrap script that runs OUTSIDE Claude Code CLI to start a recording session.
 
-## Critical Workflow
+**Important**: Chunking is handled by the launchd daemon. Run `/asciinema-tools:daemon-setup` first if you haven't already.
 
-This command generates a script that runs BEFORE entering Claude Code:
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        PRE-CLAUDE BOOTSTRAP WORKFLOW                        │
+│                        DAEMON-BASED RECORDING WORKFLOW                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  1. RUN BOOTSTRAP (in Claude Code):                                         │
+│  1. ONE-TIME SETUP (if not done):                                           │
+│     /asciinema-tools:daemon-setup                                           │
+│     → Configures launchd daemon with Keychain credentials                   │
+│                                                                             │
+│  2. GENERATE BOOTSTRAP (in Claude Code):                                    │
 │     /asciinema-tools:bootstrap                                              │
-│     → Generates bootstrap-claude-session.sh                                 │
+│     → Generates tmp/bootstrap-claude-session.sh                             │
 │                                                                             │
-│  2. EXIT CLAUDE and RUN BOOTSTRAP:                                          │
-│     $ source bootstrap-claude-session.sh                                    │
+│  3. EXIT CLAUDE and RUN BOOTSTRAP:                                          │
+│     $ ./tmp/bootstrap-claude-session.sh    ← NOT source!                    │
+│     → Writes config for daemon                                              │
 │     → Starts asciinema recording                                            │
-│     → Starts idle-chunker (streams to GitHub)                               │
 │                                                                             │
-│  3. START CLAUDE:                                                           │
+│  4. WORK IN RECORDING:                                                      │
 │     $ claude                                                                │
-│     → Work normally - everything streams to GitHub                          │
+│     → Daemon automatically pushes chunks to GitHub                          │
 │                                                                             │
-│  4. EXIT (Ctrl+D):                                                          │
-│     → Cleanup trap pushes final chunk                                       │
-│     → GitHub Actions recompresses to brotli                                 │
+│  5. EXIT (two times):                                                       │
+│     Ctrl+D (exit Claude) → exit (end recording)                             │
+│     → Daemon pushes final chunk                                             │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -44,8 +48,6 @@ This command generates a script that runs BEFORE entering Claude Code:
 | `-r, --repo`     | GitHub repository (e.g., `owner/repo`)               |
 | `-b, --branch`   | Orphan branch name (default: `asciinema-recordings`) |
 | `--setup-orphan` | Force create orphan branch                           |
-| `--idle N`       | Idle threshold in seconds (default: 30)              |
-| `--zstd N`       | zstd compression level (default: 3)                  |
 | `-y, --yes`      | Skip confirmation prompts                            |
 
 ## Execution
@@ -55,7 +57,7 @@ This command generates a script that runs BEFORE entering Claude Code:
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF'
 MISSING=()
-for tool in asciinema zstd git gh; do
+for tool in asciinema zstd git; do
   command -v "$tool" &>/dev/null || MISSING+=("$tool")
 done
 
@@ -66,8 +68,26 @@ fi
 
 echo "PREFLIGHT: OK"
 asciinema --version | head -1
-gh auth status 2>&1 | grep -oE 'Logged in to github.com' | head -1
+
+# Check daemon status
+if launchctl list 2>/dev/null | grep -q "asciinema-chunker"; then
+  echo "DAEMON: RUNNING"
+else
+  echo "DAEMON: NOT_RUNNING"
+fi
 PREFLIGHT_EOF
+```
+
+**If DAEMON: NOT_RUNNING, use AskUserQuestion:**
+
+```
+Question: "The chunker daemon is not running. Chunks won't be pushed to GitHub without it."
+Header: "Daemon"
+Options:
+  - label: "Run daemon setup (Recommended)"
+    description: "Switch to /asciinema-tools:daemon-setup to configure the daemon"
+  - label: "Continue anyway"
+    description: "Generate bootstrap script without daemon (local recording only)"
 ```
 
 ### Phase 1: Detect Repository Context
@@ -130,10 +150,10 @@ Based on detection results:
 Question: "Orphan branch found in {repo}. Use it?"
 Header: "Destination"
 Options:
-  - Label: "Use existing (Recommended)"
-    Description: "Branch 'asciinema-recordings' already configured in {repo}"
-  - Label: "Use different repository"
-    Description: "Store recordings in a different repo"
+  - label: "Use existing (Recommended)"
+    description: "Branch 'asciinema-recordings' already configured in {repo}"
+  - label: "Use different repository"
+    description: "Store recordings in a different repo"
 ```
 
 **If IN_GIT_REPO=true, ORPHAN_BRANCH_EXISTS=false:**
@@ -142,10 +162,10 @@ Options:
 Question: "No orphan branch in {repo}. Create one?"
 Header: "Setup"
 Options:
-  - Label: "Create orphan branch (Recommended)"
-    Description: "Initialize with GitHub Actions workflow for brotli"
-  - Label: "Use different repository"
-    Description: "Store recordings elsewhere"
+  - label: "Create orphan branch (Recommended)"
+    description: "Initialize with GitHub Actions workflow for brotli"
+  - label: "Use different repository"
+    description: "Store recordings elsewhere"
 ```
 
 **If IN_GIT_REPO=false:**
@@ -154,13 +174,15 @@ Options:
 Question: "Not in a git repo. Where to store recordings?"
 Header: "Destination"
 Options:
-  - Label: "Dedicated recordings repo"
-    Description: "Use {owner}/asciinema-recordings"
-  - Label: "Enter repository"
-    Description: "Specify owner/repo manually"
+  - label: "Dedicated recordings repo"
+    description: "Use {owner}/asciinema-recordings"
+  - label: "Enter repository"
+    description: "Specify owner/repo manually"
 ```
 
 ### Phase 3: Create Orphan Branch (if needed)
+
+Clear SSH caches first, then create orphan branch:
 
 ```bash
 /usr/bin/env bash << 'CREATE_ORPHAN_EOF'
@@ -168,9 +190,31 @@ REPO_URL="${1:?}"
 BRANCH="${2:-asciinema-recordings}"
 LOCAL_PATH="$HOME/asciinema_recordings/$(basename "$REPO_URL" .git)"
 
-# Clone bare and create orphan
-git clone --bare "$REPO_URL" /tmp/orphan-setup
-cd /tmp/orphan-setup
+# Clear SSH caches first
+rm -f ~/.ssh/control-* 2>/dev/null || true
+ssh -O exit git@github.com 2>/dev/null || true
+
+# Get GitHub token for HTTPS clone
+GH_TOKEN=$(gh auth token 2>/dev/null || echo "")
+if [[ -n "$GH_TOKEN" ]]; then
+  # Parse owner/repo
+  if [[ "$REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
+    OWNER_REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+    AUTH_URL="https://${GH_TOKEN}@github.com/${OWNER_REPO}.git"
+    CLEAN_URL="https://github.com/${OWNER_REPO}.git"
+  else
+    AUTH_URL="$REPO_URL"
+    CLEAN_URL="$REPO_URL"
+  fi
+else
+  AUTH_URL="$REPO_URL"
+  CLEAN_URL="$REPO_URL"
+fi
+
+# Clone and create orphan
+TEMP_DIR=$(mktemp -d)
+git clone "$AUTH_URL" "$TEMP_DIR/repo"
+cd "$TEMP_DIR/repo"
 
 # Create orphan branch
 git checkout --orphan "$BRANCH"
@@ -178,70 +222,148 @@ git reset --hard
 git commit --allow-empty -m "Initialize asciinema recordings"
 git push origin "$BRANCH"
 
-# Cleanup
-rm -rf /tmp/orphan-setup
+# Cleanup temp
+rm -rf "$TEMP_DIR"
 
 # Clone orphan branch locally
-mkdir -p "$LOCAL_PATH"
-git clone --single-branch --branch "$BRANCH" --depth 1 "$REPO_URL" "$LOCAL_PATH"
+mkdir -p "$(dirname "$LOCAL_PATH")"
+git clone --single-branch --branch "$BRANCH" --depth 1 "$AUTH_URL" "$LOCAL_PATH"
+
+# Strip token from remote
+git -C "$LOCAL_PATH" remote set-url origin "$CLEAN_URL"
+
 mkdir -p "$LOCAL_PATH/chunks"
 
 echo "ORPHAN_CREATED: $LOCAL_PATH"
 CREATE_ORPHAN_EOF
 ```
 
-### Phase 4: Compression Settings (MANDATORY AskUserQuestion)
+### Phase 4: Generate Bootstrap Script
 
+Generate the simplified bootstrap script (daemon handles chunking):
+
+```bash
+/usr/bin/env bash << 'GENERATE_SCRIPT_EOF'
+REPO_URL="${1:?}"
+BRANCH="${2:-asciinema-recordings}"
+LOCAL_REPO="${3:-$HOME/asciinema_recordings/$(basename "$REPO_URL" .git)}"
+OUTPUT_FILE="${4:-$PWD/tmp/bootstrap-claude-session.sh}"
+
+mkdir -p "$(dirname "$OUTPUT_FILE")"
+
+cat > "$OUTPUT_FILE" << 'SCRIPT_EOF'
+#!/usr/bin/env bash
+# bootstrap-claude-session.sh - Start asciinema recording session
+# Generated by /asciinema-tools:bootstrap
+# Chunking handled by launchd daemon
+
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+    echo "ERROR: Do not source this script. Run directly: ./${BASH_SOURCE[0]##*/}"
+    return 1
+fi
+
+set -uo pipefail
+
+SCRIPT_EOF
+
+# Append configuration
+cat >> "$OUTPUT_FILE" << SCRIPT_CONFIG
+REPO_URL="$REPO_URL"
+BRANCH="$BRANCH"
+LOCAL_REPO="$LOCAL_REPO"
+SCRIPT_CONFIG
+
+cat >> "$OUTPUT_FILE" << 'SCRIPT_BODY'
+WORKSPACE="$(basename "$PWD")"
+DATETIME="$(date +%Y-%m-%d_%H-%M)"
+ASCIINEMA_DIR="$HOME/.asciinema"
+ACTIVE_DIR="$ASCIINEMA_DIR/active"
+CAST_FILE="$ACTIVE_DIR/${WORKSPACE}_${DATETIME}.cast"
+CONFIG_FILE="${CAST_FILE%.cast}.json"
+
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║  asciinema Recording Session                                   ║"
+echo "╠════════════════════════════════════════════════════════════════╣"
+
+# Check daemon
+if ! launchctl list 2>/dev/null | grep -q "asciinema-chunker"; then
+    echo "║  WARNING: Daemon not running! Run /asciinema-tools:daemon-start║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+fi
+
+# Clear SSH caches
+rm -f ~/.ssh/control-* 2>/dev/null || true
+ssh -O exit git@github.com 2>/dev/null || true
+
+# Setup
+mkdir -p "$ACTIVE_DIR" "$LOCAL_REPO/chunks"
+
+# Write config for daemon
+cat > "$CONFIG_FILE" <<EOF
+{
+    "repo_url": "$REPO_URL",
+    "branch": "$BRANCH",
+    "local_repo": "$LOCAL_REPO",
+    "workspace": "$WORKSPACE",
+    "started": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
+
+cleanup() {
+    echo ""
+    echo "Recording ended. Daemon will push final chunk."
+    echo "Check status: /asciinema-tools:daemon-status"
+}
+trap cleanup EXIT
+
+echo "║  Recording to: $CAST_FILE"
+echo "║  Run 'claude' inside this session. Exit twice to end.         ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
+
+asciinema rec --stdin "$CAST_FILE"
+SCRIPT_BODY
+
+chmod +x "$OUTPUT_FILE"
+echo "SCRIPT_GENERATED: $OUTPUT_FILE"
+GENERATE_SCRIPT_EOF
 ```
-Question: "Configure streaming compression:"
-Header: "Compression"
-Options:
-  - Label: "Default (30s idle, zstd-3) (Recommended)"
-    Description: "Balanced chunking frequency and compression"
-  - Label: "Fast (15s idle, zstd-1)"
-    Description: "More frequent chunks, lower compression"
-  - Label: "Compact (60s idle, zstd-6)"
-    Description: "Less frequent chunks, higher compression"
-```
 
-### Phase 5: Generate Bootstrap Script
-
-The generated script includes:
-
-- Orphan branch clone/update
-- asciinema recording start
-- idle-chunker background process
-- EXIT trap for cleanup
-
-Output location: `$PWD/tmp/bootstrap-claude-session.sh`
-
-### Phase 6: Display Instructions
+### Phase 5: Display Instructions
 
 ```markdown
 ## Bootstrap Complete
 
-Script generated at: `$PWD/tmp/bootstrap-claude-session.sh`
+Script generated at: `tmp/bootstrap-claude-session.sh`
 
 ### Quick Start
 
 1. Exit Claude Code: `exit` or Ctrl+D
-2. Run bootstrap: `source $PWD/tmp/bootstrap-claude-session.sh`
-3. Start Claude: `claude`
-4. Work normally - all output streams to GitHub
-5. Exit when done - cleanup runs automatically
+2. Run bootstrap: `./tmp/bootstrap-claude-session.sh` ← NOT source!
+3. Inside recording, run: `claude`
+4. Work normally - daemon pushes chunks to GitHub
+5. Exit twice: Ctrl+D (Claude) → `exit` (recording)
 
 ### What Happens
 
-- asciinema records to `{workspace}_{datetime}.cast`
-- idle-chunker monitors for {idle}s pauses
-- On idle, chunk is zstd compressed and pushed
-- GitHub Actions recompresses to brotli (~300:1)
-- On exit, final chunk pushed automatically
+- asciinema records to `~/.asciinema/active/{workspace}_{datetime}.cast`
+- Daemon monitors for idle periods
+- On idle, chunk is compressed and pushed via Keychain PAT
+- Daemon sends Pushover notification on failures
+- Recording is decoupled from Claude Code session
+
+### Daemon Commands
+
+| Command                          | Description         |
+| -------------------------------- | ------------------- |
+| `/asciinema-tools:daemon-status` | Check daemon health |
+| `/asciinema-tools:daemon-logs`   | View logs           |
+| `/asciinema-tools:daemon-start`  | Start daemon        |
+| `/asciinema-tools:daemon-stop`   | Stop daemon         |
 ```
 
 ## Skip Logic
 
 - If `-r` and `-b` provided -> skip repository selection
-- If `--idle` and `--zstd` provided -> skip compression config
 - If `-y` provided -> skip all confirmations
 - If `--setup-orphan` provided -> force create orphan branch
