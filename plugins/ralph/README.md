@@ -57,12 +57,16 @@ Core principles guiding Ralph Wiggum's development:
 ## Quick Start
 
 ```bash
-# 1. Install hooks
+# 1. Install hooks (records timestamp for restart detection)
 /ralph:hooks install
 
-# 2. Restart Claude Code (hooks load at startup)
+# 2. CRITICAL: Restart Claude Code (hooks only load at startup)
+#    Exit Claude Code completely and relaunch
 
-# 3. Start the loop
+# 3. Verify installation with preflight checks
+/ralph:hooks status
+
+# 4. Start the loop
 /ralph:start
 
 # Claude will now continue working until:
@@ -72,6 +76,65 @@ Core principles guiding Ralph Wiggum's development:
 # Note: Task completion and adapter convergence DO NOT stop the loop —
 # they trigger exploration mode (RSSI eternal loop behavior).
 ```
+
+## Installation Verification (v7.19.0+)
+
+Ralph includes comprehensive preflight checks to ensure proper installation before starting autonomous mode.
+
+### Preflight Checks
+
+Run `/ralph:hooks status` to verify your installation:
+
+```
+=== Ralph Hooks Preflight Check ===
+
+Plugin Location:
+  ✓ Found at: ~/.claude/plugins/cache/cc-skills/ralph/7.19.0
+    Source: GitHub install (cache path)
+
+Dependencies:
+  ✓ jq 1.7.1
+  ✓ uv 0.5.11
+  ✓ Python 3.11
+
+Hook Scripts:
+  ✓ loop-until-done.py (executable)
+  ✓ archive-plan.sh (executable)
+  ✓ pretooluse-loop-guard.py (executable)
+
+Hook Registration:
+  ✓ 3 hook(s) registered in settings.json
+
+Session Status:
+  ✓ Hooks were installed before this session
+
+=== Summary ===
+All preflight checks passed!
+Ralph is ready to use. Run: /ralph:start
+```
+
+### Restart Detection
+
+Ralph enforces restart after hook installation. If you run `/ralph:start` without restarting:
+
+```
+ERROR: Hooks were installed AFTER this session started!
+       The Stop hook won't run until you restart Claude Code.
+
+ACTION: Exit and restart Claude Code, then run /ralph:start again
+```
+
+**Why this matters**: Claude Code loads hooks at startup. Installing hooks mid-session means they won't activate until restart.
+
+### Path Auto-Detection
+
+Ralph automatically finds its hooks regardless of installation method:
+
+| Installation Method        | Path                                                      |
+| -------------------------- | --------------------------------------------------------- |
+| GitHub (`/plugin install`) | `~/.claude/plugins/cache/cc-skills/ralph/<VERSION>/`      |
+| Marketplace (local dev)    | `~/.claude/plugins/marketplaces/cc-skills/plugins/ralph/` |
+| Environment variable       | `$CLAUDE_PLUGIN_ROOT`                                     |
 
 ## How It Works
 
@@ -411,12 +474,16 @@ The registry auto-discovers adapters on `/ralph:start` - no registration needed.
 ```
 ralph/
 ├── README.md                   # This file
-├── commands/                   # Slash commands
+├── MENTAL-MODEL.md             # Alpha Forge ML research mental model
+├── commands/                   # Slash commands (8 total)
 │   ├── start.md                # Enable loop mode
 │   ├── stop.md                 # Disable loop mode
 │   ├── status.md               # Show loop state
 │   ├── config.md               # View/modify limits
-│   └── hooks.md                # Install/uninstall hooks
+│   ├── hooks.md                # Install/uninstall hooks + preflight checks
+│   ├── encourage.md            # Add to encouraged list (interjection)
+│   ├── forbid.md               # Add to forbidden list (interjection)
+│   └── audit-now.md            # Force validation round (interjection)
 ├── hooks/                      # Hook implementations (modular)
 │   ├── hooks.json              # Hook registration (3 hooks)
 │   ├── loop-until-done.py      # Stop hook (main orchestrator, zero idle tolerance)
@@ -429,8 +496,8 @@ ralph/
 │   ├── core/                   # Adapter infrastructure
 │   │   ├── protocols.py        # ProjectAdapter protocol
 │   │   ├── registry.py         # Auto-discovery registry
-│   │   ├── config_schema.py    # Pydantic config models
-│   │   └── path_hash.py        # Session state isolation
+│   │   ├── config_schema.py    # Dataclass config schema (not Pydantic)
+│   │   └── path_hash.py        # Session state isolation + inheritance
 │   ├── adapters/               # Alpha Forge adapter (exclusive)
 │   │   └── alpha_forge.py      # Alpha Forge adapter
 │   ├── templates/              # Prompt templates (Jinja2 markdown)
@@ -442,19 +509,25 @@ ralph/
 │       ├── test_completion.py
 │       └── test_utils.py
 └── scripts/
-    └── manage-hooks.sh         # Hook installation script
+    └── manage-hooks.sh         # Hook installation + path auto-detection
 ```
 
 ## Dependencies
 
-**Python** (PEP 723 inline dependencies in loop-until-done.py):
+**Required System Tools** (verified by `/ralph:hooks status`):
+
+| Tool   | Version   | Purpose                         | Install                |
+| ------ | --------- | ------------------------------- | ---------------------- |
+| `uv`   | any       | Python package/script runner    | `brew install uv`      |
+| `jq`   | any       | JSON processing for shell hooks | `brew install jq`      |
+| Python | **3.11+** | Runtime for hook scripts        | `mise use python@3.11` |
+
+**Python Packages** (PEP 723 inline dependencies in loop-until-done.py):
 
 - `rapidfuzz>=3.0.0,<4.0.0` - Fuzzy string matching for loop detection
 - `jinja2>=3.1.0,<4.0.0` - Template rendering for prompts
 
-**System tools** (auto-installed via mise/brew if missing):
-
-- `jq` - JSON processing for archive-plan.sh
+Dependencies are automatically installed by `uv` on first run. No manual pip install needed.
 
 ## Testing
 
@@ -484,6 +557,58 @@ uv run tests/test_adapters.py      # Adapter system (20 tests)
 | integration   | Mode transitions, file discovery, workflow simulation   |
 | adapters      | Registry discovery, path hash, Alpha Forge convergence  |
 
+## Troubleshooting
+
+### "Hooks were installed AFTER this session started"
+
+**Cause**: You ran `/ralph:hooks install` and then `/ralph:start` without restarting Claude Code.
+
+**Fix**: Exit Claude Code completely and relaunch, then run `/ralph:start`.
+
+### "/ralph:hooks status" shows missing dependencies
+
+**Fix**: Install required tools:
+
+```bash
+brew install uv jq
+mise use python@3.11  # or: brew install python@3.11
+```
+
+### Hooks not found (GitHub install)
+
+**Symptom**: `/ralph:hooks status` shows "Plugin NOT found" or scripts missing.
+
+**Cause**: Plugin version mismatch or incomplete install.
+
+**Fix**:
+
+```bash
+/plugin update    # Update to latest version
+/ralph:hooks install  # Reinstall hooks
+# Restart Claude Code
+```
+
+### Stop hook not firing
+
+**Symptom**: Claude stops normally instead of continuing in loop mode.
+
+**Debug**:
+
+1. Check hooks are registered: `/ralph:hooks status`
+2. Check loop is enabled: `cat .claude/loop-enabled`
+3. Check for kill switch: `ls .claude/STOP_LOOP` (should not exist)
+
+### Silent failures (no error output)
+
+As of v7.19.0, all errors output to stderr. If you're on an older version:
+
+```bash
+/plugin update
+```
+
 ## Related
 
 - [Geoffrey Huntley's Article](https://ghuntley.com/ralph/) - Original technique
+- [RSSI Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) - Core RSSI architecture
+- [Stop Visibility ADR](/docs/adr/2025-12-22-ralph-stop-visibility-observability.md) - 5-layer observability system
+- [Dual Time Tracking ADR](/docs/adr/2025-12-22-ralph-dual-time-tracking.md) - Runtime vs wall-clock separation
