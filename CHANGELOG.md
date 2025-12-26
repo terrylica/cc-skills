@@ -1,3 +1,10 @@
+## [8.5.1](https://github.com/terrylica/cc-skills/compare/v8.5.0...v8.5.1) (2025-12-26)
+
+
+### Bug Fixes
+
+* **itp-hooks:** skip ADR reminder if file already has ADR reference ([fba3267](https://github.com/terrylica/cc-skills/commit/fba326791559271ed28539ff31675a39887fcc66))
+
 # [8.5.0](https://github.com/terrylica/cc-skills/compare/v8.4.3...v8.5.0) (2025-12-26)
 
 
