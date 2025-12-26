@@ -1,3 +1,10 @@
+## [8.1.7](https://github.com/terrylica/cc-skills/compare/v8.1.6...v8.1.7) (2025-12-26)
+
+
+### Bug Fixes
+
+* **statusline-tools:** include actual violation details in Stop hook ([b9b61b2](https://github.com/terrylica/cc-skills/commit/b9b61b245bedf95cd1dfa13892ed746269b84568))
+
 ## [8.1.6](https://github.com/terrylica/cc-skills/compare/v8.1.5...v8.1.6) (2025-12-26)
 
 
