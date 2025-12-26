@@ -1,3 +1,10 @@
+## [8.0.3](https://github.com/terrylica/cc-skills/compare/v8.0.2...v8.0.3) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** add git worktree detection to alpha-forge guard ([380ff16](https://github.com/terrylica/cc-skills/commit/380ff16f841187c260ba37d3432a6036aea1e90a))
+
 ## [8.0.2](https://github.com/terrylica/cc-skills/compare/v8.0.1...v8.0.2) (2025-12-26)
 
 
