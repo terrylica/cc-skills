@@ -1,3 +1,10 @@
+## [8.1.4](https://github.com/terrylica/cc-skills/compare/v8.1.3...v8.1.4) (2025-12-26)
+
+
+### Bug Fixes
+
+* **validate:** correct Stop hook output format recommendation ([a8bab52](https://github.com/terrylica/cc-skills/commit/a8bab527cded5141d438228952f725741e87ea12))
+
 ## [8.1.3](https://github.com/terrylica/cc-skills/compare/v8.1.2...v8.1.3) (2025-12-26)
 
 
