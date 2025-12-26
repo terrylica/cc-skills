@@ -1,3 +1,31 @@
+## [8.4.2](https://github.com/terrylica/cc-skills/compare/v8.4.1...v8.4.2) (2025-12-26)
+
+
+### Code Refactoring
+
+* **ralph:** consolidate exploration templates into unified file ([445db85](https://github.com/terrylica/cc-skills/commit/445db851b04490ea8c44433acebcd44e9cc69993))
+
+
+### BREAKING CHANGES
+
+* **ralph:** research-repo-exploration.md removed, use exploration-mode.md with adapter_name="research-repo"
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [research-repo-exploration](https://github.com/terrylica/cc-skills/blob/v8.4.1/plugins/ralph/hooks/templates/research-repo-exploration.md) - deleted
+- [exploration-mode](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/exploration-mode.md) - updated (+348/-39)
+- [implementation-mode](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/implementation-mode.md) - updated (-6)
+
 ## [8.4.1](https://github.com/terrylica/cc-skills/compare/v8.4.0...v8.4.1) (2025-12-26)
 
 
