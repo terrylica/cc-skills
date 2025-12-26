@@ -13,6 +13,7 @@ from enum import Enum
 from pathlib import Path
 import json
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -297,6 +298,7 @@ def load_config(project_dir: str | None = None) -> RalphConfig:
             logger.info(f"Loaded config from {config_path}")
             return dict_to_dataclass(RalphConfig, data)
         except (json.JSONDecodeError, TypeError) as e:
+            print(f"[ralph] Warning: Failed to parse config {config_path}: {e}", file=sys.stderr)
             logger.warning(f"Failed to parse config {config_path}: {e}")
 
     return RalphConfig()

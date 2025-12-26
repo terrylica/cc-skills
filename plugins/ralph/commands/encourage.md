@@ -35,7 +35,11 @@ fi
 
 # Ensure guidance structure exists
 if ! jq -e '.guidance' "$CONFIG_FILE" >/dev/null 2>&1; then
-    jq '. + {guidance: {forbidden: [], encouraged: []}}' "$CONFIG_FILE" > "$CONFIG_FILE.tmp"
+    if ! jq '. + {guidance: {forbidden: [], encouraged: []}}' "$CONFIG_FILE" > "$CONFIG_FILE.tmp"; then
+        echo "ERROR: Failed to initialize guidance structure (jq error)" >&2
+        rm -f "$CONFIG_FILE.tmp"
+        exit 1
+    fi
     mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 fi
 
@@ -51,7 +55,11 @@ case "$ARGS" in
         echo "Total: $COUNT items"
         ;;
     "--clear"|"-c")
-        jq '.guidance.encouraged = []' "$CONFIG_FILE" > "$CONFIG_FILE.tmp"
+        if ! jq '.guidance.encouraged = []' "$CONFIG_FILE" > "$CONFIG_FILE.tmp"; then
+            echo "ERROR: Failed to clear encouraged items (jq error)" >&2
+            rm -f "$CONFIG_FILE.tmp"
+            exit 1
+        fi
         mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
         echo "Cleared all encouraged items"
         ;;
@@ -65,8 +73,13 @@ case "$ARGS" in
         ;;
     *)
         # Add item to encouraged list (deduplicated)
-        jq --arg item "$ARGS" '.guidance.encouraged = ((.guidance.encouraged // []) + [$item] | unique)' \
-            "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+        if ! jq --arg item "$ARGS" '.guidance.encouraged = ((.guidance.encouraged // []) + [$item] | unique)' \
+            "$CONFIG_FILE" > "$CONFIG_FILE.tmp"; then
+            echo "ERROR: Failed to add encouraged item (jq error)" >&2
+            rm -f "$CONFIG_FILE.tmp"
+            exit 1
+        fi
+        mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
         echo "Added to encouraged list: $ARGS"
         echo ""
         echo "Effect: Will apply on next iteration (Stop hook reads config fresh)"

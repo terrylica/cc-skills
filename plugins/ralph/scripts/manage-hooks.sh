@@ -7,16 +7,55 @@
 # - Idempotent: safe to run multiple times
 # - Atomic: uses temp file + mv to prevent corruption
 # - Validated: checks JSON validity before committing
-# - Version-agnostic: uses marketplace path, not cache path
+# - Path-agnostic: auto-detects marketplace, cache, or dev paths
+# - Restart-aware: records install timestamp for session detection
 
 set -euo pipefail
 
 # === Configuration ===
 SETTINGS="$HOME/.claude/settings.json"
 BACKUP_DIR="$HOME/.claude/backups"
-# Use marketplace path (version-agnostic) not cache path
-HOOKS_BASE="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/ralph/hooks"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKER="ralph/hooks/"  # Unique identifier in command paths
+INSTALL_TIMESTAMP_FILE="$HOME/.claude/ralph-hooks-installed-at"
+
+# Auto-detect plugin root with fallback chain:
+# 1. CLAUDE_PLUGIN_ROOT (set by Claude Code when running plugin commands)
+# 2. Marketplace path (local dev)
+# 3. Cache path (GitHub install - find latest version)
+# 4. Script's parent directory (fallback)
+detect_plugin_root() {
+    # Priority 1: Environment variable
+    if [[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]]; then
+        echo "$CLAUDE_PLUGIN_ROOT"
+        return
+    fi
+
+    # Priority 2: Marketplace path (local dev)
+    local marketplace="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/ralph"
+    if [[ -d "$marketplace/hooks" ]]; then
+        echo "$marketplace"
+        return
+    fi
+
+    # Priority 3: Cache path (GitHub install - latest version)
+    local cache_base="$HOME/.claude/plugins/cache/cc-skills/ralph"
+    if [[ -d "$cache_base" ]]; then
+        # Find latest version directory (highest semver)
+        local latest
+        latest=$(ls -1 "$cache_base" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -1)
+        if [[ -n "$latest" && -d "$cache_base/$latest/hooks" ]]; then
+            echo "$cache_base/$latest"
+            return
+        fi
+    fi
+
+    # Priority 4: Relative to script (ultimate fallback)
+    echo "$(dirname "$SCRIPT_DIR")"
+}
+
+PLUGIN_ROOT="$(detect_plugin_root)"
+HOOKS_BASE="$PLUGIN_ROOT/hooks"
 
 # === Colors for output ===
 RED='\033[0;31m'
@@ -128,10 +167,17 @@ do_install() {
     timestamp=$(create_backup)
     info "Created backup: settings.json.backup.$timestamp"
 
-    # Prepare hook entries (using $HOME literal, not expanded)
-    # Note: Using marketplace path which is version-agnostic
-    local stop_entry='{"hooks":[{"type":"command","command":"uv run $HOME/.claude/plugins/marketplaces/cc-skills/plugins/ralph/hooks/loop-until-done.py","timeout":30000}]}'
-    local pretooluse_entry='{"matcher":"Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/ralph/hooks/archive-plan.sh","timeout":5000}]}'
+    # Build hook command paths using detected PLUGIN_ROOT
+    # Convert absolute path to $HOME-based for portability in settings.json
+    local home_relative="${PLUGIN_ROOT/#$HOME/\$HOME}"
+    local stop_cmd="uv run ${home_relative}/hooks/loop-until-done.py"
+    local pretooluse_cmd="${home_relative}/hooks/archive-plan.sh"
+
+    # Prepare hook entries using jq for proper JSON escaping
+    local stop_entry
+    local pretooluse_entry
+    stop_entry=$(jq -n --arg cmd "$stop_cmd" '{"hooks":[{"type":"command","command":$cmd,"timeout":30000}]}')
+    pretooluse_entry=$(jq -n --arg cmd "$pretooluse_cmd" '{"hooks":[{"matcher":"Write|Edit","hooks":[{"type":"command","command":$cmd,"timeout":5000}]}]}')
 
     # Create temp file for atomic write
     local temp_file
@@ -156,7 +202,12 @@ do_install() {
     mv "$temp_file" "$SETTINGS"
     trap - EXIT
 
+    # Record installation timestamp for restart detection
+    date +%s > "$INSTALL_TIMESTAMP_FILE"
+
     info "ralph hooks installed successfully!"
+    echo ""
+    echo "Plugin root: $PLUGIN_ROOT"
     echo ""
     echo "Hooks installed:"
     echo "  - Stop: loop-until-done.py (autonomous loop control)"

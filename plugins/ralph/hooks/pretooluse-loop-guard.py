@@ -72,8 +72,9 @@ def main():
     # Read tool input from stdin
     try:
         tool_input = json.load(sys.stdin)
-    except json.JSONDecodeError:
-        # Can't parse input, allow the command
+    except json.JSONDecodeError as e:
+        # Can't parse input, allow the command but warn
+        print(f"[ralph] Warning: Failed to parse tool input: {e}", file=sys.stderr)
         print(json.dumps({"decision": "allow"}))
         return
 

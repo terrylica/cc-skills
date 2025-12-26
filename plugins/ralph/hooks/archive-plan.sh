@@ -11,14 +11,21 @@ set -euo pipefail
 if ! command -v jq &> /dev/null; then
     # Try mise install first (preferred tool manager)
     if command -v mise &> /dev/null; then
-        mise install jq 2>/dev/null || true
+        echo "[ralph] jq not found, attempting mise install..." >&2
+        if ! mise install jq 2>&1; then
+            echo "[ralph] mise install jq failed" >&2
+        fi
     fi
     # Try brew install (macOS fallback)
     if ! command -v jq &> /dev/null && command -v brew &> /dev/null; then
-        brew install jq 2>/dev/null || true
+        echo "[ralph] Attempting brew install jq..." >&2
+        if ! brew install jq 2>&1; then
+            echo "[ralph] brew install jq failed" >&2
+        fi
     fi
     # If still unavailable, block and notify user
     if ! command -v jq &> /dev/null; then
+        echo "[ralph] ERROR: jq required but could not be installed" >&2
         echo '{"decision": "block", "reason": "jq is required for archive-plan.sh but could not be installed. Please install manually: brew install jq OR mise install jq"}'
         exit 0  # Exit 0 with blocking JSON (hook protocol)
     fi

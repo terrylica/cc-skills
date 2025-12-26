@@ -17,6 +17,17 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 SETTINGS="$HOME/.claude/settings.json"
 MARKER="ralph/hooks/"
 
+# Helper function for time calculation (fallback if bc not available)
+calc_hours() {
+    local secs="$1"
+    if command -v bc &>/dev/null; then
+        echo "scale=2; $secs / 3600" | bc
+    else
+        # Fallback: integer division with awk
+        awk "BEGIN {printf \"%.2f\", $secs / 3600}"
+    fi
+}
+
 echo "=== Ralph Loop Status ==="
 echo ""
 
@@ -96,7 +107,7 @@ if [[ -d "$STATE_DIR" ]]; then
     if [[ -n "$SESSION_STATE" ]] && [[ -f "$SESSION_STATE" ]]; then
         RUNTIME_SECS=$(jq -r '.accumulated_runtime_seconds // 0' "$SESSION_STATE")
         if [[ "$RUNTIME_SECS" != "null" ]] && [[ "$RUNTIME_SECS" != "0" ]]; then
-            RUNTIME_HOURS=$(echo "scale=2; $RUNTIME_SECS / 3600" | bc)
+            RUNTIME_HOURS=$(calc_hours "$RUNTIME_SECS")
             echo "Runtime (CLI active): ${RUNTIME_HOURS}h"
         else
             echo "Runtime (CLI active): 0.00h (session just started)"
@@ -113,7 +124,7 @@ if [[ -f "$PROJECT_DIR/.claude/loop-start-timestamp" ]]; then
     START_TS=$(cat "$PROJECT_DIR/.claude/loop-start-timestamp")
     NOW_TS=$(date +%s)
     WALL_SECS=$((NOW_TS - START_TS))
-    WALL_HOURS=$(echo "scale=2; $WALL_SECS / 3600" | bc)
+    WALL_HOURS=$(calc_hours "$WALL_SECS")
     echo "Wall-clock (since start): ${WALL_HOURS}h"
 else
     echo "Wall-clock (since start): N/A (loop not started)"
