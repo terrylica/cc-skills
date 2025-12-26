@@ -25,7 +25,8 @@ def is_alpha_forge_project(project_dir: Path | str) -> bool:
     2. Monorepo: packages/*/pyproject.toml contains 'research-repo'
     3. Characteristic directory: packages/research-repo-core/ exists
     4. Experiment outputs: outputs/runs/ directory exists
-    5. Parent directories contain research-repo markers (subdirectory detection)
+    5. Git remote URL contains 'research-repo' (handles sparse checkouts/branches)
+    6. Parent directories contain research-repo markers (subdirectory detection)
 
     Args:
         project_dir: Path to project root (may be a subdirectory)
@@ -72,7 +73,27 @@ def is_alpha_forge_project(project_dir: Path | str) -> bool:
         logger.debug("Detected research-repo via outputs/runs/")
         return True
 
-    # Strategy 5: Check parent directories (when CWD is a subdirectory)
+    # Strategy 5: Git remote URL contains 'research-repo' (handles sparse checkouts/branches)
+    # This catches branches like 'asciinema-recordings' that lack file markers
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            remote_url = result.stdout.strip().lower()
+            if "research-repo" in remote_url or "alpha_forge" in remote_url:
+                logger.debug(f"Detected research-repo via git remote: {remote_url}")
+                return True
+    except (subprocess.TimeoutExpired, OSError):
+        pass  # Git not available or timeout, continue to other strategies
+
+    # Strategy 6: Check parent directories (when CWD is a subdirectory)
     current = project_dir
     for _ in range(5):  # Limit traversal depth
         parent = current.parent
