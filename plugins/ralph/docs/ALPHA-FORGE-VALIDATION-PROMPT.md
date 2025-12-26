@@ -43,7 +43,7 @@ Expected: jq 1.6+, uv 0.5+, Python 3.11+
 
 ---
 
-## PHASE 2: Project Detection (5 Strategies)
+## PHASE 2: Project Detection (6 Strategies)
 
 ### 2.1 Root pyproject.toml Detection
 
@@ -77,7 +77,17 @@ ls -d ~/eon/alpha-forge/outputs/runs 2>/dev/null && echo "✓ Found" || echo "�
 
 Expected: Either "✓ Found" or "⚠ Missing" (worktrees may not have this)
 
-### 2.5 Python Detection Function Test
+### 2.5 Git Remote URL Detection (NEW - Handles Sparse Checkouts)
+
+```bash
+git -C ~/eon/alpha-forge remote get-url origin 2>/dev/null | grep -qi "alpha.forge" && echo "✓ Git remote detected" || echo "✗ No match"
+```
+
+Expected: "✓ Git remote detected"
+
+**Why this matters**: Sparse checkouts, orphan branches (like `asciinema-recordings`), and worktrees may lack file markers but HAVE the correct git remote URL.
+
+### 2.6 Python Detection Function Test
 
 ```bash
 cd ~/eon/alpha-forge && python3 << 'PYEOF'
@@ -357,6 +367,26 @@ rm ~/eon/alpha-forge/.claude/STOP_LOOP
 
 Expected: References kill switch detection
 
+### 8.4 Sparse Checkout / Orphan Branch Detection (Git Remote)
+
+This tests detection via git remote URL when file markers are missing (e.g., `asciinema-recordings` branch):
+
+```bash
+# Simulate sparse checkout: directory with git remote but no file markers
+mkdir -p /tmp/alpha-forge-sparse && cd /tmp/alpha-forge-sparse
+git init && git remote add origin https://github.com/EonLabs-Spartan/alpha-forge.git
+python3 << 'PYEOF'
+import sys
+sys.path.insert(0, "$HOME/.claude/plugins/cache/cc-skills/ralph/$(ls ~/.claude/plugins/cache/cc-skills/ralph/ | sort -V | tail -1)/hooks")
+from core.project_detection import is_alpha_forge_project
+from pathlib import Path
+print(f"Sparse checkout detected: {is_alpha_forge_project(Path.cwd())}")
+PYEOF
+rm -rf /tmp/alpha-forge-sparse
+```
+
+Expected: `Sparse checkout detected: True`
+
 ---
 
 ## EXPECTED OUTPUT FORMATS (v8.1.5+)
@@ -389,6 +419,7 @@ After running all phases, confirm:
 | -------------- | --------------------------------------- | ------ |
 | **Detection**  | Root pyproject.toml detected            | ☐      |
 | **Detection**  | packages/alpha-forge-core/ detected     | ☐      |
+| **Detection**  | Git remote URL detected                 | ☐      |
 | **Detection**  | Python function returns True            | ☐      |
 | **Stop Hook**  | Alpha-forge = full processing           | ☐      |
 | **Stop Hook**  | Non-alpha-forge = early-exit `{}`       | ☐      |
@@ -404,6 +435,7 @@ After running all phases, confirm:
 | **State**      | Session files exist                     | ☐      |
 | **Edge Cases** | Worktree detection works                | ☐      |
 | **Edge Cases** | Kill switch triggers stop               | ☐      |
+| **Edge Cases** | Sparse checkout (git remote) detected   | ☐      |
 
 ---
 
