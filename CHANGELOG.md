@@ -1,3 +1,19 @@
+## [8.1.10](https://github.com/terrylica/cc-skills/compare/v8.1.9...v8.1.10) (2025-12-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Ralph Hook Validation - Alpha-Forge Comprehensive Test Suite](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/ALPHA-FORGE-VALIDATION-PROMPT.md) - updated (+404/-61)
+
 ## [8.1.9](https://github.com/terrylica/cc-skills/compare/v8.1.8...v8.1.9) (2025-12-26)
 
 
