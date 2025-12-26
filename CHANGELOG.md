@@ -1,3 +1,42 @@
+# [8.2.0](https://github.com/terrylica/cc-skills/compare/v8.1.11...v8.2.0) (2025-12-26)
+
+
+### Features
+
+* **asciinema-tools:** add launchd daemon architecture for background chunking ([d5657d3](https://github.com/terrylica/cc-skills/commit/d5657d3dfd1de6c2a28d61c75e0e7d41bfa7bb6a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [asciinema-tools Daemon Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-26-asciinema-daemon-architecture.md) | new (+205) |
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (6 commands)</summary>
+
+- [/asciinema-tools:bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/bootstrap.md) - updated (+192/-70)
+- [/asciinema-tools:daemon-logs](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-logs.md) - new (+98)
+- [/asciinema-tools:daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-setup.md) - new (+574)
+- [/asciinema-tools:daemon-start](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-start.md) - new (+73)
+- [/asciinema-tools:daemon-status](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-status.md) - new (+130)
+- [/asciinema-tools:daemon-stop](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-stop.md) - new (+69)
+
+</details>
+
 ## [8.1.11](https://github.com/terrylica/cc-skills/compare/v8.1.10...v8.1.11) (2025-12-26)
 
 
