@@ -77,6 +77,25 @@ git clone git@github.com:terrylica/cc-skills.git /tmp/cc-skills
 cp -r /tmp/cc-skills/plugins/plugin-dev ~/.claude/skills/
 ```
 
+## Plugin Dependencies
+
+Some plugins use skills from other plugins. Install dependencies first for full functionality.
+
+| Plugin       | Depends On  | Skills Used                                                     |
+| ------------ | ----------- | --------------------------------------------------------------- |
+| `plugin-dev` | `itp`       | implement-plan-preflight, code-hardcode-audit, semantic-release |
+| `doc-tools`  | `itp`       | graph-easy, adr-graph-easy-architect                            |
+| `itp`        | `doc-tools` | ascii-diagram-validator                                         |
+
+**Note:** `doc-tools` and `itp` have a circular dependency (both provide diagram tools). Install both for full functionality:
+
+```bash
+/plugin install cc-skills@itp
+/plugin install cc-skills@doc-tools
+```
+
+Run `node scripts/validate-plugins.mjs --deps` to see the full dependency graph.
+
 ## Slash Command Naming Convention
 
 Marketplace plugin commands display with the `plugin:command` format:
