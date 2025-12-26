@@ -25,33 +25,85 @@ from enum import Enum
 from pathlib import Path
 
 # Box-drawing character sets
+# Light (single) lines
 SINGLE_HORIZONTAL = set('─')
 SINGLE_VERTICAL = set('│')
+# Double lines
 DOUBLE_HORIZONTAL = set('═')
 DOUBLE_VERTICAL = set('║')
+# Heavy (bold) lines - used by graph-easy boxart
+HEAVY_HORIZONTAL = set('━')
+HEAVY_VERTICAL = set('┃')
 
-HORIZONTAL = SINGLE_HORIZONTAL | DOUBLE_HORIZONTAL
-VERTICAL = SINGLE_VERTICAL | DOUBLE_VERTICAL
+HORIZONTAL = SINGLE_HORIZONTAL | DOUBLE_HORIZONTAL | HEAVY_HORIZONTAL
+VERTICAL = SINGLE_VERTICAL | DOUBLE_VERTICAL | HEAVY_VERTICAL
 
-# Corners
-CORNER_TL = set('┌╔')  # Top-left
-CORNER_TR = set('┐╗')  # Top-right
-CORNER_BL = set('└╚')  # Bottom-left
-CORNER_BR = set('┘╝')  # Bottom-right
+# Corners - Light
+CORNER_TL_LIGHT = set('┌')
+CORNER_TR_LIGHT = set('┐')
+CORNER_BL_LIGHT = set('└')
+CORNER_BR_LIGHT = set('┘')
+# Corners - Double
+CORNER_TL_DOUBLE = set('╔')
+CORNER_TR_DOUBLE = set('╗')
+CORNER_BL_DOUBLE = set('╚')
+CORNER_BR_DOUBLE = set('╝')
+# Corners - Heavy (bold) - used by graph-easy boxart
+CORNER_TL_HEAVY = set('┏')
+CORNER_TR_HEAVY = set('┓')
+CORNER_BL_HEAVY = set('┗')
+CORNER_BR_HEAVY = set('┛')
+# Corners - Rounded (arc) - used by graph-easy shape: rounded
+CORNER_TL_ROUNDED = set('╭')
+CORNER_TR_ROUNDED = set('╮')
+CORNER_BL_ROUNDED = set('╰')
+CORNER_BR_ROUNDED = set('╯')
+
+CORNER_TL = CORNER_TL_LIGHT | CORNER_TL_DOUBLE | CORNER_TL_HEAVY | CORNER_TL_ROUNDED
+CORNER_TR = CORNER_TR_LIGHT | CORNER_TR_DOUBLE | CORNER_TR_HEAVY | CORNER_TR_ROUNDED
+CORNER_BL = CORNER_BL_LIGHT | CORNER_BL_DOUBLE | CORNER_BL_HEAVY | CORNER_BL_ROUNDED
+CORNER_BR = CORNER_BR_LIGHT | CORNER_BR_DOUBLE | CORNER_BR_HEAVY | CORNER_BR_ROUNDED
 CORNERS = CORNER_TL | CORNER_TR | CORNER_BL | CORNER_BR
 
-# T-junctions
-T_LEFT = set('├╠╞╟')    # T pointing right (vertical with right branch)
-T_RIGHT = set('┤╣╡╢')   # T pointing left (vertical with left branch)
-T_TOP = set('┬╦╤╥')     # T pointing down (horizontal with down branch)
-T_BOTTOM = set('┴╩╧╨')  # T pointing up (horizontal with up branch)
+# T-junctions - Light
+T_LEFT_LIGHT = set('├')
+T_RIGHT_LIGHT = set('┤')
+T_TOP_LIGHT = set('┬')
+T_BOTTOM_LIGHT = set('┴')
+# T-junctions - Double
+T_LEFT_DOUBLE = set('╠╞╟')
+T_RIGHT_DOUBLE = set('╣╡╢')
+T_TOP_DOUBLE = set('╦╤╥')
+T_BOTTOM_DOUBLE = set('╩╧╨')
+# T-junctions - Heavy (bold) - used by graph-easy boxart
+T_LEFT_HEAVY = set('┣┡┢┝┞┟┠')
+T_RIGHT_HEAVY = set('┫┥┦┧┨┩┪')
+T_TOP_HEAVY = set('┳┭┮┯┰┱┲')
+T_BOTTOM_HEAVY = set('┻┵┶┷┸┹┺')
+
+T_LEFT = T_LEFT_LIGHT | T_LEFT_DOUBLE | T_LEFT_HEAVY
+T_RIGHT = T_RIGHT_LIGHT | T_RIGHT_DOUBLE | T_RIGHT_HEAVY
+T_TOP = T_TOP_LIGHT | T_TOP_DOUBLE | T_TOP_HEAVY
+T_BOTTOM = T_BOTTOM_LIGHT | T_BOTTOM_DOUBLE | T_BOTTOM_HEAVY
 T_JUNCTIONS = T_LEFT | T_RIGHT | T_TOP | T_BOTTOM
 
-# Crosses
-CROSSES = set('┼╬╪╫')
+# Crosses - Light, Double, Heavy
+CROSSES = set('┼╬╪╫╋')
 
 # Arrow characters (valid terminators for lines)
-ARROWS = set('▶▷►▻▸▹→⟶⟹▼▽▾▿↓⇓◀◁◄◅◂◃←⟵⟸▲△▴▵↑⇑')
+# Includes graph-easy arrows: ∨∧ (mathematical symbols used as arrows)
+ARROWS = set('▶▷►▻▸▹→⟶⟹▼▽▾▿↓⇓◀◁◄◅◂◃←⟵⟸▲△▴▵↑⇑∨∧<>')
+
+# Block elements - used by graph-easy as decorative borders (valid terminators)
+# ▐ (right half block), ▌ (left half block), ▀ (upper half), ▄ (lower half)
+BLOCK_ELEMENTS = set('▐▌▀▄█░▒▓')
+
+# Ellipsis characters - used by graph-easy for truncation (valid terminators)
+# ⋮ (vertical ellipsis), ⋯ (horizontal ellipsis), … (horizontal ellipsis)
+ELLIPSIS_CHARS = set('⋮⋯…')
+
+# Valid line terminators (arrows + block elements + ellipsis)
+VALID_TERMINATORS = ARROWS | BLOCK_ELEMENTS | ELLIPSIS_CHARS
 
 # All box-drawing characters
 ALL_BOX_CHARS = HORIZONTAL | VERTICAL | CORNERS | T_JUNCTIONS | CROSSES
@@ -140,8 +192,9 @@ def check_vertical_alignment(
     # Check if character should connect upward
     if char in CONNECTS_UP:
         above = get_char_at(lines, row - 1, col)
-        # Valid connections: box chars that connect down, arrows, or whitespace/None at boundaries
-        if above is not None and above not in CONNECTS_DOWN and above not in ' \t' and above not in ARROWS:
+        # Valid connections: box chars that connect down, arrows, terminators,
+        # or horizontal lines (graph-easy arrow stem pattern: │ below ─)
+        if above is not None and above not in CONNECTS_DOWN and above not in ' \t' and above not in VALID_TERMINATORS and above not in HORIZONTAL:
             issues.append(Issue(
                 file=file,
                 line=row + 1,  # 1-indexed
@@ -154,7 +207,9 @@ def check_vertical_alignment(
     # Check if character should connect downward
     if char in CONNECTS_DOWN:
         below = get_char_at(lines, row + 1, col)
-        if below is not None and below not in CONNECTS_UP and below not in ' \t' and below not in ARROWS:
+        # Valid connections: box chars that connect up, arrows, terminators,
+        # or horizontal lines (graph-easy arrow stem pattern: │ above ─)
+        if below is not None and below not in CONNECTS_UP and below not in ' \t' and below not in VALID_TERMINATORS and below not in HORIZONTAL:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -177,7 +232,7 @@ def check_horizontal_alignment(
     # Check if character should connect left
     if char in CONNECTS_LEFT:
         left = get_char_at(lines, row, col - 1)
-        if col > 0 and left is not None and left not in CONNECTS_RIGHT and left not in ' \t' and left not in ARROWS:
+        if col > 0 and left is not None and left not in CONNECTS_RIGHT and left not in ' \t' and left not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -190,7 +245,7 @@ def check_horizontal_alignment(
     # Check if character should connect right
     if char in CONNECTS_RIGHT:
         right = get_char_at(lines, row, col + 1)
-        if col < len(line) - 1 and right is not None and right not in CONNECTS_LEFT and right not in ' \t' and right not in ARROWS:
+        if col < len(line) - 1 and right is not None and right not in CONNECTS_LEFT and right not in ' \t' and right not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -214,7 +269,7 @@ def check_corner_connections(
         right = get_char_at(lines, row, col + 1)
         below = get_char_at(lines, row + 1, col)
 
-        if right is not None and right not in CONNECTS_LEFT and right not in ' \t\n' and right not in ARROWS:
+        if right is not None and right not in CONNECTS_LEFT and right not in ' \t\n' and right not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -224,7 +279,7 @@ def check_corner_connections(
                 suggestion="Add horizontal line '─' or '═' after the corner"
             ))
 
-        if below is not None and below not in CONNECTS_UP and below not in ' \t\n' and below not in ARROWS:
+        if below is not None and below not in CONNECTS_UP and below not in ' \t\n' and below not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -239,7 +294,7 @@ def check_corner_connections(
         left = get_char_at(lines, row, col - 1)
         below = get_char_at(lines, row + 1, col)
 
-        if left is not None and left not in CONNECTS_RIGHT and left not in ' \t\n' and left not in ARROWS:
+        if left is not None and left not in CONNECTS_RIGHT and left not in ' \t\n' and left not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -249,7 +304,7 @@ def check_corner_connections(
                 suggestion="Add horizontal line '─' or '═' before the corner"
             ))
 
-        if below is not None and below not in CONNECTS_UP and below not in ' \t\n' and below not in ARROWS:
+        if below is not None and below not in CONNECTS_UP and below not in ' \t\n' and below not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -264,7 +319,7 @@ def check_corner_connections(
         right = get_char_at(lines, row, col + 1)
         above = get_char_at(lines, row - 1, col)
 
-        if right is not None and right not in CONNECTS_LEFT and right not in ' \t\n' and right not in ARROWS:
+        if right is not None and right not in CONNECTS_LEFT and right not in ' \t\n' and right not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -274,7 +329,7 @@ def check_corner_connections(
                 suggestion="Add horizontal line '─' or '═' after the corner"
             ))
 
-        if above is not None and above not in CONNECTS_DOWN and above not in ' \t\n' and above not in ARROWS:
+        if above is not None and above not in CONNECTS_DOWN and above not in ' \t\n' and above not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -289,7 +344,7 @@ def check_corner_connections(
         left = get_char_at(lines, row, col - 1)
         above = get_char_at(lines, row - 1, col)
 
-        if left is not None and left not in CONNECTS_RIGHT and left not in ' \t\n' and left not in ARROWS:
+        if left is not None and left not in CONNECTS_RIGHT and left not in ' \t\n' and left not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
@@ -299,7 +354,7 @@ def check_corner_connections(
                 suggestion="Add horizontal line '─' or '═' before the corner"
             ))
 
-        if above is not None and above not in CONNECTS_DOWN and above not in ' \t\n' and above not in ARROWS:
+        if above is not None and above not in CONNECTS_DOWN and above not in ' \t\n' and above not in VALID_TERMINATORS:
             issues.append(Issue(
                 file=file,
                 line=row + 1,
