@@ -383,37 +383,43 @@ graph { flow: south; }
 
 ## Part 3: Rendering
 
-### Command (MANDATORY: Always use boxart)
+### Command (Platform-Aware)
 
 ```bash
-# MANDATORY: Always use --as=boxart for clean output
+# For GitHub markdown (RECOMMENDED) - renders as solid lines
+graph-easy --as=ascii << 'EOF'
+graph { flow: south; }
+[A] -> [B] -> [C]
+EOF
+
+# For terminal/local viewing - prettier Unicode lines
 graph-easy --as=boxart << 'EOF'
 graph { flow: south; }
 [A] -> [B] -> [C]
 EOF
 ```
 
-**Never use** `--as=ascii` - it produces ugly `+--+` boxes instead of clean `+--+` Unicode lines.
-
 ### Output Modes
 
-| Mode     | Command       | Usage                                |
-| -------- | ------------- | ------------------------------------ |
-| `boxart` | `--as=boxart` | MANDATORY - clean Unicode lines      |
-| `ascii`  | `--as=ascii`  | NEVER USE - ugly output, legacy only |
+| Mode     | Command       | When to Use                                                     |
+| -------- | ------------- | --------------------------------------------------------------- |
+| `ascii`  | `--as=ascii`  | **GitHub markdown** - `+--+` renders as solid lines everywhere  |
+| `boxart` | `--as=boxart` | **Terminal only** - `┌──┐` looks nice locally, dotted on GitHub |
+
+**Why ASCII for GitHub?** GitHub's markdown preview renders Unicode box-drawing characters (`┌─┐│└─┘`) as **dotted lines**, breaking the visual appearance. Pure ASCII (`+---+`, `|`) renders correctly as solid lines on all platforms.
 
 ### Validation Workflow
 
 ```bash
 # 1. Write DSL to heredoc
-# 2. Render with boxart
-graph-easy --as=boxart << 'EOF'
+# 2. Render with ascii (for GitHub) or boxart (for terminal)
+graph-easy --as=ascii << 'EOF'
 [Your] -> [Diagram] -> [Here]
 EOF
 
 # 3. Review output
 # 4. Iterate if needed
-# 5. Copy final ASCII to markdown
+# 5. Copy final output to markdown
 # 6. Validate alignment (RECOMMENDED)
 ```
 
@@ -601,7 +607,7 @@ graph { flow: east; }
 
 - [ ] **`graph { label: "🚀 Title"; }`** - semantic emoji + title (MOST FORGOTTEN - check first!)
 - [ ] `graph { flow: south; }` or `graph { flow: east; }` - explicit direction
-- [ ] Command uses `--as=boxart` - NEVER `--as=ascii`
+- [ ] Command uses `--as=ascii` for GitHub markdown (or `--as=boxart` for terminal only)
 
 ### Embedding (MUST have - non-negotiable)
 
@@ -654,11 +660,10 @@ graph { flow: east; }
 
 ### Aesthetics
 
-1. **Uses boxart** - clean Unicode lines, not ASCII `+--+`
-2. **Visual hierarchy** - start/end rounded, important bold/double, optional dotted
-3. **Consistent styling** - same border style = same semantic meaning throughout
-4. **Readable labels** - multiline with `\n`, no truncation
-5. **Clear flow** - direction matches natural reading (top-down or left-right)
+1. **Platform-appropriate output** - `--as=ascii` for GitHub (solid lines), `--as=boxart` for terminal only
+2. **Readable labels** - multiline with `\n`, no truncation
+3. **Clear flow** - direction matches natural reading (top-down or left-right)
+4. **Consistent styling** - same border style = same semantic meaning throughout
 
 ### Comprehensiveness
 
@@ -670,7 +675,7 @@ graph { flow: east; }
 | Issue               | Cause                    | Solution                                      |
 | ------------------- | ------------------------ | --------------------------------------------- |
 | `command not found` | graph-easy not installed | Run preflight check                           |
-| Misaligned boxes    | Used `--as=ascii`        | Always use `--as=boxart`                      |
+| Dotted lines on GH  | Used `--as=boxart`       | Use `--as=ascii` for GitHub markdown          |
 | Box border broken   | Graphical emoji in node  | Remove emojis, use ASCII markers [x][+]       |
 | Nodes overlap       | Too complex              | Split into multiple diagrams (max 7-10 nodes) |
 | Edge labels cut off | Label too long           | Shorten to 1-3 words                          |
