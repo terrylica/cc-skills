@@ -33,9 +33,9 @@ CHANGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
 if echo "$CHANGED_FILES" | grep -qE '^(plugins/|\.claude-plugin/marketplace\.json)'; then
     echo "🔍 Validating plugin registration..."
 
-    if ! node scripts/validate-plugins.mjs; then
+    if ! bun scripts/validate-plugins.mjs; then
         echo ""
-        echo "💡 Tip: Run 'node scripts/validate-plugins.mjs --fix' to see fix instructions"
+        echo "💡 Tip: Run 'bun scripts/validate-plugins.mjs --fix' to see fix instructions"
         exit 1
     fi
 else
