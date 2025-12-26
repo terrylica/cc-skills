@@ -29,6 +29,12 @@ LINT_SCRIPT="${HOOK_ROOT}/scripts/lint-relative-paths"
 # Read JSON payload from stdin (Claude Code provides hook context)
 PAYLOAD=$(cat 2>/dev/null || echo '{}')
 
+# Check stop_hook_active - if true, user is forcing stop, allow it
+STOP_HOOK_ACTIVE=$(echo "$PAYLOAD" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
+if [[ "$STOP_HOOK_ACTIVE" == "true" ]]; then
+    exit 0  # User forcing stop, skip validation
+fi
+
 # Extract workspace directory
 WORKSPACE=$(echo "$PAYLOAD" | jq -r '.cwd // empty' 2>/dev/null || echo "")
 if [[ -z "$WORKSPACE" ]]; then
