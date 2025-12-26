@@ -1,3 +1,10 @@
+## [8.0.2](https://github.com/terrylica/cc-skills/compare/v8.0.1...v8.0.2) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** add alpha-forge only guard to all hooks ([cbb8f99](https://github.com/terrylica/cc-skills/commit/cbb8f99a18c26b8e145810d6c3716e684e4d9cfa))
+
 ## [8.0.1](https://github.com/terrylica/cc-skills/compare/v8.0.0...v8.0.1) (2025-12-26)
 
 
