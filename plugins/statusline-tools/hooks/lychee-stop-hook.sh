@@ -96,10 +96,19 @@ else
 fi
 
 # === Report Summary ===
+# IMPORTANT: Stop hooks have different semantics than PostToolUse!
+# - decision: "block" = ACTUALLY PREVENTS Claude from stopping (forces continuation)
+# - hookSpecificOutput.additionalContext = Informs Claude without blocking
+#
+# This hook is INFORMATIONAL, not blocking. We want Claude to see the info
+# but still allow the session to end. Use additionalContext for this.
 TOTAL_ISSUES=$((${LYCHEE_ERRORS:-0} + ${PATH_VIOLATIONS:-0}))
 
 if [[ "$TOTAL_ISSUES" -gt 0 ]]; then
-    echo "[LINK VALIDATION] Found issues: L:${LYCHEE_ERRORS:-0} P:${PATH_VIOLATIONS:-0}"
+    # Use additionalContext for Stop hooks - visible to Claude but non-blocking
+    jq -n \
+        --arg ctx "[LINK VALIDATION] Session ended with $TOTAL_ISSUES issue(s): Lychee errors: ${LYCHEE_ERRORS:-0}, Path violations: ${PATH_VIOLATIONS:-0}. Check .lychee-results.json and .lint-relative-paths-results.txt in repo root." \
+        '{hookSpecificOutput: {hookEventName: "Stop", additionalContext: $ctx}}'
 fi
 
 # Always exit 0 (non-blocking hook)

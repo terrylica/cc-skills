@@ -42,9 +42,10 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
     fi
 
     # Output reminder if set and exit
+    # ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
+    # MUST use decision:block format - only "reason" field is visible to Claude
     if [[ -n "$REMINDER" ]]; then
-        REMINDER_ESCAPED=$(echo "$REMINDER" | sed 's/"/\\"/g' | tr '\n' ' ')
-        echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"${REMINDER_ESCAPED}\"}}"
+        jq -n --arg reason "$REMINDER" '{decision: "block", reason: $reason}'
     fi
     exit 0
 fi
@@ -108,10 +109,10 @@ elif [[ "$FILE_PATH" =~ ^(src/|lib/|scripts/|plugins/[^/]+/skills/[^/]+/scripts/
 fi
 
 # Output reminder if set
+# ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
+# MUST use decision:block format - only "reason" field is visible to Claude
 if [[ -n "$REMINDER" ]]; then
-    # Escape for JSON
-    REMINDER_ESCAPED=$(echo "$REMINDER" | sed 's/"/\\"/g' | tr '\n' ' ')
-    echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"${REMINDER_ESCAPED}\"}}"
+    jq -n --arg reason "$REMINDER" '{decision: "block", reason: $reason}'
 fi
 
 exit 0
