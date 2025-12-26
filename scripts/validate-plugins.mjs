@@ -372,13 +372,14 @@ function detectHookType(filename, content, hooksJsonPath) {
  *
  * Stop/SubagentStop:
  *   - "decision": "block" = ACTUALLY BLOCKS stopping (forces continuation)
- *   - For informational: use hookSpecificOutput.additionalContext
+ *   - For informational: use {systemMessage: "..."} (hookSpecificOutput NOT supported)
  *   - Empty {} = allow stop normally
  *
  * PreToolUse:
  *   - "decision": "block" = DEPRECATED (use permissionDecision)
  *   - Use permissionDecision: "deny" + permissionDecisionReason
  *
+ * ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
  * Reference: lifecycle-reference.md "JSON Field Visibility by Hook Type"
  *
  * Returns { errors: [...], warnings: [...] }
@@ -469,7 +470,7 @@ function validateHookOutputFormat() {
             `${relPath}: Stop hook appears informational but uses "decision: block" which ACTUALLY BLOCKS stopping`
           );
           warnings.push(
-            `   → For informational output, use: {hookSpecificOutput: {hookEventName: "Stop", additionalContext: "..."}}`
+            `   → For informational output, use: {systemMessage: "..."} (Stop hooks don't support hookSpecificOutput)`
           );
         }
 
