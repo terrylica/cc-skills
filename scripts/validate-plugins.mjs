@@ -651,6 +651,23 @@ function validateHookOutputFormat() {
         );
       }
 
+      // Pitfall 3: PostToolUse hooks emitting reminders for code files without content verification
+      // ADR: Lesson from v8.5.1 fix - ADR traceability reminder fired even when ADR existed
+      // Pattern: Sets REMINDER for file extensions but doesn't verify condition with file content
+      if (
+        hookType === "PostToolUse" &&
+        content.match(/\.(py|ts|js|mjs|rs|go)\$/) &&  // Checks for code file extensions
+        content.match(/REMINDER\s*=\s*["'][^"']+TRACEABILITY|REMINDER\s*=\s*["'][^"']+Consider/) &&  // Sets reminder
+        !content.match(/head\s+-?\d+|grep\s+-[qE]|cat\s+["']?\$FILE/) // Doesn't check file content
+      ) {
+        warnings.push(
+          `${relPath}: PostToolUse hook may emit false positive reminders - sets reminder for code files without checking file content`
+        );
+        warnings.push(
+          `   → Before emitting traceability reminders, check if condition already satisfied: head -50 "$FILE" | grep -qE 'pattern'`
+        );
+      }
+
     } catch (err) {
       warnings.push(`Could not validate hook: ${path} (${err.message})`);
     }
