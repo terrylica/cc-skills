@@ -176,7 +176,7 @@ def load_session_state(
         >>> state = load_session_state(
         ...     Path("sessions/abc@1234.json"),
         ...     default,
-        ...     state_dir=Path("~/.claude/ralph-state"),
+        ...     state_dir=Path("~/.claude/automation/loop-orchestrator/state"),
         ...     path_hash="1234abcd"
         ... )
         >>> state.get("_inheritance")  # Present if inherited
