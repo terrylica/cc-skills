@@ -159,7 +159,6 @@ class ProtectionConfig:
         "RALPH_FORBID_SCRIPT",
         "RALPH_AUDIT_SCRIPT",
         "RALPH_STATUS_SCRIPT",
-        "RALPH_HARNESS_SCRIPT",
         "RALPH_HOOKS_SCRIPT",
     ])
 
