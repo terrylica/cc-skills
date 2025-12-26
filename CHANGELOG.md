@@ -1,3 +1,19 @@
+## [8.1.1](https://github.com/terrylica/cc-skills/compare/v8.1.0...v8.1.1) (2025-12-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Ralph Hook Validation - Alpha-Forge Meta-Prompt](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/plugins/ralph/docs/ALPHA-FORGE-VALIDATION-PROMPT.md) - new (+88)
+
 # [8.1.0](https://github.com/terrylica/cc-skills/compare/v8.0.3...v8.1.0) (2025-12-26)
 
 

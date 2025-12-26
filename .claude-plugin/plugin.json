@@ -1,6 +1,6 @@
 {
   "name": "cc-skills",
-  "version": "8.1.0",
+  "version": "8.1.1",
   "description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI",
   "author": {
     "name": "Terry Li",
