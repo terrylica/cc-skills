@@ -1,3 +1,10 @@
+## [8.1.3](https://github.com/terrylica/cc-skills/compare/v8.1.2...v8.1.3) (2025-12-26)
+
+
+### Bug Fixes
+
+* **statusline-tools:** use systemMessage for Stop hook output ([1a92495](https://github.com/terrylica/cc-skills/commit/1a924953eeac1817348a6a53965fcb4460900f2a))
+
 ## [8.1.2](https://github.com/terrylica/cc-skills/compare/v8.1.1...v8.1.2) (2025-12-26)
 
 
