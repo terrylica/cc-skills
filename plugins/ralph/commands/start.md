@@ -297,6 +297,73 @@ echo "  Autonomous Loop Mode"
 echo "========================================"
 echo ""
 
+# ===== STRICT PRE-FLIGHT CHECKS =====
+# These checks ensure the loop will actually work before starting
+
+INSTALL_TS_FILE="$HOME/.claude/ralph-hooks-installed-at"
+
+# 1. Check if hooks were installed after session started (restart detection)
+if [[ -f "$INSTALL_TS_FILE" ]]; then
+    INSTALL_TS=$(cat "$INSTALL_TS_FILE")
+    # Use .claude dir mtime as session start proxy
+    SESSION_TS=$(stat -f %m "$HOME/.claude" 2>/dev/null || stat -c %Y "$HOME/.claude" 2>/dev/null || echo "0")
+    # Also check projects dir
+    if [[ -d "$HOME/.claude/projects" ]]; then
+        PROJECTS_TS=$(stat -f %m "$HOME/.claude/projects" 2>/dev/null || stat -c %Y "$HOME/.claude/projects" 2>/dev/null || echo "0")
+        if [[ "$PROJECTS_TS" -gt "$SESSION_TS" ]]; then
+            SESSION_TS="$PROJECTS_TS"
+        fi
+    fi
+
+    if [[ "$INSTALL_TS" -gt "$SESSION_TS" ]]; then
+        echo "ERROR: Hooks were installed AFTER this session started!"
+        echo ""
+        echo "The Stop hook won't run until you restart Claude Code."
+        echo "Installed at: $(date -r "$INSTALL_TS" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -d "@$INSTALL_TS" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "unknown")"
+        echo ""
+        echo "ACTION: Exit and restart Claude Code, then run /ralph:start again"
+        exit 1
+    fi
+fi
+
+# 2. Verify uv is available (required for Stop hook)
+if ! command -v uv &>/dev/null; then
+    echo "ERROR: 'uv' is required but not installed."
+    echo ""
+    echo "The Stop hook uses 'uv run' to execute loop-until-done.py"
+    echo ""
+    echo "Install with: brew install uv"
+    exit 1
+fi
+
+# 3. Verify Python 3.11+ (required for Stop hook)
+PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "")
+if [[ -n "$PY_VERSION" ]]; then
+    PY_MAJOR="${PY_VERSION%%.*}"
+    PY_MINOR="${PY_VERSION#*.}"
+    if [[ "$PY_MAJOR" -lt 3 ]] || [[ "$PY_MAJOR" -eq 3 && "$PY_MINOR" -lt 11 ]]; then
+        echo "ERROR: Python 3.11+ required (found: $PY_VERSION)"
+        echo ""
+        echo "The Stop hook uses Python 3.11+ features."
+        echo ""
+        echo "Upgrade with: brew upgrade python@3.11"
+        exit 1
+    fi
+else
+    echo "ERROR: Python not found"
+    echo ""
+    echo "Install with: brew install python@3.11"
+    exit 1
+fi
+
+# 4. Verify jq is available (required for config management)
+if ! command -v jq &>/dev/null; then
+    echo "ERROR: 'jq' is required but not installed."
+    echo ""
+    echo "Install with: brew install jq"
+    exit 1
+fi
+
 # Check if hooks are installed
 HOOKS_INSTALLED=false
 if command -v jq &>/dev/null && [[ -f "$SETTINGS" ]]; then

@@ -14,6 +14,7 @@ Session state files use the format: sessions/{session_id}@{path_hash}.json
 import hashlib
 import json
 import logging
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -116,6 +117,7 @@ def get_path_hash(project_dir: str, length: int = HASH_LENGTH) -> str:
         hash_obj = hashlib.md5(str(abs_path).encode("utf-8"))
         return hash_obj.hexdigest()[:length]
     except (OSError, ValueError) as e:
+        print(f"[ralph] Warning: Could not hash path '{project_dir}': {e}", file=sys.stderr)
         logger.warning(f"Could not hash path '{project_dir}': {e}")
         return "none"
 
