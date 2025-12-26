@@ -120,15 +120,17 @@ do_preflight() {
     fi
     echo ""
 
-    # 3. Hook Script Checks
+    # 3. Hook Script Checks (3 hooks total)
     echo -e "${CYAN}Hook Scripts:${NC}"
     if [[ -n "$PLUGIN_ROOT" ]]; then
         local stop_hook="$PLUGIN_ROOT/hooks/loop-until-done.py"
-        local pretooluse_hook="$PLUGIN_ROOT/hooks/archive-plan.sh"
+        local archive_hook="$PLUGIN_ROOT/hooks/archive-plan.sh"
+        local guard_hook="$PLUGIN_ROOT/hooks/pretooluse-loop-guard.py"
 
+        # Stop hook
         if [[ -f "$stop_hook" ]]; then
             if [[ -x "$stop_hook" ]]; then
-                echo -e "  ${GREEN}✓${NC} loop-until-done.py"
+                echo -e "  ${GREEN}✓${NC} loop-until-done.py (Stop)"
             else
                 echo -e "  ${YELLOW}⚠${NC} loop-until-done.py (not executable)"
                 ((warnings++))
@@ -138,15 +140,29 @@ do_preflight() {
             ((errors++))
         fi
 
-        if [[ -f "$pretooluse_hook" ]]; then
-            if [[ -x "$pretooluse_hook" ]]; then
-                echo -e "  ${GREEN}✓${NC} archive-plan.sh"
+        # PreToolUse: archive-plan.sh
+        if [[ -f "$archive_hook" ]]; then
+            if [[ -x "$archive_hook" ]]; then
+                echo -e "  ${GREEN}✓${NC} archive-plan.sh (PreToolUse)"
             else
                 echo -e "  ${YELLOW}⚠${NC} archive-plan.sh (not executable)"
                 ((warnings++))
             fi
         else
             echo -e "  ${RED}✗${NC} archive-plan.sh - NOT FOUND"
+            ((errors++))
+        fi
+
+        # PreToolUse: pretooluse-loop-guard.py
+        if [[ -f "$guard_hook" ]]; then
+            if [[ -x "$guard_hook" ]]; then
+                echo -e "  ${GREEN}✓${NC} pretooluse-loop-guard.py (PreToolUse)"
+            else
+                echo -e "  ${YELLOW}⚠${NC} pretooluse-loop-guard.py (not executable)"
+                ((warnings++))
+            fi
+        else
+            echo -e "  ${RED}✗${NC} pretooluse-loop-guard.py - NOT FOUND"
             ((errors++))
         fi
     else
