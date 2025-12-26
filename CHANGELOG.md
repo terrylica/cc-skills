@@ -1,3 +1,24 @@
+# [8.7.0](https://github.com/terrylica/cc-skills/compare/v8.6.0...v8.7.0) (2025-12-26)
+
+
+### Features
+
+* **validate:** modernize with tinyglobby + AJV, adopt Bun runtime ([8980686](https://github.com/terrylica/cc-skills/commit/89806863484f841ecc5a66d8c6cab8908b77783d))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+16/-16)
+
 # [8.6.0](https://github.com/terrylica/cc-skills/compare/v8.5.1...v8.6.0) (2025-12-26)
 
 
