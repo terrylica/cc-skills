@@ -372,6 +372,16 @@ def main():
 
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
 
+    # ===== ALPHA-FORGE ONLY GUARD =====
+    # Ralph is dedicated to alpha-forge ML research workflows only.
+    # Skip all processing for non-alpha-forge projects (zero overhead).
+    if project_dir:
+        from core.project_detection import is_alpha_forge_project
+        if not is_alpha_forge_project(project_dir):
+            # Silent pass-through: allow stop, no Ralph processing
+            print(json.dumps({}))
+            sys.exit(0)
+
     # ===== EARLY EXIT CHECKS =====
 
     # Global stop signal (version-agnostic, v7.16.2+)
