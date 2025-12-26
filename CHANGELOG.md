@@ -1,3 +1,19 @@
+## [8.1.9](https://github.com/terrylica/cc-skills/compare/v8.1.8...v8.1.9) (2025-12-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Link Validation Hook Test - Meta-Prompt](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/docs/LINK-VALIDATION-TEST-PROMPT.md) - new (+124)
+
 ## [8.1.8](https://github.com/terrylica/cc-skills/compare/v8.1.7...v8.1.8) (2025-12-26)
 
 
