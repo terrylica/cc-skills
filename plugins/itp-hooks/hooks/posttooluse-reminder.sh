@@ -102,11 +102,18 @@ elif [[ "$FILE_PATH" =~ ^(src/|lib/|scripts/|plugins/[^/]+/skills/[^/]+/scripts/
         # Only report issues if ruff found actual problems (non-empty after filtering)
         if [[ -n "$RUFF_OUTPUT" ]]; then
             REMINDER="[RUFF] Issues detected in ${BASENAME}:\\n${RUFF_OUTPUT}\\nRun 'ruff check ${FILE_PATH} --fix' to auto-fix safe issues."
-        else
+        fi
+        # Skip ADR reminder if ruff passed - check for existing ADR reference below
+    fi
+
+    # Only show ADR traceability reminder if no ruff issues AND no existing ADR reference
+    # Check if file already contains ADR reference to avoid false positives
+    if [[ -z "$REMINDER" && -f "$FILE_PATH" ]]; then
+        # Look for common ADR reference patterns in first 50 lines
+        # Patterns: "ADR:", "docs/adr/", "adr/2", "/adr/"
+        if ! head -50 "$FILE_PATH" 2>/dev/null | grep -qE '(ADR:|docs/adr/|/adr/[0-9])'; then
             REMINDER="[CODE-ADR TRACEABILITY] You modified implementation file: ${BASENAME}. Consider: Does this change relate to an existing ADR? If implementing a decision from docs/adr/, add ADR reference comment."
         fi
-    else
-        REMINDER="[CODE-ADR TRACEABILITY] You modified implementation file: ${BASENAME}. Consider: Does this change relate to an existing ADR? If implementing a decision from docs/adr/, add ADR reference comment."
     fi
 fi
 
