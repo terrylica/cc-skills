@@ -1,5 +1,5 @@
 {
-  "description": "ITP workflow enforcement - implementation standards and documentation coupling",
+  "description": "ITP workflow enforcement - implementation standards, documentation coupling, and silent failure detection",
   "hooks": {
     "PostToolUse": [
       {
@@ -8,7 +8,12 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-reminder.sh",
-            "timeout": 10
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/silent-failure-detector.sh",
+            "timeout": 10000
           }
         ]
       }
