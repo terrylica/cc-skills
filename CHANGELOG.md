@@ -1,3 +1,65 @@
+## [7.16.8](https://github.com/terrylica/cc-skills/compare/v7.16.7...v7.16.8) (2025-12-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>link-validator</strong> (1 change)</summary>
+
+- [link-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/link-validator/skills/link-validator/SKILL.md) - renamed from `plugins/link-validator/SKILL.md`
+
+</details>
+
+<details>
+<summary><strong>skill-architecture</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/SKILL.md) - renamed from `plugins/skill-architecture/SKILL.md`
+
+</details>
+
+
+### Plugin READMEs
+
+- [Skill Architecture Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/README.md) - updated (+14/-14)
+
+### Skill References
+
+<details>
+<summary><strong>link-validator/link-validator</strong> (1 file)</summary>
+
+- [Link Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/link-validator/skills/link-validator/references/link-patterns.md) - renamed from `plugins/link-validator/references/link-patterns.md`
+
+</details>
+
+<details>
+<summary><strong>skill-architecture/skill-architecture</strong> (14 files)</summary>
+
+- [Agent Skill Name](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/advanced-topics.md) - renamed from `plugins/skill-architecture/references/advanced-topics.md`
+- [Bash Compatibility for Skills](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/bash-compatibility.md) - renamed from `plugins/skill-architecture/references/bash-compatibility.md`
+- [Creation Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/creation-workflow.md) - renamed from `plugins/skill-architecture/references/creation-workflow.md`
+- [Error Message Style Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/error-message-style.md) - renamed from `plugins/skill-architecture/references/error-message-style.md`
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/evolution-log.md) - renamed from `plugins/skill-architecture/references/evolution-log.md`
+- [Path Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/path-patterns.md) - renamed from `plugins/skill-architecture/references/path-patterns.md`
+- [Progressive Disclosure](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/progressive-disclosure.md) - renamed from `plugins/skill-architecture/references/progressive-disclosure.md`
+- [Scripts Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/scripts-reference.md) - renamed from `plugins/skill-architecture/references/scripts-reference.md`
+- [Safe API Client](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/security-practices.md) - renamed from `plugins/skill-architecture/references/security-practices.md`
+- [Structural Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/structural-patterns.md) - renamed from `plugins/skill-architecture/references/structural-patterns.md`
+- [Marketplace Sync Tracking](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/SYNC-TRACKING.md) - renamed from `plugins/skill-architecture/references/SYNC-TRACKING.md`
+- [Token Efficiency](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/token-efficiency.md) - renamed from `plugins/skill-architecture/references/token-efficiency.md`
+- [My Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/validation-reference.md) - renamed from `plugins/skill-architecture/references/validation-reference.md`
+- [Workflow Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/skill-architecture/skills/skill-architecture/references/workflow-patterns.md) - renamed from `plugins/skill-architecture/references/workflow-patterns.md`
+
+</details>
+
 ## [7.16.7](https://github.com/terrylica/cc-skills/compare/v7.16.6...v7.16.7) (2025-12-25)
 
 
