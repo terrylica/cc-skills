@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  asciinema-chunker.plist.template - launchd service configuration
+
+  This template is used by /asciinema-tools:daemon-setup to create the actual plist.
+  Placeholders ({{VARIABLE}}) are replaced during setup.
+
+  Install location: ~/Library/LaunchAgents/com.cc-skills.asciinema-chunker.plist
+
+  ADR: /docs/adr/2025-12-26-asciinema-daemon-architecture.md
+-->
+<plist version="1.0">
+<dict>
+    <!-- Service identifier -->
+    <key>Label</key>
+    <string>com.cc-skills.asciinema-chunker</string>
+
+    <!-- Command to run -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>{{DAEMON_PATH}}</string>
+    </array>
+
+    <!-- Start when launchd loads (login) -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Keep the daemon running (auto-restart on crash) -->
+    <key>KeepAlive</key>
+    <dict>
+        <!-- Only restart if exits with non-zero status -->
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <!-- Throttle restarts (minimum 10 seconds between restarts) -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>{{HOME}}/.asciinema</string>
+
+    <!-- Log output -->
+    <key>StandardOutPath</key>
+    <string>{{HOME}}/.asciinema/logs/launchd-stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>{{HOME}}/.asciinema/logs/launchd-stderr.log</string>
+
+    <!-- Environment variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>{{HOME}}</string>
+
+        <key>USER</key>
+        <string>{{USER}}</string>
+
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+
+        <!-- Chunking configuration -->
+        <key>IDLE_THRESHOLD</key>
+        <string>{{IDLE_THRESHOLD}}</string>
+
+        <key>ZSTD_LEVEL</key>
+        <string>{{ZSTD_LEVEL}}</string>
+    </dict>
+
+    <!-- Nice priority (lower priority than interactive processes) -->
+    <key>Nice</key>
+    <integer>5</integer>
+
+    <!-- Process type for resource management -->
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

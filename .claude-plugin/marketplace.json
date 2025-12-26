@@ -375,7 +375,7 @@
     },
     {
       "name": "asciinema-tools",
-      "description": "Terminal recording automation: asciinema capture, playback, streaming backup, cast format conversion, and semantic analysis",
+      "description": "Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis",
       "version": "8.1.11",
       "source": "./plugins/asciinema-tools/",
       "category": "utilities",
@@ -390,7 +390,11 @@
         "cast",
         "streaming",
         "backup",
-        "analysis"
+        "analysis",
+        "launchd",
+        "daemon",
+        "keychain",
+        "pushover"
       ],
       "strict": false
     }
