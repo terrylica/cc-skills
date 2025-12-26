@@ -1,3 +1,251 @@
+# [8.0.0](https://github.com/terrylica/cc-skills/compare/v7.19.7...v8.0.0) (2025-12-26)
+
+
+### Features
+
+* **plugins:** consolidate 7 plugins into 4 merged plugins with dependency tracking ([8d6096d](https://github.com/terrylica/cc-skills/commit/8d6096dc54695aecd5967064afb449a58ad83f5e))
+
+
+### BREAKING CHANGES
+
+* **plugins:** Plugin names changed - update your /plugin install commands
+
+Merged plugins:
+- skill-architecture + validate-plugin-structure → plugin-dev
+- link-validator + link-checker → link-tools
+- doc-build-tools → doc-tools (6 skills total)
+- mql5-tools + mql5com → mql5 (4 skills)
+- notification-tools → devops-tools (8 skills)
+
+New features:
+- Added 'requires' field to marketplace.json for dependency declaration
+- Enhanced validate-plugins.mjs with dependency graph detection
+- Circular dependency detection (doc-tools ↔ itp)
+- Installation instructions generation with dependency order
+- Loud/explicit error output for Claude Code CLI visibility
+
+Reference: https://github.com/anthropics/claude-code/issues/9444
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [dual-channel-watchexec-notifications](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/SKILL.md) - renamed from `plugins/notification-tools/skills/dual-channel-watchexec/SKILL.md`
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (4 changes)</summary>
+
+- [latex-build](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/SKILL.md) - renamed from `plugins/doc-build-tools/skills/latex-build/SKILL.md`
+- [latex-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/SKILL.md) - renamed from `plugins/doc-build-tools/skills/latex-setup/SKILL.md`
+- [latex-tables](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/SKILL.md) - renamed from `plugins/doc-build-tools/skills/latex-tables/SKILL.md`
+- [pandoc-pdf-generation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/SKILL.md) - renamed from `plugins/doc-build-tools/skills/pandoc-pdf-generation/SKILL.md`
+
+</details>
+
+<details>
+<summary><strong>link-tools</strong> (2 changes)</summary>
+
+- [link-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validation/SKILL.md) - renamed from `plugins/link-checker/skills/link-validation/SKILL.md`
+- [link-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validator/SKILL.md) - renamed from `plugins/link-validator/skills/link-validator/SKILL.md`
+
+</details>
+
+<details>
+<summary><strong>mql5</strong> (4 changes)</summary>
+
+- [article-extractor](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/SKILL.md) - renamed from `plugins/mql5com/skills/article-extractor/SKILL.md`
+- [log-reader](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/log-reader/SKILL.md) - renamed from `plugins/mql5com/skills/log-reader/SKILL.md`
+- [mql5-indicator-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/SKILL.md) - renamed from `plugins/mql5-tools/skills/mql5-indicator-patterns/SKILL.md`
+- [python-workspace](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/SKILL.md) - renamed from `plugins/mql5com/skills/python-workspace/SKILL.md`
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (2 changes)</summary>
+
+- [plugin-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/plugin-validator/SKILL.md) - new (+133)
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/SKILL.md`
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+13/-2)
+- [doc-build-tools](https://github.com/terrylica/cc-skills/blob/v7.19.7/plugins/doc-build-tools/README.md) - deleted
+- [doc-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/README.md) - updated (+42/-19)
+- [link-checker](https://github.com/terrylica/cc-skills/blob/v7.19.7/plugins/link-checker/README.md) - deleted
+- [link-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/README.md) - new (+58)
+- [link-validator](https://github.com/terrylica/cc-skills/blob/v7.19.7/plugins/link-validator/README.md) - deleted
+- [mql5-tools](https://github.com/terrylica/cc-skills/blob/v7.19.7/plugins/mql5-tools/README.md) - deleted
+- [mql5](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/README.md) - new (+56)
+- [mql5com](https://github.com/terrylica/cc-skills/blob/v7.19.7/plugins/mql5com/README.md) - deleted
+- [notification-tools](https://github.com/terrylica/cc-skills/blob/v7.19.7/plugins/notification-tools/README.md) - deleted
+- [plugin-dev](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/README.md) - new (+66)
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/v7.19.7/plugins/skill-architecture/README.md) - deleted
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/dual-channel-watchexec</strong> (5 files)</summary>
+
+- [❌ WRONG - Sends HTML to Pushover](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/references/common-pitfalls.md) - renamed from `plugins/notification-tools/skills/dual-channel-watchexec/references/common-pitfalls.md`
+- [Load Pushover credentials from Doppler](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/references/credential-management.md) - renamed from `plugins/notification-tools/skills/dual-channel-watchexec/references/credential-management.md`
+- [Canonical source for Pushover credentials](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/references/pushover-integration.md) - renamed from `plugins/notification-tools/skills/dual-channel-watchexec/references/pushover-integration.md`
+- [Python API call](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/references/telegram-html.md) - renamed from `plugins/notification-tools/skills/dual-channel-watchexec/references/telegram-html.md`
+- [Use stat to check modification time](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/references/watchexec-patterns.md) - renamed from `plugins/notification-tools/skills/dual-channel-watchexec/references/watchexec-patterns.md`
+
+</details>
+
+<details>
+<summary><strong>doc-tools/latex-build</strong> (5 files)</summary>
+
+- [Build all .tex files in directory](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/references/advanced-patterns.md) - renamed from `plugins/doc-build-tools/skills/latex-build/references/advanced-patterns.md`
+- [PDF output](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/references/common-commands.md) - renamed from `plugins/doc-build-tools/skills/latex-build/references/common-commands.md`
+- [Use pdflatex by default](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/references/configuration.md) - renamed from `plugins/doc-build-tools/skills/latex-build/references/configuration.md`
+- [latexmk watches ALL included files](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/references/multi-file-projects.md) - renamed from `plugins/doc-build-tools/skills/latex-build/references/multi-file-projects.md`
+- [Check installation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/references/troubleshooting.md) - renamed from `plugins/doc-build-tools/skills/latex-build/references/troubleshooting.md`
+
+</details>
+
+<details>
+<summary><strong>doc-tools/latex-setup</strong> (5 files)</summary>
+
+- [Download from mactex.org](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/references/installation.md) - renamed from `plugins/doc-build-tools/skills/latex-setup/references/installation.md`
+- [Use kpsewhich to find package](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/references/package-management.md) - renamed from `plugins/doc-build-tools/skills/latex-setup/references/package-management.md`
+- [Add -synctex=1 flag](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/references/skim-configuration.md) - renamed from `plugins/doc-build-tools/skills/latex-setup/references/skim-configuration.md`
+- [Add to ~/.zshrc or ~/.bash_profile](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/references/troubleshooting.md) - renamed from `plugins/doc-build-tools/skills/latex-setup/references/troubleshooting.md`
+- [Check TeX version](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/references/verification.md) - renamed from `plugins/doc-build-tools/skills/latex-setup/references/verification.md`
+
+</details>
+
+<details>
+<summary><strong>doc-tools/latex-tables</strong> (5 files)</summary>
+
+- [Column Spec](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/references/column-spec.md) - renamed from `plugins/doc-build-tools/skills/latex-tables/references/column-spec.md`
+- [Lines Borders](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/references/lines-borders.md) - renamed from `plugins/doc-build-tools/skills/latex-tables/references/lines-borders.md`
+- [Migration](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/references/migration.md) - renamed from `plugins/doc-build-tools/skills/latex-tables/references/migration.md`
+- [Table Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/references/table-patterns.md) - renamed from `plugins/doc-build-tools/skills/latex-tables/references/table-patterns.md`
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/references/troubleshooting.md) - renamed from `plugins/doc-build-tools/skills/latex-tables/references/troubleshooting.md`
+
+</details>
+
+<details>
+<summary><strong>doc-tools/pandoc-pdf-generation</strong> (7 files)</summary>
+
+- [Bibliography Citations](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/bibliography-citations.md) - renamed from `plugins/doc-build-tools/skills/pandoc-pdf-generation/references/bibliography-citations.md`
+- [Core Development Principles for PDF Generation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/core-principles.md) - renamed from `plugins/doc-build-tools/skills/pandoc-pdf-generation/references/core-principles.md`
+- [1. Executive Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/document-patterns.md) - renamed from `plugins/doc-build-tools/skills/pandoc-pdf-generation/references/document-patterns.md`
+- [LaTeX Parameters Reference for Pandoc](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/latex-parameters.md) - renamed from `plugins/doc-build-tools/skills/pandoc-pdf-generation/references/latex-parameters.md`
+- [Markdown Structure for PDF Generation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/markdown-for-pdf.md) - renamed from `plugins/doc-build-tools/skills/pandoc-pdf-generation/references/markdown-for-pdf.md`
+- [General diagrams](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/troubleshooting-pandoc.md) - renamed from `plugins/doc-build-tools/skills/pandoc-pdf-generation/references/troubleshooting-pandoc.md`
+- [Document Title        ← Makes this Section 1](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/yaml-structure.md) - renamed from `plugins/doc-build-tools/skills/pandoc-pdf-generation/references/yaml-structure.md`
+
+</details>
+
+<details>
+<summary><strong>link-tools/link-validator</strong> (1 file)</summary>
+
+- [Link Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validator/references/link-patterns.md) - renamed from `plugins/link-validator/skills/link-validator/references/link-patterns.md`
+
+</details>
+
+<details>
+<summary><strong>mql5/article-extractor</strong> (4 files)</summary>
+
+- [Data Sources](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/references/data-sources.md) - renamed from `plugins/mql5com/skills/article-extractor/references/data-sources.md`
+- [MQL5 Article Extractor - Examples](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/references/examples.md) - renamed from `plugins/mql5com/skills/article-extractor/references/examples.md`
+- [Extraction Modes](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/references/extraction-modes.md) - renamed from `plugins/mql5com/skills/article-extractor/references/extraction-modes.md`
+- [Count articles extracted](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/references/troubleshooting.md) - renamed from `plugins/mql5com/skills/article-extractor/references/troubleshooting.md`
+
+</details>
+
+<details>
+<summary><strong>mql5/mql5-indicator-patterns</strong> (5 files)</summary>
+
+- [Buffer Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/references/buffer-patterns.md) - renamed from `plugins/mql5-tools/skills/mql5-indicator-patterns/references/buffer-patterns.md`
+- [Complete Template](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/references/complete-template.md) - renamed from `plugins/mql5-tools/skills/mql5-indicator-patterns/references/complete-template.md`
+- [Debugging](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/references/debugging.md) - renamed from `plugins/mql5-tools/skills/mql5-indicator-patterns/references/debugging.md`
+- [Display Scale](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/references/display-scale.md) - renamed from `plugins/mql5-tools/skills/mql5-indicator-patterns/references/display-scale.md`
+- [Recalculation](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/references/recalculation.md) - renamed from `plugins/mql5-tools/skills/mql5-indicator-patterns/references/recalculation.md`
+
+</details>
+
+<details>
+<summary><strong>mql5/python-workspace</strong> (4 files)</summary>
+
+- [Step 1: Generate config](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/references/capabilities-detailed.md) - renamed from `plugins/mql5com/skills/python-workspace/references/capabilities-detailed.md`
+- [Step 1: Generate config](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/references/troubleshooting-errors.md) - renamed from `plugins/mql5com/skills/python-workspace/references/troubleshooting-errors.md`
+- [Validation Metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/references/validation-metrics.md) - renamed from `plugins/mql5com/skills/python-workspace/references/validation-metrics.md`
+- [One-liner (v3.0.0 headless)](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/references/workflows-complete.md) - renamed from `plugins/mql5com/skills/python-workspace/references/workflows-complete.md`
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/plugin-validator</strong> (1 file)</summary>
+
+- [Silent Failure Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/plugin-validator/references/silent-failure-patterns.md) - new (+158)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (14 files)</summary>
+
+- [Agent Skill Name](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/advanced-topics.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/advanced-topics.md`
+- [Bash Compatibility for Skills](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/bash-compatibility.md`
+- [Creation Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/creation-workflow.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/creation-workflow.md`
+- [Error Message Style Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/error-message-style.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/error-message-style.md`
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/evolution-log.md`
+- [Path Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/path-patterns.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/path-patterns.md`
+- [Progressive Disclosure](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/progressive-disclosure.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/progressive-disclosure.md`
+- [Scripts Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/scripts-reference.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/scripts-reference.md`
+- [Safe API Client](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/security-practices.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/security-practices.md`
+- [Structural Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/structural-patterns.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/structural-patterns.md`
+- [Marketplace Sync Tracking](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/SYNC-TRACKING.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/SYNC-TRACKING.md`
+- [Token Efficiency](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/token-efficiency.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/token-efficiency.md`
+- [My Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/validation-reference.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/validation-reference.md`
+- [Workflow Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/workflow-patterns.md) - renamed from `plugins/skill-architecture/skills/skill-architecture/references/workflow-patterns.md`
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>plugin-dev</strong> (1 command)</summary>
+
+- [⛔ Create Plugin — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/commands/create.md) - renamed from `plugins/itp/commands/plugin-add.md`
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+2/-2)
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+55/-101)
+
+## Other Documentation
+
+### Other
+
+- [Implementation Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/reference.md) - renamed from `plugins/notification-tools/skills/dual-channel-watchexec/reference.md`
+- [Modern LaTeX Workflow for macOS (2025)](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/REFERENCE.md) - renamed from `plugins/doc-build-tools/skills/latex-setup/REFERENCE.md`
+
 ## [7.19.7](https://github.com/terrylica/cc-skills/compare/v7.19.6...v7.19.7) (2025-12-26)
 
 

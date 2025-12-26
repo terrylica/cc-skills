@@ -1,6 +1,6 @@
 {
   "name": "cc-skills",
-  "version": "7.19.7",
+  "version": "8.0.0",
   "description": "Claude Code Skills Marketplace",
   "owner": {
     "name": "Terry Li",
@@ -10,7 +10,7 @@
     {
       "name": "plugin-dev",
       "description": "Plugin and skill development: structure validation, silent failure auditing, skill architecture meta-skill with TodoWrite templates",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/plugin-dev/",
       "category": "development",
       "author": {
@@ -34,7 +34,7 @@
     {
       "name": "itp",
       "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/itp/",
       "category": "productivity",
       "author": {
@@ -54,7 +54,7 @@
     {
       "name": "gh-tools",
       "description": "GitHub workflow automation with intelligent GFM link validation for PRs",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/gh-tools/",
       "category": "development",
       "author": {
@@ -73,7 +73,7 @@
     {
       "name": "link-tools",
       "description": "Comprehensive link validation: portability checks, lychee broken link detection, path policy linting",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/link-tools/",
       "category": "quality",
       "author": {
@@ -98,7 +98,7 @@
     {
       "name": "devops-tools",
       "description": "DevOps automation: ClickHouse, Doppler, Telegram, MLflow, notifications, session recovery",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/devops-tools/",
       "category": "devops",
       "author": {
@@ -121,7 +121,7 @@
     {
       "name": "dotfiles-tools",
       "description": "Chezmoi dotfile management via natural language workflows",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/dotfiles-tools/",
       "category": "utilities",
       "author": {
@@ -141,7 +141,7 @@
     {
       "name": "doc-tools",
       "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/doc-tools/",
       "category": "documents",
       "author": {
@@ -167,7 +167,7 @@
     {
       "name": "quality-tools",
       "description": "Code quality and validation: clone detection, multi-agent E2E validation, performance profiling, schema testing",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/quality-tools/",
       "category": "quality",
       "author": {
@@ -189,7 +189,7 @@
     {
       "name": "productivity-tools",
       "description": "Slash command generation for Claude Code",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/productivity-tools/",
       "category": "productivity",
       "author": {
@@ -207,7 +207,7 @@
     {
       "name": "mql5",
       "description": "MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/mql5/",
       "category": "trading",
       "author": {
@@ -229,7 +229,7 @@
     {
       "name": "itp-hooks",
       "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/itp-hooks/",
       "category": "enforcement",
       "author": {
@@ -253,7 +253,7 @@
     {
       "name": "git-account-validator",
       "description": "Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config, port 443 fallback",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/git-account-validator/",
       "category": "enforcement",
       "author": {
@@ -275,7 +275,7 @@
     {
       "name": "alpha-forge-worktree",
       "description": "Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/alpha-forge-worktree/",
       "category": "development",
       "author": {
@@ -295,7 +295,7 @@
     {
       "name": "ralph",
       "description": "Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete. Long-running automation, evolutionary development",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/ralph/",
       "category": "automation",
       "author": {
@@ -317,7 +317,7 @@
     {
       "name": "iterm2-layout-config",
       "description": "iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/iterm2-layout-config/",
       "category": "development",
       "author": {
@@ -337,7 +337,7 @@
     {
       "name": "statusline-tools",
       "description": "Custom status line with git status, link validation (L), and path linting (P) indicators",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/statusline-tools/",
       "category": "utilities",
       "author": {
@@ -358,7 +358,7 @@
     {
       "name": "notion-api",
       "description": "Notion API integration using notion-client Python SDK - create pages, manipulate blocks, query databases with preflight credential prompting",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/notion-api/",
       "category": "productivity",
       "author": {
@@ -379,7 +379,7 @@
     {
       "name": "asciinema-tools",
       "description": "Terminal recording automation: asciinema capture, playback, streaming backup, cast format conversion, and semantic analysis",
-      "version": "7.19.7",
+      "version": "8.0.0",
       "source": "./plugins/asciinema-tools/",
       "category": "utilities",
       "author": {
