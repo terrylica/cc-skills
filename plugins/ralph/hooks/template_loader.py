@@ -221,8 +221,8 @@ class TemplateLoader:
 
         ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-        Uses adapter-specific templates when available (e.g., alpha-forge-exploration.md
-        for Alpha Forge projects) to provide domain-specific guidance.
+        Uses unified exploration-mode.md template with Jinja conditionals
+        for adapter-specific content (e.g., Alpha Forge OODA loop).
 
         Args:
             opportunities: List of discovered work opportunities
@@ -244,8 +244,17 @@ class TemplateLoader:
         """
         ctx = rssi_context or {}
 
-        # Common context variables
-        common_ctx = {
+        # Check if research is converged (from adapter_convergence in rssi_context)
+        adapter_conv = ctx.get("adapter_convergence", {})
+        research_converged = adapter_conv.get("converged", False) if adapter_conv else False
+
+        # Extract user guidance for template (natural language lists)
+        guidance = ctx.get("guidance", {})
+        forbidden_items = guidance.get("forbidden", []) if guidance else []
+        encouraged_items = guidance.get("encouraged", []) if guidance else []
+
+        # Unified context for all projects (adapter_name drives conditional content)
+        context = {
             "opportunities": opportunities or [],
             "iteration": ctx.get("iteration", 0),
             "project_dir": ctx.get("project_dir", ""),
@@ -259,30 +268,16 @@ class TemplateLoader:
             "quality_gate": ctx.get("quality_gate", []),
             "overall_effectiveness": ctx.get("overall_effectiveness", 0.0),
             "gpu_infrastructure": ctx.get("gpu_infrastructure", {}),
+            # Adapter-specific
+            "adapter_name": adapter_name or "",
+            "metrics_history": metrics_history or [],
+            "research_converged": research_converged,
+            "forbidden_items": forbidden_items,
+            "encouraged_items": encouraged_items,
         }
 
-        # Alpha Forge: ONLY use alpha-forge-exploration.md (no fallback)
-        if adapter_name == "alpha-forge":
-            # Check if research is converged (from adapter_convergence in rssi_context)
-            adapter_conv = ctx.get("adapter_convergence", {})
-            research_converged = adapter_conv.get("converged", False) if adapter_conv else False
-
-            # Extract user guidance for template (natural language lists)
-            guidance = ctx.get("guidance", {})
-            forbidden_items = guidance.get("forbidden", []) if guidance else []
-            encouraged_items = guidance.get("encouraged", []) if guidance else []
-
-            return self.render(
-                "alpha-forge-exploration.md",
-                **common_ctx,
-                metrics_history=metrics_history or [],
-                research_converged=research_converged,
-                forbidden_items=forbidden_items,
-                encouraged_items=encouraged_items,
-            )
-
-        # All other projects: use generic template
-        return self.render("exploration-mode.md", **common_ctx)
+        # Unified template with Jinja conditionals for adapter-specific content
+        return self.render("exploration-mode.md", **context)
 
 # Global instance for convenience
 _loader: TemplateLoader | None = None
