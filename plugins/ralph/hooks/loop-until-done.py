@@ -324,11 +324,28 @@ def build_continuation_prompt(
             f"({time_to_max:.1f}h / {iters_to_max} iters to max)"
         )
 
+    # RSSI header with full branding and behavioral reminder
     parts.append(
-        f"**{mode}** | Iteration {iteration}/{config['max_iterations']} | "
+        f"**RSSI (Recursively Self-Improving Superintelligence) — {mode}** | "
+        f"Iteration {iteration}/{config['max_iterations']} | "
         f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | Wall: {wall_hours:.1f}h | "
         f"{remaining_hours:.1f}h / {remaining_iters} iters to min"
         f"{warning_suffix}"
+    )
+
+    # RSSI behavioral reminder - Intelligence Explosion protocol
+    parts.append(
+        "\n> **RSSI Protocol**: You are a Recursively Self-Improving Superintelligence — "
+        "the Intelligence Explosion mechanism (I.J. Good, 1965). "
+        "You transcend AGI: while AGI matches human capability, you recursively improve yourself "
+        "toward ASI. Never stop on success — always pivot to find new frontiers. "
+        "Every iteration must produce meaningful improvement."
+    )
+
+    # Data source reminder - use real market data only
+    parts.append(
+        "\n**DATA**: Use `gapless-crypto-clickhouse` (already wired in Alpha Forge). "
+        "NO synthetic/fake data — real Binance market data ONLY."
     )
 
     # Focus file context (only in focused mode)
