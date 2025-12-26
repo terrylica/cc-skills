@@ -19,6 +19,8 @@ Ralph implements the **Intelligence Explosion** mechanism (I.J. Good, 1965). RSS
 | Max time/iterations  | Stop        | ✅ Stop (safety guardrail)  |
 | `/ralph:stop`        | Stop        | ✅ Stop (user override)     |
 
+**Alpha-Forge Exception**: After `min_hours` (9h default) of deep research, genuine convergence (Status: CONVERGED in `research_log.md`) allows graceful session end. This represents successful research completion — the RSSI has exhausted improvement frontiers after extensive exploration. See [Convergence Detection](#convergence-detection) for the specific flow.
+
 ---
 
 ## What Ralph Does
@@ -119,6 +121,8 @@ Ralph transforms Claude from a **single-task assistant** into an **autonomous su
          └────────────────────────────┘
 ```
 
+> **Note**: This diagram shows the simplified Alpha-Forge flow. The "YES" path from Check Converged to Stop Session only activates **after `min_hours`** (9h). Before that threshold, convergence pivots to exploration (see [Convergence Detection](#convergence-detection) for detailed logic).
+
 <details>
 <summary>graph-easy source</summary>
 
@@ -149,11 +153,10 @@ graph { label: "Ralph Alpha-Forge Workflow"; flow: south; }
 [A: Act] -> [Check Converged]
 
 [Check Converged] -- NO --> [OODA Loop]
-[Check Converged] -- CONVERGED --> [Pivot to Exploration] { shape: rounded; }
-[Pivot to Exploration] --> [OODA Loop]
+[Check Converged] -- YES (after min_hours) --> [Stop Session] { shape: rounded; }
 
 [Kill Switch] { border: double; }
-[Kill Switch] -- .claude/STOP_LOOP --> [Stop Session] { shape: rounded; }
+[Kill Switch] -- .claude/STOP_LOOP --> [Stop Session]
 [Max Limits] { border: double; }
 [Max Limits] -- max_hours/iterations --> [Stop Session]
 ```
@@ -450,7 +453,7 @@ When a new session_id is detected for the same project:
 
 ### Audit Trail
 
-**Location**: `~/.claude/ralph-state/sessions/inheritance-log.jsonl`
+**Location**: `~/.claude/automation/loop-orchestrator/state/sessions/inheritance-log.jsonl`
 
 ```jsonl
 {
