@@ -17,6 +17,36 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+def _get_git_main_worktree(project_dir: Path) -> Path | None:
+    """Get the main worktree path if this is a git worktree.
+
+    Git worktrees have a .git FILE (not directory) containing:
+    'gitdir: /path/to/main/.git/worktrees/<name>'
+
+    Returns:
+        Path to main worktree root, or None if not a worktree
+    """
+    git_path = project_dir / ".git"
+    if git_path.is_file():
+        try:
+            content = git_path.read_text().strip()
+            if content.startswith("gitdir:"):
+                # Extract: gitdir: /path/to/main/.git/worktrees/<name>
+                gitdir = content.split(":", 1)[1].strip()
+                # Navigate: .git/worktrees/<name> → .git → repo root
+                git_dir = Path(gitdir)
+                if "worktrees" in git_dir.parts:
+                    # Go up from .git/worktrees/<name> to .git, then to repo root
+                    main_git_dir = git_dir.parent.parent  # .git
+                    main_worktree = main_git_dir.parent  # repo root
+                    if main_worktree.is_dir():
+                        logger.debug(f"Detected git worktree, main repo: {main_worktree}")
+                        return main_worktree
+        except OSError:
+            pass
+    return None
+
+
 def is_alpha_forge_project(project_dir: Path | str) -> bool:
     """Detect if project is Alpha Forge (canonical check).
 
@@ -26,9 +56,10 @@ def is_alpha_forge_project(project_dir: Path | str) -> bool:
     3. Characteristic directory: packages/alpha-forge-core/ exists
     4. Experiment outputs: outputs/runs/ directory exists
     5. Parent directories contain alpha-forge markers (subdirectory detection)
+    6. Git worktree: If this is a worktree, check the main repo
 
     Args:
-        project_dir: Path to project root (may be a subdirectory)
+        project_dir: Path to project root (may be a subdirectory or worktree)
 
     Returns:
         True if Alpha Forge project detected
@@ -99,5 +130,14 @@ def is_alpha_forge_project(project_dir: Path | str) -> bool:
             logger.debug(f"Detected alpha-forge via parent outputs: {parent}")
             return True
         current = parent
+
+    # Strategy 6: Git worktree detection
+    # If this is a worktree, check if the main repo is alpha-forge
+    main_worktree = _get_git_main_worktree(project_dir)
+    if main_worktree and main_worktree != project_dir:
+        # Recursively check the main worktree (but avoid infinite recursion)
+        if is_alpha_forge_project(main_worktree):
+            logger.debug(f"Detected alpha-forge via git worktree main: {main_worktree}")
+            return True
 
     return False
