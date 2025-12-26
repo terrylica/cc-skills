@@ -1,3 +1,10 @@
+## [7.19.6](https://github.com/terrylica/cc-skills/compare/v7.19.5...v7.19.6) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** eliminate all silent failures in manage-hooks.sh ([33a782a](https://github.com/terrylica/cc-skills/commit/33a782aa53486e17a3860f126d0b9d6d26bcc38d))
+
 ## [7.19.5](https://github.com/terrylica/cc-skills/compare/v7.19.4...v7.19.5) (2025-12-26)
 
 
