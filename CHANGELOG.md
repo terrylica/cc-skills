@@ -1,3 +1,29 @@
+# [8.5.0](https://github.com/terrylica/cc-skills/compare/v8.4.3...v8.5.0) (2025-12-26)
+
+
+### Features
+
+* **ralph:** show guidance in /ralph:status ([112881a](https://github.com/terrylica/cc-skills/commit/112881a763c5e4f91f2f28525b0a9f465998b5da))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/status.md) - updated (+33)
+
+</details>
+
 ## [8.4.3](https://github.com/terrylica/cc-skills/compare/v8.4.2...v8.4.3) (2025-12-26)
 
 
