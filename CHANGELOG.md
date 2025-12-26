@@ -1,3 +1,10 @@
+# [8.6.0](https://github.com/terrylica/cc-skills/compare/v8.5.1...v8.6.0) (2025-12-26)
+
+
+### Features
+
+* **validate:** add hook pitfall detection for common bugs ([0fd1732](https://github.com/terrylica/cc-skills/commit/0fd1732831f91f977d0820842e1ebf53a96bc2d0))
+
 ## [8.5.1](https://github.com/terrylica/cc-skills/compare/v8.5.0...v8.5.1) (2025-12-26)
 
 
