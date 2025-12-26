@@ -54,6 +54,24 @@ Core principles guiding Ralph Wiggum's development:
 
 2. **User Override Always Wins** — Kill switch (`.claude/STOP_LOOP`), `/ralph:stop`, and manual intervention always work. The loop is eternal but never inescapable.
 
+## research-repo Exclusivity (v8.0.2+)
+
+Ralph hooks are designed **exclusively** for Research Repo ML research workflows:
+
+| Project Type        | Hook Behavior                                           |
+| ------------------- | ------------------------------------------------------- |
+| **Research Repo**     | Full RSSI functionality, adapter convergence, OODA loop |
+| **Non-Research Repo** | Silent pass-through (zero processing, zero overhead)    |
+
+**Detection Criteria** (any match = research-repo):
+
+- `pyproject.toml` contains `research-repo` or `alpha_forge`
+- `packages/research-repo-core/` directory exists
+- `outputs/runs/` directory exists
+- Parent directories contain markers (handles git worktrees)
+
+**Why this design**: Ralph's RSSI loop, OODA research methodology, and metrics-based convergence are specifically tailored for Research Repo's experiment-driven ML research. Applying these patterns to unrelated projects would be counterproductive.
+
 ## Quick Start
 
 ```bash
@@ -410,7 +428,7 @@ Ralph supports project-specific convergence detection via adapters. Each adapter
 | ------------- | --------------------------------------- | -------------------------------------------------------- |
 | `research-repo` | `pyproject.toml` contains "research-repo" | WFE threshold, diminishing returns, patience, hard limit |
 
-Non-Research Repo projects use RSSI completion detection directly (no adapter needed).
+**Note**: Non-Research Repo projects are skipped entirely — Ralph hooks pass through silently with zero overhead (see [research-repo Exclusivity](#research-repo-exclusivity-v802)).
 
 **Confidence-Based Decisions**:
 
