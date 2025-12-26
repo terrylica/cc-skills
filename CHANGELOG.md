@@ -1,3 +1,51 @@
+# [7.19.0](https://github.com/terrylica/cc-skills/compare/v7.18.2...v7.19.0) (2025-12-26)
+
+
+### Bug Fixes
+
+* **skill:** recommend ASCII for GitHub, boxart for terminal only ([1a6389b](https://github.com/terrylica/cc-skills/commit/1a6389b794ab61789ea76485c8d4adcadda3b01c))
+
+
+### Features
+
+* **ralph:** comprehensive installation integrity with restart detection ([842fe4c](https://github.com/terrylica/cc-skills/commit/842fe4cf593183345fd35a5febb14b3faaa540c3))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [graph-easy](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/graph-easy/SKILL.md) - updated (+23/-18)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (8 commands)</summary>
+
+- [Ralph Loop: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/audit-now.md) - updated (+7/-2)
+- [Ralph Loop: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/config.md) - updated (+14/-4)
+- [Ralph Loop: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/encourage.md) - updated (+17/-4)
+- [Ralph Loop: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/forbid.md) - updated (+17/-4)
+- [Ralph Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/hooks.md) - updated (+226/-7)
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+67)
+- [Ralph Loop: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/status.md) - updated (+13/-2)
+- [Ralph Loop: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/stop.md) - updated (+6/-2)
+
+</details>
+
 ## [7.18.2](https://github.com/terrylica/cc-skills/compare/v7.18.1...v7.18.2) (2025-12-26)
 
 
