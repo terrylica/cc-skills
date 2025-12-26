@@ -6,6 +6,18 @@
 # so we can capture the original content before it's overwritten.
 set -euo pipefail
 
+# ===== research-repo ONLY GUARD =====
+# Ralph is dedicated to research-repo ML research workflows only.
+# Skip all processing for non-research-repo projects (zero overhead).
+if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
+    # Fast inline detection: check characteristic markers
+    if ! [[ -d "$CLAUDE_PROJECT_DIR/packages/research-repo-core" ]] && \
+       ! [[ -d "$CLAUDE_PROJECT_DIR/outputs/runs" ]] && \
+       ! grep -q -E "alpha[-_]forge" "$CLAUDE_PROJECT_DIR/pyproject.toml" 2>/dev/null; then
+        exit 0  # Not research-repo, skip archival
+    fi
+fi
+
 # ===== JQ AVAILABILITY CHECK (RSSI Enhancement) =====
 # jq is required for parsing hook input JSON. Try to install if missing.
 if ! command -v jq &> /dev/null; then
