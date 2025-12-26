@@ -616,6 +616,41 @@ function validateHookOutputFormat() {
         );
       }
 
+      // === COMMON HOOK PITFALLS ===
+      // ADR: Lessons learned from v8.2.1 fixes
+
+      // Pitfall 1: Checking command output without filtering success messages
+      // e.g., ruff outputs "All checks passed!" which is non-empty but not an error
+      // Exception: --output-format=json outputs [] on success, not a message
+      if (
+        content.includes("ruff check") &&
+        !content.includes("--output-format=json") &&
+        content.match(/\[\[\s*-n\s+"\$[A-Z_]*OUTPUT"/) &&
+        !content.includes('grep -v "All checks passed"')
+      ) {
+        warnings.push(
+          `${relPath}: Ruff output check may trigger false positives - ruff outputs "All checks passed!" on success`
+        );
+        warnings.push(
+          `   → Filter with: | grep -v "All checks passed" | before storing output`
+        );
+      }
+
+      // Pitfall 2: Path comparison without handling relative paths
+      // e.g., using eval echo without CLAUDE_PROJECT_DIR for relative paths
+      if (
+        content.includes("eval echo") &&
+        content.match(/\[\[.*==.*"\$HOME/) &&
+        !content.includes("CLAUDE_PROJECT_DIR")
+      ) {
+        warnings.push(
+          `${relPath}: Path comparison may fail for relative paths - eval echo doesn't convert relative to absolute`
+        );
+        warnings.push(
+          `   → Use CLAUDE_PROJECT_DIR to resolve relative paths before comparison`
+        );
+      }
+
     } catch (err) {
       warnings.push(`Could not validate hook: ${path} (${err.message})`);
     }
