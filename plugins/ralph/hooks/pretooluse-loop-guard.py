@@ -11,6 +11,7 @@ Protected files and deletion patterns are configurable via
 .claude/ralph-config.json.
 
 ADR: /docs/adr/2025-12-20-ralph-rssi-eternal-loop.md
+ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md (output format)
 """
 
 import json
@@ -77,7 +78,13 @@ def main():
         from core.project_detection import is_alpha_forge_project
         if not is_alpha_forge_project(project_dir):
             # Silent pass-through: allow command, no Ralph processing
-            print(json.dumps({"decision": "allow"}))
+            # Using modern permissionDecision format (not deprecated decision:allow)
+            print(json.dumps({
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "allow"
+                }
+            }))
             return
 
     # Read tool input from stdin
@@ -86,37 +93,55 @@ def main():
     except json.JSONDecodeError as e:
         # Can't parse input, allow the command but warn
         print(f"[ralph] Warning: Failed to parse tool input: {e}", file=sys.stderr)
-        print(json.dumps({"decision": "allow"}))
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "allow"
+            }
+        }))
         return
 
     # Get the command being executed
     command = tool_input.get("command", "")
 
+    # Helper for allow response (modern format)
+    def allow_command():
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "allow"
+            }
+        }))
+
     if not command:
-        print(json.dumps({"decision": "allow"}))
+        allow_command()
         return
 
     # Allow official Ralph commands to operate on protected files
     if is_official_ralph_command(command):
-        print(json.dumps({"decision": "allow"}))
+        allow_command()
         return
 
     # Check if this is a deletion attempt on protected files
     if is_deletion_command(command):
+        # Using modern permissionDecision format (not deprecated decision:block)
         result = {
-            "decision": "block",
-            "reason": (
-                "[RALPH LOOP GUARD] Cannot delete loop control files. "
-                "The Ralph autonomous loop is active. Only the user can stop it "
-                "by running /ralph:stop or removing .claude/loop-enabled manually. "
-                "Continue working on improvement opportunities instead."
-            ),
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    "[RALPH LOOP GUARD] Cannot delete loop control files. "
+                    "The Ralph autonomous loop is active. Only the user can stop it "
+                    "by running /ralph:stop or removing .claude/loop-enabled manually. "
+                    "Continue working on improvement opportunities instead."
+                ),
+            }
         }
         print(json.dumps(result))
         return
 
     # Allow all other commands
-    print(json.dumps({"decision": "allow"}))
+    allow_command()
 
 
 if __name__ == "__main__":

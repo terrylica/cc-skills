@@ -256,6 +256,374 @@ function detectCircularDependencies(graph) {
 }
 
 /**
+ * Find all hook files in plugin directories (shell and Python)
+ * Returns array of { path, plugin, filename, language }
+ */
+function findHookScripts() {
+  const pluginsDir = resolve(process.cwd(), "plugins");
+  const directories = getPluginDirectories();
+  const hookFiles = [];
+
+  directories.forEach((pluginName) => {
+    const hooksDir = join(pluginsDir, pluginName, "hooks");
+    if (!existsSync(hooksDir)) return;
+
+    try {
+      const entries = readdirSync(hooksDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isFile()) {
+          if (entry.name.endsWith(".sh")) {
+            hookFiles.push({
+              path: join(hooksDir, entry.name),
+              plugin: pluginName,
+              filename: entry.name,
+              language: "shell",
+            });
+          } else if (entry.name.endsWith(".py") && !entry.name.startsWith("__")) {
+            // Include Python hooks (exclude __init__.py, etc.)
+            hookFiles.push({
+              path: join(hooksDir, entry.name),
+              plugin: pluginName,
+              filename: entry.name,
+              language: "python",
+            });
+          }
+        }
+      }
+    } catch (err) {
+      // Explicit warning (no silent failures)
+      console.warn(`⚠️  Could not read hooks dir: ${hooksDir} (${err.code || err.message})`);
+    }
+  });
+
+  return hookFiles;
+}
+
+/**
+ * Detect hook type from filename, content, and hooks.json
+ * Returns: "PostToolUse" | "Stop" | "PreToolUse" | "SubagentStop" | "unknown"
+ *
+ * ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
+ * Reference: plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md
+ */
+function detectHookType(filename, content, hooksJsonPath) {
+  const lowerFilename = filename.toLowerCase();
+
+  // Try to read hooks.json for definitive type
+  if (existsSync(hooksJsonPath)) {
+    try {
+      const hooksJson = JSON.parse(readFileSync(hooksJsonPath, "utf8"));
+      const hooks = hooksJson.hooks || hooksJson;
+
+      // Search all hook types for this script
+      for (const [hookType, matchers] of Object.entries(hooks)) {
+        if (!Array.isArray(matchers)) continue;
+        for (const matcher of matchers) {
+          const hookList = matcher.hooks || [];
+          for (const hook of hookList) {
+            if (hook.command && hook.command.includes(filename)) {
+              return hookType;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      // Fall through to heuristics
+    }
+  }
+
+  // Heuristics based on filename
+  if (lowerFilename.includes("stop") && !lowerFilename.includes("subagent")) {
+    return "Stop";
+  }
+  if (lowerFilename.includes("subagent")) {
+    return "SubagentStop";
+  }
+  if (lowerFilename.includes("posttooluse") || lowerFilename.includes("post-tool")) {
+    return "PostToolUse";
+  }
+  if (lowerFilename.includes("pretooluse") || lowerFilename.includes("pre-tool")) {
+    return "PreToolUse";
+  }
+
+  // Content-based heuristics
+  if (content.includes("PostToolUse") || content.includes("tool_response")) {
+    return "PostToolUse";
+  }
+  if (content.includes("stop_hook_active")) {
+    return "Stop";
+  }
+  if (content.includes("permissionDecision") || content.includes("PreToolUse")) {
+    return "PreToolUse";
+  }
+
+  return "unknown";
+}
+
+/**
+ * Validate hook output format for Claude Code CLI consumption
+ *
+ * Different hook types have DIFFERENT semantics:
+ *
+ * PostToolUse:
+ *   - "decision": "block" = VISIBILITY only (non-blocking)
+ *   - "reason" = what Claude sees
+ *   - MUST use decision:block for Claude to see output
+ *
+ * Stop/SubagentStop:
+ *   - "decision": "block" = ACTUALLY BLOCKS stopping (forces continuation)
+ *   - For informational: use hookSpecificOutput.additionalContext
+ *   - Empty {} = allow stop normally
+ *
+ * PreToolUse:
+ *   - "decision": "block" = DEPRECATED (use permissionDecision)
+ *   - Use permissionDecision: "deny" + permissionDecisionReason
+ *
+ * Reference: lifecycle-reference.md "JSON Field Visibility by Hook Type"
+ *
+ * Returns { errors: [...], warnings: [...] }
+ */
+function validateHookOutputFormat() {
+  const hookFiles = findHookScripts();
+  const errors = [];
+  const warnings = [];
+
+  // Fields that Claude Code actually reads from PostToolUse JSON
+  const CLAUDE_VISIBLE_FIELDS = new Set(["decision", "reason"]);
+
+  // Fields that are valid but not shown to Claude (informational)
+  const OPTIONAL_FIELDS = new Set([
+    "hookSpecificOutput",
+    "suppressOutput",
+    "systemMessage",
+    "continue",
+    "stopReason",
+  ]);
+
+  hookFiles.forEach(({ path, plugin, filename, language }) => {
+    try {
+      const content = readFileSync(path, "utf8");
+      const lines = content.split("\n");
+      const relPath = relative(process.cwd(), path);
+      const hooksJsonPath = join(dirname(path), "hooks.json");
+
+      // Detect hook type
+      const hookType = detectHookType(filename, content, hooksJsonPath);
+
+      // Skip non-hook Python files (utilities, adapters, etc.)
+      if (language === "python" && hookType === "unknown") {
+        // Check if it's actually a hook entry point (has main() or is referenced in hooks.json)
+        const isHookEntryPoint =
+          content.includes('if __name__ == "__main__"') ||
+          content.includes("def main()");
+        if (!isHookEntryPoint) {
+          return; // Skip utility modules
+        }
+      }
+
+      // Track issues for this file
+      const fileIssues = [];
+
+      // Helper: check if pattern exists in non-comment lines
+      const hasPatternInCode = (pattern) => {
+        return lines.some((line) => {
+          const trimmed = line.trim();
+          // Skip comment lines
+          if (trimmed.startsWith("#") || trimmed.startsWith("//")) return false;
+          return pattern.test(line);
+        });
+      };
+
+      // === STOP HOOK VALIDATION ===
+      // Check for decision:block used for informational purposes (should use additionalContext)
+      if (hookType === "Stop" || hookType === "SubagentStop") {
+        const hasDecisionBlock = hasPatternInCode(/["']?decision["']?\s*[:=]\s*["']block["']/);
+
+        const hasAdditionalContext = content.includes("additionalContext");
+        const hasStopHookActiveCheck = content.includes("stop_hook_active");
+
+        // If using decision:block but NOT checking stop_hook_active, warn about infinite loop
+        if (hasDecisionBlock && !hasStopHookActiveCheck) {
+          warnings.push(
+            `${relPath}: Stop hook uses "decision: block" but doesn't check stop_hook_active - risk of infinite loop`
+          );
+        }
+
+        // If file seems informational (mentions "info", "summary", "validation results")
+        // but uses decision:block, warn that it will actually block stopping
+        // EXCEPTION: Files that clearly intend to block (loop control, continuation, etc.)
+        const seemsInformational =
+          content.toLowerCase().includes("validation result") ||
+          content.toLowerCase().includes("session ended") ||
+          content.toLowerCase().includes("link validation");
+
+        const intentionallyBlocking =
+          content.toLowerCase().includes("continue_session") ||
+          content.toLowerCase().includes("loop") ||
+          content.toLowerCase().includes("autonomous") ||
+          content.toLowerCase().includes("force continuation") ||
+          filename.toLowerCase().includes("loop");
+
+        if (hasDecisionBlock && seemsInformational && !hasAdditionalContext && !intentionallyBlocking) {
+          warnings.push(
+            `${relPath}: Stop hook appears informational but uses "decision: block" which ACTUALLY BLOCKS stopping`
+          );
+          warnings.push(
+            `   → For informational output, use: {hookSpecificOutput: {hookEventName: "Stop", additionalContext: "..."}}`
+          );
+        }
+
+        // Check for incorrect continue:false usage
+        if (content.includes('"continue": false') || content.includes("continue: false")) {
+          // This is valid for hard stop, but warn if it seems like "allow stop" intent
+          const beforeContinue = content.substring(0, content.indexOf("continue"));
+          if (beforeContinue.includes("allow") || beforeContinue.includes("normal")) {
+            warnings.push(
+              `${relPath}: "continue: false" means HARD STOP, not "allow normal stop". Use {} for allow stop.`
+            );
+          }
+        }
+      }
+
+      // === PRETOOLUSE HOOK VALIDATION ===
+      if (hookType === "PreToolUse") {
+        const hasDecisionBlock =
+          content.includes('"decision": "block"') ||
+          content.includes("decision: \"block\"") ||
+          content.includes('decision: "block"');
+
+        const hasDecisionAllow =
+          content.includes('"decision": "allow"') ||
+          content.includes("decision: \"allow\"") ||
+          content.includes('decision: "allow"');
+
+        const hasPermissionDecision = content.includes("permissionDecision");
+
+        if (hasDecisionBlock && !hasPermissionDecision) {
+          warnings.push(
+            `${relPath}: PreToolUse hook uses deprecated "decision: block". Use permissionDecision: "deny" instead.`
+          );
+          warnings.push(
+            `   → Use: {hookSpecificOutput: {permissionDecision: "deny", permissionDecisionReason: "..."}}`
+          );
+        }
+
+        if (hasDecisionAllow && !hasPermissionDecision) {
+          warnings.push(
+            `${relPath}: PreToolUse hook uses deprecated "decision: allow". Use permissionDecision: "allow" instead.`
+          );
+          warnings.push(
+            `   → Use: {hookSpecificOutput: {permissionDecision: "allow"}} or just exit 0 with no output`
+          );
+        }
+      }
+
+      // === POSTTOOLUSE HOOK VALIDATION ===
+      if (hookType === "PostToolUse") {
+        const hasDecisionBlock =
+          content.includes('"decision": "block"') ||
+          content.includes("decision: \"block\"") ||
+          content.includes('decision: "block"') ||
+          content.includes("{decision: \"block\"");
+
+        // Check for jq output without decision:block
+        if (!hasDecisionBlock && content.includes("jq")) {
+          // Check if it's actually emitting JSON (not just parsing input)
+          const hasJqOutput = content.match(/jq\s+(-n\s+)?.*'\{/);
+          if (hasJqOutput) {
+            warnings.push(
+              `${relPath}: PostToolUse hook may be missing "decision: block" - output won't be visible to Claude`
+            );
+          }
+        }
+
+        // Check for extra fields that won't be visible
+        lines.forEach((line, index) => {
+          const lineNum = index + 1;
+
+          // Pattern 1: jq -n with field definitions
+          const jqObjectMatch = line.match(/jq\s+(-n\s+)?.*'\{([^}]+)\}'/);
+          if (jqObjectMatch) {
+            const objectContent = jqObjectMatch[2];
+            const fieldPattern = /["']?(\w+)["']?\s*:/g;
+            let fieldMatch;
+            const foundFields = new Set();
+
+            while ((fieldMatch = fieldPattern.exec(objectContent)) !== null) {
+              foundFields.add(fieldMatch[1]);
+            }
+
+            const invisibleFields = [...foundFields].filter(
+              (f) => !CLAUDE_VISIBLE_FIELDS.has(f) && !OPTIONAL_FIELDS.has(f)
+            );
+
+            if (invisibleFields.length > 0) {
+              fileIssues.push({
+                line: lineNum,
+                fields: invisibleFields,
+                lineContent: line.trim().substring(0, 80),
+              });
+            }
+          }
+
+          // Pattern 2: echo with JSON
+          const echoJsonMatch = line.match(/echo\s+['"]?\{([^}]+)\}['"]?/);
+          if (echoJsonMatch) {
+            const jsonContent = echoJsonMatch[1];
+            const fieldPattern = /"(\w+)"\s*:/g;
+            let fieldMatch;
+            const foundFields = new Set();
+
+            while ((fieldMatch = fieldPattern.exec(jsonContent)) !== null) {
+              foundFields.add(fieldMatch[1]);
+            }
+
+            const invisibleFields = [...foundFields].filter(
+              (f) => !CLAUDE_VISIBLE_FIELDS.has(f) && !OPTIONAL_FIELDS.has(f)
+            );
+
+            if (invisibleFields.length > 0) {
+              fileIssues.push({
+                line: lineNum,
+                fields: invisibleFields,
+                lineContent: line.trim().substring(0, 80),
+              });
+            }
+          }
+        });
+
+        // Report invisible field issues
+        if (fileIssues.length > 0) {
+          warnings.push(
+            `${relPath}: Hook outputs fields invisible to Claude Code CLI`
+          );
+          fileIssues.forEach((issue) => {
+            warnings.push(
+              `   Line ${issue.line}: Fields [${issue.fields.join(", ")}] will be LOGGED but NOT VISIBLE to Claude`
+            );
+            warnings.push(
+              `   → Move content into "reason" field for Claude to see it`
+            );
+          });
+        }
+      }
+
+      // === UNKNOWN HOOK TYPE ===
+      if (hookType === "unknown" && content.includes("jq")) {
+        warnings.push(
+          `${relPath}: Could not determine hook type - verify output format manually`
+        );
+      }
+
+    } catch (err) {
+      warnings.push(`Could not validate hook: ${path} (${err.message})`);
+    }
+  });
+
+  return { errors, warnings };
+}
+
+/**
  * Validate that referenced skills actually exist in target plugins
  * Returns { errors: [...], warnings: [...] }
  */
@@ -521,6 +889,10 @@ const { graph: depGraph, details: depDetails } = buildDependencyGraph();
 const cycles = detectCircularDependencies(depGraph);
 const { errors: depErrors, warnings: depWarnings } = validateSkillExistence(depDetails);
 
+// Hook output format validation (Claude Code CLI consumption)
+// ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
+const { errors: hookErrors, warnings: hookWarnings } = validateHookOutputFormat();
+
 // Declared dependency validation (from 'requires' field in marketplace.json)
 // Reference: https://github.com/anthropics/claude-code/issues/9444
 const declaredDeps = getDeclaredDependencies();
@@ -561,6 +933,22 @@ if (declWarnings.length > 0) {
   hasWarnings = true;
 }
 
+// Report hook output format issues
+// ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
+if (hookErrors.length > 0) {
+  console.error(`\n❌ HOOK OUTPUT FORMAT ERRORS (${hookErrors.length}):`);
+  hookErrors.forEach((e) => console.error(`   - ${e}`));
+  hasErrors = true;
+}
+
+if (hookWarnings.length > 0) {
+  console.warn(`\n⚠️  Hook output format issues (${hookWarnings.length}):`);
+  console.warn(`   Claude Code only reads "decision" and "reason" fields from PostToolUse JSON.`);
+  console.warn(`   Other fields are logged but NOT visible to Claude.`);
+  hookWarnings.forEach((w) => console.warn(`   - ${w}`));
+  hasWarnings = true;
+}
+
 // Show declared dependencies summary
 if (declaredDeps.size > 0) {
   console.log(`\n📦 Declared Dependencies (marketplace.json 'requires'):`);
@@ -580,12 +968,14 @@ const allErrors = [
   ...entryErrors,
   ...depErrors,
   ...declErrors,
+  ...hookErrors,
 ];
 const allWarnings = [
   ...(orphaned.length > 0 ? [`${orphaned.length} orphaned entries`] : []),
   ...entryWarnings,
   ...depWarnings,
   ...declWarnings,
+  ...hookWarnings,
   ...(cycles.length > 0 ? [`${cycles.length} circular dependencies`] : []),
 ];
 

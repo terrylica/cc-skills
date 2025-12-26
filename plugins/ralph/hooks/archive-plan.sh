@@ -9,33 +9,11 @@ set -euo pipefail
 # ===== ALPHA-FORGE ONLY GUARD =====
 # Ralph is dedicated to alpha-forge ML research workflows only.
 # Skip all processing for non-alpha-forge projects (zero overhead).
-_is_alpha_forge() {
-    local dir="$1"
-    # Check characteristic markers
-    [[ -d "$dir/packages/alpha-forge-core" ]] && return 0
-    [[ -d "$dir/outputs/runs" ]] && return 0
-    grep -q -E "alpha[-_]forge" "$dir/pyproject.toml" 2>/dev/null && return 0
-    return 1
-}
-
 if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
-    is_af=false
-    # Direct detection
-    if _is_alpha_forge "$CLAUDE_PROJECT_DIR"; then
-        is_af=true
-    # Git worktree detection: .git is a file containing "gitdir: ..."
-    elif [[ -f "$CLAUDE_PROJECT_DIR/.git" ]]; then
-        gitdir=$(grep "^gitdir:" "$CLAUDE_PROJECT_DIR/.git" 2>/dev/null | cut -d: -f2 | tr -d ' ')
-        if [[ -n "$gitdir" && "$gitdir" == *"/worktrees/"* ]]; then
-            # Navigate: .git/worktrees/<name> → .git → repo root
-            main_repo=$(dirname "$(dirname "$gitdir")")
-            main_repo=$(dirname "$main_repo")
-            if [[ -d "$main_repo" ]] && _is_alpha_forge "$main_repo"; then
-                is_af=true
-            fi
-        fi
-    fi
-    if [[ "$is_af" == "false" ]]; then
+    # Fast inline detection: check characteristic markers
+    if ! [[ -d "$CLAUDE_PROJECT_DIR/packages/alpha-forge-core" ]] && \
+       ! [[ -d "$CLAUDE_PROJECT_DIR/outputs/runs" ]] && \
+       ! grep -q -E "alpha[-_]forge" "$CLAUDE_PROJECT_DIR/pyproject.toml" 2>/dev/null; then
         exit 0  # Not alpha-forge, skip archival
     fi
 fi
@@ -58,10 +36,12 @@ if ! command -v jq &> /dev/null; then
         fi
     fi
     # If still unavailable, block and notify user
+    # ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
+    # PreToolUse uses permissionDecision (not deprecated decision:block)
     if ! command -v jq &> /dev/null; then
         echo "[ralph] ERROR: jq required but could not be installed" >&2
-        echo '{"decision": "block", "reason": "jq is required for archive-plan.sh but could not be installed. Please install manually: brew install jq OR mise install jq"}'
-        exit 0  # Exit 0 with blocking JSON (hook protocol)
+        echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "jq is required for archive-plan.sh but could not be installed. Please install manually: brew install jq OR mise install jq"}}'
+        exit 0
     fi
 fi
 
