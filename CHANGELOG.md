@@ -1,3 +1,10 @@
+# [8.4.0](https://github.com/terrylica/cc-skills/compare/v8.3.0...v8.4.0) (2025-12-26)
+
+
+### Features
+
+* **ralph:** add RSSI branding and behavioral reminder to implementation mode ([ca4c7df](https://github.com/terrylica/cc-skills/commit/ca4c7dfde2b79ce91a40639e6ac4d0538585cf6c))
+
 # [8.3.0](https://github.com/terrylica/cc-skills/compare/v8.2.1...v8.3.0) (2025-12-26)
 
 
