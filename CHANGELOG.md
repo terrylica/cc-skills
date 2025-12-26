@@ -1,3 +1,10 @@
+## [7.19.7](https://github.com/terrylica/cc-skills/compare/v7.19.6...v7.19.7) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** add verbose error handling to archive-plan.sh ([b0bb0e1](https://github.com/terrylica/cc-skills/commit/b0bb0e1de97574c2edf5c52e816905915dd9f75c))
+
 ## [7.19.6](https://github.com/terrylica/cc-skills/compare/v7.19.5...v7.19.6) (2025-12-26)
 
 
