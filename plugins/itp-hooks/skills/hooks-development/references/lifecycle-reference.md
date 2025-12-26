@@ -398,9 +398,11 @@ Every hook can output these fields:
 
 ```json
 {
-  "hookSpecificOutput": { "hookEventName": "Stop", "additionalContext": "..." }
+  "systemMessage": "Your informational message here"
 }
 ```
+
+> **Note**: Stop hooks do NOT support `hookSpecificOutput`. Use `systemMessage` for informational output.
 
 ```{=latex}
 \newpage
@@ -450,20 +452,22 @@ jq -n --arg reason "Please fix this" '{decision: "block", reason: $reason}'
 
 **CRITICAL DIFFERENCE**: For Stop hooks, `decision: "block"` **actually prevents Claude from stopping**.
 
-| Intent                    | Output Format                                                                   | Effect                            |
-| ------------------------- | ------------------------------------------------------------------------------- | --------------------------------- |
-| **Allow stop normally**   | `{}` (empty object)                                                             | Claude stops normally             |
-| **Block stop (continue)** | `{"decision": "block", "reason": "..."}`                                        | Claude CANNOT stop, must continue |
-| **Informational message** | `{"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": "..."}}` | Claude sees info, stops normally  |
-| **Hard stop (emergency)** | `{"continue": false, "stopReason": "..."}`                                      | Claude halted immediately         |
+| Intent                    | Output Format                              | Effect                            |
+| ------------------------- | ------------------------------------------ | --------------------------------- |
+| **Allow stop normally**   | `{}` (empty object)                        | Claude stops normally             |
+| **Block stop (continue)** | `{"decision": "block", "reason": "..."}`   | Claude CANNOT stop, must continue |
+| **Informational message** | `{"systemMessage": "..."}`                 | Claude sees info, stops normally  |
+| **Hard stop (emergency)** | `{"continue": false, "stopReason": "..."}` | Claude halted immediately         |
+
+> **Note**: Stop hooks do NOT support `hookSpecificOutput`. Use `systemMessage` for informational output.
 
 **Example: Informational Stop Hook (non-blocking)**
 
 ```bash
 # ✅ Informs Claude but allows stopping
 if [[ "$ISSUES" -gt 0 ]]; then
-    jq -n --arg ctx "[INFO] Found $ISSUES issues in repo" \
-        '{hookSpecificOutput: {hookEventName: "Stop", additionalContext: $ctx}}'
+    jq -n --arg msg "[INFO] Found $ISSUES issues in repo" \
+        '{systemMessage: $msg}'
 fi
 exit 0
 ```
@@ -534,7 +538,7 @@ exit 0
 
 ```bash
 if [[ "$INFO" != "" ]]; then
-    jq -n --arg ctx "$INFO" '{hookSpecificOutput: {hookEventName: "Stop", additionalContext: $ctx}}'
+    jq -n --arg msg "$INFO" '{systemMessage: $msg}'
 fi
 exit 0
 ```
