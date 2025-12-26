@@ -1,3 +1,24 @@
+## [8.1.6](https://github.com/terrylica/cc-skills/compare/v8.1.5...v8.1.6) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** move and update research-repo validation meta-prompt ([64c468b](https://github.com/terrylica/cc-skills/commit/64c468bf820d14ce35f23482f5a4f0b7ed6d8273))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Ralph Hook Validation - research-repo Meta-Prompt](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/research-repo-VALIDATION-PROMPT.md) - renamed from `plugins/ralph/hooks/plugins/ralph/docs/research-repo-VALIDATION-PROMPT.md`
+
 ## [8.1.5](https://github.com/terrylica/cc-skills/compare/v8.1.4...v8.1.5) (2025-12-26)
 
 
