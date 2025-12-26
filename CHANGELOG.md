@@ -1,3 +1,10 @@
+## [8.7.1](https://github.com/terrylica/cc-skills/compare/v8.7.0...v8.7.1) (2025-12-26)
+
+
+### Bug Fixes
+
+* **validate:** integrate AJV schema validation into validateMarketplaceEntries ([158292c](https://github.com/terrylica/cc-skills/commit/158292c3f458256b407119dcdab769a4475ec082))
+
 # [8.7.0](https://github.com/terrylica/cc-skills/compare/v8.6.0...v8.7.0) (2025-12-26)
 
 
