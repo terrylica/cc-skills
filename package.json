@@ -22,7 +22,9 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
     "@semantic-release/release-notes-generator": "^14.0.1",
-    "semantic-release": "^25.0.0"
+    "ajv": "^8.17.1",
+    "semantic-release": "^25.0.0",
+    "tinyglobby": "^0.2.15"
   },
   "engines": {
     "node": ">=22.0.0"
