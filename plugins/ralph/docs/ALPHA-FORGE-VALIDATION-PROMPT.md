@@ -1,6 +1,6 @@
 # Ralph Hook Validation - Alpha-Forge Meta-Prompt
 
-**Version**: 8.0.2+
+**Version**: 8.1.5+
 **Purpose**: Validate Ralph hooks function correctly within alpha-forge
 
 Copy this prompt to Claude Code when working in `~/eon/alpha-forge`:
@@ -9,7 +9,7 @@ Copy this prompt to Claude Code when working in `~/eon/alpha-forge`:
 
 ## Meta-Prompt for Alpha-Forge Maintainer
 
-```
+````
 I need you to validate Ralph hooks are functioning correctly in alpha-forge. Run these tests:
 
 ### Test 1: Verify Project Detection
@@ -28,14 +28,16 @@ This should show Ralph processing the command (not early-exit):
 
 CLAUDE_PROJECT_DIR="$HOME/eon/alpha-forge" uv run ~/.claude/plugins/cache/cc-skills/ralph/*/hooks/pretooluse-loop-guard.py <<< '{"command": "echo test"}'
 
-Expected: `{"decision": "allow"}` (after full processing, not early-exit)
+Expected (modern permissionDecision format):
+`{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}`
 
 ### Test 3: Verify Stop Hook Activates
 This tests the Stop hook processes normally (doesn't early-exit):
 
 CLAUDE_PROJECT_DIR="$HOME/eon/alpha-forge" uv run ~/.claude/plugins/cache/cc-skills/ralph/*/hooks/loop-until-done.py <<< '{"session_id": "validation-test", "stop_hook_active": false}'
 
-Expected: Output with Ralph processing (session state, metrics, etc.)
+Expected: Output with Ralph processing (session state, metrics, etc.) or `{}` for allow stop
+Note: Stop hooks use `systemMessage` for informational output (NOT hookSpecificOutput)
 
 ### Test 4: Functional Test - Start/Stop Loop
 1. Run `/ralph:start` - should activate loop mode
@@ -56,18 +58,36 @@ Run `/ralph:hooks status` and verify:
 | Hook | In alpha-forge | Outside alpha-forge |
 |------|---------------|---------------------|
 | Stop (loop-until-done.py) | Full RSSI processing | Early-exit `{}` |
-| PreToolUse (loop-guard.py) | Full protection | Early-exit `allow` |
+| PreToolUse (loop-guard.py) | Full protection, `permissionDecision` output | Early-exit with `permissionDecision: allow` |
 | PreToolUse (archive-plan.sh) | Archives plans | Early-exit (no-op) |
+
+## Hook Output Formats (v8.1.5+)
+
+**PreToolUse hooks** use `hookSpecificOutput` with `permissionDecision`:
+```json
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "..."}}
+````
+
+**Stop hooks** use top-level fields (NOT hookSpecificOutput):
+
+```json
+{}                                    // Allow stop normally
+{"systemMessage": "..."}              // Informational (non-blocking)
+{"decision": "block", "reason": "..."} // Block stopping (force continuation)
+```
 
 ## Troubleshooting
 
 If hooks early-exit in alpha-forge, check detection markers:
+
 - `packages/alpha-forge-core/` directory exists
 - `outputs/runs/` directory exists
 - `pyproject.toml` contains "alpha-forge" or "alpha_forge"
 
 Report any issues to cc-skills maintainer.
-```
+
+````
 
 ---
 
@@ -85,4 +105,4 @@ jq '.hooks' ~/.claude/settings.json | grep -A2 ralph
 
 # 4. Test detection
 cd ~/eon/alpha-forge && ls -la packages/alpha-forge-core outputs/runs pyproject.toml
-```
+````
