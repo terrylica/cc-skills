@@ -1,3 +1,29 @@
+## [7.18.1](https://github.com/terrylica/cc-skills/compare/v7.18.0...v7.18.1) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** remove SDK harness command and associated files ([79d25fd](https://github.com/terrylica/cc-skills/commit/79d25fde53014c76fc835c46f7d4fec2b66e6592))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [harness](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/harness.md) - deleted (-113)
+
+</details>
+
 # [7.18.0](https://github.com/terrylica/cc-skills/compare/v7.17.0...v7.18.0) (2025-12-26)
 
 
