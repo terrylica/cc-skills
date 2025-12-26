@@ -104,13 +104,37 @@ fi
 # - systemMessage: string (optional) - informational context for Claude
 #
 # This hook is INFORMATIONAL, not blocking. Use systemMessage for visibility.
+# Include actual violation details so Claude can act on them.
 TOTAL_ISSUES=$((${LYCHEE_ERRORS:-0} + ${PATH_VIOLATIONS:-0}))
 
 if [[ "$TOTAL_ISSUES" -gt 0 ]]; then
+    # Build detailed message with actual violations
+    MSG="[LINK VALIDATION] Session ended with $TOTAL_ISSUES issue(s):\n\n"
+
+    # Include lychee errors if any
+    if [[ "${LYCHEE_ERRORS:-0}" -gt 0 ]] && [[ -f "$LYCHEE_CACHE" ]]; then
+        MSG+="=== Lychee Link Errors (${LYCHEE_ERRORS}) ===\n"
+        # Extract failed links from lychee JSON
+        LYCHEE_DETAILS=$(jq -r '.fail[]? | "- \(.url) in \(.source)"' "$LYCHEE_CACHE" 2>/dev/null | head -20)
+        if [[ -n "$LYCHEE_DETAILS" ]]; then
+            MSG+="$LYCHEE_DETAILS\n"
+        fi
+        MSG+="\n"
+    fi
+
+    # Include path violations with full details
+    if [[ "${PATH_VIOLATIONS:-0}" -gt 0 ]] && [[ -f "$LINT_CACHE" ]]; then
+        MSG+="=== Path Violations (${PATH_VIOLATIONS}) ===\n"
+        # Include the actual violation report (limit to 50 lines)
+        LINT_DETAILS=$(cat "$LINT_CACHE" | head -50)
+        MSG+="$LINT_DETAILS\n"
+    fi
+
+    MSG+="\nFix these before the session truly ends."
+
     # Use systemMessage for Stop hooks - visible to Claude but non-blocking
-    jq -n \
-        --arg msg "[LINK VALIDATION] Session ended with $TOTAL_ISSUES issue(s): Lychee errors: ${LYCHEE_ERRORS:-0}, Path violations: ${PATH_VIOLATIONS:-0}. Check .lychee-results.json and .lint-relative-paths-results.txt in repo root." \
-        '{systemMessage: $msg}'
+    # Use printf to handle \n escapes, then jq for JSON
+    printf '%s' "$MSG" | jq -Rs '{systemMessage: .}'
 fi
 
 # Always exit 0 (non-blocking hook)
