@@ -1,3 +1,24 @@
+## [8.1.5](https://github.com/terrylica/cc-skills/compare/v8.1.4...v8.1.5) (2025-12-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+14/-10)
+
+</details>
+
 ## [8.1.4](https://github.com/terrylica/cc-skills/compare/v8.1.3...v8.1.4) (2025-12-26)
 
 
