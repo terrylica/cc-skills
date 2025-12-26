@@ -1,3 +1,29 @@
+## [7.19.4](https://github.com/terrylica/cc-skills/compare/v7.19.3...v7.19.4) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** add missing pretooluse-loop-guard.py to preflight check ([9e7a52f](https://github.com/terrylica/cc-skills/commit/9e7a52f0a4e3dffa19cbd8a9de44448d3416fe10))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/hooks.md) - updated (+22/-6)
+
+</details>
+
 ## [7.19.3](https://github.com/terrylica/cc-skills/compare/v7.19.2...v7.19.3) (2025-12-26)
 
 
