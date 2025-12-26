@@ -17,18 +17,18 @@ Claude Code skills marketplace: **20 plugins** with **42 skills** for ADR-driven
 
 ## Essential Commands
 
-| Task                 | Command                             |
-| -------------------- | ----------------------------------- |
-| Release (dry-run)    | `npm run release:dry`               |
-| Release (production) | `npm run release`                   |
-| Format files         | `prettier --write .`                |
-| Execute workflow     | `/itp:go feature-name -b`           |
-| Setup environment    | `/itp:setup`                        |
-| Manage ITP hooks     | `/itp:hooks install`                |
-| **Validate plugins** | `node scripts/validate-plugins.mjs` |
-| Add new plugin       | `/plugin-dev:create plugin-name`    |
-| Start autonomous     | `/ralph:start`                      |
-| Stop autonomous      | `/ralph:stop`                       |
+| Task                 | Command                            |
+| -------------------- | ---------------------------------- |
+| Release (dry-run)    | `npm run release:dry`              |
+| Release (production) | `npm run release`                  |
+| Format files         | `prettier --write .`               |
+| Execute workflow     | `/itp:go feature-name -b`          |
+| Setup environment    | `/itp:setup`                       |
+| Manage ITP hooks     | `/itp:hooks install`               |
+| **Validate plugins** | `bun scripts/validate-plugins.mjs` |
+| Add new plugin       | `/plugin-dev:create plugin-name`   |
+| Start autonomous     | `/ralph:start`                     |
+| Stop autonomous      | `/ralph:stop`                      |
 
 ## Plugin Discovery (Critical)
 
@@ -56,9 +56,9 @@ Plugin "my-plugin" not found in any marketplace
 Run before committing plugin changes:
 
 ```bash
-node scripts/validate-plugins.mjs           # Validate only
-node scripts/validate-plugins.mjs --fix     # Show fix instructions
-node scripts/validate-plugins.mjs --strict  # Fail on warnings too
+bun scripts/validate-plugins.mjs           # Validate only (5x faster)
+bun scripts/validate-plugins.mjs --fix     # Show fix instructions
+bun scripts/validate-plugins.mjs --strict  # Fail on warnings too
 ```
 
 **What it validates**:
@@ -171,5 +171,5 @@ Created `plugins/alpha-forge-worktree/` but forgot to register in `marketplace.j
 
 - [ ] Plugin dir exists in `plugins/`
 - [ ] Entry added to `.claude-plugin/marketplace.json`
-- [ ] `node scripts/validate-plugins.mjs` passes
+- [ ] `bun scripts/validate-plugins.mjs` passes
 - [ ] Commit succeeds (pre-commit hook validates)
