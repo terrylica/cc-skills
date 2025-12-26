@@ -353,10 +353,10 @@ function renderAdrSection(files) {
   output += "|--------|-----|--------|\n";
 
   for (const file of files.sort((a, b) => a.path.localeCompare(b.path))) {
-    const { path } = file;
+    const { path, changeType } = file;
     const title = extractTitle(path, "adr") || getFallbackTitle(path, "adr");
     const status = extractStatus(path);
-    const url = `${REPO_URL}/blob/main/${path}`;
+    const url = getFileUrl(path, changeType);
     output += `| ${status} | [${title}](${url}) | ${formatChangeInfo(file)} |\n`;
   }
 
@@ -370,10 +370,10 @@ function renderDesignSpecSection(files) {
   let output = "\n### Design Specs\n\n";
 
   for (const file of files.sort((a, b) => a.path.localeCompare(b.path))) {
-    const { path } = file;
+    const { path, changeType } = file;
     const title =
       extractTitle(path, "designSpec") || getFallbackTitle(path, "designSpec");
-    const url = `${REPO_URL}/blob/main/${path}`;
+    const url = getFileUrl(path, changeType);
     output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
   }
 
@@ -403,13 +403,13 @@ function renderSkillsSection(files) {
     for (const file of pluginFiles.sort((a, b) =>
       a.path.localeCompare(b.path)
     )) {
-      const { path } = file;
+      const { path, changeType } = file;
       const skillName = path.match(/skills\/([\w-]+)\/SKILL\.md$/)?.[1];
       const title =
         extractTitle(path, "skill") ||
         skillName?.replace(/-/g, " ") ||
         getFallbackTitle(path, "skill");
-      const url = `${REPO_URL}/blob/main/${path}`;
+      const url = getFileUrl(path, changeType);
       output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
     }
 
@@ -444,13 +444,13 @@ function renderSkillReferencesSection(files) {
     for (const file of skillFiles.sort((a, b) =>
       a.path.localeCompare(b.path)
     )) {
-      const { path } = file;
+      const { path, changeType } = file;
       const refName = path.match(/references\/([\w-]+)\.md$/)?.[1];
       const title =
         extractTitle(path, "skillReference") ||
         refName?.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ||
         getFallbackTitle(path, "skillReference");
-      const url = `${REPO_URL}/blob/main/${path}`;
+      const url = getFileUrl(path, changeType);
       output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
     }
 
@@ -483,11 +483,11 @@ function renderCommandsSection(files) {
     for (const file of pluginFiles.sort((a, b) =>
       a.path.localeCompare(b.path)
     )) {
-      const { path } = file;
+      const { path, changeType } = file;
       const cmdName = path.match(/commands\/([\w-]+)\.md$/)?.[1];
       const title =
         extractTitle(path, "command") || cmdName || getFallbackTitle(path, "command");
-      const url = `${REPO_URL}/blob/main/${path}`;
+      const url = getFileUrl(path, changeType);
       output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
     }
 
@@ -500,11 +500,18 @@ function renderCommandsSection(files) {
 /**
  * Format change info with line counts and rename context
  * Examples: "new (+152)", "updated (+5/-3)", "renamed from `old/path`"
+ * Note: Deleted files show no line counts (file no longer exists)
  */
 function formatChangeInfo(file) {
   const { changeType, linesAdded, linesDeleted, oldPath } = file;
 
-  // Build line delta string
+  // For deleted files, just show "deleted" without line stats
+  // (line counts for deleted files are meaningless - the file is gone)
+  if (changeType === "deleted") {
+    return "deleted";
+  }
+
+  // Build line delta string for non-deleted files
   let lineDelta = "";
   if (linesAdded > 0 || linesDeleted > 0) {
     if (linesAdded > 0 && linesDeleted > 0) {
@@ -525,16 +532,27 @@ function formatChangeInfo(file) {
 }
 
 /**
+ * Generate URL for a file, using historical tag for deleted files
+ */
+function getFileUrl(path, changeType) {
+  if (changeType === "deleted" && LAST_TAG) {
+    // Deleted files link to the last tag where they existed
+    return `${REPO_URL}/blob/${LAST_TAG}/${path}`;
+  }
+  return `${REPO_URL}/blob/main/${path}`;
+}
+
+/**
  * Render simple list for categories without grouping
  */
 function renderSimpleList(header, files) {
   let output = `\n### ${header}\n\n`;
 
   for (const file of files.sort((a, b) => a.path.localeCompare(b.path))) {
-    const { path, category } = file;
+    const { path, category, changeType } = file;
     const title =
       extractTitle(path, category) || getFallbackTitle(path, category);
-    const url = `${REPO_URL}/blob/main/${path}`;
+    const url = getFileUrl(path, changeType);
     output += `- [${title}](${url}) - ${formatChangeInfo(file)}\n`;
   }
 
