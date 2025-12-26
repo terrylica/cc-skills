@@ -1,3 +1,43 @@
+# [8.1.0](https://github.com/terrylica/cc-skills/compare/v8.0.3...v8.1.0) (2025-12-26)
+
+
+### Features
+
+* **hooks:** add silent failure detection and fix deprecated output patterns ([9d98b0c](https://github.com/terrylica/cc-skills/commit/9d98b0c4e75857e33df7b2c917500a8cd7219536))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ITP Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/README.md) - updated (+41/-1)
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+268/-98)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [ITP Hooks Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/setup.md) - new (+99)
+
+</details>
+
 ## [8.0.3](https://github.com/terrylica/cc-skills/compare/v8.0.2...v8.0.3) (2025-12-26)
 
 
