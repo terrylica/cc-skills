@@ -1,8 +1,10 @@
 # devops-tools
 
-DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.
+DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, notifications, and session recovery.
 
-> **Migration Notice**: asciinema skills (player, recorder, streaming-backup) have moved to the dedicated `asciinema-tools` plugin. Install with `/plugin install asciinema-tools@cc-skills`.
+Merged: `notification-tools` (dual-channel-watchexec) moved here.
+
+> **Migration Notice**: asciinema skills have moved to the dedicated `asciinema-tools` plugin.
 
 ## Skills
 
@@ -15,6 +17,7 @@ DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler c
 | **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting    |
 | **mlflow-python**               | Log backtest metrics, query experiments, QuantStats integration        |
 | **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems     |
+| **dual-channel-watchexec**      | Send notifications to Telegram + Pushover on process events            |
 
 ## Installation
 
@@ -36,6 +39,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "telegram bot", "bot status", "restart bot" -> telegram-bot-management
 - "log backtest", "MLflow metrics", "search runs" -> mlflow-python
 - "no conversations found to resume" -> session-recovery
+- "watchexec notifications", "Telegram + Pushover" -> dual-channel-watchexec
 
 ## Key Features
 
@@ -83,6 +87,13 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - HOME variable diagnosis
 - Session file location troubleshooting
 - IDE/terminal configuration checks
+
+### Dual-Channel Watchexec
+
+- Simultaneous Telegram + Pushover delivery
+- HTML formatting for Telegram, plain text for Pushover
+- Restart detection (startup, code change, crash)
+- Message archiving for debugging
 
 ## Requirements
 
