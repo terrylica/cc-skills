@@ -54,6 +54,24 @@ Core principles guiding Ralph Wiggum's development:
 
 2. **User Override Always Wins** — Kill switch (`.claude/STOP_LOOP`), `/ralph:stop`, and manual intervention always work. The loop is eternal but never inescapable.
 
+## Alpha-Forge Exclusivity (v8.0.2+)
+
+Ralph hooks are designed **exclusively** for Alpha Forge ML research workflows:
+
+| Project Type        | Hook Behavior                                           |
+| ------------------- | ------------------------------------------------------- |
+| **Alpha Forge**     | Full RSSI functionality, adapter convergence, OODA loop |
+| **Non-Alpha Forge** | Silent pass-through (zero processing, zero overhead)    |
+
+**Detection Criteria** (any match = alpha-forge):
+
+- `pyproject.toml` contains `alpha-forge` or `alpha_forge`
+- `packages/alpha-forge-core/` directory exists
+- `outputs/runs/` directory exists
+- Parent directories contain markers (handles git worktrees)
+
+**Why this design**: Ralph's RSSI loop, OODA research methodology, and metrics-based convergence are specifically tailored for Alpha Forge's experiment-driven ML research. Applying these patterns to unrelated projects would be counterproductive.
+
 ## Quick Start
 
 ```bash
@@ -410,7 +428,7 @@ Ralph supports project-specific convergence detection via adapters. Each adapter
 | ------------- | --------------------------------------- | -------------------------------------------------------- |
 | `alpha-forge` | `pyproject.toml` contains "alpha-forge" | WFE threshold, diminishing returns, patience, hard limit |
 
-Non-Alpha Forge projects use RSSI completion detection directly (no adapter needed).
+**Note**: Non-Alpha Forge projects are skipped entirely — Ralph hooks pass through silently with zero overhead (see [Alpha-Forge Exclusivity](#alpha-forge-exclusivity-v802)).
 
 **Confidence-Based Decisions**:
 
