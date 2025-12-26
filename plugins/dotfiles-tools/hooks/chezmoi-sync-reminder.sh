@@ -19,8 +19,22 @@ FILE_PATH=$(echo "$PAYLOAD" | jq -r '.tool_input.file_path // empty')
 # Exit silently if no file path (shouldn't happen for Edit/Write)
 [[ -z "$FILE_PATH" ]] && exit 0
 
-# Expand ~ to absolute path for comparison
-ABSOLUTE_PATH=$(eval echo "$FILE_PATH")
+# Convert to absolute path for comparison
+# Handle both ~ expansion and relative paths
+if [[ "$FILE_PATH" == ~* ]]; then
+    # Expand ~ to home directory
+    ABSOLUTE_PATH=$(eval echo "$FILE_PATH")
+elif [[ "$FILE_PATH" == /* ]]; then
+    # Already absolute
+    ABSOLUTE_PATH="$FILE_PATH"
+else
+    # Relative path - use CLAUDE_PROJECT_DIR or pwd
+    if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
+        ABSOLUTE_PATH="${CLAUDE_PROJECT_DIR}/${FILE_PATH}"
+    else
+        ABSOLUTE_PATH="$(pwd)/${FILE_PATH}"
+    fi
+fi
 
 # Check if chezmoi is available
 command -v chezmoi &>/dev/null || exit 0

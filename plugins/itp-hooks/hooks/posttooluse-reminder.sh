@@ -91,13 +91,15 @@ elif [[ "$FILE_PATH" =~ ^(src/|lib/|scripts/|plugins/[^/]+/skills/[^/]+/scripts/
         # Comprehensive rule set: error handling + idiomatic Python
         # BLE: blind except, S110: try-except-pass, E722: bare except
         # F: pyflakes, UP: pyupgrade, SIM: simplify, B: bugbear, I: isort, RUF: ruff-specific
+        # Ruff outputs "All checks passed!" on success - filter it out
         RUFF_OUTPUT=$(ruff check "$FILE_PATH" \
             --select BLE,S110,E722,F,UP,SIM,B,I,RUF \
             --ignore D,ANN \
             --no-fix \
             --output-format=concise \
-            2>/dev/null | head -20)
+            2>/dev/null | grep -v "All checks passed" | head -20) || true
 
+        # Only report issues if ruff found actual problems (non-empty after filtering)
         if [[ -n "$RUFF_OUTPUT" ]]; then
             REMINDER="[RUFF] Issues detected in ${BASENAME}:\\n${RUFF_OUTPUT}\\nRun 'ruff check ${FILE_PATH} --fix' to auto-fix safe issues."
         else
