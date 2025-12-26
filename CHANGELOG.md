@@ -1,3 +1,41 @@
+# [7.18.0](https://github.com/terrylica/cc-skills/compare/v7.17.0...v7.18.0) (2025-12-26)
+
+
+### Features
+
+* **doc-tools:** extend ascii-diagram-validator for graph-easy boxart ([f098092](https://github.com/terrylica/cc-skills/commit/f098092d30d0e87e746bbbfed8e6e1e27872503c))
+* **ralph:** add session state continuity with infallible inheritance tracking ([b09d39d](https://github.com/terrylica/cc-skills/commit/b09d39d424627c9cc7e02102a45eba2f4c0a77ed))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [graph-easy](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/graph-easy/SKILL.md) - updated (+35/-7)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+62/-13)
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+113/-5)
+
 # [7.17.0](https://github.com/terrylica/cc-skills/compare/v7.16.8...v7.17.0) (2025-12-26)
 
 
