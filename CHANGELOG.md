@@ -1,3 +1,10 @@
+## [8.2.1](https://github.com/terrylica/cc-skills/compare/v8.2.0...v8.2.1) (2025-12-26)
+
+
+### Bug Fixes
+
+* **hooks:** fix PostToolUse blocking errors for relative paths and ruff success ([69fd2c6](https://github.com/terrylica/cc-skills/commit/69fd2c638fecb17ef70dffde67629f2be6bf909f))
+
 # [8.2.0](https://github.com/terrylica/cc-skills/compare/v8.1.11...v8.2.0) (2025-12-26)
 
 
