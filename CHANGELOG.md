@@ -1,3 +1,24 @@
+## [8.0.1](https://github.com/terrylica/cc-skills/compare/v8.0.0...v8.0.1) (2025-12-26)
+
+
+### Bug Fixes
+
+* **marketplace:** remove unsupported 'requires' field causing schema errors ([1efa729](https://github.com/terrylica/cc-skills/commit/1efa729d9d6b2fd46b894c2fe0c77ba72d56b217)), closes [#9444](https://github.com/terrylica/cc-skills/issues/9444)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+19)
+
 # [8.0.0](https://github.com/terrylica/cc-skills/compare/v7.19.7...v8.0.0) (2025-12-26)
 
 
