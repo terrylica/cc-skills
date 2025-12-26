@@ -219,14 +219,26 @@ do_preflight() {
     if [[ "$errors" -eq 0 && "$warnings" -eq 0 ]]; then
         echo -e "${GREEN}All preflight checks passed!${NC}"
         echo "Ralph is ready. Run: /ralph:start"
-        return 0
     elif [[ "$errors" -eq 0 ]]; then
         echo -e "${YELLOW}$warnings warning(s), but system is usable${NC}"
-        return 0
     else
         echo -e "${RED}$errors error(s) must be fixed before using Ralph${NC}"
+    fi
+    echo ""
+
+    # Documentation Links (always show)
+    echo -e "${CYAN}=== Documentation ===${NC}"
+    echo -e "  ${GREEN}→${NC} README (Hook Architecture, RSSI, Safety Features):"
+    echo -e "    https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md"
+    echo ""
+    echo -e "  ${GREEN}→${NC} Mental Model (Alpha Forge ML Research Workflows):"
+    echo -e "    https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md"
+    echo ""
+
+    if [[ "$errors" -gt 0 ]]; then
         return 1
     fi
+    return 0
 }
 
 # Route action
