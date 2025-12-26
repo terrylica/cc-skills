@@ -1,3 +1,10 @@
+## [7.18.2](https://github.com/terrylica/cc-skills/compare/v7.18.1...v7.18.2) (2025-12-26)
+
+
+### Bug Fixes
+
+* **semantic-release:** improve deleted file handling in release notes ([e18ca62](https://github.com/terrylica/cc-skills/commit/e18ca624da560c22b8e3b400ac9af550cdc3bdd1))
+
 ## [7.18.1](https://github.com/terrylica/cc-skills/compare/v7.18.0...v7.18.1) (2025-12-26)
 
 
