@@ -1,3 +1,11 @@
+## [8.1.8](https://github.com/terrylica/cc-skills/compare/v8.1.7...v8.1.8) (2025-12-26)
+
+
+### Bug Fixes
+
+* **statusline-tools:** add stop_hook_active check to prevent infinite loop ([a22774b](https://github.com/terrylica/cc-skills/commit/a22774be3410f6d481866a6986b9d679a377b526))
+* **statusline-tools:** use decision:block so Claude sees violations ([7ffbee3](https://github.com/terrylica/cc-skills/commit/7ffbee3ee6244719c14a849e973b02addc4db58c))
+
 ## [8.1.7](https://github.com/terrylica/cc-skills/compare/v8.1.6...v8.1.7) (2025-12-26)
 
 
