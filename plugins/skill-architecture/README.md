@@ -216,20 +216,20 @@ After any skill work, verify:
 
 ## Reference Files
 
-| File                                                                | Purpose                                                                 |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [`structural-patterns.md`](references/structural-patterns.md)       | 4 skill architecture patterns (Workflow, Task, Reference, Capabilities) |
-| [`workflow-patterns.md`](references/workflow-patterns.md)           | Workflow skill implementation patterns                                  |
-| [`progressive-disclosure.md`](references/progressive-disclosure.md) | Context management and 3-level loading                                  |
-| [`creation-workflow.md`](references/creation-workflow.md)           | Step-by-step skill creation process                                     |
-| [`scripts-reference.md`](references/scripts-reference.md)           | Marketplace script usage                                                |
-| [`security-practices.md`](references/security-practices.md)         | Threats, defenses, and CVE references                                   |
-| [`token-efficiency.md`](references/token-efficiency.md)             | Context optimization strategies                                         |
-| [`advanced-topics.md`](references/advanced-topics.md)               | CLI vs API, composition, known bugs                                     |
-| [`validation-reference.md`](references/validation-reference.md)     | Quality checklist and validation                                        |
-| [`bash-compatibility.md`](references/bash-compatibility.md)         | Bash/zsh compatibility patterns for macOS                               |
-| [`SYNC-TRACKING.md`](references/SYNC-TRACKING.md)                   | Marketplace version tracking                                            |
-| [`evolution-log.md`](references/evolution-log.md)                   | This skill's change history                                             |
+| File                                                                                          | Purpose                                                                 |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [`structural-patterns.md`](skills/skill-architecture/references/structural-patterns.md)       | 4 skill architecture patterns (Workflow, Task, Reference, Capabilities) |
+| [`workflow-patterns.md`](skills/skill-architecture/references/workflow-patterns.md)           | Workflow skill implementation patterns                                  |
+| [`progressive-disclosure.md`](skills/skill-architecture/references/progressive-disclosure.md) | Context management and 3-level loading                                  |
+| [`creation-workflow.md`](skills/skill-architecture/references/creation-workflow.md)           | Step-by-step skill creation process                                     |
+| [`scripts-reference.md`](skills/skill-architecture/references/scripts-reference.md)           | Marketplace script usage                                                |
+| [`security-practices.md`](skills/skill-architecture/references/security-practices.md)         | Threats, defenses, and CVE references                                   |
+| [`token-efficiency.md`](skills/skill-architecture/references/token-efficiency.md)             | Context optimization strategies                                         |
+| [`advanced-topics.md`](skills/skill-architecture/references/advanced-topics.md)               | CLI vs API, composition, known bugs                                     |
+| [`validation-reference.md`](skills/skill-architecture/references/validation-reference.md)     | Quality checklist and validation                                        |
+| [`bash-compatibility.md`](skills/skill-architecture/references/bash-compatibility.md)         | Bash/zsh compatibility patterns for macOS                               |
+| [`SYNC-TRACKING.md`](skills/skill-architecture/references/SYNC-TRACKING.md)                   | Marketplace version tracking                                            |
+| [`evolution-log.md`](skills/skill-architecture/references/evolution-log.md)                   | This skill's change history                                             |
 
 ## Troubleshooting
 
