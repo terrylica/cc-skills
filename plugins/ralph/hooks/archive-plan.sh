@@ -50,14 +50,20 @@ fi
 
 # Archive the EXISTING file before it gets overwritten
 if [[ -f "$FILE_PATH" && -n "$SESSION_ID" ]]; then
-    mkdir -p "$ARCHIVE_DIR"
-    TIMESTAMP=$(date +%s)
-    BASENAME=$(basename "$FILE_PATH")
-    cp "$FILE_PATH" "$ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}"
-
-    # Log the archival
-    echo "[$(date -Iseconds)] Archived: $FILE_PATH -> $ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}" \
-        >> "$HOME/.claude/automation/loop-orchestrator/state/archive.log"
+    if ! mkdir -p "$ARCHIVE_DIR" 2>&1; then
+        echo "[ralph] Failed to create archive directory: $ARCHIVE_DIR" >&2
+    else
+        TIMESTAMP=$(date +%s)
+        BASENAME=$(basename "$FILE_PATH")
+        if ! cp "$FILE_PATH" "$ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}" 2>&1; then
+            echo "[ralph] Failed to archive: $FILE_PATH" >&2
+        else
+            # Log the archival
+            echo "[$(date -Iseconds)] Archived: $FILE_PATH -> $ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}" \
+                >> "$HOME/.claude/automation/loop-orchestrator/state/archive.log" 2>&1 || \
+                echo "[ralph] Failed to write archive log" >&2
+        fi
+    fi
 fi
 
 # Allow the write to proceed (exit 0 = success)
