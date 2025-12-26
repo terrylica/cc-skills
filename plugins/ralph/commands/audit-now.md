@@ -59,9 +59,14 @@ fi
 
 # Set force validation flag
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-jq --argjson round "$ROUND" --arg ts "$TIMESTAMP" \
+if ! jq --argjson round "$ROUND" --arg ts "$TIMESTAMP" \
     '.force_validation = {enabled: true, round: $round, timestamp: $ts}' \
-    "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+    "$CONFIG_FILE" > "$CONFIG_FILE.tmp"; then
+    echo "ERROR: Failed to update config file (jq error)" >&2
+    rm -f "$CONFIG_FILE.tmp"
+    exit 1
+fi
+mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 
 echo "Force validation enabled"
 echo ""

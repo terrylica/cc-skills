@@ -180,16 +180,26 @@ fi
 # Convert dot notation to jq path: loop_limits.min_hours -> .loop_limits.min_hours
 JQ_PATH=".$(echo "$KEY" | sed 's/\./\./g')"
 
-# Detect if value is numeric or string
+# Detect if value is numeric or string and apply with error handling
+update_config() {
+    local jq_expr="$1"
+    if ! jq "$jq_expr" "$CONFIG_FILE" > "$CONFIG_FILE.tmp"; then
+        echo "ERROR: Failed to update config (jq error)" >&2
+        rm -f "$CONFIG_FILE.tmp"
+        exit 1
+    fi
+    mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+}
+
 if [[ "$VALUE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
     # Numeric value
-    jq "$JQ_PATH = $VALUE" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+    update_config "$JQ_PATH = $VALUE"
 elif [[ "$VALUE" == "true" || "$VALUE" == "false" ]]; then
     # Boolean value
-    jq "$JQ_PATH = $VALUE" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+    update_config "$JQ_PATH = $VALUE"
 else
     # String value
-    jq "$JQ_PATH = \"$VALUE\"" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+    update_config "$JQ_PATH = \"$VALUE\""
 fi
 
 echo "Set $KEY = $VALUE"

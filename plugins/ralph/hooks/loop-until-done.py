@@ -360,7 +360,8 @@ def main():
     """Main entry point for the Stop hook."""
     try:
         hook_input = json.load(sys.stdin) if not sys.stdin.isatty() else {}
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"[ralph] Warning: Failed to parse stdin JSON: {e}", file=sys.stderr)
         hook_input = {}
 
     session_id = hook_input.get("session_id", "unknown")
@@ -389,8 +390,8 @@ def main():
                     save_state(project_dir, LoopState.STOPPED)
                 hard_stop("Loop stopped via global stop signal (~/.claude/ralph-global-stop.json)")
                 return
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[ralph] Warning: Failed to read global stop signal: {e}", file=sys.stderr)
 
     # Check state machine first (new v2.0 architecture)
     if project_dir:
@@ -502,8 +503,8 @@ def main():
             proj_cfg = json.loads(project_config_path.read_text())
             config.update(proj_cfg)
             logger.info(f"Loaded project config: {proj_cfg}")
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[ralph] Warning: Failed to load project config: {e}", file=sys.stderr)
 
     # ===== ADAPTER DISCOVERY =====
     # Auto-discover and select project-specific adapter
@@ -619,8 +620,8 @@ def main():
                         current_output = " ".join(text_parts)[:1000]
                     elif isinstance(content, str):
                         current_output = content[:1000]
-        except (json.JSONDecodeError, KeyError, IndexError, OSError, TypeError):
-            pass
+        except (json.JSONDecodeError, KeyError, IndexError, OSError, TypeError) as e:
+            print(f"[ralph] Warning: Failed to parse transcript for output extraction: {e}", file=sys.stderr)
 
     # ===== IDLE MONITORING DETECTION (with Stamina exponential backoff) =====
     # Prevent wasteful token consumption from rapid idle iterations
@@ -654,7 +655,8 @@ def main():
             changed_files = [f for f in result.stdout.strip().split('\n')
                            if f and not f.startswith('.claude/')]
             real_work_done = len(changed_files) > 0
-        except Exception:
+        except Exception as e:
+            print(f"[ralph] Warning: Git diff check failed, assuming work done: {e}", file=sys.stderr)
             real_work_done = True  # Assume work done if can't check
 
     # Detect idle pattern: iteration faster than required backoff interval + no real work
@@ -814,6 +816,7 @@ def main():
         state_file.parent.mkdir(parents=True, exist_ok=True)
         state_file.write_text(json.dumps(state, indent=2))
     except OSError as e:
+        print(f"[ralph] ERROR: Failed to save state: {e}", file=sys.stderr)
         logger.error(f"Failed to save state: {e}")
 
     continue_session(reason)

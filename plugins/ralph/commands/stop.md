@@ -98,8 +98,12 @@ if [[ -d "$SESSIONS_DIR" ]]; then
             stop_project "$PROJECT_PATH" "session-state"
 
             # Also update session state to prevent continuation
-            jq '.adapter_convergence.should_continue = false' "$STATE_FILE" > "$STATE_FILE.tmp" \
-                && mv "$STATE_FILE.tmp" "$STATE_FILE"
+            if jq '.adapter_convergence.should_continue = false' "$STATE_FILE" > "$STATE_FILE.tmp"; then
+                mv "$STATE_FILE.tmp" "$STATE_FILE"
+            else
+                echo "Warning: Failed to update session state (jq error)" >&2
+                rm -f "$STATE_FILE.tmp"
+            fi
         fi
     done
 fi
