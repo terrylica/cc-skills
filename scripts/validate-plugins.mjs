@@ -336,29 +336,9 @@ function validateDeclaredDependencies(declaredDeps, detectedGraph) {
     }
   }
 
-  // Check for undeclared dependencies (detected but not in requires)
-  for (const [plugin, detected] of detectedGraph.entries()) {
-    const declared = declaredDeps.get(plugin) || [];
-    for (const dep of detected) {
-      if (!declared.includes(dep)) {
-        warnings.push(
-          `Plugin '${plugin}' uses Skill(${dep}:*) but doesn't declare it in 'requires'`
-        );
-      }
-    }
-  }
-
-  // Check for over-declared dependencies (in requires but not detected)
-  for (const [plugin, declared] of declaredDeps.entries()) {
-    const detected = detectedGraph.get(plugin) || new Set();
-    for (const dep of declared) {
-      if (!detected.has(dep)) {
-        warnings.push(
-          `Plugin '${plugin}' declares '${dep}' in requires but no Skill() calls found`
-        );
-      }
-    }
-  }
+  // Note: 'requires' field is not yet supported by Claude Code (see issue #9444)
+  // These checks are disabled until the feature is implemented
+  // Dependencies are detected automatically via Skill() call analysis
 
   return { errors, warnings };
 }

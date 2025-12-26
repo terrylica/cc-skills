@@ -28,7 +28,6 @@
         "templates",
         "shellcheck"
       ],
-      "requires": ["itp"],
       "strict": false
     },
     {
@@ -48,7 +47,6 @@
         "release",
         "semantic-release"
       ],
-      "requires": ["doc-tools"],
       "strict": false
     },
     {
@@ -161,7 +159,6 @@
         "build",
         "tables"
       ],
-      "requires": ["itp"],
       "strict": false
     },
     {
