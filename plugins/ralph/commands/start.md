@@ -36,7 +36,7 @@ Discover and auto-select focus files WITHOUT prompting the user (autonomous mode
    - NO user prompt - proceed directly to Step 2
    - Store paths in config for the hook to read
 
-   **For other projects**, discover in priority order:
+   **For other projects** (⚠️ hooks will skip — see [research-repo Exclusivity](../README.md#research-repo-exclusivity-v802)), discover in priority order:
    - Plan mode system-reminder (if in plan mode, the system-assigned plan file)
    - ITP design specs with `implementation-status: in_progress` in `docs/design/*/spec.md`
    - ITP ADRs with `status: accepted` in `docs/adr/*.md`
@@ -597,9 +597,10 @@ if [[ "$ADAPTER_NAME" == "research-repo" ]]; then
     echo "  → Expert-synthesis convergence (WFE, diminishing returns, patience)"
     echo "  → Reads metrics from outputs/runs/*/summary.json"
 else
-    echo "Adapter: none (RSSI completion detection only)"
-    echo "  → Standard multi-signal completion detection"
-    echo "  → Note: Ralph is optimized for Research Repo projects"
+    echo "⚠️  WARNING: Not an Research Repo project"
+    echo "  → Ralph hooks will SKIP this project (v8.0.2+)"
+    echo "  → Ralph is designed exclusively for Research Repo ML workflows"
+    echo "  → Detection: pyproject.toml, packages/research-repo-core/, outputs/runs/"
 fi
 
 if $NO_FOCUS; then
