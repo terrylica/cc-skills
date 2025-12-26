@@ -1,3 +1,10 @@
+# [7.17.0](https://github.com/terrylica/cc-skills/compare/v7.16.8...v7.17.0) (2025-12-26)
+
+
+### Features
+
+* **ralph:** implement RSSI Beyond AGI - Intelligence Explosion mode ([efa10c4](https://github.com/terrylica/cc-skills/commit/efa10c47069852fd4e84d32e965a26c2fc797905))
+
 ## [7.16.8](https://github.com/terrylica/cc-skills/compare/v7.16.7...v7.16.8) (2025-12-26)
 
 
