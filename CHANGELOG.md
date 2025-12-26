@@ -1,3 +1,24 @@
+## [7.19.3](https://github.com/terrylica/cc-skills/compare/v7.19.2...v7.19.3) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** correct MENTAL-MODEL.md paths and clarify Alpha-Forge convergence ([41780ac](https://github.com/terrylica/cc-skills/commit/41780ac9066d09dcf7b43541792fa6d4a3356c63))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+7/-4)
+
 ## [7.19.2](https://github.com/terrylica/cc-skills/compare/v7.19.1...v7.19.2) (2025-12-26)
 
 
