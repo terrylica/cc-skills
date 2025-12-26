@@ -96,19 +96,21 @@ else
 fi
 
 # === Report Summary ===
-# IMPORTANT: Stop hooks have different semantics than PostToolUse!
-# - decision: "block" = ACTUALLY PREVENTS Claude from stopping (forces continuation)
-# - hookSpecificOutput.additionalContext = Informs Claude without blocking
+# IMPORTANT: Stop hooks have different schema than PreToolUse/PostToolUse!
+# Stop hooks do NOT support hookSpecificOutput. Valid Stop hook fields:
+# - continue: boolean (optional) - whether to allow stop
+# - suppressOutput: boolean (optional)
+# - stopReason: string (optional)
+# - systemMessage: string (optional) - informational context for Claude
 #
-# This hook is INFORMATIONAL, not blocking. We want Claude to see the info
-# but still allow the session to end. Use additionalContext for this.
+# This hook is INFORMATIONAL, not blocking. Use systemMessage for visibility.
 TOTAL_ISSUES=$((${LYCHEE_ERRORS:-0} + ${PATH_VIOLATIONS:-0}))
 
 if [[ "$TOTAL_ISSUES" -gt 0 ]]; then
-    # Use additionalContext for Stop hooks - visible to Claude but non-blocking
+    # Use systemMessage for Stop hooks - visible to Claude but non-blocking
     jq -n \
-        --arg ctx "[LINK VALIDATION] Session ended with $TOTAL_ISSUES issue(s): Lychee errors: ${LYCHEE_ERRORS:-0}, Path violations: ${PATH_VIOLATIONS:-0}. Check .lychee-results.json and .lint-relative-paths-results.txt in repo root." \
-        '{hookSpecificOutput: {hookEventName: "Stop", additionalContext: $ctx}}'
+        --arg msg "[LINK VALIDATION] Session ended with $TOTAL_ISSUES issue(s): Lychee errors: ${LYCHEE_ERRORS:-0}, Path violations: ${PATH_VIOLATIONS:-0}. Check .lychee-results.json and .lint-relative-paths-results.txt in repo root." \
+        '{systemMessage: $msg}'
 fi
 
 # Always exit 0 (non-blocking hook)
