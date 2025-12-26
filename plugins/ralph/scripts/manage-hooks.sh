@@ -256,7 +256,23 @@ do_uninstall() {
     mv "$temp_file" "$SETTINGS"
     trap - EXIT
 
+    # Clean up global Ralph files
+    if [[ -f "$INSTALL_TIMESTAMP_FILE" ]]; then
+        rm -f "$INSTALL_TIMESTAMP_FILE"
+        info "Removed install timestamp file"
+    fi
+
+    # Remove stop reason cache (stale after uninstall)
+    local stop_reason_file="$HOME/.claude/ralph-stop-reason.json"
+    if [[ -f "$stop_reason_file" ]]; then
+        rm -f "$stop_reason_file"
+        info "Removed stop reason cache"
+    fi
+
     info "ralph hooks uninstalled successfully!"
+    echo ""
+    echo "Note: Session history and logs preserved in ~/.claude/automation/loop-orchestrator/state/"
+    echo "      Project config preserved in .claude/loop-config.json"
     echo ""
     echo "IMPORTANT: Restart Claude Code for changes to take effect."
 }
