@@ -1,3 +1,26 @@
+## [8.4.1](https://github.com/terrylica/cc-skills/compare/v8.4.0...v8.4.1) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** add RSSI protocol and data reminder to all templates ([2076bd8](https://github.com/terrylica/cc-skills/commit/2076bd85dd8fc6ae5e7b39c1b5d3cb46f32b35be))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [alpha-forge-exploration](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/alpha-forge-exploration.md) - updated (+4)
+- [exploration-mode](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/exploration-mode.md) - updated (+6/-2)
+- [implementation-mode](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/implementation-mode.md) - updated (+6)
+
 # [8.4.0](https://github.com/terrylica/cc-skills/compare/v8.3.0...v8.4.0) (2025-12-26)
 
 
