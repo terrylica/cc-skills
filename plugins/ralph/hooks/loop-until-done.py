@@ -210,8 +210,8 @@ def build_continuation_prompt(
                         gpu_cfg = ralph_config.get("gpu_infrastructure", {})
                         if gpu_cfg.get("available", False):
                             gpu_infrastructure = gpu_cfg
-                    except (json.JSONDecodeError, OSError):
-                        pass  # Graceful fallback to empty
+                    except (json.JSONDecodeError, OSError) as e:
+                        print(f"[ralph] Warning: Failed to load ralph-config.json guidance: {e}", file=sys.stderr)
 
             # Build complete RSSI context with all template variables
             adapter_conv = state.get("adapter_convergence", {})
@@ -483,7 +483,8 @@ def main():
     }
     try:
         config = json.loads(CONFIG_FILE.read_text()) if CONFIG_FILE.exists() else default_config
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[ralph] Warning: Failed to load loop config: {e}", file=sys.stderr)
         config = default_config
 
     # Environment variable overrides

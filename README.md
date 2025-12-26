@@ -4,28 +4,24 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 
 ## Plugins
 
-| Plugin                                                    | Description                                                                                                       | Category     |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------ |
-| [skill-architecture](./plugins/skill-architecture/)       | Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns  | development  |
-| [itp](./plugins/itp/)                                     | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release           | productivity |
-| [gh-tools](./plugins/gh-tools/)                           | GitHub workflow automation with intelligent GFM link validation for PRs                                           | development  |
-| [link-validator](./plugins/link-validator/)               | Validate markdown link portability in skills and plugins (relative paths for cross-installation compatibility)    | development  |
-| [devops-tools](./plugins/devops-tools/)                   | Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery                 | devops       |
-| [dotfiles-tools](./plugins/dotfiles-tools/)               | Chezmoi dotfile management via natural language workflows                                                         | utilities    |
-| [doc-build-tools](./plugins/doc-build-tools/)             | LaTeX compilation, Pandoc PDF generation, environment setup, and table generation                                 | documents    |
-| [doc-tools](./plugins/doc-tools/)                         | ASCII diagram validation and markdown documentation standards                                                     | documents    |
-| [quality-tools](./plugins/quality-tools/)                 | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                           | quality      |
-| [productivity-tools](./plugins/productivity-tools/)       | Slash command generation for Claude Code                                                                          | productivity |
-| [mql5-tools](./plugins/mql5-tools/)                       | MQL5 indicator development patterns for MetaTrader 5                                                              | trading      |
-| [mql5com](./plugins/mql5com/)                             | MQL5.com operations: article extraction, Python workspace, log reading                                            | trading      |
-| [notification-tools](./plugins/notification-tools/)       | Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring                                 | utilities    |
-| [itp-hooks](./plugins/itp-hooks/)                         | ITP workflow enforcement: ASCII art blocking, graph-easy reminders                                                | enforcement  |
-| [alpha-forge-worktree](./plugins/alpha-forge-worktree/)   | Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection                    | development  |
-| [link-checker](./plugins/link-checker/)                   | Universal link validation at session end: lychee broken link detection, path policy linting, ULID correlation IDs | quality      |
-| [git-account-validator](./plugins/git-account-validator/) | Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config         | enforcement  |
-| [ralph](./plugins/ralph/)                                 | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete                    | automation   |
-| [iterm2-layout-config](./plugins/iterm2-layout-config/)   | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code           | development  |
-| [statusline-tools](./plugins/statusline-tools/)           | Custom status line with git status, link validation (L), and path linting (P) indicators                          | utilities    |
+| Plugin                                                    | Description                                                                                               | Category     |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------ |
+| [plugin-dev](./plugins/plugin-dev/)                       | Plugin development: skill architecture, validation, silent failure auditing, TodoWrite templates          | development  |
+| [itp](./plugins/itp/)                                     | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release   | productivity |
+| [gh-tools](./plugins/gh-tools/)                           | GitHub workflow automation with intelligent GFM link validation for PRs                                   | development  |
+| [link-tools](./plugins/link-tools/)                       | Comprehensive link validation: portability checks, lychee broken link detection, path policy linting      | quality      |
+| [devops-tools](./plugins/devops-tools/)                   | Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery         | devops       |
+| [dotfiles-tools](./plugins/dotfiles-tools/)               | Chezmoi dotfile management via natural language workflows                                                 | utilities    |
+| [doc-tools](./plugins/doc-tools/)                         | Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF                  | documents    |
+| [quality-tools](./plugins/quality-tools/)                 | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                   | quality      |
+| [productivity-tools](./plugins/productivity-tools/)       | Slash command generation for Claude Code                                                                  | productivity |
+| [mql5](./plugins/mql5/)                                   | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace                       | trading      |
+| [itp-hooks](./plugins/itp-hooks/)                         | ITP workflow enforcement: ASCII art blocking, graph-easy reminders                                        | enforcement  |
+| [alpha-forge-worktree](./plugins/alpha-forge-worktree/)   | Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection            | development  |
+| [git-account-validator](./plugins/git-account-validator/) | Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config | enforcement  |
+| [ralph](./plugins/ralph/)                                 | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete            | automation   |
+| [iterm2-layout-config](./plugins/iterm2-layout-config/)   | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code   | development  |
+| [statusline-tools](./plugins/statusline-tools/)           | Custom status line with git status, link validation (L), and path linting (P) indicators                  | utilities    |
 
 ## Terminology
 
@@ -68,7 +64,7 @@ Plugin (Container)
 /plugin marketplace add terrylica/cc-skills
 
 # Install specific plugin
-/plugin install cc-skills@skill-architecture
+/plugin install cc-skills@plugin-dev
 ```
 
 ### Manual Installation
@@ -78,7 +74,7 @@ Plugin (Container)
 git clone git@github.com:terrylica/cc-skills.git /tmp/cc-skills
 
 # Copy plugin to Claude Code skills directory
-cp -r /tmp/cc-skills/plugins/skill-architecture ~/.claude/skills/
+cp -r /tmp/cc-skills/plugins/plugin-dev ~/.claude/skills/
 ```
 
 ## Slash Command Naming Convention
@@ -104,23 +100,19 @@ Marketplace plugin commands display with the `plugin:command` format:
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (20 plugins)
+│   └── marketplace.json     # Plugin registry (18 plugins)
 ├── plugins/
-│   ├── skill-architecture/     # Meta-skill for creating skills
+│   ├── plugin-dev/                # Plugin development + skill architecture
 │   ├── itp/                    # ADR-driven development workflow (10 bundled skills)
 │   ├── gh-tools/               # GitHub workflow automation
-│   ├── link-validator/         # Markdown link portability validation
+│   ├── link-tools/             # Comprehensive link validation (portability + lychee)
 │   ├── devops-tools/           # Doppler credentials, secrets, MLflow, Telegram, recovery
 │   ├── dotfiles-tools/         # Chezmoi dotfile management
-│   ├── doc-build-tools/        # LaTeX + Pandoc PDF generation
-│   ├── doc-tools/              # ASCII diagrams + documentation standards
+│   ├── doc-tools/              # ASCII diagrams, standards, LaTeX, Pandoc PDF
 │   ├── quality-tools/          # Code clones, E2E validation, profiling, schema
 │   ├── productivity-tools/     # Slash command generation
-│   ├── mql5-tools/             # MQL5 indicator development
-│   ├── mql5com/                # MQL5.com article extraction + Python workspace
-│   ├── notification-tools/     # Telegram + Pushover notifications
+│   ├── mql5/                   # MQL5 development (indicators + mql5.com)
 │   ├── itp-hooks/              # ITP workflow enforcement hooks
-│   ├── link-checker/           # Universal link validation (lychee + path linting)
 │   ├── git-account-validator/  # Multi-account GitHub pre-push validation
 │   ├── alpha-forge-worktree/   # Git worktree management for alpha-forge
 │   ├── ralph/                  # Autonomous AI orchestration
@@ -133,19 +125,17 @@ cc-skills/
 
 ## Available Plugins
 
-### skill-architecture
+### plugin-dev
 
-**Meta-skill for creating Claude Code skills.**
+**Plugin and skill development: structure validation, silent failure auditing, skill architecture meta-skill.**
 
-Comprehensive guide for creating effective Claude Code skills following Anthropic's official standards with emphasis on:
+Comprehensive tooling for Claude Code plugin development:
 
-- Security practices and `allowed-tools` restrictions
-- CLI-specific features
-- Progressive disclosure architecture
-- TodoWrite task templates
-- Bundled resources (scripts/, references/, assets/)
+- **skill-architecture** - Meta-skill for creating skills (YAML frontmatter, TodoWrite templates, bundled resources)
+- **validate-plugin-structure** - Verify plugin directory and manifest compliance
+- **silent-failure-auditor** - Detect and fix silent script failures
 
-**Triggers**: "create skill", "YAML frontmatter", "validate skill", "skill architecture"
+**Triggers**: "create skill", "YAML frontmatter", "validate skill", "plugin structure", "silent failures"
 
 ### itp
 
@@ -174,17 +164,24 @@ Validates and fixes GitHub Flavored Markdown links in PR descriptions:
 
 **Triggers**: PR creation, GFM validation, link checking
 
-### link-validator
+### link-tools
 
-**Validate markdown link portability for skills and plugins.**
+**Comprehensive link validation: portability checks, lychee broken link detection, path policy linting.**
 
-Ensures markdown links use relative paths (`./`, `../`) for cross-installation compatibility:
+Two bundled skills:
+
+- **link-validator** - Validates relative path usage for cross-installation compatibility
+- **link-validation** - Lychee broken link detection with path policy linting at session end
+
+Features:
 
 - Detects absolute repo paths that break when installed elsewhere
 - Suggests relative path fixes
-- Zero dependencies (PEP 723 inline script)
+- Lychee-powered broken link detection
+- Path policy linting (absolute paths, excessive parent traversal)
+- ULID correlation IDs for tracing
 
-**Triggers**: link validation, portability check, relative paths, before skill distribution
+**Triggers**: link validation, broken links, lychee, portability check, relative paths
 
 ### devops-tools
 
@@ -212,29 +209,20 @@ One bundled skill:
 
 **Triggers**: "track my .zshrc", "sync dotfiles", "push dotfile changes"
 
-### doc-build-tools
+### doc-tools
 
-**Document build automation: LaTeX compilation, Pandoc PDF generation, setup, and tables.**
+**Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation.**
 
-Four bundled skills:
+Six bundled skills:
 
+- **ascii-diagram-validator** - Validate ASCII box-drawing diagram alignment in markdown files
+- **documentation-standards** - LLM-optimized markdown documentation standards with section numbering
 - **latex-build** - Build automation with latexmk and live preview
 - **latex-setup** - macOS environment setup with MacTeX and Skim
 - **latex-tables** - Modern table creation with tabularray package
 - **pandoc-pdf-generation** - Markdown to PDF with XeLaTeX, section numbering, TOC, bibliography
 
-**Triggers**: "compile LaTeX", "set up LaTeX on Mac", "create LaTeX table", "generate PDF from markdown"
-
-### doc-tools
-
-**Documentation quality tools: ASCII diagram validation and markdown standards.**
-
-Two bundled skills:
-
-- **ascii-diagram-validator** - Validate ASCII box-drawing diagram alignment in markdown files
-- **documentation-standards** - LLM-optimized markdown documentation standards with section numbering
-
-**Triggers**: "validate ASCII diagrams", "check diagram alignment", "documentation standards"
+**Triggers**: "validate ASCII diagrams", "documentation standards", "compile LaTeX", "set up LaTeX on Mac", "create LaTeX table", "generate PDF from markdown"
 
 ### quality-tools
 
@@ -260,38 +248,18 @@ One bundled skill:
 
 **Triggers**: "create slash command", "generate command"
 
-### mql5-tools
+### mql5
 
-**MQL5 indicator development patterns for MetaTrader 5.**
+**MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading.**
 
-Battle-tested solutions for buffer management, display scaling, recalculation, and debugging patterns.
+Four bundled skills:
 
-**Triggers**: "create MQL5 indicator", "blank indicator window", "OnCalculate() debugging"
-
-### mql5com
-
-**MQL5.com operations: article extraction, Python workspace, and log reading.**
-
-Three bundled skills:
-
+- **mql5-indicator-patterns** - Buffer management, display scaling, recalculation, debugging
 - **article-extractor** - Extract and organize MQL5 articles and documentation
 - **python-workspace** - Configure Python workspace for MQL5 integration
 - **log-reader** - Read MetaTrader 5 logs to validate indicator execution
 
-**Triggers**: "extract MQL5 article", "MT5 Python setup", "read MT5 logs"
-
-### notification-tools
-
-**Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring.**
-
-Features:
-
-- Simultaneous Telegram + Pushover delivery
-- HTML formatting for Telegram, plain text for Pushover
-- Restart detection (startup, code change, crash)
-- Message archiving for debugging
-
-**Triggers**: "watchexec notifications", "send to Telegram and Pushover", "monitor process restarts"
+**Triggers**: "create MQL5 indicator", "extract MQL5 article", "MT5 Python setup", "read MT5 logs"
 
 ### itp-hooks
 
@@ -308,20 +276,6 @@ Features:
 **Commands**: `/itp-hooks:hooks`
 
 **Triggers**: "ITP hooks", "block ASCII art", "enforce workflow standards"
-
-### link-checker
-
-**Universal link validation at session end using lychee.**
-
-Features:
-
-- Markdown link validation via lychee
-- Path policy linting (absolute paths, excessive parent traversal)
-- JSON output for programmatic integration
-- ULID correlation IDs for tracing
-- Cascade config resolution (repo → workspace → plugin default)
-
-**Triggers**: "validate links", "broken links", "lychee", "Stop hook validation"
 
 ### git-account-validator
 

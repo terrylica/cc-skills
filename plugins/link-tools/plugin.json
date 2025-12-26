@@ -1,0 +1,9 @@
+{
+  "name": "link-tools",
+  "version": "7.19.7",
+  "description": "Comprehensive link validation: portability checks, lychee broken link detection, path policy linting",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

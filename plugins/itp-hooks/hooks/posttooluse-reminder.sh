@@ -28,7 +28,9 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
         # Track graph-easy usage for PreToolUse exemption
         # ADR: 2025-12-09-itp-hooks-workflow-aware-graph-easy
         STATE_DIR="$HOME/.claude/hooks/state"
-        mkdir -p "$STATE_DIR"
+        if ! mkdir -p "$STATE_DIR" 2>&1; then
+            echo "[itp-hooks] Failed to create state directory: $STATE_DIR" >&2
+        fi
         SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // ""')
 
         if [[ -n "$SESSION_ID" ]]; then

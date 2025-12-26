@@ -8,21 +8,27 @@
   },
   "plugins": [
     {
-      "name": "skill-architecture",
-      "description": "Meta-skill for creating Claude Code skills with TodoWrite templates, security practices, and structural patterns",
+      "name": "plugin-dev",
+      "description": "Plugin and skill development: structure validation, silent failure auditing, skill architecture meta-skill with TodoWrite templates",
       "version": "7.19.7",
-      "source": "./plugins/skill-architecture/",
+      "source": "./plugins/plugin-dev/",
       "category": "development",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
+        "plugin",
+        "skill",
+        "validation",
+        "silent-failures",
         "meta-skill",
         "skill-creation",
         "architecture",
-        "templates"
+        "templates",
+        "shellcheck"
       ],
+      "requires": ["itp"],
       "strict": false
     },
     {
@@ -42,6 +48,7 @@
         "release",
         "semantic-release"
       ],
+      "requires": ["doc-tools"],
       "strict": false
     },
     {
@@ -64,11 +71,11 @@
       "strict": false
     },
     {
-      "name": "link-validator",
-      "description": "Validate markdown link portability in Claude Code skills and plugins",
+      "name": "link-tools",
+      "description": "Comprehensive link validation: portability checks, lychee broken link detection, path policy linting",
       "version": "7.19.7",
-      "source": "./plugins/link-validator/",
-      "category": "development",
+      "source": "./plugins/link-tools/",
+      "category": "quality",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
@@ -78,13 +85,19 @@
         "links",
         "validation",
         "portability",
-        "relative-paths"
+        "relative-paths",
+        "lychee",
+        "broken-links",
+        "path-linting",
+        "stop-hook",
+        "ulid"
       ],
+      "hooks": "./plugins/link-tools/hooks/hooks.json",
       "strict": false
     },
     {
       "name": "devops-tools",
-      "description": "Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery",
+      "description": "DevOps automation: ClickHouse, Doppler, Telegram, MLflow, notifications, session recovery",
       "version": "7.19.7",
       "source": "./plugins/devops-tools/",
       "category": "devops",
@@ -98,7 +111,10 @@
         "secrets",
         "telegram",
         "mlflow",
-        "session-recovery"
+        "session-recovery",
+        "pushover",
+        "watchexec",
+        "notifications"
       ],
       "strict": false
     },
@@ -123,29 +139,8 @@
       "strict": false
     },
     {
-      "name": "doc-build-tools",
-      "description": "Document build automation: LaTeX compilation, Pandoc PDF generation, setup, and tables",
-      "version": "7.19.7",
-      "source": "./plugins/doc-build-tools/",
-      "category": "documents",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "latex",
-        "pandoc",
-        "pdf",
-        "documents",
-        "build",
-        "tables",
-        "markdown"
-      ],
-      "strict": false
-    },
-    {
       "name": "doc-tools",
-      "description": "Documentation quality tools: ASCII diagram validation and markdown documentation standards",
+      "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation",
       "version": "7.19.7",
       "source": "./plugins/doc-tools/",
       "category": "documents",
@@ -159,8 +154,14 @@
         "documentation",
         "markdown",
         "standards",
-        "validation"
+        "validation",
+        "latex",
+        "pandoc",
+        "pdf",
+        "build",
+        "tables"
       ],
+      "requires": ["itp"],
       "strict": false
     },
     {
@@ -204,10 +205,10 @@
       "strict": false
     },
     {
-      "name": "mql5-tools",
-      "description": "MQL5 indicator development patterns for MetaTrader 5",
+      "name": "mql5",
+      "description": "MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading",
       "version": "7.19.7",
-      "source": "./plugins/mql5-tools/",
+      "source": "./plugins/mql5/",
       "category": "trading",
       "author": {
         "name": "Terry Li",
@@ -218,42 +219,8 @@
         "metatrader",
         "indicators",
         "trading",
-        "mt5"
-      ],
-      "strict": false
-    },
-    {
-      "name": "notification-tools",
-      "description": "Dual-channel notifications (Telegram + Pushover) for watchexec process monitoring",
-      "version": "7.19.7",
-      "source": "./plugins/notification-tools/",
-      "category": "utilities",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "telegram",
-        "pushover",
-        "watchexec",
-        "notifications",
-        "monitoring"
-      ],
-      "strict": false
-    },
-    {
-      "name": "mql5com",
-      "description": "Skills for operating mql5.com - article extraction, Python workspace, and log reading",
-      "version": "7.19.7",
-      "source": "./plugins/mql5com/",
-      "category": "trading",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
+        "mt5",
         "mql5.com",
-        "metatrader",
         "article-extraction",
         "python-mt5"
       ],
@@ -281,28 +248,6 @@
         "linting"
       ],
       "hooks": "./plugins/itp-hooks/hooks/hooks.json",
-      "strict": false
-    },
-    {
-      "name": "link-checker",
-      "description": "Universal link validation at session end: lychee broken link detection, path policy linting, ULID correlation IDs",
-      "version": "7.19.7",
-      "source": "./plugins/link-checker/",
-      "category": "quality",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "lychee",
-        "links",
-        "validation",
-        "broken-links",
-        "path-linting",
-        "stop-hook",
-        "ulid"
-      ],
-      "hooks": "./plugins/link-checker/hooks/hooks.json",
       "strict": false
     },
     {

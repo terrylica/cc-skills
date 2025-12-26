@@ -26,7 +26,7 @@ Claude Code skills marketplace: **20 plugins** with **42 skills** for ADR-driven
 | Setup environment    | `/itp:setup`                        |
 | Manage ITP hooks     | `/itp:hooks install`                |
 | **Validate plugins** | `node scripts/validate-plugins.mjs` |
-| Add new plugin       | `/itp:plugin-add plugin-name`       |
+| Add new plugin       | `/plugin-dev:create plugin-name`    |
 | Start autonomous     | `/ralph:start`                      |
 | Stop autonomous      | `/ralph:stop`                       |
 
@@ -106,7 +106,7 @@ cc-skills/
 
 **Workflow**: All features use `/itp:go` which creates ADR in `docs/adr/` and spec in `docs/design/`.
 
-**Adding Plugins**: Use `/itp:plugin-add plugin-name` - handles marketplace.json registration automatically.
+**Adding Plugins**: Use `/plugin-dev:create plugin-name` - handles marketplace.json registration automatically.
 
 **Link Conventions**: Marketplace plugins use context-specific paths:
 
