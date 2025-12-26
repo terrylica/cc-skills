@@ -90,6 +90,39 @@ if [[ -f "$PROJECT_DIR/.claude/loop-config.json" ]]; then
     echo ""
 fi
 
+# Show guidance (encouraged/forbidden) from ralph-config.json
+if [[ -f "$PROJECT_DIR/.claude/ralph-config.json" ]]; then
+    GUIDANCE=$(jq -r '.guidance // empty' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null)
+    if [[ -n "$GUIDANCE" && "$GUIDANCE" != "null" ]]; then
+        echo "=== Current Guidance ==="
+
+        # Show encouraged items
+        ENCOURAGED=$(jq -r '.guidance.encouraged // []' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null)
+        ENCOURAGED_COUNT=$(echo "$ENCOURAGED" | jq 'length' 2>/dev/null || echo "0")
+        if [[ "$ENCOURAGED_COUNT" -gt 0 ]]; then
+            echo ""
+            echo "ENCOURAGED ($ENCOURAGED_COUNT items):"
+            echo "$ENCOURAGED" | jq -r '.[] | "  ✓ " + .' 2>/dev/null
+        else
+            echo "ENCOURAGED: (none)"
+        fi
+
+        # Show forbidden items
+        FORBIDDEN=$(jq -r '.guidance.forbidden // []' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null)
+        FORBIDDEN_COUNT=$(echo "$FORBIDDEN" | jq 'length' 2>/dev/null || echo "0")
+        if [[ "$FORBIDDEN_COUNT" -gt 0 ]]; then
+            echo ""
+            echo "FORBIDDEN ($FORBIDDEN_COUNT items):"
+            echo "$FORBIDDEN" | jq -r '.[] | "  ✗ " + .' 2>/dev/null
+        else
+            echo "FORBIDDEN: (none)"
+        fi
+        echo ""
+        echo "Modify with: /ralph:encourage <item> or /ralph:forbid <item>"
+        echo ""
+    fi
+fi
+
 # Show session state if exists (ralph-state.json is canonical, loop-state.json is legacy)
 if [[ -f "$PROJECT_DIR/.claude/ralph-state.json" ]]; then
     echo "=== Session State ==="
