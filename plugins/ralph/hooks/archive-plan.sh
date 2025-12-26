@@ -9,11 +9,33 @@ set -euo pipefail
 # ===== research-repo ONLY GUARD =====
 # Ralph is dedicated to research-repo ML research workflows only.
 # Skip all processing for non-research-repo projects (zero overhead).
+_is_alpha_forge() {
+    local dir="$1"
+    # Check characteristic markers
+    [[ -d "$dir/packages/research-repo-core" ]] && return 0
+    [[ -d "$dir/outputs/runs" ]] && return 0
+    grep -q -E "alpha[-_]forge" "$dir/pyproject.toml" 2>/dev/null && return 0
+    return 1
+}
+
 if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
-    # Fast inline detection: check characteristic markers
-    if ! [[ -d "$CLAUDE_PROJECT_DIR/packages/research-repo-core" ]] && \
-       ! [[ -d "$CLAUDE_PROJECT_DIR/outputs/runs" ]] && \
-       ! grep -q -E "alpha[-_]forge" "$CLAUDE_PROJECT_DIR/pyproject.toml" 2>/dev/null; then
+    is_af=false
+    # Direct detection
+    if _is_alpha_forge "$CLAUDE_PROJECT_DIR"; then
+        is_af=true
+    # Git worktree detection: .git is a file containing "gitdir: ..."
+    elif [[ -f "$CLAUDE_PROJECT_DIR/.git" ]]; then
+        gitdir=$(grep "^gitdir:" "$CLAUDE_PROJECT_DIR/.git" 2>/dev/null | cut -d: -f2 | tr -d ' ')
+        if [[ -n "$gitdir" && "$gitdir" == *"/worktrees/"* ]]; then
+            # Navigate: .git/worktrees/<name> → .git → repo root
+            main_repo=$(dirname "$(dirname "$gitdir")")
+            main_repo=$(dirname "$main_repo")
+            if [[ -d "$main_repo" ]] && _is_alpha_forge "$main_repo"; then
+                is_af=true
+            fi
+        fi
+    fi
+    if [[ "$is_af" == "false" ]]; then
         exit 0  # Not research-repo, skip archival
     fi
 fi
