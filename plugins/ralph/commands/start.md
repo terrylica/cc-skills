@@ -499,6 +499,13 @@ else
     MAX_ITERS=${SELECTED_MAX_ITERS:-99}
 fi
 
+# Preserve existing guidance from previous session (if any)
+# This ensures /ralph:encourage and /ralph:forbid directives persist across restarts
+EXISTING_GUIDANCE='{}'
+if [[ -f "$PROJECT_DIR/.claude/ralph-config.json" ]]; then
+    EXISTING_GUIDANCE=$(jq '.guidance // {}' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null || echo '{}')
+fi
+
 # Generate unified ralph-config.json (v2.0 schema)
 CONFIG_JSON=$(jq -n \
     --arg state "running" \
@@ -510,6 +517,7 @@ CONFIG_JSON=$(jq -n \
     --argjson max_hours "$MAX_HOURS" \
     --argjson min_iterations "$MIN_ITERS" \
     --argjson max_iterations "$MAX_ITERS" \
+    --argjson existing_guidance "$EXISTING_GUIDANCE" \
     '{
         version: "2.0.0",
         state: $state,
@@ -523,7 +531,8 @@ CONFIG_JSON=$(jq -n \
         }
     }
     + (if $target_file != "" then {target_file: $target_file} else {} end)
-    + (if $task_prompt != "" then {task_prompt: $task_prompt} else {} end)'
+    + (if $task_prompt != "" then {task_prompt: $task_prompt} else {} end)
+    + (if $existing_guidance != {} then {guidance: $existing_guidance} else {} end)'
 )
 
 echo "$CONFIG_JSON" > "$PROJECT_DIR/.claude/ralph-config.json"
