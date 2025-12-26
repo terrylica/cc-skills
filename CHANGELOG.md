@@ -1,3 +1,10 @@
+## [7.19.5](https://github.com/terrylica/cc-skills/compare/v7.19.4...v7.19.5) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** clean up timestamp and cache files on uninstall ([e7b649f](https://github.com/terrylica/cc-skills/commit/e7b649fae2180d736abf911fbd50863efb053641))
+
 ## [7.19.4](https://github.com/terrylica/cc-skills/compare/v7.19.3...v7.19.4) (2025-12-26)
 
 
