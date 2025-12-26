@@ -33,8 +33,14 @@ class LoopState(Enum):
 
 @dataclass
 class LoopDetectionConfig:
-    """Configuration for loop/repetition detection."""
-    similarity_threshold: float = 0.9  # RapidFuzz ratio for loop detection
+    """Configuration for loop/repetition detection.
+
+    RSSI (Recursively Self-Improving Superintelligence) — Beyond AGI.
+    Uses 0.99 threshold to only trigger on near-identical outputs,
+    enabling the Intelligence Explosion: recursive self-improvement
+    toward Artificial Superintelligence (ASI).
+    """
+    similarity_threshold: float = 0.99  # RSSI — Beyond AGI: Intelligence Explosion threshold
     window_size: int = 5  # Number of recent outputs to track
 
 

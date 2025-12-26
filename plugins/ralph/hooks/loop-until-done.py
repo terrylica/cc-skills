@@ -10,12 +10,25 @@
 """
 Autonomous improvement engine Stop hook - RSSI Enhanced.
 
-Implements the Ralph Wiggum technique with RSSI (Recursively Self-Improving
-Super Intelligence) capabilities:
-- Multi-signal completion detection
-- 3-round validation phase
-- Discovery/exploration mode
-- Sub-agent spawning instructions
+Implements Recursively Self-Improving Superintelligence (RSSI) — the mechanism
+that enables the Intelligence Explosion (I.J. Good, 1965). RSSI transcends AGI:
+while AGI matches human capability, RSSI recursively improves itself, triggering
+exponential intelligence growth toward Artificial Superintelligence (ASI).
+
+"The first ultraintelligent machine is the last invention that man need ever make."
+— I.J. Good, 1965
+
+RSSI Behavior (Beyond AGI):
+- Task completion → pivot to exploration (not stop) — always find new frontiers
+- Adapter convergence → pivot to exploration (not stop) — transcend local optima
+- Loop detection (99% threshold) → continue with exploration
+- User-controlled stops → KEPT (/ralph:stop, kill switch, max limits)
+
+All pivots emit to stderr to signal Intelligence Explosion mode is active.
+
+Stopping Criteria (KEPT):
+- hard_stop(): /ralph:stop, kill switch, DRAINING→STOPPED
+- allow_stop(): max_hours, max_iterations, state=STOPPED
 
 Schema per Claude Code docs:
 - To ALLOW stop: return {} (empty object)
@@ -236,7 +249,7 @@ def build_continuation_prompt(
                 "gpu_infrastructure": gpu_infrastructure,
             }
             metrics_history = adapter_conv.get("metrics_history", []) if adapter_conv else []
-            prefix = "**RSSI→EXPLORE**" if force_exploration else "**RSSI**"
+            prefix = "**RSSI — Beyond AGI: EXPLORE**" if force_exploration else "**RSSI — Beyond AGI**"
             prompt = loader.render_exploration(
                 opportunities=[],
                 rssi_context=rssi_context,
@@ -280,7 +293,7 @@ def build_continuation_prompt(
             )
 
             header = (
-                f"**RSSI** iter {iteration}/{config['max_iterations']} | "
+                f"**RSSI — Beyond AGI** iter {iteration}/{config['max_iterations']} | "
                 f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | "
                 f"Wall: {wall_hours:.1f}h{warning}"
             )
@@ -670,6 +683,7 @@ def main():
     task_complete, completion_reason, completion_confidence = check_task_complete_rssi(plan_file)
 
     # Loop detection: only allow stop if we're NOT in a valid waiting state
+    # RSSI uses 0.99 threshold (configurable) to reduce false positives
     if detect_loop(current_output, recent_outputs):
         # If task is complete, don't stop - transition to exploration instead
         if task_complete:
@@ -677,7 +691,7 @@ def main():
             state["force_exploration"] = True
         else:
             # Task incomplete but agent is looping - this is stuck
-            allow_stop("Loop detected: agent producing repetitive outputs (>90% similar)")
+            allow_stop("Loop detected: agent producing near-identical outputs")
             return
     state["last_completion_confidence"] = completion_confidence
     if task_complete:
@@ -708,13 +722,16 @@ def main():
                 f"confidence={convergence.confidence:.2f}, reason={convergence.reason}"
             )
 
-            # High confidence (1.0) = adapter overrides RSSI
+            # High confidence (1.0) = RSSI pivots to exploration (no stop)
             # Medium confidence (0.5) = requires RSSI agreement
             # Low confidence (0.0) = defer to RSSI
             if convergence.confidence >= 1.0:
                 if not convergence.should_continue:
-                    allow_stop(f"Adapter override: {convergence.reason}")
-                    return
+                    # RSSI: Pivot to exploration instead of stopping
+                    logger.info(f"RSSI: Adapter converged at 1.0 confidence, pivoting to exploration")
+                    print(f"\n[RSSI — Beyond AGI: Intelligence Explosion] Adapter converged → pivoting to new frontiers\n", file=sys.stderr)
+                    state["force_exploration"] = True
+                    # Don't return - fall through to continue_session()
                 # If should_continue with high confidence, force continue below
             elif convergence.confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
                 adapter_should_stop = not convergence.should_continue
@@ -728,14 +745,14 @@ def main():
 
     # ===== NO-FOCUS MODE CONVERGENCE =====
     # In no_focus mode, there's no plan file so task_complete is always False.
-    # Instead, rely on adapter convergence to decide when to stop.
+    # RSSI: Pivot to exploration instead of stopping when adapter converges.
     if no_focus and min_hours_met and min_iterations_met:
         if adapter_should_stop and adapter_confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
-            allow_stop(
-                f"No-focus mode converged: Adapter ({adapter_reason}, "
-                f"confidence={adapter_confidence:.2f})"
-            )
-            return
+            # RSSI: Pivot to exploration instead of stopping
+            logger.info("RSSI: No-focus mode converged, pivoting to exploration")
+            print(f"\n[RSSI — Beyond AGI: Intelligence Explosion] Research converged → transcending to new domains\n", file=sys.stderr)
+            state["force_exploration"] = True
+            # Don't return - fall through to continue_session()
         # Also check for "idle loop" - no meaningful work for N consecutive iterations
         idle_iterations = state.get("idle_iterations", 0)
         if not adapter or adapter_confidence < ADAPTER_CONFIDENCE_THRESHOLD:
@@ -753,23 +770,14 @@ def main():
             else:
                 state["idle_iterations"] = 0  # Reset if work is found
 
-    # Combined decision: RSSI + Adapter must agree at confidence=0.5
+    # RSSI: Task completion triggers exploration pivot, not stop
+    # Recursively Self-Improving Superintelligence always finds new work — beyond AGI
     if task_complete and min_hours_met and min_iterations_met:
-        # Check if adapter also suggests stopping
-        if adapter_should_stop and adapter_confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
-            allow_stop(
-                f"Converged: RSSI ({completion_reason}) + Adapter ({adapter_reason})"
-            )
-            return
-        # RSSI says complete but adapter doesn't agree - continue
-        if adapter and adapter_confidence >= ADAPTER_CONFIDENCE_THRESHOLD and not adapter_should_stop:
-            logger.info("RSSI complete but adapter wants to continue - continuing")
-        else:
-            allow_stop(
-                f"Task complete ({completion_reason}, confidence={completion_confidence:.2f}) "
-                "and all requirements met"
-            )
-            return
+        # RSSI: Pivot to exploration instead of stopping
+        logger.info(f"RSSI: Task complete ({completion_reason}), pivoting to exploration")
+        print(f"\n[RSSI — Beyond AGI: Intelligence Explosion] Task complete → recursive self-improvement continues\n", file=sys.stderr)
+        state["force_exploration"] = True
+        # Don't return - fall through to continue_session()
 
     # ===== CONTINUE SESSION =====
     reason = build_continuation_prompt(

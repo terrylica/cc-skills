@@ -10,12 +10,36 @@ for Ralph's multi-repository extensibility.
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Literal, Protocol, runtime_checkable
 
-# Confidence levels for RSSI agreement
+# Confidence levels for RSSI (Recursively Self-Improving Superintelligence) — Beyond AGI
 DEFAULT_CONFIDENCE = 0.0  # No opinion, defer to RSSI
-SUGGEST_CONFIDENCE = 0.5  # Suggest stop, requires RSSI agreement
-OVERRIDE_CONFIDENCE = 1.0  # Hard limit, override RSSI
+SUGGEST_CONFIDENCE = 0.5  # Suggest action, requires RSSI agreement
+OVERRIDE_CONFIDENCE = 1.0  # High confidence signal (RSSI pivots to exploration, not stop)
+
+# Decision reason codes for JSONL logging
+# RSSI — Beyond AGI: Most "completion" signals now pivot to exploration, not stop
+DecisionReason = Literal[
+    # Time/iteration limits (KEPT - safety guardrails)
+    "max_time_reached",  # Line 670: runtime >= max_hours → allow_stop()
+    "max_iterations_reached",  # Line 674: iteration >= max_iterations → allow_stop()
+    # RSSI Pivots (Beyond AGI: completion → exploration, not stop)
+    "task_complete_pivot",  # Line 778: task complete → force_exploration (RSSI never stops)
+    "adapter_converged_pivot",  # Line 732: adapter converged → force_exploration (RSSI never stops)
+    "nofocus_converged_pivot",  # Line 753: no-focus mode converged → force_exploration
+    # Loop detection
+    "loop_detected",  # Line 690: near-identical outputs (99% threshold) → allow_stop()
+    # Control signals (KEPT - user-initiated)
+    "kill_switch",  # Line 413: .claude/STOP_LOOP file → hard_stop()
+    "global_stop_signal",  # Line 386: ~/.claude/ralph-global-stop.json → hard_stop()
+    "state_stopped",  # Line 396: State machine = STOPPED → allow_stop()
+    "state_draining",  # Line 404: DRAINING → STOPPED transition → hard_stop()
+    # Continuation
+    "force_exploration",  # Line 661: Idle detection triggered → exploration mode
+    "continuing",  # Line 812: Default continuation path
+    # Default
+    "unknown",  # Fallback for unmapped paths
+]
 
 
 @dataclass
