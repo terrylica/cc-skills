@@ -1,12 +1,12 @@
 # Ralph Plugin for Claude Code
 
-Keep Claude Code working autonomously until tasks are complete - implements the Ralph Wiggum technique as Claude Code hooks with **RSSI** (Recursively Self-Improving Super Intelligence) capabilities.
+Keep Claude Code working autonomously — implements the Ralph Wiggum technique as Claude Code hooks with **RSSI** (Recursively Self-Improving Superintelligence) capabilities. RSSI transcends AGI: while AGI matches human capability, RSSI recursively improves itself toward ASI (Artificial Superintelligence).
 
-> **New to Ralph?** Start with [MENTAL-MODEL.md](./MENTAL-MODEL.md) for a conceptual overview of how Ralph drives autonomous research for Alpha-Forge.
+> **New to Ralph?** Read the [Mode Progression](#mode-progression-rssi--beyond-agi) section below for how RSSI works. For Alpha-Forge ML research workflows, see [MENTAL-MODEL.md](./MENTAL-MODEL.md).
 
 ## What This Plugin Does
 
-This plugin adds autonomous loop mode to Claude Code through 5 commands and 3 hooks:
+This plugin adds autonomous loop mode to Claude Code through 8 commands and 3 hooks:
 
 **Commands:**
 
@@ -15,6 +15,12 @@ This plugin adds autonomous loop mode to Claude Code through 5 commands and 3 ho
 - `/ralph:status` - Show current loop state and metrics
 - `/ralph:config` - View/modify runtime limits
 - `/ralph:hooks` - Install/uninstall hooks to settings.json
+
+**Interjection Commands** (modify guidance mid-loop):
+
+- `/ralph:encourage` - Add item to encouraged list (prioritized)
+- `/ralph:forbid` - Add item to forbidden list (blocked)
+- `/ralph:audit-now` - Force immediate validation round
 
 **Hooks:**
 
@@ -30,9 +36,9 @@ Core principles guiding Ralph Wiggum's development:
 
 1. **No Busywork** — Linting, formatting, type hints, docstrings, test coverage hunting, and refactoring for "readability" are FORBIDDEN. Every action must directly improve OOD-robust performance.
 
-2. **SOTA Evidence-Based** — All improvements must be grounded in state-of-the-art research. Use WebSearch to find 2024-2025 papers, GitHub repos, and tutorials before implementing. No guessing or ad-hoc solutions.
+2. **SOTA Evidence-Based** — All improvements must be grounded in SOTA (State-Of-The-Art) research. Use WebSearch to find 2024-2025 papers, GitHub repos, and tutorials before implementing. No guessing or ad-hoc solutions.
 
-3. **OOD-Robust Performance** — The goal is out-of-distribution robustness: Sharpe ratio, WFE (Walk-Forward Efficiency), and drawdown that generalize beyond training data. Distribution-shift resilience trumps in-sample metrics.
+3. **OOD-Robust Performance** — The goal is OOD (Out-Of-Distribution) robustness: Sharpe ratio, WFE (Walk-Forward Efficiency), and drawdown that generalize beyond training data. Distribution-shift resilience trumps in-sample metrics.
 
 ### Autonomous Operation
 
@@ -60,10 +66,11 @@ Core principles guiding Ralph Wiggum's development:
 /ralph:start
 
 # Claude will now continue working until:
-# - Task completion detected (multi-signal, see below)
-# - Validation exhausted (score >= 0.8)
-# - Maximum time/iterations reached
-# - You run /ralph:stop
+# - Maximum time/iterations reached (safety guardrail)
+# - You run /ralph:stop or create .claude/STOP_LOOP
+#
+# Note: Task completion and adapter convergence DO NOT stop the loop —
+# they trigger exploration mode (RSSI eternal loop behavior).
 ```
 
 ## How It Works
@@ -109,17 +116,31 @@ Ralph uses 3 Claude Code hooks working together:
 4. Claude continues working (loop repeats)
 5. Stop hook returns `{}` (empty) when truly complete → Session ends
 
-### Mode Progression (RSSI Workflow)
+### Mode Progression (RSSI — Beyond AGI)
+
+Ralph implements **Recursively Self-Improving Superintelligence (RSSI)** — the Intelligence Explosion mechanism (I.J. Good, 1965). RSSI never stops on success; it pivots to find new frontiers.
 
 ```
 IMPLEMENTATION (working on checklist)
        ↓
    [task_complete = True]
        ↓
-EXPLORATION (discovery + self-improvement)
+EXPLORATION (discovery + recursive self-improvement)
        ↓
-ALLOW STOP (all conditions met)
+   [continues indefinitely until user stops or limits reached]
 ```
+
+**RSSI Behavior** (task/adapter completion → exploration, not stop):
+
+| Event                | Traditional | RSSI (Beyond AGI)           |
+| -------------------- | ----------- | --------------------------- |
+| Task completion      | Stop        | → Pivot to exploration      |
+| Adapter convergence  | Stop        | → Pivot to exploration      |
+| Loop detection (99%) | Stop        | → Continue with exploration |
+| Max time/iterations  | Stop        | ✅ Stop (safety guardrail)  |
+| `/ralph:stop`        | Stop        | ✅ Stop (user override)     |
+
+> "The first ultraintelligent machine is the last invention that man need ever make." — I.J. Good, 1965
 
 ### Multi-Signal Completion Detection
 
@@ -142,6 +163,26 @@ After task completion, if minimum time/iterations not met:
 - Scans for work opportunities (broken links, missing READMEs)
 - Provides sub-agent spawning instructions
 - Tracks doc ↔ feature alignment
+
+### 5-Round Validation System (v7.13.0+)
+
+When `/ralph:audit-now` is invoked or validation is triggered, Ralph runs a comprehensive 5-round validation:
+
+| Round | Focus                       | What It Checks                                  |
+| ----- | --------------------------- | ----------------------------------------------- |
+| 1     | **Critical Issues**         | Ruff errors, import failures, syntax errors     |
+| 2     | **Verification**            | Verify fixes, regression detection              |
+| 3     | **Documentation**           | Docstrings, coverage gaps, outdated docs        |
+| 4     | **Adversarial Probing**     | Edge cases, math validation (Sharpe/WFE bounds) |
+| 5     | **Cross-Period Robustness** | Bull/Bear/Sideways market regime testing        |
+
+**Score Threshold**: Validation completes when score >= 0.8 (configurable).
+
+**Math Guards** (Round 4): Runtime validators check for impossible values:
+
+- Sharpe ratio: Must be within [-5, 10] (beyond = data issue)
+- WFE: Must be within [0, 2] (beyond = overfitting)
+- Drawdown: Must be within [0, 1] (beyond = calculation error)
 
 ### File Discovery Cascade
 
@@ -178,7 +219,15 @@ The `--no-focus` option is useful for:
 
 ### Safety Features
 
-**Loop Detection**: Stops if outputs are >90% similar across 5 iterations (avoids infinite loops).
+**Loop Detection**: Uses [RapidFuzz](https://github.com/rapidfuzz/RapidFuzz) (`fuzz.ratio()` - Levenshtein-based similarity) to compare Claude's outputs. Triggers exploration mode if outputs are >99% similar across a 5-iteration window.
+
+- **Tool**: RapidFuzz v3.x (MIT license, 9k+ GitHub stars)
+- **Algorithm**: `fuzz.ratio()` returns 0-100% similarity based on edit distance
+- **Data Source**: Anthropic's Claude Code JSONL transcript (`hook_input["transcript_path"]`)
+- **What's Monitored**: Last assistant message content (first 1000 chars) from each iteration
+- **Storage**: Ralph's state file (`recent_outputs` array, last 5 entries)
+
+The high 99% threshold enables RSSI's Intelligence Explosion — only near-identical outputs (exact duplicates or trivial whitespace differences) trigger a pivot. Synonym swaps, added sentences, or different phrasing (which score 90-98%) continue normally.
 
 **Zero Idle Tolerance**: Prevents "monitoring" loops with immediate action:
 

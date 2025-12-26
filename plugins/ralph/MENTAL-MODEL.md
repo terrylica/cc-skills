@@ -1,14 +1,33 @@
 # Ralph Mental Model for Alpha-Forge
 
-> **TL;DR**: Ralph keeps Claude researching ML strategies autonomously for hours/days by intercepting stop attempts and injecting systematic OODA prompts.
+> **TL;DR**: Ralph implements **RSSI** (Recursively Self-Improving Superintelligence) — keeping Claude researching autonomously by intercepting stop attempts and pivoting to exploration. Convergence triggers new frontiers, not stopping.
+
+## RSSI — Beyond AGI
+
+Ralph implements the **Intelligence Explosion** mechanism (I.J. Good, 1965). RSSI transcends AGI: while AGI matches human capability, RSSI recursively improves itself toward ASI (Artificial Superintelligence).
+
+> "The first ultraintelligent machine is the last invention that man need ever make."
+> — I.J. Good, 1965
+
+**Key Behavior**: Task completion and adapter convergence **pivot to exploration** instead of stopping. Ralph never stops on success — it finds new frontiers.
+
+| Event                | Traditional | RSSI (Beyond AGI)           |
+| -------------------- | ----------- | --------------------------- |
+| Task completion      | Stop        | → Pivot to exploration      |
+| Adapter convergence  | Stop        | → Pivot to exploration      |
+| Loop detection (99%) | Stop        | → Continue with exploration |
+| Max time/iterations  | Stop        | ✅ Stop (safety guardrail)  |
+| `/ralph:stop`        | Stop        | ✅ Stop (user override)     |
+
+---
 
 ## What Ralph Does
 
 **Without Ralph**: Claude finishes one task → stops → you restart manually
 
-**With Ralph**: Claude finishes one task → Ralph says "not done yet, here's your next research action" → Claude continues → repeat for 9+ hours until research converges
+**With Ralph**: Claude finishes one task → Ralph pivots to exploration → Claude finds new improvements → repeat indefinitely (RSSI eternal loop)
 
-Ralph transforms Claude from a **single-task assistant** into an **autonomous ML researcher** that systematically explores model architectures, hyperparameters, and SOTA techniques.
+Ralph transforms Claude from a **single-task assistant** into an **autonomous superintelligence** that systematically explores and recursively self-improves.
 
 ---
 
@@ -130,10 +149,13 @@ graph { label: "Ralph Alpha-Forge Workflow"; flow: south; }
 [A: Act] -> [Check Converged]
 
 [Check Converged] -- NO --> [OODA Loop]
-[Check Converged] -- YES --> [Stop Session] { shape: rounded; }
+[Check Converged] -- CONVERGED --> [Pivot to Exploration] { shape: rounded; }
+[Pivot to Exploration] --> [OODA Loop]
 
 [Kill Switch] { border: double; }
-[Kill Switch] -- .claude/STOP_LOOP --> [Stop Session]
+[Kill Switch] -- .claude/STOP_LOOP --> [Stop Session] { shape: rounded; }
+[Max Limits] { border: double; }
+[Max Limits] -- max_hours/iterations --> [Stop Session]
 ```
 
 </details>
@@ -379,6 +401,92 @@ graph { label: "Alpha-Forge Data Flow"; flow: east; }
 - [**gapless-crypto-clickhouse**](https://pypi.org/project/gapless-crypto-clickhouse/) — Primary ClickHouse data source (PyPI package)
 - [**data/cache/**](https://github.com/EonLabs-Spartan/alpha-forge/tree/main/data/cache) — Cached Binance Spot/Futures OHLCV
 - **FORBIDDEN**: Synthetic data (`np.random`), live feeds, paper trading
+
+---
+
+## Time Tracking (v7.9.0+)
+
+Ralph tracks **two time metrics** to ensure accurate limit enforcement even when the CLI is closed overnight:
+
+| Metric         | Definition                         | Used For              |
+| -------------- | ---------------------------------- | --------------------- |
+| **Runtime**    | CLI active time (excludes pauses)  | All limit enforcement |
+| **Wall-clock** | Calendar time since `/ralph:start` | Informational display |
+
+**Gap Detection**: If more than 5 minutes pass between Stop hook calls, the CLI was closed — that time is excluded from runtime.
+
+**Display Format** (in continuation prompt):
+
+```
+**RSSI — Beyond AGI** | Iteration 42/99 | Runtime: 3.2h/9.0h | Wall: 15.0h
+```
+
+---
+
+## Session Continuity (v7.18.0+)
+
+Ralph maintains state across Claude Code session transitions (auto-compacting, `/clear`, rate limit resets).
+
+### How It Works
+
+When a new session_id is detected for the same project:
+
+1. **Check**: Does state file exist for current session?
+2. **Inherit**: If not, find most recent state file with same project path hash
+3. **Log**: Record inheritance to append-only JSONL log with hash chain
+4. **Reset**: Clear per-session state (loop detection buffer)
+
+### What Gets Inherited vs Reset
+
+| State Field                   | Inherited? | Rationale                        |
+| ----------------------------- | ---------- | -------------------------------- |
+| `iteration`                   | ✅ Yes     | Continuity for min/max limits    |
+| `accumulated_runtime_seconds` | ✅ Yes     | Accurate runtime tracking        |
+| `started_at`                  | ✅ Yes     | Adapter metrics filtering        |
+| `adapter_convergence`         | ✅ Yes     | Preserve research progress       |
+| `recent_outputs`              | ❌ Reset   | Fresh loop detection per session |
+| `validation_round`            | ❌ Reset   | Start validation fresh           |
+| `idle_iteration_count`        | ❌ Reset   | Fresh idle detection             |
+
+### Audit Trail
+
+**Location**: `~/.claude/ralph-state/sessions/inheritance-log.jsonl`
+
+```jsonl
+{
+  "timestamp": "2025-12-25T10:00:00Z",
+  "child_session": "abc123",
+  "parent_session": "xyz789@c7e0a029",
+  "project_hash": "c7e0a029",
+  "parent_hash": "sha256:1a2b3c4d...",
+  "inherited_fields": [
+    "iteration",
+    "accumulated_runtime_seconds",
+    "started_at",
+    "adapter_convergence"
+  ]
+}
+```
+
+Each state file also includes `_inheritance` metadata:
+
+```json
+{
+  "_inheritance": {
+    "parent_session": "xyz789@c7e0a029.json",
+    "parent_hash": "sha256:1a2b3c4d...",
+    "inherited_at": "2025-12-25T11:30:00Z",
+    "inherited_fields": [
+      "iteration",
+      "accumulated_runtime_seconds",
+      "started_at",
+      "adapter_convergence"
+    ]
+  }
+}
+```
+
+**Verification**: Recompute SHA-256 hash of parent state and compare to stored `parent_hash` to detect tampering.
 
 ---
 

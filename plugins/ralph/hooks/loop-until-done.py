@@ -61,7 +61,7 @@ from core.constants import (
     TIME_WARNING_THRESHOLD_HOURS,
     WFE_OVERFITTING_THRESHOLD,
 )
-from core.path_hash import build_state_file_path, load_session_state
+from core.path_hash import build_state_file_path, get_path_hash, load_session_state
 from core.project_detection import is_alpha_forge_project
 from core.registry import AdapterRegistry
 from discovery import (
@@ -419,6 +419,7 @@ def main():
 
     # ===== LOAD STATE =====
     # Use path hash for session state isolation (git worktree support)
+    path_hash = get_path_hash(project_dir)
     state_file = build_state_file_path(STATE_DIR, session_id, project_dir)
     default_state = {
         "iteration": 0,
@@ -456,7 +457,15 @@ def main():
         "accumulated_runtime_seconds": 0.0,  # Total CLI runtime (excludes pauses)
         "last_hook_timestamp": 0.0,  # For gap detection between hook calls
     }
-    state = load_session_state(state_file, default_state)
+    # Load state with inheritance fallback for cross-session continuity
+    # When session_id changes (auto-compact, /clear, rate limits), inherits from
+    # most recent same-project session. See path_hash.py for inheritance logic.
+    state = load_session_state(
+        state_file,
+        default_state,
+        state_dir=STATE_DIR,
+        path_hash=path_hash,
+    )
 
     # Persist project_path for stop command discovery (v7.16.0)
     if not state.get("project_path") and project_dir:
@@ -700,7 +709,6 @@ def main():
     # ===== ADAPTER CONVERGENCE CHECK =====
     # Project-specific convergence detection (requires RSSI agreement at confidence=0.5)
     adapter_should_stop = False
-    adapter_reason = ""
     adapter_confidence = 0.0
 
     if adapter and project_dir:
@@ -728,14 +736,13 @@ def main():
             if convergence.confidence >= 1.0:
                 if not convergence.should_continue:
                     # RSSI: Pivot to exploration instead of stopping
-                    logger.info(f"RSSI: Adapter converged at 1.0 confidence, pivoting to exploration")
-                    print(f"\n[RSSI — Beyond AGI: Intelligence Explosion] Adapter converged → pivoting to new frontiers\n", file=sys.stderr)
+                    logger.info("RSSI: Adapter converged at 1.0 confidence, pivoting to exploration")
+                    print("\n[RSSI — Beyond AGI: Intelligence Explosion] Adapter converged → pivoting to new frontiers\n", file=sys.stderr)
                     state["force_exploration"] = True
                     # Don't return - fall through to continue_session()
                 # If should_continue with high confidence, force continue below
             elif convergence.confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
                 adapter_should_stop = not convergence.should_continue
-                adapter_reason = convergence.reason
                 adapter_confidence = convergence.confidence
         except Exception as e:
             logger.warning(f"Adapter convergence check failed: {e}")
@@ -750,7 +757,7 @@ def main():
         if adapter_should_stop and adapter_confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
             # RSSI: Pivot to exploration instead of stopping
             logger.info("RSSI: No-focus mode converged, pivoting to exploration")
-            print(f"\n[RSSI — Beyond AGI: Intelligence Explosion] Research converged → transcending to new domains\n", file=sys.stderr)
+            print("\n[RSSI — Beyond AGI: Intelligence Explosion] Research converged → transcending to new domains\n", file=sys.stderr)
             state["force_exploration"] = True
             # Don't return - fall through to continue_session()
         # Also check for "idle loop" - no meaningful work for N consecutive iterations
@@ -775,7 +782,7 @@ def main():
     if task_complete and min_hours_met and min_iterations_met:
         # RSSI: Pivot to exploration instead of stopping
         logger.info(f"RSSI: Task complete ({completion_reason}), pivoting to exploration")
-        print(f"\n[RSSI — Beyond AGI: Intelligence Explosion] Task complete → recursive self-improvement continues\n", file=sys.stderr)
+        print("\n[RSSI — Beyond AGI: Intelligence Explosion] Task complete → recursive self-improvement continues\n", file=sys.stderr)
         state["force_exploration"] = True
         # Don't return - fall through to continue_session()
 
