@@ -59,7 +59,7 @@
           },
           "category": {
             "type": "string",
-            "enum": ["development", "productivity", "quality", "automation", "ai", "documentation"],
+            "enum": ["development", "productivity", "quality", "automation", "ai", "documentation", "devops", "documents", "enforcement", "trading", "utilities"],
             "description": "Plugin category"
           },
           "author": {

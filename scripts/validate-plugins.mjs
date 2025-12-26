@@ -101,6 +101,7 @@ function getPluginDirectories() {
 
 /**
  * Validate marketplace.json entries have required fields and valid paths
+ * Uses AJV for JSON Schema validation + custom path existence checks
  * ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned)
  */
 function validateMarketplaceEntries() {
@@ -109,15 +110,31 @@ function validateMarketplaceEntries() {
   const errors = [];
   const warnings = [];
 
+  // Step 1: AJV Schema validation (if schema loaded successfully)
+  if (validateSchema) {
+    const valid = validateSchema(data);
+    if (!valid && validateSchema.errors) {
+      validateSchema.errors.forEach((err) => {
+        const path = err.instancePath || err.dataPath || "";
+        const message = err.message || "validation error";
+        errors.push(`Schema: ${path} ${message}`);
+      });
+    }
+  } else {
+    // Fallback: manual required field checks if schema unavailable
+    plugins.forEach((plugin, index) => {
+      const prefix = `Plugin #${index + 1} (${plugin.name || "unnamed"})`;
+      REQUIRED_FIELDS.forEach(field => {
+        if (!plugin[field]) {
+          errors.push(`${prefix}: Missing required field '${field}'`);
+        }
+      });
+    });
+  }
+
+  // Step 2: Path existence checks (cannot be in JSON Schema)
   plugins.forEach((plugin, index) => {
     const prefix = `Plugin #${index + 1} (${plugin.name || "unnamed"})`;
-
-    // Check required fields
-    REQUIRED_FIELDS.forEach(field => {
-      if (!plugin[field]) {
-        errors.push(`${prefix}: Missing required field '${field}'`);
-      }
-    });
 
     // Validate source path exists
     if (plugin.source) {
