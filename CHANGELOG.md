@@ -1,3 +1,29 @@
+## [7.19.2](https://github.com/terrylica/cc-skills/compare/v7.19.1...v7.19.2) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** add documentation links to /ralph:hooks status output ([063e06f](https://github.com/terrylica/cc-skills/commit/063e06ff0f94dfd49ea95faf32e6cb7928fe6b8f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/hooks.md) - updated (+14/-2)
+
+</details>
+
 ## [7.19.1](https://github.com/terrylica/cc-skills/compare/v7.19.0...v7.19.1) (2025-12-26)
 
 
