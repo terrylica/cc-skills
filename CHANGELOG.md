@@ -1,3 +1,19 @@
+## [7.19.1](https://github.com/terrylica/cc-skills/compare/v7.19.0...v7.19.1) (2025-12-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+137/-12)
+
 # [7.19.0](https://github.com/terrylica/cc-skills/compare/v7.18.2...v7.19.0) (2025-12-26)
 
 
