@@ -1,38 +1,61 @@
 # doc-tools
 
-Documentation quality tools for Claude Code.
+Comprehensive documentation tools for Claude Code: ASCII diagram validation, documentation standards, LaTeX compilation, and Pandoc PDF generation.
+
+Merged from `doc-tools` + `doc-build-tools` plugins.
 
 ## Skills
 
-### ascii-diagram-validator
-
-Validates ASCII box-drawing diagram alignment in markdown files. Use when creating architecture diagrams, checking diagram alignment, fixing ASCII art, or before committing documentation with diagrams.
-
-**Features**:
-
-- Validates box-drawing character alignment
-- Detects common ASCII diagram issues
-- Provides fix suggestions
-- Bundled Python validation script
-
-### documentation-standards
-
-Markdown documentation standards for LLM-optimized architecture. Use when writing markdown documentation, creating skills, or authoring content that may be converted to PDF.
-
-**Features**:
-
-- Section numbering rules for Pandoc PDF generation
-- Hub-and-spoke progressive disclosure patterns
-- Machine-readable specification priorities
+| Skill                     | Description                                                        |
+| ------------------------- | ------------------------------------------------------------------ |
+| `ascii-diagram-validator` | Validates ASCII box-drawing diagram alignment in markdown files    |
+| `documentation-standards` | Markdown documentation standards for LLM-optimized architecture    |
+| `latex-build`             | Build automation with latexmk, live preview, dependency tracking   |
+| `latex-setup`             | macOS environment setup with MacTeX, Skim viewer, and SyncTeX      |
+| `latex-tables`            | Modern table creation with tabularray package                      |
+| `pandoc-pdf-generation`   | Markdown to PDF with XeLaTeX, section numbering, TOC, bibliography |
 
 ## Installation
 
-Install via cc-skills marketplace:
-
 ```bash
-# From Claude Code
-/install-plugin doc-tools
+/plugin marketplace add terrylica/cc-skills
+/plugin install doc-tools@cc-skills
 ```
+
+## Usage
+
+Skills are model-invoked — Claude automatically activates them based on context.
+
+**Trigger phrases:**
+
+- "validate ASCII diagram" → ascii-diagram-validator
+- "markdown documentation standards" → documentation-standards
+- "compile my LaTeX document" → latex-build
+- "set up LaTeX on my Mac" → latex-setup
+- "create a LaTeX table" → latex-tables
+- "generate PDF from markdown", "convert to PDF" → pandoc-pdf-generation
+
+## Features
+
+### Documentation Quality
+
+- ASCII box-drawing alignment validation
+- Hub-and-spoke progressive disclosure patterns
+- Section numbering rules for Pandoc PDF generation
+
+### LaTeX & PDF Build
+
+- Production-proven build script with XeLaTeX
+- Section numbering with `--number-sections`
+- Table of contents support
+- Bibliography with BibTeX/CSL
+- LaTeX table spacing fixes
+
+## Requirements
+
+- macOS (for latex-setup with MacTeX/Skim)
+- MacTeX or TeX Live installation
+- Pandoc (`brew install pandoc`)
 
 ## License
 
