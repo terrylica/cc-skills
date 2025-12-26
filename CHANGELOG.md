@@ -1,3 +1,29 @@
+## [8.4.3](https://github.com/terrylica/cc-skills/compare/v8.4.2...v8.4.3) (2025-12-26)
+
+
+### Bug Fixes
+
+* **ralph:** preserve guidance across /ralph:start restarts ([62aa170](https://github.com/terrylica/cc-skills/commit/62aa1707de70fcf2f08d51cd4c932c1737a8d5a6))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+10/-1)
+
+</details>
+
 ## [8.4.2](https://github.com/terrylica/cc-skills/compare/v8.4.1...v8.4.2) (2025-12-26)
 
 
