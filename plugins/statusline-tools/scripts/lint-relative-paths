@@ -28,6 +28,21 @@ if [[ -f "$WORKSPACE/plugin.json" ]] || [[ -f "$WORKSPACE/.claude-plugin" ]]; th
     exit 0
 fi
 
+# Check for global ignore file with pattern matching
+GLOBAL_IGNORE="$HOME/.claude/lint-relative-paths-ignore"
+if [[ -f "$GLOBAL_IGNORE" ]]; then
+    while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+        # Skip empty lines and comments
+        [[ -z "$pattern" || "$pattern" == \#* ]] && continue
+        # Check if workspace path contains the pattern
+        if [[ "$WORKSPACE" == *"$pattern"* ]]; then
+            echo "✅ Workspace matches global ignore pattern: $pattern"
+            echo "   Skipping: $WORKSPACE"
+            exit 0
+        fi
+    done < "$GLOBAL_IGNORE"
+fi
+
 # Check for explicit skip marker (for repos with third-party content using relative paths)
 if [[ -f "$WORKSPACE/.lint-skip-relative-paths" ]]; then
     skip_reason=$(head -1 "$WORKSPACE/.lint-skip-relative-paths" 2>/dev/null || echo "Skip marker present")
