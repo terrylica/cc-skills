@@ -194,12 +194,17 @@ do_install() {
     local pretooluse_cmd="${home_relative}/hooks/archive-plan.sh"
 
     # Prepare hook entries using jq for proper JSON escaping
+    # Structure: each entry is added to the event array directly
+    # Stop: {"hooks": [{type, command, timeout}]}
+    # PreToolUse: {"matcher": "...", "hooks": [{type, command, timeout}]}
     local stop_entry
     local pretooluse_entry
     if ! stop_entry=$(jq -n --arg cmd "$stop_cmd" '{"hooks":[{"type":"command","command":$cmd,"timeout":30000}]}' 2>&1); then
         die "Failed to create Stop hook entry: $stop_entry"
     fi
-    if ! pretooluse_entry=$(jq -n --arg cmd "$pretooluse_cmd" '{"hooks":[{"matcher":"Write|Edit","hooks":[{"type":"command","command":$cmd,"timeout":5000}]}]}' 2>&1); then
+    # NOTE: PreToolUse entry should NOT have outer {"hooks": [...]} wrapper
+    # The matcher and hooks are at the same level in the array element
+    if ! pretooluse_entry=$(jq -n --arg cmd "$pretooluse_cmd" '{"matcher":"Write|Edit","hooks":[{"type":"command","command":$cmd,"timeout":5000}]}' 2>&1); then
         die "Failed to create PreToolUse hook entry: $pretooluse_entry"
     fi
 
