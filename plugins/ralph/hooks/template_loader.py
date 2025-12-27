@@ -279,6 +279,83 @@ class TemplateLoader:
         # Unified template with Jinja conditionals for adapter-specific content
         return self.render("exploration-mode.md", **context)
 
+    def render_unified(
+        self,
+        task_complete: bool = False,
+        rssi_context: dict | None = None,
+        adapter_name: str | None = None,
+        metrics_history: list | None = None,
+        opportunities: list[str] | None = None,
+    ) -> str:
+        """Render the unified RSSI template for all phases.
+
+        This is the single entry point for all Ralph prompts, replacing the
+        separate implementation-mode.md and exploration-mode.md templates.
+        User guidance (encourage/forbid) applies to ALL phases.
+
+        ADR: 2025-12-20-ralph-rssi-eternal-loop
+
+        Args:
+            task_complete: True = exploration phase, False = implementation phase
+            rssi_context: Full RSSI context dict with keys:
+                - iteration: int - current RSSI loop iteration
+                - guidance: dict - user guidance with forbidden/encouraged lists
+                - accumulated_patterns: list[str] - learned patterns
+                - disabled_checks: list[str] - ineffective checks disabled
+                - effective_checks: list[str] - prioritized by effectiveness
+                - web_insights: list[str] - domain insights from web
+                - feature_ideas: list[dict] - big feature proposals
+                - web_queries: list[str] - search queries to execute
+                - gpu_infrastructure: dict - GPU config if available
+            adapter_name: Name of the active adapter (e.g., "alpha-forge")
+            metrics_history: Project-specific metrics history (for Alpha Forge)
+            opportunities: List of discovered work opportunities
+
+        Returns:
+            Rendered prompt string
+        """
+        ctx = rssi_context or {}
+
+        # Check if research is converged (from adapter_convergence in rssi_context)
+        adapter_conv = ctx.get("adapter_convergence", {})
+        research_converged = adapter_conv.get("converged", False) if adapter_conv else False
+
+        # Extract user guidance - ALWAYS applies regardless of phase
+        guidance = ctx.get("guidance", {})
+        forbidden_items = guidance.get("forbidden", []) if guidance else []
+        encouraged_items = guidance.get("encouraged", []) if guidance else []
+
+        # Unified context for all phases
+        context = {
+            # Phase flag - the key difference
+            "task_complete": task_complete,
+            # User guidance - ALWAYS applies
+            "forbidden_items": forbidden_items,
+            "encouraged_items": encouraged_items,
+            # Opportunities
+            "opportunities": opportunities or [],
+            # RSSI context
+            "iteration": ctx.get("iteration", 0),
+            "project_dir": ctx.get("project_dir", ""),
+            "accumulated_patterns": ctx.get("accumulated_patterns", []),
+            "disabled_checks": ctx.get("disabled_checks", []),
+            "effective_checks": ctx.get("effective_checks", []),
+            "web_insights": ctx.get("web_insights", []),
+            "feature_ideas": ctx.get("feature_ideas", []),
+            "web_queries": ctx.get("web_queries", []),
+            "missing_tools": ctx.get("missing_tools", []),
+            "quality_gate": ctx.get("quality_gate", []),
+            "overall_effectiveness": ctx.get("overall_effectiveness", 0.0),
+            "gpu_infrastructure": ctx.get("gpu_infrastructure", {}),
+            # Adapter-specific
+            "adapter_name": adapter_name or "",
+            "metrics_history": metrics_history or [],
+            "research_converged": research_converged,
+        }
+
+        return self.render("rssi-unified.md", **context)
+
+
 # Global instance for convenience
 _loader: TemplateLoader | None = None
 

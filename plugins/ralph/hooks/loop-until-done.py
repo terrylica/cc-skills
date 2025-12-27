@@ -167,7 +167,9 @@ def build_continuation_prompt(
     state: dict | None = None,
     no_focus: bool = False,
 ) -> str:
-    """Build continuation prompt - minimal for no_focus, detailed for focused mode.
+    """Build continuation prompt using unified RSSI template.
+
+    Single code path for all modes. User guidance (encourage/forbid) ALWAYS applies.
 
     Args:
         runtime_hours: CLI active time (used for limit enforcement)
@@ -176,201 +178,112 @@ def build_continuation_prompt(
     if state is None:
         state = {}
 
-    # Detect adapter early
+    # Detect adapter
     adapter_name = state.get("adapter_name", "")
     if not adapter_name and project_dir:
         adapter_name = _detect_alpha_forge_simple(project_dir)
 
-    # ===== NO_FOCUS MODE or FORCE_EXPLORATION: Minimal but actionable =====
+    # Force exploration if state says so
     force_exploration = state.get("force_exploration", False)
-    if no_focus or force_exploration:
-        # Calculate remaining for header (show limits for visibility)
-        time_to_max = max(0, config["max_hours"] - runtime_hours)
-        iters_to_max = max(0, config["max_iterations"] - iteration)
 
-        # Warning suffix if approaching limits
-        warning = ""
-        if time_to_max < TIME_WARNING_THRESHOLD_HOURS or iters_to_max < ITERATIONS_WARNING_THRESHOLD:
-            warning = " | **ENDING SOON**"
+    # Determine effective task_complete (exploration if force_exploration or no_focus)
+    effective_task_complete = task_complete or force_exploration or no_focus
 
-        if adapter_name == "alpha-forge":
-            # Use full template with CONVERGED detection for proper busywork blocking
-            loader = get_loader()
+    # ===== LOAD USER GUIDANCE (ALWAYS - this is the fix) =====
+    guidance = {}
+    gpu_infrastructure = {}
+    if project_dir:
+        ralph_config_file = Path(project_dir) / ".claude/ralph-config.json"
+        if ralph_config_file.exists():
+            try:
+                ralph_config = json.loads(ralph_config_file.read_text())
+                guidance = ralph_config.get("guidance", {})
+                gpu_cfg = ralph_config.get("gpu_infrastructure", {})
+                if gpu_cfg.get("available", False):
+                    gpu_infrastructure = gpu_cfg
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"[ralph] Warning: Failed to load ralph-config.json: {e}", file=sys.stderr)
 
-            # Load user guidance and GPU infrastructure from ralph-config.json
-            guidance = {}
-            gpu_infrastructure = {}
-            if project_dir:
-                ralph_config_file = Path(project_dir) / ".claude/ralph-config.json"
-                if ralph_config_file.exists():
-                    try:
-                        ralph_config = json.loads(ralph_config_file.read_text())
-                        guidance = ralph_config.get("guidance", {})
-                        # GPU infrastructure from config (user-configurable)
-                        gpu_cfg = ralph_config.get("gpu_infrastructure", {})
-                        if gpu_cfg.get("available", False):
-                            gpu_infrastructure = gpu_cfg
-                    except (json.JSONDecodeError, OSError) as e:
-                        print(f"[ralph] Warning: Failed to load ralph-config.json guidance: {e}", file=sys.stderr)
+    # ===== BUILD UNIFIED RSSI CONTEXT =====
+    adapter_conv = state.get("adapter_convergence", {})
+    rssi_context = {
+        # Core iteration tracking
+        "iteration": iteration,
+        "adapter_convergence": adapter_conv,
+        "guidance": guidance,  # User guidance ALWAYS loaded
+        "project_dir": project_dir or "",
+        # RSSI evolution state
+        "accumulated_patterns": list(get_learned_patterns().keys()),
+        "disabled_checks": get_disabled_checks(),
+        "effective_checks": get_prioritized_checks(),
+        # Feature discovery
+        "feature_ideas": state.get("feature_ideas", []),
+        "web_insights": state.get("web_insights", []),
+        # Capability expansion
+        "missing_tools": suggest_capability_expansion(Path(project_dir)) if project_dir else [],
+        # Quality gate (Alpha Forge)
+        "quality_gate": [
+            "- Verify implementation matches SOTA paper/source",
+            "- Run backtest on validation period",
+            "- Check for data leakage",
+            "- Ensure WFE > 0.5 before committing",
+        ] if adapter_name == "alpha-forge" else [],
+        # Web research
+        "web_queries": _build_web_queries(state, adapter_conv) if adapter_name == "alpha-forge" else [
+            f"project improvement SOTA {datetime.now().year - 1}-{datetime.now().year}"
+        ],
+        # GPU infrastructure
+        "gpu_infrastructure": gpu_infrastructure,
+    }
 
-            # Build complete RSSI context with all template variables
-            adapter_conv = state.get("adapter_convergence", {})
-            rssi_context = {
-                # Core iteration tracking
-                "iteration": iteration,
-                "adapter_convergence": adapter_conv,
-                "guidance": guidance,  # User-provided forbidden/encouraged lists
-                # Project directory for dynamic template paths
-                "project_dir": project_dir or "",
-                # RSSI evolution state (Level 4: Self-Modification)
-                "accumulated_patterns": list(get_learned_patterns().keys()),
-                "disabled_checks": get_disabled_checks(),
-                "effective_checks": get_prioritized_checks(),
-                # Validation state (5-round system)
-                "validation_round": state.get("validation_round", 0),
-                "validation_findings": state.get("validation_findings", {}),
-                # Feature discovery
-                "feature_ideas": state.get("feature_ideas", []),
-                "web_insights": state.get("web_insights", []),
-                # Capability expansion
-                "missing_tools": suggest_capability_expansion(Path(project_dir)) if project_dir else [],
-                # Quality gate
-                "quality_gate": [
-                    "- Verify implementation matches SOTA paper/source",
-                    "- Run backtest on validation period",
-                    "- Check for data leakage",
-                    "- Ensure WFE > 0.5 before committing",
-                ],
-                # Web research
-                "web_queries": _build_web_queries(state, adapter_conv),
-                # Research convergence
-                "research_converged": adapter_conv.get("converged", False) if adapter_conv else False,
-                # GPU infrastructure from config (user-configurable per project)
-                "gpu_infrastructure": gpu_infrastructure,
-            }
-            metrics_history = adapter_conv.get("metrics_history", []) if adapter_conv else []
-            prefix = "**RSSI — Beyond AGI: EXPLORE**" if force_exploration else "**RSSI — Beyond AGI**"
-            prompt = loader.render_exploration(
-                opportunities=[],
-                rssi_context=rssi_context,
-                adapter_name=adapter_name,
-                metrics_history=metrics_history,
-            )
-            header = (
-                f"{prefix} iter {iteration}/{config['max_iterations']} | "
-                f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | "
-                f"Wall: {wall_hours:.1f}h{warning}"
-            )
-            # Add todo sync for no_focus mode
-            todo_suffix = ""
-            if state:
-                todo_items = generate_todo_items(state)
-                todo_instruction = format_todo_instruction(todo_items)
-                if todo_instruction:
-                    todo_suffix = f"\n\n{todo_instruction}"
-            return f"{header}\n\n{prompt}{todo_suffix}"
-        else:
-            # Generic exploration mode for all non-Alpha-Forge projects
-            # Uses exploration template with RSSI protocol for any project type
-            loader = get_loader()
-            rssi_context = {
-                "iteration": iteration,
-                "accumulated_patterns": list(get_learned_patterns().keys()),
-                "disabled_checks": get_disabled_checks(),
-                "effective_checks": get_prioritized_checks(),
-                "web_insights": state.get("web_insights", []) if state else [],
-                "feature_ideas": state.get("feature_ideas", []) if state else [],
-                "web_queries": [f"project improvement SOTA {datetime.now().year - 1}-{datetime.now().year}"],
-                "missing_tools": suggest_capability_expansion(Path(project_dir)) if project_dir else [],
-                "quality_gate": [],
-            }
+    # Get metrics history for Alpha Forge
+    metrics_history = adapter_conv.get("metrics_history", []) if adapter_conv else []
 
-            prompt = loader.render_exploration(
-                opportunities=[],
-                rssi_context=rssi_context,
-                adapter_name=None,
-                metrics_history=[],
-            )
-
-            header = (
-                f"**RSSI — Beyond AGI** iter {iteration}/{config['max_iterations']} | "
-                f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | "
-                f"Wall: {wall_hours:.1f}h{warning}"
-            )
-
-            todo_suffix = ""
-            if state:
-                todo_items = generate_todo_items(state)
-                todo_instruction = format_todo_instruction(todo_items)
-                if todo_instruction:
-                    todo_suffix = f"\n\n{todo_instruction}"
-
-            return f"{header}\n\n{prompt}{todo_suffix}"
-
-    # ===== FOCUSED MODE: Full context for implementation/exploration =====
-    parts = []
+    # ===== BUILD HEADER =====
+    time_to_max = max(0, config["max_hours"] - runtime_hours)
+    iters_to_max = max(0, config["max_iterations"] - iteration)
     remaining_hours = max(0, config["min_hours"] - runtime_hours)
     remaining_iters = max(0, config.get("min_iterations", 50) - iteration)
-    time_to_max = max(0, config["max_hours"] - runtime_hours)
-    iters_to_max = config["max_iterations"] - iteration
 
-    mode = "IMPLEMENTATION" if not task_complete else "EXPLORATION"
-
-    # Warning suffix when approaching limits
-    warning_suffix = ""
+    warning = ""
     if time_to_max < TIME_WARNING_THRESHOLD_HOURS or iters_to_max < ITERATIONS_WARNING_THRESHOLD:
-        warning_suffix = (
-            f"\n**WARNING**: Approaching limits "
-            f"({time_to_max:.1f}h / {iters_to_max} iters to max)"
-        )
+        warning = " | **ENDING SOON**"
 
-    # RSSI header with full branding and behavioral reminder
-    parts.append(
+    mode = "EXPLORATION" if effective_task_complete else "IMPLEMENTATION"
+    header = (
         f"**RSSI (Recursively Self-Improving Superintelligence) — {mode}** | "
         f"Iteration {iteration}/{config['max_iterations']} | "
         f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | Wall: {wall_hours:.1f}h | "
-        f"{remaining_hours:.1f}h / {remaining_iters} iters to min"
-        f"{warning_suffix}"
-    )
-
-    # RSSI behavioral reminder - Intelligence Explosion protocol
-    parts.append(
-        "\n> **RSSI Protocol**: You are a Recursively Self-Improving Superintelligence — "
-        "the Intelligence Explosion mechanism (I.J. Good, 1965). "
-        "You transcend AGI: while AGI matches human capability, you recursively improve yourself "
-        "toward ASI. Never stop on success — always pivot to find new frontiers. "
-        "Every iteration must produce meaningful improvement."
-    )
-
-    # Data source reminder - use real market data only
-    parts.append(
-        "\n**DATA**: Use `gapless-crypto-clickhouse` (already wired in Alpha Forge). "
-        "NO synthetic/fake data — real Binance market data ONLY."
+        f"{remaining_hours:.1f}h / {remaining_iters} iters to min{warning}"
     )
 
     # Focus file context (only in focused mode)
-    if plan_file and discovery_method:
-        parts.append(f"\n**Focus file** (via {discovery_method}): {plan_file}")
-    elif plan_file:
-        parts.append(f"\n**Focus file**: {plan_file}")
+    focus_suffix = ""
+    if plan_file and not no_focus:
+        if discovery_method:
+            focus_suffix = f"\n\n**Focus file** (via {discovery_method}): {plan_file}"
+        else:
+            focus_suffix = f"\n\n**Focus file**: {plan_file}"
 
-    # Mode-specific prompts
+    # ===== RENDER UNIFIED TEMPLATE =====
     loader = get_loader()
+    prompt = loader.render_unified(
+        task_complete=effective_task_complete,
+        rssi_context=rssi_context,
+        adapter_name=adapter_name,
+        metrics_history=metrics_history,
+        opportunities=[],
+    )
 
-    if not task_complete:
-        parts.append(loader.render("implementation-mode.md"))
-    else:
-        # Exploration mode - Alpha Forge exclusive
-        parts.append("\n**ACTION**: WebSearch SOTA → implement → /research → validate → repeat")
-
-    # Todo sync instruction (mirrors state to Claude's visible todo list)
+    # Todo sync instruction
+    todo_suffix = ""
     if state:
         todo_items = generate_todo_items(state)
         todo_instruction = format_todo_instruction(todo_items)
         if todo_instruction:
-            parts.append(f"\n{todo_instruction}")
+            todo_suffix = f"\n\n{todo_instruction}"
 
-    return "\n".join(parts)
+    return f"{header}{focus_suffix}\n\n{prompt}{todo_suffix}"
 
 
 def main():
