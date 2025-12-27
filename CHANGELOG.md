@@ -1,3 +1,35 @@
+# [8.9.0](https://github.com/terrylica/cc-skills/compare/v8.8.0...v8.9.0) (2025-12-27)
+
+
+### Features
+
+* **statusline-tools:** add global ignore patterns for lint-relative-paths ([45e174b](https://github.com/terrylica/cc-skills/commit/45e174bfd42b483d0b23c6665ec1911171b31071))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [statusline-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/README.md) - updated (+19)
+
+### Commands
+
+<details>
+<summary><strong>statusline-tools</strong> (3 commands)</summary>
+
+- [Status Line Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/hooks.md) - updated (+30/-1)
+- [Global Ignore Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/ignore.md) - new (+100)
+- [Status Line Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/setup.md) - updated (+32/-1)
+
+</details>
+
 # [8.8.0](https://github.com/terrylica/cc-skills/compare/v8.7.7...v8.8.0) (2025-12-27)
 
 
