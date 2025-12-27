@@ -1,3 +1,35 @@
+## [8.9.3](https://github.com/terrylica/cc-skills/compare/v8.9.2...v8.9.3) (2025-12-27)
+
+
+### Bug Fixes
+
+* **ralph:** address race conditions and argument handling issues ([ffc0853](https://github.com/terrylica/cc-skills/commit/ffc0853e856c69cf117d36bb2b1881d2b325c028))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+1)
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (3 commands)</summary>
+
+- [Ralph Loop: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/audit-now.md) - updated (+1/-1)
+- [Ralph Loop: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/encourage.md) - updated (+1/-1)
+- [Ralph Loop: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/forbid.md) - updated (+1/-1)
+
+</details>
+
 ## [8.9.2](https://github.com/terrylica/cc-skills/compare/v8.9.1...v8.9.2) (2025-12-27)
 
 
