@@ -1,3 +1,24 @@
+## [8.7.3](https://github.com/terrylica/cc-skills/compare/v8.7.2...v8.7.3) (2025-12-27)
+
+
+### Bug Fixes
+
+* **ralph:** web research trigger only in exploration mode, not implementation ([06742fb](https://github.com/terrylica/cc-skills/commit/06742fb36483839c9c0a28238690d44be79011d1))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [rssi-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/rssi-unified.md) - updated (+4/-1)
+
 ## [8.7.2](https://github.com/terrylica/cc-skills/compare/v8.7.1...v8.7.2) (2025-12-27)
 
 
