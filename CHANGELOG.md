@@ -1,3 +1,31 @@
+## [8.7.5](https://github.com/terrylica/cc-skills/compare/v8.7.4...v8.7.5) (2025-12-27)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+3/-1)
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+30/-5)
+
+## Other Documentation
+
+### Other
+
+- [Getting Started with Ralph (First-Time Users)](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/GETTING-STARTED.md) - new (+252)
+
 ## [8.7.4](https://github.com/terrylica/cc-skills/compare/v8.7.3...v8.7.4) (2025-12-27)
 
 
