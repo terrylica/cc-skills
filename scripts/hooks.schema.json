@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/terrylica/cc-skills/hooks.schema.json",
+  "title": "Claude Code Hooks Configuration",
+  "description": "JSON Schema for Claude Code hooks.json files - validates structure matches CLI expectations",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "Optional description of the hooks"
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Hook event configurations",
+      "additionalProperties": false,
+      "properties": {
+        "PreToolUse": { "$ref": "#/$defs/hookEventArray" },
+        "PostToolUse": { "$ref": "#/$defs/hookEventArray" },
+        "PostToolUseFailure": { "$ref": "#/$defs/hookEventArray" },
+        "Stop": { "$ref": "#/$defs/hookEventArray" },
+        "SubagentStop": { "$ref": "#/$defs/hookEventArray" },
+        "UserPromptSubmit": { "$ref": "#/$defs/hookEventArray" },
+        "Notification": { "$ref": "#/$defs/hookEventArray" },
+        "PermissionRequest": { "$ref": "#/$defs/hookEventArray" },
+        "SessionStart": { "$ref": "#/$defs/hookEventArray" },
+        "SessionEnd": { "$ref": "#/$defs/hookEventArray" },
+        "PreCompact": { "$ref": "#/$defs/hookEventArray" },
+        "SubagentStart": { "$ref": "#/$defs/hookEventArray" }
+      }
+    }
+  },
+  "required": ["hooks"],
+  "$defs": {
+    "hookEventArray": {
+      "type": "array",
+      "description": "Array of hook matchers for this event",
+      "items": {
+        "$ref": "#/$defs/hookMatcher"
+      }
+    },
+    "hookMatcher": {
+      "type": "object",
+      "description": "Hook matcher with optional tool pattern and hook definitions",
+      "properties": {
+        "matcher": {
+          "type": "string",
+          "description": "Tool name pattern (regex). Use '*' or omit for all tools."
+        },
+        "hooks": {
+          "type": "array",
+          "description": "Array of hook definitions to execute",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/hookDefinition"
+          }
+        }
+      },
+      "required": ["hooks"],
+      "additionalProperties": false
+    },
+    "hookDefinition": {
+      "type": "object",
+      "description": "Individual hook definition",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["command", "prompt", "agent"],
+          "description": "Hook execution type: command (shell), prompt (LLM), or agent (agentic)"
+        },
+        "command": {
+          "type": "string",
+          "description": "Shell command to execute (required for type: command)"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Prompt for LLM evaluation (required for type: prompt)"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600000,
+          "description": "Timeout in milliseconds (default: 60000)"
+        }
+      },
+      "required": ["type"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "command" } }
+          },
+          "then": {
+            "required": ["command"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "prompt" } }
+          },
+          "then": {
+            "required": ["prompt"]
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}
