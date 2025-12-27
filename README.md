@@ -78,6 +78,8 @@ claude
 
 **Note**: After installation, plugins are available immediately. However, **hooks require a restart** — exit Claude Code (`Ctrl+C`) and relaunch.
 
+**Troubleshooting**: If installation fails (clone errors, network issues), see [Marketplace Installation Troubleshooting](./docs/troubleshooting/marketplace-installation.md).
+
 ### Installing Ralph (Autonomous AI Loop)
 
 Ralph requires additional hook setup. See the complete guide: [plugins/ralph/GETTING-STARTED.md](./plugins/ralph/GETTING-STARTED.md)

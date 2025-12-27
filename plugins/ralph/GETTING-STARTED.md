@@ -192,6 +192,8 @@ touch .claude/STOP_LOOP
 
 ## Troubleshooting
 
+> **General marketplace issues?** For clone failures, network errors, or authentication problems during `/plugin marketplace add` or `/plugin install`, see [Marketplace Installation Troubleshooting](/docs/troubleshooting/marketplace-installation.md).
+
 ### "Hooks were installed AFTER this session started"
 
 **Cause**: You ran `/ralph:start` without restarting after `/ralph:hooks install`.

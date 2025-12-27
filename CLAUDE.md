@@ -30,6 +30,13 @@ Claude Code skills marketplace: **20 plugins** with **42 skills** for ADR-driven
 | Start autonomous     | `/ralph:start`                     |
 | Stop autonomous      | `/ralph:stop`                      |
 
+## Troubleshooting
+
+| Issue                                                                   | Reference                                                                                     |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Plugin marketplace installation failures (clone errors, network issues) | [Marketplace Installation Troubleshooting](/docs/troubleshooting/marketplace-installation.md) |
+| Plugin not found after creation                                         | [Validation](#validation) - ensure marketplace.json entry exists                              |
+
 ## Plugin Discovery (Critical)
 
 <!-- ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned) -->
