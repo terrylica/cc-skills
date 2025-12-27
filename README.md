@@ -57,17 +57,42 @@ Plugin (Container)
 
 ## Installation
 
-### Via Claude Code Plugin Marketplace
+### Prerequisites
+
+| Requirement     | Check              | Install                                                                                 |
+| --------------- | ------------------ | --------------------------------------------------------------------------------------- |
+| Claude Code CLI | `claude --version` | [Getting Started Guide](https://docs.anthropic.com/en/docs/claude-code/getting-started) |
+
+### Via Claude Code Plugin Marketplace (Recommended)
 
 ```bash
-# Add marketplace to settings
+# 1. Start Claude Code
+claude
+
+# 2. Add the cc-skills marketplace (one-time setup)
 /plugin marketplace add terrylica/cc-skills
 
-# Install specific plugin
-/plugin install cc-skills@plugin-dev
+# 3. Install the entire cc-skills plugin collection
+/plugin install cc-skills
 ```
 
-### Manual Installation
+**Note**: After installation, plugins are available immediately. However, **hooks require a restart** — exit Claude Code (`Ctrl+C`) and relaunch.
+
+### Installing Ralph (Autonomous AI Loop)
+
+Ralph requires additional hook setup. See the complete guide: [plugins/ralph/GETTING-STARTED.md](./plugins/ralph/GETTING-STARTED.md)
+
+Quick summary:
+
+```bash
+# After installing cc-skills
+/ralph:hooks install     # Register hooks
+# EXIT and restart Claude Code (required!)
+/ralph:hooks status      # Verify installation
+/ralph:start             # Begin autonomous loop
+```
+
+### Manual Installation (Advanced)
 
 ```bash
 # Clone repository
