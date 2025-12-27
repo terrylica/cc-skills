@@ -1,6 +1,6 @@
 ---
 description: "Install/uninstall statusline-tools Stop hook to ~/.claude/settings.json"
-allowed-tools: Read, Bash, TodoWrite, TodoRead
+allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 ---
 
@@ -27,6 +27,35 @@ The Stop hook runs at session end to:
 This hook can coexist with other Stop hooks (like check-links-hybrid.sh). Both will run on session end - statusline-tools caches results for display, while other hooks may take different actions.
 
 ## Execution
+
+### Skip Logic
+
+- If action provided (`install`, `uninstall`, `status`) -> execute directly
+- If no arguments -> check current status, then use AskUserQuestion flow
+
+### Workflow
+
+1. **Check Current State**: Run `status` to show current hook configuration
+2. **Action Selection**: Use AskUserQuestion to select action:
+   - "Install hook" -> add Stop hook for link validation
+   - "Uninstall hook" -> remove Stop hook
+   - "Just show status" -> display and exit
+3. **Execute**: Run the management script
+4. **Verify**: Confirm changes applied
+
+### AskUserQuestion Flow (No Arguments)
+
+When invoked without arguments, guide the user interactively:
+
+```
+Question: "What would you like to do with the statusline-tools Stop hook?"
+Options:
+  - "Install" -> "Add Stop hook for link validation and path linting on session end"
+  - "Uninstall" -> "Remove the Stop hook from settings.json"
+  - "Status" -> "Show current hook configuration"
+```
+
+### Direct Execution (With Arguments)
 
 Parse `$ARGUMENTS` and run the management script:
 

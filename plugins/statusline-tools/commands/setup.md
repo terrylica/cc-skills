@@ -1,6 +1,6 @@
 ---
 description: "Configure statusline-tools status line and dependencies"
-allowed-tools: Read, Bash, TodoWrite, TodoRead
+allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status|deps]"
 ---
 
@@ -18,6 +18,37 @@ Manage custom status line installation and dependencies.
 | `deps`      | Install lychee via mise                     |
 
 ## Execution
+
+### Skip Logic
+
+- If action provided (`install`, `uninstall`, `status`, `deps`) -> execute directly
+- If no arguments -> check current status, then use AskUserQuestion flow
+
+### Workflow
+
+1. **Check Current State**: Run `status` to show current configuration
+2. **Action Selection**: Use AskUserQuestion to select action:
+   - "Install status line" -> configure settings.json
+   - "Uninstall status line" -> remove configuration
+   - "Install dependencies" -> install lychee via mise
+   - "Just show status" -> display and exit
+3. **Execute**: Run the management script
+4. **Verify**: Confirm changes applied
+
+### AskUserQuestion Flow (No Arguments)
+
+When invoked without arguments, guide the user interactively:
+
+```
+Question: "What would you like to do with statusline-tools?"
+Options:
+  - "Install" -> "Install the custom status line to settings.json"
+  - "Uninstall" -> "Remove the status line configuration"
+  - "Install deps" -> "Install lychee for link validation via mise"
+  - "Status" -> "Show current configuration and dependencies"
+```
+
+### Direct Execution (With Arguments)
 
 Parse `$ARGUMENTS` and run the management script:
 

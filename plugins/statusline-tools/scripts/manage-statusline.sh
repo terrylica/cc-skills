@@ -249,6 +249,29 @@ cmd_status() {
     else
         echo -e "  ${RED}✗${RESET} lint-relative-paths: not found"
     fi
+    echo ""
+
+    # Global ignore patterns
+    echo -e "${CYAN}Global Ignore Patterns:${RESET}"
+    local ignore_file="${HOME}/.claude/lint-relative-paths-ignore"
+    if [[ -f "$ignore_file" ]]; then
+        echo -e "  ${GREEN}✓${RESET} $ignore_file"
+        echo "  Patterns:"
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Skip empty lines
+            [[ -z "$line" ]] && continue
+            # Show comments in yellow, patterns in green
+            if [[ "$line" == \#* ]]; then
+                echo -e "    ${YELLOW}$line${RESET}"
+            else
+                echo -e "    ${GREEN}• $line${RESET}"
+            fi
+        done < "$ignore_file"
+    else
+        echo -e "  ${YELLOW}○${RESET} No global ignore file"
+        echo "    Create: ~/.claude/lint-relative-paths-ignore"
+        echo "    Manage: /statusline-tools:ignore add <pattern>"
+    fi
 }
 
 cmd_deps() {
