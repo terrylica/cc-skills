@@ -1,3 +1,10 @@
+## [8.7.6](https://github.com/terrylica/cc-skills/compare/v8.7.5...v8.7.6) (2025-12-27)
+
+
+### Bug Fixes
+
+* **statusline-tools:** add archives and state to lint exclude dirs ([1ba2793](https://github.com/terrylica/cc-skills/commit/1ba2793b70e4b9286d742c041dab89e1497a1dfe))
+
 ## [8.7.5](https://github.com/terrylica/cc-skills/compare/v8.7.4...v8.7.5) (2025-12-27)
 
 
