@@ -48,7 +48,7 @@ import re
 import sys
 
 workspace = os.environ.get('WORKSPACE', os.path.expanduser('~/.claude'))
-exclude_dirs = {'node_modules', 'plugins', '.git', '.venv', 'archive', 'scratch', 'plans', 'tmp', 'third_party'}
+exclude_dirs = {'node_modules', 'plugins', '.git', '.venv', 'archive', 'archives', 'scratch', 'plans', 'tmp', 'third_party', 'state'}
 
 # Pattern for markdown links with relative paths
 # Matches: [text](path) where path doesn't start with /, #, http, mailto
