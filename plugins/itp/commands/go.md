@@ -568,8 +568,20 @@ GIT_EOF_2
 
 ```bash
 /usr/bin/env bash << 'GIT_EOF_3'
-# Get repo URL and current branch
-REPO_URL=$(gh repo view --json url -q .url)
+# Get repo URL from origin remote (works correctly with forks)
+REMOTE_URL=$(git remote get-url origin 2>/dev/null)
+
+if [[ -z "$REMOTE_URL" ]]; then
+  echo "Error: No origin remote configured"
+  exit 1
+fi
+
+# Convert SSH format to HTTPS for browser URLs
+# Handles: git@github.com:owner/repo.git
+# Handles: git@github.com-username:owner/repo.git (multi-account SSH aliases)
+# Handles: https://github.com/owner/repo.git
+REPO_URL=$(echo "$REMOTE_URL" | sed -E 's|git@github\.com[^:]*:|https://github.com/|' | sed 's|\.git$||')
+
 BRANCH=$(git branch --show-current)
 
 open "$REPO_URL/blob/$BRANCH/docs/adr/$ADR_ID.md"
