@@ -352,7 +352,7 @@ def main():
     # Emergency kill switch file (user can create .claude/STOP_LOOP to force stop)
     kill_switch = Path(project_dir) / ".claude/STOP_LOOP" if project_dir else None
     if kill_switch and kill_switch.exists():
-        kill_switch.unlink()
+        kill_switch.unlink(missing_ok=True)  # Safe: file may be deleted between check and unlink
         if project_dir:
             save_state(project_dir, LoopState.STOPPED)
         hard_stop("Loop stopped via kill switch (.claude/STOP_LOOP)")

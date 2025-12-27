@@ -26,7 +26,7 @@ CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
 STATE_FILE="$PROJECT_DIR/.claude/ralph-state.json"
 
 # Get arguments (everything after the command)
-ARGS="${1:-}"
+ARGS="${ARGUMENTS:-}"
 
 # Ensure config file exists with guidance structure
 if [[ ! -f "$CONFIG_FILE" ]]; then
