@@ -1,3 +1,27 @@
+## [8.9.1](https://github.com/terrylica/cc-skills/compare/v8.9.0...v8.9.1) (2025-12-27)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+7)
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+2)
+
+## Other Documentation
+
+### Other
+
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - new (+527)
+- [Getting Started with Ralph (First-Time Users)](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/GETTING-STARTED.md) - updated (+2)
+
 # [8.9.0](https://github.com/terrylica/cc-skills/compare/v8.8.0...v8.9.0) (2025-12-27)
 
 
