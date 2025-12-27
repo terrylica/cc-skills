@@ -568,9 +568,9 @@ def _apply_alpha_forge_filter(
 
 
 def get_rssi_exploration_context(project_dir: str) -> dict:
-    """Get full RSSI context for exploration mode template.
+    """Get full RSSI context for unified template.
 
-    Provides all data needed for the exploration-mode.md template.
+    Provides all data needed for the rssi-unified.md template.
 
     Args:
         project_dir: Path to project root

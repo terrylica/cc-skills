@@ -519,9 +519,7 @@ ralph/
 │   ├── adapters/               # Research Repo adapter (exclusive)
 │   │   └── alpha_forge.py      # Research Repo adapter
 │   ├── templates/              # Prompt templates (Jinja2 markdown)
-│   │   ├── implementation-mode.md   # Basic task continuation
-│   │   ├── exploration-mode.md      # RSSI eternal loop (generic)
-│   │   └── research-repo-exploration.md # Research Repo OODA loop
+│   │   └── rssi-unified.md     # Unified RSSI template (all phases)
 │   └── tests/                  # Test suite
 │       ├── test_adapters.py    # Adapter system tests
 │       ├── test_completion.py
