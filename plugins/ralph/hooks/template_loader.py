@@ -217,67 +217,29 @@ class TemplateLoader:
         adapter_name: str | None = None,
         metrics_history: list | None = None,
     ) -> str:
-        """Render the exploration mode prompt with full RSSI context.
+        """Render exploration mode prompt. DEPRECATED: Use render_unified() instead.
 
-        ADR: 2025-12-20-ralph-rssi-eternal-loop
-
-        Uses unified exploration-mode.md template with Jinja conditionals
-        for adapter-specific content (e.g., Alpha Forge OODA loop).
+        This method is kept for backward compatibility. It delegates to
+        render_unified(task_complete=True) which uses the unified rssi-unified.md
+        template.
 
         Args:
             opportunities: List of discovered work opportunities
-            rssi_context: Full RSSI context dict with keys:
-                - iteration: int - current RSSI loop iteration
-                - accumulated_patterns: list[str] - learned patterns
-                - disabled_checks: list[str] - ineffective checks disabled
-                - effective_checks: list[str] - prioritized by effectiveness
-                - web_insights: list[str] - domain insights from web
-                - feature_ideas: list[dict] - big feature proposals
-                - web_queries: list[str] - search queries to execute
-                - missing_tools: list[str] - capability expansion suggestions
-                - quality_gate: list[str] - SOTA quality gate instructions
+            rssi_context: Full RSSI context dict
             adapter_name: Name of the active adapter (e.g., "alpha-forge")
-            metrics_history: Project-specific metrics history (for Alpha Forge)
+            metrics_history: Project-specific metrics history
 
         Returns:
             Rendered prompt string
         """
-        ctx = rssi_context or {}
-
-        # Check if research is converged (from adapter_convergence in rssi_context)
-        adapter_conv = ctx.get("adapter_convergence", {})
-        research_converged = adapter_conv.get("converged", False) if adapter_conv else False
-
-        # Extract user guidance for template (natural language lists)
-        guidance = ctx.get("guidance", {})
-        forbidden_items = guidance.get("forbidden", []) if guidance else []
-        encouraged_items = guidance.get("encouraged", []) if guidance else []
-
-        # Unified context for all projects (adapter_name drives conditional content)
-        context = {
-            "opportunities": opportunities or [],
-            "iteration": ctx.get("iteration", 0),
-            "project_dir": ctx.get("project_dir", ""),
-            "accumulated_patterns": ctx.get("accumulated_patterns", []),
-            "disabled_checks": ctx.get("disabled_checks", []),
-            "effective_checks": ctx.get("effective_checks", []),
-            "web_insights": ctx.get("web_insights", []),
-            "feature_ideas": ctx.get("feature_ideas", []),
-            "web_queries": ctx.get("web_queries", []),
-            "missing_tools": ctx.get("missing_tools", []),
-            "quality_gate": ctx.get("quality_gate", []),
-            "overall_effectiveness": ctx.get("overall_effectiveness", 0.0),
-            "gpu_infrastructure": ctx.get("gpu_infrastructure", {}),
-            # Adapter-specific
-            "adapter_name": adapter_name or "",
-            "metrics_history": metrics_history or [],
-            "research_converged": research_converged,
-            "forbidden_items": forbidden_items,
-            "encouraged_items": encouraged_items,
-        }
-
-        # Unified template with Jinja conditionals for adapter-specific content
-        return self.render("exploration-mode.md", **context)
+        # Delegate to unified template with task_complete=True (exploration phase)
+        return self.render_unified(
+            task_complete=True,
+            rssi_context=rssi_context,
+            adapter_name=adapter_name,
+            metrics_history=metrics_history,
+            opportunities=opportunities,
+        )
 
     def render_unified(
         self,
