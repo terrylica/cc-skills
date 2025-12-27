@@ -3,8 +3,8 @@ adr: 2025-12-20-ralph-rssi-eternal-loop
 source: ~/.claude/plans/optimized-twirling-river.md
 implementation-status: completed
 phase: phase-3
-last-updated: 2025-12-25
-validated: 2025-12-25
+last-updated: 2025-12-26
+validated: 2025-12-26
 ---
 
 # Design Spec: Ralph RSSI Eternal Loop Architecture
@@ -122,18 +122,21 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 - [x] Orchestrate all RSSI modules in sequence
 - [x] Add `get_rssi_exploration_context()` for full template context
 
-### Task 8: Update `exploration-mode.md` Template ✅
+### Task 8: Create Unified RSSI Template ✅
 
-**File**: `plugins/ralph/hooks/templates/exploration-mode.md`
+**File**: `plugins/ralph/hooks/templates/rssi-unified.md` (v8.7.0+)
 
-- [x] Add RSSI ETERNAL LOOP header with iteration count
-- [x] Add DISCOVERED OPPORTUNITIES section (never hidden)
-- [x] Add RSSI PROTOCOL with 5-step order
-- [x] Add WEB DISCOVERY section with search queries
-- [x] Add QUALITY GATE section (SOTA/OSS checks)
-- [x] Add CAPABILITY EXPANSION section
+> **Note**: Originally named `exploration-mode.md`, consolidated with `implementation-mode.md` into unified template.
+
+- [x] Add RSSI Protocol header
+- [x] Add AUTONOMOUS MODE section
+- [x] Add USER GUIDANCE section (encouraged/forbidden) - **works in ALL phases**
+- [x] Add CURRENT PHASE section with `{% if task_complete %}` conditional
+- [x] Add IMPLEMENTATION phase content (todos, completion markers)
+- [x] Add EXPLORATION phase content (OODA loop, discovery)
+- [x] Add CONSTRAINTS section
+- [x] Add ITERATION STATUS with web research trigger (exploration only)
 - [x] Add "NEVER idle" directive
-- [x] Add ACCUMULATED FEATURE IDEAS section
 
 ### Task 9: Update `loop-until-done.py` ✅
 
@@ -148,8 +151,10 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 
 **File**: `plugins/ralph/hooks/template_loader.py`
 
-- [x] Update `render_exploration()` to accept full RSSI context
-- [x] Pass all RSSI template variables to Jinja2 renderer
+- [x] Add `render_unified()` method as single entry point (v8.7.0+)
+- [x] Pass `task_complete` flag to toggle implementation/exploration content
+- [x] User guidance always loaded regardless of phase
+- [x] `render_exploration()` now delegates to `render_unified(task_complete=True)`
 
 ## Quality Gate
 
@@ -192,11 +197,14 @@ All solutions must meet one of:
 
 ## Files to Modify
 
-| File                                                | Change                   |
-| --------------------------------------------------- | ------------------------ |
-| `plugins/ralph/hooks/discovery.py`                  | Orchestrate RSSI modules |
-| `plugins/ralph/hooks/templates/exploration-mode.md` | Full RSSI template       |
-| `plugins/ralph/hooks/loop-until-done.py`            | Integrate eternal loop   |
+| File                                            | Change                                     |
+| ----------------------------------------------- | ------------------------------------------ |
+| `plugins/ralph/hooks/discovery.py`              | Orchestrate RSSI modules                   |
+| `plugins/ralph/hooks/templates/rssi-unified.md` | Unified RSSI template (replaces dual arch) |
+| `plugins/ralph/hooks/loop-until-done.py`        | Integrate eternal loop, single code path   |
+| `plugins/ralph/hooks/template_loader.py`        | Add `render_unified()` method              |
+
+> **v8.7.0 Change**: Consolidated `implementation-mode.md` and `exploration-mode.md` into single `rssi-unified.md` template. User guidance now works in ALL phases.
 
 ## Bug Fix: Cross-Directory Stop (v7.16.0+)
 

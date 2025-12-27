@@ -99,5 +99,23 @@ Run the bash script above to manage encouraged items.
 
 1. **Immediate config update**: Changes are written to `.claude/ralph-config.json`
 2. **Next iteration applies**: The Stop hook reads config fresh on each message end
-3. **Priority override**: Encouraged items override forbidden patterns during filtering
-4. **Persistent**: Settings persist until cleared or session ends
+3. **All phases**: Guidance appears in both implementation and exploration phases (unified template)
+4. **Priority override**: Encouraged items override forbidden patterns during filtering
+5. **Persistent**: Settings persist until cleared or session ends
+
+## Template Rendering (v8.7.0+)
+
+The unified RSSI template (`rssi-unified.md`) renders guidance in the `## USER GUIDANCE` section:
+
+```markdown
+### ENCOURAGED (User Priorities)
+
+**Focus your work on these high-value areas:**
+
+1. **Your first encouraged item**
+2. **Your second encouraged item**
+
+✅ These override forbidden patterns.
+```
+
+This section appears **regardless of phase** (implementation or exploration), ensuring your priorities are always visible to Claude.
