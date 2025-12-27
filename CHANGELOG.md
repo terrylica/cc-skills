@@ -1,3 +1,10 @@
+# [8.8.0](https://github.com/terrylica/cc-skills/compare/v8.7.7...v8.8.0) (2025-12-27)
+
+
+### Features
+
+* **validate:** add hooks.json schema validation to prevent "Invalid discriminator value" regressions ([108a325](https://github.com/terrylica/cc-skills/commit/108a3250ead526f1cd6b389bea09a1673f920e5b))
+
 ## [8.7.7](https://github.com/terrylica/cc-skills/compare/v8.7.6...v8.7.7) (2025-12-27)
 
 
