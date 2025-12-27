@@ -1,3 +1,29 @@
+## [8.9.2](https://github.com/terrylica/cc-skills/compare/v8.9.1...v8.9.2) (2025-12-27)
+
+
+### Bug Fixes
+
+* **itp:** use origin remote for browser URLs instead of gh repo view ([eef3882](https://github.com/terrylica/cc-skills/commit/eef38827a4bab194dfcea2897f97c2ae64527788))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>itp</strong> (1 command)</summary>
+
+- [⛔ ITP Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/go.md) - updated (+14/-2)
+
+</details>
+
 ## [8.9.1](https://github.com/terrylica/cc-skills/compare/v8.9.0...v8.9.1) (2025-12-27)
 
 
