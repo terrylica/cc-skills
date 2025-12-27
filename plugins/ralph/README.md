@@ -628,5 +628,6 @@ As of v7.19.0, all errors output to stderr. If you're on an older version:
 
 - [Geoffrey Huntley's Article](https://ghuntley.com/ralph/) - Original technique
 - [RSSI Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) - Core RSSI architecture
+- [RSSI Implementation Spec](/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - Detailed implementation design
 - [Stop Visibility ADR](/docs/adr/2025-12-22-ralph-stop-visibility-observability.md) - 5-layer observability system
 - [Dual Time Tracking ADR](/docs/adr/2025-12-22-ralph-dual-time-tracking.md) - Runtime vs wall-clock separation

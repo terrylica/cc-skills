@@ -26,7 +26,7 @@ CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
 STATE_FILE="$PROJECT_DIR/.claude/ralph-state.json"
 
 # Get optional round number argument
-ROUND="${1:-1}"
+ROUND="${ARGUMENTS:-1}"
 
 # Validate round number (1-5)
 if ! [[ "$ROUND" =~ ^[1-5]$ ]]; then
