@@ -1,3 +1,10 @@
+## [8.7.7](https://github.com/terrylica/cc-skills/compare/v8.7.6...v8.7.7) (2025-12-27)
+
+
+### Bug Fixes
+
+* **ralph:** correct PreToolUse hook JSON structure in manage-hooks.sh ([b4d626c](https://github.com/terrylica/cc-skills/commit/b4d626cb69bbed770a3aaf714af681c9d081b49a))
+
 ## [8.7.6](https://github.com/terrylica/cc-skills/compare/v8.7.5...v8.7.6) (2025-12-27)
 
 
