@@ -47,6 +47,20 @@ Custom Claude Code status line with git status, link validation, and path lintin
 /statusline-tools:hooks status     # Show hook configuration
 ```
 
+### /statusline-tools:ignore
+
+Manage global ignore patterns for `lint-relative-paths`. Use this when a repository intentionally uses relative paths (e.g., marketplace plugins).
+
+```bash
+/statusline-tools:ignore add my-repo     # Add pattern to global ignore
+/statusline-tools:ignore list            # Show current patterns
+/statusline-tools:ignore remove my-repo  # Remove pattern
+```
+
+**Pattern matching**: Substring match - pattern `alpha-forge` matches paths like `/Users/user/eon/alpha-forge.worktree-feature`.
+
+**Ignore file location**: `~/.claude/lint-relative-paths-ignore`
+
 ## Status Line Display
 
 ```
@@ -97,6 +111,10 @@ repo-name/path | ↯ branch | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 L:0 P:0 | 
 
 ```
 statusline-tools/
+├── commands/
+│   ├── setup.md                  # /statusline-tools:setup command
+│   ├── hooks.md                  # /statusline-tools:hooks command
+│   └── ignore.md                 # /statusline-tools:ignore command
 ├── statusline/
 │   └── custom-statusline.sh      # Status line renderer
 ├── hooks/
@@ -104,6 +122,7 @@ statusline-tools/
 ├── scripts/
 │   ├── manage-statusline.sh      # Install/uninstall statusLine
 │   ├── manage-hooks.sh           # Install/uninstall Stop hook
+│   ├── manage-ignore.sh          # Manage global ignore patterns
 │   └── lint-relative-paths       # Bundled path linter
 └── tests/
     ├── test_statusline.bats      # Status line tests
