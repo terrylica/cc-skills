@@ -297,9 +297,12 @@ These provide ZERO value toward OOS robustness (skip immediately):
 ## ITERATION STATUS
 
 **Current iteration**: {{ iteration }}
-{% if adapter_name == "alpha-forge" and iteration % 3 == 0 %}
+{% if task_complete and adapter_name == "alpha-forge" and iteration % 3 == 0 %}
 ⚠️ **WEB RESEARCH TRIGGERED** - This is iteration {{ iteration }} (divisible by 3).
 Execute WebSearch for SOTA techniques before proceeding with /research.
+{% endif %}
+{% if not task_complete %}
+**MODE**: Implementation - complete todos before exploring new frontiers.
 {% endif %}
 
 ---
