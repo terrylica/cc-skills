@@ -1,3 +1,44 @@
+## [8.7.4](https://github.com/terrylica/cc-skills/compare/v8.7.3...v8.7.4) (2025-12-27)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) | coupled |
+
+### Design Specs
+
+- [Design Spec: Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - updated (+26/-18)
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (2 commands)</summary>
+
+- [Ralph Loop: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/encourage.md) - updated (+20/-2)
+- [Ralph Loop: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/forbid.md) - updated (+21/-3)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+11)
+
 ## [8.7.3](https://github.com/terrylica/cc-skills/compare/v8.7.2...v8.7.3) (2025-12-27)
 
 
