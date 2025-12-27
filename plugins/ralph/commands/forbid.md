@@ -100,9 +100,27 @@ Run the bash script above to manage forbidden items.
 
 1. **Immediate config update**: Changes are written to `.claude/ralph-config.json`
 2. **Next iteration applies**: The Stop hook reads config fresh on each message end
-3. **HARD BLOCK**: User-forbidden items get `FilterResult.BLOCK` (not SKIP)
-4. **Cannot be fallback**: Unlike built-in busywork, user-forbidden items cannot be chosen as fallback
-5. **Persistent**: Settings persist until cleared or session ends
+3. **All phases**: Guidance appears in both implementation and exploration phases (unified template)
+4. **HARD BLOCK**: User-forbidden items get `FilterResult.BLOCK` (not SKIP)
+5. **Cannot be fallback**: Unlike built-in busywork, user-forbidden items cannot be chosen as fallback
+6. **Persistent**: Settings persist until cleared or session ends
+
+## Template Rendering (v8.7.0+)
+
+The unified RSSI template (`rssi-unified.md`) renders forbidden items in the `## USER GUIDANCE` section:
+
+```markdown
+### FORBIDDEN (User-Defined)
+
+**YOU SHALL NOT work on:**
+
+- Your first forbidden item
+- Your second forbidden item
+
+⚠️ These are user-specified constraints.
+```
+
+This section appears **regardless of phase** (implementation or exploration), ensuring your constraints are always enforced.
 
 ## Difference from Built-in Busywork
 

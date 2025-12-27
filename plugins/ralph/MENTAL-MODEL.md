@@ -521,6 +521,17 @@ Each state file also includes `_inheritance` metadata:
 }
 ```
 
+### User Guidance (v8.7.0+)
+
+The `guidance` section is rendered by the **unified RSSI template** (`rssi-unified.md`), which consolidated the previous dual-template architecture (implementation + exploration) into a single template.
+
+**Key behavior**:
+
+- Guidance appears in **ALL phases** (implementation and exploration)
+- Uses Jinja2 `{% if task_complete %}` conditionals for phase-specific content
+- Encouraged items **override** forbidden patterns
+- Changes via `/ralph:encourage` and `/ralph:forbid` take effect on next iteration
+
 **Kill Switch**: Create `.claude/STOP_LOOP` file to force stop immediately.
 
 ---
