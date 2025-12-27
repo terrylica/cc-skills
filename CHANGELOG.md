@@ -1,3 +1,31 @@
+## [8.7.2](https://github.com/terrylica/cc-skills/compare/v8.7.1...v8.7.2) (2025-12-27)
+
+
+### Bug Fixes
+
+* **ralph:** unify templates so encourage/forbid guidance applies to all phases ([6ba72d6](https://github.com/terrylica/cc-skills/commit/6ba72d6a0ed054df5464a0b4a4d90c27b1556986))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+1/-3)
+
+## Other Documentation
+
+### Other
+
+- [implementation-mode](https://github.com/terrylica/cc-skills/blob/v8.7.1/plugins/ralph/hooks/templates/implementation-mode.md) - deleted
+- [rssi-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/rssi-unified.md) - renamed from `plugins/ralph/hooks/templates/exploration-mode.md`
+
 ## [8.7.1](https://github.com/terrylica/cc-skills/compare/v8.7.0...v8.7.1) (2025-12-26)
 
 
