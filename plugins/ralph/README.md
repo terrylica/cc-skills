@@ -2,7 +2,9 @@
 
 Keep Claude Code working autonomously — implements the Ralph Wiggum technique as Claude Code hooks with **RSSI** (Recursively Self-Improving Superintelligence) capabilities. RSSI transcends AGI: while AGI matches human capability, RSSI recursively improves itself toward ASI (Artificial Superintelligence).
 
-> **New to Ralph?** Read the [Mode Progression](#mode-progression-rssi--beyond-agi) section below for how RSSI works. For Alpha-Forge ML research workflows, see [MENTAL-MODEL.md](./MENTAL-MODEL.md).
+> **First time here?** Start with [GETTING-STARTED.md](./GETTING-STARTED.md) — a step-by-step guide for new users covering plugin installation, hook setup, and your first Ralph session.
+
+> **Already familiar with Ralph?** See [Mode Progression](#mode-progression-rssi--beyond-agi) for RSSI behavior, or [MENTAL-MODEL.md](./MENTAL-MODEL.md) for Alpha-Forge ML research workflows.
 
 ## What This Plugin Does
 
