@@ -1,5 +1,5 @@
 ---
-description: "Install/uninstall itp-hooks to ~/.claude/settings.json"
+description: "Install/uninstall itp-hooks (ASCII guard, ADR sync reminder, fake-data-guard) to ~/.claude/settings.json"
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
 ---
@@ -12,7 +12,11 @@ ADR: 2025-12-07-itp-hooks-settings-installer
 
 Manage itp-hooks installation in `~/.claude/settings.json`.
 
-Claude Code only loads hooks from settings.json, not from plugin.json files. This command installs/uninstalls the itp-hooks (PreToolUse guard and PostToolUse reminder) to your settings.
+Claude Code only loads hooks from settings.json, not from plugin.json files. This command installs/uninstalls three itp-hooks:
+
+- **PreToolUse guard** - Blocks ASCII diagrams without graph-easy source blocks
+- **PostToolUse reminder** - Prompts ADR/spec sync after file modifications
+- **Fake-data-guard** - Detects fake/synthetic data patterns (np.random, Faker, etc.) in new Python files
 
 ## Actions
 
