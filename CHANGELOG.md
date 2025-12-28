@@ -1,3 +1,36 @@
+## [8.10.2](https://github.com/terrylica/cc-skills/compare/v8.10.1...v8.10.2) (2025-12-28)
+
+
+### Bug Fixes
+
+* **docs:** add fake-data-guard to command descriptions ([3e635f8](https://github.com/terrylica/cc-skills/commit/3e635f83cc29eacbfd1bf75d8e9652f003450cad))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>itp</strong> (1 command)</summary>
+
+- [ITP Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/hooks.md) - updated (+6/-2)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [ITP Hooks Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/setup.md) - updated (+11/-8)
+
+</details>
+
 ## [8.10.1](https://github.com/terrylica/cc-skills/compare/v8.10.0...v8.10.1) (2025-12-28)
 
 
