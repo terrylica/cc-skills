@@ -398,7 +398,8 @@ Note: Runtime = actual CLI working time (pauses excluded)
 
 ### Configuration
 
-- **Project-level**: `.claude/loop-config.json`
+- **Project-level (v2.0)**: `.claude/ralph-config.json` — Unified config with limits, guidance, protected files
+- **Project-level (legacy)**: `.claude/loop-config.json` — Runtime limits (backward compatibility shim)
 - **Global defaults**: `~/.claude/automation/loop-orchestrator/config/loop_config.json`
 - **POC mode**: `--poc` flag (10 min, 20 iterations, 30s validation timeout)
 
