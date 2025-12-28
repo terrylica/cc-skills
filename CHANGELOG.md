@@ -1,3 +1,32 @@
+## [8.9.5](https://github.com/terrylica/cc-skills/compare/v8.9.4...v8.9.5) (2025-12-28)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ITP Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/README.md) - updated (+2)
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+9/-1)
+
+## Other Documentation
+
+### Other
+
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - updated (+53)
+- [Getting Started with Ralph (First-Time Users)](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/GETTING-STARTED.md) - updated (+15/-1)
+
 ## [8.9.4](https://github.com/terrylica/cc-skills/compare/v8.9.3...v8.9.4) (2025-12-28)
 
 
