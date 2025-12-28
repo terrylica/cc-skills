@@ -182,34 +182,51 @@ fi
 # Step 4: Validate SSH Authentication
 #=============================================================================
 
+# Extract SSH host from remote URL
+# This respects host aliases configured in ~/.ssh/config for multi-account setups
+# Supported formats:
+#   - SCP-like:  git@github.com-tainora:user/repo.git  → github.com-tainora
+#   - SSH URL:   ssh://git@github.com/user/repo.git   → github.com
+#   - With port: ssh://git@github.com:22/user/repo.git → github.com
+if [[ "$REMOTE_URL" =~ ^git@([^:]+): ]]; then
+    # SCP-like syntax: git@host:path
+    SSH_HOST="${BASH_REMATCH[1]}"
+elif [[ "$REMOTE_URL" =~ ^ssh://git@([^/:]+) ]]; then
+    # SSH URL syntax: ssh://git@host/path or ssh://git@host:port/path
+    SSH_HOST="${BASH_REMATCH[1]}"
+else
+    SSH_HOST="github.com"  # Fallback for unrecognized formats
+fi
+
 # Configurable timeout (default 5 seconds, override with GIT_ACCOUNT_VALIDATOR_TIMEOUT)
 SSH_TIMEOUT="${GIT_ACCOUNT_VALIDATOR_TIMEOUT:-5}"
 
-# Pre-flush: Close any cached ControlMaster connections to GitHub
+# Pre-flush: Close any cached ControlMaster connections to the target host
 # This prevents stale authentication from being reused
 # Silent failures are OK - connection may not exist
-ssh -O exit git@github.com 2>/dev/null || true
-ssh -O exit -p 443 git@ssh.github.com 2>/dev/null || true
+ssh -O exit "git@${SSH_HOST}" 2>/dev/null || true
 
 # Also close connections for common host aliases (pattern: github.com-*)
 for control_socket in ~/.ssh/control-git@github.com* ~/.ssh/control-git@ssh.github.com*; do
     if [[ -S "$control_socket" ]]; then
         # Extract host from socket name and close it
-        ssh -O exit -o ControlPath="$control_socket" git@github.com 2>/dev/null || true
+        ssh -O exit -o ControlPath="$control_socket" "git@${SSH_HOST}" 2>/dev/null || true
     fi
 done
 
 # Bypass ControlMaster cache to get fresh authentication result
-# Try standard port 22 first, fallback to port 443 (ssh.github.com) if blocked
-SSH_OUTPUT=$(timeout_cmd "$SSH_TIMEOUT" ssh -o ControlMaster=no -o BatchMode=yes -T git@github.com 2>&1 || true)
+# Use the host from the remote URL (respects host aliases like github.com-tainora)
+SSH_OUTPUT=$(timeout_cmd "$SSH_TIMEOUT" ssh -o ControlMaster=no -o BatchMode=yes -T "git@${SSH_HOST}" 2>&1 || true)
 
-# If port 22 is blocked, try port 443 fallback (GitHub offers SSH via ssh.github.com:443)
+# If port 22 is blocked and using default github.com, try port 443 fallback
 if echo "$SSH_OUTPUT" | grep -qiE 'connection refused|connection timed out'; then
-    SSH_OUTPUT_443=$(timeout_cmd "$SSH_TIMEOUT" ssh -o ControlMaster=no -o BatchMode=yes -p 443 -T git@ssh.github.com 2>&1 || true)
-    if [[ "$SSH_OUTPUT_443" =~ Hi\ ([^!]+)! ]]; then
-        # Port 443 succeeded - use this result
-        SSH_OUTPUT="$SSH_OUTPUT_443"
-        log_info "ℹ️  Port 22 blocked, validated via port 443 (ssh.github.com)"
+    if [[ "$SSH_HOST" == "github.com" ]]; then
+        SSH_OUTPUT_443=$(timeout_cmd "$SSH_TIMEOUT" ssh -o ControlMaster=no -o BatchMode=yes -p 443 -T git@ssh.github.com 2>&1 || true)
+        if [[ "$SSH_OUTPUT_443" =~ Hi\ ([^!]+)! ]]; then
+            # Port 443 succeeded - use this result
+            SSH_OUTPUT="$SSH_OUTPUT_443"
+            log_info "ℹ️  Port 22 blocked, validated via port 443 (ssh.github.com)"
+        fi
     fi
 fi
 
