@@ -357,12 +357,84 @@ Set `TWINE_USERNAME` and `TWINE_PASSWORD` in GitHub Secrets.
 1. Configure at <https://pypi.org/manage/account/publishing/>
 2. Update workflow to use `pypa/gh-action-pypi-publish@release/v1`
 
+## Runtime Version Access (`__version__`)
+
+### Recommended: importlib.metadata
+
+**Always use `importlib.metadata`** to read version at runtime. This eliminates version drift because the version is read directly from package metadata (which comes from `pyproject.toml` during wheel build).
+
+```python
+# src/your_package/__init__.py
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("your-package-name")
+except PackageNotFoundError:
+    # Development mode or editable install without metadata
+    __version__ = "0.0.0+dev"
+```
+
+**How it works**:
+
+1. semantic-release updates `pyproject.toml` via `prepareCmd` (sed command)
+2. `uv build` embeds version in wheel's `PKG-INFO` metadata
+3. `importlib.metadata.version()` reads from installed package metadata at runtime
+4. No manual sync required - single source of truth
+
+### Anti-pattern: Hardcoded Version
+
+**Do NOT use hardcoded version strings in `__init__.py`:**
+
+```python
+# ❌ BAD - requires manual sync with pyproject.toml
+__version__ = "1.2.3"
+```
+
+This creates version drift because:
+
+- semantic-release updates `pyproject.toml` via `prepareCmd`
+- semantic-release does NOT update `__init__.py` (no sed rule for it)
+- Result: `__version__` shows stale version after every release
+
+### Version Consistency Test
+
+Add a test to ensure version sources stay in sync:
+
+```python
+# tests/test_version_consistency.py
+"""Test version consistency across all sources."""
+import json
+import tomllib
+from pathlib import Path
+
+import your_package
+
+
+def test_version_matches_pyproject():
+    """Ensure __version__ matches pyproject.toml."""
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    with open(pyproject_path, "rb") as f:
+        pyproject = tomllib.load(f)
+
+    pyproject_version = pyproject["project"]["version"]
+    package_version = your_package.__version__
+
+    # Skip check for development installs
+    if package_version == "0.0.0+dev":
+        return
+
+    assert package_version == pyproject_version, (
+        f"__version__ ({package_version}) != pyproject.toml ({pyproject_version})"
+    )
+```
+
 ## References
 
 - [semantic-release documentation](https://semantic-release.gitbook.io/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [GitHub Actions setup-node](https://github.com/actions/setup-node)
 - [Python Packaging Guide](https://packaging.python.org/)
+- [importlib.metadata documentation](https://docs.python.org/3/library/importlib.metadata.html)
 
 ## Compatibility
 
