@@ -43,6 +43,16 @@ check_dependencies() {
     if ! command -v jq &>/dev/null; then
         die "jq is required but not installed. Install with: brew install jq"
     fi
+
+    # Check for bun or node (required for .mjs hooks like fake-data-guard)
+    if ! command -v bun &>/dev/null && ! command -v node &>/dev/null; then
+        die "bun or node required for .mjs hooks. Install with: mise install bun"
+    fi
+
+    # Prefer bun, warn if only node available
+    if ! command -v bun &>/dev/null; then
+        warn "bun not found, using node. Consider: mise install bun (faster)"
+    fi
 }
 
 validate_json() {
@@ -122,12 +132,16 @@ do_install() {
     # Verify hook scripts exist
     local pretooluse_script="$HOOKS_BASE/pretooluse-guard.sh"
     local posttooluse_script="$HOOKS_BASE/posttooluse-reminder.sh"
+    local fakedata_script="$HOOKS_BASE/pretooluse-fake-data-guard.mjs"
 
     if [[ ! -x "$pretooluse_script" ]]; then
         die "PreToolUse script not found or not executable: $pretooluse_script"
     fi
     if [[ ! -x "$posttooluse_script" ]]; then
         die "PostToolUse script not found or not executable: $posttooluse_script"
+    fi
+    if [[ ! -f "$fakedata_script" ]]; then
+        die "Fake data guard script not found: $fakedata_script"
     fi
 
     # Create backup
@@ -136,8 +150,10 @@ do_install() {
     info "Created backup: settings.json.backup.$timestamp"
 
     # Prepare hook entries (using $HOME literal, not expanded)
-    local pretooluse_entry='{"matcher":"Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/pretooluse-guard.sh","timeout":15}]}'
-    local posttooluse_entry='{"matcher":"Bash|Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/posttooluse-reminder.sh","timeout":10}]}'
+    # Timeouts are in milliseconds (Claude Code hook standard)
+    local pretooluse_entry='{"matcher":"Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/pretooluse-guard.sh","timeout":15000}]}'
+    local posttooluse_entry='{"matcher":"Bash|Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/posttooluse-reminder.sh","timeout":10000}]}'
+    local fakedata_entry='{"matcher":"Write","hooks":[{"type":"command","command":"bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/pretooluse-fake-data-guard.mjs","timeout":5000}]}'
 
     # Create temp file for atomic write
     local temp_file
@@ -145,11 +161,11 @@ do_install() {
     trap 'rm -f "$temp_file"' EXIT
 
     # Apply modifications using jq
-    jq --argjson pre "$pretooluse_entry" --argjson post "$posttooluse_entry" '
+    jq --argjson pre "$pretooluse_entry" --argjson post "$posttooluse_entry" --argjson fakedata "$fakedata_entry" '
         .hooks //= {} |
         .hooks.PreToolUse //= [] |
         .hooks.PostToolUse //= [] |
-        .hooks.PreToolUse += [$pre] |
+        .hooks.PreToolUse += [$pre, $fakedata] |
         .hooks.PostToolUse += [$post]
     ' "$SETTINGS" > "$temp_file"
 
