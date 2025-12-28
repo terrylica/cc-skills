@@ -1,3 +1,30 @@
+## [8.9.4](https://github.com/terrylica/cc-skills/compare/v8.9.3...v8.9.4) (2025-12-28)
+
+
+### Bug Fixes
+
+* **ralph:** create STATE_DIR and CONFIG_DIR on import to prevent FileNotFoundError ([0152e1f](https://github.com/terrylica/cc-skills/commit/0152e1ffceb8480789ee955aea236b744052f048))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+2/-1)
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+17/-5)
+
 ## [8.9.3](https://github.com/terrylica/cc-skills/compare/v8.9.2...v8.9.3) (2025-12-27)
 
 
