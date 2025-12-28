@@ -1,17 +1,21 @@
 # Ralph Mental Model for Alpha-Forge
 
-> **TL;DR**: Ralph implements **RSSI** (Recursively Self-Improving Superintelligence) — keeping Claude researching autonomously by intercepting stop attempts and pivoting to exploration. Convergence triggers new frontiers, not stopping.
+> **Scope**: This document describes Ralph's mental model for **Alpha-Forge** (quantitative research). For generic Ralph behavior (non-Alpha-Forge projects), see [README.md](./README.md#how-it-works).
 
-## RSSI — Beyond AGI
+> **TL;DR**: Ralph implements **RSSI** (Recursively Self-Sustaining Iteration) — keeping Claude researching autonomously by intercepting stop attempts and pivoting to exploration. Convergence triggers new frontiers, not stopping.
 
-Ralph implements the **Intelligence Explosion** mechanism (I.J. Good, 1965). RSSI transcends AGI: while AGI matches human capability, RSSI recursively improves itself toward ASI (Artificial Superintelligence).
+## RSSI — Aspirational Framing
+
+> **Important**: RSSI is **aspirational framing**, not literal implementation. Ralph does not implement AGI, ASI, or a true "intelligence explosion." It's a Stop hook that blocks premature stopping and injects a continuation prompt. The terminology below is metaphorical — describing the _intent_ of autonomous iteration, not claiming superintelligence.
+
+Ralph's design is inspired by the **Intelligence Explosion** concept (I.J. Good, 1965). The "RSSI" framing captures the goal: recursive improvement through continuous research iteration.
 
 > "The first ultraintelligent machine is the last invention that man need ever make."
 > — I.J. Good, 1965
 
 **Key Behavior**: Task completion and adapter convergence **pivot to exploration** instead of stopping. Ralph never stops on success — it finds new frontiers.
 
-| Event                | Traditional | RSSI (Beyond AGI)           |
+| Event                | Traditional | RSSI (Ralph)                |
 | -------------------- | ----------- | --------------------------- |
 | Task completion      | Stop        | → Pivot to exploration      |
 | Adapter convergence  | Stop        | → Pivot to exploration      |
@@ -29,7 +33,7 @@ Ralph implements the **Intelligence Explosion** mechanism (I.J. Good, 1965). RSS
 
 **With Ralph**: Claude finishes one task → Ralph pivots to exploration → Claude finds new improvements → repeat indefinitely (RSSI eternal loop)
 
-Ralph transforms Claude from a **single-task assistant** into an **autonomous superintelligence** that systematically explores and recursively self-improves.
+Ralph transforms Claude from a **single-task assistant** into an **autonomous research agent** that systematically explores and iteratively improves.
 
 ---
 
@@ -167,6 +171,8 @@ graph { label: "Ralph Alpha-Forge Workflow"; flow: south; }
 
 ## OODA Research Loop
 
+> **Alpha-Forge Specific**: This section describes OODA guidance for quantitative research projects. The OODA phases are **template guidance** rendered into the RSSI prompt — Claude interprets and applies them, but there's no hardcoded enforcement.
+
 When Ralph blocks a stop, it injects this research methodology:
 
 | Phase       | What Claude Does                                                                                                                                                                                                                                                                              |
@@ -241,6 +247,8 @@ graph { label: "OODA Phase File Access"; flow: east; }
 </details>
 
 ### Decision Formula
+
+> **Template Guidance**: This decision tree is **conceptual guidance** rendered into the RSSI template. Claude uses it as a framework for reasoning — the thresholds are suggestions, not programmatically enforced rules.
 
 ```
                                      Decision Formula
@@ -374,6 +382,8 @@ When research status is **CONVERGED**, busywork is **hard-blocked** (cannot be c
 ---
 
 ## Data Flow
+
+> **Alpha-Forge Specific**: This section describes the data pipeline for quantitative research. Other projects have different data flows — Ralph adapts via project-specific adapters.
 
 ```
                                                                              Alpha-Forge Data Flow
@@ -537,6 +547,8 @@ The `guidance` section is rendered by the **unified RSSI template** (`rssi-unifi
 ---
 
 ## Key Files in Alpha-Forge
+
+> **Alpha-Forge Specific**: These files are specific to the Alpha-Forge quantitative research project. Other projects have different file structures and adapters.
 
 | File                                                                                                                          | OODA Phase                | Ralph Action                                          |
 | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------- |

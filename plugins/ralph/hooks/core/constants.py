@@ -15,6 +15,10 @@ from pathlib import Path
 STATE_DIR = Path.home() / ".claude/automation/loop-orchestrator/state"
 CONFIG_DIR = STATE_DIR.parent / "config"
 
+# Ensure directories exist (required before any FileHandler can write logs)
+STATE_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
 # =============================================================================
 # CONFIDENCE THRESHOLDS
 # =============================================================================
