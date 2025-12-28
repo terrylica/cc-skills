@@ -20,3 +20,15 @@ __pycache__/
 
 # Claude Code local session
 .claude/
+
+# Lint/validation result caches
+.lint-relative-paths-results.txt
+.lychee-results.json
+.lychee-results.txt
+.lycheecache
+
+# Mise local config
+.mise.toml
+
+# Temporary workspace files
+tmp/
