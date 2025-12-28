@@ -1,5 +1,5 @@
 ---
-description: "Check and install dependencies for itp-hooks silent failure detection"
+description: "Check and install dependencies for itp-hooks (silent failure detection + fake-data-guard)"
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[--install|--check]"
 ---
@@ -9,6 +9,7 @@ argument-hint: "[--install|--check]"
 Verify and install dependencies for the itp-hooks plugin:
 
 - **jq** (required) - JSON processing for hook input/output
+- **bun** or **node** (required) - Runtime for fake-data-guard.mjs hook
 - **ruff** (optional) - Python silent failure detection
 - **shellcheck** (optional) - Shell script analysis
 - **oxlint** (optional) - JavaScript/TypeScript linting
@@ -42,6 +43,7 @@ After running the check, present the findings to the user:
 | Tool       | Status | Purpose                       |
 | ---------- | ------ | ----------------------------- |
 | jq         | ?      | Required for hook I/O         |
+| bun/node   | ?      | Required for fake-data-guard  |
 | ruff       | ?      | Python silent failure rules   |
 | shellcheck | ?      | Shell script analysis         |
 | oxlint     | ?      | JavaScript/TypeScript linting |
@@ -79,14 +81,15 @@ INSTALL_EOF
 
 ## Graceful Degradation
 
-The silent failure detector works with graceful degradation:
+The hooks work with graceful degradation:
 
-| Linter Missing | Effect                                 |
-| -------------- | -------------------------------------- |
-| ruff           | Python files skip silent failure check |
-| shellcheck     | Shell scripts skip analysis            |
-| oxlint         | JS/TS files skip linting               |
-| jq             | Hook fails (required for JSON parsing) |
+| Tool Missing | Effect                                 |
+| ------------ | -------------------------------------- |
+| bun/node     | Fake-data-guard hook fails             |
+| ruff         | Python files skip silent failure check |
+| shellcheck   | Shell scripts skip analysis            |
+| oxlint       | JS/TS files skip linting               |
+| jq           | All hooks fail (required for JSON I/O) |
 
 ## Next Steps
 
