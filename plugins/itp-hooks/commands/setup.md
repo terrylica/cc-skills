@@ -93,7 +93,7 @@ The silent failure detector works with graceful degradation:
 After setup, install the hooks to your settings:
 
 ```bash
-/itp-hooks:hooks install
+/itp:hooks install
 ```
 
 **IMPORTANT**: Restart Claude Code session for hooks to take effect.
