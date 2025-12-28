@@ -433,6 +433,31 @@ SETUP_EOF
 
 See [`pypi-doppler` skill](../pypi-doppler/SKILL.md) for complete workflow with CI detection guards.
 
+### Python `__version__` Pattern
+
+**Always use `importlib.metadata`** - never hardcode version strings:
+
+```python
+# __init__.py
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("your-package-name")
+except PackageNotFoundError:
+    __version__ = "0.0.0+dev"  # Development fallback
+```
+
+This reads from `pyproject.toml` at runtime, ensuring single source of truth. semantic-release updates `pyproject.toml` via `prepareCmd`, and `importlib.metadata` reads it at runtime - no manual sync required.
+
+**Anti-pattern** (causes version drift):
+
+```python
+# ❌ BAD - requires manual sync with pyproject.toml
+__version__ = "1.2.3"
+```
+
+See [Python Projects with Node.js semantic-release](./references/python-projects-nodejs-semantic-release.md) for complete Python automation guide.
+
 ### Step 5: GitHub Actions (Optional)
 
 **Only if you want CI/CD backup** (not recommended as primary due to 2-5 minute delay):
