@@ -1,3 +1,41 @@
+## [8.10.1](https://github.com/terrylica/cc-skills/compare/v8.10.0...v8.10.1) (2025-12-28)
+
+
+### Bug Fixes
+
+* **itp-hooks:** update stale /itp-hooks:hooks reference to /itp:hooks ([2328fde](https://github.com/terrylica/cc-skills/commit/2328fde1a210241d07fef0de6667cd17d0559b36))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [Universal Fake Data Guard PreToolUse Hook](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-27-fake-data-guard-universal.md) | coupled |
+
+### Design Specs
+
+- [Fake Data Guard Implementation Specification](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-27-fake-data-guard-universal/spec.md) - new (+260)
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [ITP Hooks Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/setup.md) - updated (+1/-1)
+
+</details>
+
 # [8.10.0](https://github.com/terrylica/cc-skills/compare/v8.9.6...v8.10.0) (2025-12-28)
 
 
