@@ -19,6 +19,59 @@ Before troubleshooting, verify these requirements:
 
 ## Issues by Error Type
 
+### 0. Most Common: "Plugin not found" After Successful Add
+
+**Symptom** (most frequently reported issue):
+
+```
+> /plugin marketplace add terrylica/cc-skills
+└ Successfully added marketplace: cc-skills
+
+> /plugin
+└ (no content)
+
+> /plugin install cc-skills
+└ Plugin "cc-skills" not found in any marketplace
+```
+
+**GitHub Issue**: [#9297](https://github.com/anthropics/claude-code/issues/9297)
+
+**Root Cause**: Claude Code uses **SSH clone** (`git@github.com:...`) instead of HTTPS. For users without SSH keys configured, the clone hangs silently. The command reports "success" but the directory is **empty**.
+
+**Diagnosis**:
+
+```bash
+# Check if marketplace directory has content
+ls ~/.claude/plugins/marketplaces/
+
+# If directory exists but is empty (or only has .git), SSH clone failed
+ls -la ~/.claude/plugins/marketplaces/terrylica-cc-skills/
+```
+
+**Solution** (manual HTTPS clone):
+
+```bash
+# Remove the empty/broken marketplace
+rm -rf ~/.claude/plugins/marketplaces/terrylica-cc-skills
+
+# Clone manually using HTTPS (works without SSH keys)
+git clone https://github.com/terrylica/cc-skills.git ~/.claude/plugins/marketplaces/terrylica-cc-skills
+
+# Now install works
+# In Claude Code:
+/plugin install cc-skills
+```
+
+**Permanent Fix** (prevent future SSH issues):
+
+```bash
+# Force git to use HTTPS for all GitHub repos
+git config --global url."https://github.com/".insteadOf git@github.com:
+git config --global url."https://github.com/".insteadOf ssh://git@github.com/
+```
+
+---
+
 ### 1. Network/Clone Failures
 
 #### Early EOF During Clone

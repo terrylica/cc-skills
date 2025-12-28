@@ -31,10 +31,24 @@ claude
 
 **Expected output**: "Plugin installed successfully"
 
-**Troubleshooting**:
+> **⚠️ "Plugin not found" after "Successfully added marketplace"?**
+>
+> This is a [known Claude Code bug](https://github.com/anthropics/claude-code/issues/9297) where the SSH clone fails silently. The directory is created but remains empty.
+>
+> **Fix** (run in your terminal, not Claude Code):
+>
+> ```bash
+> rm -rf ~/.claude/plugins/marketplaces/terrylica-cc-skills
+> git clone https://github.com/terrylica/cc-skills.git ~/.claude/plugins/marketplaces/terrylica-cc-skills
+> ```
+>
+> Then return to Claude Code and run `/plugin install cc-skills`
+
+**Other troubleshooting**:
 
 - If "Marketplace not found": Run the marketplace add command first
 - If "Plugin not found": Check spelling — it's `cc-skills` not `cc_skills`
+- For more issues: See [Marketplace Installation Troubleshooting](/docs/troubleshooting/marketplace-installation.md)
 
 ## Step 2: Install Ralph Hooks
 
