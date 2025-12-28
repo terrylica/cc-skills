@@ -1,3 +1,37 @@
+# [8.10.0](https://github.com/terrylica/cc-skills/compare/v8.9.6...v8.10.0) (2025-12-28)
+
+
+### Features
+
+* **itp-hooks:** add fake data guard PreToolUse hook ([98a8eb1](https://github.com/terrylica/cc-skills/commit/98a8eb17a3ea6bfee30108bdcd6ae5d4c0e34775))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [Universal Fake Data Guard PreToolUse Hook](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-27-fake-data-guard-universal.md) | new (+172) |
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [hooks](https://github.com/terrylica/cc-skills/blob/v8.9.6/plugins/itp-hooks/commands/hooks.md) - deleted
+
+</details>
+
 ## [8.9.6](https://github.com/terrylica/cc-skills/compare/v8.9.5...v8.9.6) (2025-12-28)
 
 
