@@ -1,3 +1,39 @@
+## [8.9.6](https://github.com/terrylica/cc-skills/compare/v8.9.5...v8.9.6) (2025-12-28)
+
+
+### Bug Fixes
+
+* **git-account-validator:** respect SSH host aliases in remote URL ([70d3a3f](https://github.com/terrylica/cc-skills/commit/70d3a3faebcb6970623f0b8e270ad2ac32cf58c1))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+25)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Python Projects with semantic-release (Node.js) - 2025 Production Pattern](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/python-projects-nodejs-semantic-release.md) - updated (+72)
+
+</details>
+
 ## [8.9.5](https://github.com/terrylica/cc-skills/compare/v8.9.4...v8.9.5) (2025-12-28)
 
 
