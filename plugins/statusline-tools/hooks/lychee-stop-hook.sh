@@ -22,6 +22,16 @@
 # Use set -u for unbound variable checking, but no -e or pipefail
 set -u
 
+# Verbose error logging for Claude Code CLI
+log_error() {
+    echo "[lychee-stop-hook] ERROR: $*" >&2
+}
+
+log_debug() {
+    # Uncomment for debugging: echo "[lychee-stop-hook] DEBUG: $*" >&2
+    :
+}
+
 # === Configuration ===
 HOOK_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools}"
 LINT_SCRIPT="${HOOK_ROOT}/scripts/lint-relative-paths"
@@ -53,20 +63,45 @@ LYCHEE_ERRORS=0
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 if command -v lychee &>/dev/null; then
-    # Find markdown files (exclude caches, plugins, backups)
-    # Use temp file to avoid pipeline issues
+    # KEY IMPROVEMENT: Use git ls-files to respect .gitignore
+    # This eliminates false positives from cloned repos (repos/), build artifacts (target/), etc.
     MD_FILES_TMP=$(mktemp)
-    find "$GIT_ROOT" -type f -name "*.md" \
-        -not -path "*/.git/*" \
-        -not -path "*/node_modules/*" \
-        -not -path "*/.venv/*" \
-        -not -path "*/tmp/*" \
-        -not -path "*/archive/*" \
-        -not -path "*/plugins/cache/*" \
-        -not -path "*/plugins/marketplaces/*" \
-        -not -path "*/backups/*" \
-        -not -path "*/staging/*" \
-        2>/dev/null | head -100 > "$MD_FILES_TMP"
+
+    # Try git ls-files first (respects .gitignore)
+    if git -C "$GIT_ROOT" ls-files --cached '*.md' '**/*.md' 2>/dev/null | head -100 > "$MD_FILES_TMP" && [[ -s "$MD_FILES_TMP" ]]; then
+        log_debug "Using git ls-files (respects .gitignore)"
+        # Prepend GIT_ROOT to each path for absolute paths
+        if ! sed -i.bak "s|^|${GIT_ROOT}/|" "$MD_FILES_TMP" 2>/dev/null; then
+            # BSD sed doesn't support -i without backup, use portable approach
+            if ! sed "s|^|${GIT_ROOT}/|" "$MD_FILES_TMP" > "${MD_FILES_TMP}.new"; then
+                log_error "sed failed to prepend paths"
+            elif ! mv "${MD_FILES_TMP}.new" "$MD_FILES_TMP"; then
+                log_error "mv failed when updating temp file"
+            fi
+        fi
+        rm -f "${MD_FILES_TMP}.bak" 2>/dev/null || true  # Cleanup, failure ok
+    else
+        # Fallback: find with expanded exclusion list
+        find "$GIT_ROOT" -type f -name "*.md" \
+            -not -path "*/.git/*" \
+            -not -path "*/node_modules/*" \
+            -not -path "*/.venv/*" \
+            -not -path "*/tmp/*" \
+            -not -path "*/archive/*" \
+            -not -path "*/plugins/cache/*" \
+            -not -path "*/plugins/marketplaces/*" \
+            -not -path "*/backups/*" \
+            -not -path "*/staging/*" \
+            -not -path "*/repos/*" \
+            -not -path "*/target/*" \
+            -not -path "*/vendor/*" \
+            -not -path "*/dist/*" \
+            -not -path "*/build/*" \
+            -not -path "*/out/*" \
+            -not -path "*/coverage/*" \
+            -not -path "*/__pycache__/*" \
+            2>/dev/null | head -100 > "$MD_FILES_TMP"
+    fi
 
     if [[ -s "$MD_FILES_TMP" ]]; then
         # Run lychee on files (use temp file for output too)
