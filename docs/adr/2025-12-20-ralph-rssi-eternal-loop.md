@@ -268,4 +268,3 @@ graph { label: "🏗️ RSSI Architecture"; flow: east; }
 ## References
 
 - [Ralph README](/plugins/ralph/README.md)
-- [Plan file](/Users/<you>/.claude/plans/optimized-twirling-river.md)
