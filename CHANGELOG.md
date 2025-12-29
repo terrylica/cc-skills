@@ -1,3 +1,10 @@
+## [9.0.2](https://github.com/terrylica/cc-skills/compare/v9.0.1...v9.0.2) (2025-12-29)
+
+
+### Bug Fixes
+
+* **plugin-dev:** add --project-local and --skip-bash flags to validate-skill ([79f37ce](https://github.com/terrylica/cc-skills/commit/79f37ce93220ac030914eba5fb1ce960a6b68df2))
+
 ## [9.0.1](https://github.com/terrylica/cc-skills/compare/v9.0.0...v9.0.1) (2025-12-29)
 
 
