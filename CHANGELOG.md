@@ -1,3 +1,10 @@
+## [8.11.2](https://github.com/terrylica/cc-skills/compare/v8.11.1...v8.11.2) (2025-12-29)
+
+
+### Bug Fixes
+
+* **ralph:** use full mise shims path for uv in stop hook ([02f47be](https://github.com/terrylica/cc-skills/commit/02f47be577c6c1a875d729f45c0795183b159288))
+
 ## [8.11.1](https://github.com/terrylica/cc-skills/compare/v8.11.0...v8.11.1) (2025-12-29)
 
 
