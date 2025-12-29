@@ -97,6 +97,13 @@ const EXCLUDE_DIRS = new Set([
   ".ruff_cache",
 ]);
 
+// Path patterns to exclude from scanning (applies to both git ls-files and fallback)
+// Project-local skills use relative paths like marketplace plugins
+const EXCLUDE_PATH_PATTERNS = [
+  /\.claude\/skills\//,  // Project-local skills: relative paths are correct
+  /\.claude\/commands\//, // Project-local commands: relative paths are correct
+];
+
 // ============================================================================
 // Skip Conditions (checked before any scanning)
 // ============================================================================
@@ -138,6 +145,13 @@ if (existsSync(skipMarker)) {
 // ============================================================================
 
 /**
+ * Check if a file path matches any exclusion pattern
+ */
+function shouldExcludePath(filepath: string): boolean {
+  return EXCLUDE_PATH_PATTERNS.some((pattern) => pattern.test(filepath));
+}
+
+/**
  * Get tracked .md files using simple-git (respects .gitignore)
  */
 async function getTrackedMdFiles(workspace: string): Promise<string[]> {
@@ -155,11 +169,19 @@ async function getTrackedMdFiles(workspace: string): Promise<string[]> {
     const result = await git.raw(["ls-files", "--cached", "*.md", "**/*.md"]);
 
     if (result.trim()) {
-      const files = result
+      const allFiles = result
         .trim()
         .split("\n")
         .filter(Boolean)
         .map((f) => join(workspace, f));
+
+      // Filter out excluded paths (e.g., .claude/skills/)
+      const files = allFiles.filter((f) => !shouldExcludePath(f));
+
+      const excluded = allFiles.length - files.length;
+      if (excluded > 0) {
+        logDebug(`Excluded ${excluded} files matching EXCLUDE_PATH_PATTERNS`);
+      }
 
       logDebug(`simple-git found ${files.length} tracked .md files`);
       return files;
@@ -186,7 +208,11 @@ function getMdFilesFallback(workspace: string): string[] {
             walk(join(dir, entry.name));
           }
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
-          files.push(join(dir, entry.name));
+          const filepath = join(dir, entry.name);
+          // Apply same path exclusion as git ls-files
+          if (!shouldExcludePath(filepath)) {
+            files.push(filepath);
+          }
         }
       }
     } catch {
