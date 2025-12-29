@@ -155,7 +155,11 @@ COMMAND_EOF
 Run the validation script to check for bash compatibility issues:
 
 ```bash
+# Marketplace plugins (strict)
 bun run plugins/plugin-dev/scripts/validate-skill.ts plugins/your-plugin/skills/your-skill/
+
+# Project-local skills with documentation-only bash blocks
+bun run plugins/plugin-dev/scripts/validate-skill.ts .claude/skills/your-skill/ --skip-bash
 ```
 
 The validator checks for:
@@ -163,6 +167,8 @@ The validator checks for:
 - Bash blocks without heredoc wrapper (ERROR if contains `$()`, `[[`, etc.)
 - `declare -A` usage (ERROR)
 - `grep -P` usage (WARNING)
+
+**Note**: Use `--skip-bash` for project-local skills where bash blocks are user-facing documentation examples (not executed by Claude). This is common for workflow/tutorial skills.
 
 To auto-fix bash blocks by adding heredoc wrappers:
 
