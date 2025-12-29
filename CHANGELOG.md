@@ -1,3 +1,10 @@
+## [9.0.4](https://github.com/terrylica/cc-skills/compare/v9.0.3...v9.0.4) (2025-12-29)
+
+
+### Bug Fixes
+
+* **link-tools:** remove orphaned lib directory with dead code ([3dc3245](https://github.com/terrylica/cc-skills/commit/3dc3245294ba849c150996094abb8278dafbe22d))
+
 ## [9.0.3](https://github.com/terrylica/cc-skills/compare/v9.0.2...v9.0.3) (2025-12-29)
 
 
