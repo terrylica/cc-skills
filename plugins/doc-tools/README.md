@@ -14,6 +14,7 @@ Merged from `doc-tools` + `doc-build-tools` plugins.
 | `latex-setup`             | macOS environment setup with MacTeX, Skim viewer, and SyncTeX      |
 | `latex-tables`            | Modern table creation with tabularray package                      |
 | `pandoc-pdf-generation`   | Markdown to PDF with XeLaTeX, section numbering, TOC, bibliography |
+| `terminal-print`          | Print iTerm2 terminal output to HP network printer via PDF         |
 
 ## Installation
 
@@ -34,6 +35,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "set up LaTeX on my Mac" → latex-setup
 - "create a LaTeX table" → latex-tables
 - "generate PDF from markdown", "convert to PDF" → pandoc-pdf-generation
+- "print terminal", "print session output", "terminal to printer" → terminal-print
 
 ## Features
 
