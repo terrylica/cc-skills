@@ -105,8 +105,9 @@ if command -v lychee &>/dev/null; then
 
     if [[ -s "$MD_FILES_TMP" ]]; then
         # Run lychee on files (use temp file for output too)
+        # --base: Required to resolve root-relative paths like /docs/foo.md
         LYCHEE_TMP=$(mktemp)
-        if xargs lychee --offline --no-progress --format json < "$MD_FILES_TMP" > "$LYCHEE_TMP" 2>/dev/null; then
+        if xargs lychee --offline --no-progress --format json --base "$GIT_ROOT" < "$MD_FILES_TMP" > "$LYCHEE_TMP" 2>/dev/null; then
             LYCHEE_ERRORS=$(jq -r '.errors // 0' "$LYCHEE_TMP" 2>/dev/null || echo 0)
         fi
         rm -f "$LYCHEE_TMP"
