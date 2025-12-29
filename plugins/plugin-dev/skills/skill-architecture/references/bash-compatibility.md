@@ -155,7 +155,7 @@ COMMAND_EOF
 Run the validation script to check for bash compatibility issues:
 
 ```bash
-python3 plugins/skill-architecture/scripts/validate_links.py plugins/your-plugin/
+bun run plugins/plugin-dev/scripts/validate-skill.ts plugins/your-plugin/skills/your-skill/
 ```
 
 The validator checks for:
@@ -163,6 +163,13 @@ The validator checks for:
 - Bash blocks without heredoc wrapper (ERROR if contains `$()`, `[[`, etc.)
 - `declare -A` usage (ERROR)
 - `grep -P` usage (WARNING)
+
+To auto-fix bash blocks by adding heredoc wrappers:
+
+```bash
+bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts plugins/your-plugin/ --dry  # Preview
+bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts plugins/your-plugin/        # Apply
+```
 
 ## Reference
 

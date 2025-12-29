@@ -51,16 +51,18 @@ The `skill-architecture` skill provides:
 - **Security Practices** (tool restrictions, input validation)
 - **Bash Compatibility** patterns (heredoc wrappers for zsh)
 
-### Utility Scripts
+### Validator Scripts (TypeScript/Bun)
 
-| Script               | Purpose                                    |
-| -------------------- | ------------------------------------------ |
-| `validate_skill.py`  | Comprehensive skill validation             |
-| `validate_links.py`  | Markdown link portability checks           |
-| `fix_bash_blocks.py` | Auto-fix bash blocks for zsh compatibility |
+| Script               | Purpose                                           |
+| -------------------- | ------------------------------------------------- |
+| `validate-skill.ts`  | Comprehensive skill validation (11+ checks)       |
+| `validate-links.ts`  | Markdown link portability (strict `/docs/` policy)|
+| `fix-bash-blocks.ts` | Auto-fix bash blocks for zsh compatibility        |
 
 Run scripts with:
 
 ```bash
-uv run plugins/plugin-dev/skills/skill-architecture/scripts/validate_skill.py <path>
+bun run plugins/plugin-dev/scripts/validate-skill.ts <skill-path>
+bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
+bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts <path> [--dry]
 ```

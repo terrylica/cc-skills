@@ -98,26 +98,6 @@ const EXCLUDE_DIRS = new Set([
 ]);
 
 // ============================================================================
-// Skill Directory Detection
-// ============================================================================
-
-/**
- * Check if a file is inside a skill directory
- * Skills should use relative paths (./foo.md) not repo-relative (/path/foo.md)
- *
- * Matches:
- *   - /path/to/skills/my-skill/SKILL.md
- *   - /path/to/.claude/skills/my-skill/foo.md
- *   - /path/to/plugins/my-plugin/skills/my-skill/foo.md
- */
-function isSkillFile(filepath: string): boolean {
-  // Pattern: skills/ followed by at least one directory segment
-  // This matches: skills/foo/, .claude/skills/foo/, plugins/bar/skills/foo/
-  // The (^|[\/\\]) handles both start-of-string and mid-path cases
-  return /(^|[\/\\])skills[\/\\][^\/\\]+[\/\\]/.test(filepath);
-}
-
-// ============================================================================
 // Skip Conditions (checked before any scanning)
 // ============================================================================
 
@@ -307,13 +287,6 @@ async function main(): Promise<void> {
   const allViolations: LinkViolation[] = [];
 
   for (const filepath of mdFiles) {
-    // Skip files inside skill directories - they MUST use relative paths
-    // Skills are portable units where ./foo.md is correct, not /full/path/foo.md
-    if (isSkillFile(filepath)) {
-      logDebug(`Skipping skill file (relative paths are correct): ${filepath}`);
-      continue;
-    }
-
     try {
       const content = readFileSync(filepath, "utf-8");
       const violations = extractViolations(filepath, content);

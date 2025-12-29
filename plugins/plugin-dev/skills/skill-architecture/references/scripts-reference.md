@@ -10,7 +10,7 @@ This document covers scripts available in the cc-skills repository for plugin an
 
 | Language   | Convention   | Example                                     |
 | ---------- | ------------ | ------------------------------------------- |
-| Python     | `snake_case` | `validate_links.py`, `verify_compliance.sh` |
+| TypeScript | `kebab-case` | `validate-skill.ts`, `validate-links.ts`    |
 | Shell      | `snake_case` | `init_project.sh`, `create_org_config.sh`   |
 | JavaScript | `kebab-case` | `validate-plugins.mjs`, `sync-versions.mjs` |
 
@@ -61,33 +61,50 @@ Auto-discovers plugins from marketplace.json and updates:
 
 Installs git pre-commit hook that runs `validate-plugins.mjs` before each commit.
 
-## Skill-Architecture Plugin Scripts
+## Plugin-Dev Scripts (TypeScript Validators)
 
-Located in `plugins/skill-architecture/scripts/`:
+Located in `plugins/plugin-dev/scripts/`:
 
-### validate_links.py
+### validate-skill.ts
 
-**Purpose**: Validates internal markdown links for portability.
-
-```bash
-uv run plugins/skill-architecture/scripts/validate_links.py <path>
-```
-
-Ensures links use relative paths (`./`, `../`) for cross-installation compatibility.
-
-### verify-compliance.sh
-
-**Purpose**: Validates skill conformance to structural patterns.
+**Purpose**: Main validator orchestrating all skill checks.
 
 ```bash
-bash plugins/skill-architecture/scripts/verify-compliance.sh <path/to/skill>
+bun run plugins/plugin-dev/scripts/validate-skill.ts <skill-path> [--fix] [--interactive] [-v] [--strict]
 ```
 
 **Validation Checks**:
 
-- S1: SKILL.md ≤200 lines (progressive disclosure)
-- S2: Proper reference structure
-- S3: Description format compliance
+- YAML frontmatter format and required fields
+- Name format (`^[a-z][a-z0-9-]*$`)
+- Description quality (length, triggers)
+- Link portability (only `/docs/adr/` and `/docs/design/` allowed)
+- Bash compatibility (heredoc wrappers required)
+- Line count (progressive disclosure)
+
+### validate-links.ts
+
+**Purpose**: Validates internal markdown links for portability.
+
+```bash
+bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
+```
+
+**Link Policy**:
+
+- ALLOWED: `./relative/path.md`, `/docs/adr/*`, `/docs/design/*`
+- FORBIDDEN: `/docs/guides/*`, `/plugins/*`, any other `/...` paths
+- FIX: Copy external files into skill's `references/` directory
+
+### fix-bash-blocks.ts
+
+**Purpose**: Automatically wraps bash code blocks with heredoc for zsh compatibility.
+
+```bash
+bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts <path> [--dry]
+```
+
+Generates context-aware EOF markers (e.g., `PREFLIGHT_EOF`, `SETUP_EOF`) based on block content.
 
 ## ITP Plugin Scripts
 

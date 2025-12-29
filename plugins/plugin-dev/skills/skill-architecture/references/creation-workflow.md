@@ -108,7 +108,7 @@ If your skill contains bash code blocks:
 3. **Run validation**:
 
    ```bash
-   uv run scripts/validate_links.py plugins/your-plugin/skills/your-skill/
+   bun run plugins/plugin-dev/scripts/validate-links.ts plugins/your-plugin/skills/your-skill/
    ```
 
 See [Bash Compatibility Reference](./bash-compatibility.md) for detailed patterns and examples.

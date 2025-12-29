@@ -48,8 +48,8 @@ SCRIPT_NAME_EOF
 
 ## Implementation
 
-1. **New reference**: `plugins/skill-architecture/references/bash-compatibility.md`
-2. **Updated validator**: `plugins/skill-architecture/scripts/validate_links.py` with `validate_bash_blocks()`
+1. **New reference**: `plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md`
+2. **Updated validator**: `plugins/plugin-dev/scripts/validate-skill.ts` with bash compatibility checks (migrated from Python to TypeScript)
 3. **Updated checklist**: Bash compatibility section in skill-architecture SKILL.md
 4. **Updated workflow**: Step 4.1 in creation-workflow.md
 
