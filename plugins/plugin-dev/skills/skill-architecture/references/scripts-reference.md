@@ -70,7 +70,15 @@ Located in `plugins/plugin-dev/scripts/`:
 **Purpose**: Main validator orchestrating all skill checks.
 
 ```bash
-bun run plugins/plugin-dev/scripts/validate-skill.ts <skill-path> [--fix] [--interactive] [-v] [--strict]
+bun run plugins/plugin-dev/scripts/validate-skill.ts <skill-path> [options]
+
+Options:
+  --fix             Show fix suggestions for violations
+  --interactive     Generate AskUserQuestion JSON for clarifications
+  -v, --verbose     Show all checks including passed ones
+  --strict          Treat warnings as errors
+  --project-local   Relaxed link rules (auto-detected for .claude/skills/)
+  --skip-bash       Skip bash compatibility checks (for documentation skills)
 ```
 
 **Validation Checks**:
@@ -78,9 +86,18 @@ bun run plugins/plugin-dev/scripts/validate-skill.ts <skill-path> [--fix] [--int
 - YAML frontmatter format and required fields
 - Name format (`^[a-z][a-z0-9-]*$`)
 - Description quality (length, triggers)
-- Link portability (only `/docs/adr/` and `/docs/design/` allowed)
+- Link portability (context-aware, see below)
 - Bash compatibility (heredoc wrappers required)
 - Line count (progressive disclosure)
+
+**Context-Aware Validation**:
+
+| Context | Link Policy | Bash Policy |
+|---------|-------------|-------------|
+| Marketplace plugin | Only `./`, `/docs/adr/*`, `/docs/design/*` | Heredoc required |
+| Project-local skill | Any `/...` repo path allowed | Same (or `--skip-bash`) |
+
+Project-local skills are auto-detected from paths containing `.claude/skills/`.
 
 ### validate-links.ts
 
