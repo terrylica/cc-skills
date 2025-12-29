@@ -1,3 +1,52 @@
+# [8.11.0](https://github.com/terrylica/cc-skills/compare/v8.10.2...v8.11.0) (2025-12-29)
+
+
+### Bug Fixes
+
+* **statusline-tools:** add --base flag to lychee for root-relative paths ([ec6e238](https://github.com/terrylica/cc-skills/commit/ec6e23819c64e8f86445f504e8cbf406cd3dab96))
+* **statusline-tools:** add skills to exclude_dirs in lint-relative-paths ([80f0171](https://github.com/terrylica/cc-skills/commit/80f0171e75910a683edd0c04ccdf09231cb7bb72))
+* **statusline-tools:** respect .gitignore in link validators ([c967003](https://github.com/terrylica/cc-skills/commit/c967003cf81b5d6e64fee79403081a978c674986))
+
+
+### Features
+
+* **doc-tools:** add terminal-print skill for iTerm2 output printing ([e3430f0](https://github.com/terrylica/cc-skills/commit/e3430f0528757488b65dcfbe407e9e24879c16d8))
+* **dotfiles-tools:** add Stop hook for chezmoi sync enforcement ([a480025](https://github.com/terrylica/cc-skills/commit/a4800252848bf2eea5323ed4502af4a8327daf08))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [terminal-print](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/terminal-print/SKILL.md) - new (+117)
+
+</details>
+
+
+### Plugin READMEs
+
+- [doc-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/README.md) - updated (+2)
+- [dotfiles-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/README.md) - updated (+44/-11)
+
+### Skill References
+
+<details>
+<summary><strong>doc-tools/terminal-print</strong> (1 file)</summary>
+
+- [Terminal Print Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/terminal-print/references/workflow.md) - new (+125)
+
+</details>
+
 ## [8.10.2](https://github.com/terrylica/cc-skills/compare/v8.10.1...v8.10.2) (2025-12-28)
 
 
