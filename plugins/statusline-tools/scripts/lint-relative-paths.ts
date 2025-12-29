@@ -2,6 +2,11 @@
 /**
  * lint-relative-paths.ts - Lint markdown files for non-repo-relative local paths
  *
+ * Uses well-maintained OSS packages:
+ * - simple-git: Git operations (respects .gitignore via git ls-files)
+ * - remark-parse + unified: Markdown parsing with mdast
+ * - unist-util-visit: AST traversal for link extraction
+ *
  * Repo-relative paths MUST start with / (e.g., /docs/foo.md)
  *
  * Violations:
@@ -14,26 +19,26 @@
  *   - #anchor (fragment only)
  *   - https://... (external URL)
  *   - mailto:... (email)
- *   - Links inside code fences (```)
- *   - Inline code examples: `[text](url)`
  *   - Template variables: {{var}}, {var}
- *   - ASCII diagram placeholders: (...)
  *
- * KEY IMPROVEMENT: Uses git ls-files to respect .gitignore
- * This eliminates false positives from cloned repos (repos/), build artifacts (target/), etc.
- *
- * ERROR HANDLING: All failures are explicit and verbose for Claude Code CLI.
  * Exit codes:
  *   0 - Success (no violations or skip condition met)
  *   1 - Violations found (lint failure)
  *   2 - Hard block / fatal error (Claude Code hook protocol)
  */
 
-import { execSync } from "child_process";
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
+import { simpleGit, type SimpleGit } from "simple-git";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import { visit } from "unist-util-visit";
+import type { Link, LinkReference } from "mdast";
 
-// Verbose error logging for Claude Code CLI
+// ============================================================================
+// Error Handling - Explicit and verbose for Claude Code CLI
+// ============================================================================
+
 function logError(context: string, error: unknown): void {
   console.error(`\n❌ [lint-relative-paths] ERROR in ${context}:`);
   if (error instanceof Error) {
@@ -52,7 +57,49 @@ function fatalError(context: string, error: unknown): never {
   process.exit(2);
 }
 
+function logDebug(message: string): void {
+  // Debug output goes to stderr so it doesn't interfere with stdout parsing
+  console.error(`[DEBUG] ${message}`);
+}
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
 const workspace = process.argv[2] || process.env.WORKSPACE || resolve(process.env.HOME || "~", ".claude");
+
+// Fallback exclusions for non-git directories (expanded list)
+const EXCLUDE_DIRS = new Set([
+  "node_modules",
+  "plugins",
+  "skills",
+  ".git",
+  ".venv",
+  "archive",
+  "archives",
+  "scratch",
+  "plans",
+  "tmp",
+  "third_party",
+  "state",
+  // Common gitignored directories
+  "repos",
+  "target",
+  "vendor",
+  "dist",
+  "build",
+  "out",
+  "coverage",
+  ".cache",
+  "__pycache__",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".ruff_cache",
+]);
+
+// ============================================================================
+// Skip Conditions (checked before any scanning)
+// ============================================================================
 
 // Check for marketplace repo markers (skip relative path check for plugins)
 if (existsSync(join(workspace, "plugin.json")) || existsSync(join(workspace, ".claude-plugin"))) {
@@ -86,64 +133,39 @@ if (existsSync(skipMarker)) {
   process.exit(0);
 }
 
-console.log(`🔍 Scanning for non-repo-relative paths in: ${workspace}`);
-console.log("   Violations: paths not starting with / or http(s)");
-console.log("");
-
-// Fallback exclusions for non-git directories (expanded list)
-const excludeDirs = new Set([
-  "node_modules",
-  "plugins",
-  "skills",
-  ".git",
-  ".venv",
-  "archive",
-  "archives",
-  "scratch",
-  "plans",
-  "tmp",
-  "third_party",
-  "state",
-  // Common gitignored directories
-  "repos",
-  "target",
-  "vendor",
-  "dist",
-  "build",
-  "out",
-  "coverage",
-  ".cache",
-  "__pycache__",
-  ".mypy_cache",
-  ".pytest_cache",
-  ".ruff_cache",
-]);
-
-// Pattern for markdown links with relative paths
-const linkPattern = /\[([^\]]*)\]\(([^)]+)\)/g;
+// ============================================================================
+// Git Integration (using simple-git)
+// ============================================================================
 
 /**
- * Get tracked .md files using git ls-files (respects .gitignore)
+ * Get tracked .md files using simple-git (respects .gitignore)
  */
-function getTrackedMdFiles(workspace: string): string[] {
+async function getTrackedMdFiles(workspace: string): Promise<string[]> {
   try {
-    const result = execSync('git ls-files --cached "*.md" "**/*.md"', {
-      cwd: workspace,
-      encoding: "utf-8",
-      timeout: 30000,
-    });
+    const git: SimpleGit = simpleGit(workspace);
+
+    // Check if this is a git repository
+    const isRepo = await git.checkIsRepo();
+    if (!isRepo) {
+      logDebug("Not a git repository, falling back to directory walk");
+      return [];
+    }
+
+    // Use git ls-files to get tracked markdown files
+    const result = await git.raw(["ls-files", "--cached", "*.md", "**/*.md"]);
+
     if (result.trim()) {
       const files = result
         .trim()
         .split("\n")
         .filter(Boolean)
         .map((f) => join(workspace, f));
-      console.error(`[DEBUG] git ls-files found ${files.length} tracked .md files`);
+
+      logDebug(`simple-git found ${files.length} tracked .md files`);
       return files;
     }
   } catch (error) {
-    // Explicit logging - not a git repo or git not available
-    console.error(`[DEBUG] git ls-files failed (falling back to directory walk): ${error instanceof Error ? error.message : String(error)}`);
+    logDebug(`simple-git failed: ${error instanceof Error ? error.message : String(error)}`);
   }
   return [];
 }
@@ -154,15 +176,13 @@ function getTrackedMdFiles(workspace: string): string[] {
 function getMdFilesFallback(workspace: string): string[] {
   const files: string[] = [];
 
-  function walk(dir: string) {
+  function walk(dir: string): void {
     try {
-      const entries = Bun.file(dir).exists;
-      // Use Bun's native filesystem API
-      const dirEntries = require("fs").readdirSync(dir, { withFileTypes: true });
+      const entries = readdirSync(dir, { withFileTypes: true });
 
-      for (const entry of dirEntries) {
+      for (const entry of entries) {
         if (entry.isDirectory()) {
-          if (!excludeDirs.has(entry.name)) {
+          if (!EXCLUDE_DIRS.has(entry.name)) {
             walk(join(dir, entry.name));
           }
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
@@ -170,92 +190,142 @@ function getMdFilesFallback(workspace: string): string[] {
         }
       }
     } catch {
-      // Permission denied or other error
+      // Permission denied or other error - continue silently
     }
   }
 
   walk(workspace);
+  logDebug(`Directory walk found ${files.length} .md files`);
   return files;
 }
 
-// Prefer git ls-files (respects .gitignore), fallback to directory walk
-let mdFiles = getTrackedMdFiles(workspace);
-if (mdFiles.length === 0) {
-  mdFiles = getMdFilesFallback(workspace);
+// ============================================================================
+// Markdown Link Extraction (using remark + mdast)
+// ============================================================================
+
+interface LinkViolation {
+  file: string;
+  line: number;
+  column: number;
+  url: string;
+  text: string;
 }
 
-const violations: string[] = [];
+/**
+ * Extract non-compliant links from markdown content using remark
+ */
+function extractViolations(filepath: string, content: string): LinkViolation[] {
+  const violations: LinkViolation[] = [];
 
-for (const filepath of mdFiles) {
-  let content: string;
   try {
-    content = readFileSync(filepath, "utf-8");
-  } catch {
-    continue;
-  }
+    const tree = unified().use(remarkParse).parse(content);
 
-  const lines = content.split("\n");
-  let inCodeFence = false;
-
-  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
-    const line = lines[lineNum];
-
-    // Track code fence state
-    if (line.trim().startsWith("```")) {
-      inCodeFence = !inCodeFence;
-      continue;
-    }
-
-    // Skip if inside code fence
-    if (inCodeFence) {
-      continue;
-    }
-
-    // Skip inline code examples
-    if (line.includes("`[") && line.includes("](") && line.includes(")`")) {
-      continue;
-    }
-
-    // Find all links in line
-    let match: RegExpExecArray | null;
-    linkPattern.lastIndex = 0;
-    while ((match = linkPattern.exec(line)) !== null) {
-      const path = match[2];
+    // Visit all link nodes in the AST
+    visit(tree, "link", (node: Link) => {
+      const url = node.url;
 
       // Skip allowed patterns
-      if (path.startsWith("/") || path.startsWith("#") || path.startsWith("http://") || path.startsWith("https://") || path.startsWith("mailto:")) {
-        continue;
+      if (
+        url.startsWith("/") ||
+        url.startsWith("#") ||
+        url.startsWith("http://") ||
+        url.startsWith("https://") ||
+        url.startsWith("mailto:")
+      ) {
+        return;
       }
 
       // Skip template variables
-      if (path.startsWith("{") || path.startsWith("{{") || path === "...") {
-        continue;
+      if (url.startsWith("{") || url.startsWith("{{") || url === "...") {
+        return;
       }
 
       // This is a violation
-      violations.push(`${filepath}:${lineNum + 1}:${line.trimEnd()}`);
+      const position = node.position;
+      violations.push({
+        file: filepath,
+        line: position?.start.line ?? 0,
+        column: position?.start.column ?? 0,
+        url: url,
+        text: node.children.map((c) => ("value" in c ? c.value : "")).join(""),
+      });
+    });
+
+    // Also check link references (though these are less common)
+    visit(tree, "linkReference", (node: LinkReference) => {
+      // Link references use definitions, which should also be repo-relative
+      // For now, we skip these as they're handled differently
+    });
+  } catch (error) {
+    logError(`parsing ${filepath}`, error);
+  }
+
+  return violations;
+}
+
+// ============================================================================
+// Main Execution
+// ============================================================================
+
+async function main(): Promise<void> {
+  console.log(`🔍 Scanning for non-repo-relative paths in: ${workspace}`);
+  console.log("   Violations: paths not starting with / or http(s)");
+  console.log("");
+
+  // Get markdown files (prefer git ls-files, fallback to directory walk)
+  let mdFiles = await getTrackedMdFiles(workspace);
+  if (mdFiles.length === 0) {
+    mdFiles = getMdFilesFallback(workspace);
+  }
+
+  if (mdFiles.length === 0) {
+    console.log("⚠️ No markdown files found to scan");
+    process.exit(0);
+  }
+
+  // Scan all files for violations
+  const allViolations: LinkViolation[] = [];
+
+  for (const filepath of mdFiles) {
+    try {
+      const content = readFileSync(filepath, "utf-8");
+      const violations = extractViolations(filepath, content);
+      allViolations.push(...violations);
+    } catch (error) {
+      // File read error - log but continue
+      logDebug(`Could not read ${filepath}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
-}
 
-if (violations.length === 0) {
-  console.log("✅ No violations found. All local paths use repo-relative format (start with /).");
-  process.exit(0);
-}
+  // Report results
+  if (allViolations.length === 0) {
+    console.log("✅ No violations found. All local paths use repo-relative format (start with /).");
+    process.exit(0);
+  }
 
-console.log(`❌ Found ${violations.length} violation(s):`);
-console.log("");
-violations.slice(0, 50).forEach((v) => console.log(v));
-
-if (violations.length > 50) {
+  console.log(`❌ Found ${allViolations.length} violation(s):`);
   console.log("");
-  console.log(`... and ${violations.length - 50} more (showing first 50)`);
+
+  // Show first 50 violations
+  for (const v of allViolations.slice(0, 50)) {
+    console.log(`${v.file}:${v.line}:${v.column}: [${v.text}](${v.url})`);
+  }
+
+  if (allViolations.length > 50) {
+    console.log("");
+    console.log(`... and ${allViolations.length - 50} more (showing first 50)`);
+  }
+
+  console.log("");
+  console.log("📝 Fix: Convert relative paths to repo-relative paths starting with /");
+  console.log("   WRONG: [Link](../docs/foo.md)");
+  console.log("   WRONG: [Link](docs/foo.md)");
+  console.log("   RIGHT: [Link](/docs/foo.md)");
+
+  process.exit(1);
 }
 
-console.log("");
-console.log("📝 Fix: Convert relative paths to repo-relative paths starting with /");
-console.log("   WRONG: [Link](../docs/foo.md)");
-console.log("   WRONG: [Link](docs/foo.md)");
-console.log("   RIGHT: [Link](/docs/foo.md)");
-
-process.exit(1);
+// Run main with error handling
+main().catch((error) => {
+  fatalError("main execution", error);
+});
