@@ -92,12 +92,35 @@ repo-name/path | ↯ branch | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 L:0 P:0 | 
 
 ## Dependencies
 
-| Tool   | Required | Installation          |
-| ------ | -------- | --------------------- |
-| bash   | Yes      | Built-in              |
-| jq     | Yes      | `brew install jq`     |
-| git    | Yes      | Built-in on macOS     |
-| lychee | Optional | `mise install lychee` |
+### System Dependencies
+
+| Tool   | Required | Installation                                |
+| ------ | -------- | ------------------------------------------- |
+| bash   | Yes      | Built-in                                    |
+| jq     | Yes      | `brew install jq`                           |
+| git    | Yes      | Built-in on macOS                           |
+| bun    | Yes      | `brew install oven-sh/bun/bun` or bun.sh    |
+| lychee | Optional | `mise install lychee` (for link validation) |
+
+### npm Dependencies (for lint-relative-paths)
+
+The `lint-relative-paths` script is implemented in TypeScript and requires npm packages:
+
+| Package          | Purpose                                       |
+| ---------------- | --------------------------------------------- |
+| simple-git       | Git operations (git ls-files, repo detection) |
+| remark-parse     | Markdown AST parsing                          |
+| unified          | AST processor                                 |
+| unist-util-visit | AST traversal for link extraction             |
+
+**Post-installation step**: After installing the plugin, run:
+
+```bash
+cd ~/.claude/plugins/cache/cc-skills/statusline-tools/<version>
+bun install --frozen-lockfile
+```
+
+This installs the npm dependencies needed for the TypeScript linter.
 
 ## How It Works
 
@@ -105,7 +128,18 @@ repo-name/path | ↯ branch | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 L:0 P:0 | 
 
 2. **Stop Hook**: Runs at session end to validate markdown links (lychee) and check path formatting (lint-relative-paths). Results are cached in `.lychee-results.json` and `.lint-relative-paths-results.txt` at the git root.
 
-3. **lint-relative-paths**: Bundled script that enforces repository-relative path conventions in markdown files.
+3. **lint-relative-paths**: TypeScript-based linter that enforces repository-relative path conventions in markdown files.
+
+### .gitignore Respect
+
+Both validators use `git ls-files` to scan only **tracked files**, automatically respecting `.gitignore`. This prevents false positives from:
+
+- Cloned repositories (`repos/`, `vendor/`)
+- Build artifacts (`target/`, `dist/`, `build/`)
+- Dependencies (`node_modules/`, `.venv/`)
+- Cache directories (`.cache/`, `coverage/`)
+
+**Fallback behavior**: If not in a git repository, the validators use directory walking with an expanded exclusion list.
 
 ## Files
 
