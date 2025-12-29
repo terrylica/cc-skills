@@ -130,4 +130,3 @@ prompt: "Validate the plugin at plugins/$PLUGIN_NAME/"
 ## References
 
 - [Silent Failure Patterns](./references/silent-failure-patterns.md)
-- [Hook Development Guide](./references/hook-development.md)

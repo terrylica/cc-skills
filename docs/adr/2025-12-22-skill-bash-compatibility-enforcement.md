@@ -82,4 +82,4 @@ Fixed 194 bash blocks across 62 files in all plugins, including:
 
 - [Shell Command Portability ADR](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
 - [Plugin Authoring Guide](/docs/plugin-authoring.md)
-- [Bash Compatibility Reference](/plugins/skill-architecture/references/bash-compatibility.md)
+- [Bash Compatibility Reference](/plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md)

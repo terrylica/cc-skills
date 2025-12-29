@@ -56,7 +56,7 @@ Plugin "my-plugin" not found in any marketplace
 
 **Prevention**: See [Validation](#validation) section below.
 
-**Detailed Reference**: [Plugin Manifest Validation](./plugins/skill-architecture/references/validation-reference.md#plugin-manifest-validation)
+**Detailed Reference**: [Plugin Manifest Validation](./plugins/plugin-dev/skills/skill-architecture/references/validation-reference.md#plugin-manifest-validation)
 
 ## Validation
 
