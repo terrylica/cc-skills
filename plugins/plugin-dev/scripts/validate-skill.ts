@@ -74,6 +74,8 @@ const { values, positionals } = parseArgs({
     interactive: { type: "boolean", default: false },
     verbose: { type: "boolean", short: "v", default: false },
     strict: { type: "boolean", default: false },
+    "project-local": { type: "boolean", default: false },
+    "skip-bash": { type: "boolean", default: false },
     help: { type: "boolean", short: "h", default: false },
   },
   allowPositionals: true,
@@ -91,14 +93,33 @@ Options:
   --interactive     Generate AskUserQuestion JSON for clarifications
   -v, --verbose     Show all checks including passed ones
   --strict          Treat warnings as errors
+  --project-local   Treat as project-local skill (relaxed link rules)
+                    Auto-detected for paths containing .claude/skills/
+  --skip-bash       Skip bash compatibility checks (for documentation skills)
   -h, --help        Show this help message
 
 Exit codes:
   0  All validations passed
   1  Violations found (errors)
   2  Fatal error (invalid path, parse error)
+
+Link Policy:
+  Marketplace plugins:  Only ./relative, /docs/adr/*, /docs/design/* allowed
+  Project-local skills: Any /... repo path allowed (--project-local)
+
+Bash Policy:
+  Marketplace plugins:  Heredoc wrapper required for bash-specific syntax
+  --skip-bash:         Skip bash checks (when blocks are user docs, not Claude-executed)
 `);
   process.exit(0);
+}
+
+// Auto-detect project-local skills from path
+function isProjectLocalSkill(path: string): boolean {
+  // Explicit flag takes precedence
+  if (values["project-local"]) return true;
+  // Auto-detect .claude/skills/ pattern
+  return /\.claude\/skills\//.test(path);
 }
 
 // ============================================================================
@@ -294,7 +315,8 @@ function validateStructure(skillPath: string, content: string): ValidationResult
 // ============================================================================
 
 async function validateLinks(
-  skillPath: string
+  skillPath: string,
+  projectLocal: boolean = false
 ): Promise<{ results: ValidationResult[]; violations: LinkViolation[] }> {
   const violations: LinkViolation[] = [];
   const results: ValidationResult[] = [];
@@ -348,6 +370,11 @@ async function validateLinks(
 
         // Check repo-relative paths (starting with /)
         if (url.startsWith("/")) {
+          // Project-local skills can use any repo path
+          if (projectLocal) {
+            continue;
+          }
+          // Marketplace plugins: only /docs/adr/ and /docs/design/ allowed
           if (!isAllowedRepoPath(url)) {
             violations.push({
               filePath,
@@ -401,7 +428,9 @@ async function validateLinks(
       passed: false,
       message: `Found ${violations.length} link violation(s): ${parts.join(", ")}`,
       severity: "error",
-      fixSuggestion: "Only /docs/adr/ and /docs/design/ allowed. Copy other files to references/",
+      fixSuggestion: projectLocal
+        ? "Use relative paths (./references/*) for portability, or keep repo paths for project-specific docs"
+        : "Only /docs/adr/ and /docs/design/ allowed. Copy other files to references/",
     });
   }
 
@@ -540,7 +569,7 @@ function detectBashPattern(block: string): string {
 // Main Validation
 // ============================================================================
 
-async function validateSkill(skillPath: string): Promise<SkillValidation> {
+async function validateSkill(skillPath: string, projectLocal: boolean = false, skipBash: boolean = false): Promise<SkillValidation> {
   const validation: SkillValidation = {
     skillPath,
     skillName: "",
@@ -575,13 +604,22 @@ async function validateSkill(skillPath: string): Promise<SkillValidation> {
   );
   validation.results.push(...validateStructure(skillPath, content));
 
-  const linkResults = await validateLinks(skillPath);
+  const linkResults = await validateLinks(skillPath, projectLocal);
   validation.results.push(...linkResults.results);
   validation.linkViolations = linkResults.violations;
 
-  const bashResults = validateBashBlocks(skillPath);
-  validation.results.push(...bashResults.results);
-  validation.bashViolations = bashResults.violations;
+  if (skipBash) {
+    validation.results.push({
+      check: "bash_compatibility",
+      passed: true,
+      message: "Bash compatibility check skipped (--skip-bash)",
+      severity: "info",
+    });
+  } else {
+    const bashResults = validateBashBlocks(skillPath);
+    validation.results.push(...bashResults.results);
+    validation.bashViolations = bashResults.violations;
+  }
 
   return validation;
 }
@@ -637,7 +675,16 @@ async function main(): Promise<void> {
   const validations: SkillValidation[] = [];
 
   for (const skillPath of skillPaths) {
-    const validation = await validateSkill(skillPath);
+    // Auto-detect project-local skills
+    const projectLocal = isProjectLocalSkill(skillPath);
+    const skipBash = values["skip-bash"] ?? false;
+
+    if (projectLocal && values.verbose) {
+      logDebug(`Project-local skill detected: ${skillPath}`);
+      logDebug("Using relaxed link rules (any repo path allowed)");
+    }
+
+    const validation = await validateSkill(skillPath, projectLocal, skipBash);
     validations.push(validation);
 
     printResults(validation, { showFix: values.fix, verbose: values.verbose });
