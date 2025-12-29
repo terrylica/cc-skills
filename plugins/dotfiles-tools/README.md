@@ -19,32 +19,65 @@ Chezmoi dotfile backup, sync, and version control for cross-machine configuratio
 
 ## Hooks
 
+Two complementary hooks ensure chezmoi sync:
+
+| Hook                       | Type        | Trigger       | Effect                                |
+| -------------------------- | ----------- | ------------- | ------------------------------------- |
+| `chezmoi-sync-reminder.sh` | PostToolUse | Edit \| Write | **Reminder** (visibility only)        |
+| `chezmoi-stop-guard.mjs`   | Stop        | Session end   | **Enforcement** (blocks until synced) |
+
 ### PostToolUse: Chezmoi Sync Reminder
 
-| Trigger       | Files                 | Behavior                   |
-| ------------- | --------------------- | -------------------------- |
-| Edit \| Write | chezmoi-managed files | Reminder visible to Claude |
-
-When you edit a file tracked by chezmoi, Claude receives:
+When you edit a file tracked by chezmoi, Claude receives an immediate reminder:
 
 ```
-[CHEZMOI] ~/.zshrc is tracked by chezmoi. Sync with: chezmoi add ~/.zshrc && chezmoi git -- push.
-Or use Skill(dotfiles-tools:chezmoi-workflows).
+[CHEZMOI-SYNC] ~/.zshrc is tracked by chezmoi.
+Sync with: chezmoi add ~/.zshrc && chezmoi git -- push
 ```
 
-**Installation Required**: Hooks must be installed to `~/.claude/settings.json`:
+**Limitation**: Only triggers on `Edit|Write` tools, not `Bash(cp ...)`.
+
+### Stop: Chezmoi Sync Guard (NEW)
+
+When Claude tries to stop, this hook checks `chezmoi diff`. If uncommitted changes exist:
+
+```
+[CHEZMOI-GUARD] Uncommitted dotfile changes detected. Sync before stopping:
+
+Modified files:
+  - ~/.config/foo.conf
+  - ~/.zshrc
+
+Run these commands:
+  chezmoi re-add --verbose
+  chezmoi git -- add -A && chezmoi git -- commit -m "sync: dotfiles" && chezmoi git -- push
+```
+
+**Key difference**: Stop hooks with `decision: block` **ACTUALLY PREVENT** Claude from stopping.
+Claude is FORCED to take action before the session can end.
+
+**Catches everything**: Unlike PostToolUse, this catches `Bash(cp ...)`, `mv`, redirects - any file change.
+
+### Installation
 
 ```bash
 /dotfiles-tools:hooks install
 # Restart Claude Code for changes to take effect
 ```
 
-**Technical Note**: Uses `decision: block` JSON format for Claude visibility
-(see ADR: 2025-12-17-posttooluse-hook-visibility in cc-skills source).
+### Requirements
 
-**Performance**: Uses 5-minute cache of managed files list.
+| Tool      | Purpose                        | Install                        |
+| --------- | ------------------------------ | ------------------------------ |
+| `chezmoi` | Dotfile management             | `brew install chezmoi`         |
+| `jq`      | JSON parsing (PostToolUse)     | `brew install jq`              |
+| `bun`     | JavaScript runtime (Stop hook) | `brew install oven-sh/bun/bun` |
 
-**Requirements**: `chezmoi`, `jq` installed and in PATH.
+### Technical Notes
+
+- **PostToolUse**: Uses `decision: block` for visibility (tool already ran)
+- **Stop**: Uses `decision: block` for enforcement (blocks stopping)
+- See ADR: 2025-12-17-posttooluse-hook-visibility in cc-skills source
 
 ## Installation
 

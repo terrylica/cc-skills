@@ -120,9 +120,23 @@ do_install() {
 
     # Verify hook scripts exist
     local posttooluse_script="$HOOKS_BASE/chezmoi-sync-reminder.sh"
+    local stop_script="$HOOKS_BASE/chezmoi-stop-guard.mjs"
 
     if [[ ! -x "$posttooluse_script" ]]; then
         die "PostToolUse script not found or not executable: $posttooluse_script"
+    fi
+
+    if [[ ! -x "$stop_script" ]]; then
+        die "Stop script not found or not executable: $stop_script"
+    fi
+
+    # Verify bun is available (required for Stop hook)
+    if ! command -v bun &>/dev/null; then
+        warn "bun is not installed. Stop hook requires bun. Install with: brew install oven-sh/bun/bun"
+        warn "Continuing with PostToolUse hook only..."
+        local install_stop=false
+    else
+        local install_stop=true
     fi
 
     # Create backup
@@ -130,8 +144,9 @@ do_install() {
     timestamp=$(create_backup)
     info "Created backup: settings.json.backup.$timestamp"
 
-    # Prepare hook entry (using $HOME literal, not expanded)
+    # Prepare hook entries (using $HOME literal, not expanded)
     local posttooluse_entry='{"matcher":"Edit|Write","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/dotfiles-tools/hooks/chezmoi-sync-reminder.sh","timeout":5000}]}'
+    local stop_entry='{"hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/dotfiles-tools/hooks/chezmoi-stop-guard.mjs","timeout":15000}]}'
 
     # Create temp file for atomic write
     local temp_file
@@ -139,11 +154,21 @@ do_install() {
     trap 'rm -f "$temp_file"' EXIT
 
     # Apply modifications using jq
-    jq --argjson post "$posttooluse_entry" '
-        .hooks //= {} |
-        .hooks.PostToolUse //= [] |
-        .hooks.PostToolUse += [$post]
-    ' "$SETTINGS" > "$temp_file"
+    if [[ "$install_stop" == "true" ]]; then
+        jq --argjson post "$posttooluse_entry" --argjson stop "$stop_entry" '
+            .hooks //= {} |
+            .hooks.PostToolUse //= [] |
+            .hooks.PostToolUse += [$post] |
+            .hooks.Stop //= [] |
+            .hooks.Stop += [$stop]
+        ' "$SETTINGS" > "$temp_file"
+    else
+        jq --argjson post "$posttooluse_entry" '
+            .hooks //= {} |
+            .hooks.PostToolUse //= [] |
+            .hooks.PostToolUse += [$post]
+        ' "$SETTINGS" > "$temp_file"
+    fi
 
     # Validate the new JSON
     if ! validate_json "$temp_file"; then
@@ -155,6 +180,13 @@ do_install() {
     trap - EXIT
 
     info "dotfiles-tools hooks installed successfully!"
+    if [[ "$install_stop" == "true" ]]; then
+        info "  - PostToolUse: chezmoi-sync-reminder.sh (Edit|Write reminder)"
+        info "  - Stop: chezmoi-stop-guard.mjs (enforcement before session end)"
+    else
+        info "  - PostToolUse: chezmoi-sync-reminder.sh (Edit|Write reminder)"
+        warn "  - Stop hook skipped (bun not installed)"
+    fi
     echo ""
     echo "IMPORTANT: Restart Claude Code for changes to take effect."
     echo ""
