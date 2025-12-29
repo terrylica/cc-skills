@@ -1,0 +1,26 @@
+{
+  "name": "@cc-skills/plugin-dev",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Skill validators for Claude Code plugin development",
+  "scripts": {
+    "validate": "bun run scripts/validate-skill.ts",
+    "validate:links": "bun run scripts/validate-links.ts",
+    "fix:bash": "bun run scripts/fix-bash-blocks.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "marked": "^15.0.0",
+    "gray-matter": "^4.0.3",
+    "ansis": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

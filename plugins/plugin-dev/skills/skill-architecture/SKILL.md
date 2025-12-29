@@ -28,7 +28,7 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 6. Add TodoWrite task templates section to SKILL.md
 7. Add Post-Change Checklist section to SKILL.md
 8. Validate with quick_validate.py
-9. Validate links (relative paths only): uv run scripts/validate_links.py <skill-path>
+9. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 10. Test skill on real example
 11. Register skill in project CLAUDE.md
 12. Verify against Skill Quality Checklist below
@@ -42,7 +42,7 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 3. Make targeted changes to SKILL.md
 4. Update any affected references/ or scripts/
 5. Validate with quick_validate.py
-6. Validate links (relative paths only): uv run scripts/validate_links.py <skill-path>
+6. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 7. Test updated behavior
 8. Update project CLAUDE.md if description changed
 9. Verify against Skill Quality Checklist below
@@ -56,7 +56,7 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 3. Create resource in appropriate directory
 4. Update SKILL.md to document new resource
 5. Validate with quick_validate.py
-6. Validate links (relative paths only): uv run scripts/validate_links.py <skill-path>
+6. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 7. Test resource integration
 8. Verify against Skill Quality Checklist below
 ```
@@ -71,7 +71,7 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 5. Create references/config-reference.md (if skill manages external config)
 6. Update description with self-evolution triggers
 7. Validate with quick_validate.py
-8. Validate links (relative paths only): uv run scripts/validate_links.py <skill-path>
+8. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 9. Test self-documentation on sample change
 10. Verify against Skill Quality Checklist below
 ```
@@ -83,7 +83,7 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 2. Verify trigger keywords in description match user queries
 3. Check skill location (~/.claude/skills/ or project .claude/skills/)
 4. Validate with quick_validate.py for errors
-5. Validate links: uv run scripts/validate_links.py <skill-path>
+5. Validate links: bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 6. Test with explicit trigger phrase
 7. Document findings in skill if new issue discovered
 8. Verify against Skill Quality Checklist below
@@ -101,7 +101,7 @@ After ANY skill work, verify:
 - [ ] Project CLAUDE.md updated if new/renamed skill
 - [ ] Validated with quick_validate.py
 - [ ] All markdown links use relative paths (plugin-portable)
-- [ ] No broken internal links (validate_links.py passes)
+- [ ] No broken internal links (validate-links.ts passes)
 - [ ] No unsafe path patterns (see [Path Patterns](./references/path-patterns.md)):
   - No hardcoded `/Users/<user>` or `/home/<user>` (use `$HOME`)
   - No hardcoded `/tmp` in Python (use `tempfile.TemporaryDirectory`)
