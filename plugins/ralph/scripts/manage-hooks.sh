@@ -190,7 +190,7 @@ do_install() {
     # Build hook command paths using detected PLUGIN_ROOT
     # Convert absolute path to $HOME-based for portability in settings.json
     local home_relative="${PLUGIN_ROOT/#$HOME/\$HOME}"
-    local stop_cmd="uv run ${home_relative}/hooks/loop-until-done.py"
+    local stop_cmd="\$HOME/.local/share/mise/shims/uv run ${home_relative}/hooks/loop-until-done.py"
     local pretooluse_cmd="${home_relative}/hooks/archive-plan.sh"
 
     # Prepare hook entries using jq for proper JSON escaping
