@@ -1,3 +1,77 @@
+# [9.0.0](https://github.com/terrylica/cc-skills/compare/v8.11.4...v9.0.0) (2025-12-29)
+
+
+### Features
+
+* **plugin-dev:** migrate skill validators from Python to Bun/TypeScript ([3b2623f](https://github.com/terrylica/cc-skills/commit/3b2623f34e91974ec6044432ea06e08654c762f9))
+
+
+### BREAKING CHANGES
+
+* **plugin-dev:** Python validators removed, use TypeScript equivalents
+
+Migration:
+- validate_skill.py → validate-skill.ts (11+ validation checks)
+- validate_links.py → validate-links.ts (strict /docs/ policy)
+- fix_bash_blocks.py → fix-bash-blocks.ts (auto heredoc wrapper)
+
+New features:
+- Stricter link policy: only /docs/adr/ and /docs/design/ allowed
+- AST-based link extraction using marked + gray-matter
+- AskUserQuestion JSON output for interactive mode
+- Colored CLI output with ansis
+
+Technical stack:
+- Bun runtime with TypeScript
+- marked v15 for markdown parsing
+- gray-matter v4 for YAML frontmatter
+- ansis v3 for terminal colors
+
+All documentation references updated to new paths.
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [Skill Bash Compatibility Enforcement](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-skill-bash-compatibility-enforcement.md) | updated (+2/-2) |
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+6/-6)
+
+</details>
+
+
+### Plugin READMEs
+
+- [plugin-dev](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/README.md) - updated (+9/-7)
+
+### Skill References
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (3 files)</summary>
+
+- [Bash Compatibility for Skills](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md) - updated (+8/-1)
+- [Creation Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/creation-workflow.md) - updated (+1/-1)
+- [Scripts Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/scripts-reference.md) - updated (+31/-14)
+
+</details>
+
 ## [8.11.4](https://github.com/terrylica/cc-skills/compare/v8.11.3...v8.11.4) (2025-12-29)
 
 
