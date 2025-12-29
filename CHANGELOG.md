@@ -1,3 +1,29 @@
+## [9.0.3](https://github.com/terrylica/cc-skills/compare/v9.0.2...v9.0.3) (2025-12-29)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [plugin-dev](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/README.md) - updated (+9)
+
+### Skill References
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (2 files)</summary>
+
+- [Bash Compatibility for Skills](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md) - updated (+6)
+- [Scripts Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/scripts-reference.md) - updated (+19/-2)
+
+</details>
+
 ## [9.0.2](https://github.com/terrylica/cc-skills/compare/v9.0.1...v9.0.2) (2025-12-29)
 
 
