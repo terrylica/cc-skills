@@ -1,3 +1,10 @@
+## [9.0.1](https://github.com/terrylica/cc-skills/compare/v9.0.0...v9.0.1) (2025-12-29)
+
+
+### Bug Fixes
+
+* **statusline-tools:** exclude .claude/skills/ from lint-relative-paths ([8221474](https://github.com/terrylica/cc-skills/commit/822147479922f4d71f6f43838f715491fdd3b5d3))
+
 # [9.0.0](https://github.com/terrylica/cc-skills/compare/v8.11.4...v9.0.0) (2025-12-29)
 
 
