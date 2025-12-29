@@ -1,0 +1,25 @@
+{
+  "name": "@cc-skills/statusline-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Status line and link validation tools for Claude Code",
+  "scripts": {
+    "lint": "bun run scripts/lint-relative-paths.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "simple-git": "^3.27.0",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
