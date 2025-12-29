@@ -1,3 +1,49 @@
+## [8.11.3](https://github.com/terrylica/cc-skills/compare/v8.11.2...v8.11.3) (2025-12-29)
+
+
+### Bug Fixes
+
+* **docs:** correct broken internal links detected by lychee ([33febcc](https://github.com/terrylica/cc-skills/commit/33febcc1144ec75f7a104e2540a9de2903ac76eb))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) | updated (-1) |
+| unknown | [Skill Bash Compatibility Enforcement](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-skill-bash-compatibility-enforcement.md) | updated (+1/-1) |
+
+### Design Specs
+
+- [Design Spec: Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - coupled
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [plugin-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/plugin-validator/SKILL.md) - updated (-1)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+1/-1)
+
 ## [8.11.2](https://github.com/terrylica/cc-skills/compare/v8.11.1...v8.11.2) (2025-12-29)
 
 
