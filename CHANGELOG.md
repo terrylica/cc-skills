@@ -1,3 +1,24 @@
+## [8.11.1](https://github.com/terrylica/cc-skills/compare/v8.11.0...v8.11.1) (2025-12-29)
+
+
+### Bug Fixes
+
+* **statusline-tools:** use --root-dir for lychee and document dependencies ([7ff56bf](https://github.com/terrylica/cc-skills/commit/7ff56bf697fde9080122922267680716417dc4ec))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [statusline-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/README.md) - updated (+41/-7)
+
 # [8.11.0](https://github.com/terrylica/cc-skills/compare/v8.10.2...v8.11.0) (2025-12-29)
 
 
