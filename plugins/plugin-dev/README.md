@@ -62,7 +62,16 @@ The `skill-architecture` skill provides:
 Run scripts with:
 
 ```bash
+# Marketplace plugins (strict validation)
 bun run plugins/plugin-dev/scripts/validate-skill.ts <skill-path>
+
+# Project-local skills (auto-detected, relaxed link rules)
+bun run plugins/plugin-dev/scripts/validate-skill.ts .claude/skills/<skill>/
+
+# Skip bash checks for documentation-only skills
+bun run plugins/plugin-dev/scripts/validate-skill.ts <path> --skip-bash
+
+# Other validators
 bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts <path> [--dry]
 ```
