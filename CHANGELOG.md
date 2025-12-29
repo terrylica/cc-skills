@@ -1,3 +1,10 @@
+## [8.11.4](https://github.com/terrylica/cc-skills/compare/v8.11.3...v8.11.4) (2025-12-29)
+
+
+### Bug Fixes
+
+* **statusline-tools:** skip skill directories in lint-relative-paths ([4b7067f](https://github.com/terrylica/cc-skills/commit/4b7067f75e3e5cc199104d361567d4d34821fd39))
+
 ## [8.11.3](https://github.com/terrylica/cc-skills/compare/v8.11.2...v8.11.3) (2025-12-29)
 
 
