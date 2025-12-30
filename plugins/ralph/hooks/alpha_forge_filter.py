@@ -80,7 +80,7 @@ BUSYWORK_PATTERNS: list[str] = [
     r"refactor.*for.*readability",
     # === META-BUSYWORK ===
     r"Gather more data",
-    r"running RSSI discovery",
+    r"running Ralph discovery",
     r"discover.*opportunities",
     # === DEPENDENCY CHURN (unless security) ===
     r"update.*dependency",

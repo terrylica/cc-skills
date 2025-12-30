@@ -1,6 +1,6 @@
 """Completion detection functions for Ralph hook.
 
-Provides multi-signal completion detection (RSSI-grade) that works
+Provides multi-signal completion detection that works
 with any file format (ADRs, specs, plans) without requiring explicit markers.
 """
 import logging
