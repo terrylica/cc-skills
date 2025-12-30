@@ -173,13 +173,17 @@ do_install() {
 
     # Verify hook scripts exist
     local stop_script="$HOOKS_BASE/loop-until-done.py"
-    local pretooluse_script="$HOOKS_BASE/archive-plan.sh"
+    local pretooluse_archive_script="$HOOKS_BASE/archive-plan.sh"
+    local pretooluse_guard_script="$HOOKS_BASE/pretooluse-loop-guard.py"
 
     if [[ ! -f "$stop_script" ]]; then
         die "Stop hook script not found: $stop_script"
     fi
-    if [[ ! -f "$pretooluse_script" ]]; then
-        die "PreToolUse hook script not found: $pretooluse_script"
+    if [[ ! -f "$pretooluse_archive_script" ]]; then
+        die "PreToolUse archive hook script not found: $pretooluse_archive_script"
+    fi
+    if [[ ! -f "$pretooluse_guard_script" ]]; then
+        die "PreToolUse loop guard script not found: $pretooluse_guard_script"
     fi
 
     # Create backup
@@ -191,21 +195,27 @@ do_install() {
     # Convert absolute path to $HOME-based for portability in settings.json
     local home_relative="${PLUGIN_ROOT/#$HOME/\$HOME}"
     local stop_cmd="\$HOME/.local/share/mise/shims/uv run ${home_relative}/hooks/loop-until-done.py"
-    local pretooluse_cmd="${home_relative}/hooks/archive-plan.sh"
+    local pretooluse_archive_cmd="${home_relative}/hooks/archive-plan.sh"
+    local pretooluse_guard_cmd="\$HOME/.local/share/mise/shims/uv run ${home_relative}/hooks/pretooluse-loop-guard.py"
 
     # Prepare hook entries using jq for proper JSON escaping
     # Structure: each entry is added to the event array directly
     # Stop: {"hooks": [{type, command, timeout}]}
     # PreToolUse: {"matcher": "...", "hooks": [{type, command, timeout}]}
     local stop_entry
-    local pretooluse_entry
+    local pretooluse_archive_entry
+    local pretooluse_guard_entry
     if ! stop_entry=$(jq -n --arg cmd "$stop_cmd" '{"hooks":[{"type":"command","command":$cmd,"timeout":30000}]}' 2>&1); then
         die "Failed to create Stop hook entry: $stop_entry"
     fi
     # NOTE: PreToolUse entry should NOT have outer {"hooks": [...]} wrapper
     # The matcher and hooks are at the same level in the array element
-    if ! pretooluse_entry=$(jq -n --arg cmd "$pretooluse_cmd" '{"matcher":"Write|Edit","hooks":[{"type":"command","command":$cmd,"timeout":5000}]}' 2>&1); then
-        die "Failed to create PreToolUse hook entry: $pretooluse_entry"
+    if ! pretooluse_archive_entry=$(jq -n --arg cmd "$pretooluse_archive_cmd" '{"matcher":"Write|Edit","hooks":[{"type":"command","command":$cmd,"timeout":5000}]}' 2>&1); then
+        die "Failed to create PreToolUse archive hook entry: $pretooluse_archive_entry"
+    fi
+    # Bash guard hook - protects loop control files from deletion
+    if ! pretooluse_guard_entry=$(jq -n --arg cmd "$pretooluse_guard_cmd" '{"matcher":"Bash","hooks":[{"type":"command","command":$cmd,"timeout":5000}]}' 2>&1); then
+        die "Failed to create PreToolUse guard hook entry: $pretooluse_guard_entry"
     fi
 
     # Create temp file for atomic write
@@ -215,12 +225,12 @@ do_install() {
 
     # Apply modifications using jq
     local jq_result
-    if ! jq_result=$(jq --argjson stop "$stop_entry" --argjson pre "$pretooluse_entry" '
+    if ! jq_result=$(jq --argjson stop "$stop_entry" --argjson preArchive "$pretooluse_archive_entry" --argjson preGuard "$pretooluse_guard_entry" '
         .hooks //= {} |
         .hooks.Stop //= [] |
         .hooks.Stop += [$stop] |
         .hooks.PreToolUse //= [] |
-        .hooks.PreToolUse += [$pre]
+        .hooks.PreToolUse += [$preArchive, $preGuard]
     ' "$SETTINGS" 2>&1); then
         die "Failed to modify settings.json: $jq_result"
     fi
@@ -248,7 +258,8 @@ do_install() {
     echo ""
     echo "Hooks installed:"
     echo "  - Stop: loop-until-done.py (autonomous loop control)"
-    echo "  - PreToolUse: archive-plan.sh (plan file archival)"
+    echo "  - PreToolUse (Write|Edit): archive-plan.sh (plan file archival)"
+    echo "  - PreToolUse (Bash): pretooluse-loop-guard.py (loop file protection)"
     echo ""
     echo "IMPORTANT: Restart Claude Code for changes to take effect."
 }
