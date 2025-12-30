@@ -14,7 +14,7 @@ SLO Enhancement: Adds methods for SLO enforcement:
 - get_slo_context() - Returns context for template rendering
 
 IMPORTANT: This adapter does NOT influence stopping decisions.
-All stopping is handled by Ralph's native RSSI scheme:
+All stopping is handled by Ralph's native eternal loop scheme:
 - Task completion markers
 - Time limits (min/max hours)
 - Iteration limits (min/max iterations)
@@ -54,8 +54,8 @@ class AlphaForgeAdapter(ProjectAdapter):
     - Provides Best Sharpe, experiment count, WFE for status display
     - Determines research phase (exploration vs attribution) based on Sharpe
 
-    Stopping: Handled ENTIRELY by Ralph's native RSSI scheme.
-    This adapter always returns DEFAULT_CONFIDENCE (0.0) to defer to RSSI.
+    Stopping: Handled ENTIRELY by Ralph's native eternal loop scheme.
+    This adapter always returns DEFAULT_CONFIDENCE (0.0) to defer to Ralph.
     """
 
     name = "alpha-forge"
@@ -199,11 +199,11 @@ class AlphaForgeAdapter(ProjectAdapter):
     ) -> ConvergenceResult:
         """Provide metrics status and detect explicit CONVERGED state.
 
-        Alpha Forge uses eternal RSSI loop. This adapter:
+        Alpha Forge uses Ralph's eternal loop. This adapter:
         - Provides metrics for display
         - Detects explicit CONVERGED status in research_log.md
         - When CONVERGED, sets converged=True to hard-block busywork
-        - Still defers stopping decisions to RSSI (confidence=0.0)
+        - Still defers stopping decisions to Ralph (confidence=0.0)
 
         Args:
             metrics_history: List of metrics from completed runs
@@ -240,7 +240,7 @@ class AlphaForgeAdapter(ProjectAdapter):
         if is_converged:
             logger.info("Research CONVERGED detected - busywork will be hard-blocked")
             return ConvergenceResult(
-                should_continue=True,  # Still defer stopping to RSSI
+                should_continue=True,  # Still defer stopping to Ralph
                 reason=f"CONVERGED: Sharpe={best_sharpe:.3f}{wfe_info}. Only /research allowed.",
                 confidence=DEFAULT_CONFIDENCE,  # Don't influence stopping
                 converged=True,  # Signal to hard-block busywork
@@ -248,9 +248,9 @@ class AlphaForgeAdapter(ProjectAdapter):
 
         # Build informational status (for display only)
         return ConvergenceResult(
-            should_continue=True,  # Always continue - let RSSI decide stopping
+            should_continue=True,  # Always continue - let Ralph decide stopping
             reason=f"Experiments: {n}, best Sharpe={best_sharpe:.3f} (run {best_idx + 1}), {runs_since_best} since best{wfe_info}",
-            confidence=DEFAULT_CONFIDENCE,  # Never influence RSSI stopping
+            confidence=DEFAULT_CONFIDENCE,  # Never influence Ralph stopping
         )
 
     def get_session_mode(self) -> str:
@@ -383,7 +383,7 @@ class AlphaForgeAdapter(ProjectAdapter):
         Args:
             project_dir: Path to Alpha Forge project root
             work_item: Current work item (optional)
-            iteration: Current RSSI iteration number
+            iteration: Current Ralph iteration number
 
         Returns:
             Dict with context for template rendering

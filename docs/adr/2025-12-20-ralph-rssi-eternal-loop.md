@@ -8,9 +8,9 @@ clarification-iterations: 3
 perspectives: [SystemArchitecture, PerformanceOptimization, UserExperience]
 ---
 
-# ADR: Ralph RSSI Eternal Loop Architecture
+# ADR: Ralph Eternal Loop Architecture
 
-> **Terminology Note**: "RSSI" stands for **Recursively Self-Sustaining Iteration** — a practical mechanism for continuous autonomous research. The "superintelligence" references in the template are **aspirational framing** to encourage thorough exploration, not literal claims about AI capabilities. See [MENTAL-MODEL.md](/plugins/ralph/MENTAL-MODEL.md#rssi--aspirational-framing) for clarification.
+> **Note**: Ralph is an autonomous improvement engine for Alpha Forge. The eternal loop behavior ensures continuous work discovery and execution.
 
 **Design Spec**: [Implementation Spec](/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md)
 
@@ -18,7 +18,7 @@ perspectives: [SystemArchitecture, PerformanceOptimization, UserExperience]
 
 When Ralph operates in no-focus autonomous mode, it goes "idle" instead of actively exploring for improvements. The root cause is that `scan_work_opportunities()` returns an empty list when all automated checks pass, and the exploration template's Jinja2 conditional hides the opportunities section, leaving Claude with no concrete work items.
 
-A static fallback list is insufficient for true RSSI (Recursively Self-Sustaining Iteration) behavior. True RSSI requires:
+A static fallback list is insufficient for true recursive self-improvement behavior. Ralph requires:
 
 1. Dynamic capability discovery (use whatever tools exist)
 2. Session history mining (learn from past explorations)
@@ -82,10 +82,10 @@ graph { label: "⏮️ Before: Ralph Idle Behavior"; flow: south; }
 
 </details>
 
-**After: RSSI Eternal Loop**
+**After: Ralph Eternal Loop**
 
 ```
-   ⏭️ After: RSSI Eternal Loop
+   ⏭️ After: Ralph Eternal Loop
 
 ╭────────────────────────────╮
 │ Level 2: Dynamic Discovery │ <┐
@@ -106,7 +106,7 @@ graph { label: "⏮️ Before: Ralph Idle Behavior"; flow: south; }
   │                             │
   ∨                             │
 ┌────────────────────────────┐  │
-│     Level 5: Meta-RSSI     │  │
+│  Level 5: Meta-Improvement │  │
 └────────────────────────────┘  │
   │                             │
   │                             │
@@ -138,12 +138,12 @@ graph { label: "⏮️ Before: Ralph Idle Behavior"; flow: south; }
 <summary>graph-easy source</summary>
 
 ```
-graph { label: "⏭️ After: RSSI Eternal Loop"; flow: south; }
+graph { label: "⏭️ After: Ralph Eternal Loop"; flow: south; }
 [ Level 2: Dynamic Discovery ] { shape: rounded; }
 [ Level 2: Dynamic Discovery ] -> [ Level 3: History Mining ]
 [ Level 3: History Mining ] -> [ Level 4: Self-Modification ]
-[ Level 4: Self-Modification ] -> [ Level 5: Meta-RSSI ]
-[ Level 5: Meta-RSSI ] -> [ Level 6: Web Discovery ]
+[ Level 4: Self-Modification ] -> [ Level 5: Meta-Improvement ]
+[ Level 5: Meta-Improvement ] -> [ Level 6: Web Discovery ]
 [ Level 6: Web Discovery ] -> [ Quality Gate ] { border: double; }
 [ Quality Gate ] -> [ Execute Best Opportunity ]
 [ Execute Best Opportunity ] -> [ Accumulate Knowledge ]
@@ -163,25 +163,25 @@ graph { label: "⏭️ After: RSSI Eternal Loop"; flow: south; }
 
 ## Decision Log
 
-| Decision Area              | Options Evaluated                                      | Chosen           | Rationale                                                               |
-| -------------------------- | ------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------- |
-| RSSI Depth                 | Level 2 only, Levels 2-3, Levels 2-4, All levels (2-6) | All levels (2-6) | User explicitly requested full RSSI with web discovery for big features |
-| Exploration Aggressiveness | Conservative, Balanced, Proactive                      | Proactive        | User chose "never idle" - always find work                              |
-| Quality Gate               | None, Basic, SOTA-enforced                             | SOTA-enforced    | All solutions must use SOTA concepts or well-maintained OSS             |
-| Loop Behavior              | Single-pass, Fixed iterations, Eternal                 | Eternal          | RSSI levels loop forever, accumulating knowledge                        |
+| Decision Area              | Options Evaluated                                      | Chosen           | Rationale                                                     |
+| -------------------------- | ------------------------------------------------------ | ---------------- | ------------------------------------------------------------- |
+| Discovery Depth            | Level 2 only, Levels 2-3, Levels 2-4, All levels (2-6) | All levels (2-6) | Full discovery stack with web discovery for big features      |
+| Exploration Aggressiveness | Conservative, Balanced, Proactive                      | Proactive        | User chose "never idle" - always find work                    |
+| Quality Gate               | None, Basic, SOTA-enforced                             | SOTA-enforced    | All solutions must use SOTA concepts or well-maintained OSS   |
+| Loop Behavior              | Single-pass, Fixed iterations, Eternal                 | Eternal          | Ralph loops forever, accumulating knowledge across iterations |
 
 ### Trade-offs Accepted
 
 | Trade-off                | Choice                | Accepted Cost                                            |
 | ------------------------ | --------------------- | -------------------------------------------------------- |
-| Complexity vs Simplicity | Full RSSI stack       | More modules to maintain, higher cognitive load          |
+| Complexity vs Simplicity | Full Ralph stack      | More modules to maintain, higher cognitive load          |
 | Autonomy vs Control      | Eternal loop          | Requires explicit stop mechanism                         |
 | Web Search vs Local-only | Web-powered discovery | Depends on network, potential for irrelevant suggestions |
 
 ## Decision Drivers
 
 - User explicitly stated Ralph is "wrong" for going idle
-- True RSSI should never idle - it finds or creates improvement opportunities
+- Ralph should never idle - it finds or creates improvement opportunities
 - Knowledge should accumulate across loop iterations
 - Solutions must meet SOTA/well-maintained OSS quality standards
 
@@ -189,25 +189,25 @@ graph { label: "⏭️ After: RSSI Eternal Loop"; flow: south; }
 
 - **Option A**: Static Fallback List - Hard-coded checks that always run
 - **Option B**: Dynamic Discovery Only (Level 2) - Scan for available tools, use them
-- **Option C**: Full RSSI Stack (Levels 2-6) - Dynamic discovery + history mining + self-modification + meta-improvement + web discovery + quality gates + eternal loop <- Selected
+- **Option C**: Full Ralph Stack (Levels 2-6) - Dynamic discovery + history mining + self-modification + meta-improvement + web discovery + quality gates + eternal loop <- Selected
 
 ## Decision Outcome
 
-Chosen option: **Option C (Full RSSI Stack)**, because:
+Chosen option: **Option C (Full Ralph Stack)**, because:
 
 1. User explicitly requested "all levels (2-5)" plus web search for big features
-2. Static fallback is not "RSSI enough" - it doesn't learn or evolve
+2. Static fallback doesn't learn or evolve
 3. True recursive self-improvement requires the loop to never terminate
 4. Knowledge accumulation across iterations enables smarter discovery over time
 5. SOTA quality gates ensure improvements are high-quality
 
 ## Synthesis
 
-**Convergent findings**: Ralph's existing infrastructure (session state, adapter architecture, template system) provides building blocks for RSSI, but lacks learning/evolution mechanisms.
+**Convergent findings**: Ralph's existing infrastructure (session state, adapter architecture, template system) provides building blocks for recursive self-improvement, but lacks learning/evolution mechanisms.
 
 **Divergent findings**: None - single agent exploration with clear root cause identification.
 
-**Resolution**: Build on existing infrastructure, add 5 new RSSI modules, update templates for eternal loop awareness.
+**Resolution**: Build on existing infrastructure, add 5 new Ralph modules, update templates for eternal loop awareness.
 
 ## Consequences
 
@@ -229,7 +229,7 @@ Chosen option: **Option C (Full RSSI Stack)**, because:
 ## Architecture
 
 ```
-                                              🏗️ RSSI Architecture
+                                              🏗️ Ralph Architecture
 
 ┏━━━━━━━━━━━━━━━┓      ┌───────────────┐     ┌──────────┐     ┌─────────┐     ╔══════════════╗     ┌─────────────┐
 ┃     State     ┃      │ L4: Evolution │     │ L5: Meta │     │ L6: Web │     ║ Orchestrator ║     │ Loop Driver │
@@ -247,22 +247,22 @@ Chosen option: **Option C (Full RSSI Stack)**, because:
 <summary>graph-easy source</summary>
 
 ```
-graph { label: "🏗️ RSSI Architecture"; flow: east; }
+graph { label: "🏗️ Ralph Architecture"; flow: east; }
 
-[ rssi_discovery.py ] { label: "L2: Discovery"; shape: rounded; }
-[ rssi_history.py ] { label: "L3: History"; }
-[ rssi_evolution.py ] { label: "L4: Evolution"; }
-[ rssi_meta.py ] { label: "L5: Meta"; }
-[ rssi_web_discovery.py ] { label: "L6: Web"; }
+[ ralph_discovery.py ] { label: "L2: Discovery"; shape: rounded; }
+[ ralph_history.py ] { label: "L3: History"; }
+[ ralph_evolution.py ] { label: "L4: Evolution"; }
+[ ralph_meta.py ] { label: "L5: Meta"; }
+[ ralph_web_discovery.py ] { label: "L6: Web"; }
 
 [ discovery.py ] { label: "Orchestrator"; border: double; }
 [ loop-until-done.py ] { label: "Loop Driver"; }
-[ RSSIKnowledge ] { label: "State\nPersistence"; border: bold; }
+[ RalphKnowledge ] { label: "State\nPersistence"; border: bold; }
 
-[ rssi_discovery.py ] -> [ rssi_history.py ] -> [ rssi_evolution.py ] -> [ rssi_meta.py ] -> [ rssi_web_discovery.py ]
-[ rssi_web_discovery.py ] -> [ discovery.py ]
+[ ralph_discovery.py ] -> [ ralph_history.py ] -> [ ralph_evolution.py ] -> [ ralph_meta.py ] -> [ ralph_web_discovery.py ]
+[ ralph_web_discovery.py ] -> [ discovery.py ]
 [ discovery.py ] -> [ loop-until-done.py ]
-[ RSSIKnowledge ] <-> [ rssi_evolution.py ]
+[ RalphKnowledge ] <-> [ ralph_evolution.py ]
 ```
 
 </details>

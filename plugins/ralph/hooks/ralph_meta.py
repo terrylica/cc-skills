@@ -47,7 +47,7 @@ def analyze_discovery_effectiveness() -> dict:
             "status": "insufficient_data",
             "overall_effectiveness": 0.0,
             "total_checks_run": 0,
-            "recommendations": ["Run more RSSI sessions to gather effectiveness data"],
+            "recommendations": ["Run more Ralph sessions to gather effectiveness data"],
         }
 
     # Calculate overall hit rate
@@ -96,7 +96,7 @@ def analyze_discovery_effectiveness() -> dict:
 
 def improve_discovery_mechanism(project_dir: Path) -> list[str]:
     """
-    The core of meta-RSSI: improve the discovery mechanism itself.
+    The core of Ralph meta-improvement: improve the discovery mechanism itself.
 
     Strategies:
     1. Disable ineffective checks
@@ -171,13 +171,13 @@ def get_meta_suggestions() -> list[str]:
     Generate meta-level improvement suggestions.
 
     Returns:
-        List of high-level suggestions for improving RSSI behavior.
+        List of high-level suggestions for improving Ralph behavior.
     """
     analysis = analyze_discovery_effectiveness()
     suggestions: list[str] = []
 
     if analysis["status"] == "insufficient_data":
-        suggestions.append("Gather more data by running RSSI discovery sessions")
+        suggestions.append("Gather more data by running Ralph discovery sessions")
         return suggestions
 
     effectiveness = analysis["overall_effectiveness"]
@@ -198,7 +198,7 @@ def get_meta_suggestions() -> list[str]:
 
 def should_expand_capabilities() -> bool:
     """
-    Determine if RSSI should suggest installing new tools.
+    Determine if Ralph should suggest installing new tools.
 
     Returns:
         True if discovery effectiveness is high enough to warrant expansion.

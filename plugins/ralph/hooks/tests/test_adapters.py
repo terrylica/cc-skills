@@ -120,15 +120,15 @@ def test_load_session_state_existing():
 #         print("✓ Universal adapter matches all projects")
 #
 #
-# def test_universal_adapter_defers_to_rssi():
-#     """Universal adapter returns confidence=0.0 (defer to RSSI)."""
+# def test_universal_adapter_defers_to_ralph():
+#     """Universal adapter returns confidence=0.0 (defer to Ralph)."""
 #     adapter = UniversalAdapter()
 #
 #     result = adapter.check_convergence([])
 #
 #     assert result.should_continue is True
 #     assert result.confidence == DEFAULT_CONFIDENCE
-#     print(f"✓ Universal adapter defers to RSSI: {result.reason}")
+#     print(f"✓ Universal adapter defers to Ralph: {result.reason}")
 #
 #
 # def test_universal_adapter_no_metrics():
@@ -170,7 +170,7 @@ def test_alpha_forge_metrics_display():
     """Alpha Forge provides informational metrics without influencing stopping.
 
     The adapter now always returns should_continue=True with DEFAULT_CONFIDENCE,
-    deferring all stopping decisions to Ralph's native RSSI scheme.
+    deferring all stopping decisions to Ralph.
     """
     adapter = AlphaForgeAdapter()
 
@@ -180,7 +180,7 @@ def test_alpha_forge_metrics_display():
     assert result.confidence == DEFAULT_CONFIDENCE
     assert "No experiments" in result.reason
 
-    # With runs - provides stats but still defers to RSSI
+    # With runs - provides stats but still defers to Ralph
     metrics = [
         MetricsEntry("run_1", "2025-01-01T00:00:00", 0.5),
         MetricsEntry("run_2", "2025-01-01T01:00:00", 0.6),
@@ -196,7 +196,7 @@ def test_alpha_forge_metrics_display():
 def test_alpha_forge_many_experiments():
     """Alpha Forge displays stats for many experiments without stopping.
 
-    The adapter defers all stopping decisions to RSSI, including hard limits.
+    The adapter defers all stopping decisions to Ralph, including hard limits.
     """
     adapter = AlphaForgeAdapter()
 
@@ -208,7 +208,7 @@ def test_alpha_forge_many_experiments():
 
     result = adapter.check_convergence(metrics)
 
-    # Always defers to RSSI
+    # Always defers to Ralph
     assert result.should_continue is True
     assert result.confidence == DEFAULT_CONFIDENCE
     assert "99" in result.reason
@@ -236,7 +236,7 @@ def test_alpha_forge_wfe_display():
 
     result = adapter.check_convergence(metrics)
 
-    # Always defers to RSSI
+    # Always defers to Ralph
     assert result.should_continue is True
     assert result.confidence == DEFAULT_CONFIDENCE
     assert "WFE" in result.reason
@@ -262,7 +262,7 @@ def test_alpha_forge_tracks_best_run():
 
     result = adapter.check_convergence(metrics)
 
-    # Always defers to RSSI
+    # Always defers to Ralph
     assert result.should_continue is True
     assert result.confidence == DEFAULT_CONFIDENCE
     assert "best Sharpe=1.000" in result.reason
@@ -384,7 +384,7 @@ def run_all_tests():
         # test_load_session_state_fallback - removed (migration fallback removed in Phase 0B)
         # Universal adapter tests - skipped (UniversalAdapter not yet implemented)
         # test_universal_adapter_always_matches,
-        # test_universal_adapter_defers_to_rssi,
+        # test_universal_adapter_defers_to_ralph,
         # test_universal_adapter_no_metrics,
         # Alpha Forge adapter tests
         test_alpha_forge_adapter_detection,

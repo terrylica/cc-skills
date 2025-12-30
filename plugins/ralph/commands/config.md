@@ -86,11 +86,11 @@ Example config with GPU:
 
 ### Guidance (v3.0.0+)
 
-| Setting      | Default | Description                                  |
-| ------------ | ------- | -------------------------------------------- |
-| `forbidden`  | `[]`    | Items RSSI should avoid (from AUQ or manual) |
-| `encouraged` | `[]`    | Items RSSI should prioritize                 |
-| `timestamp`  | `""`    | ISO 8601 timestamp of last update            |
+| Setting      | Default | Description                                   |
+| ------------ | ------- | --------------------------------------------- |
+| `forbidden`  | `[]`    | Items Ralph should avoid (from AUQ or manual) |
+| `encouraged` | `[]`    | Items Ralph should prioritize                 |
+| `timestamp`  | `""`    | ISO 8601 timestamp of last update             |
 
 ### Constraint Scanning (v3.0.0+)
 

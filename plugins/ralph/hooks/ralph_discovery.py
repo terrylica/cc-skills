@@ -274,7 +274,7 @@ def ralph_scan_opportunities(
     structural = _analyze_codebase_structure(project_dir)
     opportunities.extend(structural)
 
-    # TIER 7: RSSI meta-improvement (ALWAYS available - guarantees non-empty)
+    # TIER 7: Ralph meta-improvement (ALWAYS available - guarantees non-empty)
     opportunities.append("Review recent git commits for documentation gaps")
     opportunities.append("Analyze test coverage for recently changed files")
 

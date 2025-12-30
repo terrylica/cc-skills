@@ -1,10 +1,10 @@
 # Ralph Plugin for Claude Code
 
-Keep Claude Code working autonomously — implements the Ralph Wiggum technique as Claude Code hooks with **RSSI** (Recursively Self-Improving Superintelligence) capabilities. RSSI transcends AGI: while AGI matches human capability, RSSI recursively improves itself toward ASI (Artificial Superintelligence).
+Keep Claude Code working autonomously — implements the Ralph Wiggum technique as Claude Code hooks with **Recursively Self-Improving Superintelligence** capabilities. Ralph transcends AGI: while AGI matches human capability, Ralph recursively improves itself toward ASI (Artificial Superintelligence).
 
 > **First time here?** Start with [GETTING-STARTED.md](./GETTING-STARTED.md) — a step-by-step guide for new users covering plugin installation, hook setup, and your first Ralph session.
 
-> **Already familiar with Ralph?** See [Mode Progression](#mode-progression-rssi--beyond-agi) for RSSI behavior, or [MENTAL-MODEL.md](./MENTAL-MODEL.md) for Alpha-Forge ML research workflows.
+> **Already familiar with Ralph?** See [Mode Progression](#mode-progression--beyond-agi) for eternal loop behavior, or [MENTAL-MODEL.md](./MENTAL-MODEL.md) for Alpha-Forge ML research workflows.
 
 ## What This Plugin Does
 
@@ -26,7 +26,7 @@ This plugin adds autonomous loop mode to Claude Code through 8 commands and 3 ho
 
 **Hooks:**
 
-- **Stop hook** (`loop-until-done.py`) - RSSI-enhanced autonomous operation with zero idle tolerance
+- **Stop hook** (`loop-until-done.py`) - Autonomous operation with zero idle tolerance
 - **PreToolUse hook** (`archive-plan.sh`) - Archives `.claude/plans/*.md` files before overwrite
 - **PreToolUse hook** (`pretooluse-loop-guard.py`) - Guards loop control files from deletion
 
@@ -52,7 +52,7 @@ Core principles guiding Ralph Wiggum's development:
 
 ### Alpha Forge Optimized
 
-1. **Alpha Forge First** — Ralph has specialized adapter support for Alpha Forge projects with metrics-based convergence detection. Other projects use RSSI completion detection.
+1. **Alpha Forge First** — Ralph has specialized adapter support for Alpha Forge projects with metrics-based convergence detection. Other projects use Ralph's completion detection.
 
 2. **User Override Always Wins** — Kill switch (`.claude/STOP_LOOP`), `/ralph:stop`, and manual intervention always work. The loop is eternal but never inescapable.
 
@@ -60,10 +60,10 @@ Core principles guiding Ralph Wiggum's development:
 
 Ralph hooks are designed **exclusively** for Alpha Forge ML research workflows:
 
-| Project Type        | Hook Behavior                                           |
-| ------------------- | ------------------------------------------------------- |
-| **Alpha Forge**     | Full RSSI functionality, adapter convergence, OODA loop |
-| **Non-Alpha Forge** | Silent pass-through (zero processing, zero overhead)    |
+| Project Type        | Hook Behavior                                            |
+| ------------------- | -------------------------------------------------------- |
+| **Alpha Forge**     | Full Ralph functionality, adapter convergence, OODA loop |
+| **Non-Alpha Forge** | Silent pass-through (zero processing, zero overhead)     |
 
 **Detection Criteria** (any match = alpha-forge):
 
@@ -72,7 +72,7 @@ Ralph hooks are designed **exclusively** for Alpha Forge ML research workflows:
 - `outputs/runs/` directory exists
 - Parent directories contain markers (handles git worktrees)
 
-**Why this design**: Ralph's RSSI loop, OODA research methodology, and metrics-based convergence are specifically tailored for Alpha Forge's experiment-driven ML research. Applying these patterns to unrelated projects would be counterproductive.
+**Why this design**: Ralph's eternal loop, OODA research methodology, and metrics-based convergence are specifically tailored for Alpha Forge's experiment-driven ML research. Applying these patterns to unrelated projects would be counterproductive.
 
 ## Quick Start
 
@@ -94,7 +94,7 @@ Ralph hooks are designed **exclusively** for Alpha Forge ML research workflows:
 # - You run /ralph:stop or create .claude/STOP_LOOP
 #
 # Note: Task completion and adapter convergence DO NOT stop the loop —
-# they trigger exploration mode (RSSI eternal loop behavior).
+# they trigger exploration mode (Ralph's eternal loop behavior).
 ```
 
 ## Installation Verification (v7.19.0+)
@@ -199,9 +199,9 @@ Ralph uses 3 Claude Code hooks working together:
 4. Claude continues working (loop repeats)
 5. Stop hook returns `{}` (empty) when truly complete → Session ends
 
-### Mode Progression (RSSI — Beyond AGI)
+### Mode Progression — Beyond AGI
 
-Ralph implements **Recursively Self-Improving Superintelligence (RSSI)** — the Intelligence Explosion mechanism (I.J. Good, 1965). RSSI never stops on success; it pivots to find new frontiers.
+Ralph implements **Recursively Self-Improving Superintelligence** — the Intelligence Explosion mechanism (I.J. Good, 1965). Ralph never stops on success; it pivots to find new frontiers.
 
 ```
 IMPLEMENTATION (working on checklist)
@@ -213,9 +213,9 @@ EXPLORATION (discovery + recursive self-improvement)
    [continues indefinitely until user stops or limits reached]
 ```
 
-**RSSI Behavior** (task/adapter completion → exploration, not stop):
+**Ralph Behavior** (task/adapter completion → exploration, not stop):
 
-| Event                | Traditional | RSSI (Beyond AGI)           |
+| Event                | Traditional | Ralph (Beyond AGI)          |
 | -------------------- | ----------- | --------------------------- |
 | Task completion      | Stop        | → Pivot to exploration      |
 | Adapter convergence  | Stop        | → Pivot to exploration      |
@@ -310,7 +310,7 @@ The `--no-focus` option is useful for:
 - **What's Monitored**: Last assistant message content (first 1000 chars) from each iteration
 - **Storage**: Ralph's state file (`recent_outputs` array, last 5 entries)
 
-The high 99% threshold enables RSSI's Intelligence Explosion — only near-identical outputs (exact duplicates or trivial whitespace differences) trigger a pivot. Synonym swaps, added sentences, or different phrasing (which score 90-98%) continue normally.
+The high 99% threshold enables Ralph's Intelligence Explosion — only near-identical outputs (exact duplicates or trivial whitespace differences) trigger a pivot. Synonym swaps, added sentences, or different phrasing (which score 90-98%) continue normally.
 
 **Zero Idle Tolerance**: Prevents "monitoring" loops with immediate action:
 
@@ -435,11 +435,11 @@ Ralph supports project-specific convergence detection via adapters. Each adapter
 
 **Confidence-Based Decisions**:
 
-Adapters return confidence levels that determine RSSI interaction:
+Adapters return confidence levels that determine Ralph interaction:
 
-- `0.0`: No opinion, defer to RSSI (default behavior)
-- `0.5`: Suggest stop, requires RSSI agreement
-- `1.0`: Override RSSI (hard limits like budget exhaustion)
+- `0.0`: No opinion, defer to Ralph (default behavior)
+- `0.5`: Suggest stop, requires Ralph agreement
+- `1.0`: Override Ralph (hard limits like budget exhaustion)
 
 **Session State Isolation**:
 
@@ -481,7 +481,7 @@ class MyProjectAdapter(ProjectAdapter):
         return ConvergenceResult(
             should_continue=True,
             reason="Still exploring",
-            confidence=0.0  # Defer to RSSI
+            confidence=0.0  # Defer to Ralph
         )
 
     def get_session_mode(self) -> str:
@@ -550,7 +550,7 @@ Dependencies are automatically installed by `uv` on first run. No manual pip ins
 
 ## Testing
 
-The RSSI implementation includes a comprehensive test suite:
+Ralph includes a comprehensive test suite:
 
 ```bash
 # Run all tests
@@ -569,12 +569,12 @@ uv run tests/test_adapters.py      # Adapter system (20 tests)
 
 **Test Coverage**:
 
-| Module        | Tests                                                   |
-| ------------- | ------------------------------------------------------- |
-| completion.py | Explicit markers, checkboxes, frontmatter, RSSI signals |
-| utils.py      | Elapsed hours, loop detection, section extraction       |
-| integration   | Mode transitions, file discovery, workflow simulation   |
-| adapters      | Registry discovery, path hash, Alpha Forge convergence  |
+| Module        | Tests                                                    |
+| ------------- | -------------------------------------------------------- |
+| completion.py | Explicit markers, checkboxes, frontmatter, Ralph signals |
+| utils.py      | Elapsed hours, loop detection, section extraction        |
+| integration   | Mode transitions, file discovery, workflow simulation    |
+| adapters      | Registry discovery, path hash, Alpha Forge convergence   |
 
 ## Troubleshooting
 
@@ -628,7 +628,7 @@ As of v7.19.0, all errors output to stderr. If you're on an older version:
 ## Related
 
 - [Geoffrey Huntley's Article](https://ghuntley.com/ralph/) - Original technique
-- [RSSI Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) - Core RSSI architecture
-- [RSSI Implementation Spec](/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - Detailed implementation design
+- [Ralph Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) - Core Ralph architecture
+- [Ralph Implementation Spec](/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - Detailed implementation design
 - [Stop Visibility ADR](/docs/adr/2025-12-22-ralph-stop-visibility-observability.md) - 5-layer observability system
 - [Dual Time Tracking ADR](/docs/adr/2025-12-22-ralph-dual-time-tracking.md) - Runtime vs wall-clock separation

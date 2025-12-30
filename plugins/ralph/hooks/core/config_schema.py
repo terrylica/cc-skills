@@ -52,12 +52,10 @@ class LoopState(str, Enum):
 class LoopDetectionConfig(BaseModel):
     """Configuration for loop/repetition detection.
 
-    RSSI (Recursively Self-Improving Superintelligence) — Beyond AGI.
     Uses 0.99 threshold to only trigger on near-identical outputs,
-    enabling the Intelligence Explosion: recursive self-improvement
-    toward Artificial Superintelligence (ASI).
+    reducing false positives in the eternal loop behavior.
     """
-    similarity_threshold: float = 0.99  # RSSI — Beyond AGI: Intelligence Explosion threshold
+    similarity_threshold: float = 0.99  # High threshold to reduce false positives
     window_size: int = 5  # Number of recent outputs to track
 
     model_config = ConfigDict(extra='ignore')
@@ -192,7 +190,7 @@ class ProtectionConfig(BaseModel):
 class SubprocessTimeoutConfig(BaseModel):
     """Configuration for subprocess execution timeouts (seconds).
 
-    Used by RSSI discovery to limit time spent on external tool calls.
+    Used by Ralph discovery to limit time spent on external tool calls.
     """
     ruff: int = 30  # Ruff linter timeout
     mypy: int = 60  # Mypy type checker timeout
@@ -227,7 +225,7 @@ class GpuInfrastructureConfig(BaseModel):
 
 
 class GuidanceConfig(BaseModel):
-    """User guidance for RSSI (forbidden/encouraged items).
+    """User guidance for Ralph (forbidden/encouraged items).
 
     Populated by /ralph:start AUQ flow or manual /ralph:forbid /ralph:encourage.
     """

@@ -160,7 +160,7 @@ class TestContextEmission:
     """Test that hook output contains all expected context."""
 
     def test_ralph_context_includes_all_variables(self, tmp_path: Path) -> None:
-        """Hook output should include all 12+ Ralph (RSSI) context variables."""
+        """Hook output should include all 12+ Ralph context variables."""
         create_mock_project(tmp_path, project_type="alpha-forge")
 
         output, stderr = run_hook(tmp_path, {"session_id": "test-ctx-1"})
@@ -171,7 +171,7 @@ class TestContextEmission:
 
         # Verify key context elements are present
         expected_content = [
-            "RSSI",  # Header prefix
+            "Ralph",  # Header prefix
             "iter",  # Iteration counter
             "Runtime:",  # Runtime tracking
             "AUTONOMOUS",  # Mode indicator
@@ -180,7 +180,7 @@ class TestContextEmission:
         for expected in expected_content:
             assert expected in reason, f"Missing '{expected}' in output. Got:\n{reason[:500]}..."
 
-        print("✓ RSSI context includes expected sections")
+        print("✓ Ralph context includes expected sections")
 
     def test_forbidden_encouraged_lists_appear(self, tmp_path: Path) -> None:
         """User guidance (forbidden/encouraged) should appear in output."""
@@ -240,8 +240,8 @@ class TestGenericProjectOutput:
         # Should NOT be the bare 1-line output
         assert len(reason) > 200, f"Output too short ({len(reason)} chars) - likely bare output:\n{reason}"
 
-        # Should have RSSI protocol sections
-        assert "RSSI" in reason, "Missing RSSI header"
+        # Should have Ralph protocol sections
+        assert "Ralph" in reason or "RALPH" in reason, "Missing Ralph header"
 
         print(f"✓ Generic project gets full template ({len(reason)} chars)")
 
@@ -287,14 +287,14 @@ class TestProductionFidelity:
         (claude_dir / "ralph-state.json").write_text('{"state": "running"}')
 
         # loop-config.json (production limits)
-        # Note: no_focus=True triggers the RSSI alpha-forge template
+        # Note: no_focus=True triggers the Ralph alpha-forge template
         # no_focus=False triggers FOCUSED mode with "EXPLORATION" header
         loop_config = {
             "min_hours": 9,
             "max_hours": 999,
             "min_iterations": 99,
             "max_iterations": 999,
-            "no_focus": True,  # Required for RSSI alpha-forge template
+            "no_focus": True,  # Required for Ralph alpha-forge template
         }
         (claude_dir / "loop-config.json").write_text(json.dumps(loop_config))
 
@@ -541,7 +541,7 @@ State Space Transformer with Mamba backbone.
         return state_file
 
     def test_alpha_forge_full_context_emission(self, tmp_path: Path) -> None:
-        """Test that alpha-forge project emits full RSSI context with adapter convergence."""
+        """Test that alpha-forge project emits full Ralph context with adapter convergence."""
         self.create_alpha_forge_project(tmp_path)
 
         # Create production-fidelity session state
@@ -556,7 +556,7 @@ State Space Transformer with Mamba backbone.
 
         # Verify production context elements
         expected = [
-            "RSSI",  # Header
+            "Ralph",  # Header
             "iter",  # Iteration tracking
             "Runtime",  # Runtime tracking
             "AUTONOMOUS",  # Mode indicator

@@ -244,7 +244,7 @@ do_preflight() {
 
     # Documentation Links (always show)
     echo -e "${CYAN}=== Documentation ===${NC}"
-    echo -e "  ${GREEN}→${NC} README (Hook Architecture, RSSI, Safety Features):"
+    echo -e "  ${GREEN}→${NC} README (Hook Architecture, Safety Features):"
     echo -e "    https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md"
     echo ""
     echo -e "  ${GREEN}→${NC} Mental Model (Alpha Forge ML Research Workflows):"

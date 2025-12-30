@@ -4,20 +4,20 @@
 
 > **TL;DR**: Ralph keeps Claude working autonomously instead of stopping after each task. When Claude finishes something, Ralph says "great, now find more improvements!" This creates continuous research sessions that can run for hours.
 >
-> **What RSSI means**: "Recursively Self-Improving Superintelligence" — the Intelligence Explosion mechanism (I.J. Good, 1965). You always have control: `/ralph:stop` or the kill switch (`.claude/STOP_LOOP` file) stops everything immediately.
+> **What Ralph means**: "Recursively Self-Improving Superintelligence" — the Intelligence Explosion mechanism (I.J. Good, 1965). You always have control: `/ralph:stop` or the kill switch (`.claude/STOP_LOOP` file) stops everything immediately.
 
-## RSSI — Aspirational Framing
+## Ralph — Aspirational Framing
 
-> **Important**: RSSI is **aspirational framing**, not literal implementation. Ralph does not implement AGI, ASI, or a true "intelligence explosion." It's a Stop hook that blocks premature stopping and injects a continuation prompt. The terminology below is metaphorical — describing the _intent_ of autonomous iteration, not claiming superintelligence.
+> **Important**: Ralph is **aspirational framing**, not literal implementation. Ralph does not implement AGI, ASI, or a true "intelligence explosion." It's a Stop hook that blocks premature stopping and injects a continuation prompt. The terminology below is metaphorical — describing the _intent_ of autonomous iteration, not claiming superintelligence.
 
-Ralph's design is inspired by the **Intelligence Explosion** concept (I.J. Good, 1965). The "RSSI" framing captures the goal: recursive improvement through continuous research iteration.
+Ralph's design is inspired by the **Intelligence Explosion** concept (I.J. Good, 1965). The framing captures the goal: recursive improvement through continuous research iteration.
 
 > "The first ultraintelligent machine is the last invention that man need ever make."
 > — I.J. Good, 1965
 
 **Key Behavior**: Task completion and adapter convergence **pivot to exploration** instead of stopping. Ralph never stops on success — it finds new frontiers.
 
-| Event                | Traditional | RSSI (Ralph)                |
+| Event                | Traditional | Ralph (Beyond AGI)          |
 | -------------------- | ----------- | --------------------------- |
 | Task completion      | Stop        | → Pivot to exploration      |
 | Adapter convergence  | Stop        | → Pivot to exploration      |
@@ -25,7 +25,7 @@ Ralph's design is inspired by the **Intelligence Explosion** concept (I.J. Good,
 | Max time/iterations  | Stop        | ✅ Stop (safety guardrail)  |
 | `/ralph:stop`        | Stop        | ✅ Stop (user override)     |
 
-**Alpha-Forge Exception**: After `min_hours` (9h default) of deep research, genuine convergence (Status: CONVERGED in `research_log.md`) allows graceful session end. This represents successful research completion — the RSSI has exhausted improvement frontiers after extensive exploration. See [Convergence Detection](#convergence-detection) for the specific flow.
+**Alpha-Forge Exception**: After `min_hours` (9h default) of deep research, genuine convergence (Status: CONVERGED in `research_log.md`) allows graceful session end. This represents successful research completion — Ralph has exhausted improvement frontiers after extensive exploration. See [Convergence Detection](#convergence-detection) for the specific flow.
 
 ---
 
@@ -33,7 +33,7 @@ Ralph's design is inspired by the **Intelligence Explosion** concept (I.J. Good,
 
 **Without Ralph**: Claude finishes one task → stops → you restart manually
 
-**With Ralph**: Claude finishes one task → Ralph pivots to exploration → Claude finds new improvements → repeat indefinitely (RSSI eternal loop)
+**With Ralph**: Claude finishes one task → Ralph pivots to exploration → Claude finds new improvements → repeat indefinitely (Ralph's eternal loop)
 
 Ralph transforms Claude from a **single-task assistant** into an **autonomous research agent** that systematically explores and iteratively improves.
 
@@ -262,7 +262,7 @@ Ralph uses three hooks that fire in a specific order:
 ┃  ──────────────────────────────────────                                        ┃
 ┃  "What should Claude do next?"                                                 ┃
 ┃  • Intercepts session end                                                      ┃
-┃  • Injects RSSI template with guidance                                         ┃
+┃  • Injects Ralph template with guidance                                         ┃
 ┃  • Pivots to exploration if work remains                                       ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
                                     │
@@ -294,7 +294,7 @@ graph { label: "Hook Coordination Sequence"; flow: south; }
 [Claude wants to stop] -> [HOOK 1: pretooluse-loop-guard.py]
 [HOOK 1: pretooluse-loop-guard.py] -- Before tool execution --> [HOOK 2: archive-plan.sh]
 [HOOK 2: archive-plan.sh] -- Before plan edits --> [HOOK 3: loop-until-done.py]
-[HOOK 3: loop-until-done.py] -- Injects RSSI --> [Claude continues working]
+[HOOK 3: loop-until-done.py] -- Injects prompt --> [Claude continues working]
 ```
 
 </details>
@@ -303,7 +303,7 @@ graph { label: "Hook Coordination Sequence"; flow: south; }
 
 ## OODA Research Loop
 
-> **Alpha-Forge Specific**: This section describes OODA guidance for quantitative research projects. The OODA phases are **template guidance** rendered into the RSSI prompt — Claude interprets and applies them, but there's no hardcoded enforcement.
+> **Alpha-Forge Specific**: This section describes OODA guidance for quantitative research projects. The OODA phases are **template guidance** rendered into Ralph's prompt — Claude interprets and applies them, but there's no hardcoded enforcement.
 
 When Ralph blocks a stop, it injects this research methodology:
 
@@ -380,7 +380,7 @@ graph { label: "OODA Phase File Access"; flow: east; }
 
 ### Decision Formula
 
-> **Template Guidance**: This decision tree is **conceptual guidance** rendered into the RSSI template. Claude uses it as a framework for reasoning — the thresholds are suggestions, not programmatically enforced rules.
+> **Template Guidance**: This decision tree is **conceptual guidance** rendered into Ralph's template. Claude uses it as a framework for reasoning — the thresholds are suggestions, not programmatically enforced rules.
 
 ```
                                      Decision Formula
@@ -589,7 +589,7 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 
 ## Stop Hook Guidance Persistence
 
-> **Why guidance survives context compaction**: Claude's context window gets compacted over long sessions. The Stop hook reads `ralph-config.json` fresh from disk on **every iteration** (`loop-until-done.py:192-206`), then injects guidance into the RSSI template. This ensures Claude always sees forbidden/encouraged items, even after context truncation.
+> **Why guidance survives context compaction**: Claude's context window gets compacted over long sessions. The Stop hook reads `ralph-config.json` fresh from disk on **every iteration** (`loop-until-done.py:192-206`), then injects guidance into Ralph's template. This ensures Claude always sees forbidden/encouraged items, even after context truncation.
 
 **Data Flow**:
 
@@ -614,7 +614,7 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 │  Stop Hook: loop-until-done.py                              │
 │  ───────────────────────────                                │
 │  1. Read ralph-config.json FRESH from disk (line 192-206)   │
-│  2. Inject into rssi_context dict (line 207-237)            │
+│  2. Inject into ralph_context dict (line 207-237)            │
 │  3. Render ralph-unified.md template (line 269-276)         │
 │  4. Return JSON with guidance-embedded prompt               │
 └─────────────────────────────────────────────────────────────┘
@@ -629,12 +629,12 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 
 **Key Code Locations**:
 
-| File                         | Lines   | Purpose                          |
-| ---------------------------- | ------- | -------------------------------- |
-| `loop-until-done.py`         | 192-206 | Read guidance fresh from disk    |
-| `loop-until-done.py`         | 207-237 | Build rssi_context with guidance |
-| `template_loader.py`         | 285-296 | Extract forbidden/encouraged     |
-| `templates/ralph-unified.md` | 30-61   | Render USER GUIDANCE section     |
+| File                         | Lines   | Purpose                           |
+| ---------------------------- | ------- | --------------------------------- |
+| `loop-until-done.py`         | 192-206 | Read guidance fresh from disk     |
+| `loop-until-done.py`         | 207-237 | Build ralph_context with guidance |
+| `template_loader.py`         | 285-296 | Extract forbidden/encouraged      |
+| `templates/ralph-unified.md` | 30-61   | Render USER GUIDANCE section      |
 
 ---
 
@@ -829,7 +829,7 @@ Ralph tracks **two time metrics** to ensure accurate limit enforcement even when
 **Display Format** (in continuation prompt):
 
 ```
-**RSSI — Beyond AGI** | Iteration 42/99 | Runtime: 3.2h/9.0h | Wall: 15.0h
+**Ralph — Beyond AGI** | Iteration 42/99 | Runtime: 3.2h/9.0h | Wall: 15.0h
 ```
 
 ---
@@ -1067,7 +1067,7 @@ graph { label: "Observability Channels"; flow: south; }
 | `Convergence` | Adapter convergence check | `[ralph] [0.12s] Convergence: continue=true, conf=0.65`    |
 | `Analysis`    | Loop detection check      | `[ralph] [0.15s] Analysis: Loop detected: 99%+ similar`    |
 | `Backoff`     | Idle iteration backoff    | `[ralph] [0.18s] Backoff: Idle 3/5 (next wait: 30s)`       |
-| `Template`    | RSSI template rendered    | `[ralph] [0.20s] Template: Rendering IMPLEMENTATION`       |
+| `Template`    | Ralph template rendered   | `[ralph] [0.20s] Template: Rendering IMPLEMENTATION`       |
 | `Archive`     | Plan file archived        | `[ralph] Archive: Saved plan.md to archives/`              |
 
 ### Key Files
@@ -1101,4 +1101,4 @@ graph { label: "Observability Channels"; flow: south; }
 
 **For technical implementation details**: See [README.md](./README.md)
 
-**For architecture decisions**: See [RSSI Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
+**For architecture decisions**: See [Ralph Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)

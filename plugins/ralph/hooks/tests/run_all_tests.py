@@ -3,7 +3,7 @@
 # dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0"]
 # ///
 """
-Ralph RSSI Test Runner
+Ralph Test Runner
 
 Runs all unit and integration tests for the Ralph hooks.
 
@@ -62,7 +62,7 @@ def main():
         test_files = [f for f in test_files if "integration" not in f.name]
 
     print("=" * 70)
-    print("RALPH RSSI TEST SUITE")
+    print("RALPH TEST SUITE")
     print("=" * 70)
     print(f"Running {len(test_files)} test files...")
     print()

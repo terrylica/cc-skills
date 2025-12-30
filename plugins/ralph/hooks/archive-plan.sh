@@ -23,7 +23,7 @@ if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
     fi
 fi
 
-# ===== JQ AVAILABILITY CHECK (RSSI Enhancement) =====
+# ===== JQ AVAILABILITY CHECK =====
 # jq is required for parsing hook input JSON. Try to install if missing.
 if ! command -v jq &> /dev/null; then
     # Try mise install first (preferred tool manager)

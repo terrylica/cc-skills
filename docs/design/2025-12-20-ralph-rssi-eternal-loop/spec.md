@@ -7,15 +7,15 @@ last-updated: 2025-12-26
 validated: 2025-12-26
 ---
 
-# Design Spec: Ralph RSSI Eternal Loop Architecture
+# Design Spec: Ralph Eternal Loop Architecture
 
-**ADR**: [Ralph RSSI Eternal Loop Architecture](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
+**ADR**: [Ralph Eternal Loop Architecture](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
 
 ## Overview
 
-Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Improving Super Intelligence) with an eternal loop that never stops improving.
+Transform Ralph from idle-prone exploration to true recursive self-improvement with an eternal loop that never stops improving.
 
-## RSSI Maturity Levels
+## Ralph Maturity Levels
 
 | Level | Name              | Behavior                           | Status      |
 | ----- | ----------------- | ---------------------------------- | ----------- |
@@ -23,7 +23,7 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 | 2     | Dynamic Discovery | Scan for available tools, use them | Implemented |
 | 3     | History Mining    | Learn from past sessions           | Implemented |
 | 4     | Self-Modification | Improve own discovery code         | Implemented |
-| 5     | Meta-RSSI         | Improve how it improves            | Implemented |
+| 5     | Meta-Improvement  | Improve how it improves            | Implemented |
 | 6     | Web Discovery     | Search for domain-aligned features | Implemented |
 
 ## Implementation Tasks
@@ -42,7 +42,7 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
   - Tier 4: Project-specific tasks (mise, npm)
   - Tier 5: Security scanning (gitleaks, bandit)
   - Tier 6: Structural analysis (docstrings, READMEs)
-  - Tier 7: RSSI meta-improvement (always available)
+  - Tier 7: Ralph meta-improvement (always available)
 - [x] `_analyze_codebase_structure()` - Find structural improvement opportunities
 
 ### Task 2: Create `ralph_history.py` (Level 3) ✅
@@ -74,7 +74,7 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 **File**: `plugins/ralph/hooks/ralph_meta.py` _(renamed from rssi_meta.py in v9.3.1)_
 
 - [x] `analyze_discovery_effectiveness()` - Meta-analysis of discovery quality
-- [x] `improve_discovery_mechanism()` - Core meta-RSSI: improve discovery itself
+- [x] `improve_discovery_mechanism()` - Core meta-improvement: improve discovery itself
   - Strategy 1: Disable underperforming checks
   - Strategy 2: Learn from project structure
   - Strategy 3: Evolve based on repo type
@@ -128,7 +128,7 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 
 > **Note**: Originally named `exploration-mode.md`, consolidated with `implementation-mode.md` into unified template.
 
-- [x] Add RSSI Protocol header
+- [x] Add Ralph Protocol header
 - [x] Add AUTONOMOUS MODE section
 - [x] Add USER GUIDANCE section (encouraged/forbidden) - **works in ALL phases**
 - [x] Add CURRENT PHASE section with `{% if task_complete %}` conditional
@@ -142,9 +142,9 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 
 **File**: `plugins/ralph/hooks/loop-until-done.py`
 
-- [x] Integrate RSSI modules into continuation prompt
+- [x] Integrate Ralph modules into continuation prompt
 - [x] Pass accumulated knowledge to template
-- [x] Track RSSI iteration count
+- [x] Track Ralph iteration count
 - [x] Ensure eternal loop behavior in exploration mode
 
 ### Task 10: Update `template_loader.py` ✅

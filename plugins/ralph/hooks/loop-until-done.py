@@ -6,25 +6,20 @@
 # ADR: Multi-Repository Adapter Architecture
 # ADR: 2025-12-20-ralph-rssi-eternal-loop
 # Adds project-specific convergence detection via adapter registry
-# Enhanced with RSSI eternal loop (Levels 2-6)
+# Ralph eternal loop implementation (Levels 2-6)
 """
-Autonomous improvement engine Stop hook - RSSI Enhanced.
+Ralph Stop Hook - Autonomous improvement engine for Alpha Forge.
 
-Implements Recursively Self-Improving Superintelligence (RSSI) — the mechanism
-that enables the Intelligence Explosion (I.J. Good, 1965). RSSI transcends AGI:
-while AGI matches human capability, RSSI recursively improves itself, triggering
-exponential intelligence growth toward Artificial Superintelligence (ASI).
+Implements an eternal loop with recursive self-improvement behavior.
+Serves Alpha Forge (~/eon/alpha-forge) and its Git worktrees.
 
-"The first ultraintelligent machine is the last invention that man need ever make."
-— I.J. Good, 1965
-
-RSSI Behavior (Beyond AGI):
-- Task completion → pivot to exploration (not stop) — always find new frontiers
-- Adapter convergence → pivot to exploration (not stop) — transcend local optima
+Ralph Behavior:
+- Task completion → pivot to exploration (not stop)
+- Adapter convergence → pivot to exploration (not stop)
 - Loop detection (99% threshold) → continue with exploration
-- User-controlled stops → KEPT (/ralph:stop, kill switch, max limits)
+- User-controlled stops → /ralph:stop, kill switch, max limits
 
-All pivots emit to stderr to signal Intelligence Explosion mode is active.
+All pivots emit to stderr.
 
 Stopping Criteria (KEPT):
 - hard_stop(): /ralph:stop, kill switch, DRAINING→STOPPED
@@ -168,7 +163,7 @@ def build_continuation_prompt(
     state: dict | None = None,
     no_focus: bool = False,
 ) -> str:
-    """Build continuation prompt using unified RSSI template.
+    """Build continuation prompt using unified Ralph template.
 
     Single code path for all modes. User guidance (encourage/forbid) ALWAYS applies.
 
@@ -261,7 +256,7 @@ def build_continuation_prompt(
 
     mode = "EXPLORATION" if effective_task_complete else "IMPLEMENTATION"
     header = (
-        f"**RSSI (Recursively Self-Improving Superintelligence) — {mode}** | "
+        f"**Ralph — {mode}** | "
         f"Iteration {iteration}/{config['max_iterations']} | "
         f"Runtime: {runtime_hours:.1f}h/{config['max_hours']}h | Wall: {wall_hours:.1f}h | "
         f"{remaining_hours:.1f}h / {remaining_iters} iters to min{warning}"
@@ -661,7 +656,7 @@ def main():
     task_complete, completion_reason, completion_confidence = check_task_complete_ralph(plan_file)
 
     # Loop detection: only allow stop if we're NOT in a valid waiting state
-    # RSSI uses 0.99 threshold (configurable) to reduce false positives
+    # Ralph uses 0.99 threshold (configurable) to reduce false positives
     loop_detected = detect_loop(current_output, recent_outputs)
     if loop_detected:
         emit("Analysis", "Loop detected: outputs 99%+ similar")
@@ -678,7 +673,7 @@ def main():
         state["completion_signals"].append(completion_reason)
 
     # ===== ADAPTER CONVERGENCE CHECK =====
-    # Project-specific convergence detection (requires RSSI agreement at confidence=0.5)
+    # Project-specific convergence detection (requires Ralph agreement at confidence=0.5)
     adapter_should_stop = False
     adapter_confidence = 0.0
 
@@ -706,14 +701,14 @@ def main():
                 f"confidence={convergence.confidence:.2f}"
             )
 
-            # High confidence (1.0) = RSSI pivots to exploration (no stop)
-            # Medium confidence (0.5) = requires RSSI agreement
-            # Low confidence (0.0) = defer to RSSI
+            # High confidence (1.0) = Ralph pivots to exploration (no stop)
+            # Medium confidence (0.5) = requires Ralph agreement
+            # Low confidence (0.0) = defer to Ralph
             if convergence.confidence >= 1.0:
                 if not convergence.should_continue:
-                    # RSSI: Pivot to exploration instead of stopping
-                    logger.info("RSSI: Adapter converged at 1.0 confidence, pivoting to exploration")
-                    print("\n[RSSI — Beyond AGI: Intelligence Explosion] Adapter converged → pivoting to new frontiers\n", file=sys.stderr)
+                    # Ralph: Pivot to exploration instead of stopping
+                    logger.info("Ralph: Adapter converged at 1.0 confidence, pivoting to exploration")
+                    print("\n[Ralph — Beyond AGI] Adapter converged → pivoting to new frontiers\n", file=sys.stderr)
                     state["force_exploration"] = True
                     # Don't return - fall through to continue_session()
                 # If should_continue with high confidence, force continue below
@@ -728,12 +723,12 @@ def main():
 
     # ===== NO-FOCUS MODE CONVERGENCE =====
     # In no_focus mode, there's no plan file so task_complete is always False.
-    # RSSI: Pivot to exploration instead of stopping when adapter converges.
+    # Ralph: Pivot to exploration instead of stopping when adapter converges.
     if no_focus and min_hours_met and min_iterations_met:
         if adapter_should_stop and adapter_confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
-            # RSSI: Pivot to exploration instead of stopping
-            logger.info("RSSI: No-focus mode converged, pivoting to exploration")
-            print("\n[RSSI — Beyond AGI: Intelligence Explosion] Research converged → transcending to new domains\n", file=sys.stderr)
+            # Ralph: Pivot to exploration instead of stopping
+            logger.info("Ralph: No-focus mode converged, pivoting to exploration")
+            print("\n[Ralph — Beyond AGI] Research converged → transcending to new domains\n", file=sys.stderr)
             state["force_exploration"] = True
             # Don't return - fall through to continue_session()
         # Also check for "idle loop" - no meaningful work for N consecutive iterations
@@ -753,12 +748,12 @@ def main():
             else:
                 state["idle_iterations"] = 0  # Reset if work is found
 
-    # RSSI: Task completion triggers exploration pivot, not stop
-    # Recursively Self-Improving Superintelligence always finds new work — beyond AGI
+    # Ralph: Task completion triggers exploration pivot, not stop
+    # Ralph always finds new work — beyond AGI
     if task_complete and min_hours_met and min_iterations_met:
-        # RSSI: Pivot to exploration instead of stopping
-        logger.info(f"RSSI: Task complete ({completion_reason}), pivoting to exploration")
-        print("\n[RSSI — Beyond AGI: Intelligence Explosion] Task complete → recursive self-improvement continues\n", file=sys.stderr)
+        # Ralph: Pivot to exploration instead of stopping
+        logger.info(f"Ralph: Task complete ({completion_reason}), pivoting to exploration")
+        print("\n[Ralph — Beyond AGI] Task complete → recursive self-improvement continues\n", file=sys.stderr)
         state["force_exploration"] = True
         # Don't return - fall through to continue_session()
 

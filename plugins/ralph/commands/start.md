@@ -51,7 +51,7 @@ Discover and auto-select focus files WITHOUT prompting the user (autonomous mode
 
 ## Step 1.4: Constraint Scanning (Alpha Forge Only)
 
-**Purpose**: Detect environment constraints before loop starts. Results inform RSSI behavior.
+**Purpose**: Detect environment constraints before loop starts. Results inform Ralph behavior.
 
 **Skip if**: `--skip-constraint-scan` flag provided (power users).
 
@@ -284,7 +284,7 @@ LOAD_SCAN_SCRIPT
 
 Use AskUserQuestion:
 
-- question: "What should RSSI avoid? (HIGH severity from constraint scan pre-selected)"
+- question: "What should Ralph avoid? (HIGH severity from constraint scan pre-selected)"
   header: "Forbidden"
   multiSelect: true
   options:
@@ -330,7 +330,7 @@ If "Enter custom items" selected → Parse user's "Other" input, split by comma,
 
 Use AskUserQuestion:
 
-- question: "What should RSSI prioritize? (Select all that apply)"
+- question: "What should Ralph prioritize? (Select all that apply)"
   header: "Encouraged"
   multiSelect: true
   options:
@@ -845,7 +845,7 @@ Invoke `/research` with the appropriate strategy:
 /research <path/to/strategy.yaml> --iterations=5 --objective=sharpe
 ```
 
-Ralph RSSI is **supplementary** to alpha-forge's `/research`:
+Ralph is **supplementary** to alpha-forge's `/research`:
 
 - `/research` owns the inner loop (5 iterations, 5 expert subagents)
 - Ralph owns the outer loop (session-to-session learning, OODA decisions)

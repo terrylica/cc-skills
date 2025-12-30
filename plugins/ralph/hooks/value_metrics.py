@@ -29,7 +29,7 @@ from work_policy import Priority, WorkItem
 
 @dataclass
 class IterationMetrics:
-    """Metrics for a single RSSI iteration."""
+    """Metrics for a single Ralph iteration."""
 
     iteration: int
     timestamp: str

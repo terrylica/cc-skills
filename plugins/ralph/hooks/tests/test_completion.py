@@ -83,7 +83,7 @@ def create_temp_file(content: str) -> str:
 
 
 def test_multi_signal_detection():
-    """Test complete Ralph (RSSI) detection with multiple signals."""
+    """Test multi-signal completion detection."""
     # Test 1: Explicit marker (confidence 1.0)
     explicit = "- [x] TASK_COMPLETE"
     temp_file = create_temp_file(explicit)
