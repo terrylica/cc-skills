@@ -1,6 +1,6 @@
 ---
-name: rssi_unified
-description: Unified RSSI template for all phases (implementation + exploration)
+name: ralph_unified
+description: Unified Ralph template for all phases (implementation + exploration)
 phase: unified
 adr: 2025-12-20-ralph-rssi-eternal-loop
 sota: RISE (Meta 2024), Self-Refine (Madaan 2023), OODA Loop, Freeze-Thaw BO

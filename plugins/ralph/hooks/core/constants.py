@@ -25,10 +25,10 @@ CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 # Minimum confidence level for adapter to influence stop decisions
 ADAPTER_CONFIDENCE_THRESHOLD = 0.5
 
-# RSSI completion confidence levels
-RSSI_CONFIDENCE_LOW = 0.3    # Low confidence - needs more signals
-RSSI_CONFIDENCE_MED = 0.5    # Medium confidence - can influence decisions
-RSSI_CONFIDENCE_HIGH = 0.7   # High confidence - strong signal
+# Ralph (Recursively Self-Improving Superintelligence) completion confidence levels
+RALPH_CONFIDENCE_LOW = 0.3    # Low confidence - needs more signals
+RALPH_CONFIDENCE_MED = 0.5    # Medium confidence - can influence decisions
+RALPH_CONFIDENCE_HIGH = 0.7   # High confidence - strong signal
 
 # =============================================================================
 # PERFORMANCE THRESHOLDS (Trading Strategy Metrics)
@@ -68,10 +68,10 @@ MAX_IDLE_BEFORE_EXPLORE = 1          # Zero tolerance: force exploration on firs
 CLI_GAP_THRESHOLD = 300              # 5 minutes gap = CLI was closed
 
 # =============================================================================
-# RSSI DISCOVERY
+# RALPH DISCOVERY
 # =============================================================================
-# Maximum concurrent sub-agents for RSSI exploration
-RSSI_MAX_SUB_AGENTS = 3
+# Maximum concurrent sub-agents for Ralph exploration
+RALPH_MAX_SUB_AGENTS = 3
 
 # Maximum web search results to process
 WEB_SEARCH_MAX_RESULTS = 100
@@ -81,7 +81,7 @@ MIN_PY_FILES_FOR_README = 3          # Min Python files in dir to suggest README
 SAMPLE_FILES_LIMIT = 5               # Number of files to sample for docstring check
 
 # =============================================================================
-# RSSI META (Effectiveness Tracking)
+# RALPH META (Effectiveness Tracking)
 # =============================================================================
 # Minimum samples before evaluating check effectiveness
 MIN_SAMPLES_FOR_EVALUATION = 5
