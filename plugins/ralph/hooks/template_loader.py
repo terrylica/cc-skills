@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from observability import emit
+
 # Jinja2 is REQUIRED for ralph templates (declared in PEP 723 script metadata)
 # The templates use advanced features (for loops, filters, nested access) that
 # cannot be reasonably implemented in a fallback renderer.
@@ -286,6 +288,14 @@ class TemplateLoader:
         guidance = ctx.get("guidance", {})
         forbidden_items = guidance.get("forbidden", []) if guidance else []
         encouraged_items = guidance.get("encouraged", []) if guidance else []
+
+        # Emit template rendering status
+        phase = "EXPLORATION" if task_complete else "IMPLEMENTATION"
+        emit(
+            "Template",
+            f"Rendering rssi-unified.md ({phase}): "
+            f"{len(forbidden_items)} forbidden, {len(encouraged_items)} encouraged"
+        )
 
         # Unified context for all phases
         context = {

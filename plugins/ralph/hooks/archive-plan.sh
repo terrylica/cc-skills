@@ -77,6 +77,8 @@ if [[ -f "$FILE_PATH" && -n "$SESSION_ID" ]]; then
         if ! cp "$FILE_PATH" "$ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}" 2>&1; then
             echo "[ralph] Failed to archive: $FILE_PATH" >&2
         else
+            # Emit observability to terminal (stderr)
+            echo "[ralph] Archive: Saved $BASENAME to archives/ (${TIMESTAMP})" >&2
             # Log the archival
             echo "[$(date -Iseconds)] Archived: $FILE_PATH -> $ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}" \
                 >> "$HOME/.claude/automation/loop-orchestrator/state/archive.log" 2>&1 || \

@@ -85,6 +85,7 @@ from rssi_evolution import (
     get_prioritized_checks,
     suggest_capability_expansion,
 )
+from observability import emit, flush_to_claude, reset_timer
 
 
 def _detect_alpha_forge_simple(project_dir: str) -> str:
@@ -203,6 +204,15 @@ def build_continuation_prompt(
                     gpu_infrastructure = gpu_cfg
             except (json.JSONDecodeError, OSError) as e:
                 print(f"[ralph] Warning: Failed to load ralph-config.json: {e}", file=sys.stderr)
+                emit("Config", f"Failed to load ralph-config.json: {e}", target="terminal")
+
+    # Emit config status
+    if guidance:
+        n_forbidden = len(guidance.get("forbidden", []))
+        n_encouraged = len(guidance.get("encouraged", []))
+        emit("Config", f"Loaded ralph-config.json: {n_forbidden} forbidden, {n_encouraged} encouraged")
+    else:
+        emit("Config", "No guidance configured (using defaults)")
 
     # ===== BUILD UNIFIED RSSI CONTEXT =====
     adapter_conv = state.get("adapter_convergence", {})
@@ -297,6 +307,9 @@ def main():
     session_id = hook_input.get("session_id", "unknown")
     stop_hook_active = hook_input.get("stop_hook_active", False)
     transcript_path = hook_input.get("transcript_path")
+
+    # Reset observability timer at start of each hook invocation
+    reset_timer()
 
     logger.info(f"Stop hook called: session={session_id}, stop_hook_active={stop_hook_active}")
 
@@ -407,6 +420,7 @@ def main():
         state_dir=STATE_DIR,
         path_hash=path_hash,
     )
+    emit("State", f"Loaded session state: iteration {state.get('iteration', 0)}, runtime {state.get('accumulated_runtime_seconds', 0):.0f}s")
 
     # Persist project_path for stop command discovery (v7.16.0)
     if not state.get("project_path") and project_dir:
@@ -456,6 +470,9 @@ def main():
     if adapter:
         state["adapter_name"] = adapter.name
         logger.info(f"Using adapter: {adapter.name}")
+        emit("Adapter", f"Selected adapter: {adapter.name}")
+    else:
+        emit("Adapter", "No project adapter (using defaults)")
 
     # Set started_at on first iteration (for adapter metrics filtering)
     if not state.get("started_at"):
@@ -507,6 +524,14 @@ def main():
     state["discovery_method"] = discovery_method
     state["candidate_files"] = candidate_files
     state["plan_file"] = plan_file
+
+    # Emit discovery result
+    if plan_file:
+        emit("Discovery", f"Found {plan_file} via {discovery_method}")
+    elif no_focus:
+        emit("Discovery", "No-focus mode active (autonomous exploration)")
+    else:
+        emit("Discovery", f"No target file found ({len(candidate_files)} candidates)")
 
     # ===== RUNTIME TRACKING (v7.9.0) =====
     # Track CLI active time (runtime) vs calendar time (wall-clock)
@@ -610,6 +635,7 @@ def main():
             f"interval={time_since_last:.1f}s < required={required_interval:.1f}s "
             f"(next required: {next_required:.1f}s)"
         )
+        emit("Backoff", f"Idle iteration {idle_count}/{MAX_IDLE_BEFORE_EXPLORE} (next wait: {next_required:.0f}s)")
 
         if idle_count >= MAX_IDLE_BEFORE_EXPLORE:
             # Force exploration mode instead of allowing wasteful monitoring
@@ -636,7 +662,9 @@ def main():
 
     # Loop detection: only allow stop if we're NOT in a valid waiting state
     # RSSI uses 0.99 threshold (configurable) to reduce false positives
-    if detect_loop(current_output, recent_outputs):
+    loop_detected = detect_loop(current_output, recent_outputs)
+    if loop_detected:
+        emit("Analysis", "Loop detected: outputs 99%+ similar")
         # If task is complete, don't stop - transition to exploration instead
         if task_complete:
             logger.info("Loop detected but task complete - will transition to exploration")
@@ -671,6 +699,11 @@ def main():
             logger.info(
                 f"Adapter convergence: continue={convergence.should_continue}, "
                 f"confidence={convergence.confidence:.2f}, reason={convergence.reason}"
+            )
+            emit(
+                "Convergence",
+                f"Adapter: continue={convergence.should_continue}, "
+                f"confidence={convergence.confidence:.2f}"
             )
 
             # High confidence (1.0) = RSSI pivots to exploration (no stop)
