@@ -1,3 +1,47 @@
+## [9.2.3](https://github.com/terrylica/cc-skills/compare/v9.2.2...v9.2.3) (2025-12-30)
+
+
+### Bug Fixes
+
+* **ralph:** enhance MENTAL-MODEL.md with layman-friendly diagrams ([ff5d082](https://github.com/terrylica/cc-skills/commit/ff5d08233d7512a2fc078b70e4c9c4b5496cfd14))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Alpha-Forge Git Worktree Management System](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-14-alpha-forge-worktree-management.md) | updated (+57/-40) |
+| accepted | [Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) | updated (+3/-1) |
+
+### Design Specs
+
+- [Alpha-Forge Git Worktree Management System - Implementation Spec](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-14-alpha-forge-worktree-management/spec.md) - coupled
+- [Design Spec: Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - coupled
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ITP Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/README.md) - updated (+57/-8)
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+256/-7)
+- [Test](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/tests/fixtures/repo_with_broken_links/README.md) - new (+3)
+- [Test](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/tests/fixtures/repo_with_path_violations/README.md) - new (+3)
+- [Sample Repo](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/tests/fixtures/sample_repo/README.md) - new (+1)
+
 ## [9.2.2](https://github.com/terrylica/cc-skills/compare/v9.2.1...v9.2.2) (2025-12-30)
 
 
