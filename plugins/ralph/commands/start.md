@@ -19,6 +19,7 @@ Enable the Ralph Wiggum autonomous improvement loop. Claude will continue workin
 - `--poc`: Use proof-of-concept settings (5 min / 10 min limits, 10/20 iterations)
 - `--production`: Use production settings (4h / 9h limits, 50/99 iterations) - skips preset prompt
 - `--no-focus`: Skip focus file tracking (100% autonomous, no plan file)
+- `--skip-constraint-scan`: Skip constraint scanner (power users, v3.0.0+)
 - `<task description>`: Natural language task prompt (remaining text after flags)
 
 ## Step 1: Focus File Discovery (Auto-Select)
@@ -422,6 +423,13 @@ if [[ "$ARGS" == *"--no-focus"* ]]; then
     ARGS="${ARGS//--no-focus/}"
 fi
 
+# Detect --skip-constraint-scan flag (v3.0.0+)
+SKIP_CONSTRAINT_SCAN=false
+if [[ "$ARGS" == *"--skip-constraint-scan"* ]]; then
+    SKIP_CONSTRAINT_SCAN=true
+    ARGS="${ARGS//--skip-constraint-scan/}"
+fi
+
 # Remaining text after flags = task_prompt (trim whitespace)
 TASK_PROMPT=$(echo "$ARGS" | xargs 2>/dev/null || echo "$ARGS")
 
@@ -506,11 +514,13 @@ if [[ -f "$PROJECT_DIR/.claude/ralph-config.json" ]]; then
     EXISTING_GUIDANCE=$(jq '.guidance // {}' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null || echo '{}')
 fi
 
-# Generate unified ralph-config.json (v2.0 schema)
+# Generate unified ralph-config.json (v3.0.0 schema - Pydantic migration)
 CONFIG_JSON=$(jq -n \
     --arg state "running" \
     --argjson poc_mode "$POC_MODE" \
+    --argjson production_mode "$PRODUCTION_MODE" \
     --argjson no_focus "$NO_FOCUS" \
+    --argjson skip_constraint_scan "$SKIP_CONSTRAINT_SCAN" \
     --arg target_file "$TARGET_FILE" \
     --arg task_prompt "$TASK_PROMPT" \
     --argjson min_hours "$MIN_HOURS" \
@@ -519,10 +529,12 @@ CONFIG_JSON=$(jq -n \
     --argjson max_iterations "$MAX_ITERS" \
     --argjson existing_guidance "$EXISTING_GUIDANCE" \
     '{
-        version: "2.0.0",
+        version: "3.0.0",
         state: $state,
         poc_mode: $poc_mode,
+        production_mode: $production_mode,
         no_focus: $no_focus,
+        skip_constraint_scan: $skip_constraint_scan,
         loop_limits: {
             min_hours: $min_hours,
             max_hours: $max_hours,

@@ -19,14 +19,39 @@
 
 set -euo pipefail
 
+# Dynamic worktree detection (ADR: 2025-12-29-ralph-constraint-scanning.md)
+# Uses git rev-parse --git-common-dir instead of hardcoded path
+detect_alpha_forge_root() {
+    local git_common_dir
+    git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null || echo "")
+
+    if [[ -z "$git_common_dir" ]]; then
+        echo ""
+        return
+    fi
+
+    if [[ "$git_common_dir" == ".git" ]]; then
+        # Main worktree - we're in the repo root
+        pwd
+    else
+        # Linked worktree - git-common-dir points to main's .git
+        dirname "$git_common_dir"
+    fi
+}
+
 # Defaults
 MODE=""
 SLUG=""
 TYPE=""
 BASE=""
 BRANCH=""
-AF_ROOT="$HOME/eon/alpha-forge"
-WORKTREE_BASE="$HOME/eon"
+AF_ROOT="${AF_ROOT:-$(detect_alpha_forge_root)}"
+WORKTREE_BASE="${WORKTREE_BASE:-$HOME/eon}"
+
+# Fallback to legacy path if detection fails
+if [[ -z "$AF_ROOT" ]]; then
+    AF_ROOT="$HOME/eon/alpha-forge"
+fi
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do

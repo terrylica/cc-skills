@@ -1,24 +1,41 @@
 #!/usr/bin/env python3
-"""Unified Ralph configuration schema.
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pydantic>=2.10.0", "filelock>=3.20.0"]
+# ///
+"""Unified Ralph configuration schema - v3.0.0 (Pydantic migration).
 
 ADR: Unified config-driven architecture for deterministic hook behavior.
 All magic numbers externalized to a single JSON config file.
 
 Config file location: .claude/ralph-config.json (per-project)
 Fallback: ~/.claude/ralph-defaults.json (global defaults)
+
+v3.0.0 Changes (2025-12-29):
+- Migrated from dataclasses to Pydantic v2 for validation
+- Added GuidanceConfig for forbidden/encouraged items
+- Added ConstraintScanConfig for scanner results
+- Added skip_constraint_scan flag
+- Added filelock for atomic config read/write
 """
 
-from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any
 import json
 import logging
 import sys
 
+from filelock import FileLock, Timeout
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 logger = logging.getLogger(__name__)
 
+# Lock timeout for config file operations
+CONFIG_LOCK_TIMEOUT = 5  # seconds
 
-class LoopState(Enum):
+
+class LoopState(str, Enum):
     """State machine for loop lifecycle.
 
     STOPPED → RUNNING → DRAINING → STOPPED
@@ -32,8 +49,7 @@ class LoopState(Enum):
     DRAINING = "draining"
 
 
-@dataclass
-class LoopDetectionConfig:
+class LoopDetectionConfig(BaseModel):
     """Configuration for loop/repetition detection.
 
     RSSI (Recursively Self-Improving Superintelligence) — Beyond AGI.
@@ -44,9 +60,10 @@ class LoopDetectionConfig:
     similarity_threshold: float = 0.99  # RSSI — Beyond AGI: Intelligence Explosion threshold
     window_size: int = 5  # Number of recent outputs to track
 
+    model_config = ConfigDict(extra='ignore')
 
-@dataclass
-class CompletionConfig:
+
+class CompletionConfig(BaseModel):
     """Configuration for task completion detection."""
     confidence_threshold: float = 0.7  # Minimum confidence to trigger completion
 
@@ -58,7 +75,7 @@ class CompletionConfig:
     semantic_phrases_confidence: float = 0.7  # "task complete", etc.
 
     # Semantic completion phrases
-    completion_phrases: list[str] = field(default_factory=lambda: [
+    completion_phrases: list[str] = Field(default_factory=lambda: [
         "task complete",
         "all done",
         "finished",
@@ -66,9 +83,10 @@ class CompletionConfig:
         "work complete",
     ])
 
+    model_config = ConfigDict(extra='ignore')
 
-@dataclass
-class ValidationConfig:
+
+class ValidationConfig(BaseModel):
     """Configuration for multi-round validation phase.
 
     5-Round Validation System:
@@ -95,7 +113,7 @@ class ValidationConfig:
     timeout_normal: int = 120
 
     # Round 4: Adversarial Probing settings
-    edge_case_categories: list[str] = field(default_factory=lambda: [
+    edge_case_categories: list[str] = Field(default_factory=lambda: [
         "division_by_zero",
         "impossible_values",
         "extreme_values",
@@ -103,15 +121,16 @@ class ValidationConfig:
     ])
 
     # Round 5: Cross-Period Robustness settings
-    market_regimes: list[str] = field(default_factory=lambda: [
+    market_regimes: list[str] = Field(default_factory=lambda: [
         "bull",
         "bear",
         "sideways",
     ])
 
+    model_config = ConfigDict(extra='ignore')
 
-@dataclass
-class LoopLimitsConfig:
+
+class LoopLimitsConfig(BaseModel):
     """Configuration for loop time/iteration limits.
 
     Note: min_hours/max_hours refer to CLI runtime (active time), not wall-clock.
@@ -131,11 +150,12 @@ class LoopLimitsConfig:
     # CLI pause detection: gap > threshold = CLI was closed, don't count as runtime
     cli_gap_threshold_seconds: int = 300  # 5 minutes
 
+    model_config = ConfigDict(extra='ignore')
 
-@dataclass
-class ProtectionConfig:
+
+class ProtectionConfig(BaseModel):
     """Configuration for file protection (PreToolUse guard)."""
-    protected_files: list[str] = field(default_factory=lambda: [
+    protected_files: list[str] = Field(default_factory=lambda: [
         ".claude/loop-enabled",
         ".claude/loop-start-timestamp",
         ".claude/ralph-config.json",
@@ -143,7 +163,7 @@ class ProtectionConfig:
     ])
 
     # Deletion patterns to detect
-    deletion_patterns: list[str] = field(default_factory=lambda: [
+    deletion_patterns: list[str] = Field(default_factory=lambda: [
         r"\brm\b",
         r"\bunlink\b",
         r"> /dev/null",
@@ -153,7 +173,7 @@ class ProtectionConfig:
 
     # Bypass markers for official Ralph commands
     # Any command containing one of these markers bypasses deletion protection
-    bypass_markers: list[str] = field(default_factory=lambda: [
+    bypass_markers: list[str] = Field(default_factory=lambda: [
         "RALPH_STOP_SCRIPT",
         "RALPH_START_SCRIPT",
         "RALPH_ENCOURAGE_SCRIPT",
@@ -166,9 +186,10 @@ class ProtectionConfig:
     # Legacy: single marker for backward compatibility
     stop_script_marker: str = "RALPH_STOP_SCRIPT"
 
+    model_config = ConfigDict(extra='ignore')
 
-@dataclass
-class SubprocessTimeoutConfig:
+
+class SubprocessTimeoutConfig(BaseModel):
     """Configuration for subprocess execution timeouts (seconds).
 
     Used by RSSI discovery to limit time spent on external tool calls.
@@ -179,17 +200,19 @@ class SubprocessTimeoutConfig:
     grep: int = 30  # Grep/search commands timeout
     lychee: int = 30  # Link checker timeout
 
+    model_config = ConfigDict(extra='ignore')
 
-@dataclass
-class GracefulShutdownConfig:
+
+class GracefulShutdownConfig(BaseModel):
     """Configuration for DRAINING state behavior."""
     grace_period_seconds: int = 30  # Max time to wait in DRAINING state
     check_interval_seconds: float = 0.5  # How often to check for completion
     force_kill_on_timeout: bool = True  # Force cleanup after grace period
 
+    model_config = ConfigDict(extra='ignore')
 
-@dataclass
-class GpuInfrastructureConfig:
+
+class GpuInfrastructureConfig(BaseModel):
     """Configuration for remote GPU infrastructure (Alpha Forge projects).
 
     This enables Ralph to suggest remote GPU execution for training-heavy tasks.
@@ -200,73 +223,93 @@ class GpuInfrastructureConfig:
     gpu: str = ""  # GPU description (e.g., "RTX 2080 Ti (11GB)")
     ssh_cmd: str = ""  # Full SSH command (e.g., "ssh kab@littleblack")
 
+    model_config = ConfigDict(extra='ignore')
 
-@dataclass
-class RalphConfig:
-    """Unified Ralph configuration."""
+
+class GuidanceConfig(BaseModel):
+    """User guidance for RSSI (forbidden/encouraged items).
+
+    Populated by /ralph:start AUQ flow or manual /ralph:forbid /ralph:encourage.
+    """
+    forbidden: list[str] = Field(default_factory=list)
+    encouraged: list[str] = Field(default_factory=list)
+    timestamp: str = ""  # ISO 8601 timestamp of last update
+
+    model_config = ConfigDict(extra='ignore')
+
+    @field_validator('forbidden', 'encouraged', mode='before')
+    @classmethod
+    def ensure_list(cls, v: Any) -> list[str]:
+        """Backwards compat: convert string to list if needed."""
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [v]
+        if isinstance(v, list):
+            return [str(item) for item in v]
+        return []
+
+
+class ConstraintScanConfig(BaseModel):
+    """Constraint scanner results from /ralph:start preflight scan.
+
+    4-tier severity system:
+    - CRITICAL: Block loop start, must be resolved
+    - HIGH: Escalate to user via AUQ, recommend prohibiting
+    - MEDIUM: Show in deep-dive, optional action
+    - LOW: Log only, informational
+    """
+    scan_timestamp: str = ""  # ISO 8601 timestamp
+    project_dir: str = ""
+    worktree_type: str = ""  # "main" | "linked"
+    constraints: list[dict] = Field(default_factory=list)
+    builtin_busywork: list[dict] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra='ignore')
+
+
+class RalphConfig(BaseModel):
+    """Unified Ralph configuration - v3.0.0 (Pydantic migration).
+
+    Central config for all Ralph hooks. Supports both project-level
+    (.claude/ralph-config.json) and global (~/.claude/ralph-defaults.json).
+    """
     # State (managed by hooks, not user-editable)
     state: LoopState = LoopState.STOPPED
 
     # Sub-configurations
-    loop_detection: LoopDetectionConfig = field(default_factory=LoopDetectionConfig)
-    completion: CompletionConfig = field(default_factory=CompletionConfig)
-    validation: ValidationConfig = field(default_factory=ValidationConfig)
-    loop_limits: LoopLimitsConfig = field(default_factory=LoopLimitsConfig)
-    protection: ProtectionConfig = field(default_factory=ProtectionConfig)
-    graceful_shutdown: GracefulShutdownConfig = field(default_factory=GracefulShutdownConfig)
-    gpu_infrastructure: GpuInfrastructureConfig = field(default_factory=GpuInfrastructureConfig)
-    subprocess_timeouts: SubprocessTimeoutConfig = field(default_factory=SubprocessTimeoutConfig)
+    loop_detection: LoopDetectionConfig = Field(default_factory=LoopDetectionConfig)
+    completion: CompletionConfig = Field(default_factory=CompletionConfig)
+    validation: ValidationConfig = Field(default_factory=ValidationConfig)
+    loop_limits: LoopLimitsConfig = Field(default_factory=LoopLimitsConfig)
+    protection: ProtectionConfig = Field(default_factory=ProtectionConfig)
+    graceful_shutdown: GracefulShutdownConfig = Field(default_factory=GracefulShutdownConfig)
+    gpu_infrastructure: GpuInfrastructureConfig = Field(default_factory=GpuInfrastructureConfig)
+    subprocess_timeouts: SubprocessTimeoutConfig = Field(default_factory=SubprocessTimeoutConfig)
+
+    # NEW v3.0.0: User guidance from AUQ screening
+    guidance: GuidanceConfig = Field(default_factory=GuidanceConfig)
+
+    # NEW v3.0.0: Constraint scan results
+    constraint_scan: ConstraintScanConfig | None = None
+
+    # NEW v3.0.0: Skip constraint scan flag
+    skip_constraint_scan: bool = False
 
     # Session-specific (set by /ralph:start)
     target_file: str | None = None
     task_prompt: str | None = None
     no_focus: bool = False
     poc_mode: bool = False
+    production_mode: bool = False  # NEW v3.0.0: Track production mode for auditability
 
     # Metadata
-    version: str = "2.0.0"
+    version: str = "3.0.0"
 
-
-def dataclass_to_dict(obj) -> dict:
-    """Convert nested dataclass to dict, handling enums."""
-    if hasattr(obj, "__dataclass_fields__"):
-        result = {}
-        for field_name in obj.__dataclass_fields__:
-            value = getattr(obj, field_name)
-            result[field_name] = dataclass_to_dict(value)
-        return result
-    elif isinstance(obj, Enum):
-        return obj.value
-    elif isinstance(obj, list):
-        return [dataclass_to_dict(item) for item in obj]
-    else:
-        return obj
-
-
-def dict_to_dataclass(cls, data: dict):
-    """Convert dict to dataclass, handling nested dataclasses and enums."""
-    if not hasattr(cls, "__dataclass_fields__"):
-        return data
-
-    field_types = {f.name: f.type for f in cls.__dataclass_fields__.values()}
-    kwargs = {}
-
-    for field_name, field_type in field_types.items():
-        if field_name not in data:
-            continue
-
-        value = data[field_name]
-
-        # Handle LoopState enum
-        if field_type == LoopState:
-            kwargs[field_name] = LoopState(value)
-        # Handle nested dataclasses
-        elif hasattr(field_type, "__dataclass_fields__"):
-            kwargs[field_name] = dict_to_dataclass(field_type, value)
-        else:
-            kwargs[field_name] = value
-
-    return cls(**kwargs)
+    model_config = ConfigDict(
+        extra='ignore',  # Backwards compat: ignore unknown fields from older configs
+        validate_assignment=True,
+    )
 
 
 def get_config_path(project_dir: str | None = None) -> Path:
@@ -288,16 +331,31 @@ def get_config_path(project_dir: str | None = None) -> Path:
     return global_config
 
 
+def get_lock_path(config_path: Path) -> Path:
+    """Get lock file path for a config file."""
+    return config_path.with_suffix('.json.lock')
+
+
 def load_config(project_dir: str | None = None) -> RalphConfig:
-    """Load configuration from JSON file, with defaults for missing values."""
+    """Load configuration from JSON file with file locking.
+
+    Uses filelock to prevent race conditions when multiple Claude Code
+    instances access the same config file.
+    """
     config_path = get_config_path(project_dir)
+    lock_path = get_lock_path(config_path)
 
     if config_path.exists():
         try:
-            data = json.loads(config_path.read_text())
-            logger.info(f"Loaded config from {config_path}")
-            return dict_to_dataclass(RalphConfig, data)
-        except (json.JSONDecodeError, TypeError) as e:
+            lock = FileLock(str(lock_path), timeout=CONFIG_LOCK_TIMEOUT)
+            with lock:
+                data = json.loads(config_path.read_text())
+                logger.info(f"Loaded config from {config_path}")
+                return RalphConfig.model_validate(data)
+        except Timeout:
+            print(f"[ralph] Warning: Config file locked, using defaults", file=sys.stderr)
+            logger.warning(f"Config file locked after {CONFIG_LOCK_TIMEOUT}s, using defaults")
+        except (json.JSONDecodeError, ValueError) as e:
             print(f"[ralph] Warning: Failed to parse config {config_path}: {e}", file=sys.stderr)
             logger.warning(f"Failed to parse config {config_path}: {e}")
 
@@ -305,15 +363,28 @@ def load_config(project_dir: str | None = None) -> RalphConfig:
 
 
 def save_config(config: RalphConfig, project_dir: str | None = None) -> Path:
-    """Save configuration to JSON file."""
+    """Save configuration to JSON file with atomic file locking.
+
+    Uses filelock to prevent race conditions during concurrent writes.
+    """
     if project_dir:
         config_path = Path(project_dir) / ".claude/ralph-config.json"
     else:
         config_path = Path.home() / ".claude/ralph-defaults.json"
 
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(json.dumps(dataclass_to_dict(config), indent=2))
-    logger.info(f"Saved config to {config_path}")
+    lock_path = get_lock_path(config_path)
+
+    try:
+        lock = FileLock(str(lock_path), timeout=CONFIG_LOCK_TIMEOUT)
+        with lock:
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            config_path.write_text(config.model_dump_json(indent=2))
+            logger.info(f"Saved config to {config_path}")
+    except Timeout:
+        print(f"[ralph] Error: Could not acquire lock for config save", file=sys.stderr)
+        logger.error(f"Config file lock timeout after {CONFIG_LOCK_TIMEOUT}s")
+        raise
+
     return config_path
 
 
@@ -323,27 +394,39 @@ def get_state_path(project_dir: str) -> Path:
 
 
 def load_state(project_dir: str) -> LoopState:
-    """Load current loop state from state file."""
+    """Load current loop state from state file with file locking."""
     state_path = get_state_path(project_dir)
+    lock_path = state_path.with_suffix('.json.lock')
 
     if state_path.exists():
         try:
-            data = json.loads(state_path.read_text())
-            return LoopState(data.get("state", "stopped"))
-        except (json.JSONDecodeError, ValueError):
+            lock = FileLock(str(lock_path), timeout=CONFIG_LOCK_TIMEOUT)
+            with lock:
+                data = json.loads(state_path.read_text())
+                return LoopState(data.get("state", "stopped"))
+        except (json.JSONDecodeError, ValueError, Timeout):
             pass
 
     return LoopState.STOPPED
 
 
 def save_state(project_dir: str, state: LoopState) -> None:
-    """Save current loop state to state file."""
+    """Save current loop state to state file with atomic file locking."""
     state_path = get_state_path(project_dir)
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(json.dumps({
-        "state": state.value,
-    }))
-    logger.info(f"State transition: {state.value}")
+    lock_path = state_path.with_suffix('.json.lock')
+
+    try:
+        lock = FileLock(str(lock_path), timeout=CONFIG_LOCK_TIMEOUT)
+        with lock:
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            state_path.write_text(json.dumps({
+                "state": state.value,
+            }))
+            logger.info(f"State transition: {state.value}")
+    except Timeout:
+        print(f"[ralph] Error: Could not acquire lock for state save", file=sys.stderr)
+        logger.error(f"State file lock timeout after {CONFIG_LOCK_TIMEOUT}s")
+        raise
 
 
 def transition_state(project_dir: str, from_state: LoopState, to_state: LoopState) -> bool:
@@ -378,3 +461,24 @@ def transition_state(project_dir: str, from_state: LoopState, to_state: LoopStat
 
 # Export default config for documentation
 DEFAULT_CONFIG = RalphConfig()
+
+
+# Backwards compatibility: dataclass-like functions for existing code
+def dataclass_to_dict(obj: Any) -> dict:
+    """Convert Pydantic model to dict (backwards compat wrapper)."""
+    if isinstance(obj, BaseModel):
+        return obj.model_dump()
+    elif isinstance(obj, Enum):
+        return obj.value
+    elif isinstance(obj, list):
+        return [dataclass_to_dict(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: dataclass_to_dict(v) for k, v in obj.items()}
+    return obj
+
+
+def dict_to_dataclass(cls, data: dict):
+    """Convert dict to Pydantic model (backwards compat wrapper)."""
+    if hasattr(cls, 'model_validate'):
+        return cls.model_validate(data)
+    return data
