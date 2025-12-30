@@ -49,6 +49,83 @@ Discover and auto-select focus files WITHOUT prompting the user (autonomous mode
 
 5. **If nothing discovered**: Proceed with `NO_FOCUS=true` (exploration mode)
 
+## Step 1.4: Constraint Scanning (Alpha Forge Only)
+
+**Purpose**: Detect environment constraints before loop starts. Results inform RSSI behavior.
+
+**Skip if**: `--skip-constraint-scan` flag provided (power users).
+
+Run the constraint scanner:
+
+```bash
+# Use /usr/bin/env bash for macOS zsh compatibility
+/usr/bin/env bash << 'CONSTRAINT_SCAN_SCRIPT'
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+ARGS="${ARGUMENTS:-}"
+
+# Check for skip flag
+if [[ "$ARGS" == *"--skip-constraint-scan"* ]]; then
+    echo "Constraint scan: SKIPPED (--skip-constraint-scan flag)"
+    exit 0
+fi
+
+# Find scanner script in plugin cache
+RALPH_CACHE="$HOME/.claude/plugins/cache/cc-skills/ralph"
+SCANNER_SCRIPT=""
+
+if [[ -d "$RALPH_CACHE/local" ]]; then
+    SCANNER_SCRIPT="$RALPH_CACHE/local/scripts/constraint-scanner.py"
+elif [[ -d "$RALPH_CACHE" ]]; then
+    # Get highest version
+    RALPH_VERSION=$(ls "$RALPH_CACHE" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+    if [[ -n "$RALPH_VERSION" ]]; then
+        SCANNER_SCRIPT="$RALPH_CACHE/$RALPH_VERSION/scripts/constraint-scanner.py"
+    fi
+fi
+
+# Skip if scanner not found (older version without scanner)
+if [[ -z "$SCANNER_SCRIPT" ]] || [[ ! -f "$SCANNER_SCRIPT" ]]; then
+    echo "Constraint scan: SKIPPED (scanner not found, upgrade to v9.2.0+)"
+    exit 0
+fi
+
+# Run scanner
+echo "Running constraint scanner..."
+SCAN_OUTPUT=$(uv run "$SCANNER_SCRIPT" --project "$PROJECT_DIR" 2>&1)
+SCAN_EXIT=$?
+
+if [[ $SCAN_EXIT -eq 2 ]]; then
+    echo ""
+    echo "========================================"
+    echo "  CRITICAL CONSTRAINTS DETECTED"
+    echo "========================================"
+    echo ""
+    echo "$SCAN_OUTPUT" | jq -r '.constraints[] | select(.severity == "critical") | "  ⛔ \(.description)"' 2>/dev/null || echo "$SCAN_OUTPUT"
+    echo ""
+    echo "Action: Address critical constraints before starting loop."
+    echo "        Use --skip-constraint-scan to bypass (not recommended)."
+    exit 2
+elif [[ $SCAN_EXIT -eq 0 ]]; then
+    # Parse and display summary
+    CRITICAL_COUNT=$(echo "$SCAN_OUTPUT" | jq '[.constraints[] | select(.severity == "critical")] | length' 2>/dev/null || echo "0")
+    HIGH_COUNT=$(echo "$SCAN_OUTPUT" | jq '[.constraints[] | select(.severity == "high")] | length' 2>/dev/null || echo "0")
+    TOTAL_COUNT=$(echo "$SCAN_OUTPUT" | jq '.constraints | length' 2>/dev/null || echo "0")
+
+    echo "Constraint scan complete:"
+    echo "  Critical: $CRITICAL_COUNT | High: $HIGH_COUNT | Total: $TOTAL_COUNT"
+
+    # Save results for AUQ to read
+    mkdir -p "$PROJECT_DIR/.claude"
+    echo "$SCAN_OUTPUT" > "$PROJECT_DIR/.claude/ralph-constraint-scan.json"
+else
+    echo "Constraint scan: WARNING (scanner returned exit code $SCAN_EXIT)"
+    echo "$SCAN_OUTPUT" | head -5
+fi
+CONSTRAINT_SCAN_SCRIPT
+```
+
+If the scanner exits with code 2 (critical constraints), stop and inform user.
+
 ## Step 1.5: Preset Confirmation (ALWAYS)
 
 **ALWAYS prompt for preset confirmation.** Flags pre-select the option but user confirms before execution.
@@ -228,19 +305,50 @@ Use AskUserQuestion:
   - label: "Skip custom items"
     description: "Use only selected categories above"
 
-### 1.6.7: Update Config
+### 1.6.7: Update Config (EXECUTE)
 
-Merge selections and write to config. The guidance section will be added to `ralph-config.json`:
+**IMPORTANT**: After collecting responses from Steps 1.6.3-1.6.6, you MUST write them to config.
 
-```json
-{
-  "guidance": {
-    "forbidden": ["Documentation updates", "Dependency upgrades"],
-    "encouraged": ["ROADMAP P0 items", "Research experiments"],
-    "timestamp": "2025-12-22T10:00:00Z"
-  }
-}
+1. **Collect responses** from the AUQ steps above:
+   - `FORBIDDEN_ITEMS`: Selected labels from 1.6.3 + custom items from 1.6.4 (if any)
+   - `ENCOURAGED_ITEMS`: Selected labels from 1.6.5 + custom items from 1.6.6 (if any)
+
+2. **Write to config** using the Bash tool with this script (substitute actual values):
+
+```bash
+/usr/bin/env bash << 'GUIDANCE_WRITE_SCRIPT'
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
+
+# Substitute these with actual AUQ responses:
+FORBIDDEN_JSON='["Documentation updates", "Dependency upgrades"]'  # From 1.6.3 + 1.6.4
+ENCOURAGED_JSON='["ROADMAP P0 items", "Research experiments"]'     # From 1.6.5 + 1.6.6
+
+# Generate timestamp
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+# Merge guidance into existing config (or create new)
+mkdir -p "$PROJECT_DIR/.claude"
+if [[ -f "$CONFIG_FILE" ]]; then
+    jq --argjson forbidden "$FORBIDDEN_JSON" \
+       --argjson encouraged "$ENCOURAGED_JSON" \
+       --arg timestamp "$TIMESTAMP" \
+       '.guidance = {forbidden: $forbidden, encouraged: $encouraged, timestamp: $timestamp}' \
+       "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+else
+    jq -n --argjson forbidden "$FORBIDDEN_JSON" \
+          --argjson encouraged "$ENCOURAGED_JSON" \
+          --arg timestamp "$TIMESTAMP" \
+          '{version: "3.0.0", guidance: {forbidden: $forbidden, encouraged: $encouraged, timestamp: $timestamp}}' \
+          > "$CONFIG_FILE"
+fi
+
+echo "Guidance saved to $CONFIG_FILE"
+jq '.guidance' "$CONFIG_FILE"
+GUIDANCE_WRITE_SCRIPT
 ```
+
+**Execution model**: Claude interprets Steps 1.6.3-1.6.6 (uses AskUserQuestion tool), collects responses, then runs the bash script above with actual values substituted.
 
 ## Step 2: Execution
 

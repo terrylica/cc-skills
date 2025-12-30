@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = []
+# dependencies = ["pydantic>=2.10.0", "filelock>=3.20.0"]
 # ///
 """Unit tests for completion.py - Multi-signal completion detection."""
 

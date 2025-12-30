@@ -404,8 +404,15 @@ def load_state(project_dir: str) -> LoopState:
             with lock:
                 data = json.loads(state_path.read_text())
                 return LoopState(data.get("state", "stopped"))
-        except (json.JSONDecodeError, ValueError, Timeout):
-            pass
+        except Timeout:
+            print(f"[ralph] Warning: State file locked, assuming STOPPED", file=sys.stderr)
+            logger.warning(f"State file locked after {CONFIG_LOCK_TIMEOUT}s, assuming STOPPED")
+        except json.JSONDecodeError as e:
+            print(f"[ralph] Warning: State file corrupted ({e}), assuming STOPPED", file=sys.stderr)
+            logger.warning(f"State file corrupted: {e}, assuming STOPPED")
+        except ValueError as e:
+            print(f"[ralph] Warning: Invalid state value ({e}), assuming STOPPED", file=sys.stderr)
+            logger.warning(f"Invalid state value: {e}, assuming STOPPED")
 
     return LoopState.STOPPED
 
