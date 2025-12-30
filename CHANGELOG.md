@@ -1,3 +1,10 @@
+## [9.1.1](https://github.com/terrylica/cc-skills/compare/v9.1.0...v9.1.1) (2025-12-30)
+
+
+### Bug Fixes
+
+* **statusline-tools:** include date in local time display ([b92541b](https://github.com/terrylica/cc-skills/commit/b92541b0bd4a83c5a09af930facadf9ad33573e7))
+
 # [9.1.0](https://github.com/terrylica/cc-skills/compare/v9.0.5...v9.1.0) (2025-12-30)
 
 
