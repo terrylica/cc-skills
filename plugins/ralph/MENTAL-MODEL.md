@@ -310,6 +310,96 @@ graph { label: "Decision Formula"; flow: south; }
 
 ---
 
+## Constraint Scanner (v3.0.0)
+
+The constraint scanner detects environment restrictions that limit Ralph's freedom to refactor and explore. It runs during `/ralph:start` unless `--skip-constraint-scan` is provided.
+
+```
+        Constraint Scanning Flow
+
+        ╭────────────────────────────╮
+        │     /ralph:start           │
+        ╰────────────────────────────╯
+          │
+          │ Step 1.5: Preset Confirmation
+          ∨
+        ╭────────────────────────────╮
+        │   constraint-scanner.py    │
+        ╰────────────────────────────╯
+          │
+          │ Dynamic worktree detection
+          │ git rev-parse --git-common-dir
+          ∨
+        ┌────────────────────────────┐
+        │    Scan Project Files      │
+        └────────────────────────────┘
+          │
+          │ .claude/settings.json
+          │ pyproject.toml
+          ∨
+        ┌────────────────────────────┐
+        │   4-Tier Severity Filter   │
+        └────────────────────────────┘
+          │
+          │ CRITICAL → Block start
+          │ HIGH     → Escalate to user
+          │ MEDIUM   → Deep-dive option
+          │ LOW      → Log only
+          ∨
+        ╭────────────────────────────╮
+        │   AskUserQuestion (3-panel)│
+        ╰────────────────────────────╯
+          │
+          │ Panel 1: PROHIBIT
+          │ Panel 2: ENCOURAGE
+          │ Panel 3: CONTINUE?
+          ∨
+        ┌────────────────────────────┐
+        │   ralph-config.json v3.0.0 │
+        └────────────────────────────┘
+          │
+          │ guidance.forbidden[]
+          │ guidance.encouraged[]
+          ∨
+        ╭────────────────────────────╮
+        │       Step 2: Execution    │
+        ╰────────────────────────────╯
+```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { flow: south; }
+
+[/ralph:start] { shape: rounded; }
+[/ralph:start] --> [constraint-scanner.py] { shape: rounded; }
+[constraint-scanner.py] -- Dynamic worktree detection --> [Scan Project Files]
+[Scan Project Files] -- .claude/settings.json, pyproject.toml --> [4-Tier Severity Filter]
+[4-Tier Severity Filter] -- CRITICAL/HIGH/MEDIUM/LOW --> [AskUserQuestion (3-panel)] { shape: rounded; }
+[AskUserQuestion (3-panel)] -- Panel 1: PROHIBIT, Panel 2: ENCOURAGE --> [ralph-config.json v3.0.0]
+[ralph-config.json v3.0.0] -- guidance.forbidden[], guidance.encouraged[] --> [Step 2: Execution] { shape: rounded; }
+```
+
+</details>
+
+### 4-Tier Severity System
+
+| Severity | Action            | Example                          |
+| -------- | ----------------- | -------------------------------- |
+| CRITICAL | Block loop start  | Current user home path hardcoded |
+| HIGH     | Escalate to user  | `/Users/someone/` in config      |
+| MEDIUM   | Show in deep-dive | `outputs/runs/` dependency       |
+| LOW      | Log only          | Non-Ralph hook detected          |
+
+### Key Files
+
+- **Scanner**: `plugins/ralph/scripts/constraint-scanner.py`
+- **Config Schema**: `plugins/ralph/hooks/core/config_schema.py` (v3.0.0 with Pydantic)
+- **ADR**: `/docs/adr/2025-12-29-ralph-constraint-scanning.md`
+
+---
+
 ## Convergence Detection
 
 ```
