@@ -10,13 +10,15 @@ perspectives: [SystemArchitecture, PerformanceOptimization, UserExperience]
 
 # ADR: Ralph RSSI Eternal Loop Architecture
 
+> **Terminology Note**: "RSSI" stands for **Recursively Self-Sustaining Iteration** — a practical mechanism for continuous autonomous research. The "superintelligence" references in the template are **aspirational framing** to encourage thorough exploration, not literal claims about AI capabilities. See [MENTAL-MODEL.md](/plugins/ralph/MENTAL-MODEL.md#rssi--aspirational-framing) for clarification.
+
 **Design Spec**: [Implementation Spec](/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md)
 
 ## Context and Problem Statement
 
 When Ralph operates in no-focus autonomous mode, it goes "idle" instead of actively exploring for improvements. The root cause is that `scan_work_opportunities()` returns an empty list when all automated checks pass, and the exploration template's Jinja2 conditional hides the opportunities section, leaving Claude with no concrete work items.
 
-A static fallback list is insufficient for true RSSI (Recursively Self-Improving Super Intelligence) behavior. True RSSI requires:
+A static fallback list is insufficient for true RSSI (Recursively Self-Sustaining Iteration) behavior. True RSSI requires:
 
 1. Dynamic capability discovery (use whatever tools exist)
 2. Session history mining (learn from past explorations)

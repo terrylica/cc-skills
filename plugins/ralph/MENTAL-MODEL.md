@@ -2,7 +2,9 @@
 
 > **Scope**: This document describes Ralph's mental model for **Alpha-Forge** (quantitative research). For generic Ralph behavior (non-Alpha-Forge projects), see [README.md](./README.md#how-it-works).
 
-> **TL;DR**: Ralph implements **RSSI** (Recursively Self-Sustaining Iteration) — keeping Claude researching autonomously by intercepting stop attempts and pivoting to exploration. Convergence triggers new frontiers, not stopping.
+> **TL;DR**: Ralph keeps Claude working autonomously instead of stopping after each task. When Claude finishes something, Ralph says "great, now find more improvements!" This creates continuous research sessions that can run for hours.
+>
+> **What RSSI means**: "Recursively Self-Sustaining Iteration" — a fancy way of saying "keeps going and keeps improving." You always have control: `/ralph:stop` or the kill switch (`.claude/STOP_LOOP` file) stops everything immediately.
 
 ## RSSI — Aspirational Framing
 
@@ -163,6 +165,136 @@ graph { label: "Ralph Alpha-Forge Workflow"; flow: south; }
 [Kill Switch] -- .claude/STOP_LOOP --> [Stop Session]
 [Max Limits] { border: double; }
 [Max Limits] -- max_hours/iterations --> [Stop Session]
+```
+
+</details>
+
+### LoopState Machine
+
+> **Simple Version**: Ralph has three modes: OFF, WORKING, and STOPPING. Think of it like a car: parked, driving, or coasting to a stop.
+
+The loop controller manages three distinct states:
+
+```
+                LoopState Machine
+
+          /ralph:start
+             │
+             ∨
+┏━━━━━━━━━━━━━━━━━━━━━┓               ┏━━━━━━━━━━━━━━━━━━━━━┓
+┃      STOPPED        ┃ ────────────> ┃      RUNNING        ┃
+┗━━━━━━━━━━━━━━━━━━━━━┛               ┗━━━━━━━━━━━━━━━━━━━━━┛
+  ∧                                     │
+  │                                     │ /ralph:stop or
+  │                                     │ max limits reached
+  │                                     ∨
+  │                   graceful       ┏━━━━━━━━━━━━━━━━━━━━━┓
+  └───────────────── shutdown ────── ┃     DRAINING        ┃
+                                     ┗━━━━━━━━━━━━━━━━━━━━━┛
+```
+
+| State        | What's Happening                        | User Can...                  |
+| ------------ | --------------------------------------- | ---------------------------- |
+| **STOPPED**  | Ralph is inactive, no hooks firing      | Start with `/ralph:start`    |
+| **RUNNING**  | Hooks active, blocking stops, injecting | `/ralph:stop`, add guidance  |
+| **DRAINING** | Finishing current work, then stopping   | Wait for graceful completion |
+
+**State Transitions**:
+
+- `STOPPED → RUNNING`: User runs `/ralph:start`
+- `RUNNING → DRAINING`: `/ralph:stop`, kill switch, or limits exceeded
+- `DRAINING → STOPPED`: Current iteration completes gracefully
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "LoopState Machine"; flow: east; }
+
+[STOPPED] { border: bold; }
+[RUNNING] { border: bold; }
+[DRAINING] { border: bold; }
+
+[STOPPED] -- /ralph:start --> [RUNNING]
+[RUNNING] -- /ralph:stop or limits --> [DRAINING]
+[DRAINING] -- graceful shutdown --> [STOPPED]
+```
+
+</details>
+
+### Hook Coordination
+
+> **Simple Version**: Ralph has 3 hooks that work together like a relay team — each one has a specific job and they pass the baton in sequence.
+
+Ralph uses three hooks that fire in a specific order:
+
+```
+                              Hook Coordination Sequence
+
+                                  ╭─────────────────────────────────────────╮
+                                  │          Claude wants to stop           │
+                                  ╰─────────────────────────────────────────╯
+                                    │
+                                    │ Before any tool runs
+                                    ∨
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  HOOK 1: pretooluse-loop-guard.py                                              ┃
+┃  ─────────────────────────────────                                             ┃
+┃  "Should Claude even try to stop?"                                             ┃
+┃  • Blocks stop attempts when loop is RUNNING                                   ┃
+┃  • Allows stops when DRAINING or STOP_LOOP exists                              ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+                                    │
+                                    │ Before plan modifications
+                                    ∨
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  HOOK 2: archive-plan.sh                                                       ┃
+┃  ───────────────────────                                                       ┃
+┃  "Save work before modifying plans"                                            ┃
+┃  • Archives plan files before they're changed                                  ┃
+┃  • Creates timestamped backups in tmp/                                         ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+                                    │
+                                    │ When Claude tries to end session
+                                    ∨
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  HOOK 3: loop-until-done.py (Stop Hook)                                        ┃
+┃  ──────────────────────────────────────                                        ┃
+┃  "What should Claude do next?"                                                 ┃
+┃  • Intercepts session end                                                      ┃
+┃  • Injects RSSI template with guidance                                         ┃
+┃  • Pivots to exploration if work remains                                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+                                    │
+                                    ∨
+                                  ╭─────────────────────────────────────────╮
+                                  │        Claude continues working         │
+                                  ╰─────────────────────────────────────────╯
+```
+
+| Hook                       | When It Fires         | Purpose                    |
+| -------------------------- | --------------------- | -------------------------- |
+| `pretooluse-loop-guard.py` | Before tool execution | Block unauthorized stops   |
+| `archive-plan.sh`          | Before plan edits     | Preserve work history      |
+| `loop-until-done.py`       | On session stop       | Inject continuation prompt |
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "Hook Coordination Sequence"; flow: south; }
+
+[Claude wants to stop] { shape: rounded; }
+[Claude continues working] { shape: rounded; }
+
+[HOOK 1: pretooluse-loop-guard.py] { border: bold; }
+[HOOK 2: archive-plan.sh] { border: bold; }
+[HOOK 3: loop-until-done.py] { border: bold; }
+
+[Claude wants to stop] -> [HOOK 1: pretooluse-loop-guard.py]
+[HOOK 1: pretooluse-loop-guard.py] -- Before tool execution --> [HOOK 2: archive-plan.sh]
+[HOOK 2: archive-plan.sh] -- Before plan edits --> [HOOK 3: loop-until-done.py]
+[HOOK 3: loop-until-done.py] -- Injects RSSI --> [Claude continues working]
 ```
 
 </details>
@@ -385,12 +517,67 @@ graph { flow: south; }
 
 ### 4-Tier Severity System
 
-| Severity | Action            | Example                          |
-| -------- | ----------------- | -------------------------------- |
-| CRITICAL | Block loop start  | Current user home path hardcoded |
-| HIGH     | Escalate to user  | `/Users/someone/` in config      |
-| MEDIUM   | Show in deep-dive | `outputs/runs/` dependency       |
-| LOW      | Log only          | Non-Ralph hook detected          |
+> **Simple Version**: Not all problems are equally urgent. Think of it like a hospital triage — some issues need immediate attention, others can wait.
+
+```
+                    Constraint Severity Pyramid
+
+                              ╱╲
+                             ╱  ╲
+                            ╱ ❌ ╲
+                           ╱──────╲         CRITICAL: "Stop everything"
+                          ╱        ╲        Can't start loop until fixed
+                         ╱──────────╲
+                        ╱     ⚠️     ╲
+                       ╱──────────────╲     HIGH: "Ask user first"
+                      ╱                ╲    User must acknowledge
+                     ╱──────────────────╲
+                    ╱        📋          ╲
+                   ╱──────────────────────╲ MEDIUM: "Worth knowing"
+                  ╱                        ╲ Shown if user wants details
+                 ╱──────────────────────────╲
+                ╱            📝              ╲
+               ╱──────────────────────────────╲ LOW: "FYI"
+              ╱                                ╲ Logged but doesn't interrupt
+             ╱──────────────────────────────────╲
+```
+
+| Severity     | What It Means                        | Action            | Real Example                    |
+| ------------ | ------------------------------------ | ----------------- | ------------------------------- |
+| **CRITICAL** | "This WILL break on another machine" | Block loop start  | Your home path `/Users/terry/`  |
+| **HIGH**     | "This MIGHT cause problems"          | Escalate to user  | Someone else's path in config   |
+| **MEDIUM**   | "Something to be aware of"           | Show in deep-dive | Dependency on local directories |
+| **LOW**      | "Just noting this exists"            | Log only          | Non-Ralph hook detected         |
+
+**Decision Flow**:
+
+1. **CRITICAL found?** → Block `/ralph:start` completely
+2. **HIGH found?** → Show user, require acknowledgment
+3. **MEDIUM found?** → Offer "deep-dive" option to see details
+4. **LOW found?** → Log silently, proceed normally
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "Constraint Severity Pyramid"; flow: south; }
+
+[CRITICAL] { border: double; }
+[HIGH] { border: bold; }
+[MEDIUM]
+[LOW]
+
+[Scan Project] -> [CRITICAL]
+[CRITICAL] -- blocks --> [Stop Loop Start]
+[CRITICAL] -- none --> [HIGH]
+[HIGH] -- escalates --> [AskUserQuestion]
+[HIGH] -- none --> [MEDIUM]
+[MEDIUM] -- deep-dive --> [Show Details]
+[MEDIUM] -- none --> [LOW]
+[LOW] -- logs --> [Proceed]
+```
+
+</details>
 
 ### Key Files
 
@@ -620,6 +807,68 @@ Each state file also includes `_inheritance` metadata:
   }
 }
 ```
+
+### Config Schema Hierarchy
+
+> **Simple Version**: The config file has a clear structure — like nested boxes. Each box has specific settings inside it.
+
+The configuration uses Pydantic v2 for validation (see `hooks/core/config_schema.py`):
+
+```
+                          Config Schema Hierarchy
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  RalphConfig (root)                                                         │
+│  ─────────────────                                                          │
+│  The main configuration object, validated on every load                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────────────────────┐    ┌───────────────────────────────────┐ │
+│  │  LoopLimitsConfig             │    │  GuidanceConfig                   │ │
+│  │  ─────────────────            │    │  ──────────────                   │ │
+│  │  min_hours: float = 9.0       │    │  forbidden: list[str] = []        │ │
+│  │  max_hours: float = 999.0     │    │  encouraged: list[str] = []       │ │
+│  │  min_iterations: int = 99     │    │                                   │ │
+│  │  max_iterations: int = 999    │    │  Encourages OVERRIDE forbidden    │ │
+│  └───────────────────────────────┘    └───────────────────────────────────┘ │
+│                                                                             │
+│  ┌───────────────────────────────┐    ┌───────────────────────────────────┐ │
+│  │  ConstraintScanConfig         │    │  GPUInfrastructureConfig          │ │
+│  │  ─────────────────────        │    │  ──────────────────────           │ │
+│  │  enabled: bool = True         │    │  available: bool = False          │ │
+│  │  deep_dive: bool = False      │    │  host: str | None                 │ │
+│  │  patterns: list[Pattern]      │    │  gpu: str | None                  │ │
+│  └───────────────────────────────┘    └───────────────────────────────────┘ │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Section                | Purpose                          | Key Fields                           |
+| ---------------------- | -------------------------------- | ------------------------------------ |
+| **loop_limits**        | When to allow stopping           | min/max hours, min/max iterations    |
+| **guidance**           | What to work on (and avoid)      | forbidden[], encouraged[]            |
+| **constraint_scan**    | Pre-start environment checks     | enabled, patterns[], severity levels |
+| **gpu_infrastructure** | Remote GPU for heavy computation | host, gpu type, availability         |
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "Config Schema Hierarchy"; flow: south; }
+
+[RalphConfig] { border: double; }
+[LoopLimitsConfig]
+[GuidanceConfig]
+[ConstraintScanConfig]
+[GPUInfrastructureConfig]
+
+[RalphConfig] -> [LoopLimitsConfig]
+[RalphConfig] -> [GuidanceConfig]
+[RalphConfig] -> [ConstraintScanConfig]
+[RalphConfig] -> [GPUInfrastructureConfig]
+```
+
+</details>
 
 ### User Guidance (v8.7.0+)
 

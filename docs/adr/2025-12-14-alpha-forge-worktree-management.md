@@ -33,24 +33,31 @@ This creates friction in the development workflow and leads to:
 - Manual iTerm2 configuration that quickly becomes stale
 - Cognitive overhead remembering worktree-to-branch mappings
 
-<!-- graph-easy source: before-after
-[Manual Process] --> [Create worktree\n(ad-hoc naming)] --> [Edit default-layout.py] --> [Remember mapping]
+```
+                          Before: Manual Worktree Management
 
-[Manual Process] --> [Forget cleanup] --> [Disk bloat]
--->
+┌──────────────────┐     ┌───────────────────────┐     ┌────────────────────────┐     ┌──────────────────┐
+│  Manual Process  │ ──> │    Create worktree    │ ──> │ Edit default-layout.py │ ──> │ Remember mapping │
+└──────────────────┘     │    (ad-hoc naming)    │     └────────────────────────┘     └──────────────────┘
+  │                      └───────────────────────┘
+  │
+  ∨
+┌──────────────────┐     ┌────────────┐
+│  Forget cleanup  │ ──> │ Disk bloat │
+└──────────────────┘     └────────────┘
+```
+
+<details>
+<summary>graph-easy source</summary>
 
 ```
-+----------------+     +---------------------+     +----------------------+     +-----------------+
-| Manual Process | --> | Create worktree     | --> | Edit default-layout.py | --> | Remember mapping |
-+----------------+     | (ad-hoc naming)     |     +----------------------+     +-----------------+
-                       +---------------------+
-        |
-        |
-        v
-+----------------+     +------------+
-| Forget cleanup | --> | Disk bloat |
-+----------------+     +------------+
+graph { label: "Before: Manual Worktree Management"; flow: east; }
+
+[Manual Process] -> [Create worktree\n(ad-hoc naming)] -> [Edit default-layout.py] -> [Remember mapping]
+[Manual Process] -> [Forget cleanup] -> [Disk bloat]
 ```
+
+</details>
 
 ## Decision Drivers
 
@@ -97,36 +104,46 @@ The system consists of three components:
 2. **Dynamic Detection** (`default-layout.py`): Auto-discovers worktrees at iTerm2 startup
 3. **Lifecycle Management**: Stale detection + cleanup prompts
 
-<!-- graph-easy source: architecture
-[/af:wt command] --> [worktree-manager skill]
+```
+                          Worktree Management Architecture
 
-[worktree-manager skill] --> [Pre-diagnosis:\nBranch analysis] --> [Name suggestion:\nADR-style] --> [git worktree add]
-[worktree-manager skill] --> [Stale detection] --> [Cleanup prompt]
-[default-layout.py] --> [glob ~/eon/alpha-forge.worktree-*] --> [Validate with git worktree list] --> [Generate AF-{acronym} tabs]
--->
+┌──────────────────┐     ┌─────────────────────────┐
+│  /af:wt command  │ ──> │  worktree-manager skill │
+└──────────────────┘     └─────────────────────────┘
+                           │
+                           │
+                           ∨
+                         ┌─────────────────────────┐     ┌───────────────────┐     ┌──────────────────┐
+                         │     Pre-diagnosis:      │ ──> │ Name suggestion:  │ ──> │ git worktree add │
+                         │    Branch analysis      │     │    ADR-style      │     └──────────────────┘
+                         └─────────────────────────┘     └───────────────────┘
+                           │
+                           │
+                           ∨
+                         ┌─────────────────────────┐     ┌──────────────────┐
+                         │    Stale detection      │ ──> │  Cleanup prompt  │
+                         └─────────────────────────┘     └──────────────────┘
+
+┌───────────────────┐     ┌────────────────────────────────────┐     ┌───────────────────────────────┐     ┌──────────────────────────┐
+│ default-layout.py │ ──> │ glob ~/eon/alpha-forge.worktree-*  │ ──> │ Validate with git worktree list │ ──> │ Generate AF-{acronym} tabs │
+└───────────────────┘     └────────────────────────────────────┘     └───────────────────────────────┘     └──────────────────────────┘
+```
+
+<details>
+<summary>graph-easy source</summary>
 
 ```
-+----------------+     +------------------------+
-| /af:wt command | --> | worktree-manager skill |
-+----------------+     +------------------------+
-                         |
-                         |
-                         v
-                       +---------------------------+     +------------------+     +------------------+
-                       | Pre-diagnosis:            | --> | Name suggestion: | --> | git worktree add |
-                       | Branch analysis           |     | ADR-style        |     +------------------+
-                       +---------------------------+     +------------------+
-                         |
-                         |
-                         v
-                       +-----------------+     +----------------+
-                       | Stale detection | --> | Cleanup prompt |
-                       +-----------------+     +----------------+
+graph { label: "Worktree Management Architecture"; flow: south; }
 
-+-------------------+     +----------------------------------+     +-------------------------------+     +-------------------------+
-| default-layout.py | --> | glob ~/eon/alpha-forge.worktree-* | --> | Validate with git worktree list | --> | Generate AF-{acronym} tabs |
-+-------------------+     +----------------------------------+     +-------------------------------+     +-------------------------+
+[/af:wt command] -> [worktree-manager skill]
+
+[worktree-manager skill] -> [Pre-diagnosis:\nBranch analysis] -> [Name suggestion:\nADR-style] -> [git worktree add]
+[worktree-manager skill] -> [Stale detection] -> [Cleanup prompt]
+
+[default-layout.py] -> [glob ~/eon/alpha-forge.worktree-*] -> [Validate with git worktree list] -> [Generate AF-{acronym} tabs]
 ```
+
+</details>
 
 ### Worktree Naming Convention
 
