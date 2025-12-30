@@ -105,7 +105,7 @@ Run the bash script above to manage encouraged items.
 
 ## Template Rendering (v8.7.0+)
 
-The unified RSSI template (`rssi-unified.md`) renders guidance in the `## USER GUIDANCE` section:
+The unified Ralph template (`ralph-unified.md`) renders guidance in the `## USER GUIDANCE` section:
 
 ```markdown
 ### ENCOURAGED (User Priorities)

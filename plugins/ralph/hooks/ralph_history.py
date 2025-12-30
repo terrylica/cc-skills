@@ -1,10 +1,11 @@
 """
-RSSI Level 3: History Mining
+Ralph Level 3: History Mining
 
 ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-Analyzes past sessions to find high-value improvement patterns.
-Learns from what exploration items led to actual commits.
+Ralph (Recursively Self-Improving Superintelligence) analyzes past sessions
+to find high-value improvement patterns. Learns from what exploration items
+led to actual commits.
 """
 
 from __future__ import annotations

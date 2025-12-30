@@ -1,11 +1,11 @@
 """
-RSSI Level 6: Web Discovery
+Ralph Level 6: Web Discovery
 
 ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-Search for ideas aligned with repo theme using web search.
-Generates queries for Claude to execute, proposes big features.
-Includes SOTA quality gate verification.
+Ralph (Recursively Self-Improving Superintelligence) searches for ideas
+aligned with repo theme using web search. Generates queries for Claude
+to execute, proposes big features. Includes SOTA quality gate verification.
 """
 
 from __future__ import annotations

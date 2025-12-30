@@ -1,10 +1,11 @@
 """
-RSSI Level 5: Meta-RSSI
+Ralph Level 5: Meta-Ralph
 
 ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-Meta-improvement: Improve how improvement happens.
-Analyzes discovery effectiveness and evolves the discovery mechanism itself.
+Ralph (Recursively Self-Improving Superintelligence) meta-improvement:
+Improve how improvement happens. Analyzes discovery effectiveness and
+evolves the discovery mechanism itself.
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from core.constants import (
     MIN_SAMPLES_FOR_EVALUATION,
     VERY_LOW_EFFECTIVENESS_THRESHOLD,
 )
-from rssi_evolution import (
+from ralph_evolution import (
     disable_underperforming_check,
     get_learned_patterns,
     learn_project_pattern,

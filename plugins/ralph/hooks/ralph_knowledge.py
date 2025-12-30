@@ -1,10 +1,10 @@
 """
-RSSI Knowledge: State Persistence for Eternal Loop
+Ralph Knowledge: State Persistence for Eternal Loop
 
 ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-Accumulates knowledge across eternal loop iterations.
-Persists to JSON for cross-session learning.
+Ralph (Recursively Self-Improving Superintelligence) accumulates knowledge
+across eternal loop iterations. Persists to JSON for cross-session learning.
 """
 
 from __future__ import annotations
@@ -15,11 +15,11 @@ from datetime import datetime
 
 from core.constants import STATE_DIR
 
-KNOWLEDGE_FILE = STATE_DIR / "rssi-knowledge.json"
+KNOWLEDGE_FILE = STATE_DIR / "ralph-knowledge.json"
 
 
 @dataclass
-class RSSIKnowledge:
+class RalphKnowledge:
     """Accumulated knowledge across eternal loop iterations."""
 
     # Level 3: Learned patterns
@@ -45,7 +45,7 @@ class RSSIKnowledge:
     last_updated: str = ""
 
     def persist(self) -> None:
-        """Save to ~/.claude/automation/loop-orchestrator/state/rssi-knowledge.json."""
+        """Save to ~/.claude/automation/loop-orchestrator/state/ralph-knowledge.json."""
         self.last_updated = datetime.now().isoformat()
         KNOWLEDGE_FILE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -67,7 +67,7 @@ class RSSIKnowledge:
         KNOWLEDGE_FILE.write_text(json.dumps(data, indent=2))
 
     @classmethod
-    def load(cls) -> RSSIKnowledge:
+    def load(cls) -> RalphKnowledge:
         """Load accumulated knowledge from previous sessions."""
         if not KNOWLEDGE_FILE.exists():
             return cls()

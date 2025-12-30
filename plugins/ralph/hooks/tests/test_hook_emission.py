@@ -159,8 +159,8 @@ All work is task complete.
 class TestContextEmission:
     """Test that hook output contains all expected context."""
 
-    def test_rssi_context_includes_all_variables(self, tmp_path: Path) -> None:
-        """Hook output should include all 12+ RSSI context variables."""
+    def test_ralph_context_includes_all_variables(self, tmp_path: Path) -> None:
+        """Hook output should include all 12+ Ralph (RSSI) context variables."""
         create_mock_project(tmp_path, project_type="alpha-forge")
 
         output, stderr = run_hook(tmp_path, {"session_id": "test-ctx-1"})

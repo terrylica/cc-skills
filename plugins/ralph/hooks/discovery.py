@@ -2,8 +2,8 @@
 
 ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-Provides the file discovery cascade and RSSI work opportunity scanning
-for the RSSI autonomous exploration mode.
+Provides the file discovery cascade and Ralph (Recursively Self-Improving
+Superintelligence) work opportunity scanning for the autonomous exploration mode.
 """
 import json
 import logging
@@ -13,21 +13,21 @@ from pathlib import Path
 from completion import has_frontmatter_value
 from core.project_detection import is_alpha_forge_project
 
-# RSSI modules
-from rssi_discovery import rssi_scan_opportunities
-from rssi_evolution import (
+# Ralph modules (Recursively Self-Improving Superintelligence)
+from ralph_discovery import ralph_scan_opportunities
+from ralph_evolution import (
     get_disabled_checks,
     get_prioritized_checks,
     suggest_capability_expansion,
 )
-from rssi_history import get_recent_commits_for_analysis, mine_session_history
-from rssi_knowledge import RSSIKnowledge
-from rssi_meta import (
+from ralph_history import get_recent_commits_for_analysis, mine_session_history
+from ralph_knowledge import RalphKnowledge
+from ralph_meta import (
     analyze_discovery_effectiveness,
     get_meta_suggestions,
     improve_discovery_mechanism,
 )
-from rssi_web_discovery import get_quality_gate_instructions, web_search_for_ideas
+from ralph_web_discovery import get_quality_gate_instructions, web_search_for_ideas
 
 logger = logging.getLogger(__name__)
 
@@ -403,15 +403,15 @@ def discover_target_file(
 
 
 def scan_work_opportunities(project_dir: str) -> list[str]:
-    """RSSI-grade opportunity scanning - orchestrates all RSSI levels.
+    """Ralph (Recursively Self-Improving Superintelligence) opportunity scanning - orchestrates all Ralph levels.
 
     ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-    RSSI Levels:
-    - Level 2: Dynamic Discovery (rssi_scan_opportunities)
+    Ralph Levels:
+    - Level 2: Dynamic Discovery (ralph_scan_opportunities)
     - Level 3: History Mining (mine_session_history)
     - Level 4: Self-Modification (improve_discovery_mechanism)
-    - Level 5: Meta-RSSI (analyze_discovery_effectiveness)
+    - Level 5: Meta-Ralph (analyze_discovery_effectiveness)
     - Level 6: Web Discovery (web_search_for_ideas)
 
     NEVER returns empty - always finds something to improve.
@@ -424,7 +424,7 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     """
     if not project_dir:
         # Even with no project, provide meta-opportunities
-        return ["Set up a project directory for RSSI scanning"]
+        return ["Set up a project directory for Ralph scanning"]
 
     project_path = Path(project_dir)
     opportunities: list[str] = []
@@ -433,13 +433,13 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     guidance = _load_guidance(project_path)
 
     # Load accumulated knowledge
-    knowledge = RSSIKnowledge.load()
+    knowledge = RalphKnowledge.load()
     knowledge.increment_iteration()
 
     # Level 2: Dynamic Discovery
     disabled = get_disabled_checks()
     prioritized = get_prioritized_checks()
-    level2_opportunities = rssi_scan_opportunities(
+    level2_opportunities = ralph_scan_opportunities(
         project_path,
         disabled_checks=disabled,
         prioritized_checks=prioritized,
@@ -462,7 +462,7 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     knowledge.apply_improvements(improvements)
     # Log improvements but don't add to opportunities (internal)
 
-    # Level 5: Meta-RSSI
+    # Level 5: Meta-Ralph
     meta_analysis = analyze_discovery_effectiveness()
     knowledge.evolve(meta_analysis)
     meta_suggestions = get_meta_suggestions()
@@ -478,11 +478,11 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     knowledge.persist()
 
     # SLO FILTER: Apply busywork filter for Alpha Forge projects
-    # This catches opportunities added AFTER rssi_scan_opportunities()
+    # This catches opportunities added AFTER ralph_scan_opportunities()
     # (commit suggestions, meta suggestions, capability expansion, fallback)
     opportunities = _apply_alpha_forge_filter(opportunities, project_path, guidance)
 
-    # GUARANTEE: Never return empty (RSSI Tier 7 fallback)
+    # GUARANTEE: Never return empty (Ralph Tier 7 fallback)
     # For Alpha Forge: Use value-aligned fallbacks, not busywork
     if not opportunities:
         if is_alpha_forge_project(project_path):
@@ -567,10 +567,10 @@ def _apply_alpha_forge_filter(
         return opportunities
 
 
-def get_rssi_exploration_context(project_dir: str) -> dict:
-    """Get full RSSI context for unified template.
+def get_ralph_exploration_context(project_dir: str) -> dict:
+    """Get full Ralph (Recursively Self-Improving Superintelligence) context for unified template.
 
-    Provides all data needed for the rssi-unified.md template.
+    Provides all data needed for the ralph-unified.md template.
 
     Args:
         project_dir: Path to project root
@@ -579,7 +579,7 @@ def get_rssi_exploration_context(project_dir: str) -> dict:
         Dict with opportunities, web_queries, missing_tools, quality_gate, etc.
     """
     project_path = Path(project_dir) if project_dir else None
-    knowledge = RSSIKnowledge.load()
+    knowledge = RalphKnowledge.load()
 
     context = {
         "opportunities": scan_work_opportunities(project_dir),

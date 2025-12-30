@@ -1,10 +1,11 @@
 """
-RSSI Level 2: Dynamic Capability Discovery
+Ralph Level 2: Dynamic Capability Discovery
 
 ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-Dynamically discovers what tools are installed and uses them to find
-improvement opportunities. Never returns empty - always finds something.
+Ralph (Recursively Self-Improving Superintelligence) dynamically discovers
+what tools are installed and uses them to find improvement opportunities.
+Never returns empty - always finds something.
 
 SLO Enhancement: For Alpha Forge projects, filters busywork opportunities
 and applies ruff --ignore for excluded rules.
@@ -148,14 +149,14 @@ def _filter_opportunities_for_alpha_forge(
         return opportunities
 
 
-def rssi_scan_opportunities(
+def ralph_scan_opportunities(
     project_dir: Path,
     disabled_checks: list[str] | None = None,
     prioritized_checks: list[str] | None = None,
     guidance: dict | None = None,
 ) -> list[str]:
     """
-    RSSI-grade opportunity scanning.
+    Ralph (Recursively Self-Improving Superintelligence) opportunity scanning.
 
     Never returns empty - always finds something to improve.
     Uses dynamic capability discovery.

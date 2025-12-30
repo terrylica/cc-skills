@@ -44,7 +44,7 @@ from datetime import datetime
 from pathlib import Path
 
 # Import from modular components
-from completion import check_task_complete_rssi
+from completion import check_task_complete_ralph
 from core.config_schema import LoopLimitsConfig, LoopState, load_config, load_state, save_state
 from core.constants import (
     ADAPTER_CONFIDENCE_THRESHOLD,
@@ -79,7 +79,7 @@ from utils import (
     hard_stop,
     update_runtime,
 )
-from rssi_evolution import (
+from ralph_evolution import (
     get_learned_patterns,
     get_disabled_checks,
     get_prioritized_checks,
@@ -214,15 +214,15 @@ def build_continuation_prompt(
     else:
         emit("Config", "No guidance configured (using defaults)")
 
-    # ===== BUILD UNIFIED RSSI CONTEXT =====
+    # ===== BUILD UNIFIED RALPH CONTEXT =====
     adapter_conv = state.get("adapter_convergence", {})
-    rssi_context = {
+    ralph_context = {
         # Core iteration tracking
         "iteration": iteration,
         "adapter_convergence": adapter_conv,
         "guidance": guidance,  # User guidance ALWAYS loaded
         "project_dir": project_dir or "",
-        # RSSI evolution state
+        # Ralph (Recursively Self-Improving Superintelligence) evolution state
         "accumulated_patterns": list(get_learned_patterns().keys()),
         "disabled_checks": get_disabled_checks(),
         "effective_checks": get_prioritized_checks(),
@@ -279,7 +279,7 @@ def build_continuation_prompt(
     loader = get_loader()
     prompt = loader.render_unified(
         task_complete=effective_task_complete,
-        rssi_context=rssi_context,
+        ralph_context=ralph_context,
         adapter_name=adapter_name,
         metrics_history=metrics_history,
         opportunities=[],
@@ -658,7 +658,7 @@ def main():
         return
 
     # Check task_complete FIRST (before loop detection)
-    task_complete, completion_reason, completion_confidence = check_task_complete_rssi(plan_file)
+    task_complete, completion_reason, completion_confidence = check_task_complete_ralph(plan_file)
 
     # Loop detection: only allow stop if we're NOT in a valid waiting state
     # RSSI uses 0.99 threshold (configurable) to reduce false positives

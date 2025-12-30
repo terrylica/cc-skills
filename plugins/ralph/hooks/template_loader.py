@@ -215,19 +215,19 @@ class TemplateLoader:
     def render_exploration(
         self,
         opportunities: list[str] | None = None,
-        rssi_context: dict | None = None,
+        ralph_context: dict | None = None,
         adapter_name: str | None = None,
         metrics_history: list | None = None,
     ) -> str:
         """Render exploration mode prompt. DEPRECATED: Use render_unified() instead.
 
         This method is kept for backward compatibility. It delegates to
-        render_unified(task_complete=True) which uses the unified rssi-unified.md
+        render_unified(task_complete=True) which uses the unified ralph-unified.md
         template.
 
         Args:
             opportunities: List of discovered work opportunities
-            rssi_context: Full RSSI context dict
+            ralph_context: Full Ralph (Recursively Self-Improving Superintelligence) context dict
             adapter_name: Name of the active adapter (e.g., "alpha-forge")
             metrics_history: Project-specific metrics history
 
@@ -237,7 +237,7 @@ class TemplateLoader:
         # Delegate to unified template with task_complete=True (exploration phase)
         return self.render_unified(
             task_complete=True,
-            rssi_context=rssi_context,
+            ralph_context=ralph_context,
             adapter_name=adapter_name,
             metrics_history=metrics_history,
             opportunities=opportunities,
@@ -246,12 +246,12 @@ class TemplateLoader:
     def render_unified(
         self,
         task_complete: bool = False,
-        rssi_context: dict | None = None,
+        ralph_context: dict | None = None,
         adapter_name: str | None = None,
         metrics_history: list | None = None,
         opportunities: list[str] | None = None,
     ) -> str:
-        """Render the unified RSSI template for all phases.
+        """Render the unified Ralph template for all phases.
 
         This is the single entry point for all Ralph prompts, replacing the
         separate implementation-mode.md and exploration-mode.md templates.
@@ -261,8 +261,8 @@ class TemplateLoader:
 
         Args:
             task_complete: True = exploration phase, False = implementation phase
-            rssi_context: Full RSSI context dict with keys:
-                - iteration: int - current RSSI loop iteration
+            ralph_context: Full Ralph (Recursively Self-Improving Superintelligence) context dict with keys:
+                - iteration: int - current Ralph loop iteration
                 - guidance: dict - user guidance with forbidden/encouraged lists
                 - accumulated_patterns: list[str] - learned patterns
                 - disabled_checks: list[str] - ineffective checks disabled
@@ -278,9 +278,9 @@ class TemplateLoader:
         Returns:
             Rendered prompt string
         """
-        ctx = rssi_context or {}
+        ctx = ralph_context or {}
 
-        # Check if research is converged (from adapter_convergence in rssi_context)
+        # Check if research is converged (from adapter_convergence in ralph_context)
         adapter_conv = ctx.get("adapter_convergence", {})
         research_converged = adapter_conv.get("converged", False) if adapter_conv else False
 
@@ -293,7 +293,7 @@ class TemplateLoader:
         phase = "EXPLORATION" if task_complete else "IMPLEMENTATION"
         emit(
             "Template",
-            f"Rendering rssi-unified.md ({phase}): "
+            f"Rendering ralph-unified.md ({phase}): "
             f"{len(forbidden_items)} forbidden, {len(encouraged_items)} encouraged"
         )
 
@@ -325,7 +325,7 @@ class TemplateLoader:
             "research_converged": research_converged,
         }
 
-        return self.render("rssi-unified.md", **context)
+        return self.render("ralph-unified.md", **context)
 
 
 # Global instance for convenience

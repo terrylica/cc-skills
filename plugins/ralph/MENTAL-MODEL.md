@@ -4,7 +4,7 @@
 
 > **TL;DR**: Ralph keeps Claude working autonomously instead of stopping after each task. When Claude finishes something, Ralph says "great, now find more improvements!" This creates continuous research sessions that can run for hours.
 >
-> **What RSSI means**: "Recursively Self-Sustaining Iteration" — a fancy way of saying "keeps going and keeps improving." You always have control: `/ralph:stop` or the kill switch (`.claude/STOP_LOOP` file) stops everything immediately.
+> **What RSSI means**: "Recursively Self-Improving Superintelligence" — the Intelligence Explosion mechanism (I.J. Good, 1965). You always have control: `/ralph:stop` or the kill switch (`.claude/STOP_LOOP` file) stops everything immediately.
 
 ## RSSI — Aspirational Framing
 
@@ -615,7 +615,7 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 │  ───────────────────────────                                │
 │  1. Read ralph-config.json FRESH from disk (line 192-206)   │
 │  2. Inject into rssi_context dict (line 207-237)            │
-│  3. Render rssi-unified.md template (line 269-276)          │
+│  3. Render ralph-unified.md template (line 269-276)         │
 │  4. Return JSON with guidance-embedded prompt               │
 └─────────────────────────────────────────────────────────────┘
                           │
@@ -629,12 +629,12 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 
 **Key Code Locations**:
 
-| File                        | Lines   | Purpose                          |
-| --------------------------- | ------- | -------------------------------- |
-| `loop-until-done.py`        | 192-206 | Read guidance fresh from disk    |
-| `loop-until-done.py`        | 207-237 | Build rssi_context with guidance |
-| `template_loader.py`        | 285-296 | Extract forbidden/encouraged     |
-| `templates/rssi-unified.md` | 30-61   | Render USER GUIDANCE section     |
+| File                         | Lines   | Purpose                          |
+| ---------------------------- | ------- | -------------------------------- |
+| `loop-until-done.py`         | 192-206 | Read guidance fresh from disk    |
+| `loop-until-done.py`         | 207-237 | Build rssi_context with guidance |
+| `template_loader.py`         | 285-296 | Extract forbidden/encouraged     |
+| `templates/ralph-unified.md` | 30-61   | Render USER GUIDANCE section     |
 
 ---
 
@@ -663,7 +663,7 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 │ Stop: loop-until-done.py                                                         │
 │   ├── Reads: .claude/ralph-config.json (guidance, limits)                       │
 │   ├── Reads: ~/.claude/automation/loop-orchestrator/state/sessions/*.json       │
-│   ├── Calls: template_loader.py → rssi-unified.md                               │
+│   ├── Calls: template_loader.py → ralph-unified.md                              │
 │   └── Returns: JSON with continuation prompt (guidance embedded)                 │
 │                                                                                  │
 │ PreToolUse (Write|Edit): archive-plan.sh                                        │
@@ -677,7 +677,7 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │ TEMPLATE RENDERING (Jinja2)                                                      │
 ├─────────────────────────────────────────────────────────────────────────────────┤
-│ rssi-unified.md renders:                                                         │
+│ ralph-unified.md renders:                                                        │
 │   - FORBIDDEN items (from guidance.forbidden[])                                  │
 │   - ENCOURAGED items (from guidance.encouraged[])                                │
 │   - OODA loop instructions                                                       │
@@ -699,7 +699,7 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 | ----------------------- | ---------------------------- | ----------------------- | -------------------- | ----------------- |
 | `~/.claude/`            | `settings.json`              | `/ralph:hooks install`  | Claude Code startup  | Hook registration |
 | `~/.claude/automation/` | `sessions/*.json`            | `loop-until-done.py`    | `loop-until-done.py` | Session state     |
-| `~/.claude/automation/` | `rssi-evolution.json`        | `rssi_evolution.py`     | `loop-until-done.py` | Learned patterns  |
+| `~/.claude/automation/` | `ralph-evolution.json`       | `ralph_evolution.py`    | `loop-until-done.py` | Learned patterns  |
 | `~/.claude/automation/` | `archives/*`                 | `archive-plan.sh`       | User analysis        | Plan backups      |
 | `.claude/`              | `ralph-config.json`          | `/ralph:start`, AUQ     | `loop-until-done.py` | Config + guidance |
 | `.claude/`              | `loop-enabled`               | `/ralph:start`          | `loop-until-done.py` | Loop active flag  |
@@ -993,7 +993,7 @@ graph { label: "Config Schema Hierarchy"; flow: south; }
 
 ### User Guidance (v8.7.0+)
 
-The `guidance` section is rendered by the **unified RSSI template** (`rssi-unified.md`), which consolidated the previous dual-template architecture (implementation + exploration) into a single template.
+The `guidance` section is rendered by the **unified Ralph template** (`ralph-unified.md`), which consolidated the previous dual-template architecture (implementation + exploration) into a single template.
 
 **Key behavior**:
 

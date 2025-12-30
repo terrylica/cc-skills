@@ -522,7 +522,7 @@ ralph/
 │   ├── adapters/               # Alpha Forge adapter (exclusive)
 │   │   └── alpha_forge.py      # Alpha Forge adapter
 │   ├── templates/              # Prompt templates (Jinja2 markdown)
-│   │   └── rssi-unified.md     # Unified RSSI template (all phases)
+│   │   └── ralph-unified.md    # Unified Ralph template (all phases)
 │   └── tests/                  # Test suite
 │       ├── test_adapters.py    # Adapter system tests
 │       ├── test_completion.py

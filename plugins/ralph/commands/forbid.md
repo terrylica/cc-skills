@@ -107,7 +107,7 @@ Run the bash script above to manage forbidden items.
 
 ## Template Rendering (v8.7.0+)
 
-The unified RSSI template (`rssi-unified.md`) renders forbidden items in the `## USER GUIDANCE` section:
+The unified Ralph template (`ralph-unified.md`) renders forbidden items in the `## USER GUIDANCE` section:
 
 ```markdown
 ### FORBIDDEN (User-Defined)
