@@ -154,8 +154,8 @@ def count_checkboxes(content: str) -> tuple[int, int]:
     return total, checked
 
 
-def check_task_complete_rssi(plan_file: str | None) -> tuple[bool, str, float]:
-    """RSSI-grade completion detection using multiple signals.
+def check_task_complete_ralph(plan_file: str | None) -> tuple[bool, str, float]:
+    """Ralph (Recursively Self-Improving Superintelligence) completion detection using multiple signals.
 
     Analyzes the plan file using 5 different signals to detect completion,
     returning the highest confidence match. Confidence levels are configurable

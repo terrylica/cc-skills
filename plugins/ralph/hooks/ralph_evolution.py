@@ -1,10 +1,11 @@
 """
-RSSI Level 4: Self-Modification
+Ralph Level 4: Self-Modification
 
 ADR: 2025-12-20-ralph-rssi-eternal-loop
 
-Evolving discovery mechanisms based on effectiveness tracking.
-Proposes new checks, disables underperforming ones, learns project conventions.
+Ralph (Recursively Self-Improving Superintelligence) evolves discovery
+mechanisms based on effectiveness tracking. Proposes new checks, disables
+underperforming ones, learns project conventions.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ from pathlib import Path
 
 from core.constants import STATE_DIR
 
-EVOLUTION_LOG = STATE_DIR / "rssi-evolution.json"
+EVOLUTION_LOG = STATE_DIR / "ralph-evolution.json"
 
 
 def load_evolution_state() -> dict:
@@ -56,7 +57,7 @@ def save_evolution_state(state: dict) -> None:
 
 def propose_new_check(check_name: str, check_command: str, rationale: str) -> dict:
     """
-    Propose a new check to add to RSSI discovery.
+    Propose a new check to add to Ralph (Recursively Self-Improving Superintelligence) discovery.
 
     Args:
         check_name: Unique identifier for the check.
