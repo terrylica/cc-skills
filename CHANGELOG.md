@@ -1,3 +1,25 @@
+## [9.3.3](https://github.com/terrylica/cc-skills/compare/v9.3.2...v9.3.3) (2025-12-30)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) | coupled |
+
+### Design Specs
+
+- [Design Spec: Ralph RSSI Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - updated (+42/-39)
+
 ## [9.3.2](https://github.com/terrylica/cc-skills/compare/v9.3.1...v9.3.2) (2025-12-30)
 
 
