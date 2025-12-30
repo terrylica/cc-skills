@@ -1,3 +1,10 @@
+## [9.0.5](https://github.com/terrylica/cc-skills/compare/v9.0.4...v9.0.5) (2025-12-30)
+
+
+### Bug Fixes
+
+* **statusline-tools:** remove redundant branch display, fix worktree cache ([e649fa0](https://github.com/terrylica/cc-skills/commit/e649fa0d6874d4046e120bcf8e9a8e5df8c9d70d))
+
 ## [9.0.4](https://github.com/terrylica/cc-skills/compare/v9.0.3...v9.0.4) (2025-12-29)
 
 
