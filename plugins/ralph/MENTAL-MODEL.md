@@ -545,7 +545,7 @@ graph { flow: south; }
 | Severity     | What It Means                        | Intended Action   | Implementation Status                                    | Real Example                    |
 | ------------ | ------------------------------------ | ----------------- | -------------------------------------------------------- | ------------------------------- |
 | **CRITICAL** | "This WILL break on another machine" | Block loop start  | ✅ `constraint-scanner.py:469` exit 2 → `start.md` exits | Your home path `/Users/terry/`  |
-| **HIGH**     | "This MIGHT cause problems"          | Escalate to user  | ✅ Wired to AUQ pre-selection (v9.2.4+)                  | Someone else's path in config   |
+| **HIGH**     | "This MIGHT cause problems"          | Escalate to user  | ✅ Wired to AUQ pre-selection (v9.3.0+)                  | Someone else's path in config   |
 | **MEDIUM**   | "Something to be aware of"           | Show in deep-dive | 📋 Designed, not yet wired                               | Dependency on local directories |
 | **LOW**      | "Just noting this exists"            | Log only          | ✅ Saved to JSON, not displayed                          | Non-Ralph hook detected         |
 
@@ -1006,7 +1006,7 @@ The `guidance` section is rendered by the **unified RSSI template** (`rssi-unifi
 
 ---
 
-## Observability (v9.2.4+)
+## Observability (v9.3.0+)
 
 Ralph provides **dual-channel observability** so both humans and Claude can see what the hooks are doing.
 
