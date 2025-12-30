@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from completion import check_task_complete_rssi
+from completion import check_task_complete_ralph
 from discovery import (
     discover_plan_mode_file,
     discover_target_file,
@@ -48,7 +48,7 @@ implementation-status: in_progress
         plan_file = create_test_plan(tmp_dir, plan_content)
 
         # Check completion
-        complete, reason, confidence = check_task_complete_rssi(str(plan_file))
+        complete, reason, confidence = check_task_complete_ralph(str(plan_file))
         assert complete is False, "Incomplete task should not be complete"
         print(f"✓ Incomplete task: complete={complete}, reason={reason}")
 
@@ -71,7 +71,7 @@ implementation-status: in_progress
         plan_file = create_test_plan(tmp_dir, plan_content)
 
         # Check completion
-        complete, reason, confidence = check_task_complete_rssi(str(plan_file))
+        complete, reason, confidence = check_task_complete_ralph(str(plan_file))
         assert complete is True, "All checked should be complete"
         assert confidence == 0.9
         print(f"✓ Complete task: reason={reason}, confidence={confidence}")
@@ -167,14 +167,14 @@ def test_mode_transitions():
 
         # Mode 1: IMPLEMENTATION (task incomplete)
         incomplete_plan = create_test_plan(tmp_dir, "- [ ] Step 1\n- [ ] Step 2")
-        complete, _, _ = check_task_complete_rssi(str(incomplete_plan))
+        complete, _, _ = check_task_complete_ralph(str(incomplete_plan))
         mode = "IMPLEMENTATION" if not complete else "VALIDATION"
         assert mode == "IMPLEMENTATION"
         print(f"1. {mode} - Task incomplete")
 
         # Mode 2: Task complete -> VALIDATION
         complete_plan = create_test_plan(tmp_dir, "- [x] Step 1\n- [x] Step 2")
-        complete, _, _ = check_task_complete_rssi(str(complete_plan))
+        complete, _, _ = check_task_complete_ralph(str(complete_plan))
         state = {
             "validation_exhausted": False,
             "validation_round": 0,
