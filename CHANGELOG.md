@@ -1,3 +1,49 @@
+# [9.2.0](https://github.com/terrylica/cc-skills/compare/v9.1.1...v9.2.0) (2025-12-30)
+
+
+### Bug Fixes
+
+* **statusline-tools:** move UTC time to line 2 with GitHub URL ([cc5dad9](https://github.com/terrylica/cc-skills/commit/cc5dad9878c1c9488e212a2a205887ce50aa5f1a))
+
+
+### Features
+
+* **ralph:** add constraint scanner with Pydantic v2 migration ([a340ef2](https://github.com/terrylica/cc-skills/commit/a340ef2cf16e01638b282ebd52f4c49a02808125))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [Ralph Constraint Scanning](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-29-ralph-constraint-scanning.md) | new (+187) |
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+14/-2)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+90)
+
 ## [9.1.1](https://github.com/terrylica/cc-skills/compare/v9.1.0...v9.1.1) (2025-12-30)
 
 
