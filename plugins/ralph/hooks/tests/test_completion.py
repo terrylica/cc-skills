@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from completion import (
-    check_task_complete_rssi,
+    check_task_complete_ralph,
     check_validation_complete,
     count_checkboxes,
     get_completion_config,
@@ -83,12 +83,12 @@ def create_temp_file(content: str) -> str:
 
 
 def test_multi_signal_detection():
-    """Test complete RSSI detection with multiple signals."""
+    """Test complete Ralph (RSSI) detection with multiple signals."""
     # Test 1: Explicit marker (confidence 1.0)
     explicit = "- [x] TASK_COMPLETE"
     temp_file = create_temp_file(explicit)
     try:
-        complete, reason, conf = check_task_complete_rssi(temp_file)
+        complete, reason, conf = check_task_complete_ralph(temp_file)
         assert complete is True
         assert conf == 1.0
         assert reason == "explicit_marker"
@@ -104,7 +104,7 @@ def test_multi_signal_detection():
 """
     temp_file = create_temp_file(all_checked)
     try:
-        complete, reason, conf = check_task_complete_rssi(temp_file)
+        complete, reason, conf = check_task_complete_ralph(temp_file)
         assert complete is True
         assert conf == 0.9
         assert reason == "all_checkboxes_checked"
@@ -116,7 +116,7 @@ def test_multi_signal_detection():
     semantic = "The task is now complete and all done."
     temp_file = create_temp_file(semantic)
     try:
-        complete, reason, conf = check_task_complete_rssi(temp_file)
+        complete, reason, conf = check_task_complete_ralph(temp_file)
         assert complete is True
         assert conf == 0.7
         assert reason == "semantic_phrase"
@@ -131,7 +131,7 @@ def test_multi_signal_detection():
 """
     temp_file = create_temp_file(incomplete)
     try:
-        complete, reason, conf = check_task_complete_rssi(temp_file)
+        complete, reason, conf = check_task_complete_ralph(temp_file)
         assert complete is False
         assert conf == 0.0
         print(f"✓ Incomplete: {reason} (conf={conf})")
@@ -139,7 +139,7 @@ def test_multi_signal_detection():
         Path(temp_file).unlink()
 
     # Test 5: No file
-    complete, reason, conf = check_task_complete_rssi(None)
+    complete, reason, conf = check_task_complete_ralph(None)
     assert complete is False
     assert reason == "no file to check"
     print(f"✓ No file: {reason}")
