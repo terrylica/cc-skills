@@ -12,20 +12,20 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, Protocol, runtime_checkable
 
-# Confidence levels for RSSI (Recursively Self-Improving Superintelligence) — Beyond AGI
-DEFAULT_CONFIDENCE = 0.0  # No opinion, defer to RSSI
-SUGGEST_CONFIDENCE = 0.5  # Suggest action, requires RSSI agreement
-OVERRIDE_CONFIDENCE = 1.0  # High confidence signal (RSSI pivots to exploration, not stop)
+# Confidence levels for Ralph adapter interaction
+DEFAULT_CONFIDENCE = 0.0  # No opinion, defer to Ralph
+SUGGEST_CONFIDENCE = 0.5  # Suggest action, requires Ralph agreement
+OVERRIDE_CONFIDENCE = 1.0  # High confidence signal (Ralph pivots to exploration)
 
 # Decision reason codes for JSONL logging
-# RSSI — Beyond AGI: Most "completion" signals now pivot to exploration, not stop
+# Most "completion" signals pivot to exploration, not stop
 DecisionReason = Literal[
-    # Time/iteration limits (KEPT - safety guardrails)
+    # Time/iteration limits (safety guardrails)
     "max_time_reached",  # Line 670: runtime >= max_hours → allow_stop()
     "max_iterations_reached",  # Line 674: iteration >= max_iterations → allow_stop()
-    # RSSI Pivots (Beyond AGI: completion → exploration, not stop)
-    "task_complete_pivot",  # Line 778: task complete → force_exploration (RSSI never stops)
-    "adapter_converged_pivot",  # Line 732: adapter converged → force_exploration (RSSI never stops)
+    # Ralph pivots (completion → exploration, not stop)
+    "task_complete_pivot",  # Line 778: task complete → force_exploration
+    "adapter_converged_pivot",  # Line 732: adapter converged → force_exploration
     "nofocus_converged_pivot",  # Line 753: no-focus mode converged → force_exploration
     # Loop detection
     "loop_detected",  # Line 690: near-identical outputs (99% threshold) → allow_stop()
@@ -67,9 +67,9 @@ class ConvergenceResult:
         should_continue: True if loop should continue, False to stop
         reason: Human-readable explanation of decision
         confidence: Decision confidence level:
-            - 0.0: No opinion, defer to existing RSSI logic
-            - 0.5: Suggests stop, requires RSSI agreement
-            - 1.0: Hard limit, overrides RSSI (e.g., budget exhausted)
+            - 0.0: No opinion, defer to Ralph
+            - 0.5: Suggests stop, requires Ralph agreement
+            - 1.0: Hard limit, overrides Ralph (e.g., budget exhausted)
         converged: True if research has explicitly converged (e.g., research_log.md
             shows "Status: CONVERGED"). Used to hard-block busywork.
     """

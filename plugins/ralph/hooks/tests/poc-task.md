@@ -2,12 +2,12 @@
 implementation-status: in_progress
 created: 2024-12-19
 mode: POC
-purpose: E2E validation of Ralph RSSI workflow
+purpose: E2E validation of Ralph workflow
 ---
 
-# Ralph RSSI POC Validation Task
+# Ralph POC Validation Task
 
-This task validates the complete Ralph RSSI workflow in POC mode.
+This task validates the complete Ralph workflow in POC mode.
 
 ## Phase 1: Basic Operations (Implementation Mode)
 

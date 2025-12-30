@@ -82,8 +82,8 @@ def test_exploration_prompt():
     loader = get_loader()
     opportunities = ["Fix 2 broken links", "Add README to src/utils/"]
     prompt = loader.render_exploration(opportunities)
-    # Template uses "AUTONOMOUS MODE" and "RSSI ETERNAL LOOP"
-    assert "AUTONOMOUS MODE" in prompt or "RSSI" in prompt
+    # Template uses "AUTONOMOUS MODE" and "RALPH ETERNAL LOOP"
+    assert "AUTONOMOUS MODE" in prompt or "RALPH" in prompt.upper()
     assert "Fix 2 broken links" in prompt
     print("✓ Exploration prompt with opportunities generated")
 

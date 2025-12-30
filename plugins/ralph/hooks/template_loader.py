@@ -306,7 +306,7 @@ class TemplateLoader:
             "encouraged_items": encouraged_items,
             # Opportunities
             "opportunities": opportunities or [],
-            # RSSI context
+            # Ralph context
             "iteration": ctx.get("iteration", 0),
             "project_dir": ctx.get("project_dir", ""),
             "accumulated_patterns": ctx.get("accumulated_patterns", []),

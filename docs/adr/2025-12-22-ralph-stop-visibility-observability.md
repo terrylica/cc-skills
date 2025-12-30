@@ -2,7 +2,7 @@
 
 **Date**: 2025-12-22
 **Status**: Implemented
-**Related**: [Ralph RSSI Eternal Loop](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
+**Related**: [Ralph Eternal Loop](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
 
 ## Context
 
@@ -133,5 +133,5 @@ rm -f "$HOME/.claude/ralph-stop-reason.json"
 
 ## References
 
-- [Ralph RSSI Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
+- [Ralph Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
 - [Ralph Plugin README](/plugins/ralph/README.md#stop-visibility-observability-v770)
