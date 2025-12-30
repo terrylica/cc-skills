@@ -1,3 +1,10 @@
+## [9.2.2](https://github.com/terrylica/cc-skills/compare/v9.2.1...v9.2.2) (2025-12-30)
+
+
+### Bug Fixes
+
+* **ralph:** install Bash PreToolUse hook for loop file protection ([54d61f1](https://github.com/terrylica/cc-skills/commit/54d61f1d8de46bf9e55ae1a01689121e72b4aeab))
+
 ## [9.2.1](https://github.com/terrylica/cc-skills/compare/v9.2.0...v9.2.1) (2025-12-30)
 
 
