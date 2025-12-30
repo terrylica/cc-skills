@@ -135,8 +135,9 @@ if git rev-parse --abbrev-ref @{u} >/dev/null 2>&1; then
     # Quick staleness check: if ahead > 0, verify with remote (cached for 30s)
     # This catches the case where external tools pushed but local refs are stale
     if [ "$ahead" -gt 0 ]; then
-        repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-        cache_file="${repo_root}/.git/ccstatusline-remote-cache"
+        # Use git rev-parse --git-dir for worktree compatibility (.git may be a file)
+        git_dir=$(git rev-parse --git-dir 2>/dev/null)
+        cache_file="${git_dir}/ccstatusline-remote-cache"
         cache_age=9999
 
         if [ -f "$cache_file" ]; then
@@ -273,21 +274,15 @@ get_github_url() {
 
 github_url=$(get_github_url)
 
-# Determine branch color based on branch name
-if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
-    branch_color="${BRIGHT_BLACK}"
-else
-    branch_color="${MAGENTA}"
-fi
-
 # UTC timestamp with date (updated every time statusline triggers)
 # Compact format: 24Dec21 14:32Z (2-digit year + month + day + time + Z suffix)
 utc_time=$(date -u +"%y%b%d %H:%MZ")
 
 # Two-line status:
-#   Line 1: repo-path | branch | git stats | UTC time
-#   Line 2: github-url (or warning)
-line1="${GREEN}${repo_path}${RESET} | ${branch_color}↯ ${git_branch}${RESET} | ${git_changes} | ${BRIGHT_BLACK}${utc_time}${RESET}"
+#   Line 1: repo-path | git stats | UTC time
+#   Line 2: github-url with branch (or warning)
+# Branch removed from line 1 - URL on line 2 already shows branch path
+line1="${GREEN}${repo_path}${RESET} | ${git_changes} | ${BRIGHT_BLACK}${utc_time}${RESET}"
 
 # Line 2: GitHub URL or warning (color matches branch state)
 if [[ -n "$github_url" ]]; then
