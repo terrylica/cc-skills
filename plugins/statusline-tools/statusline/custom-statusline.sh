@@ -281,22 +281,21 @@ utc_time=$(date -u +"%y%b%d %H:%MZ")
 local_time=$(date +"%y%b%d %H:%ML")
 
 # Two-line status:
-#   Line 1: repo-path | git stats | UTC time
-#   Line 2: github-url with branch (or warning)
-# Branch removed from line 1 - URL on line 2 already shows branch path
-line1="${GREEN}${repo_path}${RESET} | ${git_changes} | ${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
+#   Line 1: repo-path | git stats | local time
+#   Line 2: github-url | UTC time (UTC aligns with remote context)
+line1="${GREEN}${repo_path}${RESET} | ${git_changes} | ${BRIGHT_BLACK}${local_time}${RESET}"
 
-# Line 2: GitHub URL or warning (color matches branch state)
+# Line 2: GitHub URL + UTC time, or warning (color matches branch state)
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
-        line2="${BRIGHT_BLACK}${github_url}${RESET}"
+        line2="${BRIGHT_BLACK}${github_url} | ${utc_time}${RESET}"
     else
-        line2="${MAGENTA}${github_url}${RESET}"
+        line2="${MAGENTA}${github_url} | ${utc_time}${RESET}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    line2="${RED}⚠ no remote${RESET}"
+    line2="${RED}⚠ no remote${RESET} | ${BRIGHT_BLACK}${utc_time}${RESET}"
 else
-    line2="${RED}⚠ no git${RESET}"
+    line2="${RED}⚠ no git${RESET} | ${BRIGHT_BLACK}${utc_time}${RESET}"
 fi
 
 echo -e "$line1"
