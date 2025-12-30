@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pydantic>=2.10.0", "filelock>=3.20.0"]
+# ///
 """PreToolUse hook: Guard loop control files from deletion.
 
 Prevents Claude from bypassing the Stop hook by directly running
