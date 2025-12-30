@@ -1,3 +1,10 @@
+## [9.3.5](https://github.com/terrylica/cc-skills/compare/v9.3.4...v9.3.5) (2025-12-30)
+
+
+### Bug Fixes
+
+* **ralph:** expand hook install descriptions ([ef134fc](https://github.com/terrylica/cc-skills/commit/ef134fc313f9eb18b8cbd13e7a0aded2229e668b))
+
 ## [9.3.4](https://github.com/terrylica/cc-skills/compare/v9.3.3...v9.3.4) (2025-12-30)
 
 
