@@ -1,3 +1,36 @@
+# [9.3.0](https://github.com/terrylica/cc-skills/compare/v9.2.3...v9.3.0) (2025-12-30)
+
+
+### Features
+
+* **ralph:** add dual-channel observability for hook operations ([52b717e](https://github.com/terrylica/cc-skills/commit/52b717e94c61ca49a31974d593173b0c4f771a0e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+55/-2)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+203/-10)
+
 ## [9.2.3](https://github.com/terrylica/cc-skills/compare/v9.2.2...v9.2.3) (2025-12-30)
 
 
