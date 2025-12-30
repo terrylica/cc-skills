@@ -258,8 +258,11 @@ do_install() {
     echo ""
     echo "Hooks installed:"
     echo "  - Stop: loop-until-done.py (autonomous loop control)"
+    echo "      Convergence detection, task completion monitoring, exploration pivoting"
     echo "  - PreToolUse (Write|Edit): archive-plan.sh (plan file archival)"
+    echo "      Preserves investigation history before plan modifications"
     echo "  - PreToolUse (Bash): pretooluse-loop-guard.py (loop file protection)"
+    echo "      Guards loop control files, allows official Ralph command bypass"
     echo ""
     echo "IMPORTANT: Restart Claude Code for changes to take effect."
 }
