@@ -28,14 +28,14 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 
 ## Implementation Tasks
 
-### Task 1: Create `rssi_discovery.py` (Level 2) ✅
+### Task 1: Create `ralph_discovery.py` (Level 2) ✅
 
-**File**: `plugins/ralph/hooks/rssi_discovery.py`
+**File**: `plugins/ralph/hooks/ralph_discovery.py` _(renamed from rssi_discovery.py in v9.3.1)_
 
 - [x] `discover_available_tools()` - Dynamically discover installed tools (ruff, mypy, pylint, bandit, gitleaks, lychee)
 - [x] `_discover_mise_tasks()` - Parse mise.toml for available tasks
 - [x] `_discover_npm_scripts()` - Parse package.json for available scripts
-- [x] `rssi_scan_opportunities()` - RSSI-grade scanning with 7 tiers:
+- [x] `ralph_scan_opportunities()` - Ralph-grade scanning with 7 tiers:
   - Tier 1: Available linters (ruff, mypy)
   - Tier 2: Git-based discovery (uncommitted changes)
   - Tier 3: Code pattern analysis (TODO/FIXME)
@@ -45,18 +45,18 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
   - Tier 7: RSSI meta-improvement (always available)
 - [x] `_analyze_codebase_structure()` - Find structural improvement opportunities
 
-### Task 2: Create `rssi_history.py` (Level 3) ✅
+### Task 2: Create `ralph_history.py` (Level 3) ✅
 
-**File**: `plugins/ralph/hooks/rssi_history.py`
+**File**: `plugins/ralph/hooks/ralph_history.py` _(renamed from rssi_history.py in v9.3.1)_
 
 - [x] `mine_session_history()` - Analyze past sessions for high-value patterns
 - [x] `_extract_work_pattern()` - Extract work type from context lines
 - [x] `get_recent_commits_for_analysis()` - Find commits needing follow-up
 - [x] `get_session_output_patterns()` - Analyze recent session outputs for patterns
 
-### Task 3: Create `rssi_evolution.py` (Level 4) ✅
+### Task 3: Create `ralph_evolution.py` (Level 4) ✅
 
-**File**: `plugins/ralph/hooks/rssi_evolution.py`
+**File**: `plugins/ralph/hooks/ralph_evolution.py` _(renamed from rssi_evolution.py in v9.3.1)_
 
 - [x] `load_evolution_state()` - Load persisted evolution state
 - [x] `save_evolution_state()` - Persist evolution state to JSON
@@ -69,9 +69,9 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 - [x] `learn_project_pattern()` - Record learned project patterns
 - [x] `get_learned_patterns()` - Get all learned patterns
 
-### Task 4: Create `rssi_meta.py` (Level 5) ✅
+### Task 4: Create `ralph_meta.py` (Level 5) ✅
 
-**File**: `plugins/ralph/hooks/rssi_meta.py`
+**File**: `plugins/ralph/hooks/ralph_meta.py` _(renamed from rssi_meta.py in v9.3.1)_
 
 - [x] `analyze_discovery_effectiveness()` - Meta-analysis of discovery quality
 - [x] `improve_discovery_mechanism()` - Core meta-RSSI: improve discovery itself
@@ -82,9 +82,9 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 - [x] `get_meta_suggestions()` - Generate meta-level improvement suggestions
 - [x] `should_expand_capabilities()` - Determine if should suggest new tools
 
-### Task 5: Create `rssi_web_discovery.py` (Level 6) ✅
+### Task 5: Create `ralph_web_discovery.py` (Level 6) ✅
 
-**File**: `plugins/ralph/hooks/rssi_web_discovery.py`
+**File**: `plugins/ralph/hooks/ralph_web_discovery.py` _(renamed from rssi_web_discovery.py in v9.3.1)_
 
 - [x] `analyze_repo_theme()` - Understand repo's theme, domain, positioning
 - [x] `generate_web_search_queries()` - Generate search queries based on theme
@@ -94,16 +94,16 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 - [x] `get_sota_alternatives()` - Return legacy to SOTA mapping
 - [x] `get_quality_gate_instructions()` - Return quality gate instructions for template
 
-### Task 6: Create `rssi_knowledge.py` (State Persistence) ✅
+### Task 6: Create `ralph_knowledge.py` (State Persistence) ✅
 
-**File**: `plugins/ralph/hooks/rssi_knowledge.py`
+**File**: `plugins/ralph/hooks/ralph_knowledge.py` _(renamed from rssi_knowledge.py in v9.3.1)_
 
-- [x] `RSSIKnowledge` dataclass with fields:
+- [x] `RalphKnowledge` dataclass with fields:
   - Level 3: `commit_patterns`, `effective_checks`
   - Level 4: `disabled_checks`, `proposed_checks`, `learned_conventions`
   - Level 5: `overall_effectiveness`, `improvement_history`
   - Level 6: `domain_insights`, `sota_standards`, `feature_ideas`
-- [x] `persist()` - Save to `~/.claude/automation/loop-orchestrator/state/rssi-knowledge.json`
+- [x] `persist()` - Save to `~/.claude/automation/loop-orchestrator/state/ralph-knowledge.json`
 - [x] `load()` - Load accumulated knowledge from previous sessions
 - [x] `add_patterns()` - Add learned patterns from history mining
 - [x] `apply_improvements()` - Record improvements made
@@ -117,14 +117,14 @@ Transform Ralph from idle-prone exploration to true RSSI (Recursively Self-Impro
 
 **File**: `plugins/ralph/hooks/discovery.py`
 
-- [x] Import `rssi_scan_opportunities` from `rssi_discovery.py`
-- [x] Replace `scan_work_opportunities()` with RSSI version
-- [x] Orchestrate all RSSI modules in sequence
-- [x] Add `get_rssi_exploration_context()` for full template context
+- [x] Import `ralph_scan_opportunities` from `ralph_discovery.py`
+- [x] Replace `scan_work_opportunities()` with Ralph version
+- [x] Orchestrate all Ralph modules in sequence
+- [x] Add `get_ralph_exploration_context()` for full template context
 
-### Task 8: Create Unified RSSI Template ✅
+### Task 8: Create Unified Ralph Template ✅
 
-**File**: `plugins/ralph/hooks/templates/rssi-unified.md` (v8.7.0+)
+**File**: `plugins/ralph/hooks/templates/ralph-unified.md` _(renamed from rssi-unified.md in v9.3.1)_
 
 > **Note**: Originally named `exploration-mode.md`, consolidated with `implementation-mode.md` into unified template.
 
@@ -179,32 +179,35 @@ All solutions must meet one of:
 - [x] Level 5: Meta-improvement analyzes discovery
 - [x] Level 6: Web search finds feature ideas
 - [x] Quality Gate: All solutions verified SOTA
-- [x] `rssi_scan_opportunities()` NEVER returns empty
+- [x] `ralph_scan_opportunities()` NEVER returns empty
 - [x] Template enforces "always act" behavior
 - [x] Ralph actively explores with web search
 - [x] Eternal loop never idles
 
-## Files to Create
+## Files Created
 
-| File                                        | Purpose                    |
-| ------------------------------------------- | -------------------------- |
-| `plugins/ralph/hooks/rssi_discovery.py`     | Level 2: Dynamic discovery |
-| `plugins/ralph/hooks/rssi_history.py`       | Level 3: History mining    |
-| `plugins/ralph/hooks/rssi_evolution.py`     | Level 4: Self-modification |
-| `plugins/ralph/hooks/rssi_meta.py`          | Level 5: Meta-improvement  |
-| `plugins/ralph/hooks/rssi_web_discovery.py` | Level 6: Web search        |
-| `plugins/ralph/hooks/rssi_knowledge.py`     | State persistence          |
+| File                                         | Purpose                    |
+| -------------------------------------------- | -------------------------- |
+| `plugins/ralph/hooks/ralph_discovery.py`     | Level 2: Dynamic discovery |
+| `plugins/ralph/hooks/ralph_history.py`       | Level 3: History mining    |
+| `plugins/ralph/hooks/ralph_evolution.py`     | Level 4: Self-modification |
+| `plugins/ralph/hooks/ralph_meta.py`          | Level 5: Meta-improvement  |
+| `plugins/ralph/hooks/ralph_web_discovery.py` | Level 6: Web search        |
+| `plugins/ralph/hooks/ralph_knowledge.py`     | State persistence          |
 
-## Files to Modify
+> **v9.3.1**: All files renamed from `rssi_*.py` to `ralph_*.py` for consistency.
 
-| File                                            | Change                                     |
-| ----------------------------------------------- | ------------------------------------------ |
-| `plugins/ralph/hooks/discovery.py`              | Orchestrate RSSI modules                   |
-| `plugins/ralph/hooks/templates/rssi-unified.md` | Unified RSSI template (replaces dual arch) |
-| `plugins/ralph/hooks/loop-until-done.py`        | Integrate eternal loop, single code path   |
-| `plugins/ralph/hooks/template_loader.py`        | Add `render_unified()` method              |
+## Files Modified
 
-> **v8.7.0 Change**: Consolidated `implementation-mode.md` and `exploration-mode.md` into single `rssi-unified.md` template. User guidance now works in ALL phases.
+| File                                             | Change                                      |
+| ------------------------------------------------ | ------------------------------------------- |
+| `plugins/ralph/hooks/discovery.py`               | Orchestrate Ralph modules                   |
+| `plugins/ralph/hooks/templates/ralph-unified.md` | Unified Ralph template (replaces dual arch) |
+| `plugins/ralph/hooks/loop-until-done.py`         | Integrate eternal loop, single code path    |
+| `plugins/ralph/hooks/template_loader.py`         | Add `render_unified()` method               |
+
+> **v8.7.0**: Consolidated `implementation-mode.md` and `exploration-mode.md` into single template.
+> **v9.3.1**: Renamed template from `rssi-unified.md` to `ralph-unified.md`.
 
 ## Bug Fix: Cross-Directory Stop (v7.16.0+)
 
