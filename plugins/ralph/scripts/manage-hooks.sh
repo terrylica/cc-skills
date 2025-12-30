@@ -19,6 +19,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKER="ralph/hooks/"  # Unique identifier in command paths
 INSTALL_TIMESTAMP_FILE="$HOME/.claude/ralph-hooks-installed-at"
 
+# UV executable path - detected during install from common locations
+# This is validated to fail loudly if UV is not available
+UV_PATH=""
+
 # Auto-detect plugin root with fallback chain:
 # 1. CLAUDE_PLUGIN_ROOT (set by Claude Code when running plugin commands)
 # 2. Marketplace path (local dev)
@@ -81,6 +85,80 @@ warn() {
 check_dependencies() {
     if ! command -v jq &>/dev/null; then
         die "jq is required but not installed. Install with: brew install jq"
+    fi
+}
+
+# Detect UV from common installation locations
+# Sets UV_PATH to the first valid UV executable found
+# Returns 0 if found, 1 if not found
+detect_uv() {
+    # Check locations in priority order (most common first)
+    local uv_locations=(
+        "$HOME/.local/share/mise/shims/uv"      # mise (most common for Claude users)
+        "$HOME/.local/bin/uv"                    # uv installer default
+        "/opt/homebrew/bin/uv"                   # Homebrew on Apple Silicon
+        "/usr/local/bin/uv"                      # Homebrew on Intel / manual install
+        "$HOME/.cargo/bin/uv"                    # cargo install
+    )
+
+    for loc in "${uv_locations[@]}"; do
+        if [[ -x "$loc" ]]; then
+            UV_PATH="$loc"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Validate UV is available - fail loudly with helpful instructions
+# Sets UV_VERSION on success
+UV_VERSION=""
+MIN_UV_VERSION="0.5.0"  # Minimum version for PEP 723 script support
+
+validate_uv() {
+    if ! detect_uv; then
+        echo ""
+        echo "═══════════════════════════════════════════════════════════════════"
+        echo "ERROR: UV executable not found"
+        echo "═══════════════════════════════════════════════════════════════════"
+        echo ""
+        echo "Ralph hooks require UV to run Python scripts."
+        echo "Searched locations:"
+        echo "  - \$HOME/.local/share/mise/shims/uv  (mise)"
+        echo "  - \$HOME/.local/bin/uv              (uv installer)"
+        echo "  - /opt/homebrew/bin/uv              (Homebrew)"
+        echo "  - /usr/local/bin/uv                 (manual)"
+        echo "  - \$HOME/.cargo/bin/uv              (cargo)"
+        echo ""
+        echo "Install UV via one of these methods:"
+        echo "  • curl -LsSf https://astral.sh/uv/install.sh | sh"
+        echo "  • brew install uv"
+        echo "  • mise use -g uv@latest"
+        echo ""
+        die "UV is required but not found. See instructions above."
+    fi
+
+    # Validate UV actually works and get version
+    local version_output
+    if ! version_output=$("$UV_PATH" --version 2>&1); then
+        die "UV found at $UV_PATH but failed to execute. Check installation."
+    fi
+
+    # Extract version number (e.g., "uv 0.9.21 (abc123)" -> "0.9.21")
+    UV_VERSION=$(echo "$version_output" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+
+    # Version comparison using sort -V
+    if [[ -n "$UV_VERSION" ]]; then
+        local older_version
+        older_version=$(printf '%s\n%s' "$MIN_UV_VERSION" "$UV_VERSION" | sort -V | head -1)
+        if [[ "$older_version" != "$MIN_UV_VERSION" ]]; then
+            echo ""
+            warn "UV version $UV_VERSION is below minimum $MIN_UV_VERSION"
+            echo "  Upgrade with: uv self update"
+            echo "  Or: curl -LsSf https://astral.sh/uv/install.sh | sh"
+            echo ""
+        fi
     fi
 }
 
@@ -163,6 +241,7 @@ do_status() {
 do_install() {
     ensure_settings_exists
     check_dependencies
+    validate_uv  # Detect and validate UV - fails loudly if not found
 
     # Idempotency check
     if is_installed; then
@@ -191,12 +270,13 @@ do_install() {
     timestamp=$(create_backup)
     info "Created backup: settings.json.backup.$timestamp"
 
-    # Build hook command paths using detected PLUGIN_ROOT
-    # Convert absolute path to $HOME-based for portability in settings.json
+    # Build hook command paths using detected PLUGIN_ROOT and UV_PATH
+    # Convert absolute paths to $HOME-based for portability in settings.json
     local home_relative="${PLUGIN_ROOT/#$HOME/\$HOME}"
-    local stop_cmd="\$HOME/.local/share/mise/shims/uv run ${home_relative}/hooks/loop-until-done.py"
+    local uv_cmd="${UV_PATH/#$HOME/\$HOME}"
+    local stop_cmd="${uv_cmd} run ${home_relative}/hooks/loop-until-done.py"
     local pretooluse_archive_cmd="${home_relative}/hooks/archive-plan.sh"
-    local pretooluse_guard_cmd="\$HOME/.local/share/mise/shims/uv run ${home_relative}/hooks/pretooluse-loop-guard.py"
+    local pretooluse_guard_cmd="${uv_cmd} run ${home_relative}/hooks/pretooluse-loop-guard.py"
 
     # Prepare hook entries using jq for proper JSON escaping
     # Structure: each entry is added to the event array directly
@@ -255,6 +335,7 @@ do_install() {
     info "ralph hooks installed successfully!"
     echo ""
     echo "Plugin root: $PLUGIN_ROOT"
+    echo "UV detected: $UV_PATH (v$UV_VERSION)"
     echo ""
     echo "Hooks installed:"
     echo "  - Stop: loop-until-done.py (autonomous loop control)"
