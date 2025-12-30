@@ -235,13 +235,56 @@ Use AskUserQuestion:
     multiSelect: false
 
 - If "Keep existing" → Skip to Step 2 (guidance already in config)
-- If "Reconfigure" → Continue to 1.6.3
+- If "Reconfigure" → Continue to 1.6.2.5
+
+### 1.6.2.5: Load Constraint Scan Results
+
+**Purpose**: Wire scanner HIGH severity constraints to pre-select forbidden items.
+
+Read the constraint scan JSON from Step 1.4 (if it exists):
+
+```bash
+/usr/bin/env bash << 'LOAD_SCAN_SCRIPT'
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+SCAN_FILE="$PROJECT_DIR/.claude/ralph-constraint-scan.json"
+
+if [[ -f "$SCAN_FILE" ]]; then
+    # Extract HIGH severity constraints for forbidden pre-selection
+    HIGH_CONSTRAINTS=$(jq -r '[.constraints[] | select(.severity == "high") | .description] | join("\n")' "$SCAN_FILE" 2>/dev/null)
+    HIGH_COUNT=$(jq '[.constraints[] | select(.severity == "high")] | length' "$SCAN_FILE" 2>/dev/null || echo "0")
+
+    # Extract builtin_busywork categories for encouraged options
+    BUSYWORK_CATEGORIES=$(jq -r '[.builtin_busywork[] | .name] | join("\n")' "$SCAN_FILE" 2>/dev/null)
+    BUSYWORK_COUNT=$(jq '.builtin_busywork | length' "$SCAN_FILE" 2>/dev/null || echo "0")
+
+    echo "Constraint scan results loaded:"
+    echo "  HIGH severity constraints: $HIGH_COUNT"
+    echo "  Busywork categories: $BUSYWORK_COUNT"
+
+    if [[ "$HIGH_COUNT" -gt 0 ]]; then
+        echo ""
+        echo "HIGH severity items (will pre-select as forbidden):"
+        echo "$HIGH_CONSTRAINTS" | head -5
+    fi
+else
+    echo "No constraint scan found (Step 1.4 was skipped or failed)"
+fi
+LOAD_SCAN_SCRIPT
+```
+
+**Claude Instruction**: When presenting AUQ in Steps 1.6.3-1.6.5:
+
+1. If HIGH severity constraints exist, **mention them as recommended forbidden items**
+2. If busywork categories exist, **use them to inform encouraged options**
+3. Include constraint scan context in the AUQ question descriptions
 
 ### 1.6.3: Forbidden Items (multiSelect, closed list)
 
+**Note**: If Step 1.6.2.5 found HIGH severity constraints, pre-populate the question with them.
+
 Use AskUserQuestion:
 
-- question: "What should RSSI avoid? (Select all that apply)"
+- question: "What should RSSI avoid? (HIGH severity from constraint scan pre-selected)"
   header: "Forbidden"
   multiSelect: true
   options:
@@ -255,6 +298,16 @@ Use AskUserQuestion:
     description: "Style issues, import sorting, code formatting"
   - label: "CI/CD modifications"
     description: "Workflow files, GitHub Actions, pipelines"
+  - label: "Type hint additions"
+    description: "Adding type annotations to untyped code"
+  - label: "TODO/FIXME cleanup"
+    description: "Addressing inline code comments"
+  - label: "Security patches"
+    description: "Dependency CVE fixes, secret rotation"
+  - label: "Git history cleanup"
+    description: "Squashing, rebasing, commit message edits"
+  - label: "Refactoring"
+    description: "Code restructuring without behavior change"
 
 ### 1.6.4: Custom Forbidden (Follow-up)
 
