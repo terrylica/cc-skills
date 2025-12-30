@@ -274,16 +274,17 @@ get_github_url() {
 
 github_url=$(get_github_url)
 
-# UTC timestamp with date (updated every time statusline triggers)
-# Compact format: 24Dec21 14:32Z (2-digit year + month + day + time + Z suffix)
+# UTC and local timestamps with dates (updated every time statusline triggers)
+# Compact format: 24Dec21 14:32Z (2-digit year + month + day + time + Z/L suffix)
+# Both dates shown since UTC and local may be different days
 utc_time=$(date -u +"%y%b%d %H:%MZ")
-local_time=$(date +"%H:%ML")
+local_time=$(date +"%y%b%d %H:%ML")
 
 # Two-line status:
 #   Line 1: repo-path | git stats | UTC time
 #   Line 2: github-url with branch (or warning)
 # Branch removed from line 1 - URL on line 2 already shows branch path
-line1="${GREEN}${repo_path}${RESET} | ${git_changes} | ${BRIGHT_BLACK}${utc_time} ${local_time}${RESET}"
+line1="${GREEN}${repo_path}${RESET} | ${git_changes} | ${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
 
 # Line 2: GitHub URL or warning (color matches branch state)
 if [[ -n "$github_url" ]]; then
