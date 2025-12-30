@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0"]
+# dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0", "pydantic>=2.10.0", "filelock>=3.20.0"]
 # ///
 """Integration tests for loop-until-done.py - Full hook simulation."""
 

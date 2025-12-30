@@ -6,7 +6,7 @@ argument-hint: "[show|edit|reset|set <key>=<value>]"
 
 # Ralph Loop: Config
 
-View or modify the Ralph Wiggum loop configuration (v2.0 unified schema).
+View or modify the Ralph Wiggum loop configuration (v3.0 unified schema).
 
 ## Arguments
 
@@ -15,7 +15,7 @@ View or modify the Ralph Wiggum loop configuration (v2.0 unified schema).
 - `reset`: Reset to defaults (removes project config)
 - `set <key>=<value>`: Set a specific config value (e.g., `set loop_limits.min_hours=2`)
 
-## Configuration Schema (v2.0)
+## Configuration Schema (v3.0)
 
 The unified config file `.claude/ralph-config.json` contains all configurable values:
 
@@ -84,6 +84,29 @@ Example config with GPU:
 }
 ```
 
+### Guidance (v3.0.0+)
+
+| Setting      | Default | Description                                  |
+| ------------ | ------- | -------------------------------------------- |
+| `forbidden`  | `[]`    | Items RSSI should avoid (from AUQ or manual) |
+| `encouraged` | `[]`    | Items RSSI should prioritize                 |
+| `timestamp`  | `""`    | ISO 8601 timestamp of last update            |
+
+### Constraint Scanning (v3.0.0+)
+
+| Setting                | Default | Description                       |
+| ---------------------- | ------- | --------------------------------- |
+| `skip_constraint_scan` | `false` | Skip preflight constraint scanner |
+| `constraint_scan`      | `null`  | Results from last constraint scan |
+
+### Mode Flags (v3.0.0+)
+
+| Setting           | Default | Description                            |
+| ----------------- | ------- | -------------------------------------- |
+| `poc_mode`        | `false` | Use POC time/iteration limits          |
+| `production_mode` | `false` | Use production settings (auditability) |
+| `no_focus`        | `false` | Skip focus file tracking               |
+
 ## Execution
 
 Based on `$ARGUMENTS`:
@@ -94,7 +117,7 @@ Based on `$ARGUMENTS`:
 # Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
 /usr/bin/env bash << 'RALPH_CONFIG_SHOW'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-echo "=== Ralph Configuration (v2.0) ==="
+echo "=== Ralph Configuration (v3.0) ==="
 echo ""
 
 # State
@@ -173,7 +196,7 @@ fi
 
 # Create config if doesn't exist
 if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo '{"version": "2.0.0"}' > "$CONFIG_FILE"
+    echo '{"version": "3.0.0"}' > "$CONFIG_FILE"
 fi
 
 # Use jq to set nested key (supports dot notation)
@@ -216,10 +239,12 @@ Example full config:
 
 ```json
 {
-  "version": "2.0.0",
+  "version": "3.0.0",
   "state": "stopped",
   "poc_mode": false,
+  "production_mode": false,
   "no_focus": false,
+  "skip_constraint_scan": false,
   "loop_limits": {
     "min_hours": 4.0,
     "max_hours": 9.0,
@@ -227,7 +252,7 @@ Example full config:
     "max_iterations": 99
   },
   "loop_detection": {
-    "similarity_threshold": 0.9,
+    "similarity_threshold": 0.99,
     "window_size": 5
   },
   "completion": {
@@ -242,7 +267,7 @@ Example full config:
   "validation": {
     "enabled": true,
     "score_threshold": 0.8,
-    "max_iterations": 3,
+    "max_rounds": 5,
     "improvement_threshold": 0.1
   },
   "protection": {
@@ -251,7 +276,13 @@ Example full config:
       ".claude/ralph-config.json",
       ".claude/ralph-state.json"
     ],
+    "bypass_markers": ["RALPH_STOP_SCRIPT", "RALPH_START_SCRIPT"],
     "stop_script_marker": "RALPH_STOP_SCRIPT"
+  },
+  "guidance": {
+    "forbidden": [],
+    "encouraged": [],
+    "timestamp": ""
   }
 }
 ```
