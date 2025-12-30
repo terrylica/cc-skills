@@ -1,3 +1,53 @@
+## [9.3.1](https://github.com/terrylica/cc-skills/compare/v9.3.0...v9.3.1) (2025-12-30)
+
+
+### Bug Fixes
+
+* **ralph:** correct version numbers in MENTAL-MODEL.md (v9.2.4 → v9.3.0) ([c366b7a](https://github.com/terrylica/cc-skills/commit/c366b7a282b3db924fdd2d93b65d7b2f5e60a482))
+
+
+### Code Refactoring
+
+* **ralph:** rename RSSI modules to Ralph naming convention ([17cab6e](https://github.com/terrylica/cc-skills/commit/17cab6e5f6b09301490cb399871eb9194ddf3400))
+
+
+### BREAKING CHANGES
+
+* **ralph:** Users with existing state files should run
+scripts/migrate-rssi-to-ralph.sh to preserve 99 iterations of learning.
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+1/-1)
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (2 commands)</summary>
+
+- [Ralph Loop: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/encourage.md) - updated (+1/-1)
+- [Ralph Loop: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/forbid.md) - updated (+1/-1)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/ralph-unified.md) - renamed from `plugins/ralph/hooks/templates/rssi-unified.md`
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+14/-14)
+
 # [9.3.0](https://github.com/terrylica/cc-skills/compare/v9.2.3...v9.3.0) (2025-12-30)
 
 
