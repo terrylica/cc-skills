@@ -1,3 +1,10 @@
+## [9.3.2](https://github.com/terrylica/cc-skills/compare/v9.3.1...v9.3.2) (2025-12-30)
+
+
+### Bug Fixes
+
+* **ralph:** update test imports for RSSI → Ralph rename ([071fc02](https://github.com/terrylica/cc-skills/commit/071fc020e0dd6fdf9fd6802be5162be2d16bd190))
+
 ## [9.3.1](https://github.com/terrylica/cc-skills/compare/v9.3.0...v9.3.1) (2025-12-30)
 
 
