@@ -1,3 +1,58 @@
+## [9.3.4](https://github.com/terrylica/cc-skills/compare/v9.3.3...v9.3.4) (2025-12-30)
+
+
+### Bug Fixes
+
+* **ralph:** remove RSSI branding throughout codebase ([cee1bc8](https://github.com/terrylica/cc-skills/commit/cee1bc8af6b089c500a1875e3de49a9fdb02655b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) | updated (+33/-33) |
+| unknown | [Ralph Stop Visibility Observability](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-ralph-stop-visibility-observability.md) | updated (+2/-2) |
+| unknown | [Ralph Constraint Scanning](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-29-ralph-constraint-scanning.md) | updated (+1/-1) |
+
+### Design Specs
+
+- [Design Spec: Ralph Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - updated (+10/-10)
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+29/-29)
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (3 commands)</summary>
+
+- [Ralph Loop: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/config.md) - updated (+5/-5)
+- [Ralph Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/hooks.md) - updated (+1/-1)
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+4/-4)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/ralph-unified.md) - updated (+7/-7)
+- [Ralph POC Validation Task](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/tests/poc-task.md) - updated (+3/-3)
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+22/-22)
+
 ## [9.3.3](https://github.com/terrylica/cc-skills/compare/v9.3.2...v9.3.3) (2025-12-30)
 
 
