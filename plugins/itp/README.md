@@ -114,11 +114,59 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
 
 **Recommendation**: Use **Path B** if you want the native Claude Code experience with autocomplete hints. Use **Path A** if you prefer fewer steps and don't mind typing the full command.
 
-<!-- graph-easy source:
+```
+                    Plan Mode Entry Paths
+
+                ╭────────────────────────────────╮
+                │  Plan Mode (Shift+Tab × 2)     │
+                ╰────────────────────────────────╯
+                  │
+                  ∨
+                ╭────────────────────────────────╮
+                │  ~/.claude/plans/<name>.md     │
+                ╰────────────────────────────────╯
+                  │
+                  ∨
+                ╭────────────────────────────────╮
+                │        Review Plan             │
+                │  Choose option 3 (reject)      │
+                │  → feedback input opens        │
+                ╰────────────────────────────────╯
+                  │                   │
+     ┌────────────┘                   └────────────┐
+     ∨                                             ∨
+┌──────────────────────┐                 ┌──────────────────────┐
+│ Path A: Type in      │                 │ Path B: Type message │
+│ feedback field:      │                 │ "Wait for /itp:go"   │
+│ SlashCommand /itp:go │                 └──────────────────────┘
+└──────────────────────┘                   │
+     │                                     ∨
+     │                           ┌──────────────────────┐
+     │                           │  Claude waits for    │
+     │                           │  input               │
+     │                           └──────────────────────┘
+     │                                     │
+     │                                     ∨
+     │                           ┌──────────────────────┐
+     │                           │  Type /itp:go at     │
+     │                           │  command prompt      │
+     │                           └──────────────────────┘
+     │                                     │
+     └──────────────────┐ ┌────────────────┘
+                        ∨ ∨
+                ╔════════════════════════════════╗
+                ║   /itp:go Workflow (4 phases)  ║
+                ╚════════════════════════════════╝
+```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
 graph { flow: south; }
-[ Plan Mode ] { label: "Plan Mode (Shift+Tab ×2)"; }
-[ Plan File ] { label: "~/.claude/plans/<name>.md"; }
-[ Review ] { label: "Review Plan\nChoose option 3 (reject)\n→ feedback input opens"; }
+[ Plan Mode ] { shape: rounded; label: "Plan Mode (Shift+Tab ×2)"; }
+[ Plan File ] { shape: rounded; label: "~/.claude/plans/<name>.md"; }
+[ Review ] { shape: rounded; label: "Review Plan\nChoose option 3 (reject)\n→ feedback input opens"; }
 [ Path A ] { label: "Path A: Type in feedback\nSlashCommand tool call\n/itp:go"; }
 [ Path B ] { label: "Path B: Type message\n\"Wait for /itp:go\""; }
 [ Wait ] { label: "Claude waits\nfor input"; }
@@ -126,12 +174,13 @@ graph { flow: south; }
 [ ITP ] { border: double; label: "/itp:go Workflow\n(4 phases)"; }
 
 [ Plan Mode ] -> [ Plan File ] -> [ Review ]
-[ Review ] --> [ Path A ]
-
-[ Review ] --> [ Path B ]
+[ Review ] -> [ Path A ]
+[ Review ] -> [ Path B ]
 [ Path A ] -> [ ITP ]
 [ Path B ] -> [ Wait ] -> [ Cmd ] -> [ ITP ]
--->
+```
+
+</details>
 
 ### 4-Phase Workflow
 
