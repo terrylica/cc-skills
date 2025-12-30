@@ -1,3 +1,10 @@
+## [9.3.6](https://github.com/terrylica/cc-skills/compare/v9.3.5...v9.3.6) (2025-12-30)
+
+
+### Bug Fixes
+
+* **ralph:** add UV detection with loud validation failure ([a3f18d0](https://github.com/terrylica/cc-skills/commit/a3f18d0a9331fe6ffce84b09b5de5f3c48869a8e))
+
 ## [9.3.5](https://github.com/terrylica/cc-skills/compare/v9.3.4...v9.3.5) (2025-12-30)
 
 
