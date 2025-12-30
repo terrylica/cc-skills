@@ -12,6 +12,7 @@ from pathlib import Path
 
 from core.config_schema import load_config
 from core.constants import CLI_GAP_THRESHOLD
+from observability import flush_to_claude
 
 logger = logging.getLogger(__name__)
 
@@ -243,11 +244,22 @@ def continue_session(reason: str) -> None:
     Uses decision: block per Claude Code docs.
     CORRECT: decision=block means "prevent stop, keep session alive"
 
+    Includes accumulated observability messages in the reason field,
+    making hook operations visible to Claude.
+
     Args:
         reason: Reason/context to provide to Claude
     """
     logger.info(f"Continuing session: {reason[:100]}...")
-    print(json.dumps({"decision": "block", "reason": reason}))
+
+    # Include accumulated observability messages for Claude visibility
+    obs_messages = flush_to_claude()
+    if obs_messages:
+        full_reason = f"{obs_messages}\n\n{reason}"
+    else:
+        full_reason = reason
+
+    print(json.dumps({"decision": "block", "reason": full_reason}))
 
 
 def hard_stop(reason: str) -> None:

@@ -542,19 +542,19 @@ graph { flow: south; }
              ╱──────────────────────────────────╲
 ```
 
-| Severity     | What It Means                        | Action            | Real Example                    |
-| ------------ | ------------------------------------ | ----------------- | ------------------------------- |
-| **CRITICAL** | "This WILL break on another machine" | Block loop start  | Your home path `/Users/terry/`  |
-| **HIGH**     | "This MIGHT cause problems"          | Escalate to user  | Someone else's path in config   |
-| **MEDIUM**   | "Something to be aware of"           | Show in deep-dive | Dependency on local directories |
-| **LOW**      | "Just noting this exists"            | Log only          | Non-Ralph hook detected         |
+| Severity     | What It Means                        | Intended Action   | Implementation Status                                    | Real Example                    |
+| ------------ | ------------------------------------ | ----------------- | -------------------------------------------------------- | ------------------------------- |
+| **CRITICAL** | "This WILL break on another machine" | Block loop start  | ✅ `constraint-scanner.py:469` exit 2 → `start.md` exits | Your home path `/Users/terry/`  |
+| **HIGH**     | "This MIGHT cause problems"          | Escalate to user  | ✅ Wired to AUQ pre-selection (v9.2.4+)                  | Someone else's path in config   |
+| **MEDIUM**   | "Something to be aware of"           | Show in deep-dive | 📋 Designed, not yet wired                               | Dependency on local directories |
+| **LOW**      | "Just noting this exists"            | Log only          | ✅ Saved to JSON, not displayed                          | Non-Ralph hook detected         |
 
 **Decision Flow**:
 
-1. **CRITICAL found?** → Block `/ralph:start` completely
-2. **HIGH found?** → Show user, require acknowledgment
-3. **MEDIUM found?** → Offer "deep-dive" option to see details
-4. **LOW found?** → Log silently, proceed normally
+1. **CRITICAL found?** → Block `/ralph:start` completely ✅
+2. **HIGH found?** → Pre-select in forbidden AUQ (Step 1.6.2.5) ✅
+3. **MEDIUM found?** → Offer "deep-dive" option (planned)
+4. **LOW found?** → Log silently, proceed normally ✅
 
 <details>
 <summary>graph-easy source</summary>
@@ -584,6 +584,127 @@ graph { label: "Constraint Severity Pyramid"; flow: south; }
 - **Scanner**: `plugins/ralph/scripts/constraint-scanner.py`
 - **Config Schema**: `plugins/ralph/hooks/core/config_schema.py` (v3.0.0 with Pydantic)
 - **ADR**: `/docs/adr/2025-12-29-ralph-constraint-scanning.md`
+
+---
+
+## Stop Hook Guidance Persistence
+
+> **Why guidance survives context compaction**: Claude's context window gets compacted over long sessions. The Stop hook reads `ralph-config.json` fresh from disk on **every iteration** (`loop-until-done.py:192-206`), then injects guidance into the RSSI template. This ensures Claude always sees forbidden/encouraged items, even after context truncation.
+
+**Data Flow**:
+
+```
+          Guidance Persistence Mechanism
+
+┌─────────────────┐     ┌───────────────────────────────────┐
+│  /ralph:start   │ ──> │  User selects forbidden/encouraged │
+└─────────────────┘     └───────────────────────────────────┘
+                          │
+                          │ Step 1.6.7: Write to disk
+                          ∨
+                        ┌───────────────────────────────────┐
+                        │  .claude/ralph-config.json        │
+                        │  guidance.forbidden[]             │
+                        │  guidance.encouraged[]            │
+                        └───────────────────────────────────┘
+                          │
+                          │ Every iteration...
+                          ∨
+┌─────────────────────────────────────────────────────────────┐
+│  Stop Hook: loop-until-done.py                              │
+│  ───────────────────────────                                │
+│  1. Read ralph-config.json FRESH from disk (line 192-206)   │
+│  2. Inject into rssi_context dict (line 207-237)            │
+│  3. Render rssi-unified.md template (line 269-276)          │
+│  4. Return JSON with guidance-embedded prompt               │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ decision: "block", reason: "<prompt>"
+                          ∨
+                        ┌───────────────────────────────────┐
+                        │  Claude sees guidance in prompt   │
+                        │  (even after context compaction)  │
+                        └───────────────────────────────────┘
+```
+
+**Key Code Locations**:
+
+| File                        | Lines   | Purpose                          |
+| --------------------------- | ------- | -------------------------------- |
+| `loop-until-done.py`        | 192-206 | Read guidance fresh from disk    |
+| `loop-until-done.py`        | 207-237 | Build rssi_context with guidance |
+| `template_loader.py`        | 285-296 | Extract forbidden/encouraged     |
+| `templates/rssi-unified.md` | 30-61   | Render USER GUIDANCE section     |
+
+---
+
+## Holistic Plugin Wiring
+
+> **Nothing dangles**: Every file in the Ralph plugin serves a purpose and is wired to other components. This diagram shows the complete spiderweb of connections.
+
+```
+                              Ralph Plugin Holistic Wiring
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ USER COMMANDS                                                                    │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ /ralph:start  ─┬─► constraint-scanner.py ─► .json ─┐                            │
+│                └─► AUQ (Step 1.6.x) ─────────────────┼─► .claude/ralph-config.json
+│ /ralph:forbid ────────────────────────────────────────┘                          │
+│ /ralph:encourage ─────────────────────────────────────┘                          │
+│ /ralph:stop ─────► .claude/STOP_LOOP (kill switch)                               │
+│ /ralph:hooks ────► manage-hooks.sh ─► ~/.claude/settings.json                    │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ∨
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ HOOKS (Registered in ~/.claude/settings.json)                                    │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ Stop: loop-until-done.py                                                         │
+│   ├── Reads: .claude/ralph-config.json (guidance, limits)                       │
+│   ├── Reads: ~/.claude/automation/loop-orchestrator/state/sessions/*.json       │
+│   ├── Calls: template_loader.py → rssi-unified.md                               │
+│   └── Returns: JSON with continuation prompt (guidance embedded)                 │
+│                                                                                  │
+│ PreToolUse (Write|Edit): archive-plan.sh                                        │
+│   └── Archives plan files to ~/.claude/automation/.../archives/                 │
+│                                                                                  │
+│ PreToolUse (Bash): pretooluse-loop-guard.py                                     │
+│   └── Blocks deletion of loop control files                                      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ∨
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ TEMPLATE RENDERING (Jinja2)                                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ rssi-unified.md renders:                                                         │
+│   - FORBIDDEN items (from guidance.forbidden[])                                  │
+│   - ENCOURAGED items (from guidance.encouraged[])                                │
+│   - OODA loop instructions                                                       │
+│   - Iteration metrics (runtime, wall-clock, iteration count)                     │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ∨
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ CLAUDE'S PROMPT (Every Iteration)                                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ Guidance appears here on EVERY iteration                                         │
+│ (survives context compaction via fresh disk read)                                │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Files That Must Exist**:
+
+| Location                | File                         | Created By              | Read By              | Purpose           |
+| ----------------------- | ---------------------------- | ----------------------- | -------------------- | ----------------- |
+| `~/.claude/`            | `settings.json`              | `/ralph:hooks install`  | Claude Code startup  | Hook registration |
+| `~/.claude/automation/` | `sessions/*.json`            | `loop-until-done.py`    | `loop-until-done.py` | Session state     |
+| `~/.claude/automation/` | `rssi-evolution.json`        | `rssi_evolution.py`     | `loop-until-done.py` | Learned patterns  |
+| `~/.claude/automation/` | `archives/*`                 | `archive-plan.sh`       | User analysis        | Plan backups      |
+| `.claude/`              | `ralph-config.json`          | `/ralph:start`, AUQ     | `loop-until-done.py` | Config + guidance |
+| `.claude/`              | `loop-enabled`               | `/ralph:start`          | `loop-until-done.py` | Loop active flag  |
+| `.claude/`              | `STOP_LOOP`                  | `/ralph:stop`, user     | `loop-until-done.py` | Kill switch       |
+| `.claude/`              | `ralph-constraint-scan.json` | `constraint-scanner.py` | Step 1.6.2.5 (AUQ)   | Scanner output    |
 
 ---
 
@@ -882,6 +1003,78 @@ The `guidance` section is rendered by the **unified RSSI template** (`rssi-unifi
 - Changes via `/ralph:encourage` and `/ralph:forbid` take effect on next iteration
 
 **Kill Switch**: Create `.claude/STOP_LOOP` file to force stop immediately.
+
+---
+
+## Observability (v9.2.4+)
+
+Ralph provides **dual-channel observability** so both humans and Claude can see what the hooks are doing.
+
+```
+                        Observability Channels
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Hook Operations                                │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
+│  │   Config Read   │  │  State Update   │  │ File Discovery  │          │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘          │
+│                              │                                           │
+└──────────────────────────────┼───────────────────────────────────────────┘
+                               │
+                               ∨
+                        ┌─────────────────────────────────────┐
+                        │          emit(op, detail)           │
+                        └─────────────────────────────────────┘
+                               │
+               ┌───────────────┴───────────────┐
+               │                               │
+               ∨                               ∨
+        ┏━━━━━━━━━━━━━━━━━━━━━┓        ┌─────────────────────────────┐
+        ┃   Terminal (stderr)  ┃        │     Claude (JSON reason)    │
+        ┃  Users see instantly ┃        │  Via decision:block output  │
+        ┗━━━━━━━━━━━━━━━━━━━━━━┛        └─────────────────────────────┘
+```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "Observability Channels"; flow: south; }
+
+[Hook Operations] { shape: box; }
+[Hook Operations] -> [emit(op, detail)]
+[emit(op, detail)] -> [Terminal (stderr)] { border: bold; }
+[emit(op, detail)] -> [Claude (JSON reason)]
+```
+
+</details>
+
+### Channels
+
+| Channel    | Target         | Mechanism                          | Visibility                 |
+| ---------- | -------------- | ---------------------------------- | -------------------------- |
+| **stderr** | Terminal (you) | `print(msg, file=sys.stderr)`      | Immediate, always visible  |
+| **JSON**   | Claude         | `decision:block` with reason field | Claude sees in hook output |
+
+### Observed Operations
+
+| Operation     | When Emitted              | Example Message                                            |
+| ------------- | ------------------------- | ---------------------------------------------------------- |
+| `Config`      | Config file read          | `[ralph] [0.02s] Config: Loaded 3 forbidden, 2 encouraged` |
+| `State`       | Session state loaded      | `[ralph] [0.05s] State: iteration 5, runtime 847s`         |
+| `Discovery`   | File discovery complete   | `[ralph] [0.08s] Discovery: Found spec.md via transcript`  |
+| `Adapter`     | Project adapter selected  | `[ralph] [0.10s] Adapter: Selected alpha-forge`            |
+| `Convergence` | Adapter convergence check | `[ralph] [0.12s] Convergence: continue=true, conf=0.65`    |
+| `Analysis`    | Loop detection check      | `[ralph] [0.15s] Analysis: Loop detected: 99%+ similar`    |
+| `Backoff`     | Idle iteration backoff    | `[ralph] [0.18s] Backoff: Idle 3/5 (next wait: 30s)`       |
+| `Template`    | RSSI template rendered    | `[ralph] [0.20s] Template: Rendering IMPLEMENTATION`       |
+| `Archive`     | Plan file archived        | `[ralph] Archive: Saved plan.md to archives/`              |
+
+### Key Files
+
+- **Module**: `plugins/ralph/hooks/observability.py`
+- **Instrumentation**: `loop-until-done.py`, `utils.py`, `template_loader.py`
+- **Shell hooks**: `archive-plan.sh` (stderr only)
 
 ---
 
