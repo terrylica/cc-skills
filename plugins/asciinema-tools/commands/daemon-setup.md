@@ -146,7 +146,7 @@ Follow these steps in the browser window that just opened:
 
 4. **Repository access**: Click **"Only select repositories"**
    - Select your asciinema recording repositories
-   - Example: `EonLabs-Spartan/alpha-forge`
+   - Example: `your-org/your-repository`
 
 5. **Permissions** (expand "Repository permissions"):
    - **Contents**: Read and write ✓
@@ -419,8 +419,28 @@ TEMPLATE_PATH="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/asciinema-tools}/scrip
 DAEMON_PATH="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/asciinema-tools}/scripts/idle-chunker-daemon.sh"
 PLIST_PATH="$HOME/Library/LaunchAgents/com.cc-skills.asciinema-chunker.plist"
 
-mkdir -p "$HOME/Library/LaunchAgents"
-mkdir -p "$HOME/.asciinema/logs"
+# Validate required files exist
+if [[ ! -f "$TEMPLATE_PATH" ]]; then
+  echo "ERROR: Template not found at: $TEMPLATE_PATH"
+  echo "Ensure asciinema-tools plugin is properly installed."
+  exit 1
+fi
+
+if [[ ! -f "$DAEMON_PATH" ]]; then
+  echo "ERROR: Daemon script not found at: $DAEMON_PATH"
+  echo "Ensure asciinema-tools plugin is properly installed."
+  exit 1
+fi
+
+if ! mkdir -p "$HOME/Library/LaunchAgents" 2>&1; then
+  echo "ERROR: Cannot create LaunchAgents directory"
+  exit 1
+fi
+
+if ! mkdir -p "$HOME/.asciinema/logs" 2>&1; then
+  echo "ERROR: Cannot create logs directory at ~/.asciinema/logs"
+  exit 1
+fi
 
 # Read template and substitute placeholders
 sed \
@@ -465,8 +485,10 @@ Display plist content, then loop back to question.
 /usr/bin/env bash << 'INSTALL_DAEMON_EOF'
 PLIST_PATH="$HOME/Library/LaunchAgents/com.cc-skills.asciinema-chunker.plist"
 
-# Unload if already running
-launchctl unload "$PLIST_PATH" 2>/dev/null || true
+# Unload if already running (may fail if not loaded - that's expected)
+if ! launchctl unload "$PLIST_PATH" 2>/dev/null; then
+  echo "INFO: No existing daemon to unload (first install)"
+fi
 
 # Load and start
 if launchctl load "$PLIST_PATH"; then
