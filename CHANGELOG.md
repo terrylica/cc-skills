@@ -1,3 +1,29 @@
+## [9.4.4](https://github.com/terrylica/cc-skills/compare/v9.4.3...v9.4.4) (2025-12-31)
+
+
+### Bug Fixes
+
+* **ralph:** robust uv discovery for mise-installed environments ([a969fe6](https://github.com/terrylica/cc-skills/commit/a969fe6d624abbdd8096c6e74d85d20538faeea5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+103/-11)
+
+</details>
+
 ## [9.4.3](https://github.com/terrylica/cc-skills/compare/v9.4.2...v9.4.3) (2025-12-31)
 
 
