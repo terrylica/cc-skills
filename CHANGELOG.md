@@ -1,3 +1,40 @@
+## [9.4.1](https://github.com/terrylica/cc-skills/compare/v9.4.0...v9.4.1) (2025-12-31)
+
+
+### Bug Fixes
+
+* **asciinema-tools:** improve daemon-setup robustness and remove leaked data ([0b2e2cf](https://github.com/terrylica/cc-skills/commit/0b2e2cf680b3e083b89bc874dc31ef10f8a0354f))
+* **iterm2-layout:** generalize worktree examples in documentation ([d070f32](https://github.com/terrylica/cc-skills/commit/d070f32811525b5d0656540bed0a7cd7093336ee))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 change)</summary>
+
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/skills/iterm2-layout/SKILL.md) - updated (+5/-5)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (1 command)</summary>
+
+- [/asciinema-tools:daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-setup.md) - updated (+27/-5)
+
+</details>
+
 # [9.4.0](https://github.com/terrylica/cc-skills/compare/v9.3.6...v9.4.0) (2025-12-31)
 
 
