@@ -1,3 +1,53 @@
+# [9.4.0](https://github.com/terrylica/cc-skills/compare/v9.3.6...v9.4.0) (2025-12-31)
+
+
+### Features
+
+* **asciinema-tools:** add finalize and summarize commands for complete post-session workflow ([79b4101](https://github.com/terrylica/cc-skills/commit/79b41019ef7a06edec9bfb6ca47b5d496146ae4b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Git-Town Workflow Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/README.md) - new (+105)
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (4 commands)</summary>
+
+- [/asciinema-tools:daemon-status](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-status.md) - updated (+110/-61)
+- [/asciinema-tools:finalize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/finalize.md) - new (+255)
+- [/asciinema-tools:post-session](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/post-session.md) - updated (+164/-28)
+- [/asciinema-tools:summarize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/summarize.md) - new (+239)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow</strong> (4 commands)</summary>
+
+- [Git-Town Contribution Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/contribute.md) - new (+436)
+- [Git-Town Fork Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/fork.md) - new (+447)
+- [Git-Town Enforcement Hooks — Installation](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/hooks.md) - new (+228)
+- [Git-Town Setup — One-Time Configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/setup.md) - new (+255)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Git-Town Command Cheatsheet](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/references/cheatsheet.md) - new (+126)
+
 ## [9.3.6](https://github.com/terrylica/cc-skills/compare/v9.3.5...v9.3.6) (2025-12-30)
 
 
