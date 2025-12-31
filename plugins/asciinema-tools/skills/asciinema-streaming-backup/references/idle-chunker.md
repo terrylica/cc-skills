@@ -1,8 +1,15 @@
-# Idle Chunker Script
+# Idle Chunker Script (DEPRECATED)
 
-Complete implementation of the idle-detection chunking system for asciinema recordings.
+> **DEPRECATED**: This inline chunker has been superseded by the launchd daemon architecture.
+> See [ADR 2025-12-26](/docs/adr/2025-12-26-asciinema-daemon-architecture.md) for rationale.
+>
+> **Use instead**: `/asciinema-tools:daemon-setup` to configure the background daemon.
 
-## idle-chunker.sh
+---
+
+**Historical Reference**: The following documents the v9.3 inline chunker approach for reference only.
+
+## idle-chunker.sh (LEGACY)
 
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF'
