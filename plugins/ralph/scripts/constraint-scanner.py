@@ -123,6 +123,38 @@ def is_alpha_forge(main_repo_root: str) -> bool:
     return Path(main_repo_root).name == "alpha-forge"
 
 
+def get_gitignored_files(project_dir: str, rel_paths: list[str]) -> set[str]:
+    """Batch check which files are gitignored using git check-ignore --stdin.
+
+    Args:
+        project_dir: Project root directory
+        rel_paths: List of relative paths to check
+
+    Returns:
+        Set of paths that are gitignored (should be skipped)
+    """
+    if not rel_paths:
+        return set()
+
+    try:
+        # Batch check all paths at once using --stdin
+        result = subprocess.run(
+            ["git", "check-ignore", "--stdin"],
+            input="\n".join(rel_paths),
+            capture_output=True,
+            text=True,
+            cwd=project_dir,
+            timeout=5,
+        )
+        # git check-ignore outputs one ignored path per line
+        if result.stdout.strip():
+            return set(result.stdout.strip().split("\n"))
+        return set()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        # If git fails, assume no files are ignored (scan all)
+        return set()
+
+
 def scan_hardcoded_paths(project_dir: str) -> list[Constraint]:
     """Scan for hardcoded absolute paths in config files."""
     constraints = []
@@ -144,9 +176,16 @@ def scan_hardcoded_paths(project_dir: str) -> list[Constraint]:
         "pyproject.toml",
     ]
 
+    # Batch check which files are gitignored (single subprocess call)
+    gitignored = get_gitignored_files(project_dir, scan_files)
+
     for rel_path in scan_files:
         file_path = Path(project_dir) / rel_path
         if not file_path.exists():
+            continue
+
+        # Skip gitignored files (e.g., .claude/settings.local.json)
+        if rel_path in gitignored:
             continue
 
         try:
@@ -190,9 +229,16 @@ def scan_rigid_structure(project_dir: str) -> list[Constraint]:
     # Check pyproject.toml and setup files
     config_files = ["pyproject.toml", ".claude/settings.json"]
 
+    # Batch check which files are gitignored (single subprocess call)
+    gitignored = get_gitignored_files(project_dir, config_files)
+
     for config_file in config_files:
         file_path = Path(project_dir) / config_file
         if not file_path.exists():
+            continue
+
+        # Skip gitignored files
+        if config_file in gitignored:
             continue
 
         try:
