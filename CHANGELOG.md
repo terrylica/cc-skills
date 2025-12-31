@@ -1,3 +1,32 @@
+## [9.4.3](https://github.com/terrylica/cc-skills/compare/v9.4.2...v9.4.3) (2025-12-31)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [asciinema-tools Daemon Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-26-asciinema-daemon-architecture.md) | updated (+15/-4) |
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>asciinema-tools/asciinema-streaming-backup</strong> (1 file)</summary>
+
+- [Idle Chunker Script (DEPRECATED)](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/references/idle-chunker.md) - updated (+10/-3)
+
+</details>
+
 ## [9.4.2](https://github.com/terrylica/cc-skills/compare/v9.4.1...v9.4.2) (2025-12-31)
 
 
