@@ -1,3 +1,10 @@
+## [9.4.2](https://github.com/terrylica/cc-skills/compare/v9.4.1...v9.4.2) (2025-12-31)
+
+
+### Bug Fixes
+
+* emit errors to stderr and fix shellcheck warnings ([315806a](https://github.com/terrylica/cc-skills/commit/315806a2c794d1d210dca4a11233f05ae6c0c1cd))
+
 ## [9.4.1](https://github.com/terrylica/cc-skills/compare/v9.4.0...v9.4.1) (2025-12-31)
 
 
