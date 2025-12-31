@@ -112,7 +112,7 @@ discover_uv() {
 UV_CMD=$(discover_uv) || { echo "Constraint scan: SKIPPED (uv not found)"; exit 0; }
 
 echo "Running constraint scanner..."
-SCAN_OUTPUT=$($UV_CMD run "$SCANNER_SCRIPT" --project "$PROJECT_DIR" 2>&1)
+SCAN_OUTPUT=$($UV_CMD run -q "$SCANNER_SCRIPT" --project "$PROJECT_DIR" 2>&1)
 SCAN_EXIT=$?
 
 if [[ $SCAN_EXIT -eq 2 ]]; then
