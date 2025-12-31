@@ -89,9 +89,30 @@ if [[ -z "$SCANNER_SCRIPT" ]] || [[ ! -f "$SCANNER_SCRIPT" ]]; then
     exit 0
 fi
 
-# Run scanner
+# Run scanner - discover UV with same fallback pattern as main script
+UV_CMD=""
+discover_uv() {
+    command -v uv &>/dev/null && echo "uv" && return 0
+    for loc in "$HOME/.local/bin/uv" "$HOME/.cargo/bin/uv" "/opt/homebrew/bin/uv" "/usr/local/bin/uv" "$HOME/.local/share/mise/shims/uv"; do
+        [[ -x "$loc" ]] && echo "$loc" && return 0
+    done
+    # Dynamic mise version discovery
+    local mise_base="$HOME/.local/share/mise/installs/uv"
+    if [[ -d "$mise_base" ]]; then
+        local ver=$(ls -1 "$mise_base" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -1)
+        if [[ -n "$ver" ]]; then
+            local plat=$(ls -1 "$mise_base/$ver" 2>/dev/null | head -1)
+            [[ -n "$plat" && -x "$mise_base/$ver/$plat/uv" ]] && echo "$mise_base/$ver/$plat/uv" && return 0
+            [[ -x "$mise_base/$ver/uv" ]] && echo "$mise_base/$ver/uv" && return 0
+        fi
+    fi
+    command -v mise &>/dev/null && mise which uv &>/dev/null 2>&1 && echo "mise exec -- uv" && return 0
+    return 1
+}
+UV_CMD=$(discover_uv) || { echo "Constraint scan: SKIPPED (uv not found)"; exit 0; }
+
 echo "Running constraint scanner..."
-SCAN_OUTPUT=$(uv run "$SCANNER_SCRIPT" --project "$PROJECT_DIR" 2>&1)
+SCAN_OUTPUT=$($UV_CMD run "$SCANNER_SCRIPT" --project "$PROJECT_DIR" 2>&1)
 SCAN_EXIT=$?
 
 if [[ $SCAN_EXIT -eq 2 ]]; then
@@ -459,6 +480,84 @@ echo "  Autonomous Loop Mode"
 echo "========================================"
 echo ""
 
+# ===== UV DISCOVERY =====
+# Robust UV detection with multi-level fallback (matches canonical cc-skills pattern)
+# Returns UV command (path or "mise exec -- uv") on stdout, exits 1 if not found
+UV_CMD=""
+discover_uv() {
+    # Priority 1: Already in PATH (shell configured, Homebrew, direct install)
+    if command -v uv &>/dev/null; then
+        echo "uv"
+        return 0
+    fi
+
+    # Priority 2: Common direct installation locations
+    local uv_locations=(
+        "$HOME/.local/bin/uv"                           # Official curl installer
+        "$HOME/.cargo/bin/uv"                           # cargo install
+        "/opt/homebrew/bin/uv"                          # Homebrew Apple Silicon
+        "/usr/local/bin/uv"                             # Homebrew Intel / manual
+        "$HOME/.local/share/mise/shims/uv"              # mise shims
+        "$HOME/.local/share/mise/installs/uv/latest/uv" # mise direct
+    )
+
+    for loc in "${uv_locations[@]}"; do
+        if [[ -x "$loc" ]]; then
+            echo "$loc"
+            return 0
+        fi
+    done
+
+    # Priority 3: Find mise-installed uv dynamically (version directories)
+    local mise_uv_base="$HOME/.local/share/mise/installs/uv"
+    if [[ -d "$mise_uv_base" ]]; then
+        local latest_version
+        latest_version=$(ls -1 "$mise_uv_base" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -1)
+        if [[ -n "$latest_version" ]]; then
+            # Handle nested platform directory (e.g., uv-aarch64-apple-darwin/uv)
+            local platform_dir
+            platform_dir=$(ls -1 "$mise_uv_base/$latest_version" 2>/dev/null | head -1)
+            if [[ -n "$platform_dir" && -x "$mise_uv_base/$latest_version/$platform_dir/uv" ]]; then
+                echo "$mise_uv_base/$latest_version/$platform_dir/uv"
+                return 0
+            fi
+            # Direct binary
+            if [[ -x "$mise_uv_base/$latest_version/uv" ]]; then
+                echo "$mise_uv_base/$latest_version/uv"
+                return 0
+            fi
+        fi
+    fi
+
+    # Priority 4: Use mise exec as fallback
+    if command -v mise &>/dev/null && mise which uv &>/dev/null 2>&1; then
+        echo "mise exec -- uv"
+        return 0
+    fi
+
+    return 1
+}
+
+# Discover UV once at script start
+if ! UV_CMD=$(discover_uv); then
+    echo "ERROR: 'uv' is required but not installed."
+    echo ""
+    echo "The Stop hook uses 'uv run' to execute loop-until-done.py"
+    echo ""
+    echo "Searched locations:"
+    echo "  - PATH (command -v uv)"
+    echo "  - \$HOME/.local/bin/uv"
+    echo "  - /opt/homebrew/bin/uv"
+    echo "  - \$HOME/.local/share/mise/shims/uv"
+    echo "  - \$HOME/.local/share/mise/installs/uv/*/..."
+    echo ""
+    echo "Install with one of:"
+    echo "  • curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo "  • brew install uv"
+    echo "  • mise use -g uv@latest"
+    exit 1
+fi
+
 # ===== STRICT PRE-FLIGHT CHECKS =====
 # These checks ensure the loop will actually work before starting
 
@@ -488,15 +587,8 @@ if [[ -f "$INSTALL_TS_FILE" ]]; then
     fi
 fi
 
-# 2. Verify uv is available (required for Stop hook)
-if ! command -v uv &>/dev/null; then
-    echo "ERROR: 'uv' is required but not installed."
-    echo ""
-    echo "The Stop hook uses 'uv run' to execute loop-until-done.py"
-    echo ""
-    echo "Install with: brew install uv"
-    exit 1
-fi
+# 2. UV already verified by discover_uv() above - display discovered path
+echo "UV detected: $UV_CMD"
 
 # 3. Verify Python 3.11+ (required for Stop hook)
 PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "")
