@@ -1,3 +1,10 @@
+## [9.4.6](https://github.com/terrylica/cc-skills/compare/v9.4.5...v9.4.6) (2025-12-31)
+
+
+### Bug Fixes
+
+* **ralph:** batch gitignore check using --stdin for performance ([d076dfb](https://github.com/terrylica/cc-skills/commit/d076dfb2adc4a13500bb1572cd1d06a8d3174b0f))
+
 ## [9.4.5](https://github.com/terrylica/cc-skills/compare/v9.4.4...v9.4.5) (2025-12-31)
 
 
