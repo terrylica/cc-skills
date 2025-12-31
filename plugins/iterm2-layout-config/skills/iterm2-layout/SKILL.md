@@ -46,8 +46,8 @@ right = "zsh"
 
 [worktrees]
 # Optional: Enable git worktree discovery
-# alpha_forge_root = "~/projects/alpha-forge"
-# worktree_pattern = "alpha-forge.worktree-*"
+# main_repo_root = "~/projects/my-project"
+# worktree_pattern = "my-project.worktree-*"
 
 [[tabs]]
 name = "home"
@@ -189,13 +189,13 @@ Enable dynamic tab creation for git worktrees:
 
 ```toml
 [worktrees]
-alpha_forge_root = "~/eon/alpha-forge"
-worktree_pattern = "alpha-forge.worktree-*"
+main_repo_root = "~/projects/my-project"
+worktree_pattern = "my-project.worktree-*"
 ```
 
 **How it works**:
 
-1. Script globs for `~/eon/alpha-forge.worktree-*` directories
+1. Script globs for `~/projects/my-project.worktree-*` directories
 2. Validates each against `git worktree list`
 3. Generates acronym-based tab names (e.g., `AF-ssv` for `sharpe-statistical-validation`)
 4. Inserts worktree tabs after main project tab
