@@ -52,7 +52,14 @@ def verify_secret_exists(project: str, config: str, secret_name: str) -> bool:
             timeout=10
         )
         return secret_name in result.stdout.split('\n')
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+    except subprocess.CalledProcessError as e:
+        print(f"[doppler-secret-validation] Failed to list secrets: {e.stderr or e}", file=sys.stderr)
+        return False
+    except subprocess.TimeoutExpired:
+        print("[doppler-secret-validation] Doppler command timed out", file=sys.stderr)
+        return False
+    except FileNotFoundError:
+        print("[doppler-secret-validation] Doppler CLI not found", file=sys.stderr)
         return False
 
 
@@ -68,7 +75,14 @@ def test_env_injection(project: str, config: str, secret_name: str) -> bool:
             timeout=10
         )
         return 'OK' in result.stdout
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+    except subprocess.CalledProcessError as e:
+        print(f"[doppler-secret-validation] Environment injection failed: {e.stderr or e}", file=sys.stderr)
+        return False
+    except subprocess.TimeoutExpired:
+        print("[doppler-secret-validation] Environment injection timed out", file=sys.stderr)
+        return False
+    except FileNotFoundError:
+        print("[doppler-secret-validation] Doppler CLI not found", file=sys.stderr)
         return False
 
 

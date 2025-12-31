@@ -50,8 +50,9 @@ log_rotate() {
         if (( size > 10485760 )); then
             mv "$LOG_FILE" "$LOG_FILE.$(date +%Y%m%d_%H%M%S).old"
             log "Log rotated"
-            # Keep only last 5 rotated logs
-            ls -t "$LOG_DIR"/chunker.log.*.old 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null || true
+            # Keep only last 5 rotated logs (SC2012: use find instead of ls)
+            find "$LOG_DIR" -maxdepth 1 -name "chunker.log.*.old" -print0 2>/dev/null | \
+                xargs -0 ls -t 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null || true
         fi
     fi
 }
@@ -121,6 +122,7 @@ notify_pushover() {
     [[ -z "$PUSHOVER_APP_TOKEN" || -z "$PUSHOVER_USER_KEY" ]] && return 0
 
     # Strip any HTML for Pushover (plain text only)
+    # shellcheck disable=SC2001  # sed is clearer for HTML stripping
     message=$(echo "$message" | sed 's/<[^>]*>//g')
 
     local response
@@ -215,8 +217,9 @@ process_cast_file() {
         # Ensure chunks directory exists
         mkdir -p "$local_repo/chunks"
 
-        # Extract new content and compress
-        local chunk_name="chunk_$(date +%Y%m%d_%H%M%S).cast.zst"
+        # Extract new content and compress (SC2155: declare and assign separately)
+        local chunk_name
+        chunk_name="chunk_$(date +%Y%m%d_%H%M%S).cast.zst"
         local chunk_path="$local_repo/chunks/$chunk_name"
         local temp_chunk="$local_repo/chunks/_temp_chunk.cast"
 
@@ -235,7 +238,9 @@ process_cast_file() {
 
         # Commit
         cd "$local_repo" || return 1
-        git add chunks/ 2>/dev/null
+        if ! git add chunks/ 2>&1 | tee -a "$LOG_FILE"; then
+            log "ERROR: git add failed for chunks/"
+        fi
         git commit -m "chunk $(date +%H:%M) - $(basename "$cast_file")" 2>/dev/null || {
             log "WARN: Nothing to commit for $(basename "$cast_file")"
             return 0

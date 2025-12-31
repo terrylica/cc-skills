@@ -75,17 +75,22 @@ while true; do
     tail -c +"$((last_pos + 1))" "$CAST_FILE" > "$chunk_path"
 
     # Compress with zstd
-    zstd -"${ZSTD_LEVEL}" --rm "$chunk_path" 2>/dev/null
+    if ! zstd -"${ZSTD_LEVEL}" --rm "$chunk_path" 2>&1; then
+      echo "[$(date +%H:%M:%S)] ERROR: zstd compression failed for $chunk_path" >&2
+    fi
     compressed_size=$(stat -f%z "${chunk_path}.zst" 2>/dev/null || stat -c%s "${chunk_path}.zst" 2>/dev/null)
 
     # Commit and push
     git add chunks/
     git commit -m "chunk #${chunk_count} ($(numfmt --to=iec "$bytes_new" 2>/dev/null || echo "${bytes_new}B"))"
 
-    if git push 2>/dev/null; then
+    push_output=$(git push 2>&1)
+    push_status=$?
+    if [[ $push_status -eq 0 ]]; then
       echo "[$(date +%H:%M:%S)] Pushed: ${chunk_name}.zst ($(numfmt --to=iec "$compressed_size" 2>/dev/null || echo "${compressed_size}B"))"
     else
-      echo "[$(date +%H:%M:%S)] Push failed, will retry..."
+      echo "[$(date +%H:%M:%S)] Push failed (exit $push_status): $push_output" >&2
+      echo "[$(date +%H:%M:%S)] Will retry on next idle..."
     fi
 
     last_pos=$size
@@ -100,11 +105,18 @@ if (( $(stat -f%z "$CAST_FILE" 2>/dev/null || stat -c%s "$CAST_FILE" 2>/dev/null
   echo "[$(date +%H:%M:%S)] Creating final chunk..."
   final_chunk="chunks/final_$(date +%Y%m%d_%H%M%S).cast"
   tail -c +"$((last_pos + 1))" "$CAST_FILE" > "$final_chunk"
-  zstd -"${ZSTD_LEVEL}" --rm "$final_chunk" 2>/dev/null
+  if ! zstd -"${ZSTD_LEVEL}" --rm "$final_chunk" 2>&1; then
+    echo "[$(date +%H:%M:%S)] ERROR: zstd compression failed for final chunk" >&2
+  fi
   git add chunks/
   git commit -m "final chunk"
-  git push 2>/dev/null
-  echo "[$(date +%H:%M:%S)] Final chunk pushed"
+  final_push_output=$(git push 2>&1)
+  final_push_status=$?
+  if [[ $final_push_status -eq 0 ]]; then
+    echo "[$(date +%H:%M:%S)] Final chunk pushed"
+  else
+    echo "[$(date +%H:%M:%S)] Final push failed (exit $final_push_status): $final_push_output" >&2
+  fi
 fi
 
 echo "=== idle-chunker stopped ==="
