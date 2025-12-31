@@ -397,6 +397,29 @@
         "pushover"
       ],
       "strict": false
+    },
+    {
+      "name": "git-town-workflow",
+      "description": "Prescriptive git-town workflow enforcement for fork-based development: fork creation, contribution workflow, enforcement hooks that block forbidden raw git commands",
+      "version": "9.3.6",
+      "source": "./plugins/git-town-workflow/",
+      "category": "devops",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "git-town",
+        "fork",
+        "workflow",
+        "contribution",
+        "upstream",
+        "branch",
+        "prescriptive",
+        "hooks",
+        "enforcement"
+      ],
+      "strict": false
     }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "name": "git-town-workflow",
+  "version": "1.0.0",
+  "description": "Prescriptive git-town workflow enforcement for fork-based development. Prevents missteps by gating every action with preflight checks and user confirmation.",
+  "keywords": [
+    "git-town",
+    "fork",
+    "workflow",
+    "contribution",
+    "upstream",
+    "branch",
+    "prescriptive"
+  ],
+  "author": "terryli",
+  "commands_dir": "commands",
+  "references_dir": "references",
+  "scripts_dir": "scripts"
+}
