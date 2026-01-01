@@ -135,9 +135,9 @@ elif [[ $SCAN_EXIT -eq 0 ]]; then
     echo "Constraint scan complete:"
     echo "  Critical: $CRITICAL_COUNT | High: $HIGH_COUNT | Total: $TOTAL_COUNT"
 
-    # Save results for AUQ to read
+    # Save results for AUQ to read (NDJSON format with .jsonl extension)
     mkdir -p "$PROJECT_DIR/.claude"
-    echo "$SCAN_OUTPUT" > "$PROJECT_DIR/.claude/ralph-constraint-scan.json"
+    echo "$SCAN_OUTPUT" > "$PROJECT_DIR/.claude/ralph-constraint-scan.jsonl"
 else
     echo "Constraint scan: WARNING (scanner returned exit code $SCAN_EXIT)"
     echo "$SCAN_OUTPUT" | head -5
@@ -240,9 +240,9 @@ if [[ -f "$PROJECT_DIR/.claude/ralph-config.json" ]]; then
 fi
 ```
 
-### 1.6.2: Binary Keep/Reconfigure (If Previous Exists)
+### 1.6.2: Binary Keep/Reconfigure (Conditional)
 
-If `GUIDANCE_EXISTS == "true"`:
+**If `GUIDANCE_EXISTS == "true"`:**
 
 Use AskUserQuestion:
 
@@ -258,77 +258,133 @@ Use AskUserQuestion:
 - If "Keep existing" → Skip to Step 2 (guidance already in config)
 - If "Reconfigure" → Continue to 1.6.2.5
 
-### 1.6.2.5: Load Constraint Scan Results
+**If `GUIDANCE_EXISTS == "false"` (first run):**
 
-**Purpose**: Wire scanner HIGH severity constraints to pre-select forbidden items.
+Proceed directly to Step 1.6.2.5 to load constraint scan results. No user prompt needed.
 
-Read the constraint scan JSON from Step 1.4 (if it exists):
+### 1.6.2.5: Load Constraint Scan Results (NDJSON Output with Learned Filtering)
+
+**Purpose**: Load constraint scan results in NDJSON format, filtering out previously acknowledged constraints.
+
+**Learned behavior**: Constraints the user previously selected as "forbidden" are stored in `.claude/ralph-acknowledged-constraints.jsonl` and filtered from future displays.
+
+Run the following bash script to output constraints in NDJSON (one JSON object per line):
 
 ```bash
 /usr/bin/env bash << 'LOAD_SCAN_SCRIPT'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-SCAN_FILE="$PROJECT_DIR/.claude/ralph-constraint-scan.json"
+SCAN_FILE="$PROJECT_DIR/.claude/ralph-constraint-scan.jsonl"
+ACK_FILE="$PROJECT_DIR/.claude/ralph-acknowledged-constraints.jsonl"
 
 if [[ -f "$SCAN_FILE" ]]; then
-    # Extract HIGH severity constraints for forbidden pre-selection
-    HIGH_CONSTRAINTS=$(jq -r '[.constraints[] | select(.severity == "high") | .description] | join("\n")' "$SCAN_FILE" 2>/dev/null)
-    HIGH_COUNT=$(jq '[.constraints[] | select(.severity == "high")] | length' "$SCAN_FILE" 2>/dev/null || echo "0")
-
-    # Extract builtin_busywork categories for encouraged options
-    BUSYWORK_CATEGORIES=$(jq -r '[.builtin_busywork[] | .name] | join("\n")' "$SCAN_FILE" 2>/dev/null)
-    BUSYWORK_COUNT=$(jq '.builtin_busywork | length' "$SCAN_FILE" 2>/dev/null || echo "0")
-
-    echo "Constraint scan results loaded:"
-    echo "  HIGH severity constraints: $HIGH_COUNT"
-    echo "  Busywork categories: $BUSYWORK_COUNT"
-
-    if [[ "$HIGH_COUNT" -gt 0 ]]; then
+    # Load acknowledged constraint IDs (if file exists)
+    ACKNOWLEDGED_IDS=""
+    if [[ -f "$ACK_FILE" ]]; then
+        ACKNOWLEDGED_IDS=$(jq -r 'select(._type == "constraint") | .id' "$ACK_FILE" 2>/dev/null | tr '\n' '|' | sed 's/|$//')
+        ACK_COUNT=$(grep -c '"_type":"constraint"' "$ACK_FILE" 2>/dev/null || echo "0")
+        echo "=== ACKNOWLEDGED CONSTRAINTS ==="
+        echo "Previously acknowledged: $ACK_COUNT constraints (filtered from display)"
         echo ""
-        echo "HIGH severity items (will pre-select as forbidden):"
-        echo "$HIGH_CONSTRAINTS" | head -5
     fi
+
+    # NDJSON format: each line is a JSON object with _type field
+    # Filter out acknowledged constraints and count by severity
+    if [[ -n "$ACKNOWLEDGED_IDS" ]]; then
+        # Filter constraints from NDJSON (lines with _type=constraint that don't match acknowledged IDs)
+        FILTERED=$(grep '"_type":"constraint"' "$SCAN_FILE" 2>/dev/null | \
+            jq -c --arg ack_pattern "$ACKNOWLEDGED_IDS" 'select(.id | test($ack_pattern) | not)' 2>/dev/null)
+    else
+        FILTERED=$(grep '"_type":"constraint"' "$SCAN_FILE" 2>/dev/null)
+    fi
+
+    # Count by severity (from filtered NDJSON lines)
+    CRITICAL_COUNT=$(echo "$FILTERED" | jq -s '[.[] | select(.severity == "critical")] | length' 2>/dev/null || echo "0")
+    HIGH_COUNT=$(echo "$FILTERED" | jq -s '[.[] | select(.severity == "high")] | length' 2>/dev/null || echo "0")
+    MEDIUM_COUNT=$(echo "$FILTERED" | jq -s '[.[] | select(.severity == "medium")] | length' 2>/dev/null || echo "0")
+    LOW_COUNT=$(echo "$FILTERED" | jq -s '[.[] | select(.severity == "low")] | length' 2>/dev/null || echo "0")
+    TOTAL_COUNT=$((CRITICAL_COUNT + HIGH_COUNT + MEDIUM_COUNT + LOW_COUNT))
+    BUSYWORK_COUNT=$(grep -c '"_type":"busywork"' "$SCAN_FILE" 2>/dev/null || echo "0")
+
+    echo "=== CONSTRAINT SCAN SUMMARY ==="
+    echo "SEVERITY_COUNTS: critical=$CRITICAL_COUNT high=$HIGH_COUNT medium=$MEDIUM_COUNT low=$LOW_COUNT total=$TOTAL_COUNT"
+    echo "BUSYWORK_COUNT: $BUSYWORK_COUNT"
+    echo ""
+    echo "=== CONSTRAINTS (NDJSON) ==="
+    # Output each FILTERED constraint as NDJSON (already one JSON per line)
+    echo "$FILTERED"
+    echo ""
+    echo "=== BUSYWORK CATEGORIES (NDJSON) ==="
+    grep '"_type":"busywork"' "$SCAN_FILE" 2>/dev/null
+    echo ""
+    echo "=== END SCAN RESULTS ==="
 else
-    echo "No constraint scan found (Step 1.4 was skipped or failed)"
+    echo "=== CONSTRAINT SCAN SUMMARY ==="
+    echo "SEVERITY_COUNTS: critical=0 high=0 medium=0 low=0 total=0"
+    echo "BUSYWORK_COUNT: 0"
+    echo "=== NO SCAN FILE FOUND ==="
 fi
 LOAD_SCAN_SCRIPT
 ```
 
-**Claude Instruction**: When presenting AUQ in Steps 1.6.3-1.6.5:
+**Claude MUST parse this output**:
 
-1. If HIGH severity constraints exist, **mention them as recommended forbidden items**
-2. If busywork categories exist, **use them to inform encouraged options**
-3. Include constraint scan context in the AUQ question descriptions
+1. **Extract severity counts** from `SEVERITY_COUNTS:` line for question text
+2. **Parse NDJSON constraints** between `=== CONSTRAINTS (NDJSON) ===` and `=== BUSYWORK CATEGORIES ===`
+3. **Parse NDJSON busywork** between `=== BUSYWORK CATEGORIES (NDJSON) ===` and `=== END SCAN RESULTS ===`
+4. **Build dynamic AUQ options** with constraint-derived items first, then static fallbacks
 
-### 1.6.3: Forbidden Items (multiSelect, closed list)
+**NDJSON constraint format** (one per line):
+```json
+{"id":"hardcoded-001","severity":"high","category":"hardcoded_path","description":"Hardcoded path: /Users/terryli/...","file":"pyproject.toml","line":15,"recommendation":"Use environment variable"}
+```
 
-**Note**: If Step 1.6.2.5 found HIGH severity constraints, pre-populate the question with them.
+### 1.6.3: Forbidden Items (multiSelect, DYNAMIC)
+
+**Claude MUST build options dynamically** from Step 1.6.2.5 NDJSON output.
+
+**Question text format** - use severity counts from Step 1.6.2.5:
+- If constraints exist: `"What should Ralph avoid? (N critical, M high detected)"`
+- If no constraints: `"What should Ralph avoid? (no constraints detected)"`
 
 Use AskUserQuestion:
 
-- question: "What should Ralph avoid? (HIGH severity from constraint scan pre-selected)"
+- question: "What should Ralph avoid? ({CRITICAL_COUNT} critical, {HIGH_COUNT} high detected)"
   header: "Forbidden"
   multiSelect: true
   options:
-  - label: "Documentation updates"
-    description: "README, CHANGELOG, docstrings, comments"
-  - label: "Dependency upgrades"
-    description: "Version bumps, renovate PRs, package updates"
-  - label: "Test coverage expansion"
-    description: "Adding tests for untested code"
-  - label: "Linting/formatting"
-    description: "Style issues, import sorting, code formatting"
-  - label: "CI/CD modifications"
-    description: "Workflow files, GitHub Actions, pipelines"
-  - label: "Type hint additions"
-    description: "Adding type annotations to untyped code"
-  - label: "TODO/FIXME cleanup"
-    description: "Addressing inline code comments"
-  - label: "Security patches"
-    description: "Dependency CVE fixes, secret rotation"
-  - label: "Git history cleanup"
-    description: "Squashing, rebasing, commit message edits"
-  - label: "Refactoring"
-    description: "Code restructuring without behavior change"
+    # === CONSTRAINT-DERIVED OPTIONS (from Step 1.6.2.5 NDJSON) ===
+    # For EACH constraint in the NDJSON output, add an option:
+    # - label: "{description}" (truncated to 60 chars if needed)
+    # - description: "({severity}) {file}:{line} - {recommendation}"
+    #
+    # Example from NDJSON: {"severity":"high","description":"Hardcoded path: /Users/terryli","file":"pyproject.toml","line":15,"recommendation":"Use env var"}
+    # Becomes option:
+    # - label: "Hardcoded path: /Users/terryli"
+    #   description: "(HIGH) pyproject.toml:15 - Use env var"
+    #
+    # === STATIC FALLBACK CATEGORIES (always include after constraints) ===
+    - label: "Documentation updates"
+      description: "README, CHANGELOG, docstrings, comments"
+    - label: "Dependency upgrades"
+      description: "Version bumps, renovate PRs, package updates"
+    - label: "Test coverage expansion"
+      description: "Adding tests for untested code"
+    - label: "Linting/formatting"
+      description: "Style issues, import sorting, code formatting"
+    - label: "CI/CD modifications"
+      description: "Workflow files, GitHub Actions, pipelines"
+    - label: "Type hint additions"
+      description: "Adding type annotations to untyped code"
+    - label: "TODO/FIXME cleanup"
+      description: "Addressing inline code comments"
+    - label: "Security patches"
+      description: "Dependency CVE fixes, secret rotation"
+    - label: "Git history cleanup"
+      description: "Squashing, rebasing, commit message edits"
+    - label: "Refactoring"
+      description: "Code restructuring without behavior change"
+
+**If total=0**: Show only static categories with question `"What should Ralph avoid? (no constraints detected)"`
 
 ### 1.6.4: Custom Forbidden (Follow-up)
 
@@ -379,50 +435,161 @@ Use AskUserQuestion:
   - label: "Skip custom items"
     description: "Use only selected categories above"
 
-### 1.6.7: Update Config (EXECUTE)
+### 1.6.7: Update Config (EXECUTE with Post-Write Validation + Learned Behavior)
 
-**IMPORTANT**: After collecting responses from Steps 1.6.3-1.6.6, you MUST write them to config.
+**IMPORTANT**: After collecting responses from Steps 1.6.3-1.6.6, you MUST:
+1. Write guidance to config WITH validation
+2. Append constraint-derived selections to `.jsonl` for learned filtering
 
 1. **Collect responses** from the AUQ steps above:
    - `FORBIDDEN_ITEMS`: Selected labels from 1.6.3 + custom items from 1.6.4 (if any)
    - `ENCOURAGED_ITEMS`: Selected labels from 1.6.5 + custom items from 1.6.6 (if any)
+   - `SELECTED_CONSTRAINT_IDS`: IDs of constraint-derived options user selected (from NDJSON parsing)
 
-2. **Write to config** using the Bash tool with this script (substitute actual values):
+2. **Write to config with post-write validation** using the Bash tool (substitute actual values):
 
 ```bash
 /usr/bin/env bash << 'GUIDANCE_WRITE_SCRIPT'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
+SCAN_FILE="$PROJECT_DIR/.claude/ralph-constraint-scan.jsonl"
+ACK_FILE="$PROJECT_DIR/.claude/ralph-acknowledged-constraints.jsonl"
+BACKUP_FILE="${CONFIG_FILE}.backup"
 
 # Substitute these with actual AUQ responses:
 FORBIDDEN_JSON='["Documentation updates", "Dependency upgrades"]'  # From 1.6.3 + 1.6.4
 ENCOURAGED_JSON='["ROADMAP P0 items", "Research experiments"]'     # From 1.6.5 + 1.6.6
 
+# Substitute with constraint IDs user selected (from NDJSON constraint options)
+# Format: space-separated list of constraint IDs that user selected as forbidden
+SELECTED_CONSTRAINT_IDS="hardcoded-001 hardcoded-002"  # From 1.6.3 constraint-derived selections
+
 # Generate timestamp
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# Merge guidance into existing config (or create new)
+# Load constraint scan data (if exists) for persistence
+# Convert NDJSON to structured JSON for config storage
+CONSTRAINT_SCAN_JSON='null'
+if [[ -f "$SCAN_FILE" ]]; then
+    # Parse NDJSON: extract metadata, constraints, and busywork into structured JSON
+    METADATA=$(grep '"_type":"metadata"' "$SCAN_FILE" 2>/dev/null | head -1)
+    CONSTRAINTS=$(grep '"_type":"constraint"' "$SCAN_FILE" 2>/dev/null | jq -s '.' 2>/dev/null || echo '[]')
+    BUSYWORK=$(grep '"_type":"busywork"' "$SCAN_FILE" 2>/dev/null | jq -s '.' 2>/dev/null || echo '[]')
+
+    # Build structured JSON from NDJSON components
+    CONSTRAINT_SCAN_JSON=$(jq -n \
+        --argjson metadata "$METADATA" \
+        --argjson constraints "$CONSTRAINTS" \
+        --argjson busywork "$BUSYWORK" \
+        '{
+            scan_timestamp: $metadata.scan_timestamp,
+            project_dir: $metadata.project_dir,
+            worktree_type: $metadata.worktree_type,
+            constraints: $constraints,
+            builtin_busywork: $busywork
+        }' 2>/dev/null || echo 'null')
+fi
+
+# Create backup before write (for rollback)
 mkdir -p "$PROJECT_DIR/.claude"
+if [[ -f "$CONFIG_FILE" ]]; then
+    cp "$CONFIG_FILE" "$BACKUP_FILE"
+fi
+
+# Write config (guidance + constraint_scan)
 if [[ -f "$CONFIG_FILE" ]]; then
     jq --argjson forbidden "$FORBIDDEN_JSON" \
        --argjson encouraged "$ENCOURAGED_JSON" \
        --arg timestamp "$TIMESTAMP" \
-       '.guidance = {forbidden: $forbidden, encouraged: $encouraged, timestamp: $timestamp}' \
+       --argjson constraint_scan "$CONSTRAINT_SCAN_JSON" \
+       '.guidance = {forbidden: $forbidden, encouraged: $encouraged, timestamp: $timestamp} | .constraint_scan = $constraint_scan' \
        "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
 else
     jq -n --argjson forbidden "$FORBIDDEN_JSON" \
           --argjson encouraged "$ENCOURAGED_JSON" \
           --arg timestamp "$TIMESTAMP" \
-          '{version: "3.0.0", guidance: {forbidden: $forbidden, encouraged: $encouraged, timestamp: $timestamp}}' \
+          --argjson constraint_scan "$CONSTRAINT_SCAN_JSON" \
+          '{version: "3.0.0", guidance: {forbidden: $forbidden, encouraged: $encouraged, timestamp: $timestamp}, constraint_scan: $constraint_scan}' \
           > "$CONFIG_FILE"
 fi
 
-echo "Guidance saved to $CONFIG_FILE"
-jq '.guidance' "$CONFIG_FILE"
+# === LEARNED BEHAVIOR: Append to .jsonl ===
+# Append newly selected constraint IDs to acknowledged constraints file (NDJSON format)
+if [[ -n "$SELECTED_CONSTRAINT_IDS" && -f "$SCAN_FILE" ]]; then
+    for CONSTRAINT_ID in $SELECTED_CONSTRAINT_IDS; do
+        # Check if already acknowledged (avoid duplicates)
+        if [[ -f "$ACK_FILE" ]] && grep -q "\"id\":\"$CONSTRAINT_ID\"" "$ACK_FILE" 2>/dev/null; then
+            continue  # Already acknowledged, skip
+        fi
+        # Get constraint details from NDJSON scan file and append to ack file
+        # NDJSON format: each line is a JSON object, grep for the matching ID
+        CONSTRAINT_DATA=$(grep "\"id\":\"$CONSTRAINT_ID\"" "$SCAN_FILE" 2>/dev/null | head -1 | \
+            jq -c --arg ts "$TIMESTAMP" '. + {acknowledged_at: $ts}' 2>/dev/null)
+        if [[ -n "$CONSTRAINT_DATA" ]]; then
+            echo "$CONSTRAINT_DATA" >> "$ACK_FILE"
+        fi
+    done
+    NEW_ACK_COUNT=$(echo "$SELECTED_CONSTRAINT_IDS" | wc -w | tr -d ' ')
+    echo "=== LEARNED BEHAVIOR ==="
+    echo "Appended $NEW_ACK_COUNT constraint(s) to $ACK_FILE"
+    echo "These will be filtered from future constraint displays."
+    echo ""
+fi
+
+# === POST-WRITE VALIDATION ===
+validate_config() {
+    local file="$1"
+
+    # Check 1: File exists and readable
+    [[ -f "$file" && -r "$file" ]] || return 1
+
+    # Check 2: Valid JSON (jq can parse it)
+    jq empty "$file" >/dev/null 2>&1 || return 2
+
+    # Check 3: Required fields present
+    jq -e '.guidance.forbidden and .guidance.encouraged and .guidance.timestamp' "$file" >/dev/null 2>&1 || return 3
+
+    # Check 4: Arrays are valid (forbidden/encouraged are arrays of strings)
+    jq -e '.guidance.forbidden | type == "array"' "$file" >/dev/null 2>&1 || return 4
+    jq -e '.guidance.encouraged | type == "array"' "$file" >/dev/null 2>&1 || return 5
+
+    return 0
+}
+
+if validate_config "$CONFIG_FILE"; then
+    echo "✓ Guidance + constraint_scan saved to $CONFIG_FILE"
+    echo ""
+    echo "=== VALIDATION PASSED ==="
+    jq '{guidance: .guidance, constraint_scan_timestamp: .constraint_scan.scan_timestamp}' "$CONFIG_FILE"
+    # Cleanup backup on success
+    rm -f "$BACKUP_FILE"
+else
+    VALIDATION_ERROR=$?
+    echo "✗ VALIDATION FAILED (error code: $VALIDATION_ERROR)"
+    echo ""
+    echo "=== ROLLING BACK ==="
+    if [[ -f "$BACKUP_FILE" ]]; then
+        mv "$BACKUP_FILE" "$CONFIG_FILE"
+        echo "Restored previous config from backup"
+    else
+        rm -f "$CONFIG_FILE"
+        echo "Removed invalid config (no backup existed)"
+    fi
+    echo ""
+    echo "Error codes: 1=missing, 2=invalid JSON, 3=missing fields, 4=forbidden not array, 5=encouraged not array"
+    exit 1
+fi
 GUIDANCE_WRITE_SCRIPT
 ```
 
 **Execution model**: Claude interprets Steps 1.6.3-1.6.6 (uses AskUserQuestion tool), collects responses, then runs the bash script above with actual values substituted.
+
+**Key substitutions Claude MUST make**:
+- `FORBIDDEN_JSON`: Array of selected forbidden labels
+- `ENCOURAGED_JSON`: Array of selected encouraged labels
+- `SELECTED_CONSTRAINT_IDS`: Space-separated list of constraint IDs from NDJSON options user selected
+
+Post-write validation ensures config integrity with automatic rollback on failure. Learned behavior appends acknowledged constraints to `.jsonl` for future filtering.
 
 ## Step 2: Execution
 
