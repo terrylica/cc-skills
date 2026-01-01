@@ -449,6 +449,42 @@ def result_to_dict(result: ScanResult) -> dict[str, Any]:
     }
 
 
+def result_to_ndjson(result: ScanResult) -> str:
+    """Convert ScanResult to NDJSON format (one JSON per line).
+
+    Format:
+    - Line 1: {"_type":"metadata","scan_timestamp":...,"project_dir":...}
+    - Lines 2-N: {"_type":"constraint","id":...,"severity":...}
+    - Lines N+1-M: {"_type":"busywork","id":...,"name":...}
+    """
+    lines = []
+
+    # Metadata line
+    metadata = {
+        "_type": "metadata",
+        "scan_timestamp": result.scan_timestamp,
+        "project_dir": result.project_dir,
+        "worktree_type": result.worktree_type,
+        "main_repo_root": result.main_repo_root,
+        "error": result.error,
+    }
+    lines.append(json.dumps(metadata, separators=(',', ':')))
+
+    # Constraint lines
+    for constraint in result.constraints:
+        constraint_dict = asdict(constraint)
+        constraint_dict["_type"] = "constraint"
+        lines.append(json.dumps(constraint_dict, separators=(',', ':')))
+
+    # Busywork lines
+    for busywork in result.builtin_busywork:
+        busywork_dict = asdict(busywork)
+        busywork_dict["_type"] = "busywork"
+        lines.append(json.dumps(busywork_dict, separators=(',', ':')))
+
+    return '\n'.join(lines)
+
+
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -480,6 +516,17 @@ Examples:
         action="store_true",
         help="Suppress stderr warnings",
     )
+    parser.add_argument(
+        "--ndjson",
+        action="store_true",
+        default=True,
+        help="Output in NDJSON format (default: True)",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output in structured JSON format (legacy)",
+    )
 
     args = parser.parse_args()
 
@@ -491,7 +538,12 @@ Examples:
 
     # Run scan
     result = run_scan(project_dir, args.severity)
-    output = json.dumps(result_to_dict(result), indent=2)
+
+    # Choose output format (--json overrides default --ndjson)
+    if args.json:
+        output = json.dumps(result_to_dict(result), indent=2)
+    else:
+        output = result_to_ndjson(result)
 
     # Write output
     if args.output:
