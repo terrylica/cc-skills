@@ -1,3 +1,40 @@
+# [9.6.0](https://github.com/terrylica/cc-skills/compare/v9.5.2...v9.6.0) (2026-01-01)
+
+
+### Features
+
+* **devops-tools:** add session-chronicle skill for session archaeology ([56fb64f](https://github.com/terrylica/cc-skills/commit/56fb64fedfd5001b08c99bf567a930412a3465d7))
+* **ralph:** add unlimited @ link following to Explore agents ([7128e44](https://github.com/terrylica/cc-skills/commit/7128e4438df82e9b0411c75b3e037d868975b7d1))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - new (+489)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+67/-21)
+
+</details>
+
 ## [9.5.2](https://github.com/terrylica/cc-skills/compare/v9.5.1...v9.5.2) (2026-01-01)
 
 
