@@ -1,3 +1,29 @@
+## [9.4.7](https://github.com/terrylica/cc-skills/compare/v9.4.6...v9.4.7) (2026-01-01)
+
+
+### Bug Fixes
+
+* **ralph:** wire constraint scan results to AskUserQuestion flows ([da8e1c9](https://github.com/terrylica/cc-skills/commit/da8e1c9591d5063384ba6ad8ffff91c091b5f1a6))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+226/-59)
+
+</details>
+
 ## [9.4.6](https://github.com/terrylica/cc-skills/compare/v9.4.5...v9.4.6) (2025-12-31)
 
 
