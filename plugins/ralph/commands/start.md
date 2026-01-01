@@ -147,6 +147,121 @@ CONSTRAINT_SCAN_SCRIPT
 
 If the scanner exits with code 2 (critical constraints), stop and inform user.
 
+## Step 1.4.5: Explore-Based Constraint Discovery (Parallel Agents)
+
+**Purpose**: Spawn multiple Explore subagents to discover constraints the static scanner cannot detect (architectural coupling, testing gaps, undocumented assumptions, etc.).
+
+**When to run**: After Step 1.4 (static scanner) completes, spawn agents in parallel.
+
+**Claude MUST spawn these Task/Explore agents** to discover all 13 constraint categories:
+
+### Agent 1: Environment & Runtime Constraints
+
+Use Task tool with `subagent_type: Explore`:
+
+```
+Discover environment constraints that limit Claude's degrees of freedom in this codebase.
+
+Focus on:
+1. Python version requirements (check pyproject.toml, setup.py)
+2. Missing or outdated dependencies (uv.lock vs pyproject.toml)
+3. Required environment variables not set
+4. System tools assumed to exist (git, jq, uv, docker)
+5. Platform-specific code (macOS vs Linux paths)
+
+For each constraint found, output structured JSON:
+{"constraint_type": "runtime", "severity": "HIGH|MEDIUM|LOW", "description": "...", "location": "file:line", "recommendation": "..."}
+```
+
+### Agent 2: Architectural Coupling Constraints
+
+Use Task tool with `subagent_type: Explore`:
+
+```
+Analyze architectural coupling that makes refactoring risky in this codebase.
+
+Focus on:
+1. Circular import chains (A imports B, B imports A)
+2. Modules with >10 imports (high coupling)
+3. Global state and singletons
+4. Tight coupling between core and adapter layers
+5. Cross-layer dependencies (hooks importing from core)
+
+For each constraint found, output structured JSON:
+{"constraint_type": "coupling", "severity": "HIGH|MEDIUM|LOW", "description": "...", "modules": ["A", "B"], "recommendation": "..."}
+```
+
+### Agent 3: Testing Gap Constraints
+
+Use Task tool with `subagent_type: Explore`:
+
+```
+Find testing gaps that make code changes risky in this codebase.
+
+Focus on:
+1. Modules with 0% test coverage
+2. Error paths not covered by tests (except clauses)
+3. Missing integration tests
+4. Edge cases in regex/parsing not tested
+5. Async/concurrency code without thread safety tests
+
+For each constraint found, output structured JSON:
+{"constraint_type": "testing_gap", "severity": "HIGH|MEDIUM|LOW", "description": "...", "location": "file/module", "recommendation": "..."}
+```
+
+### Agent 4: Undocumented Assumptions
+
+Use Task tool with `subagent_type: Explore`:
+
+```
+Discover undocumented assumptions and magic numbers in this codebase.
+
+Focus on:
+1. Magic numbers without explanation (thresholds, limits, timeouts)
+2. Implicit ordering dependencies (must run A before B)
+3. Assumptions about filesystem (case-sensitivity, encoding)
+4. Hidden state machines and transitions
+5. Configuration fields that are read but never documented
+
+For each constraint found, output structured JSON:
+{"constraint_type": "assumption", "severity": "HIGH|MEDIUM|LOW", "description": "...", "value": "...", "recommendation": "..."}
+```
+
+### Agent 5: Degrees of Freedom Constraints
+
+Use Task tool with `subagent_type: Explore`:
+
+```
+Find explicit limits on what Claude/Ralph can do in this codebase.
+
+Focus on:
+1. Hard gates that prevent features from running (if not X, skip silently)
+2. One-way state transitions (no way to "un-converge")
+3. Configuration that cannot be overridden
+4. Features that are disabled in certain conditions
+5. Missing escape hatches (no --skip-X flags)
+
+For each constraint found, output structured JSON:
+{"constraint_type": "freedom_limit", "severity": "CRITICAL|HIGH|MEDIUM", "description": "...", "gate": "...", "recommendation": "..."}
+```
+
+**Execution**: Claude SHOULD spawn all 5 agents in parallel using a single message with multiple Task tool calls. Set `run_in_background: true` for all agents, then use TaskOutput to collect results.
+
+**Timeout**: If agents don't complete within 30 seconds, proceed with available results.
+
+**Aggregation**: After agents complete, Claude MUST:
+1. Collect all structured JSON findings from agent outputs
+2. Deduplicate by description similarity
+3. Merge with static scanner results from Step 1.4
+4. Pass combined constraints to Step 1.6.2.5 for AUQ display
+
+**Output format**: Combined NDJSON with source tracking:
+```jsonl
+{"_type":"constraint","source":"scanner","id":"...","severity":"high","description":"..."}
+{"_type":"constraint","source":"agent-env","id":"...","severity":"medium","description":"..."}
+{"_type":"constraint","source":"agent-coupling","id":"...","severity":"high","description":"..."}
+```
+
 ## Step 1.5: Preset Confirmation (ALWAYS)
 
 **ALWAYS prompt for preset confirmation.** Flags pre-select the option but user confirms before execution.
