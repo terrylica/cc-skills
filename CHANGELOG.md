@@ -1,3 +1,46 @@
+## [9.6.1](https://github.com/terrylica/cc-skills/compare/v9.6.0...v9.6.1) (2026-01-01)
+
+
+### Bug Fixes
+
+* **session-chronicle:** extract FULL session chains, not fixed windows ([0599d35](https://github.com/terrylica/cc-skills/commit/0599d359e2e858adac7a17c12ba05e91bb405f54))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+56/-15)
+
+</details>
+
+<details>
+<summary><strong>ralph</strong> (1 change)</summary>
+
+- [Constraint Discovery Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/skills/constraint-discovery/SKILL.md) - new (+222)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+11/-175)
+
+</details>
+
 # [9.6.0](https://github.com/terrylica/cc-skills/compare/v9.5.2...v9.6.0) (2026-01-01)
 
 
