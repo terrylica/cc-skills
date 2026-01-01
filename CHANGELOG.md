@@ -1,3 +1,29 @@
+## [9.5.2](https://github.com/terrylica/cc-skills/compare/v9.5.1...v9.5.2) (2026-01-01)
+
+
+### Bug Fixes
+
+* **ralph:** add blocking gate for agent results and deep-dive prompts ([ff354ea](https://github.com/terrylica/cc-skills/commit/ff354ea48e31ecc8c15d8c71479742191099c759))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+110/-32)
+
+</details>
+
 ## [9.5.1](https://github.com/terrylica/cc-skills/compare/v9.5.0...v9.5.1) (2026-01-01)
 
 
