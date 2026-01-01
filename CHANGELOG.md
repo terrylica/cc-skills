@@ -1,3 +1,29 @@
+## [9.5.1](https://github.com/terrylica/cc-skills/compare/v9.5.0...v9.5.1) (2026-01-01)
+
+
+### Bug Fixes
+
+* **ralph:** make Step 1.4.5 Explore agents MANDATORY with explicit Task syntax ([60303fe](https://github.com/terrylica/cc-skills/commit/60303febcee19fa83804c82c716e60a65d51721a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+135/-126)
+
+</details>
+
 # [9.5.0](https://github.com/terrylica/cc-skills/compare/v9.4.7...v9.5.0) (2026-01-01)
 
 
