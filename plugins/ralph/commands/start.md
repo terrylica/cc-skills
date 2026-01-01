@@ -155,92 +155,170 @@ If the scanner exits with code 2 (critical constraints), stop and inform user.
 
 Claude MUST spawn exactly 5 Task tools in a single message with these parameters:
 
-### MANDATORY Task 1: Environment & Runtime Constraints
+### MANDATORY Task 1: Project Memory & Philosophy Constraints
 
 ```
 Task tool parameters:
-  description: "Discover environment constraints"
+  description: "Analyze project memory constraints"
   subagent_type: "Explore"
   run_in_background: true
   prompt: |
-    Discover environment constraints that limit Claude's degrees of freedom in this codebase.
-    Focus on: Python version requirements, missing dependencies, required env vars, platform-specific code.
-    Return NDJSON (one JSON per line): {"source":"agent-env","severity":"HIGH|MEDIUM|LOW","description":"...","location":"file:line","recommendation":"..."}
+    DEEP DIVE into project memory files to discover constraints on Claude's degrees of freedom.
+
+    READ THESE FILES FIRST:
+    - CLAUDE.md (project instructions, philosophy, forbidden patterns)
+    - .claude/ directory (memories, settings, project-specific config)
+    - ROADMAP.md (P0/P1 priorities, explicit scope limits)
+    - docs/adr/ (Architecture Decision Records - past decisions that constrain future work)
+
+    Extract constraints like:
+    - "Do NOT modify X" instructions
+    - Philosophy rules (e.g., "prefer simplicity over features")
+    - Explicit forbidden patterns mentioned in project memory
+    - Scope limits from ROADMAP (what's explicitly out of scope)
+
+    Return NDJSON: {"source":"agent-memory","severity":"CRITICAL|HIGH|MEDIUM","description":"...","file":"...","recommendation":"Ralph should avoid..."}
 ```
 
-### MANDATORY Task 2: Architectural Coupling Constraints
+### MANDATORY Task 2: Architecture & Coupling Constraints
 
 ```
 Task tool parameters:
-  description: "Analyze architectural coupling"
+  description: "Analyze architectural constraints"
   subagent_type: "Explore"
   run_in_background: true
   prompt: |
-    Analyze architectural coupling that makes refactoring risky in this codebase.
-    Focus on: Circular imports, modules with >10 imports, global state, cross-layer dependencies.
-    Return NDJSON: {"source":"agent-coupling","severity":"HIGH|MEDIUM|LOW","description":"...","modules":["A","B"],"recommendation":"..."}
+    Analyze architectural patterns that constrain safe modification.
+
+    READ THESE FILES:
+    - pyproject.toml, setup.py (package structure, entry points)
+    - Core module __init__.py files (public API surface)
+    - docs/adr/ (past architectural decisions)
+
+    Focus on:
+    - Circular imports, tightly coupled modules
+    - Public API that cannot change without breaking users
+    - Package structure assumptions
+    - Cross-layer dependencies
+
+    Return NDJSON: {"source":"agent-arch","severity":"HIGH|MEDIUM|LOW","description":"...","modules":["A","B"],"recommendation":"..."}
 ```
 
-### MANDATORY Task 3: Testing Gap Constraints
+### MANDATORY Task 3: Research Session Lessons Learned
 
 ```
 Task tool parameters:
-  description: "Find testing gaps"
+  description: "Extract research session constraints"
   subagent_type: "Explore"
   run_in_background: true
   prompt: |
-    Find testing gaps that make code changes risky in this codebase.
-    Focus on: Zero coverage modules, untested error paths, missing integration tests.
-    Return NDJSON: {"source":"agent-testing","severity":"HIGH|MEDIUM|LOW","description":"...","location":"file","recommendation":"..."}
+    Analyze past research sessions to find lessons learned and forbidden patterns.
+
+    READ THESE FILES:
+    - outputs/research_sessions/*/research_summary.md
+    - outputs/research_sessions/*/research_log.md (if exists)
+    - Any "lessons_learned" or "warnings" sections
+
+    Extract:
+    - Failed experiments (don't repeat these)
+    - Hyperparameter ranges that caused issues
+    - Strategies that were abandoned and why
+    - Explicit warnings from past sessions
+
+    Return NDJSON: {"source":"agent-research","severity":"HIGH|MEDIUM","description":"Past session found: ...","session":"...","recommendation":"Avoid..."}
 ```
 
-### MANDATORY Task 4: Undocumented Assumptions
+### MANDATORY Task 4: Testing & Validation Constraints
 
 ```
 Task tool parameters:
-  description: "Discover undocumented assumptions"
+  description: "Find testing constraints"
   subagent_type: "Explore"
   run_in_background: true
   prompt: |
-    Discover undocumented assumptions and magic numbers in this codebase.
-    Focus on: Magic numbers, implicit ordering dependencies, hidden state machines.
-    Return NDJSON: {"source":"agent-assumptions","severity":"HIGH|MEDIUM|LOW","description":"...","value":"...","recommendation":"..."}
+    Find testing gaps and validation requirements that constrain safe changes.
+
+    READ THESE FILES:
+    - tests/ directory structure
+    - pytest.ini, pyproject.toml [tool.pytest] section
+    - CI/CD workflows (.github/workflows/)
+
+    Focus on:
+    - Modules with zero test coverage (risky to modify)
+    - Integration tests that must pass
+    - Validation thresholds (e.g., min Sharpe ratio, max drawdown)
+    - Pre-commit hooks and their requirements
+
+    Return NDJSON: {"source":"agent-testing","severity":"HIGH|MEDIUM|LOW","description":"...","location":"...","recommendation":"..."}
 ```
 
-### MANDATORY Task 5: Degrees of Freedom Constraints
+### MANDATORY Task 5: Degrees of Freedom Analysis
 
 ```
 Task tool parameters:
-  description: "Find freedom limits"
+  description: "Analyze degrees of freedom"
   subagent_type: "Explore"
   run_in_background: true
   prompt: |
-    Find explicit limits on what Claude/Ralph can do in this codebase.
-    Focus on: Hard gates, one-way transitions, non-overridable config, missing escape hatches.
+    Find explicit and implicit limits on what Ralph can explore.
+
+    READ THESE FILES:
+    - CLAUDE.md (explicit instructions)
+    - .claude/ralph-config.json (previous session guidance)
+    - Config files (*.yaml, *.toml) for hardcoded limits
+
+    Focus on:
+    - Hard gates (if not X, skip silently)
+    - One-way state transitions
+    - Configuration that cannot be overridden at runtime
+    - Feature flags and their current state
+    - Escape hatches (--skip-X flags, override mechanisms)
+
     Return NDJSON: {"source":"agent-freedom","severity":"CRITICAL|HIGH|MEDIUM","description":"...","gate":"...","recommendation":"..."}
 ```
 
 **Execution**: Spawn ALL 5 Task tools in a SINGLE message (parallel execution). Use `run_in_background: true`.
 
-**Collect results**: After spawning, use TaskOutput with `block: true` and `timeout: 30000` to collect each agent's results.
+---
 
-**Aggregation**: Append agent findings to `.claude/ralph-constraint-scan.jsonl`:
+## Step 1.4.6: BLOCKING GATE - Collect Agent Results
+
+**⛔ MANDATORY: Do NOT proceed to Step 1.5 until this gate passes**
+
+Claude MUST execute these TaskOutput calls with `block: true`:
+
+```
+For EACH agent spawned in Step 1.4.5:
+  TaskOutput(task_id: "<agent_id>", block: true, timeout: 30000)
+```
+
+**Wait for ALL 5 agents** (or timeout after 30s each). Extract NDJSON constraints from each agent's output.
+
+**Merge agent findings** into constraint scan file:
 
 ```bash
 /usr/bin/env bash << 'AGENT_MERGE_SCRIPT'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 SCAN_FILE="$PROJECT_DIR/.claude/ralph-constraint-scan.jsonl"
 
-# Claude: After TaskOutput returns agent results, append each NDJSON line here:
-# echo '{"_type":"constraint","source":"agent-env",...}' >> "$SCAN_FILE"
-# echo '{"_type":"constraint","source":"agent-coupling",...}' >> "$SCAN_FILE"
-# etc.
+# Claude MUST append each agent's NDJSON findings here:
+# For each constraint JSON from agent output:
+#   echo '{"_type":"constraint","source":"agent-env","severity":"HIGH","description":"..."}' >> "$SCAN_FILE"
 
-echo "Agent constraint discovery complete. Results merged to $SCAN_FILE"
+echo "=== AGENT FINDINGS MERGED ==="
+echo "Constraints in scan file:"
+wc -l < "$SCAN_FILE" 2>/dev/null || echo "0"
 AGENT_MERGE_SCRIPT
 ```
 
-**If timeout**: Proceed with available results. Do not block on slow agents.
+**Gate verification**: Before proceeding, confirm:
+- [ ] All 5 TaskOutput calls completed (or timed out)
+- [ ] Agent findings appended to `.claude/ralph-constraint-scan.jsonl`
+- [ ] Can proceed to Step 1.5
+
+**If timeout on some agents**: Proceed with available results. Log which agents timed out.
+
+---
 
 ## Step 1.5: Preset Confirmation (ALWAYS)
 
