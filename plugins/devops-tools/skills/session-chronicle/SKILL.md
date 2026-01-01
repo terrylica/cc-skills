@@ -129,15 +129,18 @@ AskUserQuestion:
   header: "Sessions"
   multiSelect: true
   options:
-    - label: "All discovered sessions"
-      description: "Include complete UUID chain (N sessions, ~X MB total)"
-    - label: "Most recent chain only"
-      description: "Only the chain leading to target (N sessions)"
+    - label: "Full session chain (Recommended)"
+      description: "Archive ALL sessions in UUID chain - complete provenance across auto-compacts"
+    - label: "Add earlier sessions"
+      description: "Include sessions BEFORE the chain starts (for deeper context)"
     - label: "Manual selection"
       description: "I'll specify which sessions to include"
     - label: "Provide more context"
       description: "The search didn't find what I need, let me clarify"
 ```
+
+**IMPORTANT**: Always default to archiving the FULL session chain. Auto-compacting
+creates arbitrary boundaries - a finding's true origin often spans multiple sessions.
 
 ### Flow D: Choose Output Format
 
@@ -147,10 +150,10 @@ AskUserQuestion:
   header: "Outputs"
   multiSelect: true
   options:
+    - label: "Full session chain archive (.jsonl.gz per session)"
+      description: "Compress EACH session in chain separately with manifest"
     - label: "provenance.jsonl (append-only log)"
       description: "NDJSON record with UUIDs, timestamps, contributors"
-    - label: "Compressed session context (.jsonl.gz)"
-      description: "Gzipped excerpt of relevant session entries"
     - label: "Markdown finding document"
       description: "findings/<name>.md with embedded provenance table"
     - label: "Git commit with provenance"
@@ -302,19 +305,50 @@ Each provenance record in `provenance.jsonl`:
 
 ### Compressed Session Context
 
-Extract and compress relevant session entries:
+**CRITICAL**: Extract the FULL chain across ALL related sessions, not just a fixed window.
+
+The provenance chain typically spans multiple auto-compacted sessions. Each session file
+represents a context window - the finding may have origins several sessions back.
 
 ```bash
 /usr/bin/env bash << 'COMPRESS_EOF'
-# Extract 100 entries before target, target entry, 10 after
-CONTEXT_FILE="findings/provenance/session_context_${TARGET_ID}.jsonl"
+# Extract FULL session chain - not limited to fixed entries
+# Each session in the chain gets its own compressed file
 
-head -n $((TARGET_LINE + 10)) "$SESSION_FILE" | tail -n 110 > "$CONTEXT_FILE"
-gzip "$CONTEXT_FILE"
+OUTPUT_DIR="findings/provenance/session_chain_${TARGET_ID}"
+mkdir -p "$OUTPUT_DIR"
 
-echo "Created: ${CONTEXT_FILE}.gz"
+# 1. Get the UUID chain (traced by uuid_tracer.sh)
+CHAIN_FILE="$OUTPUT_DIR/uuid_chain.jsonl"
+
+# 2. For EACH session in the chain, extract and compress the FULL session
+for session_id in $(cat "$CHAIN_FILE" | jq -r '.session_id' | sort -u); do
+  SESSION_PATH="$PROJECT_SESSIONS/${session_id}.jsonl"
+  if [[ -f "$SESSION_PATH" ]]; then
+    # Compress entire session (not just a window)
+    gzip -c "$SESSION_PATH" > "$OUTPUT_DIR/${session_id}.jsonl.gz"
+    echo "Archived: ${session_id} ($(wc -l < "$SESSION_PATH") entries)"
+  fi
+done
+
+# 3. Create manifest of all archived sessions
+cat "$CHAIN_FILE" | jq -s '{
+  target_id: $TARGET_ID,
+  sessions_archived: (map(.session_id) | unique),
+  total_sessions: (map(.session_id) | unique | length),
+  chain_depth: length,
+  created_at: now | todate
+}' > "$OUTPUT_DIR/manifest.json"
+
+echo "Full session chain archived to: $OUTPUT_DIR"
 COMPRESS_EOF
 ```
+
+**Why full sessions?**
+- Auto-compacting creates session boundaries at arbitrary points
+- A single finding's context may span 3-5+ sessions
+- Partial extraction loses critical context about HOW the finding evolved
+- Full sessions enable complete reproduction and audit
 
 ### Markdown Finding Document Template
 
