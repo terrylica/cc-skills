@@ -1,3 +1,34 @@
+## [9.6.3](https://github.com/terrylica/cc-skills/compare/v9.6.2...v9.6.3) (2026-01-01)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>ralph</strong> (1 change)</summary>
+
+- [session-guidance](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/skills/session-guidance/SKILL.md) - new (+439)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+12/-386)
+
+</details>
+
 ## [9.6.2](https://github.com/terrylica/cc-skills/compare/v9.6.1...v9.6.2) (2026-01-01)
 
 
