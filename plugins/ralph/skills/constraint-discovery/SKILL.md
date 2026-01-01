@@ -1,10 +1,19 @@
+---
+name: constraint-discovery
+description: Spawn 5 parallel Explore agents to discover project constraints. TRIGGERS - constraint scan, degrees of freedom, /ralph:start Step 1.4.5, project memory analysis.
+allowed-tools: Task, TaskOutput, Bash, Read, Grep, Glob
+---
+
 # Constraint Discovery Skill
 
 Spawn 5 parallel Explore agents to discover constraints that limit Claude's degrees of freedom.
 
 ## When to Use
 
-Invoked automatically by `/ralph:start` Step 1.4.5. Can also be run standalone for constraint analysis.
+- Invoked by `/ralph:start` Step 1.4.5 via Skill tool
+- User asks to analyze project constraints
+- User mentions "degrees of freedom" or "constraint scan"
+- Standalone constraint analysis needed
 
 ## Agents
 

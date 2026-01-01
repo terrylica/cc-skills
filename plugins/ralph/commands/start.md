@@ -151,9 +151,7 @@ If the scanner exits with code 2 (critical constraints), stop and inform user.
 
 **Purpose**: Spawn Explore agents to discover constraints the static scanner cannot detect.
 
-**MANDATORY: Invoke the constraint-discovery skill NOW**
-
-Read and execute the skill at: `plugins/ralph/skills/constraint-discovery/SKILL.md`
+**MANDATORY Skill tool call: `ralph:constraint-discovery`** — activate NOW.
 
 This skill spawns 5 parallel Explore agents that:
 1. Read project memory files (CLAUDE.md, .claude/, ROADMAP.md, docs/adr/)
