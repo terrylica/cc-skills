@@ -1,6 +1,7 @@
 ---
 name: session-chronicle
-description: Excavate Claude Code session logs to document findings with full provenance. Use when user asks "who created this?", "document this finding", needs ADR provenance, or wants git commits with session references. Auto-scans all project sessions to trace UUID chains across auto-compacted sessions.
+description: Excavate session logs for provenance tracking. TRIGGERS - who created, document finding, trace origin, session archaeology, provenance, ADR reference.
+allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # Session Chronicle
@@ -188,6 +189,7 @@ SCAN_EOF
 Search across all sessions for the target:
 
 ```bash
+/usr/bin/env bash << 'SEARCH_EOF'
 # Search for keyword in all sessions
 grep -l "SEARCH_TERM" "$PROJECT_SESSIONS"/*.jsonl
 
@@ -195,6 +197,7 @@ grep -l "SEARCH_TERM" "$PROJECT_SESSIONS"/*.jsonl
 jq -c 'select(.message.content[]?.type == "tool_use") |
        select(.message.content[].input | tostring | contains("SEARCH_TERM"))' \
   "$PROJECT_SESSIONS"/*.jsonl
+SEARCH_EOF
 ```
 
 ### Step 3: Trace UUID Chain
@@ -251,10 +254,12 @@ TRACE_EOF
 Extract the exact tool_use that created/modified the target:
 
 ```bash
+/usr/bin/env bash << 'EXTRACT_EOF'
 # Extract tool_use block with context (5 entries before and after)
 jq -c 'select(.message.content[]?.type == "tool_use") |
        select(.message.content[].name == "Edit" or .message.content[].name == "Write")' \
   "$SESSION_FILE" | head -20
+EXTRACT_EOF
 ```
 
 ---
@@ -300,6 +305,7 @@ Each provenance record in `provenance.jsonl`:
 Extract and compress relevant session entries:
 
 ```bash
+/usr/bin/env bash << 'COMPRESS_EOF'
 # Extract 100 entries before target, target entry, 10 after
 CONTEXT_FILE="findings/provenance/session_context_${TARGET_ID}.jsonl"
 
@@ -307,6 +313,7 @@ head -n $((TARGET_LINE + 10)) "$SESSION_FILE" | tail -n 110 > "$CONTEXT_FILE"
 gzip "$CONTEXT_FILE"
 
 echo "Created: ${CONTEXT_FILE}.gz"
+COMPRESS_EOF
 ```
 
 ### Markdown Finding Document Template
