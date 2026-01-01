@@ -1,3 +1,39 @@
+## [9.6.2](https://github.com/terrylica/cc-skills/compare/v9.6.1...v9.6.2) (2026-01-01)
+
+
+### Bug Fixes
+
+* **ralph:** add proper YAML frontmatter and Skill tool invocation ([29a1530](https://github.com/terrylica/cc-skills/commit/29a15308f074b6f3f7f9a768acc77e88fb9a6f61))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>ralph</strong> (1 change)</summary>
+
+- [constraint-discovery](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/skills/constraint-discovery/SKILL.md) - updated (+10/-1)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+1/-3)
+
+</details>
+
 ## [9.6.1](https://github.com/terrylica/cc-skills/compare/v9.6.0...v9.6.1) (2026-01-01)
 
 
