@@ -149,118 +149,98 @@ If the scanner exits with code 2 (critical constraints), stop and inform user.
 
 ## Step 1.4.5: Explore-Based Constraint Discovery (Parallel Agents)
 
-**Purpose**: Spawn multiple Explore subagents to discover constraints the static scanner cannot detect (architectural coupling, testing gaps, undocumented assumptions, etc.).
+**Purpose**: Spawn multiple Explore subagents to discover constraints the static scanner cannot detect.
 
-**When to run**: After Step 1.4 (static scanner) completes, spawn agents in parallel.
+**MANDATORY: Execute NOW before proceeding to Step 1.5**
 
-**Claude MUST spawn these Task/Explore agents** to discover all 13 constraint categories:
+Claude MUST spawn exactly 5 Task tools in a single message with these parameters:
 
-### Agent 1: Environment & Runtime Constraints
-
-Use Task tool with `subagent_type: Explore`:
+### MANDATORY Task 1: Environment & Runtime Constraints
 
 ```
-Discover environment constraints that limit Claude's degrees of freedom in this codebase.
-
-Focus on:
-1. Python version requirements (check pyproject.toml, setup.py)
-2. Missing or outdated dependencies (uv.lock vs pyproject.toml)
-3. Required environment variables not set
-4. System tools assumed to exist (git, jq, uv, docker)
-5. Platform-specific code (macOS vs Linux paths)
-
-For each constraint found, output structured JSON:
-{"constraint_type": "runtime", "severity": "HIGH|MEDIUM|LOW", "description": "...", "location": "file:line", "recommendation": "..."}
+Task tool parameters:
+  description: "Discover environment constraints"
+  subagent_type: "Explore"
+  run_in_background: true
+  prompt: |
+    Discover environment constraints that limit Claude's degrees of freedom in this codebase.
+    Focus on: Python version requirements, missing dependencies, required env vars, platform-specific code.
+    Return NDJSON (one JSON per line): {"source":"agent-env","severity":"HIGH|MEDIUM|LOW","description":"...","location":"file:line","recommendation":"..."}
 ```
 
-### Agent 2: Architectural Coupling Constraints
-
-Use Task tool with `subagent_type: Explore`:
+### MANDATORY Task 2: Architectural Coupling Constraints
 
 ```
-Analyze architectural coupling that makes refactoring risky in this codebase.
-
-Focus on:
-1. Circular import chains (A imports B, B imports A)
-2. Modules with >10 imports (high coupling)
-3. Global state and singletons
-4. Tight coupling between core and adapter layers
-5. Cross-layer dependencies (hooks importing from core)
-
-For each constraint found, output structured JSON:
-{"constraint_type": "coupling", "severity": "HIGH|MEDIUM|LOW", "description": "...", "modules": ["A", "B"], "recommendation": "..."}
+Task tool parameters:
+  description: "Analyze architectural coupling"
+  subagent_type: "Explore"
+  run_in_background: true
+  prompt: |
+    Analyze architectural coupling that makes refactoring risky in this codebase.
+    Focus on: Circular imports, modules with >10 imports, global state, cross-layer dependencies.
+    Return NDJSON: {"source":"agent-coupling","severity":"HIGH|MEDIUM|LOW","description":"...","modules":["A","B"],"recommendation":"..."}
 ```
 
-### Agent 3: Testing Gap Constraints
-
-Use Task tool with `subagent_type: Explore`:
+### MANDATORY Task 3: Testing Gap Constraints
 
 ```
-Find testing gaps that make code changes risky in this codebase.
-
-Focus on:
-1. Modules with 0% test coverage
-2. Error paths not covered by tests (except clauses)
-3. Missing integration tests
-4. Edge cases in regex/parsing not tested
-5. Async/concurrency code without thread safety tests
-
-For each constraint found, output structured JSON:
-{"constraint_type": "testing_gap", "severity": "HIGH|MEDIUM|LOW", "description": "...", "location": "file/module", "recommendation": "..."}
+Task tool parameters:
+  description: "Find testing gaps"
+  subagent_type: "Explore"
+  run_in_background: true
+  prompt: |
+    Find testing gaps that make code changes risky in this codebase.
+    Focus on: Zero coverage modules, untested error paths, missing integration tests.
+    Return NDJSON: {"source":"agent-testing","severity":"HIGH|MEDIUM|LOW","description":"...","location":"file","recommendation":"..."}
 ```
 
-### Agent 4: Undocumented Assumptions
-
-Use Task tool with `subagent_type: Explore`:
+### MANDATORY Task 4: Undocumented Assumptions
 
 ```
-Discover undocumented assumptions and magic numbers in this codebase.
-
-Focus on:
-1. Magic numbers without explanation (thresholds, limits, timeouts)
-2. Implicit ordering dependencies (must run A before B)
-3. Assumptions about filesystem (case-sensitivity, encoding)
-4. Hidden state machines and transitions
-5. Configuration fields that are read but never documented
-
-For each constraint found, output structured JSON:
-{"constraint_type": "assumption", "severity": "HIGH|MEDIUM|LOW", "description": "...", "value": "...", "recommendation": "..."}
+Task tool parameters:
+  description: "Discover undocumented assumptions"
+  subagent_type: "Explore"
+  run_in_background: true
+  prompt: |
+    Discover undocumented assumptions and magic numbers in this codebase.
+    Focus on: Magic numbers, implicit ordering dependencies, hidden state machines.
+    Return NDJSON: {"source":"agent-assumptions","severity":"HIGH|MEDIUM|LOW","description":"...","value":"...","recommendation":"..."}
 ```
 
-### Agent 5: Degrees of Freedom Constraints
-
-Use Task tool with `subagent_type: Explore`:
+### MANDATORY Task 5: Degrees of Freedom Constraints
 
 ```
-Find explicit limits on what Claude/Ralph can do in this codebase.
-
-Focus on:
-1. Hard gates that prevent features from running (if not X, skip silently)
-2. One-way state transitions (no way to "un-converge")
-3. Configuration that cannot be overridden
-4. Features that are disabled in certain conditions
-5. Missing escape hatches (no --skip-X flags)
-
-For each constraint found, output structured JSON:
-{"constraint_type": "freedom_limit", "severity": "CRITICAL|HIGH|MEDIUM", "description": "...", "gate": "...", "recommendation": "..."}
+Task tool parameters:
+  description: "Find freedom limits"
+  subagent_type: "Explore"
+  run_in_background: true
+  prompt: |
+    Find explicit limits on what Claude/Ralph can do in this codebase.
+    Focus on: Hard gates, one-way transitions, non-overridable config, missing escape hatches.
+    Return NDJSON: {"source":"agent-freedom","severity":"CRITICAL|HIGH|MEDIUM","description":"...","gate":"...","recommendation":"..."}
 ```
 
-**Execution**: Claude SHOULD spawn all 5 agents in parallel using a single message with multiple Task tool calls. Set `run_in_background: true` for all agents, then use TaskOutput to collect results.
+**Execution**: Spawn ALL 5 Task tools in a SINGLE message (parallel execution). Use `run_in_background: true`.
 
-**Timeout**: If agents don't complete within 30 seconds, proceed with available results.
+**Collect results**: After spawning, use TaskOutput with `block: true` and `timeout: 30000` to collect each agent's results.
 
-**Aggregation**: After agents complete, Claude MUST:
-1. Collect all structured JSON findings from agent outputs
-2. Deduplicate by description similarity
-3. Merge with static scanner results from Step 1.4
-4. Pass combined constraints to Step 1.6.2.5 for AUQ display
+**Aggregation**: Append agent findings to `.claude/ralph-constraint-scan.jsonl`:
 
-**Output format**: Combined NDJSON with source tracking:
-```jsonl
-{"_type":"constraint","source":"scanner","id":"...","severity":"high","description":"..."}
-{"_type":"constraint","source":"agent-env","id":"...","severity":"medium","description":"..."}
-{"_type":"constraint","source":"agent-coupling","id":"...","severity":"high","description":"..."}
+```bash
+/usr/bin/env bash << 'AGENT_MERGE_SCRIPT'
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+SCAN_FILE="$PROJECT_DIR/.claude/ralph-constraint-scan.jsonl"
+
+# Claude: After TaskOutput returns agent results, append each NDJSON line here:
+# echo '{"_type":"constraint","source":"agent-env",...}' >> "$SCAN_FILE"
+# echo '{"_type":"constraint","source":"agent-coupling",...}' >> "$SCAN_FILE"
+# etc.
+
+echo "Agent constraint discovery complete. Results merged to $SCAN_FILE"
+AGENT_MERGE_SCRIPT
 ```
+
+**If timeout**: Proceed with available results. Do not block on slow agents.
 
 ## Step 1.5: Preset Confirmation (ALWAYS)
 
@@ -455,51 +435,80 @@ LOAD_SCAN_SCRIPT
 
 ### 1.6.3: Forbidden Items (multiSelect, DYNAMIC)
 
-**Claude MUST build options dynamically** from Step 1.6.2.5 NDJSON output.
+**MANDATORY: Build options dynamically from Step 1.6.2.5 output**
 
-**Question text format** - use severity counts from Step 1.6.2.5:
-- If constraints exist: `"What should Ralph avoid? (N critical, M high detected)"`
-- If no constraints: `"What should Ralph avoid? (no constraints detected)"`
+**AUQ Limit**: Maximum 4 options total. Priority order:
+1. CRITICAL severity constraints (up to 2)
+2. HIGH severity constraints (up to 2)
+3. If <4 constraint options, fill with static categories
 
-Use AskUserQuestion:
+**Algorithm** - Claude MUST execute this logic:
 
-- question: "What should Ralph avoid? ({CRITICAL_COUNT} critical, {HIGH_COUNT} high detected)"
-  header: "Forbidden"
-  multiSelect: true
-  options:
-    # === CONSTRAINT-DERIVED OPTIONS (from Step 1.6.2.5 NDJSON) ===
-    # For EACH constraint in the NDJSON output, add an option:
-    # - label: "{description}" (truncated to 60 chars if needed)
-    # - description: "({severity}) {file}:{line} - {recommendation}"
-    #
-    # Example from NDJSON: {"severity":"high","description":"Hardcoded path: /Users/terryli","file":"pyproject.toml","line":15,"recommendation":"Use env var"}
-    # Becomes option:
-    # - label: "Hardcoded path: /Users/terryli"
-    #   description: "(HIGH) pyproject.toml:15 - Use env var"
-    #
-    # === STATIC FALLBACK CATEGORIES (always include after constraints) ===
-    - label: "Documentation updates"
-      description: "README, CHANGELOG, docstrings, comments"
-    - label: "Dependency upgrades"
-      description: "Version bumps, renovate PRs, package updates"
-    - label: "Test coverage expansion"
-      description: "Adding tests for untested code"
-    - label: "Linting/formatting"
-      description: "Style issues, import sorting, code formatting"
-    - label: "CI/CD modifications"
-      description: "Workflow files, GitHub Actions, pipelines"
-    - label: "Type hint additions"
-      description: "Adding type annotations to untyped code"
-    - label: "TODO/FIXME cleanup"
-      description: "Addressing inline code comments"
-    - label: "Security patches"
-      description: "Dependency CVE fixes, secret rotation"
-    - label: "Git history cleanup"
-      description: "Squashing, rebasing, commit message edits"
-    - label: "Refactoring"
-      description: "Code restructuring without behavior change"
+```
+Step 1: Parse severity counts from SEVERITY_COUNTS line
+  - Extract: critical=N, high=M, total=T
 
-**If total=0**: Show only static categories with question `"What should Ralph avoid? (no constraints detected)"`
+Step 2: Build constraint options (max 4, severity priority)
+  options = []
+
+  # First: CRITICAL constraints (max 2)
+  for each NDJSON line where severity == "critical":
+    if len(options) >= 2: break
+    options.append({
+      label: description[:55] + "..." if len > 55 else description,
+      description: "(CRITICAL) " + file + ":" + line + " - " + recommendation[:40]
+    })
+
+  # Second: HIGH constraints (max 2 more)
+  for each NDJSON line where severity == "high":
+    if len(options) >= 4: break
+    options.append({
+      label: description[:55] + "..." if len > 55 else description,
+      description: "(HIGH) " + file + ":" + line + " - " + recommendation[:40]
+    })
+
+  # Third: Fill remaining with static categories
+  static_categories = ["Documentation updates", "Dependency upgrades", "Refactoring", "CI/CD modifications"]
+  while len(options) < 4 and static_categories:
+    options.append(static_categories.pop(0))
+
+Step 3: Build question text
+  if critical > 0 or high > 0:
+    question = "What should Ralph avoid? ({critical} critical, {high} high detected)"
+  else:
+    question = "What should Ralph avoid? (no high-severity constraints)"
+```
+
+**Example transformation**:
+
+NDJSON input:
+```
+{"severity":"critical","description":"Hardcoded API key in config.py","file":"config.py","line":42,"recommendation":"Move to env var"}
+{"severity":"high","description":"Circular import: core ↔ utils","file":"core.py","line":1,"recommendation":"Extract interface"}
+```
+
+Becomes AUQ options:
+```yaml
+options:
+  - label: "Hardcoded API key in config.py"
+    description: "(CRITICAL) config.py:42 - Move to env var"
+  - label: "Circular import: core ↔ utils"
+    description: "(HIGH) core.py:1 - Extract interface"
+  - label: "Documentation updates"
+    description: "README, CHANGELOG, docstrings, comments"
+  - label: "Dependency upgrades"
+    description: "Version bumps, renovate PRs, package updates"
+```
+
+Use AskUserQuestion with the dynamically built options above.
+
+**Static fallback categories** (used when no constraints or to fill remaining slots):
+- "Documentation updates" - "README, CHANGELOG, docstrings, comments"
+- "Dependency upgrades" - "Version bumps, renovate PRs, package updates"
+- "Refactoring" - "Code restructuring without behavior change"
+- "CI/CD modifications" - "Workflow files, GitHub Actions, pipelines"
+
+**If total=0**: Show only 4 static categories with question `"What should Ralph avoid? (no constraints detected)"`
 
 ### 1.6.4: Custom Forbidden (Follow-up)
 
