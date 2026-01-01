@@ -1,3 +1,46 @@
+# [9.5.0](https://github.com/terrylica/cc-skills/compare/v9.4.7...v9.5.0) (2026-01-01)
+
+
+### Features
+
+* **ralph:** add Explore-based constraint discovery to /ralph:start ([2274f96](https://github.com/terrylica/cc-skills/commit/2274f96642ccf462d0aa6a506cbd2ce70ece9933))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+115)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Explore Agent Integration: Architecture Diagrams](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-AGENT-ARCHITECTURE.md) - new (+615)
+- [Explore Agent Integration for Ralph: Complete Design Package](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-AGENT-DESIGN-COMPLETE.md) - new (+380)
+- [Explore Agent Integration: Implementation Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-AGENT-IMPLEMENTATION.md) - new (+989)
+- [Explore Agent Integration: Complete Design Index](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-AGENT-INDEX.md) - new (+399)
+- [Explore Agent Integration Design for Ralph](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-AGENT-INTEGRATION-DESIGN.md) - new (+589)
+- [Ralph Explore Agent Prompts](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-AGENT-PROMPTS.md) - new (+419)
+- [Explore Agent Integration: Executive Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-AGENT-SUMMARY.md) - new (+461)
+- [Ralph Explore Agent Prompts - Real Examples](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-EXAMPLES.md) - new (+445)
+- [Ralph Explore Agent Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-GUIDE.md) - new (+237)
+- [Ralph Explore Agents - Complete Documentation Index](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-INDEX.md) - new (+382)
+- [Ralph Explore Prompts - Quick Reference Card](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-REFERENCE.md) - new (+268)
+
 ## [9.4.7](https://github.com/terrylica/cc-skills/compare/v9.4.6...v9.4.7) (2026-01-01)
 
 
