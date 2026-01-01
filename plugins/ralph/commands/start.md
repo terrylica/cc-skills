@@ -163,21 +163,34 @@ Task tool parameters:
   subagent_type: "Explore"
   run_in_background: true
   prompt: |
-    DEEP DIVE into project memory files to discover constraints on Claude's degrees of freedom.
+    DEEP DIVE into project memory files AND FOLLOW ALL @ LINKS to discover constraints.
 
-    READ THESE FILES FIRST:
+    STEP 1 - READ THESE FILES FIRST:
     - CLAUDE.md (project instructions, philosophy, forbidden patterns)
-    - .claude/ directory (memories, settings, project-specific config)
+    - .claude/ directory (memories, settings, agents/*.md)
+    - .claude/agents/*.md (agent definitions with @ references)
     - ROADMAP.md (P0/P1 priorities, explicit scope limits)
-    - docs/adr/ (Architecture Decision Records - past decisions that constrain future work)
+    - docs/adr/ (Architecture Decision Records)
 
-    Extract constraints like:
+    STEP 2 - FOLLOW ALL @ LINKS (UNLIMITED DEPTH):
+    Parse each file for @ link patterns:
+    - @path/to/file.md (relative to project root)
+    - @ai_context/PHILOSOPHY.md (ai_context directory)
+    - @projectname/path/to/file.md (project prefix)
+    - @AGENTS.md, @README.md (root files)
+
+    For EACH @ link found:
+    1. Read the linked file
+    2. Parse it for more @ links
+    3. Recursively follow until no new @ links found
+
+    STEP 3 - EXTRACT CONSTRAINTS FROM ALL FILES:
     - "Do NOT modify X" instructions
     - Philosophy rules (e.g., "prefer simplicity over features")
-    - Explicit forbidden patterns mentioned in project memory
-    - Scope limits from ROADMAP (what's explicitly out of scope)
+    - Explicit forbidden patterns
+    - Scope limits from ROADMAP
 
-    Return NDJSON: {"source":"agent-memory","severity":"CRITICAL|HIGH|MEDIUM","description":"...","file":"...","recommendation":"Ralph should avoid..."}
+    Return NDJSON: {"source":"agent-memory","severity":"CRITICAL|HIGH|MEDIUM","description":"...","file":"...","linked_from":"...","recommendation":"Ralph should avoid..."}
 ```
 
 ### MANDATORY Task 2: Architecture & Coupling Constraints
@@ -190,18 +203,25 @@ Task tool parameters:
   prompt: |
     Analyze architectural patterns that constrain safe modification.
 
-    READ THESE FILES:
+    STEP 1 - READ THESE FILES:
     - pyproject.toml, setup.py (package structure, entry points)
     - Core module __init__.py files (public API surface)
     - docs/adr/ (past architectural decisions)
+    - docs/reference/interfaces.md (if exists)
 
-    Focus on:
+    STEP 2 - FOLLOW @ LINKS (UNLIMITED DEPTH):
+    Parse for @ link patterns in ADRs and docs:
+    - @docs/reference/*.md, @docs/architecture/*.md
+    - @ai_context/*.md (philosophy files)
+    Recursively follow until no new @ links found.
+
+    STEP 3 - EXTRACT CONSTRAINTS:
     - Circular imports, tightly coupled modules
     - Public API that cannot change without breaking users
     - Package structure assumptions
     - Cross-layer dependencies
 
-    Return NDJSON: {"source":"agent-arch","severity":"HIGH|MEDIUM|LOW","description":"...","modules":["A","B"],"recommendation":"..."}
+    Return NDJSON: {"source":"agent-arch","severity":"HIGH|MEDIUM|LOW","description":"...","modules":["A","B"],"linked_from":"...","recommendation":"..."}
 ```
 
 ### MANDATORY Task 3: Research Session Lessons Learned
@@ -214,18 +234,26 @@ Task tool parameters:
   prompt: |
     Analyze past research sessions to find lessons learned and forbidden patterns.
 
-    READ THESE FILES:
-    - outputs/research_sessions/*/research_summary.md
+    STEP 1 - READ THESE FILES:
+    - outputs/research_sessions/*/research_summary.md (most recent 3)
     - outputs/research_sessions/*/research_log.md (if exists)
+    - outputs/research_sessions/*/production_config.yaml
     - Any "lessons_learned" or "warnings" sections
 
-    Extract:
+    STEP 2 - FOLLOW @ LINKS:
+    Research summaries may reference:
+    - @strategies/*.yaml (strategy configs that failed)
+    - @docs/guides/*.md (guides with constraints)
+    Recursively follow until no new @ links found.
+
+    STEP 3 - EXTRACT CONSTRAINTS:
     - Failed experiments (don't repeat these)
     - Hyperparameter ranges that caused issues
     - Strategies that were abandoned and why
     - Explicit warnings from past sessions
+    - "Do not explore below X" thresholds
 
-    Return NDJSON: {"source":"agent-research","severity":"HIGH|MEDIUM","description":"Past session found: ...","session":"...","recommendation":"Avoid..."}
+    Return NDJSON: {"source":"agent-research","severity":"HIGH|MEDIUM","description":"Past session found: ...","session":"...","linked_from":"...","recommendation":"Avoid..."}
 ```
 
 ### MANDATORY Task 4: Testing & Validation Constraints
@@ -238,18 +266,26 @@ Task tool parameters:
   prompt: |
     Find testing gaps and validation requirements that constrain safe changes.
 
-    READ THESE FILES:
+    STEP 1 - READ THESE FILES:
     - tests/ directory structure
     - pytest.ini, pyproject.toml [tool.pytest] section
     - CI/CD workflows (.github/workflows/)
+    - docs/development/testing.md (if exists)
 
-    Focus on:
+    STEP 2 - FOLLOW @ LINKS:
+    Testing docs may reference:
+    - @docs/development/*.md (dev guides)
+    - @ai_context/*.md (philosophy that affects testing)
+    Recursively follow until no new @ links found.
+
+    STEP 3 - EXTRACT CONSTRAINTS:
     - Modules with zero test coverage (risky to modify)
     - Integration tests that must pass
     - Validation thresholds (e.g., min Sharpe ratio, max drawdown)
     - Pre-commit hooks and their requirements
+    - "Tests must pass before X" gates
 
-    Return NDJSON: {"source":"agent-testing","severity":"HIGH|MEDIUM|LOW","description":"...","location":"...","recommendation":"..."}
+    Return NDJSON: {"source":"agent-testing","severity":"HIGH|MEDIUM|LOW","description":"...","location":"...","linked_from":"...","recommendation":"..."}
 ```
 
 ### MANDATORY Task 5: Degrees of Freedom Analysis
@@ -262,19 +298,29 @@ Task tool parameters:
   prompt: |
     Find explicit and implicit limits on what Ralph can explore.
 
-    READ THESE FILES:
+    STEP 1 - READ THESE FILES:
     - CLAUDE.md (explicit instructions)
     - .claude/ralph-config.json (previous session guidance)
+    - .claude/agents/*.md (agent definitions)
     - Config files (*.yaml, *.toml) for hardcoded limits
 
-    Focus on:
+    STEP 2 - FOLLOW ALL @ LINKS (UNLIMITED DEPTH):
+    Parse each file for @ link patterns:
+    - @ai_context/IMPLEMENTATION_PHILOSOPHY.md
+    - @ai_context/MODULAR_DESIGN_PHILOSOPHY.md
+    - @docs/reference/*.md
+    - @DISCOVERIES.md, @ai_working/decisions/
+    Recursively follow until no new @ links found.
+
+    STEP 3 - EXTRACT FREEDOM CONSTRAINTS:
     - Hard gates (if not X, skip silently)
     - One-way state transitions
     - Configuration that cannot be overridden at runtime
     - Feature flags and their current state
+    - Philosophy constraints (e.g., "ruthless simplicity")
     - Escape hatches (--skip-X flags, override mechanisms)
 
-    Return NDJSON: {"source":"agent-freedom","severity":"CRITICAL|HIGH|MEDIUM","description":"...","gate":"...","recommendation":"..."}
+    Return NDJSON: {"source":"agent-freedom","severity":"CRITICAL|HIGH|MEDIUM","description":"...","gate":"...","linked_from":"...","recommendation":"..."}
 ```
 
 **Execution**: Spawn ALL 5 Task tools in a SINGLE message (parallel execution). Use `run_in_background: true`.
