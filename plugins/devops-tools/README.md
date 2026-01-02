@@ -17,6 +17,7 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting    |
 | **mlflow-python**               | Log backtest metrics, query experiments, QuantStats integration        |
 | **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems     |
+| **session-chronicle**           | Session provenance tracking with S3 artifact sharing for team access   |
 | **dual-channel-watchexec**      | Send notifications to Telegram + Pushover on process events            |
 
 ## Installation
@@ -39,6 +40,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "telegram bot", "bot status", "restart bot" -> telegram-bot-management
 - "log backtest", "MLflow metrics", "search runs" -> mlflow-python
 - "no conversations found to resume" -> session-recovery
+- "who created this", "trace origin", "provenance" -> session-chronicle
 - "watchexec notifications", "Telegram + Pushover" -> dual-channel-watchexec
 
 ## Key Features
@@ -88,6 +90,15 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Session file location troubleshooting
 - IDE/terminal configuration checks
 
+### Session Chronicle
+
+- Trace UUID chains across auto-compacted sessions
+- Capture provenance for research findings and ADR decisions
+- Brotli compression for efficient artifact storage
+- S3 artifact sharing with 1Password credential injection
+- Embedded retrieval commands in git commit messages
+- [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md)
+
 ### Dual-Channel Watchexec
 
 - Simultaneous Telegram + Pushover delivery
@@ -98,6 +109,9 @@ Skills are model-invoked — Claude automatically activates them based on contex
 ## Requirements
 
 - Doppler CLI (`brew install dopplerhq/cli/doppler`)
+- Brotli (`brew install brotli`) - for session-chronicle
+- AWS CLI (`brew install awscli`) - for session-chronicle S3 upload
+- 1Password CLI (`brew install 1password-cli`) - for session-chronicle credentials
 - Claude Code CLI
 
 ## License

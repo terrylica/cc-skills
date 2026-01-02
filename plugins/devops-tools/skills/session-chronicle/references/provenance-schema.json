@@ -109,7 +109,7 @@
       "properties": {
         "session_context": {
           "type": "string",
-          "description": "Path to compressed session context (.jsonl.gz)"
+          "description": "Path to compressed session context (.jsonl.br)"
         },
         "edit_context": {
           "type": "string",
@@ -134,6 +134,42 @@
     "git_commit": {
       "type": "string",
       "description": "Git commit SHA if committed"
+    },
+    "s3_artifacts": {
+      "type": "object",
+      "description": "S3 storage details for large artifacts (ADR: 2026-01-02-session-chronicle-s3-sharing)",
+      "properties": {
+        "bucket": {
+          "type": "string",
+          "description": "S3 bucket name"
+        },
+        "prefix": {
+          "type": "string",
+          "description": "S3 key prefix for this artifact set"
+        },
+        "manifest_key": {
+          "type": "string",
+          "description": "S3 key for the manifest.json file"
+        },
+        "uploaded_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When artifacts were uploaded to S3"
+        },
+        "files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of S3 keys for uploaded files"
+        }
+      }
+    },
+    "related_adr": {
+      "type": "string",
+      "description": "ADR slug if this finding relates to a decision (YYYY-MM-DD-slug format)"
+    },
+    "related_design_spec": {
+      "type": "string",
+      "description": "Path to related design spec (/docs/design/.../spec.md)"
     }
   }
 }
