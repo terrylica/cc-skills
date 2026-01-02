@@ -154,6 +154,7 @@ If the scanner exits with code 2 (critical constraints), stop and inform user.
 **MANDATORY Skill tool call: `ralph:constraint-discovery`** — activate NOW.
 
 This skill spawns 5 parallel Explore agents that:
+
 1. Read project memory files (CLAUDE.md, .claude/, ROADMAP.md, docs/adr/)
 2. Follow ALL @ links with unlimited depth
 3. Extract constraints from all discovered files
@@ -192,6 +193,7 @@ AGENT_MERGE_SCRIPT
 ```
 
 **Gate verification**: Before proceeding, confirm:
+
 - [ ] All 5 TaskOutput calls completed (or timed out)
 - [ ] Agent findings appended to `.claude/ralph-constraint-scan.jsonl`
 - [ ] Can proceed to Step 1.5
@@ -285,6 +287,7 @@ Based on selection:
 **MANDATORY Skill tool call: `ralph:session-guidance`** — activate NOW.
 
 This skill handles the complete guidance configuration workflow:
+
 1. Check for previous guidance (keep/reconfigure decision)
 2. Load constraint scan results (NDJSON with learned filtering)
 3. Forbidden items selection (dynamic from constraints + static fallbacks)
@@ -635,11 +638,36 @@ else
     MAX_ITERS=${SELECTED_MAX_ITERS:-99}
 fi
 
-# Preserve existing guidance from previous session (if any)
-# This ensures /ralph:encourage and /ralph:forbid directives persist across restarts
+# ===== STALE GUIDANCE DETECTION =====
+# ADR: /docs/adr/2026-01-02-ralph-guidance-freshness-detection.md
+# Clear guidance if timestamp is > 24h old (from previous session)
 EXISTING_GUIDANCE='{}'
 if [[ -f "$PROJECT_DIR/.claude/ralph-config.json" ]]; then
-    EXISTING_GUIDANCE=$(jq '.guidance // {}' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null || echo '{}')
+    GUIDANCE_TS=$(jq -r '.guidance.timestamp // ""' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null)
+    if [[ -n "$GUIDANCE_TS" ]]; then
+        # Parse ISO 8601 timestamp (macOS format)
+        GUIDANCE_EPOCH=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$GUIDANCE_TS" +%s 2>/dev/null || echo "0")
+        NOW_EPOCH=$(date +%s)
+        if [[ "$GUIDANCE_EPOCH" -gt 0 ]]; then
+            AGE_HOURS=$(( (NOW_EPOCH - GUIDANCE_EPOCH) / 3600 ))
+            if [[ $AGE_HOURS -gt 24 ]]; then
+                echo "Clearing stale guidance (${AGE_HOURS}h old, threshold: 24h)"
+                # Clear stale guidance, keep empty structure
+                EXISTING_GUIDANCE='{"forbidden": [], "encouraged": [], "timestamp": ""}'
+            else
+                # Fresh guidance - preserve it
+                EXISTING_GUIDANCE=$(jq '.guidance // {}' "$PROJECT_DIR/.claude/ralph-config.json" 2>/dev/null || echo '{}')
+            fi
+        else
+            # Timestamp parse failed - treat as stale
+            echo "Clearing legacy guidance (no valid timestamp)"
+            EXISTING_GUIDANCE='{"forbidden": [], "encouraged": [], "timestamp": ""}'
+        fi
+    else
+        # No timestamp - legacy config, treat as stale
+        echo "Clearing legacy guidance (missing timestamp)"
+        EXISTING_GUIDANCE='{"forbidden": [], "encouraged": [], "timestamp": ""}'
+    fi
 fi
 
 # Generate unified ralph-config.json (v3.0.0 schema - Pydantic migration)
