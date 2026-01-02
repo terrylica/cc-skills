@@ -1,3 +1,10 @@
+## [9.6.5](https://github.com/terrylica/cc-skills/compare/v9.6.4...v9.6.5) (2026-01-02)
+
+
+### Bug Fixes
+
+* **ralph:** handle cross-session race condition in /ralph:stop ([9ad8190](https://github.com/terrylica/cc-skills/commit/9ad81905a9da2e8d58a8f0853e20254c190cc216))
+
 ## [9.6.4](https://github.com/terrylica/cc-skills/compare/v9.6.3...v9.6.4) (2026-01-02)
 
 
