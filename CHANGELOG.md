@@ -1,3 +1,43 @@
+## [9.6.4](https://github.com/terrylica/cc-skills/compare/v9.6.3...v9.6.4) (2026-01-02)
+
+
+### Bug Fixes
+
+* **ralph:** add guidance freshness detection with on-the-fly constraint scanning ([3a4bda7](https://github.com/terrylica/cc-skills/commit/3a4bda7f3e15f546a484b81e7421da8a3b220b4d))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph Guidance Freshness Detection](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-02-ralph-guidance-freshness-detection.md) | new (+268) |
+
+### Design Specs
+
+- [Diagnosis: /ralph:encourage → Stop Hook Data Flow](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-02-ralph-guidance-freshness-detection/spec.md) - new (+718)
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (3 commands)</summary>
+
+- [Ralph Loop: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/encourage.md) - updated (+5/-2)
+- [Ralph Loop: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/forbid.md) - updated (+5/-2)
+- [Ralph Loop: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/start.md) - updated (+31/-3)
+
+</details>
+
 ## [9.6.3](https://github.com/terrylica/cc-skills/compare/v9.6.2...v9.6.3) (2026-01-01)
 
 
