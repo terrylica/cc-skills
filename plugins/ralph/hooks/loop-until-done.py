@@ -437,20 +437,40 @@ def main():
 
     # Global stop signal (version-agnostic, v7.16.2+)
     # This file is created by /ralph:stop and checked by ALL hook versions
+    # FIX(2026-01-02): Don't delete immediately - mark as consumed to handle cross-session race
     global_stop = Path.home() / ".claude/ralph-global-stop.json"
     if global_stop.exists():
         try:
-            import time
             global_data = json.loads(global_stop.read_text())
-            # Check if signal is recent (within 5 minutes)
             if global_data.get("state") == "stopped":
-                # Clean up the global stop file
-                global_stop.unlink(missing_ok=True)
-                # Also update project state if we know the project
-                if project_dir:
+                # Check if this is a fresh stop (not already consumed by this project)
+                consumed_by = global_data.get("consumed_by", [])
+                if project_dir and project_dir not in consumed_by:
+                    # Mark as consumed by this project (don't delete - other sessions may need it)
+                    consumed_by.append(project_dir)
+                    global_data["consumed_by"] = consumed_by
+                    global_stop.write_text(json.dumps(global_data))
+                    # Update project state
                     save_state(project_dir, LoopState.STOPPED)
-                hard_stop("Loop stopped via global stop signal (~/.claude/ralph-global-stop.json)")
-                return
+                    hard_stop("Loop stopped via global stop signal (~/.claude/ralph-global-stop.json)")
+                    return
+                elif not project_dir:
+                    # No project context - consume and delete
+                    global_stop.unlink(missing_ok=True)
+                    hard_stop("Loop stopped via global stop signal (~/.claude/ralph-global-stop.json)")
+                    return
+                # Already consumed by this project - check if signal is stale (>5 min)
+                from datetime import datetime, timezone
+                ts_str = global_data.get("timestamp", "")
+                if ts_str:
+                    try:
+                        signal_time = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                        age_seconds = (datetime.now(timezone.utc) - signal_time).total_seconds()
+                        if age_seconds > 300:  # 5 minutes
+                            # Stale signal - clean up
+                            global_stop.unlink(missing_ok=True)
+                    except ValueError:
+                        pass
         except (json.JSONDecodeError, OSError) as e:
             print(f"[ralph] Warning: Failed to read global stop signal: {e}", file=sys.stderr)
 
