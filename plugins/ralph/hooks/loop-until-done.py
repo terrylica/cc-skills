@@ -93,6 +93,69 @@ def _detect_alpha_forge_simple(project_dir: str) -> str:
     return ""
 
 
+def _run_constraint_scanner(project_dir: Path | None) -> list[dict]:
+    """Run constraint scanner and return discovered constraints.
+
+    ADR: /docs/adr/2026-01-02-ralph-guidance-freshness-detection.md
+
+    Returns list of constraint dicts with 'description', 'severity', 'type' keys.
+    """
+    import subprocess
+
+    if not project_dir:
+        return []
+
+    ralph_cache = Path.home() / ".claude/plugins/cache/cc-skills/ralph"
+    scanner_path: Path | None = None
+
+    # Find scanner script (same pattern as start.md)
+    if (ralph_cache / "local" / "scripts/constraint-scanner.py").exists():
+        scanner_path = ralph_cache / "local" / "scripts/constraint-scanner.py"
+    elif ralph_cache.exists():
+        versions = sorted(
+            [d for d in ralph_cache.iterdir() if d.is_dir() and d.name[0].isdigit()],
+            reverse=True,
+        )
+        if versions:
+            scanner_path = versions[0] / "scripts/constraint-scanner.py"
+
+    if not scanner_path or not scanner_path.exists():
+        return []
+
+    # Find uv (same pattern as start.md discover_uv)
+    uv_cmd = None
+    for loc in [
+        "uv",  # PATH
+        str(Path.home() / ".local/bin/uv"),
+        str(Path.home() / ".cargo/bin/uv"),
+        "/opt/homebrew/bin/uv",
+        "/usr/local/bin/uv",
+        str(Path.home() / ".local/share/mise/shims/uv"),
+    ]:
+        import shutil
+        if shutil.which(loc) or Path(loc).is_file():
+            uv_cmd = loc
+            break
+
+    if not uv_cmd:
+        return []
+
+    try:
+        result = subprocess.run(
+            [uv_cmd, "run", "-q", str(scanner_path), "--project", str(project_dir)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env={**os.environ, "UV_VERBOSITY": "0"},
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            return data.get("constraints", [])
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError) as e:
+        emit("Constraint scan", f"Failed: {e}")
+    return []
+
+
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
@@ -186,14 +249,19 @@ def build_continuation_prompt(
     effective_task_complete = task_complete or force_exploration or no_focus
 
     # ===== LOAD USER GUIDANCE (ALWAYS - this is the fix) =====
+    # ADR: /docs/adr/2026-01-02-ralph-guidance-freshness-detection.md
     guidance = {}
     gpu_infrastructure = {}
+    config_guidance = {}
+    guidance_timestamp = ""
+
     if project_dir:
         ralph_config_file = Path(project_dir) / ".claude/ralph-config.json"
         if ralph_config_file.exists():
             try:
                 ralph_config = json.loads(ralph_config_file.read_text())
-                guidance = ralph_config.get("guidance", {})
+                config_guidance = ralph_config.get("guidance", {})
+                guidance_timestamp = config_guidance.get("timestamp", "")
                 gpu_cfg = ralph_config.get("gpu_infrastructure", {})
                 if gpu_cfg.get("available", False):
                     gpu_infrastructure = gpu_cfg
@@ -201,11 +269,56 @@ def build_continuation_prompt(
                 print(f"[ralph] Warning: Failed to load ralph-config.json: {e}", file=sys.stderr)
                 emit("Config", f"Failed to load ralph-config.json: {e}", target="terminal")
 
+    # ===== ON-THE-FLY CONSTRAINT SCANNING =====
+    # ADR: /docs/adr/2026-01-02-ralph-guidance-freshness-detection.md
+    fresh_constraints = _run_constraint_scanner(Path(project_dir) if project_dir else None)
+    emit("Constraint scan", f"Found {len(fresh_constraints)} constraints")
+
+    # ===== FRESH-WINS MERGE LOGIC =====
+    # Fresh scan results override stale config guidance
+    fresh_forbidden = [c["description"] for c in fresh_constraints if c.get("severity") in ("critical", "high")]
+    fresh_encouraged = [c["description"] for c in fresh_constraints if c.get("type") == "encouraged"]
+
+    # Check if config guidance is stale (> 24h old or from previous session)
+    config_forbidden = config_guidance.get("forbidden", [])
+    config_encouraged = config_guidance.get("encouraged", [])
+
+    if guidance_timestamp:
+        # Check staleness - compare to session start
+        session_start_file = Path(project_dir) / ".claude/loop-start-timestamp" if project_dir else None
+        if session_start_file and session_start_file.exists():
+            try:
+                session_start = int(session_start_file.read_text().strip())
+                from datetime import timezone
+                guidance_dt = datetime.fromisoformat(guidance_timestamp.replace("Z", "+00:00"))
+                guidance_epoch = int(guidance_dt.timestamp())
+                if guidance_epoch < session_start:
+                    emit("Guidance", "Clearing stale config guidance (from previous session)")
+                    config_forbidden = []
+                    config_encouraged = []
+            except (ValueError, OSError) as e:
+                emit("Guidance", f"Timestamp check failed: {e}")
+    else:
+        # No timestamp = legacy config, treat as stale
+        if config_forbidden or config_encouraged:
+            emit("Guidance", "Clearing legacy config guidance (missing timestamp)")
+            config_forbidden = []
+            config_encouraged = []
+
+    # Merge: fresh + current-session config (deduplicated)
+    final_forbidden = list(set(fresh_forbidden + config_forbidden))
+    final_encouraged = list(set(fresh_encouraged + config_encouraged))
+
+    guidance = {
+        "forbidden": final_forbidden,
+        "encouraged": final_encouraged,
+    }
+
     # Emit config status
-    if guidance:
+    if guidance.get("forbidden") or guidance.get("encouraged"):
         n_forbidden = len(guidance.get("forbidden", []))
         n_encouraged = len(guidance.get("encouraged", []))
-        emit("Config", f"Loaded ralph-config.json: {n_forbidden} forbidden, {n_encouraged} encouraged")
+        emit("Config", f"Guidance merged: {n_forbidden} forbidden, {n_encouraged} encouraged")
     else:
         emit("Config", "No guidance configured (using defaults)")
 

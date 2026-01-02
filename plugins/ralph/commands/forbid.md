@@ -72,8 +72,11 @@ case "$ARGS" in
         done
         ;;
     *)
-        # Add item to forbidden list (deduplicated)
-        if ! jq --arg item "$ARGS" '.guidance.forbidden = ((.guidance.forbidden // []) + [$item] | unique)' \
+        # Add item to forbidden list (deduplicated) with timestamp
+        # ADR: /docs/adr/2026-01-02-ralph-guidance-freshness-detection.md
+        TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        if ! jq --arg item "$ARGS" --arg ts "$TS" \
+            '.guidance.forbidden = ((.guidance.forbidden // []) + [$item] | unique) | .guidance.timestamp = $ts' \
             "$CONFIG_FILE" > "$CONFIG_FILE.tmp"; then
             echo "ERROR: Failed to add forbidden item (jq error)" >&2
             rm -f "$CONFIG_FILE.tmp"
