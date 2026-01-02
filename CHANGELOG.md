@@ -1,3 +1,86 @@
+# [9.7.0](https://github.com/terrylica/cc-skills/compare/v9.6.5...v9.7.0) (2026-01-02)
+
+
+### Features
+
+* **ralph:** add --remove flag to /ralph:encourage and /ralph:forbid ([57f1180](https://github.com/terrylica/cc-skills/commit/57f118070356f362c3316e0815dc6191e532b182))
+* **session-chronicle:** add S3 artifact sharing with Brotli compression ([34f0082](https://github.com/terrylica/cc-skills/commit/34f0082fd602e186541df385b55bc2e5b5de71d7))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph Guidance Freshness Detection](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-02-ralph-guidance-freshness-detection.md) | updated (+27/-1) |
+| accepted | [Session Chronicle S3 Artifact Sharing](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-02-session-chronicle-s3-sharing.md) | new (+260) |
+
+### Design Specs
+
+- [Diagnosis: /ralph:encourage → Stop Hook Data Flow](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-02-ralph-guidance-freshness-detection/spec.md) - coupled
+- [Design Spec: Session-Chronicle S3 Artifact Sharing](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-02-session-chronicle-s3-sharing/spec.md) - new (+443)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+107/-55)
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+14)
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+6/-4)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/session-chronicle</strong> (1 file)</summary>
+
+- [S3 Artifact Retrieval Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/references/s3-retrieval-guide.md) - new (+167)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (3 commands)</summary>
+
+- [Ralph Loop: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/config.md) - updated (+3/-1)
+- [Ralph Loop: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/encourage.md) - updated (+106/-2)
+- [Ralph Loop: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/forbid.md) - updated (+106/-2)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+4)
+
+## Other Documentation
+
+### Other
+
+- [Post-Implementation Audit Report](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/tests/AUDIT-REPORT-2026-01-02.md) - new (+170)
+- [Session Chronicle Tests](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/tests/README.md) - new (+74)
+- [Getting Started with Ralph (First-Time Users)](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/GETTING-STARTED.md) - updated (+15/-11)
+
 ## [9.6.5](https://github.com/terrylica/cc-skills/compare/v9.6.4...v9.6.5) (2026-01-02)
 
 
