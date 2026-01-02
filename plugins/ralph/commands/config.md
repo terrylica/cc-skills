@@ -1,12 +1,14 @@
 ---
 description: View or modify loop configuration
 allowed-tools: Read, Write, Bash, AskUserQuestion
-argument-hint: "[show|edit|reset|set <key>=<value>]"
+argument-hint: "[show|edit|reset|set <key>=<value>] (runtime configurable)"
 ---
 
 # Ralph Loop: Config
 
 View or modify the Ralph Wiggum loop configuration (v3.0 unified schema).
+
+**Runtime configurable**: Works with or without active Ralph loop. Changes apply on next iteration.
 
 ## Arguments
 

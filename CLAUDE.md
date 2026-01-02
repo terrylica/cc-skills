@@ -29,6 +29,10 @@ Claude Code skills marketplace: **20 plugins** with **42 skills** for ADR-driven
 | Add new plugin       | `/plugin-dev:create plugin-name`   |
 | Start autonomous     | `/ralph:start`                     |
 | Stop autonomous      | `/ralph:stop`                      |
+| View loop config     | `/ralph:config show`               |
+| Add encouraged item  | `/ralph:encourage <phrase>`        |
+| Add forbidden item   | `/ralph:forbid <phrase>`           |
+| Remove guidance item | `/ralph:encourage --remove` or `/ralph:forbid --remove` |
 
 ## Troubleshooting
 
