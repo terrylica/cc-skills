@@ -192,15 +192,18 @@ touch .claude/STOP_LOOP
 
 ## Quick Reference
 
-| Command                   | Purpose                   |
-| ------------------------- | ------------------------- |
-| `/ralph:hooks install`    | Register hooks (one-time) |
-| `/ralph:hooks status`     | Verify installation       |
-| `/ralph:start`            | Begin autonomous loop     |
-| `/ralph:stop`             | End the loop              |
-| `/ralph:status`           | Check loop state          |
-| `/ralph:encourage <item>` | Add priority work item    |
-| `/ralph:forbid <item>`    | Block specific work       |
+| Command                                   | Purpose                                                           |
+| ----------------------------------------- | ----------------------------------------------------------------- |
+| `/ralph:hooks install`                    | Register hooks (one-time)                                         |
+| `/ralph:hooks status`                     | Verify installation                                               |
+| `/ralph:start`                            | Begin autonomous loop                                             |
+| `/ralph:stop`                             | End the loop                                                      |
+| `/ralph:status`                           | Check loop state                                                  |
+| `/ralph:config [show\|edit\|reset\|set]`  | View/modify runtime config                                        |
+| `/ralph:encourage <phrase\|--list\|--clear\|--remove>` | Manage encouraged list (applies next iteration)      |
+| `/ralph:forbid <phrase\|--list\|--clear\|--remove>`    | Manage forbidden list (HARD BLOCKS next iteration)   |
+
+> **Runtime configurable**: `/ralph:encourage`, `/ralph:forbid`, and `/ralph:config` work with or without an active Ralph loop. Changes apply on the next iteration.
 
 ---
 
@@ -256,8 +259,9 @@ brew install python@3.11
 
 - Read [README.md](./README.md) for full feature documentation
 - Read [MENTAL-MODEL.md](./MENTAL-MODEL.md) for Alpha Forge research workflow
-- Configure limits: `/ralph:config`
-- Add guidance mid-loop: `/ralph:encourage` and `/ralph:forbid`
+- Configure limits: `/ralph:config show` and `/ralph:config set <key>=<value>`
+- Add guidance: `/ralph:encourage <phrase>` and `/ralph:forbid <phrase>`
+- Remove guidance: `/ralph:encourage --remove` and `/ralph:forbid --remove` (interactive picker)
 
 ---
 

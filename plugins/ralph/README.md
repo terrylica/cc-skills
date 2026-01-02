@@ -15,14 +15,16 @@ This plugin adds autonomous loop mode to Claude Code through 8 commands and 3 ho
 - `/ralph:start` - Enable loop mode (Claude continues working)
 - `/ralph:stop` - Disable loop mode immediately
 - `/ralph:status` - Show current loop state and metrics
-- `/ralph:config` - View/modify runtime limits
+- `/ralph:config [show|edit|reset|set]` - View/modify runtime config (runtime configurable)
 - `/ralph:hooks` - Install/uninstall hooks to settings.json
 
-**Interjection Commands** (modify guidance mid-loop):
+**Interjection Commands** (runtime configurable - works with or without active loop):
 
-- `/ralph:encourage` - Add item to encouraged list (prioritized)
-- `/ralph:forbid` - Add item to forbidden list (blocked)
+- `/ralph:encourage <phrase|--list|--clear|--remove>` - Manage encouraged list (applies next iteration)
+- `/ralph:forbid <phrase|--list|--clear|--remove>` - Manage forbidden list (HARD BLOCKS next iteration)
 - `/ralph:audit-now` - Force immediate validation round
+
+> **New in v9.7.0**: `--remove` flag supports interactive picker (AUQ multiSelect) and fuzzy phrase matching for selective item removal.
 
 **Hooks:**
 

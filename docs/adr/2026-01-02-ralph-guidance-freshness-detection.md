@@ -261,8 +261,34 @@ graph { flow: south; }
 
 </details>
 
+## Implementation Notes (v9.7.0+)
+
+In addition to the three-layer freshness detection, a `--remove` flag was implemented for both `/ralph:encourage` and `/ralph:forbid` commands, providing selective item removal instead of the `--replace` option considered in Option A.
+
+**Removal Capabilities**:
+
+| Command                              | Behavior                                          |
+| ------------------------------------ | ------------------------------------------------- |
+| `/ralph:encourage --remove`          | Interactive AUQ picker with multiSelect           |
+| `/ralph:encourage --remove <phrase>` | Fuzzy substring match (case-insensitive)          |
+| `/ralph:encourage --remove-by-index` | Internal: removes by comma-separated indices      |
+| `/ralph:forbid --remove`             | Same as encourage (for forbidden list)            |
+
+**Why --remove instead of --replace**:
+
+- `--replace` would require specifying both old and new values
+- `--remove` is simpler and covers the primary use case (removing stale items)
+- Users can add new items separately with the base command
+- Interactive picker (AUQ multiSelect) enables bulk removal
+
+**Command Documentation**:
+
+- [/ralph:encourage](/plugins/ralph/commands/encourage.md) - Lines 19-20, 70-145, 189-211
+- [/ralph:forbid](/plugins/ralph/commands/forbid.md) - Lines 19-20, 70-145, 191-213
+
 ## References
 
 - [Constraint Scanning ADR](/docs/adr/2025-12-29-ralph-constraint-scanning.md)
-- Schema: `plugins/ralph/hooks/config_schema.py:234`
+- Schema: `plugins/ralph/hooks/core/config_schema.py:234`
 - Encourage command: `plugins/ralph/commands/encourage.md:76`
+- Forbid command: `plugins/ralph/commands/forbid.md:76`
