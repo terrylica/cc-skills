@@ -4,6 +4,7 @@
 #
 # Archives ALL sessions in the UUID chain, not just a fixed window.
 # Each session is compressed individually with a manifest.
+# ADR: /docs/adr/2026-01-02-session-chronicle-s3-sharing.md (Brotli compression)
 
 set -euo pipefail
 
@@ -65,9 +66,9 @@ for session_id in $SESSION_IDS; do
     LINE_COUNT=$(wc -l < "$SESSION_PATH" | tr -d ' ')
     FILE_SIZE=$(stat -f%z "$SESSION_PATH" 2>/dev/null || stat -c%s "$SESSION_PATH" 2>/dev/null)
 
-    # Compress full session
-    gzip -c "$SESSION_PATH" > "$OUTPUT_DIR/${session_id}.jsonl.gz"
-    COMPRESSED_SIZE=$(stat -f%z "$OUTPUT_DIR/${session_id}.jsonl.gz" 2>/dev/null || stat -c%s "$OUTPUT_DIR/${session_id}.jsonl.gz" 2>/dev/null)
+    # Compress full session with Brotli (level 9 for best compression)
+    brotli -9 -o "$OUTPUT_DIR/${session_id}.jsonl.br" "$SESSION_PATH"
+    COMPRESSED_SIZE=$(stat -f%z "$OUTPUT_DIR/${session_id}.jsonl.br" 2>/dev/null || stat -c%s "$OUTPUT_DIR/${session_id}.jsonl.br" 2>/dev/null)
 
     echo "  Archived: $session_id"
     echo "    Lines: $LINE_COUNT"
@@ -109,7 +110,8 @@ jq -n \
     last_timestamp: $last_timestamp,
     project_path: $project_path,
     created_at: $created_at,
-    note: "Full session chain - not limited to fixed entry count"
+    note: "Full session chain - not limited to fixed entry count",
+    compression: "brotli-9"
   }' > "$OUTPUT_DIR/manifest.json"
 
 echo ""
