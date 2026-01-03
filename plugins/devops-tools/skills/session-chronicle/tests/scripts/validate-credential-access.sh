@@ -8,19 +8,40 @@ echo "=== 1Password Credential Access Validation ==="
 
 OP_ITEM_ID="uy6sbqwno7cofdapusds5f6aea"
 
-# Check 1Password sign-in status
-if ! op whoami &>/dev/null; then
-  echo "✗ 1Password: NOT SIGNED IN"
-  echo "  Run: op signin"
+# Check 1Password CLI is available
+if ! command -v op &>/dev/null; then
+  echo "✗ 1Password CLI: NOT INSTALLED"
+  echo "  Run: brew install 1password-cli"
   exit 1
 fi
-echo "✓ 1Password: Signed in"
 
-# Check Engineering vault access
-if op vault list 2>/dev/null | grep -q "Engineering"; then
+# Check 1Password account is configured
+# Note: op whoami doesn't work with biometric desktop app integration
+# Use op account get instead to check account configuration
+if ! op account get &>/dev/null; then
+  echo "✗ 1Password: NO ACCOUNT CONFIGURED"
+  echo "  Run: op account add"
+  exit 1
+fi
+echo "✓ 1Password: Account configured"
+
+# Check Engineering vault access with retry for biometric auth timing
+# Biometric auth can have a slight delay before vault access is available
+VAULT_RETRIES=3
+VAULT_FOUND=false
+for i in $(seq 1 $VAULT_RETRIES); do
+  if op vault list 2>/dev/null | grep -q "Engineering"; then
+    VAULT_FOUND=true
+    break
+  fi
+  [[ $i -lt $VAULT_RETRIES ]] && sleep 1
+done
+
+if $VAULT_FOUND; then
   echo "✓ Engineering vault: Accessible"
 else
   echo "✗ Engineering vault: NOT ACCESSIBLE"
+  echo "  Ensure you have access to the Engineering vault in 1Password"
   exit 1
 fi
 
