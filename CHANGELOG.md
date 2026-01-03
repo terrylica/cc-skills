@@ -1,3 +1,51 @@
+# [9.8.0](https://github.com/terrylica/cc-skills/compare/v9.7.0...v9.8.0) (2026-01-03)
+
+
+### Bug Fixes
+
+* **ralph:** simplify global stop signal handling for cross-session reliability ([07212be](https://github.com/terrylica/cc-skills/commit/07212bed087599f81cc3ad054b2abfff959e9f90))
+
+
+### Features
+
+* **semantic-release:** add MAJOR version confirmation with multi-perspective analysis ([0d660f8](https://github.com/terrylica/cc-skills/commit/0d660f842acdfa10ae35a3f96f2805157f3d1915))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+222)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+109/-1)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Post-Implementation Audit Report](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/tests/AUDIT-REPORT-2026-01-02-MAJOR-CONFIRMATION.md) - new (+166)
+
 # [9.7.0](https://github.com/terrylica/cc-skills/compare/v9.6.5...v9.7.0) (2026-01-02)
 
 
