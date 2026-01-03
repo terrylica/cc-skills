@@ -1,3 +1,50 @@
+## [9.10.3](https://github.com/terrylica/cc-skills/compare/v9.10.2...v9.10.3) (2026-01-03)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Centralized Version Management with @semantic-release/exec](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-05-centralized-version-management.md) | coupled |
+
+### Design Specs
+
+- [Design Spec: Centralized Version Management](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-05-centralized-version-management/spec.md) - updated (+13/-7)
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/session-chronicle</strong> (1 file)</summary>
+
+- [S3 Artifact Retrieval Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/references/s3-retrieval-guide.md) - updated (+28)
+
+</details>
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+38/-1)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+1/-1)
+
 ## [9.10.2](https://github.com/terrylica/cc-skills/compare/v9.10.1...v9.10.2) (2026-01-03)
 
 
