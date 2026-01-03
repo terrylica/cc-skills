@@ -1,3 +1,29 @@
+## [9.8.1](https://github.com/terrylica/cc-skills/compare/v9.8.0...v9.8.1) (2026-01-03)
+
+
+### Bug Fixes
+
+* **ralph:** make /ralph:stop execute bash script instead of summarizing ([78860de](https://github.com/terrylica/cc-skills/commit/78860dec665ddaa635f34f220fda0fe4fec06fe4))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/stop.md) - updated (+2/-4)
+
+</details>
+
 # [9.8.0](https://github.com/terrylica/cc-skills/compare/v9.7.0...v9.8.0) (2026-01-03)
 
 
