@@ -28,6 +28,34 @@ op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id" >/dev/
 
 ---
 
+## Retrieval Workflow
+
+```
+                      Session Chronicle S3 Retrieval
+
+ ----------      +------------------+     +--------------+      ----------
+| 1Password | -> | Export AWS Creds | -> | aws s3 sync  | --> | Decompress |
+ ----------      +------------------+     +--------------+      ----------
+                                                                  |
+                                                                  v
+                                                               ----------
+                                                              | Analyze  |
+                                                               ----------
+```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "Session Chronicle S3 Retrieval"; flow: east; }
+
+[ 1Password ] { shape: rounded; } -> [ Export AWS Creds ] -> [ aws s3 sync ] -> [ Decompress ] { shape: rounded; } -> [ Analyze ] { shape: rounded; }
+```
+
+</details>
+
+---
+
 ## Quick Retrieval
 
 ### Option 1: Using the retrieval script
