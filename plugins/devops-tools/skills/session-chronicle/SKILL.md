@@ -29,16 +29,25 @@ Excavate Claude Code session logs to capture **complete provenance** for researc
 
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF'
+set -euo pipefail
+
 # Check Claude session storage
 PROJECT_DIR="$HOME/.claude/projects"
 if [[ ! -d "$PROJECT_DIR" ]]; then
-  echo "ERROR: Session storage not found at $PROJECT_DIR"
+  echo "ERROR: Session storage not found at $PROJECT_DIR" >&2
+  echo "  Expected: ~/.claude/projects/" >&2
+  echo "  This directory is created by Claude Code on first use." >&2
   exit 1
 fi
 
-# Count project folders
-PROJECT_COUNT=$(ls -1d "$PROJECT_DIR"/*/ 2>/dev/null | wc -l)
-echo "Found $PROJECT_COUNT project folders in $PROJECT_DIR"
+# Count project folders (0 is valid - just means no sessions yet)
+PROJECT_COUNT=$(ls -1d "$PROJECT_DIR"/*/ 2>/dev/null | wc -l || echo "0")
+if [[ "$PROJECT_COUNT" -eq 0 ]]; then
+  echo "WARNING: No project sessions found in $PROJECT_DIR"
+  echo "  This may be expected if Claude Code hasn't been used in any projects yet."
+else
+  echo "✓ Found $PROJECT_COUNT project folders in $PROJECT_DIR"
+fi
 echo "Ready for session archaeology"
 PREFLIGHT_EOF
 ```
@@ -47,25 +56,34 @@ PREFLIGHT_EOF
 
 ```bash
 /usr/bin/env bash << 'FIND_SESSIONS_EOF'
-# Encode current working directory path
+set -euo pipefail
+
+# Encode current working directory path (Claude Code path encoding)
 CWD=$(pwd)
 ENCODED_PATH=$(echo "$CWD" | tr '/' '-')
 PROJECT_SESSIONS="$HOME/.claude/projects/$ENCODED_PATH"
 
 if [[ -d "$PROJECT_SESSIONS" ]]; then
-  # Count main sessions vs agent sessions
-  MAIN_COUNT=$(ls -1 "$PROJECT_SESSIONS"/*.jsonl 2>/dev/null | grep -v "agent-" | wc -l)
-  AGENT_COUNT=$(ls -1 "$PROJECT_SESSIONS"/agent-*.jsonl 2>/dev/null | wc -l)
+  # Count main sessions vs agent sessions (handle empty glob safely)
+  MAIN_COUNT=$(ls -1 "$PROJECT_SESSIONS"/*.jsonl 2>/dev/null | grep -v "agent-" | wc -l | tr -d ' ' || echo "0")
+  AGENT_COUNT=$(ls -1 "$PROJECT_SESSIONS"/agent-*.jsonl 2>/dev/null | wc -l | tr -d ' ' || echo "0")
 
-  echo "Found $MAIN_COUNT main sessions + $AGENT_COUNT subagent sessions"
-  echo "Location: $PROJECT_SESSIONS"
+  if [[ "$MAIN_COUNT" -eq 0 && "$AGENT_COUNT" -eq 0 ]]; then
+    echo "ERROR: Session directory exists but contains no .jsonl files" >&2
+    echo "  Location: $PROJECT_SESSIONS" >&2
+    exit 1
+  fi
+
+  echo "✓ Found $MAIN_COUNT main sessions + $AGENT_COUNT subagent sessions"
+  echo "  Location: $PROJECT_SESSIONS"
 
   # Show main sessions with line counts
   echo -e "\n=== Main Sessions ==="
   for f in "$PROJECT_SESSIONS"/*.jsonl; do
+    [[ ! -f "$f" ]] && continue
     name=$(basename "$f" .jsonl)
     [[ "$name" =~ ^agent- ]] && continue
-    lines=$(wc -l < "$f")
+    lines=$(wc -l < "$f" | tr -d ' ')
     echo "  $name ($lines entries)"
   done
 
@@ -74,13 +92,16 @@ if [[ -d "$PROJECT_SESSIONS" ]]; then
   for f in "$PROJECT_SESSIONS"/agent-*.jsonl; do
     [[ ! -f "$f" ]] && continue
     name=$(basename "$f" .jsonl)
-    lines=$(wc -l < "$f")
+    lines=$(wc -l < "$f" | tr -d ' ')
     echo "  $name ($lines entries)"
   done
 else
-  echo "No sessions found for current project at: $PROJECT_SESSIONS"
-  echo "Checking all project folders..."
-  ls -la "$HOME/.claude/projects/" | head -10
+  echo "ERROR: No sessions found for current project" >&2
+  echo "  Expected: $PROJECT_SESSIONS" >&2
+  echo "" >&2
+  echo "Available project folders:" >&2
+  ls -1 "$HOME/.claude/projects/" 2>/dev/null | head -10 || echo "  (none)"
+  exit 1
 fi
 FIND_SESSIONS_EOF
 ```
@@ -89,17 +110,42 @@ FIND_SESSIONS_EOF
 
 ```bash
 /usr/bin/env bash << 'TOOLS_EOF'
+set -euo pipefail
+
+# All tools are REQUIRED - fail loudly if missing
+MISSING=0
+
 # Check for jq (required for JSONL parsing)
-command -v jq &>/dev/null || { echo "WARNING: jq not installed (brew install jq)"; }
+if ! command -v jq &>/dev/null; then
+  echo "ERROR: jq not installed (brew install jq)" >&2
+  MISSING=1
+fi
 
 # Check for brotli (required for compression)
-command -v brotli &>/dev/null || { echo "ERROR: brotli not found (brew install brotli)"; exit 1; }
+if ! command -v brotli &>/dev/null; then
+  echo "ERROR: brotli not installed (brew install brotli)" >&2
+  MISSING=1
+fi
 
-# Check for aws and op (required for S3 upload)
-command -v aws &>/dev/null || { echo "WARNING: aws CLI not installed (brew install awscli)"; }
-command -v op &>/dev/null || { echo "WARNING: 1Password CLI not installed (brew install 1password-cli)"; }
+# Check for aws (required for S3 upload)
+if ! command -v aws &>/dev/null; then
+  echo "ERROR: aws CLI not installed (brew install awscli)" >&2
+  MISSING=1
+fi
 
-echo "Required tools available"
+# Check for op (required for 1Password credential injection)
+if ! command -v op &>/dev/null; then
+  echo "ERROR: 1Password CLI not installed (brew install 1password-cli)" >&2
+  MISSING=1
+fi
+
+if [[ $MISSING -eq 1 ]]; then
+  echo "" >&2
+  echo "PREFLIGHT FAILED: Missing required tools. Install them and retry." >&2
+  exit 1
+fi
+
+echo "✓ All required tools available: jq, brotli, aws, op"
 TOOLS_EOF
 ```
 
@@ -247,21 +293,38 @@ Scan ALL session files (main + subagent) to build complete index:
 
 ```bash
 /usr/bin/env bash << 'SCAN_EOF'
+set -euo pipefail
+
 CWD=$(pwd)
 ENCODED_PATH=$(echo "$CWD" | tr '/' '-')
 PROJECT_SESSIONS="$HOME/.claude/projects/$ENCODED_PATH"
 
+if [[ ! -d "$PROJECT_SESSIONS" ]]; then
+  echo "ERROR: Project sessions directory not found: $PROJECT_SESSIONS" >&2
+  exit 1
+fi
+
 echo "=== Building Session Index ==="
+MAIN_COUNT=0
+AGENT_COUNT=0
 
 # Main sessions
 echo "Main sessions:"
 for f in "$PROJECT_SESSIONS"/*.jsonl; do
+  [[ ! -f "$f" ]] && continue
   name=$(basename "$f" .jsonl)
   [[ "$name" =~ ^agent- ]] && continue
-  lines=$(wc -l < "$f")
-  first_ts=$(head -1 "$f" | jq -r '.timestamp // empty' 2>/dev/null)
-  last_ts=$(tail -1 "$f" | jq -r '.timestamp // empty' 2>/dev/null)
+
+  lines=$(wc -l < "$f" | tr -d ' ')
+  first_ts=$(head -1 "$f" | jq -r '.timestamp // "unknown"') || first_ts="parse-error"
+  last_ts=$(tail -1 "$f" | jq -r '.timestamp // "unknown"') || last_ts="parse-error"
+
+  if [[ "$first_ts" == "parse-error" ]]; then
+    echo "  WARNING: Failed to parse timestamps in $name" >&2
+  fi
+
   echo "  $name|main|$lines|$first_ts|$last_ts"
+  ((MAIN_COUNT++)) || true
 done
 
 # Subagent sessions
@@ -269,10 +332,21 @@ echo "Subagent sessions:"
 for f in "$PROJECT_SESSIONS"/agent-*.jsonl; do
   [[ ! -f "$f" ]] && continue
   name=$(basename "$f" .jsonl)
-  lines=$(wc -l < "$f")
-  first_ts=$(head -1 "$f" | jq -r '.timestamp // empty' 2>/dev/null)
+
+  lines=$(wc -l < "$f" | tr -d ' ')
+  first_ts=$(head -1 "$f" | jq -r '.timestamp // "unknown"') || first_ts="parse-error"
+
   echo "  $name|subagent|$lines|$first_ts"
+  ((AGENT_COUNT++)) || true
 done
+
+echo ""
+echo "✓ Indexed $MAIN_COUNT main + $AGENT_COUNT subagent sessions"
+
+if [[ $MAIN_COUNT -eq 0 && $AGENT_COUNT -eq 0 ]]; then
+  echo "ERROR: No sessions found to index" >&2
+  exit 1
+fi
 SCAN_EOF
 ```
 
@@ -307,43 +381,67 @@ For detailed provenance of specific edits:
 
 ```bash
 /usr/bin/env bash << 'TRACE_EOF'
+set -euo pipefail
+
 trace_uuid_chain() {
   local uuid="$1"
   local session_file="$2"
   local depth=0
   local max_depth=100
 
+  if [[ -z "$uuid" ]]; then
+    echo "ERROR: UUID argument required" >&2
+    return 1
+  fi
+
+  if [[ ! -f "$session_file" ]]; then
+    echo "ERROR: Session file not found: $session_file" >&2
+    return 1
+  fi
+
   echo "Tracing UUID chain from: $uuid"
 
   while [[ -n "$uuid" && $depth -lt $max_depth ]]; do
-    entry=$(jq -c "select(.uuid == \"$uuid\")" "$session_file" 2>/dev/null)
+    # Use jq with explicit error handling
+    entry=$(jq -c "select(.uuid == \"$uuid\")" "$session_file" 2>&1) || {
+      echo "ERROR: jq failed parsing $session_file" >&2
+      return 1
+    }
 
     if [[ -n "$entry" ]]; then
-      parent=$(echo "$entry" | jq -r '.parentUuid // empty')
-      timestamp=$(echo "$entry" | jq -r '.timestamp // empty')
-      type=$(echo "$entry" | jq -r '.type // empty')
+      parent=$(echo "$entry" | jq -r '.parentUuid // empty') || parent=""
+      timestamp=$(echo "$entry" | jq -r '.timestamp // "unknown"') || timestamp="unknown"
+      type=$(echo "$entry" | jq -r '.type // "unknown"') || type="unknown"
 
       echo "  [$depth] $uuid ($type) @ $timestamp"
-      echo "       -> parent: $parent"
+      echo "       -> parent: ${parent:-<root>}"
 
       uuid="$parent"
-      ((depth++))
+      ((depth++)) || true
     else
       echo "  UUID $uuid not in current session, searching others..."
       found=false
       for session in "$PROJECT_SESSIONS"/*.jsonl; do
-        if grep -q "\"uuid\":\"$uuid\"" "$session" 2>/dev/null; then
+        [[ ! -f "$session" ]] && continue
+        if grep -q "\"uuid\":\"$uuid\"" "$session"; then
           session_file="$session"
-          echo "  Found in $(basename "$session")"
+          echo "  ✓ Found in $(basename "$session")"
           found=true
           break
         fi
       done
-      [[ "$found" == "false" ]] && break
+      if [[ "$found" == "false" ]]; then
+        echo "  WARNING: UUID chain broken - $uuid not found in any session" >&2
+        break
+      fi
     fi
   done
 
-  echo "Chain depth: $depth"
+  if [[ $depth -ge $max_depth ]]; then
+    echo "WARNING: Reached max chain depth ($max_depth) - chain may be incomplete" >&2
+  fi
+
+  echo "✓ Chain depth: $depth"
 }
 TRACE_EOF
 ```
@@ -421,26 +519,69 @@ For archival, compress sessions with Brotli:
 
 ```bash
 /usr/bin/env bash << 'COMPRESS_EOF'
+set -euo pipefail
+
+# Validate required variables
+if [[ -z "${TARGET_ID:-}" ]]; then
+  echo "ERROR: TARGET_ID variable not set" >&2
+  exit 1
+fi
+
+if [[ -z "${SESSION_LIST:-}" ]]; then
+  echo "ERROR: SESSION_LIST variable not set" >&2
+  exit 1
+fi
+
+if [[ -z "${PROJECT_SESSIONS:-}" ]]; then
+  echo "ERROR: PROJECT_SESSIONS variable not set" >&2
+  exit 1
+fi
+
 OUTPUT_DIR="findings/provenance/session_chain_${TARGET_ID}"
-mkdir -p "$OUTPUT_DIR"
+mkdir -p "$OUTPUT_DIR" || {
+  echo "ERROR: Failed to create output directory: $OUTPUT_DIR" >&2
+  exit 1
+}
 
 # Compress each session
+ARCHIVED_COUNT=0
+FAILED_COUNT=0
+
 for session_id in $SESSION_LIST; do
   SESSION_PATH="$PROJECT_SESSIONS/${session_id}.jsonl"
   if [[ -f "$SESSION_PATH" ]]; then
-    brotli -c "$SESSION_PATH" > "$OUTPUT_DIR/${session_id}.jsonl.br"
-    echo "Archived: ${session_id}"
+    if brotli -9 -o "$OUTPUT_DIR/${session_id}.jsonl.br" "$SESSION_PATH"; then
+      echo "✓ Archived: ${session_id}"
+      ((ARCHIVED_COUNT++)) || true
+    else
+      echo "ERROR: Failed to compress ${session_id}" >&2
+      ((FAILED_COUNT++)) || true
+    fi
+  else
+    echo "WARNING: Session file not found: $SESSION_PATH" >&2
   fi
 done
 
-# Create manifest
+if [[ $ARCHIVED_COUNT -eq 0 ]]; then
+  echo "ERROR: No sessions were archived" >&2
+  exit 1
+fi
+
+if [[ $FAILED_COUNT -gt 0 ]]; then
+  echo "ERROR: $FAILED_COUNT session(s) failed to compress" >&2
+  exit 1
+fi
+
+# Create manifest with proper JSON
 cat > "$OUTPUT_DIR/manifest.json" << MANIFEST
 {
   "target_id": "$TARGET_ID",
-  "sessions_archived": $SESSION_COUNT,
+  "sessions_archived": $ARCHIVED_COUNT,
   "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 MANIFEST
+
+echo "✓ Archived $ARCHIVED_COUNT sessions to $OUTPUT_DIR"
 COMPRESS_EOF
 ```
 
