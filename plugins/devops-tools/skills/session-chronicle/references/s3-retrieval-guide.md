@@ -31,25 +31,20 @@ op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id" >/dev/
 ## Retrieval Workflow
 
 ```
-                      Session Chronicle S3 Retrieval
+                        Session Chronicle S3 Retrieval Workflow
 
- ----------      +------------------+     +--------------+      ----------
-| 1Password | -> | Export AWS Creds | -> | aws s3 sync  | --> | Decompress |
- ----------      +------------------+     +--------------+      ----------
-                                                                  |
-                                                                  v
-                                                               ----------
-                                                              | Analyze  |
-                                                               ----------
+ -----------      ###############     +-------------+     +------------+      ----------
+| 1Password |     # Export AWS  #     | aws s3 sync |     | brotli -d  |     | Analyze  |
+|   Auth    | --> # Credentials # --> |  Download   | --> | Decompress | --> | Sessions |
+ -----------      ###############     +-------------+     +------------+      ----------
 ```
 
 <details>
 <summary>graph-easy source</summary>
 
 ```
-graph { label: "Session Chronicle S3 Retrieval"; flow: east; }
-
-[ 1Password ] { shape: rounded; } -> [ Export AWS Creds ] -> [ aws s3 sync ] -> [ Decompress ] { shape: rounded; } -> [ Analyze ] { shape: rounded; }
+graph { label: "Session Chronicle S3 Retrieval Workflow"; flow: east; }
+[ 1Password\nAuth ] { shape: rounded; } -> [ Export AWS\nCredentials ] { border: bold; } -> [ aws s3 sync\nDownload ] -> [ brotli -d\nDecompress ] -> [ Analyze\nSessions ] { shape: rounded; }
 ```
 
 </details>
