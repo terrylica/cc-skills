@@ -10,14 +10,15 @@ trap "rm -rf $TEMP_DIR" EXIT
 
 echo "=== S3 Upload/Download Validation ==="
 
-OP_ITEM_ID="uy6sbqwno7cofdapusds5f6aea"
+OP_VAULT="Claude Automation"
+OP_ITEM_ID="rfuaxz6fzsz5y7p6nmutsuyzoq"
 S3_BUCKET="terryli-dvc-storage"
 S3_TEST_PREFIX="session-chronicle-validation-test"
 TEST_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
 # Load credentials
-export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/$OP_ITEM_ID/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/$OP_ITEM_ID/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://$OP_VAULT/$OP_ITEM_ID/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 
 # Verify AWS identity

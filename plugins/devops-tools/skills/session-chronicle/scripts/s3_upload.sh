@@ -15,7 +15,8 @@ FINDING_ID="${2:-$(date +%Y%m%d-%H%M%S)}"
 S3_BUCKET="terryli-dvc-storage"
 S3_PREFIX="session-chronicle"
 AWS_REGION="us-west-2"
-OP_ITEM_ID="uy6sbqwno7cofdapusds5f6aea"
+OP_VAULT="Claude Automation"
+OP_ITEM_ID="rfuaxz6fzsz5y7p6nmutsuyzoq"
 
 if [[ -z "$ARTIFACT_DIR" ]]; then
   echo "Usage: $0 <artifact_dir> [finding_id]" >&2
@@ -73,8 +74,8 @@ echo ""
 echo "=== Loading Credentials ==="
 
 # Load credentials from 1Password
-export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/$OP_ITEM_ID/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/$OP_ITEM_ID/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://$OP_VAULT/$OP_ITEM_ID/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/secret access key")
 export AWS_DEFAULT_REGION="$AWS_REGION"
 
 echo "✓ AWS credentials loaded from 1Password"
@@ -133,8 +134,8 @@ echo "Retrieval command (requires 1Password access):"
 echo ""
 cat << 'RETRIEVAL_TEMPLATE'
 /usr/bin/env bash << 'RETRIEVE_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 RETRIEVAL_TEMPLATE
 echo "aws s3 sync $S3_DEST/ ./provenance/"
