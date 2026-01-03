@@ -107,24 +107,30 @@ node scripts/sync-versions.mjs 1.2.3
 
 ## Running Releases
 
+### From Local Machine (Recommended)
+
+```bash
+npm run release       # Execute release
+npm run release:dry   # Preview changes (dry-run)
+```
+
+**Note**: For cc-skills, the post-release `successCmd` automatically:
+1. Updates `~/.claude/plugins/marketplaces/cc-skills/` to new version
+2. Triggers `claude --print "/plugin update cc-skills"`
+3. Verifies cache at `~/.claude/plugins/cache/cc-skills/<plugin>/<version>/`
+
+**No manual `/plugin update` required** — fully automated.
+
 ### From CI (GitHub Actions)
 
 ```bash
 npm run release
 ```
 
-### From Local Machine
-
-```bash
-/usr/bin/env bash -c 'CI=true GITHUB_TOKEN="$(gh auth token)" npm run release'
-```
-
-**Why CI=true?** semantic-release v25+ auto-enables dry-run mode outside CI environments as a safety feature.
-
 ### Dry Run
 
 ```bash
-/usr/bin/env bash -c 'GITHUB_TOKEN="$(gh auth token)" npm run release:dry'
+npm run release:dry
 ```
 
 ## Implementation Journey
