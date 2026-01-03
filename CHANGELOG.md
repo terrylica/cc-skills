@@ -1,3 +1,10 @@
+## [9.10.1](https://github.com/terrylica/cc-skills/compare/v9.10.0...v9.10.1) (2026-01-03)
+
+
+### Bug Fixes
+
+* **session-chronicle:** support 1Password biometric desktop app integration ([e37db06](https://github.com/terrylica/cc-skills/commit/e37db06d7d09a048d82080ade56eb04f0e02a5a5))
+
 # [9.10.0](https://github.com/terrylica/cc-skills/compare/v9.9.3...v9.10.0) (2026-01-03)
 
 
