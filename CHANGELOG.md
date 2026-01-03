@@ -1,3 +1,10 @@
+# [9.9.0](https://github.com/terrylica/cc-skills/compare/v9.8.1...v9.9.0) (2026-01-03)
+
+
+### Features
+
+* **semantic-release:** add post-release plugin cache verification ([2fd5893](https://github.com/terrylica/cc-skills/commit/2fd5893fb6d60b32ce8a52791866ecfe7324d4ab))
+
 ## [9.8.1](https://github.com/terrylica/cc-skills/compare/v9.8.0...v9.8.1) (2026-01-03)
 
 
