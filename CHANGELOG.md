@@ -1,3 +1,36 @@
+## [9.10.4](https://github.com/terrylica/cc-skills/compare/v9.10.3...v9.10.4) (2026-01-03)
+
+
+### Bug Fixes
+
+* **docs:** regenerate diagrams using graph-easy skill properly ([0711f1c](https://github.com/terrylica/cc-skills/commit/0711f1cf70aa83603cb096d8b89e0578d8c615b0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/session-chronicle</strong> (1 file)</summary>
+
+- [S3 Artifact Retrieval Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/references/s3-retrieval-guide.md) - updated (+8/-13)
+
+</details>
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+6/-13)
+
+</details>
+
 ## [9.10.3](https://github.com/terrylica/cc-skills/compare/v9.10.2...v9.10.3) (2026-01-03)
 
 
