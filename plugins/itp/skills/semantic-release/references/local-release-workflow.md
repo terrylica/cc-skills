@@ -325,18 +325,12 @@ git status -sb
 **No manual `/plugin update` required** — this is fully automated in the release workflow.
 
 ```
-              cc-skills Post-Release Cache Sync
+                        cc-skills Post-Release Cache Sync
 
- ---------      +-------------------+     +------------------+
-| Release | --> | Update Marketplace| --> | Trigger /plugin  |
- ---------      |       Repo        |     |    update        |
-                +-------------------+     +------------------+
-                                            |
-                                            v
-                                          +------------------+
-                                          |  Verify Cache    |
-                                          |  v{VERSION}      |
-                                          +------------------+
+ ---------      +--------------------+     +-----------------+      --------------
+| Release |     | Update Marketplace |     | Trigger /plugin |     | Verify Cache |
+|         | --> |        Repo        | --> |     update      | --> |  v{VERSION}  |
+ ---------      +--------------------+     +-----------------+      --------------
 ```
 
 <details>
@@ -344,8 +338,7 @@ git status -sb
 
 ```
 graph { label: "cc-skills Post-Release Cache Sync"; flow: east; }
-
-[ Release ] { shape: rounded; } -> [ Update Marketplace\nRepo ] -> [ Trigger /plugin\nupdate ] -> [ Verify Cache\nv{VERSION} ]
+[ Release ] { shape: rounded; } -> [ Update Marketplace\nRepo ] -> [ Trigger /plugin\nupdate ] -> [ Verify Cache\nv{VERSION} ] { shape: rounded; }
 ```
 
 </details>
