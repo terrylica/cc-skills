@@ -1,12 +1,14 @@
 ---
 name: session-chronicle
 description: Excavate session logs for provenance tracking. TRIGGERS - who created, document finding, trace origin, session archaeology, provenance, ADR reference.
-allowed-tools: Read, Grep, Glob, Bash
+allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion
 ---
 
 # Session Chronicle
 
-Excavate Claude Code session logs to capture complete provenance for research findings, ADR decisions, and code contributions. Traces UUID chains across multiple auto-compacted sessions.
+Excavate Claude Code session logs to capture **complete provenance** for research findings, ADR decisions, and code contributions. Traces UUID chains across multiple auto-compacted sessions.
+
+**CRITICAL PRINCIPLE**: Registry entries must be **self-contained**. Record ALL session UUIDs (main + subagent) at commit time. Future maintainers should not need to run archaeology to understand provenance.
 
 **S3 Artifact Sharing**: Artifacts can be uploaded to S3 for team access. See [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md).
 
@@ -17,8 +19,11 @@ Excavate Claude Code session logs to capture complete provenance for research fi
 - ADR or research finding needs provenance tracking
 - Git commit needs session UUID references
 - Tracing edits across auto-compacted sessions
+- **Creating a registry entry for a research session**
 
-## Preflight Check
+---
+
+## Part 0: Preflight Check
 
 ### Step 1: Verify Session Storage Location
 
@@ -48,13 +53,30 @@ ENCODED_PATH=$(echo "$CWD" | tr '/' '-')
 PROJECT_SESSIONS="$HOME/.claude/projects/$ENCODED_PATH"
 
 if [[ -d "$PROJECT_SESSIONS" ]]; then
-  SESSION_COUNT=$(ls -1 "$PROJECT_SESSIONS"/*.jsonl 2>/dev/null | wc -l)
-  echo "Found $SESSION_COUNT session files for current project"
+  # Count main sessions vs agent sessions
+  MAIN_COUNT=$(ls -1 "$PROJECT_SESSIONS"/*.jsonl 2>/dev/null | grep -v "agent-" | wc -l)
+  AGENT_COUNT=$(ls -1 "$PROJECT_SESSIONS"/agent-*.jsonl 2>/dev/null | wc -l)
+
+  echo "Found $MAIN_COUNT main sessions + $AGENT_COUNT subagent sessions"
   echo "Location: $PROJECT_SESSIONS"
 
-  # Show largest sessions (likely most relevant)
-  echo -e "\nLargest sessions (by line count):"
-  wc -l "$PROJECT_SESSIONS"/*.jsonl 2>/dev/null | sort -rn | head -5
+  # Show main sessions with line counts
+  echo -e "\n=== Main Sessions ==="
+  for f in "$PROJECT_SESSIONS"/*.jsonl; do
+    name=$(basename "$f" .jsonl)
+    [[ "$name" =~ ^agent- ]] && continue
+    lines=$(wc -l < "$f")
+    echo "  $name ($lines entries)"
+  done
+
+  # Show agent sessions summary
+  echo -e "\n=== Subagent Sessions ==="
+  for f in "$PROJECT_SESSIONS"/agent-*.jsonl; do
+    [[ ! -f "$f" ]] && continue
+    name=$(basename "$f" .jsonl)
+    lines=$(wc -l < "$f")
+    echo "  $name ($lines entries)"
+  done
 else
   echo "No sessions found for current project at: $PROJECT_SESSIONS"
   echo "Checking all project folders..."
@@ -95,60 +117,87 @@ AskUserQuestion:
   header: "Target"
   multiSelect: false
   options:
+    - label: "Research finding/session"
+      description: "Document a research session with full session context for reproducibility"
     - label: "Specific code/feature"
       description: "Trace who created a specific function, feature, or code block"
-    - label: "Research finding"
-      description: "Document a finding with full session context for reproducibility"
     - label: "Configuration/decision"
       description: "Trace when and why a configuration or architectural decision was made"
     - label: "Custom search"
       description: "Search session logs for specific keywords or patterns"
 ```
 
-### Flow B: Specify Search Parameters
+### Flow B: Confirm GitHub Attribution
 
-Based on target type, gather search parameters:
+**CRITICAL**: Every registry entry MUST have GitHub username attribution.
 
 ```
 AskUserQuestion:
-  question: "What keywords or identifiers should we search for?"
-  header: "Search"
-  multiSelect: true
+  question: "Who should be attributed as the creator?"
+  header: "Attribution"
+  multiSelect: false
   options:
-    - label: "File path pattern"
-      description: "Search for edits to specific files (e.g., **/minimal_3*)"
-    - label: "Function/variable name"
-      description: "Search for creation of specific identifiers"
-    - label: "Session UUID"
-      description: "Start from a known session UUID"
-    - label: "Date range"
-      description: "Limit search to sessions from specific dates"
+    - label: "Use git config user (Recommended)"
+      description: "Attribute to $(git config user.name) / $(git config user.email)"
+    - label: "Specify GitHub username"
+      description: "I'll provide the GitHub username manually"
+    - label: "Team attribution"
+      description: "Multiple contributors - list all GitHub usernames"
 ```
 
-### Flow C: Confirm Discovered Sessions
+### Flow C: Confirm Session Scope
 
-After scanning, confirm with user:
+**CRITICAL**: Default to ALL sessions. Registry must be self-contained.
 
 ```
 AskUserQuestion:
-  question: "Found N related sessions. Which should we include?"
+  question: "Which sessions should be recorded in the registry?"
   header: "Sessions"
-  multiSelect: true
+  multiSelect: false
   options:
-    - label: "Full session chain (Recommended)"
-      description: "Archive ALL sessions in UUID chain - complete provenance across auto-compacts"
-    - label: "Add earlier sessions"
-      description: "Include sessions BEFORE the chain starts (for deeper context)"
+    - label: "ALL sessions (main + subagent) (Recommended)"
+      description: "Record every session file - complete provenance for future maintainers"
+    - label: "Main sessions only"
+      description: "Exclude agent-* subagent sessions (loses context)"
     - label: "Manual selection"
       description: "I'll specify which sessions to include"
-    - label: "Provide more context"
-      description: "The search didn't find what I need, let me clarify"
 ```
 
-**IMPORTANT**: Always default to archiving the FULL session chain. Auto-compacting
-creates arbitrary boundaries - a finding's true origin often spans multiple sessions.
+**IMPORTANT**: Always default to recording ALL sessions. Subagent sessions (`agent-*`)
+contain critical context from Explore, Plan, and specialized agents. Omitting them
+forces future maintainers to re-run archaeology.
 
-### Flow D: Choose Output Format
+### Flow D: Preview Session Contexts Array
+
+Before writing, show the user exactly what will be recorded:
+
+```
+AskUserQuestion:
+  question: "Review the session_contexts array that will be recorded:"
+  header: "Review"
+  multiSelect: false
+  options:
+    - label: "Looks correct - proceed"
+      description: "Write this to the registry"
+    - label: "Add descriptions"
+      description: "Let me add descriptions to some sessions"
+    - label: "Filter some sessions"
+      description: "Remove sessions that aren't relevant"
+    - label: "Cancel"
+      description: "Don't write to registry yet"
+```
+
+Display the full session_contexts array before this question:
+```json
+{
+  "session_contexts": [
+    {"session_uuid": "abc123", "type": "main", "entries": 980, "description": "..."},
+    {"session_uuid": "agent-xyz", "type": "subagent", "entries": 113, "description": "..."}
+  ]
+}
+```
+
+### Flow E: Choose Output Format
 
 ```
 AskUserQuestion:
@@ -156,10 +205,12 @@ AskUserQuestion:
   header: "Outputs"
   multiSelect: true
   options:
-    - label: "Full session chain archive (.jsonl.br per session)"
-      description: "Compress EACH session with Brotli (best compression)"
-    - label: "provenance.jsonl (append-only log)"
-      description: "NDJSON record with UUIDs, timestamps, contributors"
+    - label: "registry.jsonl entry (Recommended)"
+      description: "Master index entry with ALL session UUIDs and GitHub attribution"
+    - label: "provenance.jsonl entries"
+      description: "Detailed iteration/experiment records"
+    - label: "Full session chain archive (.jsonl.br)"
+      description: "Compress sessions with Brotli for archival"
     - label: "Markdown finding document"
       description: "findings/<name>.md with embedded provenance table"
     - label: "Git commit with provenance"
@@ -168,20 +219,22 @@ AskUserQuestion:
       description: "Upload artifacts to S3 with retrieval command in commit"
 ```
 
-### Flow E: Link to Existing ADR (for S3 upload)
+### Flow F: Link to Existing ADR
 
-When S3 upload is selected:
+When creating a research session registry entry:
 
 ```
 AskUserQuestion:
-  question: "Link this finding to an existing ADR?"
+  question: "Link this to an existing ADR or design spec?"
   header: "ADR Link"
   multiSelect: false
   options:
     - label: "No ADR link"
-      description: "This finding is standalone"
+      description: "This is standalone or ADR doesn't exist yet"
     - label: "Specify ADR slug"
       description: "Link to an existing ADR (e.g., 2025-12-15-feature-name)"
+    - label: "Create new ADR"
+      description: "This finding warrants a new ADR"
 ```
 
 ---
@@ -190,46 +243,67 @@ AskUserQuestion:
 
 ### Step 1: Full Project Scan
 
-Scan all session files in the project folder to build a session index:
+Scan ALL session files (main + subagent) to build complete index:
 
 ```bash
 /usr/bin/env bash << 'SCAN_EOF'
+CWD=$(pwd)
+ENCODED_PATH=$(echo "$CWD" | tr '/' '-')
 PROJECT_SESSIONS="$HOME/.claude/projects/$ENCODED_PATH"
 
-# Build session index
-echo "Scanning sessions..."
-for session in "$PROJECT_SESSIONS"/*.jsonl; do
-  SESSION_ID=$(basename "$session" .jsonl)
-  LINE_COUNT=$(wc -l < "$session")
-  FIRST_TS=$(head -1 "$session" | jq -r '.timestamp // empty')
-  LAST_TS=$(tail -1 "$session" | jq -r '.timestamp // empty')
+echo "=== Building Session Index ==="
 
-  echo "$SESSION_ID|$LINE_COUNT|$FIRST_TS|$LAST_TS"
-done > /tmp/session_index.txt
+# Main sessions
+echo "Main sessions:"
+for f in "$PROJECT_SESSIONS"/*.jsonl; do
+  name=$(basename "$f" .jsonl)
+  [[ "$name" =~ ^agent- ]] && continue
+  lines=$(wc -l < "$f")
+  first_ts=$(head -1 "$f" | jq -r '.timestamp // empty' 2>/dev/null)
+  last_ts=$(tail -1 "$f" | jq -r '.timestamp // empty' 2>/dev/null)
+  echo "  $name|main|$lines|$first_ts|$last_ts"
+done
 
-echo "Indexed $(wc -l < /tmp/session_index.txt) sessions"
+# Subagent sessions
+echo "Subagent sessions:"
+for f in "$PROJECT_SESSIONS"/agent-*.jsonl; do
+  [[ ! -f "$f" ]] && continue
+  name=$(basename "$f" .jsonl)
+  lines=$(wc -l < "$f")
+  first_ts=$(head -1 "$f" | jq -r '.timestamp // empty' 2>/dev/null)
+  echo "  $name|subagent|$lines|$first_ts"
+done
 SCAN_EOF
 ```
 
-### Step 2: Search for Target
+### Step 2: Build session_contexts Array
 
-Search across all sessions for the target:
+**CRITICAL**: This array must contain ALL sessions. Example output:
 
-```bash
-/usr/bin/env bash << 'SEARCH_EOF'
-# Search for keyword in all sessions
-grep -l "SEARCH_TERM" "$PROJECT_SESSIONS"/*.jsonl
-
-# Extract entries with tool_use containing the target
-jq -c 'select(.message.content[]?.type == "tool_use") |
-       select(.message.content[].input | tostring | contains("SEARCH_TERM"))' \
-  "$PROJECT_SESSIONS"/*.jsonl
-SEARCH_EOF
+```json
+{
+  "session_contexts": [
+    {
+      "session_uuid": "8c821a19-e4f4-45d5-9338-be3a47ac81a3",
+      "type": "main",
+      "entries": 980,
+      "timestamp_start": "2026-01-03T21:25:07.435Z",
+      "description": "Primary session - research iterations, PR preparation"
+    },
+    {
+      "session_uuid": "agent-a728ebe",
+      "type": "subagent",
+      "entries": 113,
+      "timestamp_start": "2026-01-02T07:25:47.658Z",
+      "description": "Explore agent - codebase analysis"
+    }
+  ]
+}
 ```
 
-### Step 3: Trace UUID Chain
+### Step 3: Trace UUID Chain (Optional)
 
-Trace parentUuid chain backwards to find origin:
+For detailed provenance of specific edits:
 
 ```bash
 /usr/bin/env bash << 'TRACE_EOF'
@@ -242,7 +316,6 @@ trace_uuid_chain() {
   echo "Tracing UUID chain from: $uuid"
 
   while [[ -n "$uuid" && $depth -lt $max_depth ]]; do
-    # Find entry with this UUID
     entry=$(jq -c "select(.uuid == \"$uuid\")" "$session_file" 2>/dev/null)
 
     if [[ -n "$entry" ]]; then
@@ -256,7 +329,6 @@ trace_uuid_chain() {
       uuid="$parent"
       ((depth++))
     else
-      # UUID not in this session - search other sessions
       echo "  UUID $uuid not in current session, searching others..."
       found=false
       for session in "$PROJECT_SESSIONS"/*.jsonl; do
@@ -276,286 +348,222 @@ trace_uuid_chain() {
 TRACE_EOF
 ```
 
-### Step 4: Extract Edit Context
-
-Extract the exact tool_use that created/modified the target:
-
-```bash
-/usr/bin/env bash << 'EXTRACT_EOF'
-# Extract tool_use block with context (5 entries before and after)
-jq -c 'select(.message.content[]?.type == "tool_use") |
-       select(.message.content[].name == "Edit" or .message.content[].name == "Write")' \
-  "$SESSION_FILE" | head -20
-EXTRACT_EOF
-```
-
 ---
 
-## Part 3: Output Generation
+## Part 3: Registry Schema
 
-### NDJSON Provenance Record Schema
+### registry.jsonl (Master Index)
 
-Each provenance record in `provenance.jsonl`:
+Each line is a complete, self-contained JSON object:
 
 ```json
 {
-  "id": "uuid-v4",
-  "type": "finding|decision|contribution",
-  "target": {
-    "file": "path/to/file.py",
-    "identifier": "minimal_3",
-    "description": "3-feature baseline model"
-  },
-  "origin": {
-    "session_id": "7380c12f-9c92-426f-9fe8-2c08705c81aa",
-    "edit_uuid": "055fa4fe-b85d-4ff1-b337-f15b99d98eac",
-    "parent_uuid": "da0ffa7d-7374-414f-8197-7b8bb3d10e52",
-    "timestamp": "2026-01-01T01:48:27.634Z",
+  "id": "2026-01-01-multiyear-momentum",
+  "type": "research_session",
+  "title": "Multi-Year Cross-Sectional Momentum Strategy Validation",
+  "project": "alpha-forge",
+  "branch": "feat/2026-01-01-multiyear-cs-momentum-research",
+  "created_at": "2026-01-03T01:00:00Z",
+  "created_by": {
+    "github_username": "terrylica",
     "model": "claude-opus-4-5-20251101",
-    "contributor": "claude"
+    "session_uuid": "8c821a19-e4f4-45d5-9338-be3a47ac81a3"
   },
-  "chain": {
-    "sessions_traced": 3,
-    "total_entries": 22456,
-    "chain_depth": 15
-  },
-  "artifacts": {
-    "session_context": "findings/provenance/session_context_<id>.jsonl.gz",
-    "finding_doc": "findings/<name>.md"
-  },
-  "created_at": "2026-01-01T12:00:00Z"
+  "session_contexts": [
+    {"session_uuid": "...", "type": "main", "entries": 980, "description": "..."},
+    {"session_uuid": "agent-...", "type": "subagent", "entries": 113, "description": "..."}
+  ],
+  "metrics": {"sharpe": 0.31, "hit_rate": null},
+  "artifacts": {"adr": "docs/adr/...", "config": "examples/..."},
+  "status": "validated",
+  "finding": "Summary of what was discovered",
+  "recommendation": "What to do next"
 }
 ```
 
+**Required Fields**:
+- `id` - Unique identifier (format: `YYYY-MM-DD-slug`)
+- `type` - `research_session` | `finding` | `decision`
+- `created_at` - ISO8601 timestamp
+- `created_by.github_username` - **MANDATORY** - GitHub username
+- `session_contexts` - **MANDATORY** - Array of ALL session UUIDs
+
+### provenance.jsonl (Detailed Records)
+
+For iteration-level tracking:
+
+```json
+{
+  "id": "iter-001",
+  "registry_id": "2026-01-01-multiyear-momentum",
+  "type": "iteration",
+  "created_at": "2026-01-01T10:00:00Z",
+  "created_by": {
+    "github_username": "terrylica",
+    "model": "claude-opus-4-5-20251101",
+    "session_uuid": "8c821a19-e4f4-45d5-9338-be3a47ac81a3"
+  },
+  "hypothesis": "Test BiLSTM with conservative clip",
+  "config": {"strategy": "bilstm", "clip": 0.05},
+  "results": {"train_sharpe": 0.31, "test_sharpe": -1.15},
+  "finding": "BiLSTM shows no edge",
+  "status": "FAILED"
+}
+```
+
+---
+
+## Part 4: Output Generation
+
 ### Compressed Session Context
 
-**CRITICAL**: Extract the FULL chain across ALL related sessions, not just a fixed window.
-
-The provenance chain typically spans multiple auto-compacted sessions. Each session file
-represents a context window - the finding may have origins several sessions back.
+For archival, compress sessions with Brotli:
 
 ```bash
 /usr/bin/env bash << 'COMPRESS_EOF'
-# Extract FULL session chain - not limited to fixed entries
-# Each session in the chain gets its own compressed file
-
 OUTPUT_DIR="findings/provenance/session_chain_${TARGET_ID}"
 mkdir -p "$OUTPUT_DIR"
 
-# 1. Get the UUID chain (traced by uuid_tracer.sh)
-CHAIN_FILE="$OUTPUT_DIR/uuid_chain.jsonl"
-
-# 2. For EACH session in the chain, extract and compress the FULL session
-for session_id in $(cat "$CHAIN_FILE" | jq -r '.session_id' | sort -u); do
+# Compress each session
+for session_id in $SESSION_LIST; do
   SESSION_PATH="$PROJECT_SESSIONS/${session_id}.jsonl"
   if [[ -f "$SESSION_PATH" ]]; then
-    # Compress entire session (not just a window)
-    gzip -c "$SESSION_PATH" > "$OUTPUT_DIR/${session_id}.jsonl.gz"
-    echo "Archived: ${session_id} ($(wc -l < "$SESSION_PATH") entries)"
+    brotli -c "$SESSION_PATH" > "$OUTPUT_DIR/${session_id}.jsonl.br"
+    echo "Archived: ${session_id}"
   fi
 done
 
-# 3. Create manifest of all archived sessions
-cat "$CHAIN_FILE" | jq -s '{
-  target_id: $TARGET_ID,
-  sessions_archived: (map(.session_id) | unique),
-  total_sessions: (map(.session_id) | unique | length),
-  chain_depth: length,
-  created_at: now | todate
-}' > "$OUTPUT_DIR/manifest.json"
-
-echo "Full session chain archived to: $OUTPUT_DIR"
+# Create manifest
+cat > "$OUTPUT_DIR/manifest.json" << MANIFEST
+{
+  "target_id": "$TARGET_ID",
+  "sessions_archived": $SESSION_COUNT,
+  "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+MANIFEST
 COMPRESS_EOF
-```
-
-**Why full sessions?**
-
-- Auto-compacting creates session boundaries at arbitrary points
-- A single finding's context may span 3-5+ sessions
-- Partial extraction loses critical context about HOW the finding evolved
-- Full sessions enable complete reproduction and audit
-
-### Markdown Finding Document Template
-
-````markdown
-# Finding: <title>
-
-**Date**: YYYY-MM-DD
-**Status**: VALIDATED
-**ADR**: [link if applicable]
-
----
-
-## Summary
-
-<1-2 paragraph description of the finding>
-
----
-
-## Provenance
-
-| Field       | Value           |
-| ----------- | --------------- |
-| Session ID  | `<session_id>`  |
-| Timestamp   | `<timestamp>`   |
-| Model       | `<model>`       |
-| Edit UUID   | `<edit_uuid>`   |
-| Parent UUID | `<parent_uuid>` |
-
-### Session Chain
-
-| Session     | Lines   | Date Range      |
-| ----------- | ------- | --------------- |
-| <session_1> | <lines> | <start> - <end> |
-| <session_2> | <lines> | <start> - <end> |
-
-### Context
-
-<Original Claude message before the edit>
-
----
-
-## Artifacts
-
-| File                                       | Description                |
-| ------------------------------------------ | -------------------------- |
-| `provenance/session_context_<id>.jsonl.gz` | Compressed session excerpt |
-| `provenance/<name>_edit_context.json`      | Exact tool_use block       |
-
----
-
-## Reproduction
-
-```bash
-# Commands to reproduce or verify the finding
-```
-````
-
----
-
-_Generated by session-chronicle skill_
-
 ```
 
 ### Git Commit Message Template
 
 ```
-
 feat(finding): <short description>
 
 Session-Chronicle Provenance:
-session_id: <session_id>
-edit_uuid: <edit_uuid>
-parent_uuid: <parent_uuid>
-timestamp: <timestamp>
-model: <model>
-sessions_traced: <count>
-chain_depth: <depth>
+registry_id: <registry_id>
+github_username: <github_username>
+main_sessions: <count>
+subagent_sessions: <count>
+total_entries: <total>
 
 Artifacts:
-
-- findings/<name>.md
-- findings/provenance/session*context*<id>.jsonl.gz
-- findings/provenance/<name>\_edit_context.json
+- findings/registry.jsonl
+- findings/provenance/provenance.jsonl
 
 Co-authored-by: Claude <noreply@anthropic.com>
-
 ```
 
 ---
 
-## Part 4: Iterative Fallback
+## Part 5: Confirmation Workflow
 
-If initial search fails or is insufficient:
+### Final Confirmation Before Write
 
-### Fallback A: Expand Search Scope
+**ALWAYS** show the user what will be written before appending:
 
 ```
-
 AskUserQuestion:
-question: "Search didn't find clear matches. How should we proceed?"
-header: "Fallback"
-multiSelect: false
-options: - label: "Expand to all sessions"
-description: "Search entire project history (may be slow)" - label: "Different search terms"
-description: "Let me provide alternative keywords" - label: "Specific session file"
-description: "I know which session file contains it" - label: "Date range narrowing"
-description: "I can narrow down when this was created"
-
+  question: "Ready to write to registry. Confirm the entry:"
+  header: "Confirm"
+  multiSelect: false
+  options:
+    - label: "Write to registry"
+      description: "Append this entry to findings/registry.jsonl"
+    - label: "Edit first"
+      description: "Let me modify some fields before writing"
+    - label: "Cancel"
+      description: "Don't write anything"
 ```
 
-### Fallback B: Manual Context
+Before this question, display:
+1. Full JSON entry (pretty-printed)
+2. Count of session_contexts entries
+3. GitHub username attribution
+4. Target file path
 
-```
+### Post-Write Verification
 
-AskUserQuestion:
-question: "Please provide additional context for the search"
-header: "Context"
-multiSelect: true
-options: - label: "Approximate date"
-description: "When was this approximately created?" - label: "Related files"
-description: "What other files were involved?" - label: "Conversation topic"
-description: "What were we discussing when this was created?" - label: "Session UUID if known"
-description: "I have a specific session UUID to start from"
+After writing, verify:
 
+```bash
+# Validate NDJSON format
+tail -1 findings/registry.jsonl | jq . > /dev/null && echo "Valid JSON"
+
+# Show what was written
+echo "Entry added:"
+tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.session_contexts | length)'
 ```
 
 ---
 
-## Part 5: Workflow Summary
+## Part 6: Workflow Summary
 
 ```
-
 1. PREFLIGHT
    ├── Verify session storage location
-   ├── Find current project sessions
-   └── Check required tools (jq, brotli, aws, op)
+   ├── Find ALL sessions (main + subagent)
+   └── Check required tools (jq, brotli)
 
-2. IDENTIFY TARGET
+2. ASK: TARGET TYPE
    └── AskUserQuestion: What to trace?
 
-3. FULL PROJECT SCAN
-   ├── Index all session files
-   ├── Search for target across sessions
-   └── Build session timeline
+3. ASK: GITHUB ATTRIBUTION
+   └── AskUserQuestion: Who created this?
 
-4. TRACE UUID CHAIN
-   ├── Find target entry
-   ├── Trace parentUuid backwards
-   └── Cross-reference multiple sessions if needed
+4. ASK: SESSION SCOPE
+   └── AskUserQuestion: Which sessions? (Default: ALL)
 
-5. CONFIRM WITH USER
-   ├── AskUserQuestion: Which sessions to include?
-   └── AskUserQuestion: Link to existing ADR?
+5. BUILD session_contexts ARRAY
+   ├── Enumerate ALL main sessions
+   ├── Enumerate ALL subagent sessions
+   └── Collect metadata (entries, timestamps)
 
-6. GENERATE OUTPUTS
-   ├── Append to provenance.jsonl
-   ├── Create Brotli-compressed session context (.jsonl.br)
-   ├── Generate markdown finding document
-   └── Prepare git commit message
+6. ASK: PREVIEW session_contexts
+   └── AskUserQuestion: Review before writing
 
-7. S3 UPLOAD (optional)
-   ├── Upload artifacts to S3 via scripts/s3_upload.sh
-   ├── Uses 1Password for credential injection
-   └── Updates manifest with S3 location
+7. ASK: OUTPUT FORMAT
+   └── AskUserQuestion: What to generate?
 
-8. GIT COMMIT
-   ├── Embed S3 URIs in commit message
-   ├── Include retrieval command for coworkers
-   └── Add Session-Chronicle-S3: trailer
+8. ASK: ADR LINK
+   └── AskUserQuestion: Link to ADR?
 
-9. FALLBACK (if needed)
-   └── AskUserQuestion: Provide more context
+9. GENERATE OUTPUTS
+   ├── Build registry.jsonl entry
+   ├── Build provenance.jsonl entries (if applicable)
+   └── Prepare commit message
 
+10. ASK: FINAL CONFIRMATION
+    └── AskUserQuestion: Ready to write?
+
+11. WRITE & VERIFY
+    ├── Append to registry.jsonl
+    ├── Append to provenance.jsonl
+    └── Validate NDJSON format
+
+12. (OPTIONAL) S3 UPLOAD
+    └── Upload compressed archives
 ```
 
-### S3 Upload Scripts
+---
 
-| Script | Purpose |
-| ------ | ------- |
-| `scripts/s3_upload.sh` | Upload artifacts to S3 with 1Password credentials |
-| `scripts/retrieve_artifact.sh` | Download and decompress artifacts for coworkers |
-| `scripts/generate_commit_message.sh` | Generate commit message with S3 links |
+## Success Criteria
+
+1. **Complete session enumeration** - ALL main + subagent sessions recorded
+2. **GitHub attribution** - `created_by.github_username` always present
+3. **Self-contained registry** - Future maintainers don't need archaeology
+4. **User confirmation** - Every step has AskUserQuestion confirmation
+5. **Valid NDJSON** - All entries pass `jq` validation
+6. **Reproducible** - Session UUIDs enable full context retrieval
 
 ---
 
@@ -563,20 +571,6 @@ description: "I have a specific session UUID to start from"
 
 - [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md)
 - [S3 Retrieval Guide](./references/s3-retrieval-guide.md)
-- [Session Storage](/plugins/devops-tools/skills/session-recovery/SKILL.md)
 - [NDJSON Specification](https://github.com/ndjson/ndjson-spec)
 - [jq Manual](https://jqlang.github.io/jq/manual/)
 - [Brotli Compression](https://github.com/google/brotli)
-
----
-
-## Success Criteria
-
-1. **Complete chain traced** - All UUID links followed to origin
-2. **Cross-session tracking** - Auto-compacted sessions handled
-3. **Machine-readable output** - NDJSON provenance record created
-4. **Human-readable output** - Markdown finding document generated
-5. **Git-ready** - Commit message with full provenance prepared
-6. **Reproducible** - Compressed context allows verification
-7. **Team-accessible** - Artifacts uploaded to S3 with retrieval command
-```
