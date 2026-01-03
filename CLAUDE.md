@@ -129,7 +129,7 @@ cc-skills/
 
 **Why**: Skill-internal files must use relative paths (absolute paths break when installed to `~/.claude/skills/`). ADRs and design specs are NOT bundled with installed plugins, so `/docs/` paths serve as source repo references.
 
-**Release**: Semantic-release with conventional commits. ALL commit types trigger patch releases (marketplace constraint).
+**Release**: Semantic-release with conventional commits. ALL commit types trigger patch releases (marketplace constraint). Post-release automatically syncs `~/.claude/plugins/cache/` — no manual `/plugin update` needed.
 
 ## Key Files
 

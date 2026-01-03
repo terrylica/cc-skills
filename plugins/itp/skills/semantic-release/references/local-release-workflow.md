@@ -281,7 +281,7 @@ LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF_2
 
 ## Phase 4: Postflight
 
-**Purpose**: Verify success and update local state.
+**Purpose**: Verify success, update local state, and sync local plugin cache.
 
 ### 4.1 Verify Pristine State
 
@@ -314,6 +314,42 @@ git status -sb
 # Expected: ## main...origin/main (no ahead/behind counts)
 ```
 
+### 4.5 Plugin Cache Sync (cc-skills only)
+
+**For cc-skills repository**: The `.releaserc.yml` includes a `successCmd` that automatically:
+
+1. **Updates marketplace repo**: `~/.claude/plugins/marketplaces/cc-skills/` git reset to new tag
+2. **Triggers plugin update**: `claude --print "/plugin update cc-skills"`
+3. **Verifies cache**: Confirms `~/.claude/plugins/cache/cc-skills/<plugin>/<version>/` exists
+
+**No manual `/plugin update` required** — this is fully automated in the release workflow.
+
+```
+              cc-skills Post-Release Cache Sync
+
+ ---------      +-------------------+     +------------------+
+| Release | --> | Update Marketplace| --> | Trigger /plugin  |
+ ---------      |       Repo        |     |    update        |
+                +-------------------+     +------------------+
+                                            |
+                                            v
+                                          +------------------+
+                                          |  Verify Cache    |
+                                          |  v{VERSION}      |
+                                          +------------------+
+```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "cc-skills Post-Release Cache Sync"; flow: east; }
+
+[ Release ] { shape: rounded; } -> [ Update Marketplace\nRepo ] -> [ Trigger /plugin\nupdate ] -> [ Verify Cache\nv{VERSION} ]
+```
+
+</details>
+
 ---
 
 ## Success Criteria
@@ -328,6 +364,7 @@ git status -sb
 - [ ] Release visible: `gh release list --limit 1`
 - [ ] Working directory pristine
 - [ ] Local tracking refs updated (no stale indicators)
+- [ ] **Plugin cache synced** (cc-skills: `~/.claude/plugins/cache/` has new version)
 
 ---
 
