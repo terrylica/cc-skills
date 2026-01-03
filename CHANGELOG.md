@@ -1,3 +1,10 @@
+## [9.9.1](https://github.com/terrylica/cc-skills/compare/v9.9.0...v9.9.1) (2026-01-03)
+
+
+### Bug Fixes
+
+* **semantic-release:** make post-release plugin verification fully automated ([d92e542](https://github.com/terrylica/cc-skills/commit/d92e542690a6aed3db026de06e6c08957329cb8b))
+
 # [9.9.0](https://github.com/terrylica/cc-skills/compare/v9.8.1...v9.9.0) (2026-01-03)
 
 
