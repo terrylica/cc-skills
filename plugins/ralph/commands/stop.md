@@ -6,9 +6,7 @@ argument-hint: ""
 
 # Ralph Loop: Stop
 
-Immediately disable the Ralph Wiggum autonomous improvement loop.
-
-## Execution
+**EXECUTE IMMEDIATELY**: Use the Bash tool to run the following script. Do NOT summarize or acknowledge - EXECUTE the script first.
 
 ```bash
 # Use /usr/bin/env bash for macOS zsh compatibility (see ADR: shell-command-portability-zsh)
@@ -150,4 +148,4 @@ echo "Loop stop complete."
 RALPH_STOP_SCRIPT
 ```
 
-Run the bash script above to disable loop mode.
+After execution, confirm the loop has been stopped by checking the output.
