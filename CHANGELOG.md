@@ -1,3 +1,10 @@
+## [9.9.3](https://github.com/terrylica/cc-skills/compare/v9.9.2...v9.9.3) (2026-01-03)
+
+
+### Bug Fixes
+
+* **semantic-release:** simplify post-release verification, remove complex jq check ([a6e48c9](https://github.com/terrylica/cc-skills/commit/a6e48c9a03135e47f7bae8acdbe6b913b5b51dd5))
+
 ## [9.9.2](https://github.com/terrylica/cc-skills/compare/v9.9.1...v9.9.2) (2026-01-03)
 
 
