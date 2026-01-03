@@ -1,3 +1,34 @@
+# [9.10.0](https://github.com/terrylica/cc-skills/compare/v9.9.3...v9.10.0) (2026-01-03)
+
+
+### Bug Fixes
+
+* **session-chronicle:** eliminate all silent failures in embedded scripts ([1e1bfd0](https://github.com/terrylica/cc-skills/commit/1e1bfd0d47d93038792a98a3857c9f99b3671905))
+
+
+### Features
+
+* **session-chronicle:** enforce complete session recording with AskUserQuestion flows ([bdaab73](https://github.com/terrylica/cc-skills/commit/bdaab73be0dad0d629226cc7d3fb350b8db84aba))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+446/-311)
+
+</details>
+
 ## [9.9.3](https://github.com/terrylica/cc-skills/compare/v9.9.2...v9.9.3) (2026-01-03)
 
 
