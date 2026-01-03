@@ -12,7 +12,8 @@ S3_URI="${1:-}"
 OUTPUT_DIR="${2:-./provenance}"
 
 # 1Password configuration
-OP_ITEM_ID="uy6sbqwno7cofdapusds5f6aea"
+OP_VAULT="Claude Automation"
+OP_ITEM_ID="rfuaxz6fzsz5y7p6nmutsuyzoq"
 AWS_REGION="us-west-2"
 
 if [[ -z "$S3_URI" ]]; then
@@ -70,8 +71,8 @@ echo ""
 echo "=== Loading Credentials ==="
 
 # Load credentials from 1Password
-export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/$OP_ITEM_ID/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/$OP_ITEM_ID/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://$OP_VAULT/$OP_ITEM_ID/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/secret access key")
 export AWS_DEFAULT_REGION="$AWS_REGION"
 
 echo "✓ AWS credentials loaded from 1Password"

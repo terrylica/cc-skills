@@ -20,10 +20,10 @@ Sign in to 1Password:
 op signin
 ```
 
-Verify access to Engineering vault:
+Verify access to Claude Automation vault:
 
 ```bash
-op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id" >/dev/null && echo "OK"
+op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id" >/dev/null && echo "OK"
 ```
 
 ---
@@ -47,8 +47,8 @@ Copy this command from the git commit message:
 
 ```bash
 /usr/bin/env bash << 'RETRIEVE_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 aws s3 sync s3://terryli-dvc-storage/session-chronicle/<id>/ ./provenance/
 for f in ./provenance/*.br; do brotli -d "$f"; done
@@ -104,8 +104,8 @@ jq -r '.session_id' ./provenance/uuid_chain.jsonl | sort -u
 | Bucket            | `s3://terryli-dvc-storage`   |
 | Region            | `us-west-2`                  |
 | Prefix            | `session-chronicle/`         |
-| Credential Source | 1Password Engineering vault  |
-| 1Password Item    | `uy6sbqwno7cofdapusds5f6aea` |
+| Credential Source | 1Password Claude Automation vault |
+| 1Password Item    | `rfuaxz6fzsz5y7p6nmutsuyzoq`      |
 
 ---
 
@@ -129,7 +129,7 @@ op signin
 
 ### "vault not found" or access denied
 
-Contact your admin to get access to the Engineering vault.
+Contact your admin to get access to the Claude Automation vault.
 
 ### "brotli: command not found"
 
@@ -144,7 +144,7 @@ brew install brotli
 Verify your 1Password access:
 
 ```bash
-op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id"
+op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id"
 ```
 
 If this fails, you don't have access to the credential item.
@@ -155,7 +155,7 @@ If this fails, you don't have access to the credential item.
 
 - **Never commit credentials** to git
 - Credentials are injected at runtime via 1Password
-- S3 access requires Engineering vault membership
+- S3 access requires Claude Automation vault membership
 - Session files may contain sensitive conversation data
 
 ---
