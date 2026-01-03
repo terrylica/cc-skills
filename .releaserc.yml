@@ -120,7 +120,9 @@ plugins:
         echo "→ Step 4: Checking installed plugins manifest..."
         INSTALLED_JSON="$HOME/.claude/plugins/installed_plugins.json"
         if [[ -f "$INSTALLED_JSON" ]]; then
-          INSTALLED_VERSION=$(jq -r '.[] | select(.marketplace == "cc-skills") | .version' "$INSTALLED_JSON" 2>/dev/null | head -1)
+          # Use variable for jq filter to avoid quoting issues in YAML
+          JQ_FILTER='.[] | select(.marketplace == "cc-skills") | .version'
+          INSTALLED_VERSION=$(jq -r "$JQ_FILTER" "$INSTALLED_JSON" 2>/dev/null | head -1)
           if [[ "$INSTALLED_VERSION" == "$VERSION" ]]; then
             echo "  ✓ installed_plugins.json shows v$VERSION"
           elif [[ -n "$INSTALLED_VERSION" ]]; then
