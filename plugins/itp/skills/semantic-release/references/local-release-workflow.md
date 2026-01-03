@@ -5,8 +5,23 @@
 **Single source of truth** for executing semantic-release locally. This 4-phase workflow ensures reliable, repeatable releases with automatic push.
 
 ```
-PREFLIGHT ──► SYNC ──► RELEASE ──► POSTFLIGHT
+                 Release Workflow Pipeline
+
+ -----------      +------+     +---------+      ------------
+| PREFLIGHT | --> | SYNC | --> | RELEASE | --> | POSTFLIGHT |
+ -----------      +------+     +---------+      ------------
 ```
+
+<details>
+<summary>graph-easy source</summary>
+
+```
+graph { label: "Release Workflow Pipeline"; flow: east; }
+
+[ PREFLIGHT ] { shape: rounded; } -> [ SYNC ] -> [ RELEASE ] -> [ POSTFLIGHT ] { shape: rounded; }
+```
+
+</details>
 
 ---
 
@@ -41,6 +56,18 @@ release() {
             echo "FAIL: No releasable commits since $last_tag"
             echo "Use feat: or fix: prefix for version-bumping changes"
             return 1
+        fi
+        # Check for MAJOR (breaking changes)
+        local major_commits=$(git log "${last_tag}..HEAD" --oneline | grep -E "(BREAKING CHANGE|^[a-f0-9]+ (feat|fix)!:)")
+        if [[ -n "$major_commits" ]]; then
+            echo "⚠️  MAJOR VERSION BUMP DETECTED"
+            echo "$major_commits"
+            echo ""
+            echo "In Claude Code: Multi-perspective analysis + AskUserQuestion will trigger"
+            echo "In shell: Confirm manually before proceeding"
+            read -p "Continue with MAJOR release? [y/N] " -n 1 -r
+            echo
+            [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Aborted by user"; return 1; }
         fi
     fi
     echo "PREFLIGHT: OK"
@@ -135,6 +162,57 @@ GIT_EOF
 - STOP immediately
 - Inform user: "No version-bumping commits since last release"
 - Only `feat:`, `fix:`, or `BREAKING CHANGE:` trigger releases
+
+### 1.4 MAJOR Version Confirmation (Interactive)
+
+**Trigger**: Commits containing `BREAKING CHANGE:` footer or `feat!:`/`fix!:` prefix.
+
+```bash
+/usr/bin/env bash << 'MAJOR_EOF'
+LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
+MAJOR_COMMITS=$(git log "${LAST_TAG}..HEAD" --oneline | grep -E "(BREAKING CHANGE|^[a-f0-9]+ (feat|fix)!:)")
+if [[ -n "$MAJOR_COMMITS" ]]; then
+    echo "⚠️  MAJOR VERSION BUMP DETECTED"
+    echo "$MAJOR_COMMITS"
+fi
+MAJOR_EOF
+```
+
+**If MAJOR detected** (Claude Code interactive mode):
+
+1. **Spawn 3 parallel Task subagents** for multi-perspective analysis:
+   - User Impact Analyst (who is affected, scope, workarounds)
+   - API Compatibility Analyst (what breaks, alternatives, deprecation path)
+   - Migration Strategist (effort level, migration guide needs, timeline)
+
+2. **Present AskUserQuestion with multiSelect**:
+   ```yaml
+   questions:
+     - question: "MAJOR version bump detected. How should we proceed?"
+       header: "Breaking"
+       multiSelect: false
+       options:
+         - label: "Proceed with MAJOR (Recommended)"
+           description: "Release as X.0.0 - breaking change is intentional"
+         - label: "Downgrade to MINOR"
+           description: "Amend commits to remove BREAKING CHANGE"
+         - label: "Abort release"
+           description: "Review commits before releasing"
+     - question: "Which mitigations for release notes?"
+       header: "Mitigations"
+       multiSelect: true
+       options:
+         - label: "Migration guide"
+         - label: "Deprecation notice"
+         - label: "Compatibility shim"
+   ```
+
+3. **Handle response**:
+   - "Proceed with MAJOR" → Continue to Phase 2
+   - "Downgrade to MINOR" → Guide user through commit amendment
+   - "Abort release" → STOP, user reviews
+
+See [SKILL.md § MAJOR Version Confirmation](../SKILL.md#major-version-breaking-change-confirmation) for detailed subagent prompts and decision tree.
 
 ---
 
@@ -243,6 +321,7 @@ git status -sb
 - [ ] All prerequisites verified
 - [ ] HTTPS-first authentication confirmed
 - [ ] Releasable commits validated
+- [ ] **MAJOR confirmation completed** (if breaking changes detected)
 - [ ] Remote synced (pull + push)
 - [ ] semantic-release executed without error
 - [ ] **Version incremented** (new tag > previous)
@@ -361,6 +440,35 @@ git fetch origin main:refs/remotes/origin/main --no-tags
 ```
 
 **Prevention**: Always run Phase 4 (Postflight), or use `npm run release` which runs `postrelease` automatically.
+
+### Accidental MAJOR Version Bump
+
+**Symptom**: Released X.0.0 when intended MINOR/PATCH
+
+**Cause**: Commit message contained `!` suffix or `BREAKING CHANGE:` footer unintentionally
+
+**Prevention** (use MAJOR confirmation workflow):
+
+1. Claude Code: Multi-perspective subagents analyze before proceeding
+2. Shell: `read -p` confirmation prompt in release function
+3. Review: `npm run release:dry` always shows planned version bump
+
+**Recovery** (if already released):
+
+```bash
+# Option 1: Release follow-up patch (preferred - preserves history)
+git commit --allow-empty -m "fix: correct version sequence after accidental MAJOR"
+npm run release
+
+# Option 2: Delete and re-release (destructive - not recommended)
+# Only if no consumers have updated yet
+gh release delete vX.0.0 --yes
+git push --delete origin vX.0.0
+git tag -d vX.0.0
+# Amend commit to remove BREAKING CHANGE, then re-release
+```
+
+**Best practice**: Always use `npm run release:dry` first to verify version bump matches intent.
 
 ---
 
