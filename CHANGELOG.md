@@ -1,3 +1,29 @@
+## [9.10.2](https://github.com/terrylica/cc-skills/compare/v9.10.1...v9.10.2) (2026-01-03)
+
+
+### Bug Fixes
+
+* **session-chronicle:** use Claude Automation vault for AWS credentials ([01f527f](https://github.com/terrylica/cc-skills/commit/01f527fd94886c4faad132438329414b384e91e4))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/session-chronicle</strong> (1 file)</summary>
+
+- [S3 Artifact Retrieval Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/references/s3-retrieval-guide.md) - updated (+9/-9)
+
+</details>
+
 ## [9.10.1](https://github.com/terrylica/cc-skills/compare/v9.10.0...v9.10.1) (2026-01-03)
 
 
