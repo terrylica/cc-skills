@@ -85,10 +85,10 @@ fi
 
 cat << 'EOF'
 
-Retrieval (requires 1Password Engineering vault access):
+Retrieval (requires 1Password Claude Automation vault access):
   /usr/bin/env bash << 'RETRIEVE_EOF'
-  export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id")
-  export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/secret access key")
+  export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
+  export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
   export AWS_DEFAULT_REGION="us-west-2"
 EOF
 

@@ -6,7 +6,8 @@ set -euo pipefail
 
 echo "=== 1Password Credential Access Validation ==="
 
-OP_ITEM_ID="uy6sbqwno7cofdapusds5f6aea"
+OP_VAULT="Claude Automation"
+OP_ITEM_ID="rfuaxz6fzsz5y7p6nmutsuyzoq"
 
 # Check 1Password CLI is available
 if ! command -v op &>/dev/null; then
@@ -25,12 +26,12 @@ if ! op account get &>/dev/null; then
 fi
 echo "✓ 1Password: Account configured"
 
-# Check Engineering vault access with retry for biometric auth timing
+# Check vault access with retry for biometric auth timing
 # Biometric auth can have a slight delay before vault access is available
 VAULT_RETRIES=3
 VAULT_FOUND=false
 for i in $(seq 1 $VAULT_RETRIES); do
-  if op vault list 2>/dev/null | grep -q "Engineering"; then
+  if op vault list 2>/dev/null | grep -q "$OP_VAULT"; then
     VAULT_FOUND=true
     break
   fi
@@ -38,15 +39,15 @@ for i in $(seq 1 $VAULT_RETRIES); do
 done
 
 if $VAULT_FOUND; then
-  echo "✓ Engineering vault: Accessible"
+  echo "✓ $OP_VAULT vault: Accessible"
 else
-  echo "✗ Engineering vault: NOT ACCESSIBLE"
-  echo "  Ensure you have access to the Engineering vault in 1Password"
+  echo "✗ $OP_VAULT vault: NOT ACCESSIBLE"
+  echo "  Ensure you have access to the $OP_VAULT vault in 1Password"
   exit 1
 fi
 
 # Check specific item access
-ACCESS_KEY=$(op read "op://Engineering/$OP_ITEM_ID/access key id" 2>&1)
+ACCESS_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/access key id" 2>&1)
 if [[ "$ACCESS_KEY" == AKIA* ]]; then
   echo "✓ AWS Access Key ID: Retrieved (${ACCESS_KEY:0:8}...)"
 else
@@ -55,7 +56,7 @@ else
   exit 1
 fi
 
-SECRET_KEY=$(op read "op://Engineering/$OP_ITEM_ID/secret access key" 2>&1)
+SECRET_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/secret access key" 2>&1)
 if [[ ${#SECRET_KEY} -gt 20 ]]; then
   echo "✓ AWS Secret Access Key: Retrieved (${#SECRET_KEY} chars)"
 else
