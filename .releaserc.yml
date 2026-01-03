@@ -53,3 +53,45 @@ plugins:
   - - "@semantic-release/exec"
     - successCmd: "/usr/bin/env bash -c 'git push --follow-tags origin main && git update-index --refresh && echo ✓ Git index refreshed'"
   - "@semantic-release/github"
+  # Post-release: Update local plugin installation and verify cache
+  # Ensures developer's own Claude Code instance has the latest version
+  - - "@semantic-release/exec"
+    - successCmd: |
+        /usr/bin/env bash << 'VERIFY_PLUGIN_EOF'
+        echo ""
+        echo "═══════════════════════════════════════════════════════════"
+        echo "  POST-RELEASE: Plugin Cache Verification"
+        echo "═══════════════════════════════════════════════════════════"
+
+        VERSION="${nextRelease.version}"
+        CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
+        MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
+
+        # Step 1: Update marketplace git repo
+        if [[ -d "$MARKETPLACE_DIR/.git" ]]; then
+          echo "→ Updating marketplace repo..."
+          cd "$MARKETPLACE_DIR"
+          git fetch origin --tags --quiet
+          git reset --hard "v$VERSION" --quiet 2>/dev/null || git reset --hard origin/main --quiet
+          echo "  ✓ Marketplace repo at v$VERSION"
+        fi
+
+        # Step 2: Check cache for new version
+        echo "→ Checking plugin cache..."
+        CACHED_VERSIONS=$(ls -1 "$CACHE_DIR/ralph/" 2>/dev/null | sort -V | tail -3 | tr '\n' ' ')
+        echo "  Recent cached versions: $CACHED_VERSIONS"
+
+        if [[ -d "$CACHE_DIR/ralph/$VERSION" ]]; then
+          echo "  ✓ Cache already has v$VERSION"
+        else
+          echo "  ⚠ Cache missing v$VERSION - will be created on next /plugin update"
+        fi
+
+        # Step 3: Verification summary
+        echo ""
+        echo "───────────────────────────────────────────────────────────"
+        echo "  To ensure Claude Code uses v$VERSION, run:"
+        echo "    /plugin update cc-skills"
+        echo "  Then restart Claude Code session"
+        echo "───────────────────────────────────────────────────────────"
+        VERIFY_PLUGIN_EOF
