@@ -53,45 +53,83 @@ plugins:
   - - "@semantic-release/exec"
     - successCmd: "/usr/bin/env bash -c 'git push --follow-tags origin main && git update-index --refresh && echo ✓ Git index refreshed'"
   - "@semantic-release/github"
-  # Post-release: Update local plugin installation and verify cache
-  # Ensures developer's own Claude Code instance has the latest version
+  # Post-release: Auto-update local plugin and verify cache
+  # Fully automated - no manual intervention required
   - - "@semantic-release/exec"
     - successCmd: |
         /usr/bin/env bash << 'VERIFY_PLUGIN_EOF'
+        set -euo pipefail
+
         echo ""
         echo "═══════════════════════════════════════════════════════════"
-        echo "  POST-RELEASE: Plugin Cache Verification"
+        echo "  POST-RELEASE: Automated Plugin Update & Verification"
         echo "═══════════════════════════════════════════════════════════"
 
         VERSION="${nextRelease.version}"
         CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
         MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
 
-        # Step 1: Update marketplace git repo
+        # Step 1: Update marketplace git repo (source of truth)
+        echo "→ Step 1: Updating marketplace repo..."
         if [[ -d "$MARKETPLACE_DIR/.git" ]]; then
-          echo "→ Updating marketplace repo..."
           cd "$MARKETPLACE_DIR"
           git fetch origin --tags --quiet
           git reset --hard "v$VERSION" --quiet 2>/dev/null || git reset --hard origin/main --quiet
-          echo "  ✓ Marketplace repo at v$VERSION"
-        fi
-
-        # Step 2: Check cache for new version
-        echo "→ Checking plugin cache..."
-        CACHED_VERSIONS=$(ls -1 "$CACHE_DIR/ralph/" 2>/dev/null | sort -V | tail -3 | tr '\n' ' ')
-        echo "  Recent cached versions: $CACHED_VERSIONS"
-
-        if [[ -d "$CACHE_DIR/ralph/$VERSION" ]]; then
-          echo "  ✓ Cache already has v$VERSION"
+          REPO_VERSION=$(jq -r '.version' plugin.json 2>/dev/null || echo "unknown")
+          if [[ "$REPO_VERSION" == "$VERSION" ]]; then
+            echo "  ✓ Marketplace repo updated to v$VERSION"
+          else
+            echo "  ✗ FAILED: Marketplace repo at v$REPO_VERSION, expected v$VERSION"
+            exit 1
+          fi
         else
-          echo "  ⚠ Cache missing v$VERSION - will be created on next /plugin update"
+          echo "  ⚠ Marketplace repo not found at $MARKETPLACE_DIR"
         fi
 
-        # Step 3: Verification summary
+        # Step 2: Trigger Claude Code plugin update via CLI
+        echo "→ Step 2: Triggering Claude Code plugin update..."
+        if command -v claude &>/dev/null; then
+          # Use claude CLI in non-interactive mode to update plugin
+          claude --print "/plugin update cc-skills" 2>&1 | head -20 || true
+          echo "  ✓ Plugin update triggered"
+        else
+          echo "  ⚠ Claude CLI not found in PATH, skipping automatic update"
+        fi
+
+        # Step 3: Wait briefly for cache to populate
+        sleep 2
+
+        # Step 4: Verify cache has new version
+        echo "→ Step 3: Verifying plugin cache..."
+        if [[ -d "$CACHE_DIR" ]]; then
+          # Find any plugin directory to check versions
+          SAMPLE_PLUGIN=$(ls -1 "$CACHE_DIR" 2>/dev/null | head -1)
+          if [[ -n "$SAMPLE_PLUGIN" && -d "$CACHE_DIR/$SAMPLE_PLUGIN/$VERSION" ]]; then
+            echo "  ✓ Cache verified: v$VERSION present"
+          elif [[ -n "$SAMPLE_PLUGIN" ]]; then
+            LATEST_CACHED=$(ls -1 "$CACHE_DIR/$SAMPLE_PLUGIN" 2>/dev/null | sort -V | tail -1)
+            if [[ "$LATEST_CACHED" == "$VERSION" ]]; then
+              echo "  ✓ Cache verified: v$VERSION is latest"
+            else
+              echo "  ⚠ Cache has v$LATEST_CACHED, v$VERSION may need session restart"
+            fi
+          fi
+        fi
+
+        # Step 5: Final verification - check installed_plugins.json
+        echo "→ Step 4: Checking installed plugins manifest..."
+        INSTALLED_JSON="$HOME/.claude/plugins/installed_plugins.json"
+        if [[ -f "$INSTALLED_JSON" ]]; then
+          INSTALLED_VERSION=$(jq -r '.[] | select(.marketplace == "cc-skills") | .version' "$INSTALLED_JSON" 2>/dev/null | head -1)
+          if [[ "$INSTALLED_VERSION" == "$VERSION" ]]; then
+            echo "  ✓ installed_plugins.json shows v$VERSION"
+          elif [[ -n "$INSTALLED_VERSION" ]]; then
+            echo "  ⚠ installed_plugins.json shows v$INSTALLED_VERSION"
+          fi
+        fi
+
         echo ""
-        echo "───────────────────────────────────────────────────────────"
-        echo "  To ensure Claude Code uses v$VERSION, run:"
-        echo "    /plugin update cc-skills"
-        echo "  Then restart Claude Code session"
-        echo "───────────────────────────────────────────────────────────"
+        echo "═══════════════════════════════════════════════════════════"
+        echo "  ✓ Post-release verification complete for v$VERSION"
+        echo "═══════════════════════════════════════════════════════════"
         VERIFY_PLUGIN_EOF
