@@ -1,3 +1,10 @@
+## [9.9.2](https://github.com/terrylica/cc-skills/compare/v9.9.1...v9.9.2) (2026-01-03)
+
+
+### Bug Fixes
+
+* **semantic-release:** fix jq quoting issue in installed_plugins.json check ([ef83d9c](https://github.com/terrylica/cc-skills/commit/ef83d9ce6e5cf649a57413ae82f5b174ab41deef))
+
 ## [9.9.1](https://github.com/terrylica/cc-skills/compare/v9.9.0...v9.9.1) (2026-01-03)
 
 
