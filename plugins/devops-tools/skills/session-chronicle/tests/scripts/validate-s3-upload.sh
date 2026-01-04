@@ -10,10 +10,10 @@ trap "rm -rf $TEMP_DIR" EXIT
 
 echo "=== S3 Upload/Download Validation ==="
 
-OP_VAULT="Claude Automation"
-OP_ITEM_ID="rfuaxz6fzsz5y7p6nmutsuyzoq"
-S3_BUCKET="eon-research-artifacts"
-S3_TEST_PREFIX="session-chronicle-validation-test"
+OP_VAULT="Employee"
+OP_ITEM_ID="2liqctzsbycqkodhf3vq5pnr3e"
+S3_BUCKET="eonlabs-findings"
+S3_TEST_PREFIX="sessions-validation-test"
 TEST_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
 # Load credentials
@@ -32,9 +32,9 @@ ACCOUNT=$(echo "$IDENTITY" | jq -r '.Account')
 USER_ARN=$(echo "$IDENTITY" | jq -r '.Arn')
 echo "✓ AWS Identity: $USER_ARN"
 
-# Verify expected account
-if [[ "$ACCOUNT" != "739013795786" ]]; then
-  echo "✗ AWS Account: WRONG (expected 739013795786, got $ACCOUNT)"
+# Verify expected account (company account)
+if [[ "$ACCOUNT" != "050214414362" ]]; then
+  echo "✗ AWS Account: WRONG (expected 050214414362, got $ACCOUNT)"
   exit 1
 fi
 echo "✓ AWS Account: $ACCOUNT"

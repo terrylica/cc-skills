@@ -20,10 +20,10 @@ Sign in to 1Password:
 op signin
 ```
 
-Verify access to Claude Automation vault:
+Verify access to Employee vault:
 
 ```bash
-op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id" >/dev/null && echo "OK"
+op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id" >/dev/null && echo "OK"
 ```
 
 ---
@@ -61,7 +61,7 @@ git clone https://github.com/terrylica/cc-skills.git
 
 # Run retrieval script
 cd cc-skills/plugins/devops-tools/skills/session-chronicle
-./scripts/retrieve_artifact.sh s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts
+./scripts/retrieve_artifact.sh s3://eonlabs-findings/sessions/<id>/ ./artifacts
 ```
 
 ### Option 2: Manual retrieval
@@ -70,10 +70,10 @@ Copy this command from the git commit message:
 
 ```bash
 /usr/bin/env bash << 'RETRIEVE_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
-aws s3 sync s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts/
+aws s3 sync s3://eonlabs-findings/sessions/<id>/ ./artifacts/
 for f in ./artifacts/*.br; do brotli -d "$f"; done
 RETRIEVE_EOF
 ```
@@ -122,13 +122,13 @@ jq -r '.session_id' ./artifacts/uuid_chain.jsonl | sort -u
 
 ## S3 Bucket Details
 
-| Field             | Value                        |
-| ----------------- | ---------------------------- |
-| Bucket            | `s3://eon-research-artifacts`   |
-| Region            | `us-west-2`                  |
-| Prefix            | `session-chronicle/`         |
-| Credential Source | 1Password Claude Automation vault |
-| 1Password Item    | `rfuaxz6fzsz5y7p6nmutsuyzoq`      |
+| Field             | Value                           |
+| ----------------- | ------------------------------- |
+| Bucket            | `s3://eonlabs-findings`         |
+| Region            | `us-west-2`                     |
+| Prefix            | `sessions/`                     |
+| Credential Source | 1Password Employee vault        |
+| 1Password Item    | `2liqctzsbycqkodhf3vq5pnr3e`    |
 
 ---
 
@@ -152,7 +152,7 @@ op signin
 
 ### "vault not found" or access denied
 
-Contact your admin to get access to the Claude Automation vault.
+Contact your admin to get access to the Employee vault.
 
 ### "brotli: command not found"
 
@@ -167,7 +167,7 @@ brew install brotli
 Verify your 1Password access:
 
 ```bash
-op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id"
+op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id"
 ```
 
 If this fails, you don't have access to the credential item.
@@ -178,7 +178,7 @@ If this fails, you don't have access to the credential item.
 
 - **Never commit credentials** to git
 - Credentials are injected at runtime via 1Password
-- S3 access requires Claude Automation vault membership
+- S3 access requires Employee vault membership
 - Session files may contain sensitive conversation data
 
 ---

@@ -252,6 +252,21 @@ graph { label: "Session Chronicle S3 Architecture"; flow: south; }
 | `references/provenance-schema.json`  | Modify | Add `s3_artifacts`, `related_adr` fields |
 | `references/s3-manifest-schema.json` | Create | S3 manifest schema                       |
 
+## Amendment: Bucket and Credential Migration (2026-01-03)
+
+**Reason**: Migrated from personal AWS account to company AWS account for team access.
+
+| Change                | Original Value                      | New Value                              |
+| --------------------- | ----------------------------------- | -------------------------------------- |
+| S3 Bucket             | `s3://eon-research-artifacts`       | `s3://eonlabs-findings`                |
+| S3 Prefix             | `session-chronicle/<id>/`           | `sessions/<id>/`                       |
+| 1Password Vault       | `Claude Automation`                 | `Employee`                             |
+| 1Password Item ID     | `rfuaxz6fzsz5y7p6nmutsuyzoq`        | `2liqctzsbycqkodhf3vq5pnr3e`           |
+| AWS Account           | Personal (739013795786)             | Company (050214414362)                 |
+| Local Structure       | `findings/provenance/provenance.jsonl` | `findings/sessions/<id>/iterations.jsonl` |
+
+**Architectural decision unchanged**: The core decision (S3 + 1Password + Brotli) remains valid. This amendment only changes operational details (which bucket, which vault).
+
 ## References
 
 - [Session Chronicle SKILL.md](/plugins/devops-tools/skills/session-chronicle/SKILL.md)

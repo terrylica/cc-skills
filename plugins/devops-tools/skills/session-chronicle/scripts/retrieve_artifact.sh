@@ -12,21 +12,21 @@ S3_URI="${1:-}"
 OUTPUT_DIR="${2:-./artifacts}"
 
 # 1Password configuration
-OP_VAULT="Claude Automation"
-OP_ITEM_ID="rfuaxz6fzsz5y7p6nmutsuyzoq"
+OP_VAULT="Employee"
+OP_ITEM_ID="2liqctzsbycqkodhf3vq5pnr3e"
 AWS_REGION="us-west-2"
 
 if [[ -z "$S3_URI" ]]; then
   echo "Usage: $0 <s3_uri> [output_dir]" >&2
   echo "" >&2
   echo "Arguments:" >&2
-  echo "  s3_uri      S3 URI (e.g., s3://eon-research-artifacts/session-chronicle/id)" >&2
+  echo "  s3_uri      S3 URI (e.g., s3://eonlabs-findings/sessions/id)" >&2
   echo "  output_dir  Local directory for downloaded artifacts (default: ./artifacts)" >&2
   echo "" >&2
   echo "Required tools: brotli, aws, op (1Password CLI)" >&2
   echo "" >&2
   echo "Example:" >&2
-  echo "  $0 s3://eon-research-artifacts/session-chronicle/20260102-143000 ./artifacts" >&2
+  echo "  $0 s3://eonlabs-findings/sessions/2026-01-01-multiyear-momentum ./artifacts" >&2
   exit 1
 fi
 

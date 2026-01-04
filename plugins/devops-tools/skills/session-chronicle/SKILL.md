@@ -28,10 +28,10 @@ Excavate Claude Code session logs to capture **complete provenance** for researc
 | Directory | Committed? | Purpose |
 |-----------|-----------|---------|
 | `findings/registry.jsonl` | YES | Master index (small, append-only NDJSON) |
-| `findings/provenance/*.jsonl` | YES | Iteration records (small, append-only) |
+| `findings/sessions/<id>/iterations.jsonl` | YES | Iteration records (small, append-only) |
 | `outputs/research_sessions/<id>/` | NO | Research artifacts (large, gitignored) |
 | `tmp/` | NO | Temporary archives before S3 upload |
-| S3 `session-chronicle/<id>/` | N/A | Permanent team-shared archive |
+| S3 `eonlabs-findings/sessions/<id>/` | N/A | Permanent team-shared archive |
 
 **Key Principle**: Only `findings/` is committed. Research artifacts go to gitignored `outputs/` and S3.
 
@@ -267,8 +267,8 @@ AskUserQuestion:
   options:
     - label: "registry.jsonl entry (Recommended)"
       description: "Master index entry with ALL session UUIDs and GitHub attribution"
-    - label: "provenance.jsonl entries"
-      description: "Detailed iteration/experiment records"
+    - label: "iterations.jsonl entries"
+      description: "Detailed iteration records in sessions/<id>/"
     - label: "Full session chain archive (.jsonl.br)"
       description: "Compress sessions with Brotli for archival"
     - label: "Markdown finding document"
@@ -494,7 +494,7 @@ Each line is a complete, self-contained JSON object:
     "strategy_config": "examples/02_strategies/cs_momentum_multiyear.yaml",
     "research_log": "outputs/research_sessions/2026-01-01-multiyear-momentum/research_log.md",
     "iteration_configs": "outputs/research_sessions/2026-01-01-multiyear-momentum/",
-    "s3": "s3://eon-research-artifacts/session-chronicle/2026-01-01-multiyear-momentum/"
+    "s3": "s3://eonlabs-findings/sessions/2026-01-01-multiyear-momentum/"
   },
   "status": "validated",
   "finding": "BiLSTM time-series models show no predictive edge (49.05% hit rate). Simple CS momentum outperforms.",
@@ -529,11 +529,11 @@ Each line is a complete, self-contained JSON object:
 | `strategy_config` | `examples/...` | Committed strategy example |
 | `research_log` | `outputs/research_sessions/.../` | Gitignored research log |
 | `iteration_configs` | `outputs/research_sessions/.../` | Gitignored config files |
-| `s3` | `s3://eon-research-artifacts/session-chronicle/<id>/` | S3 archive for team sharing |
+| `s3` | `s3://eonlabs-findings/sessions/<id>/` | S3 archive for team sharing |
 
-### provenance.jsonl (Detailed Records)
+### iterations.jsonl (Detailed Records)
 
-For iteration-level tracking:
+Located at `findings/sessions/<id>/iterations.jsonl`. For iteration-level tracking:
 
 ```json
 {
@@ -645,16 +645,16 @@ total_entries: <total>
 
 Artifacts:
 - findings/registry.jsonl
-- findings/provenance/provenance.jsonl
-- S3: s3://eon-research-artifacts/session-chronicle/<id>/
+- findings/sessions/<id>/iterations.jsonl
+- S3: s3://eonlabs-findings/sessions/<id>/
 
 ## S3 Artifact Retrieval
 
 # Download compressed artifacts from S3
-export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
-aws s3 sync s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts/
+aws s3 sync s3://eonlabs-findings/sessions/<id>/ ./artifacts/
 for f in ./artifacts/*.br; do brotli -d "$f"; done
 
 Co-authored-by: Claude <noreply@anthropic.com>
@@ -735,8 +735,8 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
    └── AskUserQuestion: Link to ADR?
 
 9. GENERATE OUTPUTS
-   ├── Build registry.jsonl entry
-   ├── Build provenance.jsonl entries (if applicable)
+   ├── Build registry.jsonl entry (with iterations_path, iterations_count)
+   ├── Build iterations.jsonl entries (if applicable)
    └── Prepare commit message
 
 10. ASK: FINAL CONFIRMATION
@@ -744,7 +744,7 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
 
 11. WRITE & VERIFY
     ├── Append to registry.jsonl
-    ├── Append to provenance.jsonl
+    ├── Append to sessions/<id>/iterations.jsonl
     └── Validate NDJSON format
 
 12. (OPTIONAL) S3 UPLOAD

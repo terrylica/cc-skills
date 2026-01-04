@@ -12,11 +12,11 @@ ARTIFACT_DIR="${1:-}"
 FINDING_ID="${2:-$(date +%Y%m%d-%H%M%S)}"
 
 # S3 configuration
-S3_BUCKET="eon-research-artifacts"
-S3_PREFIX="session-chronicle"
+S3_BUCKET="eonlabs-findings"
+S3_PREFIX="sessions"
 AWS_REGION="us-west-2"
-OP_VAULT="Claude Automation"
-OP_ITEM_ID="rfuaxz6fzsz5y7p6nmutsuyzoq"
+OP_VAULT="Employee"
+OP_ITEM_ID="2liqctzsbycqkodhf3vq5pnr3e"
 
 if [[ -z "$ARTIFACT_DIR" ]]; then
   echo "Usage: $0 <artifact_dir> [finding_id]" >&2
@@ -134,8 +134,8 @@ echo "Retrieval command (requires 1Password access):"
 echo ""
 cat << 'RETRIEVAL_TEMPLATE'
 /usr/bin/env bash << 'RETRIEVE_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 RETRIEVAL_TEMPLATE
 echo "aws s3 sync $S3_DEST/ ./artifacts/"
