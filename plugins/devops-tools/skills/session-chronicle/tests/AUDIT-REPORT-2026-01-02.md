@@ -37,14 +37,14 @@ All implementation requirements have been verified. **23 files** created/modifie
 | validate-extract-chain.sh | ✓ PASS | Uses brotli, .jsonl.br extension, ADR reference found |
 | validate-commit-format.sh | ✓ PASS | 8/8 checks passed |
 | validate-cross-references.sh | ✓ PASS | 12/12 checks passed |
-| validate-credential-access.sh | ✓ PASS | 1Password signed in, Engineering vault accessible, AWS keys retrieved |
+| validate-credential-access.sh | ✓ PASS | 1Password signed in, Claude Automation vault accessible, AWS keys retrieved |
 | validate-s3-upload.sh | ✓ PASS | AWS account 739013795786, upload/download/integrity verified |
 
 ### 3. Real-Data E2E Tests
 
 | Test | Result | Evidence |
 |------|--------|----------|
-| s3_upload.sh | ✓ PASS | Uploaded 3 files to `s3://terryli-dvc-storage/session-chronicle/audit-test-20260102-152420` |
+| s3_upload.sh | ✓ PASS | Uploaded 3 files to `s3://eon-research-artifacts/session-chronicle/audit-test-20260102-152420` |
 | retrieve_artifact.sh | ✓ PASS | Downloaded and decompressed all files, content integrity verified |
 | generate_commit_message.sh | ✓ PASS | Generated correct format with Session-Chronicle-S3 trailer |
 
@@ -103,9 +103,9 @@ All implementation requirements have been verified. **23 files** created/modifie
 |-------------|--------|----------|
 | `brotli` installed and working | ✓ | `brotli 1.2.0` in validate-prerequisites.sh |
 | `aws` CLI installed | ✓ | `aws-cli/2.32.26` in validate-prerequisites.sh |
-| `op` (1Password CLI) signed in | ✓ | `op 2.32.0`, Engineering vault accessible |
-| Engineering vault accessible | ✓ | AWS keys retrieved successfully |
-| S3 bucket writable | ✓ | Upload to `s3://terryli-dvc-storage` succeeded |
+| `op` (1Password CLI) signed in | ✓ | `op 2.32.0`, Claude Automation vault accessible |
+| Claude Automation vault accessible | ✓ | AWS keys retrieved successfully |
+| S3 bucket writable | ✓ | Upload to `s3://eon-research-artifacts` succeeded |
 | Git commit includes S3 URIs (not presigned URLs) | ✓ | Commit 34f0082 contains `Session-Chronicle-S3:` trailer |
 | Existing ADR cross-referenced in commit | ✓ | `ADR: 2026-01-02-session-chronicle-s3-sharing` in commit |
 | Retrieval command in commit message works | ✓ | E2E test verified retrieve_artifact.sh downloads and decompresses correctly |

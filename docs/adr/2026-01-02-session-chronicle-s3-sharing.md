@@ -105,7 +105,7 @@ graph { label: "After: S3-Backed Artifact Sharing"; flow: south; }
 | Decision Area     | Options Evaluated                    | Chosen        | Rationale                                                                   |
 | ----------------- | ------------------------------------ | ------------- | --------------------------------------------------------------------------- |
 | Compression       | gzip, zstd, Brotli                   | Brotli        | Better compression ratio, widely available via `brew install brotli`        |
-| Credential source | AWS profiles, 1Password, Doppler     | 1Password     | Engineering vault already stores AWS credentials                            |
+| Credential source | AWS profiles, 1Password, Doppler     | 1Password     | Claude Automation vault already stores AWS credentials                      |
 | URL format        | Presigned URLs, S3 URIs              | S3 URIs       | Avoids expiration issues; coworkers use 1Password directly                  |
 | ADR linking       | Auto-create ADRs, Link existing only | Link existing | Prevents ADR proliferation; user specifies related ADR during CONFIRM phase |
 | Upload trigger    | Manual, Automatic before commit      | Automatic     | Seamless integration with existing workflow                                 |
@@ -160,7 +160,7 @@ Chosen option: **Option C (Direct S3 upload with 1Password credentials)**, becau
 ### Negative
 
 - Requires brotli, aws, and op CLI tools installed
-- Requires 1Password Engineering vault access
+- Requires 1Password Claude Automation vault access
 - No browser-only access (must use CLI)
 
 ## Architecture
@@ -187,8 +187,8 @@ Session Chronicle S3 Architecture
               |
               v
 +---------------------------+
-|   S3: terryli-dvc-storage |
-|   session-chronicle/<id>/ |
+|   S3: eon-research-artifacts |
+|   session-chronicle/<id>/    |
 |   - manifest.json         |
 |   - *.jsonl.br            |
 +-------------+-------------+
@@ -216,7 +216,7 @@ graph { label: "Session Chronicle S3 Architecture"; flow: south; }
 [session] { label: "Claude Session\\n(.jsonl files)"; }
 [extract] { label: "extract_session_chain\\n(Brotli compression)"; }
 [upload] { label: "s3_upload.sh\\n(1Password credentials)"; }
-[s3] { label: "S3: terryli-dvc-storage\\nsession-chronicle/<id>/\\n- manifest.json\\n- *.jsonl.br"; }
+[s3] { label: "S3: eon-research-artifacts\\nsession-chronicle/<id>/\\n- manifest.json\\n- *.jsonl.br"; }
 [commit-gen] { label: "generate_commit_message\\n(S3 URIs + retrieval)"; }
 [commit] { label: "Git Commit\\nSession-Chronicle-S3:\\ns3://bucket/prefix"; }
 

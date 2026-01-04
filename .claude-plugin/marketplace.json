@@ -51,7 +51,7 @@
     },
     {
       "name": "gh-tools",
-      "description": "GitHub workflow automation with intelligent GFM link validation for PRs",
+      "description": "GitHub workflow automation: GFM link validation, WebFetch enforcement (use gh CLI instead)",
       "version": "9.10.4",
       "source": "./plugins/gh-tools/",
       "category": "development",
@@ -64,8 +64,11 @@
         "pull-request",
         "gfm",
         "link-validation",
-        "gh-cli"
+        "gh-cli",
+        "webfetch",
+        "enforcement"
       ],
+      "hooks": "./plugins/gh-tools/hooks/hooks.json",
       "strict": false
     },
     {

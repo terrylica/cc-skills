@@ -61,7 +61,7 @@ git clone https://github.com/terrylica/cc-skills.git
 
 # Run retrieval script
 cd cc-skills/plugins/devops-tools/skills/session-chronicle
-./scripts/retrieve_artifact.sh s3://terryli-dvc-storage/session-chronicle/<id>/ ./output
+./scripts/retrieve_artifact.sh s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts
 ```
 
 ### Option 2: Manual retrieval
@@ -73,8 +73,8 @@ Copy this command from the git commit message:
 export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
 export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
-aws s3 sync s3://terryli-dvc-storage/session-chronicle/<id>/ ./provenance/
-for f in ./provenance/*.br; do brotli -d "$f"; done
+aws s3 sync s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts/
+for f in ./artifacts/*.br; do brotli -d "$f"; done
 RETRIEVE_EOF
 ```
 
@@ -82,7 +82,7 @@ RETRIEVE_EOF
 
 ## Understanding the Artifacts
 
-After retrieval, your `./provenance/` directory will contain:
+After retrieval, your `./artifacts/` directory will contain:
 
 | File               | Description                                                             |
 | ------------------ | ----------------------------------------------------------------------- |
@@ -97,13 +97,13 @@ Session files are NDJSON (newline-delimited JSON). Each line is a conversation e
 
 ```bash
 # View first few entries
-head -5 ./provenance/<session-id>.jsonl | jq .
+head -5 ./artifacts/<session-id>.jsonl | jq .
 
 # Search for specific tool uses
-jq -c 'select(.message.content[]?.type == "tool_use")' ./provenance/<session-id>.jsonl
+jq -c 'select(.message.content[]?.type == "tool_use")' ./artifacts/<session-id>.jsonl
 
 # Find Edit operations
-jq -c 'select(.message.content[]?.name == "Edit")' ./provenance/<session-id>.jsonl
+jq -c 'select(.message.content[]?.name == "Edit")' ./artifacts/<session-id>.jsonl
 ```
 
 ### Tracing UUID Chain
@@ -112,10 +112,10 @@ The `uuid_chain.jsonl` shows the provenance path:
 
 ```bash
 # View the chain
-cat ./provenance/uuid_chain.jsonl | jq .
+cat ./artifacts/uuid_chain.jsonl | jq .
 
 # Get session IDs in chain
-jq -r '.session_id' ./provenance/uuid_chain.jsonl | sort -u
+jq -r '.session_id' ./artifacts/uuid_chain.jsonl | sort -u
 ```
 
 ---
@@ -124,7 +124,7 @@ jq -r '.session_id' ./provenance/uuid_chain.jsonl | sort -u
 
 | Field             | Value                        |
 | ----------------- | ---------------------------- |
-| Bucket            | `s3://terryli-dvc-storage`   |
+| Bucket            | `s3://eon-research-artifacts`   |
 | Region            | `us-west-2`                  |
 | Prefix            | `session-chronicle/`         |
 | Credential Source | 1Password Claude Automation vault |

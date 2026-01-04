@@ -9,7 +9,7 @@
 set -euo pipefail
 
 S3_URI="${1:-}"
-OUTPUT_DIR="${2:-./provenance}"
+OUTPUT_DIR="${2:-./artifacts}"
 
 # 1Password configuration
 OP_VAULT="Claude Automation"
@@ -20,13 +20,13 @@ if [[ -z "$S3_URI" ]]; then
   echo "Usage: $0 <s3_uri> [output_dir]" >&2
   echo "" >&2
   echo "Arguments:" >&2
-  echo "  s3_uri      S3 URI (e.g., s3://terryli-dvc-storage/session-chronicle/id)" >&2
-  echo "  output_dir  Local directory for downloaded artifacts (default: ./provenance)" >&2
+  echo "  s3_uri      S3 URI (e.g., s3://eon-research-artifacts/session-chronicle/id)" >&2
+  echo "  output_dir  Local directory for downloaded artifacts (default: ./artifacts)" >&2
   echo "" >&2
   echo "Required tools: brotli, aws, op (1Password CLI)" >&2
   echo "" >&2
   echo "Example:" >&2
-  echo "  $0 s3://terryli-dvc-storage/session-chronicle/20260102-143000 ./output" >&2
+  echo "  $0 s3://eon-research-artifacts/session-chronicle/20260102-143000 ./artifacts" >&2
   exit 1
 fi
 

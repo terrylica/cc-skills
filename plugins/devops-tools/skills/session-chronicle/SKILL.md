@@ -23,6 +23,20 @@ Excavate Claude Code session logs to capture **complete provenance** for researc
 
 ---
 
+## File Ownership Model
+
+| Directory | Committed? | Purpose |
+|-----------|-----------|---------|
+| `findings/registry.jsonl` | YES | Master index (small, append-only NDJSON) |
+| `findings/provenance/*.jsonl` | YES | Iteration records (small, append-only) |
+| `outputs/research_sessions/<id>/` | NO | Research artifacts (large, gitignored) |
+| `tmp/` | NO | Temporary archives before S3 upload |
+| S3 `session-chronicle/<id>/` | N/A | Permanent team-shared archive |
+
+**Key Principle**: Only `findings/` is committed. Research artifacts go to gitignored `outputs/` and S3.
+
+---
+
 ## Part 0: Preflight Check
 
 ### Step 1: Verify Session Storage Location
@@ -467,15 +481,24 @@ Each line is a complete, self-contained JSON object:
     "model": "claude-opus-4-5-20251101",
     "session_uuid": "8c821a19-e4f4-45d5-9338-be3a47ac81a3"
   },
+  "strategy_type": "cross_sectional_momentum",
+  "date_range": {"start": "2022-01-01", "end": "2025-12-31"},
   "session_contexts": [
-    {"session_uuid": "...", "type": "main", "entries": 980, "description": "..."},
-    {"session_uuid": "agent-...", "type": "subagent", "entries": 113, "description": "..."}
+    {"session_uuid": "8c821a19-...", "type": "main", "entries": 1128, "description": "Primary session - research iterations, PR preparation"},
+    {"session_uuid": "agent-a728ebe", "type": "subagent", "entries": 113, "timestamp_start": "2026-01-02T07:25:47.658Z", "description": "Explore agent - codebase analysis"}
   ],
-  "metrics": {"sharpe": 0.31, "hit_rate": null},
-  "artifacts": {"adr": "docs/adr/...", "config": "examples/..."},
+  "metrics": {"sharpe_2bps": 1.05, "sharpe_13bps": 0.31, "max_drawdown": -0.18},
+  "tags": ["momentum", "cross-sectional", "multi-year", "validated"],
+  "artifacts": {
+    "adr": "docs/adr/2026-01-02-multiyear-momentum-vs-ml.md",
+    "strategy_config": "examples/02_strategies/cs_momentum_multiyear.yaml",
+    "research_log": "outputs/research_sessions/2026-01-01-multiyear-momentum/research_log.md",
+    "iteration_configs": "outputs/research_sessions/2026-01-01-multiyear-momentum/",
+    "s3": "s3://eon-research-artifacts/session-chronicle/2026-01-01-multiyear-momentum/"
+  },
   "status": "validated",
-  "finding": "Summary of what was discovered",
-  "recommendation": "What to do next"
+  "finding": "BiLSTM time-series models show no predictive edge (49.05% hit rate). Simple CS momentum outperforms.",
+  "recommendation": "Deploy CS Momentum 120+240 strategy. Abandon ML-based approaches for this market regime."
 }
 ```
 
@@ -485,6 +508,28 @@ Each line is a complete, self-contained JSON object:
 - `created_at` - ISO8601 timestamp
 - `created_by.github_username` - **MANDATORY** - GitHub username
 - `session_contexts` - **MANDATORY** - Array of ALL session UUIDs
+
+**Optional Fields**:
+- `title` - Human-readable title
+- `project` - Project/repository name
+- `branch` - Git branch name
+- `strategy_type` - Strategy classification (for research_session type)
+- `date_range` - `{start, end}` date range covered
+- `metrics` - Key performance metrics object
+- `tags` - Searchable tags array
+- `artifacts` - Object with paths (see Artifact Paths below)
+- `status` - `draft` | `validated` | `production` | `archived`
+- `finding` - Summary of what was discovered
+- `recommendation` - What to do next
+
+**Artifact Paths**:
+| Key | Location | Purpose |
+|-----|----------|---------|
+| `adr` | `docs/adr/...` | Committed ADR document |
+| `strategy_config` | `examples/...` | Committed strategy example |
+| `research_log` | `outputs/research_sessions/.../` | Gitignored research log |
+| `iteration_configs` | `outputs/research_sessions/.../` | Gitignored config files |
+| `s3` | `s3://eon-research-artifacts/session-chronicle/<id>/` | S3 archive for team sharing |
 
 ### provenance.jsonl (Detailed Records)
 
@@ -537,11 +582,12 @@ if [[ -z "${PROJECT_SESSIONS:-}" ]]; then
   exit 1
 fi
 
-OUTPUT_DIR="findings/provenance/session_chain_${TARGET_ID}"
+OUTPUT_DIR="outputs/research_sessions/${TARGET_ID}"
 mkdir -p "$OUTPUT_DIR" || {
   echo "ERROR: Failed to create output directory: $OUTPUT_DIR" >&2
   exit 1
 }
+# NOTE: This directory is gitignored. Artifacts are preserved in S3, not git.
 
 # Compress each session
 ARCHIVED_COUNT=0
@@ -600,6 +646,16 @@ total_entries: <total>
 Artifacts:
 - findings/registry.jsonl
 - findings/provenance/provenance.jsonl
+- S3: s3://eon-research-artifacts/session-chronicle/<id>/
+
+## S3 Artifact Retrieval
+
+# Download compressed artifacts from S3
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
+export AWS_DEFAULT_REGION="us-west-2"
+aws s3 sync s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts/
+for f in ./artifacts/*.br; do brotli -d "$f"; done
 
 Co-authored-by: Claude <noreply@anthropic.com>
 ```
