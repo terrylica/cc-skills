@@ -696,10 +696,13 @@ Repository Settings → Actions → General → Workflow permissions → Enable 
 
 **Cause**: Files were staged before release started. semantic-release commits from working copy, but git index cache may show stale state.
 
-**Prevention**: Always start with clean working directory:
+**Prevention**: Always clear git cache before checking status:
 
 ```bash
-# Check before release
+# Step 1: Refresh git index (automatic in npm run release)
+git update-index --refresh --quiet || true
+
+# Step 2: Check for uncommitted changes (modified, untracked, staged, deleted)
 git status --porcelain
 # Should output nothing
 
@@ -718,7 +721,7 @@ git status  # Should now show clean
 
 **Automated guards**: The cc-skills `.releaserc.yml` includes:
 
-- **verifyConditions preflight**: Blocks release if working directory is dirty
+- **verifyConditions preflight**: Clears git cache first, then blocks release if working directory is dirty
 - **successCmd index refresh**: Automatically refreshes git index after push
 
 ### Pre-Release Checklist
