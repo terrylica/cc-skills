@@ -71,7 +71,7 @@ else
 fi
 
 # Validate retrieval command is embedded
-if echo "$COMMIT_MSG" | grep -q "op://Employee"; then
+if echo "$COMMIT_MSG" | grep -q "op://Claude Automation"; then
   echo "✓ Contains 1Password retrieval pattern"
   ((PASSED++)) || true
 else
