@@ -260,12 +260,12 @@ graph { label: "Session Chronicle S3 Architecture"; flow: south; }
 | --------------------- | ----------------------------------- | -------------------------------------- |
 | S3 Bucket             | `s3://eon-research-artifacts`       | `s3://eonlabs-findings`                |
 | S3 Prefix             | `session-chronicle/<id>/`           | `sessions/<id>/`                       |
-| 1Password Vault       | `Claude Automation`                 | `Employee`                             |
-| 1Password Item ID     | `rfuaxz6fzsz5y7p6nmutsuyzoq`        | `2liqctzsbycqkodhf3vq5pnr3e`           |
+| 1Password Vault       | `Claude Automation`                 | `Claude Automation`                    |
+| 1Password Item ID     | `rfuaxz6fzsz5y7p6nmutsuyzoq`        | `ise47dxnkftmxopupffavsgby4`           |
 | AWS Account           | Personal (739013795786)             | Company (050214414362)                 |
 | Local Structure       | `findings/provenance/provenance.jsonl` | `findings/sessions/<id>/iterations.jsonl` |
 
-**Architectural decision unchanged**: The core decision (S3 + 1Password + Brotli) remains valid. This amendment only changes operational details (which bucket, which vault).
+**Architectural decision unchanged**: The core decision (S3 + 1Password + Brotli) remains valid. This amendment only changes operational details (which bucket, which item).
 
 ## References
 

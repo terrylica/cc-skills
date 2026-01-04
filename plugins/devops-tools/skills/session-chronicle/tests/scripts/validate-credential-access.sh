@@ -7,7 +7,7 @@ set -euo pipefail
 echo "=== 1Password Credential Access Validation ==="
 
 OP_VAULT="Employee"
-OP_ITEM_ID="2liqctzsbycqkodhf3vq5pnr3e"
+OP_ITEM_ID="ise47dxnkftmxopupffavsgby4"
 
 # Check 1Password CLI is available
 if ! command -v op &>/dev/null; then

@@ -5,7 +5,7 @@ implementation-status: complete
 s3_artifacts:
   bucket: s3://eonlabs-findings
   prefix: sessions/
-  credential_source: 1Password Employee vault (2liqctzsbycqkodhf3vq5pnr3e)
+  credential_source: 1Password Claude Automation vault (ise47dxnkftmxopupffavsgby4)
 ---
 
 # Design Spec: Session-Chronicle S3 Artifact Sharing
@@ -36,7 +36,7 @@ brew install brotli awscli 1password-cli
 
 # Verify 1Password access
 op signin
-op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id" >/dev/null && echo "OK"
+op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id" >/dev/null && echo "OK"
 ```
 
 ---
@@ -68,13 +68,13 @@ op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id" >/dev/null && e
 
 ### Phase 4: Credential Access Pattern
 
-**1Password item**: `2liqctzsbycqkodhf3vq5pnr3e` (Employee vault)
+**1Password item**: `ise47dxnkftmxopupffavsgby4` (Claude Automation vault)
 
 ```bash
 # Credential injection (in s3_upload.sh)
 /usr/bin/env bash << 'CREDS_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 
 aws s3 cp "$FILE" "s3://eonlabs-findings/$PATH"
@@ -131,10 +131,10 @@ Artifacts (S3):
 Related ADR: <existing-adr-slug-if-applicable>
 Design Spec: /docs/design/<adr-slug>/spec.md
 
-Retrieval (requires 1Password Employee vault access):
+Retrieval (requires 1Password Claude Automation vault access):
   /usr/bin/env bash << 'RETRIEVE_EOF'
-  export AWS_ACCESS_KEY_ID=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id")
-  export AWS_SECRET_ACCESS_KEY=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/secret access key")
+  export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id")
+  export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/secret access key")
   export AWS_DEFAULT_REGION="us-west-2"
   aws s3 sync s3://eonlabs-findings/sessions/<id>/ ./artifacts/
   RETRIEVE_EOF
@@ -272,13 +272,13 @@ Session-Chronicle-S3: s3://eonlabs-findings/sessions/<id>
 
 ## Coworker Retrieval Workflow
 
-**Requires**: 1Password Employee vault access
+**Requires**: 1Password Claude Automation vault access
 
 ```bash
 # Download and decompress artifacts
 /usr/bin/env bash << 'RETRIEVE_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 
 # Sync all artifacts
@@ -304,7 +304,7 @@ RETRIEVE_EOF
 - [x] `brotli` installed and working — `brotli 1.2.0` (validate-prerequisites.sh)
 - [x] `aws` CLI installed — `aws-cli/2.32.26` (validate-prerequisites.sh)
 - [x] `op` (1Password CLI) signed in — `op 2.32.0` (validate-credential-access.sh)
-- [x] Employee vault accessible — AWS keys retrieved (validate-credential-access.sh)
+- [x] Claude Automation vault accessible — AWS keys retrieved (validate-credential-access.sh)
 - [x] S3 bucket writable — Upload to `s3://eonlabs-findings` succeeded (validate-s3-upload.sh)
 - [x] Git commit includes S3 URIs (not presigned URLs) — Commit 34f0082 (validate-commit-format.sh)
 - [x] Existing ADR cross-referenced in commit (if applicable) — `ADR: 2026-01-02-session-chronicle-s3-sharing`
@@ -319,7 +319,7 @@ RETRIEVE_EOF
 | Bucket         | `s3://eonlabs-findings`      |
 | Region         | `us-west-2`                  |
 | Account        | `050214414362`               |
-| 1Password Item | `2liqctzsbycqkodhf3vq5pnr3e` |
+| 1Password Item | `ise47dxnkftmxopupffavsgby4` |
 | Prefix         | `sessions/`                  |
 
 ---

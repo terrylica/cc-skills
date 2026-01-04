@@ -11,7 +11,7 @@ trap "rm -rf $TEMP_DIR" EXIT
 echo "=== S3 Upload/Download Validation ==="
 
 OP_VAULT="Employee"
-OP_ITEM_ID="2liqctzsbycqkodhf3vq5pnr3e"
+OP_ITEM_ID="ise47dxnkftmxopupffavsgby4"
 S3_BUCKET="eonlabs-findings"
 S3_TEST_PREFIX="sessions-validation-test"
 TEST_TIMESTAMP=$(date +%Y%m%d-%H%M%S)

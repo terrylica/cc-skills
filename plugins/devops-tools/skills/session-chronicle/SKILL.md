@@ -651,8 +651,8 @@ Artifacts:
 ## S3 Artifact Retrieval
 
 # Download compressed artifacts from S3
-export AWS_ACCESS_KEY_ID=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 aws s3 sync s3://eonlabs-findings/sessions/<id>/ ./artifacts/
 for f in ./artifacts/*.br; do brotli -d "$f"; done
