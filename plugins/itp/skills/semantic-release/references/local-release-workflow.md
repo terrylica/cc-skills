@@ -41,7 +41,7 @@ npm run release       # Execute release (auto-pushes via successCmd + postreleas
 release() {
     # PHASE 1: PREFLIGHT
     # Step 1: Clear git cache to ensure accurate file status
-    git update-index --refresh --quiet || true
+    git update-index --refresh -q || true
 
     # Step 2: Tooling checks
     command -v gh &>/dev/null || { echo "FAIL: gh CLI not installed"; return 1; }
@@ -112,7 +112,7 @@ PREFLIGHT_EOF
 **MANDATORY first step**: Clear git cache before any status checks.
 
 ```bash
-git update-index --refresh --quiet || true
+git update-index --refresh -q || true
 ```
 
 This ensures all modified, untracked, staged, and deleted files are accurately detected by subsequent `git status` commands.
