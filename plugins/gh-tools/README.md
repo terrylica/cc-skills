@@ -2,19 +2,28 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
-GitHub workflow automation for Claude Code with intelligent link validation and PR management.
+GitHub workflow automation for Claude Code with intelligent link validation, PR management, and gh CLI enforcement.
 
 > [!NOTE]
-> **Start Minimal, Expand Later**: This plugin begins with PR link validation—the most common pain point when creating pull requests from feature branches. Additional GitHub workflow skills will be added as needed.
+> **Start Minimal, Expand Later**: This plugin began with PR link validation and now includes WebFetch enforcement to ensure consistent use of gh CLI for all GitHub operations.
 
 ## Features
+
+### Skills
 
 - **PR Link Validation**: Detect and auto-fix broken GFM links in PR descriptions
 - **Smart Branch Detection**: Only activates when on a feature branch creating PRs
 - **Auto-Convert Links**: Transform repo-relative paths to full blob URLs with correct branch
 - **Pre-flight Checks**: Validate links before `gh pr create` to prevent 404s
+
+### Hooks
+
+- **WebFetch Enforcement**: Soft-blocks WebFetch for github.com URLs, suggests gh CLI alternatives
+- **Smart Suggestions**: Detects issue/PR/repo URLs and provides specific gh commands
+- **User Override**: Soft block allows user to proceed if needed
 
 ## The Problem This Solves
 
@@ -92,9 +101,37 @@ The skill auto-activates when:
 ```bash
 # Via Claude Code plugin manager
 /plugin install cc-skills@gh-tools
+```
 
-# Or manually copy to skills directory
-cp -r plugins/gh-tools/skills/* ~/.claude/skills/
+### Installing Hooks
+
+After plugin installation, enable the WebFetch enforcement hook:
+
+```bash
+# Check hook status
+/gh-tools:hooks status
+
+# Install hooks
+/gh-tools:hooks install
+
+# IMPORTANT: Restart Claude Code for hooks to take effect
+```
+
+The hook soft-blocks WebFetch requests to github.com and suggests gh CLI alternatives:
+
+```
+[gh-tools] WebFetch to github.com detected
+
+URL: https://github.com/owner/repo/issues/123
+
+Use gh CLI instead for better data access:
+  gh issue view 123 --repo owner/repo
+
+Why gh CLI is preferred:
+- Authenticated requests (no rate limits)
+- Full JSON metadata (not HTML scraping)
+- Pagination handled automatically
+- Comments, labels, assignees included
 ```
 
 ## Usage Examples
@@ -153,6 +190,7 @@ Future skills to be added to gh-tools:
 
 ## References
 
+- [ADR: gh-tools WebFetch Enforcement](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
 - [GitHub Relative Links](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#relative-links)
 - [GFM Specification](https://github.github.com/gfm/)
 - [GitHub CLI Documentation](https://cli.github.com/manual/)

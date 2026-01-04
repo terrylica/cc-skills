@@ -39,6 +39,7 @@ plugins:
       prepareCmd: "node scripts/sync-versions.mjs ${nextRelease.version}"
   - "@semantic-release/changelog"
   # marketplace.json-only versioning: no individual plugin.json files
+  # Hook files (hooks.json) explicitly listed for release asset tracking
   - - "@semantic-release/git"
     - assets:
         - CHANGELOG.md
@@ -47,6 +48,14 @@ plugins:
         - .claude-plugin/plugin.json
         - .claude-plugin/marketplace.json
         - plugins/itp-hooks/plugin.json
+        # Hook definition files (ensures hooks.json changes are tracked)
+        - plugins/itp-hooks/hooks/hooks.json
+        - plugins/ralph/hooks/hooks.json
+        - plugins/link-tools/hooks/hooks.json
+        - plugins/git-account-validator/hooks/hooks.json
+        - plugins/dotfiles-tools/hooks/hooks.json
+        - plugins/statusline-tools/hooks/hooks.json
+        - plugins/gh-tools/hooks/hooks.json
       message: "chore(release): ${nextRelease.version} [skip ci]"
   # Push commit and tags after @semantic-release/git creates them
   # Belt-and-suspenders: ensures push happens even in --no-ci mode
@@ -116,7 +125,30 @@ plugins:
           fi
         fi
 
-        # Step 5: Final summary
+        # Step 5: Verify hook files in cache (for plugins with hooks)
+        echo "→ Step 4: Verifying hook files..."
+        HOOKS_VERIFIED=0
+        HOOKS_MISSING=0
+        for PLUGIN_NAME in $(ls -1 "$CACHE_DIR" 2>/dev/null); do
+          HOOKS_JSON="$CACHE_DIR/$PLUGIN_NAME/$VERSION/hooks/hooks.json"
+          if [[ -f "$HOOKS_JSON" ]]; then
+            # Validate hooks.json is valid JSON
+            if jq empty "$HOOKS_JSON" 2>/dev/null; then
+              ((HOOKS_VERIFIED++))
+            else
+              echo "  ✗ Invalid JSON: $PLUGIN_NAME/hooks/hooks.json"
+              ((HOOKS_MISSING++))
+            fi
+          fi
+        done
+        if [[ $HOOKS_VERIFIED -gt 0 ]]; then
+          echo "  ✓ Hook files verified: $HOOKS_VERIFIED plugin(s) with hooks"
+        fi
+        if [[ $HOOKS_MISSING -gt 0 ]]; then
+          echo "  ⚠ Hook issues found: $HOOKS_MISSING plugin(s)"
+        fi
+
+        # Step 6: Final summary
         echo ""
         echo "═══════════════════════════════════════════════════════════"
         echo "  ✓ Post-release verification complete for v$VERSION"

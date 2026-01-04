@@ -3,9 +3,9 @@ adr: 2026-01-02-session-chronicle-s3-sharing
 source: ~/.claude/plans/resilient-sleeping-pnueli.md
 implementation-status: complete
 s3_artifacts:
-  bucket: s3://terryli-dvc-storage
+  bucket: s3://eon-research-artifacts
   prefix: session-chronicle/
-  credential_source: 1Password Engineering vault (uy6sbqwno7cofdapusds5f6aea)
+  credential_source: 1Password Claude Automation vault (rfuaxz6fzsz5y7p6nmutsuyzoq)
 ---
 
 # Design Spec: Session-Chronicle S3 Artifact Sharing
@@ -36,7 +36,7 @@ brew install brotli awscli 1password-cli
 
 # Verify 1Password access
 op signin
-op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id" >/dev/null && echo "OK"
+op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id" >/dev/null && echo "OK"
 ```
 
 ---
@@ -68,16 +68,16 @@ op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id" >/dev/null &
 
 ### Phase 4: Credential Access Pattern
 
-**1Password item**: `uy6sbqwno7cofdapusds5f6aea` (Engineering vault)
+**1Password item**: `rfuaxz6fzsz5y7p6nmutsuyzoq` (Claude Automation vault)
 
 ```bash
 # Credential injection (in s3_upload.sh)
 /usr/bin/env bash << 'CREDS_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 
-aws s3 cp "$FILE" "s3://terryli-dvc-storage/$PATH"
+aws s3 cp "$FILE" "s3://eon-research-artifacts/$PATH"
 CREDS_EOF
 ```
 
@@ -122,7 +122,7 @@ Session-Chronicle Provenance:
   ...
 
 Artifacts (S3):
-  bucket: s3://terryli-dvc-storage/session-chronicle/<id>
+  bucket: s3://eon-research-artifacts/session-chronicle/<id>
   files:
     - manifest.json
     - <session_1>.jsonl.br
@@ -131,15 +131,15 @@ Artifacts (S3):
 Related ADR: <existing-adr-slug-if-applicable>
 Design Spec: /docs/design/<adr-slug>/spec.md
 
-Retrieval (requires 1Password Engineering vault access):
+Retrieval (requires 1Password Claude Automation vault access):
   /usr/bin/env bash << 'RETRIEVE_EOF'
-  export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id")
-  export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/secret access key")
+  export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
+  export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
   export AWS_DEFAULT_REGION="us-west-2"
-  aws s3 sync s3://terryli-dvc-storage/session-chronicle/<id>/ ./provenance/
+  aws s3 sync s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts/
   RETRIEVE_EOF
 
-Session-Chronicle-S3: s3://terryli-dvc-storage/session-chronicle/<id>
+Session-Chronicle-S3: s3://eon-research-artifacts/session-chronicle/<id>
 ```
 
 **ADR Linking**: Link to existing ADRs only (no auto-creation). User specifies which ADR relates to the finding during the CONFIRM phase.
@@ -152,10 +152,10 @@ Session-Chronicle-S3: s3://terryli-dvc-storage/session-chronicle/<id>
 
 | From                 | To                 | Link Format                         | Example                                                                    |
 | -------------------- | ------------------ | ----------------------------------- | -------------------------------------------------------------------------- |
-| **Git Commit**       | S3 bucket          | `Session-Chronicle-S3:` trailer     | `Session-Chronicle-S3: s3://terryli-dvc-storage/session-chronicle/<id>`    |
+| **Git Commit**       | S3 bucket          | `Session-Chronicle-S3:` trailer     | `Session-Chronicle-S3: s3://eon-research-artifacts/session-chronicle/<id>` |
 | **Git Commit**       | ADR                | `Related ADR:` line                 | `Related ADR: 2025-12-15-finding-name`                                     |
 | **Git Commit**       | Design Spec        | `Design Spec:` line                 | `Design Spec: /docs/design/2025-12-15-finding-name/spec.md`                |
-| **Finding Doc**      | S3 artifacts       | Artifacts section                   | `s3://terryli-dvc-storage/session-chronicle/<id>/manifest.json`            |
+| **Finding Doc**      | S3 artifacts       | Artifacts section                   | `s3://eon-research-artifacts/session-chronicle/<id>/manifest.json`         |
 | **Finding Doc**      | ADR                | YAML frontmatter + link             | `ADR: [Title](/docs/adr/YYYY-MM-DD-slug.md)`                               |
 | **Finding Doc**      | Design Spec        | YAML frontmatter + link             | `Design Spec: [Title](/docs/design/YYYY-MM-DD-slug/spec.md)`               |
 | **Finding Doc**      | Git Commit         | Provenance table                    | `Git Commit: <sha>`                                                        |
@@ -165,7 +165,7 @@ Session-Chronicle-S3: s3://terryli-dvc-storage/session-chronicle/<id>
 | **ADR**              | Design Spec        | Related links section               | `- [Design Spec](/docs/design/YYYY-MM-DD-slug/spec.md)`                    |
 | **ADR**              | Related Findings   | Related links section               | `- [Finding](/findings/finding-name.md)`                                   |
 | **Design Spec**      | ADR                | YAML frontmatter                    | `adr: 2025-12-15-slug`                                                     |
-| **Design Spec**      | S3 artifacts       | Implementation artifacts section    | `S3 Location: s3://terryli-dvc-storage/...`                                |
+| **Design Spec**      | S3 artifacts       | Implementation artifacts section    | `S3 Location: s3://eon-research-artifacts/...`                             |
 | **Design Spec**      | Source Plan        | YAML frontmatter                    | `source: ~/.claude/plans/xxx.md`                                           |
 | **SKILL.md**         | Implementation ADR | References section                  | `- [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md)` |
 | **S3 manifest.json** | Finding doc        | `finding.local_path` field          | `"local_path": "findings/finding-name.md"`                                 |
@@ -272,27 +272,27 @@ Session-Chronicle-S3: s3://terryli-dvc-storage/session-chronicle/<id>
 
 ## Coworker Retrieval Workflow
 
-**Requires**: 1Password Engineering vault access
+**Requires**: 1Password Claude Automation vault access
 
 ```bash
 # Download and decompress artifacts
 /usr/bin/env bash << 'RETRIEVE_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Engineering/uy6sbqwno7cofdapusds5f6aea/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 
 # Sync all artifacts
-aws s3 sync s3://terryli-dvc-storage/session-chronicle/<id>/ ./provenance/
+aws s3 sync s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts/
 
 # Decompress Brotli files
-for f in ./provenance/*.br; do brotli -d "$f"; done
+for f in ./artifacts/*.br; do brotli -d "$f"; done
 RETRIEVE_EOF
 ```
 
 **Alternative**: Use the retrieval script
 
 ```bash
-./scripts/retrieve_artifact.sh s3://terryli-dvc-storage/session-chronicle/<id>/ ./output
+./scripts/retrieve_artifact.sh s3://eon-research-artifacts/session-chronicle/<id>/ ./artifacts
 ```
 
 ---
@@ -304,8 +304,8 @@ RETRIEVE_EOF
 - [x] `brotli` installed and working — `brotli 1.2.0` (validate-prerequisites.sh)
 - [x] `aws` CLI installed — `aws-cli/2.32.26` (validate-prerequisites.sh)
 - [x] `op` (1Password CLI) signed in — `op 2.32.0` (validate-credential-access.sh)
-- [x] Engineering vault accessible — AWS keys retrieved (validate-credential-access.sh)
-- [x] S3 bucket writable — Upload to `s3://terryli-dvc-storage` succeeded (validate-s3-upload.sh)
+- [x] Claude Automation vault accessible — AWS keys retrieved (validate-credential-access.sh)
+- [x] S3 bucket writable — Upload to `s3://eon-research-artifacts` succeeded (validate-s3-upload.sh)
 - [x] Git commit includes S3 URIs (not presigned URLs) — Commit 34f0082 (validate-commit-format.sh)
 - [x] Existing ADR cross-referenced in commit (if applicable) — `ADR: 2026-01-02-session-chronicle-s3-sharing`
 - [x] Retrieval command in commit message works — E2E test verified (retrieve_artifact.sh)
@@ -316,10 +316,10 @@ RETRIEVE_EOF
 
 | Field          | Value                        |
 | -------------- | ---------------------------- |
-| Bucket         | `s3://terryli-dvc-storage`   |
+| Bucket         | `s3://eon-research-artifacts`   |
 | Region         | `us-west-2`                  |
 | Account        | `739013795786`               |
-| 1Password Item | `uy6sbqwno7cofdapusds5f6aea` |
+| 1Password Item | `rfuaxz6fzsz5y7p6nmutsuyzoq` |
 | Prefix         | `session-chronicle/`         |
 
 ---

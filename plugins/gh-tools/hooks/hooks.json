@@ -1,0 +1,17 @@
+{
+  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, suggests gh CLI alternatives",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/webfetch-github-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
