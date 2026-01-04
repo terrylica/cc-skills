@@ -700,7 +700,7 @@ Repository Settings → Actions → General → Workflow permissions → Enable 
 
 ```bash
 # Step 1: Refresh git index (automatic in npm run release)
-git update-index --refresh --quiet || true
+git update-index --refresh -q || true
 
 # Step 2: Check for uncommitted changes (modified, untracked, staged, deleted)
 git status --porcelain

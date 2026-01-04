@@ -7,7 +7,7 @@ plugins:
   - - "@semantic-release/exec"
     - verifyConditionsCmd: |
         # Step 1: Clear git cache to ensure accurate file status
-        git update-index --refresh --quiet || true
+        git update-index --refresh -q || true
 
         # Step 2: Check for uncommitted changes (modified, untracked, staged, deleted)
         if [ -n "$(git status --porcelain)" ]; then
