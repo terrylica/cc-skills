@@ -12,7 +12,7 @@ echo "=== S3 Upload/Download Validation ==="
 
 OP_VAULT="Claude Automation"
 OP_ITEM_ID="rfuaxz6fzsz5y7p6nmutsuyzoq"
-S3_BUCKET="terryli-dvc-storage"
+S3_BUCKET="eon-research-artifacts"
 S3_TEST_PREFIX="session-chronicle-validation-test"
 TEST_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 

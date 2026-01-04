@@ -31,7 +31,7 @@ cat > "$TEMP_DIR/manifest.json" << 'MANIFEST'
   "last_timestamp": "2026-01-02T00:00:00Z",
   "project_path": "/test/project",
   "created_at": "2026-01-02T12:00:00Z",
-  "s3_location": "s3://terryli-dvc-storage/session-chronicle/test-123"
+  "s3_location": "s3://eon-research-artifacts/session-chronicle/test-123"
 }
 MANIFEST
 
@@ -41,7 +41,7 @@ COMMIT_MSG=$(bash "$GEN_SCRIPT" "$TEMP_DIR" "Test provenance finding" 2>&1 || tr
 # Validate required elements
 VALIDATIONS=(
   "Session-Chronicle Provenance"
-  "s3://terryli-dvc-storage"
+  "s3://eon-research-artifacts"
   "session-chronicle"
   "op read"
   "aws s3"
