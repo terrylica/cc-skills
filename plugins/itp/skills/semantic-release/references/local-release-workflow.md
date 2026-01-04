@@ -40,6 +40,10 @@ npm run release       # Execute release (auto-pushes via successCmd + postreleas
 /usr/bin/env bash << 'PREFLIGHT_EOF'
 release() {
     # PHASE 1: PREFLIGHT
+    # Step 1: Clear git cache to ensure accurate file status
+    git update-index --refresh --quiet || true
+
+    # Step 2: Tooling checks
     command -v gh &>/dev/null || { echo "FAIL: gh CLI not installed"; return 1; }
     command -v semantic-release &>/dev/null || { echo "FAIL: semantic-release not installed globally"; return 1; }
     gh api user --jq '.login' &>/dev/null || { echo "FAIL: GH_TOKEN not set"; return 1; }
@@ -47,6 +51,7 @@ release() {
 
     local branch=$(git branch --show-current)
     [[ "$branch" == "main" ]] || { echo "FAIL: Not on main (on: $branch)"; return 1; }
+    # Step 3: Check for uncommitted changes (modified, untracked, staged, deleted)
     [[ -z "$(git status --porcelain)" ]] || { echo "FAIL: Working directory not clean"; git status --short; return 1; }
 
     # Check for releasable commits
@@ -102,17 +107,28 @@ PREFLIGHT_EOF
 
 **Purpose**: Validate all prerequisites before any git operations.
 
-### 1.1 Tooling Check
+### 1.1 Git Cache Refresh
+
+**MANDATORY first step**: Clear git cache before any status checks.
+
+```bash
+git update-index --refresh --quiet || true
+```
+
+This ensures all modified, untracked, staged, and deleted files are accurately detected by subsequent `git status` commands.
+
+### 1.2 Tooling Check
 
 | Check                   | Command                       | Expected   | Resolution                                                 |
 | ----------------------- | ----------------------------- | ---------- | ---------------------------------------------------------- |
+| Git cache fresh         | `git update-index --refresh`  | No output  | Auto-runs (Step 1)                                         |
 | gh CLI installed        | `command -v gh`               | Path to gh | `brew install gh`                                          |
 | semantic-release global | `command -v semantic-release` | Path       | See [Troubleshooting](#macos-gatekeeper-blocks-node-files) |
 | In git repo             | `git rev-parse --git-dir`     | `.git`     | Navigate to repo root                                      |
 | On main branch          | `git branch --show-current`   | `main`     | `git checkout main`                                        |
 | Clean working directory | `git status --porcelain`      | Empty      | Commit or stash                                            |
 
-### 1.2 Authentication Check (HTTPS-First)
+### 1.3 Authentication Check (HTTPS-First)
 
 **Primary method** (per authentication.md 2025-12-19+):
 
@@ -146,7 +162,7 @@ gh auth status 2>&1 | grep -B1 "Active account: true" | head -1
 gh auth switch --user <expected-username>
 ```
 
-### 1.3 Releasable Commits Validation
+### 1.4 Releasable Commits Validation
 
 **MANDATORY**: Verify version-bumping commits exist before proceeding.
 
@@ -163,7 +179,7 @@ GIT_EOF
 - Inform user: "No version-bumping commits since last release"
 - Only `feat:`, `fix:`, or `BREAKING CHANGE:` trigger releases
 
-### 1.4 MAJOR Version Confirmation (Interactive)
+### 1.5 MAJOR Version Confirmation (Interactive)
 
 **Trigger**: Commits containing `BREAKING CHANGE:` footer or `feat!:`/`fix!:` prefix.
 
