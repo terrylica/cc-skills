@@ -1,3 +1,39 @@
+## [9.11.2](https://github.com/terrylica/cc-skills/compare/v9.11.1...v9.11.2) (2026-01-04)
+
+
+### Bug Fixes
+
+* **semantic-release:** use correct -q flag for git update-index ([05c8e58](https://github.com/terrylica/cc-skills/commit/05c8e58326b269599da36e047341738c36bff853))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+2/-2)
+
+</details>
+
 ## [9.11.1](https://github.com/terrylica/cc-skills/compare/v9.11.0...v9.11.1) (2026-01-04)
 
 
