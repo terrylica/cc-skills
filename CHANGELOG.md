@@ -1,3 +1,39 @@
+## [9.11.1](https://github.com/terrylica/cc-skills/compare/v9.11.0...v9.11.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* **semantic-release:** add git cache clearing to preflight ([00ef67f](https://github.com/terrylica/cc-skills/commit/00ef67fbc07c231d1a292e66459ee6ad5925f21c))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+6/-3)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+20/-4)
+
+</details>
+
 # [9.11.0](https://github.com/terrylica/cc-skills/compare/v9.10.4...v9.11.0) (2026-01-04)
 
 
