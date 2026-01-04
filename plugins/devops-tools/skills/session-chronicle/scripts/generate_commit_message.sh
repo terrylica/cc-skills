@@ -85,21 +85,21 @@ fi
 
 cat << 'EOF'
 
-Retrieval (requires 1Password Claude Automation vault access):
+Retrieval (requires 1Password Employee vault access):
   /usr/bin/env bash << 'RETRIEVE_EOF'
-  export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/access key id")
-  export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/rfuaxz6fzsz5y7p6nmutsuyzoq/secret access key")
+  export AWS_ACCESS_KEY_ID=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/access key id")
+  export AWS_SECRET_ACCESS_KEY=$(op read "op://Employee/2liqctzsbycqkodhf3vq5pnr3e/secret access key")
   export AWS_DEFAULT_REGION="us-west-2"
 EOF
 
 if [[ -n "$S3_LOCATION" ]]; then
 cat << EOF
-  aws s3 sync $S3_LOCATION/ ./provenance/
+  aws s3 sync $S3_LOCATION/ ./sessions/
 EOF
 fi
 
 cat << 'EOF'
-  for f in ./provenance/*.br; do brotli -d "$f"; done
+  for f in ./sessions/*.br; do brotli -d "$f"; done
   RETRIEVE_EOF
 
 EOF
