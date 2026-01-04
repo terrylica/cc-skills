@@ -1,3 +1,58 @@
+## [9.11.3](https://github.com/terrylica/cc-skills/compare/v9.11.2...v9.11.3) (2026-01-04)
+
+
+### Bug Fixes
+
+* **session-chronicle:** migrate S3 bucket and credentials to company account ([23d480a](https://github.com/terrylica/cc-skills/commit/23d480ad3ba783def375c75869bfc167c81d637c))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Session Chronicle S3 Artifact Sharing](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-02-session-chronicle-s3-sharing.md) | updated (+15) |
+
+### Design Specs
+
+- [Design Spec: Session-Chronicle S3 Artifact Sharing](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-02-session-chronicle-s3-sharing/spec.md) - updated (+28/-28)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+16/-16)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/session-chronicle</strong> (1 file)</summary>
+
+- [S3 Artifact Retrieval Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/references/s3-retrieval-guide.md) - updated (+16/-16)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Post-Implementation Audit Report](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/tests/AUDIT-REPORT-2026-01-02.md) - updated (+5)
+
 ## [9.11.2](https://github.com/terrylica/cc-skills/compare/v9.11.1...v9.11.2) (2026-01-04)
 
 
