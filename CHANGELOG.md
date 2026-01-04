@@ -1,3 +1,73 @@
+# [9.11.0](https://github.com/terrylica/cc-skills/compare/v9.10.4...v9.11.0) (2026-01-04)
+
+
+### Features
+
+* **gh-tools:** add WebFetch enforcement hook for GitHub CLI preference ([9ea4427](https://github.com/terrylica/cc-skills/commit/9ea4427904c1edabd93ac97341382387ca266830)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Session Chronicle S3 Artifact Sharing](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-02-session-chronicle-s3-sharing.md) | updated (+5/-5) |
+| unknown | [gh-tools WebFetch Enforcement Hook](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md) | new (+137) |
+
+### Design Specs
+
+- [Design Spec: Session-Chronicle S3 Artifact Sharing](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-02-session-chronicle-s3-sharing/spec.md) - updated (+26/-26)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+63/-7)
+
+</details>
+
+
+### Plugin READMEs
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+42/-4)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/session-chronicle</strong> (1 file)</summary>
+
+- [S3 Artifact Retrieval Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/references/s3-retrieval-guide.md) - updated (+10/-10)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>gh-tools</strong> (1 command)</summary>
+
+- [gh-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/hooks.md) - new (+84)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Post-Implementation Audit Report](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/tests/AUDIT-REPORT-2026-01-02.md) - updated (+5/-5)
+
 ## [9.10.4](https://github.com/terrylica/cc-skills/compare/v9.10.3...v9.10.4) (2026-01-03)
 
 
