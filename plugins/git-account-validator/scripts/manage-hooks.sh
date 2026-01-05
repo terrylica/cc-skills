@@ -67,11 +67,13 @@ do_install() {
     is_installed && { warn "Already installed. Use 'uninstall' first."; do_status; return 0; }
 
     [[ -x "$HOOKS_BASE/validate-git-push.sh" ]] || die "Script not found: $HOOKS_BASE/validate-git-push.sh"
+    [[ -x "$HOOKS_BASE/validate-gh-isolation.sh" ]] || die "Script not found: $HOOKS_BASE/validate-gh-isolation.sh"
 
     local ts=$(create_backup)
     info "Backup: settings.json.backup.$ts"
 
-    local pre_entry='{"matcher":"Bash","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/git-account-validator/hooks/validate-git-push.sh","timeout":15}]}'
+    # Entry with both hooks: validate-git-push.sh (15s) + validate-gh-isolation.sh (5s)
+    local pre_entry='{"matcher":"Bash","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/git-account-validator/hooks/validate-git-push.sh","timeout":15},{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/git-account-validator/hooks/validate-gh-isolation.sh","timeout":5}]}'
 
     local temp=$(mktemp)
     trap 'rm -f "$temp"' EXIT
@@ -86,8 +88,9 @@ do_install() {
     mv "$temp" "$SETTINGS"
     trap - EXIT
 
-    info "git-account-validator hook installed!"
-    echo "  - PreToolUse: validate-git-push.sh (validates git push for multi-account auth)"
+    info "git-account-validator hooks installed!"
+    echo "  - PreToolUse: validate-git-push.sh (validates git push + gh high-risk ops)"
+    echo "  - PreToolUse: validate-gh-isolation.sh (ensures GH_CONFIG_DIR isolation)"
     echo ""
     echo "IMPORTANT: Restart Claude Code for changes to take effect."
 }

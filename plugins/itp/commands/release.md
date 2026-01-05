@@ -5,9 +5,18 @@ allowed-tools: Read, Bash, Glob, Grep, Edit, AskUserQuestion, TodoWrite
 argument-hint: "[--dry] [--skip-preflight]"
 ---
 
+<!-- ⛔⛔⛔ MANDATORY: LOAD THE SEMANTIC-RELEASE SKILL FIRST ⛔⛔⛔ -->
+
 # /itp:release
 
-Standalone semantic-release command with automatic preflight validation.
+**FIRST ACTION**: Read the semantic-release skill to load the complete workflow knowledge:
+
+```
+Read: ${CLAUDE_PLUGIN_ROOT}/skills/semantic-release/SKILL.md
+Read: ${CLAUDE_PLUGIN_ROOT}/skills/semantic-release/references/local-release-workflow.md
+```
+
+This command wraps the [semantic-release skill](../skills/semantic-release/SKILL.md) with automatic preflight validation.
 
 ## Arguments
 
@@ -26,72 +35,74 @@ Standalone semantic-release command with automatic preflight validation.
 
 ---
 
-## Execution Flow
+## ⛔ MANDATORY: Load Skill Knowledge First
 
-```
-                    /itp:release Workflow
+Before executing ANY release steps, you MUST read these files to load the semantic-release skill:
 
- -----------      +-----------+      +---------+      ------------
-| PREFLIGHT | --> | DRY-RUN?  | --> | RELEASE | --> | POSTFLIGHT |
- -----------      +-----------+      +---------+      ------------
-```
-
-### Phase 1: Preflight (unless --skip-preflight)
-
-Execute these checks in order. STOP on first failure:
+1. **SKILL.md** — Core workflow, conventional commits, MAJOR confirmation
+2. **local-release-workflow.md** — 4-phase release process (PREFLIGHT → SYNC → RELEASE → POSTFLIGHT)
 
 ```bash
-# 1. Clear git cache
-git update-index --refresh -q || true
-
-# 2. Check working directory
-if [ -n "$(git status --porcelain)" ]; then
-  echo "PREFLIGHT FAILED: Working directory not clean"
-  git status --short
-  # STOP - ask user to commit or stash
-fi
-
-# 3. Verify on main branch
-BRANCH=$(git branch --show-current)
-if [ "$BRANCH" != "main" ]; then
-  echo "PREFLIGHT FAILED: Not on main branch (on: $BRANCH)"
-  # STOP - ask user to checkout main
-fi
-
-# 4. Verify GitHub account
-ACCOUNT=$(gh api user --jq '.login' 2>/dev/null)
-echo "GitHub account: $ACCOUNT"
-# If wrong account, suggest: gh auth switch --user <correct>
-
-# 5. Check for releasable commits
-LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
-RELEASABLE=$(git log "${LAST_TAG}..HEAD" --oneline | grep -E "^[a-f0-9]+ (feat|fix|BREAKING)" || true)
-if [ -z "$RELEASABLE" ]; then
-  echo "PREFLIGHT FAILED: No releasable commits since $LAST_TAG"
-  echo "Use feat: or fix: prefix for version-bumping changes"
-  # STOP - nothing to release
-fi
+# Environment-agnostic paths
+SKILL_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/cache/cc-skills/itp/*/skills/semantic-release}"
 ```
 
-### Phase 2: Release
+**After reading the skill files, follow the Local Release Workflow (4 phases).**
 
-**If --dry flag provided:**
+---
+
+## Execution Flow (from skill)
+
+```
+                 Release Workflow Pipeline
+
+ -----------      +------+     +---------+      ------------
+| PREFLIGHT | --> | SYNC | --> | RELEASE | --> | POSTFLIGHT |
+ -----------      +------+     +---------+      ------------
+```
+
+### Phase 1: Preflight
+
+**From skill: Section 1.1-1.5**
+
+1. **Git Cache Refresh** (MANDATORY first step)
+   ```bash
+   git update-index --refresh -q || true
+   ```
+
+2. **Tooling Check** — gh CLI, semantic-release, git repo, main branch, clean directory
+
+3. **Authentication Check** — Verify correct GitHub account via `gh api user --jq '.login'`
+
+4. **Releasable Commits Validation** — Must have `feat:`, `fix:`, or `BREAKING CHANGE:` since last tag
+
+5. **MAJOR Version Confirmation** — If breaking changes detected, spawn 3 Task subagents + AskUserQuestion
+
+### Phase 2: Sync
+
+```bash
+git pull --rebase origin main
+git push origin main
+```
+
+### Phase 3: Release
+
+**If --dry flag:**
 ```bash
 npm run release:dry
 ```
 
-**Otherwise (production release):**
+**Production:**
 ```bash
 npm run release
 ```
 
-### Phase 3: Postflight
+### Phase 4: Postflight
 
-After successful release:
-
-1. Verify new tag created: `git describe --tags --abbrev=0`
-2. Verify GitHub release: `gh release list --limit 1`
-3. Report success with new version number
+1. Verify pristine state: `git status --porcelain`
+2. Verify release: `gh release list --limit 1`
+3. Update tracking refs: `git fetch origin main:refs/remotes/origin/main --no-tags`
+4. Plugin cache sync (cc-skills only): Automatic via successCmd
 
 ---
 
@@ -99,13 +110,13 @@ After successful release:
 
 | Scenario                  | Command               | Result                              |
 | ------------------------- | --------------------- | ----------------------------------- |
-| Standard release          | `/itp:release`        | Preflight → Release → Postflight    |
-| Preview changes           | `/itp:release --dry`  | Preflight → Dry-run (no changes)    |
+| Standard release          | `/itp:release`        | Load skill → 4-phase workflow       |
+| Preview changes           | `/itp:release --dry`  | Load skill → Dry-run only           |
 | Force release (dangerous) | `/itp:release -s`     | Skip preflight → Release            |
 
 ---
 
-## Error Recovery
+## Error Recovery (from skill)
 
 | Error                        | Resolution                                    |
 | ---------------------------- | --------------------------------------------- |
@@ -113,12 +124,14 @@ After successful release:
 | Not on main branch           | `git checkout main`                           |
 | Wrong GitHub account         | `gh auth switch --user <correct-account>`     |
 | No releasable commits        | Create a `feat:` or `fix:` commit first       |
-| Release failed               | Check logs, fix issue, retry                  |
+| MAJOR version detected       | Follow skill's multi-perspective analysis     |
+| Release failed               | Check [Troubleshooting](../skills/semantic-release/references/troubleshooting.md) |
 
 ---
 
-## Reference
+## Skill Reference (MUST READ)
 
-- [Local Release Workflow](../skills/semantic-release/references/local-release-workflow.md) - Detailed 4-phase process
-- [semantic-release SKILL](../skills/semantic-release/SKILL.md) - Full documentation
-- [Troubleshooting](../skills/semantic-release/references/troubleshooting.md) - Common issues
+- **[semantic-release SKILL](../skills/semantic-release/SKILL.md)** — Full documentation, MAJOR confirmation workflow
+- **[Local Release Workflow](../skills/semantic-release/references/local-release-workflow.md)** — Canonical 4-phase process
+- [Troubleshooting](../skills/semantic-release/references/troubleshooting.md) — Common issues and solutions
+- [Authentication](../skills/semantic-release/references/authentication.md) — Multi-account GitHub setup

@@ -1,5 +1,5 @@
 {
-  "description": "Pre-push validation for multi-account GitHub authentication",
+  "description": "Multi-account GitHub authentication validation (git push + gh CLI isolation)",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate-git-push.sh",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate-gh-isolation.sh",
+            "timeout": 5
           }
         ]
       }
