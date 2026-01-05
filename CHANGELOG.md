@@ -1,3 +1,34 @@
+## [9.12.1](https://github.com/terrylica/cc-skills/compare/v9.12.0...v9.12.1) (2026-01-05)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+2)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Rust Projects with release-plz](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/rust-release-plz.md) - new (+263)
+
+</details>
+
 # [9.12.0](https://github.com/terrylica/cc-skills/compare/v9.11.3...v9.12.0) (2026-01-05)
 
 
