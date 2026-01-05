@@ -22,6 +22,7 @@ Invoke when:
 - Troubleshooting semantic-release setup or version bumps
 - Setting up Python projects (use Node.js semantic-release, NOT python-semantic-release)
 - Configuring GitHub Actions (optional backup, not recommended as primary due to speed)
+- Rust workspaces using release-plz (see [Rust reference](./references/rust-release-plz.md))
 
 ## Why Node.js semantic-release
 
@@ -745,6 +746,7 @@ For detailed information, see:
 - [Version Alignment](./references/version-alignment.md) - Git tags as SSoT, manifest patterns, runtime version access
 - [2025 Updates](./references/2025-updates.md) - v25 changelog, Node.js 24+, OIDC trusted publishing, plugin versions
 - [Python Projects with Node.js semantic-release](./references/python-projects-nodejs-semantic-release.md) - Complete guide for Python package automation with @semantic-release/exec
+- [Rust Projects with release-plz](./references/rust-release-plz.md) - Rust-native release automation with cargo-rdme README SSoT
 - [`pypi-doppler` skill](../pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler credentials and CI detection guards
 - [Monorepo Support](./references/monorepo-support.md) - pnpm/npm workspaces configuration
 - [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
