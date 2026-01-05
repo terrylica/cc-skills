@@ -47,6 +47,7 @@ release() {
     command -v gh &>/dev/null || { echo "FAIL: gh CLI not installed"; return 1; }
     command -v semantic-release &>/dev/null || { echo "FAIL: semantic-release not installed globally"; return 1; }
     gh api user --jq '.login' &>/dev/null || { echo "FAIL: GH_TOKEN not set"; return 1; }
+    gh api -i user 2>&1 | grep -iq "x-oauth-scopes:.*workflow" || { echo "FAIL: GH_TOKEN missing 'workflow' scope"; echo "Fix: gh auth refresh -s workflow"; return 1; }
     git rev-parse --git-dir &>/dev/null || { echo "FAIL: Not a git repo"; return 1; }
 
     local branch=$(git branch --show-current)
@@ -123,6 +124,7 @@ This ensures all modified, untracked, staged, and deleted files are accurately d
 | ----------------------- | ----------------------------- | ---------- | ---------------------------------------------------------- |
 | Git cache fresh         | `git update-index --refresh`  | No output  | Auto-runs (Step 1)                                         |
 | gh CLI installed        | `command -v gh`               | Path to gh | `brew install gh`                                          |
+| gh workflow scope       | `gh api -i user \| grep workflow` | Present | `gh auth refresh -s workflow`                              |
 | semantic-release global | `command -v semantic-release` | Path       | See [Troubleshooting](#macos-gatekeeper-blocks-node-files) |
 | In git repo             | `git rev-parse --git-dir`     | `.git`     | Navigate to repo root                                      |
 | On main branch          | `git branch --show-current`   | `main`     | `git checkout main`                                        |
@@ -398,6 +400,32 @@ graph { label: "cc-skills Post-Release Cache Sync"; flow: east; }
 1. `gh api user --jq '.login'` - check active account
 2. `gh auth switch --user <correct-account>` - switch if needed
 3. If account not logged in: `gh auth login` for that account
+
+### GitHub Token Missing 'workflow' Scope
+
+**Error**: `❌ PREFLIGHT FAILED: GitHub token missing 'workflow' scope` or `! Failed to create release, "workflow" scope may be required.`
+
+**Cause**: GitHub CLI token lacks `workflow` scope, required for `gh release create`.
+
+**Resolution**:
+
+```bash
+# Add workflow scope to existing authentication
+gh auth refresh -s workflow
+```
+
+**Verify**:
+
+```bash
+gh api -i user 2>&1 | grep -i "x-oauth-scopes"
+# Should include: workflow
+```
+
+**Why this happens**:
+
+- `workflow` scope is only auto-requested during `gh auth login` if Git credential helper setup was selected
+- Tokens created before this feature may lack the scope
+- Some GitHub App tokens don't have this scope by default
 
 ### Permission Denied (publickey)
 
