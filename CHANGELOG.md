@@ -1,3 +1,29 @@
+# [9.13.0](https://github.com/terrylica/cc-skills/compare/v9.12.1...v9.13.0) (2026-01-05)
+
+
+### Features
+
+* **semantic-release:** add gh CLI workflow scope validation to preflight ([ecee9dd](https://github.com/terrylica/cc-skills/commit/ecee9ddff34e2576197fa922c7af8446fc99b99e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+28)
+
+</details>
+
 ## [9.12.1](https://github.com/terrylica/cc-skills/compare/v9.12.0...v9.12.1) (2026-01-05)
 
 
