@@ -253,22 +253,6 @@ These provide ZERO value toward OOS robustness (skip immediately):
 - Refactoring for "readability" without functional improvement
   {% endif %}
 
-{% if gpu_infrastructure and gpu_infrastructure.available %}
-
----
-
-## GPU INFRASTRUCTURE
-
-**Remote GPU**: `{{ gpu_infrastructure.host }}` — {{ gpu_infrastructure.gpu }}
-
-| Use Remote For                     | Keep Local              |
-| ---------------------------------- | ----------------------- |
-| Model training (90+ architectures) | Feature engineering     |
-| Batch inference (large datasets)   | Backtesting (CPU-bound) |
-| CUDA-accelerated computation       | Quick code iteration    |
-
-{% endif %}
-
 ---
 
 ## LEARNING CONTEXT

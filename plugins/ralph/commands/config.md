@@ -64,28 +64,6 @@ The unified config file `.claude/ralph-config.json` contains all configurable va
 | `protected_files`    | `loop-enabled`, `ralph-config.json`, etc. | Files protected from deletion     |
 | `stop_script_marker` | `RALPH_STOP_SCRIPT`                       | Marker to bypass PreToolUse guard |
 
-### GPU Infrastructure (Research Repo)
-
-| Setting     | Default | Description                                      |
-| ----------- | ------- | ------------------------------------------------ |
-| `available` | `false` | Enable GPU infrastructure suggestions            |
-| `host`      | `""`    | SSH hostname (e.g., `"small-host"`)             |
-| `gpu`       | `""`    | GPU description (e.g., `"RTX 2080 Ti (11GB)"`)   |
-| `ssh_cmd`   | `""`    | Full SSH command (e.g., `"ssh kab@small-host"`) |
-
-Example config with GPU:
-
-```json
-{
-  "gpu_infrastructure": {
-    "available": true,
-    "host": "small-host",
-    "gpu": "RTX 2080 Ti (11GB)",
-    "ssh_cmd": "ssh kab@small-host"
-  }
-}
-```
-
 ### Guidance (v3.0.0+)
 
 | Setting      | Default | Description                                   |
