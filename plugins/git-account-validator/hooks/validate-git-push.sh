@@ -94,8 +94,96 @@ if [[ "$TOOL_NAME" != "Bash" ]]; then
     exit 0
 fi
 
-# Check for git push (handle various forms: git push, git push origin, git push -u, etc.)
-if ! echo "$COMMAND" | grep -qE '\bgit\s+push\b'; then
+# Determine command type: git push OR gh high-risk operations
+IS_GIT_PUSH=false
+IS_GH_HIGH_RISK=false
+
+if echo "$COMMAND" | grep -qE '\bgit\s+push\b'; then
+    IS_GIT_PUSH=true
+fi
+
+# Check for gh high-risk operations (pr create, pr merge, release, workflow run)
+if echo "$COMMAND" | grep -qE '\bgh\s+(pr\s+create|pr\s+merge|release|workflow\s+run)\b'; then
+    IS_GH_HIGH_RISK=true
+fi
+
+# Exit if neither git push nor gh high-risk operation
+if [[ "$IS_GIT_PUSH" == "false" ]] && [[ "$IS_GH_HIGH_RISK" == "false" ]]; then
+    exit 0
+fi
+
+#=============================================================================
+# GH CLI Account Validation (for high-risk operations)
+#=============================================================================
+# NOTE: Generic - uses GH_ACCOUNT env var from user's mise.toml
+# Only validates on high-risk operations to avoid performance overhead
+
+if [[ "$IS_GH_HIGH_RISK" == "true" ]]; then
+    # Load mise environment (hooks don't inherit mise env)
+    if [[ -z "${GH_ACCOUNT:-}" ]] && command -v mise &>/dev/null; then
+        eval "$(mise hook-env -s bash 2>/dev/null)" || true
+    fi
+
+    # Get expected account from GH_ACCOUNT env var (set by user's mise.toml)
+    EXPECTED_GH_USER="${GH_ACCOUNT:-}"
+    if [[ -z "$EXPECTED_GH_USER" ]]; then
+        # Fallback to git config credential.username
+        if [[ -n "$CWD" ]] && cd "$CWD" 2>/dev/null; then
+            EXPECTED_GH_USER=$(git config credential.username 2>/dev/null || echo "")
+        fi
+    fi
+
+    if [[ -z "$EXPECTED_GH_USER" ]]; then
+        log_info "⚠️  [git-account-validator] GH_ACCOUNT not set - skipping gh validation"
+        exit 0
+    fi
+
+    # RECURSION GUARD (prevents infinite loop when calling gh api user)
+    if [[ "${_GH_ACCOUNT_CHECK_ACTIVE:-0}" == "1" ]]; then
+        exit 0
+    fi
+    export _GH_ACCOUNT_CHECK_ACTIVE=1
+    trap 'unset _GH_ACCOUNT_CHECK_ACTIVE' RETURN
+
+    # NETWORK FAILURE HANDLING: timeout + warn-only by default
+    STRICT_MODE="${GH_ISOLATION_STRICT:-false}"
+    GH_USER=$(timeout_cmd 3 gh api user --jq '.login' 2>/dev/null || echo "")
+
+    if [[ -z "$GH_USER" ]]; then
+        if [[ "$STRICT_MODE" == "true" ]]; then
+            log_block "BLOCKED: Cannot verify gh account (network error)"
+            log_error "Expected account: $EXPECTED_GH_USER"
+            log_error ""
+            log_error "To disable strict mode: export GH_ISOLATION_STRICT=false"
+            exit 2
+        else
+            log_info "⚠️  [git-account-validator] Cannot verify gh account (network timeout)"
+            exit 0  # Allow - let gh command fail naturally if there's an issue
+        fi
+    fi
+
+    if [[ "$GH_USER" != "$EXPECTED_GH_USER" ]]; then
+        log_block "BLOCKED: gh CLI account mismatch"
+        log_error "Directory:     $CWD"
+        log_error "Expected user: $EXPECTED_GH_USER (from GH_ACCOUNT env var)"
+        log_error "gh CLI user:   $GH_USER"
+        log_error ""
+        log_error "Possible causes:"
+        log_error "  1. GH_CONFIG_DIR not set in .mise.toml"
+        log_error "  2. Wrong account in GH_CONFIG_DIR profile"
+        log_error ""
+        log_error 'Check your .mise.toml has:'
+        log_error '  GH_CONFIG_DIR = "{{ env.HOME }}/.config/gh-profiles/<account>"'
+        log_error '  GH_ACCOUNT = "<account>"'
+        exit 2
+    fi
+
+    # GH validation passed
+    exit 0
+fi
+
+# Continue with git push validation only if IS_GIT_PUSH is true
+if [[ "$IS_GIT_PUSH" == "false" ]]; then
     exit 0
 fi
 

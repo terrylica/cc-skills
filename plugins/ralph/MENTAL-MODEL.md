@@ -953,23 +953,22 @@ The configuration uses Pydantic v2 for validation (see `hooks/core/config_schema
 │  │  max_iterations: int = 999    │    │  Encourages OVERRIDE forbidden    │ │
 │  └───────────────────────────────┘    └───────────────────────────────────┘ │
 │                                                                             │
-│  ┌───────────────────────────────┐    ┌───────────────────────────────────┐ │
-│  │  ConstraintScanConfig         │    │  GPUInfrastructureConfig          │ │
-│  │  ─────────────────────        │    │  ──────────────────────           │ │
-│  │  enabled: bool = True         │    │  available: bool = False          │ │
-│  │  deep_dive: bool = False      │    │  host: str | None                 │ │
-│  │  patterns: list[Pattern]      │    │  gpu: str | None                  │ │
-│  └───────────────────────────────┘    └───────────────────────────────────┘ │
+│  ┌───────────────────────────────┐                                          │
+│  │  ConstraintScanConfig         │                                          │
+│  │  ─────────────────────        │                                          │
+│  │  enabled: bool = True         │                                          │
+│  │  deep_dive: bool = False      │                                          │
+│  │  patterns: list[Pattern]      │                                          │
+│  └───────────────────────────────┘                                          │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Section                | Purpose                          | Key Fields                           |
-| ---------------------- | -------------------------------- | ------------------------------------ |
-| **loop_limits**        | When to allow stopping           | min/max hours, min/max iterations    |
-| **guidance**           | What to work on (and avoid)      | forbidden[], encouraged[]            |
-| **constraint_scan**    | Pre-start environment checks     | enabled, patterns[], severity levels |
-| **gpu_infrastructure** | Remote GPU for heavy computation | host, gpu type, availability         |
+| Section             | Purpose                      | Key Fields                           |
+| ------------------- | ---------------------------- | ------------------------------------ |
+| **loop_limits**     | When to allow stopping       | min/max hours, min/max iterations    |
+| **guidance**        | What to work on (and avoid)  | forbidden[], encouraged[]            |
+| **constraint_scan** | Pre-start environment checks | enabled, patterns[], severity levels |
 
 <details>
 <summary>graph-easy source</summary>
@@ -981,12 +980,10 @@ graph { label: "Config Schema Hierarchy"; flow: south; }
 [LoopLimitsConfig]
 [GuidanceConfig]
 [ConstraintScanConfig]
-[GPUInfrastructureConfig]
 
 [RalphConfig] -> [LoopLimitsConfig]
 [RalphConfig] -> [GuidanceConfig]
 [RalphConfig] -> [ConstraintScanConfig]
-[RalphConfig] -> [GPUInfrastructureConfig]
 ```
 
 </details>
@@ -1085,7 +1082,7 @@ graph { label: "Observability Channels"; flow: south; }
 | File                                                                                                                          | OODA Phase                | Ralph Action                                          |
 | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------- |
 | [ROADMAP.md](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/ROADMAP.md)                                             | OBSERVE, ORIENT           | Reads P0/P1/P2 priorities                             |
-| [.claude/ralph-config.json](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/.claude/ralph-config.json)               | Session Start             | Reads limits, forbidden, encouraged, GPU              |
+| [.claude/ralph-config.json](https://github.com/EonLabs-Spartan/alpha-forge/blob/main/.claude/ralph-config.json)               | Session Start             | Reads limits, forbidden, encouraged                   |
 | `outputs/runs/*/summary.json` _(local runtime, gitignored)_                                                                   | OBSERVE, DECIDE           | Reads Sharpe, WFE, CAGR, maxDD, Sortino, Calmar       |
 | `outputs/research_sessions/*/research_log.md` _(local runtime, gitignored)_                                                   | OBSERVE, ORIENT, Converge | Reads CONVERGED, deferred_recommendations, SOTA Queue |
 | `outputs/research_sessions/*/research_summary.md` _(local runtime, gitignored)_                                               | OBSERVE                   | Reads metrics table                                   |

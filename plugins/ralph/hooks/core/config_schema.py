@@ -210,20 +210,6 @@ class GracefulShutdownConfig(BaseModel):
     model_config = ConfigDict(extra='ignore')
 
 
-class GpuInfrastructureConfig(BaseModel):
-    """Configuration for remote GPU infrastructure (Alpha Forge projects).
-
-    This enables Ralph to suggest remote GPU execution for training-heavy tasks.
-    Configure per-project in .claude/ralph-config.json.
-    """
-    available: bool = False  # Set to True to enable GPU suggestions
-    host: str = ""  # SSH hostname (e.g., "littleblack")
-    gpu: str = ""  # GPU description (e.g., "RTX 2080 Ti (11GB)")
-    ssh_cmd: str = ""  # Full SSH command (e.g., "ssh kab@littleblack")
-
-    model_config = ConfigDict(extra='ignore')
-
-
 class GuidanceConfig(BaseModel):
     """User guidance for Ralph (forbidden/encouraged items).
 
@@ -282,7 +268,6 @@ class RalphConfig(BaseModel):
     loop_limits: LoopLimitsConfig = Field(default_factory=LoopLimitsConfig)
     protection: ProtectionConfig = Field(default_factory=ProtectionConfig)
     graceful_shutdown: GracefulShutdownConfig = Field(default_factory=GracefulShutdownConfig)
-    gpu_infrastructure: GpuInfrastructureConfig = Field(default_factory=GpuInfrastructureConfig)
     subprocess_timeouts: SubprocessTimeoutConfig = Field(default_factory=SubprocessTimeoutConfig)
 
     # NEW v3.0.0: User guidance from AUQ screening

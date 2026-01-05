@@ -56,7 +56,7 @@ def parse_frontmatter(content: str) -> tuple[dict[str, str], str]:
 
 
 def _resolve_path(context: dict[str, Any], path: str) -> Any:
-    """Resolve a dotted path like 'gpu_infrastructure.host' from context.
+    """Resolve a dotted path like 'guidance.forbidden' from context.
 
     Args:
         context: Template context dict
@@ -79,7 +79,7 @@ def _simple_render(template: str, context: dict[str, Any]) -> str:
     """Fallback renderer using simple {{ var }} replacement.
 
     Handles basic variable substitution including nested dict access
-    (e.g., {{ gpu_infrastructure.host }}). Does not support loops/conditionals.
+    (e.g., {{ guidance.forbidden }}). Does not support loops/conditionals.
     """
     result = template
 
@@ -270,7 +270,6 @@ class TemplateLoader:
                 - web_insights: list[str] - domain insights from web
                 - feature_ideas: list[dict] - big feature proposals
                 - web_queries: list[str] - search queries to execute
-                - gpu_infrastructure: dict - GPU config if available
             adapter_name: Name of the active adapter (e.g., "alpha-forge")
             metrics_history: Project-specific metrics history (for Alpha Forge)
             opportunities: List of discovered work opportunities
@@ -318,7 +317,6 @@ class TemplateLoader:
             "missing_tools": ctx.get("missing_tools", []),
             "quality_gate": ctx.get("quality_gate", []),
             "overall_effectiveness": ctx.get("overall_effectiveness", 0.0),
-            "gpu_infrastructure": ctx.get("gpu_infrastructure", {}),
             # Adapter-specific
             "adapter_name": adapter_name or "",
             "metrics_history": metrics_history or [],

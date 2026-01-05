@@ -251,7 +251,6 @@ def build_continuation_prompt(
     # ===== LOAD USER GUIDANCE (ALWAYS - this is the fix) =====
     # ADR: /docs/adr/2026-01-02-ralph-guidance-freshness-detection.md
     guidance = {}
-    gpu_infrastructure = {}
     config_guidance = {}
     guidance_timestamp = ""
 
@@ -262,9 +261,6 @@ def build_continuation_prompt(
                 ralph_config = json.loads(ralph_config_file.read_text())
                 config_guidance = ralph_config.get("guidance", {})
                 guidance_timestamp = config_guidance.get("timestamp", "")
-                gpu_cfg = ralph_config.get("gpu_infrastructure", {})
-                if gpu_cfg.get("available", False):
-                    gpu_infrastructure = gpu_cfg
             except (json.JSONDecodeError, OSError) as e:
                 print(f"[ralph] Warning: Failed to load ralph-config.json: {e}", file=sys.stderr)
                 emit("Config", f"Failed to load ralph-config.json: {e}", target="terminal")
@@ -350,8 +346,6 @@ def build_continuation_prompt(
         "web_queries": _build_web_queries(state, adapter_conv) if adapter_name == "alpha-forge" else [
             f"project improvement SOTA {datetime.now().year - 1}-{datetime.now().year}"
         ],
-        # GPU infrastructure
-        "gpu_infrastructure": gpu_infrastructure,
     }
 
     # Get metrics history for Alpha Forge
