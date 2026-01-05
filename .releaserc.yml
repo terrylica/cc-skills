@@ -19,6 +19,23 @@ plugins:
           exit 1
         fi
         echo "✓ Working directory clean"
+
+        # Step 3: Validate GitHub CLI authentication scopes
+        SCOPES=$(gh api -i user 2>&1 | grep -i "x-oauth-scopes" | sed 's/.*: //' || true)
+        if [ -z "$SCOPES" ]; then
+          echo "❌ PREFLIGHT FAILED: GitHub CLI not authenticated"
+          echo ""
+          echo "Resolution: gh auth login"
+          exit 1
+        fi
+        if ! echo "$SCOPES" | grep -q "workflow"; then
+          echo "❌ PREFLIGHT FAILED: GitHub token missing 'workflow' scope"
+          echo "Current scopes: $SCOPES"
+          echo ""
+          echo "Resolution: gh auth refresh -s workflow"
+          exit 1
+        fi
+        echo "✓ GitHub CLI scopes valid (workflow present)"
   - - "@semantic-release/commit-analyzer"
     - releaseRules:
         # Marketplace plugins require version bump for ANY change
