@@ -1,3 +1,82 @@
+# [9.12.0](https://github.com/terrylica/cc-skills/compare/v9.11.3...v9.12.0) (2026-01-05)
+
+
+### Bug Fixes
+
+* **session-chronicle:** update 1Password credentials to Claude Automation vault ([87f0cd7](https://github.com/terrylica/cc-skills/commit/87f0cd7920d13f9dea7352e4a439126388a02f44))
+
+
+### Features
+
+* **itp:** add standalone /itp:release command ([88a4357](https://github.com/terrylica/cc-skills/commit/88a4357d3ac1527ba3dbf57c08ee63eb0c21653f))
+* **itp:** wire /itp:release command to semantic-release skill ([f6f0797](https://github.com/terrylica/cc-skills/commit/f6f07979bec1099b421013026178504b3d597640))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Session Chronicle S3 Artifact Sharing](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-02-session-chronicle-s3-sharing.md) | updated (+3/-3) |
+
+### Design Specs
+
+- [Design Spec: Session-Chronicle S3 Artifact Sharing](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-02-session-chronicle-s3-sharing/spec.md) - updated (+13/-13)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+2/-2)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/session-chronicle</strong> (1 file)</summary>
+
+- [S3 Artifact Retrieval Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/references/s3-retrieval-guide.md) - updated (+9/-9)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>itp</strong> (1 command)</summary>
+
+- [/itp:release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/release.md) - new (+137)
+
+</details>
+
+<details>
+<summary><strong>ralph</strong> (1 command)</summary>
+
+- [Ralph Loop: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/config.md) - updated (-22)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/hooks/templates/ralph-unified.md) - updated (-16)
+- [Ralph Mental Model for Alpha-Forge](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/MENTAL-MODEL.md) - updated (+13/-16)
+
 ## [9.11.3](https://github.com/terrylica/cc-skills/compare/v9.11.2...v9.11.3) (2026-01-04)
 
 
