@@ -280,9 +280,10 @@ github_url=$(get_github_url)
 utc_time=$(date -u +"%y%b%d %H:%MZ")
 local_time=$(date +"%y%b%d %H:%ML")
 
-# Two-line status:
+# Three-line status:
 #   Line 1: repo-path | git stats | local time
 #   Line 2: github-url | UTC time (UTC aligns with remote context)
+#   Line 3: session UUID (if available)
 line1="${GREEN}${repo_path}${RESET} | ${git_changes} | ${BRIGHT_BLACK}${local_time}${RESET}"
 
 # Line 2: GitHub URL + UTC time, or warning (color matches branch state)
@@ -300,3 +301,8 @@ fi
 
 echo -e "$line1"
 echo -e "$line2"
+
+# Line 3: Session UUID (if available)
+if [ -n "$session_id" ]; then
+    echo -e "${BRIGHT_BLACK}Session UUID: ${CYAN}${session_id}${RESET}"
+fi

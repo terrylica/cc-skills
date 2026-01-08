@@ -63,8 +63,24 @@ Manage global ignore patterns for `lint-relative-paths`. Use this when a reposit
 
 ## Status Line Display
 
+The status line outputs three lines:
+
+**Line 1**: Repository path, git indicators, local time
+
 ```
-repo-name/path | ↯ branch | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 L:0 P:0 | https://github.com/user/repo
+repo-name/path | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 | L:0 P:0 | 25Jan07 14:32L
+```
+
+**Line 2**: GitHub URL (or warning), UTC time
+
+```
+https://github.com/user/repo/tree/branch | 25Jan07 14:32Z
+```
+
+**Line 3**: Session UUID
+
+```
+Session UUID: abc12345-def4-5678-90ab-cdef12345678
 ```
 
 ### Indicators
