@@ -266,7 +266,7 @@ plugins:
 
 **Trigger**: When commits contain `BREAKING CHANGE:` footer or `feat!:` / `fix!:` prefix.
 
-**Why extra confirmation**: MAJOR version bumps signal breaking changes that require consumers to update their code. False positives (accidental `!` suffix) or unnecessary breaking changes can fragment the user base.
+**Why extra confirmation**: MAJOR version bumps signal breaking changes that require consumers to update their code. False positives (accidental breaking change marker) or unnecessary breaking changes can fragment the user base.
 
 #### Phase 1: Detection (Automatic)
 

@@ -5,8 +5,8 @@
   "description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI",
   "scripts": {
     "release:preflight": "test -z \"$(git status --porcelain)\" || (echo '❌ Working directory not clean' && git status --short && exit 1)",
-    "release": "npm run release:preflight && GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci",
-    "release:dry": "npm run release:preflight && GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci --dry-run",
+    "release": "npm run release:preflight && semantic-release --no-ci",
+    "release:dry": "npm run release:preflight && semantic-release --no-ci --dry-run",
     "postrelease": "git fetch origin main:refs/remotes/origin/main --no-tags || true"
   },
   "repository": {
