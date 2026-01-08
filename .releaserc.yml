@@ -36,6 +36,23 @@ plugins:
           exit 1
         fi
         echo "✓ GitHub CLI scopes valid (workflow present)"
+
+        # Step 4: Verify GitHub account matches expected (if GH_ACCOUNT configured)
+        ACTUAL_USER=$(gh api user --jq '.login' 2>/dev/null || echo "")
+        EXPECTED_USER="${GH_ACCOUNT:-}"
+        if [ -n "$EXPECTED_USER" ] && [ "$ACTUAL_USER" != "$EXPECTED_USER" ]; then
+          echo "❌ PREFLIGHT FAILED: GitHub account mismatch"
+          echo "Expected: $EXPECTED_USER (from GH_ACCOUNT env)"
+          echo "Actual:   $ACTUAL_USER (from gh api user)"
+          echo ""
+          echo "Resolution: gh auth switch --user $EXPECTED_USER"
+          exit 1
+        fi
+        if [ -n "$EXPECTED_USER" ]; then
+          echo "✓ GitHub account verified: $ACTUAL_USER"
+        else
+          echo "⚠ GH_ACCOUNT not set, releasing as: $ACTUAL_USER"
+        fi
   - - "@semantic-release/commit-analyzer"
     - releaseRules:
         # Marketplace plugins require version bump for ANY change

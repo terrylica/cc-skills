@@ -48,6 +48,13 @@ release() {
     command -v semantic-release &>/dev/null || { echo "FAIL: semantic-release not installed globally"; return 1; }
     gh api user --jq '.login' &>/dev/null || { echo "FAIL: GH_TOKEN not set"; return 1; }
     gh api -i user 2>&1 | grep -iq "x-oauth-scopes:.*workflow" || { echo "FAIL: GH_TOKEN missing 'workflow' scope"; echo "Fix: gh auth refresh -s workflow"; return 1; }
+
+    # Account verification (if GH_ACCOUNT is set via mise [env])
+    if [[ -n "${GH_ACCOUNT:-}" ]]; then
+        local actual_user=$(gh api user --jq '.login' 2>/dev/null)
+        [[ "$actual_user" == "$GH_ACCOUNT" ]] || { echo "FAIL: Account mismatch: expected $GH_ACCOUNT, got $actual_user"; echo "Fix: gh auth switch --user $GH_ACCOUNT"; return 1; }
+    fi
+
     git rev-parse --git-dir &>/dev/null || { echo "FAIL: Not a git repo"; return 1; }
 
     local branch=$(git branch --show-current)
@@ -85,7 +92,8 @@ release() {
 
     # PHASE 3: RELEASE
     export GIT_OPTIONAL_LOCKS=0
-    GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci "$@"
+    # Uses GITHUB_TOKEN from mise [env] - no $(gh auth token) capture
+    semantic-release --no-ci "$@"
     local rc=$?
     [[ $rc -ne 0 ]] && { echo "FAIL: semantic-release exited with code $rc"; return $rc; }
     echo "RELEASE: OK"
@@ -125,6 +133,7 @@ This ensures all modified, untracked, staged, and deleted files are accurately d
 | Git cache fresh         | `git update-index --refresh`  | No output  | Auto-runs (Step 1)                                         |
 | gh CLI installed        | `command -v gh`               | Path to gh | `brew install gh`                                          |
 | gh workflow scope       | `gh api -i user \| grep workflow` | Present | `gh auth refresh -s workflow`                              |
+| **gh account match**    | `gh api user --jq '.login'`   | = GH_ACCOUNT | `gh auth switch --user $GH_ACCOUNT`                       |
 | semantic-release global | `command -v semantic-release` | Path       | See [Troubleshooting](#macos-gatekeeper-blocks-node-files) |
 | In git repo             | `git rev-parse --git-dir`     | `.git`     | Navigate to repo root                                      |
 | On main branch          | `git branch --show-current`   | `main`     | `git checkout main`                                        |
@@ -266,22 +275,20 @@ git push origin main
 ### 3.1 Dry-Run (Recommended First)
 
 ```bash
-/usr/bin/env bash << 'LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF'
 npm run release:dry
-# Or:
-/usr/bin/env bash -c 'GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci --dry-run'
-LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF
+# Or (relies on mise GH_TOKEN/GITHUB_TOKEN):
+semantic-release --no-ci --dry-run
 ```
 
 ### 3.2 Execute Release
 
 ```bash
-/usr/bin/env bash << 'LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF_2'
 npm run release
-# Or:
-/usr/bin/env bash -c 'export GIT_OPTIONAL_LOCKS=0 && GITHUB_TOKEN=$(gh auth token) semantic-release --no-ci'
-LOCAL_RELEASE_WORKFLOW_SCRIPT_EOF_2
+# Or (relies on mise GH_TOKEN/GITHUB_TOKEN):
+GIT_OPTIONAL_LOCKS=0 semantic-release --no-ci
 ```
+
+> **Note**: As of v9.15.0, `npm run release` no longer calls `$(gh auth token)`. It relies on mise `[env]` setting `GITHUB_TOKEN` per-directory. This prevents account switching issues in multi-account setups.
 
 **What happens**:
 
@@ -426,6 +433,34 @@ gh api -i user 2>&1 | grep -i "x-oauth-scopes"
 - `workflow` scope is only auto-requested during `gh auth login` if Git credential helper setup was selected
 - Tokens created before this feature may lack the scope
 - Some GitHub App tokens don't have this scope by default
+
+### GitHub Account Mismatch
+
+**Error**: `❌ PREFLIGHT FAILED: GitHub account mismatch` or release publishes under wrong account
+
+**Cause**: gh CLI is authenticated with a different account than expected for this repository. Common in multi-account setups.
+
+**Resolution**:
+
+```bash
+# Check current account
+gh api user --jq '.login'
+
+# Switch to correct account
+gh auth switch --user <expected-username>
+```
+
+**Prevention**: Set `GH_ACCOUNT` in your directory's `.mise.toml`:
+
+```toml
+[env]
+GH_ACCOUNT = "terrylica"  # Expected account for this directory
+GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terrylica') | trim }}"
+```
+
+The preflight check in `.releaserc.yml` validates `gh api user` against `GH_ACCOUNT` before release.
+
+**Root cause**: Global `~/.config/gh/hosts.yml` has a default `user:` that may differ from directory-specific expectations. The `gh auth switch` command only affects the current shell session, not subprocesses spawned by npm.
 
 ### Permission Denied (publickey)
 
