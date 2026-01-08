@@ -6,6 +6,9 @@ plugins:
   # ADR: 2025-12-23-semantic-release-preflight-guard
   - - "@semantic-release/exec"
     - verifyConditionsCmd: |
+        # Load mise environment for GH_TOKEN and GH_ACCOUNT
+        eval "$(mise hook-env -s bash 2>/dev/null)" || true
+
         # Step 1: Clear git cache to ensure accurate file status
         git update-index --refresh -q || true
 
