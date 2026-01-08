@@ -1,12 +1,18 @@
 {
   "description": "Ralph autonomous improvement engine - loop control and plan archival hooks",
+  "notes": [
+    "Activation-gated design: Hooks do NOTHING unless Ralph was started (/ralph:start).",
+    "Bash wrappers check for $PROJECT/.claude/ralph-state.json with state:running",
+    "If not active, wrappers exit silently without invoking Python/uv (zero overhead).",
+    "This prevents broken .venv issues and unnecessary processing in non-Ralph projects."
+  ],
   "hooks": {
     "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/loop-until-done.py",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/loop-until-done-wrapper.sh",
             "timeout": 30000
           }
         ]
@@ -28,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-loop-guard.py",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-loop-guard-wrapper.sh",
             "timeout": 5000
           }
         ]
