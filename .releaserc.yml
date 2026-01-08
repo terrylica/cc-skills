@@ -6,6 +6,9 @@ plugins:
   # ADR: 2025-12-23-semantic-release-preflight-guard
   - - "@semantic-release/exec"
     - verifyConditionsCmd: |
+        # Disable history expansion to avoid issues with ! character
+        set +H 2>/dev/null || true
+
         # Load mise environment for GH_TOKEN and GH_ACCOUNT
         eval "$(mise hook-env -s bash 2>/dev/null)" || true
 
@@ -31,13 +34,14 @@ plugins:
           echo "Resolution: gh auth login"
           exit 1
         fi
-        if ! echo "$SCOPES" | grep -q "workflow"; then
-          echo "❌ PREFLIGHT FAILED: GitHub token missing 'workflow' scope"
+        # Use || pattern to avoid history expansion issues with !
+        echo "$SCOPES" | grep -q "workflow" || {
+          echo "❌ PREFLIGHT FAILED: GitHub token missing workflow scope"
           echo "Current scopes: $SCOPES"
           echo ""
           echo "Resolution: gh auth refresh -s workflow"
           exit 1
-        fi
+        }
         echo "✓ GitHub CLI scopes valid (workflow present)"
 
         # Step 4: Verify GitHub account matches expected (if GH_ACCOUNT configured)
