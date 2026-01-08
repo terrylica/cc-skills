@@ -1,3 +1,46 @@
+# [9.15.0](https://github.com/terrylica/cc-skills/compare/v9.14.0...v9.15.0) (2026-01-08)
+
+
+### Bug Fixes
+
+* **semantic-release:** avoid shell history expansion in verifyConditionsCmd ([1178c9f](https://github.com/terrylica/cc-skills/commit/1178c9fff69896240ee1b43f02790eebc19e100e))
+* **semantic-release:** prevent release workflow hiccups ([cc6296f](https://github.com/terrylica/cc-skills/commit/cc6296f01cb34e6416784191b639b5f8dcec599b))
+
+
+### Features
+
+* **ralph:** add activation-gated bash wrappers for hooks ([c92bbdb](https://github.com/terrylica/cc-skills/commit/c92bbdb8a179dd9d15257fa090058dfd35d4ca86))
+* **semantic-release:** add mise env loading to preflight verifyConditions ([36a90f7](https://github.com/terrylica/cc-skills/commit/36a90f73969880e8bd6ef3203e720706417a99a1))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+44/-9)
+
+</details>
+
 # [9.14.0](https://github.com/terrylica/cc-skills/compare/v9.13.0...v9.14.0) (2026-01-08)
 
 
