@@ -1,3 +1,24 @@
+# [9.14.0](https://github.com/terrylica/cc-skills/compare/v9.13.0...v9.14.0) (2026-01-08)
+
+
+### Features
+
+* **statusline-tools:** add session UUID as third line in status output ([01e3846](https://github.com/terrylica/cc-skills/commit/01e38467f5484ee7e7a6197a2601d91e162c71d2))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [statusline-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/README.md) - updated (+17/-1)
+
 # [9.13.0](https://github.com/terrylica/cc-skills/compare/v9.12.1...v9.13.0) (2026-01-05)
 
 
