@@ -1,3 +1,10 @@
+# [9.17.0](https://github.com/terrylica/cc-skills/compare/v9.16.0...v9.17.0) (2026-01-10)
+
+
+### Features
+
+* **statusline-tools:** add session UUID chain display with lineage tracing ([871372e](https://github.com/terrylica/cc-skills/commit/871372ec54e10111ed1897636e04423b286dfdb1))
+
 # [9.16.0](https://github.com/terrylica/cc-skills/compare/v9.15.0...v9.16.0) (2026-01-10)
 
 
