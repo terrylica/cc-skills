@@ -1,3 +1,5 @@
+## [9.18.2](https://github.com/terrylica/cc-skills/compare/v9.18.1...v9.18.2) (2026-01-10)
+
 ## [9.18.1](https://github.com/terrylica/cc-skills/compare/v9.18.0...v9.18.1) (2026-01-10)
 
 
