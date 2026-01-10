@@ -59,9 +59,12 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
             DOC_CONTEXT=true
         fi
 
-        # 3. Lock file operations
+        # 3. Lock file GENERATION operations (not installation)
+        # pip freeze > requirements.txt - generates lock file (OK)
+        # pip-compile - generates requirements.txt from .in (OK)
+        # pip install -r requirements.txt - should trigger reminder (NOT exception)
         LOCK_OPS=false
-        if echo "$COMMAND_LOWER" | grep -qE 'pip-compile|pip\s+freeze|requirements\.(txt|in)'; then
+        if echo "$COMMAND_LOWER" | grep -qE 'pip-compile|pip\s+freeze'; then
             LOCK_OPS=true
         fi
 
@@ -79,6 +82,11 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
                 # Special case: editable install
                 if echo "$COMMAND_LOWER" | grep -qE 'pip\s+install\s+(-e|--editable)'; then
                     SUGGESTED="uv pip install -e ."
+                fi
+
+                # Special case: requirements file install
+                if echo "$COMMAND_LOWER" | grep -qE 'pip\s+install\s+-r'; then
+                    SUGGESTED="uv sync  # or: uv pip install -r requirements.txt"
                 fi
 
                 REMINDER="[UV-REMINDER] pip detected - use uv instead
