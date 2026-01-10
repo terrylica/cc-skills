@@ -1,3 +1,10 @@
+# [9.18.0](https://github.com/terrylica/cc-skills/compare/v9.17.1...v9.18.0) (2026-01-10)
+
+
+### Features
+
+* **statusline-tools:** add asciinema cast file reference to statusline ([d8b71a4](https://github.com/terrylica/cc-skills/commit/d8b71a422fbd336156fdc4999cfadc557a81940b))
+
 ## [9.17.1](https://github.com/terrylica/cc-skills/compare/v9.17.0...v9.17.1) (2026-01-10)
 
 # [9.17.0](https://github.com/terrylica/cc-skills/compare/v9.16.0...v9.17.0) (2026-01-10)
