@@ -6,6 +6,7 @@
   "description": "Status line and link validation tools for Claude Code",
   "scripts": {
     "lint": "bun run scripts/lint-relative-paths.ts",
+    "chain": "bun run scripts/session-chain.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
