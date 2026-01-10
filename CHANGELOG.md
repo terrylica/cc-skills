@@ -1,3 +1,11 @@
+## [9.18.1](https://github.com/terrylica/cc-skills/compare/v9.18.0...v9.18.1) (2026-01-10)
+
+
+### Bug Fixes
+
+* **git-account-validator:** use correct PreToolUse JSON output format ([1538806](https://github.com/terrylica/cc-skills/commit/15388066005e247e70c510bc7497664ae1c32f31))
+* **git-account-validator:** validate active gh account matches GH_ACCOUNT ([6c2f347](https://github.com/terrylica/cc-skills/commit/6c2f347d12e9f43a7604d24c297149d60938336d)), closes [#4](https://github.com/terrylica/cc-skills/issues/4)
+
 # [9.18.0](https://github.com/terrylica/cc-skills/compare/v9.17.1...v9.18.0) (2026-01-10)
 
 
