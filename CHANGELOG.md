@@ -1,3 +1,10 @@
+# [9.16.0](https://github.com/terrylica/cc-skills/compare/v9.15.0...v9.16.0) (2026-01-10)
+
+
+### Features
+
+* **itp-hooks:** add universal version SSoT guard ([76feea6](https://github.com/terrylica/cc-skills/commit/76feea65e1eef827bece446852d281ede5ecd803))
+
 # [9.15.0](https://github.com/terrylica/cc-skills/compare/v9.14.0...v9.15.0) (2026-01-08)
 
 
