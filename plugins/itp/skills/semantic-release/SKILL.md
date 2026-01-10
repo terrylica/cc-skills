@@ -90,6 +90,76 @@ This overrides gh CLI's global authentication, ensuring semantic-release uses th
 
 See the [`mise-configuration` skill](../mise-configuration/SKILL.md#github-token-multi-account-patterns) for complete setup.
 
+### mise Task Detection (Priority 1: Task Runner)
+
+**Prescriptive Delegation**: When a project has `.mise.toml` with release tasks configured, prefer `mise run` commands over direct `npm run` commands.
+
+#### Detection Logic
+
+```bash
+# Check for mise-managed release workflow
+HAS_MISE_RELEASE=false
+if command -v mise &>/dev/null && [[ -f ".mise.toml" ]]; then
+    if grep -q '\[tasks\."release' .mise.toml || grep -q '\[tasks\.release\]' .mise.toml; then
+        HAS_MISE_RELEASE=true
+    fi
+fi
+```
+
+#### Command Priority
+
+| Priority | Condition | Command | Rationale |
+|----------|-----------|---------|-----------|
+| **1** | `.mise.toml` has `[tasks.release:*]` | `mise run release:version` | mise-managed workflow with dependencies |
+| **2** | `package.json` has `scripts.release` | `npm run release` | Standard npm scripts |
+| **3** | Global semantic-release installed | `semantic-release --no-ci` | Direct CLI invocation |
+
+#### Full Workflow Example (mise-first)
+
+When `.mise.toml` includes a full release orchestration task:
+
+```toml
+# .mise.toml
+[tasks."release:version"]
+description = "Bump version via semantic-release"
+run = """
+if [ ! -d node_modules ]; then
+  npm install
+fi
+npm run release
+"""
+
+[tasks."release:full"]
+description = "Full release workflow: version → build → smoke → publish"
+run = """
+mise run release:version
+mise run release          # Build wheels
+mise run smoke            # Smoke tests
+./scripts/publish-wheels.sh --dry-run
+"""
+```
+
+**Advertise mise tasks when detected**:
+
+```
+✅ mise-managed release detected (.mise.toml)
+
+Release commands (Priority 1 - mise):
+  mise run release:version    # Semantic-release only
+  mise run release:full       # Full workflow (version → build → smoke → publish)
+
+Alternative (Priority 2 - npm):
+  npm run release:dry        # Preview changes
+  npm run release            # Create release
+```
+
+#### Compliance Note
+
+This prescriptive delegation pattern follows Claude Code CLI conventions:
+- No hooks are created (per lifecycle-reference.md)
+- Detection is informational (advertises best command)
+- Falls back gracefully when mise unavailable
+
 ### Critical Standard: No Testing/Linting in GitHub Actions
 
 **This standard applies to ALL GitHub Actions workflows, not just semantic-release.**
@@ -602,7 +672,14 @@ CONFIG_EOF
 
 Follow the [Local Release Workflow](./references/local-release-workflow.md) for the complete 4-phase process (PREFLIGHT → SYNC → RELEASE → POSTFLIGHT).
 
-**Quick commands**:
+**Priority 1: mise-managed release** (if `.mise.toml` has release tasks):
+
+```bash
+mise run release:version    # Semantic-release version bump only
+mise run release:full       # Full workflow (version → build → smoke → publish)
+```
+
+**Priority 2: npm scripts** (standard):
 
 ```bash
 npm run release:dry   # Preview changes (no modifications)
