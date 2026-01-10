@@ -1,3 +1,39 @@
+# [9.20.0](https://github.com/terrylica/cc-skills/compare/v9.19.1...v9.20.0) (2026-01-10)
+
+
+### Features
+
+* **semantic-release:** add mise task detection as priority release method ([5a8b46b](https://github.com/terrylica/cc-skills/commit/5a8b46bebcae7b58354f12371c155bf372d781ae))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+78/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+8/-1)
+
+</details>
+
 ## [9.19.1](https://github.com/terrylica/cc-skills/compare/v9.19.0...v9.19.1) (2026-01-10)
 
 
