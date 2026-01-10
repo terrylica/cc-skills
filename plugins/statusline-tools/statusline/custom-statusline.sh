@@ -61,6 +61,26 @@ input=$(cat)
 model=$(echo "$input" | jq -r '.model.name // .model.id // "Unknown"' | sed 's/Claude //' | sed 's/ 4.5/4.5/')
 session_id=$(echo "$input" | jq -r '.session_id // ""')
 
+# === Session Chain (Bun-based) ===
+# Traces session ancestry, displays last 5 sessions with arrows
+# All in gray for uniform, non-distracting reference display
+session_chain=""
+if [ -n "$session_id" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    chain_script="${SCRIPT_DIR}/../scripts/session-chain.ts"
+    if [ -f "$chain_script" ]; then
+        # Run with timeout to not block statusline (gtimeout on macOS via coreutils)
+        if command -v gtimeout >/dev/null 2>&1; then
+            session_chain=$(gtimeout 0.1 bun "$chain_script" "$session_id" 2>/dev/null || echo "")
+        elif command -v timeout >/dev/null 2>&1; then
+            session_chain=$(timeout 0.1 bun "$chain_script" "$session_id" 2>/dev/null || echo "")
+        else
+            # No timeout available, run directly (may block briefly)
+            session_chain=$(bun "$chain_script" "$session_id" 2>/dev/null || echo "")
+        fi
+    fi
+fi
+
 # Context - Claude Code doesn't send token counts in status JSON
 # Instead, try to read from transcript file or show cost
 transcript_file=$(echo "$input" | jq -r '.transcript_path // empty')
@@ -302,7 +322,11 @@ fi
 echo -e "$line1"
 echo -e "$line2"
 
-# Line 3: Session UUID (if available)
-if [ -n "$session_id" ]; then
-    echo -e "${BRIGHT_BLACK}Session UUID: ${CYAN}${session_id}${RESET}"
+# Line 3: Session chain or single UUID (all gray for reference-only display)
+if [ -n "$session_chain" ]; then
+    # Chain already includes ANSI colors from Bun script
+    echo -e "${BRIGHT_BLACK}Session UUIDs:${RESET} ${session_chain}"
+elif [ -n "$session_id" ]; then
+    # Fallback to single UUID if chain unavailable
+    echo -e "${BRIGHT_BLACK}Session UUID: ${session_id}${RESET}"
 fi
