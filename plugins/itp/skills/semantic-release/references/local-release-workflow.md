@@ -27,7 +27,14 @@ graph { label: "Release Workflow Pipeline"; flow: east; }
 
 ## Quick Reference
 
-**Recommended**: Use npm scripts for automatic push handling:
+**Priority 1**: mise-managed release (if `.mise.toml` has release tasks):
+
+```bash
+mise run release:version    # Semantic-release version bump only
+mise run release:full       # Full workflow (version → build → smoke → publish)
+```
+
+**Priority 2**: npm scripts (standard):
 
 ```bash
 npm run release:dry   # Preview changes (no modifications)

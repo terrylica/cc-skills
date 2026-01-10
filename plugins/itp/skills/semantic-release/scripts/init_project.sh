@@ -280,12 +280,38 @@ echo "  1. git add ."
 echo "  2. git commit -m 'chore: setup semantic-release'"
 echo "  3. git push origin main"
 echo ""
-echo "Local release (auto-pushes via successCmd + postrelease):"
-echo "  npm run release:dry   # Preview changes"
-echo "  npm run release       # Create release (auto-pushes)"
-echo ""
-echo "  Or with global install (macOS Gatekeeper workaround):"
-echo "  /usr/bin/env bash -c 'GITHUB_TOKEN=\$(gh auth token) semantic-release --no-ci'"
+
+# Detect mise-managed release workflow (Priority 1)
+HAS_MISE_RELEASE=false
+if command -v mise &>/dev/null && [[ -f ".mise.toml" ]]; then
+    if grep -q '\[tasks\."release' .mise.toml 2>/dev/null || grep -q '\[tasks\.release\]' .mise.toml 2>/dev/null; then
+        HAS_MISE_RELEASE=true
+    fi
+fi
+
+if [[ "$HAS_MISE_RELEASE" == "true" ]]; then
+    echo "✅ mise-managed release detected (.mise.toml)"
+    echo ""
+    echo "Local release (Priority 1 - mise):"
+    echo "  mise run release:version    # Semantic-release version bump only"
+    if grep -q '\[tasks\."release:full' .mise.toml 2>/dev/null; then
+        echo "  mise run release:full       # Full workflow (version → build → smoke → publish)"
+    fi
+    echo ""
+    echo "Alternative (Priority 2 - npm):"
+    echo "  npm run release:dry   # Preview changes"
+    echo "  npm run release       # Create release (auto-pushes)"
+else
+    echo "Local release (auto-pushes via successCmd + postrelease):"
+    echo "  npm run release:dry   # Preview changes"
+    echo "  npm run release       # Create release (auto-pushes)"
+    echo ""
+    echo "  Or with global install (macOS Gatekeeper workaround):"
+    echo "  /usr/bin/env bash -c 'GITHUB_TOKEN=\$(gh auth token) semantic-release --no-ci'"
+    echo ""
+    echo "💡 TIP: Add mise tasks for integrated release workflow:"
+    echo "  See: $SKILL_DIR/SKILL.md#mise-task-detection-priority-1-task-runner"
+fi
 echo ""
 echo "CI release (GitHub Actions):"
 echo "  Automatically runs on push to main"
