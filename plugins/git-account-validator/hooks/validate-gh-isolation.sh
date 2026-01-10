@@ -89,5 +89,35 @@ if [[ ! -f "${GH_CONFIG_DIR}/hosts.yml" ]]; then
     exit 2
 fi
 
-# All good - GH_CONFIG_DIR isolation is active
+# ============================================================================
+# VALIDATE ACTIVE ACCOUNT MATCHES GH_ACCOUNT (if set)
+# ============================================================================
+# The gh CLI has its own "active account" concept per profile.
+# Even with correct GH_CONFIG_DIR, the wrong user might be active.
+# Fixes: https://github.com/terrylica/cc-skills/issues/4
+if [[ -n "${GH_ACCOUNT:-}" ]]; then
+    # Query active account (uses cached token, fast)
+    ACTIVE_USER=$(GH_CONFIG_DIR="$GH_CONFIG_DIR" gh api user --jq '.login' 2>/dev/null || echo "")
+
+    if [[ -n "$ACTIVE_USER" && "$ACTIVE_USER" != "$GH_ACCOUNT" ]]; then
+        echo "" >&2
+        echo "╔══════════════════════════════════════════════════════════════════════╗" >&2
+        echo "║  ⚠️  Active gh account doesn't match expected GH_ACCOUNT             ║" >&2
+        echo "╠══════════════════════════════════════════════════════════════════════╣" >&2
+        echo "║  Expected: ${GH_ACCOUNT}" >&2
+        echo "║  Active:   ${ACTIVE_USER}" >&2
+        echo "║                                                                       ║" >&2
+        echo "║  The gh profile has a different user as active.                      ║" >&2
+        echo "║                                                                       ║" >&2
+        echo "║  Fix: gh auth switch --user ${GH_ACCOUNT}                            ║" >&2
+        echo "║                                                                       ║" >&2
+        echo "║  To bypass temporarily: GH_ISOLATION_FORCE_ALLOW=true                ║" >&2
+        echo "╚══════════════════════════════════════════════════════════════════════╝" >&2
+        echo "" >&2
+        echo "SUGGESTION_FOR_CLAUDE: Run 'gh auth switch --user ${GH_ACCOUNT}' to fix the active account mismatch."
+        exit 2
+    fi
+fi
+
+# All good - GH_CONFIG_DIR isolation is active and account matches
 exit 0
