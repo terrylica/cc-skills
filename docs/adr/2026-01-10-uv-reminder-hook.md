@@ -86,7 +86,9 @@ Create `plugins/itp-hooks/hooks/posttooluse-uv-reminder.sh`.
 | `pip install <pkg>` | `uv add <pkg>` |
 | `pip uninstall <pkg>` | `uv remove <pkg>` |
 | `pip install -e .` | `uv pip install -e .` |
-| `pip install -r requirements.txt` | `uv sync` |
+| `pip install -r requirements.txt` | `uv sync` or `uv pip install -r requirements.txt` |
+
+**Note**: Exception cases are only for lock file GENERATION (`pip freeze`, `pip-compile`), not installation from requirements files.
 
 ## Implementation
 
