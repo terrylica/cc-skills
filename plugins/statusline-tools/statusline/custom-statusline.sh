@@ -14,6 +14,10 @@
 #   ↑ = Commits ahead          ↓ = Commits behind
 #   ≡ = Stash count            ⚠ = Merge conflicts
 #   L = Broken links (lychee)  P = Path violations (lint-relative-paths)
+#
+# Session line format:
+#   Session UUID: <claude-code-uuid> | Cast: <iterm2-uuid>
+#   The Cast UUID maps to: ~/Downloads/*.<iterm2-uuid>.*.cast
 
 # ANSI Color codes
 RESET='\033[0m'
@@ -322,11 +326,29 @@ fi
 echo -e "$line1"
 echo -e "$line2"
 
-# Line 3: Session UUID (all gray for reference-only display)
+# Line 3: Session UUID + Cast file reference (for asciinema playback)
+# Format: Session UUID: <claude-code-uuid> | Cast: <iterm2-uuid>
+# The Cast UUID directly maps to asciinema recording filename in ~/Downloads/
+
+# Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
+iterm_session_uuid=""
+if [ -n "$ITERM_SESSION_ID" ]; then
+    # Extract just the UUID part after the colon
+    iterm_session_uuid=$(echo "$ITERM_SESSION_ID" | cut -d':' -f2)
+fi
+
 if [ -n "$session_chain" ]; then
-    # UUID already includes ANSI colors from Bun script
-    echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain}"
+    # Claude Code UUID already includes ANSI colors from Bun script
+    if [ -n "$iterm_session_uuid" ]; then
+        echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain} ${BRIGHT_BLACK}| Cast: ${CYAN}${iterm_session_uuid}${RESET}"
+    else
+        echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain}"
+    fi
 elif [ -n "$session_id" ]; then
     # Fallback if Bun script unavailable
-    echo -e "${BRIGHT_BLACK}Session UUID: ${session_id}${RESET}"
+    if [ -n "$iterm_session_uuid" ]; then
+        echo -e "${BRIGHT_BLACK}Session UUID: ${session_id} | Cast: ${CYAN}${iterm_session_uuid}${RESET}"
+    else
+        echo -e "${BRIGHT_BLACK}Session UUID: ${session_id}${RESET}"
+    fi
 fi
