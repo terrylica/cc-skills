@@ -29,31 +29,10 @@ RED='\033[91m'
 BLUE='\033[94m'
 GREEN='\033[92m'
 
-# Get git repo-relative path display
-# Shows: repo-name/relative/path (e.g., cc-skills/plugins/itp-hooks)
+# Get path display with ~ substitution
+# Shows: ~/eon/cc-skills or ~/eon/cc-skills/plugins/itp-hooks
 get_repo_path() {
-    local repo_root
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-
-    if [[ -n "$repo_root" ]]; then
-        local repo_name
-        repo_name=$(basename "$repo_root")
-        local current_dir
-        current_dir=$(pwd)
-
-        if [[ "$current_dir" == "$repo_root" ]]; then
-            # At repo root - just show repo name
-            echo "$repo_name"
-        else
-            # Inside repo - show repo_name/relative/path
-            local relative_path
-            relative_path="${current_dir#$repo_root/}"
-            echo "$repo_name/$relative_path"
-        fi
-    else
-        # Not in a git repo - fallback to ~ substituted path
-        pwd | sed "s|$HOME|~|"
-    fi
+    pwd | sed "s|$HOME|~|"
 }
 
 repo_path=$(get_repo_path)
@@ -305,22 +284,22 @@ utc_time=$(date -u +"%y%b%d %H:%MZ")
 local_time=$(date +"%y%b%d %H:%ML")
 
 # Three-line status:
-#   Line 1: repo-path | git stats | local time
-#   Line 2: github-url | UTC time (UTC aligns with remote context)
+#   Line 1: git stats | local time
+#   Line 2: ~/path | github-url | UTC time
 #   Line 3: session UUID (if available)
-line1="${GREEN}${repo_path}${RESET} | ${git_changes} | ${BRIGHT_BLACK}${local_time}${RESET}"
+line1="${git_changes} | ${BRIGHT_BLACK}${local_time}${RESET}"
 
-# Line 2: GitHub URL + UTC time, or warning (color matches branch state)
+# Line 2: path | GitHub URL + UTC time
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
-        line2="${BRIGHT_BLACK}${github_url} | ${utc_time}${RESET}"
+        line2="${GREEN}${repo_path}${RESET} | ${BRIGHT_BLACK}${github_url} | ${utc_time}${RESET}"
     else
-        line2="${MAGENTA}${github_url} | ${utc_time}${RESET}"
+        line2="${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url} | ${utc_time}${RESET}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    line2="${RED}⚠ no remote${RESET} | ${BRIGHT_BLACK}${utc_time}${RESET}"
+    line2="${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET} | ${BRIGHT_BLACK}${utc_time}${RESET}"
 else
-    line2="${RED}⚠ no git${RESET} | ${BRIGHT_BLACK}${utc_time}${RESET}"
+    line2="${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET} | ${BRIGHT_BLACK}${utc_time}${RESET}"
 fi
 
 echo -e "$line1"
