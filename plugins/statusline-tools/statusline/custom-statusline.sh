@@ -340,14 +340,14 @@ fi
 if [ -n "$session_chain" ]; then
     # Claude Code UUID already includes ANSI colors from Bun script
     if [ -n "$iterm_session_uuid" ]; then
-        echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain} ${BRIGHT_BLACK}| Cast: ${CYAN}${iterm_session_uuid}${RESET}"
+        echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain} ${BRIGHT_BLACK}| Cast: ${iterm_session_uuid}${RESET}"
     else
         echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain}"
     fi
 elif [ -n "$session_id" ]; then
     # Fallback if Bun script unavailable
     if [ -n "$iterm_session_uuid" ]; then
-        echo -e "${BRIGHT_BLACK}Session UUID: ${session_id} | Cast: ${CYAN}${iterm_session_uuid}${RESET}"
+        echo -e "${BRIGHT_BLACK}Session UUID: ${session_id} | Cast: ${iterm_session_uuid}${RESET}"
     else
         echo -e "${BRIGHT_BLACK}Session UUID: ${session_id}${RESET}"
     fi
