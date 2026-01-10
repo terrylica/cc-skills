@@ -4,8 +4,24 @@
 # Purpose: Ensure GH_CONFIG_DIR isolation is active before gh commands
 # NOTE: This script is GENERIC - no usernames hardcoded.
 #       All account info comes from environment variables set by mise.
+#
+# Output Format (PreToolUse): JSON with hookSpecificOutput per lifecycle-reference.md
+# Reference: plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md
 
 set -euo pipefail
+
+# Helper function: Output PreToolUse deny with reason (Claude receives this)
+deny_with_reason() {
+    local reason="$1"
+    jq -n --arg reason "$reason" '{
+        hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            permissionDecision: "deny",
+            permissionDecisionReason: $reason
+        }
+    }'
+    exit 0  # Exit 0 with JSON, not exit 2
+}
 
 # ============================================================================
 # RECURSION GUARD (Critical fix for circular dependency)
@@ -50,43 +66,14 @@ fi
 # VALIDATE GH_CONFIG_DIR IS SET
 # ============================================================================
 if [[ -z "${GH_CONFIG_DIR:-}" ]]; then
-    echo "" >&2
-    echo "╔══════════════════════════════════════════════════════════════════════╗" >&2
-    echo "║  ⚠️  GH_CONFIG_DIR isolation NOT configured for this directory       ║" >&2
-    echo "╠══════════════════════════════════════════════════════════════════════╣" >&2
-    echo "║  The gh CLI uses global ~/.config/gh/ config by default, which       ║" >&2
-    echo "║  shares the active account across ALL directories.                   ║" >&2
-    echo "║                                                                       ║" >&2
-    echo "║  For multi-account GitHub workflows, set in your .mise.toml:         ║" >&2
-    echo "║    [env]                                                              ║" >&2
-    echo '║    GH_CONFIG_DIR = "{{ env.HOME }}/.config/gh-profiles/<account>"    ║' >&2
-    echo "║    GH_ACCOUNT = \"<account>\"                                         ║" >&2
-    echo "║                                                                       ║" >&2
-    echo "║  To bypass temporarily: GH_ISOLATION_FORCE_ALLOW=true                ║" >&2
-    echo "╚══════════════════════════════════════════════════════════════════════╝" >&2
-    echo "" >&2
-    echo "SUGGESTION_FOR_CLAUDE: Ask user if they want help setting up GH_CONFIG_DIR isolation for multi-account GitHub."
-    exit 2
+    deny_with_reason "GH_CONFIG_DIR isolation NOT configured. The gh CLI uses global ~/.config/gh/ by default. For multi-account workflows, set GH_CONFIG_DIR and GH_ACCOUNT in .mise.toml. Bypass: GH_ISOLATION_FORCE_ALLOW=true"
 fi
 
 # ============================================================================
 # VALIDATE PROFILE EXISTS
 # ============================================================================
 if [[ ! -f "${GH_CONFIG_DIR}/hosts.yml" ]]; then
-    echo "" >&2
-    echo "╔══════════════════════════════════════════════════════════════════════╗" >&2
-    echo "║  ⚠️  GH_CONFIG_DIR set but profile not initialized                   ║" >&2
-    echo "╠══════════════════════════════════════════════════════════════════════╣" >&2
-    echo "║  GH_CONFIG_DIR=${GH_CONFIG_DIR}" >&2
-    echo "║  But hosts.yml does not exist in that directory.                     ║" >&2
-    echo "║                                                                       ║" >&2
-    echo "║  Run: gh auth login   (will create hosts.yml in GH_CONFIG_DIR)       ║" >&2
-    echo "║                                                                       ║" >&2
-    echo "║  To bypass temporarily: GH_ISOLATION_FORCE_ALLOW=true                ║" >&2
-    echo "╚══════════════════════════════════════════════════════════════════════╝" >&2
-    echo "" >&2
-    echo "SUGGESTION_FOR_CLAUDE: Ask user if they want to run 'gh auth login' to initialize the profile."
-    exit 2
+    deny_with_reason "GH_CONFIG_DIR set but profile not initialized. GH_CONFIG_DIR=${GH_CONFIG_DIR} but hosts.yml does not exist. Run 'gh auth login' to initialize. Bypass: GH_ISOLATION_FORCE_ALLOW=true"
 fi
 
 # ============================================================================
@@ -100,22 +87,7 @@ if [[ -n "${GH_ACCOUNT:-}" ]]; then
     ACTIVE_USER=$(GH_CONFIG_DIR="$GH_CONFIG_DIR" gh api user --jq '.login' 2>/dev/null || echo "")
 
     if [[ -n "$ACTIVE_USER" && "$ACTIVE_USER" != "$GH_ACCOUNT" ]]; then
-        echo "" >&2
-        echo "╔══════════════════════════════════════════════════════════════════════╗" >&2
-        echo "║  ⚠️  Active gh account doesn't match expected GH_ACCOUNT             ║" >&2
-        echo "╠══════════════════════════════════════════════════════════════════════╣" >&2
-        echo "║  Expected: ${GH_ACCOUNT}" >&2
-        echo "║  Active:   ${ACTIVE_USER}" >&2
-        echo "║                                                                       ║" >&2
-        echo "║  The gh profile has a different user as active.                      ║" >&2
-        echo "║                                                                       ║" >&2
-        echo "║  Fix: gh auth switch --user ${GH_ACCOUNT}                            ║" >&2
-        echo "║                                                                       ║" >&2
-        echo "║  To bypass temporarily: GH_ISOLATION_FORCE_ALLOW=true                ║" >&2
-        echo "╚══════════════════════════════════════════════════════════════════════╝" >&2
-        echo "" >&2
-        echo "SUGGESTION_FOR_CLAUDE: Run 'gh auth switch --user ${GH_ACCOUNT}' to fix the active account mismatch."
-        exit 2
+        deny_with_reason "Active gh account (${ACTIVE_USER}) doesn't match expected GH_ACCOUNT (${GH_ACCOUNT}). Run 'gh auth switch --user ${GH_ACCOUNT}' to fix. Bypass: GH_ISOLATION_FORCE_ALLOW=true"
     fi
 fi
 
