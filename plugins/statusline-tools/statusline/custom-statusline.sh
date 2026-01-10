@@ -322,11 +322,11 @@ fi
 echo -e "$line1"
 echo -e "$line2"
 
-# Line 3: Session chain or single UUID (all gray for reference-only display)
+# Line 3: Session UUID (all gray for reference-only display)
 if [ -n "$session_chain" ]; then
-    # Chain already includes ANSI colors from Bun script
-    echo -e "${BRIGHT_BLACK}Session UUIDs:${RESET} ${session_chain}"
+    # UUID already includes ANSI colors from Bun script
+    echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain}"
 elif [ -n "$session_id" ]; then
-    # Fallback to single UUID if chain unavailable
+    # Fallback if Bun script unavailable
     echo -e "${BRIGHT_BLACK}Session UUID: ${session_id}${RESET}"
 fi
