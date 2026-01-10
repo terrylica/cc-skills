@@ -1,3 +1,26 @@
+## [9.19.1](https://github.com/terrylica/cc-skills/compare/v9.19.0...v9.19.1) (2026-01-10)
+
+
+### Bug Fixes
+
+* **itp-hooks:** correct UV reminder exception for requirements.txt ([212fef7](https://github.com/terrylica/cc-skills/commit/212fef79aad67a2e16fda8617e8af4b6442c5119))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [UV Reminder Hook for Pip Usage](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-10-uv-reminder-hook.md) | updated (+3/-1) |
+
 # [9.19.0](https://github.com/terrylica/cc-skills/compare/v9.18.2...v9.19.0) (2026-01-10)
 
 
