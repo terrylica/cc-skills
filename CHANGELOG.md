@@ -1,3 +1,26 @@
+# [9.19.0](https://github.com/terrylica/cc-skills/compare/v9.18.2...v9.19.0) (2026-01-10)
+
+
+### Features
+
+* **itp-hooks:** add UV reminder for pip usage ([6f16580](https://github.com/terrylica/cc-skills/commit/6f1658079b7138600866b996d5411451b80233f1))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [UV Reminder Hook for Pip Usage](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-10-uv-reminder-hook.md) | new (+122) |
+
 ## [9.18.2](https://github.com/terrylica/cc-skills/compare/v9.18.1...v9.18.2) (2026-01-10)
 
 ## [9.18.1](https://github.com/terrylica/cc-skills/compare/v9.18.0...v9.18.1) (2026-01-10)
