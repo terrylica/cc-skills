@@ -41,6 +41,58 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
         REMINDER="[GRAPH-EASY SKILL] You used graph-easy CLI directly. For reproducible diagrams, prefer the graph-easy skill (or adr-graph-easy-architect for ADRs). Skills ensure: proper --as=boxart mode, correct \\\\n escaping, and <details> source block for future edits."
     fi
 
+    #--- Check for pip usage → suggest uv ---
+    # ADR: 2026-01-10-uv-reminder-hook
+    if [[ -z "$REMINDER" ]]; then
+        COMMAND_LOWER=$(echo "$COMMAND" | tr '[:upper:]' '[:lower:]')
+
+        # === EXCEPTIONS: Skip these patterns ===
+        # 1. Already in uv context
+        UV_CONTEXT=false
+        if echo "$COMMAND_LOWER" | grep -qE '^\s*uv\s+(run|exec|pip)'; then
+            UV_CONTEXT=true
+        fi
+
+        # 2. Documentation/comments
+        DOC_CONTEXT=false
+        if echo "$COMMAND_LOWER" | grep -qE '^\s*#|^\s*echo.*pip|grep.*pip'; then
+            DOC_CONTEXT=true
+        fi
+
+        # 3. Lock file operations
+        LOCK_OPS=false
+        if echo "$COMMAND_LOWER" | grep -qE 'pip-compile|pip\s+freeze|requirements\.(txt|in)'; then
+            LOCK_OPS=true
+        fi
+
+        # === DETECT: pip usage patterns ===
+        if [[ "$UV_CONTEXT" == "false" && "$DOC_CONTEXT" == "false" && "$LOCK_OPS" == "false" ]]; then
+            if echo "$COMMAND_LOWER" | grep -qE '(^|\s)(pip|pip3|python[0-9.]*\s+(-m\s+)?pip)\s+(install|uninstall)'; then
+                # Generate suggested replacement
+                SUGGESTED=$(echo "$COMMAND" | sed \
+                    -e 's/pip install/uv add/g' \
+                    -e 's/pip3 install/uv add/g' \
+                    -e 's/python -m pip install/uv add/g' \
+                    -e 's/pip uninstall/uv remove/g' \
+                    -e 's/pip3 uninstall/uv remove/g')
+
+                # Special case: editable install
+                if echo "$COMMAND_LOWER" | grep -qE 'pip\s+install\s+(-e|--editable)'; then
+                    SUGGESTED="uv pip install -e ."
+                fi
+
+                REMINDER="[UV-REMINDER] pip detected - use uv instead
+
+EXECUTED: $COMMAND
+PREFERRED: $SUGGESTED
+
+WHY UV: 10-100x faster, lockfile management (uv.lock), reproducible builds
+
+QUICK REF: pip install → uv add | pip uninstall → uv remove | pip -e . → uv pip install -e ."
+            fi
+        fi
+    fi
+
     # Output reminder if set and exit
     # ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
     # MUST use decision:block format - only "reason" field is visible to Claude
