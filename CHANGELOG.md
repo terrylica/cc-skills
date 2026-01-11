@@ -1,3 +1,26 @@
+# [9.21.0](https://github.com/terrylica/cc-skills/compare/v9.20.5...v9.21.0) (2026-01-11)
+
+
+### Features
+
+* **gh-tools:** add gh-issue-body-file-guard hook (Issue [#5](https://github.com/terrylica/cc-skills/issues/5)) ([7d440fc](https://github.com/terrylica/cc-skills/commit/7d440fc225590029deacd20f72753b31a3c4758d)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#issue-body-file-guard](https://github.com/terrylica/cc-skills/issues/issue-body-file-guard)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [gh issue create --body-file Requirement](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-11-gh-issue-body-file-guard.md) | new (+68) |
+
 ## [9.20.5](https://github.com/terrylica/cc-skills/compare/v9.20.4...v9.20.5) (2026-01-11)
 
 
