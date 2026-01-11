@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#MISE description="Phase 3: Sync hooks and update plugin cache"
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Phase 3: SYNC (hooks + cache)"
+echo "═══════════════════════════════════════════════════════════"
+
+MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
+CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
+
+# Get current version
+VERSION=$(jq -r '.version' package.json)
+echo "Syncing version: v$VERSION"
+
+# Step 1: Update marketplace repo
+echo "→ Updating marketplace repo..."
+if [[ -d "$MARKETPLACE_DIR/.git" ]]; then
+    cd "$MARKETPLACE_DIR"
+    git fetch origin --tags --quiet
+    git reset --hard "v$VERSION" --quiet 2>/dev/null || git reset --hard origin/main --quiet
+    echo "  ✓ Marketplace updated to v$VERSION"
+    cd - > /dev/null
+else
+    echo "  ⚠ Marketplace not found at $MARKETPLACE_DIR"
+fi
+
+# Step 2: Sync hooks to settings.json
+echo "→ Syncing hooks to settings.json..."
+if [[ -x "./scripts/sync-hooks-to-settings.sh" ]]; then
+    ./scripts/sync-hooks-to-settings.sh
+else
+    echo "  ⚠ Hook sync script not found"
+fi
+
+# Step 3: Trigger plugin cache update
+echo "→ Updating plugin cache..."
+if command -v claude &>/dev/null; then
+    claude --print "/plugin update cc-skills" 2>&1 | head -5 || true
+    echo "  ✓ Plugin update triggered"
+else
+    echo "  ⚠ Claude CLI not found"
+fi
+
+echo ""
+echo "✓ Sync phase complete"
+echo ""

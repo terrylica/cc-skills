@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Install/update all cc-skills hooks to settings.json"
+set -euo pipefail
+
+./scripts/sync-hooks-to-settings.sh
+
+echo ""
+echo "NOTE: Restart Claude Code for hooks to take effect."
