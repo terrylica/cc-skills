@@ -122,7 +122,7 @@ echo '{"tool_name": "Bash", "tool_input": {"command": "gh issue create --body te
 | `ralph`                | PreToolUse (2), Stop (1)             | Autonomous loop control      |
 | `git-account-validator`| PreToolUse (2)                       | Multi-account isolation      |
 | `gh-tools`             | PreToolUse (2)                       | GitHub CLI enforcement       |
-| `dotfiles-tools`       | PostToolUse (1)                      | Chezmoi sync reminder        |
+| `dotfiles-tools`       | PostToolUse (1), Stop (1)            | Chezmoi sync reminder        |
 | `statusline-tools`     | Stop (1)                             | Session metrics              |
 | `link-tools`           | Stop (1)                             | Link validation              |
 
