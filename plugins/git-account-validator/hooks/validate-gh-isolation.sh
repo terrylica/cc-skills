@@ -73,14 +73,20 @@ PROBLEM: GitHub commands blocked - multi-account isolation not active. The gh CL
 
 ROOT CAUSE: Claude Code was launched from a shell without mise environment loaded.
 
-ACTION REQUIRED: Use AskUserQuestion tool to present these options:
+ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). Use these exact parameters:
 
-Question: 'GitHub account isolation is not configured. How would you like to proceed?'
-Header: 'GitHub'
-Options:
-  1. 'Restart Claude Code' - 'Exit and relaunch from a terminal with mise activated (recommended)'
-  2. 'Activate mise now' - 'Run: source <(mise hook-env -s bash) in your terminal, then restart Claude Code'
-  3. 'Skip isolation' - 'Set GH_ISOLATION_FORCE_ALLOW=true to bypass (may use wrong account)'"
+{
+  \"questions\": [{
+    \"question\": \"GitHub account isolation is not configured. How would you like to proceed?\",
+    \"header\": \"GitHub\",
+    \"multiSelect\": false,
+    \"options\": [
+      {\"label\": \"Restart Claude Code (Recommended)\", \"description\": \"Exit and relaunch from a terminal with mise activated\"},
+      {\"label\": \"Activate mise now\", \"description\": \"Run: source <(mise hook-env -s bash) in terminal, then restart Claude Code\"},
+      {\"label\": \"Skip isolation\", \"description\": \"Set GH_ISOLATION_FORCE_ALLOW=true to bypass (may use wrong account)\"}
+    ]
+  }]
+}"
 fi
 
 # ============================================================================
@@ -91,13 +97,19 @@ if [[ ! -f "${GH_CONFIG_DIR}/hosts.yml" ]]; then
 
 PROBLEM: GH_CONFIG_DIR=${GH_CONFIG_DIR} exists but hosts.yml is missing. The isolated profile has never been authenticated.
 
-ACTION REQUIRED: Use AskUserQuestion tool to present these options:
+ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). Use these exact parameters:
 
-Question: 'GitHub profile needs authentication. How would you like to proceed?'
-Header: 'Auth'
-Options:
-  1. 'Authenticate now' - 'Run: GH_CONFIG_DIR=\"${GH_CONFIG_DIR}\" gh auth login'
-  2. 'Skip isolation' - 'Set GH_ISOLATION_FORCE_ALLOW=true to bypass (not recommended)'"
+{
+  \"questions\": [{
+    \"question\": \"GitHub profile needs authentication. How would you like to proceed?\",
+    \"header\": \"Auth\",
+    \"multiSelect\": false,
+    \"options\": [
+      {\"label\": \"Authenticate now (Recommended)\", \"description\": \"Run: GH_CONFIG_DIR='${GH_CONFIG_DIR}' gh auth login\"},
+      {\"label\": \"Skip isolation\", \"description\": \"Set GH_ISOLATION_FORCE_ALLOW=true to bypass (not recommended)\"}
+    ]
+  }]
+}"
 fi
 
 # ============================================================================
@@ -115,14 +127,20 @@ if [[ -n "${GH_ACCOUNT:-}" ]]; then
 
 PROBLEM: gh CLI authenticated as '${ACTIVE_USER}' but directory expects '${GH_ACCOUNT}'. Wrong account would create issues/PRs under wrong identity.
 
-ACTION REQUIRED: Use AskUserQuestion tool to present these options:
+ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). Use these exact parameters:
 
-Question: 'Wrong GitHub account (${ACTIVE_USER}) is active. Expected: ${GH_ACCOUNT}. How to fix?'
-Header: 'Account'
-Options:
-  1. 'Switch account' - 'Run: gh auth switch --user ${GH_ACCOUNT}'
-  2. 'Re-authenticate' - 'Run: gh auth login (select ${GH_ACCOUNT})'
-  3. 'Use current account' - 'Set GH_ISOLATION_FORCE_ALLOW=true (will use ${ACTIVE_USER})'"
+{
+  \"questions\": [{
+    \"question\": \"Wrong GitHub account (${ACTIVE_USER}) is active. Expected: ${GH_ACCOUNT}. How to fix?\",
+    \"header\": \"Account\",
+    \"multiSelect\": false,
+    \"options\": [
+      {\"label\": \"Switch account (Recommended)\", \"description\": \"Run: gh auth switch --user ${GH_ACCOUNT}\"},
+      {\"label\": \"Re-authenticate\", \"description\": \"Run: gh auth login (select ${GH_ACCOUNT})\"},
+      {\"label\": \"Use current account\", \"description\": \"Set GH_ISOLATION_FORCE_ALLOW=true (will use ${ACTIVE_USER})\"}
+    ]
+  }]
+}"
     fi
 fi
 
