@@ -56,17 +56,18 @@ if echo "$COMMAND" | grep -qE '\bgh\s+(auth|config|completion)\b'; then
 fi
 
 # ============================================================================
-# LOAD MISE ENVIRONMENT (Critical: hooks don't inherit mise env)
+# VALIDATE GH_CONFIG_DIR IS SET (No self-healing!)
 # ============================================================================
-if [[ -z "${GH_CONFIG_DIR:-}" ]] && command -v mise &>/dev/null; then
-    eval "$(mise hook-env -s bash 2>/dev/null)" || true
-fi
-
-# ============================================================================
-# VALIDATE GH_CONFIG_DIR IS SET
+# CRITICAL: We must NOT load mise env here. The hook runs in a subprocess,
+# but the actual `gh` command runs in Claude's environment which does NOT
+# have mise env loaded. If we self-heal here, validation passes but the
+# actual command still uses wrong account.
+#
+# The fix: DENY if GH_CONFIG_DIR is not already set. This forces the user
+# to configure their shell/mise properly so Claude inherits the env vars.
 # ============================================================================
 if [[ -z "${GH_CONFIG_DIR:-}" ]]; then
-    deny_with_reason "GH_CONFIG_DIR isolation NOT configured. The gh CLI uses global ~/.config/gh/ by default. For multi-account workflows, set GH_CONFIG_DIR and GH_ACCOUNT in .mise.toml. Bypass: GH_ISOLATION_FORCE_ALLOW=true"
+    deny_with_reason "GH_CONFIG_DIR isolation NOT configured. Claude's environment doesn't have GH_CONFIG_DIR set, so gh commands will use the global ~/.config/gh/ profile. Fix: Ensure mise is activated in the shell where Claude Code was launched (mise hook-env should set GH_CONFIG_DIR). Bypass: GH_ISOLATION_FORCE_ALLOW=true"
 fi
 
 # ============================================================================
