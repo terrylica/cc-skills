@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Dry-run release (no changes)"
+#MISE depends=["release_preflight"]
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  DRY RUN (no changes will be made)"
+echo "═══════════════════════════════════════════════════════════"
+
+semantic-release --no-ci --dry-run

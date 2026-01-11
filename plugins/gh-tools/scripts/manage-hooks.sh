@@ -136,6 +136,17 @@ do_status() {
     else
         echo -e "  ${RED}✗${NC} webfetch-github-guard.sh - NOT FOUND"
     fi
+
+    local issue_hook="$HOOKS_BASE/gh-issue-body-file-guard.mjs"
+    if [[ -f "$issue_hook" ]]; then
+        if [[ -x "$issue_hook" ]]; then
+            echo -e "  ${GREEN}✓${NC} gh-issue-body-file-guard.mjs"
+        else
+            echo -e "  ${YELLOW}⚠${NC} gh-issue-body-file-guard.mjs (not executable)"
+        fi
+    else
+        echo -e "  ${RED}✗${NC} gh-issue-body-file-guard.mjs - NOT FOUND"
+    fi
     echo ""
 
     # Registration check
@@ -153,9 +164,11 @@ do_install() {
     # Check jq
     command -v jq &>/dev/null || die "jq is required. Install: brew install jq"
 
-    # Check hook script exists
-    local hook_script="$HOOKS_BASE/webfetch-github-guard.sh"
-    [[ -f "$hook_script" ]] || die "Hook script not found: $hook_script"
+    # Check hook scripts exist
+    local webfetch_hook="$HOOKS_BASE/webfetch-github-guard.sh"
+    local issue_hook="$HOOKS_BASE/gh-issue-body-file-guard.mjs"
+    [[ -f "$webfetch_hook" ]] || die "Hook script not found: $webfetch_hook"
+    [[ -f "$issue_hook" ]] || die "Hook script not found: $issue_hook"
 
     # Check if already installed
     if is_installed; then
@@ -171,11 +184,22 @@ do_install() {
         echo '{}' > "$SETTINGS"
     fi
 
-    # Build hook entry (use $HOME for path expansion at runtime)
-    local hook_path="\$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gh-tools/hooks/webfetch-github-guard.sh"
-    local hook_entry
-    hook_entry=$(jq -n --arg cmd "$hook_path" '{
+    # Build hook entries (use $HOME for path expansion at runtime)
+    local webfetch_path="\$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gh-tools/hooks/webfetch-github-guard.sh"
+    local webfetch_entry
+    webfetch_entry=$(jq -n --arg cmd "$webfetch_path" '{
         matcher: "WebFetch",
+        hooks: [{
+            type: "command",
+            command: $cmd,
+            timeout: 5000
+        }]
+    }')
+
+    local issue_path="\$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gh-tools/hooks/gh-issue-body-file-guard.mjs"
+    local issue_entry
+    issue_entry=$(jq -n --arg cmd "$issue_path" '{
+        matcher: "Bash",
         hooks: [{
             type: "command",
             command: $cmd,
@@ -187,11 +211,11 @@ do_install() {
     local tmp
     tmp=$(mktemp)
 
-    # Ensure hooks.PreToolUse exists and add our entry
-    jq --argjson entry "$hook_entry" '
+    # Ensure hooks.PreToolUse exists and add our entries
+    jq --argjson webfetch "$webfetch_entry" --argjson issue "$issue_entry" '
         .hooks //= {} |
         .hooks.PreToolUse //= [] |
-        .hooks.PreToolUse += [$entry]
+        .hooks.PreToolUse += [$webfetch, $issue]
     ' "$SETTINGS" > "$tmp"
 
     # Validate before committing
@@ -200,7 +224,9 @@ do_install() {
     # Atomic write
     mv "$tmp" "$SETTINGS"
 
-    info "gh-tools hooks installed successfully"
+    info "gh-tools hooks installed successfully (2 hooks)"
+    echo "  - WebFetch: webfetch-github-guard.sh"
+    echo "  - Bash: gh-issue-body-file-guard.mjs"
     echo ""
     echo -e "${YELLOW}IMPORTANT:${NC} Restart Claude Code for hooks to take effect."
     echo ""

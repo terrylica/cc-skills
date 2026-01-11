@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+#MISE description="Phase 4: Verify release artifacts"
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Phase 4: VERIFY"
+echo "═══════════════════════════════════════════════════════════"
+
+VERSION=$(jq -r '.version' package.json)
+CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
+SETTINGS="$HOME/.claude/settings.json"
+
+# Check 1: Git tag exists
+echo "→ Checking git tag..."
+if git rev-parse "v$VERSION" &>/dev/null; then
+    echo "  ✓ Tag v$VERSION exists"
+else
+    echo "  ✗ Tag v$VERSION not found"
+fi
+
+# Check 2: GitHub release exists
+echo "→ Checking GitHub release..."
+if gh release view "v$VERSION" --repo terrylica/cc-skills &>/dev/null; then
+    echo "  ✓ GitHub release v$VERSION exists"
+else
+    echo "  ✗ GitHub release v$VERSION not found"
+fi
+
+# Check 3: Plugin cache updated
+echo "→ Checking plugin cache..."
+SAMPLE_PLUGIN=$(ls -1 "$CACHE_DIR" 2>/dev/null | head -1)
+if [[ -n "$SAMPLE_PLUGIN" && -d "$CACHE_DIR/$SAMPLE_PLUGIN/$VERSION" ]]; then
+    echo "  ✓ Cache has v$VERSION"
+else
+    LATEST=$(ls -1 "$CACHE_DIR/$SAMPLE_PLUGIN" 2>/dev/null | sort -V | tail -1)
+    echo "  ⚠ Cache has v$LATEST (may need session restart for v$VERSION)"
+fi
+
+# Check 4: Hooks in settings.json
+echo "→ Checking hooks in settings.json..."
+HOOK_COUNT=$(jq '[.hooks.PreToolUse[]?, .hooks.PostToolUse[]?, .hooks.Stop[]?] | length' "$SETTINGS" 2>/dev/null || echo 0)
+CC_SKILLS_HOOKS=$(jq '[.hooks.PreToolUse[]?, .hooks.PostToolUse[]?, .hooks.Stop[]? | select(.hooks[]?.command | contains("cc-skills"))] | length' "$SETTINGS" 2>/dev/null || echo 0)
+echo "  ✓ Total hooks: $HOOK_COUNT ($CC_SKILLS_HOOKS from cc-skills)"
+
+# Check 5: Hook files in cache
+echo "→ Verifying hook files..."
+HOOKS_OK=0
+for PLUGIN in $(ls -1 "$CACHE_DIR" 2>/dev/null); do
+    HOOKS_JSON="$CACHE_DIR/$PLUGIN/$VERSION/hooks/hooks.json"
+    if [[ -f "$HOOKS_JSON" ]] && jq empty "$HOOKS_JSON" 2>/dev/null; then
+        ((HOOKS_OK++))
+    fi
+done
+echo "  ✓ Valid hooks.json: $HOOKS_OK plugins"
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "  ✓ Release v$VERSION verified"
+echo "═══════════════════════════════════════════════════════════"
+echo ""
+echo "NOTE: Restart Claude Code for new hooks to take effect."
+echo ""
