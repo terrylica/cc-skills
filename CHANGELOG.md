@@ -1,3 +1,10 @@
+## [9.20.4](https://github.com/terrylica/cc-skills/compare/v9.20.3...v9.20.4) (2026-01-11)
+
+
+### Bug Fixes
+
+* **git-account-validator:** explicit AskUserQuestion tool call with JSON params ([e18052a](https://github.com/terrylica/cc-skills/commit/e18052a9ae5b1a1118d9abe919c0d0efde0d746d))
+
 ## [9.20.3](https://github.com/terrylica/cc-skills/compare/v9.20.2...v9.20.3) (2026-01-11)
 
 
