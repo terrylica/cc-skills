@@ -1,3 +1,10 @@
+## [9.20.2](https://github.com/terrylica/cc-skills/compare/v9.20.1...v9.20.2) (2026-01-11)
+
+
+### Bug Fixes
+
+* **git-account-validator:** improve deny messages with actionable guidance for Claude ([850e6c7](https://github.com/terrylica/cc-skills/commit/850e6c7dcbcd2dce972bba69201c7866f183bd92))
+
 ## [9.20.1](https://github.com/terrylica/cc-skills/compare/v9.20.0...v9.20.1) (2026-01-11)
 
 
