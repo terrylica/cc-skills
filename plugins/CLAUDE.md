@@ -31,7 +31,7 @@ mkdir -p plugins/my-plugin/{skills,hooks,commands,scripts}
 
 ```
 plugins/my-plugin/
-├── plugin.json           # Plugin manifest
+├── plugin.json           # Plugin manifest (optional)
 ├── README.md             # Plugin documentation
 ├── skills/               # Skill definitions
 │   └── my-skill/

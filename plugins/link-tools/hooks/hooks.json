@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/stop-link-check.py",
-            "timeout": 60
+            "timeout": 60000
           }
         ]
       }
