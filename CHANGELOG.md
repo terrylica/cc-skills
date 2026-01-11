@@ -1,3 +1,10 @@
+# [9.22.0](https://github.com/terrylica/cc-skills/compare/v9.21.0...v9.22.0) (2026-01-11)
+
+
+### Features
+
+* **release:** add mise-controlled 4-phase release workflow ([5e69323](https://github.com/terrylica/cc-skills/commit/5e6932355349394b9191d7f8b88c083459358321)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
 # [9.21.0](https://github.com/terrylica/cc-skills/compare/v9.20.5...v9.21.0) (2026-01-11)
 
 
