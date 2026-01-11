@@ -22,7 +22,7 @@ Invoke when:
 - Troubleshooting semantic-release setup or version bumps
 - Setting up Python projects (use Node.js semantic-release, NOT python-semantic-release)
 - Configuring GitHub Actions (optional backup, not recommended as primary due to speed)
-- Rust workspaces using release-plz (see [Rust reference](./references/rust-release-plz.md))
+- Rust workspaces using release-plz (see [Rust reference](./references/rust.md))
 
 ## Why Node.js semantic-release
 
@@ -90,138 +90,27 @@ This overrides gh CLI's global authentication, ensuring semantic-release uses th
 
 See the [`mise-configuration` skill](../mise-configuration/SKILL.md#github-token-multi-account-patterns) for complete setup.
 
-### mise Task Detection (Priority 1: Task Runner)
+### mise Task Detection
 
-**Prescriptive Delegation**: When a project has `.mise.toml` with release tasks configured, prefer `mise run` commands over direct `npm run` commands.
+When `.mise.toml` has release tasks, prefer `mise run` over `npm run`:
 
-#### Detection Logic
+| Priority | Condition | Command |
+|----------|-----------|---------|
+| **1** | `.mise.toml` has `[tasks.release:*]` | `mise run release:version` |
+| **2** | `package.json` has `scripts.release` | `npm run release` |
+| **3** | Global semantic-release | `semantic-release --no-ci` |
 
-```bash
-# Check for mise-managed release workflow
-HAS_MISE_RELEASE=false
-if command -v mise &>/dev/null && [[ -f ".mise.toml" ]]; then
-    if grep -q '\[tasks\."release' .mise.toml || grep -q '\[tasks\.release\]' .mise.toml; then
-        HAS_MISE_RELEASE=true
-    fi
-fi
-```
+See [Python Guide](./references/python.md#mise-4-phase-workflow) for complete mise workflow example.
 
-#### Command Priority
+### GitHub Actions Policy
 
-| Priority | Condition | Command | Rationale |
-|----------|-----------|---------|-----------|
-| **1** | `.mise.toml` has `[tasks.release:*]` | `mise run release:version` | mise-managed workflow with dependencies |
-| **2** | `package.json` has `scripts.release` | `npm run release` | Standard npm scripts |
-| **3** | Global semantic-release installed | `semantic-release --no-ci` | Direct CLI invocation |
+**CRITICAL: No testing or linting in GitHub Actions.** See CLAUDE.md for full policy.
 
-#### Full Workflow Example (mise-first)
-
-When `.mise.toml` includes a full release orchestration task:
-
-```toml
-# .mise.toml
-[tasks."release:version"]
-description = "Bump version via semantic-release"
-run = """
-if [ ! -d node_modules ]; then
-  npm install
-fi
-npm run release
-"""
-
-[tasks."release:full"]
-description = "Full release workflow: version → build → smoke → publish"
-run = """
-mise run release:version
-mise run release          # Build wheels
-mise run smoke            # Smoke tests
-./scripts/publish-wheels.sh --dry-run
-"""
-```
-
-**Advertise mise tasks when detected**:
-
-```
-✅ mise-managed release detected (.mise.toml)
-
-Release commands (Priority 1 - mise):
-  mise run release:version    # Semantic-release only
-  mise run release:full       # Full workflow (version → build → smoke → publish)
-
-Alternative (Priority 2 - npm):
-  npm run release:dry        # Preview changes
-  npm run release            # Create release
-```
-
-#### Compliance Note
-
-This prescriptive delegation pattern follows Claude Code CLI conventions:
-- No hooks are created (per lifecycle-reference.md)
-- Detection is informational (advertises best command)
-- Falls back gracefully when mise unavailable
-
-### Critical Standard: No Testing/Linting in GitHub Actions
-
-**This standard applies to ALL GitHub Actions workflows, not just semantic-release.**
-
-#### Forbidden Workflow Steps
-
-GitHub Actions workflows must NEVER include:
-
-❌ **Test execution**:
-
-```yaml
-# ❌ FORBIDDEN - Do not add to any workflow
-- run: pytest
-- run: npm test
-- run: cargo test
-- uses: actions/upload-test-results # Implies testing
-```
-
-❌ **Linting/Formatting**:
-
-```yaml
-# ❌ FORBIDDEN - Do not add to any workflow
-- run: ruff check
-- run: eslint .
-- run: cargo clippy
-- run: prettier --check
-- run: mypy
-```
-
-#### Allowed Workflow Patterns
-
-✅ **Semantic-release** (this workflow):
-
-```yaml
-- run: npm run release # Version, changelog, GitHub release only
-```
-
-✅ **Security scanning**:
-
-```yaml
-- run: npm audit signatures
-- uses: github/codeql-action/analyze@v3
-```
-
-✅ **Deployment**:
-
-```yaml
-- run: docker build && docker push
-- run: aws s3 sync ./build s3://bucket
-```
-
-✅ **Dependency updates**:
-
-```yaml
-- uses: dependabot/fetch-metadata@v2
-```
-
-#### Enforcement
-
-**Documentation-based**: This standard is enforced through CLAUDE.md instructions, not pre-commit hooks.
-
-When creating or modifying GitHub Actions workflows, Claude Code will check CLAUDE.md and this skill to ensure compliance.
+| Forbidden | Allowed |
+|-----------|---------|
+| pytest, npm test, cargo test | semantic-release |
+| ruff, eslint, clippy, prettier | CodeQL, npm audit |
+| mypy | Deployment, Dependabot |
 
 ---
 
@@ -334,225 +223,15 @@ plugins:
 
 ### MAJOR Version Breaking Change Confirmation
 
-**Trigger**: When commits contain `BREAKING CHANGE:` footer or `feat!:` / `fix!:` prefix.
+**Trigger**: `BREAKING CHANGE:` footer or `feat!:` / `fix!:` prefix in commits.
 
-**Why extra confirmation**: MAJOR version bumps signal breaking changes that require consumers to update their code. False positives (accidental breaking change marker) or unnecessary breaking changes can fragment the user base.
+When MAJOR is detected, this skill runs a **3-phase confirmation workflow**:
 
-#### Phase 1: Detection (Automatic)
+1. **Detection**: Scan commits for breaking change markers
+2. **Analysis**: Spawn 3 parallel subagents (User Impact, API Compat, Migration)
+3. **Confirmation**: AskUserQuestion with proceed/downgrade/abort options
 
-```bash
-/usr/bin/env bash << 'MAJOR_CHECK_EOF'
-LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
-MAJOR_COMMITS=$(git log "${LAST_TAG}..HEAD" --oneline | grep -E "(BREAKING CHANGE|^[a-f0-9]+ (feat|fix)!:)")
-if [[ -n "$MAJOR_COMMITS" ]]; then
-    echo "MAJOR_DETECTED"
-    echo "$MAJOR_COMMITS"
-fi
-MAJOR_CHECK_EOF
-```
-
-#### Phase 2: Multi-Perspective Analysis (Claude Task Subagents)
-
-When MAJOR is detected, spawn **three parallel Task subagents** for independent analysis:
-
-```
-                      MAJOR Version Confirmation
-
-+-----------+      -----------------   spawn 3 agents   +-------------+
-| Migration | <-- | MAJOR Detected  | ----------------> | User Impact |
-+-----------+      -----------------                    +-------------+
-  |                 |                                     |
-  |                 |                                     |
-  |                 v                                     |
-  |               +-----------------+                     |
-  |               |   API Compat    |                     |
-  |               +-----------------+                     |
-  |                 |                                     |
-  |                 |                                     |
-  |                 v                                     |
-  |               +-----------------+                     |
-  +-------------> | Collect Results | <-------------------+
-                  +-----------------+
-                    |
-                    |
-                    v
-                  #=================#
-                  H AskUserQuestion H
-                  #=================#
-```
-
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "MAJOR Version Confirmation"; flow: south; }
-
-[ MAJOR Detected ] { shape: rounded; }
-[ User Impact ] -> [ Collect Results ]
-[ API Compat ] -> [ Collect Results ]
-[ Migration ] -> [ Collect Results ]
-[ MAJOR Detected ] -- spawn 3 agents --> [ User Impact ]
-[ MAJOR Detected ] --> [ API Compat ]
-[ MAJOR Detected ] --> [ Migration ]
-[ Collect Results ] -> [ AskUserQuestion ] { border: double; }
-```
-
-</details>
-
-**Task subagent prompts** (spawn in parallel):
-
-1. **User Impact Analyst** (`subagent_type: "Explore"`):
-   ```
-   Analyze the breaking changes in commits since last tag. Identify:
-   - Which user personas are affected (library consumers, CLI users, API clients)
-   - Approximate usage scope (core feature vs edge case)
-   - Available workarounds before upgrading
-   Return a 2-3 sentence impact assessment.
-   ```
-
-2. **API Compatibility Analyst** (`subagent_type: "Explore"`):
-   ```
-   Review the breaking changes for API compatibility:
-   - What specific signatures, behaviors, or contracts are changing
-   - Whether the change could be made backwards-compatible with feature flags
-   - If deprecation warnings could have preceded this break
-   Return a 2-3 sentence compatibility assessment.
-   ```
-
-3. **Migration Strategist** (`subagent_type: "Explore"`):
-   ```
-   Assess the migration path for this breaking change:
-   - Effort level for consumers to update (trivial/moderate/significant)
-   - Whether a migration guide is needed in release notes
-   - Suggested deprecation timeline if change could be phased
-   Return a 2-3 sentence migration assessment.
-   ```
-
-#### Phase 3: User Confirmation (AskUserQuestion with multiSelect)
-
-After collecting subagent analyses, present consolidated findings:
-
-```yaml
-AskUserQuestion:
-  questions:
-    - question: "MAJOR version bump (X.0.0) detected. How should we proceed?"
-      header: "Breaking"
-      multiSelect: false
-      options:
-        - label: "Proceed with MAJOR (Recommended)"
-          description: "Release as X.0.0 - breaking change is intentional and necessary"
-        - label: "Downgrade to MINOR"
-          description: "Amend commits to remove BREAKING CHANGE - change can be backwards-compatible"
-        - label: "Abort release"
-          description: "Review commits before releasing - need to reconsider approach"
-    - question: "Which mitigations should be included in release notes?"
-      header: "Mitigations"
-      multiSelect: true
-      options:
-        - label: "Migration guide"
-          description: "Step-by-step instructions for updating consumer code"
-        - label: "Deprecation notice"
-          description: "Warning that old behavior will be removed in future version"
-        - label: "Compatibility shim"
-          description: "Temporary backwards-compat layer with deprecation warning"
-```
-
-#### Decision Tree
-
-```
-                           MAJOR Release Decision Tree
-
- ---------------------   NO       -------------------
-| Proceed MINOR/PATCH | <------- |  MAJOR detected?  |
- ---------------------            -------------------
-                                   |
-                                   | YES
-                                   v
-                                 +-------------------+
-                                 | Spawn 3 Subagents |
-                                 +-------------------+
-                                   |
-                                   |
-                                   v
- ---------------------   abort   +-------------------+  proceed    ---------------
-|    Abort Release    | <------- |  AskUserQuestion  | ---------> | Proceed MAJOR |
- ---------------------           +-------------------+             ---------------
-                                   |
-                                   | downgrade
-                                   v
-                                 +-------------------+
-                                 |  Downgrade MINOR  |
-                                 +-------------------+
-                                   |
-                                   |
-                                   v
-                                 +-------------------+
-                                 |   Amend Commits   |
-                                 +-------------------+
-```
-
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "MAJOR Release Decision Tree"; flow: south; }
-
-[ MAJOR detected? ] { shape: rounded; }
-[ Proceed MINOR/PATCH ] { shape: rounded; }
-[ Spawn 3 Subagents ]
-[ AskUserQuestion ]
-[ Proceed MAJOR ] { shape: rounded; }
-[ Downgrade MINOR ]
-[ Abort Release ] { shape: rounded; }
-[ Amend Commits ]
-
-[ MAJOR detected? ] -- NO --> [ Proceed MINOR/PATCH ]
-[ MAJOR detected? ] -- YES --> [ Spawn 3 Subagents ]
-[ Spawn 3 Subagents ] -> [ AskUserQuestion ]
-[ AskUserQuestion ] -- proceed --> [ Proceed MAJOR ]
-[ AskUserQuestion ] -- downgrade --> [ Downgrade MINOR ]
-[ AskUserQuestion ] -- abort --> [ Abort Release ]
-[ Downgrade MINOR ] -> [ Amend Commits ]
-```
-
-</details>
-
-#### Example Output
-
-```
-╔══════════════════════════════════════════════════════════════════╗
-║  🔴 MAJOR VERSION BUMP DETECTED                                   ║
-╠══════════════════════════════════════════════════════════════════╣
-║  Commits triggering MAJOR:                                        ║
-║  • a1b2c3d feat!: change API to require authentication           ║
-║  • e4f5g6h fix!: rename config option from 'timeout' to 'ttl'    ║
-╠══════════════════════════════════════════════════════════════════╣
-║  📊 MULTI-PERSPECTIVE ANALYSIS                                    ║
-╠──────────────────────────────────────────────────────────────────╣
-║  👥 User Impact: All API consumers affected. Core authentication ║
-║     flow changes. No workaround - update required.               ║
-║                                                                   ║
-║  🔌 API Compat: Authorization header now mandatory. Could add    ║
-║     optional fallback with deprecation warning for 1-2 releases. ║
-║                                                                   ║
-║  📋 Migration: Moderate effort - add API key to all calls.       ║
-║     Migration guide recommended. 2-week notice suggested.        ║
-╠══════════════════════════════════════════════════════════════════╣
-║  Current: v2.4.1 → Proposed: v3.0.0                              ║
-╚══════════════════════════════════════════════════════════════════╝
-```
-
-#### Configuration
-
-To skip MAJOR confirmation (not recommended):
-
-```yaml
-# .releaserc.yml
-# WARNING: Disables safety check - use only for automated pipelines
-skipMajorConfirmation: true
-```
-
-**Default**: MAJOR confirmation is ENABLED. This skill will always prompt for breaking changes unless explicitly disabled.
+See [MAJOR Confirmation Workflow](./references/major-confirmation.md) for complete details including subagent prompts, decision tree, and example output.
 
 ### Examples
 
@@ -578,254 +257,96 @@ BREAKING CHANGE: All API calls now require API key in Authorization header.
 
 ---
 
-## Documentation Linking in Release Notes
+## Documentation Linking
 
-Automatically include links to **all documentation changes** in release notes, with AI-friendly categorization.
-
-### Quick Setup (Hardcoded Path)
-
-Add to `.releaserc.yml` before `@semantic-release/changelog`:
+Auto-include doc changes in release notes. Add to `.releaserc.yml`:
 
 ```yaml
 - - "@semantic-release/exec"
   - generateNotesCmd: "node plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs ${lastRelease.gitTag}"
 ```
 
-### What's Detected
-
-The script categorizes all changed markdown files:
-
-| Category             | Pattern                                  | Grouping                        |
-| -------------------- | ---------------------------------------- | ------------------------------- |
-| **ADRs**             | `docs/adr/YYYY-MM-DD-slug.md`            | Status table                    |
-| **Design Specs**     | `docs/design/YYYY-MM-DD-slug/spec.md`    | List with change type           |
-| **Skills**           | `plugins/*/skills/*/SKILL.md`            | Grouped by plugin (collapsible) |
-| **Plugin READMEs**   | `plugins/*/README.md`                    | Simple list                     |
-| **Skill References** | `plugins/*/skills/*/references/*.md`     | Grouped by skill (collapsible)  |
-| **Commands**         | `plugins/*/commands/*.md`                | Grouped by plugin               |
-| **Root Docs**        | `CLAUDE.md`, `README.md`, `CHANGELOG.md` | Simple list                     |
-| **General Docs**     | `docs/*.md` (excluding adr/, design/)    | Simple list                     |
-
-### How It Works
-
-1. **Git diff detection**: All `.md` files changed since the last release tag
-2. **Change type tracking**: Marks files as `new`, `updated`, `deleted`, or `renamed`
-3. **Commit parsing**: References like `ADR: 2025-12-06-slug` in commit messages
-4. **ADR-Design Spec coupling**: If one is changed, the corresponding pair is included
-
-Full HTTPS URLs are generated (required for GitHub release pages).
-
-See [Documentation Release Linking](./references/doc-release-linking.md) for detailed configuration.
+Detects: ADRs, Design Specs, Skills, Plugin READMEs. See [Doc Release Linking](./references/doc-release-linking.md).
 
 ---
 
 ## Quick Start
 
-### Step 1: Verify Account (HTTPS-First)
+### Prerequisites
 
-**CRITICAL**: For multi-account GitHub setups, verify GH_TOKEN is set for the current directory.
+| Check | Command | Fix |
+|-------|---------|-----|
+| gh CLI authenticated | `gh auth status` | `gh auth login` |
+| GH_TOKEN for directory | `gh api user --jq '.login'` | See [Authentication](./references/authentication.md) |
+| Git remote is HTTPS | `git remote get-url origin` | `git-ssh-to-https` |
+| semantic-release global | `command -v semantic-release` | See [Troubleshooting](./references/troubleshooting.md#macos-gatekeeper-blocks-node-files) |
 
-**Quick verification** (2025-12-19+):
-
-```bash
-# Verify git remote is HTTPS
-git remote get-url origin
-# Expected: https://github.com/...
-
-# Verify GH_TOKEN is set via mise [env]
-gh api user --jq '.login'
-# Expected: correct account for this directory
-```
-
-**If remote is SSH** (legacy):
+### Initialize Project
 
 ```bash
-# Convert to HTTPS
-git-ssh-to-https
+./scripts/init-project.mjs --project   # Initialize current project
+./scripts/init-project.mjs --user      # Create user-level shareable config
+./scripts/init-project.mjs --help      # See all options
 ```
 
-**If wrong account**:
+### Run Release
 
-Check mise [env] configuration:
+| Priority | Condition | Commands |
+|----------|-----------|----------|
+| **1** | `.mise.toml` has release tasks | `mise run release:version` / `mise run release:full` |
+| **2** | `package.json` has scripts | `npm run release:dry` (preview) / `npm run release` |
+| **3** | Global CLI | `semantic-release --no-ci` |
 
-```bash
-# Verify mise config
-mise env | grep GH_TOKEN
-```
+See [Local Release Workflow](./references/local-release-workflow.md) for the complete 4-phase process.
 
-See [Authentication Guide](./references/authentication.md) for HTTPS-first setup.
+### Python Projects
 
-### Step 2: Initialize Project
+semantic-release handles versioning. For PyPI publishing, see [`pypi-doppler` skill](../pypi-doppler/SKILL.md).
 
-```bash
-/usr/bin/env bash << 'CONFIG_EOF'
-cd /path/to/project
-# Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
-"$PLUGIN_DIR/skills/semantic-release/scripts/init_project.sh" --user
-# Or --org mycompany/semantic-release-config
-# Or --inline
-CONFIG_EOF
-```
-
-### Step 3: Run Release Locally
-
-Follow the [Local Release Workflow](./references/local-release-workflow.md) for the complete 4-phase process (PREFLIGHT → SYNC → RELEASE → POSTFLIGHT).
-
-**Priority 1: mise-managed release** (if `.mise.toml` has release tasks):
-
-```bash
-mise run release:version    # Semantic-release version bump only
-mise run release:full       # Full workflow (version → build → smoke → publish)
-```
-
-**Priority 2: npm scripts** (standard):
-
-```bash
-npm run release:dry   # Preview changes (no modifications)
-npm run release       # Create release (auto-pushes via successCmd + postrelease)
-```
-
-**What happens automatically**:
-
-1. Version bump determined from commits
-2. `CHANGELOG.md` updated
-3. Release commit + tag created
-4. **Git push via successCmd** (belt-and-suspenders)
-5. GitHub release created via API
-6. **Tracking refs updated via postrelease**
-
-**One-time setup (recommended for macOS)**:
-
-```bash
-# Install globally to avoid macOS Gatekeeper issues with npx
-npm install -g semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/github @semantic-release/exec
-
-# Clear quarantine (required on macOS after install or node upgrade)
-xattr -r -d com.apple.quarantine ~/.local/share/mise/installs/node/
-```
-
-> **Note**: Use `semantic-release` directly (not `npx semantic-release`) to avoid macOS Gatekeeper blocking `.node` native modules. See [Troubleshooting](./references/troubleshooting.md#macos-gatekeeper-blocks-node-files).
-
-### Step 4: PyPI Publishing (Python Projects)
-
-**For Python packages**: semantic-release handles versioning, use the [`pypi-doppler`](../pypi-doppler/SKILL.md) skill for local PyPI publishing.
-
-**Quick setup**:
-
-```bash
-/usr/bin/env bash << 'SETUP_EOF'
-# Install Doppler CLI for secure token management
-brew install dopplerhq/cli/doppler
-
-# Store token in Doppler (one-time)
-doppler secrets set PYPI_TOKEN='your-pypi-token' --project claude-config --config prd
-
-# Copy publish script from pypi-doppler skill (environment-agnostic)
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
-cp "$PLUGIN_DIR/skills/pypi-doppler/scripts/publish-to-pypi.sh" scripts/
-chmod +x scripts/publish-to-pypi.sh
-
-# After semantic-release creates GitHub release:
-./scripts/publish-to-pypi.sh  # 30 seconds vs 3-5 minutes with GitHub Actions
-SETUP_EOF
-```
-
-See [`pypi-doppler` skill](../pypi-doppler/SKILL.md) for complete workflow with CI detection guards.
-
-### Python `__version__` Pattern
-
-**Always use `importlib.metadata`** - never hardcode version strings:
+**Version pattern** (importlib.metadata - never hardcode):
 
 ```python
-# __init__.py
 from importlib.metadata import PackageNotFoundError, version
-
 try:
     __version__ = version("your-package-name")
 except PackageNotFoundError:
-    __version__ = "0.0.0+dev"  # Development fallback
+    __version__ = "0.0.0+dev"
 ```
 
-This reads from `pyproject.toml` at runtime, ensuring single source of truth. semantic-release updates `pyproject.toml` via `prepareCmd`, and `importlib.metadata` reads it at runtime - no manual sync required.
+See [Python Projects Guide](./references/python.md) for complete setup including Rust+Python hybrids.
 
-**Anti-pattern** (causes version drift):
+### GitHub Actions (Optional)
 
-```python
-# ❌ BAD - requires manual sync with pyproject.toml
-__version__ = "1.2.3"
-```
-
-See [Python Projects with Node.js semantic-release](./references/python-projects-nodejs-semantic-release.md) for complete Python automation guide.
-
-### Step 5: GitHub Actions (Optional)
-
-**Only if you want CI/CD backup** (not recommended as primary due to 2-5 minute delay):
-
-Repository Settings → Actions → General → Workflow permissions → Enable "Read and write permissions"
-
----
-
-## Common Pitfalls
-
-### Dirty Working Directory
-
-**Symptom**: After release, `git status` shows version files as modified with OLD versions.
-
-**Cause**: Files were staged before release started. semantic-release commits from working copy, but git index cache may show stale state.
-
-**Prevention**: Always clear git cache before checking status:
-
-```bash
-# Step 1: Refresh git index (automatic in npm run release)
-git update-index --refresh -q || true
-
-# Step 2: Check for uncommitted changes (modified, untracked, staged, deleted)
-git status --porcelain
-# Should output nothing
-
-# If dirty, either:
-git stash           # Stash changes
-git commit -m "..."  # Commit changes
-git checkout -- .   # Discard changes
-```
-
-**Recovery**: If you see stale versions after release:
-
-```bash
-git update-index --refresh
-git status  # Should now show clean
-```
-
-**Automated guards**: The cc-skills `.releaserc.yml` includes:
-
-- **verifyConditions preflight**: Clears git cache first, then blocks release if working directory is dirty
-- **successCmd index refresh**: Automatically refreshes git index after push
-
-### Pre-Release Checklist
-
-Before running `npm run release`:
-
-1. ✅ All changes committed
-2. ✅ No staged files (`git diff --cached` is empty)
-3. ✅ No untracked files in version-synced paths
-4. ✅ Branch is up-to-date with remote
+Not recommended as primary (2-5 minute delay). Repository Settings → Actions → Workflow permissions → Enable "Read and write permissions".
 
 ---
 
 ## Reference Documentation
 
-For detailed information, see:
+| Category | Reference | Description |
+|----------|-----------|-------------|
+| **Setup** | [Authentication](./references/authentication.md) | HTTPS-first setup, multi-account patterns |
+| **Workflow** | [Local Release Workflow](./references/local-release-workflow.md) | 4-phase process (PREFLIGHT → RELEASE → POSTFLIGHT) |
+| **Languages** | [Python Projects](./references/python.md) | Python + Rust+Python hybrid patterns |
+| | [Rust Projects](./references/rust.md) | release-plz, cargo-rdme README SSoT |
+| **Config** | [Version Alignment](./references/version-alignment.md) | Git tags as SSoT, manifest patterns |
+| | [Monorepo Support](./references/monorepo-support.md) | pnpm/npm workspaces configuration |
+| **Advanced** | [MAJOR Confirmation](./references/major-confirmation.md) | Breaking change analysis workflow |
+| | [Doc Release Linking](./references/doc-release-linking.md) | Auto-link ADRs/specs in release notes |
+| **Help** | [Troubleshooting](./references/troubleshooting.md) | All common issues consolidated |
+| | [Evolution Log](./references/evolution-log.md) | Skill change history |
 
-- [Authentication](./references/authentication.md) - **START HERE** - SSH keys, GitHub CLI web auth (avoid manual tokens)
-- [Local Release Workflow](./references/local-release-workflow.md) - Step-by-step release process with issue resolution
-- [Workflow Patterns](./references/workflow-patterns.md) - Personal, Team, and Standalone project patterns
-- [Version Alignment](./references/version-alignment.md) - Git tags as SSoT, manifest patterns, runtime version access
-- [2025 Updates](./references/2025-updates.md) - v25 changelog, Node.js 24+, OIDC trusted publishing, plugin versions
-- [Python Projects with Node.js semantic-release](./references/python-projects-nodejs-semantic-release.md) - Complete guide for Python package automation with @semantic-release/exec
-- [Rust Projects with release-plz](./references/rust-release-plz.md) - Rust-native release automation with cargo-rdme README SSoT
-- [`pypi-doppler` skill](../pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler credentials and CI detection guards
-- [Monorepo Support](./references/monorepo-support.md) - pnpm/npm workspaces configuration
-- [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
-- [ADR Release Linking](./references/doc-release-linking.md) - Auto-link ADRs and Design Specs in release notes
-- [Resources](./references/resources.md) - Scripts, templates, and asset documentation
+**External**: [`pypi-doppler` skill](../pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler
+
+---
+
+## Post-Change Checklist
+
+After modifying THIS skill (semantic-release):
+
+1. [ ] SKILL.md and references remain aligned
+2. [ ] New references documented in Reference Documentation table
+3. [ ] All referenced files in references/ exist
+4. [ ] Append changes to [evolution-log.md](./references/evolution-log.md)
+5. [ ] Validate with `bun scripts/validate-plugins.mjs`
+6. [ ] Run `npm run release:dry` to verify no regressions
