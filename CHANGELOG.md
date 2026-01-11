@@ -1,3 +1,10 @@
+## [9.20.5](https://github.com/terrylica/cc-skills/compare/v9.20.4...v9.20.5) (2026-01-11)
+
+
+### Bug Fixes
+
+* **git-account-validator:** add account confirmation with detected usernames ([90b2dcf](https://github.com/terrylica/cc-skills/commit/90b2dcf00b5a2f9d2b81ede3cc69a1515db3f307))
+
 ## [9.20.4](https://github.com/terrylica/cc-skills/compare/v9.20.3...v9.20.4) (2026-01-11)
 
 
