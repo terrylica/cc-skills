@@ -118,7 +118,6 @@ plugins:
 
         # Step 5: Sync hooks to settings.json (auto-install new hooks)
         echo "→ Step 4: Syncing hooks to settings.json..."
-        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
         SYNC_SCRIPT="$MARKETPLACE_DIR/scripts/sync-hooks-to-settings.sh"
         if [[ -x "$SYNC_SCRIPT" ]]; then
           "$SYNC_SCRIPT"
