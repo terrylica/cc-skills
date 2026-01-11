@@ -116,8 +116,18 @@ plugins:
           fi
         fi
 
-        # Step 5: Verify hook files in cache (for plugins with hooks)
-        echo "→ Step 4: Verifying hook files..."
+        # Step 5: Sync hooks to settings.json (auto-install new hooks)
+        echo "→ Step 4: Syncing hooks to settings.json..."
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+        SYNC_SCRIPT="$MARKETPLACE_DIR/scripts/sync-hooks-to-settings.sh"
+        if [[ -x "$SYNC_SCRIPT" ]]; then
+          "$SYNC_SCRIPT"
+        else
+          echo "  ⚠ Hook sync script not found at $SYNC_SCRIPT"
+        fi
+
+        # Step 6: Verify hook files in cache (for plugins with hooks)
+        echo "→ Step 5: Verifying hook files..."
         HOOKS_VERIFIED=0
         HOOKS_MISSING=0
         for PLUGIN_NAME in $(ls -1 "$CACHE_DIR" 2>/dev/null); do
@@ -139,7 +149,7 @@ plugins:
           echo "  ⚠ Hook issues found: $HOOKS_MISSING plugin(s)"
         fi
 
-        # Step 6: Final summary
+        # Step 7: Final summary
         echo ""
         echo "═══════════════════════════════════════════════════════════"
         echo "  ✓ Post-release verification complete for v$VERSION"

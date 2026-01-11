@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#MISE description="Clean old versions from plugin cache"
+set -euo pipefail
+
+CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
+CURRENT=$(jq -r '.version' package.json)
+
+echo "Cleaning old versions from cache (keeping v$CURRENT)..."
+
+for PLUGIN in $(ls -1 "$CACHE_DIR" 2>/dev/null); do
+    for VERSION_DIR in "$CACHE_DIR/$PLUGIN"/*; do
+        VERSION=$(basename "$VERSION_DIR")
+        if [[ "$VERSION" != "$CURRENT" && "$VERSION" != "local" ]]; then
+            echo "  Removing $PLUGIN/$VERSION"
+            rm -rf "$VERSION_DIR"
+        fi
+    done
+done
+
+echo "✓ Cache cleaned"

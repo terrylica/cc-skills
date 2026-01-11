@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#MISE description="Phase 1: Validate prerequisites for release"
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Phase 1: PREFLIGHT"
+echo "═══════════════════════════════════════════════════════════"
+
+# Check 1: Working directory clean
+echo "→ Checking working directory..."
+if [[ -n "$(git status --porcelain)" ]]; then
+    echo "  ✗ Working directory not clean"
+    git status --short
+    exit 1
+fi
+echo "  ✓ Working directory clean"
+
+# Check 2: GitHub authentication
+echo "→ Checking GitHub authentication..."
+if [[ -z "${GH_TOKEN:-}" ]]; then
+    echo "  ✗ GH_TOKEN not set"
+    echo "    Run: eval \"\$(mise env)\" or check .mise.toml"
+    exit 1
+fi
+GH_USER=$(gh api user --jq '.login' 2>/dev/null || echo "")
+if [[ -z "$GH_USER" ]]; then
+    echo "  ✗ GitHub API authentication failed"
+    exit 1
+fi
+echo "  ✓ Authenticated as: $GH_USER"
+
+# Check 3: Expected account
+if [[ -n "${GH_ACCOUNT:-}" && "$GH_USER" != "$GH_ACCOUNT" ]]; then
+    echo "  ✗ Account mismatch: expected $GH_ACCOUNT, got $GH_USER"
+    exit 1
+fi
+
+# Check 4: Plugin validation
+echo "→ Validating plugins..."
+if ! bun scripts/validate-plugins.mjs 2>/dev/null; then
+    echo "  ✗ Plugin validation failed"
+    exit 1
+fi
+echo "  ✓ Plugins validated"
+
+# Check 5: Releasable commits exist
+echo "→ Checking for releasable commits..."
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+if [[ -n "$LATEST_TAG" ]]; then
+    COMMITS=$(git log "$LATEST_TAG"..HEAD --oneline 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "$COMMITS" -eq 0 ]]; then
+        echo "  ✗ No commits since $LATEST_TAG"
+        exit 1
+    fi
+    echo "  ✓ Found $COMMITS commits since $LATEST_TAG"
+fi
+
+echo ""
+echo "✓ All preflight checks passed"
+echo ""

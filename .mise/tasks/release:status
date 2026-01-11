@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#MISE description="Show current version and release status"
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Release Status"
+echo "═══════════════════════════════════════════════════════════"
+
+# Current version
+CURRENT=$(jq -r '.version' package.json)
+echo "Current version: v$CURRENT"
+
+# Latest tag
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+echo "Latest git tag:  $LATEST_TAG"
+
+# Commits since tag
+if [[ "$LATEST_TAG" != "none" ]]; then
+    COMMITS=$(git rev-list "$LATEST_TAG"..HEAD --count)
+    echo "Commits since:   $COMMITS"
+fi
+
+# Working directory status
+if [[ -z "$(git status --porcelain)" ]]; then
+    echo "Working dir:     ✓ clean"
+else
+    echo "Working dir:     ✗ dirty"
+    git status --short | head -5
+fi
+
+# GitHub auth
+GH_USER=$(gh api user --jq '.login' 2>/dev/null || echo "not authenticated")
+echo "GitHub account:  $GH_USER"
+
+echo ""

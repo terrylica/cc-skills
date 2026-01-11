@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#MISE description="Complete 4-phase release workflow"
+#MISE depends=["release_preflight"]
+set -euo pipefail
+
+echo ""
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║  cc-skills Full Release Workflow                          ║"
+echo "╚═══════════════════════════════════════════════════════════╝"
+echo ""
+
+# Phase 2: Version
+mise run release_version
+
+# Phase 3: Sync
+mise run release_sync
+
+# Phase 4: Verify
+mise run release_verify
+
+echo ""
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║  ✓ Release workflow complete!                             ║"
+echo "╚═══════════════════════════════════════════════════════════╝"
+echo ""
