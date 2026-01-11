@@ -1,10 +1,12 @@
 **Skill**: [semantic-release](../SKILL.md)
 
-# Python Projects with semantic-release (Node.js) - 2025 Production Pattern
+# Python Projects Guide
+
+Complete guide for Python and Rust+Python hybrid projects using semantic-release (Node.js).
 
 ## Overview
 
-**Production-ready**: Validated with Python projects using uv, poetry, and setuptools
+**Production-ready**: Validated with Python projects using uv, poetry, and setuptools. Also covers Rust+Python hybrids (PyO3/maturin).
 
 This guide shows how to use semantic-release v25+ (Node.js) for Python projects. This is the **production-grade approach** used by 126,000+ projects.
 
@@ -338,24 +340,150 @@ PYTHON_PROJECTS_NODEJS_SEMANTIC_RELEASE_SCRIPT_EOF
 sed -i.bak 's/pattern/replacement/' file && rm file.bak
 ```
 
-## PyPI Publishing (Optional)
+---
 
-Add after the `@semantic-release/github` plugin in `.releaserc.yml`:
+## Rust+Python Hybrid Projects (PyO3/maturin)
+
+For projects with both Cargo.toml and pyproject.toml, where Rust is compiled to Python extension via PyO3 and maturin build backend.
+
+### Dual-File Version Sync
+
+Use `perl` for cross-platform compatibility (BSD sed vs GNU sed differ):
 
 ```yaml
-# Publish to PyPI
+# .releaserc.yml
 - - "@semantic-release/exec"
-  - publishCmd: |
-      python -m pip install --upgrade twine
-      python -m twine upload dist/*
+  - prepareCmd: |
+      perl -i -pe 's/^version = ".*"/version = "${nextRelease.version}"/' pyproject.toml
+      perl -i -pe 's/^version = ".*"/version = "${nextRelease.version}"/' Cargo.toml
+    successCmd: |
+      git push --follow-tags origin main
+      git update-index --refresh -q || true
+      echo "Version ${nextRelease.version} released"
 ```
 
-Set `TWINE_USERNAME` and `TWINE_PASSWORD` in GitHub Secrets.
+### Cargo Build Profiles for PyO3 (CRITICAL)
 
-**Better: Use OIDC trusted publishing** (recommended 2025):
+**MANDATORY for Rust+Python wheel builds**:
+
+```toml
+# Cargo.toml
+
+# CRITICAL: Do NOT use panic = "abort" with PyO3!
+# PyO3 uses catch_unwind to convert Rust panics to Python exceptions.
+# With panic = "abort", the process crashes instead of raising a Python exception.
+
+[profile.release]
+lto = "thin"              # Thin LTO for cross-platform compatibility
+codegen-units = 1         # Maximum optimization (single codegen unit)
+overflow-checks = false   # Disable in release for performance
+# panic = "abort"         # FORBIDDEN with PyO3!
+
+[profile.wheel]
+inherits = "release"
+lto = "thin"              # Thin LTO (safe for cross-compile)
+codegen-units = 1         # Maximum optimization
+strip = "symbols"         # Minimize wheel size
+```
+
+**Why these settings matter**:
+
+| Setting | Value | Reason |
+|---------|-------|--------|
+| `lto = "thin"` | NOT `"fat"` | Fat LTO causes cross-compile issues (macOS→Linux) |
+| `codegen-units = 1` | Required | Single codegen unit enables maximum optimization |
+| `strip = "symbols"` | Recommended | Reduces wheel size by 60-80% |
+| `panic = "abort"` | FORBIDDEN | Breaks PyO3 exception handling |
+| `overflow-checks` | false in release | Matches Python's int behavior |
+
+**Additional optimizations**:
+
+| Technique | Command/Config | Benefit |
+|-----------|----------------|---------|
+| mold linker | `RUSTFLAGS="-C link-arg=-fuse-ld=mold"` | 10x faster linking (Linux only) |
+| sccache | `RUSTC_WRAPPER=sccache` | Caches build artifacts |
+| cargo-nextest | `cargo nextest run` | Faster test execution |
+| Incremental | `CARGO_INCREMENTAL=1` | Faster dev builds (NOT for release) |
+
+### Linux Wheel Builds (manylinux Docker)
+
+Build Linux wheels on remote host with Docker for glibc compatibility:
+
+```bash
+# Use quay.io/pypa/manylinux2014_x86_64 container
+ssh "$LINUX_BUILD_USER@$LINUX_BUILD_HOST" 'cd '"$REMOTE_DIR"' && docker run --rm -v $(pwd):/io -w /io quay.io/pypa/manylinux2014_x86_64 bash -c "
+  yum install -y openssl-devel perl-IPC-Cmd &&
+  curl --proto =https --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y &&
+  source ~/.cargo/env &&
+  /opt/python/cp311-cp311/bin/pip install maturin &&
+  /opt/python/cp311-cp311/bin/maturin build --profile wheel --compatibility manylinux2014 -i /opt/python/cp311-cp311/bin/python
+"'
+```
+
+**Platform targets**: macOS ARM64 (native), Linux x86_64 (Docker manylinux). No macOS x86 - Apple Silicon only.
+
+### mise 4-Phase Workflow
+
+Orchestrate releases with mise tasks:
+
+```toml
+# .mise.toml
+
+[tasks."release:preflight"]
+description = "Validate release prerequisites"
+run = """
+git update-index --refresh -q || true
+if [ -n "$(git status --porcelain)" ]; then
+    echo "FAIL: Working directory not clean"
+    exit 1
+fi
+"""
+
+[tasks."release:version"]
+description = "Bump version via semantic-release"
+run = """
+if [ ! -d node_modules ]; then npm install; fi
+npm run release
+"""
+
+[tasks."release:build-all"]
+description = "Build all platform wheels"
+run = """
+mise run release:macos-arm64
+mise run release:linux
+"""
+
+[tasks."release:full"]
+description = "Full 4-phase workflow"
+run = """
+mise run release:preflight
+mise run release:sync
+mise run release:version
+mise run release:build-all
+mise run release:postflight
+"""
+```
+
+See rangebar-py `.mise.toml` for complete implementation.
+
+---
+
+## PyPI Publishing (Optional)
+
+> Not all Python projects need PyPI publishing. Skip this section if your project is internal, a CLI tool, or distributed via other means.
+
+For local PyPI publishing with Doppler credential management, see the [`pypi-doppler` skill](../../pypi-doppler/SKILL.md).
+
+**Quick summary**:
+
+1. Store PYPI_TOKEN in Doppler: `doppler secrets set PYPI_TOKEN='...'`
+2. Use publish script: `./scripts/publish-to-pypi.sh`
+3. CI detection guards prevent accidental CI publishing
+
+**Alternative: GitHub Actions OIDC** (for teams requiring CI publishing):
 
 1. Configure at <https://pypi.org/manage/account/publishing/>
-2. Update workflow to use `pypa/gh-action-pypi-publish@release/v1`
+2. Use `pypa/gh-action-pypi-publish@release/v1`
 
 ## Runtime Version Access (`__version__`)
 
