@@ -1,3 +1,10 @@
+## [9.22.1](https://github.com/terrylica/cc-skills/compare/v9.22.0...v9.22.1) (2026-01-11)
+
+
+### Bug Fixes
+
+* **release:** remove unused BASH_SOURCE line that broke Lodash template ([b3a274b](https://github.com/terrylica/cc-skills/commit/b3a274b5ea4eec4b97d17d59135eddfd2f078589))
+
 # [9.22.0](https://github.com/terrylica/cc-skills/compare/v9.21.0...v9.22.0) (2026-01-11)
 
 
