@@ -69,17 +69,18 @@ fi
 if [[ -z "${GH_CONFIG_DIR:-}" ]]; then
     deny_with_reason "[gh-isolation] BLOCKED: GH_CONFIG_DIR not set in Claude's environment.
 
-WHAT HAPPENED: This gh command was blocked because multi-account GitHub isolation is not active. Without GH_CONFIG_DIR, the gh CLI uses ~/.config/gh/ which may contain the wrong account credentials.
+PROBLEM: GitHub commands blocked - multi-account isolation not active. The gh CLI would use ~/.config/gh/ which may contain wrong account credentials.
 
-ROOT CAUSE: Claude Code was launched from a shell where mise environment variables were not loaded.
+ROOT CAUSE: Claude Code was launched from a shell without mise environment loaded.
 
-WHAT CLAUDE SHOULD DO:
-1. Inform the user that GitHub commands are blocked due to missing account isolation
-2. Ask the user to restart Claude Code from a properly configured shell
-3. The user should run: source <(mise hook-env -s bash) OR restart their terminal (if mise is in shell rc file)
-4. After restart, GH_CONFIG_DIR and GH_ACCOUNT will be inherited by Claude Code
+ACTION REQUIRED: Use AskUserQuestion tool to present these options:
 
-TEMPORARY BYPASS: Set GH_ISOLATION_FORCE_ALLOW=true (not recommended - may use wrong account)"
+Question: 'GitHub account isolation is not configured. How would you like to proceed?'
+Header: 'GitHub'
+Options:
+  1. 'Restart Claude Code' - 'Exit and relaunch from a terminal with mise activated (recommended)'
+  2. 'Activate mise now' - 'Run: source <(mise hook-env -s bash) in your terminal, then restart Claude Code'
+  3. 'Skip isolation' - 'Set GH_ISOLATION_FORCE_ALLOW=true to bypass (may use wrong account)'"
 fi
 
 # ============================================================================
@@ -88,14 +89,15 @@ fi
 if [[ ! -f "${GH_CONFIG_DIR}/hosts.yml" ]]; then
     deny_with_reason "[gh-isolation] BLOCKED: GitHub profile not initialized.
 
-WHAT HAPPENED: GH_CONFIG_DIR is set to ${GH_CONFIG_DIR} but no hosts.yml exists. This means the isolated profile has never been authenticated.
+PROBLEM: GH_CONFIG_DIR=${GH_CONFIG_DIR} exists but hosts.yml is missing. The isolated profile has never been authenticated.
 
-WHAT CLAUDE SHOULD DO:
-1. Inform the user that the GitHub profile needs to be initialized
-2. The user should run: GH_CONFIG_DIR='${GH_CONFIG_DIR}' gh auth login
-3. After authentication, retry the original gh command
+ACTION REQUIRED: Use AskUserQuestion tool to present these options:
 
-TEMPORARY BYPASS: Set GH_ISOLATION_FORCE_ALLOW=true (not recommended)"
+Question: 'GitHub profile needs authentication. How would you like to proceed?'
+Header: 'Auth'
+Options:
+  1. 'Authenticate now' - 'Run: GH_CONFIG_DIR=\"${GH_CONFIG_DIR}\" gh auth login'
+  2. 'Skip isolation' - 'Set GH_ISOLATION_FORCE_ALLOW=true to bypass (not recommended)'"
 fi
 
 # ============================================================================
@@ -111,15 +113,16 @@ if [[ -n "${GH_ACCOUNT:-}" ]]; then
     if [[ -n "$ACTIVE_USER" && "$ACTIVE_USER" != "$GH_ACCOUNT" ]]; then
         deny_with_reason "[gh-isolation] BLOCKED: Wrong GitHub account active.
 
-WHAT HAPPENED: The gh CLI is authenticated as '${ACTIVE_USER}' but this directory expects '${GH_ACCOUNT}'. Using the wrong account would create issues/PRs under the wrong identity.
+PROBLEM: gh CLI authenticated as '${ACTIVE_USER}' but directory expects '${GH_ACCOUNT}'. Wrong account would create issues/PRs under wrong identity.
 
-WHAT CLAUDE SHOULD DO:
-1. Inform the user that the wrong GitHub account is active
-2. The user should run: gh auth switch --user ${GH_ACCOUNT}
-3. If that fails, the user may need to: gh auth login (and select ${GH_ACCOUNT})
-4. After switching, retry the original gh command
+ACTION REQUIRED: Use AskUserQuestion tool to present these options:
 
-TEMPORARY BYPASS: Set GH_ISOLATION_FORCE_ALLOW=true (not recommended - will use wrong account)"
+Question: 'Wrong GitHub account (${ACTIVE_USER}) is active. Expected: ${GH_ACCOUNT}. How to fix?'
+Header: 'Account'
+Options:
+  1. 'Switch account' - 'Run: gh auth switch --user ${GH_ACCOUNT}'
+  2. 'Re-authenticate' - 'Run: gh auth login (select ${GH_ACCOUNT})'
+  3. 'Use current account' - 'Set GH_ISOLATION_FORCE_ALLOW=true (will use ${ACTIVE_USER})'"
     fi
 fi
 
