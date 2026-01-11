@@ -67,9 +67,23 @@ fi
 # to configure their shell/mise properly so Claude inherits the env vars.
 # ============================================================================
 if [[ -z "${GH_CONFIG_DIR:-}" ]]; then
-    deny_with_reason "[gh-isolation] BLOCKED: GH_CONFIG_DIR not set in Claude's environment.
+    # Try to detect expected account from mise config for better UX
+    # Use sed for macOS compatibility (grep -P not available)
+    EXPECTED_ACCOUNT=""
+    if [[ -f ".mise.toml" ]]; then
+        EXPECTED_ACCOUNT=$(grep 'GH_ACCOUNT' .mise.toml 2>/dev/null | sed -E 's/.*GH_ACCOUNT[[:space:]]*=[[:space:]]*"?([^"[:space:]]+)"?.*/\1/' || true)
+    fi
+    if [[ -z "$EXPECTED_ACCOUNT" ]] && [[ -f ".mise.local.toml" ]]; then
+        EXPECTED_ACCOUNT=$(grep 'GH_ACCOUNT' .mise.local.toml 2>/dev/null | sed -E 's/.*GH_ACCOUNT[[:space:]]*=[[:space:]]*"?([^"[:space:]]+)"?.*/\1/' || true)
+    fi
 
-PROBLEM: GitHub commands blocked - multi-account isolation not active. The gh CLI would use ~/.config/gh/ which may contain wrong account credentials.
+    # Also try to get current gh user for context
+    CURRENT_GH_USER=$(gh api user --jq '.login' 2>/dev/null || echo "unknown")
+
+    if [[ -n "$EXPECTED_ACCOUNT" ]]; then
+        deny_with_reason "[gh-isolation] BLOCKED: GH_CONFIG_DIR not set in Claude's environment.
+
+PROBLEM: GitHub commands blocked. Current gh user: '${CURRENT_GH_USER}'. Expected for this directory: '${EXPECTED_ACCOUNT}'.
 
 ROOT CAUSE: Claude Code was launched from a shell without mise environment loaded.
 
@@ -77,16 +91,38 @@ ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). U
 
 {
   \"questions\": [{
-    \"question\": \"GitHub account isolation is not configured. How would you like to proceed?\",
-    \"header\": \"GitHub\",
+    \"question\": \"GitHub account isolation not active. This directory expects '${EXPECTED_ACCOUNT}' but gh CLI may use '${CURRENT_GH_USER}'. Which account do you want to use?\",
+    \"header\": \"Account\",
     \"multiSelect\": false,
     \"options\": [
-      {\"label\": \"Restart Claude Code (Recommended)\", \"description\": \"Exit and relaunch from a terminal with mise activated\"},
-      {\"label\": \"Activate mise now\", \"description\": \"Run: source <(mise hook-env -s bash) in terminal, then restart Claude Code\"},
-      {\"label\": \"Skip isolation\", \"description\": \"Set GH_ISOLATION_FORCE_ALLOW=true to bypass (may use wrong account)\"}
+      {\"label\": \"Use ${EXPECTED_ACCOUNT} (Recommended)\", \"description\": \"Restart Claude Code from terminal with mise activated to use ${EXPECTED_ACCOUNT}\"},
+      {\"label\": \"Use ${CURRENT_GH_USER} anyway\", \"description\": \"Set GH_ISOLATION_FORCE_ALLOW=true to proceed with current account\"},
+      {\"label\": \"Use different account\", \"description\": \"Specify which GitHub account you want to use for this directory\"}
     ]
   }]
 }"
+    else
+        deny_with_reason "[gh-isolation] BLOCKED: GH_CONFIG_DIR not set in Claude's environment.
+
+PROBLEM: GitHub commands blocked. Current gh user: '${CURRENT_GH_USER}'. No GH_ACCOUNT configured in mise for this directory.
+
+ROOT CAUSE: Claude Code was launched from a shell without mise environment loaded.
+
+ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). Use these exact parameters:
+
+{
+  \"questions\": [{
+    \"question\": \"GitHub account isolation not active. Current gh CLI user is '${CURRENT_GH_USER}'. Which account should be used for this directory?\",
+    \"header\": \"Account\",
+    \"multiSelect\": false,
+    \"options\": [
+      {\"label\": \"Use ${CURRENT_GH_USER}\", \"description\": \"Set GH_ISOLATION_FORCE_ALLOW=true to proceed with current account\"},
+      {\"label\": \"Configure isolation first\", \"description\": \"Set up GH_ACCOUNT in .mise.toml, then restart Claude Code\"},
+      {\"label\": \"Use different account\", \"description\": \"Specify which GitHub account you want to use for this directory\"}
+    ]
+  }]
+}"
+    fi
 fi
 
 # ============================================================================
@@ -125,19 +161,19 @@ if [[ -n "${GH_ACCOUNT:-}" ]]; then
     if [[ -n "$ACTIVE_USER" && "$ACTIVE_USER" != "$GH_ACCOUNT" ]]; then
         deny_with_reason "[gh-isolation] BLOCKED: Wrong GitHub account active.
 
-PROBLEM: gh CLI authenticated as '${ACTIVE_USER}' but directory expects '${GH_ACCOUNT}'. Wrong account would create issues/PRs under wrong identity.
+PROBLEM: gh CLI authenticated as '${ACTIVE_USER}' but this directory expects '${GH_ACCOUNT}'. Using wrong account would create issues/PRs under wrong identity.
 
 ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). Use these exact parameters:
 
 {
   \"questions\": [{
-    \"question\": \"Wrong GitHub account (${ACTIVE_USER}) is active. Expected: ${GH_ACCOUNT}. How to fix?\",
+    \"question\": \"Account mismatch: gh CLI is '${ACTIVE_USER}' but directory expects '${GH_ACCOUNT}'. Which account do you want to use?\",
     \"header\": \"Account\",
     \"multiSelect\": false,
     \"options\": [
-      {\"label\": \"Switch account (Recommended)\", \"description\": \"Run: gh auth switch --user ${GH_ACCOUNT}\"},
-      {\"label\": \"Re-authenticate\", \"description\": \"Run: gh auth login (select ${GH_ACCOUNT})\"},
-      {\"label\": \"Use current account\", \"description\": \"Set GH_ISOLATION_FORCE_ALLOW=true (will use ${ACTIVE_USER})\"}
+      {\"label\": \"Use ${GH_ACCOUNT} (Recommended)\", \"description\": \"Switch to expected account: gh auth switch --user ${GH_ACCOUNT}\"},
+      {\"label\": \"Use ${ACTIVE_USER} instead\", \"description\": \"Keep current account and set GH_ISOLATION_FORCE_ALLOW=true\"},
+      {\"label\": \"Use different account\", \"description\": \"Specify another GitHub account to use for this directory\"}
     ]
   }]
 }"
