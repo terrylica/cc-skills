@@ -1,3 +1,31 @@
+## [9.22.2](https://github.com/terrylica/cc-skills/compare/v9.22.1...v9.22.2) (2026-01-11)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+49/-155)
+
+### General Documentation
+
+- [Documentation Guide](https://github.com/terrylica/cc-skills/blob/main/docs/CLAUDE.md) - new (+57)
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - new (+137)
+- [Release Workflow Guide](https://github.com/terrylica/cc-skills/blob/main/docs/RELEASE.md) - new (+122)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - new (+102)
+
 ## [9.22.1](https://github.com/terrylica/cc-skills/compare/v9.22.0...v9.22.1) (2026-01-11)
 
 
