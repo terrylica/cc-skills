@@ -67,14 +67,35 @@ fi
 # to configure their shell/mise properly so Claude inherits the env vars.
 # ============================================================================
 if [[ -z "${GH_CONFIG_DIR:-}" ]]; then
-    deny_with_reason "GH_CONFIG_DIR isolation NOT configured. Claude's environment doesn't have GH_CONFIG_DIR set, so gh commands will use the global ~/.config/gh/ profile. Fix: Ensure mise is activated in the shell where Claude Code was launched (mise hook-env should set GH_CONFIG_DIR). Bypass: GH_ISOLATION_FORCE_ALLOW=true"
+    deny_with_reason "[gh-isolation] BLOCKED: GH_CONFIG_DIR not set in Claude's environment.
+
+WHAT HAPPENED: This gh command was blocked because multi-account GitHub isolation is not active. Without GH_CONFIG_DIR, the gh CLI uses ~/.config/gh/ which may contain the wrong account credentials.
+
+ROOT CAUSE: Claude Code was launched from a shell where mise environment variables were not loaded.
+
+WHAT CLAUDE SHOULD DO:
+1. Inform the user that GitHub commands are blocked due to missing account isolation
+2. Ask the user to restart Claude Code from a properly configured shell
+3. The user should run: source <(mise hook-env -s bash) OR restart their terminal (if mise is in shell rc file)
+4. After restart, GH_CONFIG_DIR and GH_ACCOUNT will be inherited by Claude Code
+
+TEMPORARY BYPASS: Set GH_ISOLATION_FORCE_ALLOW=true (not recommended - may use wrong account)"
 fi
 
 # ============================================================================
 # VALIDATE PROFILE EXISTS
 # ============================================================================
 if [[ ! -f "${GH_CONFIG_DIR}/hosts.yml" ]]; then
-    deny_with_reason "GH_CONFIG_DIR set but profile not initialized. GH_CONFIG_DIR=${GH_CONFIG_DIR} but hosts.yml does not exist. Run 'gh auth login' to initialize. Bypass: GH_ISOLATION_FORCE_ALLOW=true"
+    deny_with_reason "[gh-isolation] BLOCKED: GitHub profile not initialized.
+
+WHAT HAPPENED: GH_CONFIG_DIR is set to ${GH_CONFIG_DIR} but no hosts.yml exists. This means the isolated profile has never been authenticated.
+
+WHAT CLAUDE SHOULD DO:
+1. Inform the user that the GitHub profile needs to be initialized
+2. The user should run: GH_CONFIG_DIR='${GH_CONFIG_DIR}' gh auth login
+3. After authentication, retry the original gh command
+
+TEMPORARY BYPASS: Set GH_ISOLATION_FORCE_ALLOW=true (not recommended)"
 fi
 
 # ============================================================================
@@ -88,7 +109,17 @@ if [[ -n "${GH_ACCOUNT:-}" ]]; then
     ACTIVE_USER=$(GH_CONFIG_DIR="$GH_CONFIG_DIR" gh api user --jq '.login' 2>/dev/null || echo "")
 
     if [[ -n "$ACTIVE_USER" && "$ACTIVE_USER" != "$GH_ACCOUNT" ]]; then
-        deny_with_reason "Active gh account (${ACTIVE_USER}) doesn't match expected GH_ACCOUNT (${GH_ACCOUNT}). Run 'gh auth switch --user ${GH_ACCOUNT}' to fix. Bypass: GH_ISOLATION_FORCE_ALLOW=true"
+        deny_with_reason "[gh-isolation] BLOCKED: Wrong GitHub account active.
+
+WHAT HAPPENED: The gh CLI is authenticated as '${ACTIVE_USER}' but this directory expects '${GH_ACCOUNT}'. Using the wrong account would create issues/PRs under the wrong identity.
+
+WHAT CLAUDE SHOULD DO:
+1. Inform the user that the wrong GitHub account is active
+2. The user should run: gh auth switch --user ${GH_ACCOUNT}
+3. If that fails, the user may need to: gh auth login (and select ${GH_ACCOUNT})
+4. After switching, retry the original gh command
+
+TEMPORARY BYPASS: Set GH_ISOLATION_FORCE_ALLOW=true (not recommended - will use wrong account)"
     fi
 fi
 
