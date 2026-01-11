@@ -1,3 +1,10 @@
+## [9.20.3](https://github.com/terrylica/cc-skills/compare/v9.20.2...v9.20.3) (2026-01-11)
+
+
+### Bug Fixes
+
+* **git-account-validator:** instruct Claude to use AskUserQuestion for remediation ([d8d1cc0](https://github.com/terrylica/cc-skills/commit/d8d1cc096ad9b9bc7b5e76d198296bb89fa968c7))
+
 ## [9.20.2](https://github.com/terrylica/cc-skills/compare/v9.20.1...v9.20.2) (2026-01-11)
 
 
