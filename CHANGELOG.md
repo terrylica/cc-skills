@@ -1,3 +1,30 @@
+## [9.22.3](https://github.com/terrylica/cc-skills/compare/v9.22.2...v9.22.3) (2026-01-11)
+
+
+### Bug Fixes
+
+* correct CLAUDE.md alignment with codebase ([118a1ad](https://github.com/terrylica/cc-skills/commit/118a1add4c867e37f85496911dccbd1738fa7ab9))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+1/-1)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+1/-1)
+
 ## [9.22.2](https://github.com/terrylica/cc-skills/compare/v9.22.1...v9.22.2) (2026-01-11)
 
 
