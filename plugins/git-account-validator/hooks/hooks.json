@@ -8,12 +8,12 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate-git-push.sh",
-            "timeout": 15
+            "timeout": 15000
           },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate-gh-isolation.sh",
-            "timeout": 5
+            "timeout": 5000
           }
         ]
       }

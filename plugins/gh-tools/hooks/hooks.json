@@ -1,5 +1,5 @@
 {
-  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, suggests gh CLI alternatives",
+  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, requires --body-file for gh issue create",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,6 +8,16 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/webfetch-github-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-body-file-guard.mjs",
             "timeout": 5000
           }
         ]
