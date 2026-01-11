@@ -1,3 +1,49 @@
+## [9.20.1](https://github.com/terrylica/cc-skills/compare/v9.20.0...v9.20.1) (2026-01-11)
+
+
+### Bug Fixes
+
+* **git-account-validator:** remove self-healing that bypassed account isolation ([b27cd32](https://github.com/terrylica/cc-skills/commit/b27cd32867e97d9f60c9bafd1ce9bb6cae44982e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+74/-553)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (11 files)</summary>
+
+- [2025 Updates](https://github.com/terrylica/cc-skills/blob/v9.20.0/plugins/itp/skills/semantic-release/references/2025-updates.md) - deleted
+- [Authentication for semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/authentication.md) - updated (+6/-119)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/evolution-log.md) - new (+71)
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+6/-189)
+- [MAJOR Version Breaking Change Confirmation](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/major-confirmation.md) - new (+237)
+- [Pypi Publishing With Doppler](https://github.com/terrylica/cc-skills/blob/v9.20.0/plugins/itp/skills/semantic-release/references/pypi-publishing-with-doppler.md) - deleted
+- [Python Projects Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/python.md) - renamed from `plugins/itp/skills/semantic-release/references/python-projects-nodejs-semantic-release.md`
+- [Resources](https://github.com/terrylica/cc-skills/blob/v9.20.0/plugins/itp/skills/semantic-release/references/resources.md) - deleted
+- [Rust Projects with release-plz](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/rust.md) - renamed from `plugins/itp/skills/semantic-release/references/rust-release-plz.md`
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/troubleshooting.md) - updated (+317/-24)
+- [Workflow Patterns](https://github.com/terrylica/cc-skills/blob/v9.20.0/plugins/itp/skills/semantic-release/references/workflow-patterns.md) - deleted
+
+</details>
+
 # [9.20.0](https://github.com/terrylica/cc-skills/compare/v9.19.1...v9.20.0) (2026-01-10)
 
 
