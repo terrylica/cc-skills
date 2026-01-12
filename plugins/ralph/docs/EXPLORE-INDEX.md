@@ -8,7 +8,7 @@
 
 ## Quick Start
 
-**Copy-paste ready prompts**: [EXPLORE-TASK-PROMPTS.txt](./EXPLORE-TASK-PROMPTS.txt)
+**Copy-paste ready prompts**: [EXPLORE-AGENT-PROMPTS.md](./EXPLORE-AGENT-PROMPTS.md)
 
 **Understanding first**: [EXPLORE-GUIDE.md](./EXPLORE-GUIDE.md)
 
@@ -32,7 +32,7 @@
 - **For each prompt**: Purpose, what it finds, why it matters, search strategy, output format
 - **Use when**: You want detailed understanding of each agent's focus
 
-#### 2. **EXPLORE-TASK-PROMPTS.txt** — Copy/Paste Format
+#### 2. **EXPLORE-AGENT-PROMPTS.md** — Copy/Paste Format
 - **What it is**: Condensed versions of 5 prompts ready for Task tool
 - **Length**: 220 lines
 - **Format**: Plain text, one prompt per section
@@ -115,7 +115,7 @@ Implementation guide: Python templates for each agent type, testing patterns, ex
 **Total: 25 minutes**
 
 ### Scenario 2: "I need to run a prompt right now"
-1. Open EXPLORE-TASK-PROMPTS.txt
+1. Open EXPLORE-AGENT-PROMPTS.md
 2. Copy Prompt #1 (or whichever is relevant)
 3. Paste into `/task` command
 4. Review output, create `/ralph:forbid` items
@@ -124,7 +124,7 @@ Implementation guide: Python templates for each agent type, testing patterns, ex
 ### Scenario 3: "I want comprehensive assessment"
 1. Read EXPLORE-GUIDE.md (5 min)
 2. Review decision matrix in EXPLORE-REFERENCE.md (2 min)
-3. Run all 5 prompts from EXPLORE-TASK-PROMPTS.txt (90 min)
+3. Run all 5 prompts from EXPLORE-AGENT-PROMPTS.md (90 min)
 4. Interpret findings using EXPLORE-EXAMPLES.md patterns (30 min)
 5. Create forbidden/encouraged lists (20 min)
 6. Start Ralph loop with guidance (5 min)
@@ -154,7 +154,7 @@ Implementation guide: Python templates for each agent type, testing patterns, ex
 |------|----------|---------|
 | Understand concept | EXPLORE-GUIDE.md | All |
 | Learn one agent | EXPLORE-EXAMPLES.md | Example N |
-| Run a prompt | EXPLORE-TASK-PROMPTS.txt | Prompt N |
+| Run a prompt | EXPLORE-AGENT-PROMPTS.md | Prompt N |
 | Quick facts | EXPLORE-REFERENCE.md | All |
 | Deep dive one agent | EXPLORE-AGENT-PROMPTS.md | Agent N |
 | Understand workflow | EXPLORE-GUIDE.md | Integration with Ralph Loop |
@@ -296,7 +296,7 @@ plugins/ralph/docs/
 ├── EXPLORE-INDEX.md                  ← You are here
 ├── EXPLORE-GUIDE.md                  ← Start here
 ├── EXPLORE-REFERENCE.md              ← Quick lookup
-├── EXPLORE-TASK-PROMPTS.txt          ← Copy/paste prompts
+├── EXPLORE-AGENT-PROMPTS.md          ← Copy/paste prompts
 ├── EXPLORE-AGENT-PROMPTS.md          ← Full specifications
 ├── EXPLORE-EXAMPLES.md               ← Real code examples
 ├── EXPLORE-AGENT-ARCHITECTURE.md     ← System design
@@ -311,7 +311,7 @@ plugins/ralph/docs/
 ## Next Steps
 
 ### For Immediate Use
-1. Go to EXPLORE-TASK-PROMPTS.txt
+1. Go to EXPLORE-AGENT-PROMPTS.md
 2. Copy Prompt #1 (Hardcoded Values)
 3. Paste into `/task` command
 4. Review findings
@@ -323,7 +323,7 @@ plugins/ralph/docs/
 
 ### For Comprehensive Assessment
 1. Review EXPLORE-REFERENCE.md decision matrix
-2. Run all 5 prompts from EXPLORE-TASK-PROMPTS.txt
+2. Run all 5 prompts from EXPLORE-AGENT-PROMPTS.md
 3. Use EXPLORE-EXAMPLES.md to interpret results
 4. Create forbidden/encouraged lists
 5. Run `/ralph:start` with optimized guidance
@@ -371,7 +371,7 @@ Claude's degrees of freedom are **constrained by information, not chaos**.
 | Document | Lines | Purpose | For | Time |
 |----------|-------|---------|-----|------|
 | EXPLORE-AGENT-PROMPTS.md | 419 | Full agent specs | Understanding | 30 min |
-| EXPLORE-TASK-PROMPTS.txt | 220 | Copy/paste ready | Immediate use | 10 min |
+| EXPLORE-AGENT-PROMPTS.md | 220 | Copy/paste ready | Immediate use | 10 min |
 | EXPLORE-EXAMPLES.md | 445 | Real code | Interpretation | 30 min |
 | EXPLORE-GUIDE.md | 237 | Getting started | Entry point | 10 min |
 | EXPLORE-REFERENCE.md | 268 | Quick lookup | Fact checking | 5 min |
@@ -379,4 +379,4 @@ Claude's degrees of freedom are **constrained by information, not chaos**.
 | EXPLORE-AGENT-INTEGRATION-DESIGN.md | 589 | Integration | Implementation | 25 min |
 | EXPLORE-AGENT-IMPLEMENTATION.md | 989 | Python templates | Building | 45 min |
 
-**→ Start with EXPLORE-GUIDE.md or EXPLORE-TASK-PROMPTS.txt**
+**→ Start with EXPLORE-GUIDE.md or EXPLORE-AGENT-PROMPTS.md**
