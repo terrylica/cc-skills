@@ -2,6 +2,8 @@
 
 Context for working with cc-skills documentation.
 
+**Hub**: [Root CLAUDE.md](../CLAUDE.md) | **Sibling**: [plugins/CLAUDE.md](../plugins/CLAUDE.md)
+
 ## Directory Structure
 
 ```
@@ -34,24 +36,23 @@ docs/
 
 ## Spoke Documents
 
-| Document                          | Purpose                           |
-| --------------------------------- | --------------------------------- |
-| [HOOKS.md](./HOOKS.md)            | Hook development patterns         |
-| [RELEASE.md](./RELEASE.md)        | Release workflow (mise tasks)     |
-| [plugin-authoring.md](./plugin-authoring.md) | Shell compatibility      |
-| [troubleshooting/](./troubleshooting/) | Issue resolution            |
+| Document                                     | Purpose                       |
+| -------------------------------------------- | ----------------------------- |
+| [HOOKS.md](./HOOKS.md)                       | Hook development patterns     |
+| [RELEASE.md](./RELEASE.md)                   | Release workflow (mise tasks) |
+| [plugin-authoring.md](./plugin-authoring.md) | Shell compatibility           |
+| [troubleshooting/](./troubleshooting/)       | Issue resolution              |
 
 ## Link Conventions
 
 When linking from docs:
 
-| Target              | Format                               |
-| ------------------- | ------------------------------------ |
-| Other docs          | Relative (`./adr/file.md`)           |
-| Plugins             | Repo-root (`/plugins/itp/README.md`) |
-| External            | Full URL                             |
+| Target     | Format                               |
+| ---------- | ------------------------------------ |
+| Other docs | Relative (`./adr/file.md`)           |
+| Plugins    | Repo-root (`/plugins/itp/README.md`) |
+| External   | Full URL                             |
 
-## Related
+## Toolchain
 
-- [Root CLAUDE.md](../CLAUDE.md) - Hub navigation
-- [plugins/CLAUDE.md](../plugins/CLAUDE.md) - Plugin development
+**Bun-first** for JavaScript globals. See [Root CLAUDE.md](../CLAUDE.md#development-toolchain).

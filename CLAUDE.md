@@ -6,15 +6,16 @@ Claude Code skills marketplace: **19 plugins** with skills for ADR-driven develo
 
 ## Navigation
 
-| Topic            | Document                                              |
-| ---------------- | ----------------------------------------------------- |
-| Installation     | [README.md](./README.md)                              |
-| Plugin Dev       | [plugins/CLAUDE.md](./plugins/CLAUDE.md)              |
-| Hooks Dev        | [docs/HOOKS.md](./docs/HOOKS.md)                      |
-| Release          | [docs/RELEASE.md](./docs/RELEASE.md)                  |
-| ITP Workflow     | [plugins/itp/README.md](./plugins/itp/README.md)      |
-| Troubleshooting  | [docs/troubleshooting/](./docs/troubleshooting/)      |
-| ADRs             | [docs/adr/](./docs/adr/)                              |
+| Topic           | Document                                         |
+| --------------- | ------------------------------------------------ |
+| Installation    | [README.md](./README.md)                         |
+| Plugin Dev      | [plugins/CLAUDE.md](./plugins/CLAUDE.md)         |
+| Documentation   | [docs/CLAUDE.md](./docs/CLAUDE.md)               |
+| Hooks Dev       | [docs/HOOKS.md](./docs/HOOKS.md)                 |
+| Release         | [docs/RELEASE.md](./docs/RELEASE.md)             |
+| ITP Workflow    | [plugins/itp/README.md](./plugins/itp/README.md) |
+| Troubleshooting | [docs/troubleshooting/](./docs/troubleshooting/) |
+| ADRs            | [docs/adr/](./docs/adr/)                         |
 
 ## Essential Commands
 
@@ -58,23 +59,39 @@ cc-skills/
 
 ## Key Files
 
-| File                              | Purpose                     |
-| --------------------------------- | --------------------------- |
-| `.claude-plugin/marketplace.json` | Plugin registry (SSoT)      |
-| `.releaserc.yml`                  | semantic-release config     |
-| `scripts/validate-plugins.mjs`    | Plugin validation           |
-| `scripts/sync-hooks-to-settings.sh` | Hook synchronization      |
+| File                                | Purpose                 |
+| ----------------------------------- | ----------------------- |
+| `.claude-plugin/marketplace.json`   | Plugin registry (SSoT)  |
+| `.releaserc.yml`                    | semantic-release config |
+| `scripts/validate-plugins.mjs`      | Plugin validation       |
+| `scripts/sync-hooks-to-settings.sh` | Hook synchronization    |
 
 ## Link Conventions
 
-| Context             | Format      | Example                          |
-| ------------------- | ----------- | -------------------------------- |
-| Skill-internal      | Relative    | `[Guide](./references/guide.md)` |
-| Repo docs           | Repo-root   | `[ADR](/docs/adr/file.md)`       |
-| External            | Full URL    | `[Docs](https://example.com)`    |
+| Context        | Format    | Example                          |
+| -------------- | --------- | -------------------------------- |
+| Skill-internal | Relative  | `[Guide](./references/guide.md)` |
+| Repo docs      | Repo-root | `[ADR](/docs/adr/file.md)`       |
+| External       | Full URL  | `[Docs](https://example.com)`    |
+
+## Development Toolchain
+
+**Bun-First Policy** (2025-01-12): JavaScript global packages installed via `bun add -g`.
+
+```bash
+bun add -g prettier          # Install
+bun update -g                # Upgrade all
+bun pm ls -g                 # List
+```
+
+**Auto-upgrade**: `com.terryli.mise_autoupgrade` runs every 2 hours.
 
 ## Recent Lessons Learned
 
-**2025-12-17**: PostToolUse hooks require `"decision": "block"` in JSON for Claude visibility. [ADR](/docs/adr/2025-12-17-posttooluse-hook-visibility.md)
+**2026-01-11**: Use `--body-file` for `gh issue create` body content. [ADR](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
 
-**2025-12-15**: Plugin dirs must be registered in marketplace.json. [ADR](/docs/adr/2025-12-14-alpha-forge-worktree-management.md)
+**2026-01-10**: uv-reminder hook warns when uv.lock is stale. [ADR](/docs/adr/2026-01-10-uv-reminder-hook.md)
+
+**2026-01-03**: WebFetch to github.com soft-blocked; use `gh` CLI. [ADR](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
+
+**2025-12-17**: PostToolUse hooks require `"decision": "block"` in JSON. [ADR](/docs/adr/2025-12-17-posttooluse-hook-visibility.md)

@@ -78,7 +78,7 @@ claude
 
 **Note**: After installation, plugins are available immediately. However, **hooks require a restart** — exit Claude Code (`Ctrl+C`) and relaunch.
 
-> **⚠️ "Plugin not found" after successful add?** This is a [known Claude Code bug](https://github.com/anthropics/claude-code/issues/9297) where SSH clone fails silently. Fix with manual HTTPS clone:
+> **⚠️ "Plugin not found" after successful add?** This is a [known Claude Code bug](https://github.com/anthropics/claude-code/issues/15871) where SSH clone fails silently. Fix with manual HTTPS clone:
 >
 > ```bash
 > rm -rf ~/.claude/plugins/marketplaces/terrylica-cc-skills
