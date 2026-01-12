@@ -1,3 +1,10 @@
+## [9.22.8](https://github.com/terrylica/cc-skills/compare/v9.22.7...v9.22.8) (2026-01-12)
+
+
+### Bug Fixes
+
+* **dotfiles-tools:** ignore mode-only changes in chezmoi-stop-guard ([2a3c90d](https://github.com/terrylica/cc-skills/commit/2a3c90d91eb893a3ee57b046dcec2e26c9d749e4))
+
 ## [9.22.7](https://github.com/terrylica/cc-skills/compare/v9.22.6...v9.22.7) (2026-01-12)
 
 
