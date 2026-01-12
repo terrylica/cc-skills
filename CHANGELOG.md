@@ -1,3 +1,10 @@
+## [9.22.9](https://github.com/terrylica/cc-skills/compare/v9.22.8...v9.22.9) (2026-01-12)
+
+
+### Bug Fixes
+
+* **itp-hooks:** exclude outputs/ directory from version-guard (was only output/) ([90f3ec5](https://github.com/terrylica/cc-skills/commit/90f3ec5797aa41e2b8e2d4e002fe45f9ac355f34))
+
 ## [9.22.8](https://github.com/terrylica/cc-skills/compare/v9.22.7...v9.22.8) (2026-01-12)
 
 
