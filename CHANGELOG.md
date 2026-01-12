@@ -1,3 +1,10 @@
+## [9.24.2](https://github.com/terrylica/cc-skills/compare/v9.24.1...v9.24.2) (2026-01-12)
+
+
+### Reverts
+
+* remove PostToolUseError hook (not a valid Claude Code hook type) ([90cf728](https://github.com/terrylica/cc-skills/commit/90cf728337c460e0a20fd8f357e003588a3667b7))
+
 ## [9.24.1](https://github.com/terrylica/cc-skills/compare/v9.24.0...v9.24.1) (2026-01-12)
 
 
