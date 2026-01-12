@@ -106,9 +106,17 @@ if command -v lychee &>/dev/null; then
     if [[ -s "$MD_FILES_TMP" ]]; then
         # Run lychee on files (use temp file for output too)
         # --root-dir: Required to resolve root-relative paths like /docs/foo.md
+        # --config: Use project .lychee.toml if it exists (excludes test fixtures, etc.)
         LYCHEE_TMP=$(mktemp)
-        if xargs lychee --offline --no-progress --format json --root-dir "$GIT_ROOT" < "$MD_FILES_TMP" > "$LYCHEE_TMP" 2>/dev/null; then
-            LYCHEE_ERRORS=$(jq -r '.errors // 0' "$LYCHEE_TMP" 2>/dev/null || echo 0)
+        LYCHEE_CONFIG=""
+        if [[ -f "$GIT_ROOT/.lychee.toml" ]]; then
+            LYCHEE_CONFIG="--config $GIT_ROOT/.lychee.toml"
+        fi
+        if xargs lychee --offline --no-progress --format json --root-dir "$GIT_ROOT" $LYCHEE_CONFIG < "$MD_FILES_TMP" > "$LYCHEE_TMP" 2>/dev/null; then
+            # Count only REAL errors, not path resolution errors
+            # Path resolution errors have url="error:" (lychee can't parse the path)
+            # Real errors have actual URLs (file:// or https://) - missing files, 404s, etc.
+            LYCHEE_ERRORS=$(jq '[.error_map | .[]? | .[]? | select(.url != "error:")] | length' "$LYCHEE_TMP" 2>/dev/null || echo 0)
         fi
         rm -f "$LYCHEE_TMP"
     fi

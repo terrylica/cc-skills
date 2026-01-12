@@ -16,6 +16,12 @@ exclude_path = [
     "^tmp/"
 ]
 
+# Exclude link targets (URL patterns to skip checking)
+exclude = [
+    # Local-only references (/local/ paths are machine-specific, not in repo)
+    "^file://.*/local/.*"
+]
+
 # Check offline only (no network requests)
 offline = true
 

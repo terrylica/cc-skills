@@ -110,7 +110,7 @@ PreToolUse/PostToolUse hooks run on **every** tool invocation. During rapid oper
 
 **Solution**: Pre-configure authentication/validation via mise `[env]` instead of runtime validation.
 
-**Reference**: [2026-01-12 Decision](/docs/adr/2025-12-17-github-multi-account-authentication.md#decision-log)
+**Reference**: [2026-01-12 Decision](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md#decision-log)
 
 ## Hook Installation
 

@@ -143,7 +143,7 @@ These scripts called `gh api user` which was the root cause of process storms.
 
 ## Related Documentation
 
-- [GitHub Multi-Account Authentication ADR](/docs/adr/2025-12-17-github-multi-account-authentication.md)
+- [GitHub Multi-Account Authentication ADR](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md)
 - [mise env centralized config ADR](/docs/adr/2025-12-08-mise-env-centralized-config.md)
 - [Secrets Reference](/local/secrets-reference.md)
 
