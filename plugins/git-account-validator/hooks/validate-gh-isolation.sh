@@ -54,16 +54,24 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMM
 
 # Only check if command contains gh CLI calls as actual commands
 # Must handle: "gh issue list", "cd foo && gh pr", but NOT "git commit -m 'gh CLI'"
-# Strategy: Use grep to detect gh at start of command or after shell operators
+# Strategy: Check if first word of any command segment is "gh"
 CONTAINS_GH_COMMAND=false
-# Remove quoted strings to avoid false matches in arguments
-COMMAND_NO_QUOTES=$(echo "$COMMAND" | sed -E "s/['\"][^'\"]*['\"]//g")
-# Check if gh appears as a command (at start, or after &, |, ;, or newline)
-# FIX: Previous for-loop had word-splitting bug - $(echo ... | tr) splits by spaces not newlines
-# See: https://github.com/terrylica/cc-skills/issues/5
-if echo "$COMMAND_NO_QUOTES" | grep -qE '(^|[;&|])[[:space:]]*gh[[:space:]]'; then
-    CONTAINS_GH_COMMAND=true
-fi
+
+# Robust detection: extract first word of each command segment
+# 1. Replace shell operators with newlines to split into segments
+# 2. Check if any segment starts with "gh " (the actual command)
+# NOTE: Don't strip quotes - that causes false positives with heredocs/$(...)
+# Instead, split by operators and check first word of each segment
+COMMAND_SEGMENTS=$(echo "$COMMAND" | tr ';&|' '\n')
+while IFS= read -r segment; do
+    # Trim leading whitespace and get first word
+    segment_trimmed="${segment#"${segment%%[![:space:]]*}"}"
+    first_word="${segment_trimmed%% *}"
+    if [[ "$first_word" == "gh" ]]; then
+        CONTAINS_GH_COMMAND=true
+        break
+    fi
+done <<< "$COMMAND_SEGMENTS"
 
 if [[ "$CONTAINS_GH_COMMAND" != "true" ]]; then
     exit 0
