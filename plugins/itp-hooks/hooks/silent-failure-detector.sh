@@ -7,9 +7,9 @@
 #
 # Detection:
 # - Bash tool: Non-zero exit codes with stderr
-# - Write/Edit on .sh/.bash: ShellCheck analysis
-# - Write/Edit on .py: Ruff silent failure rules (E722, S110, S112, BLE001)
-# - Write/Edit on .js/.ts: Oxlint analysis
+# - Write/Edit on .sh/.bash: ShellCheck analysis (SC2155, SC2164, SC2181, SC2086 etc.)
+# - Write/Edit on .py: Ruff silent failure rules (E722, S110, S112, BLE001, PLW1510)
+# - Write/Edit on .js/.ts: Oxlint + custom floating promise detection
 #
 # Exit behavior:
 # - Always exits 0 (non-blocking) - Claude continues but sees the warning
@@ -111,11 +111,15 @@ if [[ "$TOOL_NAME" == "Write" || "$TOOL_NAME" == "Edit" ]]; then
 
     # Principle-based fix guidance for each language
     SHELL_FIX_GUIDANCE="SHELL SILENT FAILURE PRINCIPLES:
-1. NEVER mask return values - if a command can fail, its exit status must be checkable
-2. ALWAYS handle cd/pushd failures - use 'cd dir || exit 1' or 'cd dir || return 1'
-3. SPLIT declaration from assignment when capturing command output - 'local var; var=\$(cmd)'
-4. USE 'set -euo pipefail' at script start to fail fast on errors
-5. CHECK exit codes explicitly for critical operations
+1. SC2155: SPLIT declaration from assignment - 'local var=\$(cmd)' masks exit code
+   FIX: 'local var; var=\$(cmd)' - now \$? reflects command exit status
+2. SC2164: ALWAYS handle cd/pushd failures - 'cd dir' silently continues if dir missing
+   FIX: 'cd dir || exit 1' or 'cd dir || { echo 'Failed'; exit 1; }'
+3. SC2181: DON'T use \$? in conditionals - 'if [ \$? -eq 0 ]' is fragile
+   FIX: 'if command; then' - directly test the command
+4. SC2086: QUOTE variable expansions - unquoted vars cause word splitting bugs
+   FIX: Use \"\$var\" instead of \$var
+5. USE 'set -euo pipefail' at script start to fail fast on errors
 
 Fix each issue at the line indicated. The error message explains what pattern to fix."
 
@@ -125,17 +129,24 @@ Fix each issue at the line indicated. The error message explains what pattern to
 3. CATCH SPECIFIC exceptions - use 'except ValueError:' or 'except (TypeError, KeyError):'
 4. ALWAYS log or handle exceptions - at minimum: logging.exception('Context message')
 5. RE-RAISE if you can't handle - 'except SomeError: logger.error(...); raise'
+6. ALWAYS use subprocess.run(..., check=True) - without check=True, non-zero exits are silent
+   - PLW1510: subprocess.run() without check= silently ignores command failures
 
 Fix each pattern to make failures VISIBLE and ACTIONABLE, not silent."
 
     JS_FIX_GUIDANCE="JAVASCRIPT/TYPESCRIPT SILENT FAILURE PRINCIPLES:
-1. NEVER use empty catch blocks - 'catch (e) {}' hides all errors completely
-2. ALWAYS handle or log errors - at minimum: console.error('Context:', e)
-3. AWAIT all promises or attach .catch() - floating promises lose errors silently
-4. USE try/catch around await - async errors need explicit handling
-5. RE-THROW if you can't handle - 'catch (e) { logger.error(e); throw e; }'
+1. EMPTY CATCH: Never use 'catch (e) {}' - it hides all errors completely
+   FIX: 'catch (e) { console.error('Context:', e); throw e; }'
+2. FLOATING PROMISES: .then() without .catch() silently drops rejections
+   FIX: Always chain .catch() OR use try/await/catch pattern
+3. UNHANDLED ASYNC: async functions without try/catch lose errors
+   FIX: Wrap await in try/catch: 'try { await fn(); } catch (e) { handle(e); }'
+4. SWALLOWED ERRORS: 'catch (e) { /* ignore */ }' hides bugs
+   FIX: At minimum log: 'catch (e) { console.error('Failed:', e); }'
+5. RE-THROW UNKNOWN: If you can't handle it, re-throw
+   FIX: 'catch (e) { if (e instanceof Expected) handle(); else throw e; }'
 
-Fix each pattern to make failures VISIBLE. Silent failures compound into debugging nightmares."
+Silent JS failures are debugging nightmares. Make every error VISIBLE."
 
     case "$FILE_PATH" in
         # === Shell Scripts: ShellCheck ===
@@ -169,7 +180,7 @@ Fix each pattern to make failures VISIBLE. Silent failures compound into debuggi
         *.py)
             if command -v ruff &>/dev/null; then
                 RUFF_OUTPUT=$(ruff check \
-                    --select=E722,S110,S112,BLE001 \
+                    --select=E722,S110,S112,BLE001,PLW1510 \
                     --output-format=json \
                     "$FILE_PATH" 2>/dev/null || true)
 
@@ -192,24 +203,69 @@ Fix each pattern to make failures VISIBLE. Silent failures compound into debuggi
             fi
             ;;
 
-        # === JavaScript/TypeScript: Oxlint ===
+        # === JavaScript/TypeScript: Oxlint + Custom patterns ===
         *.js|*.ts|*.mjs|*.tsx|*.jsx)
+            ISSUES_FOUND=""
+            ISSUE_COUNT=0
+
+            # Run Oxlint if available
             if command -v oxlint &>/dev/null; then
                 OXLINT_OUTPUT=$(oxlint "$FILE_PATH" 2>&1 || true)
 
                 ERROR_COUNT=$(echo "$OXLINT_OUTPUT" | grep -c "error" || true)
                 WARNING_COUNT=$(echo "$OXLINT_OUTPUT" | grep -c "warning" || true)
-                TOTAL_COUNT=$((ERROR_COUNT + WARNING_COUNT))
+                OXLINT_COUNT=$((ERROR_COUNT + WARNING_COUNT))
 
-                if [[ "$TOTAL_COUNT" -gt 0 ]]; then
-                    ISSUES_SUMMARY=$(echo "$OXLINT_OUTPUT" | grep -E "error|warning" | head -5)
-
-                    emit_warning "OXLINT" \
-                        "Found $TOTAL_COUNT JS/TS issue(s) - fix before continuing" \
-                        "$FILE_PATH" \
-                        "$ISSUES_SUMMARY" \
-                        "$JS_FIX_GUIDANCE"
+                if [[ "$OXLINT_COUNT" -gt 0 ]]; then
+                    ISSUES_FOUND=$(echo "$OXLINT_OUTPUT" | grep -E "error|warning" | head -3)
+                    ISSUE_COUNT=$((ISSUE_COUNT + OXLINT_COUNT))
                 fi
+            fi
+
+            # Custom: Detect floating promises (.then without .catch on same logical block)
+            # Pattern: .then( without .catch( within 3 lines
+            FLOATING_PROMISES=$(grep -n '\.then(' "$FILE_PATH" 2>/dev/null | while read -r line; do
+                LINE_NUM=$(echo "$line" | cut -d: -f1)
+                # Check if .catch exists within 3 lines after
+                if ! sed -n "${LINE_NUM},$((LINE_NUM + 3))p" "$FILE_PATH" | grep -q '\.catch('; then
+                    echo "Line $LINE_NUM: Floating promise - .then() without .catch()"
+                fi
+            done || true)
+
+            if [[ -n "$FLOATING_PROMISES" ]]; then
+                FLOATING_COUNT=$(echo "$FLOATING_PROMISES" | wc -l | tr -d ' ')
+                ISSUE_COUNT=$((ISSUE_COUNT + FLOATING_COUNT))
+                if [[ -n "$ISSUES_FOUND" ]]; then
+                    ISSUES_FOUND="$ISSUES_FOUND
+$FLOATING_PROMISES"
+                else
+                    ISSUES_FOUND="$FLOATING_PROMISES"
+                fi
+            fi
+
+            # Custom: Detect empty catch blocks
+            EMPTY_CATCH=$(grep -nE 'catch\s*\([^)]*\)\s*\{\s*\}' "$FILE_PATH" 2>/dev/null | \
+                head -3 | sed 's/^\([0-9]*\):.*/Line \1: Empty catch block - errors silently swallowed/' || true)
+
+            if [[ -n "$EMPTY_CATCH" ]]; then
+                EMPTY_COUNT=$(echo "$EMPTY_CATCH" | wc -l | tr -d ' ')
+                ISSUE_COUNT=$((ISSUE_COUNT + EMPTY_COUNT))
+                if [[ -n "$ISSUES_FOUND" ]]; then
+                    ISSUES_FOUND="$ISSUES_FOUND
+$EMPTY_CATCH"
+                else
+                    ISSUES_FOUND="$EMPTY_CATCH"
+                fi
+            fi
+
+            # Emit warning if any issues found
+            if [[ "$ISSUE_COUNT" -gt 0 ]]; then
+                ISSUES_SUMMARY=$(echo "$ISSUES_FOUND" | head -5)
+                emit_warning "JS-SILENT-FAILURE" \
+                    "Found $ISSUE_COUNT JS/TS silent failure pattern(s) - fix before continuing" \
+                    "$FILE_PATH" \
+                    "$ISSUES_SUMMARY" \
+                    "$JS_FIX_GUIDANCE"
             fi
             ;;
     esac
