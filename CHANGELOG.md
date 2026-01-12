@@ -1,3 +1,30 @@
+## [9.24.5](https://github.com/terrylica/cc-skills/compare/v9.24.4...v9.24.5) (2026-01-12)
+
+
+### Bug Fixes
+
+* **statusline:** filter lychee path resolution errors from L: count ([d8b9597](https://github.com/terrylica/cc-skills/commit/d8b95978c0b06f5927dba320e1d9b4d0d15b660e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Git Account Validator Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/git-account-validator/README.md) - updated (+1/-1)
+
+## Repository Documentation
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+1/-1)
+
 ## [9.24.4](https://github.com/terrylica/cc-skills/compare/v9.24.3...v9.24.4) (2026-01-12)
 
 
