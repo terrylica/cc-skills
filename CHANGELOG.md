@@ -1,3 +1,34 @@
+## [9.22.12](https://github.com/terrylica/cc-skills/compare/v9.22.11...v9.22.12) (2026-01-12)
+
+
+### Bug Fixes
+
+* disable all git-account-validator hooks (mise handles auth) ([6028dcb](https://github.com/terrylica/cc-skills/commit/6028dcb81aeb5e0742de3e7798a198286681842e))
+* **git-account-validator:** fix false positives on quoted gh strings ([b66d608](https://github.com/terrylica/cc-skills/commit/b66d608fd644ebb9ce93dbb629ba9017d3630e28))
+* **git-account-validator:** fix word-splitting bug in command detection ([295857c](https://github.com/terrylica/cc-skills/commit/295857cdcf4d18804dbea7a9bf5181294aa2d999))
+* **link-tools:** add configurable exclusion patterns for path policy linter ([8196df9](https://github.com/terrylica/cc-skills/commit/8196df9a00f4a7d6bc8390ac66d7222304f7f311)), closes [#8](https://github.com/terrylica/cc-skills/issues/8)
+* remove validate-gh-isolation hook (caused process storms) ([7d6b050](https://github.com/terrylica/cc-skills/commit/7d6b050173b51177cdb80f15cc06e7e717e10a04)), closes [validate-#isolation](https://github.com/validate-/issues/isolation)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Git Account Validator Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/git-account-validator/README.md) - updated (+105/-219)
+
+## Repository Documentation
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+41/-23)
+
 ## [9.22.11](https://github.com/terrylica/cc-skills/compare/v9.22.10...v9.22.11) (2026-01-12)
 
 
