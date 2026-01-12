@@ -1,17 +1,4 @@
 {
-  "description": "Multi-account GitHub authentication validation (git push only)",
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate-git-push.sh",
-            "timeout": 15000
-          }
-        ]
-      }
-    ]
-  }
+  "description": "Multi-account GitHub authentication validation (disabled - mise handles via env vars)",
+  "hooks": {}
 }

@@ -1,0 +1,33 @@
+{
+  "experiment": "exp-066a",
+  "fold_type": "bar_index",
+  "threshold": 100,
+  "n_folds": 86,
+  "mean_fold_return": 0.00011603192964885094,
+  "std_fold_return": 0.00044702339058708807,
+  "mean_bar_sharpe": 0.03640137183658451,
+  "std_bar_sharpe": 0.09000734557212821,
+  "mean_weekly_sharpe": 0.3542782583901971,
+  "std_weekly_sharpe": 1.1419868120084422,
+  "mean_hit_rate": 0.5101917288977216,
+  "mean_n_bars": 3146.4767441860463,
+  "std_n_bars": 772.3238525256728,
+  "total_n_bars": 270597,
+  "cv_n_bars": 0.24545671724818777,
+  "mean_return_per_bar": 2.769142783440055e-08,
+  "std_return_per_bar": 9.705571940353356e-08,
+  "mean_normalized_sharpe": 2.268994846559952,
+  "std_normalized_sharpe": 5.793735871650174,
+  "cv_fold_returns": 3.8525894720524017,
+  "cv_bar_sharpes": 2.4726360857001555,
+  "positive_sharpe_rate": 0.6511627906976745,
+  "comparison_notes": {
+    "vs_exp066": "Use unpaired bootstrap for Sharpe difference",
+    "key_metrics": [
+      "mean_bar_sharpe",
+      "mean_return_per_bar",
+      "cv_fold_returns"
+    ],
+    "robustness_indicator": "cv_n_bars (exp-066a should be ~0, exp-066 was 105.96%)"
+  }
+}
