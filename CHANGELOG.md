@@ -1,3 +1,10 @@
+## [9.24.1](https://github.com/terrylica/cc-skills/compare/v9.24.0...v9.24.1) (2026-01-12)
+
+
+### Bug Fixes
+
+* **scripts:** add PostToolUseError support to hook sync script ([6edbcc4](https://github.com/terrylica/cc-skills/commit/6edbcc4528965fa5bd2af12ed371ef11c03d9239))
+
 # [9.24.0](https://github.com/terrylica/cc-skills/compare/v9.23.0...v9.24.0) (2026-01-12)
 
 
