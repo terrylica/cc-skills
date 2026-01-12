@@ -38,7 +38,7 @@ main() {
 
     # Ensure settings exists
     if [[ ! -f "$SETTINGS" ]]; then
-        echo '{"hooks": {"PreToolUse": [], "PostToolUse": [], "Stop": []}}' > "$SETTINGS"
+        echo '{"hooks": {"PreToolUse": [], "PostToolUse": [], "PostToolUseError": [], "Stop": []}}' > "$SETTINGS"
     fi
 
     # Backup
@@ -48,6 +48,7 @@ main() {
     jq '
         .hooks.PreToolUse = [.hooks.PreToolUse[]? | select(.hooks[]?.command | contains("cc-skills") | not)] |
         .hooks.PostToolUse = [.hooks.PostToolUse[]? | select(.hooks[]?.command | contains("cc-skills") | not)] |
+        .hooks.PostToolUseError = [.hooks.PostToolUseError[]? | select(.hooks[]?.command | contains("cc-skills") | not)] |
         .hooks.Stop = [.hooks.Stop[]? | select(.hooks[]?.command | contains("cc-skills") | not)]
     ' "$SETTINGS" > /tmp/settings-clean.json
     mv /tmp/settings-clean.json "$SETTINGS"
@@ -64,12 +65,13 @@ main() {
             plugin_hooks=$(jq '.hooks' "$hooks_file" 2>/dev/null) || continue
 
             # Add each hook type
-            for hook_type in PreToolUse PostToolUse Stop; do
+            for hook_type in PreToolUse PostToolUse PostToolUseError Stop; do
                 local type_hooks
                 type_hooks=$(echo "$plugin_hooks" | jq ".$hook_type // []")
                 if [[ "$type_hooks" != "[]" && "$type_hooks" != "null" ]]; then
                     # Replace ${CLAUDE_PLUGIN_ROOT} with actual marketplace path
                     local plugin_path="\$HOME/.claude/plugins/marketplaces/cc-skills/plugins/$plugin_name"
+                    # shellcheck disable=SC2001
                     type_hooks=$(echo "$type_hooks" | sed "s|\\\${CLAUDE_PLUGIN_ROOT}|$plugin_path|g")
 
                     # Merge into settings
@@ -87,6 +89,7 @@ main() {
     jq '
         .hooks.PreToolUse = (.hooks.PreToolUse | unique_by(.matcher + (.hooks | tostring))) |
         .hooks.PostToolUse = (.hooks.PostToolUse | unique_by(.matcher + (.hooks | tostring))) |
+        .hooks.PostToolUseError = (.hooks.PostToolUseError | unique_by(.matcher + (.hooks | tostring))) |
         .hooks.Stop = (.hooks.Stop | unique_by(.hooks | tostring))
     ' "$SETTINGS" > /tmp/settings-dedup.json
     mv /tmp/settings-dedup.json "$SETTINGS"
@@ -99,12 +102,13 @@ main() {
     fi
 
     # Count final hooks
-    local pretooluse_count posttooluse_count stop_count
+    local pretooluse_count posttooluse_count posttooluseerror_count stop_count
     pretooluse_count=$(jq '.hooks.PreToolUse | length' "$SETTINGS")
     posttooluse_count=$(jq '.hooks.PostToolUse | length' "$SETTINGS")
+    posttooluseerror_count=$(jq '.hooks.PostToolUseError | length // 0' "$SETTINGS")
     stop_count=$(jq '.hooks.Stop | length' "$SETTINGS")
 
-    info "Hooks synced: PreToolUse=$pretooluse_count, PostToolUse=$posttooluse_count, Stop=$stop_count"
+    info "Hooks synced: PreToolUse=$pretooluse_count, PostToolUse=$posttooluse_count, PostToolUseError=$posttooluseerror_count, Stop=$stop_count"
 }
 
 main "$@"
