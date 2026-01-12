@@ -1,3 +1,10 @@
+## [9.22.7](https://github.com/terrylica/cc-skills/compare/v9.22.6...v9.22.7) (2026-01-12)
+
+
+### Bug Fixes
+
+* **link-tools:** use mise shims path for uv in Stop hook ([6c7bd7b](https://github.com/terrylica/cc-skills/commit/6c7bd7bd98a4d32d60d4a984d166f5663e089832))
+
 ## [9.22.6](https://github.com/terrylica/cc-skills/compare/v9.22.5...v9.22.6) (2026-01-12)
 
 
