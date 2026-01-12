@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/hooks/stop-link-check.py",
+            "command": "$HOME/.local/share/mise/shims/uv run ${CLAUDE_PLUGIN_ROOT}/hooks/stop-link-check.py",
             "timeout": 60000
           }
         ]
