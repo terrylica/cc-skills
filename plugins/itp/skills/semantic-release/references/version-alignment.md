@@ -194,4 +194,4 @@ plugins:
   - "@semantic-release/github"
 ```
 
-See [Python Projects Guide](./python-projects-nodejs-semantic-release.md) for complete setup.
+See [Python Projects Guide](./python.md) for complete setup.
