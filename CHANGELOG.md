@@ -1,3 +1,45 @@
+## [9.22.11](https://github.com/terrylica/cc-skills/compare/v9.22.10...v9.22.11) (2026-01-12)
+
+
+### Bug Fixes
+
+* **docs:** fix 4 broken links detected by lychee ([9deb864](https://github.com/terrylica/cc-skills/commit/9deb864bec12a0d1decefca21d8c20b4bb313ba1))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [UV Reminder Hook for Pip Usage](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-10-uv-reminder-hook.md) | updated (+1/-1) |
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Version Alignment Standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/version-alignment.md) - updated (+1/-1)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Ralph Explore Agent Prompts - Real Examples](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-EXAMPLES.md) - updated (+1/-1)
+- [Ralph Explore Agents - Complete Documentation Index](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/EXPLORE-INDEX.md) - updated (+10/-10)
+
 ## [9.22.10](https://github.com/terrylica/cc-skills/compare/v9.22.9...v9.22.10) (2026-01-12)
 
 
