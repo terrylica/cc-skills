@@ -1,3 +1,43 @@
+## [9.24.6](https://github.com/terrylica/cc-skills/compare/v9.24.5...v9.24.6) (2026-01-12)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [mise gh CLI Incompatibility with Claude Code](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md) | new (+55) |
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ITP Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/README.md) - updated (+7/-5)
+
+### Commands
+
+<details>
+<summary><strong>itp</strong> (1 command)</summary>
+
+- [ITP Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/setup.md) - updated (+13/-11)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+2/-2)
+
 ## [9.24.5](https://github.com/terrylica/cc-skills/compare/v9.24.4...v9.24.5) (2026-01-12)
 
 
