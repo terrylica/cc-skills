@@ -33,7 +33,7 @@ claude
 
 > **⚠️ "Plugin not found" after "Successfully added marketplace"?**
 >
-> This is a [known Claude Code bug](https://github.com/anthropics/claude-code/issues/9297) where the SSH clone fails silently. The directory is created but remains empty.
+> This is a [known Claude Code bug](https://github.com/anthropics/claude-code/issues/15871) where the SSH clone fails silently. The directory is created but remains empty.
 >
 > **Fix** (run in your terminal, not Claude Code):
 >
