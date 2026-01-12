@@ -52,13 +52,28 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMM
 # COMMAND PATTERN CHECK
 # ============================================================================
 
-# Only check if command contains gh CLI calls
-if ! echo "$COMMAND" | grep -qE '\bgh\s+'; then
+# Only check if command contains gh CLI calls as actual commands
+# Must handle: "gh issue list", "cd foo && gh pr", but NOT "git commit -m 'gh CLI'"
+# Strategy: Check if any command segment (split by &&, ||, ;, |) starts with gh
+CONTAINS_GH_COMMAND=false
+# Remove quoted strings to avoid false matches in arguments
+COMMAND_NO_QUOTES=$(echo "$COMMAND" | sed -E "s/['\"][^'\"]*['\"]//g")
+# Check each command segment
+for segment in $(echo "$COMMAND_NO_QUOTES" | tr '&|;' '\n'); do
+    # Trim leading whitespace and check if starts with gh
+    segment_trimmed="${segment#"${segment%%[![:space:]]*}"}"
+    if [[ "$segment_trimmed" =~ ^gh[[:space:]] ]]; then
+        CONTAINS_GH_COMMAND=true
+        break
+    fi
+done
+
+if [[ "$CONTAINS_GH_COMMAND" != "true" ]]; then
     exit 0
 fi
 
 # EXEMPT: auth/config/completion commands (Major fix for gh auth login lockout)
-if echo "$COMMAND" | grep -qE '\bgh\s+(auth|config|completion)\b'; then
+if echo "$COMMAND" | grep -qE '(^|[[:space:];|&])gh[[:space:]]+(auth|config|completion)\b'; then
     exit 0  # Allow authentication and config commands unconditionally
 fi
 
