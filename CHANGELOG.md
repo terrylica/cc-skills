@@ -1,3 +1,10 @@
+# [9.24.0](https://github.com/terrylica/cc-skills/compare/v9.23.0...v9.24.0) (2026-01-12)
+
+
+### Features
+
+* **itp-hooks:** add PostToolUseError hook for UV reminder on failed pip commands ([7e1c96a](https://github.com/terrylica/cc-skills/commit/7e1c96aae045a37824f69f2a144a2f1b4b59f196))
+
 # [9.23.0](https://github.com/terrylica/cc-skills/compare/v9.22.12...v9.23.0) (2026-01-12)
 
 
