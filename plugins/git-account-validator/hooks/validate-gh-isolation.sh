@@ -54,19 +54,16 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMM
 
 # Only check if command contains gh CLI calls as actual commands
 # Must handle: "gh issue list", "cd foo && gh pr", but NOT "git commit -m 'gh CLI'"
-# Strategy: Check if any command segment (split by &&, ||, ;, |) starts with gh
+# Strategy: Use grep to detect gh at start of command or after shell operators
 CONTAINS_GH_COMMAND=false
 # Remove quoted strings to avoid false matches in arguments
 COMMAND_NO_QUOTES=$(echo "$COMMAND" | sed -E "s/['\"][^'\"]*['\"]//g")
-# Check each command segment
-for segment in $(echo "$COMMAND_NO_QUOTES" | tr '&|;' '\n'); do
-    # Trim leading whitespace and check if starts with gh
-    segment_trimmed="${segment#"${segment%%[![:space:]]*}"}"
-    if [[ "$segment_trimmed" =~ ^gh[[:space:]] ]]; then
-        CONTAINS_GH_COMMAND=true
-        break
-    fi
-done
+# Check if gh appears as a command (at start, or after &, |, ;, or newline)
+# FIX: Previous for-loop had word-splitting bug - $(echo ... | tr) splits by spaces not newlines
+# See: https://github.com/terrylica/cc-skills/issues/5
+if echo "$COMMAND_NO_QUOTES" | grep -qE '(^|[;&|])[[:space:]]*gh[[:space:]]'; then
+    CONTAINS_GH_COMMAND=true
+fi
 
 if [[ "$CONTAINS_GH_COMMAND" != "true" ]]; then
     exit 0
