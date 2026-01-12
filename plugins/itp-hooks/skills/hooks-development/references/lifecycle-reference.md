@@ -216,7 +216,7 @@ Every hook can output these fields:
 | **UserPromptSubmit**  | User presses Enter, BEFORE Claude processes         | **Yes** | None (all prompts)                                                       |
 | **PreToolUse**        | After Claude creates tool params, BEFORE execution  | **Yes** | Tool names: `Task`, `Bash`, `Read`, `Write`, `Edit`, `mcp__*`            |
 | **PermissionRequest** | Permission dialog about to show                     | **Yes** | Same as PreToolUse                                                       |
-| **PostToolUse**       | After tool completes successfully                   | **Yes** | Same as PreToolUse                                                       |
+| **PostToolUse**       | After tool completes **successfully** (NOT errors!) | **Yes** | Same as PreToolUse                                                       |
 | **Notification**      | System notification sent                            | No      | `permission_prompt`, `idle_prompt`, `auth_success`, `elicitation_dialog` |
 | **SubagentStop**      | Task sub-agent finishes                             | **Yes** | None (global)                                                            |
 | **Stop**              | Main agent finishes (not on interrupt)              | **Yes** | None (global)                                                            |
@@ -237,6 +237,29 @@ Every hook can output these fields:
 | **Stop**              | `transcript_path`, `stop_hook_active`                  | `{"decision": "block"}` blocks stopping; `additionalContext` for info; `{}` allows stop          |
 | **PreCompact**        | `trigger`, `custom_instructions`                       | stdout in verbose mode                                                                           |
 | **SessionEnd**        | `reason`: `clear`/`logout`/`prompt_input_exit`/`other` | Debug log only                                                                                   |
+
+### CRITICAL: Non-Existent Hook Types (Lesson Learned 2026-01-12)
+
+**There is NO `PostToolUseError` hook in Claude Code.** This is a common misconception.
+
+| Misconception | Reality | Consequence |
+| ------------- | ------- | ----------- |
+| `PostToolUseError` exists for failed tools | **Does NOT exist** | Adding to settings.json causes: `"PostToolUseError: Invalid key in record"` |
+| PostToolUse fires for all tool completions | **Only fires on SUCCESS** | Failed Bash commands (exit ≠ 0) do NOT trigger PostToolUse |
+| GitHub issues = implemented features | **Issues are REQUESTS** | Always verify against official docs before implementing |
+
+**Valid hook types (exhaustive list):**
+- `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `Notification`, `SubagentStop`, `Stop`, `PreCompact`, `SessionEnd`
+
+**What this means:**
+- You **cannot** hook into failed Bash commands
+- You **cannot** remind users about errors via PostToolUse (it won't fire)
+- The UV reminder for failed `pip` commands is **not possible** with current hooks
+
+**Workarounds for error handling:**
+1. Use `PreToolUse` to block dangerous commands BEFORE they run
+2. Use `Stop` hook to validate overall session state
+3. Accept the limitation until Claude Code adds error hooks
 
 ```{=latex}
 \end{landscape}
@@ -668,6 +691,9 @@ def hard_stop(reason: str):
 | **Stop hook wrong schema** | "Stop hook prevented continuation" | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                |
 | **Local symlink caching**  | Edits to source not picked up      | Release new version, `/plugin install`, restart Claude Code (see Plugin Cache section below)  |
 | **Reading input from env vars** | Hook receives empty input, silently fails | Use `INPUT=$(cat)` + `jq` to parse stdin JSON (see Hook Input Delivery Mechanism above) |
+| **Using non-existent hook types** | `"Invalid key in record"` error, settings.json rejected | Only use valid types: SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, Notification, SubagentStop, Stop, PreCompact, SessionEnd. **PostToolUseError does NOT exist.** |
+| **Assuming PostToolUse fires on errors** | Hook never fires for failed commands | PostToolUse ONLY fires on successful tool completion. Use PreToolUse to prevent errors instead. |
+| **Trusting GitHub issues as features** | Implement non-existent functionality | Issues are REQUESTS not implementations. Always verify against official Claude Code docs. |
 
 ```{=latex}
 \newpage
