@@ -1,3 +1,10 @@
+# [9.23.0](https://github.com/terrylica/cc-skills/compare/v9.22.12...v9.23.0) (2026-01-12)
+
+
+### Features
+
+* **itp-hooks:** enhance silent-failure-detector with new patterns and BATS tests ([fe17220](https://github.com/terrylica/cc-skills/commit/fe172203f4aed6a87104099acbf22626f3bd1449))
+
 ## [9.22.12](https://github.com/terrylica/cc-skills/compare/v9.22.11...v9.22.12) (2026-01-12)
 
 
