@@ -36,6 +36,11 @@ from typing import Any
 
 from ulid import ULID
 
+try:
+    import tomllib  # Python 3.11+
+except ImportError:
+    import tomli as tomllib  # Fallback for older Python
+
 
 def generate_ulid() -> str:
     """Generate a ULID for correlation."""
@@ -66,6 +71,24 @@ def find_lychee_config(workspace: Path, plugin_root: Path) -> Path | None:
     return None
 
 
+def load_exclude_paths(config_path: Path | None) -> list[str]:
+    """
+    Load exclude_path patterns from lychee config.
+
+    Returns list of path patterns to exclude from path policy linting.
+    These patterns are regex strings that match against relative file paths.
+    """
+    if not config_path or not config_path.exists():
+        return []
+
+    try:
+        with open(config_path, "rb") as f:
+            config = tomllib.load(f)
+        return config.get("exclude_path", [])
+    except (OSError, tomllib.TOMLDecodeError):
+        return []
+
+
 def find_git_root(workspace: Path) -> Path | None:
     """Find git repository root from workspace."""
     try:
@@ -83,11 +106,22 @@ def find_git_root(workspace: Path) -> Path | None:
     return None
 
 
-def discover_markdown_files(workspace: Path) -> list[Path]:
-    """Discover markdown files in workspace."""
+def discover_markdown_files(
+    workspace: Path,
+    exclude_patterns: list[str] | None = None,
+) -> list[Path]:
+    """
+    Discover markdown files in workspace.
+
+    Args:
+        workspace: Root directory to search
+        exclude_patterns: Regex patterns from lychee config's exclude_path
+    """
+    import re
+
     md_files: list[Path] = []
 
-    # Exclusion patterns (aligned with lychee config)
+    # Default exclusion directories (always excluded)
     exclude_dirs = {
         "node_modules",
         ".git",
@@ -98,11 +132,30 @@ def discover_markdown_files(workspace: Path) -> list[Path]:
         "__pycache__",
     }
 
+    # Compile exclude_path patterns from config
+    compiled_patterns: list[re.Pattern[str]] = []
+    if exclude_patterns:
+        for pattern in exclude_patterns:
+            try:
+                compiled_patterns.append(re.compile(pattern))
+            except re.error:
+                # Skip invalid regex patterns
+                pass
+
     for md_file in workspace.rglob("*.md"):
+        rel_path = md_file.relative_to(workspace)
+        rel_path_str = str(rel_path)
+
         # Check if file is in excluded directory
-        parts = set(md_file.relative_to(workspace).parts[:-1])
-        if not parts.intersection(exclude_dirs):
-            md_files.append(md_file)
+        parts = set(rel_path.parts[:-1])
+        if parts.intersection(exclude_dirs):
+            continue
+
+        # Check against exclude_path patterns from config
+        if any(p.search(rel_path_str) for p in compiled_patterns):
+            continue
+
+        md_files.append(md_file)
 
     return md_files
 
@@ -193,7 +246,7 @@ def run_lychee(
             "errors": ["lychee timed out after 60s"],
             "skipped_reason": "timeout",
         }
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         return {
             "ran": False,
             "error_count": 0,
@@ -222,11 +275,12 @@ def lint_paths(files: list[Path], workspace: Path) -> list[dict[str, Any]]:
     for file_path in files:
         try:
             content = file_path.read_text(encoding="utf-8")
-        except Exception:
+        except (OSError, UnicodeDecodeError):
+            # Skip files that can't be read (permissions, encoding issues)
             continue
 
         for match in link_pattern.finditer(content):
-            link_text, link_url = match.groups()
+            _link_text, link_url = match.groups()
 
             # Skip external URLs and anchors
             if link_url.startswith(("http://", "https://", "mailto:", "#")):
@@ -306,7 +360,8 @@ def write_results_file(
         results_file.write_text("\n".join(lines), encoding="utf-8")
         return results_file
 
-    except Exception:
+    except OSError:
+        # File write failed (permissions, disk full, etc.)
         return None
 
 
@@ -365,8 +420,11 @@ def main() -> int:
     # Find lychee config
     config_path = find_lychee_config(effective_root, plugin_root)
 
-    # Discover markdown files
-    md_files = discover_markdown_files(effective_root)
+    # Load exclude_path patterns from config (used by both lychee and path linter)
+    exclude_patterns = load_exclude_paths(config_path)
+
+    # Discover markdown files (respects exclude_path from config)
+    md_files = discover_markdown_files(effective_root, exclude_patterns)
 
     # Run lychee
     lychee_result = run_lychee(md_files, effective_root, config_path)
