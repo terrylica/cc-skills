@@ -1,3 +1,10 @@
+## [9.22.5](https://github.com/terrylica/cc-skills/compare/v9.22.4...v9.22.5) (2026-01-12)
+
+
+### Bug Fixes
+
+* **hooks:** prevent Stop hook infinite loop and clarify gh-isolation scope ([f316190](https://github.com/terrylica/cc-skills/commit/f3161905e853a326e010bda0511606881b17c4b9)), closes [#isolation](https://github.com/terrylica/cc-skills/issues/isolation)
+
 ## [9.22.4](https://github.com/terrylica/cc-skills/compare/v9.22.3...v9.22.4) (2026-01-12)
 
 
