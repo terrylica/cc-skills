@@ -49,18 +49,6 @@
           }
         ]
       }
-    ],
-    "PostToolUseError": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/posttooluseerror-handler.sh",
-            "timeout": 10000
-          }
-        ]
-      }
     ]
   }
 }
