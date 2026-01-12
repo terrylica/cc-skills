@@ -35,7 +35,8 @@ function hasChezoi() {
 }
 
 /**
- * Get chezmoi diff summary
+ * Get chezmoi diff summary, filtering out mode-only changes
+ * (chezmoi cannot track directory permission modes)
  * @returns {string} Diff output or empty string
  */
 function getChezmoiDiff() {
@@ -45,10 +46,57 @@ function getChezmoiDiff() {
       timeout: 10000,
       stdio: ["pipe", "pipe", "pipe"],
     });
-    return result.stdout?.trim() || "";
+    const output = result.stdout?.trim() || "";
+
+    // Filter out mode-only changes (directory permission diffs that chezmoi can't fix)
+    // Pattern: "diff --git ... \nold mode XXXXX\nnew mode XXXXX" with no other content
+    const filtered = filterModeOnlyChanges(output);
+    return filtered;
   } catch {
     return "";
   }
+}
+
+/**
+ * Filter out diff entries that only have mode changes (no content)
+ * @param {string} diffOutput
+ * @returns {string} Filtered diff output
+ */
+function filterModeOnlyChanges(diffOutput) {
+  if (!diffOutput) return "";
+
+  // Split by diff headers
+  const parts = diffOutput.split(/(?=^diff --git )/m);
+  const meaningful = [];
+
+  for (const part of parts) {
+    if (!part.trim()) continue;
+
+    // Check if this diff entry has any content changes (not just mode)
+    const lines = part.split("\n");
+    let hasContentChange = false;
+
+    for (const line of lines) {
+      // Skip diff header, mode lines, and empty lines
+      if (
+        line.startsWith("diff --git") ||
+        line.startsWith("old mode") ||
+        line.startsWith("new mode") ||
+        line.trim() === ""
+      ) {
+        continue;
+      }
+      // Any other line means actual content change
+      hasContentChange = true;
+      break;
+    }
+
+    if (hasContentChange) {
+      meaningful.push(part);
+    }
+  }
+
+  return meaningful.join("");
 }
 
 /**
