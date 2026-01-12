@@ -2,6 +2,8 @@
 
 Context for developing plugins in the cc-skills marketplace.
 
+**Hub**: [Root CLAUDE.md](../CLAUDE.md) | **Sibling**: [docs/CLAUDE.md](../docs/CLAUDE.md)
+
 ## Plugin Discovery (Critical)
 
 **Single source of truth**: `.claude-plugin/marketplace.json`
@@ -44,11 +46,11 @@ plugins/my-plugin/
 
 ## Link Conventions
 
-| Link Target           | Format                  | Example                          |
-| --------------------- | ----------------------- | -------------------------------- |
-| Skill-internal files  | Relative (`./`, `../`)  | `[Guide](./references/guide.md)` |
-| Repo docs (ADRs)      | Repo-root (`/docs/...`) | `[ADR](/docs/adr/file.md)`       |
-| External resources    | Full URL                | `[Docs](https://example.com)`    |
+| Link Target          | Format                  | Example                          |
+| -------------------- | ----------------------- | -------------------------------- |
+| Skill-internal files | Relative (`./`, `../`)  | `[Guide](./references/guide.md)` |
+| Repo docs (ADRs)     | Repo-root (`/docs/...`) | `[ADR](/docs/adr/file.md)`       |
+| External resources   | Full URL                | `[Docs](https://example.com)`    |
 
 **Why**: Skill files are installed to `~/.claude/skills/`. Relative paths work there; absolute paths don't.
 
@@ -86,14 +88,18 @@ If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
 ## Core Plugins
 
-| Plugin                  | Purpose                                  |
-| ----------------------- | ---------------------------------------- |
-| `itp`                   | Core 4-phase workflow                    |
-| `itp-hooks`             | Workflow enforcement hooks               |
-| `ralph`                 | Autonomous loop mode (RSSI)              |
-| `plugin-dev`            | Plugin creation meta-skill               |
-| `git-account-validator` | Multi-account GitHub isolation           |
-| `gh-tools`              | GitHub CLI enforcement                   |
+| Plugin                  | Purpose                        |
+| ----------------------- | ------------------------------ |
+| `itp`                   | Core 4-phase workflow          |
+| `itp-hooks`             | Workflow enforcement hooks     |
+| `ralph`                 | Autonomous loop mode (RSSI)    |
+| `plugin-dev`            | Plugin creation meta-skill     |
+| `git-account-validator` | Multi-account GitHub isolation |
+| `gh-tools`              | GitHub CLI enforcement         |
+
+## Toolchain
+
+**Bun-first** for JavaScript globals. See [Root CLAUDE.md](../CLAUDE.md#development-toolchain).
 
 ## Related Documentation
 

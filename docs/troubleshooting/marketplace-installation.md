@@ -34,7 +34,7 @@ Before troubleshooting, verify these requirements:
 └ Plugin "cc-skills" not found in any marketplace
 ```
 
-**GitHub Issue**: [#9297](https://github.com/anthropics/claude-code/issues/9297)
+**GitHub Issue**: [#9297](https://github.com/anthropics/claude-code/issues/15871)
 
 **Root Cause**: Claude Code uses **SSH clone** (`git@github.com:...`) instead of HTTPS. For users without SSH keys configured, the clone hangs silently. The command reports "success" but the directory is **empty**.
 
@@ -118,7 +118,7 @@ ls ~/.claude/plugins/marketplaces/
 
 **Symptom**: The `/plugin marketplace add` command shows "Cloning..." but never completes.
 
-**GitHub Issue**: [#9297](https://github.com/anthropics/claude-code/issues/9297)
+**GitHub Issue**: [#9297](https://github.com/anthropics/claude-code/issues/15871)
 
 **Diagnosis**: Check if git can clone manually:
 
@@ -562,7 +562,7 @@ mv ~/.claude/plugins ~/.claude/plugins.bak.$(date +%s)
 
 ### Related GitHub Issues
 
-- [#9297](https://github.com/anthropics/claude-code/issues/9297) - Plugin marketplace add hangs indefinitely
+- [#9297](https://github.com/anthropics/claude-code/issues/15871) - Plugin marketplace add hangs indefinitely
 - [#9719](https://github.com/anthropics/claude-code/issues/9719) - SSH clone fails, HTTPS works
 - [#9426](https://github.com/anthropics/claude-code/issues/9426) - Plugin management state issues
 - [#10403](https://github.com/anthropics/claude-code/issues/10403) - Non-GitHub repos fail
