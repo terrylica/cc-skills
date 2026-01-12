@@ -46,7 +46,7 @@ fi
 # Reference: https://claude.com/blog/how-to-configure-hooks
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
-CWD=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null) || CWD=""
+# CWD available in INPUT if needed: jq -r '.cwd // ""'
 
 # ============================================================================
 # COMMAND PATTERN CHECK
@@ -90,7 +90,9 @@ if [[ -z "${GH_CONFIG_DIR:-}" ]]; then
     if [[ -n "$EXPECTED_ACCOUNT" ]]; then
         deny_with_reason "[gh-isolation] BLOCKED: GH_CONFIG_DIR not set in Claude's environment.
 
-PROBLEM: GitHub commands blocked. Current gh user: '${CURRENT_GH_USER}'. Expected for this directory: '${EXPECTED_ACCOUNT}'.
+PROBLEM: Only \`gh\` CLI commands are blocked. Current gh user: '${CURRENT_GH_USER}'. Expected for this directory: '${EXPECTED_ACCOUNT}'.
+
+NOTE: Other Bash commands (git, chezmoi, npm, etc.) work normally. Only GitHub CLI (\`gh\`) commands require isolation.
 
 ROOT CAUSE: Claude Code was launched from a shell without mise environment loaded.
 
@@ -111,7 +113,9 @@ ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). U
     else
         deny_with_reason "[gh-isolation] BLOCKED: GH_CONFIG_DIR not set in Claude's environment.
 
-PROBLEM: GitHub commands blocked. Current gh user: '${CURRENT_GH_USER}'. No GH_ACCOUNT configured in mise for this directory.
+PROBLEM: Only \`gh\` CLI commands are blocked. Current gh user: '${CURRENT_GH_USER}'. No GH_ACCOUNT configured in mise for this directory.
+
+NOTE: Other Bash commands (git, chezmoi, npm, etc.) work normally. Only GitHub CLI (\`gh\`) commands require isolation.
 
 ROOT CAUSE: Claude Code was launched from a shell without mise environment loaded.
 
@@ -138,7 +142,9 @@ fi
 if [[ ! -f "${GH_CONFIG_DIR}/hosts.yml" ]]; then
     deny_with_reason "[gh-isolation] BLOCKED: GitHub profile not initialized.
 
-PROBLEM: GH_CONFIG_DIR=${GH_CONFIG_DIR} exists but hosts.yml is missing. The isolated profile has never been authenticated.
+PROBLEM: Only \`gh\` CLI commands are blocked. GH_CONFIG_DIR=${GH_CONFIG_DIR} exists but hosts.yml is missing.
+
+NOTE: Other Bash commands (git, chezmoi, npm, etc.) work normally. Only GitHub CLI (\`gh\`) commands require isolation.
 
 ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). Use these exact parameters:
 
@@ -168,7 +174,9 @@ if [[ -n "${GH_ACCOUNT:-}" ]]; then
     if [[ -n "$ACTIVE_USER" && "$ACTIVE_USER" != "$GH_ACCOUNT" ]]; then
         deny_with_reason "[gh-isolation] BLOCKED: Wrong GitHub account active.
 
-PROBLEM: gh CLI authenticated as '${ACTIVE_USER}' but this directory expects '${GH_ACCOUNT}'. Using wrong account would create issues/PRs under wrong identity.
+PROBLEM: Only \`gh\` CLI commands are blocked. Current: '${ACTIVE_USER}', expected: '${GH_ACCOUNT}'.
+
+NOTE: Other Bash commands (git, chezmoi, npm, etc.) work normally. Only GitHub CLI (\`gh\`) commands require isolation.
 
 ACTION REQUIRED: You MUST call the AskUserQuestion tool (not just print text). Use these exact parameters:
 

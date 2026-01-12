@@ -73,30 +73,42 @@ function extractModifiedFiles(diffOutput) {
 }
 
 /**
+ * Parse stdin JSON to get hook input
+ * @returns {object} Parsed input or empty object
+ */
+async function parseStdinInput() {
+  try {
+    const text = await Bun.stdin.text();
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Main hook logic
  */
-function main() {
-  // Read stdin (hook input JSON)
-  const chunks = [];
-  const stdin = Bun.stdin.stream();
-  const reader = stdin.getReader();
+async function main() {
+  // Parse hook input from stdin
+  const input = await parseStdinInput();
 
-  // Non-blocking stdin read with timeout
-  const readStdin = async () => {
-    try {
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(decoder.decode(value, { stream: true }));
-      }
-    } catch {
-      // Ignore stdin errors
-    }
-  };
-
-  // Run synchronously for hook context
-  Bun.sleepSync(0); // Yield to allow stdin
+  // ============================================================================
+  // LOOP PREVENTION (Critical - per lifecycle-reference.md lines 198-201)
+  // ============================================================================
+  // If stop_hook_active is true, a previous Stop hook already triggered continuation.
+  // We MUST allow stopping to prevent infinite loops, even if chezmoi has changes.
+  // Reference: plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md
+  if (input.stop_hook_active === true) {
+    // Already tried to fix once - allow stopping to break the loop
+    console.log(
+      JSON.stringify({
+        systemMessage:
+          "[CHEZMOI-GUARD] Allowing stop despite uncommitted changes (stop_hook_active=true, breaking loop). " +
+          "Run chezmoi sync manually after session ends.",
+      }),
+    );
+    process.exit(0);
+  }
 
   // Skip if chezmoi not available
   if (!hasChezoi()) {
@@ -130,9 +142,11 @@ function main() {
 Modified files:
   - ${fileList}${truncated}
 
-Run these commands:
+ACTION REQUIRED - Run these Bash commands (chezmoi is NOT blocked by gh-isolation):
   chezmoi re-add --verbose
   chezmoi git -- add -A && chezmoi git -- commit -m "sync: dotfiles" && chezmoi git -- push
+
+NOTE: The gh-isolation hook only blocks \`gh\` CLI commands. Other Bash commands (chezmoi, git, npm, etc.) work normally.
 
 This Stop hook will allow session end once chezmoi diff returns clean.`,
   };
@@ -140,4 +154,8 @@ This Stop hook will allow session end once chezmoi diff returns clean.`,
   console.log(JSON.stringify(result));
 }
 
-main();
+main().catch((err) => {
+  console.error("chezmoi-stop-guard error:", err);
+  console.log("{}"); // Allow stop on error
+  process.exit(0);
+});
