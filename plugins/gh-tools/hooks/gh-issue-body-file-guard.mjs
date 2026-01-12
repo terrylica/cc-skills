@@ -52,9 +52,13 @@ Required pattern:
 
 Reference: /docs/adr/2026-01-11-gh-issue-body-file-guard.md`;
 
+  // Per lifecycle-reference.md: PreToolUse must use hookSpecificOutput format
   console.log(JSON.stringify({
-    permissionDecision: "deny",
-    reason: reason
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: reason
+    }
   }));
   process.exit(0);
 }
