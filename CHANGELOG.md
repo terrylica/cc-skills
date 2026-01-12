@@ -1,3 +1,10 @@
+## [9.22.10](https://github.com/terrylica/cc-skills/compare/v9.22.9...v9.22.10) (2026-01-12)
+
+
+### Bug Fixes
+
+* **gh-tools:** use correct PreToolUse output format for gh-issue-body-file-guard ([1daa63a](https://github.com/terrylica/cc-skills/commit/1daa63a64f7e76877ef500d1757f6683e8b18fd2)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#issue-body-file-guard](https://github.com/terrylica/cc-skills/issues/issue-body-file-guard)
+
 ## [9.22.9](https://github.com/terrylica/cc-skills/compare/v9.22.8...v9.22.9) (2026-01-12)
 
 
