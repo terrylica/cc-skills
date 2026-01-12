@@ -1,274 +1,160 @@
 # Git Account Validator Plugin
 
-Pre-push validation for multi-account GitHub authentication. Prevents pushing to the wrong GitHub account when using SSH with directory-based key selection.
+Multi-account GitHub authentication management for Claude Code.
 
-## Problem Solved
+**Status**: Hooks disabled (2026-01-12) — mise `[env]` now handles authentication pre-configuration.
 
-When using multiple GitHub accounts with SSH Match directives, several issues can cause pushes to the wrong account:
+## Current Architecture
 
-1. **HTTPS URLs bypass SSH config** - Git credential helper uses a different auth path
-2. **SSH ControlMaster caching** - Cached connections use the first account that connected
-3. **Human error** - Easy to forget which account applies to which directory
+This plugin's runtime validation hooks are **disabled**. Authentication is handled by:
 
-## How It Works
-
-This plugin intercepts `git push` commands via PreToolUse hook and validates:
-
-1. **URL Format**: Blocks HTTPS URLs (must use SSH for multi-account support)
-2. **Account Match**: Verifies SSH authentication matches `git config credential.username`
-
-### Before: Without Validation
+1. **mise `[env]`** — Sets `GH_TOKEN`, `GITHUB_TOKEN`, `GH_CONFIG_DIR` per-directory
+2. **Directory-based `.mise.toml`** — Automatic env var loading on directory entry
+3. **Token files** — Stored in `~/.claude/.secrets/` (chmod 600)
 
 ```
- ⏮️ Before: No Validation
+    ✓ Current: Pre-configured Authentication
 
-   ╭──────────────────╮
-   │   Claude Code    │
-   ╰──────────────────╯
-     │
-     │
-     ∨
-   ┏━━━━━━━━━━━━━━━━━━┓
-   ┃     git push     ┃
-   ┗━━━━━━━━━━━━━━━━━━┛
-     │
-     │ HTTPS bypasses
-     │ SSH config
-     ∨
-   ╔══════════════════╗
-   ║  Wrong Account   ║
-   ║ (silent failure) ║
-   ╚══════════════════╝
+  ╔════════════════════════════════════════════╗
+  ║   ~/.claude/.mise.toml                     ║
+  ║   GH_TOKEN = terrylica's token             ║
+  ╚════════════════════════════════════════════╝
+                      │
+                      │ sets env on dir entry
+                      ∨
+┌────────────┐  ┌────────────┐  ┌────────────┐
+│    SSH     │  │ Git Config │  │   gh CLI   │
+│ (terrylica)│  │ (terrylica)│  │ (terrylica)│  ← ALL ALIGNED
+└────────────┘  └────────────┘  └────────────┘
+                      │
+                      ∨
+              No runtime validation needed
+              Authentication pre-configured
 ```
 
 <details>
 <summary>graph-easy source</summary>
 
 ```
-graph { label: "⏮️ Before: No Validation"; flow: south; }
-[ Claude Code ] { shape: rounded; }
-[ git push ] { border: bold; }
-[ Wrong Account\n(silent failure) ] { border: double; }
-
-[ Claude Code ] -> [ git push ]
-[ git push ] -- HTTPS bypasses\nSSH config --> [ Wrong Account\n(silent failure) ]
+graph { label: "✓ Current: Pre-configured Authentication"; flow: south; }
+[ ~/.claude/.mise.toml\nGH_TOKEN = terrylica's token ] { border: double; }
+[ SSH\n(terrylica) ]
+[ Git Config\n(terrylica) ]
+[ gh CLI\n(terrylica) ]
+[ No runtime validation needed\nAuthentication pre-configured ]
+[ ~/.claude/.mise.toml\nGH_TOKEN = terrylica's token ] -- sets env on dir entry --> [ gh CLI\n(terrylica) ]
+[ SSH\n(terrylica) ] -> [ No runtime validation needed\nAuthentication pre-configured ]
+[ Git Config\n(terrylica) ] -> [ No runtime validation needed\nAuthentication pre-configured ]
+[ gh CLI\n(terrylica) ] -> [ No runtime validation needed\nAuthentication pre-configured ]
 ```
 
 </details>
 
-### After: With Validation
+## Why Hooks Were Disabled
 
-```
-        ⏭️ After: With Validation
+The original hooks (`validate-gh-isolation.sh`, `validate-git-push.sh`) called `gh api user` on every Bash command containing "gh" or "git push". During rapid operations (e.g., disabling 36 workflows across 17 forks), this spawned hundreds of `gh` processes that caused system overload:
 
-                        ╭─────────────────╮
-                        │   Claude Code   │
-                        ╰─────────────────╯
-                          │
-                          │
-                          ∨
-                        ┌─────────────────┐
-                        │    git push     │
-                        └─────────────────┘
-                          │
-                          │
-                          ∨
-                        ┏━━━━━━━━━━━━━━━━━┓
-                        ┃ PreToolUse Hook ┃
-                        ┗━━━━━━━━━━━━━━━━━┛
-                          │
-                          │
-                          ∨
-╔═════════╗  is HTTPS   ┌─────────────────┐
-║ BLOCKED ║ <────────── │   HTTPS Check   │
-╚═════════╝             └─────────────────┘
-  ∧                       │
-  │                       │ is SSH
-  │                       ∨
-  │         mismatch    ┌─────────────────┐
-  └──────────────────── │  Account Check  │
-                        └─────────────────┘
-                          │
-                          │ match
-                          ∨
-                        ╭─────────────────╮
-                        │     Allowed     │
-                        ╰─────────────────╯
+- Load average exceeded 130
+- Fork failures: "resource temporarily unavailable"
+- Required forced reboot to recover
+
+**Root cause**: PreToolUse hooks that spawn network-calling processes don't scale with rapid tool invocations.
+
+**Solution**: Pre-configure authentication via mise `[env]` instead of runtime validation.
+
+## Setup Guide
+
+### 1. Create Token Files
+
+```bash
+mkdir -p ~/.claude/.secrets
+chmod 700 ~/.claude/.secrets
+
+# For each account
+gh auth login --hostname github.com  # Select account
+gh auth token > ~/.claude/.secrets/gh-token-ACCOUNT
+chmod 600 ~/.claude/.secrets/gh-token-*
 ```
 
-<details>
-<summary>graph-easy source</summary>
+### 2. Configure Per-Directory mise
 
-```
-graph { label: "⏭️ After: With Validation"; flow: south; }
-[ Claude Code ] { shape: rounded; }
-[ git push ]
-[ PreToolUse Hook ] { border: bold; }
-[ HTTPS Check ]
-[ Account Check ]
-[ BLOCKED ] { border: double; }
-[ Allowed ] { shape: rounded; }
-
-[ Claude Code ] -> [ git push ]
-[ git push ] -> [ PreToolUse Hook ]
-[ PreToolUse Hook ] -> [ HTTPS Check ]
-[ HTTPS Check ] -- is HTTPS --> [ BLOCKED ]
-[ HTTPS Check ] -- is SSH --> [ Account Check ]
-[ Account Check ] -- mismatch --> [ BLOCKED ]
-[ Account Check ] -- match --> [ Allowed ]
+```toml
+# ~/.claude/.mise.toml
+[env]
+GH_TOKEN = "{{ read_file(path=config_root ~ '/.secrets/gh-token-terrylica') | trim }}"
+GITHUB_TOKEN = "{{ read_file(path=config_root ~ '/.secrets/gh-token-terrylica') | trim }}"
+GH_ACCOUNT = "terrylica"  # Human reference
 ```
 
-</details>
-
-## Requirements
-
-### Git Configuration
-
-Your `~/.gitconfig` must use `includeIf` to set per-directory credentials:
-
-```gitconfig
-[includeIf "gitdir:~/projects/alpha/"]
-    path = ~/.gitconfig-alpha
-
-[includeIf "gitdir:~/projects/beta/"]
-    path = ~/.gitconfig-beta
+```toml
+# ~/eon/.mise.toml
+[env]
+GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terrylica') | trim }}"
+GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terrylica') | trim }}"
+GH_ACCOUNT = "terrylica"
 ```
 
-Each included file must set `credential.username`:
+### 3. Shell Configuration
 
-```gitconfig
-# ~/.gitconfig-alpha
-[user]
-    name = Your Name
-    email = you@example.com
-[credential]
-    username = github-account-alpha
+```bash
+# ~/.zshenv - Shims PATH only (lightweight, no subprocess spawn)
+export PATH="/Users/terryli/.local/share/mise/shims:$PATH"
+
+# ~/.zshrc - Full activation for interactive shells
+if command -v mise &> /dev/null; then
+  eval "$(mise activate zsh)"
+fi
 ```
 
-### SSH Configuration
+**Critical**: Do NOT put `mise activate` in `.zshenv` — it spawns processes on every shell invocation, causing fork storms in rapid operations.
 
-Your `~/.ssh/config` must use Match directives for directory-based key selection:
+## Directory-Account Mapping
 
-```sshconfig
-# NOTE: Use `pwd` not `$PWD` - $PWD may be empty in non-interactive shells
-# Match both github.com and ssh.github.com (for port 443 routing)
+| Directory      | GitHub Account | Token File           |
+| -------------- | -------------- | -------------------- |
+| `~/.claude/`   | terrylica      | `gh-token-terrylica` |
+| `~/eon/`       | terrylica      | `gh-token-terrylica` |
+| `~/own/`       | account-2      | `gh-token-account-2` |
+| `~/scripts/`   | account-2      | `gh-token-account-2` |
+| `~/account-3/` | account-3      | `gh-token-account-3` |
 
-# Account alpha - for ~/projects/alpha/
-Match host github.com,ssh.github.com exec "pwd | grep -q '/alpha/'"
-    User git
-    IdentityFile ~/.ssh/id_alpha
-    IdentitiesOnly yes
+## Verification
 
-# Account beta - for ~/projects/beta/
-Match host github.com,ssh.github.com exec "pwd | grep -q '/beta/'"
-    User git
-    IdentityFile ~/.ssh/id_beta
-    IdentitiesOnly yes
+```bash
+# Check mise sets correct token per directory
+cd ~/.claude && echo $GH_ACCOUNT
+cd ~/eon && echo $GH_ACCOUNT
 
-# Route github.com through port 443 (port 22 often blocked on networks)
-# This makes all git@github.com:... URLs work transparently via ssh.github.com:443
-Host github.com
-    HostName ssh.github.com
-    Port 443
-    User git
-    ControlMaster no
-
-# Direct ssh.github.com access
-Host ssh.github.com
-    User git
-    ControlMaster no
+# Verify gh CLI uses correct account
+cd ~/.claude && gh api user --jq '.login'
+cd ~/eon && gh api user --jq '.login'
 ```
 
-**Why port 443?** Many corporate networks block SSH port 22. GitHub offers SSH access via `ssh.github.com:443` as a fallback. The `Host github.com` block above transparently routes all GitHub SSH traffic through port 443.
+## Legacy Hook Scripts (Reference Only)
 
-## Installation
+The following scripts remain in `hooks/` for reference but are not executed:
 
-The plugin is installed at `~/.claude/plugins/local/git-account-validator/`.
+| Script                     | Original Purpose                     |
+| -------------------------- | ------------------------------------ |
+| `validate-gh-isolation.sh` | Validated GH_CONFIG_DIR matches dir  |
+| `validate-git-push.sh`     | Blocked HTTPS URLs, verified account |
 
-The hook is registered in `~/.claude/settings.json` under `hooks.PreToolUse`.
+These scripts called `gh api user` which was the root cause of process storms.
 
-## Blocking Behavior
+## Related Documentation
 
-### HTTPS URL Detected
-
-```
-BLOCKED: HTTPS remote URL detected
-
-Current URL: https://github.com/owner/repo.git
-
-HTTPS URLs bypass SSH multi-account configuration and can push
-to the wrong account. Please switch to SSH:
-
-Run: git remote set-url origin git@github.com:owner/repo.git
-```
-
-### Account Mismatch Detected
-
-```
-BLOCKED: GitHub account mismatch detected
-
-Directory:     ~/projects/alpha/my-repo
-Expected user: account-alpha (from git config)
-SSH auth user: account-beta
-
-This would push to the WRONG GitHub account!
-
-Possible causes:
-  1. SSH ControlMaster cached a connection from different directory
-  2. SSH config Match directive not matching current directory
-  3. Remote URL using wrong host alias
-
-Solutions:
-  1. Close cached SSH connections: ssh -O exit git@github.com
-  2. Use explicit host alias: git@github.com-account-alpha:owner/repo.git
-  3. Check SSH config Match directives in ~/.ssh/config
-```
-
-## Technical Details
-
-### Why Bypass ControlMaster?
-
-SSH ControlMaster caches connections by **hostname**, not by identity file. This means:
-
-1. You push from `~/projects/alpha/` - SSH connects as `account-alpha`
-2. Connection cached for 10 minutes
-3. You push from `~/projects/beta/` - SSH reuses cached `account-alpha` connection!
-
-The validation script uses `ssh -o ControlMaster=no` to bypass the cache and get the true authentication result for the current directory.
-
-### Exit Codes
-
-- `0`: Validation passed, allow push
-- `2`: Hard block (cannot be bypassed)
+- [GitHub Multi-Account Authentication ADR](/docs/adr/2025-12-17-github-multi-account-authentication.md)
+- [mise env centralized config ADR](/docs/adr/2025-12-08-mise-env-centralized-config.md)
+- [Secrets Reference](/local/secrets-reference.md)
 
 ## Files
 
 ```
-~/.claude/plugins/local/git-account-validator/
-  plugin.json                 # Plugin manifest
-  README.md                   # This file
+plugins/git-account-validator/
+  plugin.json               # Plugin manifest
+  README.md                 # This file
   hooks/
-    hooks.json                # Hook configuration
-    validate-git-push.sh      # Validation script
-```
-
-## Troubleshooting
-
-### "No credential.username in git config"
-
-Add `[credential] username = your-github-username` to your directory-specific gitconfig file.
-
-### SSH validation times out
-
-Check that GitHub is reachable: `ssh -T git@github.com`
-
-### ControlMaster keeps using wrong account
-
-Close all cached connections: `ssh -O exit git@github.com`
-
-Or disable ControlMaster for github.com in `~/.ssh/config`:
-
-```sshconfig
-Host github.com
-    ControlMaster no
+    hooks.json              # Hook config (empty - disabled)
+    validate-gh-isolation.sh  # Legacy (not executed)
+    validate-git-push.sh      # Legacy (not executed)
 ```

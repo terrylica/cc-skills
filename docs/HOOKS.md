@@ -6,11 +6,11 @@ Comprehensive guide for developing Claude Code hooks in the cc-skills marketplac
 
 Claude Code hooks intercept tool calls at three lifecycle points:
 
-| Hook Type     | When Triggered              | Can Block? | Use Case                      |
-| ------------- | --------------------------- | ---------- | ----------------------------- |
-| `PreToolUse`  | Before tool executes        | Yes        | Validation, enforcement       |
-| `PostToolUse` | After tool executes         | Yes        | Verification, sync reminders  |
-| `Stop`        | When Claude stops executing | No         | Session metrics, cleanup      |
+| Hook Type     | When Triggered              | Can Block? | Use Case                     |
+| ------------- | --------------------------- | ---------- | ---------------------------- |
+| `PreToolUse`  | Before tool executes        | Yes        | Validation, enforcement      |
+| `PostToolUse` | After tool executes         | Yes        | Verification, sync reminders |
+| `Stop`        | When Claude stops executing | No         | Session metrics, cleanup     |
 
 ## Hook Output Visibility (Critical)
 
@@ -43,10 +43,12 @@ const data = JSON.parse(input);
 const command = data.tool_input?.command ?? "";
 
 if (shouldBlock(command)) {
-  console.log(JSON.stringify({
-    permissionDecision: "deny",
-    reason: "[hook-name] Blocked: reason here\n\nUse alternative approach..."
-  }));
+  console.log(
+    JSON.stringify({
+      permissionDecision: "deny",
+      reason: "[hook-name] Blocked: reason here\n\nUse alternative approach...",
+    }),
+  );
 }
 process.exit(0);
 ```
@@ -86,13 +88,29 @@ exit 2
 
 Timeouts are in **milliseconds**:
 
-| Value  | Duration | Use Case             |
-| ------ | -------- | -------------------- |
-| 5000   | 5s       | Simple validation    |
-| 15000  | 15s      | Git operations       |
-| 30000  | 30s      | Network calls        |
+| Value | Duration | Use Case          |
+| ----- | -------- | ----------------- |
+| 5000  | 5s       | Simple validation |
+| 15000 | 15s      | Git operations    |
+| 30000 | 30s      | Network calls     |
 
 **Common mistake**: Using `15` instead of `15000` results in 15ms timeout.
+
+## Network-Calling Hooks (Critical Warning)
+
+**Avoid hooks that spawn network-calling processes** (e.g., `gh api`, `curl`, `wget`).
+
+PreToolUse/PostToolUse hooks run on **every** tool invocation. During rapid operations (e.g., disabling 36 workflows, bulk file edits), network-calling hooks spawn hundreds of processes that pile up:
+
+- Load average can exceed 130
+- Fork failures: "resource temporarily unavailable"
+- May require forced reboot to recover
+
+**Root cause**: Network latency (~1-2s) accumulates while new hook invocations spawn faster than they complete.
+
+**Solution**: Pre-configure authentication/validation via mise `[env]` instead of runtime validation.
+
+**Reference**: [2026-01-12 Decision](/docs/adr/2025-12-17-github-multi-account-authentication.md#decision-log)
 
 ## Hook Installation
 
@@ -116,15 +134,15 @@ echo '{"tool_name": "Bash", "tool_input": {"command": "gh issue create --body te
 
 ## Plugins with Hooks
 
-| Plugin                 | Hooks                                | Purpose                      |
-| ---------------------- | ------------------------------------ | ---------------------------- |
-| `itp-hooks`            | PreToolUse (3), PostToolUse (2)      | Workflow enforcement         |
-| `ralph`                | PreToolUse (2), Stop (1)             | Autonomous loop control      |
-| `git-account-validator`| PreToolUse (2)                       | Multi-account isolation      |
-| `gh-tools`             | PreToolUse (2)                       | GitHub CLI enforcement       |
-| `dotfiles-tools`       | PostToolUse (1), Stop (1)            | Chezmoi sync reminder        |
-| `statusline-tools`     | Stop (1)                             | Session metrics              |
-| `link-tools`           | Stop (1)                             | Link validation              |
+| Plugin                  | Hooks                           | Purpose                     |
+| ----------------------- | ------------------------------- | --------------------------- |
+| `itp-hooks`             | PreToolUse (3), PostToolUse (2) | Workflow enforcement        |
+| `ralph`                 | PreToolUse (2), Stop (1)        | Autonomous loop control     |
+| `git-account-validator` | **Disabled** (was PreToolUse 2) | mise [env] handles auth now |
+| `gh-tools`              | PreToolUse (2)                  | GitHub CLI enforcement      |
+| `dotfiles-tools`        | PostToolUse (1), Stop (1)       | Chezmoi sync reminder       |
+| `statusline-tools`      | Stop (1)                        | Session metrics             |
+| `link-tools`            | Stop (1)                        | Link validation             |
 
 ## Related ADRs
 
