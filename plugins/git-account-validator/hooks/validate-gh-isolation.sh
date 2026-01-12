@@ -41,9 +41,16 @@ if [[ "${GH_ISOLATION_FORCE_ALLOW:-false}" == "true" ]]; then
 fi
 
 # ============================================================================
+# INPUT PARSING (Required - hooks receive JSON via stdin, NOT env vars)
+# ============================================================================
+# Reference: https://claude.com/blog/how-to-configure-hooks
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
+CWD=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null) || CWD=""
+
+# ============================================================================
 # COMMAND PATTERN CHECK
 # ============================================================================
-COMMAND="${TOOL_INPUT_COMMAND:-}"
 
 # Only check if command contains gh CLI calls
 if ! echo "$COMMAND" | grep -qE '\bgh\s+'; then
