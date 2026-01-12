@@ -332,11 +332,13 @@ The install script auto-detects your platform and uses the appropriate package m
 
 ### Core (Required)
 
-| Tool     | mise (Preferred)          | macOS Fallback      | Ubuntu Fallback                                    |
-| -------- | ------------------------- | ------------------- | -------------------------------------------------- |
-| uv       | `mise install uv`         | `brew install uv`   | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| gh       | `mise install github-cli` | `brew install gh`   | `sudo apt install gh`                              |
-| prettier | —                         | `npm i -g prettier` | `npm i -g prettier`                                |
+| Tool     | Install Command     | Notes                                                      |
+| -------- | ------------------- | ---------------------------------------------------------- |
+| uv       | `mise install uv`   | Or `brew install uv`                                       |
+| gh       | `brew install gh`   | **NEVER use mise** - causes iTerm2 issues with Claude Code |
+| prettier | `npm i -g prettier` | Or `bun add -g prettier`                                   |
+
+> **Warning**: gh CLI must be installed via Homebrew, not mise. [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
 
 ### ADR Diagrams (Required for Preflight)
 

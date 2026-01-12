@@ -84,10 +84,17 @@ get_install_cmd() {
 
     # Tools that work via mise on ALL platforms (verified in mise registry + asdf plugins)
     # Priority: mise > platform package manager for cross-platform consistency
+    # CRITICAL: gh must ALWAYS use Homebrew, never mise
+    # mise-installed gh causes iTerm2 tab spawning issues with Claude Code
+    # ADR: /docs/adr/2026-01-12-mise-gh-cli-incompatibility.md
+    if [ "$tool" = "gh" ]; then
+        echo "brew install gh"
+        return
+    fi
+
     if $HAS_MISE; then
         case "$tool" in
             node)      echo "mise install node && mise use --global node"; return ;;
-            gh)        echo "mise install github-cli && mise use --global github-cli"; return ;;
             doppler)   echo "mise install doppler && mise use --global doppler"; return ;;
             ruff)      echo "mise install ruff && mise use --global ruff"; return ;;
             uv)        echo "mise install uv && mise use --global uv"; return ;;
@@ -154,13 +161,13 @@ check_tool() {
         local version
         # Use timeout to avoid slow version checks (cpanm is notoriously slow)
         if command -v timeout &>/dev/null; then
-            version=$(timeout 3 "$cmd" $version_flag 2>&1 | head -1) || version="installed"
+            version=$(timeout 3 "$cmd" "$version_flag" 2>&1 | head -1) || version="installed"
         elif command -v gtimeout &>/dev/null; then
             # macOS with coreutils
-            version=$(gtimeout 3 "$cmd" $version_flag 2>&1 | head -1) || version="installed"
+            version=$(gtimeout 3 "$cmd" "$version_flag" 2>&1 | head -1) || version="installed"
         else
             # Fallback: no timeout available
-            version=$("$cmd" $version_flag 2>&1 | head -1) || version="installed"
+            version=$("$cmd" "$version_flag" 2>&1 | head -1) || version="installed"
         fi
         echo -e "${GREEN}✓${NC} $name ($version)"
         return 0

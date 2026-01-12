@@ -111,17 +111,19 @@ When presenting missing tool installation commands:
 
 **Mise command reference (use when HAS_MISE=true):**
 
-| Tool     | mise command                     |
-| -------- | -------------------------------- |
-| gitleaks | `mise use --global gitleaks`     |
-| ruff     | `mise use --global ruff`         |
-| uv       | `mise use --global uv`           |
-| gh       | `mise use --global github-cli`   |
-| semgrep  | `mise use --global semgrep`      |
-| node     | `mise use --global node`         |
-| doppler  | `mise use --global doppler`      |
-| prettier | `mise use --global npm:prettier` |
-| jscpd    | `npm i -g jscpd` (npm only)      |
+| Tool     | mise command                     | Notes                          |
+| -------- | -------------------------------- | ------------------------------ |
+| gitleaks | `mise use --global gitleaks`     |                                |
+| ruff     | `mise use --global ruff`         |                                |
+| uv       | `mise use --global uv`           |                                |
+| gh       | `brew install gh`                | **NEVER mise** (iTerm2 issues) |
+| semgrep  | `mise use --global semgrep`      |                                |
+| node     | `mise use --global node`         |                                |
+| doppler  | `mise use --global doppler`      |                                |
+| prettier | `mise use --global npm:prettier` |                                |
+| jscpd    | `npm i -g jscpd` (npm only)      |                                |
+
+> **Warning**: gh CLI must be installed via Homebrew, not mise. mise-installed gh causes iTerm2 tab spawning issues with Claude Code. [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
 
 **Display summary format (versions derived from actual tool output):**
 

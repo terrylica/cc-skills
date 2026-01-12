@@ -88,10 +88,10 @@ bun pm ls -g                 # List
 
 ## Recent Lessons Learned
 
+**2026-01-12**: gh CLI must use Homebrew, not mise (iTerm2 tab spawning). [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
+
 **2026-01-11**: Use `--body-file` for `gh issue create` body content. [ADR](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
 
 **2026-01-10**: uv-reminder hook warns when uv.lock is stale. [ADR](/docs/adr/2026-01-10-uv-reminder-hook.md)
 
 **2026-01-03**: WebFetch to github.com soft-blocked; use `gh` CLI. [ADR](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
-
-**2025-12-17**: PostToolUse hooks require `"decision": "block"` in JSON. [ADR](/docs/adr/2025-12-17-posttooluse-hook-visibility.md)
