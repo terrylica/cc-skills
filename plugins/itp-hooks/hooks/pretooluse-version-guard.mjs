@@ -60,7 +60,7 @@ const EXCLUDED_PATHS = [
   /\/milestones\//i, // Milestone tracking
   /\/planning\//i, // Planning documents
   /\/reports\//i, // Generated reports
-  /\/output\//i, // Output directories
+  /\/outputs?\//i, // Output directories (output/ or outputs/)
   /\/adr\//i, // Architecture Decision Records
   /ADR-\d+/i, // ADR files by number
   /HISTORY/i, // History files
