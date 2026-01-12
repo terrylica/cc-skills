@@ -1,3 +1,29 @@
+## [9.22.4](https://github.com/terrylica/cc-skills/compare/v9.22.3...v9.22.4) (2026-01-12)
+
+
+### Bug Fixes
+
+* **git-account-validator:** read hook input from stdin JSON instead of env var ([5609cef](https://github.com/terrylica/cc-skills/commit/5609cef04703b1584f6a3dd8766a46187dd20044))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+100)
+
+</details>
+
 ## [9.22.3](https://github.com/terrylica/cc-skills/compare/v9.22.2...v9.22.3) (2026-01-11)
 
 
