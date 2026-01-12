@@ -35,7 +35,7 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
 
         if [[ -n "$SESSION_ID" ]]; then
             # Write timestamp to flag file for PreToolUse to check
-            echo "$(date +%s)" > "$STATE_DIR/${SESSION_ID}.graph-easy-used"
+            date +%s > "$STATE_DIR/${SESSION_ID}.graph-easy-used"
         fi
 
         REMINDER="[GRAPH-EASY SKILL] You used graph-easy CLI directly. For reproducible diagrams, prefer the graph-easy skill (or adr-graph-easy-architect for ADRs). Skills ensure: proper --as=boxart mode, correct \\\\n escaping, and <details> source block for future edits."
@@ -70,7 +70,8 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
 
         # === DETECT: pip usage patterns ===
         if [[ "$UV_CONTEXT" == "false" && "$DOC_CONTEXT" == "false" && "$LOCK_OPS" == "false" ]]; then
-            if echo "$COMMAND_LOWER" | grep -qE '(^|\s)(pip|pip3|python[0-9.]*\s+(-m\s+)?pip)\s+(install|uninstall)'; then
+            # Pattern allows: start, whitespace, quotes, or && before pip
+            if echo "$COMMAND_LOWER" | grep -qE '(^|\s|"|'"'"'|&&\s*)(pip|pip3|python[0-9.]*\s+(-m\s+)?pip)\s+(install|uninstall)'; then
                 # Generate suggested replacement
                 SUGGESTED=$(echo "$COMMAND" | sed \
                     -e 's/pip install/uv add/g' \
