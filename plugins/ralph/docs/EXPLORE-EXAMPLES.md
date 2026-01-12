@@ -440,6 +440,6 @@ Use the 5 Explore prompts to scan YOUR project:
 ## Related
 
 - **Main Documentation**: [/plugins/ralph/docs/EXPLORE-AGENT-PROMPTS.md](./EXPLORE-AGENT-PROMPTS.md)
-- **Task Format**: [/plugins/ralph/docs/EXPLORE-TASK-PROMPTS.txt](./EXPLORE-TASK-PROMPTS.txt)
+- **Task Format**: [/plugins/ralph/docs/EXPLORE-AGENT-PROMPTS.md](./EXPLORE-AGENT-PROMPTS.md)
 - **Constraint Scanner**: [/plugins/ralph/scripts/constraint-scanner.py](/plugins/ralph/scripts/constraint-scanner.py)
 - **Ralph ADR**: [/docs/adr/2025-12-29-ralph-constraint-scanning.md](/docs/adr/2025-12-29-ralph-constraint-scanning.md)

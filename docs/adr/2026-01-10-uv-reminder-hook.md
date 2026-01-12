@@ -121,4 +121,4 @@ fi
 
 - [PostToolUse Hook Visibility ADR](/docs/adr/2025-12-17-posttooluse-hook-visibility.md)
 - [lifecycle-reference.md](/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md)
-- [CLAUDE.md toolchain section](/.claude/CLAUDE.md) - Python: uv
+- User's `~/.claude/CLAUDE.md` toolchain section - Python: uv
