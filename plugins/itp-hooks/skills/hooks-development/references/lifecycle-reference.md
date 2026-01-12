@@ -243,6 +243,53 @@ Every hook can output these fields:
 \newpage
 ```
 
+## Hook Input Delivery Mechanism
+
+### How Hooks Receive Input
+
+All hooks receive their input data via **stdin as a JSON object**. The JSON structure matches the "Key Inputs" column in the table above.
+
+**Critical**: Hook inputs are NOT passed via environment variables. The only environment variables available to hooks are:
+- `CLAUDE_PROJECT_DIR` — Project root directory
+- `CLAUDE_CODE_REMOTE` — "true" if running in web mode
+- `CLAUDE_ENV_FILE` — Env var persistence file (SessionStart only)
+
+### Required Input Parsing Pattern
+
+Every PreToolUse/PostToolUse hook MUST parse stdin:
+
+```bash
+INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || TOOL_NAME=""
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
+CWD=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null) || CWD=""
+```
+
+**Warning**: Without this parsing, `$COMMAND` will be empty and your validation logic will silently pass all commands.
+
+### Example Input JSON
+
+For a Bash tool call:
+```json
+{
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "gh issue list --limit 5"
+  },
+  "tool_use_id": "toolu_01ABC...",
+  "cwd": "/Users/user/project"
+}
+```
+
+### References
+
+- [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) — Official documentation
+- [How to Configure Hooks](https://claude.com/blog/how-to-configure-hooks) — Anthropic blog
+
+```{=latex}
+\newpage
+```
+
 ## Use Cases by Hook Event
 
 | Hook                  | Use Case              | Description                                                  |
@@ -620,6 +667,7 @@ def hard_stop(reason: str):
 | **JSON syntax errors**     | All hooks fail to load             | Validate with `cat settings.json \| python -m json.tool`                                      |
 | **Stop hook wrong schema** | "Stop hook prevented continuation" | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                |
 | **Local symlink caching**  | Edits to source not picked up      | Release new version, `/plugin install`, restart Claude Code (see Plugin Cache section below)  |
+| **Reading input from env vars** | Hook receives empty input, silently fails | Use `INPUT=$(cat)` + `jq` to parse stdin JSON (see Hook Input Delivery Mechanism above) |
 
 ```{=latex}
 \newpage
@@ -799,6 +847,58 @@ rm ~/.claude/plugins/cache/cc-skills/<plugin>/local
   }
 }
 ```
+
+## Complete PreToolUse Hook Template
+
+A complete, copy-paste-ready template for PreToolUse hooks with all required patterns:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ============================================================================
+# INPUT PARSING (Required - hooks receive JSON via stdin, NOT env vars)
+# Reference: https://claude.com/blog/how-to-configure-hooks
+# ============================================================================
+INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || TOOL_NAME=""
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
+CWD=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null) || CWD=""
+
+# ============================================================================
+# TOOL TYPE CHECK (Optional - filter by tool)
+# ============================================================================
+if [[ "$TOOL_NAME" != "Bash" ]]; then
+    exit 0  # Not our target tool
+fi
+
+# ============================================================================
+# COMMAND PATTERN CHECK (Optional - filter by command content)
+# ============================================================================
+if ! echo "$COMMAND" | grep -qE 'your-pattern-here'; then
+    exit 0  # Not a matching command
+fi
+
+# ============================================================================
+# VALIDATION LOGIC
+# ============================================================================
+if [[ dangerous_condition ]]; then
+    jq -n --arg reason "Blocked: explanation of why this is blocked" \
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
+    exit 0
+fi
+
+# ============================================================================
+# ALLOW (Default - let the command proceed)
+# ============================================================================
+exit 0
+```
+
+**Key points:**
+- `INPUT=$(cat)` reads JSON from stdin (NOT environment variables)
+- `jq -r '.field // ""'` extracts fields with empty string fallback
+- Exit 0 with JSON for soft block; exit 2 for hard block
+- The template is safe to copy verbatim and customize
 
 ```{=latex}
 \end{document}
