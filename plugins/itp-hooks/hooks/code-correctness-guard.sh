@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 #
-# Silent Failure Detector - PostToolUse hook for itp-hooks
+# Code Correctness Guard - PostToolUse hook for itp-hooks
 #
-# Detects silent failure patterns in code and emits LOUD warnings to Claude Code CLI.
+# Detects code correctness issues that cause runtime failures:
+# 1. Silent failure patterns (swallowed exceptions, missing error handling)
+# 2. Cross-language syntax errors (shell variables in Python, etc.)
+#
 # Uses the "decision: block" JSON format for visibility (per ADR 2025-12-17).
 #
 # Detection:
 # - Bash tool: Non-zero exit codes with stderr
 # - Write/Edit on .sh/.bash: ShellCheck analysis (SC2155, SC2164, SC2181, SC2086 etc.)
-# - Write/Edit on .py: Ruff silent failure rules (E722, S110, S112, BLE001, PLW1510)
+# - Write/Edit on .py: Ruff silent failure rules + shell variable syntax detection
 # - Write/Edit on .js/.ts: Oxlint + custom floating promise detection
 #
 # Exit behavior:
@@ -134,6 +137,23 @@ Fix each issue at the line indicated. The error message explains what pattern to
 
 Fix each pattern to make failures VISIBLE and ACTIONABLE, not silent."
 
+    SHELL_VAR_FIX_GUIDANCE="CROSS-LANGUAGE SYNTAX ERROR:
+Python does NOT expand shell variables like \$HOME, \$USER, \$PATH.
+The string \"\$HOME/.config\" is interpreted LITERALLY, creating a directory named '\$HOME'.
+
+CORRECT PATTERNS:
+  Path.home() / '.config'              # pathlib (recommended)
+  os.path.expanduser('~/.config')      # os module
+  os.environ['HOME'] + '/.config'      # explicit env var
+  os.path.expandvars('\$HOME/.config')  # if you must use \$HOME syntax
+
+WRONG PATTERNS:
+  Path('\$HOME/.config')               # Creates literal '\$HOME' directory!
+  open('\$HOME/.config/file')          # FileNotFoundError or wrong location
+  subprocess.run(cwd='\$HOME/...')     # Wrong working directory
+
+This is a common mistake when doing bulk find-replace across polyglot codebases."
+
     JS_FIX_GUIDANCE="JAVASCRIPT/TYPESCRIPT SILENT FAILURE PRINCIPLES:
 1. EMPTY CATCH: Never use 'catch (e) {}' - it hides all errors completely
    FIX: 'catch (e) { console.error('Context:', e); throw e; }'
@@ -176,8 +196,22 @@ Silent JS failures are debugging nightmares. Make every error VISIBLE."
             fi
             ;;
 
-        # === Python: Ruff for silent failure patterns ===
+        # === Python: Ruff for silent failure patterns + shell variable detection ===
         *.py)
+            # Check 1: Shell variables in Python strings (e.g., Path("$HOME/..."))
+            # This catches the bug where bulk sed replace puts shell syntax in Python
+            SHELL_VAR_ISSUES=$(grep -nE '(Path|open|cwd=|chdir)\s*\(\s*["\x27]\$[A-Z_]+' "$FILE_PATH" 2>/dev/null || true)
+            if [[ -n "$SHELL_VAR_ISSUES" ]]; then
+                SHELL_VAR_COUNT=$(echo "$SHELL_VAR_ISSUES" | wc -l | tr -d ' ')
+                SHELL_VAR_SUMMARY=$(echo "$SHELL_VAR_ISSUES" | head -3 | sed 's/^\([0-9]*\):.*/Line \1: Shell variable in Python string/')
+                emit_warning "SHELL-VAR-IN-PYTHON" \
+                    "Found $SHELL_VAR_COUNT shell variable(s) in Python - Python doesn't expand \$HOME" \
+                    "$FILE_PATH" \
+                    "$SHELL_VAR_SUMMARY" \
+                    "$SHELL_VAR_FIX_GUIDANCE"
+            fi
+
+            # Check 2: Ruff for silent failure patterns
             if command -v ruff &>/dev/null; then
                 RUFF_OUTPUT=$(ruff check \
                     --select=E722,S110,S112,BLE001,PLW1510 \
