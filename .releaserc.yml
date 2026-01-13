@@ -43,7 +43,6 @@ plugins:
         - plugins/itp-hooks/hooks/hooks.json
         - plugins/ralph/hooks/hooks.json
         - plugins/link-tools/hooks/hooks.json
-        - plugins/git-account-validator/hooks/hooks.json
         - plugins/dotfiles-tools/hooks/hooks.json
         - plugins/statusline-tools/hooks/hooks.json
         - plugins/gh-tools/hooks/hooks.json

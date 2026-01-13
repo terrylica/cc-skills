@@ -88,14 +88,13 @@ If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
 ## Core Plugins
 
-| Plugin                  | Purpose                        |
-| ----------------------- | ------------------------------ |
-| `itp`                   | Core 4-phase workflow          |
-| `itp-hooks`             | Workflow enforcement hooks     |
-| `ralph`                 | Autonomous loop mode (RSSI)    |
-| `plugin-dev`            | Plugin creation meta-skill     |
-| `git-account-validator` | Multi-account GitHub isolation |
-| `gh-tools`              | GitHub CLI enforcement         |
+| Plugin       | Purpose                     |
+| ------------ | --------------------------- |
+| `itp`        | Core 4-phase workflow       |
+| `itp-hooks`  | Workflow enforcement hooks  |
+| `ralph`      | Autonomous loop mode (RSSI) |
+| `plugin-dev` | Plugin creation meta-skill  |
+| `gh-tools`   | GitHub CLI enforcement      |
 
 ## Toolchain
 

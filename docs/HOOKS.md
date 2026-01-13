@@ -134,15 +134,14 @@ echo '{"tool_name": "Bash", "tool_input": {"command": "gh issue create --body te
 
 ## Plugins with Hooks
 
-| Plugin                  | Hooks                           | Purpose                     |
-| ----------------------- | ------------------------------- | --------------------------- |
-| `itp-hooks`             | PreToolUse (3), PostToolUse (2) | Workflow enforcement        |
-| `ralph`                 | PreToolUse (2), Stop (1)        | Autonomous loop control     |
-| `git-account-validator` | **Disabled** (was PreToolUse 2) | mise [env] handles auth now |
-| `gh-tools`              | PreToolUse (2)                  | GitHub CLI enforcement      |
-| `dotfiles-tools`        | PostToolUse (1), Stop (1)       | Chezmoi sync reminder       |
-| `statusline-tools`      | Stop (1)                        | Session metrics             |
-| `link-tools`            | Stop (1)                        | Link validation             |
+| Plugin             | Hooks                           | Purpose                 |
+| ------------------ | ------------------------------- | ----------------------- |
+| `itp-hooks`        | PreToolUse (3), PostToolUse (2) | Workflow enforcement    |
+| `ralph`            | PreToolUse (2), Stop (1)        | Autonomous loop control |
+| `gh-tools`         | PreToolUse (2)                  | GitHub CLI enforcement  |
+| `dotfiles-tools`   | PostToolUse (1), Stop (1)       | Chezmoi sync reminder   |
+| `statusline-tools` | Stop (1)                        | Session metrics         |
+| `link-tools`       | Stop (1)                        | Link validation         |
 
 ## Related ADRs
 

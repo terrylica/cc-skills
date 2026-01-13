@@ -2,32 +2,31 @@
 
 Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI.
 
-[![Plugins](https://img.shields.io/badge/plugins-19-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-18-green.svg)](#plugins)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
 ## Plugins
 
-| Plugin                                                    | Description                                                                                               | Category     |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------ |
-| [plugin-dev](./plugins/plugin-dev/)                       | Plugin development: skill architecture, validation, silent failure auditing, TodoWrite templates          | development  |
-| [itp](./plugins/itp/)                                     | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release   | productivity |
-| [gh-tools](./plugins/gh-tools/)                           | GitHub workflow automation with intelligent GFM link validation for PRs                                   | development  |
-| [link-tools](./plugins/link-tools/)                       | Comprehensive link validation: portability checks, lychee broken link detection, path policy linting      | quality      |
-| [devops-tools](./plugins/devops-tools/)                   | Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery         | devops       |
-| [dotfiles-tools](./plugins/dotfiles-tools/)               | Chezmoi dotfile management via natural language workflows                                                 | utilities    |
-| [doc-tools](./plugins/doc-tools/)                         | Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF                  | documents    |
-| [quality-tools](./plugins/quality-tools/)                 | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                   | quality      |
-| [productivity-tools](./plugins/productivity-tools/)       | Slash command generation for Claude Code                                                                  | productivity |
-| [mql5](./plugins/mql5/)                                   | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace                       | trading      |
-| [itp-hooks](./plugins/itp-hooks/)                         | ITP workflow enforcement: ASCII art blocking, graph-easy reminders, Ruff linting                          | enforcement  |
-| [alpha-forge-worktree](./plugins/alpha-forge-worktree/)   | Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection            | development  |
-| [git-account-validator](./plugins/git-account-validator/) | Pre-push validation for multi-account GitHub: blocks HTTPS URLs, validates SSH account matches git config | enforcement  |
-| [ralph](./plugins/ralph/)                                 | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete            | automation   |
-| [iterm2-layout-config](./plugins/iterm2-layout-config/)   | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code   | development  |
-| [statusline-tools](./plugins/statusline-tools/)           | Custom status line with git status, link validation (L), and path linting (P) indicators                  | utilities    |
-| [notion-api](./plugins/notion-api/)                       | Notion API integration using notion-client Python SDK with preflight credential prompting                 | productivity |
-| [asciinema-tools](./plugins/asciinema-tools/)             | Terminal recording automation: asciinema capture, launchd daemon, Keychain PAT storage                    | utilities    |
-| [git-town-workflow](./plugins/git-town-workflow/)         | Prescriptive git-town workflow enforcement for fork-based development                                     | devops       |
+| Plugin                                                  | Description                                                                                             | Category     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------ |
+| [plugin-dev](./plugins/plugin-dev/)                     | Plugin development: skill architecture, validation, silent failure auditing, TodoWrite templates        | development  |
+| [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release | productivity |
+| [gh-tools](./plugins/gh-tools/)                         | GitHub workflow automation with intelligent GFM link validation for PRs                                 | development  |
+| [link-tools](./plugins/link-tools/)                     | Comprehensive link validation: portability checks, lychee broken link detection, path policy linting    | quality      |
+| [devops-tools](./plugins/devops-tools/)                 | Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery       | devops       |
+| [dotfiles-tools](./plugins/dotfiles-tools/)             | Chezmoi dotfile management via natural language workflows                                               | utilities    |
+| [doc-tools](./plugins/doc-tools/)                       | Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF                | documents    |
+| [quality-tools](./plugins/quality-tools/)               | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                 | quality      |
+| [productivity-tools](./plugins/productivity-tools/)     | Slash command generation for Claude Code                                                                | productivity |
+| [mql5](./plugins/mql5/)                                 | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace                     | trading      |
+| [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement: ASCII art blocking, graph-easy reminders, Ruff linting                        | enforcement  |
+| [alpha-forge-worktree](./plugins/alpha-forge-worktree/) | Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection          | development  |
+| [ralph](./plugins/ralph/)                               | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete          | automation   |
+| [iterm2-layout-config](./plugins/iterm2-layout-config/) | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code | development  |
+| [statusline-tools](./plugins/statusline-tools/)         | Custom status line with git status, link validation (L), and path linting (P) indicators                | utilities    |
+| [notion-api](./plugins/notion-api/)                     | Notion API integration using notion-client Python SDK with preflight credential prompting               | productivity |
+| [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon, Keychain PAT storage                  | utilities    |
+| [git-town-workflow](./plugins/git-town-workflow/)       | Prescriptive git-town workflow enforcement for fork-based development                                   | devops       |
 
 ## Installation
 
@@ -46,7 +45,7 @@ Run these commands in your **terminal** (not inside Claude Code):
 claude plugin marketplace add terrylica/cc-skills
 
 # 2. Install all plugins (one-liner)
-for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks git-account-validator alpha-forge-worktree ralph iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow; do claude plugin install "$p@cc-skills"; done
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow; do claude plugin install "$p@cc-skills"; done
 
 # 3. Sync hooks to settings.json (requires cloning the repo)
 git clone https://github.com/terrylica/cc-skills.git /tmp/cc-skills
@@ -90,7 +89,6 @@ claude plugin install quality-tools@cc-skills
 claude plugin install productivity-tools@cc-skills
 claude plugin install mql5@cc-skills
 claude plugin install itp-hooks@cc-skills
-claude plugin install git-account-validator@cc-skills
 claude plugin install alpha-forge-worktree@cc-skills
 claude plugin install ralph@cc-skills
 claude plugin install iterm2-layout-config@cc-skills
@@ -454,7 +452,7 @@ Marketplace plugin commands display with the `plugin:command` format:
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (19 plugins) - SSoT
+│   └── marketplace.json     # Plugin registry (18 plugins) - SSoT
 ├── plugins/
 │   ├── itp/                       # ADR-driven development workflow (10 bundled skills)
 │   ├── plugin-dev/                # Plugin development + skill architecture
@@ -467,7 +465,6 @@ cc-skills/
 │   ├── productivity-tools/        # Slash command generation
 │   ├── mql5/                      # MQL5 development (indicators + mql5.com)
 │   ├── itp-hooks/                 # ITP workflow enforcement hooks
-│   ├── git-account-validator/     # Multi-account GitHub pre-push validation
 │   ├── alpha-forge-worktree/      # Git worktree management
 │   ├── ralph/                     # Autonomous AI orchestration
 │   ├── iterm2-layout-config/      # iTerm2 workspace layout configuration
@@ -621,7 +618,6 @@ See individual plugin READMEs for detailed documentation:
 - [dotfiles-tools](./plugins/dotfiles-tools/) - Chezmoi dotfile management
 - [productivity-tools](./plugins/productivity-tools/) - Slash command generation
 - [mql5](./plugins/mql5/) - MQL5 development
-- [git-account-validator](./plugins/git-account-validator/) - Multi-account GitHub validation
 - [alpha-forge-worktree](./plugins/alpha-forge-worktree/) - Git worktree management
 - [iterm2-layout-config](./plugins/iterm2-layout-config/) - iTerm2 workspace configuration
 - [notion-api](./plugins/notion-api/) - Notion API integration

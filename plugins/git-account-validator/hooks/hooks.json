@@ -1,4 +1,0 @@
-{
-  "description": "Multi-account GitHub authentication validation (disabled - mise handles via env vars)",
-  "hooks": {}
-}
