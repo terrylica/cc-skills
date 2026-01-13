@@ -1,5 +1,5 @@
 {
-  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, and silent failure detection",
+  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, silent failure detection, and process storm prevention",
   "hooks": {
     "PreToolUse": [
       {
@@ -28,6 +28,16 @@
           {
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-version-guard.mjs",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-process-storm-guard.mjs",
             "timeout": 5000
           }
         ]
