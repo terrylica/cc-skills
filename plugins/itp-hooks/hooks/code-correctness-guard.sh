@@ -200,7 +200,9 @@ Silent JS failures are debugging nightmares. Make every error VISIBLE."
         *.py)
             # Check 1: Shell variables in Python strings (e.g., Path("$HOME/..."))
             # This catches the bug where bulk sed replace puts shell syntax in Python
-            SHELL_VAR_ISSUES=$(grep -nE '(Path|open|cwd=|chdir)\s*\(\s*["\x27]\$[A-Z_]+' "$FILE_PATH" 2>/dev/null || true)
+            # Pattern 1: Function calls like Path("$HOME"), open("$HOME"), chdir("$HOME")
+            # Pattern 2: Keyword args like cwd="$HOME", path="$HOME"
+            SHELL_VAR_ISSUES=$(grep -nE '(Path|open|chdir)\s*\(\s*["\x27]\$[A-Z_]+|(cwd|path|dir|directory|folder|home)\s*=\s*["\x27]\$[A-Z_]+' "$FILE_PATH" 2>/dev/null || true)
             if [[ -n "$SHELL_VAR_ISSUES" ]]; then
                 SHELL_VAR_COUNT=$(echo "$SHELL_VAR_ISSUES" | wc -l | tr -d ' ')
                 SHELL_VAR_SUMMARY=$(echo "$SHELL_VAR_ISSUES" | head -3 | sed 's/^\([0-9]*\):.*/Line \1: Shell variable in Python string/')
