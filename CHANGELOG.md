@@ -1,3 +1,61 @@
+## [9.24.8](https://github.com/terrylica/cc-skills/compare/v9.24.7...v9.24.8) (2026-01-13)
+
+
+### Bug Fixes
+
+* delete git-account-validator plugin (mise [env] is permanent solution) ([584d0b6](https://github.com/terrylica/cc-skills/commit/584d0b6c3b27f8520ddbd0bd6e8953a219bf56e3))
+* remove remaining gh CLI calls to prevent process storms ([ca1b890](https://github.com/terrylica/cc-skills/commit/ca1b890f8988bc4d783b316420b88295dd6658da))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [git-account-validator](https://github.com/terrylica/cc-skills/blob/v9.24.7/plugins/git-account-validator/README.md) - deleted
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (2 commands)</summary>
+
+- [/asciinema-tools:bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/bootstrap.md) - updated (+2/-2)
+- [/asciinema-tools:finalize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/finalize.md) - updated (+9/-9)
+
+</details>
+
+<details>
+<summary><strong>git-account-validator</strong> (1 command)</summary>
+
+- [hooks](https://github.com/terrylica/cc-skills/blob/v9.24.7/plugins/git-account-validator/commands/hooks.md) - deleted
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+23/-27)
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+8/-9)
+
+## Other Documentation
+
+### Other
+
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - updated (+1/-1)
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+7/-8)
+- [Getting Started with Ralph (First-Time Users)](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/GETTING-STARTED.md) - updated (+1/-1)
+
 ## [9.24.7](https://github.com/terrylica/cc-skills/compare/v9.24.6...v9.24.7) (2026-01-13)
 
 
