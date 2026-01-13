@@ -8,58 +8,130 @@ Comprehensive guide for resolving Claude Code plugin marketplace installation fa
 
 Before troubleshooting, verify these requirements:
 
-| Requirement          | Check Command                                          | Expected Output         |
-| -------------------- | ------------------------------------------------------ | ----------------------- |
-| Claude Code CLI      | `claude --version`                                     | Version 2.x.x or higher |
-| Git installed        | `git --version`                                        | git version 2.x.x       |
-| Network connectivity | `curl -I https://github.com`                           | HTTP 200                |
-| HTTPS access to repo | `git ls-remote https://github.com/terrylica/cc-skills` | refs/heads/main         |
+| Requirement          | Check Command                                          | Expected Output |
+| -------------------- | ------------------------------------------------------ | --------------- |
+| Claude Code CLI      | `claude --version`                                     | Version 2.x.x+  |
+| Git installed        | `git --version`                                        | git version 2.x |
+| Network connectivity | `curl -I https://github.com`                           | HTTP 200        |
+| HTTPS access to repo | `git ls-remote https://github.com/terrylica/cc-skills` | refs/heads/main |
+
+---
+
+## Correct Installation Commands
+
+**Important**: Plugin commands must be run in your **terminal**, not inside Claude Code as slash commands.
+
+### Adding the Marketplace
+
+```bash
+# CORRECT - Run in terminal
+claude plugin marketplace add terrylica/cc-skills
+
+# WRONG - This is NOT a slash command
+# /plugin marketplace add terrylica/cc-skills
+```
+
+### Installing Plugins
+
+```bash
+# CORRECT - Run in terminal
+claude plugin install itp@cc-skills
+claude plugin install plugin-dev@cc-skills
+
+# Install all plugins at once
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks git-account-validator alpha-forge-worktree ralph iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow; do claude plugin install "$p@cc-skills"; done
+```
+
+### Marketplace Directory
+
+The marketplace is cloned to:
+
+```
+~/.claude/plugins/marketplaces/cc-skills/
+```
+
+**NOT** `~/.claude/plugins/marketplaces/terrylica-cc-skills/` (older format).
 
 ---
 
 ## Issues by Error Type
 
-### 0. Most Common: "Plugin not found" After Successful Add
+### 0. Most Common: "Source path does not exist"
 
-**Symptom** (most frequently reported issue):
+**Symptom**:
 
 ```
-> /plugin marketplace add terrylica/cc-skills
-└ Successfully added marketplace: cc-skills
-
-> /plugin
-└ (no content)
-
-> /plugin install cc-skills
-└ Plugin "cc-skills" not found in any marketplace
+Installing plugin "itp@cc-skills"...
+✘ Failed to install plugin "itp@cc-skills": Source path does not exist: $HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp/
 ```
 
-**GitHub Issue**: [#9297](https://github.com/anthropics/claude-code/issues/15871)
+**Root Cause**: Trailing slashes in `marketplace.json` source paths, or marketplace repository out of sync.
 
-**Root Cause**: Claude Code uses **SSH clone** (`git@github.com:...`) instead of HTTPS. For users without SSH keys configured, the clone hangs silently. The command reports "success" but the directory is **empty**.
+**Solution**:
+
+```bash
+# Update the marketplace repository
+cd ~/.claude/plugins/marketplaces/cc-skills
+git pull
+
+# Retry installation
+claude plugin install itp@cc-skills
+```
+
+If still failing, the marketplace may have schema issues. Check for trailing slashes:
+
+```bash
+# Source paths should NOT have trailing slashes
+cat ~/.claude/plugins/marketplaces/cc-skills/.claude-plugin/marketplace.json | grep '"source"'
+# CORRECT: "./plugins/itp"
+# WRONG:   "./plugins/itp/"
+```
+
+---
+
+### 1. "Plugin not found" After Successful Marketplace Add
+
+**Symptom**:
+
+```bash
+$ claude plugin marketplace add terrylica/cc-skills
+✔ Successfully added marketplace: cc-skills
+
+$ claude plugin install itp@cc-skills
+✘ Failed to install plugin "itp@cc-skills": Plugin "itp@cc-skills" not found
+```
+
+**Root Cause**: Claude Code uses SSH clone by default. Without SSH keys, clone fails silently.
 
 **Diagnosis**:
 
 ```bash
 # Check if marketplace directory has content
-ls ~/.claude/plugins/marketplaces/
+ls ~/.claude/plugins/marketplaces/cc-skills/
 
-# If directory exists but is empty (or only has .git), SSH clone failed
-ls -la ~/.claude/plugins/marketplaces/terrylica-cc-skills/
+# If empty or missing, SSH clone failed
 ```
 
 **Solution** (manual HTTPS clone):
 
 ```bash
-# Remove the empty/broken marketplace
-rm -rf ~/.claude/plugins/marketplaces/terrylica-cc-skills
+# Remove the broken marketplace
+claude plugin marketplace remove cc-skills
+rm -rf ~/.claude/plugins/marketplaces/cc-skills
 
-# Clone manually using HTTPS (works without SSH keys)
-git clone https://github.com/terrylica/cc-skills.git ~/.claude/plugins/marketplaces/terrylica-cc-skills
+# Clone manually using HTTPS
+git clone https://github.com/terrylica/cc-skills.git ~/.claude/plugins/marketplaces/cc-skills
+
+# Add entry to known_marketplaces.json
+# Edit ~/.claude/plugins/known_marketplaces.json and add:
+# "cc-skills": {
+#   "source": {"source": "github", "repo": "terrylica/cc-skills"},
+#   "installLocation": "$HOME/.claude/plugins/marketplaces/cc-skills",
+#   "lastUpdated": "2026-01-13T00:00:00.000Z"
+# }
 
 # Now install works
-# In Claude Code:
-/plugin install cc-skills
+claude plugin install itp@cc-skills
 ```
 
 **Permanent Fix** (prevent future SSH issues):
@@ -72,61 +144,150 @@ git config --global url."https://github.com/".insteadOf ssh://git@github.com/
 
 ---
 
-### 1. Network/Clone Failures
+### 2. Slash Commands Not Appearing After Installation
+
+**Symptom**: Plugins installed successfully, but `/itp:go`, `/plugin-dev:create`, etc. don't appear in autocomplete.
+
+**Root Cause**: Several possible causes:
+
+- Session not restarted after installation
+- Plugin cache out of sync with marketplace
+- `installed_plugins.json` has stale entries
+
+**Solution**:
+
+```bash
+# 1. Verify plugin is installed
+cat ~/.claude/plugins/installed_plugins.json | grep "cc-skills"
+
+# 2. Clear stale cache
+rm -rf ~/.claude/plugins/cache/cc-skills
+
+# 3. Reinstall the plugin
+claude plugin install itp@cc-skills
+
+# 4. Restart Claude Code (required for command discovery)
+```
+
+---
+
+### 3. Version Mismatch
+
+**Symptom**: Old plugin version installed even after marketplace update.
+
+**Diagnosis**:
+
+```bash
+# Check marketplace version
+cat ~/.claude/plugins/marketplaces/cc-skills/plugin.json | jq '.version'
+
+# Check cached version
+ls ~/.claude/plugins/cache/cc-skills/itp/
+```
+
+**Solution**:
+
+```bash
+# Update marketplace
+cd ~/.claude/plugins/marketplaces/cc-skills
+git pull
+
+# Clear plugin cache
+rm -rf ~/.claude/plugins/cache/cc-skills/itp
+
+# Reinstall
+claude plugin install itp@cc-skills
+```
+
+---
+
+### 4. Hooks Not Working
+
+**Symptom**: Hooks don't trigger after plugin installation.
+
+**Root Cause**: Hooks must be explicitly synced to `~/.claude/settings.json`.
+
+**Solution**:
+
+```bash
+# Clone the repository if not already cloned for development
+git clone https://github.com/terrylica/cc-skills.git /tmp/cc-skills
+
+# Run the hook sync script
+/tmp/cc-skills/scripts/sync-hooks-to-settings.sh
+
+# Verify hooks are registered
+cat ~/.claude/settings.json | jq '.hooks | keys'
+# Should show: ["PreToolUse", "PostToolUse", "Stop"]
+
+# Restart Claude Code
+```
+
+---
+
+### 5. Invalid plugin.json Errors
+
+**Symptom**:
+
+```
+✘ Failed to install plugin: Plugin has an invalid manifest file.
+Validation errors: author: Invalid input: expected object, received string
+```
+
+**Root Cause**: The `plugin.json` has schema violations.
+
+**Common issues**:
+
+- `author` is a string instead of object
+- Custom fields like `commands_dir`, `references_dir`, `scripts_dir`
+- Trailing slashes in source paths
+
+**Valid plugin.json format**:
+
+```json
+{
+  "name": "my-plugin",
+  "version": "<version>",
+  "description": "Plugin description (min 10 chars)",
+  "keywords": ["keyword1", "keyword2"],
+  "author": {
+    "name": "Your Name",
+    "url": "https://github.com/username"
+  }
+}
+```
+
+---
+
+### 6. Network/Clone Failures
 
 #### Early EOF During Clone
 
 **Symptom**:
 
 ```
-Error: Failed to clone marketplace repository: Cloning into '~/.claude/plugins/marketplaces/terrylica-cc-skills'...
 fatal: early EOF
 ```
 
-**Diagnosis**: The git transfer was interrupted before completion. This typically happens with large repositories on unstable connections.
-
-**Root Cause**: Network buffer too small, HTTP/2 issues, or connection interrupted.
-
-**Solution** (try in order):
+**Solution**:
 
 ```bash
-# Step 1: Disable git compression
-git config --global core.compression 0
-
-# Step 2: Increase HTTP buffer size
+# Increase HTTP buffer size
 git config --global http.postBuffer 524288000
 
-# Step 3: Disable HTTP/2 (can cause connection resets)
+# Disable git compression
+git config --global core.compression 0
+
+# Disable HTTP/2
 git config --global http.version HTTP/1.1
 
-# Step 4: Retry installation
-# In Claude Code:
-/plugin marketplace add terrylica/cc-skills
+# Retry
+claude plugin marketplace add terrylica/cc-skills
 ```
-
-**Verification**: Check if marketplace was added:
-
-```bash
-ls ~/.claude/plugins/marketplaces/
-```
-
-**Prevention**: These git config changes persist globally and prevent future issues.
-
----
 
 #### Clone Hangs Indefinitely
 
-**Symptom**: The `/plugin marketplace add` command shows "Cloning..." but never completes.
-
-**GitHub Issue**: [#9297](https://github.com/anthropics/claude-code/issues/15871)
-
-**Diagnosis**: Check if git can clone manually:
-
-```bash
-timeout 60 git clone --depth 1 https://github.com/terrylica/cc-skills.git /tmp/test-clone
-```
-
-**Root Cause**: Firewall, proxy, or VPN blocking the connection.
+**Symptom**: Command shows "Cloning..." but never completes.
 
 **Solution**:
 
@@ -134,357 +295,12 @@ timeout 60 git clone --depth 1 https://github.com/terrylica/cc-skills.git /tmp/t
 # Check for proxy settings
 env | grep -i proxy
 
-# If behind corporate proxy, configure git
+# Clone manually with timeout
+timeout 60 git clone --depth 1 https://github.com/terrylica/cc-skills.git ~/.claude/plugins/marketplaces/cc-skills
+
+# If behind proxy
 git config --global http.proxy http://proxy.example.com:8080
-
-# If proxy is blocking, try without it
-unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
-
-# Retry installation in Claude Code
 ```
-
-**Alternative**: Download as ZIP and install locally:
-
-```bash
-# Download from browser: https://github.com/terrylica/cc-skills/archive/refs/heads/main.zip
-# Unzip and use local path
-/plugin marketplace add /path/to/cc-skills
-```
-
----
-
-#### Repository Not Found
-
-**Symptom**:
-
-```
-Error: Repository not found
-```
-
-**Diagnosis**: Verify the repository is accessible:
-
-```bash
-curl -I https://api.github.com/repos/terrylica/cc-skills
-```
-
-**Root Cause**: Typo in marketplace name or repository is private/renamed.
-
-**Solution**:
-
-```bash
-# Correct command (note exact spelling)
-/plugin marketplace add terrylica/cc-skills
-
-# NOT: cc_skills, ccskills, or CC-Skills
-```
-
----
-
-### 2. Authentication Issues
-
-#### SSH Clone Fails, HTTPS Works
-
-**Symptom**: Installation fails with SSH-related errors.
-
-**GitHub Issue**: [#9719](https://github.com/anthropics/claude-code/issues/9719)
-
-**Diagnosis**:
-
-```bash
-# Test SSH connectivity
-ssh -T git@github.com
-
-# Test HTTPS connectivity
-git ls-remote https://github.com/terrylica/cc-skills.git
-```
-
-**Root Cause**: Claude Code may default to SSH, but SSH keys aren't configured.
-
-**Solution**: Force HTTPS for GitHub:
-
-```bash
-git config --global url."https://github.com/".insteadOf git@github.com:
-git config --global url."https://github.com/".insteadOf ssh://git@github.com/
-
-# Retry installation
-```
-
----
-
-#### HTTPS Authentication Prompt
-
-**Symptom**: Prompted for username/password during clone.
-
-**Diagnosis**: Check if GitHub CLI is authenticated:
-
-```bash
-gh auth status
-```
-
-**Solution**:
-
-```bash
-# Authenticate with GitHub CLI
-gh auth login
-
-# Or use credential manager
-git config --global credential.helper osxkeychain  # macOS
-git config --global credential.helper manager      # Windows
-git config --global credential.helper cache        # Linux
-```
-
----
-
-#### Permission Denied (publickey)
-
-**Symptom**:
-
-```
-Permission denied (publickey)
-```
-
-**Diagnosis**:
-
-```bash
-ssh -vT git@github.com 2>&1 | head -20
-```
-
-**Solution**:
-
-```bash
-# Generate SSH key if missing
-ssh-keygen -t ed25519 -C "your_email@example.com"
-
-# Add to SSH agent
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-
-# Add public key to GitHub: https://github.com/settings/keys
-cat ~/.ssh/id_ed25519.pub
-```
-
----
-
-### 3. State/Cache Issues
-
-#### Plugin Management State Corruption
-
-**Symptom**: Inconsistent plugin state - shows installed but also not installed.
-
-**GitHub Issue**: [#9426](https://github.com/anthropics/claude-code/issues/9426)
-
-**Diagnosis**:
-
-```bash
-# Check marketplace directory
-ls -la ~/.claude/plugins/marketplaces/
-
-# Check settings.json
-cat ~/.claude/settings.json | jq '.plugins // empty'
-```
-
-**Solution**:
-
-```bash
-# Remove corrupted marketplace
-rm -rf ~/.claude/plugins/marketplaces/terrylica-cc-skills
-
-# Clear any stale plugin state
-rm -rf ~/.claude/plugins/cache/cc-skills
-
-# Re-add marketplace
-# In Claude Code:
-/plugin marketplace add terrylica/cc-skills
-```
-
----
-
-#### Discovery Broken After Update
-
-**Symptom**: After updating Claude Code, `/plugin` shows "cannot find any marketplace".
-
-**GitHub Issue**: [#13471](https://github.com/anthropics/claude-code/issues/13471)
-
-**Solution**:
-
-```bash
-# Re-add the marketplace
-/plugin marketplace add terrylica/cc-skills
-
-# Then reinstall plugins
-/plugin install cc-skills
-```
-
----
-
-#### Stale Marketplace Cache
-
-**Symptom**: Old version installed even after marketplace update.
-
-**Diagnosis**:
-
-```bash
-# Check cached version
-ls ~/.claude/plugins/cache/cc-skills/
-```
-
-**Solution**:
-
-```bash
-# Clear cache for cc-skills
-rm -rf ~/.claude/plugins/cache/cc-skills
-
-# Update marketplace
-/plugin marketplace update terrylica/cc-skills
-
-# Reinstall
-/plugin install cc-skills
-```
-
----
-
-### 4. Platform-Specific Issues
-
-#### WSL Path Issues (Windows)
-
-**Symptom**: Paths not resolved correctly in WSL environment.
-
-**Diagnosis**:
-
-```bash
-echo $HOME
-# Should be /home/username, NOT /mnt/c/Users/...
-```
-
-**Solution**:
-
-```bash
-# Ensure HOME is set correctly in WSL
-export HOME=/home/$(whoami)
-
-# Add to ~/.bashrc for persistence
-echo 'export HOME=/home/$(whoami)' >> ~/.bashrc
-```
-
----
-
-#### macOS Keychain Interference
-
-**Symptom**: Repeated credential prompts or authentication failures.
-
-**Solution**:
-
-```bash
-# Clear git credentials from keychain
-git credential-osxkeychain erase <<EOF
-protocol=https
-host=github.com
-EOF
-
-# Re-authenticate
-gh auth login
-```
-
----
-
-#### Non-GitHub Repository Failures
-
-**Symptom**: Adding non-GitHub marketplaces fails.
-
-**GitHub Issue**: [#10403](https://github.com/anthropics/claude-code/issues/10403)
-
-**Root Cause**: Claude Code currently only fully supports GitHub-hosted marketplaces.
-
-**Solution**: Use GitHub as marketplace host, or use local path:
-
-```bash
-# Clone manually
-git clone https://gitlab.com/your/marketplace.git ~/my-marketplace
-
-# Add as local marketplace
-/plugin marketplace add ~/my-marketplace
-```
-
----
-
-## Meta-Prompt for Self-Service Troubleshooting
-
-**Copy this entire prompt into a new Claude Code session** to get guided troubleshooting help:
-
----
-
-````
-I'm having trouble installing the cc-skills marketplace. Help me diagnose and fix the issue.
-
-**My Error**: [PASTE YOUR ERROR MESSAGE HERE]
-
-**Please run these diagnostic commands and analyze the output**:
-
-1. Environment check:
-```bash
-echo "=== Environment ===" && \
-claude --version && \
-git --version && \
-echo "HOME: $HOME" && \
-echo "Platform: $(uname -s)" && \
-echo "Shell: $SHELL"
-````
-
-1. Network connectivity:
-
-```bash
-echo "=== Network ===" && \
-curl -s -o /dev/null -w "%{http_code}" https://github.com && echo " (GitHub)" && \
-git ls-remote --exit-code https://github.com/terrylica/cc-skills.git 2>&1 | head -3
-```
-
-1. Current marketplace state:
-
-```bash
-echo "=== Marketplace State ===" && \
-ls -la ~/.claude/plugins/marketplaces/ 2>/dev/null || echo "No marketplaces directory" && \
-ls -la ~/.claude/plugins/cache/cc-skills/ 2>/dev/null || echo "No cc-skills cache"
-```
-
-1. Git configuration:
-
-```bash
-echo "=== Git Config ===" && \
-git config --global --list 2>/dev/null | grep -E "http|credential|core.compression|url" || echo "No relevant git config"
-```
-
-**Known Solutions Database**:
-
-| Error Pattern             | Likely Cause         | Fix Command                                                               |
-| ------------------------- | -------------------- | ------------------------------------------------------------------------- |
-| "early EOF"               | Network buffer       | `git config --global http.postBuffer 524288000`                           |
-| "SSH: Connection refused" | SSH not configured   | `git config --global url."https://github.com/".insteadOf git@github.com:` |
-| "Repository not found"    | Typo or private repo | Verify: `terrylica/cc-skills`                                             |
-| Hangs indefinitely        | Firewall/proxy       | `git config --global http.version HTTP/1.1`                               |
-| "Permission denied"       | SSH key missing      | Use HTTPS or configure SSH                                                |
-
-**After diagnosing**, provide:
-
-1. Root cause analysis based on diagnostic output
-2. Specific fix commands I should run
-3. Verification steps to confirm the fix worked
-
-**If this is a hooks-related issue after successful installation**, I may need to reinstall hooks:
-
-```
-/ralph:hooks uninstall
-# Exit and restart Claude Code
-/ralph:hooks install
-# Exit and restart Claude Code again
-/ralph:hooks status
-```
-
-**References**:
-
-- [cc-skills Installation Guide](https://github.com/terrylica/cc-skills#installation)
-- [Claude Code Plugins Docs](https://docs.anthropic.com/en/docs/claude-code/plugins)
-
-````
 
 ---
 
@@ -502,53 +318,50 @@ git config --global --list | grep -E "http|credential|core"
 
 # Check SSH setup
 ssh -vT git@github.com 2>&1 | head -20
-````
+```
 
 ### Marketplace State
 
 ```bash
 # List installed marketplaces
-ls -la ~/.claude/plugins/marketplaces/
+claude plugin marketplace list
 
-# View marketplace entries
-find ~/.claude/plugins/marketplaces -name "marketplace.json" -exec cat {} \; | jq '.plugins[].name' 2>/dev/null
+# Check marketplace directory
+ls -la ~/.claude/plugins/marketplaces/cc-skills/
 
-# Check plugin installation state
-ls -la ~/.claude/skills/
-ls -la ~/.claude/plugins/cache/
-```
+# Check known_marketplaces.json
+cat ~/.claude/plugins/known_marketplaces.json | jq '.["cc-skills"]'
 
-### Network Diagnostics
+# Check installed plugins
+cat ~/.claude/plugins/installed_plugins.json | jq '.plugins | keys | .[] | select(contains("cc-skills"))'
 
-```bash
-# Test GitHub HTTPS
-git ls-remote https://github.com/terrylica/cc-skills.git
-
-# Test with shallow clone (reduces data transfer)
-git clone --depth 1 https://github.com/terrylica/cc-skills.git /tmp/test-clone && rm -rf /tmp/test-clone
-
-# Check proxy settings
-env | grep -i proxy
+# Check plugin cache
+ls -la ~/.claude/plugins/cache/cc-skills/
 ```
 
 ### Reset Commands
 
 ```bash
 # Remove marketplace (to re-add fresh)
-rm -rf ~/.claude/plugins/marketplaces/terrylica-cc-skills
+claude plugin marketplace remove cc-skills
+rm -rf ~/.claude/plugins/marketplaces/cc-skills
 
 # Clear plugin cache
 rm -rf ~/.claude/plugins/cache/cc-skills
 
-# Reset git credential cache
-git credential reject <<EOF
-protocol=https
-host=github.com
-EOF
-
-# Full Claude Code plugin reset (DESTRUCTIVE - backs up first)
+# Full reset (DESTRUCTIVE - backup first)
 mv ~/.claude/plugins ~/.claude/plugins.bak.$(date +%s)
 ```
+
+---
+
+## Known Claude Code Issues
+
+| Issue                                                            | Description                                          | Workaround                                           |
+| ---------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- |
+| [#14929](https://github.com/anthropics/claude-code/issues/14929) | Commands from directory-based marketplaces not found | Use GitHub source instead of directory source        |
+| SSH clone failures                                               | Silent failure when marketplace uses SSH             | Manual HTTPS clone + edit known_marketplaces.json    |
+| Trailing slash in source paths                                   | "Source path does not exist" error                   | Remove trailing slashes from marketplace.json source |
 
 ---
 
@@ -562,17 +375,9 @@ mv ~/.claude/plugins ~/.claude/plugins.bak.$(date +%s)
 
 ### Related GitHub Issues
 
-- [#9297](https://github.com/anthropics/claude-code/issues/15871) - Plugin marketplace add hangs indefinitely
+- [#14929](https://github.com/anthropics/claude-code/issues/14929) - Directory-based marketplace commands not discovered
 - [#9719](https://github.com/anthropics/claude-code/issues/9719) - SSH clone fails, HTTPS works
 - [#9426](https://github.com/anthropics/claude-code/issues/9426) - Plugin management state issues
-- [#10403](https://github.com/anthropics/claude-code/issues/10403) - Non-GitHub repos fail
-- [#13471](https://github.com/anthropics/claude-code/issues/13471) - Discovery broken after update
-
-### Git Troubleshooting
-
-- [GitHub Community: Early EOF Solutions](https://github.com/orgs/community/discussions/48568)
-- [Medium: Fixing Fatal Early EOF](https://medium.com/@mectayn/resolving-fatal-early-eof-error-in-git-a-practical-solution-b2f4c1a8b43f)
-- [GitHub SSH Troubleshooting](https://docs.github.com/en/authentication/troubleshooting-ssh)
 
 ### Internal Documentation
 

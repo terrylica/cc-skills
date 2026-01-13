@@ -26,14 +26,18 @@ else
     echo "  ✗ GitHub release v$VERSION not found"
 fi
 
-# Check 3: Plugin cache updated
-echo "→ Checking plugin cache..."
-SAMPLE_PLUGIN=$(ls -1 "$CACHE_DIR" 2>/dev/null | head -1)
-if [[ -n "$SAMPLE_PLUGIN" && -d "$CACHE_DIR/$SAMPLE_PLUGIN/$VERSION" ]]; then
-    echo "  ✓ Cache has v$VERSION"
+# Check 3: Marketplace updated
+echo "→ Checking marketplace repo..."
+MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
+if [[ -d "$MARKETPLACE_DIR/.git" ]]; then
+    MARKETPLACE_VERSION=$(jq -r '.version' "$MARKETPLACE_DIR/package.json" 2>/dev/null || echo "unknown")
+    if [[ "$MARKETPLACE_VERSION" == "$VERSION" ]]; then
+        echo "  ✓ Marketplace at v$VERSION"
+    else
+        echo "  ⚠ Marketplace at v$MARKETPLACE_VERSION (run: cd $MARKETPLACE_DIR && git pull)"
+    fi
 else
-    LATEST=$(ls -1 "$CACHE_DIR/$SAMPLE_PLUGIN" 2>/dev/null | sort -V | tail -1)
-    echo "  ⚠ Cache has v$LATEST (may need session restart for v$VERSION)"
+    echo "  ⚠ Marketplace not found - users should run: claude plugin marketplace add terrylica/cc-skills"
 fi
 
 # Check 4: Hooks in settings.json
@@ -42,11 +46,11 @@ HOOK_COUNT=$(jq '[.hooks.PreToolUse[]?, .hooks.PostToolUse[]?, .hooks.Stop[]?] |
 CC_SKILLS_HOOKS=$(jq '[.hooks.PreToolUse[]?, .hooks.PostToolUse[]?, .hooks.Stop[]? | select(.hooks[]?.command | contains("cc-skills"))] | length' "$SETTINGS" 2>/dev/null || echo 0)
 echo "  ✓ Total hooks: $HOOK_COUNT ($CC_SKILLS_HOOKS from cc-skills)"
 
-# Check 5: Hook files in cache
-echo "→ Verifying hook files..."
+# Check 5: Hook files in marketplace
+echo "→ Verifying hook files in marketplace..."
 HOOKS_OK=0
-for PLUGIN in $(ls -1 "$CACHE_DIR" 2>/dev/null); do
-    HOOKS_JSON="$CACHE_DIR/$PLUGIN/$VERSION/hooks/hooks.json"
+for PLUGIN_DIR in $(ls -d "$MARKETPLACE_DIR/plugins"/*/ 2>/dev/null); do
+    HOOKS_JSON="$PLUGIN_DIR/hooks/hooks.json"
     if [[ -f "$HOOKS_JSON" ]] && jq empty "$HOOKS_JSON" 2>/dev/null; then
         ((HOOKS_OK++))
     fi
@@ -58,5 +62,9 @@ echo "════════════════════════�
 echo "  ✓ Release v$VERSION verified"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
-echo "NOTE: Restart Claude Code for new hooks to take effect."
+echo "Post-release steps for users:"
+echo "  1. Update marketplace: cd ~/.claude/plugins/marketplaces/cc-skills && git pull"
+echo "  2. Reinstall plugins: claude plugin install itp@cc-skills"
+echo "  3. Sync hooks: ./scripts/sync-hooks-to-settings.sh"
+echo "  4. Restart Claude Code"
 echo ""

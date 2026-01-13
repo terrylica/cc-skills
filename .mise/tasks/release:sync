@@ -33,13 +33,14 @@ else
     echo "  ⚠ Hook sync script not found"
 fi
 
-# Step 3: Trigger plugin cache update
-echo "→ Updating plugin cache..."
-if command -v claude &>/dev/null; then
-    claude --print "/plugin update cc-skills" 2>&1 | head -5 || true
-    echo "  ✓ Plugin update triggered"
+# Step 3: Clear stale plugin cache (users reinstall manually)
+echo "→ Clearing stale plugin cache..."
+if [[ -d "$CACHE_DIR" ]]; then
+    rm -rf "$CACHE_DIR"
+    echo "  ✓ Cache cleared - users should reinstall plugins with:"
+    echo "    claude plugin install plugin-name@cc-skills"
 else
-    echo "  ⚠ Claude CLI not found"
+    echo "  ✓ No cache to clear"
 fi
 
 echo ""

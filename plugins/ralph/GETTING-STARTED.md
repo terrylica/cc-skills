@@ -16,38 +16,44 @@ Before starting, verify you have:
 
 ## Step 1: Install the cc-skills Plugin
 
-Ralph is part of the **cc-skills** plugin collection. Install it from GitHub:
+Ralph is part of the **cc-skills** plugin collection. Install it from your **terminal** (not inside Claude Code):
 
 ```bash
-# Start Claude Code in any directory
-claude
-
 # Add the cc-skills marketplace (one-time setup)
-/plugin marketplace add terrylica/cc-skills
+claude plugin marketplace add terrylica/cc-skills
 
-# Install the cc-skills plugin
-/plugin install cc-skills
+# Install all cc-skills plugins including ralph
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks git-account-validator alpha-forge-worktree ralph iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow; do claude plugin install "$p@cc-skills"; done
+
+# Or install just ralph
+claude plugin install ralph@cc-skills
 ```
 
-**Expected output**: "Plugin installed successfully"
+**Expected output**: "Successfully installed plugin: ralph@cc-skills"
 
-> **⚠️ "Plugin not found" after "Successfully added marketplace"?**
+> **⚠️ "Plugin not found" or "Source path does not exist"?**
 >
-> This is a [known Claude Code bug](https://github.com/anthropics/claude-code/issues/15871) where the SSH clone fails silently. The directory is created but remains empty.
->
-> **Fix** (run in your terminal, not Claude Code):
+> **Fix** (run in your terminal):
 >
 > ```bash
-> rm -rf ~/.claude/plugins/marketplaces/terrylica-cc-skills
-> git clone https://github.com/terrylica/cc-skills.git ~/.claude/plugins/marketplaces/terrylica-cc-skills
+> # Update the marketplace
+> cd ~/.claude/plugins/marketplaces/cc-skills
+> git pull
+>
+> # Retry installation
+> claude plugin install ralph@cc-skills
 > ```
 >
-> Then return to Claude Code and run `/plugin install cc-skills`
+> If marketplace doesn't exist, clone manually:
+>
+> ```bash
+> git clone https://github.com/terrylica/cc-skills.git ~/.claude/plugins/marketplaces/cc-skills
+> ```
 
 **Other troubleshooting**:
 
-- If "Marketplace not found": Run the marketplace add command first
-- If "Plugin not found": Check spelling — it's `cc-skills` not `cc_skills`
+- If "Marketplace not found": Run `claude plugin marketplace add terrylica/cc-skills` first
+- If "Plugin not found": Check spelling — it's `ralph@cc-skills`
 - For more issues: See [Marketplace Installation Troubleshooting](/docs/troubleshooting/marketplace-installation.md)
 
 ## Step 2: Install Ralph Hooks
@@ -192,16 +198,16 @@ touch .claude/STOP_LOOP
 
 ## Quick Reference
 
-| Command                                   | Purpose                                                           |
-| ----------------------------------------- | ----------------------------------------------------------------- |
-| `/ralph:hooks install`                    | Register hooks (one-time)                                         |
-| `/ralph:hooks status`                     | Verify installation                                               |
-| `/ralph:start`                            | Begin autonomous loop                                             |
-| `/ralph:stop`                             | End the loop                                                      |
-| `/ralph:status`                           | Check loop state                                                  |
-| `/ralph:config [show\|edit\|reset\|set]`  | View/modify runtime config                                        |
-| `/ralph:encourage <phrase\|--list\|--clear\|--remove>` | Manage encouraged list (applies next iteration)      |
-| `/ralph:forbid <phrase\|--list\|--clear\|--remove>`    | Manage forbidden list (HARD BLOCKS next iteration)   |
+| Command                                                | Purpose                                            |
+| ------------------------------------------------------ | -------------------------------------------------- |
+| `/ralph:hooks install`                                 | Register hooks (one-time)                          |
+| `/ralph:hooks status`                                  | Verify installation                                |
+| `/ralph:start`                                         | Begin autonomous loop                              |
+| `/ralph:stop`                                          | End the loop                                       |
+| `/ralph:status`                                        | Check loop state                                   |
+| `/ralph:config [show\|edit\|reset\|set]`               | View/modify runtime config                         |
+| `/ralph:encourage <phrase\|--list\|--clear\|--remove>` | Manage encouraged list (applies next iteration)    |
+| `/ralph:forbid <phrase\|--list\|--clear\|--remove>`    | Manage forbidden list (HARD BLOCKS next iteration) |
 
 > **Runtime configurable**: `/ralph:encourage`, `/ralph:forbid`, and `/ralph:config` work with or without an active Ralph loop. Changes apply on the next iteration.
 
@@ -209,7 +215,7 @@ touch .claude/STOP_LOOP
 
 ## Troubleshooting
 
-> **General marketplace issues?** For clone failures, network errors, or authentication problems during `/plugin marketplace add` or `/plugin install`, see [Marketplace Installation Troubleshooting](/docs/troubleshooting/marketplace-installation.md).
+> **General marketplace issues?** For clone failures, network errors, or authentication problems during `claude plugin marketplace add` or `claude plugin install`, see [Marketplace Installation Troubleshooting](/docs/troubleshooting/marketplace-installation.md).
 
 ### "Hooks were installed AFTER this session started"
 
