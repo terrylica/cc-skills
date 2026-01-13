@@ -1,3 +1,33 @@
+## [9.24.7](https://github.com/terrylica/cc-skills/compare/v9.24.6...v9.24.7) (2026-01-13)
+
+
+### Bug Fixes
+
+* **git-town-workflow:** correct plugin.json schema ([71a4b8a](https://github.com/terrylica/cc-skills/commit/71a4b8a417910473aa202d860452eddf284ce7ff))
+* remove gh api calls from release tasks to prevent process storms ([ac0dde1](https://github.com/terrylica/cc-skills/commit/ac0dde115424ac9abbadf6c8e4f246d3587826d4))
+* remove trailing slashes from plugin source paths ([269d2db](https://github.com/terrylica/cc-skills/commit/269d2db589ad949535eb28a702ff63acd6d7389b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+480/-236)
+
+## Other Documentation
+
+### Other
+
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - updated (+175/-370)
+- [Getting Started with Ralph (First-Time Users)](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/GETTING-STARTED.md) - updated (+34/-28)
+
 ## [9.24.6](https://github.com/terrylica/cc-skills/compare/v9.24.5...v9.24.6) (2026-01-12)
 
 
