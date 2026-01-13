@@ -1,3 +1,10 @@
+# [9.25.0](https://github.com/terrylica/cc-skills/compare/v9.24.8...v9.25.0) (2026-01-13)
+
+
+### Features
+
+* **itp-hooks:** add process storm prevention guard ([754acaf](https://github.com/terrylica/cc-skills/commit/754acafe33f45f8f22ccfc98737cfe54a321d33a))
+
 ## [9.24.8](https://github.com/terrylica/cc-skills/compare/v9.24.7...v9.24.8) (2026-01-13)
 
 
