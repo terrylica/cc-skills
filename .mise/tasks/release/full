@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Complete 4-phase release workflow"
-#MISE depends=["release_preflight"]
+#MISE depends=["release:preflight"]
 set -euo pipefail
 
 echo ""
@@ -10,13 +10,13 @@ echo "╚═══════════════════════�
 echo ""
 
 # Phase 2: Version
-mise run release_version
+mise run release:version
 
 # Phase 3: Sync
-mise run release_sync
+mise run release:sync
 
 # Phase 4: Verify
-mise run release_verify
+mise run release:verify
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════╗"

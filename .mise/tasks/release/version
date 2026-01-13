@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-#MISE description="Dry-run release (no changes)"
-#MISE depends=["release_preflight"]
+#MISE description="Phase 2: Run semantic-release (version bump + changelog)"
+#MISE depends=["release:preflight"]
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"
-echo "  DRY RUN (no changes will be made)"
+echo "  Phase 2: VERSION (semantic-release)"
 echo "═══════════════════════════════════════════════════════════"
 
-semantic-release --no-ci --dry-run
+# Run semantic-release
+semantic-release --no-ci
+
+echo ""
+echo "✓ Version phase complete"
+echo ""
