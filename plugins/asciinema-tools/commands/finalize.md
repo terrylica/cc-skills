@@ -10,13 +10,13 @@ Finalize orphaned asciinema recordings: stop running processes gracefully, compr
 
 ## Arguments
 
-| Argument       | Description                                          |
-| -------------- | ---------------------------------------------------- |
-| `file`         | Specific .cast file to finalize                      |
-| `--all`        | Finalize all unhandled .cast files                   |
-| `--force`      | Use SIGKILL if graceful stop fails                   |
-| `--no-push`    | Skip pushing to orphan branch (local only)           |
-| `--keep-local` | Keep local .cast after compression                   |
+| Argument       | Description                                |
+| -------------- | ------------------------------------------ |
+| `file`         | Specific .cast file to finalize            |
+| `--all`        | Finalize all unhandled .cast files         |
+| `--force`      | Use SIGKILL if graceful stop fails         |
+| `--no-push`    | Skip pushing to orphan branch (local only) |
+| `--keep-local` | Keep local .cast after compression         |
 
 ## Workflow
 
@@ -202,8 +202,8 @@ cd "$REPO_DIR"
 git add -A
 git commit -m "finalize: $BASENAME" 2>/dev/null || true
 
-# Push with token
-GH_TOKEN=$(gh auth token 2>/dev/null)
+# Push with token (prefer env var to avoid process spawning)
+GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || echo "")}}"
 if [[ -n "$GH_TOKEN" ]]; then
   REMOTE_URL=$(git remote get-url origin)
   # Convert to token-authenticated URL
