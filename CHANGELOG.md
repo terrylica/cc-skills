@@ -1,3 +1,29 @@
+# [9.26.0](https://github.com/terrylica/cc-skills/compare/v9.25.0...v9.26.0) (2026-01-13)
+
+
+### Bug Fixes
+
+* **itp-hooks:** improve shell variable detection regex pattern ([8d4713c](https://github.com/terrylica/cc-skills/commit/8d4713c4163be6b21beeb655a26110803452096d))
+
+
+### Features
+
+* **itp-hooks:** rename silent-failure-detector to code-correctness-guard ([e72475c](https://github.com/terrylica/cc-skills/commit/e72475cea543f8e032e1beec8edd12db336ae08c))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ITP Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/README.md) - updated (+10/-9)
+
 # [9.25.0](https://github.com/terrylica/cc-skills/compare/v9.24.8...v9.25.0) (2026-01-13)
 
 
