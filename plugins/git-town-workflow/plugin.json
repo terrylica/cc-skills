@@ -11,8 +11,8 @@
     "branch",
     "prescriptive"
   ],
-  "author": "<user>",
-  "commands_dir": "commands",
-  "references_dir": "references",
-  "scripts_dir": "scripts"
+  "author": {
+    "name": "<user>ca",
+    "url": "https://github.com/terrylica"
+  }
 }
