@@ -1,18 +1,19 @@
 #!/usr/bin/env bats
-# test_silent_failure_detector.bats - Unit tests for silent-failure-detector.sh
+# test_code_correctness_guard.bats - Unit tests for code-correctness-guard.sh
 #
-# Run with: bats plugins/itp-hooks/tests/test_silent_failure_detector.bats
+# Run with: bats plugins/itp-hooks/tests/test_code_correctness_guard.bats
 #
 # Tests cover:
 # - Bash tool failure detection (non-zero exit codes)
 # - Python silent failure patterns (E722, S110, S112, BLE001, PLW1510)
+# - Python shell variable detection ($HOME in Python strings)
 # - Shell script issues (SC2155, SC2164, SC2181, SC2086)
 # - JS/TS issues (empty catch, floating promises)
 # - Non-blocking behavior (always exits 0)
 # - JSON output format validation
 
 setup() {
-    HOOK="$BATS_TEST_DIRNAME/../hooks/silent-failure-detector.sh"
+    HOOK="$BATS_TEST_DIRNAME/../hooks/code-correctness-guard.sh"
     FIXTURES="$BATS_TEST_DIRNAME/fixtures"
 
     # Ensure script is executable

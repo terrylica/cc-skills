@@ -47,16 +47,17 @@ Then install hooks to your settings:
 | Spec→ADR sync         | Modify `docs/design/*/spec.md` | Check if ADR needs updating           |
 | Code→ADR traceability | Modify implementation files    | Consider ADR reference                |
 
-### Silent Failure Detection (PostToolUse)
+### Code Correctness Guard (PostToolUse)
 
-Detects silent failure patterns across multiple languages:
+Detects code correctness issues that cause runtime failures:
 
-| Language  | Tool       | Rules Checked                                                        |
-| --------- | ---------- | -------------------------------------------------------------------- |
-| Python    | Ruff       | E722 (bare except), S110/S112 (pass/continue), BLE001 (blind except) |
-| Shell     | ShellCheck | SC2155 (masked return), SC2164 (cd fail), SC2310/SC2312 (set -e)     |
-| JS/TS     | Oxlint     | no-empty, no-floating-promises, require-await                        |
-| Bash tool | Exit code  | Non-zero exit with stderr                                            |
+| Category              | Language  | Tool       | Rules Checked                                                        |
+| --------------------- | --------- | ---------- | -------------------------------------------------------------------- |
+| Silent failures       | Python    | Ruff       | E722 (bare except), S110/S112 (pass/continue), BLE001 (blind except) |
+| Silent failures       | Shell     | ShellCheck | SC2155 (masked return), SC2164 (cd fail), SC2310/SC2312 (set -e)     |
+| Silent failures       | JS/TS     | Oxlint     | no-empty, no-floating-promises, require-await                        |
+| Silent failures       | Bash tool | Exit code  | Non-zero exit with stderr                                            |
+| Cross-language syntax | Python    | grep       | Shell variables in Python strings (`Path("$HOME/...")`)              |
 
 Uses `"decision": "block"` JSON format for Claude visibility (per ADR 2025-12-17) while remaining non-blocking (exit 0).
 
@@ -96,7 +97,7 @@ This plugin uses **exit code 2** for ASCII art blocking because:
 - `hooks/hooks.json` - Hook configuration
 - `hooks/pretooluse-guard.sh` - ASCII art blocking
 - `hooks/posttooluse-reminder.sh` - Sync reminders + Ruff linting
-- `hooks/silent-failure-detector.sh` - Multi-language silent failure detection
+- `hooks/code-correctness-guard.sh` - Code correctness detection (silent failures + cross-language syntax)
 - `hooks/ruff.toml` - Ruff rule documentation
 - `scripts/install-dependencies.sh` - Linter dependency installer
 - `scripts/manage-hooks.sh` - Settings.json hook manager
