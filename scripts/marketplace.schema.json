@@ -54,8 +54,8 @@
           },
           "source": {
             "type": "string",
-            "pattern": "^\\./plugins/[a-z0-9-]+/$",
-            "description": "Plugin source path (./plugins/name/)"
+            "pattern": "^\\./plugins/[a-z0-9-]+$",
+            "description": "Plugin source path (./plugins/name)"
           },
           "category": {
             "type": "string",
