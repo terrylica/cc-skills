@@ -18,12 +18,16 @@ else
     echo "  ✗ Tag v$VERSION not found"
 fi
 
-# Check 2: GitHub release exists
+# Check 2: GitHub release exists (using curl to avoid gh CLI process storm risks)
 echo "→ Checking GitHub release..."
-if gh release view "v$VERSION" --repo terrylica/cc-skills &>/dev/null; then
+RELEASE_URL="https://api.github.com/repos/terrylica/cc-skills/releases/tags/v$VERSION"
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${GITHUB_TOKEN:-}" "$RELEASE_URL" 2>/dev/null || echo "000")
+if [[ "$HTTP_STATUS" == "200" ]]; then
     echo "  ✓ GitHub release v$VERSION exists"
-else
+elif [[ "$HTTP_STATUS" == "404" ]]; then
     echo "  ✗ GitHub release v$VERSION not found"
+else
+    echo "  ⚠ Could not verify GitHub release (HTTP $HTTP_STATUS)"
 fi
 
 # Check 3: Marketplace updated

@@ -194,8 +194,8 @@ LOCAL_PATH="$HOME/asciinema_recordings/$(basename "$REPO_URL" .git)"
 rm -f ~/.ssh/control-* 2>/dev/null || true
 ssh -O exit git@github.com 2>/dev/null || true
 
-# Get GitHub token for HTTPS clone
-GH_TOKEN=$(gh auth token 2>/dev/null || echo "")
+# Get GitHub token for HTTPS clone (prefer env var to avoid process spawning)
+GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || echo "")}}"
 if [[ -n "$GH_TOKEN" ]]; then
   # Parse owner/repo
   if [[ "$REPO_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
