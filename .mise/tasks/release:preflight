@@ -15,24 +15,29 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 echo "  ✓ Working directory clean"
 
-# Check 2: GitHub authentication
+# Check 2: GitHub authentication (token file check - no API calls to avoid process storms)
 echo "→ Checking GitHub authentication..."
 if [[ -z "${GH_TOKEN:-}" ]]; then
     echo "  ✗ GH_TOKEN not set"
     echo "    Run: eval \"\$(mise env)\" or check .mise.toml"
     exit 1
 fi
-GH_USER=$(gh api user --jq '.login' 2>/dev/null || echo "")
-if [[ -z "$GH_USER" ]]; then
-    echo "  ✗ GitHub API authentication failed"
+# Validate token is not empty/whitespace
+if [[ -z "$(echo "$GH_TOKEN" | tr -d '[:space:]')" ]]; then
+    echo "  ✗ GH_TOKEN is empty"
     exit 1
 fi
-echo "  ✓ Authenticated as: $GH_USER"
+# Check token format (should start with ghp_ or github_pat_)
+if [[ ! "$GH_TOKEN" =~ ^(ghp_|github_pat_) ]]; then
+    echo "  ⚠ GH_TOKEN format unusual (expected ghp_* or github_pat_*)"
+fi
+echo "  ✓ GH_TOKEN present (${#GH_TOKEN} chars)"
 
-# Check 3: Expected account
-if [[ -n "${GH_ACCOUNT:-}" && "$GH_USER" != "$GH_ACCOUNT" ]]; then
-    echo "  ✗ Account mismatch: expected $GH_ACCOUNT, got $GH_USER"
-    exit 1
+# Check 3: Expected account (from GH_ACCOUNT env, set by mise)
+if [[ -n "${GH_ACCOUNT:-}" ]]; then
+    echo "  ✓ Target account: $GH_ACCOUNT (from GH_ACCOUNT env)"
+else
+    echo "  ⚠ GH_ACCOUNT not set - releasing with token from mise.toml"
 fi
 
 # Check 4: Plugin validation

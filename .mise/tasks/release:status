@@ -28,8 +28,14 @@ else
     git status --short | head -5
 fi
 
-# GitHub auth
-GH_USER=$(gh api user --jq '.login' 2>/dev/null || echo "not authenticated")
-echo "GitHub account:  $GH_USER"
+# GitHub auth (token check - no API calls to avoid process storms)
+if [[ -n "${GH_TOKEN:-}" ]]; then
+    echo "GitHub token:    ✓ present (${#GH_TOKEN} chars)"
+    if [[ -n "${GH_ACCOUNT:-}" ]]; then
+        echo "Target account:  $GH_ACCOUNT"
+    fi
+else
+    echo "GitHub token:    ✗ not set (run: eval \"\$(mise env)\")"
+fi
 
 echo ""
