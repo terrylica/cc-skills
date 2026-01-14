@@ -1000,32 +1000,28 @@ Use these raw LaTeX blocks to switch orientation:
 ```{=latex}
 \begin{landscape}
 ```
-````
 
 ... content in landscape ...
 
 ```{=latex}
 \end{landscape}
 ```
-
 ````
 
 ### Page Breaks
 
-```markdown
+````markdown
 ```{=latex}
 \newpage
-````
-
 ```
+````
 
 ### Troubleshooting
 
-| Issue                      | Solution                                             |
-| -------------------------- | ---------------------------------------------------- |
-| "File not found" for .tex  | Ensure you're in the `tmp/` directory                |
-| 8pt font not working       | Must use `documentclass=extarticle`                  |
-| Box-drawing chars broken   | Use DejaVu Sans fonts (has Unicode support)          |
-| Tables overlapping         | Put section in `\begin{landscape}...\end{landscape}` |
-| Section separators         | Use `· · · · · · ·` rows between table sections      |
-```
+| Issue                     | Solution                                             |
+| ------------------------- | ---------------------------------------------------- |
+| "File not found" for .tex | Ensure you're in the `tmp/` directory                |
+| 8pt font not working      | Must use `documentclass=extarticle`                  |
+| Box-drawing chars broken  | Use DejaVu Sans fonts (has Unicode support)          |
+| Tables overlapping        | Put section in `\begin{landscape}...\end{landscape}` |
+| Section separators        | Use `· · · · · · ·` rows between table sections      |
