@@ -3,4 +3,8 @@
 
 [lint]
 # Ignore line length check - no limit for hooks
-ignore = ["E501"]
+ignore = [
+    "E501",    # Line length - no limit for hooks
+    "PLR0913", # Too many arguments - valid for complex APIs
+    "PLR0915", # Too many statements - valid for analysis scripts
+]
