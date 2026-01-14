@@ -1,3 +1,29 @@
+## [9.26.1](https://github.com/terrylica/cc-skills/compare/v9.26.0...v9.26.1) (2026-01-14)
+
+
+### Bug Fixes
+
+* **itp-hooks:** align troubleshooting table columns in lifecycle reference ([b9c4799](https://github.com/terrylica/cc-skills/commit/b9c4799ce595c94dd1016c019063632e19c830bc))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+34/-28)
+
+</details>
+
 # [9.26.0](https://github.com/terrylica/cc-skills/compare/v9.25.0...v9.26.0) (2026-01-13)
 
 
