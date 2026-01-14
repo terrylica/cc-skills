@@ -242,21 +242,24 @@ Every hook can output these fields:
 
 **There is NO `PostToolUseError` hook in Claude Code.** This is a common misconception.
 
-| Misconception | Reality | Consequence |
-| ------------- | ------- | ----------- |
-| `PostToolUseError` exists for failed tools | **Does NOT exist** | Adding to settings.json causes: `"PostToolUseError: Invalid key in record"` |
-| PostToolUse fires for all tool completions | **Only fires on SUCCESS** | Failed Bash commands (exit ≠ 0) do NOT trigger PostToolUse |
-| GitHub issues = implemented features | **Issues are REQUESTS** | Always verify against official docs before implementing |
+| Misconception                              | Reality                   | Consequence                                                                 |
+| ------------------------------------------ | ------------------------- | --------------------------------------------------------------------------- |
+| `PostToolUseError` exists for failed tools | **Does NOT exist**        | Adding to settings.json causes: `"PostToolUseError: Invalid key in record"` |
+| PostToolUse fires for all tool completions | **Only fires on SUCCESS** | Failed Bash commands (exit ≠ 0) do NOT trigger PostToolUse                  |
+| GitHub issues = implemented features       | **Issues are REQUESTS**   | Always verify against official docs before implementing                     |
 
 **Valid hook types (exhaustive list):**
+
 - `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `Notification`, `SubagentStop`, `Stop`, `PreCompact`, `SessionEnd`
 
 **What this means:**
+
 - You **cannot** hook into failed Bash commands
 - You **cannot** remind users about errors via PostToolUse (it won't fire)
 - The UV reminder for failed `pip` commands is **not possible** with current hooks
 
 **Workarounds for error handling:**
+
 1. Use `PreToolUse` to block dangerous commands BEFORE they run
 2. Use `Stop` hook to validate overall session state
 3. Accept the limitation until Claude Code adds error hooks
@@ -273,6 +276,7 @@ Every hook can output these fields:
 All hooks receive their input data via **stdin as a JSON object**. The JSON structure matches the "Key Inputs" column in the table above.
 
 **Critical**: Hook inputs are NOT passed via environment variables. The only environment variables available to hooks are:
+
 - `CLAUDE_PROJECT_DIR` — Project root directory
 - `CLAUDE_CODE_REMOTE` — "true" if running in web mode
 - `CLAUDE_ENV_FILE` — Env var persistence file (SessionStart only)
@@ -293,6 +297,7 @@ CWD=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null) || CWD=""
 ### Example Input JSON
 
 For a Bash tool call:
+
 ```json
 {
   "tool_name": "Bash",
@@ -678,22 +683,22 @@ def hard_stop(reason: str):
 
 ### Common Pitfalls
 
-| Pitfall                    | Problem                            | Solution                                                                                      |
-| -------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Session-locked hooks**   | Hook changes don't take effect     | Hooks snapshot at session start. Run `/hooks` to apply pending changes OR restart Claude Code |
-| **Script not executable**  | Hook silently fails                | Run `chmod +x script.sh` on all hook scripts                                                  |
-| **Non-zero exit codes**    | Hook blocks Claude unexpectedly    | Ensure scripts return 0 on success; non-zero = error                                          |
-| **Missing file matchers**  | Hook doesn't trigger on edits      | Use `Edit\|MultiEdit\|Write` to catch ALL file modifications                                  |
-| **Case sensitivity**       | Matcher doesn't match              | Matchers are case-sensitive: `Bash` ≠ `bash`                                                  |
-| **Relative paths**         | Script not found                   | Use `$CLAUDE_PROJECT_DIR` or absolute paths                                                   |
-| **Timeout too short**      | Hook killed mid-execution          | Default is 60s; increase for slow operations                                                  |
-| **JSON syntax errors**     | All hooks fail to load             | Validate with `cat settings.json \| python -m json.tool`                                      |
-| **Stop hook wrong schema** | "Stop hook prevented continuation" | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                |
-| **Local symlink caching**  | Edits to source not picked up      | Release new version, `/plugin install`, restart Claude Code (see Plugin Cache section below)  |
-| **Reading input from env vars** | Hook receives empty input, silently fails | Use `INPUT=$(cat)` + `jq` to parse stdin JSON (see Hook Input Delivery Mechanism above) |
-| **Using non-existent hook types** | `"Invalid key in record"` error, settings.json rejected | Only use valid types: SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, Notification, SubagentStop, Stop, PreCompact, SessionEnd. **PostToolUseError does NOT exist.** |
-| **Assuming PostToolUse fires on errors** | Hook never fires for failed commands | PostToolUse ONLY fires on successful tool completion. Use PreToolUse to prevent errors instead. |
-| **Trusting GitHub issues as features** | Implement non-existent functionality | Issues are REQUESTS not implementations. Always verify against official Claude Code docs. |
+| Pitfall                                  | Problem                                                 | Solution                                                                                                                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Session-locked hooks**                 | Hook changes don't take effect                          | Hooks snapshot at session start. Run `/hooks` to apply pending changes OR restart Claude Code                                                                                                    |
+| **Script not executable**                | Hook silently fails                                     | Run `chmod +x script.sh` on all hook scripts                                                                                                                                                     |
+| **Non-zero exit codes**                  | Hook blocks Claude unexpectedly                         | Ensure scripts return 0 on success; non-zero = error                                                                                                                                             |
+| **Missing file matchers**                | Hook doesn't trigger on edits                           | Use `Edit\|MultiEdit\|Write` to catch ALL file modifications                                                                                                                                     |
+| **Case sensitivity**                     | Matcher doesn't match                                   | Matchers are case-sensitive: `Bash` ≠ `bash`                                                                                                                                                     |
+| **Relative paths**                       | Script not found                                        | Use `$CLAUDE_PROJECT_DIR` or absolute paths                                                                                                                                                      |
+| **Timeout too short**                    | Hook killed mid-execution                               | Default is 60s; increase for slow operations                                                                                                                                                     |
+| **JSON syntax errors**                   | All hooks fail to load                                  | Validate with `cat settings.json \| python -m json.tool`                                                                                                                                         |
+| **Stop hook wrong schema**               | "Stop hook prevented continuation"                      | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                                                                                                                   |
+| **Local symlink caching**                | Edits to source not picked up                           | Release new version, `/plugin install`, restart Claude Code (see Plugin Cache section below)                                                                                                     |
+| **Reading input from env vars**          | Hook receives empty input, silently fails               | Use `INPUT=$(cat)` + `jq` to parse stdin JSON (see Hook Input Delivery Mechanism above)                                                                                                          |
+| **Using non-existent hook types**        | `"Invalid key in record"` error, settings.json rejected | Only use valid types: SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, Notification, SubagentStop, Stop, PreCompact, SessionEnd. **PostToolUseError does NOT exist.** |
+| **Assuming PostToolUse fires on errors** | Hook never fires for failed commands                    | PostToolUse ONLY fires on successful tool completion. Use PreToolUse to prevent errors instead.                                                                                                  |
+| **Trusting GitHub issues as features**   | Implement non-existent functionality                    | Issues are REQUESTS not implementations. Always verify against official Claude Code docs.                                                                                                        |
 
 ```{=latex}
 \newpage
@@ -921,6 +926,7 @@ exit 0
 ```
 
 **Key points:**
+
 - `INPUT=$(cat)` reads JSON from stdin (NOT environment variables)
 - `jq -r '.field // ""'` extracts fields with empty string fallback
 - Exit 0 with JSON for soft block; exit 2 for hard block
@@ -1015,11 +1021,11 @@ Use these raw LaTeX blocks to switch orientation:
 
 ### Troubleshooting
 
-| Issue | Solution |
-| ----- | -------- |
-| "File not found" for .tex | Ensure you're in the `tmp/` directory |
-| 8pt font not working | Must use `documentclass=extarticle` |
-| Box-drawing chars broken | Use DejaVu Sans fonts (has Unicode support) |
-| Tables overlapping | Put section in `\begin{landscape}...\end{landscape}` |
-| Section separators | Use `· · · · · · ·` rows between table sections |
+| Issue                      | Solution                                             |
+| -------------------------- | ---------------------------------------------------- |
+| "File not found" for .tex  | Ensure you're in the `tmp/` directory                |
+| 8pt font not working       | Must use `documentclass=extarticle`                  |
+| Box-drawing chars broken   | Use DejaVu Sans fonts (has Unicode support)          |
+| Tables overlapping         | Put section in `\begin{landscape}...\end{landscape}` |
+| Section separators         | Use `· · · · · · ·` rows between table sections      |
 ```
