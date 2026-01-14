@@ -18,8 +18,10 @@ select = [
 ]
 
 ignore = [
-    "D",     # Docstrings - too noisy for hook feedback
-    "ANN",   # Type annotations - handled by mypy/pyright
+    "D",       # Docstrings - too noisy for hook feedback
+    "ANN",     # Type annotations - handled by mypy/pyright
+    "PLR0913", # Too many arguments - valid for complex APIs
+    "PLR0915", # Too many statements - valid for analysis scripts
 ]
 
 [lint.per-file-ignores]
