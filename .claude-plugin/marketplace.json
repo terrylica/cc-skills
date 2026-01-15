@@ -115,7 +115,11 @@
         "session-recovery",
         "pushover",
         "watchexec",
-        "notifications"
+        "notifications",
+        "loguru",
+        "platformdirs",
+        "structured-logging",
+        "jsonl"
       ],
       "strict": false
     },

@@ -355,11 +355,100 @@ mv ~/.claude/plugins ~/.claude/plugins.bak.$(date +%s)
 
 ---
 
+### 7. Literal `$HOME` Folders Created (Environment Variable Not Expanded)
+
+**Symptom**: A folder literally named `$HOME` appears in your project directory:
+
+```bash
+$ ls -la
+drwxr-xr-x  3 user  staff   96 Jan 13 09:50 $HOME
+```
+
+**Root Cause**: JSON config files (`known_marketplaces.json`, `installed_plugins.json`) contain literal `$HOME` strings. JSON does NOT expand environment variables - they are treated as literal text. When Claude Code reads these paths, it creates folders with the literal name `$HOME`.
+
+**Common causes**:
+
+- Manual editing of JSON configs with `$HOME` instead of absolute paths
+- Find-replace operations that converted `/Users/username/` to `$HOME`
+- Copying config examples that use `$HOME` placeholders
+
+**Diagnosis**:
+
+```bash
+# Check for literal $HOME in configs
+grep '\$HOME' ~/.claude/plugins/known_marketplaces.json
+grep '\$HOME' ~/.claude/plugins/installed_plugins.json
+
+# Find all erroneous $HOME folders
+find ~ -maxdepth 4 -type d -name '$HOME' 2>/dev/null
+```
+
+**Solution**:
+
+```bash
+# 1. Delete all erroneous $HOME folders
+find ~ -maxdepth 4 -type d -name '$HOME' -exec rm -rf {} + 2>/dev/null
+
+# 2. Delete corrupted JSON configs
+rm ~/.claude/plugins/known_marketplaces.json ~/.claude/plugins/installed_plugins.json
+
+# 3. Re-register marketplaces (Claude Code will recreate configs with absolute paths)
+claude plugin marketplace add terrylica/cc-skills
+claude plugin marketplace add anthropics/claude-plugins-official
+
+# 4. Verify configs now use absolute paths
+grep installLocation ~/.claude/plugins/known_marketplaces.json
+# Should show: "/Users/username/.claude/plugins/marketplaces/..." (NOT $HOME)
+```
+
+**Prevention**: Never use `$HOME`, `~`, or `${VAR}` in JSON config files. JSON is a data format that does not support environment variable expansion. Always use absolute paths like `/Users/username/.claude/...`.
+
+**Related GitHub Issues**:
+
+- [#4276](https://github.com/anthropics/claude-code/issues/4276) - Environment variable expansion in settings.json
+- [#13138](https://github.com/anthropics/claude-code/issues/13138) - Race condition creates literal variable name folders
+
+---
+
+### 8. Orphaned Marketplaces (Directory Exists but Not Registered)
+
+**Symptom**: Marketplace directory exists in `~/.claude/plugins/marketplaces/` but doesn't appear in `claude plugin marketplace list`.
+
+**Diagnosis**:
+
+```bash
+# List directories
+ls ~/.claude/plugins/marketplaces/
+
+# List registered marketplaces
+claude plugin marketplace list
+
+# Check known_marketplaces.json
+cat ~/.claude/plugins/known_marketplaces.json | jq 'keys'
+```
+
+**Root Cause**: The marketplace was cloned but never registered in `known_marketplaces.json`, or the JSON config was deleted/corrupted.
+
+**Solution**:
+
+```bash
+# Get the repository URL from the orphaned directory
+cat ~/.claude/plugins/marketplaces/ORPHANED_NAME/.git/config | grep url
+
+# Re-register the marketplace
+claude plugin marketplace add OWNER/REPO_NAME
+# Example: claude plugin marketplace add anthropics/skills
+```
+
+---
+
 ## Known Claude Code Issues
 
 | Issue                                                            | Description                                          | Workaround                                           |
 | ---------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- |
 | [#14929](https://github.com/anthropics/claude-code/issues/14929) | Commands from directory-based marketplaces not found | Use GitHub source instead of directory source        |
+| [#4276](https://github.com/anthropics/claude-code/issues/4276)   | Environment variable expansion not supported in JSON | Use absolute paths in all JSON config files          |
+| [#13138](https://github.com/anthropics/claude-code/issues/13138) | Race condition creates literal `$HOME` folders       | Delete folders, recreate configs with absolute paths |
 | SSH clone failures                                               | Silent failure when marketplace uses SSH             | Manual HTTPS clone + edit known_marketplaces.json    |
 | Trailing slash in source paths                                   | "Source path does not exist" error                   | Remove trailing slashes from marketplace.json source |
 
