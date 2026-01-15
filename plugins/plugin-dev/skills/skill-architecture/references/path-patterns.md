@@ -186,12 +186,58 @@ When reviewing skills/plugins for path issues:
 
 ---
 
+## Environment Variable Expansion by Context
+
+**Critical**: Environment variables like `$HOME` and `${VAR}` are NOT universally expanded. Expansion depends on the execution context.
+
+| Context                       | `$HOME` Expanded? | `${VAR}` Expanded? | Notes                                                |
+| ----------------------------- | ----------------- | ------------------ | ---------------------------------------------------- |
+| **JSON config files**         | **NO**            | **NO**             | JSON is literal text - never expands                 |
+| **Bash scripts**              | YES               | YES                | Shell expands variables                              |
+| **Heredoc in markdown**       | YES               | YES                | Executed by shell via `/usr/bin/env bash`            |
+| **Python with `shell=True`**  | YES               | YES                | Via shell subprocess                                 |
+| **Python with `shell=False`** | **NO**            | **NO**             | Use `os.path.expanduser()` or `os.path.expandvars()` |
+| **YAML files**                | DEPENDS           | DEPENDS            | Tool-specific (some expand, some don't)              |
+| **TOML files (mise)**         | YES               | YES                | Use `{{env.HOME}}` or `{{env.VAR}}`                  |
+
+### JSON Config Files (CRITICAL)
+
+**Never use `$HOME`, `~`, or `${VAR}` in JSON files.** JSON is a data format that does NOT expand environment variables.
+
+**Wrong** (creates literal `$HOME` folder):
+
+```json
+{
+  "installLocation": "$HOME/.claude/plugins/marketplaces/cc-skills"
+}
+```
+
+**Correct** (absolute path):
+
+```json
+{
+  "installLocation": "/Users/username/.claude/plugins/marketplaces/cc-skills"
+}
+```
+
+**Affected files**:
+
+- `~/.claude/plugins/known_marketplaces.json`
+- `~/.claude/plugins/installed_plugins.json`
+- `~/.claude/settings.json` (hook paths)
+
+See [Troubleshooting: Literal $HOME Folders](/docs/troubleshooting/marketplace-installation.md#7-literal-home-folders-created-environment-variable-not-expanded) for recovery if you encounter this issue.
+
+---
+
 ## Related Issues
 
 | Issue                                                            | Description                                              | Status |
 | ---------------------------------------------------------------- | -------------------------------------------------------- | ------ |
 | [#9354](https://github.com/anthropics/claude-code/issues/9354)   | `${CLAUDE_PLUGIN_ROOT}` not expanded in command markdown | Open   |
 | [#11278](https://github.com/anthropics/claude-code/issues/11278) | Plugin path resolution uses marketplace.json file path   | Open   |
+| [#4276](https://github.com/anthropics/claude-code/issues/4276)   | Environment variable expansion not supported in JSON     | Open   |
+| [#13138](https://github.com/anthropics/claude-code/issues/13138) | Race condition creates literal `$HOME` folders           | Open   |
 
 ---
 
@@ -208,15 +254,23 @@ If you find unsafe patterns in existing skills:
 2. **Replace** with explicit fallback:
 
    ```bash
+
+   ```
+
 /usr/bin/env bash << 'PATH_PATTERNS_SCRIPT_EOF_5'
-   # Before (broken)
-   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Before (broken)
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
    PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
 
-   # After (works)
-   PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/<publisher>/<plugin>}"
-   
+# After (works)
+
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/<publisher>/<plugin>}"
+
 PATH_PATTERNS_SCRIPT_EOF_5
+
 ```
 
 3. **Test** by running the command/skill and verifying scripts execute correctly.
+```

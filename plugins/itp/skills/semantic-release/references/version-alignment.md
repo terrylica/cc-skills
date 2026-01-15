@@ -167,6 +167,80 @@ __version__ = version("mypackage")
 
 ---
 
+## Polyglot SSoT: Rust+Python via Maturin
+
+For Rust+Python hybrid projects using PyO3/maturin, use **Cargo.toml as the single source of truth**:
+
+### Architecture
+
+```
+Cargo.toml [workspace.package] version  ← semantic-release updates THIS
+        │
+        ├── All Rust crates: version.workspace = true (inherit)
+        │
+        └── pyproject.toml: dynamic = ["version"] (maturin pulls from Cargo.toml)
+```
+
+### Configuration
+
+<!-- SSoT-OK: Example version for documentation -->
+
+**Cargo.toml** (workspace root):
+
+```toml
+[workspace.package]
+version = "X.Y.Z"  # SSoT - semantic-release updates this
+
+[package]
+name = "myproject-py"
+version.workspace = true  # Inherits from workspace
+```
+
+**pyproject.toml**:
+
+```toml
+[project]
+name = "myproject"
+dynamic = ["version"]  # maturin pulls from Cargo.toml
+
+[tool.semantic_release]
+# SSoT: Only update Cargo.toml
+version_toml = [
+    "Cargo.toml:workspace.package.version",
+    "Cargo.toml:package.version"
+]
+```
+
+### Critical Rules
+
+| Rule                                             | Why                                                                   |
+| ------------------------------------------------ | --------------------------------------------------------------------- |
+| Internal path deps: NO version constraints       | `rangebar-core = { path = "../rangebar-core" }` not `version = "X.Y"` |
+| All workspace crates: `version.workspace = true` | Inherits from `[workspace.package]`                                   |
+| pyproject.toml: `dynamic = ["version"]`          | maturin reads Cargo.toml at build time                                |
+| semantic-release: Only update Cargo.toml         | Use `version_toml` not `prepareCmd` with sed                          |
+
+### Why This Works
+
+1. **No dual-file sync** - Python version derived from Rust, not duplicated
+2. **No version drift** - One source updated by semantic-release
+3. **Workspace consistency** - All crates share the same version
+4. **Zero maintenance** - maturin handles Python version automatically
+
+### Runtime Version Access
+
+```python
+# Python: maturin exposes version via _core module
+from rangebar._core import __version__  # Reads from Cargo.toml
+```
+
+```rust
+// Rust: Standard CARGO_PKG_VERSION
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+```
+
+---
+
 ## Integration with semantic-release
 
 semantic-release manages the full version lifecycle:
