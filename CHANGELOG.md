@@ -1,3 +1,70 @@
+# [9.27.0](https://github.com/terrylica/cc-skills/compare/v9.26.2...v9.27.0) (2026-01-15)
+
+
+### Features
+
+* **devops-tools:** add python-logging-best-practices skill ([1243419](https://github.com/terrylica/cc-skills/commit/1243419f5ed35233d36ed4585db3667b86c114c9))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [python-logging-best-practices](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/SKILL.md) - new (+186)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/python-logging-best-practices</strong> (4 files)</summary>
+
+- [Python Logging Architecture Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/logging-architecture.md) - new (+136)
+- [Loguru Configuration Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/loguru-patterns.md) - new (+126)
+- [Migration Guide: print() to Structured Logging](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/migration-guide.md) - new (+205)
+- [platformdirs - Cross-Platform Directory Handling](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/platformdirs-xdg.md) - new (+88)
+
+</details>
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Version Alignment Standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/version-alignment.md) - updated (+74)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (1 file)</summary>
+
+- [Path Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/path-patterns.md) - updated (+59/-5)
+
+</details>
+
+
+## Repository Documentation
+
+### General Documentation
+
+- [Plugin Lifecycle and Configuration](https://github.com/terrylica/cc-skills/blob/main/docs/PLUGIN-LIFECYCLE.md) - new (+287)
+
+## Other Documentation
+
+### Other
+
+- [version-guard-claude-md-issue](https://github.com/terrylica/cc-skills/blob/main/docs/issues/version-guard-claude-md-issue.md) - new (+63)
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - updated (+89)
+
 ## [9.26.2](https://github.com/terrylica/cc-skills/compare/v9.26.1...v9.26.2) (2026-01-14)
 
 
