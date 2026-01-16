@@ -1,3 +1,43 @@
+# [9.31.0](https://github.com/terrylica/cc-skills/compare/v9.30.1...v9.31.0) (2026-01-16)
+
+
+### Features
+
+* **semantic-release:** align with polyglot monorepo best practices ([96d6365](https://github.com/terrylica/cc-skills/commit/96d6365c2ed514e3ee6a77d7978b1d86db669300))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+38/-34)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (5 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/evolution-log.md) - updated (+33)
+- [List affected packages](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/monorepo-support.md) - updated (+210/-1)
+- [Python Projects Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/python.md) - updated (+18/-15)
+- [Rust Projects with release-plz](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/rust.md) - updated (+4)
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/troubleshooting.md) - updated (+8/-7)
+
+</details>
+
 ## [9.30.1](https://github.com/terrylica/cc-skills/compare/v9.30.0...v9.30.1) (2026-01-16)
 
 
