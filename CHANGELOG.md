@@ -1,3 +1,39 @@
+# [9.30.0](https://github.com/terrylica/cc-skills/compare/v9.29.0...v9.30.0) (2026-01-16)
+
+
+### Features
+
+* **statusline-tools:** add session-info skill with registry tracking ([e7f6731](https://github.com/terrylica/cc-skills/commit/e7f673118b436b38da0fa6e96f3ab9fb4a5037ea))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>statusline-tools</strong> (1 change)</summary>
+
+- [session-info](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/SKILL.md) - new (+65)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>statusline-tools/session-info</strong> (1 file)</summary>
+
+- [Session Registry Format](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/references/registry-format.md) - new (+75)
+
+</details>
+
 # [9.29.0](https://github.com/terrylica/cc-skills/compare/v9.28.0...v9.29.0) (2026-01-16)
 
 
