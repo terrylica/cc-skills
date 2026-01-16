@@ -25,9 +25,10 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'  # semantic-release v25+ requires Node 22.14+ (v24.10.0+ for v24 range)
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
