@@ -1,3 +1,45 @@
+# [9.29.0](https://github.com/terrylica/cc-skills/compare/v9.28.0...v9.29.0) (2026-01-16)
+
+
+### Features
+
+* **gh-tools:** add issue-create skill with AI-powered labeling ([1b607ab](https://github.com/terrylica/cc-skills/commit/1b607ab53aed5b1f00233c5edc0d0f931ff84b5b)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#models](https://github.com/terrylica/cc-skills/issues/models) [#models](https://github.com/terrylica/cc-skills/issues/models) [#issue-body-file-guard](https://github.com/terrylica/cc-skills/issues/issue-body-file-guard) [#models](https://github.com/terrylica/cc-skills/issues/models)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - new (+196)
+
+</details>
+
+
+### Plugin READMEs
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+6/-5)
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/issue-create</strong> (3 files)</summary>
+
+- [AI Prompts Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/references/ai-prompts.md) - new (+124)
+- [Content Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/references/content-types.md) - new (+130)
+- [Label Strategy Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/references/label-strategy.md) - new (+115)
+
+</details>
+
 # [9.28.0](https://github.com/terrylica/cc-skills/compare/v9.27.0...v9.28.0) (2026-01-16)
 
 
