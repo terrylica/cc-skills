@@ -186,12 +186,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "24"
+          cache: "npm"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -388,28 +389,29 @@ strip = "symbols"         # Minimize wheel size
 
 **Why these settings matter**:
 
-| Setting | Value | Reason |
-|---------|-------|--------|
-| `lto = "thin"` | NOT `"fat"` | Fat LTO causes cross-compile issues (macOS→Linux) |
-| `codegen-units = 1` | Required | Single codegen unit enables maximum optimization |
-| `strip = "symbols"` | Recommended | Reduces wheel size by 60-80% |
-| `panic = "abort"` | FORBIDDEN | Breaks PyO3 exception handling |
-| `overflow-checks` | false in release | Matches Python's int behavior |
+| Setting             | Value            | Reason                                            |
+| ------------------- | ---------------- | ------------------------------------------------- |
+| `lto = "thin"`      | NOT `"fat"`      | Fat LTO causes cross-compile issues (macOS→Linux) |
+| `codegen-units = 1` | Required         | Single codegen unit enables maximum optimization  |
+| `strip = "symbols"` | Recommended      | Reduces wheel size by 60-80%                      |
+| `panic = "abort"`   | FORBIDDEN        | Breaks PyO3 exception handling                    |
+| `overflow-checks`   | false in release | Matches Python's int behavior                     |
 
 **Additional optimizations**:
 
-| Technique | Command/Config | Benefit |
-|-----------|----------------|---------|
-| mold linker | `RUSTFLAGS="-C link-arg=-fuse-ld=mold"` | 10x faster linking (Linux only) |
-| sccache | `RUSTC_WRAPPER=sccache` | Caches build artifacts |
-| cargo-nextest | `cargo nextest run` | Faster test execution |
-| Incremental | `CARGO_INCREMENTAL=1` | Faster dev builds (NOT for release) |
+| Technique     | Command/Config                          | Benefit                             |
+| ------------- | --------------------------------------- | ----------------------------------- |
+| mold linker   | `RUSTFLAGS="-C link-arg=-fuse-ld=mold"` | 10x faster linking (Linux only)     |
+| sccache       | `RUSTC_WRAPPER=sccache`                 | Caches build artifacts              |
+| cargo-nextest | `cargo nextest run`                     | Faster test execution               |
+| Incremental   | `CARGO_INCREMENTAL=1`                   | Faster dev builds (NOT for release) |
 
 ### Linux Wheel Builds (manylinux Docker)
 
 Build Linux wheels on remote host with Docker for glibc compatibility:
 
 ```bash
+/usr/bin/env bash << 'SETUP_EOF'
 # Use quay.io/pypa/manylinux2014_x86_64 container
 ssh "$LINUX_BUILD_USER@$LINUX_BUILD_HOST" 'cd '"$REMOTE_DIR"' && docker run --rm -v $(pwd):/io -w /io quay.io/pypa/manylinux2014_x86_64 bash -c "
   yum install -y openssl-devel perl-IPC-Cmd &&
@@ -418,6 +420,7 @@ ssh "$LINUX_BUILD_USER@$LINUX_BUILD_HOST" 'cd '"$REMOTE_DIR"' && docker run --rm
   /opt/python/cp311-cp311/bin/pip install maturin &&
   /opt/python/cp311-cp311/bin/maturin build --profile wheel --compatibility manylinux2014 -i /opt/python/cp311-cp311/bin/python
 "'
+SETUP_EOF
 ```
 
 **Platform targets**: macOS ARM64 (native), Linux x86_64 (Docker manylinux). No macOS x86 - Apple Silicon only.
