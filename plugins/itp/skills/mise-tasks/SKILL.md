@@ -484,6 +484,107 @@ For complete monorepo documentation, see: [advanced.md](./references/advanced.md
 
 ---
 
+## Level 11: Polyglot Monorepo with Pants + mise
+
+For Python-heavy polyglot monorepos (10-50 packages), combine **mise** for runtime management with **Pants** for build orchestration and native affected detection.
+
+### Division of Responsibility
+
+| Tool      | Responsibility                                                         |
+| --------- | ---------------------------------------------------------------------- |
+| **mise**  | Runtime versions (Python, Node, Rust) + environment variables          |
+| **Pants** | Build orchestration + native affected detection + dependency inference |
+
+### Architecture
+
+```
+monorepo/
+├── mise.toml                    # Runtime versions + env vars (SSoT)
+├── pants.toml                   # Pants configuration
+├── BUILD                        # Root BUILD file (minimal)
+├── packages/
+│   ├── core-python/
+│   │   ├── mise.toml           # Package-specific env (optional)
+│   │   └── BUILD               # Auto-generated: python_sources()
+│   ├── core-rust/
+│   │   └── BUILD               # cargo-pants plugin
+│   └── core-bun/
+│       └── BUILD               # pants-js plugin
+```
+
+### Pants Native Affected Detection
+
+**No more manual git scripts** - Pants has native affected detection:
+
+```bash
+# Test only affected packages (NATIVE)
+pants --changed-since=origin/main test
+
+# Lint only affected packages
+pants --changed-since=origin/main lint
+
+# Build only affected packages
+pants --changed-since=origin/main package
+
+# See what's affected (dry run)
+pants --changed-since=origin/main list
+```
+
+### mise.toml Wrapper Tasks (Optional Convenience)
+
+```toml
+[tasks."test:affected"]
+description = "Test affected packages via Pants"
+run = "pants --changed-since=origin/main test"
+
+[tasks."lint:affected"]
+description = "Lint affected packages via Pants"
+run = "pants --changed-since=origin/main lint"
+
+[tasks.test-all]
+description = "Test all packages"
+run = "pants test ::"
+
+[tasks."pants:tailor"]
+description = "Generate BUILD files"
+run = "pants tailor"
+```
+
+### pants.toml Minimal Config
+
+```toml
+[GLOBAL]
+pants_version = "<version>"
+backend_packages = [
+    "pants.backend.python",
+    "pants.backend.python.lint.ruff",
+    "pants.backend.experimental.rust",
+    "pants.backend.experimental.javascript",
+]
+
+[python]
+interpreter_constraints = [">=3.11"]
+
+[source]
+root_patterns = ["packages/*"]
+
+[python-bootstrap]
+# Use mise-managed Python (mise sets PATH)
+search_path = ["<PATH>"]
+```
+
+### When to Use Pants + mise
+
+| Scale                             | Recommendation                             |
+| --------------------------------- | ------------------------------------------ |
+| < 10 packages                     | mise + custom affected (Level 10 patterns) |
+| **10-50 packages (Python-heavy)** | **Pants + mise** (this section)            |
+| 50+ packages                      | Consider Bazel                             |
+
+→ See [polyglot-affected.md](./references/polyglot-affected.md) for complete Pants + mise integration guide and tool comparison
+
+---
+
 ## Integration with [env]
 
 Tasks automatically inherit `[env]` values:
@@ -545,3 +646,5 @@ The `mise-configuration` skill covers:
 - [Task Patterns](./references/patterns.md) - Real-world task examples
 - [Task Arguments](./references/arguments.md) - Complete usage spec reference
 - [Advanced Features](./references/advanced.md) - Monorepo, watch, experimental
+- [Polyglot Affected](./references/polyglot-affected.md) - Pants + mise integration guide and tool comparison
+- [Bootstrap Monorepo](./references/bootstrap-monorepo.md) - Autonomous polyglot monorepo bootstrap meta-prompt
