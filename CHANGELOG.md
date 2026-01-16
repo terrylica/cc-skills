@@ -1,3 +1,29 @@
+## [9.30.1](https://github.com/terrylica/cc-skills/compare/v9.30.0...v9.30.1) (2026-01-16)
+
+
+### Bug Fixes
+
+* **gh-tools:** shorten issue-create skill description to under 200 chars ([ba31e2f](https://github.com/terrylica/cc-skills/commit/ba31e2f6faf2f0029af1233de7382009ec0fdec3)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+1/-1)
+
+</details>
+
 # [9.30.0](https://github.com/terrylica/cc-skills/compare/v9.29.0...v9.30.0) (2026-01-16)
 
 
