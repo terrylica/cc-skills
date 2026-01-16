@@ -1,7 +1,7 @@
 # gh-tools Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
 [![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
@@ -43,9 +43,10 @@ When creating pull requests from feature branches, repository-relative links in 
 
 ## Bundled Skills
 
-| Skill                | Purpose                                      | Trigger Keywords                                                   |
-| -------------------- | -------------------------------------------- | ------------------------------------------------------------------ |
-| **pr-gfm-validator** | Validate and auto-fix GFM links in PR bodies | `pr create`, `pull request`, `gfm link`, `pr links`, `validate pr` |
+| Skill                | Purpose                                                   | Trigger Keywords                                                          |
+| -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **pr-gfm-validator** | Validate and auto-fix GFM links in PR bodies              | `pr create`, `pull request`, `gfm link`, `pr links`, `validate pr`        |
+| **issue-create**     | Create issues with AI labeling and content type detection | `create issue`, `file bug`, `feature request`, `report issue`, `gh issue` |
 
 ## How It Works
 
@@ -183,7 +184,7 @@ https://github.com/{owner}/{repo}/blob/{branch}/{path}
 
 Future skills to be added to gh-tools:
 
-- [ ] **issue-manager**: GitHub Issues search, create, and bulk operations
+- [x] **issue-create**: GitHub Issues creation with AI labeling (completed)
 - [ ] **release-notes**: Auto-generate release notes from commits
 - [ ] **pr-template**: Smart PR description templates per project
 - [ ] **check-status**: Monitor CI/CD status and report failures
