@@ -107,6 +107,30 @@ if [ -z "$git_branch" ]; then
     git_branch=$(git branch --show-current 2>/dev/null || echo "no-branch")
 fi
 
+# === Session Registry Update (CONDITIONAL fire-and-forget) ===
+# Only fires when session_id changes - not every render (performance optimization)
+# Updates ~/.claude/projects/{encoded-path}/.session-chain-cache.json
+if [ -n "$session_id" ]; then
+    REGISTRY_CACHE="/tmp/ccstatusline-session-$$"
+    cached_session=$(cat "$REGISTRY_CACHE" 2>/dev/null || echo "")
+
+    if [[ "$session_id" != "$cached_session" ]]; then
+        echo "$session_id" > "$REGISTRY_CACHE"
+        registry_script="${SCRIPT_DIR}/../scripts/update-session-registry.ts"
+        if [ -f "$registry_script" ]; then
+            cwd_path=$(pwd)
+            # Single-instance lock to prevent process accumulation
+            LOCK_DIR="/tmp/session-registry.lock"
+            if mkdir "$LOCK_DIR" 2>/dev/null; then
+                (
+                    trap 'rmdir /tmp/session-registry.lock 2>/dev/null' EXIT
+                    bun "$registry_script" "$session_id" "$cwd_path" "$model" "${cost:-}" "$git_branch"
+                ) >/dev/null 2>&1 &
+            fi
+        fi
+    fi
+fi
+
 # Get file status counts (consistent with Telegram bot format)
 # Using --diff-filter to separate change types accurately:
 #   M = Modified (content changed, unstaged)
