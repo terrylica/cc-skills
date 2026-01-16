@@ -1,3 +1,49 @@
+# [9.28.0](https://github.com/terrylica/cc-skills/compare/v9.27.0...v9.28.0) (2026-01-16)
+
+
+### Features
+
+* **mise-tasks:** add Pants + mise polyglot monorepo patterns (Level 11) ([fdf3cc0](https://github.com/terrylica/cc-skills/commit/fdf3cc093da50042c27467bde4bc4af33a2ae894))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [mise [env] Token Loading: read_file vs exec](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-15-mise-env-token-loading-patterns.md) | new (+129) |
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (2 changes)</summary>
+
+- [bootstrap-monorepo](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/bootstrap-monorepo/SKILL.md) - new (+40)
+- [mise-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/SKILL.md) - updated (+103)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (2 files)</summary>
+
+- [Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md) - new (+451)
+- [Polyglot Monorepo Affected Detection](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/polyglot-affected.md) - new (+265)
+
+</details>
+
 # [9.27.0](https://github.com/terrylica/cc-skills/compare/v9.26.2...v9.27.0) (2026-01-15)
 
 
