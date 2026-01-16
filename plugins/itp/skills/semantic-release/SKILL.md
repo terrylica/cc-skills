@@ -94,11 +94,11 @@ See the [`mise-configuration` skill](../mise-configuration/SKILL.md#github-token
 
 When `.mise.toml` has release tasks, prefer `mise run` over `npm run`:
 
-| Priority | Condition | Command |
-|----------|-----------|---------|
-| **1** | `.mise.toml` has `[tasks.release:*]` | `mise run release:version` |
-| **2** | `package.json` has `scripts.release` | `npm run release` |
-| **3** | Global semantic-release | `semantic-release --no-ci` |
+| Priority | Condition                            | Command                    |
+| -------- | ------------------------------------ | -------------------------- |
+| **1**    | `.mise.toml` has `[tasks.release:*]` | `mise run release:version` |
+| **2**    | `package.json` has `scripts.release` | `npm run release`          |
+| **3**    | Global semantic-release              | `semantic-release --no-ci` |
 
 See [Python Guide](./references/python.md#mise-4-phase-workflow) for complete mise workflow example.
 
@@ -106,11 +106,11 @@ See [Python Guide](./references/python.md#mise-4-phase-workflow) for complete mi
 
 **CRITICAL: No testing or linting in GitHub Actions.** See CLAUDE.md for full policy.
 
-| Forbidden | Allowed |
-|-----------|---------|
-| pytest, npm test, cargo test | semantic-release |
-| ruff, eslint, clippy, prettier | CodeQL, npm audit |
-| mypy | Deployment, Dependabot |
+| Forbidden                      | Allowed                |
+| ------------------------------ | ---------------------- |
+| pytest, npm test, cargo test   | semantic-release       |
+| ruff, eslint, clippy, prettier | CodeQL, npm audit      |
+| mypy                           | Deployment, Dependabot |
 
 ---
 
@@ -274,11 +274,11 @@ Detects: ADRs, Design Specs, Skills, Plugin READMEs. See [Doc Release Linking](.
 
 ### Prerequisites
 
-| Check | Command | Fix |
-|-------|---------|-----|
-| gh CLI authenticated | `gh auth status` | `gh auth login` |
-| GH_TOKEN for directory | `gh api user --jq '.login'` | See [Authentication](./references/authentication.md) |
-| Git remote is HTTPS | `git remote get-url origin` | `git-ssh-to-https` |
+| Check                   | Command                       | Fix                                                                                       |
+| ----------------------- | ----------------------------- | ----------------------------------------------------------------------------------------- |
+| gh CLI authenticated    | `gh auth status`              | `gh auth login`                                                                           |
+| GH_TOKEN for directory  | `gh api user --jq '.login'`   | See [Authentication](./references/authentication.md)                                      |
+| Git remote is HTTPS     | `git remote get-url origin`   | `git-ssh-to-https`                                                                        |
 | semantic-release global | `command -v semantic-release` | See [Troubleshooting](./references/troubleshooting.md#macos-gatekeeper-blocks-node-files) |
 
 ### Initialize Project
@@ -291,11 +291,11 @@ Detects: ADRs, Design Specs, Skills, Plugin READMEs. See [Doc Release Linking](.
 
 ### Run Release
 
-| Priority | Condition | Commands |
-|----------|-----------|----------|
-| **1** | `.mise.toml` has release tasks | `mise run release:version` / `mise run release:full` |
-| **2** | `package.json` has scripts | `npm run release:dry` (preview) / `npm run release` |
-| **3** | Global CLI | `semantic-release --no-ci` |
+| Priority | Condition                      | Commands                                             |
+| -------- | ------------------------------ | ---------------------------------------------------- |
+| **1**    | `.mise.toml` has release tasks | `mise run release:version` / `mise run release:full` |
+| **2**    | `package.json` has scripts     | `npm run release:dry` (preview) / `npm run release`  |
+| **3**    | Global CLI                     | `semantic-release --no-ci`                           |
 
 See [Local Release Workflow](./references/local-release-workflow.md) for the complete 4-phase process.
 
@@ -323,20 +323,24 @@ Not recommended as primary (2-5 minute delay). Repository Settings → Actions �
 
 ## Reference Documentation
 
-| Category | Reference | Description |
-|----------|-----------|-------------|
-| **Setup** | [Authentication](./references/authentication.md) | HTTPS-first setup, multi-account patterns |
-| **Workflow** | [Local Release Workflow](./references/local-release-workflow.md) | 4-phase process (PREFLIGHT → RELEASE → POSTFLIGHT) |
-| **Languages** | [Python Projects](./references/python.md) | Python + Rust+Python hybrid patterns |
-| | [Rust Projects](./references/rust.md) | release-plz, cargo-rdme README SSoT |
-| **Config** | [Version Alignment](./references/version-alignment.md) | Git tags as SSoT, manifest patterns |
-| | [Monorepo Support](./references/monorepo-support.md) | pnpm/npm workspaces configuration |
-| **Advanced** | [MAJOR Confirmation](./references/major-confirmation.md) | Breaking change analysis workflow |
-| | [Doc Release Linking](./references/doc-release-linking.md) | Auto-link ADRs/specs in release notes |
-| **Help** | [Troubleshooting](./references/troubleshooting.md) | All common issues consolidated |
-| | [Evolution Log](./references/evolution-log.md) | Skill change history |
+| Category      | Reference                                                        | Description                                              |
+| ------------- | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| **Setup**     | [Authentication](./references/authentication.md)                 | HTTPS-first setup, multi-account patterns                |
+| **Workflow**  | [Local Release Workflow](./references/local-release-workflow.md) | 4-phase process (PREFLIGHT → RELEASE → POSTFLIGHT)       |
+| **Languages** | [Python Projects](./references/python.md)                        | Python + Rust+Python hybrid patterns                     |
+|               | [Rust Projects](./references/rust.md)                            | release-plz, cargo-rdme README SSoT                      |
+| **Config**    | [Version Alignment](./references/version-alignment.md)           | Git tags as SSoT, manifest patterns                      |
+|               | [Monorepo Support](./references/monorepo-support.md)             | Polyglot monorepo with Pants + mise, pnpm/npm workspaces |
+| **Advanced**  | [MAJOR Confirmation](./references/major-confirmation.md)         | Breaking change analysis workflow                        |
+|               | [Doc Release Linking](./references/doc-release-linking.md)       | Auto-link ADRs/specs in release notes                    |
+| **Help**      | [Troubleshooting](./references/troubleshooting.md)               | All common issues consolidated                           |
+|               | [Evolution Log](./references/evolution-log.md)                   | Skill change history                                     |
 
-**External**: [`pypi-doppler` skill](../pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler
+**Cross-skill references**:
+
+- [`mise-tasks` skill: polyglot-affected](../mise-tasks/references/polyglot-affected.md) - Complete Pants + mise integration guide
+- [`mise-tasks` skill: bootstrap-monorepo](../mise-tasks/references/bootstrap-monorepo.md) - Autonomous polyglot monorepo setup
+- [`pypi-doppler` skill](../pypi-doppler/SKILL.md) - Local PyPI publishing with Doppler
 
 ---
 

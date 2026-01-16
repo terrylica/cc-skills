@@ -156,12 +156,12 @@ GIT_EOF
 
 Only these trigger releases:
 
-| Commit Type | Release |
-|-------------|---------|
-| `feat:` | minor |
-| `fix:` | patch |
-| `BREAKING CHANGE:` or `feat!:` | major |
-| `docs:`, `chore:`, etc. | no release (unless configured) |
+| Commit Type                    | Release                        |
+| ------------------------------ | ------------------------------ |
+| `feat:`                        | minor                          |
+| `fix:`                         | patch                          |
+| `BREAKING CHANGE:` or `feat!:` | major                          |
+| `docs:`, `chore:`, etc.        | no release (unless configured) |
 
 ### Repository Not Found (Valid URL)
 
@@ -353,9 +353,10 @@ mise use node@24
 Update `.github/workflows/release.yml`:
 
 ```yaml
-- uses: actions/setup-node@v4
+- uses: actions/setup-node@v6
   with:
     node-version: "24"
+    cache: "npm"
 ```
 
 ---

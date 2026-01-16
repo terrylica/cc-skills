@@ -145,7 +145,9 @@ fn test_readme_version_matches_cargo_toml() {
 ### Preview Release
 
 ```bash
+/usr/bin/env bash << 'GIT_EOF'
 release-plz release --dry-run --git-token "$(gh auth token)"
+GIT_EOF
 ```
 
 ### Execute Release
@@ -160,6 +162,7 @@ RELEASE_EOF
 ### Verify Release
 
 ```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
 # Check tags
 git tag -l --sort=-version:refname | head -3
 
@@ -168,6 +171,7 @@ gh release view $(git describe --tags --abbrev=0)
 
 # Check crates.io
 cargo search my-crate
+PREFLIGHT_EOF
 ```
 
 ## Version Determination
