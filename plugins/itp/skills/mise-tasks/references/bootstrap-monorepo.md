@@ -61,18 +61,19 @@ hft-monorepo/
 ├── BUILD                        # Root BUILD file
 ├── .mise/                       # Mise local config
 ├── .mcp.json                    # MCP server configuration
+├── .claude/                     # Claude Code configuration
+│   └── skills/                  # Project-local skill modules
+│       ├── python/
+│       │   └── SKILL.md
+│       ├── rust/
+│       │   └── SKILL.md
+│       └── bun/
+│           └── SKILL.md
 ├── docs/                        # Deep documentation (spoke)
 │   ├── ARCHITECTURE.md
 │   ├── LOGGING.md
 │   ├── TESTING.md
 │   └── WORKFLOWS.md
-├── skills/                      # Claude Code skill modules (spoke)
-│   ├── python/
-│   │   └── SKILL.md
-│   ├── rust/
-│   │   └── SKILL.md
-│   └── bun/
-│       └── SKILL.md
 ├── packages/                    # Polyglot packages
 │   ├── core-python/             # Python: shared utilities
 │   │   ├── CLAUDE.md            # Child hub
@@ -103,14 +104,21 @@ hft-monorepo/
 │   └── execution-gateway/
 │       ├── CLAUDE.md
 │       └── BUILD
+├── rules/                       # ast-grep rule directories
+│   ├── general/                 # Cross-language patterns (secrets, etc.)
+│   ├── python/                  # Python-specific rules
+│   ├── rust/                    # Rust-specific rules
+│   └── typescript/              # TypeScript-specific rules
+├── scripts/                     # Automation scripts
+│   └── generate-types.sh        # Code generation from schemas
 └── logs/                        # Local log output (gitignored)
 ```
 
 Execute creation:
 
 ```bash
-mkdir -p docs skills/{python,rust,bun} packages/{core-python/src,core-rust/src,core-bun/src,shared-types/schemas} services/{data-ingestion,strategy-engine,execution-gateway} logs
-touch .gitignore BUILD
+mkdir -p .claude/skills/{python,rust,bun} docs packages/{core-python/src,core-rust/src,core-bun/src,shared-types/schemas} services/{data-ingestion,strategy-engine,execution-gateway} rules/{general,python,rust,typescript} scripts logs
+touch .gitignore BUILD sgconfig.yml
 ```
 
 ---
@@ -198,8 +206,17 @@ enabled = false
 
 ### mise.toml
 
+> **CRITICAL**: Use `read_file()` for tokens, NOT `exec()`. The `exec()` pattern spawns subprocesses on every shell command, causing process storms. See [ADR: mise-env-token-loading-patterns](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-15-mise-env-token-loading-patterns.md).
+
 ```toml
 [env]
+# CORRECT: read_file() - no subprocess spawning
+GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-<account>') | trim }}"
+GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-<account>') | trim }}"
+
+# WRONG: exec() causes process storms - NEVER USE THIS
+# GH_TOKEN = "{{ exec(command='cat ~/.claude/.secrets/gh-token') }}"
+
 LOG_DIR = "{{config_root}}/logs"
 ENV = "dev"
 PANTS_CONCURRENT = "true"
@@ -211,6 +228,7 @@ rust = "<version>"
 node = "<version>"
 bun = "<version>"
 uv = "<version>"
+"cargo:ast-grep" = "latest"  # Structural code search
 
 # Convenience wrappers for Pants commands
 [tasks."test:affected"]
@@ -344,6 +362,79 @@ Thumbs.db
 *.pem
 ```
 
+### sgconfig.yml (ast-grep Configuration)
+
+```yaml
+# ast-grep rule configuration
+ruleDirs:
+  - rules/general
+  - rules/python
+  - rules/rust
+  - rules/typescript
+
+testConfigs:
+  - testDir: tests/rules
+
+utilDirs:
+  - utils
+
+languageGlobs:
+  typescript: ["*.ts", "*.tsx"]
+  javascript: ["*.js", "*.jsx", "*.mjs"]
+  python: ["*.py", "*.pyi"]
+```
+
+### Example ast-grep Rules
+
+**rules/general/no-hardcoded-secrets.yml** — Detect hardcoded API keys:
+
+```yaml
+id: no-hardcoded-api-key
+language: python
+message: Possible hardcoded API key or secret detected
+severity: error
+rule:
+  any:
+    - pattern: api_key = "$$$"
+    - pattern: API_KEY = "$$$"
+    - pattern: secret = "$$$"
+note: |
+  Never hardcode secrets. Use environment variables or Doppler.
+```
+
+**rules/python/no-print-statements.yml** — Enforce logging over print:
+
+```yaml
+id: no-print-statements
+language: python
+message: Use logging instead of print statements
+severity: hint
+rule:
+  pattern: print($$$)
+note: |
+  Use loguru for structured logging:
+  from loguru import logger
+  logger.info("message")
+```
+
+**rules/typescript/no-console-log.yml** — Enforce proper logging:
+
+```yaml
+id: no-console-log
+language: typescript
+message: Use a proper logger instead of console.log
+severity: hint
+rule:
+  pattern: console.log($$$)
+note: |
+  Use pino for structured logging:
+  import pino from 'pino';
+  const logger = pino();
+  logger.info({ data }, "message");
+```
+
+Run rules with: `sg scan` or use ast-grep MCP for interactive searches.
+
 ---
 
 ## Phase 4: Verification Checklist
@@ -416,18 +507,615 @@ pants tailor  # Generate BUILD file
 
 ---
 
+## Phase 6: Cross-Language Type Definitions
+
+For polyglot monorepos, define types once in JSON Schema (Draft 2020-12) and generate for each language.
+
+### JSON Schema Examples
+
+**packages/shared-types/schemas/fitness-metrics.json**:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fitness-metrics.json",
+  "title": "FitnessMetrics",
+  "type": "object",
+  "required": ["sharpeRatio", "maxDrawdown", "totalReturn"],
+  "properties": {
+    "sharpeRatio": { "type": "number" },
+    "maxDrawdown": { "type": "number", "minimum": 0, "maximum": 1 },
+    "totalReturn": { "type": "number" },
+    "tradingDays": { "type": "integer", "minimum": 1 }
+  }
+}
+```
+
+### Code Generation Script
+
+**scripts/generate-types.sh**:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCHEMAS_DIR="packages/shared-types/schemas"
+
+generate_python() {
+    # Requires: uv pip install datamodel-code-generator
+    datamodel-codegen \
+        --input "$SCHEMAS_DIR" \
+        --output "packages/core-python/src/generated/models.py" \
+        --output-model-type pydantic_v2.BaseModel
+}
+
+generate_typescript() {
+    # Requires: bun add -D json-schema-to-zod
+    for schema in "$SCHEMAS_DIR"/*.json; do
+        local name
+        name=$(basename "$schema" .json | tr '-' '_')
+        bunx json-schema-to-zod -s "$schema" -o "packages/core-bun/src/generated/${name}.ts"
+    done
+}
+
+generate_rust() {
+    # Requires: cargo install typify-cli
+    for schema in "$SCHEMAS_DIR"/*.json; do
+        local name
+        name=$(basename "$schema" .json | tr '-' '_')
+        typify "$schema" > "packages/core-rust/src/generated/${name}.rs"
+    done
+}
+
+case "${1:-all}" in
+    python) generate_python ;;
+    typescript) generate_typescript ;;
+    rust) generate_rust ;;
+    all) generate_python; generate_typescript; generate_rust ;;
+esac
+```
+
+Add mise task:
+
+```toml
+[tasks.generate-types]
+description = "Generate types from JSON Schema"
+run = "bash scripts/generate-types.sh all"
+```
+
+---
+
+## Phase 7: GitHub Repository Setup
+
+For public repositories, proper decoration improves discoverability and professionalism.
+
+### Repository Creation and Decoration
+
+```bash
+# Create repository (if needed)
+gh repo create <owner>/<repo-name> --public --source=. --push
+
+# Add description and topics
+gh repo edit <owner>/<repo-name> \
+  --description "Polyglot monorepo for <domain> using Python, Rust, TypeScript" \
+  --add-topic python \
+  --add-topic rust \
+  --add-topic typescript \
+  --add-topic monorepo \
+  --add-topic polyglot
+
+# Example topics for trading/finance projects
+gh repo edit <owner>/<repo-name> \
+  --add-topic trading \
+  --add-topic quantitative-finance \
+  --add-topic backtesting \
+  --add-topic numba \
+  --add-topic finance
+```
+
+### Standard Labels
+
+Create consistent labels for issue and PR management:
+
+```bash
+# Package labels (scoped by package name)
+gh label create "pkg:core-python" --color "3572A5" --description "Python core package"
+gh label create "pkg:core-rust" --color "DEA584" --description "Rust core package"
+gh label create "pkg:core-bun" --color "F7DF1E" --description "TypeScript/Bun package"
+gh label create "pkg:shared-types" --color "6E5494" --description "Cross-language schemas"
+
+# Type labels
+gh label create "type:bug" --color "D73A4A" --description "Something isn't working"
+gh label create "type:feature" --color "0E8A16" --description "New feature or request"
+gh label create "type:docs" --color "0075CA" --description "Documentation improvements"
+gh label create "type:refactor" --color "FBCA04" --description "Code refactoring"
+gh label create "type:perf" --color "7057FF" --description "Performance improvements"
+gh label create "type:ci" --color "BFD4F2" --description "CI/CD pipeline changes"
+```
+
+### README Badge Patterns
+
+Static badges using shields.io for consistent styling:
+
+```markdown
+# Project Title
+
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](packages/core-python)
+[![Rust](https://img.shields.io/badge/Rust-stable-DEA584?logo=rust&logoColor=white)](packages/core-rust)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?logo=typescript&logoColor=white)](packages/core-bun)
+[![Tests](https://img.shields.io/badge/tests-86%20passing-brightgreen)](.)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+```
+
+**Badge format**: `![Alt](https://img.shields.io/badge/<LABEL>-<MESSAGE>-<COLOR>?logo=<LOGO>&logoColor=white)`
+
+Common colors:
+
+| Language/Tool | Color Code  | Logo       |
+| ------------- | ----------- | ---------- |
+| Python        | 3776AB      | python     |
+| Rust          | DEA584      | rust       |
+| TypeScript    | 3178C6      | typescript |
+| Node.js       | 339933      | node.js    |
+| Bun           | FBF0DF      | bun        |
+| MIT License   | blue        | -          |
+| Tests passing | brightgreen | -          |
+
+### LICENSE File Template (MIT)
+
+Create `LICENSE` in root:
+
+```text
+MIT License
+
+Copyright (c) <YEAR> <OWNER>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### git-town Configuration
+
+Configure git-town for streamlined branch workflows:
+
+```bash
+# Initialize git-town (one-time)
+git-town config setup
+
+# Or configure directly
+git config git-town.main-branch main
+git config git-town.perennial-branches ""
+git config git-town.push-new-branches true
+git config git-town.sync-feature-strategy rebase
+
+# Verify configuration
+git-town config
+```
+
+**Key settings**:
+
+| Setting                 | Value    | Purpose                         |
+| ----------------------- | -------- | ------------------------------- |
+| `main-branch`           | `main`   | Primary integration branch      |
+| `push-new-branches`     | `true`   | Auto-push new feature branches  |
+| `sync-feature-strategy` | `rebase` | Keep linear history on features |
+
+### Professional README Structure
+
+```markdown
+# Project Name
+
+[![badges...](...)...]
+
+Short description of the project (1-2 sentences).
+
+## Overview
+
+Brief explanation of what the project does and its key value proposition.
+
+## Quick Start
+
+\`\`\`bash
+
+# Prerequisites
+
+brew install mise
+
+# Setup
+
+git clone https://github.com/<owner>/<repo>.git
+cd <repo>
+mise install
+
+# Run
+
+mise run <main-task>
+\`\`\`
+
+## Packages
+
+| Package                   | Language   | Tests | Purpose             |
+| ------------------------- | ---------- | ----- | ------------------- |
+| [`pkg-a`](packages/pkg-a) | Python     | 40    | Primary analysis    |
+| [`pkg-b`](packages/pkg-b) | Rust       | 14    | Performance compute |
+| [`pkg-c`](packages/pkg-c) | TypeScript | 32    | APIs, web           |
+
+## Performance
+
+| Implementation | Key Metric | Baseline    |
+| -------------- | ---------- | ----------- |
+| Python + Numba | X.X ms     | baseline    |
+| Rust           | X.X ms     | Y.Yx faster |
+
+## Architecture
+
+\`\`\`
+project/
+├── packages/
+│ ├── pkg-a/
+│ └── pkg-b/
+├── data/
+└── artifacts/
+\`\`\`
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Domain Concepts](docs/CONCEPTS.md)
+
+## License
+
+MIT
+```
+
+---
+
+## Performance Insights: Language Selection
+
+Based on real benchmarks with 1M data points (trading fitness calculations):
+
+| Implementation         | ITH Analysis | Overall     | Notes                                  |
+| ---------------------- | ------------ | ----------- | -------------------------------------- |
+| **Python + Numba JIT** | 5.5 ms       | Baseline    | LLVM-compiled, competitive with native |
+| **Rust (native)**      | 4.0 ms       | 1.4x faster | Best for complex algorithms            |
+| **Bun/TypeScript**     | 10.3 ms      | 1.9x slower | Good for APIs, async I/O               |
+
+**Key Insights**:
+
+1. **Numba JIT is remarkably competitive** — For numerical code, Numba compiles to LLVM machine code at runtime, matching or exceeding Rust for simple operations.
+
+2. **Rust advantage is in algorithmic complexity** — Rust shines with branching logic, state machines, and memory-intensive operations (1.4-3x faster on ITH epoch detection).
+
+3. **TypeScript is fast enough for most use cases** — 10ms for 1M points is acceptable for APIs, dashboards, and batch processing.
+
+**When to use each**:
+
+| Scenario                      | Best Choice            |
+| ----------------------------- | ---------------------- |
+| Existing Python codebase      | Keep Python + Numba    |
+| Performance-critical paths    | Rust via PyO3 bindings |
+| Web API / real-time dashboard | Bun/TypeScript         |
+| Batch processing > 10M points | Rust                   |
+| Quick prototyping             | Python                 |
+
+---
+
+## SR&ED Commit Conventions (Canada CRA)
+
+For projects claiming Scientific Research & Experimental Development (SR&ED) tax credits, commits must document work that maps to CRA's eligibility criteria.
+
+### CRA Eligibility Criteria
+
+| Criterion                     | Description                                       | Commit Evidence Needed        |
+| ----------------------------- | ------------------------------------------------- | ----------------------------- |
+| **Technological Uncertainty** | What couldn't be achieved using standard practice | `uncertainty:`, `experiment:` |
+| **Technological Advancement** | New knowledge or capability gained                | `advancement:`, `benchmark:`  |
+| **Scientific Content**        | Systematic investigation or search                | `research:`, `hypothesis:`    |
+| **Experimental Development**  | Iterative testing to resolve uncertainty          | `experiment:`, `iteration:`   |
+
+### SR&ED Commit Types
+
+Extend conventional commits with SR&ED-specific prefixes:
+
+```
+<type>(<scope>): <description>
+
+[optional body with SR&ED context]
+
+[optional footer: SR&ED-CLAIM: <claim-id>]
+```
+
+**Standard Types** (conventional commits):
+
+| Type       | Purpose                 | SR&ED Relevance                   |
+| ---------- | ----------------------- | --------------------------------- |
+| `feat`     | New feature             | May support advancement           |
+| `fix`      | Bug fix                 | Rarely eligible                   |
+| `docs`     | Documentation           | Supports systematic investigation |
+| `refactor` | Code restructuring      | Rarely eligible                   |
+| `test`     | Adding tests            | Supports experimental development |
+| `perf`     | Performance improvement | May support advancement           |
+| `chore`    | Maintenance             | Not eligible                      |
+
+**SR&ED-Specific Types** (CRA-aligned):
+
+| Type          | CRA Mapping               | Description                                    |
+| ------------- | ------------------------- | ---------------------------------------------- |
+| `experiment`  | Experimental Development  | Hypothesis testing, controlled experiments     |
+| `research`    | Scientific Content        | Literature review, prior art analysis          |
+| `uncertainty` | Technological Uncertainty | Document what standard practice couldn't solve |
+| `advancement` | Technological Advancement | Document new knowledge or capability achieved  |
+| `hypothesis`  | Scientific Content        | Formulate and document testable hypotheses     |
+| `analysis`    | Scientific Content        | Data analysis, results interpretation          |
+| `iteration`   | Experimental Development  | Iterative cycles to resolve uncertainty        |
+| `benchmark`   | Technological Advancement | Quantitative proof of advancement              |
+
+### Commit Message Examples
+
+**Documenting Technological Uncertainty**:
+
+```
+uncertainty(ith-python): standard Sharpe ratio insufficient for epoch detection
+
+The conventional Sharpe ratio calculation doesn't account for time-varying
+volatility regimes. Standard practice (rolling windows) fails to identify
+discrete fitness epochs where strategy performance exceeds drawdown-adjusted
+thresholds.
+
+Attempted approaches that failed:
+- Rolling 30-day Sharpe windows: too noisy, false positives
+- EWMA-weighted returns: loses epoch boundary precision
+- Standard drawdown metrics: no TMAEG concept exists
+
+SR&ED-CLAIM: 2026-Q1-ITH
+```
+
+**Documenting Experimental Work**:
+
+```
+experiment(core-rust): test SIMD vectorization for ITH epoch detection
+
+Hypothesis: SIMD intrinsics can accelerate excess_gain_excess_loss by 4x+
+over scalar implementation for datasets > 100K points.
+
+Methodology:
+- Control: scalar Rust implementation (current)
+- Treatment: AVX2 vectorized implementation
+- Dataset: synthetic NAV series, 1M points, 100 iterations
+
+Expected outcome: Sub-linear scaling with data size due to cache efficiency.
+
+SR&ED-CLAIM: 2026-Q1-ITH
+```
+
+**Documenting Technological Advancement**:
+
+```
+advancement(ith-python): Numba JIT achieves near-native performance
+
+Technological advancement achieved: Python+Numba matches Rust performance
+for numerical ITH calculations, eliminating need for FFI complexity.
+
+Benchmark results (1M data points):
+- Python+Numba: 5.5ms (ITH analysis)
+- Rust native: 4.0ms (1.4x faster, within acceptable range)
+- TypeScript: 10.3ms (baseline comparison)
+
+This advances the state of practice by proving JIT-compiled Python is
+viable for production trading fitness analysis, previously assumed to
+require native code.
+
+SR&ED-CLAIM: 2026-Q1-ITH
+```
+
+**Documenting Hypothesis Testing**:
+
+```
+hypothesis(core-bun): TypeScript strict mode improves type safety at runtime
+
+Hypothesis: Enabling strict:true in tsconfig.json will catch array boundary
+errors at compile time that currently cause silent NaN propagation.
+
+Test plan:
+1. Enable strict mode
+2. Fix all compile-time errors
+3. Run existing test suite
+4. Measure NaN-related failures before/after
+
+Expected outcome: Zero runtime NaN errors from array access patterns.
+
+SR&ED-CLAIM: 2026-Q1-ITH
+```
+
+### SR&ED Documentation Structure
+
+Create `docs/SRED.md` to aggregate claim evidence:
+
+```markdown
+# SR&ED Claim Evidence
+
+## Claim Period: 2026-Q1
+
+### Project: ITH (Investment Time Horizon) Analysis
+
+**Technological Uncertainty**:
+
+- Standard fitness metrics (Sharpe, Sortino) don't capture epoch-based performance
+- No existing solution for TMAEG (Target Maximum Acceptable Excess Gain) calculation
+- Uncertainty in optimal JIT compilation strategy for numerical Python
+
+**Technological Advancement**:
+
+- Novel ITH epoch detection algorithm
+- Proof that Numba JIT matches native Rust for trading calculations
+- Cross-language type system via JSON Schema code generation
+
+**Systematic Investigation**:
+
+- Benchmark-driven development with controlled experiments
+- Iterative refinement of TMAEG calculation methodology
+- Comparative analysis across Python, Rust, TypeScript implementations
+
+### Commit Log (SR&ED Tagged)
+
+| Date       | Commit Hash | Type        | Description                     |
+| ---------- | ----------- | ----------- | ------------------------------- |
+| 2026-01-15 | abc123      | uncertainty | Standard Sharpe insufficient    |
+| 2026-01-16 | def456      | experiment  | SIMD vectorization test         |
+| 2026-01-17 | ghi789      | advancement | Numba achieves near-native perf |
+
+### Time Allocation
+
+| Activity                 | Hours | % of Total |
+| ------------------------ | ----- | ---------- |
+| Experimental Development | 40    | 50%        |
+| Applied Research         | 24    | 30%        |
+| Documentation & Analysis | 16    | 20%        |
+```
+
+### Git Log Extraction for Claims
+
+Extract SR&ED-tagged commits for claim preparation:
+
+```bash
+# List all SR&ED commits
+git log --oneline --grep="SR&ED-CLAIM"
+
+# Extract by claim ID
+git log --grep="SR&ED-CLAIM: 2026-Q1-ITH" --format="%h|%ad|%s" --date=short
+
+# Generate claim summary
+git log --grep="SR&ED-CLAIM" --format="| %ad | %h | %s |" --date=short > docs/sred-commits.md
+```
+
+### GitHub Labels for SR&ED
+
+```bash
+# SR&ED claim tracking labels
+gh label create "sred:uncertainty" --color "D93F0B" --description "Documents technological uncertainty"
+gh label create "sred:advancement" --color "0E8A16" --description "Documents technological advancement"
+gh label create "sred:experiment" --color "1D76DB" --description "Experimental development work"
+gh label create "sred:research" --color "5319E7" --description "Scientific research activity"
+gh label create "sred:eligible" --color "FBCA04" --description "Potentially SR&ED eligible"
+```
+
+### SR&ED Commit Enforcement (Claude Code Hook)
+
+Enforce dual commit types (conventional + SR&ED) via PreToolUse hook.
+
+**Recommended format** (Git trailers for metadata):
+
+```
+<conventional-type>(<scope>): <description>
+
+<body>
+
+SRED-Type: <category>
+SRED-Claim: <claim-id>
+```
+
+**Why Git trailers?**
+
+| Approach                         | Parser Support | Extractable              | Recommendation        |
+| -------------------------------- | -------------- | ------------------------ | --------------------- |
+| `feat/experiment:` (dual prefix) | Breaks parsers | No                       | Avoid                 |
+| `feat(sred):` (scope)            | Good           | Partial                  | OK for categorization |
+| `SRED-Type:` (trailer)           | Excellent      | `git interpret-trailers` | **Best for metadata** |
+
+**Hook installation** (add to `~/.claude/settings.json`):
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/sred-commit-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Git commit-msg hook** (for non-Claude commits):
+
+```bash
+#!/bin/bash
+# .githooks/commit-msg
+exec bash /path/to/sred-commit-guard.sh --git-hook "$1"
+```
+
+Enable with: `git config core.hooksPath .githooks`
+
+**Extract SR&ED data for claims**:
+
+```bash
+# All SRED-Type values from commits
+git log --format='%(trailers:key=SRED-Type,valueonly)' | grep -v '^$' | sort | uniq -c
+
+# Export for claim reporting
+git log --since="2026-01-01" --format="%ad|%s|%(trailers:key=SRED-Type,valueonly)|%(trailers:key=SRED-Claim,valueonly)" --date=short
+```
+
+---
+
 ## Success Criteria
 
 The bootstrap is complete when:
 
+**Infrastructure (Phases 0-5)**:
+
 - [ ] All `CLAUDE.md` files exist and link correctly
-- [ ] `pants list ::` shows all targets
+- [ ] `pants list ::` shows all targets (or `mise run affected` for lightweight variant)
 - [ ] `pants --changed-since=origin/main list` runs without error
 - [ ] `mise tasks` shows convenience wrappers
 - [ ] `.mcp.json` is valid JSON
-- [ ] Each package has BUILD file
+- [ ] Each package has BUILD file (or package.json/Cargo.toml/pyproject.toml)
 - [ ] `logs/` directory exists (gitignored)
 - [ ] Initial commit is made
+
+**Types (Phase 6)**:
+
+- [ ] JSON Schema files exist in `packages/shared-types/schemas/`
+- [ ] `scripts/generate-types.sh` generates valid code for all languages
+- [ ] Generated types are referenced in package CLAUDE.md files
+
+**GitHub (Phase 7)**:
+
+- [ ] Repository has description set
+- [ ] Repository has relevant topics (5-10 recommended)
+- [ ] Standard labels created (pkg:_, type:_)
+- [ ] LICENSE file exists in root
+- [ ] README.md has badges, quick start, package table
+- [ ] git-town configured with main branch
+
+**SR&ED Documentation (Optional)**:
+
+- [ ] `docs/SRED.md` created with claim structure
+- [ ] SR&ED labels created (sred:uncertainty, sred:advancement, etc.)
+- [ ] Commit message convention documented
+- [ ] Git log extraction scripts available
 
 ---
 
@@ -443,9 +1131,141 @@ When adding new packages:
 
 ---
 
+## Variant: Lightweight (No Pants)
+
+For smaller projects (< 10 packages), skip Pants and use simple scripts:
+
+### scripts/affected.sh
+
+```bash
+#!/usr/bin/env bash
+# Detect affected packages via git diff
+set -euo pipefail
+
+BASE_BRANCH="${1:-origin/main}"
+CHANGED_FILES=$(git diff --name-only "$BASE_BRANCH"...HEAD)
+
+# Map files to packages
+for file in $CHANGED_FILES; do
+    if [[ "$file" == packages/* ]]; then
+        echo "$file" | cut -d'/' -f2 | sort -u
+    fi
+done
+```
+
+### mise.toml (no Pants)
+
+```toml
+[tasks.test]
+description = "Test all packages"
+run = """
+cd packages/core-python && uv run pytest
+cd ../core-rust && cargo test
+cd ../core-bun && bun test
+"""
+
+[tasks."test:affected"]
+description = "Test affected packages"
+run = "bash scripts/affected.sh | xargs -I{} bash -c 'cd packages/{} && mise run test'"
+```
+
+This variant was used successfully for the trading-fitness monorepo.
+
+---
+
+## Testing Patterns by Language
+
+### Python (pytest)
+
+```python
+# packages/core-python/tests/conftest.py
+import pytest
+import numpy as np
+
+@pytest.fixture
+def sample_nav_data():
+    """Generate synthetic NAV series for testing."""
+    rng = np.random.default_rng(42)
+    returns = rng.normal(0.0005, 0.02, 1000)
+    return 100 * np.cumprod(1 + returns)
+```
+
+Run: `uv run pytest` or `pants test packages/core-python::`
+
+### Rust (built-in)
+
+```rust
+// packages/core-rust/src/lib.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_max_drawdown_uptrend() {
+        let nav = vec![1.0, 1.1, 1.2, 1.3];
+        assert_eq!(max_drawdown(&nav), 0.0);
+    }
+}
+```
+
+Run: `cargo test` or `pants test packages/core-rust::`
+
+### TypeScript (bun:test)
+
+```typescript
+// packages/core-bun/src/metrics.test.ts
+import { describe, expect, test } from "bun:test";
+import { maxDrawdown } from "./metrics";
+
+describe("maxDrawdown", () => {
+  test("returns 0 for uptrend", () => {
+    expect(maxDrawdown([100, 110, 120])).toBe(0);
+  });
+});
+```
+
+Run: `bun test` or `pants test packages/core-bun::`
+
+### TypeScript Strict Mode Gotcha
+
+With `strict: true`, array access returns `T | undefined`. Handle explicitly:
+
+```typescript
+// WRONG: TypeScript error "possibly undefined"
+const value = array[i];
+doSomething(value); // Error!
+
+// CORRECT: Explicit undefined check
+const value = array[i];
+if (value === undefined) {
+  return defaultValue;
+}
+doSomething(value); // OK
+```
+
+---
+
 ## Related Resources
+
+**Build & Environment**:
 
 - [polyglot-affected.md](./polyglot-affected.md) - Tool comparison and Pants + mise guide
 - [Level 11: Pants + mise](../SKILL.md#level-11-polyglot-monorepo-with-pants--mise) - Quick reference
 - [Pants Documentation](https://www.pantsbuild.org/)
 - [mise Documentation](https://mise.jdx.dev/)
+
+**GitHub & Workflow**:
+
+- [git-town Documentation](https://www.git-town.com/) - Branch workflow automation
+- [Shields.io](https://shields.io/) - Badge generation for READMEs
+- [Conventional Commits](https://www.conventionalcommits.org/) - Commit message specification
+
+**Type Systems**:
+
+- [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/schema) - Cross-language type definitions
+
+**SR&ED (Canada)**:
+
+- [CRA SR&ED Program](https://www.canada.ca/en/revenue-agency/services/scientific-research-experimental-development-tax-incentive-program.html) - Official program page
+- [SR&ED Eligibility Criteria](https://www.canada.ca/en/revenue-agency/services/scientific-research-experimental-development-tax-incentive-program/eligibility-work-sred-tax-incentives.html) - What qualifies
+- [SR&ED Claim Guide T4088](https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4088.html) - Claiming procedures
