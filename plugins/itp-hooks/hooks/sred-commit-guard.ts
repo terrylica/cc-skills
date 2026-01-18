@@ -20,15 +20,24 @@ const CONVENTIONAL_TYPES = [
 ] as const;
 
 const SRED_TYPES: Record<string, string> = {
-  'experimental-development': 'Work undertaken to achieve technological advancement through systematic investigation or search by experiment',
-  'applied-research': 'Work undertaken to advance scientific knowledge with a specific practical application in view',
-  'basic-research': 'Work undertaken to advance scientific knowledge without a specific practical application in view',
-  'systematic-investigation': 'Work involving systematic investigation through hypothesis testing and experimentation'
+  'experimental-development': 'Systematic work using knowledge to produce new materials, devices, products, or processes',
+  'applied-research': 'Original investigation with specific practical application in view',
+  'basic-research': 'Original investigation without specific practical application',
+  'systematic-investigation': 'Work involving hypothesis, testing, and analysis to resolve technological uncertainty',
+  'technical-innovation': 'Novel application of existing techniques to new problem domains'
 };
+
+// Valid SRED-Claim IDs from SRED-REGISTRY.md (~/eon/sred-analysis/SRED-REGISTRY.md)
+const VALID_CLAIM_IDS = [
+  '2026-Q1-ITH',
+  '2026-Q1-TRADING-FITNESS',
+  '2026-Q1-POLYGLOT',
+] as const;
 
 const CONFIG = {
   requireSredType: true,
-  requireSredClaim: false,
+  requireSredClaim: true,  // Now mandatory for proper tracking
+  validateClaimIds: true,  // Validate against VALID_CLAIM_IDS
 };
 
 // ============================================================================
@@ -97,17 +106,26 @@ SRED-Claim: <claim-id>
 
 | Category                   | CRA Definition                                |
 |----------------------------|-----------------------------------------------|
-| experimental-development   | Systematic work using scientific knowledge    |
-|                            | to produce new materials, devices, products,  |
-|                            | or processes, or to improve existing ones     |
-| applied-research           | Original investigation to acquire new         |
-|                            | scientific knowledge with specific practical  |
-|                            | application in view                           |
-| basic-research             | Original investigation to acquire new         |
-|                            | scientific knowledge without specific         |
+| experimental-development   | Systematic work using knowledge to produce    |
+|                            | new materials, devices, products, or processes|
+| applied-research           | Original investigation with specific          |
 |                            | practical application in view                 |
+| basic-research             | Original investigation without specific       |
+|                            | practical application                         |
 | systematic-investigation   | Work involving hypothesis, testing, and       |
 |                            | analysis to resolve technological uncertainty |
+| technical-innovation       | Novel application of existing techniques      |
+|                            | to new problem domains                        |
+
+### Valid Claim IDs (from SRED-REGISTRY.md)
+
+| Claim ID               | Project                          |
+|------------------------|----------------------------------|
+| 2026-Q1-ITH            | Investment Time Horizon Analysis |
+| 2026-Q1-TRADING-FITNESS| Trading Strategy Fitness Metrics |
+| 2026-Q1-POLYGLOT       | Polyglot Monorepo Architecture   |
+
+To add new projects: Update ~/eon/sred-analysis/SRED-REGISTRY.md
 
 ### Git Trailer Syntax
 
@@ -217,19 +235,49 @@ ${typeList}`
 function validateSredClaim(message: string): ValidationError | null {
   if (!CONFIG.requireSredClaim) return null;
 
-  const pattern = /^SRED-Claim:\s*.+/m;
+  const pattern = /^SRED-Claim:\s*(.+)/m;
+  const match = message.match(pattern);
 
-  if (!pattern.test(message)) {
+  if (!match) {
+    const claimList = VALID_CLAIM_IDS
+      .map(id => `  SRED-Claim: ${id}`)
+      .join('\n');
+
     return {
       field: 'SRED-Claim',
       message: `Missing SRED-Claim trailer.
 
-Add at the END of your commit message:
-  SRED-Claim: <claim-id>
+Required for SR&ED project tracking and year-end T661 form preparation.
 
-Example: SRED-Claim: 2026-Q1-ITH`
+Add one of the following at the END of your commit message:
+
+${claimList}
+
+Registry: ~/eon/sred-analysis/SRED-REGISTRY.md`
     };
   }
+
+  // Validate claim ID against registry
+  if (CONFIG.validateClaimIds) {
+    const claimId = match[1].trim();
+    if (!VALID_CLAIM_IDS.includes(claimId as typeof VALID_CLAIM_IDS[number])) {
+      const claimList = VALID_CLAIM_IDS
+        .map(id => `  SRED-Claim: ${id}`)
+        .join('\n');
+
+      return {
+        field: 'SRED-Claim',
+        message: `Invalid SRED-Claim: "${claimId}"
+
+This claim ID is not registered. Valid claim IDs:
+
+${claimList}
+
+To add a new project, update: ~/eon/sred-analysis/SRED-REGISTRY.md`
+      };
+    }
+  }
+
   return null;
 }
 
