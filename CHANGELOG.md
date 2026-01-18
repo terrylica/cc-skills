@@ -1,3 +1,25 @@
+## [9.33.2](https://github.com/terrylica/cc-skills/compare/v9.33.1...v9.33.2) (2026-01-18)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+23/-8)
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - new (+93)
+
 ## [9.33.1](https://github.com/terrylica/cc-skills/compare/v9.33.0...v9.33.1) (2026-01-18)
 
 # [9.33.0](https://github.com/terrylica/cc-skills/compare/v9.32.0...v9.33.0) (2026-01-18)
