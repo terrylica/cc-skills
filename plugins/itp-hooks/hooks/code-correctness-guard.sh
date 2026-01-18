@@ -248,12 +248,16 @@ Silent JS failures are debugging nightmares. Make every error VISIBLE."
             if command -v oxlint &>/dev/null; then
                 OXLINT_OUTPUT=$(oxlint "$FILE_PATH" 2>&1 || true)
 
-                ERROR_COUNT=$(echo "$OXLINT_OUTPUT" | grep -c "error" || true)
-                WARNING_COUNT=$(echo "$OXLINT_OUTPUT" | grep -c "warning" || true)
-                OXLINT_COUNT=$((ERROR_COUNT + WARNING_COUNT))
+                # Extract actual issue lines (format: " × error" or " ⚠ warning")
+                # Exclude summary line like "Found 0 warnings and 0 errors."
+                OXLINT_ISSUES=$(echo "$OXLINT_OUTPUT" | grep -E '^\s*(×|⚠)\s+(error|warning)' || true)
+                OXLINT_COUNT=0
+                if [[ -n "$OXLINT_ISSUES" ]]; then
+                    OXLINT_COUNT=$(echo "$OXLINT_ISSUES" | wc -l | tr -d ' ')
+                fi
 
                 if [[ "$OXLINT_COUNT" -gt 0 ]]; then
-                    ISSUES_FOUND=$(echo "$OXLINT_OUTPUT" | grep -E "error|warning" | head -3)
+                    ISSUES_FOUND=$(echo "$OXLINT_ISSUES" | head -3)
                     ISSUE_COUNT=$((ISSUE_COUNT + OXLINT_COUNT))
                 fi
             fi
