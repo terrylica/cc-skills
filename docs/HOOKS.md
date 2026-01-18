@@ -132,16 +132,31 @@ echo '{"tool_name": "Bash", "tool_input": {"command": "gh issue create --body te
   bun plugins/gh-tools/hooks/gh-issue-body-file-guard.mjs
 ```
 
+## Hook Language Policy
+
+**Preferred Language: TypeScript (Bun)**
+
+Use TypeScript/Bun as the default for new hooks. Only use bash for simple pattern matching.
+
+| Criteria                 | Bash             | TypeScript        |
+| ------------------------ | ---------------- | ----------------- |
+| Simple pattern matching  | Preferred        | Overkill          |
+| Complex validation logic | Hard to test     | **Preferred**     |
+| Educational feedback     | Heredocs awkward | Template literals |
+| Type safety              | None             | Full              |
+
+**Reference**: [lifecycle-reference.md](/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) → "Hook Implementation Language Policy"
+
 ## Plugins with Hooks
 
-| Plugin             | Hooks                           | Purpose                 |
-| ------------------ | ------------------------------- | ----------------------- |
-| `itp-hooks`        | PreToolUse (3), PostToolUse (2) | Workflow enforcement    |
-| `ralph`            | PreToolUse (2), Stop (1)        | Autonomous loop control |
-| `gh-tools`         | PreToolUse (2)                  | GitHub CLI enforcement  |
-| `dotfiles-tools`   | PostToolUse (1), Stop (1)       | Chezmoi sync reminder   |
-| `statusline-tools` | Stop (1)                        | Session metrics         |
-| `link-tools`       | Stop (1)                        | Link validation         |
+| Plugin             | Hooks                           | Purpose                             |
+| ------------------ | ------------------------------- | ----------------------------------- |
+| `itp-hooks`        | PreToolUse (5), PostToolUse (2) | Workflow + SR&ED commit enforcement |
+| `ralph`            | PreToolUse (2), Stop (1)        | Autonomous loop control             |
+| `gh-tools`         | PreToolUse (2)                  | GitHub CLI enforcement              |
+| `dotfiles-tools`   | PostToolUse (1), Stop (1)       | Chezmoi sync reminder               |
+| `statusline-tools` | Stop (1)                        | Session metrics                     |
+| `link-tools`       | Stop (1)                        | Link validation                     |
 
 ## Related ADRs
 

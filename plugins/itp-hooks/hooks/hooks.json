@@ -1,5 +1,5 @@
 {
-  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, code correctness, and process storm prevention",
+  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, code correctness, SR&ED commit validation, and process storm prevention",
   "hooks": {
     "PreToolUse": [
       {
@@ -39,6 +39,16 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-process-storm-guard.mjs",
             "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/sred-commit-guard.ts",
+            "timeout": 10000
           }
         ]
       }
