@@ -1,3 +1,30 @@
+# [9.35.0](https://github.com/terrylica/cc-skills/compare/v9.34.0...v9.35.0) (2026-01-18)
+
+
+### Features
+
+* **itp-hooks:** dynamic SR&ED project discovery via Claude Agent SDK ([#10](https://github.com/terrylica/cc-skills/issues/10)) ([1f7c170](https://github.com/terrylica/cc-skills/commit/1f7c170316ecb09cc3ec098f06c215a0db545666))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [SR&ED Dynamic Project Discovery via Claude Agent SDK](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-18-sred-dynamic-discovery.md) | new (+358) |
+
+### Design Specs
+
+- [SR&ED Project Discovery: Forked Haiku Session via Claude Agent SDK](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-18-sred-dynamic-discovery/spec.md) - new (+605)
+
 # [9.34.0](https://github.com/terrylica/cc-skills/compare/v9.33.2...v9.34.0) (2026-01-18)
 
 
