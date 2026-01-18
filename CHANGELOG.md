@@ -1,3 +1,10 @@
+# [9.34.0](https://github.com/terrylica/cc-skills/compare/v9.33.2...v9.34.0) (2026-01-18)
+
+
+### Features
+
+* **itp-hooks:** make SRED-Claim mandatory with registry validation ([51f719b](https://github.com/terrylica/cc-skills/commit/51f719b253f47a2661f7163079fd33ea4b633d89))
+
 ## [9.33.2](https://github.com/terrylica/cc-skills/compare/v9.33.1...v9.33.2) (2026-01-18)
 
 
