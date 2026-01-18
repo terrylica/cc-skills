@@ -879,9 +879,63 @@ rm ~/.claude/plugins/cache/cc-skills/<plugin>/local
 }
 ```
 
-## Complete PreToolUse Hook Template
+## Hook Implementation Language Policy
 
-A complete, copy-paste-ready template for PreToolUse hooks with all required patterns:
+**Preferred Language: TypeScript (Bun)**
+
+Use TypeScript with Bun as the default choice for new hooks. Only use bash when there's a significant technical advantage.
+
+### Decision Matrix
+
+| Criteria                      | Bash              | TypeScript/Bun     | Winner     |
+| ----------------------------- | ----------------- | ------------------ | ---------- |
+| **Testability**               | Hard to unit test | Full test support  | TypeScript |
+| **Type Safety**               | None              | Full inference     | TypeScript |
+| **Error Handling**            | Fragile ($?)      | try/catch/finally  | TypeScript |
+| **Complex Validation**        | Awkward           | Native             | TypeScript |
+| **JSON Parsing**              | Requires jq       | Native             | TypeScript |
+| **Async Operations**          | Subprocess spawns | Native async/await | TypeScript |
+| **Large Reference Content**   | Heredocs messy    | Template literals  | TypeScript |
+| **External API Calls**        | curl + jq         | fetch() native     | TypeScript |
+| **Simple Pattern Match Only** | grep -E one-liner | Regex overkill     | **Bash**   |
+| **System Command Wrappers**   | Natural fit       | subprocess call    | **Bash**   |
+| **Zero Dependencies**         | Built-in          | Requires Bun       | **Bash**   |
+
+### When to Use Bash
+
+Only use bash scripts for hooks when:
+
+1. **One-liner patterns** - Simple `grep -E` or `[[ ]]` checks with no complex logic
+2. **System command wrappers** - Thin wrappers around git, shellcheck, or other CLI tools
+3. **Legacy compatibility** - Maintaining existing bash hooks (but consider migration)
+4. **Portability requirements** - Environments where Bun isn't available
+
+### When to Use TypeScript (Default)
+
+Use TypeScript/Bun for:
+
+1. **Any validation with business logic** - Type checking, schema validation, complex rules
+2. **Hooks that provide educational feedback** - Large reference material, formatted output
+3. **Multi-step validation** - Multiple checks with aggregated results
+4. **Hooks that call external APIs** - GitHub, Slack, webhooks
+5. **New hooks** - Start with TypeScript unless bash has clear advantage
+
+### Migration Path
+
+Existing bash hooks with >50 lines or complex logic should be migrated to TypeScript:
+
+1. Create `.ts` version following the TypeScript template below
+2. Test both versions produce identical JSON output for same inputs
+3. Replace settings.json reference
+4. Archive bash version in `legacy/` directory
+
+```{=latex}
+\newpage
+```
+
+## Complete PreToolUse Hook Template (Bash)
+
+Use this template ONLY for simple pattern matching hooks. For complex validation, use the TypeScript template instead.
 
 ```bash
 #!/usr/bin/env bash
@@ -931,6 +985,141 @@ exit 0
 - `jq -r '.field // ""'` extracts fields with empty string fallback
 - Exit 0 with JSON for soft block; exit 2 for hard block
 - The template is safe to copy verbatim and customize
+
+## Complete PreToolUse Hook Template (Bun/TypeScript) — PREFERRED
+
+Use this template as the **default** for all new hooks. TypeScript provides type safety, testability, and cleaner error handling. See "Hook Implementation Language Policy" above.
+
+```typescript
+#!/usr/bin/env bun
+/**
+ * PreToolUse hook template - Bun/TypeScript version
+ * More testable than bash; same lifecycle semantics.
+ */
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface PreToolUseInput {
+  tool_name: string;
+  tool_input: {
+    command?: string;
+    file_path?: string;
+    [key: string]: unknown;
+  };
+  tool_use_id?: string;
+  cwd?: string;
+}
+
+interface HookResult {
+  exitCode: number;
+  stdout?: string;
+  stderr?: string;
+}
+
+// ============================================================================
+// OUTPUT FORMATTERS
+// ============================================================================
+
+function createBlockOutput(reason: string): string {
+  return JSON.stringify(
+    {
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: reason,
+      },
+    },
+    null,
+    2,
+  );
+}
+
+// ============================================================================
+// MAIN LOGIC - Pure function returning result (no process.exit in logic)
+// ============================================================================
+
+async function runHook(): Promise<HookResult> {
+  // Read JSON from stdin
+  const stdin = await Bun.stdin.text();
+  if (!stdin.trim()) {
+    return { exitCode: 0 }; // Empty stdin, allow through
+  }
+
+  let input: PreToolUseInput;
+  try {
+    input = JSON.parse(stdin);
+  } catch (parseError: unknown) {
+    const msg =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    return {
+      exitCode: 0,
+      stderr: `[HOOK] JSON parse error (allowing through): ${msg}`,
+    };
+  }
+
+  // TOOL TYPE CHECK - filter by tool
+  if (input.tool_name !== "Bash") {
+    return { exitCode: 0 }; // Not our target tool
+  }
+
+  const command = input.tool_input?.command || "";
+
+  // COMMAND PATTERN CHECK - filter by command content
+  if (!/your-pattern-here/.test(command)) {
+    return { exitCode: 0 }; // Not a matching command
+  }
+
+  // VALIDATION LOGIC
+  if (/* dangerous_condition */ false) {
+    return {
+      exitCode: 0,
+      stdout: createBlockOutput("Blocked: explanation of why this is blocked"),
+    };
+  }
+
+  // ALLOW - let the command proceed
+  return { exitCode: 0 };
+}
+
+// ============================================================================
+// ENTRY POINT - Single location for process.exit
+// ============================================================================
+
+async function main(): Promise<never> {
+  let result: HookResult;
+
+  try {
+    result = await runHook();
+  } catch (err: unknown) {
+    // Unexpected error - log and allow through to avoid blocking on bugs
+    console.error("[HOOK] Unexpected error:");
+    if (err instanceof Error) {
+      console.error(`  Message: ${err.message}`);
+      console.error(`  Stack: ${err.stack}`);
+    }
+    return process.exit(0);
+  }
+
+  if (result.stderr) console.error(result.stderr);
+  if (result.stdout) console.log(result.stdout);
+  return process.exit(result.exitCode);
+}
+
+void main();
+```
+
+**Key points (TypeScript-specific):**
+
+- `Bun.stdin.text()` reads JSON from stdin (equivalent to bash `cat`)
+- Pure `runHook()` function returns `HookResult` - no `process.exit()` in logic
+- Single `main()` entry point handles all `process.exit()` calls
+- Structured error handling with full stack trace logging
+- Type-safe interfaces prevent silent failures from typos
+- Easier to unit test than bash scripts
+
+**Note:** See the "Hook Implementation Language Policy" section above for the complete decision matrix on when to use TypeScript vs bash. TypeScript is the default choice for new hooks.
 
 ```{=latex}
 \end{document}
