@@ -1,3 +1,29 @@
+# [9.33.0](https://github.com/terrylica/cc-skills/compare/v9.32.0...v9.33.0) (2026-01-18)
+
+
+### Features
+
+* **itp-hooks:** add TypeScript/Bun hook template and SR&ED commit guard ([36389c7](https://github.com/terrylica/cc-skills/commit/36389c7b7814091590d6b2d7f8805a9871146c38))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+191/-2)
+
+</details>
+
 # [9.32.0](https://github.com/terrylica/cc-skills/compare/v9.31.0...v9.32.0) (2026-01-18)
 
 
