@@ -1,8 +1,8 @@
 ---
 adr: 2026-01-18-sred-dynamic-discovery
 source: ~/.claude/plans/piped-spinning-dawn.md
-implementation-status: in_progress
-phase: phase-1
+implementation-status: completed
+phase: phase-2
 last-updated: 2026-01-18
 ---
 
@@ -419,20 +419,20 @@ Uses CLI subscription for Haiku sessions.
 
 ### Core Functionality
 
-- [ ] Zero hardcoded project identifiers
-- [ ] Haiku analyzes git history via Claude Agent SDK
-- [ ] Returns structured suggestion with reasoning
-- [ ] Hook isolation via `settingSources: []`
-- [ ] Fallback suggestion on SDK/network errors (still blocks, uses derived project ID)
-- [ ] Output `permissionDecisionReason` with structured suggestions (Claude uses AskUserQuestion)
+- [x] Zero hardcoded project identifiers — `VALID_CLAIM_IDS` removed from sred-commit-guard.ts
+- [x] Haiku analyzes git history via Claude Agent SDK — `queryHaiku()` in sred-discovery.ts:200
+- [x] Returns structured suggestion with reasoning — `DiscoveryResult` type with reasoning field
+- [x] Hook isolation via `settingSources: []` — sred-discovery.ts:244
+- [x] Fallback suggestion on SDK/network errors (still blocks, uses derived project ID) — `formatFailure()` tested
+- [x] Output `permissionDecisionReason` with structured suggestions (Claude uses AskUserQuestion) — Verified in E2E tests
 
 ### Safety
 
-- [ ] Offline detection skips API when disconnected
-- [ ] Scope-based caching reduces redundant calls
-- [ ] Bun compatible with Zod 3.x dependency
+- [x] Offline detection skips API when disconnected — `checkNetworkConnectivity()` with 100ms TCP check
+- [x] Scope-based caching reduces redundant calls — `readCache()`/`writeCache()` with 5-min TTL
+- [x] Bun compatible with Zod 3.x dependency — Installed zod@3.25.76
 
-### SR&ED Maximization
+### SR&ED Maximization (DEFERRED to future phase)
 
 - [ ] Keyword detection triggers eligibility prompts
 - [ ] H-E-R-A body template suggested for eligible work
@@ -440,6 +440,8 @@ Uses CLI subscription for Haiku sessions.
 - [ ] Routine commits auto-excluded from prompts
 - [ ] Branch name auto-suggests SR&ED type
 - [ ] Investigation chains detected and linked
+
+> **Note**: SR&ED Maximization features are enhancement ideas listed in the plan but outside core scope. Core functionality is complete.
 
 ## Fallback Behavior
 
