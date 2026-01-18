@@ -2,13 +2,18 @@
 /**
  * sred-commit-guard.ts - Claude Code PreToolUse hook for SR&ED commit enforcement
  *
+ * ADR: 2026-01-18-sred-dynamic-discovery
+ *
  * Validates commits include BOTH conventional commit type AND SR&ED git trailers.
  * Provides comprehensive educational feedback when blocking.
+ * Uses dynamic discovery via Claude Agent SDK for project identifier suggestions.
  *
  * Usage:
  *   PreToolUse: Piped JSON with tool_input.command containing git commit
  *   Git hook:   bun sred-commit-guard.ts --git-hook <commit-msg-file>
  */
+
+import { discoverProject, formatDiscoveryResult } from './sred-discovery';
 
 // ============================================================================
 // CONFIGURATION
@@ -19,25 +24,23 @@ const CONVENTIONAL_TYPES = [
   'perf', 'test', 'build', 'ci', 'chore', 'revert'
 ] as const;
 
+// Valid SRED-Type values per CRA glossary
+// ADR: 2026-01-18-sred-dynamic-discovery
 const SRED_TYPES: Record<string, string> = {
-  'experimental-development': 'Systematic work using knowledge to produce new materials, devices, products, or processes',
-  'applied-research': 'Original investigation with specific practical application in view',
-  'basic-research': 'Original investigation without specific practical application',
-  'systematic-investigation': 'Work involving hypothesis, testing, and analysis to resolve technological uncertainty',
-  'technical-innovation': 'Novel application of existing techniques to new problem domains'
+  'experimental-development': 'Achieving technological advancement through systematic work',
+  'applied-research': 'Scientific knowledge with specific practical application in view',
+  'basic-research': 'Scientific knowledge without specific practical application',
+  'support-work': 'Programming, testing, data collection supporting SR&ED activities',
 };
 
-// Valid SRED-Claim IDs from SRED-REGISTRY.md (~/eon/sred-analysis/SRED-REGISTRY.md)
-const VALID_CLAIM_IDS = [
-  '2026-Q1-ITH',
-  '2026-Q1-TRADING-FITNESS',
-  '2026-Q1-POLYGLOT',
-] as const;
+// Project identifier format: PROJECT[-VARIANT] (uppercase)
+// Year/quarter extracted from git commit timestamp at CRA report time
+// ADR: 2026-01-18-sred-dynamic-discovery
+const PROJECT_ID_PATTERN = /^[A-Z][A-Z0-9]*(-[A-Z][A-Z0-9]*)*$/;
 
 const CONFIG = {
   requireSredType: true,
   requireSredClaim: true,  // Now mandatory for proper tracking
-  validateClaimIds: true,  // Validate against VALID_CLAIM_IDS
 };
 
 // ============================================================================
@@ -102,30 +105,29 @@ SRED-Claim: <claim-id>
 | chore      | Maintenance tasks                              |
 | revert     | Reverting a previous commit                    |
 
-### SR&ED Categories (CRA Definitions)
+### SR&ED Types (CRA Definitions)
 
-| Category                   | CRA Definition                                |
+| Type                       | CRA Definition                                |
 |----------------------------|-----------------------------------------------|
-| experimental-development   | Systematic work using knowledge to produce    |
-|                            | new materials, devices, products, or processes|
-| applied-research           | Original investigation with specific          |
-|                            | practical application in view                 |
-| basic-research             | Original investigation without specific       |
+| experimental-development   | Achieving technological advancement through   |
+|                            | systematic work                               |
+| applied-research           | Scientific knowledge with specific practical  |
+|                            | application in view                           |
+| basic-research             | Scientific knowledge without specific         |
 |                            | practical application                         |
-| systematic-investigation   | Work involving hypothesis, testing, and       |
-|                            | analysis to resolve technological uncertainty |
-| technical-innovation       | Novel application of existing techniques      |
-|                            | to new problem domains                        |
+| support-work               | Programming, testing, data collection         |
+|                            | supporting SR&ED activities                   |
 
-### Valid Claim IDs (from SRED-REGISTRY.md)
+### Project Identifier Format
 
-| Claim ID               | Project                          |
-|------------------------|----------------------------------|
-| 2026-Q1-ITH            | Investment Time Horizon Analysis |
-| 2026-Q1-TRADING-FITNESS| Trading Strategy Fitness Metrics |
-| 2026-Q1-POLYGLOT       | Polyglot Monorepo Architecture   |
+Format: \`PROJECT[-VARIANT]\` (uppercase)
+- PROJECT: Internal project name derived from commit scope
+- VARIANT: Optional sub-project identifier
 
-To add new projects: Update ~/eon/sred-analysis/SRED-REGISTRY.md
+Examples: \`MY-PROJECT\`, \`MY-PROJECT-VARIANT\`, \`FEATURE-X\`
+
+Year and quarter are automatically extracted from git commit timestamps
+at CRA report time - no need to include in the project identifier.
 
 ### Git Trailer Syntax
 
@@ -139,36 +141,35 @@ Git trailers are key-value metadata at the END of commit messages:
 
 **Example 1: Feature with Experimental Development**
 \`\`\`
-feat(ith-python): implement adaptive TMAEG threshold algorithm
+feat(my-feature): implement adaptive threshold algorithm
 
-Adds volatility-regime-aware threshold adjustment for ITH epoch detection.
-Uses rolling 60-day windows for baseline calculation with dynamic adjustment
-based on realized volatility vs implied volatility spread.
+Adds regime-aware threshold adjustment for epoch detection.
+Uses rolling windows for baseline calculation with dynamic adjustment.
 
 SRED-Type: experimental-development
-SRED-Claim: 2026-Q1-ITH
+SRED-Claim: MY-FEATURE
 \`\`\`
 
-**Example 2: Performance with Systematic Investigation**
+**Example 2: Performance with Experimental Development**
 \`\`\`
-perf(core-rust): optimize SIMD vectorization for fitness calculation
+perf(optimization): optimize SIMD vectorization for calculation
 
 Benchmarks show 4.2x speedup over scalar implementation for datasets
 exceeding 100K points. Memory bandwidth saturation observed at 1M+ points.
 
-SRED-Type: systematic-investigation
-SRED-Claim: 2026-Q1-ITH
+SRED-Type: experimental-development
+SRED-Claim: OPTIMIZATION
 \`\`\`
 
 **Example 3: Fix with Applied Research**
 \`\`\`
-fix(metrics): correct Sharpe ratio annualization for crypto markets
+fix(metrics): correct ratio annualization for different markets
 
-The original implementation assumed 252 trading days. Crypto markets
+The original implementation assumed 252 trading days. Different markets
 operate 365 days, requiring adjusted annualization factor.
 
 SRED-Type: applied-research
-SRED-Claim: 2026-Q1-ITH
+SRED-Claim: METRICS
 \`\`\`
 
 ### Extraction for CRA Claims
@@ -239,43 +240,36 @@ function validateSredClaim(message: string): ValidationError | null {
   const match = message.match(pattern);
 
   if (!match) {
-    const claimList = VALID_CLAIM_IDS
-      .map(id => `  SRED-Claim: ${id}`)
-      .join('\n');
-
+    // Missing SRED-Claim - will trigger discovery in async validation
     return {
       field: 'SRED-Claim',
       message: `Missing SRED-Claim trailer.
 
 Required for SR&ED project tracking and year-end T661 form preparation.
 
-Add one of the following at the END of your commit message:
+Format: PROJECT[-VARIANT] (uppercase)
+Examples: MY-PROJECT, MY-PROJECT-VARIANT, FEATURE-X
 
-${claimList}
-
-Registry: ~/eon/sred-analysis/SRED-REGISTRY.md`
+Add at the END of your commit message:
+  SRED-Claim: <PROJECT-IDENTIFIER>`
     };
   }
 
-  // Validate claim ID against registry
-  if (CONFIG.validateClaimIds) {
-    const claimId = match[1].trim();
-    if (!VALID_CLAIM_IDS.includes(claimId as typeof VALID_CLAIM_IDS[number])) {
-      const claimList = VALID_CLAIM_IDS
-        .map(id => `  SRED-Claim: ${id}`)
-        .join('\n');
+  // Validate format only - no hardcoded registry
+  const claimId = match[1].trim();
+  if (!PROJECT_ID_PATTERN.test(claimId)) {
+    return {
+      field: 'SRED-Claim',
+      message: `Invalid SRED-Claim format: "${claimId}"
 
-      return {
-        field: 'SRED-Claim',
-        message: `Invalid SRED-Claim: "${claimId}"
+Project identifier must be:
+- Uppercase letters and numbers only
+- Format: PROJECT[-VARIANT]
+- Start with a letter
+- Use hyphens to separate parts
 
-This claim ID is not registered. Valid claim IDs:
-
-${claimList}
-
-To add a new project, update: ~/eon/sred-analysis/SRED-REGISTRY.md`
-      };
-    }
+Examples: MY-PROJECT, MY-PROJECT-VARIANT, FEATURE-X`
+    };
   }
 
   return null;
@@ -450,6 +444,28 @@ async function runHook(): Promise<HookResult> {
     .replace(/\\t/g, '\t'); // Handle escaped tabs
 
   const errors = validateCommitMessage(commitMessage);
+
+  // Check if only SRED-Claim is missing - trigger discovery
+  const hasSredClaimError = errors.some((e) => e.field === 'SRED-Claim' && e.message.includes('Missing'));
+  const otherErrors = errors.filter((e) => e.field !== 'SRED-Claim' || !e.message.includes('Missing'));
+
+  if (hasSredClaimError && otherErrors.length === 0) {
+    // Only SRED-Claim is missing - use dynamic discovery
+    try {
+      const discoveryResult = await discoverProject(commitMessage);
+      const reason = formatDiscoveryResult(discoveryResult);
+      return {
+        exitCode: 0,
+        stdout: createClaudeBlockOutput(reason),
+      };
+    } catch {
+      // Discovery failed completely - use basic error message
+      return {
+        exitCode: 0,
+        stdout: createClaudeBlockOutput(formatBlockResponse(errors, commitMessage)),
+      };
+    }
+  }
 
   if (errors.length > 0) {
     return {
