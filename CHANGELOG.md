@@ -1,3 +1,29 @@
+# [9.32.0](https://github.com/terrylica/cc-skills/compare/v9.31.0...v9.32.0) (2026-01-18)
+
+
+### Features
+
+* **itp:** add SR&ED commit conventions and GitHub repository setup ([06260f6](https://github.com/terrylica/cc-skills/commit/06260f6ecfcbae57295741fe6ce568cf4623942f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md) - updated (+831/-11)
+
+</details>
+
 # [9.31.0](https://github.com/terrylica/cc-skills/compare/v9.30.1...v9.31.0) (2026-01-16)
 
 
