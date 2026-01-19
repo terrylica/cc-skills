@@ -1,3 +1,51 @@
+# [9.37.0](https://github.com/terrylica/cc-skills/compare/v9.36.1...v9.37.0) (2026-01-19)
+
+
+### Features
+
+* **quant-research:** add adaptive-wfo-epoch skill and enhance metrics ([bb58f7a](https://github.com/terrylica/cc-skills/commit/bb58f7a47e088cf681a4912fb224ae589a11401a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quant-research</strong> (2 changes)</summary>
+
+- [adaptive-wfo-epoch](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/SKILL.md) - new (+405)
+- [rangebar-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/SKILL.md) - updated (+40)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quant-research/adaptive-wfo-epoch</strong> (4 files)</summary>
+
+- [Academic Foundations: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/academic-foundations.md) - new (+264)
+- [Anti-Patterns: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/anti-patterns.md) - new (+374)
+- [Decision Tree: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/epoch-selection-decision-tree.md) - new (+569)
+- [Mathematical Formulation: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/mathematical-formulation.md) - new (+351)
+
+</details>
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (2 files)</summary>
+
+- [ML Prediction Quality Metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/ml-prediction-quality.md) - updated (+73/-7)
+- [Risk Metrics for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/risk-metrics.md) - updated (+34/-3)
+
+</details>
+
 ## [9.36.1](https://github.com/terrylica/cc-skills/compare/v9.36.0...v9.36.1) (2026-01-19)
 
 
