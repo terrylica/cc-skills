@@ -14,7 +14,7 @@ This skill redirects to the canonical reference in mise-tasks.
 
 - Starting a new polyglot monorepo from scratch
 - Setting up Python + Rust + Bun/TypeScript project structure
-- Need autonomous 8-phase bootstrap workflow
+- Need autonomous 9-phase bootstrap workflow (includes release setup)
 - Want Pants + mise integration for affected detection
 
 ## Stack
@@ -38,3 +38,4 @@ pants list ::                              # List all targets
 
 - `itp:mise-tasks` - Task orchestration and affected detection (Level 11)
 - `itp:mise-configuration` - Environment and tool version management
+- `itp:semantic-release` - Release automation (Phase 8 reference)
