@@ -183,6 +183,93 @@ git log --since="2026-01-01" --until="2026-03-31" \\
 `;
 
 // ============================================================================
+// COMMIT MESSAGE EXTRACTION
+// ============================================================================
+
+interface ExtractionResult {
+  found: boolean;
+  message: string;
+  method: 'heredoc' | 'file' | 'double-quote' | 'single-quote' | 'heredoc-bypass' | 'none';
+}
+
+/**
+ * Extract commit message from git command using multiple strategies.
+ *
+ * Handles:
+ * 1. Heredoc patterns: -m "$(cat <<'EOF'...EOF)" or -m "$(cat <<EOF...EOF)"
+ * 2. File flag: -F <file> or --file=<file>
+ * 3. Standard quotes: -m "message" or -m 'message'
+ * 4. Command substitution with nested quotes
+ *
+ * Returns { found: false } when:
+ * - No -m or -F flag detected (editor mode)
+ * - Heredoc detected but unparseable (allows git hook to validate)
+ * - File flag with path we can't/shouldn't read synchronously
+ */
+function extractCommitMessage(command: string): ExtractionResult {
+  // Strategy 1: Detect heredoc patterns and extract content
+  // Matches: -m "$(cat <<'EOF'\n...\nEOF\n)"  or  -m "$(cat <<EOF\n...\nEOF\n)"
+  const heredocMatch = command.match(
+    /-m\s+["']\$\(cat\s+<<['"]?(\w+)['"]?\s*([\s\S]*?)\1\s*\)["']/
+  );
+  if (heredocMatch) {
+    const content = heredocMatch[2]
+      .replace(/^\n/, '')   // Remove leading newline after delimiter
+      .replace(/\n$/, '');  // Remove trailing newline before delimiter
+    return { found: true, message: content, method: 'heredoc' };
+  }
+
+  // Strategy 1b: Detect heredoc pattern that we can't fully parse
+  // If command contains heredoc syntax but regex didn't capture it,
+  // allow through for git commit-msg hook to validate
+  if (/-m\s+["']\$\(cat\s+<</.test(command)) {
+    // Heredoc detected but complex/multiline - let git hook handle
+    return { found: false, message: '', method: 'heredoc-bypass' };
+  }
+
+  // Strategy 2: File flag (-F <file> or --file=<file>)
+  // Note: We allow through rather than reading file synchronously
+  // because the file might not exist yet or path resolution is complex
+  const fileMatch = command.match(/-F\s+(\S+)|--file[=\s](\S+)/);
+  if (fileMatch) {
+    const filePath = fileMatch[1] || fileMatch[2];
+    // For synchronous file reading, we could do:
+    // const file = Bun.file(filePath);
+    // if (await file.exists()) { ... }
+    // But since this is in the hot path and file may not exist,
+    // allow through for git hook validation
+    return { found: false, message: '', method: 'file' };
+  }
+
+  // Strategy 3: Double-quoted message with proper escaping
+  // Use a more sophisticated pattern that handles escaped quotes and command substitution
+  // Match: -m "..." where ... can contain \", \\, or any non-quote char
+  const doubleQuoteMatch = command.match(/-m\s+"((?:[^"\\]|\\.)*)"/);
+  if (doubleQuoteMatch) {
+    const message = doubleQuoteMatch[1]
+      .replace(/\\n/g, '\n')   // Handle escaped newlines
+      .replace(/\\t/g, '\t')   // Handle escaped tabs
+      .replace(/\\"/g, '"')    // Handle escaped double quotes
+      .replace(/\\\\/g, '\\'); // Handle escaped backslashes
+    return { found: true, message, method: 'double-quote' };
+  }
+
+  // Strategy 4: Single-quoted message (no escape processing needed in shell)
+  // Match: -m '...' where ... is everything until closing single quote
+  // Note: In shell, single quotes preserve everything literally
+  const singleQuoteMatch = command.match(/-m\s+'([^']*)'/);
+  if (singleQuoteMatch) {
+    const message = singleQuoteMatch[1]
+      .replace(/\\n/g, '\n')   // Handle escaped newlines (for consistency)
+      .replace(/\\t/g, '\t');  // Handle escaped tabs
+    return { found: true, message, method: 'single-quote' };
+  }
+
+  // No -m flag or unrecognized pattern - editor mode or complex command
+  return { found: false, message: '', method: 'none' };
+}
+
+// ============================================================================
 // VALIDATION FUNCTIONS
 // ============================================================================
 
@@ -423,19 +510,17 @@ async function runHook(): Promise<HookResult> {
     };
   }
 
-  // Extract commit message from -m flag
-  const messageMatch = command.match(/-m\s+["']([^"']+)["']/) ||
-                       command.match(/-m\s+"([^"]+)"/) ||
-                       command.match(/-m\s+'([^']+)'/);
+  // Extract commit message using robust multi-strategy approach
+  // ADR: Fixes heredoc/command-substitution parsing issues
+  const extractResult = extractCommitMessage(command);
 
-  if (!messageMatch) {
-    // No inline message (using editor) - allow, git hook will validate
+  if (!extractResult.found) {
+    // No inline message detected - allow through, git hook will validate
+    // This handles: editor mode, unrecognized patterns, -F with unreadable file
     return { exitCode: 0 };
   }
 
-  const commitMessage = messageMatch[1]
-    .replace(/\\n/g, '\n')  // Handle escaped newlines
-    .replace(/\\t/g, '\t'); // Handle escaped tabs
+  const commitMessage = extractResult.message;
 
   const errors = validateCommitMessage(commitMessage);
 
