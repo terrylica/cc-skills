@@ -1,3 +1,54 @@
+# [9.36.0](https://github.com/terrylica/cc-skills/compare/v9.35.3...v9.36.0) (2026-01-19)
+
+
+### Features
+
+* **quant-research:** add quantitative research metrics plugin ([8c93d22](https://github.com/terrylica/cc-skills/commit/8c93d2287e80bda24caef24fcaa9044d4b79d49b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [rangebar-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/SKILL.md) - new (+144)
+
+</details>
+
+
+### Plugin READMEs
+
+- [quant-research](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/README.md) - new (+28)
+
+### Skill References
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (5 files)</summary>
+
+- [Crypto Market Considerations](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/crypto-markets.md) - new (+233)
+- [ML Prediction Quality Metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/ml-prediction-quality.md) - new (+250)
+- [Risk Metrics for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/risk-metrics.md) - new (+226)
+- [Sharpe Ratio Formulas for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/sharpe-formulas.md) - new (+247)
+- [Temporal Aggregation for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/temporal-aggregation.md) - new (+140)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+1/-1)
+
 ## [9.35.3](https://github.com/terrylica/cc-skills/compare/v9.35.2...v9.35.3) (2026-01-19)
 
 
