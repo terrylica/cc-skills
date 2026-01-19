@@ -14,6 +14,7 @@
  */
 
 import { discoverProject, formatDiscoveryResult } from './sred-discovery';
+import { type PreToolUseInput } from './pretooluse-helpers.ts';
 
 // ============================================================================
 // CONFIGURATION
@@ -47,14 +48,7 @@ const CONFIG = {
 // TYPES
 // ============================================================================
 
-interface PreToolUseInput {
-  tool_name: string;
-  tool_input: {
-    command?: string;
-  };
-  tool_use_id?: string;
-  cwd?: string;
-}
+// PreToolUseInput imported from ./pretooluse-helpers.ts
 
 interface ValidationError {
   field: string;

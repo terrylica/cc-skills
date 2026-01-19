@@ -71,6 +71,12 @@ export function formatFailure(
  * @param confidence - Confidence level (0-1)
  * @returns Formatted message for permissionDecisionReason
  */
+function getConfidenceLabel(confidence: number): string {
+  if (confidence >= 0.8) return 'high';
+  if (confidence >= 0.5) return 'medium';
+  return 'low';
+}
+
 export function formatSuggestion(
   suggestedProject: string,
   reasoning: string,
@@ -78,7 +84,7 @@ export function formatSuggestion(
   confidence: number = 0.8,
 ): string {
   const alternativeLines = alternatives.map((alt) => `- ${alt}`).join('\n');
-  const confidenceLabel = confidence >= 0.8 ? 'high' : confidence >= 0.5 ? 'medium' : 'low';
+  const confidenceLabel = getConfidenceLabel(confidence);
 
   return (
     `[SRED-GUARD] Missing SRED-Claim trailer.\n\n` +
