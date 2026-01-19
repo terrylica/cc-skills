@@ -1,0 +1,247 @@
+# Sharpe Ratio Formulas for Range Bars
+
+## Why Standard Sharpe Fails for Range Bars
+
+Standard Sharpe annualization assumes:
+
+1. **IID returns**: Each observation is independent, identically distributed
+2. **Fixed intervals**: Observations occur at regular time intervals
+3. **sqrt(N) scaling**: Volatility scales with sqrt(time)
+
+**Range bars violate ALL three assumptions.**
+
+## Canonical Approach: Daily Aggregation
+
+```python
+import pandas as pd
+import numpy as np
+
+def _group_by_day(pnl: np.ndarray, timestamps: np.ndarray) -> np.ndarray:
+    """Aggregate bar-level PnL to daily PnL.
+
+    This restores IID-like properties by:
+    1. Normalizing variable bar counts per day
+    2. Creating fixed-interval (daily) observations
+    3. Reducing autocorrelation from bar clustering
+    """
+    df = pd.DataFrame({
+        "pnl": pnl,
+        "ts": pd.to_datetime(timestamps, utc=True)
+    })
+    df["date"] = df["ts"].dt.date
+    return df.groupby("date")["pnl"].sum().values
+
+
+def weekly_sharpe(pnl: np.ndarray, timestamps: np.ndarray, days_per_week: int = 7) -> float:
+    """Daily-aggregated Sharpe scaled to weekly.
+
+    Args:
+        pnl: Bar-level PnL array
+        timestamps: Bar close timestamps (UTC)
+        days_per_week: 7 for crypto, 5 for equities
+
+    Returns:
+        Weekly Sharpe ratio
+    """
+    daily_pnl = _group_by_day(pnl, timestamps)
+
+    if len(daily_pnl) < 2:
+        return 0.0
+
+    std = np.std(daily_pnl, ddof=1)
+    if std < 1e-10:
+        return 0.0
+
+    daily_sharpe = np.mean(daily_pnl) / std
+    return daily_sharpe * np.sqrt(days_per_week)
+```
+
+## Annualization Factors
+
+```yaml
+annualization:
+  crypto_24_7:
+    daily_to_weekly: 2.6458 # sqrt(7)
+    daily_to_annual: 19.1049 # sqrt(365)
+    rationale: "Crypto markets trade 24/7, 365 days/year"
+
+  equity:
+    daily_to_weekly: 2.2361 # sqrt(5)
+    daily_to_annual: 15.8745 # sqrt(252)
+    rationale: "Equity markets trade ~252 days/year"
+
+  # CRITICAL: Never mix these!
+  anti_patterns:
+    - "Using sqrt(252) for crypto"
+    - "Using sqrt(365) for equities"
+    - "Using sqrt(N) on bar-level data directly"
+```
+
+## Mertens (2002) Standard Error
+
+Non-normality adjustment for Sharpe SE:
+
+```python
+from scipy import stats
+
+def sharpe_standard_error(
+    sharpe: float,
+    n_observations: int,
+    skewness: float,
+    kurtosis: float  # Pearson form: normal = 3
+) -> float:
+    """Sharpe SE with Mertens (2002) non-normality adjustment.
+
+    SE(SR) = sqrt((1 + 0.5×SR² - γ₃×SR + (γ₄-3)/4×SR²) / (n-1))
+
+    Where:
+        γ₃ = skewness
+        γ₄ = kurtosis (Pearson, normal = 3)
+    """
+    if n_observations < 2:
+        return float("nan")
+
+    # Excess kurtosis term
+    excess_kurt = kurtosis - 3.0
+
+    variance_term = (
+        1.0
+        + 0.5 * sharpe**2
+        - skewness * sharpe
+        + (excess_kurt / 4.0) * sharpe**2
+    )
+
+    if variance_term < 0:
+        return float("nan")
+
+    return float(np.sqrt(variance_term / (n_observations - 1)))
+```
+
+## PSR (Probabilistic Sharpe Ratio)
+
+```python
+from scipy.stats import norm
+
+def probabilistic_sharpe_ratio(
+    sharpe: float,
+    standard_error: float,
+    benchmark: float = 0.0
+) -> float:
+    """P(true Sharpe > benchmark).
+
+    Bailey & López de Prado (2012):
+    PSR = Φ((SR - benchmark) / SE(SR))
+
+    Returns:
+        Probability in [0, 1]. >0.95 indicates significance.
+    """
+    if standard_error <= 1e-10:
+        return float("nan")
+
+    z_score = (sharpe - benchmark) / standard_error
+    return float(norm.cdf(z_score))
+```
+
+## DSR (Deflated Sharpe Ratio)
+
+Corrects for multiple testing:
+
+```python
+def deflated_sharpe_ratio(
+    sharpe: float,
+    standard_error: float,
+    n_trials: int
+) -> float:
+    """Sharpe corrected for multiple testing.
+
+    Bailey & López de Prado (2014):
+    Uses Gumbel approximation for expected maximum Sharpe.
+
+    Args:
+        sharpe: Observed Sharpe (or max across trials)
+        standard_error: SE of Sharpe
+        n_trials: Number of independent strategies tested
+
+    Returns:
+        Probability in [0, 1]. >0.50 indicates robust performance.
+    """
+    if n_trials < 1 or standard_error <= 1e-10:
+        return float("nan")
+
+    gamma = 0.5772156649  # Euler-Mascheroni constant
+
+    if n_trials == 1:
+        sr_expected = 0.0
+    else:
+        q1 = norm.ppf(1.0 - 1.0 / n_trials)
+        q2 = norm.ppf(1.0 - 1.0 / (n_trials * np.e))
+        sr_expected = standard_error * ((1 - gamma) * q1 + gamma * q2)
+
+    z_score = (sharpe - sr_expected) / standard_error
+    return float(norm.cdf(z_score))
+```
+
+## MinTRL (Minimum Track Record Length)
+
+```python
+def minimum_track_record_length(
+    sharpe: float,
+    benchmark: float,
+    skewness: float,
+    kurtosis: float,  # Pearson form
+    alpha: float = 0.05
+) -> float:
+    """Observations needed for statistical significance.
+
+    Uses Mertens (2002) variance formula.
+
+    CRITICAL: Use (kurtosis - 3) for excess kurtosis!
+    """
+    if sharpe <= benchmark:
+        return float("nan")
+
+    z_crit = norm.ppf(1 - alpha)
+    excess_kurt = kurtosis - 3.0
+
+    # Mertens variance term
+    variance_term = (
+        1.0
+        + 0.5 * sharpe**2
+        - skewness * sharpe
+        + (excess_kurt / 4.0) * sharpe**2
+    )
+
+    sr_diff = sharpe - benchmark
+    mintrl = variance_term * (z_crit / sr_diff) ** 2
+
+    return float(max(1.0, mintrl))
+```
+
+## Academic References
+
+```bibtex
+@article{bailey2014deflated,
+  title={The Deflated Sharpe Ratio: Correcting for Selection Bias,
+         Backtest Overfitting and Non-Normality},
+  author={Bailey, David H and L{\'o}pez de Prado, Marcos},
+  journal={The Journal of Portfolio Management},
+  year={2014}
+}
+
+@article{mertens2002sharpe,
+  title={The Sharpe Ratio and the Information Ratio},
+  author={Mertens, Elmar},
+  journal={Financial Analysts Journal},
+  year={2002}
+}
+
+@article{lo2002statistics,
+  title={The Statistics of Sharpe Ratios},
+  author={Lo, Andrew W},
+  journal={Financial Analysts Journal},
+  volume={58},
+  number={4},
+  pages={36--52},
+  year={2002}
+}
+```
