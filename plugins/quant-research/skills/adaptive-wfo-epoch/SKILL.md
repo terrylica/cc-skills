@@ -340,17 +340,18 @@ class AdaptiveEpochSelector:
 
 ## Anti-Patterns
 
-| Anti-Pattern                   | Symptom                             | Fix                               |
-| ------------------------------ | ----------------------------------- | --------------------------------- |
-| **Peak picking**               | Best epoch always at sweep boundary | Expand range, check for plateau   |
-| **Insufficient folds**         | effective_n < 30                    | Increase folds or data span       |
-| **Ignoring temporal autocorr** | Folds correlated                    | Use purged CV, gap between folds  |
-| **Overfitting to IS**          | IS >> OOS Sharpe                    | Reduce epochs, add regularization |
-| **sqrt(252) for crypto**       | Inflated Sharpe                     | Use sqrt(365) or sqrt(7) weekly   |
-| **Single epoch selection**     | No uncertainty quantification       | Report confidence interval        |
-| **Meta-overfitting**           | Epoch selection itself overfits     | Limit to 3-4 candidates max       |
+| Anti-Pattern                      | Symptom                             | Fix                               | Severity |
+| --------------------------------- | ----------------------------------- | --------------------------------- | -------- |
+| **Expanding window (range bars)** | Train size grows per fold           | Use fixed sliding window          | CRITICAL |
+| **Peak picking**                  | Best epoch always at sweep boundary | Expand range, check for plateau   | HIGH     |
+| **Insufficient folds**            | effective_n < 30                    | Increase folds or data span       | HIGH     |
+| **Ignoring temporal autocorr**    | Folds correlated                    | Use purged CV, gap between folds  | HIGH     |
+| **Overfitting to IS**             | IS >> OOS Sharpe                    | Reduce epochs, add regularization | HIGH     |
+| **sqrt(252) for crypto**          | Inflated Sharpe                     | Use sqrt(365) or sqrt(7) weekly   | MEDIUM   |
+| **Single epoch selection**        | No uncertainty quantification       | Report confidence interval        | MEDIUM   |
+| **Meta-overfitting**              | Epoch selection itself overfits     | Limit to 3-4 candidates max       | HIGH     |
 
-See [references/anti-patterns.md](./references/anti-patterns.md) for detailed examples.
+**CRITICAL**: Never use expanding window for range bar ML training. Expanding windows create fold non-equivalence, regime dilution, and systematically bias risk metrics. See [references/anti-patterns.md](./references/anti-patterns.md) for the full analysis (Section 7).
 
 ## Decision Tree
 
