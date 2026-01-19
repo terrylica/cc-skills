@@ -785,6 +785,265 @@ MIT
 
 ---
 
+## Phase 8: Release Workflow Setup
+
+Automate versioning and changelog generation using semantic-release.
+
+> **Full documentation**: See `itp:semantic-release` skill for comprehensive release workflow patterns, troubleshooting, and advanced configurations.
+
+### Root package.json
+
+Create `package.json` in the monorepo root for semantic-release:
+
+```json
+{
+  "name": "<project-name>",
+  "version": "<version>",
+  "private": true,
+  "description": "Polyglot monorepo for <domain>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/<owner>/<repo>.git"
+  },
+  "author": "<owner>",
+  "license": "MIT",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.1",
+    "semantic-release": "^25.0.0"
+  }
+}
+```
+
+> **Note**: Set `version` to `"0.0.0"` for new projects. Semantic-release will bump it on first release.
+
+Install dependencies: `npm install`
+
+### .releaserc.yml Configuration
+
+Create `.releaserc.yml` in the monorepo root:
+
+```yaml
+branches:
+  - main
+
+plugins:
+  # Preflight: Block release if working directory is dirty
+  - - "@semantic-release/exec"
+    - verifyConditionsCmd: |
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Working directory not clean"
+          exit 1
+        fi
+  - - "@semantic-release/commit-analyzer"
+    - releaseRules:
+        # All commit types trigger patch for consistent versioning
+        - { type: "docs", release: "patch" }
+        - { type: "chore", release: "patch" }
+        - { type: "style", release: "patch" }
+        - { type: "refactor", release: "patch" }
+        - { type: "test", release: "patch" }
+        - { type: "build", release: "patch" }
+        - { type: "ci", release: "patch" }
+        - { type: "revert", release: "patch" }
+  - "@semantic-release/release-notes-generator"
+  - "@semantic-release/changelog"
+  - - "@semantic-release/git"
+    - assets:
+        - CHANGELOG.md
+        - package.json
+      message: "chore(release): ${nextRelease.version} [skip ci]"
+  - "@semantic-release/github"
+```
+
+### mise Release Tasks
+
+Create file-based tasks in `.mise/tasks/release/`:
+
+```bash
+mkdir -p .mise/tasks/release
+```
+
+**.mise/tasks/release/preflight**:
+
+```bash
+#!/usr/bin/env bash
+#MISE description="Phase 1: Validate prerequisites for release"
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Phase 1: PREFLIGHT"
+echo "═══════════════════════════════════════════════════════════"
+
+# Check 1: Working directory clean
+echo "→ Checking working directory..."
+if [[ -n "$(git status --porcelain)" ]]; then
+    echo "  ✗ Working directory not clean"
+    git status --short
+    exit 1
+fi
+echo "  ✓ Working directory clean"
+
+# Check 2: GitHub authentication (no API calls - prevents process storms)
+echo "→ Checking GitHub authentication..."
+if [[ -z "${GH_TOKEN:-}" ]]; then
+    echo "  ✗ GH_TOKEN not set"
+    echo "    Ensure mise.toml uses read_file() pattern"
+    exit 1
+fi
+echo "  ✓ GH_TOKEN present (${#GH_TOKEN} chars)"
+
+# Check 3: On main branch
+echo "→ Checking branch..."
+BRANCH=$(git branch --show-current)
+if [[ "$BRANCH" != "main" ]]; then
+    echo "  ✗ Not on main branch (current: $BRANCH)"
+    exit 1
+fi
+echo "  ✓ On main branch"
+
+# Check 4: Releasable commits exist
+echo "→ Checking for releasable commits..."
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+if [[ -n "$LATEST_TAG" ]]; then
+    COMMITS=$(git log "$LATEST_TAG"..HEAD --oneline 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "$COMMITS" -eq 0 ]]; then
+        echo "  ✗ No commits since $LATEST_TAG"
+        exit 1
+    fi
+    echo "  ✓ Found $COMMITS commits since $LATEST_TAG"
+else
+    COMMITS=$(git log --oneline 2>/dev/null | wc -l | tr -d ' ')
+    echo "  ✓ No previous tags, $COMMITS commits to release"
+fi
+
+# Check 5: Tests pass (optional but recommended)
+echo "→ Running tests..."
+if mise run test >/dev/null 2>&1; then
+    echo "  ✓ Tests passed"
+else
+    echo "  ⚠ Tests failed (continuing anyway)"
+fi
+
+echo ""
+echo "✓ All preflight checks passed"
+echo ""
+```
+
+**.mise/tasks/release/version**:
+
+```bash
+#!/usr/bin/env bash
+#MISE description="Phase 2: Run semantic-release (version bump + changelog)"
+# Note: No dependency on preflight - release:full handles the chain
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Phase 2: VERSION (semantic-release)"
+echo "═══════════════════════════════════════════════════════════"
+
+# Ensure node_modules are installed
+if [[ ! -d "node_modules" ]]; then
+    echo "→ Installing npm dependencies..."
+    npm install --silent
+fi
+
+# Run semantic-release
+semantic-release --no-ci
+
+echo ""
+echo "✓ Version phase complete"
+echo ""
+```
+
+**.mise/tasks/release/full**:
+
+```bash
+#!/usr/bin/env bash
+#MISE description="Complete release workflow"
+#MISE depends=["release:preflight"]
+set -euo pipefail
+
+echo ""
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║  Full Release Workflow                                     ║"
+echo "╚═══════════════════════════════════════════════════════════╝"
+echo ""
+
+# Phase 2: Version
+mise run release:version
+
+echo ""
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║  ✓ Release workflow complete!                             ║"
+echo "╚═══════════════════════════════════════════════════════════╝"
+echo ""
+```
+
+Make tasks executable:
+
+```bash
+chmod +x .mise/tasks/release/*
+```
+
+### Release Commands
+
+| Command                      | Purpose                                        |
+| ---------------------------- | ---------------------------------------------- |
+| `mise run release:full`      | Complete 2-phase release (preflight + version) |
+| `mise run release:preflight` | Validate prerequisites only                    |
+| `mise run release:version`   | Run semantic-release only                      |
+
+### Update .gitignore
+
+Add npm artifacts:
+
+```gitignore
+# npm
+node_modules/
+package-lock.json  # Optional: some prefer to commit this
+```
+
+### First Release
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Commit release infrastructure
+git add package.json .releaserc.yml .mise/tasks/release/
+git commit -m "build: add semantic-release configuration and mise tasks
+
+SRED-Type: support-work
+SRED-Claim: RELEASE-INFRA"
+
+# 3. Run first release
+mise run release:full
+```
+
+### SR&ED Commit Integration
+
+If using SR&ED commit conventions (see SR&ED section below), commits must include trailers:
+
+```
+<type>(<scope>): <description>
+
+<body>
+
+SRED-Type: <category>
+SRED-Claim: <claim-id>
+```
+
+The `sred-commit-guard` hook (from itp-hooks) validates this format. Install via:
+
+```bash
+/itp:hooks install
+```
+
+---
+
 ## Performance Insights: Language Selection
 
 Based on real benchmarks with 1M data points (trading fitness calculations):
@@ -1117,6 +1376,15 @@ The bootstrap is complete when:
 - [ ] Commit message convention documented
 - [ ] Git log extraction scripts available
 
+**Release Workflow (Phase 8)**:
+
+- [ ] `package.json` exists with semantic-release dependencies
+- [ ] `.releaserc.yml` configuration present
+- [ ] `.mise/tasks/release/{preflight,version,full}` tasks created and executable
+- [ ] `npm install` completes without errors
+- [ ] `mise run release:preflight` passes all checks
+- [ ] First release creates GitHub release with changelog
+
 ---
 
 ## Maintenance Protocol
@@ -1253,6 +1521,12 @@ doSomething(value); // OK
 - [Level 11: Pants + mise](../SKILL.md#level-11-polyglot-monorepo-with-pants--mise) - Quick reference
 - [Pants Documentation](https://www.pantsbuild.org/)
 - [mise Documentation](https://mise.jdx.dev/)
+
+**Release Workflow**:
+
+- `itp:semantic-release` skill - Comprehensive release automation guide
+- [semantic-release Documentation](https://semantic-release.gitbook.io/) - Official docs
+- [local-release-workflow.md](../../semantic-release/references/local-release-workflow.md) - 4-phase workflow reference
 
 **GitHub & Workflow**:
 
