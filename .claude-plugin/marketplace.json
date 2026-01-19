@@ -405,6 +405,32 @@
         "enforcement"
       ],
       "strict": false
+    },
+    {
+      "name": "quant-research",
+      "description": "Quantitative research metrics: SOTA evaluation for range bars, Sharpe ratios with daily aggregation, ML prediction quality (IC, autocorrelation), crypto-specific considerations",
+      "version": "9.35.3",
+      "source": "./plugins/quant-research",
+      "category": "trading",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "quant",
+        "range-bars",
+        "sharpe-ratio",
+        "metrics",
+        "evaluation",
+        "crypto",
+        "ml",
+        "prediction-quality",
+        "ic",
+        "dsr",
+        "psr",
+        "wfo"
+      ],
+      "strict": false
     }
   ]
 }
