@@ -97,6 +97,17 @@ def psr(sharpe: float, se: float, benchmark: float = 0.0) -> float:
 
 **NEVER use sqrt(252) for crypto markets.**
 
+## CRITICAL: Session Filter Changes Annualization
+
+| View                             | Filter               | days_per_week | Rationale             |
+| -------------------------------- | -------------------- | ------------- | --------------------- |
+| **Session-filtered** (London-NY) | Weekdays 08:00-16:00 | **sqrt(5)**   | Trading like equities |
+| **All-bars** (unfiltered)        | None                 | **sqrt(7)**   | Full 24/7 crypto      |
+
+**Using sqrt(7) for session-filtered data overstates Sharpe by ~18%!**
+
+See [crypto-markets.md](./references/crypto-markets.md#critical-session-specific-annualization) for detailed rationale.
+
 ## Dual-View Metrics
 
 For comprehensive analysis, compute metrics with BOTH views:
