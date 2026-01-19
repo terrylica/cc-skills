@@ -47,15 +47,26 @@ def compute_var_cvar(
 def compute_omega(
     pnl: np.ndarray,
     timestamps: np.ndarray,
-    threshold: float = 0.0
+    threshold: float = 0.0,
+    min_days: int = 5
 ) -> float:
     """Omega ratio with daily aggregation.
 
     Omega = sum(gains above threshold) / sum(losses below threshold)
 
     Reference: Keating & Shadwick (2002)
+
+    REMEDIATION (2026-01-19 audit):
+    - Added min_days parameter to avoid unreliable values with too few samples.
+    - Return NaN when n_days < min_days.
+
+    Source: Multi-agent audit finding (robustness-analyst subagent)
     """
     daily_pnl = _group_by_day(pnl, timestamps)
+
+    # REMEDIATION: Minimum sample size check
+    if len(daily_pnl) < min_days:
+        return float("nan")  # Unreliable with too few days
 
     excess = daily_pnl - threshold
     gains = excess[excess > 0].sum()
@@ -82,6 +93,12 @@ def compute_ulcer_index(
     Ulcer = sqrt(mean(drawdown_pct^2))
 
     Reference: Peter Martin (1987)
+
+    REMEDIATION (2026-01-19 audit):
+    - Guard against division by zero when peak equity = 0.
+    - Can happen if initial_equity + early losses < 0.
+
+    Source: Multi-agent audit finding (risk-analyst subagent)
     """
     daily_pnl = _group_by_day(pnl, timestamps)
 
@@ -90,7 +107,10 @@ def compute_ulcer_index(
 
     # Percentage drawdowns from peak
     peak = np.maximum.accumulate(equity)
-    drawdown_pct = (equity - peak) / peak  # Negative values
+
+    # REMEDIATION: Guard against division by zero when peak = 0
+    with np.errstate(divide='ignore', invalid='ignore'):
+        drawdown_pct = np.where(peak > 1e-10, (equity - peak) / peak, 0.0)
 
     return float(np.sqrt((drawdown_pct ** 2).mean()))
 ```
@@ -183,13 +203,24 @@ def compute_recovery_factor(total_return: float, max_drawdown: float) -> float:
 ```python
 def compute_profit_factor(
     pnl: np.ndarray,
-    timestamps: np.ndarray
+    timestamps: np.ndarray,
+    min_days: int = 5
 ) -> float:
     """Profit Factor with daily aggregation.
 
     PF = sum(winning days) / |sum(losing days)|
+
+    REMEDIATION (2026-01-19 audit):
+    - Added min_days parameter to avoid unreliable values with too few samples.
+    - Return NaN when n_days < min_days.
+
+    Source: Multi-agent audit finding (robustness-analyst subagent)
     """
     daily_pnl = _group_by_day(pnl, timestamps)
+
+    # REMEDIATION: Minimum sample size check
+    if len(daily_pnl) < min_days:
+        return float("nan")  # Unreliable with too few days
 
     gains = daily_pnl[daily_pnl > 0].sum()
     losses = abs(daily_pnl[daily_pnl < 0].sum())

@@ -107,10 +107,21 @@ def compute_prediction_autocorr(
 
     WARNING signs:
     - >0.9: Predictions barely change ("sticky LSTM")
+    - =1.0: Constant predictions (model collapsed to mean)
     - <0.1: Predictions are noise (no memory)
+
+    REMEDIATION (2026-01-19 audit):
+    - Return 1.0 for constant predictions (std < 1e-10)
+    - NaN from corrcoef division-by-zero is incorrect semantically
+
+    Source: Multi-agent audit finding (model-expert subagent)
     """
     if len(predictions) < lag + 2:
         return float("nan")
+
+    # REMEDIATION: Check for constant predictions (std ≈ 0)
+    if np.std(predictions) < 1e-10:
+        return 1.0  # Constant predictions have perfect autocorrelation
 
     return float(np.corrcoef(
         predictions[:-lag],
@@ -239,12 +250,67 @@ def compute_prediction_quality_score(
     }
 ```
 
+## Model Collapse Detection (2026-01-19 Audit Addition)
+
+**CRITICAL**: BiLSTM models can collapse to mean prediction when:
+
+- hidden_size is too small (e.g., 16)
+- dropout is too aggressive (e.g., 0.5)
+- Signal-to-noise ratio is too low
+
+```python
+def detect_model_collapse(
+    predictions: np.ndarray,
+    threshold: float = 1e-6
+) -> dict:
+    """Detect if model has collapsed to constant predictions.
+
+    REMEDIATION (2026-01-19 audit):
+    - Check prediction standard deviation
+    - Log warning when detected
+    - Continue recording for diagnostics
+
+    Source: Multi-agent audit finding (model-expert subagent)
+
+    Args:
+        predictions: Model output predictions
+        threshold: Std threshold below which collapse is detected
+
+    Returns:
+        Dictionary with collapse detection results
+    """
+    pred_std = np.std(predictions)
+    is_collapsed = pred_std < threshold
+
+    if is_collapsed:
+        import logging
+        logging.warning(
+            f"Model collapse detected: std(predictions)={pred_std:.2e}. "
+            "Check architecture/hyperparameters."
+        )
+
+    return {
+        "is_collapsed": is_collapsed,
+        "prediction_std": float(pred_std),
+        "prediction_mean": float(np.mean(predictions)),
+        "prediction_range": float(np.ptp(predictions)),  # max - min
+    }
+
+
+# RECOMMENDED ARCHITECTURE FIXES for BiLSTM mean prediction collapse:
+# 1. Increase hidden_size: 16 → 48 (triple capacity)
+# 2. Reduce dropout: 0.5 → 0.3 (less aggressive regularization)
+# 3. Check learning rate: may need adjustment
+# 4. Verify input feature variance: constant inputs → constant outputs
+```
+
 ## When to Use Each Metric
 
-| Metric            | Use Case                   | Limitation             |
-| ----------------- | -------------------------- | ---------------------- |
-| **IC (Spearman)** | Overall prediction quality | Doesn't capture timing |
-| **ICIR**          | Signal stability over time | Needs enough windows   |
-| **Hit Rate**      | Quick sanity check         | Ignores magnitude      |
-| **Autocorr**      | Detect LSTM pathologies    | Model-specific         |
-| **Ljung-Box**     | Residual analysis          | Assumes linearity      |
+| Metric             | Use Case                   | Limitation             |
+| ------------------ | -------------------------- | ---------------------- |
+| **IC (Spearman)**  | Overall prediction quality | Doesn't capture timing |
+| **ICIR**           | Signal stability over time | Needs enough windows   |
+| **Hit Rate**       | Quick sanity check         | Ignores magnitude      |
+| **Autocorr**       | Detect LSTM pathologies    | Model-specific         |
+| **Ljung-Box**      | Residual analysis          | Assumes linearity      |
+| **Collapse Check** | Detect mean-prediction bug | Needs model output     |
