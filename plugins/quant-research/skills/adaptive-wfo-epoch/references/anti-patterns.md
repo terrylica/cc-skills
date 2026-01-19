@@ -289,7 +289,128 @@ Epoch distribution: {400: 20%, 800: 45%, 1000: 25%, 2000: 10%}
 WFE at 800: 0.52 [0.38, 0.66] (95% CI)
 ```
 
-## 7. Meta-Overfitting (Overfitting the Epoch Search)
+## 7. Expanding Window for Range Bar Training (CRITICAL)
+
+### Symptom
+
+Training window grows with each fold instead of sliding forward.
+
+```
+EXPANDING WINDOW (WRONG for range bars):
+Fold 1:  [====TRAIN====][TEST]                    (3,000 bars)
+Fold 5:  [========TRAIN========][TEST]            (15,000 bars)
+Fold 10: [============TRAIN============][TEST]    (30,000 bars)
+Fold 20: [==================TRAIN==================][TEST]  (60,000 bars)
+
+FIXED WINDOW (CORRECT):
+Fold 1:  [====TRAIN====][TEST]                    (3,000 bars)
+Fold 5:       [====TRAIN====][TEST]               (3,000 bars)
+Fold 10:           [====TRAIN====][TEST]          (3,000 bars)
+Fold 20:                     [====TRAIN====][TEST] (3,000 bars)
+```
+
+### Root Cause
+
+Misapplying time-series CV conventions to range bar data. Range bars have non-uniform time spacing, making expanding windows especially problematic.
+
+### Why This Is Critical for Range Bars
+
+**Multi-agent analysis (2026-01-19) identified 7 compounding issues:**
+
+| Issue                    | Impact                                                    | Severity |
+| ------------------------ | --------------------------------------------------------- | -------- |
+| **Fold non-equivalence** | WFE computed on 3K vs 60K bars incomparable               | CRITICAL |
+| **Regime dilution**      | Early folds miss crashes, later folds average out signals | CRITICAL |
+| **Feature drift**        | MinMaxScaler sees 20x different data volumes              | HIGH     |
+| **Epoch mismatch**       | Fixed 400 epochs underfit late folds, overfit early       | HIGH     |
+| **Risk understatement**  | Max drawdown understated 20-40% (path-length effect)      | HIGH     |
+| **Embargo decay**        | 100-bar embargo = 3.3% of fold 1, 0.17% of fold 20        | MEDIUM   |
+| **Memory/runtime**       | 6x memory growth, 3x runtime increase                     | MEDIUM   |
+
+### Detection
+
+```python
+def detect_expanding_window(folds: list[Fold]) -> bool:
+    """Returns True if expanding window detected (ANTI-PATTERN)."""
+    train_sizes = [f.train_end_idx - f.train_start_idx for f in folds]
+
+    # Fixed window: all sizes equal
+    if len(set(train_sizes)) == 1:
+        return False  # OK
+
+    # Expanding window: sizes increase monotonically
+    is_expanding = all(
+        train_sizes[i] <= train_sizes[i+1]
+        for i in range(len(train_sizes)-1)
+    )
+
+    return is_expanding
+
+
+def validate_fixed_window(folds: list[Fold]) -> None:
+    """Raise error if expanding window detected."""
+    if detect_expanding_window(folds):
+        raise ValueError(
+            "CRITICAL: Expanding window detected for range bar training. "
+            "This anti-pattern causes fold non-equivalence, regime dilution, "
+            "and biased risk metrics. Use fixed sliding window instead."
+        )
+```
+
+### Fix
+
+**Always use fixed-size sliding window for range bar ML training:**
+
+```python
+# WRONG: Expanding window (train_start always 0)
+def generate_expanding_folds(total_bars, n_folds):
+    step = total_bars // n_folds
+    for i in range(n_folds):
+        train_end = (i + 1) * step
+        yield Fold(train_start=0, train_end=train_end, ...)  # Growing!
+
+# CORRECT: Fixed sliding window
+def generate_fixed_folds(total_bars, train_size, test_size, step_size):
+    for i in range(n_folds):
+        train_start = i * step_size
+        train_end = train_start + train_size  # Constant size
+        yield Fold(train_start=train_start, train_end=train_end, ...)
+```
+
+### Statistical Justification
+
+| Property                | Expanding Window               | Fixed Window         |
+| ----------------------- | ------------------------------ | -------------------- |
+| IS variance             | Heterogeneous (decreasing)     | Homogeneous          |
+| WFE comparability       | Apples to oranges              | Apples to apples     |
+| Regime recency          | Diluted over time              | Constant recency     |
+| Risk metric reliability | Systematically biased          | Unbiased             |
+| Bayesian smoothing      | Requires heteroskedastic model | Standard model works |
+
+### Exceptions
+
+**None for range bar ML training.**
+
+The only valid expanding window use case is cumulative learning where every historical instance matters (e.g., rare event detection). Range bar prediction requires **recency-weighted regime adaptation**, which expanding windows prevent.
+
+### Enforcement
+
+Add runtime validation to prevent accidental use:
+
+```python
+# At experiment start
+validate_fixed_window(folds)
+
+# In fold generation
+assert all(
+    folds[i].train_start_idx > folds[i-1].train_start_idx
+    for i in range(1, len(folds))
+), "train_start must advance (not anchored at 0)"
+```
+
+---
+
+## 8. Meta-Overfitting (Overfitting the Epoch Search)
 
 ### Symptom
 
@@ -363,6 +484,7 @@ STABILITY_PENALTY = 0.1  # 10% WFE improvement required to change
 
 Before deploying adaptive epoch selection:
 
+- [ ] **Expanding window**: Using fixed sliding window (NOT expanding) for range bars?
 - [ ] **Peak picking**: Are selections clustered at boundaries?
 - [ ] **Sample size**: Is N_eff ≥ 30?
 - [ ] **Autocorrelation**: Is fold autocorrelation < 0.3?
@@ -372,3 +494,5 @@ Before deploying adaptive epoch selection:
 - [ ] **Meta-overfitting**: Epoch CV < 0.5? Not near-uniform?
 
 If any check fails, investigate before production deployment.
+
+**CRITICAL**: The expanding window check is a **hard gate** for range bar training. All other checks are warnings that require investigation.
