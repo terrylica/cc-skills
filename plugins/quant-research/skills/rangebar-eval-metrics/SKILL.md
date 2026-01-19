@@ -25,11 +25,13 @@ python scripts/generate_report.py --results folds.jsonl --output report.md
 
 ## Metric Tiers
 
-| Tier               | Purpose            | Metrics                                                                  | Compute              |
-| ------------------ | ------------------ | ------------------------------------------------------------------------ | -------------------- |
-| **Primary** (5)    | Research decisions | weekly_sharpe, hit_rate, cumulative_pnl, n_bars, positive_sharpe_rate    | Per-fold + aggregate |
-| **Secondary** (5)  | Additional context | max_drawdown, bar_sharpe, return_per_bar, profit_factor, cv_fold_returns | Per-fold             |
-| **Diagnostic** (5) | Final validation   | psr, dsr, autocorr_lag1, effective_n, binomial_pvalue                    | Aggregate only       |
+| Tier                   | Purpose            | Metrics                                                                  | Compute              |
+| ---------------------- | ------------------ | ------------------------------------------------------------------------ | -------------------- |
+| **Primary** (5)        | Research decisions | weekly_sharpe, hit_rate, cumulative_pnl, n_bars, positive_sharpe_rate    | Per-fold + aggregate |
+| **Secondary/Risk** (5) | Additional context | max_drawdown, bar_sharpe, return_per_bar, profit_factor, cv_fold_returns | Per-fold             |
+| **ML Quality** (3)     | Prediction health  | ic, prediction_autocorr, is_collapsed                                    | Per-fold             |
+| **Diagnostic** (5)     | Final validation   | psr, dsr, autocorr_lag1, effective_n, binomial_pvalue                    | Aggregate only       |
+| **Extended Risk** (5)  | Deep risk analysis | var_95, cvar_95, omega_ratio, sortino_ratio, ulcer_index                 | Per-fold (optional)  |
 
 ## Why Range Bars Need Special Treatment
 
@@ -43,6 +45,8 @@ Range bars violate standard IID assumptions:
 
 ## References
 
+### Core Reference Files
+
 | Topic                                | Reference File                                                    |
 | ------------------------------------ | ----------------------------------------------------------------- |
 | Sharpe Ratio Calculations            | [sharpe-formulas.md](./references/sharpe-formulas.md)             |
@@ -51,6 +55,22 @@ Range bars violate standard IID assumptions:
 | Crypto Market Considerations         | [crypto-markets.md](./references/crypto-markets.md)               |
 | Temporal Aggregation Rules           | [temporal-aggregation.md](./references/temporal-aggregation.md)   |
 | JSON Schema for Metrics              | [metrics-schema.md](./references/metrics-schema.md)               |
+| Anti-Patterns (Transaction Costs)    | [anti-patterns.md](./references/anti-patterns.md)                 |
+| SOTA 2025-2026 (SHAP, BOCPD, etc.)   | [sota-2025-2026.md](./references/sota-2025-2026.md)               |
+| Worked Examples (BTC, EUR/USD)       | [worked-examples.md](./references/worked-examples.md)             |
+
+### Related Skills
+
+| Skill                                                | Relationship                                           |
+| ---------------------------------------------------- | ------------------------------------------------------ |
+| [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md) | Uses `weekly_sharpe`, `psr`, `dsr` for WFE calculation |
+
+### Dependencies
+
+```bash
+pip install -r requirements.txt
+# Or: pip install numpy>=1.24 pandas>=2.0 scipy>=1.10
+```
 
 ## Key Formulas
 
