@@ -13,14 +13,15 @@
  * ADR: /docs/adr/2025-12-27-fake-data-guard-universal.md
  */
 
-import { readFileSync, existsSync } from "fs";
-import { join } from "path";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import {
   DEFAULT_CONFIG,
   detectFakeData,
   isExcludedPath,
   formatFindings,
 } from "./fake-data-patterns.mjs";
+import { allow, ask, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
 
 /**
  * Load configuration from project or global config file.
@@ -76,64 +77,12 @@ function mergeConfig(defaults, loaded) {
 }
 
 /**
- * Output JSON response for PreToolUse hook.
- */
-function output(response) {
-  console.log(JSON.stringify(response));
-}
-
-/**
- * Allow the tool to proceed.
- */
-function allow() {
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "allow",
-    },
-  });
-}
-
-/**
- * Ask user for permission (shows permission dialog).
- */
-function ask(reason) {
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "ask",
-      permissionDecisionReason: reason,
-    },
-  });
-}
-
-/**
- * Deny the tool (hard block).
- */
-function deny(reason) {
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: reason,
-    },
-  });
-}
-
-/**
  * Main entry point.
  */
 async function main() {
-  // Read JSON input from stdin
-  let input;
-  try {
-    const stdin = await Bun.stdin.text();
-    input = JSON.parse(stdin);
-  } catch (e) {
-    console.error(`[fake-data-guard] Failed to parse stdin: ${e.message}`);
-    allow();
-    return;
-  }
+  // Read JSON input from stdin (allow-on-error semantics)
+  const input = await parseStdinOrAllow("fake-data-guard");
+  if (!input) return;
 
   // Only process Write tool (not Edit - respect existing files)
   const toolName = input.tool_name || "";
