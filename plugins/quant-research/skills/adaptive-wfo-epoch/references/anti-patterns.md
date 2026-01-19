@@ -1,0 +1,374 @@
+# Anti-Patterns: Adaptive Walk-Forward Epoch Selection
+
+Common failures and how to avoid them.
+
+## 1. Peak Picking
+
+### Symptom
+
+Best epoch is always at the boundary of the search space.
+
+```
+Epoch candidates: [400, 800, 1000, 2000]
+Selected epochs across folds: [2000, 2000, 400, 2000, 400, 2000, ...]
+```
+
+### Root Cause
+
+Search space doesn't contain the true optimum. The optimal epoch is outside the tested range.
+
+### Detection
+
+```python
+def detect_peak_picking(selection_history: list[int], epoch_configs: list[int]) -> bool:
+    """Returns True if >50% selections are at boundaries."""
+    min_epoch, max_epoch = min(epoch_configs), max(epoch_configs)
+    boundary_count = sum(1 for e in selection_history if e in [min_epoch, max_epoch])
+    return boundary_count / len(selection_history) > 0.5
+```
+
+### Fix
+
+1. **Expand range**: If selecting 2000 often, add 3000, 4000
+2. **Check for plateau**: If WFE is flat at boundary, true optimum may be beyond
+3. **Add intermediate points**: If jumping between 400 and 2000, test 600, 1200
+
+```python
+# WRONG: Narrow range
+EPOCH_CONFIGS = [400, 800]
+
+# BETTER: Expanded range with geometric spacing
+EPOCH_CONFIGS = [200, 400, 800, 1600, 3200]
+```
+
+## 2. Insufficient Folds
+
+### Symptom
+
+Effective sample size (N_eff) is too low for statistical significance.
+
+```
+Folds: 10
+Epochs: 4
+N_eff = 10 × (1/√4) × 0.7 ≈ 3.5  # Too low!
+```
+
+### Root Cause
+
+Not enough folds to distinguish signal from noise in epoch selection.
+
+### Detection
+
+```python
+def check_effective_sample_size(
+    n_folds: int,
+    n_epochs: int,
+    autocorr: float = 0.3,
+    min_n_eff: int = 10,
+) -> bool:
+    """Returns True if N_eff is sufficient."""
+    import math
+    selection_factor = 1 / math.sqrt(n_epochs)
+    corr_factor = (1 - autocorr) / (1 + autocorr)
+    n_eff = n_folds * selection_factor * corr_factor
+    return n_eff >= min_n_eff
+```
+
+### Fix
+
+1. **Increase folds**: Target N_eff ≥ 30 for reliable inference
+2. **Extend data span**: More historical data = more folds
+3. **Reduce epoch candidates**: Fewer choices = higher N_eff
+
+```python
+# WRONG: 10 folds with 4 epochs → N_eff ≈ 3.5
+N_FOLDS = 10
+EPOCH_CONFIGS = [400, 800, 1000, 2000]
+
+# BETTER: 50 folds with 3 epochs → N_eff ≈ 20
+N_FOLDS = 50
+EPOCH_CONFIGS = [400, 800, 1600]
+```
+
+## 3. Ignoring Temporal Autocorrelation
+
+### Symptom
+
+Consecutive folds have correlated performance, making each fold non-independent.
+
+```
+Fold 0: WFE=0.65, epoch=800
+Fold 1: WFE=0.64, epoch=800  # Correlated!
+Fold 2: WFE=0.66, epoch=800  # Still correlated!
+```
+
+### Root Cause
+
+Overlapping training data between consecutive folds, or no embargo period.
+
+### Detection
+
+```python
+def compute_fold_autocorrelation(wfe_series: list[float], lag: int = 1) -> float:
+    """Compute autocorrelation of WFE across folds."""
+    import numpy as np
+    if len(wfe_series) < lag + 2:
+        return float("nan")
+    return float(np.corrcoef(wfe_series[:-lag], wfe_series[lag:])[0, 1])
+
+# WARNING if autocorr > 0.3
+```
+
+### Fix
+
+1. **Add embargo period**: Gap between train and test periods
+2. **Reduce fold overlap**: Increase step size between folds
+3. **Use purged cross-validation**: Remove samples that could leak
+
+```python
+# WRONG: Adjacent folds with no gap
+fold_0: train=[0:1000], test=[1000:1100]
+fold_1: train=[100:1100], test=[1100:1200]  # 90% overlap!
+
+# BETTER: Embargo + reduced overlap
+fold_0: train=[0:1000], embargo=[1000:1050], test=[1050:1150]
+fold_1: train=[500:1500], embargo=[1500:1550], test=[1550:1650]  # 50% overlap
+```
+
+## 4. Overfitting to In-Sample
+
+### Symptom
+
+In-sample Sharpe is much higher than out-of-sample, even with optimal epoch.
+
+```
+IS_Sharpe: 3.5
+OOS_Sharpe: 0.8
+WFE: 0.23  # Severe overfitting!
+```
+
+### Root Cause
+
+Model is memorizing training data patterns that don't generalize.
+
+### Detection
+
+```python
+def detect_overfitting(is_sharpe: float, oos_sharpe: float) -> str:
+    """Classify overfitting severity."""
+    if is_sharpe <= 0:
+        return "NO_SIGNAL"
+
+    wfe = oos_sharpe / is_sharpe
+
+    if wfe >= 0.7:
+        return "HEALTHY"
+    elif wfe >= 0.5:
+        return "MODERATE"
+    elif wfe >= 0.3:
+        return "CONCERNING"
+    else:
+        return "SEVERE"
+```
+
+### Fix
+
+1. **Reduce epochs**: Less training time = less memorization
+2. **Add regularization**: Dropout, weight decay, early stopping
+3. **Simplify model**: Fewer parameters = less capacity to overfit
+4. **Increase training data**: More diverse patterns
+
+```python
+# WRONG: High capacity, long training
+EPOCHS = 2000
+HIDDEN_SIZE = 128
+DROPOUT = 0.1
+
+# BETTER: Lower capacity, regularized
+EPOCHS = 400
+HIDDEN_SIZE = 48
+DROPOUT = 0.3
+WEIGHT_DECAY = 0.01
+```
+
+## 5. Using sqrt(252) for Crypto
+
+### Symptom
+
+Annualized Sharpe ratios are inflated by ~18%.
+
+```
+# Crypto trades 24/7, but using equity assumption
+daily_sharpe = 0.1
+annual_sharpe = 0.1 * sqrt(252)  # WRONG: 1.59
+annual_sharpe = 0.1 * sqrt(365)  # CORRECT: 1.91
+
+# The error: sqrt(365)/sqrt(252) = 1.20 = 20% inflation
+```
+
+### Root Cause
+
+Using equity market convention (252 trading days) for crypto (365 days).
+
+### Detection
+
+```python
+def check_annualization_factor(market: str, factor: float) -> bool:
+    """Validate annualization factor for market type."""
+    CORRECT_FACTORS = {
+        "crypto_daily": 365,
+        "crypto_weekly": 7,  # 7 days per week
+        "equity_daily": 252,
+        "equity_weekly": 5,  # 5 trading days per week
+    }
+    return factor == CORRECT_FACTORS.get(market, factor)
+```
+
+### Fix
+
+```python
+# WRONG for crypto
+weekly_sharpe = daily_sharpe * np.sqrt(5)  # Equity assumption
+
+# CORRECT for crypto
+weekly_sharpe = daily_sharpe * np.sqrt(7)  # Crypto 24/7
+
+# EXCEPTION: Session-filtered crypto (London-NY hours only)
+# Use sqrt(5) because you're only trading 5 days
+```
+
+## 6. Single Epoch Selection (No Uncertainty)
+
+### Symptom
+
+Reporting a single "optimal" epoch without confidence interval.
+
+```
+"Optimal epoch: 800"  # WRONG: No uncertainty quantification
+```
+
+### Root Cause
+
+Treating epoch selection as deterministic when it's subject to sampling variation.
+
+### Detection
+
+Look for reports that:
+
+- Give single epoch value without CI
+- Don't report WFE variance across folds
+- Don't show epoch distribution
+
+### Fix
+
+Report uncertainty in epoch selection:
+
+```python
+def report_epoch_selection_with_uncertainty(
+    selection_history: list[dict],
+) -> dict:
+    """Report epoch selection with uncertainty quantification."""
+    epochs = [s["epoch"] for s in selection_history]
+    wfes = [s["wfe"] for s in selection_history if s["wfe"] is not None]
+
+    return {
+        "selected_epoch": max(set(epochs), key=epochs.count),  # Mode
+        "epoch_mean": np.mean(epochs),
+        "epoch_std": np.std(epochs),
+        "wfe_mean": np.mean(wfes),
+        "wfe_ci_95": np.percentile(wfes, [2.5, 97.5]),
+        "epoch_distribution": {e: epochs.count(e) for e in set(epochs)},
+    }
+```
+
+**Good reporting**:
+
+```
+Optimal epoch: 800 (selected 45% of folds)
+Epoch distribution: {400: 20%, 800: 45%, 1000: 25%, 2000: 10%}
+WFE at 800: 0.52 [0.38, 0.66] (95% CI)
+```
+
+## 7. Meta-Overfitting (Overfitting the Epoch Search)
+
+### Symptom
+
+Epoch selection itself overfits to the search space.
+
+```
+Fold 0: epoch=800 (WFE=0.55)
+Fold 1: epoch=2000 (WFE=0.53)
+Fold 2: epoch=400 (WFE=0.56)
+...
+# High variance in selection, but aggregate looks good
+
+# Then in production:
+Production WFE: 0.35  # Much worse than backtest!
+```
+
+### Root Cause
+
+With 4 epochs × 31 folds = 124 selection decisions, some "lucky" selections inflate aggregate WFE.
+
+### Detection
+
+```python
+def detect_meta_overfitting(
+    selection_history: list[dict],
+    epoch_configs: list[int],
+) -> dict:
+    """Detect signs of meta-overfitting."""
+    epochs = [s["epoch"] for s in selection_history]
+
+    # High variance is suspicious
+    epoch_std = np.std(epochs)
+    epoch_mean = np.mean(epochs)
+    cv = epoch_std / epoch_mean  # Coefficient of variation
+
+    # Uniform distribution suggests random selection
+    from scipy.stats import chisquare
+    observed = [epochs.count(e) for e in epoch_configs]
+    expected = [len(epochs) / len(epoch_configs)] * len(epoch_configs)
+    chi2, p_value = chisquare(observed, expected)
+
+    return {
+        "epoch_cv": cv,
+        "uniformity_p_value": p_value,
+        "is_suspicious": cv > 0.5 or p_value > 0.5,
+        "diagnosis": (
+            "HIGH_VARIANCE" if cv > 0.5 else
+            "NEAR_UNIFORM" if p_value > 0.5 else
+            "OK"
+        ),
+    }
+```
+
+### Fix
+
+1. **Limit epoch candidates**: 3-4 options maximum
+2. **Use stability penalty**: Penalize frequent changes
+3. **Hold out final folds**: Reserve 20% for meta-validation
+4. **Apply DSR correction**: Account for 124 trials in significance test
+
+```python
+# WRONG: Too many epoch options
+EPOCH_CONFIGS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]  # 10 options!
+
+# BETTER: Limited options with stability
+EPOCH_CONFIGS = [400, 800, 1600]  # 3 options
+STABILITY_PENALTY = 0.1  # 10% WFE improvement required to change
+```
+
+## Summary Checklist
+
+Before deploying adaptive epoch selection:
+
+- [ ] **Peak picking**: Are selections clustered at boundaries?
+- [ ] **Sample size**: Is N_eff ≥ 30?
+- [ ] **Autocorrelation**: Is fold autocorrelation < 0.3?
+- [ ] **Overfitting**: Is WFE > 0.50 across folds?
+- [ ] **Annualization**: Using correct sqrt factor for market?
+- [ ] **Uncertainty**: Reporting confidence intervals?
+- [ ] **Meta-overfitting**: Epoch CV < 0.5? Not near-uniform?
+
+If any check fails, investigate before production deployment.
