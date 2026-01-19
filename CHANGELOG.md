@@ -1,3 +1,39 @@
+## [9.36.1](https://github.com/terrylica/cc-skills/compare/v9.36.0...v9.36.1) (2026-01-19)
+
+
+### Bug Fixes
+
+* **quant-research:** add session-specific annualization guidance ([8da18df](https://github.com/terrylica/cc-skills/commit/8da18df5fc244277a0ba349eb529b56ebf684a5f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [rangebar-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/SKILL.md) - updated (+11)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (1 file)</summary>
+
+- [Crypto Market Considerations](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/crypto-markets.md) - updated (+127/-24)
+
+</details>
+
 # [9.36.0](https://github.com/terrylica/cc-skills/compare/v9.35.3...v9.36.0) (2026-01-19)
 
 
