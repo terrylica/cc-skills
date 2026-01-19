@@ -153,3 +153,43 @@ publication_criteria:
 | `scripts/compute_metrics.py` | Compute all metrics from predictions/actuals |
 | `scripts/generate_report.py` | Generate Markdown report from fold results   |
 | `scripts/validate_schema.py` | Validate metrics JSON against schema         |
+
+## Remediations (2026-01-19 Multi-Agent Audit)
+
+The following fixes were applied based on a 12-subagent adversarial audit:
+
+| Issue                          | Root Cause                | Fix                                            | Source             |
+| ------------------------------ | ------------------------- | ---------------------------------------------- | ------------------ |
+| `weekly_sharpe=0`              | Constant predictions      | Model collapse detection + architecture fix    | model-expert       |
+| `IC=None`                      | Zero variance predictions | Return 1.0 for constant (semantically correct) | model-expert       |
+| `prediction_autocorr=NaN`      | Division by zero          | Guard for std < 1e-10, return 1.0              | model-expert       |
+| Ulcer Index divide-by-zero     | Peak equity = 0           | Guard with np.where(peak > 1e-10, ...)         | risk-analyst       |
+| Omega/Profit Factor unreliable | Too few samples           | min_days parameter (default: 5)                | robustness-analyst |
+| BiLSTM mean collapse           | Architecture too small    | hidden_size: 16→48, dropout: 0.5→0.3           | model-expert       |
+| `profit_factor=1.0` (n_bars=0) | Early return wrong value  | Return NaN when no data to compute ratio       | risk-analyst       |
+
+### Model Collapse Detection
+
+```python
+# ALWAYS check for model collapse after prediction
+pred_std = np.std(predictions)
+if pred_std < 1e-6:
+    logger.warning(
+        f"Constant predictions detected (std={pred_std:.2e}). "
+        "Model collapsed to mean - check architecture."
+    )
+```
+
+### Recommended BiLSTM Architecture
+
+```python
+# BEFORE (causes collapse on range bars)
+HIDDEN_SIZE = 16
+DROPOUT = 0.5
+
+# AFTER (prevents collapse)
+HIDDEN_SIZE = 48  # Triple capacity
+DROPOUT = 0.3     # Less aggressive regularization
+```
+
+See reference docs for complete implementation details.
