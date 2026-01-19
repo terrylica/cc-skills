@@ -21,62 +21,16 @@
  */
 
 import { detectPatterns, formatFindings, DEFAULT_CONFIG } from "./process-storm-patterns.mjs";
-
-// ============================================================================
-// HELPER FUNCTIONS (lifecycle-reference.md compliant)
-// ============================================================================
-
-/**
- * Output JSON response to stdout
- * @param {object} response - The response object
- */
-function output(response) {
-  console.log(JSON.stringify(response));
-}
-
-/**
- * Allow the tool operation to proceed
- * Lifecycle: permissionDecision: "allow"
- */
-function allow() {
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "allow",
-    },
-  });
-}
-
-/**
- * Deny the tool operation with a reason
- * Lifecycle: permissionDecision: "deny" + permissionDecisionReason
- * @param {string} reason - Explanation shown to Claude
- */
-function deny(reason) {
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: reason,
-    },
-  });
-}
+import { allow, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
 
 // ============================================================================
 // MAIN LOGIC
 // ============================================================================
 
 async function main() {
-  // Parse stdin JSON input
-  let input;
-  try {
-    const stdin = await Bun.stdin.text();
-    input = JSON.parse(stdin);
-  } catch (parseError) {
-    console.error(`[PROCESS-STORM-GUARD] Failed to parse stdin: ${parseError.message}`);
-    allow();
-    return;
-  }
+  // Parse stdin JSON input (allow-on-error semantics)
+  const input = await parseStdinOrAllow("PROCESS-STORM-GUARD");
+  if (!input) return;
 
   const { tool_name, tool_input = {} } = input;
 
