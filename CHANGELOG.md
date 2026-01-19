@@ -1,3 +1,53 @@
+# [9.38.0](https://github.com/terrylica/cc-skills/compare/v9.37.0...v9.38.0) (2026-01-19)
+
+
+### Features
+
+* **quant-research:** comprehensive audit remediation with SOTA references ([6a671ca](https://github.com/terrylica/cc-skills/commit/6a671ca42821e819070ffd3c110f17d4ee0799c5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quant-research</strong> (2 changes)</summary>
+
+- [adaptive-wfo-epoch](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/SKILL.md) - updated (+640/-6)
+- [rangebar-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/SKILL.md) - updated (+25/-5)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quant-research/adaptive-wfo-epoch</strong> (4 files)</summary>
+
+- [Epoch Smoothing Methods Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/epoch-smoothing.md) - new (+427)
+- [Look-Ahead Bias Prevention Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/look-ahead-bias.md) - new (+325)
+- [OOS Application Phase Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/oos-application.md) - new (+356)
+- [OOS Metrics Specification Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/oos-metrics.md) - new (+468)
+
+</details>
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (4 files)</summary>
+
+- [Anti-Patterns in Range Bar Metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/anti-patterns.md) - new (+274)
+- [Metrics JSON Schema](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/metrics-schema.md) - new (+343)
+- [State-of-the-Art Methods (2025-2026)](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/sota-2025-2026.md) - new (+631)
+- [Worked Examples](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/worked-examples.md) - new (+484)
+
+</details>
+
 # [9.37.0](https://github.com/terrylica/cc-skills/compare/v9.36.1...v9.37.0) (2026-01-19)
 
 
