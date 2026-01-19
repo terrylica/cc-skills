@@ -1,3 +1,34 @@
+## [9.35.2](https://github.com/terrylica/cc-skills/compare/v9.35.1...v9.35.2) (2026-01-19)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [bootstrap-monorepo](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/bootstrap-monorepo/SKILL.md) - updated (+2/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md) - updated (+274)
+
+</details>
+
 ## [9.35.1](https://github.com/terrylica/cc-skills/compare/v9.35.0...v9.35.1) (2026-01-19)
 
 # [9.35.0](https://github.com/terrylica/cc-skills/compare/v9.34.0...v9.35.0) (2026-01-18)
