@@ -1,3 +1,24 @@
+## [9.35.3](https://github.com/terrylica/cc-skills/compare/v9.35.2...v9.35.3) (2026-01-19)
+
+
+### Bug Fixes
+
+* **sred-commit-guard:** handle heredoc and file-based commit messages ([6c9202f](https://github.com/terrylica/cc-skills/commit/6c9202f026312af7612c5a92a96dfc55ad8d7506))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+1/-1)
+
 ## [9.35.2](https://github.com/terrylica/cc-skills/compare/v9.35.1...v9.35.2) (2026-01-19)
 
 
