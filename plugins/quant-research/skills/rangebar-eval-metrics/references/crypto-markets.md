@@ -49,38 +49,99 @@ sessions:
 
 ## Session Filter Implementation
 
+**CRITICAL: Use `zoneinfo.ZoneInfo` for DST-aware timezone handling.**
+
+Python's `zoneinfo` module (stdlib since 3.9) uses the IANA timezone database and
+automatically handles Daylight Saving Time transitions for both London (GMT/BST)
+and New York (EST/EDT).
+
+### DST Transition Handling
+
+London and New York have different DST transition dates:
+
+- **UK**: Last Sunday of March (forward), Last Sunday of October (back)
+- **US**: 2nd Sunday of March (forward), 1st Sunday of November (back)
+
+This creates 2-3 week gaps where one region is in DST and the other isn't.
+`ZoneInfo` handles this automatically:
+
+| Period                            | London | NY  | Session Start (UTC) | Session End (UTC) |
+| --------------------------------- | ------ | --- | ------------------- | ----------------- |
+| Winter (both standard)            | GMT    | EST | 08:00               | 21:00             |
+| Spring gap (UK summer, US winter) | GMT    | EDT | 08:00               | 20:00             |
+| Summer (both DST)                 | BST    | EDT | 07:00               | 20:00             |
+| Fall gap (UK winter, US summer)   | GMT    | EDT | 08:00               | 20:00             |
+
 ```python
-from datetime import time
+from datetime import datetime, time
 from zoneinfo import ZoneInfo
+import pandas as pd
 
-LONDON_TZ = ZoneInfo("Europe/London")
-NY_TZ = ZoneInfo("America/New_York")
+# CORRECT: Use ZoneInfo for DST-aware handling
+LONDON_TZ = ZoneInfo("Europe/London")   # GMT (winter) / BST (summer)
+NY_TZ = ZoneInfo("America/New_York")    # EST (winter) / EDT (summer)
 
-def is_tradeable_hour(ts: pd.Timestamp) -> bool:
-    """London 08:00 to NY 16:00 filter.
+LONDON_OPEN = time(8, 0)   # 8:00 AM London local
+NY_CLOSE = time(16, 0)     # 4:00 PM NY local
 
-    Use for institutional-hours evaluation.
+
+def get_session_bounds_utc(date) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """Get London open to NY close in UTC for a given date.
+
+    DST is handled automatically by ZoneInfo.
     """
-    london_time = ts.astimezone(LONDON_TZ)
-    ny_time = ts.astimezone(NY_TZ)
+    london_open = pd.Timestamp(
+        datetime.combine(date, LONDON_OPEN), tz=LONDON_TZ
+    ).tz_convert("UTC")
 
-    # After London open AND before NY close
-    after_london = london_time.time() >= time(8, 0)
-    before_ny_close = ny_time.time() < time(16, 0)
+    ny_close = pd.Timestamp(
+        datetime.combine(date, NY_CLOSE), tz=NY_TZ
+    ).tz_convert("UTC")
 
-    # Not weekend
-    weekday = ts.weekday()
-    is_weekday = weekday < 5
+    return london_open, ny_close
 
-    return after_london and before_ny_close and is_weekday
+
+def is_tradeable_bar(bar_close_ts: pd.Timestamp) -> bool:
+    """Check if bar falls within London-NY session.
+
+    Uses bar close timestamp for session membership.
+    """
+    if bar_close_ts.tzinfo is None:
+        bar_close_ts = bar_close_ts.tz_localize("UTC")
+
+    ts_london = bar_close_ts.tz_convert(LONDON_TZ)
+    weekday = ts_london.weekday()
+
+    # Skip weekends
+    if weekday >= 5:
+        return False
+
+    session_open, session_close = get_session_bounds_utc(ts_london.date())
+    return session_open <= bar_close_ts <= session_close
 
 
 def compute_tradeable_mask(timestamps: np.ndarray) -> np.ndarray:
     """Boolean mask for tradeable bars."""
     return np.array([
-        is_tradeable_hour(pd.Timestamp(ts, tz="UTC"))
+        is_tradeable_bar(pd.Timestamp(ts))
         for ts in timestamps
     ])
+```
+
+### Anti-Patterns (DO NOT USE)
+
+```python
+# WRONG: Using fixed UTC offsets (ignores DST)
+# london_open_utc = datetime(..., hour=8) - timedelta(hours=0)  # WRONG!
+
+# WRONG: Using pytz without localize() (deprecated)
+# import pytz
+# tz = pytz.timezone("Europe/London")
+# ts = datetime(..., tzinfo=tz)  # WRONG! Use tz.localize() instead
+
+# WRONG: Hardcoded session hours in UTC
+# SESSION_START_UTC = 8  # WRONG! Varies with DST
+# SESSION_END_UTC = 21   # WRONG! Varies with DST
 ```
 
 ## Weekend/Weekday Split
@@ -196,6 +257,7 @@ dual_view:
   session_filtered:
     purpose: "Strategy performance evaluation"
     filter: "London 08:00 to NY 16:00, weekdays only"
+    annualization: "sqrt(5) - 5 trading days per week"
     use_for:
       - "Primary Sharpe calculation"
       - "Risk metrics"
@@ -204,30 +266,71 @@ dual_view:
   all_bars:
     purpose: "Regime detection and data quality"
     filter: "None (all bars)"
+    annualization: "sqrt(7) - crypto trades 24/7"
     use_for:
       - "Bar count stability diagnostic"
       - "Weekend/weekday comparison"
       - "Volatility regime detection"
 ```
 
+## CRITICAL: Session-Specific Annualization
+
+**THIS IS THE MOST IMPORTANT DISTINCTION FOR CRYPTO RANGE BARS.**
+
+| View                 | Filter              | days_per_week | Weekly Sharpe            | Rationale                  |
+| -------------------- | ------------------- | ------------- | ------------------------ | -------------------------- |
+| **Session-filtered** | London-NY, weekdays | **5**         | `daily_sharpe * sqrt(5)` | Only 5 active trading days |
+| **All-bars**         | None                | **7**         | `daily_sharpe * sqrt(7)` | Crypto trades 24/7/365     |
+
 ```python
+# CORRECT dual-view implementation
 def compute_dual_view_metrics(
     predictions: np.ndarray,
     actuals: np.ndarray,
     timestamps: np.ndarray
 ) -> dict:
-    """Compute metrics for both views."""
-    from rangebar_metrics import evaluate_fold  # Your metrics function
+    """Compute metrics with CORRECT annualization for each view."""
 
-    # All bars view
-    all_bars = evaluate_fold(predictions, actuals, None, timestamps)
+    # All bars view - sqrt(7) because crypto is 24/7
+    all_bars = evaluate_fold(
+        predictions, actuals, None, timestamps,
+        days_per_week=7  # CRITICAL: 7 for all-bars
+    )
 
-    # Session-filtered view
+    # Session-filtered view - sqrt(5) because we filter to 5 trading days
     mask = compute_tradeable_mask(timestamps)
-    filtered = evaluate_fold(predictions, actuals, mask, timestamps)
+    filtered = evaluate_fold(
+        predictions, actuals, mask, timestamps,
+        days_per_week=5  # CRITICAL: 5 for session-filtered
+    )
 
     return {
-        "oos_metrics": filtered,      # Primary
-        "oos_metrics_all": all_bars   # Diagnostic
+        "oos_metrics": filtered,      # Primary (sqrt(5))
+        "oos_metrics_all": all_bars   # Diagnostic (sqrt(7))
     }
+
+
+# WRONG - using same annualization for both views
+# filtered = evaluate_fold(..., days_per_week=7)  # INCORRECT!
+```
+
+### Why This Matters
+
+1. **Session-filtered uses sqrt(5)**: When you filter to London-NY weekday hours, you're
+   effectively trading a 5-day week like equities. The variance scaling must match.
+
+2. **All-bars uses sqrt(7)**: The full 24/7 crypto dataset has 7 trading days worth
+   of data per week, so annualization must use sqrt(7).
+
+3. **Mixing them is a methodological error**: Using sqrt(7) for session-filtered
+   **overstates** the Sharpe ratio by ~18% (`sqrt(7)/sqrt(5) = 1.183`).
+
+```python
+# Example of the overstatement
+daily_sharpe = 0.1
+
+correct_filtered = daily_sharpe * np.sqrt(5)   # 0.224
+incorrect_filtered = daily_sharpe * np.sqrt(7)  # 0.265
+
+overstatement = incorrect_filtered / correct_filtered  # 1.183 = 18.3% overstatement!
 ```
