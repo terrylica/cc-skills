@@ -68,6 +68,8 @@ class BayesianState:
 class BayesianEpochSmoother:
     """Bayesian smoothing for epoch selection.
 
+    Also known as: BayesianEpochSelector (alias in SKILL.md)
+
     Uses conjugate Normal-Normal updating with WFE-weighted observations.
     """
 
@@ -75,8 +77,8 @@ class BayesianEpochSmoother:
         self,
         epoch_configs: list[int],
         prior_mean: Optional[float] = None,
-        prior_variance: float = 10000.0,
-        observation_variance: float = 2500.0,
+        prior_variance: Optional[float] = None,
+        observation_variance: Optional[float] = None,
         min_wfe_weight: float = 0.1,
     ):
         """Initialize smoother.
@@ -84,18 +86,29 @@ class BayesianEpochSmoother:
         Args:
             epoch_configs: Valid epoch values
             prior_mean: Prior mean (default: midpoint of configs)
-            prior_variance: Prior variance (higher = more uncertain)
-            observation_variance: Base observation noise variance
+            prior_variance: Prior variance (default: derived from search space)
+            observation_variance: Base observation noise variance (default: prior_var/4)
             min_wfe_weight: Minimum WFE weight to prevent division by zero
+
+        Variance Derivation (if not provided):
+            Prior should span search space with ~95% coverage.
+            For Normal: 95% CI = mean ± 1.96σ → range = 3.92σ → σ² = (range/3.92)²
+            Observation variance: prior_variance/4 for balanced learning rate.
         """
         self.epoch_configs = sorted(epoch_configs)
-        self.observation_variance = observation_variance
         self.min_wfe_weight = min_wfe_weight
 
-        # Initialize state
+        # Derive variances from search space if not provided
+        epoch_range = max(self.epoch_configs) - min(self.epoch_configs)
+        default_prior_var = (epoch_range / 3.92) ** 2  # 95% CI spans search space
+        default_obs_var = default_prior_var / 4  # Balanced learning rate
+
+        self.observation_variance = observation_variance or default_obs_var
+
+        # Initialize state with derived or provided variance
         self.state = BayesianState(
             mean=prior_mean or np.mean(epoch_configs),
-            variance=prior_variance,
+            variance=prior_variance or default_prior_var,
             n_observations=0,
         )
 
@@ -112,7 +125,11 @@ class BayesianEpochSmoother:
         Returns:
             Smoothed epoch selection (snapped to valid config)
         """
-        # Clamp WFE to prevent extreme weights
+        # Clamp WFE to [min_wfe_weight, 2.0] to prevent extreme weights:
+        #   - Lower bound (min_wfe_weight=0.1): Prevents division issues
+        #   - Upper bound (2.0): WFE > 2 indicates OOS >> IS, which suggests
+        #     regime shift or data anomaly rather than genuine skill transfer.
+        #     Capping at 2.0 treats such observations with appropriate skepticism.
         wfe_clamped = max(self.min_wfe_weight, min(wfe, 2.0))
 
         # Effective observation variance (lower WFE = higher variance)
@@ -181,10 +198,13 @@ class BayesianEpochSmoother:
         return min(self.epoch_configs, key=lambda e: abs(e - continuous))
 
     def reset(self, prior_mean: Optional[float] = None) -> None:
-        """Reset to prior state."""
+        """Reset to prior state with derived variance."""
+        epoch_range = max(self.epoch_configs) - min(self.epoch_configs)
+        default_prior_var = (epoch_range / 3.92) ** 2  # 95% CI spans search space
+
         self.state = BayesianState(
             mean=prior_mean or np.mean(self.epoch_configs),
-            variance=10000.0,
+            variance=default_prior_var,
             n_observations=0,
         )
         self.history.clear()
@@ -318,23 +338,38 @@ class MedianEpochSmoother:
 
 ## Initialization Strategies
 
-### Strategy 1: Uninformative Prior
+### Strategy 1: Search-Space Derived (RECOMMENDED)
 
 ```python
-# No domain knowledge
+# Principled: Derive from search bounds (no magic numbers)
+# Prior spans search space with 95% coverage
+epoch_range = max(EPOCH_CONFIGS) - min(EPOCH_CONFIGS)
+prior_mean = np.mean(EPOCH_CONFIGS)  # Midpoint
+prior_variance = (epoch_range / 3.92) ** 2  # 95% CI spans search space
+
+# Example: EPOCH_CONFIGS = [100, 200, 400, 800, 1600]
+# epoch_range = 1500, prior_variance = (1500/3.92)² ≈ 146,506
+```
+
+### Strategy 2: Uninformative Prior
+
+```python
+# No domain knowledge - very wide prior
 prior_mean = np.mean(EPOCH_CONFIGS)  # Midpoint
 prior_variance = np.var(EPOCH_CONFIGS) * 4  # Very wide
 ```
 
-### Strategy 2: Literature-Informed Prior
+### Strategy 3: Literature-Informed Prior
 
 ```python
 # BiLSTM literature suggests 100-300 optimal for financial data
+# But prefer deriving from YOUR search space
 prior_mean = 200
-prior_variance = 2500  # ±50 epochs (1 std)
+epoch_range = max(EPOCH_CONFIGS) - min(EPOCH_CONFIGS)
+prior_variance = (epoch_range / 3.92) ** 2  # Still principled
 ```
 
-### Strategy 3: Burn-In Initialization
+### Strategy 4: Burn-In Initialization
 
 ```python
 # Use first N folds to establish prior
@@ -342,17 +377,20 @@ BURN_IN_FOLDS = 5
 burn_in_optima = [get_fold_optimal(fold) for fold in folds[:BURN_IN_FOLDS]]
 
 prior_mean = np.mean(burn_in_optima)
-prior_variance = np.var(burn_in_optima) + 500  # Add base uncertainty
+# Combine observed variance with search-space derived base
+epoch_range = max(EPOCH_CONFIGS) - min(EPOCH_CONFIGS)
+base_variance = (epoch_range / 3.92) ** 2 / 4  # Reduced after burn-in
+prior_variance = max(np.var(burn_in_optima), base_variance)
 ```
 
-### Strategy 4: Empirical Bayes
+### Strategy 5: Empirical Bayes
 
 ```python
 # Estimate prior from full sweep data (use with caution - slight look-ahead)
 all_fold_optima = [r["optimal_epoch"] for r in full_sweep_results]
 
 prior_mean = np.mean(all_fold_optima)
-prior_variance = np.var(all_fold_optima)
+prior_variance = max(np.var(all_fold_optima), 100)  # Floor to prevent collapse
 ```
 
 ## Convergence Analysis
@@ -362,14 +400,24 @@ prior_variance = np.var(all_fold_optima)
 After N observations, posterior variance:
 
 ```
-σ_N² = 1 / (1/σ₀² + N·wfe_avg/σ²)
+σ_N² = 1 / (1/σ₀² + N·wfe_avg/σ_obs²)
 ```
 
-For typical parameters (σ₀²=10000, σ²=2500, wfe_avg=0.5):
+**Example with principled derivation** (search space [100, 2000], granularity=5):
 
-- After 5 folds: σ² ≈ 714 (±27 epochs)
-- After 10 folds: σ² ≈ 385 (±20 epochs)
-- After 20 folds: σ² ≈ 196 (±14 epochs)
+```python
+epoch_range = 2000 - 100 = 1900
+prior_variance = (1900 / 3.92)² ≈ 235,000
+observation_variance = prior_variance / 4 ≈ 58,750
+```
+
+With wfe_avg=0.5:
+
+- After 5 folds: σ² ≈ 31,000 (±176 epochs)
+- After 10 folds: σ² ≈ 17,600 (±133 epochs)
+- After 20 folds: σ² ≈ 9,600 (±98 epochs)
+
+**Key insight**: Larger search spaces need more folds to converge. This is principled - uncertainty should scale with search space size.
 
 ### EMA Effective Memory
 

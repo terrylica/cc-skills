@@ -150,6 +150,14 @@ test = data[1200:1400]  # Immediately after validation
 
 ### The Fix: Time-Based Embargo
 
+**Parameter naming convention**:
+
+- `embargo_hours`: Use for **time-based** embargoes (calendar time gap)
+- `embargo_pct`: Use for **percentage-based** embargoes (fraction of fold size)
+
+The validation checklist mentions "6% minimum embargo" - this refers to the effective time gap
+being approximately 6% of fold duration. For explicit control, use `embargo_hours`.
+
 ```python
 # CORRECT: Calendar-based embargo gaps
 def split_with_embargo(
@@ -157,9 +165,16 @@ def split_with_embargo(
     train_pct: float = 0.60,
     val_pct: float = 0.20,
     test_pct: float = 0.20,
-    embargo_hours: int = 24,  # 1 day minimum
+    embargo_hours: int = 24,  # Time-based: 1 day minimum calendar gap
+    # Alternative: embargo_pct: float = 0.06 for percentage-based
 ) -> tuple:
-    """Split data with time-based embargo."""
+    """Split data with time-based embargo.
+
+    Note: embargo_hours is preferred over embargo_pct because:
+    - Time-based gaps are more intuitive for information leakage
+    - Range bars have variable time density, making % ambiguous
+    - 24h gap = ~6% of typical weekly fold (approximation)
+    """
     n = len(data)
 
     # Calculate split points
