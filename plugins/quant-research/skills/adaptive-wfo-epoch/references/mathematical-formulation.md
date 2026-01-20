@@ -324,16 +324,36 @@ Where:
 ### Bootstrap Method (Recommended)
 
 ```python
-def bootstrap_wfe_ci(returns_is, returns_oos, n_bootstrap=10000, alpha=0.05):
+def bootstrap_wfe_ci(
+    returns_is,
+    returns_oos,
+    n_bootstrap=10000,
+    alpha=0.05,
+    annualization_factor=None,  # Use AWFESConfig.get_annualization_factor()
+    is_threshold=None,          # Use compute_is_sharpe_threshold()
+):
+    """Bootstrap confidence interval for WFE.
+
+    Args:
+        annualization_factor: sqrt(periods_per_year). Use:
+            - sqrt(365) for crypto_24_7 daily
+            - sqrt(252) for equity/session-filtered daily
+            - Or get from AWFESConfig.get_annualization_factor()
+        is_threshold: Minimum IS Sharpe. Use compute_is_sharpe_threshold(n).
+    """
+    # Default to equity convention if not specified
+    ann_factor = annualization_factor or np.sqrt(252)
+    min_is = is_threshold or 0.1
+
     wfe_samples = []
     for _ in range(n_bootstrap):
         is_sample = np.random.choice(returns_is, size=len(returns_is), replace=True)
         oos_sample = np.random.choice(returns_oos, size=len(returns_oos), replace=True)
 
-        sr_is = is_sample.mean() / is_sample.std() * np.sqrt(252)
-        sr_oos = oos_sample.mean() / oos_sample.std() * np.sqrt(252)
+        sr_is = is_sample.mean() / is_sample.std() * ann_factor
+        sr_oos = oos_sample.mean() / oos_sample.std() * ann_factor
 
-        if sr_is > 0.1:
+        if sr_is > min_is:
             wfe_samples.append(sr_oos / sr_is)
 
     return np.percentile(wfe_samples, [100*alpha/2, 100*(1-alpha/2)])
