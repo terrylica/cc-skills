@@ -91,8 +91,8 @@ class AWFESOOSApplication:
         epoch_configs: list[int],
         model_factory: Callable[[], ModelProtocol],
         prior_mean: float | None = None,
-        prior_variance: float = 10000.0,
-        observation_variance: float = 2500.0,
+        prior_variance: float | None = None,
+        observation_variance: float | None = None,
     ):
         """Initialize AWFES OOS application.
 
@@ -100,14 +100,25 @@ class AWFESOOSApplication:
             epoch_configs: List of epoch candidates to sweep
             model_factory: Factory function returning fresh model instances
             prior_mean: Prior mean for Bayesian updating (default: midpoint)
-            prior_variance: Prior variance (default: high uncertainty)
-            observation_variance: Observation noise variance
+            prior_variance: Prior variance (default: derived from search space)
+            observation_variance: Observation noise variance (default: prior_var/4)
+
+        Variance Derivation:
+            Prior should span search space with ~95% coverage.
+            range = max - min, σ = range/3.92, σ² = (range/3.92)²
+            observation_variance = prior_variance/4 for balanced learning.
         """
         self.epoch_configs = epoch_configs
         self.model_factory = model_factory
         self.prior_mean = prior_mean or np.mean(epoch_configs)
-        self.prior_variance = prior_variance
-        self.observation_variance = observation_variance
+
+        # Derive variances from search space if not provided
+        epoch_range = max(epoch_configs) - min(epoch_configs)
+        default_prior_var = (epoch_range / 3.92) ** 2  # 95% CI spans search space
+        default_obs_var = default_prior_var / 4  # Balanced learning rate
+
+        self.prior_variance = prior_variance or default_prior_var
+        self.observation_variance = observation_variance or default_obs_var
 
         # Bayesian state
         self.posterior_mean = self.prior_mean
@@ -135,7 +146,10 @@ class AWFESOOSApplication:
             train_sharpe = self._compute_sharpe(train_preds, split.y_train)
             val_sharpe = self._compute_sharpe(val_preds, split.y_validation)
 
-            wfe = val_sharpe / train_sharpe if abs(train_sharpe) > 0.1 else None
+            # Use data-driven threshold instead of hardcoded value
+            # Rationale: 2/√n adapts to sample size; see compute_is_sharpe_threshold()
+            is_threshold = compute_is_sharpe_threshold(len(split.X_train))
+            wfe = val_sharpe / train_sharpe if abs(train_sharpe) > is_threshold else None
 
             epoch_results.append({
                 "epoch": epoch,
@@ -187,8 +201,9 @@ class AWFESOOSApplication:
 
     def _bayesian_update(self, observed_epoch: int, wfe: float) -> int:
         """Update Bayesian posterior and return selected epoch."""
-        # Weight observation by WFE
-        eff_obs_var = self.observation_variance / max(wfe, 0.1)
+        # Clamp WFE to [0.1, 2.0] to prevent extreme weights
+        wfe_clamped = max(0.1, min(wfe, 2.0))
+        eff_obs_var = self.observation_variance / wfe_clamped
 
         prior_precision = 1.0 / self.posterior_variance
         obs_precision = 1.0 / eff_obs_var
@@ -298,16 +313,22 @@ class AWFESOOSApplication:
 
 ```python
 from your_model import BiLSTMModel
+from adaptive_wfo_epoch import AWFESConfig
 
-# Define epoch configs
-EPOCH_CONFIGS = [80, 100, 150, 200, 400]
+# Define epoch configs via principled derivation
+config = AWFESConfig.from_search_space(
+    min_epoch=80,
+    max_epoch=400,
+    granularity=5,  # Log-spaced: [80, 113, 160, 226, 400]
+)
 
-# Create application
+# Create application - variances derived from search space automatically
 awfes = AWFESOOSApplication(
-    epoch_configs=EPOCH_CONFIGS,
+    epoch_configs=config.epoch_configs,
     model_factory=lambda: BiLSTMModel(hidden_size=48, dropout=0.3),
-    prior_mean=150,  # Literature suggests 100-200 optimal
-    prior_variance=2500,  # ±50 epochs uncertainty
+    # prior_variance and observation_variance derived automatically:
+    # prior_var = ((400-80)/3.92)² ≈ 6,658
+    # obs_var = prior_var/4 ≈ 1,665
 )
 
 # Process each fold

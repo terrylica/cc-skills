@@ -2,7 +2,7 @@
 
 Common failures and how to avoid them.
 
-## 1. Peak Picking
+## 1. Peak Picking (Severity: HIGH)
 
 ### Symptom
 
@@ -37,11 +37,17 @@ def detect_peak_picking(selection_history: list[int], epoch_configs: list[int]) 
 # WRONG: Narrow range
 EPOCH_CONFIGS = [400, 800]
 
-# BETTER: Expanded range with geometric spacing
-EPOCH_CONFIGS = [200, 400, 800, 1600, 3200]
+# BETTER: Use AWFESConfig with appropriate bounds
+from adaptive_wfo_epoch import AWFESConfig
+
+config = AWFESConfig.from_search_space(
+    min_epoch=200,
+    max_epoch=3200,
+    granularity=5,  # Log-spaced: [200, 400, 800, 1600, 3200]
+)
 ```
 
-## 2. Insufficient Folds
+## 2. Insufficient Folds (Severity: HIGH)
 
 ### Symptom
 
@@ -83,14 +89,15 @@ def check_effective_sample_size(
 ```python
 # WRONG: 10 folds with 4 epochs → N_eff ≈ 3.5
 N_FOLDS = 10
-EPOCH_CONFIGS = [400, 800, 1000, 2000]
+config = AWFESConfig.from_search_space(min_epoch=400, max_epoch=2000, granularity=4)
 
 # BETTER: 50 folds with 3 epochs → N_eff ≈ 20
 N_FOLDS = 50
-EPOCH_CONFIGS = [400, 800, 1600]
+config = AWFESConfig.from_search_space(min_epoch=400, max_epoch=1600, granularity=3)
+# Fewer epochs + more folds = higher effective sample size
 ```
 
-## 3. Ignoring Temporal Autocorrelation
+## 3. Ignoring Temporal Autocorrelation (Severity: HIGH)
 
 ### Symptom
 
@@ -135,7 +142,7 @@ fold_0: train=[0:1000], embargo=[1000:1050], test=[1050:1150]
 fold_1: train=[500:1500], embargo=[1500:1550], test=[1550:1650]  # 50% overlap
 ```
 
-## 4. Overfitting to In-Sample
+## 4. Overfitting to In-Sample (Severity: HIGH)
 
 ### Symptom
 
@@ -155,20 +162,30 @@ Model is memorizing training data patterns that don't generalize.
 
 ```python
 def detect_overfitting(is_sharpe: float, oos_sharpe: float) -> str:
-    """Classify overfitting severity."""
+    """Classify overfitting severity.
+
+    Labels aligned with SKILL.md classify_wfe() (see Guardrails G1):
+    - EXCELLENT (≥0.70): Excellent transfer, low overfitting
+    - ACCEPTABLE (0.50-0.70): Acceptable transfer (alias: GOOD)
+    - INVESTIGATE (0.30-0.50): Moderate transfer, investigate
+    - REJECT (<0.30): Severe overfitting, reject (alias: SEVERE)
+
+    Note: ACCEPTABLE/GOOD and REJECT/SEVERE are synonyms.
+    SKILL.md uses ACCEPTABLE/REJECT; some older code uses GOOD/SEVERE.
+    """
     if is_sharpe <= 0:
         return "NO_SIGNAL"
 
     wfe = oos_sharpe / is_sharpe
 
     if wfe >= 0.7:
-        return "HEALTHY"
+        return "EXCELLENT"
     elif wfe >= 0.5:
-        return "MODERATE"
+        return "ACCEPTABLE"  # Aligned with SKILL.md (was: GOOD)
     elif wfe >= 0.3:
-        return "CONCERNING"
+        return "INVESTIGATE"
     else:
-        return "SEVERE"
+        return "REJECT"  # Aligned with SKILL.md (was: SEVERE)
 ```
 
 ### Fix
@@ -191,7 +208,7 @@ DROPOUT = 0.3
 WEIGHT_DECAY = 0.01
 ```
 
-## 5. Using sqrt(252) for Crypto
+## 5. Using sqrt(252) for Crypto (Severity: MEDIUM)
 
 ### Symptom
 
@@ -237,7 +254,7 @@ weekly_sharpe = daily_sharpe * np.sqrt(7)  # Crypto 24/7
 # Use sqrt(5) because you're only trading 5 days
 ```
 
-## 6. Single Epoch Selection (No Uncertainty)
+## 6. Single Epoch Selection (No Uncertainty) (Severity: MEDIUM)
 
 ### Symptom
 
@@ -410,7 +427,7 @@ assert all(
 
 ---
 
-## 8. Meta-Overfitting (Overfitting the Epoch Search)
+## 8. Meta-Overfitting (Overfitting the Epoch Search) (Severity: HIGH)
 
 ### Symptom
 
@@ -472,12 +489,14 @@ def detect_meta_overfitting(
 4. **Apply DSR correction**: Account for 124 trials in significance test
 
 ```python
-# WRONG: Too many epoch options
-EPOCH_CONFIGS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]  # 10 options!
+# WRONG: Too many epoch options (10 options = meta-overfitting risk)
+config = AWFESConfig.from_search_space(min_epoch=100, max_epoch=1000, granularity=10)
 
-# BETTER: Limited options with stability
-EPOCH_CONFIGS = [400, 800, 1600]  # 3 options
-STABILITY_PENALTY = 0.1  # 10% WFE improvement required to change
+# BETTER: Limited options with adaptive stability
+config = AWFESConfig.from_search_space(min_epoch=400, max_epoch=1600, granularity=3)
+# Use AdaptiveStabilityPenalty which derives threshold from WFE variance
+from adaptive_wfo_epoch import AdaptiveStabilityPenalty
+stability = AdaptiveStabilityPenalty()  # Adapts to observed WFE noise
 ```
 
 ## Summary Checklist
@@ -485,14 +504,17 @@ STABILITY_PENALTY = 0.1  # 10% WFE improvement required to change
 Before deploying adaptive epoch selection:
 
 - [ ] **Expanding window**: Using fixed sliding window (NOT expanding) for range bars?
-- [ ] **Peak picking**: Are selections clustered at boundaries?
-- [ ] **Sample size**: Is N_eff ≥ 30?
+- [ ] **Peak picking**: Are selections clustered at boundaries? (Expand search bounds if yes)
+- [ ] **Sample size**: Is N_eff ≥ 30? (Use fewer epochs or more folds)
 - [ ] **Autocorrelation**: Is fold autocorrelation < 0.3?
-- [ ] **Overfitting**: Is WFE > 0.50 across folds?
-- [ ] **Annualization**: Using correct sqrt factor for market?
-- [ ] **Uncertainty**: Reporting confidence intervals?
-- [ ] **Meta-overfitting**: Epoch CV < 0.5? Not near-uniform?
+- [ ] **Overfitting**: Is WFE > 0.50 across folds? (Guidelines, not hard thresholds)
+- [ ] **Annualization**: Using `AWFESConfig.get_annualization_factor()` for correct market/time_unit?
+- [ ] **Uncertainty**: Reporting confidence intervals via `BayesianEpochSmoother.get_confidence_interval()`?
+- [ ] **Meta-overfitting**: Epoch CV < 0.5? Not near-uniform? (Use `AdaptiveStabilityPenalty`)
+- [ ] **IS_Sharpe threshold**: Using `compute_is_sharpe_threshold(n_samples)` instead of fixed 1.0?
 
 If any check fails, investigate before production deployment.
 
 **CRITICAL**: The expanding window check is a **hard gate** for range bar training. All other checks are warnings that require investigation.
+
+**Principled Configuration**: Use `AWFESConfig.from_search_space(min_epoch, max_epoch, granularity)` to derive all parameters from search bounds. See [SKILL.md](../SKILL.md#principled-configuration-framework) for details.

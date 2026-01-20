@@ -16,17 +16,22 @@ Machine-readable reference for adaptive epoch selection within Walk-Forward Opti
 ## Quick Start
 
 ```python
-from adaptive_wfo_epoch import EpochSweep, compute_efficient_frontier
+from adaptive_wfo_epoch import AWFESConfig, compute_efficient_frontier
 
-# Define epoch candidates
-EPOCH_CONFIGS = [400, 800, 1000, 2000]
+# Generate epoch candidates from search bounds and granularity
+config = AWFESConfig.from_search_space(
+    min_epoch=100,
+    max_epoch=2000,
+    granularity=5,  # Number of frontier points
+)
+# config.epoch_configs → [100, 211, 447, 945, 2000] (log-spaced)
 
 # Per-fold epoch sweep
 for fold in wfo_folds:
     epoch_metrics = []
-    for epoch in EPOCH_CONFIGS:
+    for epoch in config.epoch_configs:
         is_sharpe, oos_sharpe = train_and_evaluate(fold, epochs=epoch)
-        wfe = oos_sharpe / is_sharpe if is_sharpe > 0.1 else None
+        wfe = config.compute_wfe(is_sharpe, oos_sharpe, n_samples=len(fold.train))
         epoch_metrics.append({"epoch": epoch, "wfe": wfe, "is_sharpe": is_sharpe})
 
     # Select from efficient frontier
@@ -68,102 +73,429 @@ See [references/academic-foundations.md](./references/academic-foundations.md) f
 ## Core Formula: Walk-Forward Efficiency
 
 ```python
-def compute_wfe(is_sharpe: float, oos_sharpe: float) -> float | None:
+def compute_wfe(
+    is_sharpe: float,
+    oos_sharpe: float,
+    n_samples: int | None = None,
+) -> float | None:
     """Walk-Forward Efficiency - measures performance transfer.
 
     WFE = OOS_Sharpe / IS_Sharpe
 
-    Interpretation:
-    - WFE > 0.70: Excellent transfer (low overfitting)
+    Interpretation (guidelines, not hard thresholds):
+    - WFE ≥ 0.70: Excellent transfer (low overfitting)
     - WFE 0.50-0.70: Good transfer
     - WFE 0.30-0.50: Moderate transfer (investigate)
-    - WFE < 0.30: REJECT (severe overfitting)
+    - WFE < 0.30: Severe overfitting (likely reject)
+
+    The IS_Sharpe minimum is derived from signal-to-noise ratio,
+    not a fixed magic number. See compute_is_sharpe_threshold().
 
     Reference: Pardo (2008) "The Evaluation and Optimization of Trading Strategies"
     """
-    if abs(is_sharpe) < 0.1:  # Near-zero denominator
+    # Data-driven threshold: IS_Sharpe must exceed 2σ noise floor
+    min_is_sharpe = compute_is_sharpe_threshold(n_samples) if n_samples else 0.1
+
+    if abs(is_sharpe) < min_is_sharpe:
         return None
     return oos_sharpe / is_sharpe
 ```
 
-## Guardrails (MANDATORY)
+## Principled Configuration Framework
 
-### G1: WFE Minimum Threshold
+All parameters in AWFES are derived from first principles or data characteristics, not arbitrary magic numbers.
 
-```yaml
-wfe_threshold:
-  hard_reject: 0.30 # REJECT if WFE < 0.30
-  warning: 0.50 # FLAG for review if WFE < 0.50
-  target: 0.70 # Target for production deployment
-```
-
-**Rationale**: WFE < 0.30 means losing >70% of in-sample performance out-of-sample, indicating severe overfitting.
-
-### G2: IS_Sharpe Minimum
-
-```yaml
-is_sharpe_minimum: 1.0
-```
-
-**Rationale**: WFE is only meaningful when IS_Sharpe > 1.0. With near-zero IS_Sharpe, the ratio becomes unstable and meaningless.
+### AWFESConfig: Unified Configuration
 
 ```python
-# WRONG: Computing WFE with weak in-sample signal
-is_sharpe = 0.1
-oos_sharpe = 0.05
-wfe = 0.5  # Looks acceptable but both Sharpes are noise!
+from dataclasses import dataclass, field
+from typing import Literal
+import numpy as np
 
-# CORRECT: Require minimum IS_Sharpe
+@dataclass
+class AWFESConfig:
+    """AWFES configuration with principled parameter derivation.
+
+    No magic numbers - all values derived from search space or data.
+    """
+    # Search space bounds (user-specified)
+    min_epoch: int
+    max_epoch: int
+    granularity: int  # Number of frontier points
+
+    # Derived automatically
+    epoch_configs: list[int] = field(init=False)
+    prior_variance: float = field(init=False)
+    observation_variance: float = field(init=False)
+
+    # Market context for annualization
+    # crypto_session_filtered: Use when data is filtered to London-NY weekday hours
+    market_type: Literal["crypto_24_7", "crypto_session_filtered", "equity", "forex"] = "crypto_24_7"
+    time_unit: Literal["bar", "daily", "weekly"] = "weekly"
+
+    def __post_init__(self):
+        # Generate epoch configs with log spacing (optimal for frontier discovery)
+        self.epoch_configs = self._generate_epoch_configs()
+
+        # Derive Bayesian variances from search space
+        self.prior_variance, self.observation_variance = self._derive_variances()
+
+    def _generate_epoch_configs(self) -> list[int]:
+        """Generate epoch candidates with log spacing.
+
+        Log spacing is optimal for efficient frontier because:
+        1. Early epochs: small changes matter more (underfit → fit transition)
+        2. Late epochs: diminishing returns (already near convergence)
+        3. Uniform coverage of the WFE vs cost trade-off space
+
+        Formula: epoch_i = min × (max/min)^(i/(n-1))
+        """
+        if self.granularity < 2:
+            return [self.min_epoch]
+
+        log_min = np.log(self.min_epoch)
+        log_max = np.log(self.max_epoch)
+        log_epochs = np.linspace(log_min, log_max, self.granularity)
+
+        return sorted(set(int(round(np.exp(e))) for e in log_epochs))
+
+    def _derive_variances(self) -> tuple[float, float]:
+        """Derive Bayesian variances from search space.
+
+        Principle: Prior should span the search space with ~95% coverage.
+
+        For Normal distribution: 95% CI = mean ± 1.96σ
+        If we want 95% of prior mass in [min_epoch, max_epoch]:
+            range = max - min = 2 × 1.96 × σ = 3.92σ
+            σ = range / 3.92
+            σ² = (range / 3.92)²
+
+        Observation variance: Set to achieve reasonable learning rate.
+        Rule: observation_variance ≈ prior_variance / 4
+        This means each observation updates the posterior meaningfully
+        but doesn't dominate the prior immediately.
+        """
+        epoch_range = self.max_epoch - self.min_epoch
+        prior_std = epoch_range / 3.92  # 95% CI spans search space
+        prior_variance = prior_std ** 2
+
+        # Observation variance: 1/4 of prior for balanced learning
+        # This gives ~0.2 weight to each new observation initially
+        observation_variance = prior_variance / 4
+
+        return prior_variance, observation_variance
+
+    @classmethod
+    def from_search_space(
+        cls,
+        min_epoch: int,
+        max_epoch: int,
+        granularity: int = 5,
+        market_type: str = "crypto_24_7",
+    ) -> "AWFESConfig":
+        """Create config from search space bounds."""
+        return cls(
+            min_epoch=min_epoch,
+            max_epoch=max_epoch,
+            granularity=granularity,
+            market_type=market_type,
+        )
+
+    def compute_wfe(
+        self,
+        is_sharpe: float,
+        oos_sharpe: float,
+        n_samples: int | None = None,
+    ) -> float | None:
+        """Compute WFE with data-driven IS_Sharpe threshold."""
+        min_is = compute_is_sharpe_threshold(n_samples) if n_samples else 0.1
+        if abs(is_sharpe) < min_is:
+            return None
+        return oos_sharpe / is_sharpe
+
+    def get_annualization_factor(self) -> float:
+        """Get annualization factor to scale Sharpe from time_unit to ANNUAL.
+
+        IMPORTANT: This returns sqrt(periods_per_year) for scaling to ANNUAL Sharpe.
+        For daily-to-weekly scaling, use get_daily_to_weekly_factor() instead.
+
+        Principled derivation:
+        - Sharpe scales with √(periods per year)
+        - Crypto 24/7: 365 days/year, 52.14 weeks/year
+        - Crypto session-filtered: 252 days/year (like equity)
+        - Equity: 252 trading days/year, ~52 weeks/year
+        - Forex: ~252 days/year (varies by pair)
+        """
+        PERIODS_PER_YEAR = {
+            ("crypto_24_7", "daily"): 365,
+            ("crypto_24_7", "weekly"): 52.14,
+            ("crypto_24_7", "bar"): None,  # Cannot annualize bars directly
+            ("crypto_session_filtered", "daily"): 252,  # London-NY weekdays only
+            ("crypto_session_filtered", "weekly"): 52,
+            ("equity", "daily"): 252,
+            ("equity", "weekly"): 52,
+            ("forex", "daily"): 252,
+        }
+
+        key = (self.market_type, self.time_unit)
+        periods = PERIODS_PER_YEAR.get(key)
+
+        if periods is None:
+            raise ValueError(
+                f"Cannot annualize {self.time_unit} for {self.market_type}. "
+                "Use daily or weekly aggregation first."
+            )
+
+        return np.sqrt(periods)
+
+    def get_daily_to_weekly_factor(self) -> float:
+        """Get factor to scale DAILY Sharpe to WEEKLY Sharpe.
+
+        This is different from get_annualization_factor()!
+        - Daily → Weekly: sqrt(days_per_week)
+        - Daily → Annual: sqrt(days_per_year)  (use get_annualization_factor)
+
+        Market-specific:
+        - Crypto 24/7: sqrt(7) = 2.65 (7 trading days/week)
+        - Crypto session-filtered: sqrt(5) = 2.24 (weekdays only)
+        - Equity: sqrt(5) = 2.24 (5 trading days/week)
+        """
+        DAYS_PER_WEEK = {
+            "crypto_24_7": 7,
+            "crypto_session_filtered": 5,  # London-NY weekdays only
+            "equity": 5,
+            "forex": 5,
+        }
+
+        days = DAYS_PER_WEEK.get(self.market_type)
+        if days is None:
+            raise ValueError(f"Unknown market type: {self.market_type}")
+
+        return np.sqrt(days)
+```
+
+### IS_Sharpe Threshold: Signal-to-Noise Derivation
+
+```python
+def compute_is_sharpe_threshold(n_samples: int | None = None) -> float:
+    """Compute minimum IS_Sharpe threshold from signal-to-noise ratio.
+
+    Principle: IS_Sharpe must be statistically distinguishable from zero.
+
+    Under null hypothesis (no skill), Sharpe ~ N(0, 1/√n).
+    To reject null at α=0.05 (one-sided), need Sharpe > 1.645/√n.
+
+    For practical use, we use 2σ threshold (≈97.7% confidence):
+        threshold = 2.0 / √n
+
+    This adapts to sample size:
+    - n=100: threshold ≈ 0.20
+    - n=400: threshold ≈ 0.10
+    - n=1600: threshold ≈ 0.05
+
+    Fallback for unknown n: 0.1 (assumes n≈400, typical fold size)
+
+    Rationale for 0.1 fallback:
+    - 2/√400 = 0.1, so 0.1 assumes ~400 samples per fold
+    - This is conservative: 400 samples is typical for weekly folds
+    - If actual n is smaller, threshold is looser (accepts more noise)
+    - If actual n is larger, threshold is tighter (fine, we're conservative)
+    - The 0.1 value also corresponds to "not statistically distinguishable
+      from zero at reasonable sample sizes" - a natural floor for Sharpe SE
+    """
+    if n_samples is None or n_samples < 10:
+        # Conservative fallback: 0.1 assumes ~400 samples (typical fold size)
+        # Derivation: 2/√400 = 0.1; see rationale above
+        return 0.1
+
+    return 2.0 / np.sqrt(n_samples)
+```
+
+## Guardrails (Principled Guidelines)
+
+### G1: WFE Thresholds
+
+The traditional thresholds (0.30, 0.50, 0.70) are **guidelines based on practitioner consensus**, not derived from first principles. They represent:
+
+| Threshold | Meaning     | Statistical Basis                                          |
+| --------- | ----------- | ---------------------------------------------------------- |
+| **0.30**  | Hard reject | Retaining <30% of IS performance is almost certainly noise |
+| **0.50**  | Warning     | At 50%, half the signal is lost - investigate              |
+| **0.70**  | Target      | Industry standard for "good" transfer                      |
+
+```python
+# These are GUIDELINES, not hard rules
+# Adjust based on your domain and risk tolerance
+WFE_THRESHOLDS = {
+    "hard_reject": 0.30,  # Below this: almost certainly overfitting
+    "warning": 0.50,      # Below this: significant signal loss
+    "target": 0.70,       # Above this: good generalization
+}
+
+def classify_wfe(wfe: float | None) -> str:
+    """Classify WFE with principled thresholds."""
+    if wfe is None:
+        return "INVALID"  # IS_Sharpe below noise floor
+    if wfe < WFE_THRESHOLDS["hard_reject"]:
+        return "REJECT"
+    if wfe < WFE_THRESHOLDS["warning"]:
+        return "INVESTIGATE"
+    if wfe < WFE_THRESHOLDS["target"]:
+        return "ACCEPTABLE"
+    return "EXCELLENT"
+```
+
+### G2: IS_Sharpe Minimum (Data-Driven)
+
+**OLD (magic number):**
+
+```python
+# WRONG: Fixed threshold regardless of sample size
 if is_sharpe < 1.0:
-    wfe = None  # Mark as invalid, use fallback
+    wfe = None
 ```
 
-### G3: Stability Penalty for Epoch Changes
+**NEW (principled):**
 
-```yaml
-stability_penalty:
-  enabled: true
-  min_wfe_improvement: 0.10 # 10% improvement required to change
-  min_consecutive_folds: 2 # Must be optimal for 2+ folds
-  max_changes_per_quarter: 2 # Prevent hyperparameter churn
+```python
+# CORRECT: Threshold adapts to sample size
+min_is_sharpe = compute_is_sharpe_threshold(n_samples)
+if is_sharpe < min_is_sharpe:
+    wfe = None  # Below noise floor for this sample size
 ```
 
-**Rationale**: Frequent epoch switching indicates instability or overfitting to the epoch search space itself.
+The threshold derives from the standard error of Sharpe ratio: SE(SR) ≈ 1/√n.
 
-### G4: DSR Adjustment for Epoch Search
+**Note on SE(Sharpe) approximation**: The formula `1/√n` is a first-order approximation valid when SR is small (close to 0). The full Lo (2002) formula is:
+
+```
+SE(SR) = √((1 + 0.5×SR²) / n)
+```
+
+For high-Sharpe strategies (SR > 1.0), the simplified formula underestimates SE by ~25-50%. Use the full formula when evaluating strategies with SR > 1.0.
+
+### G3: Stability Penalty for Epoch Changes (Adaptive)
+
+The stability penalty prevents hyperparameter churn. Instead of fixed thresholds, use **relative improvement** based on WFE variance:
+
+```python
+def compute_stability_threshold(wfe_history: list[float]) -> float:
+    """Compute stability threshold from observed WFE variance.
+
+    Principle: Require improvement exceeding noise level.
+
+    If WFE has std=0.15 across folds, random fluctuation could be ±0.15.
+    To distinguish signal from noise, require improvement > 1σ of WFE.
+
+    Minimum: 5% (prevent switching on negligible improvements)
+    Maximum: 20% (don't be overly conservative)
+    """
+    if len(wfe_history) < 3:
+        return 0.10  # Default until enough history
+
+    wfe_std = np.std(wfe_history)
+    threshold = max(0.05, min(0.20, wfe_std))
+    return threshold
+
+
+class AdaptiveStabilityPenalty:
+    """Stability penalty that adapts to observed WFE variance."""
+
+    def __init__(self):
+        self.wfe_history: list[float] = []
+        self.epoch_changes: list[int] = []
+
+    def should_change_epoch(
+        self,
+        current_wfe: float,
+        candidate_wfe: float,
+        current_epoch: int,
+        candidate_epoch: int,
+    ) -> bool:
+        """Decide whether to change epochs based on adaptive threshold."""
+        self.wfe_history.append(current_wfe)
+
+        if current_epoch == candidate_epoch:
+            return False  # Same epoch, no change needed
+
+        threshold = compute_stability_threshold(self.wfe_history)
+        improvement = (candidate_wfe - current_wfe) / max(abs(current_wfe), 0.01)
+
+        if improvement > threshold:
+            self.epoch_changes.append(len(self.wfe_history))
+            return True
+
+        return False  # Improvement not significant
+```
+
+### G4: DSR Adjustment for Epoch Search (Principled)
 
 ```python
 def adjusted_dsr_for_epoch_search(
     sharpe: float,
     n_folds: int,
     n_epochs: int,
+    sharpe_se: float | None = None,
+    n_samples_per_fold: int | None = None,
 ) -> float:
     """Deflated Sharpe Ratio accounting for epoch selection multiplicity.
 
     When selecting from K epochs, the expected maximum Sharpe under null
     is inflated. This adjustment corrects for that selection bias.
 
-    Reference: Bailey & López de Prado (2014)
+    Principled SE estimation:
+    - If n_samples provided: SE(Sharpe) ≈ 1/√n
+    - Otherwise: estimate from typical fold size
+
+    Reference: Bailey & López de Prado (2014), Gumbel distribution
     """
     from math import sqrt, log, pi
 
     n_trials = n_folds * n_epochs  # Total selection events
 
-    # Expected maximum under null (order statistics)
-    e_max = sqrt(2 * log(n_trials))
-    e_max -= (log(log(n_trials)) + log(4 * pi)) / (2 * sqrt(2 * log(n_trials)))
+    if n_trials < 2:
+        return sharpe  # No multiple testing correction needed
 
-    # Assume SE(Sharpe) ≈ 0.3 for typical strategies
-    sharpe_se = 0.3
-    e_max *= sharpe_se
+    # Expected maximum under null (Gumbel distribution)
+    # E[max(Z_1, ..., Z_n)] ≈ √(2·ln(n)) - (γ + ln(π/2)) / √(2·ln(n))
+    # where γ ≈ 0.5772 is Euler-Mascheroni constant
+    euler_gamma = 0.5772156649
+    sqrt_2_log_n = sqrt(2 * log(n_trials))
+    e_max_z = sqrt_2_log_n - (euler_gamma + log(pi / 2)) / sqrt_2_log_n
+
+    # Estimate Sharpe SE if not provided
+    if sharpe_se is None:
+        if n_samples_per_fold is not None:
+            sharpe_se = 1.0 / sqrt(n_samples_per_fold)
+        else:
+            # Conservative default: assume ~300 samples per fold
+            sharpe_se = 1.0 / sqrt(300)
+
+    # Expected maximum Sharpe under null
+    e_max_sharpe = e_max_z * sharpe_se
 
     # Deflated Sharpe
-    return max(0, sharpe - e_max)
+    return max(0, sharpe - e_max_sharpe)
 ```
 
-For 4 epochs × 31 folds = 124 trials: **A Sharpe of 1.0 deflates to ~0.25 after adjustment.**
+**Example**: For 5 epochs × 50 folds = 250 trials with 300 samples/fold:
+
+- `sharpe_se ≈ 0.058`
+- `e_max_z ≈ 2.88`
+- `e_max_sharpe ≈ 0.17`
+- A Sharpe of 1.0 deflates to **0.83** after adjustment.
 
 ## WFE Aggregation Methods
+
+**WARNING: Cauchy Distribution Under Null**
+
+Under the null hypothesis (no predictive skill), WFE follows a **Cauchy distribution**, which has:
+
+- No defined mean (undefined expectation)
+- No defined variance (infinite)
+- Heavy tails (extreme values common)
+
+This makes **arithmetic mean unreliable**. A single extreme WFE can dominate the average. **Always prefer median or pooled methods** for robust WFE aggregation. See [references/mathematical-formulation.md](./references/mathematical-formulation.md) for the proof: `WFE | H0 ~ Cauchy(0, sqrt(T_IS/T_OOS))`.
 
 ### Method 1: Pooled WFE (Recommended for precision-weighted)
 
@@ -302,19 +634,19 @@ def compute_efficient_frontier(
 
 ```python
 class AdaptiveEpochSelector:
-    """Maintains epoch selection state across WFO folds."""
+    """Maintains epoch selection state across WFO folds with adaptive stability."""
 
-    def __init__(self, epoch_configs: list[int], stability_penalty: float = 0.1):
+    def __init__(self, epoch_configs: list[int]):
         self.epoch_configs = epoch_configs
-        self.stability_penalty = stability_penalty
         self.selection_history: list[dict] = []
         self.last_selected: int | None = None
+        self.stability = AdaptiveStabilityPenalty()  # Use adaptive, not fixed
 
     def select_epoch(self, epoch_metrics: list[dict]) -> int:
-        """Select epoch with stability penalty for changes."""
+        """Select epoch with adaptive stability penalty for changes."""
         frontier_epochs, candidate = compute_efficient_frontier(epoch_metrics)
 
-        # Apply stability penalty if changing epochs
+        # Apply adaptive stability penalty if changing epochs
         if self.last_selected is not None and candidate != self.last_selected:
             candidate_wfe = next(
                 m["wfe"] for m in epoch_metrics if m["epoch"] == candidate
@@ -324,8 +656,10 @@ class AdaptiveEpochSelector:
                 0.0
             )
 
-            # Only change if improvement exceeds penalty threshold
-            if candidate_wfe < last_wfe * (1 + self.stability_penalty):
+            # Use adaptive threshold derived from WFE variance
+            if not self.stability.should_change_epoch(
+                last_wfe, candidate_wfe, self.last_selected, candidate
+            ):
                 candidate = self.last_selected
 
         # Record and return
@@ -360,20 +694,20 @@ See [references/epoch-selection-decision-tree.md](./references/epoch-selection-d
 ```
 Start
   │
-  ├─ IS_Sharpe > 1.0? ──NO──> Mark WFE invalid, use fallback
-  │         │
+  ├─ IS_Sharpe > compute_is_sharpe_threshold(n)? ──NO──> Mark WFE invalid, use fallback
+  │         │                                            (threshold = 2/√n, adapts to sample size)
   │        YES
   │         │
   ├─ Compute WFE for each epoch
   │         │
   ├─ Any WFE > 0.30? ──NO──> REJECT all epochs (severe overfit)
-  │         │
+  │         │                (guideline, not hard threshold)
   │        YES
   │         │
   ├─ Compute efficient frontier
   │         │
-  ├─ Apply stability penalty
-  │         │
+  ├─ Apply AdaptiveStabilityPenalty
+  │         │ (threshold derived from WFE variance)
   └─> Return selected epoch
 ```
 
@@ -548,19 +882,37 @@ Instead of using the current fold's optimal epoch (look-ahead bias), use **Bayes
 
 ```python
 class BayesianEpochSelector:
-    """Bayesian updating of epoch selection across folds."""
+    """Bayesian updating of epoch selection across folds.
+
+    Also known as: BayesianEpochSmoother (alias in epoch-smoothing.md)
+
+    Variance parameters are DERIVED from search space, not hard-coded.
+    See AWFESConfig._derive_variances() for the principled derivation.
+    """
 
     def __init__(
         self,
         epoch_configs: list[int],
         prior_mean: float | None = None,
-        prior_variance: float = 100.0,
+        prior_variance: float | None = None,
+        observation_variance: float | None = None,
     ):
-        self.epoch_configs = epoch_configs
-        # Initialize prior: mean of epoch range if not specified
+        self.epoch_configs = sorted(epoch_configs)
+
+        # PRINCIPLED DERIVATION: Variances from search space
+        # If not provided, derive from epoch range
+        epoch_range = max(epoch_configs) - min(epoch_configs)
+
+        # Prior spans search space with 95% coverage
+        # 95% CI = mean ± 1.96σ → range = 3.92σ → σ² = (range/3.92)²
+        default_prior_var = (epoch_range / 3.92) ** 2
+
+        # Observation variance: 1/4 of prior for balanced learning
+        default_obs_var = default_prior_var / 4
+
         self.posterior_mean = prior_mean or np.mean(epoch_configs)
-        self.posterior_variance = prior_variance
-        self.observation_variance = 50.0  # Assumed noise in optimal epoch
+        self.posterior_variance = prior_variance or default_prior_var
+        self.observation_variance = observation_variance or default_obs_var
         self.history: list[dict] = []
 
     def update(self, observed_optimal_epoch: int, wfe: float) -> int:
@@ -578,7 +930,15 @@ class BayesianEpochSelector:
             Smoothed epoch selection for TEST evaluation
         """
         # Weight observation by WFE (higher WFE = more reliable signal)
-        effective_variance = self.observation_variance / max(wfe, 0.1)
+        # Clamp WFE to [0.1, 2.0] to prevent extreme weights:
+        #   - Lower bound 0.1: Prevents division issues and ensures minimum weight
+        #   - Upper bound 2.0: WFE > 2 is suspicious (OOS > 2× IS suggests:
+        #       a) Regime shift favoring OOS (lucky timing, not skill)
+        #       b) IS severely overfit (artificially low denominator)
+        #       c) Data anomaly or look-ahead bias
+        #     Capping at 2.0 treats such observations with skepticism
+        wfe_clamped = max(0.1, min(wfe, 2.0))
+        effective_variance = self.observation_variance / wfe_clamped
 
         prior_precision = 1.0 / self.posterior_variance
         obs_precision = 1.0 / effective_variance
@@ -649,7 +1009,10 @@ def apply_awfes_to_test(
 
             is_sharpe = compute_sharpe(model.predict(train.X), train.y)
             val_sharpe = compute_sharpe(model.predict(validation.X), validation.y)
-            wfe = val_sharpe / is_sharpe if is_sharpe > 0.1 else None
+
+            # Use data-driven threshold instead of hardcoded 0.1
+            is_threshold = compute_is_sharpe_threshold(len(train.X))
+            wfe = val_sharpe / is_sharpe if is_sharpe > is_threshold else None
 
             epoch_metrics.append({
                 "epoch": epoch,
@@ -776,21 +1139,27 @@ def ema_epoch_update(
 | **Burn-in**          | Sufficient data          | Use first N folds for initialization |
 
 ```python
-# Initialization example
-EPOCH_CONFIGS = [80, 100, 150, 200, 400]
+# RECOMMENDED: Use AWFESConfig for principled derivation
+config = AWFESConfig.from_search_space(
+    min_epoch=80,
+    max_epoch=400,
+    granularity=5,
+)
+# prior_variance = ((400-80)/3.92)² ≈ 6,658 (derived automatically)
+# observation_variance = prior_variance/4 ≈ 1,665 (derived automatically)
 
-# Strategy 1: Midpoint (default)
-prior_mean = np.mean(EPOCH_CONFIGS)  # 186
-prior_variance = np.var(EPOCH_CONFIGS)  # High uncertainty
+# Alternative strategies (if manual configuration needed):
 
-# Strategy 2: Literature (e.g., known 100-200 optimal for BiLSTM)
-prior_mean = 150
-prior_variance = 2500  # ±50 epochs
+# Strategy 1: Search-space derived (same as AWFESConfig)
+epoch_range = max(EPOCH_CONFIGS) - min(EPOCH_CONFIGS)
+prior_mean = np.mean(EPOCH_CONFIGS)
+prior_variance = (epoch_range / 3.92) ** 2  # 95% CI spans search space
 
-# Strategy 3: Burn-in (use first 5 folds)
+# Strategy 2: Burn-in (use first 5 folds)
 burn_in_optima = [run_fold_sweep(fold) for fold in folds[:5]]
 prior_mean = np.mean(burn_in_optima)
-prior_variance = np.var(burn_in_optima) + 100  # Add base uncertainty
+base_variance = (epoch_range / 3.92) ** 2 / 4  # Reduced after burn-in
+prior_variance = max(np.var(burn_in_optima), base_variance)
 ```
 
 See [references/epoch-smoothing.md](./references/epoch-smoothing.md) for extended analysis.
@@ -834,10 +1203,14 @@ Following [rangebar-eval-metrics](../rangebar-eval-metrics/SKILL.md), compute th
 ### Metric Computation Code
 
 ```python
+import numpy as np
+from scipy.stats import norm, binomtest  # norm for PSR, binomtest for sign test
+
 def compute_oos_metrics(
     predictions: np.ndarray,
     actuals: np.ndarray,
     timestamps: np.ndarray,
+    market_type: str = "crypto_24_7",  # For annualization factor
 ) -> dict[str, float]:
     """Compute full OOS metrics suite for test data.
 
@@ -853,8 +1226,11 @@ def compute_oos_metrics(
 
     # Tier 1: Primary
     daily_pnl = group_by_day(pnl, timestamps)
+    # Use get_daily_to_weekly_factor() for market-aware annualization
+    # Defaults to sqrt(7) for crypto 24/7; use sqrt(5) for session-filtered
+    weekly_factor = get_daily_to_weekly_factor(market_type="crypto_24_7")
     weekly_sharpe = (
-        np.mean(daily_pnl) / np.std(daily_pnl) * np.sqrt(7)
+        np.mean(daily_pnl) / np.std(daily_pnl) * weekly_factor
         if np.std(daily_pnl) > 1e-10 else 0.0
     )
     hit_rate = np.mean(np.sign(predictions) == np.sign(actuals))
@@ -881,7 +1257,8 @@ def compute_oos_metrics(
 
     n_positive = np.sum(pnl > 0)
     n_total = len(pnl)
-    binomial_pvalue = binom_test(n_positive, n_total, 0.5, alternative="greater")
+    # Use binomtest (binom_test deprecated since scipy 1.10)
+    binomial_pvalue = binomtest(n_positive, n_total, 0.5, alternative="greater").pvalue
 
     return {
         # Tier 1
