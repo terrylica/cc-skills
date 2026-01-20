@@ -213,7 +213,46 @@ Silent JS failures are debugging nightmares. Make every error VISIBLE."
                     "$SHELL_VAR_FIX_GUIDANCE"
             fi
 
-            # Check 2: Ruff for silent failure patterns
+            # Check 2: PEP 723 shebang on library modules (causes uv interpreter storms)
+            # PEP 723 is ONLY for standalone scripts, NEVER for library modules that get imported.
+            # When uv sees the shebang on import, it spawns thousands of get_interpreter_info processes.
+            if grep -q '#!/usr/bin/env.*uv run' "$FILE_PATH" 2>/dev/null && grep -q '# /// script' "$FILE_PATH" 2>/dev/null; then
+                HAS_MAIN_GUARD=$(grep -c 'if __name__.*==.*"__main__"' "$FILE_PATH" 2>/dev/null || echo "0")
+                HAS_ALL_EXPORT=$(grep -c '^__all__' "$FILE_PATH" 2>/dev/null || echo "0")
+                IS_IN_LIB=$(echo "$FILE_PATH" | grep -c '/lib/' || echo "0")
+
+                # Library indicators: no __main__ guard, has __all__ export, or in lib/ directory
+                if [[ "$HAS_MAIN_GUARD" -eq 0 ]] || [[ "$HAS_ALL_EXPORT" -gt 0 ]] || [[ "$IS_IN_LIB" -gt 0 ]]; then
+                    PEP723_FIX="PEP 723 LIBRARY MODULE STORM:
+The '#!/usr/bin/env -S uv run' shebang causes uv to probe interpreters
+every time the file is imported or scanned. This spawns THOUSANDS of
+'python get_interpreter_info' processes, freezing your system.
+
+PEP 723 inline script metadata is ONLY for standalone scripts that you
+run directly (python script.py). It must NEVER be used on library modules.
+
+FIX: Remove the shebang and script metadata block entirely:
+  1. Delete line: #!/usr/bin/env -S uv run
+  2. Delete block: # /// script ... # ///
+  3. Document dependencies in docstring or requirements.txt instead
+
+INDICATORS THIS FILE IS A LIBRARY (not a script):
+  - Has __all__ = [...] export list
+  - Located in a lib/ directory
+  - Missing 'if __name__ == \"__main__\":' entry point
+  - Designed to be imported by other modules
+
+Reference: CLAUDE.md Process Storm Prevention section"
+
+                    emit_warning "PEP723-LIBRARY-STORM" \
+                        "PEP 723 shebang on library module - WILL CAUSE PROCESS STORM" \
+                        "$FILE_PATH" \
+                        "File has 'uv run' shebang but is a library module (no __main__, has __all__, or in lib/)" \
+                        "$PEP723_FIX"
+                fi
+            fi
+
+            # Check 3: Ruff for silent failure patterns
             if command -v ruff &>/dev/null; then
                 RUFF_OUTPUT=$(ruff check \
                     --select=E722,S110,S112,BLE001,PLW1510 \
