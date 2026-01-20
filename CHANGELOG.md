@@ -1,3 +1,43 @@
+## [9.38.1](https://github.com/terrylica/cc-skills/compare/v9.38.0...v9.38.1) (2026-01-20)
+
+
+### Bug Fixes
+
+* **adaptive-wfo-epoch:** second audit remediation - code errors and documentation ([d20ad3e](https://github.com/terrylica/cc-skills/commit/d20ad3e053f0f87948044ca9d0826fe9adad7328))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [adaptive-wfo-epoch](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/SKILL.md) - updated (+469/-91)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quant-research/adaptive-wfo-epoch</strong> (5 files)</summary>
+
+- [Anti-Patterns: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/anti-patterns.md) - updated (+174/-28)
+- [Epoch Smoothing Methods Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/epoch-smoothing.md) - updated (+71/-23)
+- [Look-Ahead Bias Prevention Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/look-ahead-bias.md) - updated (+17/-2)
+- [Mathematical Formulation: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/mathematical-formulation.md) - updated (+24/-4)
+- [OOS Application Phase Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/oos-application.md) - updated (+36/-15)
+
+</details>
+
 # [9.38.0](https://github.com/terrylica/cc-skills/compare/v9.37.0...v9.38.0) (2026-01-19)
 
 
