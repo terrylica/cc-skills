@@ -1,3 +1,25 @@
+## [9.39.1](https://github.com/terrylica/cc-skills/compare/v9.39.0...v9.39.1) (2026-01-21)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+48/-11)
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+3/-3)
+
 # [9.39.0](https://github.com/terrylica/cc-skills/compare/v9.38.2...v9.39.0) (2026-01-21)
 
 
