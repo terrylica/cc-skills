@@ -825,12 +825,15 @@ Install dependencies: `npm install`
 
 Create `.releaserc.yml` in the monorepo root:
 
+> **Warning**: The `@semantic-release/exec` plugin uses Lodash templates which conflict with bash `${VAR:-default}` syntax. Use `<%= %>` for semantic-release variables or avoid bash default syntax. See [Troubleshooting: Lodash Template Conflicts](../../semantic-release/references/troubleshooting.md#semantic-releaseexec-lodash-template-conflicts).
+
 ```yaml
 branches:
   - main
 
 plugins:
   # Preflight: Block release if working directory is dirty
+  # NOTE: Avoid ${VAR:-default} bash syntax in exec commands (Lodash conflict)
   - - "@semantic-release/exec"
     - verifyConditionsCmd: |
         if [ -n "$(git status --porcelain)" ]; then
