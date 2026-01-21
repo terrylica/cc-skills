@@ -235,17 +235,29 @@ class AWFESOOSApplication:
         preds: np.ndarray,
         actuals: np.ndarray,
         timestamps: np.ndarray,
+        duration_us: np.ndarray | None = None,
     ) -> dict[str, float]:
-        """Compute full OOS metrics suite."""
+        """Compute full OOS metrics suite.
+
+        For range bars, pass duration_us to compute time-weighted Sharpe.
+        See range-bar-metrics.md for why simple bar_sharpe is invalid.
+        """
         pnl = preds * actuals
 
-        # Group by day for weekly Sharpe
-        daily_pnl = self._group_by_day(pnl, timestamps)
-        weekly_sharpe = (
-            np.mean(daily_pnl) / np.std(daily_pnl) * np.sqrt(7)
-            if len(daily_pnl) > 1 and np.std(daily_pnl) > 1e-10
-            else 0.0
-        )
+        # Compute Sharpe (time-weighted for range bars)
+        if duration_us is not None:
+            from exp066e_tau_precision import compute_time_weighted_sharpe
+            sharpe_tw, _, _ = compute_time_weighted_sharpe(
+                bar_pnl=pnl, duration_us=duration_us, annualize=True
+            )
+        else:
+            # Fallback for time bars (uniform duration)
+            daily_pnl = self._group_by_day(pnl, timestamps)
+            sharpe_tw = (
+                np.mean(daily_pnl) / np.std(daily_pnl) * np.sqrt(7)
+                if len(daily_pnl) > 1 and np.std(daily_pnl) > 1e-10
+                else 0.0
+            )
 
         # Hit rate
         hit_rate = np.mean(np.sign(preds) == np.sign(actuals))
@@ -271,7 +283,7 @@ class AWFESOOSApplication:
         cvar_10 = np.mean(sorted_pnl[:cutoff])
 
         return {
-            "weekly_sharpe": weekly_sharpe,
+            "sharpe_tw": sharpe_tw,
             "hit_rate": hit_rate,
             "cumulative_pnl": np.sum(pnl),
             "n_bars": len(pnl),
@@ -291,19 +303,23 @@ class AWFESOOSApplication:
         return daily.values
 
     def aggregate_results(self) -> dict[str, float]:
-        """Aggregate test metrics across all processed folds."""
+        """Aggregate test metrics across all processed folds.
+
+        Uses sharpe_tw (time-weighted) for range bar data.
+        See range-bar-metrics.md for canonical implementation.
+        """
         if not self.history:
             return {}
 
-        sharpes = [r.test_metrics["weekly_sharpe"] for r in self.history]
+        sharpes = [r.test_metrics["sharpe_tw"] for r in self.history]
         hit_rates = [r.test_metrics["hit_rate"] for r in self.history]
 
         return {
             "n_folds": len(self.history),
-            "positive_sharpe_rate": np.mean([s > 0 for s in sharpes]),
-            "mean_sharpe": np.mean(sharpes),
-            "median_sharpe": np.median(sharpes),
-            "std_sharpe": np.std(sharpes),
+            "positive_sharpe_folds": np.mean([s > 0 for s in sharpes]),
+            "mean_sharpe_tw": np.mean(sharpes),
+            "median_sharpe_tw": np.median(sharpes),
+            "std_sharpe_tw": np.std(sharpes),
             "mean_hit_rate": np.mean(hit_rates),
             "total_pnl": sum(r.test_metrics["cumulative_pnl"] for r in self.history),
         }
@@ -339,13 +355,13 @@ for fold in generate_folds(data):
     print(f"Fold {result.fold_idx}:")
     print(f"  Validation optimal: {result.validation_optimal_epoch} (WFE={result.validation_optimal_wfe:.3f})")
     print(f"  Bayesian selected: {result.bayesian_selected_epoch}")
-    print(f"  Test Sharpe: {result.test_metrics['weekly_sharpe']:.3f}")
+    print(f"  Test Sharpe (tw): {result.test_metrics['sharpe_tw']:.3f}")
 
 # Aggregate
 agg = awfes.aggregate_results()
 print(f"\nAggregate Results:")
-print(f"  Positive Sharpe Rate: {agg['positive_sharpe_rate']:.1%}")
-print(f"  Median Sharpe: {agg['median_sharpe']:.3f}")
+print(f"  Positive Sharpe Folds: {agg['positive_sharpe_folds']:.1%}")
+print(f"  Median Sharpe (tw): {agg['median_sharpe_tw']:.3f}")
 ```
 
 ## Key Design Decisions

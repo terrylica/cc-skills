@@ -34,38 +34,50 @@ graph { label: "AWFES: OOS Metrics Hierarchy"; flow: east; }
 
 These metrics MUST be computed for every fold's test data.
 
-### 1.1 Weekly Sharpe Ratio
+### 1.1 Time-Weighted Sharpe Ratio (sharpe_tw)
 
 ```python
-def weekly_sharpe(
+def sharpe_tw(
     pnl: np.ndarray,
-    timestamps: np.ndarray,
-    annualization: float = np.sqrt(7),  # Crypto: 7 days/week
+    duration_us: np.ndarray,
+    annualize: bool = True,
 ) -> float:
-    """Daily-aggregated Sharpe, annualized to weekly.
+    """Time-weighted Sharpe for range bars.
 
-    Why daily aggregation?
-    - Range bars have variable duration
-    - Bar-level returns are not IID
-    - Daily aggregation restores approximate IID
+    CRITICAL: Range bars have variable duration - simple bar_sharpe
+    violates i.i.d. assumption. Use time-weighted Sharpe instead.
+
+    See range-bar-metrics.md for full derivation.
 
     Formula:
-    weekly_sharpe = mean(daily_pnl) / std(daily_pnl) * sqrt(7)
+    weights = duration_days / total_days
+    weighted_mean = sum(pnl * weights)
+    weighted_var = sum(weights * (pnl - weighted_mean)^2)
+    sharpe_tw = (weighted_mean / sqrt(weighted_var)) * sqrt(252)
     """
-    # Group PnL by calendar day
-    daily_pnl = group_by_day(pnl, timestamps)
+    MICROSECONDS_PER_DAY = 86400 * 1e6
+    duration_days = duration_us / MICROSECONDS_PER_DAY
+    total_days = np.sum(duration_days)
+    weights = duration_days / total_days
 
-    if len(daily_pnl) < 2:
+    weighted_mean = np.sum(pnl * weights)
+    weighted_var = np.sum(weights * (pnl - weighted_mean) ** 2)
+    weighted_std = np.sqrt(weighted_var)
+
+    if weighted_std < 1e-10:
         return 0.0
 
-    std = np.std(daily_pnl)
-    if std < 1e-10:
-        return 0.0  # Constant predictions
+    sharpe = weighted_mean / weighted_std
+    if annualize:
+        sharpe *= np.sqrt(252)
 
-    return np.mean(daily_pnl) / std * annualization
+    return sharpe
 ```
 
-**Threshold**: `weekly_sharpe > 0` for positive signal
+**Threshold**: `sharpe_tw > 0` for positive signal
+
+**Note**: For time bars with uniform duration (e.g., 1-minute bars), you can use
+simple daily aggregation as a fallback. But for range bars, always use `sharpe_tw`.
 
 ### 1.2 Hit Rate (Directional Accuracy)
 
@@ -106,24 +118,24 @@ def cumulative_pnl(predictions: np.ndarray, actuals: np.ndarray) -> float:
 
 **Threshold**: `cumulative_pnl > 0` (profitable)
 
-### 1.4 Positive Sharpe Rate (Cross-Fold)
+### 1.4 Positive Sharpe Folds (Cross-Fold)
 
 ```python
-def positive_sharpe_rate(fold_sharpes: list[float]) -> float:
-    """Fraction of folds with positive Sharpe.
+def positive_sharpe_folds(fold_sharpes_tw: list[float]) -> float:
+    """Fraction of folds with positive time-weighted Sharpe.
 
     Formula:
-    positive_sharpe_rate = n_folds(sharpe > 0) / n_folds
+    positive_sharpe_folds = n_folds(sharpe_tw > 0) / n_folds
 
     Interpretation:
     - > 0.50: Majority of folds profitable
     - > 0.55: Consistent signal
     - > 0.65: Strong consistency
     """
-    return np.mean([s > 0 for s in fold_sharpes])
+    return np.mean([s > 0 for s in fold_sharpes_tw])
 ```
 
-**Threshold**: `positive_sharpe_rate > 0.55`
+**Threshold**: `positive_sharpe_folds > 0.55`
 
 ### 1.5 WFE Test (Final Transfer)
 
@@ -377,8 +389,9 @@ def aggregate_fold_metrics(fold_results: list[dict]) -> dict[str, float]:
     """Aggregate metrics across all folds.
 
     Uses median for robustness to outlier folds.
+    Note: Uses sharpe_tw (time-weighted) for range bar data.
     """
-    sharpes = [r["weekly_sharpe"] for r in fold_results]
+    sharpes = [r["sharpe_tw"] for r in fold_results]
     hit_rates = [r["hit_rate"] for r in fold_results]
     pnls = [r["cumulative_pnl"] for r in fold_results]
 
@@ -387,14 +400,14 @@ def aggregate_fold_metrics(fold_results: list[dict]) -> dict[str, float]:
     n_positive_pnl = sum(1 for p in pnls if p > 0)
 
     return {
-        # Central tendency
-        "mean_sharpe": np.mean(sharpes),
-        "median_sharpe": np.median(sharpes),
-        "std_sharpe": np.std(sharpes),
+        # Central tendency (time-weighted Sharpe)
+        "mean_sharpe_tw": np.mean(sharpes),
+        "median_sharpe_tw": np.median(sharpes),
+        "std_sharpe_tw": np.std(sharpes),
         "mean_hit_rate": np.mean(hit_rates),
 
         # Consistency
-        "positive_sharpe_rate": n_positive_sharpe / len(sharpes),
+        "positive_sharpe_folds": n_positive_sharpe / len(sharpes),
         "positive_pnl_rate": n_positive_pnl / len(pnls),
 
         # Totals
@@ -410,21 +423,24 @@ def aggregate_fold_metrics(fold_results: list[dict]) -> dict[str, float]:
 
 ## Threshold Summary
 
-| Metric               | Threshold | Type        | Rationale            |
-| -------------------- | --------- | ----------- | -------------------- |
-| weekly_sharpe        | > 0       | Primary     | Positive signal      |
-| hit_rate             | > 0.50    | Primary     | Better than random   |
-| cumulative_pnl       | > 0       | Primary     | Profitable           |
-| positive_sharpe_rate | > 0.55    | Primary     | Consistent           |
-| wfe_test             | > 0.30    | Primary     | Transfer quality     |
-| max_drawdown         | < 0.30    | Risk        | Capital preservation |
-| profit_factor        | > 1.0     | Risk        | Win/loss ratio       |
-| cvar_10pct           | > -0.05   | Risk        | Tail risk            |
-| calmar_ratio         | > 0.5     | Risk        | Risk-adjusted        |
-| psr                  | > 0.85    | Statistical | Significance         |
-| dsr                  | > 0.50    | Statistical | Multiple testing     |
-| binomial_pvalue      | < 0.05    | Statistical | Sign test            |
-| hac_ttest_pvalue     | < 0.05    | Statistical | Autocorrelation      |
+| Metric                | Threshold | Type        | Rationale            |
+| --------------------- | --------- | ----------- | -------------------- |
+| sharpe_tw             | > 0       | Primary     | Positive signal      |
+| hit_rate              | > 0.50    | Primary     | Better than random   |
+| cumulative_pnl        | > 0       | Primary     | Profitable           |
+| positive_sharpe_folds | > 0.55    | Primary     | Consistent           |
+| wfe_test              | > 0.30    | Primary     | Transfer quality     |
+| max_drawdown          | < 0.30    | Risk        | Capital preservation |
+| profit_factor         | > 1.0     | Risk        | Win/loss ratio       |
+| cvar_10pct            | > -0.05   | Risk        | Tail risk            |
+| calmar_ratio          | > 0.5     | Risk        | Risk-adjusted        |
+| psr                   | > 0.85    | Statistical | Significance         |
+| dsr                   | > 0.50    | Statistical | Multiple testing     |
+| binomial_pvalue       | < 0.05    | Statistical | Sign test            |
+| hac_ttest_pvalue      | < 0.05    | Statistical | Autocorrelation      |
+
+**Note**: For range bars, `sharpe_tw` is the time-weighted Sharpe ratio.
+See [range-bar-metrics.md](./range-bar-metrics.md) for canonical implementation.
 
 ## Decision Framework
 

@@ -244,15 +244,18 @@ def check_annualization_factor(market: str, factor: float) -> bool:
 ### Fix
 
 ```python
-# WRONG for crypto
-weekly_sharpe = daily_sharpe * np.sqrt(5)  # Equity assumption
+# WRONG for crypto (daily to weekly conversion)
+sharpe_tw = daily_sharpe * np.sqrt(5)  # Equity assumption
 
 # CORRECT for crypto
-weekly_sharpe = daily_sharpe * np.sqrt(7)  # Crypto 24/7
+sharpe_tw = daily_sharpe * np.sqrt(7)  # Crypto 24/7
 
 # EXCEPTION: Session-filtered crypto (London-NY hours only)
 # Use sqrt(5) because you're only trading 5 days
 ```
+
+**Note**: For range bars, use time-weighted Sharpe (`sharpe_tw`) with
+`compute_time_weighted_sharpe()`. See [range-bar-metrics.md](./range-bar-metrics.md).
 
 ## 6. Single Epoch Selection (No Uncertainty) (Severity: MEDIUM)
 
