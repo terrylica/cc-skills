@@ -58,6 +58,7 @@ Range bars violate standard IID assumptions:
 | Anti-Patterns (Transaction Costs)    | [anti-patterns.md](./references/anti-patterns.md)                 |
 | SOTA 2025-2026 (SHAP, BOCPD, etc.)   | [sota-2025-2026.md](./references/sota-2025-2026.md)               |
 | Worked Examples (BTC, EUR/USD)       | [worked-examples.md](./references/worked-examples.md)             |
+| **Structured Logging (NDJSON)**      | [structured-logging.md](./references/structured-logging.md)       |
 
 ### Related Skills
 

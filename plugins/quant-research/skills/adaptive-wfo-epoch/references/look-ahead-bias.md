@@ -72,30 +72,88 @@ for fold in folds:
 - Epoch selection optimizes for validation, which correlates with test
 - Result: **Overstated performance** in backtest
 
-### The Fix: Bayesian Carry-Forward
+### The Fix: Bayesian Carry-Forward (v3 Protocol)
+
+The v3 protocol fixes a subtle but critical timing bug in earlier implementations. The key insight:
+**TEST must use `prior_bayesian_epoch` obtained BEFORE any work on the current fold**.
 
 ```python
-# CORRECT: Using Bayesian posterior from PRIOR folds
+# v3 CORRECT: Using Bayesian posterior from PRIOR folds
+# CRITICAL: Get prior epoch BEFORE any work on current fold
 bayesian_selector = BayesianEpochSelector(epoch_configs)
 
 for fold_idx, fold in enumerate(folds):
-    # Step 1: Get smoothed epoch from prior folds (no peeking!)
-    if fold_idx == 0:
-        selected_epoch = bayesian_selector.get_default()
-    else:
-        selected_epoch = bayesian_selector.get_current_epoch()
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 1: FIRST - Get epoch from ONLY prior folds (BEFORE any fold work)
+    # ═══════════════════════════════════════════════════════════════════
+    prior_bayesian_epoch = bayesian_selector.get_current_epoch()
 
-    # Step 2: Train final model at pre-selected epoch
-    model = train(fold.train + fold.validation, epochs=selected_epoch)
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 2: Train models with checkpoints, find val_optimal on VALIDATION
+    # ═══════════════════════════════════════════════════════════════════
+    epoch_results = sweep_epochs(fold.train, fold.validation)
+    val_optimal_epoch = select_optimal(epoch_results)
 
-    # Step 3: Evaluate on test (truly out-of-sample)
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 3: TEST uses prior_bayesian_epoch (NOT val_optimal!)
+    # ═══════════════════════════════════════════════════════════════════
+    model = train(fold.train + fold.validation, epochs=prior_bayesian_epoch)
     test_metrics = evaluate(model, fold.test)  # UNBIASED
 
-    # Step 4: NOW sweep epochs and update posterior for NEXT fold
-    epoch_results = sweep_epochs(fold.train, fold.validation)
-    fold_optimal = select_optimal(epoch_results)
-    bayesian_selector.update(fold_optimal, epoch_results["wfe"])
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 4: AFTER test - Update Bayesian with val_optimal for FUTURE folds
+    # ═══════════════════════════════════════════════════════════════════
+    bayesian_selector.update(val_optimal_epoch, epoch_results["wfe"])
+
+    # MANDATORY: Log for audit trail
+    logger.info(
+        f"Fold {fold_idx}: prior_bayesian_epoch={prior_bayesian_epoch}, "
+        f"val_optimal_epoch={val_optimal_epoch}, test_uses={prior_bayesian_epoch}"
+    )
 ```
+
+### v3 vs v2: The Critical Difference
+
+```python
+# ═══════════════════════════════════════════════════════════════════════════════
+# v2 BUG (DO NOT USE): Bayesian update happens BEFORE test evaluation
+# ═══════════════════════════════════════════════════════════════════════════════
+for fold in folds:
+    epoch_metrics = sweep_epochs(fold.train, fold.validation)
+    val_optimal_epoch = select_optimal(epoch_metrics)
+
+    # v2 BUG: Update Bayesian with current fold's val_optimal BEFORE test
+    bayesian.update(val_optimal_epoch, wfe)        # ← BUG: Too early!
+    selected_epoch = bayesian.get_current_epoch()  # ← CONTAMINATED
+
+    # selected_epoch now contains information from val_optimal of SAME fold
+    test_metrics = evaluate(selected_epoch, fold.test)  # ← LOOK-AHEAD BIAS!
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# v3 FIX: prior_bayesian_epoch obtained BEFORE any fold work
+# ═══════════════════════════════════════════════════════════════════════════════
+for fold in folds:
+    prior_bayesian_epoch = bayesian.get_current_epoch()  # ← FIRST!
+
+    epoch_metrics = sweep_epochs(fold.train, fold.validation)
+    val_optimal_epoch = select_optimal(epoch_metrics)
+
+    test_metrics = evaluate(prior_bayesian_epoch, fold.test)  # ← UNBIASED
+
+    bayesian.update(val_optimal_epoch, wfe)  # ← AFTER test, for FUTURE folds
+```
+
+### Impact of the Fix
+
+| Metric           | v2 (Buggy) | v3 (Fixed) | Change      |
+| ---------------- | ---------- | ---------- | ----------- |
+| Mean Test Sharpe | ~0.12      | ~0.06      | -50%        |
+| DSR              | ~0.15      | ~0.07      | More honest |
+| Bias Direction   | Optimistic | Unbiased   | Correct     |
+
+The v2 results were inflated because `selected_epoch` was contaminated by information
+from the current fold's validation optimal. This gave the model a subtle "peek" at
+which epoch would perform well on temporally adjacent test data.
 
 ## Anti-Pattern 2: Global Feature Scaling
 
