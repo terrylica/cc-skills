@@ -361,6 +361,108 @@ Update `.github/workflows/release.yml`:
 
 ---
 
+## @semantic-release/exec Lodash Template Conflicts
+
+The `@semantic-release/exec` plugin uses [Lodash templates](https://lodash.com/docs/#template) to interpolate variables. **This conflicts with bash variable syntax** because both use `${...}` delimiters.
+
+### Symptom
+
+```
+SyntaxError: Unexpected token ':'
+    at Function (<anonymous>)
+    at lodash.js:14942:16
+```
+
+Or: `undefined reference` errors for bash variables that look like template variables.
+
+### Cause
+
+Lodash interprets ALL `${...}` patterns, including bash constructs:
+
+| Pattern                      | Intended For       | Lodash Sees                            |
+| ---------------------------- | ------------------ | -------------------------------------- |
+| `${nextRelease.version}`     | Lodash template    | ✅ Correct                             |
+| `${QUARTO_PUB_AUTH_TOKEN:-}` | Bash default value | ❌ Tries to parse `:-` as JS           |
+| `${VAR}`                     | Bash variable      | ❌ Looks for `VAR` in template context |
+
+The colon in bash default syntax (`${VAR:-default}`) causes "Unexpected token ':'" because Lodash tries to parse it as JavaScript.
+
+### Solution 1: Use ERB-Style for Lodash Variables
+
+Use `<%= %>` syntax instead of `${}` for semantic-release variables:
+
+```yaml
+# WRONG - conflicts with bash
+- - "@semantic-release/exec"
+  - successCmd: "echo 'Released ${nextRelease.version}'"
+
+# CORRECT - ERB-style for lodash, $ for bash
+- - "@semantic-release/exec"
+  - successCmd: "echo 'Released <%= nextRelease.version %>'"
+```
+
+### Solution 2: Remove Bash Default Syntax
+
+If you have bash variables with defaults, simplify them:
+
+```yaml
+# WRONG - :- causes lodash parse error
+successCmd: |
+  if [ -z "${TOKEN:-}" ]; then
+    echo "No token"
+  fi
+
+# CORRECT - remove default syntax
+successCmd: |
+  if [ -z "$TOKEN" ]; then
+    echo "No token"
+  fi
+```
+
+### Solution 3: Wrap in External Script
+
+For complex bash, move logic to a script file:
+
+```yaml
+# .releaserc.yml
+- - "@semantic-release/exec"
+  - successCmd: "./scripts/post-release.sh <%= nextRelease.version %>"
+```
+
+```bash
+# scripts/post-release.sh
+#!/usr/bin/env bash
+set -euo pipefail
+VERSION="$1"
+# Now you can use any bash syntax freely
+if [ -z "${TOKEN:-}" ]; then
+  echo "Warning: No token set"
+fi
+echo "Released $VERSION"
+```
+
+### Available Lodash Template Variables
+
+| Variable                     | Description                 |
+| ---------------------------- | --------------------------- |
+| `<%= nextRelease.version %>` | New version (e.g., `X.Y.Z`) |
+| `<%= nextRelease.gitTag %>`  | Git tag (e.g., `vX.Y.Z`)    |
+| `<%= nextRelease.notes %>`   | Release notes               |
+| `<%= lastRelease.version %>` | Previous version            |
+| `<%= lastRelease.gitTag %>`  | Previous git tag            |
+| `<%= branch.name %>`         | Current branch              |
+
+### Quick Reference
+
+| Context                   | Use This                     |
+| ------------------------- | ---------------------------- |
+| semantic-release variable | `<%= nextRelease.version %>` |
+| Bash variable             | `$VAR` or `"$VAR"`           |
+| Bash with default         | Move to external script      |
+| Bash subshell             | `$(command)` is safe         |
+
+---
+
 ## Migration Issues (v24 → v25)
 
 Projects initialized before v7.10 lack automatic push. Add manually:

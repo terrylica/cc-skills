@@ -341,6 +341,12 @@ PYTHON_PROJECTS_NODEJS_SEMANTIC_RELEASE_SCRIPT_EOF
 sed -i.bak 's/pattern/replacement/' file && rm file.bak
 ```
 
+### "Unexpected token ':'" in exec commands
+
+**Cause**: Lodash template syntax conflicts with bash. See [Troubleshooting: Lodash Template Conflicts](./troubleshooting.md#semantic-releaseexec-lodash-template-conflicts).
+
+**Quick fix**: Use `<%= nextRelease.version %>` instead of `${nextRelease.version}` if you have bash variables with default syntax (`${VAR:-default}`) in the same command. Or move complex bash to an external script.
+
 ---
 
 ## Rust+Python Hybrid Projects (PyO3/maturin)
