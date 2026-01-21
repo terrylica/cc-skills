@@ -1334,6 +1334,68 @@ Using the same data for epoch selection AND final evaluation creates look-ahead 
    - TEST data completely untouched during selection
 ```
 
+### v3 Temporal Ordering (CRITICAL - 2026 Fix)
+
+The v3 implementation fixes a subtle but critical look-ahead bias bug in the original AWFES workflow. The key insight: **TEST must use `prior_bayesian_epoch`, NOT `val_optimal_epoch`**.
+
+#### The Bug (v2 and earlier)
+
+```python
+# v2 BUG: Bayesian update BEFORE test evaluation
+for fold in folds:
+    epoch_metrics = sweep_epochs(fold.train, fold.validation)
+    val_optimal_epoch = select_optimal(epoch_metrics)
+
+    # WRONG: Update Bayesian with current fold's val_optimal
+    bayesian.update(val_optimal_epoch, wfe)
+    selected_epoch = bayesian.get_current_epoch()  # CONTAMINATED!
+
+    # This selected_epoch is influenced by val_optimal from SAME fold
+    test_metrics = evaluate(selected_epoch, fold.test)  # LOOK-AHEAD BIAS
+```
+
+#### The Fix (v3)
+
+```python
+# v3 CORRECT: Get prior epoch BEFORE any work on current fold
+for fold in folds:
+    # Step 1: FIRST - Get epoch from ONLY prior folds
+    prior_bayesian_epoch = bayesian.get_current_epoch()  # BEFORE any fold work
+
+    # Step 2: Train and sweep to find this fold's optimal
+    epoch_metrics = sweep_epochs(fold.train, fold.validation)
+    val_optimal_epoch = select_optimal(epoch_metrics)
+
+    # Step 3: TEST uses prior_bayesian_epoch (NOT val_optimal!)
+    test_metrics = evaluate(prior_bayesian_epoch, fold.test)  # UNBIASED
+
+    # Step 4: AFTER test - update Bayesian for FUTURE folds only
+    bayesian.update(val_optimal_epoch, wfe)  # For fold+1, fold+2, ...
+```
+
+#### Why This Matters
+
+| Aspect                | v2 (Buggy)              | v3 (Fixed)          |
+| --------------------- | ----------------------- | ------------------- |
+| When Bayesian updated | Before test eval        | After test eval     |
+| Test epoch source     | Current fold influences | Only prior folds    |
+| Information flow      | Future → Present        | Past → Present only |
+| Expected bias         | Optimistic by ~10-20%   | Unbiased            |
+
+#### Validation Checkpoint
+
+```python
+# MANDATORY: Log these values for audit trail
+fold_log.info(
+    f"Fold {fold_idx}: "
+    f"prior_bayesian_epoch={prior_bayesian_epoch}, "
+    f"val_optimal_epoch={val_optimal_epoch}, "
+    f"test_uses={prior_bayesian_epoch}"  # MUST equal prior_bayesian_epoch
+)
+```
+
+See [references/look-ahead-bias.md](./references/look-ahead-bias.md) for detailed examples.
+
 ### Embargo Requirements
 
 | Boundary           | Embargo           | Rationale                 |
@@ -1407,6 +1469,7 @@ See [references/look-ahead-bias.md](./references/look-ahead-bias.md) for detaile
 | Epoch Smoothing          | [epoch-smoothing.md](./references/epoch-smoothing.md)                             |
 | OOS Metrics              | [oos-metrics.md](./references/oos-metrics.md)                                     |
 | Look-Ahead Bias          | [look-ahead-bias.md](./references/look-ahead-bias.md)                             |
+| **Feature Sets**         | [feature-sets.md](./references/feature-sets.md)                                   |
 
 ## Full Citations
 
