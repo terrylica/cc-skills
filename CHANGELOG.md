@@ -1,3 +1,76 @@
+## [9.38.2](https://github.com/terrylica/cc-skills/compare/v9.38.1...v9.38.2) (2026-01-21)
+
+
+### Bug Fixes
+
+* **adaptive-wfo-epoch:** standardize sharpe_tw naming across all reference docs ([8f9bc78](https://github.com/terrylica/cc-skills/commit/8f9bc78a1ed26f76ef84d03cbfa574312c662425))
+* **itp-hooks:** add PEP 723 library module storm guard ([31aca05](https://github.com/terrylica/cc-skills/commit/31aca05dace6e55509abad1b9cbf6d4ce8364c40))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+2)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (2 changes)</summary>
+
+- [adaptive-wfo-epoch](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/SKILL.md) - updated (+119/-34)
+- [rangebar-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/SKILL.md) - updated (+1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md) - updated (+3)
+
+</details>
+
+<details>
+<summary><strong>itp/semantic-release</strong> (2 files)</summary>
+
+- [Python Projects Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/python.md) - updated (+6)
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/troubleshooting.md) - updated (+102)
+
+</details>
+
+<details>
+<summary><strong>quant-research/adaptive-wfo-epoch</strong> (7 files)</summary>
+
+- [Anti-Patterns: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/anti-patterns.md) - updated (+6/-3)
+- [Feature Sets for BiLSTM Training](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/feature-sets.md) - new (+211)
+- [Look-Ahead Bias Prevention Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/look-ahead-bias.md) - updated (+73/-15)
+- [OOS Application Phase Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/oos-application.md) - updated (+34/-18)
+- [OOS Metrics Specification Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/oos-metrics.md) - updated (+61/-45)
+- [Range Bar Metrics: Time-Weighted Sharpe Ratio](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/range-bar-metrics.md) - new (+295)
+- [xLSTM Implementation Patterns for Financial Time Series](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/xlstm-implementation.md) - new (+261)
+
+</details>
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (1 file)</summary>
+
+- [Structured Logging Contract for AWFES Experiments](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/structured-logging.md) - new (+299)
+
+</details>
+
 ## [9.38.1](https://github.com/terrylica/cc-skills/compare/v9.38.0...v9.38.1) (2026-01-20)
 
 
