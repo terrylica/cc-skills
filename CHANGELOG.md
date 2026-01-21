@@ -1,3 +1,60 @@
+# [9.39.0](https://github.com/terrylica/cc-skills/compare/v9.38.2...v9.39.0) (2026-01-21)
+
+
+### Features
+
+* **devops-tools:** add firecrawl-self-hosted and ML skills ([79921d0](https://github.com/terrylica/cc-skills/commit/79921d0d02814aca10d6990d670ecc819a8e3c70))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>asciinema-tools</strong> (1 change)</summary>
+
+- [asciinema-converter](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/SKILL.md) - updated (+204/-1)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (3 changes)</summary>
+
+- [Firecrawl Self-Hosted Operations](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-self-hosted/SKILL.md) - new (+546)
+- [ML Data Pipeline Architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-data-pipeline-architecture/SKILL.md) - new (+291)
+- [ML Fail-Fast Validation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-failfast-validation/SKILL.md) - new (+450)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>asciinema-tools/asciinema-converter</strong> (3 files)</summary>
+
+- [Anti-Patterns in asciinema Conversion](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/references/anti-patterns.md) - new (+271)
+- [Batch Processing Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/references/batch-processing.md) - new (+291)
+- [Integration Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/references/integration-guide.md) - new (+262)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (1 command)</summary>
+
+- [/asciinema-tools:convert](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/convert.md) - updated (+53/-9)
+
+</details>
+
 ## [9.38.2](https://github.com/terrylica/cc-skills/compare/v9.38.1...v9.38.2) (2026-01-21)
 
 
