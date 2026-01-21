@@ -1,6 +1,6 @@
 ---
 name: asciinema-converter
-description: Convert .cast to .txt for analysis. TRIGGERS - convert cast, cast to txt, strip ANSI, timestamp index. Use when preparing recordings for Claude Code.
+description: Convert .cast to .txt for analysis. Supports batch mode. TRIGGERS - convert cast, cast to txt, strip ANSI, batch convert, bulk convert, iTerm2 logs, timestamp index. Use when preparing recordings for Claude Code.
 allowed-tools: Read, Bash, Glob, Write, AskUserQuestion
 ---
 
@@ -274,7 +274,179 @@ Options:
 
 ---
 
+## Batch Mode (Phases 7-9)
+
+Batch mode converts all .cast files in a directory with organized output. Activated via `--batch` flag.
+
+**Use case**: Convert 1000+ iTerm2 auto-logged recordings efficiently.
+
+### Phase 7: Batch Source Selection
+
+**Purpose**: Select source directory for batch conversion.
+
+**Trigger**: `--batch` flag without `--source` argument.
+
+```
+Question: "Select source directory for batch conversion:"
+Header: "Source"
+Options:
+  - Label: "~/asciinemalogs (iTerm2 default)" (Recommended)
+    Description: "Auto-logged iTerm2 recordings"
+  - Label: "~/Downloads"
+    Description: "Recent downloads containing .cast files"
+  - Label: "Current directory"
+    Description: "Convert .cast files in current working directory"
+  - Label: "Custom path"
+    Description: "Specify a custom source directory"
+```
+
+**Skip condition**: If `--source` argument provided, skip this phase.
+
+---
+
+### Phase 8: Batch Output Organization
+
+**Purpose**: Configure output directory structure.
+
+**Trigger**: `--batch` flag without `--output-dir` argument.
+
+```
+Question: "Where should converted files be saved?"
+Header: "Output"
+Options:
+  - Label: "~/Downloads/cast-txt/ (Recommended)"
+    Description: "Organized output directory, easy to find"
+  - Label: "Same as source"
+    Description: "Save .txt files next to .cast files"
+  - Label: "Custom directory"
+    Description: "Specify a custom output location"
+```
+
+**Skip condition**: If `--output-dir` argument provided, skip this phase.
+
+---
+
+### Phase 9: Execute Batch Conversion
+
+**Purpose**: Convert all files with progress reporting.
+
+```bash
+/usr/bin/env bash << 'BATCH_EOF'
+SOURCE_DIR="${1:?Source directory required}"
+OUTPUT_DIR="${2:?Output directory required}"
+SKIP_EXISTING="${3:-true}"
+
+mkdir -p "$OUTPUT_DIR"
+
+echo "=== Batch Conversion ==="
+echo "Source:        $SOURCE_DIR"
+echo "Output:        $OUTPUT_DIR"
+echo "Skip existing: $SKIP_EXISTING"
+echo ""
+
+total=0
+converted=0
+skipped=0
+failed=0
+total_input_size=0
+total_output_size=0
+
+# Count files first
+total=$(find "$SOURCE_DIR" -maxdepth 1 -name "*.cast" -type f 2>/dev/null | wc -l | tr -d ' ')
+echo "Found $total .cast files"
+echo ""
+
+for cast_file in "$SOURCE_DIR"/*.cast; do
+  [[ -f "$cast_file" ]] || continue
+
+  basename=$(basename "$cast_file" .cast)
+  txt_file="$OUTPUT_DIR/${basename}.txt"
+
+  # Skip if already converted (and skip mode enabled)
+  if [[ "$SKIP_EXISTING" == "true" && -f "$txt_file" ]]; then
+    echo "SKIP: $basename (already exists)"
+    ((skipped++))
+    continue
+  fi
+
+  # Get input size
+  input_size=$(stat -f%z "$cast_file" 2>/dev/null || stat -c%s "$cast_file" 2>/dev/null)
+
+  # Convert
+  if asciinema convert -f txt "$cast_file" "$txt_file" 2>/dev/null; then
+    output_size=$(stat -f%z "$txt_file" 2>/dev/null || stat -c%s "$txt_file" 2>/dev/null)
+    if [[ $output_size -gt 0 ]]; then
+      ratio=$((input_size / output_size))
+    else
+      ratio=0
+    fi
+    echo "OK:   $basename (${ratio}:1 compression)"
+    ((converted++))
+    total_input_size=$((total_input_size + input_size))
+    total_output_size=$((total_output_size + output_size))
+  else
+    echo "FAIL: $basename"
+    ((failed++))
+  fi
+done
+
+echo ""
+echo "=== Batch Complete ==="
+echo "Converted: $converted"
+echo "Skipped:   $skipped"
+echo "Failed:    $failed"
+
+if [[ $total_output_size -gt 0 ]]; then
+  overall_ratio=$((total_input_size / total_output_size))
+  echo "Overall compression: ${overall_ratio}:1"
+fi
+echo "Output directory: $OUTPUT_DIR"
+BATCH_EOF
+```
+
+---
+
+### Phase 10: Batch Next Steps
+
+**Purpose**: Guide user after batch conversion.
+
+```
+Question: "Batch conversion complete. What's next?"
+Header: "Next"
+Options:
+  - Label: "Batch analyze with /asciinema-tools:analyze --batch"
+    Description: "Run keyword extraction on all converted files"
+  - Label: "Open output directory"
+    Description: "View converted files in Finder"
+  - Label: "Done"
+    Description: "Exit - no further action needed"
+```
+
+---
+
+## iTerm2 Filename Format
+
+iTerm2 auto-logged files follow this format:
+
+```
+{creationTimeString}.{profileName}.{termid}.{iterm2.pid}.{autoLogId}.cast
+```
+
+**Example**: `20260118_232025.Claude Code.w0t1p1.70C05103-2F29-4B42-8067-BE475DB6126A.68721.4013739999.cast`
+
+| Component          | Description                    | Example                              |
+| ------------------ | ------------------------------ | ------------------------------------ |
+| creationTimeString | YYYYMMDD_HHMMSS                | 20260118_232025                      |
+| profileName        | iTerm2 profile (may have dots) | Claude Code                          |
+| termid             | Window/tab/pane identifier     | w0t1p1                               |
+| iterm2.pid         | iTerm2 process UUID            | 70C05103-2F29-4B42-8067-BE475DB6126A |
+| autoLogId          | Session auto-log identifier    | 68721.4013739999                     |
+
+---
+
 ## TodoWrite Task Template
+
+### Single File Mode
 
 ```
 1. [Preflight] Check asciinema CLI and convert command
@@ -289,17 +461,40 @@ Options:
 10. [Next] AskUserQuestion: next steps
 ```
 
+### Batch Mode (--batch flag)
+
+```
+1. [Preflight] Check asciinema CLI and convert command
+2. [Preflight] Offer installation if missing
+3. [Source] AskUserQuestion: source directory (skip if --source)
+4. [Output] AskUserQuestion: output directory (skip if --output-dir)
+5. [Batch] Execute batch conversion with progress
+6. [Report] Display aggregate compression stats
+7. [Next] AskUserQuestion: batch next steps
+```
+
 ---
 
 ## Post-Change Checklist
 
 After modifying this skill:
 
+### Single File Mode
+
 1. [ ] Preflight check detects asciinema version correctly
 2. [ ] Discovery uses heredoc wrapper for bash compatibility
 3. [ ] Compression calculation handles macOS stat syntax
 4. [ ] All AskUserQuestion phases are present
 5. [ ] TodoWrite template matches actual workflow
+
+### Batch Mode
+
+1. [ ] `--batch` flag triggers batch workflow (phases 7-10)
+2. [ ] `--source` skips Phase 7 (source selection)
+3. [ ] `--output-dir` skips Phase 8 (output organization)
+4. [ ] `--skip-existing` prevents re-conversion of existing files
+5. [ ] Aggregate compression ratio calculated correctly
+6. [ ] iTerm2 filename format documented
 
 ---
 
@@ -319,6 +514,14 @@ asciinema convert --help
 ---
 
 ## Reference Documentation
+
+### Internal References
+
+- [Anti-Patterns](./references/anti-patterns.md) - Common mistakes to avoid
+- [Batch Processing](./references/batch-processing.md) - Patterns for bulk conversion
+- [Integration Guide](./references/integration-guide.md) - Chaining with analyze/summarize
+
+### External References
 
 - [asciinema convert command](https://docs.asciinema.org/manual/cli/usage/)
 - [asciinema-cast-format skill](../asciinema-cast-format/SKILL.md)
