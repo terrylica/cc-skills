@@ -13,7 +13,7 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release | productivity |
 | [gh-tools](./plugins/gh-tools/)                         | GitHub workflow automation with intelligent GFM link validation for PRs                                 | development  |
 | [link-tools](./plugins/link-tools/)                     | Comprehensive link validation: portability checks, lychee broken link detection, path policy linting    | quality      |
-| [devops-tools](./plugins/devops-tools/)                 | Doppler credentials, secret validation, Telegram bot management, MLflow queries, session recovery       | devops       |
+| [devops-tools](./plugins/devops-tools/)                 | Doppler credentials, Firecrawl self-hosted, ML pipelines, Telegram bot, MLflow, session recovery        | devops       |
 | [dotfiles-tools](./plugins/dotfiles-tools/)             | Chezmoi dotfile management via natural language workflows                                               | utilities    |
 | [doc-tools](./plugins/doc-tools/)                       | Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF                | documents    |
 | [quality-tools](./plugins/quality-tools/)               | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                 | quality      |
@@ -575,9 +575,9 @@ Features:
 
 ### devops-tools
 
-**Doppler credentials, secret validation, Telegram bot management, MLflow queries, and session recovery.**
+**Doppler credentials, Firecrawl self-hosted, ML pipelines, Telegram bot management, MLflow queries, and session recovery.**
 
-Seven bundled skills: clickhouse-cloud-management, clickhouse-pydantic-config, doppler-workflows, doppler-secret-validation, telegram-bot-management, mlflow-query, session-recovery
+13 bundled skills: clickhouse-cloud-management, clickhouse-pydantic-config, doppler-workflows, doppler-secret-validation, dual-channel-watchexec, firecrawl-self-hosted, ml-data-pipeline-architecture, ml-failfast-validation, mlflow-python, python-logging-best-practices, session-chronicle, session-recovery, telegram-bot-management
 
 ### doc-tools
 

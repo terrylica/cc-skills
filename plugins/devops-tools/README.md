@@ -8,17 +8,21 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 
 ## Skills
 
-| Skill                           | Description                                                            |
-| ------------------------------- | ---------------------------------------------------------------------- |
-| **clickhouse-cloud-management** | ClickHouse Cloud user creation, permissions, and credential management |
-| **clickhouse-pydantic-config**  | Generate DBeaver configurations from Pydantic ClickHouse models        |
-| **doppler-workflows**           | PyPI publishing, AWS credential rotation, multi-service patterns       |
-| **doppler-secret-validation**   | Add, validate, and test API tokens/credentials in Doppler              |
-| **telegram-bot-management**     | Production bot management, monitoring, restart, and troubleshooting    |
-| **mlflow-python**               | Log backtest metrics, query experiments, QuantStats integration        |
-| **session-recovery**            | Troubleshoot Claude Code session issues and HOME variable problems     |
-| **session-chronicle**           | Session provenance tracking with S3 artifact sharing for team access   |
-| **dual-channel-watchexec**      | Send notifications to Telegram + Pushover on process events            |
+| Skill                             | Description                                                                |
+| --------------------------------- | -------------------------------------------------------------------------- |
+| **clickhouse-cloud-management**   | ClickHouse Cloud user creation, permissions, and credential management     |
+| **clickhouse-pydantic-config**    | Generate DBeaver configurations from Pydantic ClickHouse models            |
+| **doppler-workflows**             | PyPI publishing, AWS credential rotation, multi-service patterns           |
+| **doppler-secret-validation**     | Add, validate, and test API tokens/credentials in Doppler                  |
+| **firecrawl-self-hosted**         | Self-hosted Firecrawl deployment, Docker restart policies, troubleshooting |
+| **ml-data-pipeline-architecture** | Polars vs Pandas decision tree, zero-copy patterns for ML pipelines        |
+| **ml-failfast-validation**        | POC validation patterns for ML experiments (10-check framework)            |
+| **telegram-bot-management**       | Production bot management, monitoring, restart, and troubleshooting        |
+| **mlflow-python**                 | Log backtest metrics, query experiments, QuantStats integration            |
+| **session-recovery**              | Troubleshoot Claude Code session issues and HOME variable problems         |
+| **session-chronicle**             | Session provenance tracking with S3 artifact sharing for team access       |
+| **dual-channel-watchexec**        | Send notifications to Telegram + Pushover on process events                |
+| **python-logging-best-practices** | Unified Python logging with loguru, platformdirs, RotatingFileHandler      |
 
 ## Installation
 
@@ -37,11 +41,15 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "DBeaver config", "connection setup" -> clickhouse-pydantic-config
 - "publish to PyPI" -> doppler-workflows
 - "add to Doppler", "validate token" -> doppler-secret-validation
+- "firecrawl setup", "self-hosted scraper", "docker restart policy" -> firecrawl-self-hosted
+- "Polars vs Pandas", "ML data pipeline", "zero-copy" -> ml-data-pipeline-architecture
+- "POC validation", "fail-fast checks", "ML experiment validation" -> ml-failfast-validation
 - "telegram bot", "bot status", "restart bot" -> telegram-bot-management
 - "log backtest", "MLflow metrics", "search runs" -> mlflow-python
 - "no conversations found to resume" -> session-recovery
 - "who created this", "trace origin", "provenance" -> session-chronicle
 - "watchexec notifications", "Telegram + Pushover" -> dual-channel-watchexec
+- "loguru", "python logging", "structured logging" -> python-logging-best-practices
 
 ## Key Features
 
@@ -105,6 +113,35 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - HTML formatting for Telegram, plain text for Pushover
 - Restart detection (startup, code change, crash)
 - Message archiving for debugging
+
+### Firecrawl Self-Hosted
+
+- Docker Compose deployment with restart policies
+- Troubleshooting guide for container failures
+- Best practices: `restart: unless-stopped` for all services
+- YAML anchors for consistent configuration
+- ZeroTier network integration
+
+### ML Data Pipeline Architecture
+
+- Polars vs Pandas decision tree
+- Zero-copy patterns for Arrow interop
+- Memory-mapped file handling
+- Lazy evaluation strategies
+
+### ML Fail-Fast Validation
+
+- 10-check POC framework for ML experiments
+- Model instantiation, gradient flow, prediction sanity
+- NDJSON logging validation
+- Bayesian warmup verification
+
+### Python Logging Best Practices
+
+- Unified loguru patterns
+- platformdirs for XDG-compliant log locations
+- RotatingFileHandler with compression
+- Structured JSONL/NDJSON output
 
 ## Requirements
 
