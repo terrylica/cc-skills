@@ -717,7 +717,7 @@ This skill extends [rangebar-eval-metrics](../rangebar-eval-metrics/SKILL.md):
 
 | Metric Source         | Used For                                 | Reference                                                                                |
 | --------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `weekly_sharpe`       | WFE numerator (OOS) and denominator (IS) | [sharpe-formulas.md](../rangebar-eval-metrics/references/sharpe-formulas.md)             |
+| `sharpe_tw`           | WFE numerator (OOS) and denominator (IS) | [range-bar-metrics.md](./references/range-bar-metrics.md)                                |
 | `n_bars`              | Sample size for aggregation weights      | [metrics-schema.md](../rangebar-eval-metrics/references/metrics-schema.md)               |
 | `psr`, `dsr`          | Final acceptance criteria                | [sharpe-formulas.md](../rangebar-eval-metrics/references/sharpe-formulas.md)             |
 | `prediction_autocorr` | Validate model isn't collapsed           | [ml-prediction-quality.md](../rangebar-eval-metrics/references/ml-prediction-quality.md) |
@@ -727,7 +727,7 @@ This skill extends [rangebar-eval-metrics](../rangebar-eval-metrics/SKILL.md):
 ### Recommended Workflow
 
 1. **Compute base metrics** using `rangebar-eval-metrics:compute_metrics.py`
-2. **Feed to AWFES** for epoch selection with `weekly_sharpe` as primary signal
+2. **Feed to AWFES** for epoch selection with `sharpe_tw` as primary signal
 3. **Validate** with `psr > 0.85` and `dsr > 0.50` before deployment
 4. **Monitor** `is_collapsed` and `prediction_autocorr` for model health
 
@@ -1170,17 +1170,19 @@ See [references/epoch-smoothing.md](./references/epoch-smoothing.md) for extende
 
 ### Metric Tiers for Test Evaluation
 
-Following [rangebar-eval-metrics](../rangebar-eval-metrics/SKILL.md), compute these metrics on TEST data:
+Following [rangebar-eval-metrics](../rangebar-eval-metrics/SKILL.md), compute these metrics on TEST data.
+
+**CRITICAL for Range Bars**: Use time-weighted Sharpe (`sharpe_tw`) instead of simple bar Sharpe. See [range-bar-metrics.md](./references/range-bar-metrics.md) for the canonical implementation. The metrics below assume time-weighted computation for range bar data.
 
 #### Tier 1: Primary Metrics (Mandatory)
 
-| Metric                 | Formula                                 | Threshold | Purpose              |
-| ---------------------- | --------------------------------------- | --------- | -------------------- |
-| `weekly_sharpe`        | `mean(daily_pnl) / std(daily_pnl) × √7` | > 0       | Core performance     |
-| `hit_rate`             | `n_correct_sign / n_total`              | > 0.50    | Directional accuracy |
-| `cumulative_pnl`       | `Σ(pred × actual)`                      | > 0       | Total return         |
-| `positive_sharpe_rate` | `n_folds(sharpe > 0) / n_folds`         | > 0.55    | Consistency          |
-| `wfe_test`             | `test_sharpe / validation_sharpe`       | > 0.30    | Final transfer       |
+| Metric                  | Formula                                  | Threshold | Purpose              |
+| ----------------------- | ---------------------------------------- | --------- | -------------------- |
+| `sharpe_tw`             | Time-weighted (see range-bar-metrics.md) | > 0       | Core performance     |
+| `hit_rate`              | `n_correct_sign / n_total`               | > 0.50    | Directional accuracy |
+| `cumulative_pnl`        | `Σ(pred × actual)`                       | > 0       | Total return         |
+| `positive_sharpe_folds` | `n_folds(sharpe_tw > 0) / n_folds`       | > 0.55    | Consistency          |
+| `wfe_test`              | `test_sharpe_tw / validation_sharpe_tw`  | > 0.30    | Final transfer       |
 
 #### Tier 2: Risk Metrics
 
@@ -1210,6 +1212,7 @@ def compute_oos_metrics(
     predictions: np.ndarray,
     actuals: np.ndarray,
     timestamps: np.ndarray,
+    duration_us: np.ndarray | None = None,  # Required for range bars
     market_type: str = "crypto_24_7",  # For annualization factor
 ) -> dict[str, float]:
     """Compute full OOS metrics suite for test data.
@@ -1218,21 +1221,34 @@ def compute_oos_metrics(
         predictions: Model predictions (signed magnitude)
         actuals: Actual returns
         timestamps: Bar timestamps for daily aggregation
+        duration_us: Bar durations in microseconds (REQUIRED for range bars)
 
     Returns:
         Dictionary with all tier metrics
+
+    IMPORTANT: For range bars, pass duration_us to compute sharpe_tw.
+    Simple bar_sharpe violates i.i.d. assumption - see range-bar-metrics.md.
     """
     pnl = predictions * actuals
 
     # Tier 1: Primary
-    daily_pnl = group_by_day(pnl, timestamps)
-    # Use get_daily_to_weekly_factor() for market-aware annualization
-    # Defaults to sqrt(7) for crypto 24/7; use sqrt(5) for session-filtered
-    weekly_factor = get_daily_to_weekly_factor(market_type="crypto_24_7")
-    weekly_sharpe = (
-        np.mean(daily_pnl) / np.std(daily_pnl) * weekly_factor
-        if np.std(daily_pnl) > 1e-10 else 0.0
-    )
+    # For range bars: Use time-weighted Sharpe (canonical)
+    if duration_us is not None:
+        from exp066e_tau_precision import compute_time_weighted_sharpe
+        sharpe_tw, weighted_std, total_days = compute_time_weighted_sharpe(
+            bar_pnl=pnl,
+            duration_us=duration_us,
+            annualize=True,
+        )
+    else:
+        # Fallback for time bars (all same duration)
+        daily_pnl = group_by_day(pnl, timestamps)
+        weekly_factor = get_daily_to_weekly_factor(market_type=market_type)
+        sharpe_tw = (
+            np.mean(daily_pnl) / np.std(daily_pnl) * weekly_factor
+            if np.std(daily_pnl) > 1e-10 else 0.0
+        )
+
     hit_rate = np.mean(np.sign(predictions) == np.sign(actuals))
     cumulative_pnl = np.sum(pnl)
 
@@ -1251,9 +1267,9 @@ def compute_oos_metrics(
     cvar_cutoff = max(1, int(len(sorted_pnl) * 0.10))
     cvar_10pct = np.mean(sorted_pnl[:cvar_cutoff])
 
-    # Tier 3: Statistical
-    sharpe_se = 1.0 / np.sqrt(len(daily_pnl)) if len(daily_pnl) > 0 else 1.0
-    psr = norm.cdf(weekly_sharpe / sharpe_se) if sharpe_se > 0 else 0.5
+    # Tier 3: Statistical (use sharpe_tw for PSR)
+    sharpe_se = 1.0 / np.sqrt(len(pnl)) if len(pnl) > 0 else 1.0
+    psr = norm.cdf(sharpe_tw / sharpe_se) if sharpe_se > 0 else 0.5
 
     n_positive = np.sum(pnl > 0)
     n_total = len(pnl)
@@ -1261,8 +1277,8 @@ def compute_oos_metrics(
     binomial_pvalue = binomtest(n_positive, n_total, 0.5, alternative="greater").pvalue
 
     return {
-        # Tier 1
-        "weekly_sharpe": weekly_sharpe,
+        # Tier 1 (use sharpe_tw for range bars)
+        "sharpe_tw": sharpe_tw,
         "hit_rate": hit_rate,
         "cumulative_pnl": cumulative_pnl,
         "n_bars": len(pnl),
@@ -1280,27 +1296,31 @@ def compute_oos_metrics(
 
 ```python
 def aggregate_test_metrics(fold_results: list[dict]) -> dict[str, float]:
-    """Aggregate test metrics across all folds."""
+    """Aggregate test metrics across all folds.
+
+    NOTE: For range bars, use sharpe_tw (time-weighted).
+    See range-bar-metrics.md for why simple bar_sharpe is invalid for range bars.
+    """
     metrics = [r["test_metrics"] for r in fold_results]
 
-    # Positive Sharpe Rate
-    sharpes = [m["weekly_sharpe"] for m in metrics]
-    positive_sharpe_rate = np.mean([s > 0 for s in sharpes])
+    # Positive Sharpe Folds (use sharpe_tw for range bars)
+    sharpes = [m["sharpe_tw"] for m in metrics]
+    positive_sharpe_folds = np.mean([s > 0 for s in sharpes])
 
     # Median for robustness
-    median_sharpe = np.median(sharpes)
+    median_sharpe_tw = np.median(sharpes)
     median_hit_rate = np.median([m["hit_rate"] for m in metrics])
 
-    # DSR for multiple testing
+    # DSR for multiple testing (use time-weighted Sharpe)
     n_trials = len(metrics)
-    dsr = compute_dsr(median_sharpe, n_trials)
+    dsr = compute_dsr(median_sharpe_tw, n_trials)
 
     return {
         "n_folds": len(metrics),
-        "positive_sharpe_rate": positive_sharpe_rate,
-        "median_sharpe": median_sharpe,
-        "mean_sharpe": np.mean(sharpes),
-        "std_sharpe": np.std(sharpes),
+        "positive_sharpe_folds": positive_sharpe_folds,
+        "median_sharpe_tw": median_sharpe_tw,
+        "mean_sharpe_tw": np.mean(sharpes),
+        "std_sharpe_tw": np.std(sharpes),
         "median_hit_rate": median_hit_rate,
         "dsr": dsr,
         "total_pnl": sum(m["cumulative_pnl"] for m in metrics),
@@ -1470,6 +1490,8 @@ See [references/look-ahead-bias.md](./references/look-ahead-bias.md) for detaile
 | OOS Metrics              | [oos-metrics.md](./references/oos-metrics.md)                                     |
 | Look-Ahead Bias          | [look-ahead-bias.md](./references/look-ahead-bias.md)                             |
 | **Feature Sets**         | [feature-sets.md](./references/feature-sets.md)                                   |
+| **xLSTM Implementation** | [xlstm-implementation.md](./references/xlstm-implementation.md)                   |
+| **Range Bar Metrics**    | [range-bar-metrics.md](./references/range-bar-metrics.md)                         |
 
 ## Full Citations
 
