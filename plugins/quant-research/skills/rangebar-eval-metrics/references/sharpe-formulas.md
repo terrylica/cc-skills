@@ -10,7 +10,77 @@ Standard Sharpe annualization assumes:
 
 **Range bars violate ALL three assumptions.**
 
-## Canonical Approach: Daily Aggregation
+## Canonical Approach 1: Time-Weighted Sharpe Ratio (TWSR)
+
+**Preferred for bar-level evaluation.** Directly handles variable-duration bars without aggregation.
+
+```python
+import numpy as np
+
+def compute_time_weighted_sharpe(
+    bar_pnl: np.ndarray,
+    duration_us: np.ndarray,
+) -> tuple[float, float, float]:
+    """
+    Time-Weighted Sharpe Ratio (TWSR) for variable-duration bars.
+
+    FORMULA:
+      TWSR = (simple_mean(r) / time_weighted_std(r)) × √(365.25 / T)
+
+    Where:
+      - simple_mean(r) = sum(r_i) / N (preserves total P&L sign)
+      - time_weighted_std(r) = √(sum(w_i × (r_i - simple_mean)²))
+      - w_i = d_i / T (time weights, sum to 1)
+      - T = total observation time in days
+      - 365.25 = days per year (24/7 crypto markets)
+
+    The annualization factor √(365.25 / T) projects the observed Sharpe to
+    annual units based on actual observation time T. Derived from Wiener
+    process property where variance scales linearly with time.
+
+    Returns:
+        (sharpe, weighted_std, total_days)
+    """
+    if len(bar_pnl) == 0 or len(duration_us) == 0:
+        return 0.0, 0.0, 0.0
+
+    bar_pnl = np.asarray(bar_pnl, dtype=np.float64)
+    duration_us = np.asarray(duration_us, dtype=np.float64)
+
+    MICROSECONDS_PER_DAY = 86400.0 * 1e6
+    duration_days = duration_us / MICROSECONDS_PER_DAY
+    total_days = float(np.sum(duration_days))
+
+    if total_days < 1e-15:
+        return 0.0, 0.0, 0.0
+
+    weights = duration_days / total_days
+    simple_mean = float(np.mean(bar_pnl))
+    weighted_var = float(np.sum(weights * (bar_pnl - simple_mean) ** 2))
+
+    if weighted_var < 1e-20:
+        return 0.0, 0.0, total_days
+
+    weighted_std = np.sqrt(weighted_var)
+    raw_sharpe = simple_mean / weighted_std
+
+    # Time-scaled annualization: project to 365.25 days (24/7 crypto)
+    annualization_factor = np.sqrt(365.25 / total_days)
+    sharpe = raw_sharpe * annualization_factor
+
+    return float(sharpe), float(weighted_std), total_days
+```
+
+**Key Properties**:
+
+- Positive total P&L always produces positive Sharpe (sign preservation)
+- Long losing bars get penalized via higher weighted volatility
+- Microsecond precision for duration calculations
+- Proper time-based annualization (no arbitrary 252)
+
+**Reference**: `~/.claude/docs/GLOSSARY.md` (TWSR canonical definition)
+
+## Canonical Approach 2: Daily Aggregation
 
 ```python
 import pandas as pd
@@ -60,6 +130,13 @@ def weekly_sharpe(pnl: np.ndarray, timestamps: np.ndarray, days_per_week: int = 
 
 ```yaml
 annualization:
+  # TWSR (Time-Weighted Sharpe Ratio) - for bar-level range bar data
+  twsr_crypto:
+    formula: "sqrt(365.25 / T)" # T = observation period in days
+    rationale: "Projects to annual based on ACTUAL observation time"
+    use_when: "Bar-level evaluation with duration_us available"
+
+  # Daily Aggregation - for daily-aggregated data
   crypto_24_7:
     daily_to_weekly: 2.6458 # sqrt(7)
     daily_to_annual: 19.1049 # sqrt(365)
@@ -72,9 +149,10 @@ annualization:
 
   # CRITICAL: Never mix these!
   anti_patterns:
-    - "Using sqrt(252) for crypto"
+    - "Using sqrt(252) for crypto TWSR"
     - "Using sqrt(365) for equities"
-    - "Using sqrt(N) on bar-level data directly"
+    - "Using sqrt(N) on bar-level data directly (use TWSR instead)"
+    - "Using sqrt(T * 252) - WRONG formula (should be sqrt(365.25 / T))"
 ```
 
 ## Mertens (2002) Standard Error
