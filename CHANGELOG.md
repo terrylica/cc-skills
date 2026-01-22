@@ -1,3 +1,10 @@
+## [9.40.1](https://github.com/terrylica/cc-skills/compare/v9.40.0...v9.40.1) (2026-01-22)
+
+
+### Bug Fixes
+
+* **itp-hooks:** narrow exclude_paths to not block examples/research ([89098d8](https://github.com/terrylica/cc-skills/commit/89098d88d933995fca33d7ba7c059fac7c583bd3))
+
 # [9.40.0](https://github.com/terrylica/cc-skills/compare/v9.39.1...v9.40.0) (2026-01-22)
 
 
