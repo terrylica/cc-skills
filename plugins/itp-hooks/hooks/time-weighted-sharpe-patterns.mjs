@@ -31,7 +31,9 @@ export const DEFAULT_CONFIG = {
     "test_*.py",
     "conftest.py",
     "/docs/",
-    "/examples/",
+    "/examples/01_",  // Tutorial examples only, NOT research
+    "/examples/02_",
+    "/examples/03_",
     "/__pycache__/",
   ],
   // Range bar context indicators
