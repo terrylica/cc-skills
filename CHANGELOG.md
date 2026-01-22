@@ -1,3 +1,26 @@
+# [9.42.0](https://github.com/terrylica/cc-skills/compare/v9.41.0...v9.42.0) (2026-01-22)
+
+
+### Features
+
+* **itp-hooks:** add TypeScript posttooluse-reminder with venv detection ([fe38fd5](https://github.com/terrylica/cc-skills/commit/fe38fd5640c0a7c244934d0801c82d0a6a8e767a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [UV Reminder Hook for Pip Usage](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-10-uv-reminder-hook.md) | updated (+25/-9) |
+
 # [9.41.0](https://github.com/terrylica/cc-skills/compare/v9.40.3...v9.41.0) (2026-01-22)
 
 
