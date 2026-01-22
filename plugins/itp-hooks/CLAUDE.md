@@ -17,6 +17,7 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 | `pretooluse-time-weighted-sharpe-guard.mjs` | Write\|Edit       | Time-weighted Sharpe ratio enforcement            |
 | `pretooluse-version-guard.mjs`              | Write\|Edit       | Version consistency validation                    |
 | `pretooluse-process-storm-guard.mjs`        | Bash\|Write\|Edit | Prevents fork bomb patterns                       |
+| `pretooluse-vale-claude-md-guard.ts`        | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations  |
 | `sred-commit-guard.ts`                      | Bash              | SR&ED commit format enforcement                   |
 
 ### PostToolUse Hooks
@@ -113,13 +114,26 @@ The Vale terminology hooks enforce consistent terminology across all CLAUDE.md f
   └── TradingFitness/Terminology.yml
 ```
 
-### Hook Chain
+### Hook Chain (PreToolUse + PostToolUse)
 
-When any `**/CLAUDE.md` file is edited:
+**PreToolUse (REJECTS before edit)**:
 
-1. **posttooluse-vale-claude-md.ts** → Runs Vale, shows terminology violations
+1. **pretooluse-vale-claude-md-guard.ts** → Runs Vale on proposed content, REJECTS if issues found
+
+**PostToolUse (informational after edit)**:
+
+1. **posttooluse-vale-claude-md.ts** → Runs Vale, shows terminology violations (visibility only)
 2. **posttooluse-glossary-sync.ts** → (if GLOSSARY.md changed) Updates Vale vocabulary
 3. **posttooluse-terminology-sync.ts** → Syncs project terms to global GLOSSARY.md + duplicate detection
+
+### PreToolUse vs PostToolUse
+
+| Hook Type   | When             | Can Reject? | Use Case                         |
+| ----------- | ---------------- | ----------- | -------------------------------- |
+| PreToolUse  | BEFORE tool runs | YES         | Block bad edits                  |
+| PostToolUse | AFTER tool runs  | NO          | Inform about issues (visibility) |
+
+The PreToolUse hook uses `permissionDecision: "ask"` by default (shows dialog). Change MODE to `"deny"` for hard rejection.
 
 > **Note**: glossary-sync runs before terminology-sync to ensure Vale vocabulary is current before terminology validation.
 
