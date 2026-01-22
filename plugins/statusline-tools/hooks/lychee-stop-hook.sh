@@ -18,7 +18,9 @@
 #   - lint-relative-paths (bundled with plugin)
 #   - jq (required)
 
-# Non-blocking hook - must always exit 0
+# Hook script always exits 0 (process success), but outputs decision:"block" to
+# prevent Claude from stopping until link violations are fixed (hard-blocking behavior).
+# This ensures Claude sees and acts on violations before session ends.
 # Use set -u for unbound variable checking, but no -e or pipefail
 set -u
 
@@ -108,11 +110,12 @@ if command -v lychee &>/dev/null; then
         # --root-dir: Required to resolve root-relative paths like /docs/foo.md
         # --config: Use project .lychee.toml if it exists (excludes test fixtures, etc.)
         LYCHEE_TMP=$(mktemp)
-        LYCHEE_CONFIG=""
+        # Build lychee command args as array to avoid SC2086
+        LYCHEE_ARGS=(--offline --no-progress --format json --root-dir "$GIT_ROOT")
         if [[ -f "$GIT_ROOT/.lychee.toml" ]]; then
-            LYCHEE_CONFIG="--config $GIT_ROOT/.lychee.toml"
+            LYCHEE_ARGS+=(--config "$GIT_ROOT/.lychee.toml")
         fi
-        if xargs lychee --offline --no-progress --format json --root-dir "$GIT_ROOT" $LYCHEE_CONFIG < "$MD_FILES_TMP" > "$LYCHEE_TMP" 2>/dev/null; then
+        if xargs lychee "${LYCHEE_ARGS[@]}" < "$MD_FILES_TMP" > "$LYCHEE_TMP" 2>/dev/null; then
             # Count only REAL errors, not path resolution errors
             # Path resolution errors have url="error:" (lychee can't parse the path)
             # Real errors have actual URLs (file:// or https://) - missing files, 404s, etc.

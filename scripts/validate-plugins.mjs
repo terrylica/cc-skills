@@ -273,8 +273,33 @@ async function buildDependencyGraph() {
 }
 
 /**
+ * Known complementary plugin pairs that have intentional bidirectional Skill() references.
+ * These are NOT true circular dependencies - they are collaborative workflows where
+ * each plugin recommends using the other for related tasks.
+ *
+ * Example: doc-tools recommends itp:graph-easy for diagrams, itp recommends
+ * doc-tools:ascii-diagram-validator for validation. Neither REQUIRES the other.
+ */
+const KNOWN_COMPLEMENTARY_PAIRS = new Set([
+  "doc-tools:itp",   // Diagram generation ↔ diagram validation workflows
+  "itp:doc-tools",   // Same pair, reverse direction
+]);
+
+/**
+ * Check if a cycle is a known complementary pair (not a real circular dependency)
+ */
+function isComplementaryPair(cycle) {
+  // A cycle like ["doc-tools", "itp", "doc-tools"] has 3 elements
+  // The actual pair is the first two elements
+  if (cycle.length !== 3) return false;
+  const pair = `${cycle[0]}:${cycle[1]}`;
+  return KNOWN_COMPLEMENTARY_PAIRS.has(pair);
+}
+
+/**
  * Detect circular dependencies using DFS
  * Returns array of cycles found, e.g., [["a", "b", "a"], ["x", "y", "z", "x"]]
+ * Filters out known complementary pairs that are intentionally bidirectional.
  */
 function detectCircularDependencies(graph) {
   const cycles = [];
@@ -309,7 +334,8 @@ function detectCircularDependencies(graph) {
     }
   }
 
-  return cycles;
+  // Filter out known complementary pairs (not real circular dependencies)
+  return cycles.filter((cycle) => !isComplementaryPair(cycle));
 }
 
 /**
@@ -336,6 +362,10 @@ async function findHookScripts() {
       "**/__*.py",       // Exclude Python dunder files (__init__.py, etc.)
       "**/*.test.ts",    // Exclude TypeScript test files
       "**/*.spec.ts",    // Exclude TypeScript spec files
+      "**/*.test.mjs",   // Exclude JavaScript test files
+      "**/*.spec.mjs",   // Exclude JavaScript spec files
+      "**/*.test.js",    // Exclude plain JS test files
+      "**/*.spec.js",    // Exclude plain JS spec files
     ],
   });
 
@@ -535,6 +565,9 @@ async function validateHookOutputFormat() {
           content.toLowerCase().includes("loop") ||
           content.toLowerCase().includes("autonomous") ||
           content.toLowerCase().includes("force continuation") ||
+          content.toLowerCase().includes("must be fixed") ||
+          content.toLowerCase().includes("fix before") ||
+          content.toLowerCase().includes("hard-blocking") ||
           filename.toLowerCase().includes("loop");
 
         if (hasDecisionBlock && seemsInformational && !hasAdditionalContext && !intentionallyBlocking) {
