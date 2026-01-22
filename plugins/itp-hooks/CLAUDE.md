@@ -10,26 +10,28 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### PreToolUse Hooks
 
-| Hook                                        | Matcher           | Purpose                                           |
-| ------------------------------------------- | ----------------- | ------------------------------------------------- |
-| `pretooluse-guard.sh`                       | Write\|Edit       | Implementation standards enforcement              |
-| `pretooluse-fake-data-guard.mjs`            | Write             | Prevents fake/placeholder data in production code |
-| `pretooluse-time-weighted-sharpe-guard.mjs` | Write\|Edit       | Time-weighted Sharpe ratio enforcement            |
-| `pretooluse-version-guard.mjs`              | Write\|Edit       | Version consistency validation                    |
-| `pretooluse-process-storm-guard.mjs`        | Bash\|Write\|Edit | Prevents fork bomb patterns                       |
-| `pretooluse-vale-claude-md-guard.ts`        | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations  |
-| `sred-commit-guard.ts`                      | Bash              | SR&ED commit format enforcement                   |
+| Hook                                        | Matcher           | Purpose                                             |
+| ------------------------------------------- | ----------------- | --------------------------------------------------- |
+| `pretooluse-guard.sh`                       | Write\|Edit       | Implementation standards enforcement                |
+| `pretooluse-fake-data-guard.mjs`            | Write             | Prevents fake/placeholder data in production code   |
+| `pretooluse-time-weighted-sharpe-guard.mjs` | Write\|Edit       | Time-weighted Sharpe ratio enforcement              |
+| `pretooluse-version-guard.mjs`              | Write\|Edit       | Version consistency validation                      |
+| `pretooluse-process-storm-guard.mjs`        | Bash\|Write\|Edit | Prevents fork bomb patterns                         |
+| `pretooluse-vale-claude-md-guard.ts`        | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations    |
+| `pretooluse-hoisted-deps-guard.mjs`         | Write\|Edit       | pyproject.toml root-only and path escape policies   |
+| `pretooluse-polars-preference.ts`           | Write\|Edit       | **Asks** before writing Pandas code (prefer Polars) |
+| `sred-commit-guard.ts`                      | Bash              | SR&ED commit format enforcement                     |
 
 ### PostToolUse Hooks
 
-| Hook                                            | Matcher           | Purpose                                             |
-| ----------------------------------------------- | ----------------- | --------------------------------------------------- |
-| `posttooluse-reminder.ts`                       | Bash\|Write\|Edit | Context-aware reminders (UV, graph-easy, ADR sync)  |
-| `code-correctness-guard.sh`                     | Bash\|Write\|Edit | Silent failure detection (ShellCheck, Ruff, Oxlint) |
-| `posttooluse-time-weighted-sharpe-reminder.mjs` | Write\|Edit       | Time-weighted Sharpe ratio monitoring               |
-| `posttooluse-vale-claude-md.ts`                 | Write\|Edit       | Vale terminology check on CLAUDE.md files           |
-| `posttooluse-glossary-sync.ts`                  | Write\|Edit       | Auto-sync GLOSSARY.md to Vale vocabulary            |
-| `posttooluse-terminology-sync.ts`               | Write\|Edit       | Project CLAUDE.md to global GLOSSARY.md sync        |
+| Hook                                            | Matcher           | Purpose                                                    |
+| ----------------------------------------------- | ----------------- | ---------------------------------------------------------- |
+| `posttooluse-reminder.ts`                       | Bash\|Write\|Edit | Context-aware reminders (UV, graph-easy, ADR sync, Polars) |
+| `code-correctness-guard.sh`                     | Bash\|Write\|Edit | Silent failure detection (ShellCheck, Ruff, Oxlint)        |
+| `posttooluse-time-weighted-sharpe-reminder.mjs` | Write\|Edit       | Time-weighted Sharpe ratio monitoring                      |
+| `posttooluse-vale-claude-md.ts`                 | Write\|Edit       | Vale terminology check on CLAUDE.md files                  |
+| `posttooluse-glossary-sync.ts`                  | Write\|Edit       | Auto-sync GLOSSARY.md to Vale vocabulary                   |
+| `posttooluse-terminology-sync.ts`               | Write\|Edit       | Project CLAUDE.md to global GLOSSARY.md sync               |
 
 ### UserPromptSubmit Hooks
 
@@ -166,7 +168,47 @@ Edit `~/.claude/docs/GLOSSARY.md` to configure scan paths:
 | `itp-hooks:setup`   | Check and install hook dependencies                 |
 | `hooks-development` | Hook development reference (lifecycle-reference.md) |
 
+## Polars Preference Enforcement
+
+The Polars preference hooks encourage using Polars over Pandas for dataframe operations.
+
+### Two-Layer Enforcement
+
+| Layer           | Hook                              | Purpose                     | Behavior                             |
+| --------------- | --------------------------------- | --------------------------- | ------------------------------------ |
+| **PreToolUse**  | `pretooluse-polars-preference.ts` | Catches before writing      | `permissionDecision: "ask"` (dialog) |
+| **PostToolUse** | `posttooluse-reminder.ts`         | Backup if PreToolUse missed | `decision: "block"` (visibility)     |
+
+### Exception Mechanism
+
+To allow Pandas usage, add a magic comment at the TOP of the file:
+
+```python
+# polars-exception: <reason why Pandas is needed>
+import pandas as pd
+```
+
+Example reasons:
+
+- `# polars-exception: MLflow tracking requires Pandas DataFrames`
+- `# polars-exception: pandas-ta library only accepts Pandas`
+- `# polars-exception: upstream API returns Pandas DataFrame`
+
+### Auto-Skip Paths
+
+These paths are automatically skipped (no reminder):
+
+- `mlflow-python` - MLflow requires Pandas
+- `legacy/` - Legacy code maintenance
+- `third-party/` - Third-party integrations
+
+### Also Skipped When
+
+- File already imports Polars (`import polars`) - hybrid usage is intentional
+- Non-Python files
+
 ## References
 
 - [lifecycle-reference.md](skills/hooks-development/references/lifecycle-reference.md) - Hook lifecycle and best practices
 - [bootstrap-monorepo.md](../itp/skills/mise-tasks/references/bootstrap-monorepo.md) - SR&ED commit conventions section
+- [Polars Migration Guide](https://docs.pola.rs/user-guide/migration/pandas/) - Pandas to Polars migration

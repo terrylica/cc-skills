@@ -9,9 +9,11 @@
  * 3. ADR modified → remind to update Design Spec
  * 4. Design Spec modified → remind to update ADR
  * 5. Implementation code modified → remind about ADR traceability + ruff linting
+ * 6. Pandas usage → remind to prefer Polars for dataframe operations
  *
  * ADR: 2025-12-17-posttooluse-hook-visibility.md
  * ADR: 2026-01-10-uv-reminder-hook.md
+ * ADR: 2026-01-22-polars-preference-hook (pending)
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
@@ -26,6 +28,8 @@ interface HookInput {
   tool_input: {
     command?: string;
     file_path?: string;
+    content?: string;
+    new_string?: string;
   };
   session_id?: string;
 }
@@ -346,6 +350,98 @@ function checkImplementationCode(filePath: string): string | null {
   return null;
 }
 
+/**
+ * Check for Pandas usage that could use Polars instead (PostToolUse backup)
+ * Soft reminder in case PreToolUse guard was bypassed
+ * ADR: 2026-01-22-polars-preference-hook (pending)
+ */
+function checkPolarsPreference(
+  filePath: string,
+  content?: string
+): string | null {
+  // Only check Python files
+  if (!filePath.endsWith(".py")) {
+    return null;
+  }
+
+  // Exception paths where Pandas is acceptable
+  const PANDAS_EXCEPTION_PATHS = ["mlflow-python", "legacy/", "third-party/"];
+  if (PANDAS_EXCEPTION_PATHS.some((p) => filePath.includes(p))) {
+    return null;
+  }
+
+  // Get content if not provided
+  let fileContent = content;
+  if (!fileContent && existsSync(filePath)) {
+    try {
+      fileContent = readFileSync(filePath, "utf-8");
+    } catch {
+      return null;
+    }
+  }
+
+  if (!fileContent) {
+    return null;
+  }
+
+  // Skip if exception comment present
+  if (/# polars-exception:/.test(fileContent)) {
+    return null;
+  }
+
+  // Skip if Polars already imported (hybrid usage is intentional)
+  if (/import polars|from polars import/.test(fileContent)) {
+    return null;
+  }
+
+  // Detection patterns
+  const PANDAS_PATTERNS = [
+    /^import pandas/m,
+    /^from pandas import/m,
+    /\bimport pandas as pd\b/,
+    /\bpd\.DataFrame\(/,
+    /\bpd\.read_csv\(/,
+    /\bpd\.read_parquet\(/,
+    /\bpd\.concat\(/,
+    /\bpd\.merge\(/,
+  ];
+
+  const hasPandasUsage = PANDAS_PATTERNS.some((p) => p.test(fileContent));
+  if (!hasPandasUsage) {
+    return null;
+  }
+
+  const fileBasename = basename(filePath);
+  return `[POLARS PREFERENCE] Pandas detected in newly written code.
+
+DETECTED: Pandas import/usage in ${fileBasename}
+
+═══════════════════════════════════════════════════════════════════
+IF PANDAS IS INTENTIONAL: Add this comment at the TOP of the file:
+
+  # polars-exception: <reason why Pandas is needed>
+
+Then re-edit the file to add the comment. The hook will skip files
+containing this exception comment.
+
+Example reasons:
+  # polars-exception: MLflow tracking requires Pandas DataFrames
+  # polars-exception: pandas-ta library only accepts Pandas
+  # polars-exception: upstream API returns Pandas DataFrame
+═══════════════════════════════════════════════════════════════════
+
+IF CONVERTING TO POLARS, use this cheatsheet:
+  pd.read_csv()     → pl.read_csv() / pl.scan_csv()
+  pd.DataFrame()    → pl.DataFrame()
+  df.groupby()      → df.group_by()
+  pd.concat()       → pl.concat()
+  df.merge()        → df.join()
+
+WHY POLARS: 30x faster, lazy evaluation, better memory efficiency.
+
+REFERENCE: https://docs.pola.rs/user-guide/migration/pandas/`;
+}
+
 // --- Main ---
 
 async function main(): Promise<void> {
@@ -398,9 +494,17 @@ async function main(): Promise<void> {
       process.exit(0);
     }
 
+    // Get content for content-based checks
+    const content = input.tool_input?.content || input.tool_input?.new_string;
+
     // Check pyproject.toml path escape (highest priority for this file type)
     // Uses raw path for file reading
-    reminder = checkPyprojectPathEscape(rawFilePath);
+    reminder = checkPyprojectPathEscape(rawFilePath, content);
+
+    // Check Polars preference (for Python files)
+    if (!reminder) {
+      reminder = checkPolarsPreference(rawFilePath, content);
+    }
 
     // Check ADR modified (uses pattern-normalized path)
     if (!reminder) {
