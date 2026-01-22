@@ -1,3 +1,78 @@
+# [9.43.0](https://github.com/terrylica/cc-skills/compare/v9.42.0...v9.43.0) (2026-01-22)
+
+
+### Features
+
+* **itp-hooks:** add hoisted dev deps enforcement for uv workspaces ([fe42d8d](https://github.com/terrylica/cc-skills/commit/fe42d8d795661d9ca4f0084eaed4dbfc2d2d8274))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [UV Reminder Hook for Pip Usage](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-10-uv-reminder-hook.md) | updated (+20/-3) |
+
+### Design Specs
+
+- [UV Reminder Hook](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-10-uv-reminder-hook/spec.md) - new (+158)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [mise-configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/SKILL.md) - updated (+36)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md) - updated (+44/-9)
+
+</details>
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (1 file)</summary>
+
+- [Sharpe Ratio Formulas for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/sharpe-formulas.md) - updated (+81/-3)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [[9.42.0](https://github.com/terrylica/cc-skills/compare/v9.41.0...v9.42.0) (2026-01-22)](https://github.com/terrylica/cc-skills/blob/main/CHANGELOG.md) - updated (+504/-1591)
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+4/-1)
+
+### General Documentation
+
+- [Documentation Guide](https://github.com/terrylica/cc-skills/blob/main/docs/CLAUDE.md) - updated (+2)
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+59/-9)
+- [Session Resume Context](https://github.com/terrylica/cc-skills/blob/main/docs/RESUME.md) - new (+59)
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+28/-14)
+
 # [9.42.0](https://github.com/terrylica/cc-skills/compare/v9.41.0...v9.42.0) (2026-01-22)
 
 ### Features
