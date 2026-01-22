@@ -6,7 +6,7 @@
 
 import { describe, expect, it, beforeAll, afterAll } from "bun:test";
 import { execSync } from "child_process";
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "path";
 
 const HOOK_PATH = join(import.meta.dir, "posttooluse-reminder.ts");
@@ -382,5 +382,110 @@ describe("Reminder priority", () => {
     });
     expect(result.parsed).not.toBeNull();
     expect((result.parsed as any).reason).toContain("venv activation");
+  });
+});
+
+// ============================================================================
+// pyproject.toml Path Escape Detection (PostToolUse backup)
+// ADR: 2026-01-22-pyproject-toml-root-only-policy
+// ============================================================================
+
+describe("Write/Edit: pyproject.toml path escape detection", () => {
+  it("should remind about path escaping with ../../../", () => {
+    // Create a test pyproject.toml with escaping path
+    const testFile = join(TMP_DIR, "pyproject.toml");
+    writeFileSync(
+      testFile,
+      `[tool.uv.sources]
+external = { path = "../../../external-pkg" }
+`
+    );
+
+    const result = runHook({
+      tool_name: "Edit",
+      tool_input: { file_path: testFile },
+    });
+
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).decision).toBe("block");
+    expect((result.parsed as any).reason).toContain("[PATH-ESCAPE REMINDER]");
+    expect((result.parsed as any).reason).toContain("../../../external-pkg");
+  });
+
+  it("should NOT trigger on valid git source", () => {
+    const testFile = join(TMP_DIR, "pyproject-git.toml");
+    writeFileSync(
+      testFile,
+      `[tool.uv.sources]
+rangebar = { git = "https://github.com/owner/repo", branch = "main" }
+`
+    );
+
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+
+    // Should not contain path escape reminder (git sources are valid)
+    if (result.parsed) {
+      expect((result.parsed as any).reason).not.toContain("[PATH-ESCAPE REMINDER]");
+    }
+  });
+
+  it("should NOT trigger on valid relative path within monorepo", () => {
+    const testFile = join(TMP_DIR, "pyproject-valid.toml");
+    writeFileSync(
+      testFile,
+      `[tool.uv.sources]
+sibling = { path = "./packages/sibling" }
+`
+    );
+
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+
+    // Should not trigger for valid paths
+    if (result.parsed) {
+      expect((result.parsed as any).reason).not.toContain("[PATH-ESCAPE REMINDER]");
+    }
+  });
+
+  it("should detect multiple escaping paths", () => {
+    // Create a subdirectory to test multiple escaping paths
+    const testDir = join(TMP_DIR, "multi-escape");
+    mkdirSync(testDir, { recursive: true });
+    const testFile = join(testDir, "pyproject.toml");
+    writeFileSync(
+      testFile,
+      `[tool.uv.sources]
+pkg1 = { path = "../../../../pkg1" }
+pkg2 = { path = "../../../pkg2" }
+valid = { path = "packages/valid" }
+`
+    );
+
+    const result = runHook({
+      tool_name: "Edit",
+      tool_input: { file_path: testFile },
+    });
+
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).reason).toContain("[PATH-ESCAPE REMINDER]");
+    expect((result.parsed as any).reason).toContain("pkg1");
+    expect((result.parsed as any).reason).toContain("pkg2");
+  });
+
+  it("should NOT trigger on non-pyproject.toml files", () => {
+    const testFile = join(TMP_DIR, "setup.cfg");
+    writeFileSync(testFile, "[metadata]\nname = test");
+
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+
+    expect(result.stdout).toBe("");
   });
 });

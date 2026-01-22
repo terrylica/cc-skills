@@ -48,6 +48,13 @@ function blockWithReminder(reason: string): void {
 }
 
 function normalizePath(filePath: string): string {
+  // Only normalize for pattern matching (ADR/Spec detection)
+  // Keep absolute paths intact for file reading operations
+  return filePath.replace(/^\.\//, "");
+}
+
+function normalizeForPatternMatch(filePath: string): string {
+  // Strip leading ./ and / for ADR/Spec pattern matching
   return filePath.replace(/^\.\//, "").replace(/^\//, "");
 }
 
@@ -214,6 +221,76 @@ function checkSpecModified(filePath: string): string | null {
 }
 
 /**
+ * Check for pyproject.toml path escaping patterns (PostToolUse backup)
+ * Soft reminder in case PreToolUse guard didn't catch it
+ * ADR: 2026-01-22-pyproject-toml-root-only-policy
+ */
+function checkPyprojectPathEscape(
+  filePath: string,
+  content?: string
+): string | null {
+  if (!filePath.endsWith("pyproject.toml")) {
+    return null;
+  }
+
+  // Get git root for context
+  let gitRoot: string | null = null;
+  try {
+    gitRoot = execSync("git rev-parse --show-toplevel", {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+  } catch {
+    return null; // Not in git repo
+  }
+
+  // If we don't have content (PostToolUse), read the file
+  let fileContent = content;
+  if (!fileContent && existsSync(filePath)) {
+    try {
+      fileContent = readFileSync(filePath, "utf-8");
+    } catch {
+      return null;
+    }
+  }
+
+  if (!fileContent) {
+    return null;
+  }
+
+  // Check for path references that escape via ../../../
+  const escapingPaths: string[] = [];
+  const pathPattern =
+    /([a-zA-Z0-9_-]+)\s*=\s*\{[^}]*path\s*=\s*["']([^"']+)["']/g;
+
+  let match;
+  while ((match = pathPattern.exec(fileContent)) !== null) {
+    const pathValue = match[2];
+    // Count levels up
+    const upLevels = (pathValue.match(/\.\.\//g) || []).length;
+    if (upLevels >= 3) {
+      escapingPaths.push(`${match[1]} = { path = "${pathValue}" }`);
+    }
+  }
+
+  if (escapingPaths.length === 0) {
+    return null;
+  }
+
+  return `[PATH-ESCAPE REMINDER] pyproject.toml contains path references escaping monorepo:
+
+DETECTED:
+  ${escapingPaths.join("\n  ")}
+
+FIX: Use git source instead:
+  package = { git = "https://github.com/owner/repo", branch = "main" }
+
+Or add as workspace member in root pyproject.toml
+
+REFERENCE: https://docs.astral.sh/uv/concepts/projects/dependencies/`;
+}
+
+/**
  * Check implementation code for ruff issues and ADR traceability
  * ADR: 2025-12-11-ruff-posttooluse-linting
  */
@@ -314,23 +391,30 @@ async function main(): Promise<void> {
 
   // --- Handle Write/Edit tools ---
   if (toolName === "Write" || toolName === "Edit") {
-    const filePath = normalizePath(input.tool_input?.file_path || "");
+    const rawFilePath = normalizePath(input.tool_input?.file_path || "");
+    const patternPath = normalizeForPatternMatch(input.tool_input?.file_path || "");
 
-    if (!filePath) {
+    if (!rawFilePath) {
       process.exit(0);
     }
 
-    // Check ADR modified
-    reminder = checkAdrModified(filePath);
+    // Check pyproject.toml path escape (highest priority for this file type)
+    // Uses raw path for file reading
+    reminder = checkPyprojectPathEscape(rawFilePath);
 
-    // Check Design Spec modified
+    // Check ADR modified (uses pattern-normalized path)
     if (!reminder) {
-      reminder = checkSpecModified(filePath);
+      reminder = checkAdrModified(patternPath);
     }
 
-    // Check implementation code
+    // Check Design Spec modified (uses pattern-normalized path)
     if (!reminder) {
-      reminder = checkImplementationCode(filePath);
+      reminder = checkSpecModified(patternPath);
+    }
+
+    // Check implementation code (uses raw path for file reading)
+    if (!reminder) {
+      reminder = checkImplementationCode(rawFilePath);
     }
 
     if (reminder) {
