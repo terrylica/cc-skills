@@ -61,9 +61,12 @@ function findPythonFiles(dir, maxDepth = 3, currentDepth = 0) {
 
 /**
  * Output informational message (non-blocking).
+ * Uses additionalContext so Claude sees it in context.
+ * Also includes systemMessage for user visibility.
  */
 function inform(message) {
   console.log(JSON.stringify({
+    additionalContext: message,
     systemMessage: message,
   }));
 }
