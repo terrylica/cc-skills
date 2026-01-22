@@ -1,3 +1,36 @@
+## [9.44.1](https://github.com/terrylica/cc-skills/compare/v9.44.0...v9.44.1) (2026-01-22)
+
+
+### Bug Fixes
+
+* **doc-tools:** improve glossary-management skill documentation ([9c6570c](https://github.com/terrylica/cc-skills/commit/9c6570c73c6ff3df45582e30985abd4615b8186a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [glossary-management](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/glossary-management/SKILL.md) - updated (+45/-3)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+4/-2)
+
 # [9.44.0](https://github.com/terrylica/cc-skills/compare/v9.43.0...v9.44.0) (2026-01-22)
 
 
