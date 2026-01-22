@@ -1,3 +1,29 @@
+# [9.44.0](https://github.com/terrylica/cc-skills/compare/v9.43.0...v9.44.0) (2026-01-22)
+
+
+### Features
+
+* **doc-tools:** add glossary-management skill for terminology SSoT ([5929199](https://github.com/terrylica/cc-skills/commit/59291999ef5f059b098046889c67b3f333605f5e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [glossary-management](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/glossary-management/SKILL.md) - new (+206)
+
+</details>
+
 # [9.43.0](https://github.com/terrylica/cc-skills/compare/v9.42.0...v9.43.0) (2026-01-22)
 
 
