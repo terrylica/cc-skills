@@ -1,3 +1,24 @@
+## [9.40.3](https://github.com/terrylica/cc-skills/compare/v9.40.2...v9.40.3) (2026-01-22)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+34/-29)
+
+</details>
+
 ## [9.40.2](https://github.com/terrylica/cc-skills/compare/v9.40.1...v9.40.2) (2026-01-22)
 
 
