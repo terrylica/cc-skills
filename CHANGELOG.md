@@ -1,3 +1,10 @@
+## [9.40.2](https://github.com/terrylica/cc-skills/compare/v9.40.1...v9.40.2) (2026-01-22)
+
+
+### Bug Fixes
+
+* **itp-hooks:** use additionalContext for Stop hook Claude visibility ([dc90bc3](https://github.com/terrylica/cc-skills/commit/dc90bc3f2c44120ba0b93679c44281b7f5824f58))
+
 ## [9.40.1](https://github.com/terrylica/cc-skills/compare/v9.40.0...v9.40.1) (2026-01-22)
 
 
