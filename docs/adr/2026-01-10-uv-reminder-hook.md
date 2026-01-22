@@ -32,11 +32,13 @@ Claude Code often forgets to use `uv` instead of `pip` for Python dependency man
 Modify `plugins/itp-hooks/hooks/posttooluse-reminder.sh` to add UV detection.
 
 **Pros**:
+
 - Zero-touch deployment after release
 - No hooks.json modification needed
 - Fits naturally with existing reminder patterns
 
 **Cons**:
+
 - Slightly longer script
 
 ### Option B: Create New Hook File
@@ -44,9 +46,11 @@ Modify `plugins/itp-hooks/hooks/posttooluse-reminder.sh` to add UV detection.
 Create `plugins/itp-hooks/hooks/posttooluse-uv-reminder.sh`.
 
 **Pros**:
+
 - Clean separation of concerns
 
 **Cons**:
+
 - Requires hooks.json modification
 - Requires manual `/itp:hooks install` after plugin update
 - More moving parts
@@ -57,35 +61,47 @@ Create `plugins/itp-hooks/hooks/posttooluse-uv-reminder.sh`.
 
 ### Hook Type: PostToolUse (Not PreToolUse)
 
-| Hook Type | Behavior | User Request |
-|-----------|----------|--------------|
-| PreToolUse | Blocks command BEFORE execution | "without stopping" |
-| **PostToolUse** | Reminds AFTER command runs | Soft guidance |
+| Hook Type       | Behavior                        | User Request       |
+| --------------- | ------------------------------- | ------------------ |
+| PreToolUse      | Blocks command BEFORE execution | "without stopping" |
+| **PostToolUse** | Reminds AFTER command runs      | Soft guidance      |
 
 **Key insight**: PostToolUse with `decision: "block"` doesn't actually block (tool already ran) - it just makes Claude SEE the message. This is the correct pattern for non-blocking reminders.
 
 ### Detection Patterns
 
 **Pip patterns to detect**:
+
 - `pip install <pkg>`
 - `pip3 install <pkg>`
 - `python -m pip install <pkg>`
 - `pip uninstall <pkg>`
 
+**Venv activation patterns to detect** (added 2026-01-22):
+
+- `source .venv/bin/activate`
+- `source ../.venv/bin/activate`
+- `source ~/path/.venv/bin/activate`
+- `. .venv/bin/activate` (dot-source syntax)
+- SSH commands: `ssh host 'source .venv/bin/activate && ...'`
+
 **Exception cases (no reminder)**:
+
 - `uv pip install` - already in uv context
 - `pip freeze` - lock file generation
 - `pip-compile` - constraint compilation
 - `echo "pip install"` - documentation/examples
+- `echo "source .venv/bin/activate"` - documentation/examples
 - `# pip install` - comments
+- `grep ... venv` - searching for venv references
 
 ### Replacement Mapping
 
-| Pip Command | UV Equivalent |
-|------------|---------------|
-| `pip install <pkg>` | `uv add <pkg>` |
-| `pip uninstall <pkg>` | `uv remove <pkg>` |
-| `pip install -e .` | `uv pip install -e .` |
+| Pip Command                       | UV Equivalent                                     |
+| --------------------------------- | ------------------------------------------------- |
+| `pip install <pkg>`               | `uv add <pkg>`                                    |
+| `pip uninstall <pkg>`             | `uv remove <pkg>`                                 |
+| `pip install -e .`                | `uv pip install -e .`                             |
 | `pip install -r requirements.txt` | `uv sync` or `uv pip install -r requirements.txt` |
 
 **Note**: Exception cases are only for lock file GENERATION (`pip freeze`, `pip-compile`), not installation from requirements files.
