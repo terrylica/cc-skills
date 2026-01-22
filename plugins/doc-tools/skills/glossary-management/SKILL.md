@@ -25,8 +25,8 @@ Use when:
 # Manual sync to Vale
 bun ~/.claude/tools/bin/glossary-sync.ts
 
-# Check for duplicates across projects
-bun ~/eon/cc-skills/plugins/itp-hooks/hooks/lib/duplicate-terms-checker.ts
+# Check for duplicates/conflicts across projects (invokes terminology-sync hook)
+bun ~/eon/cc-skills/plugins/itp-hooks/hooks/posttooluse-terminology-sync.ts <<< '{"tool_name":"Edit","tool_input":{"file_path":"/tmp/test-CLAUDE.md"}}'
 ```
 
 ## Architecture
@@ -44,6 +44,48 @@ bun ~/eon/cc-skills/plugins/itp-hooks/hooks/lib/duplicate-terms-checker.ts
 │ accept.txt      │ │ Term.yml  │ │ Project CLAUDE.md  │
 │ (Vale vocab)    │ │ (subs)    │ │ (bidirectional)    │
 └─────────────────┘ └───────────┘ └────────────────────┘
+```
+
+## SCAN_PATHS Configuration
+
+The terminology sync hook uses `SCAN_PATHS` to discover project CLAUDE.md files. This is configured via an HTML comment in GLOSSARY.md:
+
+```markdown
+<!-- SCAN_PATHS:
+- ~/eon/*/CLAUDE.md
+- ~/eon/*/*/CLAUDE.md
+- ~/.claude/docs/GLOSSARY.md
+-->
+```
+
+**Format rules**:
+
+- Must be an HTML comment starting with `<!-- SCAN_PATHS:`
+- Each path on its own line with `-` prefix
+- Supports glob patterns (`*`, `**`)
+- Paths are relative to home directory (`~`)
+
+**Default paths** (if not specified):
+
+- `~/eon/*/CLAUDE.md` - Top-level project CLAUDE.md files
+- `~/eon/*/*/CLAUDE.md` - Package-level CLAUDE.md files
+
+## Table Schema (5 Columns)
+
+Every term in GLOSSARY.md follows this 5-column format:
+
+| Column         | Required | Description                     | Example                        |
+| -------------- | -------- | ------------------------------- | ------------------------------ |
+| **Term**       | Yes      | Bold term name (`**Term**`)     | `**Time-Weighted Sharpe**`     |
+| **Acronym**    | Yes      | Abbreviation (or `-` if none)   | `TWSR`                         |
+| **Definition** | Yes      | Clear, concise definition       | `Sharpe ratio for range bars`  |
+| **Unit/Range** | Yes      | Measurement unit or valid range | `ratio`, `[0, 1]`, `-`         |
+| **Projects**   | Yes      | Comma-separated project names   | `alpha-forge, trading-fitness` |
+
+**Example row**:
+
+```markdown
+| **Time-Weighted Sharpe** | TWSR | Sharpe ratio for variable-duration bars using time weights | annualized ratio | alpha-forge |
 ```
 
 ## Automatic Sync (Hooks)
@@ -202,5 +244,5 @@ rm -rf ~/.claude/.vale/styles/Vocab/
 ## References
 
 - [Vale Documentation](https://vale.sh/docs/)
-- [GLOSSARY.md Format](~/.claude/docs/GLOSSARY.md)
+- GLOSSARY.md: `~/.claude/docs/GLOSSARY.md` (local file)
 - [itp-hooks CLAUDE.md](/plugins/itp-hooks/CLAUDE.md)

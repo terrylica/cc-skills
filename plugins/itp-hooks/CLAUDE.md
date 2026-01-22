@@ -118,8 +118,10 @@ The Vale terminology hooks enforce consistent terminology across all CLAUDE.md f
 When any `**/CLAUDE.md` file is edited:
 
 1. **posttooluse-vale-claude-md.ts** → Runs Vale, shows terminology violations
-2. **posttooluse-terminology-sync.ts** → Syncs project terms to global GLOSSARY.md + duplicate detection
-3. **posttooluse-glossary-sync.ts** → (if GLOSSARY.md changed) Updates Vale vocabulary
+2. **posttooluse-glossary-sync.ts** → (if GLOSSARY.md changed) Updates Vale vocabulary
+3. **posttooluse-terminology-sync.ts** → Syncs project terms to global GLOSSARY.md + duplicate detection
+
+> **Note**: glossary-sync runs before terminology-sync to ensure Vale vocabulary is current before terminology validation.
 
 ### Duplicate Detection
 
