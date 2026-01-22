@@ -1,3 +1,66 @@
+# [9.46.0](https://github.com/terrylica/cc-skills/compare/v9.45.0...v9.46.0) (2026-01-22)
+
+
+### Features
+
+* **itp-hooks:** add Polars preference enforcement with PreToolUse dialog ([4c6973a](https://github.com/terrylica/cc-skills/commit/4c6973af415955151b896917be99978d4d628d4f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [Polars Preference Hook (Efficiency Preferences Framework)](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-22-polars-preference-hook.md) | new (+174) |
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [ML Data Pipeline Architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-data-pipeline-architecture/SKILL.md) - updated (+6)
+- [mlflow-python](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/mlflow-python/SKILL.md) - updated (+2)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [impl-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/impl-standards/SKILL.md) - updated (+30/-5)
+
+</details>
+
+
+### Plugin READMEs
+
+- [ITP Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/README.md) - updated (+30/-1)
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+2)
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+9/-8)
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+59/-17)
+
 # [9.45.0](https://github.com/terrylica/cc-skills/compare/v9.44.1...v9.45.0) (2026-01-22)
 
 
