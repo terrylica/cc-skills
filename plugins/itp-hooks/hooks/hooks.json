@@ -72,6 +72,16 @@
             "timeout": 10000
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-hoisted-deps-guard.mjs",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "PostToolUse": [
