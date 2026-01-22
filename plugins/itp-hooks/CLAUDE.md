@@ -20,10 +20,13 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### PostToolUse Hooks
 
-| Hook                        | Matcher           | Purpose                                             |
-| --------------------------- | ----------------- | --------------------------------------------------- |
-| `posttooluse-reminder.sh`   | Bash\|Write\|Edit | Context-aware reminders                             |
-| `code-correctness-guard.sh` | Bash\|Write\|Edit | Silent failure detection (ShellCheck, Ruff, Oxlint) |
+| Hook                              | Matcher           | Purpose                                             |
+| --------------------------------- | ----------------- | --------------------------------------------------- |
+| `posttooluse-reminder.sh`         | Bash\|Write\|Edit | Context-aware reminders                             |
+| `code-correctness-guard.sh`       | Bash\|Write\|Edit | Silent failure detection (ShellCheck, Ruff, Oxlint) |
+| `posttooluse-vale-claude-md.ts`   | Write\|Edit       | Vale terminology check on CLAUDE.md files           |
+| `posttooluse-glossary-sync.ts`    | Write\|Edit       | Auto-sync GLOSSARY.md to Vale vocabulary            |
+| `posttooluse-terminology-sync.ts` | Write\|Edit       | Project CLAUDE.md to global GLOSSARY.md sync        |
 
 ## SR&ED Commit Guard
 
@@ -79,6 +82,52 @@ Per `lifecycle-reference.md`, **TypeScript/Bun is preferred** for new hooks:
 
 - `sred-commit-guard.ts` - TypeScript (complex validation, educational feedback)
 - Simple pattern matching - bash acceptable
+
+## Vale Terminology Enforcement
+
+The Vale terminology hooks enforce consistent terminology across all CLAUDE.md files.
+
+### Architecture
+
+```
+~/.claude/docs/GLOSSARY.md  ◄──── SSoT (Single Source of Truth)
+         │
+         │ bidirectional sync via glossary-sync.ts
+         ▼
+~/.claude/.vale/styles/
+  ├── config/vocabularies/TradingFitness/accept.txt
+  └── TradingFitness/Terminology.yml
+```
+
+### Hook Chain
+
+When any `**/CLAUDE.md` file is edited:
+
+1. **posttooluse-vale-claude-md.ts** → Runs Vale, shows terminology violations
+2. **posttooluse-terminology-sync.ts** → Syncs project terms to global GLOSSARY.md + duplicate detection
+3. **posttooluse-glossary-sync.ts** → (if GLOSSARY.md changed) Updates Vale vocabulary
+
+### Duplicate Detection
+
+The terminology-sync hook scans ALL configured CLAUDE.md files and BLOCKS on conflicts:
+
+| Conflict Type     | Example                                      | Action Required               |
+| ----------------- | -------------------------------------------- | ----------------------------- |
+| Definition        | "ITH" defined differently in 2 projects      | Consolidate to ONE definition |
+| Acronym           | "ITH" vs "Investment-TH" for same term       | Standardize to ONE acronym    |
+| Acronym collision | "CV" = "Coefficient of Variation" AND others | Rename one acronym            |
+
+### Scan Configuration
+
+Edit `~/.claude/docs/GLOSSARY.md` to configure scan paths:
+
+```markdown
+<!-- SCAN_PATHS:
+- ~/eon/*/CLAUDE.md
+- ~/eon/*/*/CLAUDE.md
+- ~/.claude/docs/GLOSSARY.md
+-->
+```
 
 ## Skills
 
