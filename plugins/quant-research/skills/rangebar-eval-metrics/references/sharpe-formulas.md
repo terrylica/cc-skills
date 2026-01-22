@@ -10,6 +10,34 @@ Standard Sharpe annualization assumes:
 
 **Range bars violate ALL three assumptions.**
 
+## CRITICAL: Rangebar v9 Duration Unit Mismatch
+
+> **WARNING (2026-01-22)**: The `rangebar` crate v9 returns `duration_us` in **MILLISECONDS**
+> despite the column name suggesting microseconds. This causes ~1000x Sharpe inflation.
+
+**Detection heuristic**: If 95th percentile of `duration_us` < 1e5, values are likely milliseconds.
+
+```python
+import numpy as np
+
+def validate_duration_units(duration_us: np.ndarray) -> str:
+    """Detect if duration_us is actually in milliseconds (rangebar v9 bug)."""
+    p95 = np.percentile(duration_us, 95)
+
+    if p95 < 1e5:  # < 0.1 seconds if microseconds → likely milliseconds
+        return "milliseconds"  # Need MS_TO_US = 1000 conversion
+    elif p95 < 1e8:  # < 100 seconds if microseconds → plausible
+        return "microseconds"  # No conversion needed
+    else:
+        return "unknown"  # Investigate further
+
+# Fix: Convert milliseconds to microseconds before compute_time_weighted_sharpe
+MS_TO_US = 1000
+duration_us_fixed = duration_us * MS_TO_US  # If validate returns "milliseconds"
+```
+
+**Impact without fix**: Sharpe inflated by ~170x (total_days 1000x smaller → annualization factor ~31x larger).
+
 ## Canonical Approach 1: Time-Weighted Sharpe Ratio (TWSR)
 
 **Preferred for bar-level evaluation.** Directly handles variable-duration bars without aggregation.

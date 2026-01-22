@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG = {
     simple_bar_sharpe: true,     // mean(pnl) / std(pnl) without time weighting
     missing_duration_pipeline: true,  // range bar pipeline without duration_us
     wrong_crypto_annualization: true, // sqrt(252) instead of sqrt(365) for crypto
+    duration_unit_mismatch: true,     // rangebar v9 returns ms not µs (2026-01-22)
   },
   whitelist_comments: [
     "# time-weighted-sharpe-ok",
@@ -104,6 +105,36 @@ export const MISSING_DURATION_PATTERNS = [
     description: "Train split without duration variable",
     severity: "HIGH",
     fix_hint: "Preserve duration_us: X, y, duration = create_sequences_with_duration(...)",
+  },
+];
+
+/**
+ * Patterns that indicate duration_us unit mismatch (rangebar v9 bug).
+ *
+ * Rangebar v9 returns duration_us in MILLISECONDS despite column name.
+ * This causes ~1000x Sharpe inflation when passed to time-weighted functions.
+ *
+ * Detection heuristic: Code that uses duration_us directly without
+ * validation or explicit MS_TO_US conversion.
+ */
+export const DURATION_UNIT_MISMATCH_PATTERNS = [
+  {
+    regex: /compute_time_weighted_sharpe\s*\([^)]*duration_us[^)]*\)(?![^#\n]*\*\s*1000)(?![^#\n]*MS_TO_US)(?![^#\n]*validate)/gi,
+    description: "compute_time_weighted_sharpe() with raw duration_us (rangebar v9 may return milliseconds)",
+    severity: "HIGH",
+    fix_hint: "Validate units first: validate_duration_units(duration_us) OR multiply by MS_TO_US=1000 if from rangebar v9",
+  },
+  {
+    regex: /duration_us\s*\/\s*(?:86400|MICROSECONDS_PER_DAY)(?![^#\n]*\*\s*1000)/gi,
+    description: "Direct microsecond conversion without unit validation",
+    severity: "HIGH",
+    fix_hint: "Use validate_duration_units() to check if values are actually milliseconds (rangebar v9 bug)",
+  },
+  {
+    regex: /\["duration_us"\]\.values(?![^#\n]*\*\s*(?:1000|MS_TO_US))/gi,
+    description: "Extracting duration_us without MS_TO_US conversion",
+    severity: "HIGH",
+    fix_hint: "Rangebar v9 returns ms not µs. Add: duration_us * MS_TO_US where MS_TO_US=1000",
   },
 ];
 
@@ -219,6 +250,22 @@ export function detectSharpeIssues(content, enabledPatterns, whitelistComments) 
     // Check wrong annualization patterns
     if (enabledPatterns.wrong_crypto_annualization) {
       for (const pattern of WRONG_ANNUALIZATION_PATTERNS) {
+        pattern.regex.lastIndex = 0;
+        if (pattern.regex.test(line)) {
+          findings.push({
+            line: idx + 1,
+            content: line.trim().slice(0, 80),
+            description: pattern.description,
+            severity: pattern.severity,
+            fix_hint: pattern.fix_hint,
+          });
+        }
+      }
+    }
+
+    // Check duration unit mismatch patterns (rangebar v9 bug)
+    if (enabledPatterns.duration_unit_mismatch && hasRangeBars) {
+      for (const pattern of DURATION_UNIT_MISMATCH_PATTERNS) {
         pattern.regex.lastIndex = 0;
         if (pattern.regex.test(line)) {
           findings.push({
