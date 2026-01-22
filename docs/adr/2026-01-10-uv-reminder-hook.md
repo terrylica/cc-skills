@@ -29,7 +29,7 @@ Claude Code often forgets to use `uv` instead of `pip` for Python dependency man
 
 ### Option A: Integrate into Existing Hook (Selected)
 
-Modify `plugins/itp-hooks/hooks/posttooluse-reminder.sh` to add UV detection.
+Modify `plugins/itp-hooks/hooks/posttooluse-reminder.ts` to add UV detection.
 
 **Pros**:
 
@@ -57,7 +57,7 @@ Create `plugins/itp-hooks/hooks/posttooluse-uv-reminder.sh`.
 
 ## Decision Outcome
 
-**Chosen option**: Option A - Integrate into existing `posttooluse-reminder.sh`.
+**Chosen option**: Option A - Integrate into existing `posttooluse-reminder.ts`.
 
 ### Hook Type: PostToolUse (Not PreToolUse)
 
@@ -108,7 +108,7 @@ Create `plugins/itp-hooks/hooks/posttooluse-uv-reminder.sh`.
 
 ## Implementation
 
-Added to `plugins/itp-hooks/hooks/posttooluse-reminder.sh` after the graph-easy check:
+Added to `plugins/itp-hooks/hooks/posttooluse-reminder.ts` after the graph-easy check:
 
 ```bash
 #--- Check for pip usage -> suggest uv ---

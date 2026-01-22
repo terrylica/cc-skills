@@ -16,6 +16,7 @@ Claude Code skills marketplace: **19 plugins** with skills for ADR-driven develo
 | ITP Workflow    | [plugins/itp/README.md](./plugins/itp/README.md) |
 | Troubleshooting | [docs/troubleshooting/](./docs/troubleshooting/) |
 | ADRs            | [docs/adr/](./docs/adr/)                         |
+| Resume Context  | [docs/RESUME.md](./docs/RESUME.md)               |
 
 ## Essential Commands
 
@@ -88,10 +89,12 @@ bun pm ls -g                 # List
 
 ## Recent Lessons Learned
 
+**2026-01-22**: posttooluse-reminder migrated from bash to TypeScript/Bun (33 tests). [Design Spec](/docs/design/2026-01-10-uv-reminder-hook/spec.md)
+
 **2026-01-12**: gh CLI must use Homebrew, not mise (iTerm2 tab spawning). [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
 
 **2026-01-11**: Use `--body-file` for `gh issue create` body content. [ADR](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
 
-**2026-01-10**: uv-reminder hook warns when uv.lock is stale. [ADR](/docs/adr/2026-01-10-uv-reminder-hook.md)
+**2026-01-10**: uv-reminder hook detects pip and venv activation, suggests uv. [ADR](/docs/adr/2026-01-10-uv-reminder-hook.md)
 
 **2026-01-03**: WebFetch to github.com soft-blocked; use `gh` CLI. [ADR](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)

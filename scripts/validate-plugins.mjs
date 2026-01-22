@@ -313,19 +313,30 @@ function detectCircularDependencies(graph) {
 }
 
 /**
- * Find all hook files in plugin directories (shell and Python)
+ * Find all hook files in plugin directories (shell, Python, TypeScript, JavaScript)
  * Returns array of { path, plugin, filename, language }
  * Uses tinyglobby for efficient file discovery
+ *
+ * Language support:
+ *   - .sh → shell (bash)
+ *   - .py → python
+ *   - .ts → typescript (Bun)
+ *   - .mjs → javascript (Bun)
  */
 async function findHookScripts() {
   const pluginsDir = resolve(process.cwd(), "plugins");
 
   // Use tinyglobby to find all hook scripts at once
-  const hookPaths = await glob("plugins/*/hooks/*.{sh,py}", {
+  // Added .ts and .mjs support for TypeScript/Bun hooks (ADR: 2026-01-10-uv-reminder-hook)
+  const hookPaths = await glob("plugins/*/hooks/*.{sh,py,ts,mjs}", {
     cwd: process.cwd(),
     absolute: true,
     onlyFiles: true,
-    ignore: ["**/__*.py"], // Exclude Python dunder files (__init__.py, etc.)
+    ignore: [
+      "**/__*.py",       // Exclude Python dunder files (__init__.py, etc.)
+      "**/*.test.ts",    // Exclude TypeScript test files
+      "**/*.spec.ts",    // Exclude TypeScript spec files
+    ],
   });
 
   // Map paths to structured objects preserving language field
@@ -335,11 +346,25 @@ async function findHookScripts() {
     const pluginName = parts[0];
     const filename = basename(fullPath);
 
+    // Determine language from file extension
+    let language;
+    if (filename.endsWith(".sh")) {
+      language = "shell";
+    } else if (filename.endsWith(".py")) {
+      language = "python";
+    } else if (filename.endsWith(".ts")) {
+      language = "typescript";
+    } else if (filename.endsWith(".mjs")) {
+      language = "javascript";
+    } else {
+      language = "unknown";
+    }
+
     return {
       path: fullPath,
       plugin: pluginName,
       filename: filename,
-      language: filename.endsWith(".sh") ? "shell" : "python",
+      language: language,
     };
   });
 
