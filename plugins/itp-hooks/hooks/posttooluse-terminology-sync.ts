@@ -27,9 +27,14 @@ const GLOSSARY = join(HOME, ".claude/docs/GLOSSARY.md");
 const SYNC_SCRIPT = join(HOME, ".claude/tools/bin/glossary-sync.ts");
 
 // Default scan paths - can be overridden by GLOSSARY.md config
+// Supports up to 5 levels deep for nested project structures like:
+// ~/eon/alpha-forge/examples/research/models/CLAUDE.md
 const DEFAULT_SCAN_PATHS = [
   `${HOME}/eon/*/CLAUDE.md`,
   `${HOME}/eon/*/*/CLAUDE.md`,
+  `${HOME}/eon/*/*/*/CLAUDE.md`,
+  `${HOME}/eon/*/*/*/*/CLAUDE.md`,
+  `${HOME}/eon/*/*/*/*/*/CLAUDE.md`,
   GLOSSARY,
 ];
 
