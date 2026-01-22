@@ -41,12 +41,42 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
         REMINDER="[GRAPH-EASY SKILL] You used graph-easy CLI directly. For reproducible diagrams, prefer the graph-easy skill (or adr-graph-easy-architect for ADRs). Skills ensure: proper --as=boxart mode, correct \\\\n escaping, and <details> source block for future edits."
     fi
 
-    #--- Check for pip usage → suggest uv ---
+    #--- Check for pip usage or venv activation → suggest uv ---
     # ADR: 2026-01-10-uv-reminder-hook
+    # Extended: 2026-01-22 - detect venv activation patterns
     if [[ -z "$REMINDER" ]]; then
         COMMAND_LOWER=$(echo "$COMMAND" | tr '[:upper:]' '[:lower:]')
 
-        # === EXCEPTIONS: Skip these patterns ===
+        # === DETECT: venv activation patterns ===
+        # source .venv/bin/activate, source ../.venv/bin/activate, source ~/path/.venv/bin/activate
+        # Also: . .venv/bin/activate (dot-source syntax)
+        # Exception: echo/documentation context (grep for echo/printf at start or quotes around activate)
+        DOC_VENV=false
+        if echo "$COMMAND_LOWER" | grep -qE '^\s*(echo|printf)|grep.*venv'; then
+            DOC_VENV=true
+        fi
+
+        if [[ "$DOC_VENV" == "false" ]] && echo "$COMMAND_LOWER" | grep -qE '(source|\.)\s+[^|;&]*\.?venv/bin/activate'; then
+            # Extract the venv path for context
+            VENV_PATH=$(echo "$COMMAND" | grep -oE '[^ ]*\.?venv/bin/activate' | head -1 | sed 's|/bin/activate||')
+
+            REMINDER="[UV-REMINDER] venv activation detected - use 'uv run' instead
+
+EXECUTED: $COMMAND
+PREFERRED: uv run <command>  # No activation needed - uv manages venv automatically
+
+WHY UV:
+- No manual activation/deactivation
+- Auto-creates .venv if missing
+- Syncs dependencies from pyproject.toml/uv.lock
+- Works with SSH: ssh host 'cd /path && uv run python script.py'
+
+EXAMPLE:
+  OLD: source ${VENV_PATH}/bin/activate && python script.py
+  NEW: uv run python script.py"
+        fi
+
+        # === EXCEPTIONS: Skip these patterns (for pip detection) ===
         # 1. Already in uv context
         UV_CONTEXT=false
         if echo "$COMMAND_LOWER" | grep -qE '^\s*uv\s+(run|exec|pip)'; then
@@ -68,8 +98,8 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
             LOCK_OPS=true
         fi
 
-        # === DETECT: pip usage patterns ===
-        if [[ "$UV_CONTEXT" == "false" && "$DOC_CONTEXT" == "false" && "$LOCK_OPS" == "false" ]]; then
+        # === DETECT: pip usage patterns (if no reminder yet) ===
+        if [[ -z "$REMINDER" && "$UV_CONTEXT" == "false" && "$DOC_CONTEXT" == "false" && "$LOCK_OPS" == "false" ]]; then
             # Pattern allows: start, whitespace, quotes, or && before pip
             if echo "$COMMAND_LOWER" | grep -qE '(^|\s|"|'"'"'|&&\s*)(pip|pip3|python[0-9.]*\s+(-m\s+)?pip)\s+(install|uninstall)'; then
                 # Generate suggested replacement
