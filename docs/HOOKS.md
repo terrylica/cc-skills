@@ -126,10 +126,60 @@ Hooks defined in plugin `hooks.json` must be synced to `~/.claude/settings.json`
 
 ## Testing Hooks
 
+### Manual Testing
+
 ```bash
-# Test hook with sample input
+# Test hook with sample input via pipe
 echo '{"tool_name": "Bash", "tool_input": {"command": "gh issue create --body test"}}' | \
   bun plugins/gh-tools/hooks/gh-issue-body-file-guard.mjs
+```
+
+### Unit Testing with Bun
+
+For complex hooks, create a companion test file using `bun:test`:
+
+```typescript
+// hooks/my-hook.test.ts
+import { describe, expect, it } from "bun:test";
+import { execSync } from "child_process";
+import { join } from "path";
+
+const HOOK_PATH = join(import.meta.dir, "my-hook.ts");
+
+function runHook(input: object): { stdout: string; parsed: object | null } {
+  const inputJson = JSON.stringify(input);
+  const stdout = execSync(`bun ${HOOK_PATH}`, {
+    encoding: "utf-8",
+    input: inputJson, // Use stdin to avoid shell escaping issues
+    stdio: ["pipe", "pipe", "pipe"],
+  }).trim();
+
+  return { stdout, parsed: stdout ? JSON.parse(stdout) : null };
+}
+
+describe("My Hook", () => {
+  it("should block forbidden pattern", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "forbidden-command" },
+    });
+    expect(result.parsed?.decision).toBe("block");
+  });
+
+  it("should allow valid pattern", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "valid-command" },
+    });
+    expect(result.stdout).toBe(""); // No output = allow
+  });
+});
+```
+
+Run tests:
+
+```bash
+bun test plugins/itp-hooks/hooks/posttooluse-reminder.test.ts
 ```
 
 ## Hook Language Policy
@@ -149,14 +199,14 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 
 ## Plugins with Hooks
 
-| Plugin             | Hooks                           | Purpose                             |
-| ------------------ | ------------------------------- | ----------------------------------- |
-| `itp-hooks`        | PreToolUse (5), PostToolUse (2) | Workflow + SR&ED commit enforcement |
-| `ralph`            | PreToolUse (2), Stop (1)        | Autonomous loop control             |
-| `gh-tools`         | PreToolUse (2)                  | GitHub CLI enforcement              |
-| `dotfiles-tools`   | PostToolUse (1), Stop (1)       | Chezmoi sync reminder               |
-| `statusline-tools` | Stop (1)                        | Session metrics                     |
-| `link-tools`       | Stop (1)                        | Link validation                     |
+| Plugin             | Hook Types                                      | Purpose                             |
+| ------------------ | ----------------------------------------------- | ----------------------------------- |
+| `itp-hooks`        | PreToolUse, PostToolUse, UserPromptSubmit, Stop | Workflow + SR&ED commit enforcement |
+| `ralph`            | PreToolUse, Stop                                | Autonomous loop control             |
+| `gh-tools`         | PreToolUse                                      | GitHub CLI enforcement              |
+| `dotfiles-tools`   | PostToolUse, Stop                               | Chezmoi sync reminder               |
+| `statusline-tools` | Stop                                            | Session metrics                     |
+| `link-tools`       | Stop                                            | Link validation                     |
 
 ## Related ADRs
 

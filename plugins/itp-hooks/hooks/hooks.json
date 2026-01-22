@@ -80,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-reminder.sh",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-reminder.ts",
             "timeout": 10000
           },
           {
