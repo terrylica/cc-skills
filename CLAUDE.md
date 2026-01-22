@@ -89,6 +89,8 @@ bun pm ls -g                 # List
 
 ## Recent Lessons Learned
 
+**2026-01-22**: Polars preference hook enforces Polars over Pandas (PreToolUse dialog + PostToolUse backup). [ADR](/docs/adr/2026-01-22-polars-preference-hook.md)
+
 **2026-01-22**: posttooluse-reminder migrated from bash to TypeScript/Bun (33 tests). [Design Spec](/docs/design/2026-01-10-uv-reminder-hook/spec.md)
 
 **2026-01-12**: gh CLI must use Homebrew, not mise (iTerm2 tab spawning). [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)

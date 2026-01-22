@@ -105,13 +105,38 @@ nohup python script.py > logs/2025-12-01-my-feature-20251201_143022.log 2>&1 &
 
 ---
 
+---
+
+## Data Processing
+
+**Core Rule**: Prefer Polars over Pandas for dataframe operations.
+
+| Scenario           | Recommendation                     |
+| ------------------ | ---------------------------------- |
+| New data pipelines | Use Polars (30x faster, lazy eval) |
+| ML feature eng     | Polars → Arrow → NumPy (zero-copy) |
+| MLflow logging     | Pandas OK (add exception comment)  |
+| Legacy code fixes  | Keep existing library              |
+
+**Exception mechanism**: Add at file top:
+
+```python
+# polars-exception: MLflow requires Pandas DataFrames
+import pandas as pd
+```
+
+See [ml-data-pipeline-architecture](/plugins/devops-tools/skills/ml-data-pipeline-architecture/SKILL.md) for decision tree and benchmarks.
+
+---
+
 ## Related Skills
 
-| Skill                                                        | Purpose                                   |
-| ------------------------------------------------------------ | ----------------------------------------- |
-| [`adr-code-traceability`](../adr-code-traceability/SKILL.md) | Add ADR references to code                |
-| [`code-hardcode-audit`](../code-hardcode-audit/SKILL.md)     | Detect hardcoded values before release    |
-| [`semantic-release`](../semantic-release/SKILL.md)           | Version management and release automation |
+| Skill                                                                                                  | Purpose                                   |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| [`adr-code-traceability`](../adr-code-traceability/SKILL.md)                                           | Add ADR references to code                |
+| [`code-hardcode-audit`](../code-hardcode-audit/SKILL.md)                                               | Detect hardcoded values before release    |
+| [`semantic-release`](../semantic-release/SKILL.md)                                                     | Version management and release automation |
+| [`ml-data-pipeline-architecture`](/plugins/devops-tools/skills/ml-data-pipeline-architecture/SKILL.md) | Polars/Arrow efficiency patterns          |
 
 ---
 

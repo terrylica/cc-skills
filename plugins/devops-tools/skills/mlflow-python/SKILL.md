@@ -14,6 +14,8 @@ Unified read/write MLflow operations via Python API with QuantStats integration 
 
 **ADR**: [2025-12-12-mlflow-python-skill](/docs/adr/2025-12-12-mlflow-python-skill.md)
 
+> **Note**: This skill uses Pandas (MLflow API requires it). The `mlflow-python` path is auto-skipped by the Polars preference hook.
+
 ## When to Use This Skill
 
 **CAN Do**:
