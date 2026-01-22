@@ -1,3 +1,24 @@
+# [9.41.0](https://github.com/terrylica/cc-skills/compare/v9.40.3...v9.41.0) (2026-01-22)
+
+
+### Features
+
+* **itp-hooks:** add Vale terminology enforcement hooks for CLAUDE.md ([bf2e577](https://github.com/terrylica/cc-skills/commit/bf2e577d5062c16e32927988d38d69f43341bee3))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+53/-4)
+
 ## [9.40.3](https://github.com/terrylica/cc-skills/compare/v9.40.2...v9.40.3) (2026-01-22)
 
 
