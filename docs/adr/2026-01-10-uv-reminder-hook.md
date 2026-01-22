@@ -133,8 +133,25 @@ fi
 - Reminder only appears AFTER pip command runs (by design)
 - Claude must remember to use uv next time
 
+## Monorepo Workspace Consideration
+
+For uv workspaces, dev dependencies should be **hoisted to workspace root** `pyproject.toml` using `[dependency-groups]`. Sub-package `[dependency-groups]` are NOT automatically installed by `uv sync` from root.
+
+**Pattern**:
+
+```toml
+# Root pyproject.toml
+[dependency-groups]
+dev = ["pytest", "ruff", "jupyterlab"]
+```
+
+This ensures `uv sync --group dev` installs all dev tools without "unnecessary package" warnings.
+
+> **Reference**: [bootstrap-monorepo.md](/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md#root-pyprojecttoml-workspace)
+
 ## References
 
 - [PostToolUse Hook Visibility ADR](/docs/adr/2025-12-17-posttooluse-hook-visibility.md)
 - [lifecycle-reference.md](/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md)
 - User's `~/.claude/CLAUDE.md` toolchain section - Python: uv
+- [uv Managing Dependencies](https://docs.astral.sh/uv/concepts/projects/dependencies/) - PEP 735 dependency groups
