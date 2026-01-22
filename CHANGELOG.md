@@ -1,3 +1,10 @@
+# [9.40.0](https://github.com/terrylica/cc-skills/compare/v9.39.1...v9.40.0) (2026-01-22)
+
+
+### Features
+
+* **itp-hooks:** add multi-layer time-weighted Sharpe guard ([7961ba2](https://github.com/terrylica/cc-skills/commit/7961ba282dd66c47786719951a2b378704fe1463))
+
 ## [9.39.1](https://github.com/terrylica/cc-skills/compare/v9.39.0...v9.39.1) (2026-01-21)
 
 
