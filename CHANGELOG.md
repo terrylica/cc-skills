@@ -1,3 +1,49 @@
+# [9.45.0](https://github.com/terrylica/cc-skills/compare/v9.44.1...v9.45.0) (2026-01-22)
+
+
+### Bug Fixes
+
+* **validation:** eliminate all plugin validator warnings ([f1afc80](https://github.com/terrylica/cc-skills/commit/f1afc80b6a105078547778c23375b95d32cdcec3))
+
+
+### Features
+
+* **itp-hooks:** add pyproject.toml root-only policy and path escape guards ([a39d5d6](https://github.com/terrylica/cc-skills/commit/a39d5d6fde21c336e9a19f7a7829b07d90bbe30a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| implemented | [pyproject.toml Root-Only Policy](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-22-pyproject-toml-root-only-policy.md) | new (+126) |
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (1 file)</summary>
+
+- [Sharpe Ratio Formulas for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/sharpe-formulas.md) - updated (+28)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+17/-3)
+
 ## [9.44.1](https://github.com/terrylica/cc-skills/compare/v9.44.0...v9.44.1) (2026-01-22)
 
 
