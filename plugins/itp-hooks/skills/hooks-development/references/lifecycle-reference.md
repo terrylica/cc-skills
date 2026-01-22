@@ -473,11 +473,12 @@ For a Bash tool call:
 
 ```json
 {
-  "systemMessage": "Your informational message here"
+  "additionalContext": "Message for Claude to see and act on",
+  "systemMessage": "Message for user to see in status line"
 }
 ```
 
-> **Note**: Stop hooks do NOT support `hookSpecificOutput`. Use `systemMessage` for informational output.
+> **Note**: Stop hooks do NOT support `hookSpecificOutput`. Use `additionalContext` for Claude visibility, `systemMessage` for user visibility. Using only `systemMessage` means Claude won't see the message in context (verified 2026-01-21).
 
 ```{=latex}
 \newpage
@@ -527,22 +528,22 @@ jq -n --arg reason "Please fix this" '{decision: "block", reason: $reason}'
 
 **CRITICAL DIFFERENCE**: For Stop hooks, `decision: "block"` **actually prevents Claude from stopping**.
 
-| Intent                    | Output Format                              | Effect                            |
-| ------------------------- | ------------------------------------------ | --------------------------------- |
-| **Allow stop normally**   | `{}` (empty object)                        | Claude stops normally             |
-| **Block stop (continue)** | `{"decision": "block", "reason": "..."}`   | Claude CANNOT stop, must continue |
-| **Informational message** | `{"systemMessage": "..."}`                 | Claude sees info, stops normally  |
-| **Hard stop (emergency)** | `{"continue": false, "stopReason": "..."}` | Claude halted immediately         |
+| Intent                    | Output Format                                          | Effect                            |
+| ------------------------- | ------------------------------------------------------ | --------------------------------- |
+| **Allow stop normally**   | `{}` (empty object)                                    | Claude stops normally             |
+| **Block stop (continue)** | `{"decision": "block", "reason": "..."}`               | Claude CANNOT stop, must continue |
+| **Informational message** | `{"additionalContext": "...", "systemMessage": "..."}` | Claude sees info, stops normally  |
+| **Hard stop (emergency)** | `{"continue": false, "stopReason": "..."}`             | Claude halted immediately         |
 
-> **Note**: Stop hooks do NOT support `hookSpecificOutput`. Use `systemMessage` for informational output.
+> **Note**: Stop hooks do NOT support `hookSpecificOutput`. Use `additionalContext` for Claude visibility + `systemMessage` for user visibility. Using only `systemMessage` means Claude won't see the message (verified 2026-01-21).
 
 **Example: Informational Stop Hook (non-blocking)**
 
 ```bash
-# ✅ Informs Claude but allows stopping
+# ✅ Informs BOTH Claude (additionalContext) and user (systemMessage)
 if [[ "$ISSUES" -gt 0 ]]; then
     jq -n --arg msg "[INFO] Found $ISSUES issues in repo" \
-        '{systemMessage: $msg}'
+        '{additionalContext: $msg, systemMessage: $msg}'
 fi
 exit 0
 ```
@@ -577,26 +578,29 @@ exit 2
 
 ### Complete Field Visibility Matrix
 
-| Field                            | PostToolUse | Stop        | PreToolUse    | UserPromptSubmit |
-| -------------------------------- | ----------- | ----------- | ------------- | ---------------- |
-| `reason` (with `decision:block`) | ✅ Claude   | ✅ Claude   | ❌ Deprecated | ❌ User only     |
-| `additionalContext`              | ⚠️ Maybe    | ✅ Claude   | ❌ N/A        | ✅ Claude        |
-| `permissionDecisionReason`       | ❌ N/A      | ❌ N/A      | ✅ Claude     | ❌ N/A           |
-| `systemMessage`                  | ✅ Both     | ✅ Both     | ✅ Both       | ✅ Both          |
-| `stopReason`                     | ❌ N/A      | ✅ User     | ❌ N/A        | ❌ N/A           |
-| Plain stdout (exit 0)            | ❌ Log only | ❌ Log only | ❌ Log only   | ✅ Claude        |
-| stderr (exit 2)                  | ❌ N/A      | ❌ N/A      | ✅ Claude     | ❌ N/A           |
+| Field                            | PostToolUse | Stop         | PreToolUse    | UserPromptSubmit |
+| -------------------------------- | ----------- | ------------ | ------------- | ---------------- |
+| `reason` (with `decision:block`) | ✅ Claude   | ✅ Claude    | ❌ Deprecated | ❌ User only     |
+| `additionalContext`              | ⚠️ Maybe    | ✅ Claude    | ❌ N/A        | ✅ Claude        |
+| `permissionDecisionReason`       | ❌ N/A      | ❌ N/A       | ✅ Claude     | ❌ N/A           |
+| `systemMessage`                  | ✅ Both     | ⚠️ User only | ✅ Both       | ✅ Both          |
+| `stopReason`                     | ❌ N/A      | ✅ User      | ❌ N/A        | ❌ N/A           |
+| Plain stdout (exit 0)            | ❌ Log only | ❌ Log only  | ❌ Log only   | ✅ Claude        |
+| stderr (exit 2)                  | ❌ N/A      | ❌ N/A       | ✅ Claude     | ❌ N/A           |
+
+**CRITICAL (Verified 2026-01-21)**: For Stop hooks, `systemMessage` displays to user in status line but does NOT get injected into Claude's conversation context. Use `additionalContext` for Claude visibility, `systemMessage` for user visibility, or both for maximum visibility.
 
 ### Common Mistakes and Fixes
 
-| Mistake                                        | Symptom                            | Fix                              |
-| ---------------------------------------------- | ---------------------------------- | -------------------------------- |
-| PostToolUse without `decision:block`           | Hook runs, Claude ignores          | Add `decision: "block"`          |
-| Stop hook with `decision:block` for info       | Claude can't stop                  | Use `additionalContext` instead  |
-| Stop hook with `continue: false` to allow stop | "Stop hook prevented continuation" | Use `{}` (empty object)          |
-| PreToolUse with `decision:block`               | Works but deprecated               | Use `permissionDecision: "deny"` |
-| Mixing stdout and JSON                         | JSON parsing fails                 | Use only JSON or only plain text |
-| Logging to stdout                              | Extra text breaks JSON             | Log to stderr or /dev/null       |
+| Mistake                                        | Symptom                            | Fix                                        |
+| ---------------------------------------------- | ---------------------------------- | ------------------------------------------ |
+| PostToolUse without `decision:block`           | Hook runs, Claude ignores          | Add `decision: "block"`                    |
+| Stop hook with `decision:block` for info       | Claude can't stop                  | Use `additionalContext` instead            |
+| Stop hook with `continue: false` to allow stop | "Stop hook prevented continuation" | Use `{}` (empty object)                    |
+| PreToolUse with `decision:block`               | Works but deprecated               | Use `permissionDecision: "deny"`           |
+| Mixing stdout and JSON                         | JSON parsing fails                 | Use only JSON or only plain text           |
+| Logging to stdout                              | Extra text breaks JSON             | Log to stderr or /dev/null                 |
+| Stop hook using only `systemMessage`           | User sees, Claude doesn't          | Use `additionalContext` for Claude context |
 
 ### Recommended Patterns
 
@@ -613,7 +617,8 @@ exit 0
 
 ```bash
 if [[ "$INFO" != "" ]]; then
-    jq -n --arg msg "$INFO" '{systemMessage: $msg}'
+    # Use BOTH fields: additionalContext for Claude, systemMessage for user
+    jq -n --arg msg "$INFO" '{additionalContext: $msg, systemMessage: $msg}'
 fi
 exit 0
 ```
