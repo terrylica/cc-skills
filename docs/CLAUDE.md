@@ -13,6 +13,7 @@ docs/
 ├── troubleshooting/        ← Issue resolution guides
 ├── HOOKS.md                ← Hook development guide
 ├── RELEASE.md              ← Release workflow guide
+├── RESUME.md               ← Session resume context
 └── plugin-authoring.md     ← Shell compatibility patterns
 ```
 
@@ -40,6 +41,7 @@ docs/
 | -------------------------------------------- | ----------------------------- |
 | [HOOKS.md](./HOOKS.md)                       | Hook development patterns     |
 | [RELEASE.md](./RELEASE.md)                   | Release workflow (mise tasks) |
+| [RESUME.md](./RESUME.md)                     | Session resume context        |
 | [plugin-authoring.md](./plugin-authoring.md) | Shell compatibility           |
 | [troubleshooting/](./troubleshooting/)       | Issue resolution              |
 
