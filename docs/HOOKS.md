@@ -199,20 +199,21 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 
 ## Plugins with Hooks
 
-| Plugin             | Hook Types                                      | Purpose                             |
-| ------------------ | ----------------------------------------------- | ----------------------------------- |
-| `itp-hooks`        | PreToolUse, PostToolUse, UserPromptSubmit, Stop | Workflow + SR&ED commit enforcement |
-| `ralph`            | PreToolUse, Stop                                | Autonomous loop control             |
-| `gh-tools`         | PreToolUse                                      | GitHub CLI enforcement              |
-| `dotfiles-tools`   | PostToolUse, Stop                               | Chezmoi sync reminder               |
-| `statusline-tools` | Stop                                            | Session metrics                     |
-| `link-tools`       | Stop                                            | Link validation                     |
+| Plugin             | Hook Types                                      | Purpose                                     |
+| ------------------ | ----------------------------------------------- | ------------------------------------------- |
+| `itp-hooks`        | PreToolUse, PostToolUse, UserPromptSubmit, Stop | Workflow + SR&ED commit + Polars preference |
+| `ralph`            | PreToolUse, Stop                                | Autonomous loop control                     |
+| `gh-tools`         | PreToolUse                                      | GitHub CLI enforcement                      |
+| `dotfiles-tools`   | PostToolUse, Stop                               | Chezmoi sync reminder                       |
+| `statusline-tools` | Stop                                            | Session metrics                             |
+| `link-tools`       | Stop                                            | Link validation                             |
 
 ## Related ADRs
 
 - [PreToolUse/PostToolUse Architecture](/docs/adr/2025-12-06-pretooluse-posttooluse-hooks.md)
 - [Hook Visibility Issue](/docs/adr/2025-12-17-posttooluse-hook-visibility.md)
 - [ITP Hooks Settings Installer](/docs/adr/2025-12-07-itp-hooks-settings-installer.md)
+- [Polars Preference Hook](/docs/adr/2026-01-22-polars-preference-hook.md)
 
 ## Reference Implementation
 

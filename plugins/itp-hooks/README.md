@@ -37,11 +37,21 @@ Then install hooks to your settings:
 | ---------------- | ----------------------------------------------- | ----------------- |
 | Manual ASCII art | Box-drawing chars in `.md` without source block | Exit code 2 block |
 
+### Soft Blocks (PreToolUse - User can override)
+
+| Check             | Trigger                         | Action                              |
+| ----------------- | ------------------------------- | ----------------------------------- |
+| Polars preference | Write/Edit with Pandas in `.py` | Dialog asking to use Polars instead |
+| Fake data guard   | Write with test/fake data       | Block with explanation              |
+| Hoisted deps      | pyproject.toml outside git root | Block non-root pyproject.toml       |
+
 ### Non-blocking Reminders (PostToolUse)
 
 | Check                 | Trigger                        | Reminder                              |
 | --------------------- | ------------------------------ | ------------------------------------- |
 | **Ruff linting**      | Edit/Write `.py` files         | Shows lint errors (9 rule categories) |
+| UV preference         | pip install in Bash            | Prefer `uv pip install`               |
+| Polars preference     | Pandas usage (backup check)    | Prefer Polars for dataframes          |
 | Graph-easy skill      | Direct `graph-easy` CLI usage  | Prefer skill for reproducibility      |
 | ADR→Spec sync         | Modify `docs/adr/*.md`         | Check if Design Spec needs updating   |
 | Spec→ADR sync         | Modify `docs/design/*/spec.md` | Check if ADR needs updating           |
@@ -96,13 +106,32 @@ This plugin uses **exit code 2** for ASCII art blocking because:
 - `commands/hooks.md` - Hook management command
 - `hooks/hooks.json` - Hook configuration
 - `hooks/pretooluse-guard.sh` - ASCII art blocking
-- `hooks/posttooluse-reminder.sh` - Sync reminders + Ruff linting
+- `hooks/pretooluse-polars-preference.ts` - Polars over Pandas dialog
+- `hooks/posttooluse-reminder.ts` - Sync reminders + UV/Polars preference
 - `hooks/code-correctness-guard.sh` - Code correctness detection (silent failures + cross-language syntax)
 - `hooks/ruff.toml` - Ruff rule documentation
 - `scripts/install-dependencies.sh` - Linter dependency installer
 - `scripts/manage-hooks.sh` - Settings.json hook manager
 - `README.md`
 - `LICENSE`
+
+## Polars Preference
+
+The Polars preference hook enforces Polars over Pandas for dataframe operations:
+
+- **PreToolUse** (`pretooluse-polars-preference.ts`): Shows dialog before writing Pandas code
+- **PostToolUse** (`posttooluse-reminder.ts`): Backup reminder if PreToolUse bypassed
+
+**Exception**: Add at file top to allow Pandas:
+
+```python
+# polars-exception: MLflow requires Pandas DataFrames
+import pandas as pd
+```
+
+**Auto-skip paths**: `mlflow-python`, `legacy/`, `third-party/`
+
+See [ADR](/docs/adr/2026-01-22-polars-preference-hook.md) for details.
 
 ## License
 

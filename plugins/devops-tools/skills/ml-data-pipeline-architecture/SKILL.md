@@ -4,6 +4,10 @@ Patterns for efficient ML data pipelines using Polars, Arrow, and ClickHouse.
 
 **Triggers**: data pipeline, polars vs pandas, arrow format, clickhouse ml, efficient loading, zero-copy, memory optimization
 
+**ADR**: [2026-01-22-polars-preference-hook](/docs/adr/2026-01-22-polars-preference-hook.md) (efficiency preferences framework)
+
+> **Note**: A PreToolUse hook enforces Polars preference. To use Pandas, add `# polars-exception: <reason>` at file top.
+
 ---
 
 ## 1. Decision Tree: Polars vs Pandas
@@ -286,6 +290,8 @@ for batch in pl.scan_parquet("huge_file.parquet").iter_batches():
 ## References
 
 - [Polars User Guide](https://docs.pola.rs/)
+- [Polars Migration Guide](https://docs.pola.rs/user-guide/migration/pandas/)
 - [Apache Arrow Python](https://arrow.apache.org/docs/python/)
 - [ClickHouse Python Client](https://clickhouse.com/docs/integrations/python)
 - [PyTorch Data Loading](https://pytorch.org/tutorials/beginner/data_loading_tutorial.html)
+- [Polars Preference Hook ADR](/docs/adr/2026-01-22-polars-preference-hook.md)
