@@ -1,3 +1,30 @@
+# [9.47.0](https://github.com/terrylica/cc-skills/compare/v9.46.0...v9.47.0) (2026-01-23)
+
+
+### Features
+
+* **itp-hooks:** add GPU optimization guard with parameter-free batch tuning ([4e96550](https://github.com/terrylica/cc-skills/commit/4e9655046256d62d37716156ca72a1009f7723e2))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ITP Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/README.md) - updated (+25/-5)
+
+## Repository Documentation
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+8/-8)
+
 # [9.46.0](https://github.com/terrylica/cc-skills/compare/v9.45.0...v9.46.0) (2026-01-22)
 
 
