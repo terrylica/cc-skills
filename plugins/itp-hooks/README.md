@@ -39,11 +39,12 @@ Then install hooks to your settings:
 
 ### Soft Blocks (PreToolUse - User can override)
 
-| Check             | Trigger                         | Action                              |
-| ----------------- | ------------------------------- | ----------------------------------- |
-| Polars preference | Write/Edit with Pandas in `.py` | Dialog asking to use Polars instead |
-| Fake data guard   | Write with test/fake data       | Block with explanation              |
-| Hoisted deps      | pyproject.toml outside git root | Block non-root pyproject.toml       |
+| Check             | Trigger                              | Action                              |
+| ----------------- | ------------------------------------ | ----------------------------------- |
+| Polars preference | Write/Edit with Pandas in `.py`      | Dialog asking to use Polars instead |
+| Fake data guard   | Write with test/fake data            | Block with explanation              |
+| Hoisted deps      | pyproject.toml outside git root      | Block non-root pyproject.toml       |
+| GPU optimization  | PyTorch training without AMP/compile | Block with optimization guidance    |
 
 ### Non-blocking Reminders (PostToolUse)
 
@@ -100,6 +101,24 @@ This plugin uses **exit code 2** for ASCII art blocking because:
 - Transcript-based skill detection had false positives
 - Reminders work regardless of bypass permissions
 
+## GPU Optimization Guard
+
+The GPU optimization guard hook enforces **mandatory** GPU optimization best practices for PyTorch training scripts:
+
+| Requirement          | Trigger                    | Severity | Why Required                         |
+| -------------------- | -------------------------- | -------- | ------------------------------------ |
+| AMP                  | GPU + backward() + step()  | ERROR    | ~2x speedup, 50% memory reduction    |
+| Batch size auto-tune | Hardcoded batch_size < 64  | ERROR    | Parameter-free finds optimal for GPU |
+| torch.compile        | GPU model without compile  | WARN     | 30-50% speedup on PyTorch 2.0+       |
+| DataLoader tuning    | Missing num_workers/pin    | WARN     | Prevent I/O bottlenecks              |
+| cudnn.benchmark      | CNN without benchmark=True | INFO     | 10-20% speedup for conv-heavy models |
+
+**Philosophy**: Parameter-free optimization over magic numbers. Instead of `batch_size >= 64`, we require automatic batch size finders (Lightning `scale_batch_size`, Accelerate `find_executable_batch_size`).
+
+**Bypass**: Add `# gpu-optimization-bypass: <reason>` comment.
+
+**Context**: Lessons from exp068 disaster - batch_size=32 on RTX 4090 = 61 hours; auto-tuned = 8 hours.
+
 ## Files
 
 - `commands/setup.md` - Setup command for dependency installation
@@ -107,6 +126,7 @@ This plugin uses **exit code 2** for ASCII art blocking because:
 - `hooks/hooks.json` - Hook configuration
 - `hooks/pretooluse-guard.sh` - ASCII art blocking
 - `hooks/pretooluse-polars-preference.ts` - Polars over Pandas dialog
+- `hooks/pretooluse-gpu-optimization-guard.ts` - GPU optimization enforcement
 - `hooks/posttooluse-reminder.ts` - Sync reminders + UV/Polars preference
 - `hooks/code-correctness-guard.sh` - Code correctness detection (silent failures + cross-language syntax)
 - `hooks/ruff.toml` - Ruff rule documentation
