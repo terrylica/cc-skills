@@ -1,8 +1,36 @@
 # Session Resume Context
 
-Last updated: 2026-01-22
+Last updated: 2026-01-24
 
 ## Recent Work
+
+### Code Correctness Philosophy Documentation (2026-01-24)
+
+**Status**: Complete
+
+**What was done**:
+
+- Documented "silent failure only" philosophy for `code-correctness-guard.sh`
+- Explicitly disabled unused import checking (F401) with full justification
+- Updated `ruff.toml` to remove F from select, add to ignore with justification
+- Updated `alpha_forge_filter.py` EXCLUDED_RUFF_RULES with justification comments
+- Added "Code Correctness Philosophy" section to `plugins/itp-hooks/CLAUDE.md`
+- Added "Code Correctness Hook Policy" section to `~/.claude/CLAUDE.md`
+
+**Key files**:
+
+- `plugins/itp-hooks/hooks/ruff.toml` - Ruff config (reference only)
+- `plugins/itp-hooks/hooks/code-correctness-guard.sh` - Main hook (unchanged, already correct)
+- `plugins/ralph/hooks/alpha_forge_filter.py` - EXCLUDED_RUFF_RULES with justification
+- `plugins/itp-hooks/CLAUDE.md` - Philosophy section added
+
+**Justification for NOT checking unused imports**:
+
+1. Development-in-progress (imports before code)
+2. Intentional re-exports (`__init__.py`)
+3. Type-only imports (`TYPE_CHECKING`)
+4. IDE/pre-commit responsibility
+5. Low severity - no runtime bugs
 
 ### UV Reminder Hook TypeScript Migration (2026-01-22)
 
