@@ -146,12 +146,21 @@ VALUE_ALIGNED_PATTERNS: list[str] = [
 ]
 
 # Ruff rules to exclude from scanning (passed to ruff --ignore)
-# For Alpha Forge, we ignore ALL style rules - only real bugs matter
+# Philosophy: Only check for SILENT FAILURE patterns that cause runtime bugs.
+# All style, formatting, and cosmetic rules are excluded.
+#
+# Justification for excluding unused imports (F401):
+# 1. Development-in-progress: imports added before code uses them
+# 2. Intentional re-exports: __init__.py imports for public API
+# 3. Type-only imports: TYPE_CHECKING blocks appear "unused"
+# 4. Cosmetic only: no runtime failures or silent bugs
+# 5. Pre-commit/CI handles: not for interactive sessions
 EXCLUDED_RUFF_RULES: list[str] = [
+    "F",  # All Pyflakes (includes F401 unused imports, F841 unused vars)
+    "F401",  # Unused imports - explicitly listed for clarity
+    "F841",  # Unused variables - explicitly listed for clarity
     "E",  # All pycodestyle errors (style)
     "W",  # All pycodestyle warnings (style)
-    "F401",  # Unused imports
-    "F841",  # Unused variables
     "SIM",  # Simplifications
     "RUF",  # Ruff-specific
     "I",  # Import sorting

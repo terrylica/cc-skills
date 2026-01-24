@@ -1,32 +1,47 @@
-# Comprehensive Python linting for Claude Code hooks
+# Python linting config for Claude Code hooks
 # ADR: 2025-12-11-ruff-posttooluse-linting
 #
-# This config documents the rule set used by posttooluse-reminder.sh
-# for deterministic error handling and idiomatic Python enforcement.
+# IMPORTANT: This config documents rules for REFERENCE ONLY.
+# The actual code-correctness-guard.sh uses explicit --select flags.
+#
+# Philosophy: Only check for SILENT FAILURE patterns that cause runtime bugs.
+# DO NOT check: unused imports, style, formatting, type hints, docstrings.
+#
+# Justification for NOT checking unused imports (F401):
+# 1. Development-in-progress: imports added before code that uses them
+# 2. Intentional re-exports: __init__.py imports for public API
+# 3. Type-only imports: TYPE_CHECKING blocks appear "unused"
+# 4. IDE responsibility: unused imports are cosmetic, not bugs
+# 5. Low severity: no runtime failures, security issues, or silent bugs
+# 6. Pre-commit/CI is better: catch in git hooks, not interactive sessions
 
 [lint]
 select = [
     "BLE",   # Blind except - catches `except Exception:` and `except BaseException:`
     "S110",  # try-except-pass - catches silent exception suppression
+    "S112",  # try-except-continue - catches silent exception suppression in loops
     "E722",  # Bare except - catches `except:` without exception type
-    "F",     # Pyflakes - unused imports, undefined names, shadowed vars
-    "UP",    # Pyupgrade - outdated syntax (Union -> |, old-style classes)
-    "SIM",   # Simplify - unnecessary else, overly complex expressions
-    "B",     # Bugbear - common bugs (mutable default args, getattr with constant)
-    "I",     # Isort - import ordering
-    "RUF",   # Ruff-specific - unused noqa, ambiguous unicode
+    "PLW1510", # subprocess.run without check - silent command failures
 ]
 
 ignore = [
-    "D",       # Docstrings - too noisy for hook feedback
-    "ANN",     # Type annotations - handled by mypy/pyright
-    "PLR0913", # Too many arguments - valid for complex APIs
-    "PLR0915", # Too many statements - valid for analysis scripts
+    # === EXPLICITLY DISABLED - NOT CHECKED ===
+    "F",       # Pyflakes - unused imports (F401), undefined names - TOO NOISY
+    "F401",    # Unused imports - explicitly disabled (see justification above)
+    "F841",    # Unused variables - cosmetic, not a bug
+    "I",       # Isort - import ordering is cosmetic
+    "UP",      # Pyupgrade - syntax style preference
+    "SIM",     # Simplify - code style preference
+    "B",       # Bugbear - some useful but too noisy for hooks
+    "RUF",     # Ruff-specific - too noisy
+    "D",       # Docstrings - not bugs
+    "ANN",     # Type annotations - handled by IDE/mypy
+    "PLR",     # Pylint refactor - complexity is subjective
+    "E",       # Pycodestyle errors - style only (except E722)
+    "W",       # Pycodestyle warnings - style only
 ]
 
 [lint.per-file-ignores]
 # Allow try-except-pass in test setup/teardown
 "**/test_*.py" = ["S110", "B011"]
 "**/*_test.py" = ["S110", "B011"]
-# Allow unused imports in pytest fixtures
-"**/conftest.py" = ["F401"]
