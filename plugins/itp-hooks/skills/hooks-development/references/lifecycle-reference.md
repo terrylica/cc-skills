@@ -69,12 +69,15 @@
 ┌──────────────┐               ┌───────────────────┐  │
 │ SubagentStop │ <──────────── │   Tool Executes   │  │
 └──────────────┘               └───────────────────┘  │
-  │                              │                    │
-  │                              │                    │
-  ∨                              ∨                    │
-┌──────────────┐               ┌───────────────────┐  │
-│     Stop     │ <──────────── │    PostToolUse    │ ─┘
-└──────────────┘               └───────────────────┘
+  │                              │ success    │ fail │
+  │                              ∨            ∨      │
+  ∨                       ┌────────────┐ ┌─────────────────────┐
+┌──────────────┐          │PostToolUse │ │ PostToolUseFailure  │
+│     Stop     │ <─────── └────────────┘ └─────────────────────┘
+└──────────────┘                │                 │
+                                └────────┬────────┘
+                                         │ more tools
+                                         └──────────────────────┘
 ```
 
 **Hook Details:**
@@ -83,20 +86,22 @@
 - **PermissionRequest** — CAN BLOCK. Output `behavior`: `allow|deny`. Skipped if PreToolUse already allowed
 - **Tool Executes** — The actual tool runs (Bash, Edit, Read, Write, MCP tools)
 - **SubagentStop** — CAN BLOCK. Task tool only. Validates subagent completion
-- **PostToolUse** — CAN BLOCK (soft). Tool already ran; `decision:block` required for Claude to see `reason` (visibility, not blocking)
+- **PostToolUse** — CAN BLOCK (soft). Tool **succeeded**; `decision:block` required for Claude visibility
+- **PostToolUseFailure** — CAN BLOCK (soft). Tool **failed**; fires on non-zero exit codes, errors
 
 ### 3. Blocking vs Non-Blocking Hooks
 
 **CAN BLOCK** — These hooks can prevent or modify execution:
 
-| Hook              | Block Type | Mechanism                           | Effect                                                |
-| ----------------- | ---------- | ----------------------------------- | ----------------------------------------------------- |
-| UserPromptSubmit  | Hard       | exit 2 OR `decision:block`          | Erases prompt, shows reason to user                   |
-| PreToolUse        | Hard       | exit 2 OR `permissionDecision:deny` | Prevents execution, reason fed to Claude              |
-| PermissionRequest | Hard       | `behavior:deny`                     | Rejects permission, optional interrupt flag           |
-| PostToolUse       | Soft       | `decision:block` + reason           | Tool already ran; `decision:block` = visibility only  |
-| SubagentStop      | Hard       | `decision:block` + reason           | Forces subagent to continue working                   |
-| Stop              | Hard       | `decision:block` + reason           | Forces Claude to continue (check `stop_hook_active`!) |
+| Hook               | Block Type | Mechanism                           | Effect                                                |
+| ------------------ | ---------- | ----------------------------------- | ----------------------------------------------------- |
+| UserPromptSubmit   | Hard       | exit 2 OR `decision:block`          | Erases prompt, shows reason to user                   |
+| PreToolUse         | Hard       | exit 2 OR `permissionDecision:deny` | Prevents execution, reason fed to Claude              |
+| PermissionRequest  | Hard       | `behavior:deny`                     | Rejects permission, optional interrupt flag           |
+| PostToolUse        | Soft       | `decision:block` + reason           | Tool succeeded; `decision:block` = visibility only    |
+| PostToolUseFailure | Soft       | `decision:block` + reason           | Tool failed; `decision:block` = visibility only       |
+| SubagentStop       | Hard       | `decision:block` + reason           | Forces subagent to continue working                   |
+| Stop               | Hard       | `decision:block` + reason           | Forces Claude to continue (check `stop_hook_active`!) |
 
 **CANNOT BLOCK** — These hooks are informational only:
 
@@ -155,14 +160,15 @@ Every hook can output these fields:
 
 ### Blocking Mechanisms
 
-| Hook                  | Hard Block                          | Soft Block                | Effect                                               |
-| --------------------- | ----------------------------------- | ------------------------- | ---------------------------------------------------- |
-| **UserPromptSubmit**  | Exit 2 OR `decision:block`          | —                         | Erases prompt, shows reason to user only             |
-| **PreToolUse**        | Exit 2 OR `permissionDecision:deny` | `permissionDecision:ask`  | Prevents tool execution, reason fed to Claude        |
-| **PermissionRequest** | `behavior:deny`                     | —                         | Rejects permission, optional interrupt flag          |
-| **PostToolUse**       | —                                   | `decision:block` + reason | Tool already ran; `decision:block` = visibility only |
-| **SubagentStop**      | `decision:block` + reason           | —                         | Forces subagent to continue working                  |
-| **Stop**              | `decision:block` + reason           | —                         | Forces Claude to continue (check stop_hook_active!)  |
+| Hook                   | Hard Block                          | Soft Block                | Effect                                              |
+| ---------------------- | ----------------------------------- | ------------------------- | --------------------------------------------------- |
+| **UserPromptSubmit**   | Exit 2 OR `decision:block`          | —                         | Erases prompt, shows reason to user only            |
+| **PreToolUse**         | Exit 2 OR `permissionDecision:deny` | `permissionDecision:ask`  | Prevents tool execution, reason fed to Claude       |
+| **PermissionRequest**  | `behavior:deny`                     | —                         | Rejects permission, optional interrupt flag         |
+| **PostToolUse**        | —                                   | `decision:block` + reason | Tool succeeded; `decision:block` = visibility only  |
+| **PostToolUseFailure** | —                                   | `decision:block` + reason | Tool failed; `decision:block` = visibility only     |
+| **SubagentStop**       | `decision:block` + reason           | —                         | Forces subagent to continue working                 |
+| **Stop**               | `decision:block` + reason           | —                         | Forces Claude to continue (check stop_hook_active!) |
 
 ### Universal Control (All Hooks)
 
@@ -175,9 +181,10 @@ Every hook can output these fields:
 
 **1. Tool Execution Loop**
 
-- PreToolUse → PermissionRequest → Tool → PostToolUse repeats for EACH tool call
+- PreToolUse → PermissionRequest → Tool → PostToolUse/PostToolUseFailure repeats for EACH tool call
 - Claude may call multiple tools in one response
 - PreToolUse can skip PermissionRequest with `permissionDecision:allow`
+- PostToolUse fires on **success**; PostToolUseFailure fires on **failure**
 
 **2. Prompt Loop**
 
@@ -210,59 +217,84 @@ Every hook can output these fields:
 
 ### Overview
 
-| Event                 | When It Fires                                       | Blocks? | Matchers                                                                 |
-| --------------------- | --------------------------------------------------- | ------- | ------------------------------------------------------------------------ |
-| **SessionStart**      | Session begins (new, `--resume`, `/clear`, compact) | No      | `startup`, `resume`, `clear`, `compact`                                  |
-| **UserPromptSubmit**  | User presses Enter, BEFORE Claude processes         | **Yes** | None (all prompts)                                                       |
-| **PreToolUse**        | After Claude creates tool params, BEFORE execution  | **Yes** | Tool names: `Task`, `Bash`, `Read`, `Write`, `Edit`, `mcp__*`            |
-| **PermissionRequest** | Permission dialog about to show                     | **Yes** | Same as PreToolUse                                                       |
-| **PostToolUse**       | After tool completes **successfully** (NOT errors!) | **Yes** | Same as PreToolUse                                                       |
-| **Notification**      | System notification sent                            | No      | `permission_prompt`, `idle_prompt`, `auth_success`, `elicitation_dialog` |
-| **SubagentStop**      | Task sub-agent finishes                             | **Yes** | None (global)                                                            |
-| **Stop**              | Main agent finishes (not on interrupt)              | **Yes** | None (global)                                                            |
-| **PreCompact**        | Before context summarization                        | No      | `manual`, `auto`                                                         |
-| **SessionEnd**        | Session terminates                                  | No      | None (global)                                                            |
+| Event                  | When It Fires                                       | Blocks? | Matchers                                                                 |
+| ---------------------- | --------------------------------------------------- | ------- | ------------------------------------------------------------------------ |
+| **SessionStart**       | Session begins (new, `--resume`, `/clear`, compact) | No      | `startup`, `resume`, `clear`, `compact`                                  |
+| **UserPromptSubmit**   | User presses Enter, BEFORE Claude processes         | **Yes** | None (all prompts)                                                       |
+| **PreToolUse**         | After Claude creates tool params, BEFORE execution  | **Yes** | Tool names: `Task`, `Bash`, `Read`, `Write`, `Edit`, `mcp__*`            |
+| **PermissionRequest**  | Permission dialog about to show                     | **Yes** | Same as PreToolUse                                                       |
+| **PostToolUse**        | After tool completes **successfully**               | **Yes** | Same as PreToolUse                                                       |
+| **PostToolUseFailure** | After tool **fails** (e.g., Bash exit ≠ 0)          | **Yes** | Same as PreToolUse                                                       |
+| **Notification**       | System notification sent                            | No      | `permission_prompt`, `idle_prompt`, `auth_success`, `elicitation_dialog` |
+| **SubagentStop**       | Task sub-agent finishes                             | **Yes** | None (global)                                                            |
+| **Stop**               | Main agent finishes (not on interrupt)              | **Yes** | None (global)                                                            |
+| **PreCompact**         | Before context summarization                        | No      | `manual`, `auto`                                                         |
+| **SessionEnd**         | Session terminates                                  | No      | None (global)                                                            |
+
+> **Note**: `SubagentStart` and `Setup` appear in official docs but may not be in the JSON schema yet. See "Hooks in Development" section below.
 
 ### Input & Output Details
 
-| Event                 | Key Inputs                                             | Output Capabilities                                                                              |
-| --------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| **SessionStart**      | `session_id`, `source`, `transcript_path`              | `additionalContext`; `CLAUDE_ENV_FILE` for env vars                                              |
-| **UserPromptSubmit**  | `prompt`, `cwd`, `session_id`                          | `{"decision": "block"}` to reject; `{"additionalContext": "..."}` to inject; Exit 2 = hard block |
-| **PreToolUse**        | `tool_name`, `tool_input`, `tool_use_id`               | `permissionDecision`: `allow`/`deny`/`ask`; `updatedInput` to modify params                      |
-| **PermissionRequest** | `tool_name`, `tool_input`, `tool_use_id`               | `decision.behavior`: `allow`/`deny`; `updatedInput`; `message`                                   |
-| **PostToolUse**       | `tool_name`, `tool_input`, `tool_response`             | `{"decision": "block", "reason": "..."}` required for Claude visibility                          |
-| **Notification**      | `message`, `notification_type`                         | stdout in verbose mode (Ctrl+O)                                                                  |
-| **SubagentStop**      | `transcript_path`, `stop_hook_active`                  | `{"decision": "block", "reason": "..."}` forces continuation                                     |
-| **Stop**              | `transcript_path`, `stop_hook_active`                  | `{"decision": "block"}` blocks stopping; `additionalContext` for info; `{}` allows stop          |
-| **PreCompact**        | `trigger`, `custom_instructions`                       | stdout in verbose mode                                                                           |
-| **SessionEnd**        | `reason`: `clear`/`logout`/`prompt_input_exit`/`other` | Debug log only                                                                                   |
+| Event                  | Key Inputs                                             | Output Capabilities                                                                              |
+| ---------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| **SessionStart**       | `session_id`, `source`, `transcript_path`              | `additionalContext`; `CLAUDE_ENV_FILE` for env vars                                              |
+| **UserPromptSubmit**   | `prompt`, `cwd`, `session_id`                          | `{"decision": "block"}` to reject; `{"additionalContext": "..."}` to inject; Exit 2 = hard block |
+| **PreToolUse**         | `tool_name`, `tool_input`, `tool_use_id`               | `permissionDecision`: `allow`/`deny`/`ask`; `updatedInput` to modify params                      |
+| **PermissionRequest**  | `tool_name`, `tool_input`, `tool_use_id`               | `decision.behavior`: `allow`/`deny`; `updatedInput`; `message`                                   |
+| **PostToolUse**        | `tool_name`, `tool_input`, `tool_response`             | `{"decision": "block", "reason": "..."}` required for Claude visibility                          |
+| **PostToolUseFailure** | `tool_name`, `tool_input`, `tool_response` (error)     | Same as PostToolUse; fires when tool fails (e.g., Bash exit ≠ 0)                                 |
+| **Notification**       | `message`, `notification_type`                         | stdout in verbose mode (Ctrl+O)                                                                  |
+| **SubagentStop**       | `transcript_path`, `stop_hook_active`                  | `{"decision": "block", "reason": "..."}` forces continuation                                     |
+| **Stop**               | `transcript_path`, `stop_hook_active`                  | `{"decision": "block"}` blocks stopping; `additionalContext` for info; `{}` allows stop          |
+| **PreCompact**         | `trigger`, `custom_instructions`                       | stdout in verbose mode                                                                           |
+| **SessionEnd**         | `reason`: `clear`/`logout`/`prompt_input_exit`/`other` | Debug log only                                                                                   |
 
-### CRITICAL: Non-Existent Hook Types (Lesson Learned 2026-01-12)
+### Hook Types: Validated vs Documented (Updated 2026-01-24)
 
-**There is NO `PostToolUseError` hook in Claude Code.** This is a common misconception.
+**Important**: Hook type names are case-sensitive and must match exactly.
 
-| Misconception                              | Reality                   | Consequence                                                                 |
-| ------------------------------------------ | ------------------------- | --------------------------------------------------------------------------- |
-| `PostToolUseError` exists for failed tools | **Does NOT exist**        | Adding to settings.json causes: `"PostToolUseError: Invalid key in record"` |
-| PostToolUse fires for all tool completions | **Only fires on SUCCESS** | Failed Bash commands (exit ≠ 0) do NOT trigger PostToolUse                  |
-| GitHub issues = implemented features       | **Issues are REQUESTS**   | Always verify against official docs before implementing                     |
+#### Confirmed Hook Types (in JSON Schema)
 
-**Valid hook types (exhaustive list):**
+These hooks are validated in the [Claude Code settings JSON schema](https://json.schemastore.org/claude-code-settings.json):
 
-- `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `Notification`, `SubagentStop`, `Stop`, `PreCompact`, `SessionEnd`
+- `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PostToolUseFailure`, `Notification`, `SubagentStop`, `Stop`, `PreCompact`, `SessionEnd`
 
-**What this means:**
+#### PostToolUseFailure: Error Handling Hook (Empirically Verified 2026-01-24)
 
-- You **cannot** hook into failed Bash commands
-- You **cannot** remind users about errors via PostToolUse (it won't fire)
-- The UV reminder for failed `pip` commands is **not possible** with current hooks
+**`PostToolUseFailure` EXISTS and WORKS.** This hook fires when tools fail (e.g., Bash command exits with non-zero status).
 
-**Workarounds for error handling:**
+| Hook                 | When It Fires                   | Example Trigger         |
+| -------------------- | ------------------------------- | ----------------------- |
+| `PostToolUse`        | Tool completes **successfully** | `exit 0`                |
+| `PostToolUseFailure` | Tool **fails**                  | `exit 1`, command error |
 
-1. Use `PreToolUse` to block dangerous commands BEFORE they run
-2. Use `Stop` hook to validate overall session state
-3. Accept the limitation until Claude Code adds error hooks
+**Use cases for PostToolUseFailure:**
+
+- Remind users to use `uv` when `pip install` fails
+- Log failed commands for debugging
+- Suggest fixes when specific tools fail
+
+#### Non-Existent Hook Types
+
+| Invalid Name        | Correct Name         | Notes                                      |
+| ------------------- | -------------------- | ------------------------------------------ |
+| `PostToolUseError`  | `PostToolUseFailure` | Common misconception; use the correct name |
+| `PreToolUseFailure` | N/A                  | Does not exist; use `PreToolUse` to block  |
+
+#### Hooks in Development (Documented but Not in Schema)
+
+These hooks appear in [official documentation](https://code.claude.com/docs/en/hooks) but are not yet in the JSON schema. They may require specific conditions or newer Claude Code versions:
+
+| Hook            | Trigger                                  | Status                                                                           |
+| --------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
+| `SubagentStart` | When spawning a subagent via Task tool   | [Feature request #14859](https://github.com/anthropics/claude-code/issues/14859) |
+| `Setup`         | `--init`, `--init-only`, `--maintenance` | Documented in official docs; check `claude --version` for availability           |
+
+**References:**
+
+- [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) — Official documentation
+- [JSON Schema](https://json.schemastore.org/claude-code-settings.json) — Authoritative validation
+- [GitHub Issue #14859](https://github.com/anthropics/claude-code/issues/14859) — SubagentStart feature request
 
 ```{=latex}
 \end{landscape}
@@ -320,91 +352,98 @@ For a Bash tool call:
 
 ## Use Cases by Hook Event
 
-| Hook                  | Use Case              | Description                                                  |
-| --------------------- | --------------------- | ------------------------------------------------------------ |
-| **SessionStart**      | Context loading       | Load git status, branch info, recent commits into context    |
-|                       | Task injection        | Inject TODO lists, sprint priorities, GitHub issues          |
-|                       | Setup scripts         | Install dependencies or run setup on session begin           |
-|                       | Environment vars      | Set variables via `$CLAUDE_ENV_FILE` for persistence         |
-|                       | Dynamic config        | Load project-specific CLAUDE.md or context files             |
-|                       | Telemetry             | Initialize logging or telemetry for the session              |
-|                       | Multi-account tokens  | Validate GH_TOKEN matches expected account for directory     |
-|                       | Session tracking      | Track session start for duration/correlation reporting       |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **UserPromptSubmit**  | Audit logging         | Log timestamps, session IDs, prompt content for compliance   |
-|                       | Security filtering    | Detect and block sensitive patterns (API keys, passwords)    |
-|                       | Context injection     | Append git branch, recent changes, sprint goals to prompts   |
-|                       | Policy validation     | Validate prompts against team policies or coding standards   |
-|                       | Keyword blocking      | Block forbidden keywords or dangerous instructions           |
-|                       | Ralph Wiggum          | Inject reminders about testing or documentation              |
-|                       | Prompt capture        | Cache prompt text + timestamp for Stop hook session summary  |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **PreToolUse**        | Destructive blocking  | Block `rm -rf`, `git push --force`, `DROP TABLE`             |
-|                       | File protection       | Prevent access to `.env`, `.git/`, `credentials.json`        |
-|                       | Parameter validation  | Validate paths, check file existence before execution        |
-|                       | Sandboxing            | Add `--dry-run` flags to dangerous commands                  |
-|                       | Input modification    | Fix paths, inject linter configs, add safety flags           |
-|                       | Auto-approve          | Reduce permission prompts for safe operations                |
-|                       | Lock file protection  | Block writes to `package-lock.json`, `uv.lock`               |
-|                       | Multi-account git     | Validate SSH auth matches expected GitHub account            |
-|                       | HTTPS URL blocking    | Block git push with HTTPS (require SSH for multi-account)    |
-|                       | ASCII art policy      | Block manual diagrams; require graph-easy source block       |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **PermissionRequest** | Auto-approve safe     | Auto-approve `npm test`, `pytest`, `cargo build`             |
-|                       | Auto-deny dangerous   | Deny dangerous operations without user prompt                |
-|                       | Command modification  | Inject flags, change parameters before approval              |
-|                       | Team policies         | Implement team-specific permission policies                  |
-|                       | Fatigue reduction     | Auto-approve known-safe tool patterns                        |
-|                       | Audit trails          | Log all permission decisions                                 |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **PostToolUse**       | Auto-format           | Run `prettier`, `black`, `gofmt` after edits                 |
-|                       | Lint checking         | Run `ruff check`, `eslint --fix`, `cargo clippy`             |
-|                       | File validation       | Validate write success and file integrity                    |
-|                       | Transcript conversion | Convert JSONL transcripts to readable JSON                   |
-|                       | Task reminders        | Remind about related tasks when files modified               |
-|                       | CI triggers           | Trigger CI checks or pre-commit hooks                        |
-|                       | Output logging        | Log all tool outputs for debugging/compliance                |
-|                       | Markdown pipeline     | markdownlint (MD058 table blanks) + prettier for .md files   |
-|                       | Dotfiles sync         | Detect chezmoi-tracked files; remind to sync                 |
-|                       | ADR-Spec sync         | Remind to update Design Spec when ADR modified (and v.v.)    |
-|                       | Graph-easy reminder   | Prompt to use skill instead of CLI for reproducibility       |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **Notification**      | Desktop alerts        | `osascript` (macOS) or `notify-send` (Linux)                 |
-|                       | Chat webhooks         | Slack/Discord/Teams integration for remote alerts            |
-|                       | Sound alerts          | Custom sounds when Claude needs attention                    |
-|                       | Email                 | Email notifications for long-running tasks                   |
-|                       | Mobile push           | Pushover or similar for mobile notifications                 |
-|                       | Analytics             | Log notification events for analytics                        |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **SubagentStop**      | Task validation       | Validate sub-agents completed full assigned task             |
-|                       | TTS announcements     | Announce completion via text-to-speech                       |
-|                       | Performance logging   | Log task results and duration                                |
-|                       | Force continuation    | Continue if output incomplete or fails validation            |
-|                       | Task chaining         | Chain additional sub-agent tasks based on results            |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **Stop**              | Premature prevention  | Block if tests failing or task incomplete                    |
-|                       | Test suites           | Run `npm test`, `pytest`, `cargo test` on every stop         |
-|                       | AI summaries          | Generate completion summaries with TTS playback              |
-|                       | Ralph Wiggum          | Force Claude to verify task completion                       |
-|                       | Validation gates      | Ensure code compiles, lints pass, tests succeed              |
-|                       | Auto-commits          | Create git commits or PR drafts when work completes          |
-|                       | Team notifications    | Send completion notifications to channels                    |
-|                       | Link validation       | Lychee check on .md files; use `additionalContext` to inform |
-|                       | Session summary       | Generate JSON summary: git status, duration, workflows       |
-|                       | Background validation | Full workspace link scan (async, non-blocking)               |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **PreCompact**        | Transcript backups    | Create backups before context compression                    |
-|                       | History preservation  | Preserve conversation to external storage                    |
-|                       | Event logging         | Log compaction with timestamp and trigger type               |
-|                       | Context extraction    | Save important context before summarization                  |
-|                       | User notification     | Notify user that context is about to be compacted            |
-| · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
-| **SessionEnd**        | Temp cleanup          | Cleanup temporary files, caches, artifacts                   |
-|                       | Session stats         | Log duration, tool calls, tokens used                        |
-|                       | State saving          | Save session state for potential resume                      |
-|                       | Analytics             | Send session summary to analytics service                    |
-|                       | Transcript archive    | Archive transcripts to long-term storage                     |
-|                       | Environment reset     | Reset env vars or undo session-specific changes              |
+| Hook                    | Use Case              | Description                                                  |
+| ----------------------- | --------------------- | ------------------------------------------------------------ |
+| **SessionStart**        | Context loading       | Load git status, branch info, recent commits into context    |
+|                         | Task injection        | Inject TODO lists, sprint priorities, GitHub issues          |
+|                         | Setup scripts         | Install dependencies or run setup on session begin           |
+|                         | Environment vars      | Set variables via `$CLAUDE_ENV_FILE` for persistence         |
+|                         | Dynamic config        | Load project-specific CLAUDE.md or context files             |
+|                         | Telemetry             | Initialize logging or telemetry for the session              |
+|                         | Multi-account tokens  | Validate GH_TOKEN matches expected account for directory     |
+|                         | Session tracking      | Track session start for duration/correlation reporting       |
+| · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **UserPromptSubmit**    | Audit logging         | Log timestamps, session IDs, prompt content for compliance   |
+|                         | Security filtering    | Detect and block sensitive patterns (API keys, passwords)    |
+|                         | Context injection     | Append git branch, recent changes, sprint goals to prompts   |
+|                         | Policy validation     | Validate prompts against team policies or coding standards   |
+|                         | Keyword blocking      | Block forbidden keywords or dangerous instructions           |
+|                         | Ralph Wiggum          | Inject reminders about testing or documentation              |
+|                         | Prompt capture        | Cache prompt text + timestamp for Stop hook session summary  |
+| · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **PreToolUse**          | Destructive blocking  | Block `rm -rf`, `git push --force`, `DROP TABLE`             |
+|                         | File protection       | Prevent access to `.env`, `.git/`, `credentials.json`        |
+|                         | Parameter validation  | Validate paths, check file existence before execution        |
+|                         | Sandboxing            | Add `--dry-run` flags to dangerous commands                  |
+|                         | Input modification    | Fix paths, inject linter configs, add safety flags           |
+|                         | Auto-approve          | Reduce permission prompts for safe operations                |
+|                         | Lock file protection  | Block writes to `package-lock.json`, `uv.lock`               |
+|                         | Multi-account git     | Validate SSH auth matches expected GitHub account            |
+|                         | HTTPS URL blocking    | Block git push with HTTPS (require SSH for multi-account)    |
+|                         | ASCII art policy      | Block manual diagrams; require graph-easy source block       |
+| · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **PermissionRequest**   | Auto-approve safe     | Auto-approve `npm test`, `pytest`, `cargo build`             |
+|                         | Auto-deny dangerous   | Deny dangerous operations without user prompt                |
+|                         | Command modification  | Inject flags, change parameters before approval              |
+|                         | Team policies         | Implement team-specific permission policies                  |
+|                         | Fatigue reduction     | Auto-approve known-safe tool patterns                        |
+|                         | Audit trails          | Log all permission decisions                                 |
+| · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **PostToolUse**         | Auto-format           | Run `prettier`, `black`, `gofmt` after edits                 |
+|                         | Lint checking         | Run `ruff check`, `eslint --fix`, `cargo clippy`             |
+|                         | File validation       | Validate write success and file integrity                    |
+|                         | Transcript conversion | Convert JSONL transcripts to readable JSON                   |
+|                         | Task reminders        | Remind about related tasks when files modified               |
+|                         | CI triggers           | Trigger CI checks or pre-commit hooks                        |
+|                         | Output logging        | Log all tool outputs for debugging/compliance                |
+|                         | Markdown pipeline     | markdownlint (MD058 table blanks) + prettier for .md files   |
+|                         | Dotfiles sync         | Detect chezmoi-tracked files; remind to sync                 |
+|                         | ADR-Spec sync         | Remind to update Design Spec when ADR modified (and v.v.)    |
+|                         | Graph-easy reminder   | Prompt to use skill instead of CLI for reproducibility       |
+| · · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **PostToolUseFailure**  | UV reminder           | Remind to use `uv` when `pip install` fails                  |
+|                         | Error logging         | Log failed commands with context for debugging               |
+|                         | Retry suggestions     | Suggest fixes when specific commands fail                    |
+|                         | Fallback triggers     | Trigger alternative approaches on tool failure               |
+|                         | Dependency hints      | Suggest missing dependencies when imports fail               |
+|                         | Permission fixes      | Suggest `sudo` or permission changes on access denied        |
+| · · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **Notification**        | Desktop alerts        | `osascript` (macOS) or `notify-send` (Linux)                 |
+|                         | Chat webhooks         | Slack/Discord/Teams integration for remote alerts            |
+|                         | Sound alerts          | Custom sounds when Claude needs attention                    |
+|                         | Email                 | Email notifications for long-running tasks                   |
+|                         | Mobile push           | Pushover or similar for mobile notifications                 |
+|                         | Analytics             | Log notification events for analytics                        |
+| · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **SubagentStop**        | Task validation       | Validate sub-agents completed full assigned task             |
+|                         | TTS announcements     | Announce completion via text-to-speech                       |
+|                         | Performance logging   | Log task results and duration                                |
+|                         | Force continuation    | Continue if output incomplete or fails validation            |
+|                         | Task chaining         | Chain additional sub-agent tasks based on results            |
+| · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **Stop**                | Premature prevention  | Block if tests failing or task incomplete                    |
+|                         | Test suites           | Run `npm test`, `pytest`, `cargo test` on every stop         |
+|                         | AI summaries          | Generate completion summaries with TTS playback              |
+|                         | Ralph Wiggum          | Force Claude to verify task completion                       |
+|                         | Validation gates      | Ensure code compiles, lints pass, tests succeed              |
+|                         | Auto-commits          | Create git commits or PR drafts when work completes          |
+|                         | Team notifications    | Send completion notifications to channels                    |
+|                         | Link validation       | Lychee check on .md files; use `additionalContext` to inform |
+|                         | Session summary       | Generate JSON summary: git status, duration, workflows       |
+|                         | Background validation | Full workspace link scan (async, non-blocking)               |
+| · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **PreCompact**          | Transcript backups    | Create backups before context compression                    |
+|                         | History preservation  | Preserve conversation to external storage                    |
+|                         | Event logging         | Log compaction with timestamp and trigger type               |
+|                         | Context extraction    | Save important context before summarization                  |
+|                         | User notification     | Notify user that context is about to be compacted            |
+| · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
+| **SessionEnd**          | Temp cleanup          | Cleanup temporary files, caches, artifacts                   |
+|                         | Session stats         | Log duration, tool calls, tokens used                        |
+|                         | State saving          | Save session state for potential resume                      |
+|                         | Analytics             | Send session summary to analytics service                    |
+|                         | Transcript archive    | Archive transcripts to long-term storage                     |
+|                         | Environment reset     | Reset env vars or undo session-specific changes              |
 
 ```{=latex}
 \newpage
