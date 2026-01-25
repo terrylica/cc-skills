@@ -1,3 +1,41 @@
+## [9.47.1](https://github.com/terrylica/cc-skills/compare/v9.47.0...v9.47.1) (2026-01-25)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+189/-150)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+2)
+
+### General Documentation
+
+- [Session Resume Context](https://github.com/terrylica/cc-skills/blob/main/docs/RESUME.md) - updated (+29/-1)
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+42/-8)
+
 # [9.47.0](https://github.com/terrylica/cc-skills/compare/v9.46.0...v9.47.0) (2026-01-23)
 
 
