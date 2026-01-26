@@ -1,3 +1,29 @@
+# [9.48.0](https://github.com/terrylica/cc-skills/compare/v9.47.1...v9.48.0) (2026-01-26)
+
+
+### Features
+
+* **mise-configuration:** add hub-spoke architecture pattern ([4ab4446](https://github.com/terrylica/cc-skills/commit/4ab4446a4a9ebae1f0d545d5a1e6d258bc5d334b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [mise-configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/SKILL.md) - updated (+123/-1)
+
+</details>
+
 ## [9.47.1](https://github.com/terrylica/cc-skills/compare/v9.47.0...v9.47.1) (2026-01-25)
 
 
