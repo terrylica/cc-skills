@@ -1,3 +1,115 @@
+## [9.48.2](https://github.com/terrylica/cc-skills/compare/v9.48.1...v9.48.2) (2026-01-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>alpha-forge-worktree</strong> (1 change)</summary>
+
+- [worktree-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools</strong> (1 change)</summary>
+
+- [asciinema-cast-format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-cast-format/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (6 changes)</summary>
+
+- [doppler-workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-workflows/SKILL.md) - updated (+1/-1)
+- [dual-channel-watchexec-notifications](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/SKILL.md) - updated (+1/-1)
+- [python-logging-best-practices](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/SKILL.md) - updated (+1/-1)
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+53/-23)
+- [session-recovery](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-recovery/SKILL.md) - updated (+1/-1)
+- [telegram-bot-management](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/telegram-bot-management/SKILL.md) - updated (+5/-2)
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (5 changes)</summary>
+
+- [ascii-diagram-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/SKILL.md) - updated (+1/-1)
+- [glossary-management](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/glossary-management/SKILL.md) - updated (+1/-1)
+- [latex-build](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/SKILL.md) - updated (+11/-5)
+- [latex-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/SKILL.md) - updated (+12/-6)
+- [latex-tables](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/SKILL.md) - updated (+9/-5)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 change)</summary>
+
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/skills/iterm2-layout/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>link-tools</strong> (1 change)</summary>
+
+- [link-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validator/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>mql5</strong> (4 changes)</summary>
+
+- [article-extractor](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/SKILL.md) - updated (+1/-1)
+- [log-reader](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/log-reader/SKILL.md) - updated (+1/-1)
+- [mql5-indicator-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/SKILL.md) - updated (+1/-1)
+- [python-workspace](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>notion-api</strong> (1 change)</summary>
+
+- [notion-sdk](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [plugin-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/plugin-validator/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (2 changes)</summary>
+
+- [code-clone-assistant](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/code-clone-assistant/SKILL.md) - updated (+13/-13)
+- [schema-e2e-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/schema-e2e-validation/SKILL.md) - updated (+1/-5)
+
+</details>
+
+<details>
+<summary><strong>ralph</strong> (2 changes)</summary>
+
+- [constraint-discovery](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/skills/constraint-discovery/SKILL.md) - updated (+2/-1)
+- [session-guidance](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/skills/session-guidance/SKILL.md) - updated (+21/-5)
+
+</details>
+
 ## [9.48.1](https://github.com/terrylica/cc-skills/compare/v9.48.0...v9.48.1) (2026-01-26)
 
 
