@@ -1,6 +1,6 @@
 ---
 name: python-logging-best-practices
-description: Unified Python logging patterns with loguru, platformdirs, RotatingFileHandler. TRIGGERS - loguru, platformdirs, structured logging, JSONL logs, log rotation, XDG directories, python logging setup, machine readable logs, ndjson.
+description: Python logging with loguru and platformdirs. TRIGGERS - loguru, structured logging, JSONL logs, log rotation, XDG directories.
 allowed-tools: Read, Bash, Grep, Edit, Write
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: asciinema-cast-format
-description: Reference for asciinema v3 NDJSON format. TRIGGERS - cast format, asciicast spec, event codes, cast header, cast structure, parse cast file. Use when understanding or parsing .cast files.
+description: Asciinema v3 .cast file format reference. TRIGGERS - cast format, asciicast spec, event codes, parse cast file.
 allowed-tools: Read, Bash
 ---
 

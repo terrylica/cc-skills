@@ -1,6 +1,6 @@
 ---
 name: worktree-manager
-description: Create research-repo git worktrees with automatic branch naming from descriptions. Use when user says create worktree, new worktree, research-repo worktree, AF worktree, or describes a feature to work on in research-repo.
+description: Create research-repo git worktrees with auto branch naming. TRIGGERS - create worktree, new worktree, research-repo worktree.
 ---
 
 # research-repo Worktree Manager

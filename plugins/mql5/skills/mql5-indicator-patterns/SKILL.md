@@ -1,6 +1,6 @@
 ---
 name: mql5-indicator-patterns
-description: Develop custom MQL5 indicators with proper patterns. Use when creating indicators, debugging OnCalculate(), working with buffers, or implementing multi-timeframe indicators in MetaTrader 5.
+description: MQL5 indicator development patterns. TRIGGERS - MQL5 indicator, OnCalculate, indicator buffers, MetaTrader 5.
 allowed-tools: Read, Grep, Edit, Write
 ---
 

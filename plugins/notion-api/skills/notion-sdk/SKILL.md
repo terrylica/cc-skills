@@ -1,6 +1,6 @@
 ---
 name: notion-sdk
-description: Control Notion via Python SDK. TRIGGERS - Notion API, create page, query database, add blocks, automate Notion. PREFLIGHT - requires token from notion.so/my-integrations.
+description: Control Notion via Python SDK. TRIGGERS - Notion API, create page, query database, add blocks.
 allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 ---
 
