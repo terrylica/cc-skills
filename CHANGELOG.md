@@ -1,3 +1,112 @@
+## [9.48.1](https://github.com/terrylica/cc-skills/compare/v9.48.0...v9.48.1) (2026-01-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>asciinema-tools</strong> (5 changes)</summary>
+
+- [asciinema-analyzer](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-analyzer/SKILL.md) - updated (+1/-1)
+- [asciinema-converter](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/SKILL.md) - updated (+1/-1)
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-player/SKILL.md) - updated (+1/-1)
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-recorder/SKILL.md) - updated (+1/-1)
+- [asciinema-streaming-backup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (4 changes)</summary>
+
+- [clickhouse-cloud-management](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/clickhouse-cloud-management/SKILL.md) - updated (+1/-1)
+- [clickhouse-pydantic-config](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/clickhouse-pydantic-config/SKILL.md) - updated (+1/-6)
+- [doppler-secret-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-secret-validation/SKILL.md) - updated (+1/-1)
+- [mlflow-python](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/mlflow-python/SKILL.md) - updated (+1/-5)
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (3 changes)</summary>
+
+- [documentation-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/documentation-standards/SKILL.md) - updated (+1/-1)
+- [pandoc-pdf-generation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/SKILL.md) - updated (+1/-1)
+- [terminal-print](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/terminal-print/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 change)</summary>
+
+- [chezmoi-workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [pr-gfm-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/pr-gfm-validator/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (7 changes)</summary>
+
+- [adr-code-traceability](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/adr-code-traceability/SKILL.md) - updated (+1/-1)
+- [adr-graph-easy-architect](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/adr-graph-easy-architect/SKILL.md) - updated (+10/-10)
+- [code-hardcode-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/code-hardcode-audit/SKILL.md) - updated (+1/-1)
+- [graph-easy](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/graph-easy/SKILL.md) - updated (+1/-1)
+- [impl-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/impl-standards/SKILL.md) - updated (+1/-1)
+- [implement-plan-preflight](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/implement-plan-preflight/SKILL.md) - updated (+1/-1)
+- [pypi-doppler](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/pypi-doppler/SKILL.md) - updated (+23/-14)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 change)</summary>
+
+- [hooks-development](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 change)</summary>
+
+- [slash-command-factory](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/slash-command-factory/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (3 changes)</summary>
+
+- [clickhouse-architect](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/SKILL.md) - updated (+1/-9)
+- [multi-agent-e2e-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-e2e-validation/SKILL.md) - updated (+1/-1)
+- [multi-agent-performance-profiling](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-performance-profiling/SKILL.md) - updated (+47/-1)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (2 changes)</summary>
+
+- [adaptive-wfo-epoch](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/SKILL.md) - updated (+1/-6)
+- [rangebar-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/SKILL.md) - updated (+1/-6)
+
+</details>
+
 # [9.48.0](https://github.com/terrylica/cc-skills/compare/v9.47.1...v9.48.0) (2026-01-26)
 
 
