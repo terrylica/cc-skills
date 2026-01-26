@@ -1,6 +1,6 @@
 ---
 name: telegram-bot-management
-description: Telegram bot production management, monitoring, and troubleshooting. Use when user mentions telegram bot, claude-orchestrator, bot status, bot restart, or bot monitoring.
+description: Telegram bot management and monitoring. TRIGGERS - telegram bot, claude-orchestrator, bot status, bot restart.
 ---
 
 # Telegram Bot Management
@@ -31,6 +31,7 @@ bot status
 ```
 
 Shows:
+
 - launchd supervision status
 - watchexec process (PID, uptime, memory)
 - Bot process (PID, uptime, memory)
@@ -46,6 +47,7 @@ bot logs
 ```
 
 Tails all logs:
+
 - Launchd logs (supervision layer)
 - Bot logs (application layer)
 
@@ -67,10 +69,11 @@ bot-service.sh stop
 bot stop
 ```
 
-______________________________________________________________________
+---
 
 ## Reference Documentation
 
 For detailed information, see:
+
 - [Operational Commands](./references/operational-commands.md) - Status, restart, logs, monitoring commands
 - [Troubleshooting](./references/troubleshooting.md) - Common issues and diagnostic steps

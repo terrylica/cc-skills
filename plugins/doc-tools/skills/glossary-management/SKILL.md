@@ -1,6 +1,6 @@
 ---
 name: glossary-management
-description: Manage global terminology glossary with Vale integration. Use when syncing terms, validating glossary, checking duplicates, or adding new terms to ~/.claude/docs/GLOSSARY.md.
+description: Manage terminology glossary with Vale. TRIGGERS - sync terms, glossary validation, add terms, Vale vocabulary.
 ---
 
 # Glossary Management

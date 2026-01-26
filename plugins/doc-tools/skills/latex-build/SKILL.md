@@ -1,6 +1,6 @@
 ---
 name: latex-build
-description: Builds LaTeX documents using latexmk with live preview and dependency tracking. Use when setting up builds, live preview, or troubleshooting compilation.
+description: LaTeX builds with latexmk and live preview. TRIGGERS - latexmk, LaTeX build, live preview, compilation.
 allowed-tools: Read, Edit, Bash
 ---
 
@@ -9,6 +9,7 @@ allowed-tools: Read, Edit, Bash
 ## Quick Reference
 
 **When to use this skill:**
+
 - Compiling LaTeX documents
 - Setting up live preview with auto-rebuild
 - Managing multi-file projects
@@ -19,23 +20,26 @@ allowed-tools: Read, Edit, Bash
 ## Why latexmk?
 
 Industry standard build tool:
+
 - Auto-detects dependencies (bibliography, index, etc.)
 - Runs correct number of times (handles cross-references)
 - Live preview mode watches for file changes
 - Works with Skim for SyncTeX auto-reload
 - Bundled with MacTeX (no separate install needed)
 
-______________________________________________________________________
+---
 
 ## Basic Usage
 
 ### One-Time Build
+
 ```bash
 latexmk -pdf document.tex
 # Result: document.pdf created
 ```
 
 ### Live Preview (Watch Mode)
+
 ```bash
 latexmk -pvc -pdf document.tex
 
@@ -48,7 +52,7 @@ latexmk -pvc -pdf document.tex
 
 **Stop watching:** Press `Ctrl+C`
 
-______________________________________________________________________
+---
 
 ## Quick Reference Card
 
@@ -73,7 +77,7 @@ latexmk -gg -pdf document.tex
 latexmk -pdf -interaction=nonstopmode document.tex
 ```
 
-______________________________________________________________________
+---
 
 ## Build Checklist
 
@@ -86,11 +90,12 @@ ______________________________________________________________________
 - [ ] Create .latexmkrc for project-specific settings (optional)
 - [ ] Test clean: `latexmk -c` removes artifacts
 
-______________________________________________________________________
+---
 
 ## Reference Documentation
 
 For detailed information, see:
+
 - [Common Commands](./references/common-commands.md) - Build options and output formats
 - [Multi-File Projects](./references/multi-file-projects.md) - Automatic dependency tracking for complex documents
 - [Configuration](./references/configuration.md) - .latexmkrc and Makefile integration
@@ -100,5 +105,6 @@ For detailed information, see:
 **Official Docs**: Run `man latexmk` or `latexmk -help` for complete reference
 
 **See Also**:
+
 - Use `latex/setup` skill for installing LaTeX and configuring environment
 - Use `latex/tables` skill for creating tables with tabularray

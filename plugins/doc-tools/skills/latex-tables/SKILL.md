@@ -1,6 +1,6 @@
 ---
 name: latex-tables
-description: Creates modern LaTeX tables with tabularray package for fixed-width columns, proper alignment, and clean syntax. Use when creating tables or working with column layouts.
+description: LaTeX tables with tabularray package. TRIGGERS - LaTeX table, tabularray, fixed-width columns, table alignment.
 allowed-tools: Read, Edit, Bash
 ---
 
@@ -9,6 +9,7 @@ allowed-tools: Read, Edit, Bash
 ## Quick Reference
 
 **When to use this skill:**
+
 - Creating tables with fixed-width columns
 - Formatting complex table layouts
 - Need precise column alignment
@@ -18,13 +19,14 @@ allowed-tools: Read, Edit, Bash
 ## Why tabularray?
 
 Modern LaTeX3 package (replaces old solutions):
+
 - Fixed-width columns with proper alignment
 - Clean, consistent syntax
 - Replaces: `tabular`, `tabularx`, `longtable`, `booktabs`
 - Better performance than legacy packages
 - Part of TeX Live 2025
 
-______________________________________________________________________
+---
 
 ## Installation
 
@@ -51,7 +53,7 @@ sudo tlmgr install tabularray
 \end{document}
 ```
 
-______________________________________________________________________
+---
 
 ## Quick Reference Card
 
@@ -81,7 +83,7 @@ ______________________________________________________________________
 \end{tblr}
 ```
 
-______________________________________________________________________
+---
 
 ## Best Practices
 
@@ -92,11 +94,12 @@ ______________________________________________________________________
 5. Use colspec for column properties, not inline commands
 6. Check package version: `kpsewhich tabularray.sty` (should be recent)
 
-______________________________________________________________________
+---
 
 ## Reference Documentation
 
 For detailed information, see:
+
 - [Table Patterns](./references/table-patterns.md) - 5 common table patterns with examples
 - [Column Specification](./references/column-spec.md) - Alignment options and width control
 - [Lines and Borders](./references/lines-borders.md) - All lines, selective lines, thick lines
@@ -106,5 +109,6 @@ For detailed information, see:
 **Official Docs**: Run `texdoc tabularray` for complete package documentation
 
 **See Also**:
+
 - Use `latex/setup` skill for installing tabularray package
 - Use `latex/build` skill for compilation workflows

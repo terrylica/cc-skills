@@ -1,6 +1,6 @@
 ---
 name: python-workspace
-description: Configures Python development workspace for MQL5 integration. Use when setting up MetaTrader 5 Python API, configuring mt5 package, or establishing MQL5-Python workflows.
+description: Python workspace for MQL5 integration. TRIGGERS - MetaTrader 5 Python, mt5 package, MQL5-Python setup.
 ---
 
 # MQL5-Python Translation Workspace Skill

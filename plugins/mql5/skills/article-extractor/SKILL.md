@@ -1,6 +1,6 @@
 ---
 name: article-extractor
-description: Extracts and organizes MQL5 articles and documentation. Use when researching MQL5 features, MetaTrader API documentation, Python MT5 integration, or algorithmic trading resources.
+description: Extract MQL5 articles and documentation. TRIGGERS - MQL5 articles, MetaTrader docs, mql5.com resources.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 

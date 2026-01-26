@@ -1,6 +1,6 @@
 ---
 name: issue-create
-description: Create GitHub issues with AI labeling and content type detection. TRIGGERS - create issue, file bug, feature request, report issue, gh issue create, new issue.
+description: Create GitHub issues with AI labeling. TRIGGERS - create issue, file bug, feature request, gh issue create.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
