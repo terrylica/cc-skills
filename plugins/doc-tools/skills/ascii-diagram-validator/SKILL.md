@@ -1,6 +1,6 @@
 ---
 name: ascii-diagram-validator
-description: Validates ASCII box-drawing diagram alignment in markdown files. Use when creating architecture diagrams, checking diagram alignment, fixing ASCII art, or before committing documentation with diagrams.
+description: Validate ASCII diagram alignment in markdown. TRIGGERS - diagram alignment, ASCII art, box-drawing diagrams.
 ---
 
 # ASCII Diagram Validator

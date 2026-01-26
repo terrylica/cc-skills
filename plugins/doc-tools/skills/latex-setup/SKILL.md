@@ -1,6 +1,6 @@
 ---
 name: latex-setup
-description: Installs and configures complete LaTeX development environment on macOS with MacTeX, Skim viewer, and SyncTeX support. Use when setting up new machine, installing LaTeX, or configuring PDF viewer.
+description: LaTeX environment setup on macOS. TRIGGERS - install LaTeX, MacTeX, Skim viewer, SyncTeX setup.
 allowed-tools: Read, Edit, Bash
 ---
 
@@ -9,6 +9,7 @@ allowed-tools: Read, Edit, Bash
 ## Quick Reference
 
 **When to use this skill:**
+
 - Installing LaTeX on a new machine
 - Setting up MacTeX distribution
 - Configuring Skim PDF viewer with SyncTeX
@@ -17,23 +18,25 @@ allowed-tools: Read, Edit, Bash
 
 ## Recommended Stack
 
-| Component        | Purpose                                 | Status         |
-|------------------|-----------------------------------------|----------------|
+| Component        | Purpose                                 | Status          |
+| ---------------- | --------------------------------------- | --------------- |
 | **MacTeX 2025**  | Full LaTeX distribution (TeX Live 2025) | ✅ Recommended  |
 | **Skim 1.7.11**  | PDF viewer with SyncTeX support         | ✅ macOS only   |
 | **TeXShop 5.57** | Integrated LaTeX IDE (optional)         | ✅ Native macOS |
 
-______________________________________________________________________
+---
 
 ## Quick Start
 
 ### Install MacTeX
+
 ```bash
 brew install --cask mactex
 # Size: ~4.5 GB (includes everything)
 ```
 
 ### Verify Installation
+
 ```bash
 tex --version
 # Expected: TeX 3.141592653 (TeX Live 2025)
@@ -43,13 +46,14 @@ latexmk --version
 ```
 
 ### Test Compilation
+
 ```bash
 echo '\documentclass{article}\begin{document}Hello World!\end{document}' > test.tex
 pdflatex test.tex
 ls test.pdf  # Verify PDF created
 ```
 
-______________________________________________________________________
+---
 
 ## Post-Installation Checklist
 
@@ -62,11 +66,12 @@ ______________________________________________________________________
 - [ ] Add `/Library/TeX/texbin` to PATH if needed
 - [ ] Test package installation: `sudo tlmgr install <package>`
 
-______________________________________________________________________
+---
 
 ## Reference Documentation
 
 For detailed information, see:
+
 - [Installation](./references/installation.md) - Full MacTeX vs lightweight options, Skim installation
 - [Verification](./references/verification.md) - Check installation, verify PATH, test compilation
 - [Package Management](./references/package-management.md) - Check, install, search for packages with tlmgr
@@ -74,5 +79,6 @@ For detailed information, see:
 - [Troubleshooting](./references/troubleshooting.md) - PATH issues, tlmgr problems, permissions
 
 **See Also**:
+
 - Build Workflows: Use `latex/build` skill for latexmk automation
 - Table Creation: Use `latex/tables` skill for tabularray usage

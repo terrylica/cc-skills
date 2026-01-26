@@ -1,6 +1,6 @@
 ---
 name: worktree-manager
-description: Create alpha-forge git worktrees with automatic branch naming from descriptions. Use when user says create worktree, new worktree, alpha-forge worktree, AF worktree, or describes a feature to work on in alpha-forge.
+description: Create alpha-forge git worktrees with auto branch naming. TRIGGERS - create worktree, new worktree, alpha-forge worktree.
 ---
 
 # Alpha-Forge Worktree Manager

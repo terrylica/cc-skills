@@ -1,6 +1,6 @@
 ---
 name: dual-channel-watchexec-notifications
-description: Sends dual-channel notifications (Telegram + Pushover) on watchexec events with proper formatting. Use when monitoring file changes, process restarts, or setting up alerts.
+description: Dual-channel notifications on watchexec events. TRIGGERS - watchexec alerts, Telegram+Pushover, file change notifications.
 allowed-tools: Read, Write, Edit, Bash
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: iterm2-layout
-description: Configure iTerm2 workspace layouts with TOML-based configuration. Use when user mentions iTerm2 layout, workspace tabs, layout.toml, AutoLaunch script, or configuring terminal workspaces.
+description: Configure iTerm2 workspace layouts with TOML. TRIGGERS - iTerm2 layout, workspace tabs, layout.toml, AutoLaunch.
 ---
 
 # iTerm2 Layout Configuration

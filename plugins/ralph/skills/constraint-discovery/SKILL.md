@@ -1,6 +1,6 @@
 ---
 name: constraint-discovery
-description: Spawn 5 parallel Explore agents to discover project constraints. TRIGGERS - constraint scan, degrees of freedom, /ralph:start Step 1.4.5, project memory analysis.
+description: Discover project constraints via parallel agents. TRIGGERS - constraint scan, degrees of freedom, project memory.
 allowed-tools: Task, TaskOutput, Bash, Read, Grep, Glob
 ---
 
@@ -224,6 +224,7 @@ AGENT_MERGE_SCRIPT
 ## Output
 
 Each agent returns NDJSON with:
+
 - `source`: Which agent found it (agent-memory, agent-arch, agent-research, agent-testing, agent-freedom)
 - `severity`: CRITICAL, HIGH, MEDIUM, or LOW
 - `description`: Human-readable constraint description

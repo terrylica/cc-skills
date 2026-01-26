@@ -1,6 +1,6 @@
 ---
 name: session-recovery
-description: Troubleshoot Claude Code session issues. Use when encountering "No conversations found" errors, missing sessions, or session file corruption problems.
+description: Troubleshoot Claude Code session issues. TRIGGERS - No conversations found, missing sessions, session corruption.
 allowed-tools: Read, Bash
 ---
 

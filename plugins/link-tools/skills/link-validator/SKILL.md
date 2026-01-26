@@ -1,6 +1,6 @@
 ---
 name: link-validator
-description: Validate markdown link portability in Claude Code skills and plugins. Use when checking links, validating portability, fixing broken links, absolute paths, relative paths, or before skill distribution. Ensures relative paths for cross-installation compatibility.
+description: Validate markdown link portability in skills. TRIGGERS - check links, validate portability, fix broken links, relative paths.
 ---
 
 # Link Validator

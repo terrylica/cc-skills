@@ -1,6 +1,6 @@
 ---
 name: session-chronicle
-description: Excavate session logs for provenance tracking. TRIGGERS - who created, document finding, trace origin, session archaeology, provenance, ADR reference.
+description: Session log provenance tracking. TRIGGERS - who created, trace origin, session archaeology, ADR reference.
 allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion
 ---
 
@@ -25,13 +25,13 @@ Excavate Claude Code session logs to capture **complete provenance** for researc
 
 ## File Ownership Model
 
-| Directory | Committed? | Purpose |
-|-----------|-----------|---------|
-| `findings/registry.jsonl` | YES | Master index (small, append-only NDJSON) |
-| `findings/sessions/<id>/iterations.jsonl` | YES | Iteration records (small, append-only) |
-| `outputs/research_sessions/<id>/` | NO | Research artifacts (large, gitignored) |
-| `tmp/` | NO | Temporary archives before S3 upload |
-| S3 `eonlabs-findings/sessions/<id>/` | N/A | Permanent team-shared archive |
+| Directory                                 | Committed? | Purpose                                  |
+| ----------------------------------------- | ---------- | ---------------------------------------- |
+| `findings/registry.jsonl`                 | YES        | Master index (small, append-only NDJSON) |
+| `findings/sessions/<id>/iterations.jsonl` | YES        | Iteration records (small, append-only)   |
+| `outputs/research_sessions/<id>/`         | NO         | Research artifacts (large, gitignored)   |
+| `tmp/`                                    | NO         | Temporary archives before S3 upload      |
+| S3 `eonlabs-findings/sessions/<id>/`      | N/A        | Permanent team-shared archive            |
 
 **Key Principle**: Only `findings/` is committed. Research artifacts go to gitignored `outputs/` and S3.
 
@@ -248,11 +248,22 @@ AskUserQuestion:
 ```
 
 Display the full session_contexts array before this question:
+
 ```json
 {
   "session_contexts": [
-    {"session_uuid": "abc123", "type": "main", "entries": 980, "description": "..."},
-    {"session_uuid": "agent-xyz", "type": "subagent", "entries": 113, "description": "..."}
+    {
+      "session_uuid": "abc123",
+      "type": "main",
+      "entries": 980,
+      "description": "..."
+    },
+    {
+      "session_uuid": "agent-xyz",
+      "type": "subagent",
+      "entries": 113,
+      "description": "..."
+    }
   ]
 }
 ```
@@ -482,12 +493,27 @@ Each line is a complete, self-contained JSON object:
     "session_uuid": "8c821a19-e4f4-45d5-9338-be3a47ac81a3"
   },
   "strategy_type": "cross_sectional_momentum",
-  "date_range": {"start": "2022-01-01", "end": "2025-12-31"},
+  "date_range": { "start": "2022-01-01", "end": "2025-12-31" },
   "session_contexts": [
-    {"session_uuid": "8c821a19-...", "type": "main", "entries": 1128, "description": "Primary session - research iterations, PR preparation"},
-    {"session_uuid": "agent-a728ebe", "type": "subagent", "entries": 113, "timestamp_start": "2026-01-02T07:25:47.658Z", "description": "Explore agent - codebase analysis"}
+    {
+      "session_uuid": "8c821a19-...",
+      "type": "main",
+      "entries": 1128,
+      "description": "Primary session - research iterations, PR preparation"
+    },
+    {
+      "session_uuid": "agent-a728ebe",
+      "type": "subagent",
+      "entries": 113,
+      "timestamp_start": "2026-01-02T07:25:47.658Z",
+      "description": "Explore agent - codebase analysis"
+    }
   ],
-  "metrics": {"sharpe_2bps": 1.05, "sharpe_13bps": 0.31, "max_drawdown": -0.18},
+  "metrics": {
+    "sharpe_2bps": 1.05,
+    "sharpe_13bps": 0.31,
+    "max_drawdown": -0.18
+  },
   "tags": ["momentum", "cross-sectional", "multi-year", "validated"],
   "artifacts": {
     "adr": "docs/adr/2026-01-02-multiyear-momentum-vs-ml.md",
@@ -503,6 +529,7 @@ Each line is a complete, self-contained JSON object:
 ```
 
 **Required Fields**:
+
 - `id` - Unique identifier (format: `YYYY-MM-DD-slug`)
 - `type` - `research_session` | `finding` | `decision`
 - `created_at` - ISO8601 timestamp
@@ -510,6 +537,7 @@ Each line is a complete, self-contained JSON object:
 - `session_contexts` - **MANDATORY** - Array of ALL session UUIDs
 
 **Optional Fields**:
+
 - `title` - Human-readable title
 - `project` - Project/repository name
 - `branch` - Git branch name
@@ -523,13 +551,14 @@ Each line is a complete, self-contained JSON object:
 - `recommendation` - What to do next
 
 **Artifact Paths**:
-| Key | Location | Purpose |
-|-----|----------|---------|
-| `adr` | `docs/adr/...` | Committed ADR document |
-| `strategy_config` | `examples/...` | Committed strategy example |
-| `research_log` | `outputs/research_sessions/.../` | Gitignored research log |
-| `iteration_configs` | `outputs/research_sessions/.../` | Gitignored config files |
-| `s3` | `s3://eonlabs-findings/sessions/<id>/` | S3 archive for team sharing |
+
+| Key                 | Location                               | Purpose                     |
+| ------------------- | -------------------------------------- | --------------------------- |
+| `adr`               | `docs/adr/...`                         | Committed ADR document      |
+| `strategy_config`   | `examples/...`                         | Committed strategy example  |
+| `research_log`      | `outputs/research_sessions/.../`       | Gitignored research log     |
+| `iteration_configs` | `outputs/research_sessions/.../`       | Gitignored config files     |
+| `s3`                | `s3://eonlabs-findings/sessions/<id>/` | S3 archive for team sharing |
 
 ### iterations.jsonl (Detailed Records)
 
@@ -547,8 +576,8 @@ Located at `findings/sessions/<id>/iterations.jsonl`. For iteration-level tracki
     "session_uuid": "8c821a19-e4f4-45d5-9338-be3a47ac81a3"
   },
   "hypothesis": "Test BiLSTM with conservative clip",
-  "config": {"strategy": "bilstm", "clip": 0.05},
-  "results": {"train_sharpe": 0.31, "test_sharpe": -1.15},
+  "config": { "strategy": "bilstm", "clip": 0.05 },
+  "results": { "train_sharpe": 0.31, "test_sharpe": -1.15 },
   "finding": "BiLSTM shows no edge",
   "status": "FAILED"
 }
@@ -683,6 +712,7 @@ AskUserQuestion:
 ```
 
 Before this question, display:
+
 1. Full JSON entry (pretty-printed)
 2. Count of session_contexts entries
 3. GitHub username attribution

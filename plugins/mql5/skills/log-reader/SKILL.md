@@ -1,6 +1,6 @@
 ---
 name: log-reader
-description: Reads MetaTrader 5 log files to validate indicator execution, unit tests, and compilation errors. Use when user mentions Experts pane, MT5 logs, errors, or asks "did it work".
+description: Read MetaTrader 5 log files. TRIGGERS - MT5 logs, Experts pane, indicator errors, compilation errors.
 allowed-tools: Read, Bash, Grep
 ---
 

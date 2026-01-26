@@ -1,6 +1,6 @@
 ---
 name: plugin-validator
-description: "Validate plugin structure, manifests, and silent failure patterns. TRIGGERS - plugin validation, validate plugin, check plugin, silent failures, hook audit, stderr emission."
+description: Validate plugin structure and silent failures. TRIGGERS - plugin validation, check plugin, hook audit.
 allowed-tools: Read, Bash, Glob, Grep, TodoWrite
 ---
 

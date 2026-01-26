@@ -1,6 +1,6 @@
 ---
 name: session-guidance
-description: Configure Ralph loop guidance via AUQ flows - forbidden/encouraged items from constraint scan. TRIGGERS - session guidance, loop configuration, /ralph:start Step 1.6.
+description: Configure Ralph loop guidance. TRIGGERS - session guidance, loop configuration, forbidden items.
 allowed-tools: Bash, Read, AskUserQuestion, Write
 ---
 
@@ -71,7 +71,7 @@ Use AskUserQuestion:
     description: "Use stored forbidden/encouraged lists from last session"
   - label: "Reconfigure guidance"
     description: "Set new forbidden/encouraged lists"
-  multiSelect: false
+    multiSelect: false
 
 - If "Keep existing" → **STOP skill execution** (guidance already in config, return to start.md Step 2)
 - If "Reconfigure" → Continue to Step 1.6.2.5
@@ -150,8 +150,17 @@ LOAD_SCAN_SCRIPT
 4. **Build dynamic AUQ options** with constraint-derived items first, then static fallbacks
 
 **NDJSON constraint format** (one per line):
+
 ```json
-{"id":"hardcoded-001","severity":"high","category":"hardcoded_path","description":"Hardcoded path: /Users/terryli/...","file":"pyproject.toml","line":15,"recommendation":"Use environment variable"}
+{
+  "id": "hardcoded-001",
+  "severity": "high",
+  "category": "hardcoded_path",
+  "description": "Hardcoded path: /Users/terryli/...",
+  "file": "pyproject.toml",
+  "line": 15,
+  "recommendation": "Use environment variable"
+}
 ```
 
 ---
@@ -161,6 +170,7 @@ LOAD_SCAN_SCRIPT
 **MANDATORY: Build options dynamically from Step 1.6.2.5 output**
 
 **AUQ Limit**: Maximum 4 options total. Priority order:
+
 1. CRITICAL severity constraints (up to 2)
 2. HIGH severity constraints (up to 2)
 3. If <4 constraint options, fill with static categories
@@ -205,12 +215,14 @@ Step 3: Build question text
 **Example transformation**:
 
 NDJSON input:
+
 ```
 {"severity":"critical","description":"Hardcoded API key in config.py","file":"config.py","line":42,"recommendation":"Move to env var"}
 {"severity":"high","description":"Circular import: core ↔ utils","file":"core.py","line":1,"recommendation":"Extract interface"}
 ```
 
 Becomes AUQ options:
+
 ```yaml
 options:
   - label: "Hardcoded API key in config.py"
@@ -226,6 +238,7 @@ options:
 Use AskUserQuestion with the dynamically built options above.
 
 **Static fallback categories** (used when no constraints or to fill remaining slots):
+
 - "Documentation updates" - "README, CHANGELOG, docstrings, comments"
 - "Dependency upgrades" - "Version bumps, renovate PRs, package updates"
 - "Refactoring" - "Code restructuring without behavior change"
@@ -293,15 +306,16 @@ Use AskUserQuestion:
 ## Step 1.6.7: Update Config (with Validation + Learned Behavior)
 
 **IMPORTANT**: After collecting responses from Steps 1.6.3-1.6.6, you MUST:
+
 1. Write guidance to config WITH validation
 2. Append constraint-derived selections to `.jsonl` for learned filtering
 
-1. **Collect responses** from the AUQ steps above:
+3. **Collect responses** from the AUQ steps above:
    - `FORBIDDEN_ITEMS`: Selected labels from 1.6.3 + custom items from 1.6.4 (if any)
    - `ENCOURAGED_ITEMS`: Selected labels from 1.6.5 + custom items from 1.6.6 (if any)
    - `SELECTED_CONSTRAINT_IDS`: IDs of constraint-derived options user selected (from NDJSON parsing)
 
-2. **Write to config with post-write validation** using the Bash tool (substitute actual values):
+4. **Write to config with post-write validation** using the Bash tool (substitute actual values):
 
 ```bash
 /usr/bin/env bash << 'GUIDANCE_WRITE_SCRIPT'
@@ -415,6 +429,7 @@ GUIDANCE_WRITE_SCRIPT
 ```
 
 **Key substitutions Claude MUST make**:
+
 - `FORBIDDEN_JSON`: Array of selected forbidden labels
 - `ENCOURAGED_JSON`: Array of selected encouraged labels
 - `SELECTED_CONSTRAINT_IDS`: Space-separated list of constraint IDs from NDJSON options user selected
@@ -426,6 +441,7 @@ GUIDANCE_WRITE_SCRIPT
 After completing all steps, the skill returns control to `/ralph:start` Step 2 (Execution).
 
 The config file `.claude/ralph-config.json` will contain:
+
 ```json
 {
   "version": "3.0.0",
