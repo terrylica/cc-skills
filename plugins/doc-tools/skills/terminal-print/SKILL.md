@@ -1,6 +1,6 @@
 ---
 name: terminal-print
-description: Print iTerm2 terminal output to HP network printer. Strips ANSI escape codes, wraps in monospace code block, generates PDF via pandoc/xelatex, previews, and prints. Invoke on - print terminal, terminal to printer, print session, lpr output, print command output, terminal PDF.
+description: Print iTerm2 terminal output to network printer. TRIGGERS - print terminal, terminal PDF, print session output.
 ---
 
 # Terminal Print

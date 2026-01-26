@@ -1,6 +1,6 @@
 ---
 name: hooks-development
-description: Claude Code hooks development guide covering all 10 hook events lifecycle, PostToolUse visibility patterns, PreToolUse guards, Stop hook schema, and debugging. Use when creating hooks, troubleshooting hook output, understanding hook lifecycle, or when user mentions decision block, hook JSON output, stop hook, or Claude Code hooks.
+description: Claude Code hooks development guide. TRIGGERS - create hook, PostToolUse, PreToolUse, Stop hook, hook lifecycle, decision block.
 ---
 
 # Hooks Development

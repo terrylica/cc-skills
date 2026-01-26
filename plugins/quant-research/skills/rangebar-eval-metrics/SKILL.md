@@ -1,11 +1,6 @@
 ---
 name: rangebar-eval-metrics
-description: >
-  SOTA metrics for evaluating range bar (price-based sampling) financial data.
-  Use when computing Sharpe ratios, risk metrics, ML prediction quality for range bars.
-  TRIGGERS - range bar metrics, evaluate range bars, Sharpe ratio range bars,
-  WFO metrics, walk-forward metrics, BiLSTM evaluation, crypto metrics,
-  daily aggregation, sqrt(7), sqrt(365), PSR DSR MinTRL, IC information coefficient.
+description: Range bar evaluation metrics for quant trading. TRIGGERS - range bar metrics, Sharpe ratio, WFO metrics, PSR DSR MinTRL.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 

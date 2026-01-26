@@ -1,11 +1,6 @@
 ---
 name: adaptive-wfo-epoch
-description: >
-  Adaptive epoch selection for Walk-Forward Optimization using efficient frontier analysis.
-  Per-fold epoch sweeps with WFE-based selection and carry-forward priors.
-  TRIGGERS - epoch selection, WFO epoch, walk-forward epoch, training epochs WFO,
-  efficient frontier epochs, overfitting epochs, epoch sweep, BiLSTM epochs,
-  WFE optimization, adaptive hyperparameter, Pardo WFE, epoch carry-forward.
+description: Adaptive epoch selection for Walk-Forward Optimization. TRIGGERS - WFO epoch, epoch selection, WFE optimization, overfitting epochs.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 

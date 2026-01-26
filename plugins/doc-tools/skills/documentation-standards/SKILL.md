@@ -1,6 +1,6 @@
 ---
 name: documentation-standards
-description: Markdown documentation standards for LLM-optimized architecture including section numbering rules for Pandoc PDF generation. Use when writing markdown documentation, creating skills, or authoring content that may be converted to PDF.
+description: Markdown documentation standards for LLM and Pandoc PDF. TRIGGERS - markdown standards, section numbering, documentation style.
 ---
 
 # Documentation Standards

@@ -1,6 +1,6 @@
 ---
 name: clickhouse-cloud-management
-description: This skill should be used when the user asks to "create ClickHouse user", "manage ClickHouse permissions", "test ClickHouse connection", "troubleshoot ClickHouse Cloud", or mentions ClickHouse Cloud credentials, API keys, or SQL user management.
+description: ClickHouse Cloud user and permission management. TRIGGERS - create ClickHouse user, ClickHouse permissions, ClickHouse Cloud credentials.
 allowed-tools: Read, Bash
 ---
 

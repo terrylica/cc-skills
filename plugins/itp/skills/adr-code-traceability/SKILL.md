@@ -1,6 +1,6 @@
 ---
 name: adr-code-traceability
-description: Add ADR references to code for decision traceability. Use when creating new files, documenting non-obvious implementation choices, or when user mentions ADR traceability, code reference, or document decision in code. Provides language-specific patterns for Python, TypeScript, Rust, Go.
+description: Add ADR references to code for traceability. TRIGGERS - ADR traceability, code reference, document decision in code.
 ---
 
 # ADR Code Traceability

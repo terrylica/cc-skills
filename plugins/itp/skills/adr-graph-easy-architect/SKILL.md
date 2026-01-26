@@ -1,6 +1,6 @@
 ---
 name: adr-graph-easy-architect
-description: Create ASCII architecture diagrams for ADRs using graph-easy. Use when writing ADRs, adding diagrams to existing ADRs, or when user mentions "ADR diagram", "architecture diagram", "ASCII diagram". Zero external dependencies for rendering - pure text output embeds directly in markdown.
+description: ASCII architecture diagrams for ADRs via graph-easy. TRIGGERS - ADR diagram, architecture diagram, ASCII diagram.
 ---
 
 # ADR Graph-Easy Architect
@@ -668,18 +668,18 @@ graph { flow: south; }
 
 ### Aesthetics
 
-5. **Uses boxart** - clean Unicode lines `┌──┐`, not ASCII `+--+`
-6. **Visual hierarchy** - start/end rounded, important bold/double, optional dotted
-7. **Consistent styling** - same border style = same semantic meaning throughout
-8. **Readable labels** - multiline with `\n`, no truncation
-9. **Clear flow** - direction matches natural reading (top-down or left-right)
+1. **Uses boxart** - clean Unicode lines `┌──┐`, not ASCII `+--+`
+2. **Visual hierarchy** - start/end rounded, important bold/double, optional dotted
+3. **Consistent styling** - same border style = same semantic meaning throughout
+4. **Readable labels** - multiline with `\n`, no truncation
+5. **Clear flow** - direction matches natural reading (top-down or left-right)
 
 ### Comprehensiveness
 
-10. **Semantic emoji in title** - emoji consciously chosen to match diagram purpose (see Emoji Selection Guide)
-11. **Legend if needed** - multiline title with `\n` for complex diagrams
-12. **Edge semantics** - solid=normal, dotted=conditional, bold=critical
-13. **Logical grouping** - related nodes in `( Group: ... )` containers
+1. **Semantic emoji in title** - emoji consciously chosen to match diagram purpose (see Emoji Selection Guide)
+2. **Legend if needed** - multiline title with `\n` for complex diagrams
+3. **Edge semantics** - solid=normal, dotted=conditional, bold=critical
+4. **Logical grouping** - related nodes in `( Group: ... )` containers
 
 ## Troubleshooting
 

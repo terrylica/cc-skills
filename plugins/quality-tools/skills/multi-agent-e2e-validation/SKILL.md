@@ -1,6 +1,6 @@
 ---
 name: multi-agent-e2e-validation
-description: Multi-agent parallel E2E validation workflow for database refactors and system migrations. Use when validating QuestDB deployments, schema migrations, bulk data ingestion pipelines, or any database-centric refactor requiring comprehensive testing across environment, data flow, and query layers.
+description: Multi-agent parallel E2E validation for database refactors. TRIGGERS - E2E validation, schema migration testing, database refactor validation.
 ---
 
 # Multi-Agent E2E Validation
