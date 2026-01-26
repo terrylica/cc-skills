@@ -1,6 +1,6 @@
 ---
 name: asciinema-analyzer
-description: Semantic analysis for Claude Code consumption. TRIGGERS - analyze cast, keyword extraction, density analysis, find patterns, sharpe, backtest, iteration, trading keywords, ML keywords. Use when extracting insights from recordings.
+description: Semantic analysis of asciinema recordings. TRIGGERS - analyze cast, keyword extraction, find patterns in recordings.
 allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion
 ---
 

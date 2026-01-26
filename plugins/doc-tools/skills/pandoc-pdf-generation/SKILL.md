@@ -1,6 +1,6 @@
 ---
 name: pandoc-pdf-generation
-description: Use when writing markdown intended for PDF output, creating PDFs from markdown, or printing PDFs. Invoke EARLY when authoring markdown for PDF to prevent mistakes (manual heading numbers, manual ASCII diagrams, inline annotations). Also use for PDF generation with Pandoc/XeLaTeX, section numbering, table of contents, bibliography, landscape/portrait orientation, printing (one-sided, duplex, simplex, lpr), fixing diagrams breaking across pages, code block page breaks, or double numbering issues. Triggers on - markdown for PDF, write document for printing, create printable doc, pandoc, xelatex, print PDF, PDF generation.
+description: PDF generation from markdown via Pandoc/XeLaTeX. TRIGGERS - markdown for PDF, print document, pandoc, xelatex, section numbering, table of contents, page breaks.
 ---
 
 # Pandoc PDF Generation

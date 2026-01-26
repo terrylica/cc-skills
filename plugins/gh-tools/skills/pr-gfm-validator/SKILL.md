@@ -1,6 +1,6 @@
 ---
 name: pr-gfm-validator
-description: Validate and auto-fix GitHub Flavored Markdown links in PR descriptions. Use when creating pull requests, mentioning PR links, gh pr create, GFM validation, or fixing broken PR links. Converts repo-relative paths to branch-specific blob URLs.
+description: Validate and fix GFM links in PR descriptions. TRIGGERS - PR links, gh pr create, GFM validation, broken PR links.
 ---
 
 # PR GFM Link Validator

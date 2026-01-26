@@ -1,11 +1,6 @@
 ---
 name: clickhouse-pydantic-config
-description: >
-  Generate DBeaver configurations from Pydantic ClickHouse connection models.
-  Use when user mentions "DBeaver config", "ClickHouse connection setup",
-  "database client configuration", "generate connection JSON", "mise SSoT
-  connection", or needs consistent connection configuration across development
-  tools.
+description: Generate DBeaver config from Pydantic ClickHouse models. TRIGGERS - DBeaver config, ClickHouse connection, database client config.
 allowed-tools: Read, Bash, Grep
 ---
 

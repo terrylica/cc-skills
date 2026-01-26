@@ -1,6 +1,6 @@
 ---
 name: pypi-doppler
-description: LOCAL-ONLY PyPI publishing with Doppler credential management. Use when publishing to PyPI from LOCAL machine ONLY. NEVER use in CI/CD pipelines. Workspace-wide policy enforces local publishing via scripts/publish-to-pypi.sh with CI detection guards.
+description: LOCAL-ONLY PyPI publishing with Doppler credentials. TRIGGERS - publish to PyPI, pypi upload, local publish. NEVER use in CI/CD.
 ---
 
 # PyPI Publishing with Doppler (Local-Only)
@@ -79,6 +79,7 @@ DOPPLER_EOF
    ```
 
 3. **Verify access to `claude-config` project**:
+
    ```bash
    doppler whoami
    doppler projects
@@ -87,7 +88,7 @@ DOPPLER_EOF
 ### PyPI Token Setup
 
 1. **Create PyPI API token**:
-   - Visit: https://pypi.org/manage/account/token/
+   - Visit: <https://pypi.org/manage/account/token/>
    - Enable 2FA if not already enabled (required since 2024)
    - Create token with scope: "Entire account" or specific project
    - Copy token (starts with `pypi-AgEIcHlwaS5vcmc...`, ~180 characters)
@@ -101,6 +102,7 @@ DOPPLER_EOF
    ```
 
 3. **Verify token stored**:
+
    ```bash
    doppler secrets get PYPI_TOKEN \
      --project claude-config \
@@ -375,7 +377,7 @@ doppler secrets set PYPI_TOKEN='your-token' \
 **Fix**:
 
 1. Verify 2FA enabled on PyPI account
-2. Create new token: https://pypi.org/manage/account/token/
+2. Create new token: <https://pypi.org/manage/account/token/>
 3. Update Doppler: `doppler secrets set PYPI_TOKEN='new-token' --project claude-config --config prd`
 4. Retry publish
 
@@ -481,7 +483,7 @@ MISE_EOF
 To test publishing workflow without affecting production:
 
 1. **Get TestPyPI token**:
-   - Visit: https://test.pypi.org/manage/account/token/
+   - Visit: <https://test.pypi.org/manage/account/token/>
    - Create token
 
 2. **Store in Doppler** (separate key):
@@ -495,27 +497,34 @@ To test publishing workflow without affecting production:
 3. **Modify publish script temporarily**:
 
    ```bash
-/usr/bin/env bash << 'DOPPLER_EOF_2'
-   # In scripts/publish-to-pypi.sh, change:
-   uv publish --token "${PYPI_TOKEN}"
 
-   # To:
-   TESTPYPI_TOKEN=$(doppler secrets get TESTPYPI_TOKEN --plain)
+   ```
+
+/usr/bin/env bash << 'DOPPLER_EOF_2'
+
+# In scripts/publish-to-pypi.sh, change
+
+uv publish --token "${PYPI_TOKEN}"
+
+# To
+
+TESTPYPI_TOKEN=$(doppler secrets get TESTPYPI_TOKEN --plain)
    uv publish --repository testpypi --token "${TESTPYPI_TOKEN}"
-   
+
 DOPPLER_EOF_2
-```
+
+````
 
 4. **Test publish**:
 
    ```bash
    ./scripts/publish-to-pypi.sh
-   ```
+````
 
-5. **Verify on TestPyPI**:
-   - https://test.pypi.org/project/your-package/
+1. **Verify on TestPyPI**:
+   - <https://test.pypi.org/project/your-package/>
 
-6. **Restore script** to production configuration
+2. **Restore script** to production configuration
 
 ---
 

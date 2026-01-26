@@ -1,6 +1,6 @@
 ---
 name: graph-easy
-description: Create ASCII diagrams for any GitHub Flavored Markdown file using graph-easy. Use for READMEs, design docs, specifications, or any markdown needing architecture diagrams. Zero external dependencies for rendering - pure text output embeds directly in markdown.
+description: Create ASCII diagrams for markdown using graph-easy. TRIGGERS - ASCII diagram, graph-easy, architecture diagram, markdown diagram.
 ---
 
 # Graph-Easy Diagram Skill

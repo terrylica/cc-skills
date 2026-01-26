@@ -1,6 +1,6 @@
 ---
 name: asciinema-converter
-description: Convert .cast to .txt for analysis. Supports batch mode. TRIGGERS - convert cast, cast to txt, strip ANSI, batch convert, bulk convert, iTerm2 logs, timestamp index. Use when preparing recordings for Claude Code.
+description: Convert .cast recordings to .txt for analysis. TRIGGERS - convert cast, cast to txt, strip ANSI, batch convert.
 allowed-tools: Read, Bash, Glob, Write, AskUserQuestion
 ---
 

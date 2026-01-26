@@ -1,6 +1,6 @@
 ---
 name: asciinema-recorder
-description: Record Claude Code sessions with asciinema. TRIGGERS - record session, asciinema record, capture terminal, record claude, demo recording, record ASCII, ASCII terminal, terminal screen capture, shell screen capture, ASCII screen capture, screen recording. Generates ready-to-copy commands with dynamic workspace-based filenames.
+description: Record Claude Code sessions with asciinema. TRIGGERS - record session, asciinema record, capture terminal, demo recording.
 allowed-tools: Read, Bash, Glob, AskUserQuestion
 ---
 

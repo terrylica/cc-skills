@@ -1,6 +1,6 @@
 ---
 name: doppler-secret-validation
-description: Validate and test secrets stored in Doppler. Add API tokens/credentials to Doppler, verify storage and retrieval, test authentication with target services. Use when user mentions "add to Doppler", "store secret", "validate token", or provides API tokens needing secure storage.
+description: Validate and test Doppler secrets. TRIGGERS - add to Doppler, store secret, validate token, test credentials.
 allowed-tools: Read, Bash
 ---
 

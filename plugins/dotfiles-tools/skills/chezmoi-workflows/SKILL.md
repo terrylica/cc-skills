@@ -1,6 +1,6 @@
 ---
 name: chezmoi-workflows
-description: Dotfile backup, sync, and version control with chezmoi. Tracks shell configs (.zshrc, .bashrc, .zshenv), git (.gitconfig), editors (helix, vim, nvim), terminal tools (broot, starship, alacritty, kitty, wezterm), and XDG .config/ files. Operations include track, add, sync, push, pull, backup, restore, status, diff, re-add. Setup for chezmoi init, dotfiles remote, GitHub private repository, cross-machine sync, multi-account SSH. Handles merge conflicts, secret detection, Go templates.
+description: Dotfile backup and sync with chezmoi. TRIGGERS - chezmoi, dotfiles, sync dotfiles, backup configs, cross-machine sync.
 allowed-tools: Read, Edit, Bash
 ---
 

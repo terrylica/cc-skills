@@ -1,6 +1,6 @@
 ---
 name: asciinema-streaming-backup
-description: Real-time asciinema recording backup to GitHub orphan branch with idle-based chunking and brotli archival. TRIGGERS - streaming backup, recording backup, asciinema backup, continuous recording, session backup, orphan branch recording, zstd streaming, chunked recording, real-time backup, github recording storage.
+description: Real-time asciinema backup to GitHub orphan branch. TRIGGERS - streaming backup, asciinema backup, session backup, recording backup.
 allowed-tools: Read, Bash, Glob, Write, Edit, AskUserQuestion
 ---
 
