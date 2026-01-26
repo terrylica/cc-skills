@@ -1,6 +1,6 @@
 ---
 name: skill-architecture
-description: Meta-skill for creating Claude Code skills. TRIGGERS - create skill, YAML frontmatter, validate skill, TodoWrite templates, bundled resources (scripts/references/assets), progressive disclosure, allowed-tools, skill architecture. Use when creating, validating, or structuring skills.
+description: Meta-skill for creating Claude Code skills. TRIGGERS - create skill, YAML frontmatter, validate skill, skill architecture.
 ---
 
 # Skill Architecture

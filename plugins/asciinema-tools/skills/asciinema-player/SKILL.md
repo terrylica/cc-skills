@@ -1,6 +1,6 @@
 ---
 name: asciinema-player
-description: Play .cast terminal recordings in iTerm2 with full CLI controls. TRIGGERS - asciinema, .cast file, terminal recording, play cast, recording playback, play recording. Uses AskUserQuestion for speed/options selection, spawns clean iTerm2 window via AppleScript.
+description: Play .cast terminal recordings in iTerm2. TRIGGERS - asciinema play, .cast file, play recording, recording playback.
 allowed-tools: Read, Bash, Glob, AskUserQuestion
 ---
 

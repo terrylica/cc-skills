@@ -1,10 +1,6 @@
 ---
 name: mlflow-python
-description: >
-  Log experiment metrics, parameters, and artifacts using MLflow Python API.
-  Query and analyze runs with DataFrame operations. Use when user mentions
-  "log backtest", "MLflow metrics", "experiment tracking", "log parameters",
-  "search runs", "MLflow query", or needs to record strategy performance.
+description: MLflow experiment tracking via Python API. TRIGGERS - MLflow metrics, log backtest, experiment tracking, search runs.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 

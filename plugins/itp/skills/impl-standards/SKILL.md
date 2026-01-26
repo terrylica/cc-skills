@@ -1,6 +1,6 @@
 ---
 name: impl-standards
-description: Core engineering standards during implementation. Use when implementing features, writing production code, or when user mentions error handling, constants management, progress logging, or code quality standards.
+description: Core engineering standards for implementation. TRIGGERS - error handling, constants management, progress logging, code quality.
 ---
 
 # Implementation Standards

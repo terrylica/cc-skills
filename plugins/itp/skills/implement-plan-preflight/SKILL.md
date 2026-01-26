@@ -1,6 +1,6 @@
 ---
 name: implement-plan-preflight
-description: Execute Preflight phase for /itp:go workflow - create ADR (MADR 4.0), design spec from global plan, verify checkpoint. Use when creating ADRs, design specs, or when /itp:go invokes Preflight phase. Triggers - ADR creation, design spec, MADR format, preflight verification.
+description: Execute Preflight phase for /itp:go workflow. TRIGGERS - ADR creation, design spec, MADR format, preflight verification.
 ---
 
 # Implement Plan Preflight

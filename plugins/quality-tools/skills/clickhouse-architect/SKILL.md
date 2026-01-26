@@ -1,14 +1,6 @@
 ---
 name: clickhouse-architect
-description: >
-  ClickHouse schema design authority (hub skill). Use when designing schemas,
-  selecting compression codecs, tuning ORDER BY, optimizing queries, or
-  reviewing table structure. **Delegates to**: clickhouse-cloud-management
-  for user creation, clickhouse-pydantic-config for DBeaver config,
-  schema-e2e-validation for YAML contracts. Triggers: "design ClickHouse
-  schema", "compression codecs", "MergeTree optimization", "ORDER BY tuning",
-  "partition key", "ClickHouse performance", "SharedMergeTree",
-  "ReplicatedMergeTree", "migrate to ClickHouse".
+description: ClickHouse schema design and optimization. TRIGGERS - ClickHouse schema, compression codecs, MergeTree, ORDER BY tuning, partition key.
 allowed-tools: Read, Bash, Grep, Skill
 ---
 
