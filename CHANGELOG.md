@@ -1,3 +1,36 @@
+## [9.50.1](https://github.com/terrylica/cc-skills/compare/v9.50.0...v9.50.1) (2026-01-27)
+
+
+### Bug Fixes
+
+* **itp-hooks:** make Vale hook cwd-agnostic with proper ANSI handling ([35e0325](https://github.com/terrylica/cc-skills/commit/35e032599de344b06d4023c08e2c90d0b96af314))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [glossary-management](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/glossary-management/SKILL.md) - updated (+23/-3)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+9)
+
 # [9.50.0](https://github.com/terrylica/cc-skills/compare/v9.49.0...v9.50.0) (2026-01-27)
 
 
