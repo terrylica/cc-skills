@@ -1,3 +1,54 @@
+# [9.50.0](https://github.com/terrylica/cc-skills/compare/v9.49.0...v9.50.0) (2026-01-27)
+
+
+### Features
+
+* **quality-tools:** add symmetric-dogfooding skill for cross-repo validation ([323acc8](https://github.com/terrylica/cc-skills/commit/323acc847bb622b0a7802f8ca21f620d4f8822e7))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+4/-4)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [symmetric-dogfooding](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/symmetric-dogfooding/SKILL.md) - new (+258)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (1 file)</summary>
+
+- [Creation Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/creation-workflow.md) - updated (+4/-4)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/symmetric-dogfooding</strong> (2 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/symmetric-dogfooding/references/evolution-log.md) - new (+13)
+- [Example: trading-fitness and rangebar-py](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/symmetric-dogfooding/references/example-setup.md) - new (+82)
+
+</details>
+
 # [9.49.0](https://github.com/terrylica/cc-skills/compare/v9.48.2...v9.49.0) (2026-01-27)
 
 
