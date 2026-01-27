@@ -186,12 +186,14 @@ To add a new term to the glossary:
 ### Running Vale
 
 ```bash
-# Check a single file
-vale --config=~/.claude/.vale.ini CLAUDE.md
+# Check a single file (run from file's directory for glob patterns to match)
+cd ~/eon/trading-fitness && vale --config=~/.claude/.vale.ini CLAUDE.md
 
 # Check all CLAUDE.md files
-find ~/eon -name "CLAUDE.md" -exec vale --config=~/.claude/.vale.ini {} \;
+find ~/eon -name "CLAUDE.md" -exec sh -c 'cd "$(dirname "$1")" && vale --config=~/.claude/.vale.ini "$(basename "$1")"' _ {} \;
 ```
+
+**Important**: Vale glob patterns in `.vale.ini` (like `[CLAUDE.md]`) are relative to cwd. Always run Vale from the file's directory or use absolute paths with matching glob patterns.
 
 ## Troubleshooting
 
@@ -228,6 +230,24 @@ find ~/eon -name "CLAUDE.md" -exec vale --config=~/.claude/.vale.ini {} \;
    ```bash
    ls -la ~/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/posttooluse-glossary-sync.ts
    ```
+
+### Vale Output Shows "0 files" But File Exists
+
+This happens when Vale's glob patterns don't match the file path. The `posttooluse-vale-claude-md.ts` hook handles this by:
+
+1. Walking up from the file's directory to find `.vale.ini`
+2. Changing to the file's directory before running Vale
+3. Stripping ANSI escape codes for reliable output parsing
+
+If running Vale manually, ensure you're in the file's directory:
+
+```bash
+# Wrong - may show "0 files"
+vale --config=/path/to/.vale.ini /absolute/path/to/CLAUDE.md
+
+# Correct - cd first
+cd /absolute/path/to && vale --config=/path/to/.vale.ini CLAUDE.md
+```
 
 ### Duplicate Vocabulary Directories
 
