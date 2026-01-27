@@ -128,6 +128,15 @@ The Vale terminology hooks enforce consistent terminology across all CLAUDE.md f
 2. **posttooluse-glossary-sync.ts** → (if GLOSSARY.md changed) Updates Vale vocabulary
 3. **posttooluse-terminology-sync.ts** → Syncs project terms to global GLOSSARY.md + duplicate detection
 
+### Implementation Details (posttooluse-vale-claude-md.ts)
+
+The PostToolUse Vale hook is **cwd-agnostic** and works from any directory:
+
+1. **Config discovery**: Walks UP from the file's directory to find `.vale.ini`, falls back to `~/.claude/.vale.ini`
+2. **Directory change**: Runs Vale from the file's directory so glob patterns like `[CLAUDE.md]` match
+3. **ANSI stripping**: Removes color codes from Vale output for reliable regex parsing
+4. **Summary parsing**: Extracts error/warning/suggestion counts from Vale's summary line
+
 ### PreToolUse vs PostToolUse
 
 | Hook Type   | When             | Can Reject? | Use Case                         |
