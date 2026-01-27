@@ -1,3 +1,10 @@
+# [9.49.0](https://github.com/terrylica/cc-skills/compare/v9.48.2...v9.49.0) (2026-01-27)
+
+
+### Features
+
+* **itp-hooks:** enhance code traceability to include GitHub Issues ([4d0c730](https://github.com/terrylica/cc-skills/commit/4d0c730101c870088548f4176a79ce5258e316ca))
+
 ## [9.48.2](https://github.com/terrylica/cc-skills/compare/v9.48.1...v9.48.2) (2026-01-26)
 
 
