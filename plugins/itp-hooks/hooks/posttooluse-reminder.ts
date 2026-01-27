@@ -295,10 +295,13 @@ REFERENCE: https://docs.astral.sh/uv/concepts/projects/dependencies/`;
 }
 
 /**
- * Check implementation code for ruff issues and ADR traceability
+ * Check implementation code for ruff issues and ADR/Issue traceability
  * ADR: 2025-12-11-ruff-posttooluse-linting
  */
-function checkImplementationCode(filePath: string): string | null {
+function checkImplementationCode(
+  filePath: string,
+  newContent?: string
+): string | null {
   // Check if it's implementation code
   const isImplPath =
     /^(src\/|lib\/|scripts\/|plugins\/[^/]+\/skills\/[^/]+\/scripts\/)/.test(
@@ -332,16 +335,50 @@ function checkImplementationCode(filePath: string): string | null {
     }
   }
 
-  // --- ADR traceability check ---
+  // --- ADR/Issue traceability check ---
+  // Patterns that indicate traceability is already present
+  const TRACEABILITY_PATTERNS = [
+    /ADR:/i, // ADR: comment
+    /docs\/adr\//i, // docs/adr/ path reference
+    /\/adr\/\d{4}/, // /adr/2025-... style reference
+    /Issue:?\s*#?\d+/i, // Issue #123 or Issue: 123
+    /GitHub Issue/i, // GitHub Issue reference
+    /closes?\s*#\d+/i, // closes #123
+    /fixes?\s*#\d+/i, // fixes #123
+    /refs?\s*#\d+/i, // refs #123
+    /related:?\s*#\d+/i, // related: #123
+    /https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+/, // Full GitHub issue URL
+  ];
+
+  // First check: if newContent (the edit) already contains traceability, skip
+  if (newContent) {
+    const hasTraceabilityInEdit = TRACEABILITY_PATTERNS.some((p) =>
+      p.test(newContent)
+    );
+    if (hasTraceabilityInEdit) {
+      return null; // Edit already includes traceability reference
+    }
+  }
+
+  // Second check: if the file already has traceability in first 50 lines, skip
   if (existsSync(filePath)) {
     try {
       const content = readFileSync(filePath, "utf-8");
       const first50Lines = content.split("\n").slice(0, 50).join("\n");
 
-      // Look for common ADR reference patterns
-      if (!/ADR:|docs\/adr\/|\/adr\/[0-9]/.test(first50Lines)) {
-        return `[CODE-ADR TRACEABILITY] You modified implementation file: ${fileBasename}. Consider: Does this change relate to an existing ADR? If implementing a decision from docs/adr/, add ADR reference comment.`;
+      const hasTraceabilityInFile = TRACEABILITY_PATTERNS.some((p) =>
+        p.test(first50Lines)
+      );
+      if (hasTraceabilityInFile) {
+        return null; // File already has traceability
       }
+
+      // No traceability found - emit reminder
+      return `[CODE TRACEABILITY] You modified implementation file: ${fileBasename}. Consider:
+- Does this change relate to an existing ADR? Add: // ADR: docs/adr/YYYY-MM-DD-slug.md
+- Does this change relate to a GitHub Issue? Add: // Issue #123 or // GitHub Issue: https://github.com/owner/repo/issues/123
+
+This reminder is skipped if the code already contains ADR/Issue references.`;
     } catch {
       // File read error - skip
     }
@@ -518,7 +555,7 @@ async function main(): Promise<void> {
 
     // Check implementation code (uses raw path for file reading)
     if (!reminder) {
-      reminder = checkImplementationCode(rawFilePath);
+      reminder = checkImplementationCode(rawFilePath, content);
     }
 
     if (reminder) {
