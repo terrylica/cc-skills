@@ -219,10 +219,10 @@ Analyze each example to identify what resources would be helpful:
 
 ### Step 3: Initialize the Skill
 
-Run the marketplace init script (don't copy, use from marketplace):
+Run the init script from plugin-dev:
 
 ```bash
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/init_skill.py <skill-name> --path ~/.claude/skills/
+uv run plugins/plugin-dev/scripts/skill-creator/init_skill.py <skill-name> --path <target-path>
 ```
 
 Creates: skill directory + SKILL.md template + example resource directories
@@ -249,13 +249,13 @@ Creates: skill directory + SKILL.md template + example resource directories
 **For local development** (validation only, no zip creation):
 
 ```bash
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/quick_validate.py <path/to/skill-folder>
+uv run plugins/plugin-dev/scripts/skill-creator/quick_validate.py <path/to/skill-folder>
 ```
 
 **For distribution** (validates AND creates zip):
 
 ```bash
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.py <path/to/skill-folder>
+uv run plugins/plugin-dev/scripts/skill-creator/package_skill.py <path/to/skill-folder>
 ```
 
 Validates: YAML frontmatter, naming, description, file organization

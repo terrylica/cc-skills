@@ -60,10 +60,10 @@ Analyze each use case to identify resources needed.
 
 ### Step 3: Initialize with Script
 
-Use marketplace script for proper structure:
+Use init script for proper structure:
 
 ```bash
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/init_skill.py pdf-editor --path ~/.claude/skills/
+uv run plugins/plugin-dev/scripts/skill-creator/init_skill.py pdf-editor --path ~/.claude/skills/
 ```
 
 **Creates**:
@@ -152,7 +152,7 @@ description: Extract text and tables from PDFs, rotate pages, merge documents. U
 Run packaging script (validates automatically):
 
 ```bash
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.py ~/.claude/skills/pdf-editor/
+uv run plugins/plugin-dev/scripts/skill-creator/package_skill.py ~/.claude/skills/pdf-editor/
 ```
 
 **Validates**:
@@ -350,7 +350,7 @@ description: Extract text and tables from PDFs, rotate pages, merge documents. U
 **Fix**: Run validation script for details
 
 ```bash
-plugins/marketplaces/anthropic-agent-skills/skill-creator/scripts/package_skill.py <skill-path>
+uv run plugins/plugin-dev/scripts/skill-creator/package_skill.py <skill-path>
 ```
 
 See error messages for specific issues.
