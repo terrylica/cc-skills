@@ -433,7 +433,7 @@ SETUP_EOF
 
 ### mise 4-Phase Workflow
 
-Orchestrate releases with mise tasks:
+Orchestrate releases with mise tasks. Use `depends` to enforce phase ordering via the task DAG — never rely on sequential `mise run` calls inside a single task.
 
 ```toml
 # .mise.toml
@@ -448,30 +448,47 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 """
 
+[tasks."release:sync"]
+description = "Synchronize with remote"
+depends = ["release:preflight"]
+run = """
+git pull --rebase origin main
+git push origin main
+"""
+
 [tasks."release:version"]
 description = "Bump version via semantic-release"
+depends = ["release:sync"]
 run = """
 if [ ! -d node_modules ]; then npm install; fi
 npm run release
 """
 
 [tasks."release:build-all"]
-description = "Build all platform wheels"
+description = "Build all platform wheels + sdist"
+depends = ["release:version"]
 run = """
 mise run release:macos-arm64
 mise run release:linux
+mise run release:sdist
+# Consolidate all artifacts to dist/
+VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*= "\\(.*\\)"/\\1/')
+cp -n target/wheels/*-${VERSION}-*.whl dist/ 2>/dev/null || true
+cp -n target/wheels/*-${VERSION}.tar.gz dist/ 2>/dev/null || true
 """
 
+[tasks."release:pypi"]
+description = "Publish to PyPI"
+depends = ["release:build-all"]  # CRITICAL: must build before publish
+run = "./scripts/publish-to-pypi.sh"
+
 [tasks."release:full"]
-description = "Full 4-phase workflow"
-run = """
-mise run release:preflight
-mise run release:sync
-mise run release:version
-mise run release:build-all
-mise run release:postflight
-"""
+description = "Full release: version → build → smoke → publish"
+depends = ["release:postflight", "release:pypi"]
+run = "echo 'Released and published!'"
 ```
+
+**Key principle**: Every phase task must have `depends` on its prerequisites. `release:pypi` must depend on `release:build-all` — otherwise running `mise run release:pypi` alone will fail because no wheels exist. See [Release Workflow Patterns](../../mise-tasks/references/release-workflow-patterns.md) for the full DAG pattern and anti-patterns.
 
 See rangebar-py `.mise.toml` for complete implementation.
 

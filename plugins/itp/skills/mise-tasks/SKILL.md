@@ -623,6 +623,10 @@ run = "deploy.sh"
 | Hardcode secrets in tasks       | Security risk                                 | Use `_.file = ".env.secrets"` with `redact = true`                       |
 | Giant monolithic tasks          | Hard to debug, no reuse                       | Break into small tasks with dependencies                                 |
 | Skip `description`              | Poor discoverability                          | Always add descriptions                                                  |
+| Publish without build `depends` | Runtime failure instead of DAG prevention     | Add `depends = ["build"]` to publish tasks                               |
+| Orchestrator without all phases | "Run X next" messages get ignored             | Include all phases in `release:full` depends array                       |
+
+For release-specific anti-patterns and patterns, see [Release Workflow Patterns](./references/release-workflow-patterns.md).
 
 ---
 
@@ -648,3 +652,4 @@ The `mise-configuration` skill covers:
 - [Advanced Features](./references/advanced.md) - Monorepo, watch, experimental
 - [Polyglot Affected](./references/polyglot-affected.md) - Pants + mise integration guide and tool comparison
 - [Bootstrap Monorepo](./references/bootstrap-monorepo.md) - Autonomous polyglot monorepo bootstrap meta-prompt
+- [Release Workflow Patterns](./references/release-workflow-patterns.md) - Release task DAG patterns, build-before-publish enforcement
