@@ -29,7 +29,9 @@ export const PATTERNS = {
       // .() { .|.& }; .
       /\.\s*\(\s*\)\s*\{\s*\.[^}]*\|[^}]*\.[^}]*&[^}]*\}/,
       // Generic: function calling itself with pipe and background
-      /(\w+)\s*\(\s*\)\s*\{[^}]*\1[^}]*\|[^}]*\1[^}]*&[^}]*\}/,
+      // Uses word boundaries (\b) to prevent partial function name matches
+      // (fixes false positive where 's' from 'check_status' matched 'grep s')
+      /\b(\w+)\s*\(\s*\)\s*\{[^}]*\b\1\b[^}]*\|[^}]*\b\1\b[^}]*&[^}]*\}/,
       // while true; do ... & done (unbounded background spawn)
       /while\s+(true|:|\[\s*1\s*\])\s*;\s*do[^d]*[^o]*[^n]*[^e]*&[^d]*done/i,
       // Infinite for loop with background spawn
