@@ -1,0 +1,10 @@
+# Ruff configuration for Ralph hooks
+# ADR: 2025-12-20-ralph-rssi-eternal-loop
+
+[lint]
+# Ignore line length check - no limit for hooks
+ignore = [
+    "E501",    # Line length - no limit for hooks
+    "PLR0913", # Too many arguments - valid for complex APIs
+    "PLR0915", # Too many statements - valid for analysis scripts
+]
