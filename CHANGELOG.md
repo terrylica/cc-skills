@@ -1,3 +1,58 @@
+# [9.51.0](https://github.com/terrylica/cc-skills/compare/v9.50.2...v9.51.0) (2026-01-30)
+
+
+### Features
+
+* **doc-tools:** add plotext-financial-chart skill for ASCII line charts ([3b9c1cb](https://github.com/terrylica/cc-skills/commit/3b9c1cbdbac25a91ba1b480339051f5442c8c409))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [plotext-financial-chart](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/plotext-financial-chart/SKILL.md) - new (+145)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [clickhouse-architect](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/SKILL.md) - updated (+1)
+
+</details>
+
+
+### Plugin READMEs
+
+- [doc-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/README.md) - updated (+2)
+
+### Skill References
+
+<details>
+<summary><strong>doc-tools/plotext-financial-chart</strong> (2 files)</summary>
+
+- [Plotext Financial Chart — API and Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/plotext-financial-chart/references/api-and-patterns.md) - new (+205)
+- [Tool Selection Rationale](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/plotext-financial-chart/references/tool-selection.md) - new (+118)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/clickhouse-architect</strong> (1 file)</summary>
+
+- [Cache Schema Evolution](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/references/cache-schema-evolution.md) - new (+483)
+
+</details>
+
 ## [9.50.2](https://github.com/terrylica/cc-skills/compare/v9.50.1...v9.50.2) (2026-01-30)
 
 
