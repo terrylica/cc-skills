@@ -83,22 +83,22 @@ fi
 mkdir -p "$PROJECT_DIR/.claude"
 
 # Check current state
-STATE_FILE="$PROJECT_DIR/.claude/ralph-universal-state.json"
+STATE_FILE="$PROJECT_DIR/.claude/ru-state.json"
 if [[ -f "$STATE_FILE" ]]; then
     CURRENT_STATE=$(jq -r '.state // "stopped"' "$STATE_FILE" 2>/dev/null || echo "stopped")
     if [[ "$CURRENT_STATE" != "stopped" ]]; then
         echo "ERROR: Loop already in state '$CURRENT_STATE'"
-        echo "       Run /ralph-universal:stop first"
+        echo "       Run /ru:stop first"
         exit 1
     fi
 fi
 
 # Transition to RUNNING state
 echo '{"state": "running"}' > "$STATE_FILE"
-date +%s > "$PROJECT_DIR/.claude/ralph-universal-start-timestamp"
+date +%s > "$PROJECT_DIR/.claude/ru-start-timestamp"
 
 # Create config
-CONFIG_FILE="$PROJECT_DIR/.claude/ralph-universal-config.json"
+CONFIG_FILE="$PROJECT_DIR/.claude/ru-config.json"
 jq -n \
     --arg state "running" \
     --argjson min_hours "$MIN_HOURS" \
@@ -123,7 +123,7 @@ echo ""
 echo "Project: $PROJECT_DIR"
 echo "State: RUNNING"
 echo ""
-echo "To stop: /ralph-universal:stop"
+echo "To stop: /ru:stop"
 echo "Kill switch: touch $PROJECT_DIR/.claude/STOP_LOOP"
 RALPH_UNIVERSAL_START
 ```
@@ -135,7 +135,7 @@ Run the bash script above to enable loop mode.
 The loop will continue until:
 
 - Maximum time/iterations reached
-- You run `/ralph-universal:stop`
+- You run `/ru:stop`
 - Kill switch file created (`.claude/STOP_LOOP`)
 
 Unlike regular Ralph, this works on **any project** - not just Alpha-Forge ML workflows.

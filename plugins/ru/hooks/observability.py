@@ -7,7 +7,7 @@ Claude: JSON with decision:block (Claude sees and can respond)
 Usage:
     from observability import emit, flush_to_claude, reset_timer
 
-    emit("Config", "Loaded ralph-config.json: 3 forbidden, 2 encouraged")
+    emit("Config", "Loaded ru-config.json: 3 forbidden, 2 encouraged")
     emit("Discovery", "Found spec.md via transcript parsing")
 
     # At decision time, flush accumulated messages

@@ -159,7 +159,7 @@ def check_task_complete_ralph(plan_file: str | None) -> tuple[bool, str, float]:
 
     Analyzes the plan file using 5 different signals to detect completion,
     returning the highest confidence match. Confidence levels are configurable
-    via .claude/ralph-config.json.
+    via .claude/ru-config.json.
 
     Signals:
     1. Explicit marker ([x] TASK_COMPLETE) - configurable confidence

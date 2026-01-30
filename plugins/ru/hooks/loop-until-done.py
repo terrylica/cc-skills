@@ -206,15 +206,15 @@ def build_continuation_prompt(
     guidance_timestamp = ""
 
     if project_dir:
-        ralph_config_file = Path(project_dir) / ".claude/ralph-config.json"
+        ralph_config_file = Path(project_dir) / ".claude/ru-config.json"
         if ralph_config_file.exists():
             try:
                 ralph_config = json.loads(ralph_config_file.read_text())
                 config_guidance = ralph_config.get("guidance", {})
                 guidance_timestamp = config_guidance.get("timestamp", "")
             except (json.JSONDecodeError, OSError) as e:
-                print(f"[ralph] Warning: Failed to load ralph-config.json: {e}", file=sys.stderr)
-                emit("Config", f"Failed to load ralph-config.json: {e}", target="terminal")
+                print(f"[ralph] Warning: Failed to load ru-config.json: {e}", file=sys.stderr)
+                emit("Config", f"Failed to load ru-config.json: {e}", target="terminal")
 
     # ===== ON-THE-FLY CONSTRAINT SCANNING =====
     # ADR: /docs/adr/2026-01-02-ralph-guidance-freshness-detection.md
@@ -364,7 +364,7 @@ def main():
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
 
     # ===== RALPH-UNIVERSAL: NO PROJECT TYPE RESTRICTION =====
-    # Unlike the original Ralph (Alpha-Forge only), ralph-universal works on ANY project.
+    # Unlike the original Ralph (Alpha-Forge only), ru works on ANY project.
     # The Alpha-Forge exclusivity guard has been surgically removed.
     # See: https://github.com/terrylica/cc-skills/issues/12
 
@@ -615,7 +615,7 @@ def main():
     # ===== FORCE VALIDATION CHECK (for /ralph:audit-now) =====
     # Check if user triggered immediate validation via /ralph:audit-now
     if project_dir:
-        ralph_config_file = Path(project_dir) / ".claude/ralph-config.json"
+        ralph_config_file = Path(project_dir) / ".claude/ru-config.json"
         if ralph_config_file.exists():
             try:
                 ralph_config_raw = json.loads(ralph_config_file.read_text())

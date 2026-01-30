@@ -297,10 +297,10 @@
       "strict": false
     },
     {
-      "name": "ralph-universal",
-      "description": "Ralph for ANY project - surgical fork with Alpha-Forge exclusivity removed. Autonomous loop mode works on any project type",
+      "name": "ru",
+      "description": "Ralph Universal - autonomous loop mode for ANY project. Short name for quick invocation: /ru:start, /ru:stop",
       "version": "9.55.0",
-      "source": "./plugins/ralph-universal",
+      "source": "./plugins/ru",
       "category": "automation",
       "author": {
         "name": "Terry Li",
@@ -312,9 +312,10 @@
         "autonomous",
         "loop",
         "automation",
-        "any-project"
+        "any-project",
+        "ru"
       ],
-      "hooks": "./plugins/ralph-universal/hooks/hooks.json",
+      "hooks": "./plugins/ru/hooks/hooks.json",
       "strict": false
     },
     {

@@ -12,7 +12,7 @@ NOTE: Idle command detection (git status spam) is handled by the Stop hook
 using stamina-style exponential backoff in loop-until-done.py.
 
 Protected files and deletion patterns are configurable via
-.claude/ralph-config.json.
+.claude/ru-config.json.
 
 ADR: /docs/adr/2025-12-20-ralph-rssi-eternal-loop.md
 ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md (output format)

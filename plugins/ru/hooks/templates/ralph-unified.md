@@ -15,7 +15,7 @@ adr: 2025-12-20-ralph-rssi-eternal-loop
 
 - DO NOT use AskUserQuestion
 - DO NOT ask "what should I work on next?"
-- DO NOT call /ralph-universal:stop
+- DO NOT call /ru:stop
 - DO NOT stop the session on your own
 - DO NOT idle or "monitor" - always take action
 - Make decisions autonomously until the task is complete

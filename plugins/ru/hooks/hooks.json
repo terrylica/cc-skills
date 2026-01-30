@@ -3,8 +3,8 @@
   "notes": [
     "FORK of Ralph with Alpha-Forge exclusivity guard REMOVED.",
     "Works on any project type - not just Alpha-Forge ML workflows.",
-    "Activation-gated design: Hooks do NOTHING unless started via /ralph-universal:start.",
-    "Bash wrappers check for $PROJECT/.claude/ralph-universal-state.json with state:running",
+    "Activation-gated design: Hooks do NOTHING unless started via /ru:start.",
+    "Bash wrappers check for $PROJECT/.claude/ru-state.json with state:running",
     "See: https://github.com/terrylica/cc-skills/issues/12"
   ],
   "hooks": {

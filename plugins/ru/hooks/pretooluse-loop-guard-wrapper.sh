@@ -5,7 +5,7 @@
 # Works on ANY project type.
 #
 # This wrapper implements the "globally registered, activation-gated" pattern:
-# - Hook is registered globally in settings.json
+# - Hook is registered globally in settings.json (PreToolUse:Bash)
 # - BUT: Does NOTHING unless Ralph Universal was explicitly started in the project
 #
 # Activation check happens BEFORE any Python/uv invocation, avoiding:
@@ -13,7 +13,7 @@
 # - Unnecessary processing in non-Ralph projects
 # - Zero overhead when Ralph Universal is not active
 #
-# Activation marker: $PROJECT/.claude/ralph-universal-state.json with {"state": "running"}
+# Activation marker: $PROJECT/.claude/ru-state.json with {"state": "running"}
 #
 # Why Bash wrapper?
 # - Pure Bash has no dependencies (no uv, no Python, no venv)
@@ -22,25 +22,25 @@
 set -euo pipefail
 
 # ===== ACTIVATION GATE =====
-# Check if Ralph is active BEFORE doing anything else.
+# Check if Ralph Universal is active BEFORE doing anything else.
 # This is the key to "globally registered, activation-gated" design.
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
 
 # Fast path: No project directory = not active
 if [[ -z "$PROJECT_DIR" ]]; then
-    # Silent exit - output empty JSON to allow stop
-    echo '{}'
+    # Silent exit - output allow response for PreToolUse
+    echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}'
     exit 0
 fi
 
-# Check for activation marker: $PROJECT/.claude/ralph-universal-state.json
-STATE_FILE="$PROJECT_DIR/.claude/ralph-universal-state.json"
+# Check for activation marker: $PROJECT/.claude/ru-state.json
+STATE_FILE="$PROJECT_DIR/.claude/ru-state.json"
 
 if [[ ! -f "$STATE_FILE" ]]; then
     # No state file = Ralph never started in this project
-    # Silent exit - output empty JSON to allow stop
-    echo '{}'
+    # Silent exit - output allow response for PreToolUse
+    echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}'
     exit 0
 fi
 
@@ -48,12 +48,12 @@ fi
 # Using grep for speed (no jq dependency in gate)
 if ! grep -q '"state"[[:space:]]*:[[:space:]]*"running"' "$STATE_FILE" 2>/dev/null; then
     # State exists but not running = Ralph not active
-    # Silent exit - output empty JSON to allow stop
-    echo '{}'
+    # Silent exit - output allow response for PreToolUse
+    echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}'
     exit 0
 fi
 
-# ===== RALPH IS ACTIVE =====
+# ===== RALPH UNIVERSAL IS ACTIVE =====
 # Only now do we invoke the Python script via uv
 # Use --no-project to prevent uv from inspecting local .venv
 
@@ -73,8 +73,9 @@ for loc in \
 done
 
 if [[ -z "$UV_CMD" ]]; then
-    echo "[ralph-universal] ERROR: uv not found, cannot run Stop hook" >&2
-    echo '{}'
+    echo "[ru] ERROR: uv not found, cannot run PreToolUse hook" >&2
+    # Allow command to proceed even if we can't run the guard
+    echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}'
     exit 0
 fi
 
@@ -83,4 +84,4 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Run the Python script with --no-project to avoid local .venv inspection
 # Pass stdin through for hook input
-exec "$UV_CMD" run --no-project "$SCRIPT_DIR/loop-until-done.py"
+exec "$UV_CMD" run --no-project "$SCRIPT_DIR/pretooluse-loop-guard.py"

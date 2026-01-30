@@ -11,9 +11,9 @@ Manage Ralph Universal hooks in `~/.claude/settings.json`.
 ## Usage
 
 ```bash
-/ralph-universal:hooks install   # Add hooks to settings.json
-/ralph-universal:hooks uninstall # Remove hooks from settings.json
-/ralph-universal:hooks status    # Show current hook status
+/ru:hooks install   # Add hooks to settings.json
+/ru:hooks uninstall # Remove hooks from settings.json
+/ru:hooks status    # Show current hook status
 ```
 
 ## Important
@@ -26,7 +26,7 @@ After installing hooks, you MUST restart Claude Code for them to take effect.
 /usr/bin/env bash << 'RALPH_UNIVERSAL_HOOKS'
 SETTINGS="$HOME/.claude/settings.json"
 COMMAND="${ARGUMENTS:-status}"
-MARKER="ralph-universal/hooks/"
+MARKER="ru/hooks/"
 
 # Ensure settings.json exists
 if [[ ! -f "$SETTINGS" ]]; then
@@ -38,7 +38,7 @@ case "$COMMAND" in
         echo "Installing Ralph Universal hooks..."
 
         # Record installation timestamp
-        date +%s > "$HOME/.claude/ralph-universal-hooks-installed-at"
+        date +%s > "$HOME/.claude/ru-hooks-installed-at"
 
         # Check if already installed
         if grep -q "$MARKER" "$SETTINGS" 2>/dev/null; then
@@ -50,7 +50,7 @@ case "$COMMAND" in
 
         echo ""
         echo "Hooks will be registered when you run:"
-        echo "  /plugin install ralph-universal@cc-skills"
+        echo "  /plugin install ru@cc-skills"
         echo ""
         echo "Then restart Claude Code for hooks to take effect."
         ;;
@@ -59,10 +59,10 @@ case "$COMMAND" in
         echo "Uninstalling Ralph Universal hooks..."
 
         # Remove timestamp
-        rm -f "$HOME/.claude/ralph-universal-hooks-installed-at"
+        rm -f "$HOME/.claude/ru-hooks-installed-at"
 
         echo "Hooks will be removed when you run:"
-        echo "  /plugin uninstall ralph-universal@cc-skills"
+        echo "  /plugin uninstall ru@cc-skills"
         echo ""
         echo "Restart Claude Code after uninstalling."
         ;;
@@ -79,18 +79,18 @@ case "$COMMAND" in
         else
             echo "Status: NOT INSTALLED"
             echo ""
-            echo "Run: /ralph-universal:hooks install"
+            echo "Run: /ru:hooks install"
         fi
 
-        if [[ -f "$HOME/.claude/ralph-universal-hooks-installed-at" ]]; then
-            INSTALL_TS=$(cat "$HOME/.claude/ralph-universal-hooks-installed-at")
+        if [[ -f "$HOME/.claude/ru-hooks-installed-at" ]]; then
+            INSTALL_TS=$(cat "$HOME/.claude/ru-hooks-installed-at")
             INSTALL_DATE=$(date -r "$INSTALL_TS" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "unknown")
             echo "Installed at: $INSTALL_DATE"
         fi
         ;;
 
     *)
-        echo "Usage: /ralph-universal:hooks [install|uninstall|status]"
+        echo "Usage: /ru:hooks [install|uninstall|status]"
         exit 1
         ;;
 esac

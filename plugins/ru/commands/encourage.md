@@ -13,17 +13,17 @@ Encouraged items get priority in opportunity discovery and override forbidden pa
 
 ## Usage
 
-- `/ralph-universal:encourage test coverage` - Add "test coverage" to encouraged list
-- `/ralph-universal:encourage --list` - Show current encouraged items
-- `/ralph-universal:encourage --clear` - Clear all encouraged items
-- `/ralph-universal:encourage --remove <phrase>` - Remove item matching phrase (fuzzy)
+- `/ru:encourage test coverage` - Add "test coverage" to encouraged list
+- `/ru:encourage --list` - Show current encouraged items
+- `/ru:encourage --clear` - Clear all encouraged items
+- `/ru:encourage --remove <phrase>` - Remove item matching phrase (fuzzy)
 
 ## Execution
 
 ```bash
 /usr/bin/env bash << 'RALPH_ENCOURAGE_SCRIPT'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
+CONFIG_FILE="$PROJECT_DIR/.claude/ru-config.json"
 
 # Get arguments
 ARGS="${ARGUMENTS:-}"
@@ -69,7 +69,7 @@ case "$ARGS" in
         echo "Removed from encouraged list: $MATCH"
         ;;
     "")
-        echo "Usage: /ralph-universal:encourage <phrase> | --list | --clear | --remove <phrase>"
+        echo "Usage: /ru:encourage <phrase> | --list | --clear | --remove <phrase>"
         echo ""
         echo "Current encouraged items:"
         jq -r '.guidance.encouraged[]?' "$CONFIG_FILE" | while read -r item; do
@@ -96,7 +96,7 @@ Run the bash script above to manage encouraged items.
 
 ## How It Works
 
-1. **Config file**: Changes are written to `.claude/ralph-config.json`
+1. **Config file**: Changes are written to `.claude/ru-config.json`
 2. **Next iteration applies**: The Stop hook reads config fresh on each iteration
 3. **Priority override**: Encouraged items override forbidden patterns
 4. **Template rendering**: Encouraged items appear in the `## USER GUIDANCE` section
