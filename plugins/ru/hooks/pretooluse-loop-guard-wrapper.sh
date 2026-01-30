@@ -13,7 +13,7 @@
 # - Unnecessary processing in non-Ralph projects
 # - Zero overhead when Ralph Universal is not active
 #
-# Activation marker: $PROJECT/.claude/ralph-universal-state.json with {"state": "running"}
+# Activation marker: $PROJECT/.claude/ru-state.json with {"state": "running"}
 #
 # Why Bash wrapper?
 # - Pure Bash has no dependencies (no uv, no Python, no venv)
@@ -34,8 +34,8 @@ if [[ -z "$PROJECT_DIR" ]]; then
     exit 0
 fi
 
-# Check for activation marker: $PROJECT/.claude/ralph-universal-state.json
-STATE_FILE="$PROJECT_DIR/.claude/ralph-universal-state.json"
+# Check for activation marker: $PROJECT/.claude/ru-state.json
+STATE_FILE="$PROJECT_DIR/.claude/ru-state.json"
 
 if [[ ! -f "$STATE_FILE" ]]; then
     # No state file = Ralph never started in this project
@@ -73,7 +73,7 @@ for loc in \
 done
 
 if [[ -z "$UV_CMD" ]]; then
-    echo "[ralph-universal] ERROR: uv not found, cannot run PreToolUse hook" >&2
+    echo "[ru] ERROR: uv not found, cannot run PreToolUse hook" >&2
     # Allow command to proceed even if we can't run the guard
     echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}'
     exit 0

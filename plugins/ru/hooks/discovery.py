@@ -429,7 +429,7 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
     project_path = Path(project_dir)
     opportunities: list[str] = []
 
-    # Load user guidance from ralph-config.json (forbidden/encouraged lists)
+    # Load user guidance from ru-config.json (forbidden/encouraged lists)
     guidance = _load_guidance(project_path)
 
     # Load accumulated knowledge
@@ -502,7 +502,7 @@ def scan_work_opportunities(project_dir: str) -> list[str]:
 
 
 def _load_guidance(project_dir: Path) -> dict | None:
-    """Load user guidance from ralph-config.json.
+    """Load user guidance from ru-config.json.
 
     Guidance contains 'forbidden' and 'encouraged' lists for filtering.
 
@@ -512,7 +512,7 @@ def _load_guidance(project_dir: Path) -> dict | None:
     Returns:
         Guidance dict or None if not found/invalid
     """
-    config_file = project_dir / ".claude" / "ralph-config.json"
+    config_file = project_dir / ".claude" / "ru-config.json"
     if not config_file.exists():
         return None
 
