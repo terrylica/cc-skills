@@ -1,3 +1,10 @@
+## [10.0.1](https://github.com/terrylica/cc-skills/compare/v10.0.0...v10.0.1) (2026-01-30)
+
+
+### Bug Fixes
+
+* **itp-hooks:** prevent fork bomb pattern false positives on shell functions ([1cc3623](https://github.com/terrylica/cc-skills/commit/1cc36239c2e137e080e3f9f2874f22d9f70d65d0)), closes [#17](https://github.com/terrylica/cc-skills/issues/17)
+
 # [10.0.0](https://github.com/terrylica/cc-skills/compare/v9.55.0...v10.0.0) (2026-01-30)
 
 
