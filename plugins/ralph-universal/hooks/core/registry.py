@@ -2,10 +2,11 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
+# Issue #12: https://github.com/terrylica/cc-skills/issues/12
 """Adapter registry with auto-discovery.
 
 Scans the adapters/ directory and loads all ProjectAdapter implementations.
-Research Repo exclusive: No universal fallback - Ralph only works with Research Repo.
+Ralph Universal: Falls back to UniversalAdapter for any project type.
 """
 
 import importlib.util
@@ -24,16 +25,15 @@ class AdapterRegistry:
     all classes that implement the ProjectAdapter protocol. When get_adapter()
     is called, it tries each adapter's detect() method until one matches.
 
-    Note: Ralph is Research Repo exclusive - returns None for non-Research Repo projects.
+    Ralph Universal: Falls back to UniversalAdapter for any project type.
 
     Example:
         # Initialize registry (scans adapters/ directory)
         AdapterRegistry.discover(Path(__file__).parent.parent / "adapters")
 
-        # Get adapter for a project (returns None if not Research Repo)
+        # Get adapter for a project (always returns an adapter)
         adapter = AdapterRegistry.get_adapter(Path("/path/to/project"))
-        if adapter:
-            print(f"Using adapter: {adapter.name}")
+        print(f"Using adapter: {adapter.name}")
     """
 
     _adapters: list[ProjectAdapter] = []
@@ -110,29 +110,40 @@ class AdapterRegistry:
 
     @classmethod
     def get_adapter(cls, project_dir: Path) -> ProjectAdapter | None:
-        """Return matching adapter (Research Repo exclusive, no universal fallback).
+        """Return matching adapter with universal fallback.
 
         Args:
             project_dir: Path to project root directory
 
         Returns:
-            The first adapter whose detect() returns True, or None if not Research Repo
+            The first adapter whose detect() returns True.
+            Falls back to UniversalAdapter for any project.
         """
         if not cls._discovered:
             # Auto-discover if not already done
             adapters_dir = Path(__file__).parent.parent / "adapters"
             cls.discover(adapters_dir)
 
+        # Try specific adapters first (research-repo, etc.)
+        universal_adapter = None
         for adapter in cls._adapters:
+            # Save universal adapter for fallback
+            if adapter.name == "universal":
+                universal_adapter = adapter
+                continue
             try:
                 if adapter.detect(project_dir):
                     logger.info(f"Selected adapter: {adapter.name}")
                     return adapter
-            except Exception as e:
+            except (OSError, ValueError, TypeError) as e:
                 logger.warning(f"Adapter {adapter.name} detect() failed: {e}")
 
-        # Research Repo exclusive: no fallback, return None for non-Research Repo projects
-        logger.info("No matching adapter found (Ralph is Research Repo exclusive)")
+        # Fallback to universal adapter (works on any project)
+        if universal_adapter:
+            logger.info("Using universal adapter (fallback)")
+            return universal_adapter
+
+        logger.warning("No adapter found (not even universal)")
         return None
 
     @classmethod
