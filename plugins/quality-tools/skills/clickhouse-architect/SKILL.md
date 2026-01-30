@@ -264,6 +264,7 @@ The audit script checks:
 | [`references/audit-and-diagnostics.md`](./references/audit-and-diagnostics.md)             | Query interpretation guide                     |
 | [`references/idiomatic-architecture.md`](./references/idiomatic-architecture.md)           | Parameterized views, dictionaries, dedup       |
 | [`references/schema-documentation.md`](./references/schema-documentation.md)               | COMMENT patterns + naming for AI understanding |
+| [`references/cache-schema-evolution.md`](./references/cache-schema-evolution.md)           | Cache invalidation + schema evolution patterns |
 
 ### External Documentation
 
