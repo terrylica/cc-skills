@@ -4,7 +4,7 @@ allowed-tools: Bash, AskUserQuestion
 argument-hint: "<phrase> | --list | --clear | --remove"
 ---
 
-# Ralph Universal: Encourage
+# RU: Encourage
 
 Add items to the encouraged list during an active loop session.
 Encouraged items get priority in opportunity discovery and override forbidden patterns.
