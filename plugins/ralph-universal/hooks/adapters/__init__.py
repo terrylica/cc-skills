@@ -2,12 +2,17 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Project-type adapters for Ralph multi-repository support.
+# Issue #12: https://github.com/terrylica/cc-skills/issues/12
+"""Project-type adapters for Ralph Universal.
 
 Each adapter provides project-specific logic for:
 - Detecting project type from directory structure
 - Reading metrics from existing outputs
 - Determining convergence based on project-specific signals
+
+Ralph Universal includes:
+- AlphaForgeAdapter: For Alpha-Forge ML research projects (metrics-based convergence)
+- UniversalAdapter: Fallback for ANY project (time/iteration-based completion)
 
 To add a new adapter:
 1. Create a new .py file in this directory
@@ -16,8 +21,6 @@ To add a new adapter:
 """
 
 from adapters.alpha_forge import AlphaForgeAdapter
+from adapters.universal import UniversalAdapter
 
-# Note: UniversalAdapter intentionally omitted - Ralph is Alpha Forge exclusive.
-# See core/registry.py for details. Registry returns None for non-Alpha Forge projects.
-
-__all__ = ["AlphaForgeAdapter"]
+__all__ = ["AlphaForgeAdapter", "UniversalAdapter"]

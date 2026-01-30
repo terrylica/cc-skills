@@ -4,7 +4,12 @@ Autonomous loop mode for **any project** - a surgical fork of Ralph with the Alp
 
 ## What This Is
 
-Ralph Universal is a direct clone of the Ralph plugin with **one surgical edit**: the Alpha-Forge exclusivity guard has been removed from `loop-until-done.py`.
+Ralph Universal is a surgical fork of Ralph with Alpha-Forge exclusivity removed. Key changes:
+
+- Removed Alpha-Forge guards from `loop-until-done.py`, `pretooluse-loop-guard.py`, `archive-plan.sh`
+- Created `UniversalAdapter` that works on ANY project (time/iteration-based completion)
+- Generalized `ralph-unified.md` template (removed Alpha-Forge specific metrics/protocols)
+- Updated adapter registry to use universal fallback
 
 | Feature              | Ralph           | Ralph Universal      |
 | -------------------- | --------------- | -------------------- |
@@ -44,10 +49,12 @@ See: [Issue #12](https://github.com/terrylica/cc-skills/issues/12)
 
 ## Differences from Ralph
 
-1. **No Alpha-Forge guard** - Works on any project
-2. **Simplified commands** - Only start/stop/status (no guidance, forbid, encourage)
-3. **Separate state files** - Uses `ralph-universal-state.json` (won't conflict with Ralph)
-4. **No metrics-based convergence** - Uses time/iteration limits only
+1. **No Alpha-Forge guard** - Works on any project type
+2. **Universal adapter fallback** - Uses `UniversalAdapter` when no specific adapter matches
+3. **Generic template** - `ralph-unified.md` uses project-agnostic discovery protocol
+4. **Simplified commands** - Only start/stop/status (no guidance, forbid, encourage)
+5. **Separate state files** - Uses `ralph-universal-state.json` (won't conflict with Ralph)
+6. **Time/iteration-based completion** - No metrics-based convergence for universal projects
 
 ## State Files
 

@@ -74,22 +74,9 @@ def is_deletion_command(command: str) -> bool:
 
 def main():
     """Check Bash command and block if it deletes loop files."""
-    # ===== ALPHA-FORGE ONLY GUARD =====
-    # Ralph is dedicated to alpha-forge ML research workflows only.
-    # Skip all processing for non-alpha-forge projects (zero overhead).
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", "")
-    if project_dir:
-        from core.project_detection import is_alpha_forge_project
-        if not is_alpha_forge_project(project_dir):
-            # Silent pass-through: allow command, no Ralph processing
-            # Using modern permissionDecision format (not deprecated decision:allow)
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "allow"
-                }
-            }))
-            return
+    # ===== RALPH-UNIVERSAL: NO PROJECT TYPE RESTRICTION =====
+    # Unlike original Ralph, this works on ANY project type.
+    # The Alpha-Forge exclusivity guard has been removed.
 
     # Read tool input from stdin
     try:

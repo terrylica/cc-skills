@@ -6,22 +6,9 @@
 # so we can capture the original content before it's overwritten.
 set -euo pipefail
 
-# ===== ALPHA-FORGE ONLY GUARD =====
-# Ralph is dedicated to alpha-forge ML research workflows only.
-# Skip all processing for non-alpha-forge projects (zero overhead).
-if [[ -n "${CLAUDE_PROJECT_DIR:-}" ]]; then
-    # Fast inline detection: check characteristic markers OR git remote
-    IS_ALPHA_FORGE=false
-    [[ -d "$CLAUDE_PROJECT_DIR/packages/alpha-forge-core" ]] && IS_ALPHA_FORGE=true
-    [[ -d "$CLAUDE_PROJECT_DIR/outputs/runs" ]] && IS_ALPHA_FORGE=true
-    grep -q -E "alpha[-_]forge" "$CLAUDE_PROJECT_DIR/pyproject.toml" 2>/dev/null && IS_ALPHA_FORGE=true
-    # Strategy 5: Git remote URL (handles sparse checkouts/branches)
-    git -C "$CLAUDE_PROJECT_DIR" remote get-url origin 2>/dev/null | grep -qi "alpha.forge" && IS_ALPHA_FORGE=true
-
-    if [[ "$IS_ALPHA_FORGE" != "true" ]]; then
-        exit 0  # Not alpha-forge, skip archival
-    fi
-fi
+# ===== RALPH-UNIVERSAL: NO PROJECT TYPE RESTRICTION =====
+# Unlike original Ralph, this works on ANY project type.
+# The Alpha-Forge exclusivity guard has been removed.
 
 # ===== JQ AVAILABILITY CHECK =====
 # jq is required for parsing hook input JSON. Try to install if missing.

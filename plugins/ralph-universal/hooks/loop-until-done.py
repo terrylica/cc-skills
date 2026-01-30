@@ -8,10 +8,11 @@
 # Adds project-specific convergence detection via adapter registry
 # Ralph eternal loop implementation (Levels 2-6)
 """
-Ralph Stop Hook - Autonomous improvement engine for Alpha Forge.
+Ralph Universal Stop Hook - Autonomous improvement engine for ANY project.
 
 Implements an eternal loop with recursive self-improvement behavior.
-Serves Alpha Forge (~/eon/alpha-forge) and its Git worktrees.
+Works on any project type with universal fallback adapter.
+Issue #12: https://github.com/terrylica/cc-skills/issues/12
 
 Ralph Behavior:
 - Task completion → pivot to exploration (not stop)
@@ -48,16 +49,18 @@ from core.constants import (
     BACKOFF_MAX_INTERVAL,
     BACKOFF_MULTIPLIER,
     CONFIG_DIR,
-    IMPROVEMENT_PLATEAU_THRESHOLD,
+    # Issue #12: Alpha-Forge specific constants removed
+    # IMPROVEMENT_PLATEAU_THRESHOLD,
     ITERATIONS_WARNING_THRESHOLD,
     MAX_IDLE_BEFORE_EXPLORE,
-    MIN_METRICS_FOR_COMPARISON,
+    # MIN_METRICS_FOR_COMPARISON,
     STATE_DIR,
     TIME_WARNING_THRESHOLD_HOURS,
-    WFE_OVERFITTING_THRESHOLD,
+    # WFE_OVERFITTING_THRESHOLD,
 )
 from core.path_hash import build_state_file_path, get_path_hash, load_session_state
-from core.project_detection import is_alpha_forge_project
+# Issue #12: Alpha-Forge specific detection removed for universal compatibility
+# from core.project_detection import is_alpha_forge_project
 from core.registry import AdapterRegistry
 from discovery import (
     discover_target_file,
@@ -81,16 +84,6 @@ from ralph_evolution import (
     suggest_capability_expansion,
 )
 from observability import emit, flush_to_claude, reset_timer
-
-
-def _detect_alpha_forge_simple(project_dir: str) -> str:
-    """Detect alpha-forge project using consolidated detection.
-
-    Returns "alpha-forge" if detected, empty string otherwise.
-    """
-    if is_alpha_forge_project(project_dir):
-        return "alpha-forge"
-    return ""
 
 
 def _run_constraint_scanner(project_dir: Path | None) -> list[dict]:
@@ -167,49 +160,8 @@ logger = logging.getLogger(__name__)
 CONFIG_FILE = CONFIG_DIR / "loop_config.json"
 
 
-def _build_web_queries(state: dict, adapter_conv: dict | None) -> list[str]:
-    """Build dynamic WebSearch queries based on current bottlenecks.
-
-    Analyzes metrics history to suggest relevant search queries.
-
-    Args:
-        state: Session state dict
-        adapter_conv: Adapter convergence dict (may be None)
-
-    Returns:
-        List of up to 3 search queries
-    """
-    queries: list[str] = []
-
-    # Use year range to cover both current and previous year for SOTA research
-    current_year = datetime.now().year
-    year_range = f"{current_year - 1}-{current_year}"
-
-    if not adapter_conv:
-        return [f"project improvement SOTA {year_range}"]
-
-    metrics = adapter_conv.get("metrics_history", [])
-    if metrics:
-        latest = metrics[-1] if isinstance(metrics[-1], dict) else {}
-        # Check for overfitting (WFE < 0.5)
-        wfe = latest.get("wfe", 1.0) if isinstance(latest, dict) else getattr(latest, "wfe", 1.0)
-        if wfe < WFE_OVERFITTING_THRESHOLD:
-            queries.append("overfitting prevention walk-forward validation ML")
-
-        # Check for plateau (< 5% improvement)
-        if len(metrics) >= MIN_METRICS_FOR_COMPARISON:
-            prev = metrics[-2]
-            prev_sharpe = prev.get("primary_metric", 0) if isinstance(prev, dict) else 0
-            curr_sharpe = latest.get("primary_metric", 0) if isinstance(latest, dict) else 0
-            if prev_sharpe > 0 and curr_sharpe > 0:
-                delta = (curr_sharpe - prev_sharpe) / prev_sharpe
-                if delta < IMPROVEMENT_PLATEAU_THRESHOLD:
-                    queries.append(f"transformer time series forecasting improvement {year_range}")
-
-    if not queries:
-        queries.append(f"ML trading strategy SOTA {year_range}")
-
-    return queries[:3]
+# Issue #12: _build_web_queries removed - was Alpha-Forge specific
+# Universal web queries are now hardcoded in build_continuation_prompt
 
 
 def build_continuation_prompt(
@@ -237,10 +189,9 @@ def build_continuation_prompt(
     if state is None:
         state = {}
 
-    # Detect adapter
+    # Detect adapter - uses registry with universal fallback
+    # Issue #12: Removed Alpha-Forge specific detection
     adapter_name = state.get("adapter_name", "")
-    if not adapter_name and project_dir:
-        adapter_name = _detect_alpha_forge_simple(project_dir)
 
     # Force exploration if state says so
     force_exploration = state.get("force_exploration", False)
@@ -335,20 +286,15 @@ def build_continuation_prompt(
         "web_insights": state.get("web_insights", []),
         # Capability expansion
         "missing_tools": suggest_capability_expansion(Path(project_dir)) if project_dir else [],
-        # Quality gate (Alpha Forge)
-        "quality_gate": [
-            "- Verify implementation matches SOTA paper/source",
-            "- Run backtest on validation period",
-            "- Check for data leakage",
-            "- Ensure WFE > 0.5 before committing",
-        ] if adapter_name == "alpha-forge" else [],
-        # Web research
-        "web_queries": _build_web_queries(state, adapter_conv) if adapter_name == "alpha-forge" else [
+        # Issue #12: Universal quality gate (adapter-agnostic)
+        "quality_gate": [],  # Adapters can provide their own quality gates
+        # Issue #12: Universal web research queries
+        "web_queries": [
             f"project improvement SOTA {datetime.now().year - 1}-{datetime.now().year}"
         ],
     }
 
-    # Get metrics history for Alpha Forge
+    # Get metrics history from adapter (if available)
     metrics_history = adapter_conv.get("metrics_history", []) if adapter_conv else []
 
     # ===== BUILD HEADER =====
