@@ -298,7 +298,7 @@
     },
     {
       "name": "ru",
-      "description": "Ralph Universal - autonomous loop mode for ANY project. Short name for quick invocation: /ru:start, /ru:stop",
+      "description": "RU - autonomous loop mode for any project. Commands: /ru:start, /ru:stop, /ru:status",
       "version": "10.1.0",
       "source": "./plugins/ru",
       "category": "automation",
