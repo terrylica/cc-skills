@@ -4,7 +4,7 @@ allowed-tools: Bash, AskUserQuestion
 argument-hint: "<phrase> | --list | --clear | --remove"
 ---
 
-# Ralph Universal: Forbid
+# RU: Forbid
 
 Add items to the forbidden list during an active loop session.
 Forbidden items are blocked from opportunity discovery.

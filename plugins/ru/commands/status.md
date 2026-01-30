@@ -4,7 +4,7 @@ allowed-tools: Bash
 argument-hint: ""
 ---
 
-# Ralph Universal: Status
+# RU: Status
 
 ```bash
 /usr/bin/env bash << 'RALPH_UNIVERSAL_STATUS'

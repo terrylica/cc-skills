@@ -1,12 +1,12 @@
 ---
-description: Install/uninstall Ralph Universal hooks to settings.json
+description: Install/uninstall RU hooks
 allowed-tools: Bash
 argument-hint: "[install|uninstall|status]"
 ---
 
-# Ralph Universal: Hooks
+# RU: Hooks
 
-Manage Ralph Universal hooks in `~/.claude/settings.json`.
+Manage RU hooks in `~/.claude/settings.json`.
 
 ## Usage
 
@@ -35,7 +35,7 @@ fi
 
 case "$COMMAND" in
     install)
-        echo "Installing Ralph Universal hooks..."
+        echo "Installing RU hooks..."
 
         # Record installation timestamp
         date +%s > "$HOME/.claude/ru-hooks-installed-at"
@@ -56,7 +56,7 @@ case "$COMMAND" in
         ;;
 
     uninstall)
-        echo "Uninstalling Ralph Universal hooks..."
+        echo "Uninstalling RU hooks..."
 
         # Remove timestamp
         rm -f "$HOME/.claude/ru-hooks-installed-at"
@@ -68,7 +68,7 @@ case "$COMMAND" in
         ;;
 
     status)
-        echo "Ralph Universal Hooks Status"
+        echo "RU Hooks Status"
         echo "============================"
         echo ""
 

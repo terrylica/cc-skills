@@ -1,12 +1,12 @@
 ---
-description: Enable autonomous loop mode for ANY project (no Alpha-Forge restriction)
+description: Enable autonomous loop mode for any project
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "[--poc | --production]"
 ---
 
-# Ralph Universal: Start
+# RU: Start
 
-Enable autonomous loop mode for **any project type**. This is a fork of Ralph with the Alpha-Forge exclusivity removed.
+Enable autonomous loop mode for **any project type**.
 
 ## Arguments
 
@@ -138,4 +138,4 @@ The loop will continue until:
 - You run `/ru:stop`
 - Kill switch file created (`.claude/STOP_LOOP`)
 
-Unlike regular Ralph, this works on **any project** - not just Alpha-Forge ML workflows.
+The loop continues autonomously until time/iteration limits are reached.

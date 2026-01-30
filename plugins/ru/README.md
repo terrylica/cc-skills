@@ -90,15 +90,4 @@ RU runs an autonomous improvement loop on your project:
 1. Works on tasks until complete
 2. Pivots to exploration when done
 3. Finds new improvement opportunities
-4. Repeats until time/iteration limits
-
-Unlike the original Ralph (Alpha-Forge only), RU works on **any project type**.
-
-## Differences from Ralph
-
-| Feature         | Ralph            | RU                   |
-| --------------- | ---------------- | -------------------- |
-| Project support | Alpha-Forge only | Any project          |
-| Convergence     | Metrics-based    | Time/iteration-based |
-| Config files    | `ralph-*.json`   | `ru-*.json`          |
-| Commands        | `/ralph:*`       | `/ru:*`              |
+4. Repeats until time/iteration limits reached

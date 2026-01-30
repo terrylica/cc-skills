@@ -4,7 +4,7 @@ allowed-tools: Bash
 argument-hint: ""
 ---
 
-# Ralph Universal: Stop
+# RU: Stop
 
 **EXECUTE IMMEDIATELY**: Use the Bash tool to run the following script.
 
@@ -12,7 +12,7 @@ argument-hint: ""
 /usr/bin/env bash << 'RALPH_UNIVERSAL_STOP'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
-echo "Stopping Ralph Universal loop..."
+echo "Stopping RU loop..."
 
 # Set state to stopped
 STATE_FILE="$PROJECT_DIR/.claude/ru-state.json"
@@ -36,7 +36,7 @@ rm -f "$PROJECT_DIR/.claude/ru-start-timestamp"
 echo '{"state": "stopped", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$HOME/.claude/ru-global-stop.json"
 
 echo ""
-echo "Ralph Universal: STOPPED"
+echo "RU: STOPPED"
 echo "Project: $PROJECT_DIR"
 RALPH_UNIVERSAL_STOP
 ```
