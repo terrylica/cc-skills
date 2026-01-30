@@ -1,3 +1,34 @@
+## [10.1.2](https://github.com/terrylica/cc-skills/compare/v10.1.1...v10.1.2) (2026-01-30)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [plotext-financial-chart](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/plotext-financial-chart/SKILL.md) - updated (+10/-3)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>doc-tools/plotext-financial-chart</strong> (1 file)</summary>
+
+- [Plotext Financial Chart — API and Patterns Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/plotext-financial-chart/references/api-and-patterns.md) - updated (+33/-4)
+
+</details>
+
 ## [10.1.1](https://github.com/terrylica/cc-skills/compare/v10.1.0...v10.1.1) (2026-01-30)
 
 
