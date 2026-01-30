@@ -297,6 +297,27 @@
       "strict": false
     },
     {
+      "name": "ralph-universal",
+      "description": "Ralph for ANY project - surgical fork with Alpha-Forge exclusivity removed. Autonomous loop mode works on any project type",
+      "version": "9.52.0",
+      "source": "./plugins/ralph-universal",
+      "category": "automation",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "ralph",
+        "universal",
+        "autonomous",
+        "loop",
+        "automation",
+        "any-project"
+      ],
+      "hooks": "./plugins/ralph-universal/hooks/hooks.json",
+      "strict": false
+    },
+    {
       "name": "iterm2-layout-config",
       "description": "iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code",
       "version": "9.52.0",
