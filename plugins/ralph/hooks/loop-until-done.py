@@ -423,8 +423,18 @@ def main():
     if project_dir:
         from core.project_detection import is_alpha_forge_project
         if not is_alpha_forge_project(project_dir):
-            # Silent pass-through: allow stop, no Ralph processing
-            print(json.dumps({}))
+            # Pass-through with reason: allow stop, no Ralph processing
+            # Issue #16: Provide termination reason for non-Alpha-Forge projects
+            print(json.dumps({
+                "ralph_skipped": True,
+                "reason": "Not an Alpha-Forge project",
+                "detection_criteria": [
+                    "pyproject.toml contains 'alpha-forge' or 'alpha_forge'",
+                    "packages/alpha-forge-core/ directory exists",
+                    "outputs/runs/ directory exists"
+                ],
+                "help": "Ralph is designed exclusively for Alpha-Forge ML research workflows. See: https://github.com/terrylica/cc-skills/issues/12"
+            }))
             sys.exit(0)
 
     # ===== EARLY EXIT CHECKS =====
