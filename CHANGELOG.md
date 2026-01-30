@@ -1,3 +1,43 @@
+# [9.53.0](https://github.com/terrylica/cc-skills/compare/v9.52.0...v9.53.0) (2026-01-30)
+
+
+### Features
+
+* **ralph-universal:** add universal Ralph fork for any project type ([c7db6d8](https://github.com/terrylica/cc-skills/commit/c7db6d868d7c2e4275e3ae0eb6b23a1fdfeb00ee)), closes [#12](https://github.com/terrylica/cc-skills/issues/12)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Universal](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/README.md) - new (+68)
+
+### Commands
+
+<details>
+<summary><strong>ralph-universal</strong> (4 commands)</summary>
+
+- [Ralph Universal: Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/commands/hooks.md) - new (+98)
+- [Ralph Universal: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/commands/start.md) - new (+141)
+- [Ralph Universal: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/commands/status.md) - new (+46)
+- [Ralph Universal: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/commands/stop.md) - new (+44)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/hooks/templates/ralph-unified.md) - new (+296)
+
 # [9.52.0](https://github.com/terrylica/cc-skills/compare/v9.51.0...v9.52.0) (2026-01-30)
 
 
