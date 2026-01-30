@@ -1,3 +1,24 @@
+# [9.52.0](https://github.com/terrylica/cc-skills/compare/v9.51.0...v9.52.0) (2026-01-30)
+
+
+### Features
+
+* **ralph:** improve UX for non-Alpha-Forge projects ([3e627ad](https://github.com/terrylica/cc-skills/commit/3e627ada1095e93497bdf48528d6de83c8d67f2e)), closes [#12-15](https://github.com/terrylica/cc-skills/issues/12-15) [#16](https://github.com/terrylica/cc-skills/issues/16)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Ralph Adapters](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/docs/adapters.md) - new (+97)
+
 # [9.51.0](https://github.com/terrylica/cc-skills/compare/v9.50.2...v9.51.0) (2026-01-30)
 
 
