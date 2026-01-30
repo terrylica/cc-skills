@@ -1,3 +1,66 @@
+# [10.0.0](https://github.com/terrylica/cc-skills/compare/v9.55.0...v10.0.0) (2026-01-30)
+
+
+### Features
+
+* **ru:** rename ralph-universal to ru for shorter invocation ([62707ad](https://github.com/terrylica/cc-skills/commit/62707add075b697ce496410270c853aed985b98e))
+
+
+### BREAKING CHANGES
+
+* **ru:** Plugin renamed from ralph-universal to ru.
+All commands now use /ru:* prefix instead of /ralph-universal:*.
+
+Changes:
+- Renamed plugin directory from ralph-universal to ru
+- Fixed config_schema.py to use ru-state.json (was ralph-state.json)
+- Updated all config files to use ru-config.json
+- Added missing commands: config.md, audit-now.md
+- Updated marketplace.json registration
+
+Migration: Replace /ralph-universal:* with /ru:* in all commands.
+
+SRED-Type: experimental-development
+SRED-Claim: RU
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ralph-universal](https://github.com/terrylica/cc-skills/blob/v9.55.0/plugins/ralph-universal/README.md) - deleted
+- [RU (Ralph Universal)](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/README.md) - new (+104)
+
+### Commands
+
+<details>
+<summary><strong>ru</strong> (8 commands)</summary>
+
+- [RU: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/audit-now.md) - new (+63)
+- [RU: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/config.md) - new (+79)
+- [Ralph Universal: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/encourage.md) - renamed from `plugins/ralph-universal/commands/encourage.md`
+- [Ralph Universal: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/forbid.md) - renamed from `plugins/ralph-universal/commands/forbid.md`
+- [Ralph Universal: Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/hooks.md) - renamed from `plugins/ralph-universal/commands/hooks.md`
+- [Ralph Universal: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/start.md) - renamed from `plugins/ralph-universal/commands/start.md`
+- [Ralph Universal: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/status.md) - renamed from `plugins/ralph-universal/commands/status.md`
+- [Ralph Universal: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/stop.md) - renamed from `plugins/ralph-universal/commands/stop.md`
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - renamed from `plugins/ralph-universal/hooks/templates/ralph-unified.md`
+
 # [9.55.0](https://github.com/terrylica/cc-skills/compare/v9.54.0...v9.55.0) (2026-01-30)
 
 
