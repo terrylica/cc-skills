@@ -1,3 +1,34 @@
+# [9.55.0](https://github.com/terrylica/cc-skills/compare/v9.54.0...v9.55.0) (2026-01-30)
+
+
+### Features
+
+* **ralph-universal:** add forbid/encourage commands for guidance ([27a546c](https://github.com/terrylica/cc-skills/commit/27a546c3ac75b534cdbb9925c818d79080e23c98))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Universal](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/README.md) - updated (+45/-19)
+
+### Commands
+
+<details>
+<summary><strong>ralph-universal</strong> (2 commands)</summary>
+
+- [Ralph Universal: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/commands/encourage.md) - new (+102)
+- [Ralph Universal: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/commands/forbid.md) - new (+101)
+
+</details>
+
 # [9.54.0](https://github.com/terrylica/cc-skills/compare/v9.53.0...v9.54.0) (2026-01-30)
 
 
