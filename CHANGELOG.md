@@ -1,3 +1,33 @@
+## [10.1.1](https://github.com/terrylica/cc-skills/compare/v10.1.0...v10.1.1) (2026-01-30)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [RU (Ralph Universal)](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/README.md) - updated (+1/-12)
+
+### Commands
+
+<details>
+<summary><strong>ru</strong> (6 commands)</summary>
+
+- [RU: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/encourage.md) - updated (+1/-1)
+- [RU: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/forbid.md) - updated (+1/-1)
+- [RU: Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/hooks.md) - updated (+6/-6)
+- [RU: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/start.md) - updated (+4/-4)
+- [RU: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/status.md) - updated (+1/-1)
+- [RU: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/stop.md) - updated (+3/-3)
+
+</details>
+
 # [10.1.0](https://github.com/terrylica/cc-skills/compare/v10.0.1...v10.1.0) (2026-01-30)
 
 
