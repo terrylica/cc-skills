@@ -33,6 +33,14 @@ else
     echo "  ⚠ Hook sync script not found"
 fi
 
+# Step 2b: Auto-enable new plugins in settings.json
+echo "→ Enabling new plugins in settings.json..."
+if [[ -x "./scripts/sync-enabled-plugins.sh" ]]; then
+    ./scripts/sync-enabled-plugins.sh
+else
+    echo "  ⚠ Plugin sync script not found"
+fi
+
 # Step 3: Clear stale plugin cache (users reinstall manually)
 echo "→ Clearing stale plugin cache..."
 if [[ -d "$CACHE_DIR" ]]; then
