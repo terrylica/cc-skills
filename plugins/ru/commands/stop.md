@@ -15,7 +15,7 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 echo "Stopping Ralph Universal loop..."
 
 # Set state to stopped
-STATE_FILE="$PROJECT_DIR/.claude/ralph-universal-state.json"
+STATE_FILE="$PROJECT_DIR/.claude/ru-state.json"
 if [[ -d "$PROJECT_DIR/.claude" ]]; then
     echo '{"state": "stopped"}' > "$STATE_FILE"
 fi
@@ -24,16 +24,16 @@ fi
 touch "$PROJECT_DIR/.claude/STOP_LOOP"
 
 # Update config if exists
-CONFIG_FILE="$PROJECT_DIR/.claude/ralph-universal-config.json"
+CONFIG_FILE="$PROJECT_DIR/.claude/ru-config.json"
 if [[ -f "$CONFIG_FILE" ]]; then
     jq '.state = "stopped"' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
 fi
 
 # Clean up markers
-rm -f "$PROJECT_DIR/.claude/ralph-universal-start-timestamp"
+rm -f "$PROJECT_DIR/.claude/ru-start-timestamp"
 
 # Create global stop signal
-echo '{"state": "stopped", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$HOME/.claude/ralph-universal-global-stop.json"
+echo '{"state": "stopped", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$HOME/.claude/ru-global-stop.json"
 
 echo ""
 echo "Ralph Universal: STOPPED"

@@ -13,17 +13,17 @@ Forbidden items are blocked from opportunity discovery.
 
 ## Usage
 
-- `/ralph-universal:forbid documentation updates` - Add "documentation updates" to forbidden list
-- `/ralph-universal:forbid --list` - Show current forbidden items
-- `/ralph-universal:forbid --clear` - Clear all forbidden items
-- `/ralph-universal:forbid --remove <phrase>` - Remove item matching phrase (fuzzy)
+- `/ru:forbid documentation updates` - Add "documentation updates" to forbidden list
+- `/ru:forbid --list` - Show current forbidden items
+- `/ru:forbid --clear` - Clear all forbidden items
+- `/ru:forbid --remove <phrase>` - Remove item matching phrase (fuzzy)
 
 ## Execution
 
 ```bash
 /usr/bin/env bash << 'RALPH_FORBID_SCRIPT'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-CONFIG_FILE="$PROJECT_DIR/.claude/ralph-config.json"
+CONFIG_FILE="$PROJECT_DIR/.claude/ru-config.json"
 
 # Get arguments
 ARGS="${ARGUMENTS:-}"
@@ -69,7 +69,7 @@ case "$ARGS" in
         echo "Removed from forbidden list: $MATCH"
         ;;
     "")
-        echo "Usage: /ralph-universal:forbid <phrase> | --list | --clear | --remove <phrase>"
+        echo "Usage: /ru:forbid <phrase> | --list | --clear | --remove <phrase>"
         echo ""
         echo "Current forbidden items:"
         jq -r '.guidance.forbidden[]?' "$CONFIG_FILE" | while read -r item; do
@@ -96,6 +96,6 @@ Run the bash script above to manage forbidden items.
 
 ## How It Works
 
-1. **Config file**: Changes are written to `.claude/ralph-config.json`
+1. **Config file**: Changes are written to `.claude/ru-config.json`
 2. **Next iteration applies**: The Stop hook reads config fresh on each iteration
 3. **Template rendering**: Forbidden items appear in the `## USER GUIDANCE` section

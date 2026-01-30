@@ -8,7 +8,7 @@
 ADR: Unified config-driven architecture for deterministic hook behavior.
 All magic numbers externalized to a single JSON config file.
 
-Config file location: .claude/ralph-config.json (per-project)
+Config file location: .claude/ru-config.json (per-project)
 Fallback: ~/.claude/ralph-defaults.json (global defaults)
 
 v3.0.0 Changes (2025-12-29):
@@ -156,7 +156,7 @@ class ProtectionConfig(BaseModel):
     protected_files: list[str] = Field(default_factory=lambda: [
         ".claude/loop-enabled",
         ".claude/loop-start-timestamp",
-        ".claude/ralph-config.json",
+        ".claude/ru-config.json",
         ".claude/ralph-state.json",
     ])
 
@@ -256,7 +256,7 @@ class RalphConfig(BaseModel):
     """Unified Ralph configuration - v3.0.0 (Pydantic migration).
 
     Central config for all Ralph hooks. Supports both project-level
-    (.claude/ralph-config.json) and global (~/.claude/ralph-defaults.json).
+    (.claude/ru-config.json) and global (~/.claude/ralph-defaults.json).
     """
     # State (managed by hooks, not user-editable)
     state: LoopState = LoopState.STOPPED
@@ -298,7 +298,7 @@ class RalphConfig(BaseModel):
 def get_config_path(project_dir: str | None = None) -> Path:
     """Get path to config file, preferring project-level."""
     if project_dir:
-        project_config = Path(project_dir) / ".claude/ralph-config.json"
+        project_config = Path(project_dir) / ".claude/ru-config.json"
         if project_config.exists():
             return project_config
 
@@ -309,7 +309,7 @@ def get_config_path(project_dir: str | None = None) -> Path:
 
     # Return project path for creation (if project_dir provided)
     if project_dir:
-        return Path(project_dir) / ".claude/ralph-config.json"
+        return Path(project_dir) / ".claude/ru-config.json"
 
     return global_config
 
@@ -351,7 +351,7 @@ def save_config(config: RalphConfig, project_dir: str | None = None) -> Path:
     Uses filelock to prevent race conditions during concurrent writes.
     """
     if project_dir:
-        config_path = Path(project_dir) / ".claude/ralph-config.json"
+        config_path = Path(project_dir) / ".claude/ru-config.json"
     else:
         config_path = Path.home() / ".claude/ralph-defaults.json"
 
@@ -372,8 +372,12 @@ def save_config(config: RalphConfig, project_dir: str | None = None) -> Path:
 
 
 def get_state_path(project_dir: str) -> Path:
-    """Get path to state file (loop state machine)."""
-    return Path(project_dir) / ".claude/ralph-state.json"
+    """Get path to state file (loop state machine).
+
+    Issue #12: Changed from ralph-state.json to ru-state.json
+    for the universal plugin to avoid conflicts with original Ralph.
+    """
+    return Path(project_dir) / ".claude/ru-state.json"
 
 
 def load_state(project_dir: str) -> LoopState:
