@@ -1,3 +1,42 @@
+## [9.50.2](https://github.com/terrylica/cc-skills/compare/v9.50.1...v9.50.2) (2026-01-30)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (2 changes)</summary>
+
+- [mise-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/SKILL.md) - updated (+5)
+- [pypi-doppler](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/pypi-doppler/SKILL.md) - updated (+38)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [Release Workflow Patterns for mise Tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/release-workflow-patterns.md) - new (+239)
+
+</details>
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Python Projects Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/python.md) - updated (+27/-10)
+
+</details>
+
 ## [9.50.1](https://github.com/terrylica/cc-skills/compare/v9.50.0...v9.50.1) (2026-01-27)
 
 
