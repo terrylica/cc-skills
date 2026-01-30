@@ -1,3 +1,30 @@
+# [9.54.0](https://github.com/terrylica/cc-skills/compare/v9.53.0...v9.54.0) (2026-01-30)
+
+
+### Features
+
+* **ralph-universal:** deep cleanup - remove all Alpha-Forge exclusivity ([67bbfab](https://github.com/terrylica/cc-skills/commit/67bbfab7ab05d48b3e73ca7acf8178f7e22fbf98)), closes [#12](https://github.com/terrylica/cc-skills/issues/12) [#13](https://github.com/terrylica/cc-skills/issues/13) [#14](https://github.com/terrylica/cc-skills/issues/14) [#15](https://github.com/terrylica/cc-skills/issues/15)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [Ralph Universal](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/README.md) - updated (+12/-5)
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph-universal/hooks/templates/ralph-unified.md) - updated (+17/-152)
+
 # [9.53.0](https://github.com/terrylica/cc-skills/compare/v9.52.0...v9.53.0) (2026-01-30)
 
 
