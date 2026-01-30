@@ -123,16 +123,36 @@ output = re.sub(r'\x1b\[[0-9;]*m', '', plt.build())
 
 ## Embedding in Markdown
 
-### Template (MANDATORY: Always Include Source)
+### Template (MANDATORY: Source Immediately After Chart)
 
-Every rendered chart MUST be followed by a collapsible `<details>` block containing the Python source code. This is non-negotiable for:
+Every rendered chart MUST be followed **immediately** by a collapsible `<details>` block containing the Python source code. This is non-negotiable for:
 
 - **Reproducibility**: Future maintainers can regenerate the chart
 - **Editability**: Data or styling can be modified and re-rendered
 - **Auditability**: Changes to charts are trackable in git diffs
 
+### Ordering Convention (CRITICAL)
+
+The `<details>` block MUST be **immediately adjacent** to the chart — no explanatory text between them:
+
+```
+✅ CORRECT ORDER:
+   1. Chart (code block)
+   2. <details> with source (immediately after)
+   3. Explanatory text (after <details>)
+
+❌ WRONG ORDER:
+   1. Chart (code block)
+   2. Explanatory text
+   3. <details> with source
+```
+
+**Why**: The source code is part of the chart artifact. When explanatory text is inserted between chart and source, future edits risk separating or losing the reproducibility information. Keeping them adjacent ensures the chart + source travel together through document edits.
+
+### Complete Example
+
 ````markdown
-## Price Behavior
+## Triple Barrier Method
 
 ```
                         Triple Barrier Method
@@ -171,9 +191,18 @@ print(re.sub(r'\x1b\[[0-9;]*m', '', plt.build()))
 ```
 
 </details>
+
+The triple barrier method (de Prado, AFML Ch. 3) uses three barriers:
+
+- **Upper barrier**: Take-profit level at +pt × σ
+- **Lower barrier**: Stop-loss level at -sl × σ
+- **Vertical barrier**: Maximum holding period of h bars
+
+This chart shows a price path that experiences drawdown (MAE) before
+recovering to hit the upper barrier (MFE).
 ````
 
-**The `<details>` block is MANDATORY** — never embed a chart without its source.
+**The `<details>` block is MANDATORY and must be immediately after the chart** — never insert explanatory text between them.
 
 ### GFM Collapsible Section Rules
 

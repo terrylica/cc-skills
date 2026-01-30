@@ -113,9 +113,16 @@ CHART_EOF
 RENDER_EOF
 ```
 
-## Embedding in Markdown (MANDATORY: Include Source)
+## Embedding in Markdown (MANDATORY: Source Adjacent to Chart)
 
-Every chart MUST be followed by a `<details>` block with Python source. See [./references/api-and-patterns.md](./references/api-and-patterns.md) for full embedding template.
+Every chart MUST be **immediately followed** by a `<details>` block with Python source. Explanatory text goes **after** the `<details>` block, never between chart and source.
+
+```
+✅ CORRECT: Chart → <details> → Explanatory text
+❌ WRONG:   Chart → Explanatory text → <details>
+```
+
+See [./references/api-and-patterns.md](./references/api-and-patterns.md) for full embedding template.
 
 ## Mandatory Checklist
 
@@ -125,7 +132,7 @@ Every chart MUST be followed by a `<details>` block with Python source. See [./r
 - [ ] `plt.title("...")` — Every chart needs a title
 - [ ] `plt.xlabel` / `plt.ylabel` — Axis labels
 - [ ] `plt.plotsize(65, 22)` — Fits 80-col code blocks
-- [ ] `<details>` block with runnable Python source after chart
+- [ ] `<details>` block **immediately after** chart (before any explanatory text)
 
 ## Troubleshooting
 
