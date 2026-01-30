@@ -1,3 +1,10 @@
+# [10.1.0](https://github.com/terrylica/cc-skills/compare/v10.0.1...v10.1.0) (2026-01-30)
+
+
+### Features
+
+* **release:** auto-enable new plugins in settings.json ([8c1851d](https://github.com/terrylica/cc-skills/commit/8c1851da50c504acf81e66a52b053815d6e82b0c))
+
 ## [10.0.1](https://github.com/terrylica/cc-skills/compare/v10.0.0...v10.0.1) (2026-01-30)
 
 
