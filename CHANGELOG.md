@@ -1,3 +1,10 @@
+# [11.1.0](https://github.com/terrylica/cc-skills/compare/v11.0.4...v11.1.0) (2026-01-31)
+
+
+### Features
+
+* **ru:** migrate loop-until-done to TypeScript/Bun (Phase 1) ([e6c4d76](https://github.com/terrylica/cc-skills/commit/e6c4d7629cc0584b737d14f0881f4622511e99b2))
+
 ## [11.0.4](https://github.com/terrylica/cc-skills/compare/v11.0.3...v11.0.4) (2026-01-31)
 
 
