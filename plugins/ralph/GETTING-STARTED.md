@@ -23,7 +23,7 @@ Ralph is part of the **cc-skills** plugin collection. Install it from your **ter
 claude plugin marketplace add terrylica/cc-skills
 
 # Install all cc-skills plugins including ralph
-for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow; do claude plugin install "$p@cc-skills"; done
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow ru quant-research; do claude plugin install "$p@cc-skills"; done
 
 # Or install just ralph
 claude plugin install ralph@cc-skills
