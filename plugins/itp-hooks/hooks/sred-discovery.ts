@@ -257,7 +257,11 @@ Respond with JSON only:
   // Parse JSON from response
   const jsonMatch = response.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error('No JSON found in response');
+    throw new Error(
+      'No JSON found in Claude API response. ' +
+      'This may indicate: network timeout, malformed model output, or API changes. ' +
+      'Fallback to scope-derived project will be used.'
+    );
   }
 
   const parsed = JSON.parse(jsonMatch[0]);
