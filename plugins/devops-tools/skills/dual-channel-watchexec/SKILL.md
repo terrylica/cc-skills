@@ -8,6 +8,16 @@ allowed-tools: Read, Write, Edit, Bash
 
 Send reliable notifications to both Telegram and Pushover when watchexec detects file changes or process crashes.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Setting up file change monitoring with notifications
+- Implementing process crash alerting via Telegram and Pushover
+- Creating watchexec wrappers with dual-channel notification support
+- Formatting messages for both HTML (Telegram) and plain text (Pushover)
+- Troubleshooting notification delivery or formatting issues
+
 ## Core Pattern
 
 **watchexec wrapper script** → **detect event** → **notify-script** → **Telegram + Pushover**

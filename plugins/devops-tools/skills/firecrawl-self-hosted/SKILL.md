@@ -10,6 +10,16 @@ Self-hosted Firecrawl deployment, troubleshooting, and best practices.
 **Host**: littleblack (172.25.236.1) via ZeroTier
 **Source**: <https://github.com/mendableai/firecrawl>
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Scraping JavaScript-heavy web pages that WebFetch cannot handle
+- Extracting content from Gemini/ChatGPT share links
+- Operating the self-hosted Firecrawl instance on littleblack
+- Troubleshooting Docker container or ZeroTier connectivity issues
+- Setting up new Firecrawl deployments with proper restart policies
+
 ---
 
 ## Architecture Overview

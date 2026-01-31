@@ -7,6 +7,15 @@ description: Print iTerm2 terminal output to network printer. TRIGGERS - print t
 
 Print terminal output from iTerm2 to your HP network printer with a single command.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Printing terminal output to a network printer
+- Creating PDF copies of command-line session output
+- Archiving terminal logs in print-friendly format
+- Sharing terminal output in meetings or documentation
+
 ## Quick Start
 
 1. **Copy** terminal output in iTerm2 (Cmd+C)

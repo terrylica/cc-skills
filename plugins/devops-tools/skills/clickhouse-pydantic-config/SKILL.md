@@ -10,6 +10,16 @@ allowed-tools: Read, Bash, Grep
 
 Generate DBeaver database client configurations from Pydantic v2 models using mise `[env]` as Single Source of Truth (SSoT).
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Setting up DBeaver connections for ClickHouse databases
+- Generating database client configurations from environment variables
+- Managing local vs cloud ClickHouse connection profiles
+- Integrating ClickHouse with mise-based development workflows
+- Automating DBeaver data-sources.json generation
+
 ## Critical Design Principle: Semi-Prescriptive Adaptation
 
 **This skill is NOT a rigid template.** It provides a SSoT pattern that MUST be adapted to each repository's structure and local database situation.
