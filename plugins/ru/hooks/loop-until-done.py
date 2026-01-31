@@ -65,7 +65,7 @@ from core.registry import AdapterRegistry
 from discovery import (
     discover_target_file,
 )
-from todo_sync import format_todo_instruction, generate_todo_items
+# todo_sync module no longer used - Task system guidance is in ralph-unified.md template
 from template_loader import get_loader
 from utils import (
     WINDOW_SIZE,
@@ -333,15 +333,7 @@ def build_continuation_prompt(
         opportunities=[],
     )
 
-    # Todo sync instruction
-    todo_suffix = ""
-    if state:
-        todo_items = generate_todo_items(state)
-        todo_instruction = format_todo_instruction(todo_items)
-        if todo_instruction:
-            todo_suffix = f"\n\n{todo_instruction}"
-
-    return f"{header}{focus_suffix}\n\n{prompt}{todo_suffix}"
+    return f"{header}{focus_suffix}\n\n{prompt}"
 
 
 def main():
