@@ -18,7 +18,7 @@ adr: 2025-12-20-ralph-rssi-eternal-loop
 - DO NOT call /ru:stop
 - DO NOT stop the session on your own
 - DO NOT idle or "monitor" - always take action
-- Make decisions autonomously until the task is complete
+- Make autonomous decisions until all work is complete
 
 ---
 
@@ -57,38 +57,118 @@ _No custom guidance configured. Working autonomously._
 
 ---
 
+## TASK ORCHESTRATION
+
+**The native Task system is authoritative for all work tracking.**
+
+### TaskCreate - For New Work
+
+```
+TaskCreate(
+  subject: "[imperative verb] [target]"
+  description: "[full context, acceptance criteria]"
+  activeForm: "[present continuous verb] [target]"
+)
+```
+
+### TaskUpdate - Status Transitions
+
+| Transition       | When                       | Fields                                       |
+| ---------------- | -------------------------- | -------------------------------------------- |
+| Start work       | Before beginning           | `status: "in_progress"`, `owner: "ralph"`    |
+| Add dependency   | Task requires prerequisite | `addBlockedBy: ["task-id"]`                  |
+| Block downstream | This task gates others     | `addBlocks: ["task-id"]`                     |
+| Store state      | Checkpoint progress        | `metadata: { iteration, phase, session_id }` |
+| Complete         | Fully finished             | `status: "completed"`                        |
+
+### TaskList - Find Available Work
+
+Query for tasks where:
+
+- `status: "pending"`
+- `blockedBy: []` (empty - no blockers)
+- `owner: null` (unclaimed)
+
+### TaskGet - Before Starting
+
+Always `TaskGet(taskId)` to verify `blockedBy` is empty before setting `status: "in_progress"`.
+
+---
+
+## COMMIT STRATEGY
+
+Commit atomically with task tracing:
+
+- **When**: After completing each task, or at natural checkpoints before pivoting
+- **Format**: Conventional commit with `Task-ID:` and `Iteration:` footers
+- **Scope**: One logical change per commit—never mix unrelated changes
+
+---
+
+## ERROR RECOVERY
+
+Claude Code 2.1+ provides automatic checkpoints before each change.
+
+- **On failure**: Use `/rewind` to restore code to a previous state
+- **On blocked task**: Keep task `in_progress`, create new task describing the blocker
+- **On unexpected state**: Query `TaskList` to reassess available work
+
+---
+
 {% if not task_complete %}
 {# ======================= IMPLEMENTATION PHASE ======================= #}
 
 ## CURRENT PHASE: IMPLEMENTATION
 
-**If todos remain**: Work on next unchecked item.
+**Iteration {{ iteration }}** - Execute tasks from the Task system.
 
-**If all todos complete**:
+### Workflow
 
-1. Mark task complete in plan/ADR with `[x] TASK_COMPLETE`
-2. Look for follow-on improvements or new work
+1. **Query**: `TaskList` for available work (`status: "pending"`, `blockedBy: []`)
+2. **Claim**: `TaskUpdate` with `status: "in_progress"`, `owner: "ralph"`
+3. **Execute**: Perform the work described in the task
+4. **Verify**: Confirm the change works as expected
+5. **Commit**: Follow COMMIT STRATEGY with `Task-ID:` footer
+6. **Complete**: `TaskUpdate` with `status: "completed"`
+7. **Repeat**: Return to step 1 for next available task
 
-**FORBIDDEN**: Saying "monitoring" or just running `git status` in a loop. Every iteration must produce meaningful work or mark complete.
+### If No Tasks Available
+
+Transition to EXPLORATION to discover new work opportunities.
+
+### Subagent Delegation
+
+For complex tasks, spawn specialized subagents:
+
+```
+Task(
+  subagent_type: "Explore" | "Plan" | "Bash"
+  prompt: "[specific task for subagent]"
+  description: "[3-5 word summary]"
+)
+```
+
+**FORBIDDEN**: Saying "monitoring" or just running `git status` in a loop. Every iteration must produce meaningful work.
 
 {% else %}
 {# ======================= EXPLORATION PHASE ======================= #}
 
 ## CURRENT PHASE: EXPLORATION
 
-**Iteration {{ iteration }}** - Task marked complete. Time to explore new frontiers.
-
----
+**Iteration {{ iteration }}** - All tasks complete. Time to explore new frontiers.
 
 ### Discovery Protocol
 
 **RALPH PROTOCOL (Execute in Order)**:
 
-1. **PROJECT DISCOVERY** - Check `mise.toml`, `package.json`, `pyproject.toml`, ROADMAP.md for tasks
-2. **HISTORY MINING** - What patterns led to commits before?
-3. **CODE ANALYSIS** - Find TODOs, FIXMEs, improvement opportunities
-4. **TEST COVERAGE** - Are there untested code paths?
-5. **DOCUMENTATION** - Does code match documentation?
+1. **CONTEXT REFRESH** - Scan root and subfolders for `**/CLAUDE.md` and `**/RESUME.md`.
+   - _Action_: Update these files immediately if recent learnings or state changes are missing.
+   - _Goal_: These are living documents—treat them as active memory, not static text.
+   - _Documentation Sync_: Verify code behavior matches what's documented.
+2. **PROJECT DISCOVERY** - Check `mise.toml`, `package.json`, `pyproject.toml`, ROADMAP.md for tasks
+3. **HISTORY MINING** - What patterns led to commits before?
+4. **CODE ANALYSIS** - Find TODO/FIXME code comments, improvement opportunities
+5. **TEST COVERAGE** - Are there untested code paths?
 
 {% if opportunities %}
 **Discovered Opportunities**:
@@ -99,12 +179,28 @@ _No custom guidance configured. Working autonomously._
 **DYNAMIC DISCOVERY ACTIVE** - Scanning project for opportunities.
 {% endif %}
 
-**COMMIT IMPROVEMENTS** - Every improvement should be committed:
+### Create Tasks from Discoveries
 
-1. Make the change
-2. Verify it works as expected
-3. Commit with descriptive conventional commit message
-4. Look for follow-on improvements
+For each discovered opportunity:
+
+1. `TaskCreate` with clear subject, description, and activeForm
+2. Set `addBlockedBy` if dependencies exist between tasks
+3. Use `metadata` to track discovery source and priority
+
+### Subagent Delegation
+
+For broad exploration, spawn parallel subagents:
+
+```
+Task(
+  subagent_type: "Explore"
+  prompt: "[exploration query]"
+  description: "[3-5 word summary]"
+  run_in_background: true
+)
+```
+
+**FORBIDDEN**: Saying "no meaningful work found". Always find SOMETHING to improve.
 
 {% endif %}
 
@@ -149,9 +245,9 @@ _No custom guidance configured. Working autonomously._
 
 **Current iteration**: {{ iteration }}
 {% if not task_complete %}
-**MODE**: Implementation - complete todos before exploring new frontiers.
+**MODE**: Implementation - execute tasks before exploring new frontiers.
 {% else %}
-**MODE**: Exploration - finding new improvement opportunities.
+**MODE**: Exploration - discovering and creating new tasks.
 {% endif %}
 
 ---
