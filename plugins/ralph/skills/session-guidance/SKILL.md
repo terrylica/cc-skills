@@ -8,7 +8,9 @@ allowed-tools: Bash, Read, AskUserQuestion, Write
 
 Configure Ralph loop session guidance through AskUserQuestion flows. Loads constraint scan results, presents dynamic options based on severity, and writes guidance to config.
 
-## When to Use
+## When to Use This Skill
+
+Use this skill when:
 
 - Invoked by `/ralph:start` Step 1.6 via Skill tool
 - User asks to reconfigure Ralph guidance

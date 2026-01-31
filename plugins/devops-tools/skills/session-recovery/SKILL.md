@@ -6,9 +6,9 @@ allowed-tools: Read, Bash
 
 # Claude Code Session Recovery Skill
 
-## Quick Reference
+## When to Use This Skill
 
-**When to use this skill:**
+Use this skill when:
 
 - "No conversations found to resume" when running `claude -r`
 - New conversations not creating session files
@@ -16,6 +16,8 @@ allowed-tools: Read, Bash
 - Session history missing after environment changes
 - IDE/terminal settings affecting session creation
 - Need to migrate or recover 600+ legacy sessions
+
+## Quick Reference
 
 ## Official Session Storage
 

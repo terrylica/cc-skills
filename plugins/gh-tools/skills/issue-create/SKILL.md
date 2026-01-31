@@ -8,7 +8,9 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Create well-formatted GitHub issues with intelligent automation including AI-powered label suggestions, content type detection, template formatting, and related issue linking.
 
-## When to Use
+## When to Use This Skill
+
+Use this skill when:
 
 - Creating bug reports, feature requests, questions, or documentation issues
 - Need AI-powered label suggestions from repository's existing taxonomy

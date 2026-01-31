@@ -10,7 +10,9 @@ This skill redirects to the canonical reference in mise-tasks.
 
 → **See**: [mise-tasks/references/bootstrap-monorepo.md](../mise-tasks/references/bootstrap-monorepo.md)
 
-## When to Use
+## When to Use This Skill
+
+Use this skill when:
 
 - Starting a new polyglot monorepo from scratch
 - Setting up Python + Rust + Bun/TypeScript project structure

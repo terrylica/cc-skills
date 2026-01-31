@@ -9,16 +9,14 @@ description: Create research-repo git worktrees with auto branch naming. TRIGGER
 
 Create and manage git worktrees for the research-repo repository with automatic branch naming, consistent conventions, and lifecycle management.
 
-## Triggers
+## When to Use This Skill
 
-Invoke this skill when user mentions:
+Use this skill when:
 
-- "create worktree for [description]"
-- "new worktree [description]"
-- "research-repo worktree"
-- "AF worktree"
-- "worktree from origin/..."
-- "worktree for feat/..."
+- Creating a new worktree for research-repo development
+- Setting up a worktree from a remote branch
+- Using an existing local branch in a new worktree
+- Managing multiple parallel feature branches
 
 ## Operational Modes
 
