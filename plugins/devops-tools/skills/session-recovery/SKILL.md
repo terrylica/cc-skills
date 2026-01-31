@@ -68,3 +68,18 @@ PREFLIGHT_EOF
 For detailed diagnostic steps and solutions, see:
 
 - [Troubleshooting Guide](./TROUBLESHOOTING.md) - Detailed diagnostic procedures and fixes
+
+---
+
+## Troubleshooting
+
+| Issue                        | Cause                          | Solution                                             |
+| ---------------------------- | ------------------------------ | ---------------------------------------------------- |
+| "No conversations found"     | Wrong HOME variable            | Verify `$HOME` matches expected user directory       |
+| Sessions in /tmp/            | HOME set incorrectly           | Fix HOME in shell profile, restart terminal          |
+| Session files missing        | Disk space or permissions      | Check `~/.claude/projects/` permissions and disk     |
+| Wrong project sessions shown | Path encoding mismatch         | Check encoded path matches current working directory |
+| Sessions not persisting      | File system issues             | Verify write permissions to `~/.claude/projects/`    |
+| IDE sessions separate        | Different HOME per environment | Ensure consistent HOME across terminal and IDE       |
+| Legacy sessions not visible  | Migration not complete         | See migration section in TROUBLESHOOTING.md          |
+| UUID filename corruption     | Incomplete writes              | Check for partial .jsonl files, remove corrupt ones  |

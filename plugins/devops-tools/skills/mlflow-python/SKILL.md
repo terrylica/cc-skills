@@ -159,3 +159,18 @@ This skill replaces the CLI-based `mlflow-query` skill. Key differences:
 | Auth pattern   | Embedded in URI    | Separate env vars      |
 
 See [migration-from-cli.md](./references/migration-from-cli.md) for detailed mapping.
+
+---
+
+## Troubleshooting
+
+| Issue                   | Cause                        | Solution                                            |
+| ----------------------- | ---------------------------- | --------------------------------------------------- |
+| Connection refused      | MLflow server not running    | Verify MLFLOW_TRACKING_URI and server status        |
+| Authentication failed   | Wrong credentials            | Check MLFLOW_TRACKING_USERNAME and PASSWORD in .env |
+| Experiment not found    | Experiment name typo         | Run `query_experiments.py experiments` to list all  |
+| QuantStats import error | Missing dependency           | `uv add quantstats` in skill directory              |
+| Pandas import warning   | Expected for this skill      | Ignore - MLflow requires Pandas (hook-excluded)     |
+| Run creation fails      | Experiment doesn't exist     | Use `create_experiment.py` to create first          |
+| Metric history empty    | Wrong run_id or metric name  | Verify run_id with `query_experiments.py runs`      |
+| Returns CSV parse error | Wrong date format or columns | Check CSV has date index and returns column         |
