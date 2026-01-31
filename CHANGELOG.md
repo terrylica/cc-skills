@@ -1,3 +1,24 @@
+## [11.0.2](https://github.com/terrylica/cc-skills/compare/v11.0.1...v11.0.2) (2026-01-31)
+
+
+### Bug Fixes
+
+* **ru:** add Context Refresh step to IMPLEMENTATION phase workflow ([f9be72b](https://github.com/terrylica/cc-skills/commit/f9be72bfb32ba9c8705556d64f6b8a9b314a9ef6))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+10/-7)
+
 ## [11.0.1](https://github.com/terrylica/cc-skills/compare/v11.0.0...v11.0.1) (2026-01-31)
 
 # [11.0.0](https://github.com/terrylica/cc-skills/compare/v10.3.0...v11.0.0) (2026-01-31)
