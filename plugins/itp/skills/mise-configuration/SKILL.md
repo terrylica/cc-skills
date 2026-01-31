@@ -463,7 +463,7 @@ done
 MISE_EOF
 ```
 
-**ADR Reference**: [GitHub Multi-Account Authentication](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md)
+**Pattern**: Based on GitHub Multi-Account Authentication ADR (mise `[env]` per-directory token loading).
 
 > **SSH ControlMaster Warning**: If using multi-account SSH, ensure `ControlMaster no` is set for GitHub hosts in `~/.ssh/config`. Cached connections can authenticate with the wrong account. See [SSH ControlMaster Cache](../semantic-release/references/troubleshooting.md#ssh-controlmaster-cache) for troubleshooting.
 
