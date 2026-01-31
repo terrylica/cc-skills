@@ -394,3 +394,18 @@ For detailed information, see:
 - [Validation Reference](./references/validation-reference.md) - Quality checklist
 - [SYNC-TRACKING](./references/SYNC-TRACKING.md) - Marketplace version tracking
 - [Evolution Log](./references/evolution-log.md) - This skill's change history
+
+---
+
+## Troubleshooting
+
+| Issue                  | Cause                          | Solution                                                  |
+| ---------------------- | ------------------------------ | --------------------------------------------------------- |
+| Skill not triggering   | Missing trigger keywords       | Add trigger phrases to description field                  |
+| YAML parse error       | Colon in description           | Replace colons with dashes in description                 |
+| Skill not found        | Wrong location                 | Place in `~/.claude/skills/` or project `.claude/skills/` |
+| validate script fails  | Invalid frontmatter            | Check name format (lowercase-hyphen only)                 |
+| Resources not loading  | Wrong path in SKILL.md         | Use relative paths from skill directory                   |
+| Script execution fails | Missing shebang or permissions | Add `#!/usr/bin/env python3` and `chmod +x`               |
+| allowed-tools ignored  | API skill (not CLI)            | allowed-tools only works in CLI skills                    |
+| Description too long   | Over 1024 chars                | Shorten description, move details to SKILL.md body        |
