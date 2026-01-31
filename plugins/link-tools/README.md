@@ -20,9 +20,19 @@ claude plugin install link-tools@cc-skills
 
 ## Hooks
 
-| Hook                 | Event | Description                                 |
-| -------------------- | ----- | ------------------------------------------- |
-| `stop-link-check.py` | Stop  | Validates links at session end using lychee |
+| Hook                 | Event | Timeout | Description                                 |
+| -------------------- | ----- | ------- | ------------------------------------------- |
+| `stop-link-check.py` | Stop  | 60s     | Validates links at session end using lychee |
+
+### Stop Hook: Session-End Link Validation
+
+Runs automatically when Claude stops responding:
+
+1. Scans markdown files in the current repository
+2. Validates links with lychee (offline mode by default)
+3. Reports broken links and path policy violations
+
+Uses `uv run` for Python dependency management.
 
 **Trigger phrases:**
 
