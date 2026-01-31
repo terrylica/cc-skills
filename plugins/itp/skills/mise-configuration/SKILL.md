@@ -8,6 +8,15 @@ allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 
 Use mise `[env]` as centralized configuration with backward-compatible defaults.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Centralizing environment variables in mise.toml
+- Setting up Python venv auto-creation with mise
+- Implementing hub-spoke configuration for monorepos
+- Creating backward-compatible environment patterns
+
 ## Core Principle
 
 Define all configurable values in `.mise.toml` `[env]` section. Scripts read via environment variables with fallback defaults. Same code path works WITH or WITHOUT mise installed.
