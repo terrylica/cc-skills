@@ -7,6 +7,16 @@ description: Generate custom Claude Code slash commands via guided question flow
 
 A comprehensive system for generating production-ready Claude Code slash commands through a simple question-based workflow.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Creating new custom slash commands for Claude Code
+- Generating command templates from presets
+- Validating slash command YAML frontmatter syntax
+- Organizing commands into proper folder structures
+- Converting workflows into reusable slash commands
+
 ---
 
 ## Overview

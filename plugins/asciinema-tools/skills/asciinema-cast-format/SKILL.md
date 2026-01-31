@@ -10,6 +10,16 @@ Reference documentation for the asciinema v3 .cast file format (asciicast v2 spe
 
 > **Platform**: All platforms (documentation only)
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Parsing or inspecting .cast file structure
+- Understanding NDJSON header and event formats
+- Building tools that read or write .cast files
+- Debugging recording issues or format errors
+- Learning the asciicast v2 specification
+
 ---
 
 ## Format Overview
