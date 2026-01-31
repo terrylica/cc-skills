@@ -451,3 +451,20 @@ print(f"Processing fold {i}...", flush=True)
 - [Schema validation in data pipelines](https://docs.pola.rs/)
 - [PyTorch gradient debugging](https://pytorch.org/docs/stable/autograd.html)
 - [NDJSON specification](https://github.com/ndjson/ndjson-spec)
+
+---
+
+## Troubleshooting
+
+| Issue                     | Cause                           | Solution                                             |
+| ------------------------- | ------------------------------- | ---------------------------------------------------- |
+| NaN gradients in POC      | Learning rate too high          | Reduce LR by 10x, check weight initialization        |
+| Zero gradients            | Dead layers or missing params   | Check model architecture, verify requires_grad=True  |
+| Predictions collapsed     | Normalizer issue or bad loss    | Check target normalization, verify loss function     |
+| Predictions exploded      | Gradient explosion              | Add gradient clipping, reduce learning rate          |
+| Schema missing columns    | Wrong data source or transform  | Verify fetch function returns expected columns       |
+| Checkpoint load fails     | State dict key mismatch         | Ensure model architecture matches saved checkpoint   |
+| POC timeout (>5 min)      | Data loading or model too large | Reduce batch size, check DataLoader num_workers      |
+| Mini training no progress | Learning rate too low or frozen | Increase LR, verify optimizer updates all parameters |
+| NDJSON validation fails   | Missing required event types    | Check all phases emit expected fields                |
+| Shape mismatch error      | Wrong input_size or seq_len     | Verify feature count matches model input dimension   |

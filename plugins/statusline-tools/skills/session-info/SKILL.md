@@ -63,3 +63,18 @@ Where `encoded-path` replaces `/` with `-`:
 ## References
 
 - [Registry Format](./references/registry-format.md) - Schema documentation
+
+---
+
+## Troubleshooting
+
+| Issue                     | Cause                      | Solution                                         |
+| ------------------------- | -------------------------- | ------------------------------------------------ |
+| Script not found          | Plugin not installed       | Run `claude plugin list` to verify installation  |
+| Session UUID undefined    | No active session          | Start Claude Code session first                  |
+| Registry file not found   | First session in project   | Registry created automatically on first session  |
+| Chain length is 0         | Fresh project              | Normal for new projects, chain grows over time   |
+| Metadata missing          | Older session format       | Recent sessions include metadata automatically   |
+| Path encoding looks wrong | Special characters in path | Claude Code uses `-` to replace `/` in paths     |
+| Bun not found             | Bun not installed          | Install with `brew install oven-sh/bun/bun`      |
+| Permission denied         | Registry file permissions  | Check ~/.claude permissions (should be readable) |

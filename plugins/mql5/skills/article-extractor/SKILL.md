@@ -72,3 +72,18 @@ For detailed information, see:
 - [Data Sources](./references/data-sources.md) - User collections and official documentation
 - [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
 - [Examples](./references/examples.md) - Usage examples and patterns
+
+---
+
+## Troubleshooting
+
+| Issue                  | Cause                         | Solution                                          |
+| ---------------------- | ----------------------------- | ------------------------------------------------- |
+| Non-mql5.com URL       | Skill only supports mql5.com  | Use other tools for non-mql5.com sites            |
+| Article not found      | Invalid article ID or removed | Verify URL exists by visiting in browser          |
+| User ID not recognized | Wrong user ID format          | Use numeric ID from profile URL or exact username |
+| Empty extraction       | Rate limiting or site change  | Wait and retry, check for site structure changes  |
+| Permission denied      | Working directory mismatch    | Run from $HOME/eon/mql5 directory                 |
+| Batch too large        | Too many articles requested   | Limit batch size, use URL list file               |
+| Missing dependencies   | Required tools not installed  | Install curl, jq for extraction                   |
+| Output encoding issues | Unicode in article content    | Ensure UTF-8 output handling                      |
