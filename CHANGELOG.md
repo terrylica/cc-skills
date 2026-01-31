@@ -1,3 +1,22 @@
+## [10.2.2](https://github.com/terrylica/cc-skills/compare/v10.2.1...v10.2.2) (2026-01-31)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [doc-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/README.md) - updated (+2)
+- [productivity-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/README.md) - updated (+47/-5)
+- [quality-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/README.md) - updated (+4)
+- [quant-research](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/README.md) - updated (+22/-3)
+
 ## [10.2.1](https://github.com/terrylica/cc-skills/compare/v10.2.0...v10.2.1) (2026-01-31)
 
 
