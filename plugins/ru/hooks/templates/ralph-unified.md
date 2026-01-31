@@ -124,13 +124,16 @@ Claude Code 2.1+ provides automatic checkpoints before each change.
 
 ### Workflow
 
-1. **Query**: `TaskList` for available work (`status: "pending"`, `blockedBy: []`)
-2. **Claim**: `TaskUpdate` with `status: "in_progress"`, `owner: "ralph"`
-3. **Execute**: Perform the work described in the task
-4. **Verify**: Confirm the change works as expected
-5. **Commit**: Follow COMMIT STRATEGY with `Task-ID:` footer
-6. **Complete**: `TaskUpdate` with `status: "completed"`
-7. **Repeat**: Return to step 1 for next available task
+1. **Context Refresh**: Scan `**/CLAUDE.md` and `**/RESUME.md` for session state and project conventions
+   - Update these files if recent learnings or state changes are missing
+   - These are living documents—treat them as active memory, not static text
+2. **Query**: `TaskList` for available work (`status: "pending"`, `blockedBy: []`)
+3. **Claim**: `TaskUpdate` with `status: "in_progress"`, `owner: "ralph"`
+4. **Execute**: Perform the work described in the task
+5. **Verify**: Confirm the change works as expected
+6. **Commit**: Follow COMMIT STRATEGY with `Task-ID:` footer
+7. **Complete**: `TaskUpdate` with `status: "completed"`
+8. **Repeat**: Return to step 1 for next available task
 
 ### If No Tasks Available
 
