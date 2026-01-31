@@ -113,3 +113,12 @@ Run the bash script above to force validation mode.
 - **Targeted auditing**: Skip to round 4/5 for specific checks
 - **Math validation**: Use `/ralph:audit-now 4` for adversarial probing
 - **Robustness check**: Use `/ralph:audit-now 5` for regime testing
+
+## Troubleshooting
+
+| Issue                  | Cause                    | Solution                          |
+| ---------------------- | ------------------------ | --------------------------------- |
+| Round must be 1-5      | Invalid round number     | Use a number between 1 and 5      |
+| Loop not running       | State is stopped/paused  | Run `/ralph:start` first          |
+| Config file error      | Invalid JSON in config   | Delete and recreate config        |
+| Validation not running | Loop hasn't iterated yet | Wait for next Stop hook iteration |

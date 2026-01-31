@@ -44,3 +44,22 @@ if [[ -f "$PROJECT_DIR/.claude/ru-start-timestamp" ]]; then
 fi
 RALPH_UNIVERSAL_STATUS
 ```
+
+## Examples
+
+```bash
+# Check if loop is running
+/ru:status
+
+# Quick check from terminal
+cat .claude/ru-state.json 2>/dev/null | jq -r '.state' || echo "not started"
+```
+
+## Troubleshooting
+
+| Issue            | Cause                  | Solution                          |
+| ---------------- | ---------------------- | --------------------------------- |
+| NOT STARTED      | Loop never initialized | Run `/ru:start`                   |
+| State: unknown   | Corrupted state file   | Delete `.claude/ru-state.json`    |
+| No configuration | Config file missing    | Run `/ru:wizard` for guided setup |
+| jq not found     | jq not installed       | `brew install jq`                 |

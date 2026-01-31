@@ -195,3 +195,23 @@ RALPH_STATUS_SCRIPT
 ```
 
 Run the bash script above to show status.
+
+## Examples
+
+```bash
+# Check if loop is running
+/ralph:status
+
+# Quick check from terminal
+cat ~/.claude/ralph-state.json | jq -r '.state'
+```
+
+## Troubleshooting
+
+| Issue                 | Cause                       | Solution                           |
+| --------------------- | --------------------------- | ---------------------------------- |
+| Status shows INACTIVE | Hooks not installed         | Run `/ralph:hooks install`         |
+| Status shows READY    | Loop enabled but not active | Run `/ralph:start`                 |
+| No session state      | State file not created      | Loop hasn't run any iterations yet |
+| jq command not found  | jq not installed            | `brew install jq`                  |
+| Wall-clock shows N/A  | Timestamp file missing      | Normal before first `/ralph:start` |

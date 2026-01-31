@@ -177,3 +177,13 @@ Recent daemon logs:
 [2025-12-26 15:30:00] Pushed: chunk_20251226_153000.cast.zst
 [2025-12-26 15:25:00] Idle detected (32s) for workspace_2025-12-26.cast
 ```
+
+## Troubleshooting
+
+| Issue                | Cause                         | Solution                               |
+| -------------------- | ----------------------------- | -------------------------------------- |
+| jq not found         | jq not installed              | `brew install jq`                      |
+| No health.json       | Daemon not running            | Run `/asciinema-tools:daemon-start`    |
+| GitHub PAT not found | Keychain credential missing   | Run `/asciinema-tools:daemon-setup`    |
+| Many unhandled files | Orphan branch not initialized | Run `/asciinema-tools:finalize`        |
+| Status hangs         | Large find operation          | Use `--processes-only` for quick check |

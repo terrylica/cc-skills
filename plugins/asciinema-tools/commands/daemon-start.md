@@ -71,3 +71,12 @@ Status:
   ...
 }
 ```
+
+## Troubleshooting
+
+| Issue                  | Cause                       | Solution                                  |
+| ---------------------- | --------------------------- | ----------------------------------------- |
+| Daemon not installed   | Setup not run               | Run `/asciinema-tools:daemon-setup` first |
+| Failed to start daemon | Launchd configuration error | Check `launchctl error` and re-run setup  |
+| Health file missing    | Daemon still initializing   | Wait 5 seconds, check `/daemon-status`    |
+| Daemon keeps stopping  | Script error or credentials | Check `/asciinema-tools:daemon-logs`      |
