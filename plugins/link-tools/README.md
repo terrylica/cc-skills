@@ -1,5 +1,10 @@
 # link-tools
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Comprehensive link validation for Claude Code: portability checks, lychee broken link detection, and path policy linting.
 
 Merged from `link-validator` + `link-checker` plugins.
@@ -74,6 +79,23 @@ See [config/lychee.toml](./config/lychee.toml) for defaults.
 | Script              | Purpose                               |
 | ------------------- | ------------------------------------- |
 | `validate_links.py` | Standalone link portability validator |
+
+## Troubleshooting
+
+| Issue            | Cause                      | Solution                                                        |
+| ---------------- | -------------------------- | --------------------------------------------------------------- |
+| lychee not found | Not installed              | `mise install lychee` or `brew install lychee`                  |
+| False positives  | Exclude patterns missing   | Add patterns to `.lycheerc.toml` exclude list                   |
+| Timeout errors   | Network issues             | Use `--offline` flag for local-only validation                  |
+| Path violations  | Absolute paths in markdown | Convert to relative paths: `./file.md` not `/full/path/file.md` |
+
+## Dependencies
+
+| Component | Required | Installation                                   |
+| --------- | -------- | ---------------------------------------------- |
+| lychee    | Yes      | `mise install lychee` or `brew install lychee` |
+| Python    | Yes      | 3.11+ via mise                                 |
+| uv        | Yes      | `brew install uv`                              |
 
 ## References
 
