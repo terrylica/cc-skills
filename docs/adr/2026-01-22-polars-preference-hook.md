@@ -1,12 +1,15 @@
 ---
-status: implemented
+status: superseded
 date: 2026-01-22
+superseded-date: 2026-01-31
 decision-maker: Terry Li
 consulted: [lifecycle-reference.md, ml-data-pipeline-architecture SKILL]
 research-method: multi-perspective-subagent-analysis
 ---
 
 # ADR: Polars Preference Hook (Efficiency Preferences Framework)
+
+> **SUPERSEDED (2026-01-31)**: This hook was disabled due to excessive noise during normal development. The Polars preference remains a best practice but is no longer enforced via hooks.
 
 ## Context and Problem Statement
 
