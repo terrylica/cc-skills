@@ -23,12 +23,12 @@ Claude Code skills marketplace: **19 plugins** with skills for ADR-driven develo
 | Task             | Command                            |
 | ---------------- | ---------------------------------- |
 | Validate plugins | `bun scripts/validate-plugins.mjs` |
-| Release (full)   | `mise run release_full`            |
-| Release (dry)    | `mise run release_dry`             |
+| Release (full)   | `mise run release:full`            |
+| Release (dry)    | `mise run release:dry`             |
 | Execute workflow | `/itp:go feature-name -b`          |
 | Setup env        | `/itp:setup`                       |
 | Add plugin       | `/plugin-dev:create plugin-name`   |
-| Autonomous mode  | `/ralph:start` / `/ralph:stop`     |
+| Autonomous mode  | `/ru:start` / `/ru:stop`           |
 
 ## Plugin Discovery
 
