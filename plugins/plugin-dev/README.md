@@ -22,6 +22,11 @@ claude plugin install plugin-dev@cc-skills
 | `plugin-validator`   | Validate plugin structure, manifests, and silent failure patterns   |
 | `skill-architecture` | Meta-skill for creating Claude Code skills with TodoWrite templates |
 
+**Trigger phrases:**
+
+- "plugin validation", "check plugin", "hook audit" → plugin-validator
+- "create skill", "YAML frontmatter", "skill templates" → skill-architecture
+
 ## Usage
 
 ```bash
