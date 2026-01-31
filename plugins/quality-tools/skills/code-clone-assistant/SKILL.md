@@ -75,3 +75,18 @@ For detailed information, see:
 - [Detection Commands](./references/detection-commands.md) - PMD CPD and Semgrep command details
 - [Complete Workflow](./references/complete-workflow.md) - Detection, analysis, and presentation phases
 - [Refactoring Strategies](./references/refactoring-strategies.md) - Approaches for addressing violations
+
+---
+
+## Troubleshooting
+
+| Issue                      | Cause                        | Solution                                         |
+| -------------------------- | ---------------------------- | ------------------------------------------------ |
+| PMD CPD not found          | Not installed or not in PATH | `brew install pmd` or download from PMD releases |
+| Semgrep timeout            | Large codebase scan          | Use `--exclude` to limit scope                   |
+| No duplicates detected     | minimum-tokens too high      | Lower `--minimum-tokens` value (try 15)          |
+| Too many false positives   | minimum-tokens too low       | Increase `--minimum-tokens` (try 30+)            |
+| Language not recognized    | Wrong `-l` flag              | Check PMD CPD supported languages list           |
+| SARIF parse error          | Semgrep output malformed     | Upgrade Semgrep to latest version                |
+| Memory error on large repo | Java heap too small          | Set `PMD_JAVA_OPTS=-Xmx4g`                       |
+| Missing clone rules file   | Custom rules not created     | Create `clone-rules.yaml` or use default config  |

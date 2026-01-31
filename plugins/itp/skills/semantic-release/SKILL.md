@@ -356,3 +356,19 @@ After modifying THIS skill (semantic-release):
 4. [ ] Append changes to [evolution-log.md](./references/evolution-log.md)
 5. [ ] Validate with `bun scripts/validate-plugins.mjs`
 6. [ ] Run `npm run release:dry` to verify no regressions
+
+---
+
+## Troubleshooting
+
+| Issue                        | Cause                           | Solution                                                 |
+| ---------------------------- | ------------------------------- | -------------------------------------------------------- |
+| No release created           | No releasable commits since tag | Use `feat:` or `fix:` prefix for version-bumping commits |
+| Wrong version bump           | Commit type mismatch            | Check conventional commit format and releaseRules        |
+| GitHub release not created   | Missing GH_TOKEN or permissions | Check token is set and has repo scope                    |
+| CHANGELOG not updated        | Missing changelog plugin        | Add `@semantic-release/changelog` to plugins array       |
+| "Authentication failed"      | HTTPS vs SSH remote mismatch    | Convert to HTTPS: `git-ssh-to-https`                     |
+| semantic-release not found   | Not installed globally          | `npm install -g semantic-release`                        |
+| Gatekeeper blocks on macOS   | Unsigned Node files             | See [Troubleshooting](./references/troubleshooting.md)   |
+| dry-run shows no changes     | Already released at HEAD        | Make new commits before running release                  |
+| Multi-account token conflict | Wrong GH_TOKEN for directory    | Configure mise [env] per-directory token                 |

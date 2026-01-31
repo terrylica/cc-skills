@@ -116,3 +116,18 @@ See [`mise-configuration` skill](../../../itp/skills/mise-configuration/SKILL.md
 For PyPI publishing, see [`pypi-doppler` skill](../../../itp/skills/pypi-doppler/SKILL.md) for **LOCAL-ONLY** workspace policy.
 
 **Do NOT** configure PyPI publishing in GitHub Actions or CI/CD pipelines.
+
+---
+
+## Troubleshooting
+
+| Issue                      | Cause                            | Solution                                              |
+| -------------------------- | -------------------------------- | ----------------------------------------------------- |
+| 403 on PyPI publish        | Token expired or wrong scope     | Regenerate project-scoped token, update in Doppler    |
+| InvalidClientTokenId (AWS) | Access key rotated or deleted    | Run AWS key rotation workflow, update Doppler         |
+| Variable expands empty     | Using `$VAR` without --command   | Always use `--command='...$VAR...'` pattern           |
+| Doppler CLI not found      | Not installed                    | `brew install dopplerhq/cli/doppler`                  |
+| Wrong config selected      | Ambiguous project/config         | Specify both `--project` and `--config` explicitly    |
+| mise [env] not loading     | Not in directory with .mise.toml | `cd` to project directory or check mise.toml path     |
+| Secret retrieval slow      | No caching configured            | Use mise `cache()` with duration for repeated access  |
+| Token length mismatch      | Copied with extra whitespace     | Trim token: `echo -n 'secret' \| doppler secrets set` |

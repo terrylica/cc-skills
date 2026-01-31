@@ -259,3 +259,18 @@ After modifying this skill:
 - [GitHub Blob URLs](https://docs.github.com/en/repositories/working-with-files/using-files/getting-permanent-links-to-files)
 - [GFM Link Syntax](https://github.github.com/gfm/#links)
 - [gh CLI Documentation](https://cli.github.com/manual/gh_pr_create)
+
+---
+
+## Troubleshooting
+
+| Issue                    | Cause                          | Solution                                          |
+| ------------------------ | ------------------------------ | ------------------------------------------------- |
+| Links still 404 after PR | File not pushed to branch yet  | Push commits before creating PR                   |
+| Regex not matching links | Escaped parentheses in content | Use raw string regex pattern                      |
+| Branch name has slashes  | URL encoding needed            | Encode branch name for URL construction           |
+| External links converted | Pattern too broad              | Check link starts with `/`, `./`, or `../` only   |
+| gh repo view fails       | Not in a git repository        | Run from repository root directory                |
+| Anchor links broken      | Incorrectly included in scan   | Skip links starting with `#`                      |
+| Wrong repo detected      | Remote not set correctly       | Check `git remote -v` output                      |
+| Conversion duplicated    | Running validator twice        | Check if links already absolute before converting |
