@@ -1,3 +1,24 @@
+# [11.3.0](https://github.com/terrylica/cc-skills/compare/v11.2.0...v11.3.0) (2026-01-31)
+
+
+### Features
+
+* **ru:** add TESTING PHILOSOPHY section to template ([03da4fb](https://github.com/terrylica/cc-skills/commit/03da4fb7169cbe1e0626226a17d346ec3097264d))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+37)
+
 # [11.2.0](https://github.com/terrylica/cc-skills/compare/v11.1.1...v11.2.0) (2026-01-31)
 
 
