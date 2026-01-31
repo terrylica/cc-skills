@@ -9,16 +9,14 @@ description: Create alpha-forge git worktrees with auto branch naming. TRIGGERS 
 
 Create and manage git worktrees for the alpha-forge repository with automatic branch naming, consistent conventions, and lifecycle management.
 
-## Triggers
+## When to Use This Skill
 
-Invoke this skill when user mentions:
+Use this skill when:
 
-- "create worktree for [description]"
-- "new worktree [description]"
-- "alpha-forge worktree"
-- "AF worktree"
-- "worktree from origin/..."
-- "worktree for feat/..."
+- Creating a new worktree for alpha-forge development
+- Setting up a worktree from a remote branch
+- Using an existing local branch in a new worktree
+- Managing multiple parallel feature branches
 
 ## Operational Modes
 

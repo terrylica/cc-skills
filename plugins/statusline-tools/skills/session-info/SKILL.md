@@ -7,7 +7,9 @@ description: Get current Claude Code session UUID and registry info. TRIGGERS - 
 
 Returns the current Claude Code session UUID and registry information.
 
-## When to Use
+## When to Use This Skill
+
+Use this skill when:
 
 - Need to know the current session UUID for debugging
 - Want to check the session chain history

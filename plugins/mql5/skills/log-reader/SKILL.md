@@ -17,7 +17,7 @@ Implement "Option 3" dual logging pattern:
 
 Claude Code CLI can autonomously read both outputs without user intervention.
 
-## When to Use
+## When to Use This Skill
 
 Use this skill when:
 

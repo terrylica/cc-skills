@@ -8,7 +8,9 @@ allowed-tools: Task, TaskOutput, Bash, Read, Grep, Glob
 
 Spawn 5 parallel Explore agents to discover constraints that limit Claude's degrees of freedom.
 
-## When to Use
+## When to Use This Skill
+
+Use this skill when:
 
 - Invoked by `/ralph:start` Step 1.4.5 via Skill tool
 - User asks to analyze project constraints

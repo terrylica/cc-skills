@@ -18,9 +18,14 @@ Detect code clones and guide refactoring using PMD CPD (exact duplicates) + Semg
 
 ---
 
-## When to Use
+## When to Use This Skill
 
-Triggers: "find duplicate code", "DRY violations", "refactor similar code", "detect code duplication", "similar validation logic", "repeated patterns", "copy-paste code", "exact duplicates"
+Use this skill when:
+
+- Finding duplicate code in a codebase
+- Detecting DRY violations
+- Refactoring similar code patterns
+- Identifying copy-paste code
 
 ---
 

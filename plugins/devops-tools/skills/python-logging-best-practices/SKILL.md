@@ -6,6 +6,15 @@ allowed-tools: Read, Bash, Grep, Edit, Write
 
 # Python Logging Best Practices
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Setting up Python logging with loguru
+- Configuring structured JSONL logging for analysis
+- Implementing log rotation
+- Using platformdirs for cross-platform log directories
+
 ## Overview
 
 Unified reference for Python logging patterns optimized for machine readability (Claude Code analysis) and operational reliability.

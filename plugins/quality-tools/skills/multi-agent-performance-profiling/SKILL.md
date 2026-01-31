@@ -9,7 +9,9 @@ description: Multi-agent performance profiling for pipeline bottlenecks. TRIGGER
 
 Prescriptive workflow for spawning parallel profiling agents to comprehensively identify performance bottlenecks across multiple system layers. Successfully discovered that QuestDB ingests at 1.1M rows/sec (11x faster than target), proving database was NOT the bottleneck - CloudFront download was 90% of pipeline time.
 
-**When to use this skill:**
+## When to Use This Skill
+
+Use this skill when:
 
 - Performance below SLO (e.g., 47K vs 100K rows/sec target)
 - Multi-stage pipeline optimization (download → extract → parse → ingest)

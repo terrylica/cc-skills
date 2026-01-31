@@ -6,15 +6,17 @@ allowed-tools: Read, Edit, Bash
 
 # LaTeX Environment Setup
 
-## Quick Reference
+## When to Use This Skill
 
-**When to use this skill:**
+Use this skill when:
 
 - Installing LaTeX on a new machine
 - Setting up MacTeX distribution
 - Configuring Skim PDF viewer with SyncTeX
 - Verifying LaTeX installation
 - Troubleshooting missing packages
+
+## Quick Reference
 
 ## Recommended Stack
 

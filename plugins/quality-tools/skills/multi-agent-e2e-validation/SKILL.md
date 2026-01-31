@@ -9,7 +9,9 @@ description: Multi-agent parallel E2E validation for database refactors. TRIGGER
 
 Prescriptive workflow for spawning parallel validation agents to comprehensively test database refactors. Successfully identified 5 critical bugs (100% system failure rate) in QuestDB migration that would have shipped in production.
 
-**When to use this skill:**
+## When to Use This Skill
+
+Use this skill when:
 
 - Database refactors (e.g., v3.x file-based → v4.x QuestDB)
 - Schema migrations requiring validation

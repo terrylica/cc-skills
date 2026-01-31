@@ -10,6 +10,16 @@ allowed-tools: Read, Bash, Grep, Skill
 
 Prescriptive schema design, compression selection, and performance optimization for ClickHouse (v24.4+). Covers both ClickHouse Cloud (SharedMergeTree) and self-hosted (ReplicatedMergeTree) deployments.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Designing ClickHouse table schemas with ORDER BY key selection
+- Selecting compression codecs for column types
+- Configuring partition keys for data lifecycle management
+- Adding performance accelerators (projections, indexes, dictionaries)
+- Auditing and optimizing existing ClickHouse schemas
+
 ## Core Methodology
 
 ### Schema Design Workflow

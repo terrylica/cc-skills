@@ -6,9 +6,9 @@ allowed-tools: Read, Bash
 
 # Doppler Credential Workflows
 
-## Quick Reference
+## When to Use This Skill
 
-**When to use this skill:**
+Use this skill when:
 
 - Publishing Python packages to PyPI
 - Rotating AWS access keys
@@ -16,6 +16,8 @@ allowed-tools: Read, Bash
 - Troubleshooting authentication failures (403, InvalidClientTokenId)
 - Setting up Doppler credential injection patterns
 - Multi-token/multi-account strategies
+
+## Quick Reference
 
 ## Core Pattern: Doppler CLI
 

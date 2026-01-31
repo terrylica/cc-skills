@@ -6,7 +6,9 @@ allowed-tools: Read, Bash, Grep
 
 # Schema E2E Validation
 
-## When to Use
+## When to Use This Skill
+
+Use this skill when:
 
 - Validating schema changes before commit
 - Verifying YAML schema matches live ClickHouse Cloud

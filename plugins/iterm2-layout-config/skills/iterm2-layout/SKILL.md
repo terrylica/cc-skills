@@ -9,17 +9,14 @@ description: Configure iTerm2 workspace layouts with TOML. TRIGGERS - iTerm2 lay
 
 Configure iTerm2 workspace layouts with proper separation of concerns: private paths in TOML config, publishable code in Python script.
 
-## Triggers
+## When to Use This Skill
 
-Invoke this skill when user mentions:
+Use this skill when:
 
-- "iTerm2 layout"
-- "workspace tabs"
-- "layout.toml"
-- "AutoLaunch script"
-- "default-layout.py"
-- "configure terminal workspaces"
-- "add workspace tab"
+- Configuring iTerm2 workspace layouts
+- Adding, removing, or modifying workspace tabs
+- Setting up AutoLaunch scripts for iTerm2
+- Configuring git worktree tab auto-discovery
 
 ## Configuration Overview
 

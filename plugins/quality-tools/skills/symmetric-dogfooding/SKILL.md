@@ -26,14 +26,14 @@ Bidirectional integration validation pattern where two repositories each consume
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**When to Apply:**
+## When to Use This Skill
 
-| Condition                                     | Why It Matters                                    |
-| --------------------------------------------- | ------------------------------------------------- |
-| Two repos have producer/consumer relationship | Changes in one affect the other                   |
-| APIs evolve independently                     | Semantic versioning alone misses integration bugs |
-| Data formats may drift                        | Schema changes break consumers silently           |
-| Both repos actively developed                 | Unidirectional testing misses half the problems   |
+Use this skill when:
+
+- Two repos have a producer/consumer relationship
+- APIs evolve independently and need integration testing
+- Data formats may drift between repos
+- Both repos are actively developed
 
 ---
 
