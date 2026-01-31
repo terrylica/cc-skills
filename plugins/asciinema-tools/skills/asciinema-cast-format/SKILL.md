@@ -213,3 +213,18 @@ After modifying this skill:
 - [asciinema asciicast v2 Format](https://docs.asciinema.org/manual/asciicast/v2/)
 - [asciinema CLI Usage](https://docs.asciinema.org/manual/cli/)
 - [jq Manual](https://jqlang.github.io/jq/manual/)
+
+---
+
+## Troubleshooting
+
+| Issue                   | Cause                        | Solution                                           |
+| ----------------------- | ---------------------------- | -------------------------------------------------- |
+| jq parse error          | Invalid NDJSON in .cast file | Check each line is valid JSON with `jq -c .`       |
+| Header missing duration | Recording in progress        | Duration added when recording ends                 |
+| Unknown event type      | Custom extension event       | Check for `x` type events (extension data)         |
+| Timestamp out of order  | Corrupted file               | Events should be monotonically increasing          |
+| Large file jq timeout   | File too big for in-memory   | Use `--stream` flag or convert to .txt first       |
+| Markers not found       | No markers in recording      | Markers are optional; not all recordings have them |
+| Wrong version number    | Older cast format            | This skill covers v2 format (asciinema v3+)        |
+| Empty output from tail  | File has only header         | Recording may be empty or single-line              |
