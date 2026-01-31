@@ -247,4 +247,4 @@ The loop continues until:
 - You run `/ru:stop`
 - Kill switch: `touch .claude/STOP_LOOP`
 
-Use `/ru:configure` for detailed guidance setup anytime.
+Use `/ru:wizard` for detailed guidance setup anytime.

@@ -22,7 +22,7 @@ Autonomous loop mode for **any project** - short name for quick invocation.
 | `/ru:start`     | Start loop with interactive guidance setup  |
 | `/ru:stop`      | Stop the loop immediately                   |
 | `/ru:status`    | Show current state                          |
-| `/ru:configure` | Interactive wizard for forbidden/encouraged |
+| `/ru:wizard`    | Interactive wizard for forbidden/encouraged |
 | `/ru:forbid`    | Add item to forbidden list                  |
 | `/ru:encourage` | Add item to encouraged list                 |
 | `/ru:config`    | View or modify configuration                |
@@ -55,7 +55,7 @@ Use `--quick` to skip guidance and use existing config.
 /ru:encourage --list
 
 # Interactive reconfiguration
-/ru:configure
+/ru:wizard
 ```
 
 ## State Files
