@@ -172,7 +172,7 @@ logger.info(
 
 ## Related Resources
 
-- [launchagent-log-rotation skill](../../../.claude/skills/launchagent-log-rotation/SKILL.md) - RotatingFileHandler for daemons
+- [Python logging.handlers](https://docs.python.org/3/library/logging.handlers.html#rotatingfilehandler) - RotatingFileHandler for log rotation
 - [platformdirs reference](./references/platformdirs-xdg.md) - Cross-platform directories
 - [loguru patterns](./references/loguru-patterns.md) - Advanced loguru configuration
 - [migration guide](./references/migration-guide.md) - From print() to structured logging

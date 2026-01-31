@@ -14,7 +14,7 @@
 Need logging?
 ├── Stdlib-only required?
 │   └── YES → RotatingFileHandler
-│       └── See: launchagent-log-rotation skill
+│       └── See: Python logging.handlers docs
 ├── LaunchAgent/daemon?
 │   └── YES → RotatingFileHandler
 │       └── Prevents unbounded log growth
@@ -74,7 +74,7 @@ logging.getLogger().addHandler(handler)
 - Predictable disk usage
 - Well-understood behavior
 
-**Reference**: `Skill(launchagent-log-rotation)`
+**Reference**: [Python RotatingFileHandler](https://docs.python.org/3/library/logging.handlers.html#rotatingfilehandler)
 
 ### 3. Rich Integration (Complex Apps)
 
