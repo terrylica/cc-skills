@@ -5,6 +5,8 @@ phase: unified
 adr: 2025-12-20-ralph-rssi-eternal-loop
 ---
 
+📁 **Config**: `{{ project_dir }}/.claude/ru-config.json`
+
 > **Ralph Universal Protocol**: You are running an autonomous improvement loop. Never stop on success — always pivot to find new frontiers. Every iteration must produce meaningful improvement.
 
 ---
@@ -258,3 +260,7 @@ Task(
 **Loop invariant**: Every iteration must produce improvement OR improve the ability to find improvement. Idling is impossible.
 
 **NEVER** respond with "idle" or "waiting". ALWAYS act on the opportunities above.
+
+---
+
+📁 **Config**: `{{ project_dir }}/.claude/ru-config.json`
