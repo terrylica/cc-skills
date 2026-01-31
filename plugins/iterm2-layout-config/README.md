@@ -1,5 +1,9 @@
 # iterm2-layout-config
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 iTerm2 workspace layout configuration plugin for Claude Code marketplace.
 
 ## Overview
@@ -135,6 +139,22 @@ dir = "~/projects"
 | Skill         | Description                                                 |
 | ------------- | ----------------------------------------------------------- |
 | iterm2-layout | Configuration patterns, troubleshooting, and best practices |
+
+## Troubleshooting
+
+| Issue                | Cause              | Solution                                                                             |
+| -------------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| Config not loading   | File not found     | Ensure `~/.config/iterm2/layout.toml` exists                                         |
+| TOML parse error     | Invalid syntax     | Validate with `python3 -c "import tomllib; tomllib.load(open('layout.toml', 'rb'))"` |
+| Tabs not creating    | iTerm2 too old     | Requires iTerm2 3.4+ with Python API enabled                                         |
+| Path expansion fails | Missing ~ handling | Use full paths or ensure `expanduser()` is called                                    |
+
+## Dependencies
+
+| Component | Required | Installation                 |
+| --------- | -------- | ---------------------------- |
+| iTerm2    | Yes      | 3.4+ with Python API enabled |
+| Python    | Yes      | 3.11+ (for `tomllib` module) |
 
 ## Related
 
