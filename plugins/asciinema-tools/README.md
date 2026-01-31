@@ -1,5 +1,10 @@
 # asciinema-tools
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-6-blue.svg)]()
+[![Commands](https://img.shields.io/badge/Commands-18-green.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Terminal recording, playback, streaming, and analysis plugin for Claude Code. Record sessions, stream to GitHub, convert to searchable text, and extract insights with semantic analysis.
 
 ## Skills
