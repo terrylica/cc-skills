@@ -10,28 +10,31 @@ Complete post-session workflow: finalize orphaned recordings → convert to text
 
 ## Arguments
 
-| Argument        | Description                                          |
-| --------------- | ---------------------------------------------------- |
-| `file`          | Path to .cast file (or auto-detect)                  |
-| `--finalize`    | Include finalize step (stop processes, compress)     |
-| `-q, --quick`   | Quick analysis (keyword grep + brief summary)        |
-| `-f, --full`    | Full analysis (convert + AI deep-dive summarize)     |
-| `--summarize`   | Include AI summarize step (iterative deep-dive)      |
-| `--output`      | Save findings to markdown file                       |
+| Argument      | Description                                      |
+| ------------- | ------------------------------------------------ |
+| `file`        | Path to .cast file (or auto-detect)              |
+| `--finalize`  | Include finalize step (stop processes, compress) |
+| `-q, --quick` | Quick analysis (keyword grep + brief summary)    |
+| `-f, --full`  | Full analysis (convert + AI deep-dive summarize) |
+| `--summarize` | Include AI summarize step (iterative deep-dive)  |
+| `--output`    | Save findings to markdown file                   |
 
 ## Workflow Modes
 
 ### Quick Mode (`-q`)
+
 ```
 [file] → convert → keyword grep → brief summary
 ```
 
 ### Full Mode (`-f`)
+
 ```
 [file] → convert → AI summarize (iterative deep-dive)
 ```
 
 ### Complete Mode (`--finalize --full`)
+
 ```
 stop processes → compress → push → convert → AI summarize
 ```
@@ -101,6 +104,7 @@ AskUserQuestion:
 ### Phase 3: Finalize (if selected)
 
 Chain to `/asciinema-tools:finalize`:
+
 1. Stop running asciinema processes
 2. Verify file integrity
 3. Compress with zstd
@@ -130,6 +134,7 @@ CONVERT_EOF
 ### Phase 5: Analysis
 
 **Quick mode**: Keyword grep + brief summary
+
 ```bash
 # Run curated keyword searches
 grep -c -i "error\|fail\|exception" "$TXT_FILE"
@@ -139,6 +144,7 @@ grep -c -i "sharpe\|drawdown\|backtest" "$TXT_FILE"
 ```
 
 **Full mode**: Chain to `/asciinema-tools:summarize`
+
 - Initial guidance via AskUserQuestion
 - Strategic sampling (head/middle/tail)
 - Iterative deep-dive with user guidance
@@ -184,3 +190,13 @@ AskUserQuestion:
 - `/asciinema-tools:convert` - Convert .cast to .txt
 - `/asciinema-tools:summarize` - AI-powered deep analysis
 - `/asciinema-tools:analyze` - Keyword-based analysis
+
+## Troubleshooting
+
+| Issue                    | Cause                    | Solution                                    |
+| ------------------------ | ------------------------ | ------------------------------------------- |
+| No recordings found      | No .cast files in ~/eon  | Check recording directory with `find ~/eon` |
+| File discovery empty     | Wrong search path        | Manually specify file path as argument      |
+| Convert fails            | Corrupted .cast file     | Run `/asciinema-tools:finalize` first       |
+| AI summarize timeout     | Recording too large      | Use `-q` for quick analysis first           |
+| Orphan branch push fails | Git authentication issue | Check GitHub token with `echo $GH_TOKEN`    |

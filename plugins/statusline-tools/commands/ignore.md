@@ -98,3 +98,12 @@ cat ~/.claude/lint-relative-paths-ignore
 # Add a pattern manually
 echo "my-repo-pattern" >> ~/.claude/lint-relative-paths-ignore
 ```
+
+## Troubleshooting
+
+| Issue                 | Cause                     | Solution                                             |
+| --------------------- | ------------------------- | ---------------------------------------------------- |
+| Pattern not matching  | Substring match is strict | Use broader pattern (e.g., `forge` vs `alpha-forge`) |
+| Ignore file not found | ~/.claude doesn't exist   | Create with `mkdir -p ~/.claude`                     |
+| Permission denied     | File not writable         | Check file permissions with `ls -la`                 |
+| Script not found      | Plugin not installed      | Reinstall plugin from marketplace                    |
