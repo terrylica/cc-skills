@@ -76,6 +76,16 @@ Skills are model-invoked based on context.
 - Polyrepo integration testing before release
 - Cross-repo dependency verification
 
+## Dependencies
+
+| Component  | Required           | Installation                                          |
+| ---------- | ------------------ | ----------------------------------------------------- |
+| PMD CPD    | For clone analysis | `brew install pmd`                                    |
+| Semgrep    | For clone analysis | `brew install semgrep`                                |
+| Earthly    | For E2E validation | [earthly.dev/get-earthly](https://earthly.dev)        |
+| Docker     | For E2E validation | `brew install --cask docker`                          |
+| ClickHouse | For schema tools   | [clickhouse.com](https://clickhouse.com/docs/install) |
+
 ## Troubleshooting
 
 | Issue                        | Cause                  | Solution                             |

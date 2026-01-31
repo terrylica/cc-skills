@@ -61,11 +61,16 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Bibliography with BibTeX/CSL
 - LaTeX table spacing fixes
 
-## Requirements
+## Dependencies
 
-- macOS (for latex-setup with MacTeX/Skim)
-- MacTeX or TeX Live installation
-- Pandoc (`brew install pandoc`)
+| Component | Required         | Installation                           |
+| --------- | ---------------- | -------------------------------------- |
+| MacTeX    | For LaTeX skills | `brew install --cask mactex`           |
+| Pandoc    | For PDF gen      | `brew install pandoc`                  |
+| Skim      | For PDF preview  | `brew install --cask skim`             |
+| Vale      | For glossary     | `brew install vale`                    |
+| plotext   | For charts       | `uv pip install plotext`               |
+| macOS     | For setup skill  | Required for MacTeX/Skim configuration |
 
 ## Troubleshooting
 
