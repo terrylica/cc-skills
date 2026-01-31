@@ -221,6 +221,19 @@ Future skills to be added to gh-tools:
 - [GFM Specification](https://github.github.com/gfm/)
 - [GitHub CLI Documentation](https://cli.github.com/manual/)
 
+## Troubleshooting
+
+| Issue                            | Cause                              | Solution                                                |
+| -------------------------------- | ---------------------------------- | ------------------------------------------------------- |
+| Hooks not triggering             | Hooks not installed or not active  | Run `/gh-tools:hooks install` and restart Claude Code   |
+| WebFetch guard not showing       | Missing matcher in settings.json   | Check `/gh-tools:hooks status` for configuration        |
+| Issue body file guard bypassed   | Command doesn't match Bash matcher | Ensure command uses `gh issue create` pattern           |
+| Links still broken after convert | External links unchanged           | External links are preserved; only repo-relative fixed  |
+| gh CLI not authenticated         | Missing GitHub token               | Run `gh auth login` to authenticate                     |
+| Branch detection wrong           | Detached HEAD state                | Checkout a named branch before creating PR              |
+| 404 on converted links           | File doesn't exist on branch       | Verify file exists: `git ls-files path/to/file.md`      |
+| Slow PR creation                 | Large diff or many files           | Normal for large PRs; links converted before submission |
+
 ## License
 
 MIT

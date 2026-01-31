@@ -155,6 +155,19 @@ Run `/asciinema-tools:setup` to check and install dependencies.
 
 See [ADR: asciinema-tools Plugin](/docs/adr/2025-12-24-asciinema-tools-plugin.md) for architectural decisions.
 
+## Troubleshooting
+
+| Issue                       | Cause                           | Solution                                                |
+| --------------------------- | ------------------------------- | ------------------------------------------------------- |
+| Recording not starting      | asciinema not installed         | Run `brew install asciinema`                            |
+| Playback black screen       | iTerm2 not active               | Ensure iTerm2 is frontmost application                  |
+| Streaming backup failing    | gh CLI not authenticated        | Run `gh auth login` to authenticate                     |
+| Orphan branch push rejected | Remote branch doesn't exist     | Create orphan branch first with setup wizard            |
+| Conversion produces empty   | .cast file corrupted or empty   | Check .cast file has valid NDJSON content               |
+| YAKE not found for analysis | Optional dependency not install | Run `uv pip install yake` for Tier 2 analysis           |
+| Chunker daemon not starting | LaunchAgent not loaded          | Check daemon setup with `/asciinema-tools:daemon-setup` |
+| Large .cast file issues     | Memory limits                   | Use streaming converter for files >1GB                  |
+
 ## License
 
 MIT

@@ -55,6 +55,19 @@ Skills are model-invoked — Claude automatically activates them based on contex
 | Python 3.11+ | Optional | `mise use python@3.11` (for Python-MQL5 integration) |
 | MetaTrader5  | Optional | `uv pip install MetaTrader5` (Python package)        |
 
+## Troubleshooting
+
+| Issue                        | Cause                          | Solution                                            |
+| ---------------------------- | ------------------------------ | --------------------------------------------------- |
+| Indicator shows blank window | Scale not set for small values | Set INDICATOR_MINIMUM/MAXIMUM explicitly            |
+| Indicator values drifting    | Rolling window not reset       | Use new bar detection with hidden buffer            |
+| Log file not found           | Wrong date or path             | Verify YYYYMMDD.log format and MQL5_ROOT env var    |
+| Python MT5 connection failed | Terminal not running           | Start MetaTrader 5 before Python connection         |
+| Article extraction fails     | mql5.com structure changed     | Check for updates to article-extractor skill        |
+| Compilation errors in logs   | MQL5 syntax issues             | Read log file for specific error messages and lines |
+| MetaTrader5 import error     | Package not installed          | Run `uv pip install MetaTrader5`                    |
+| Log encoding issues          | UTF-16LE not handled           | Read tool handles encoding automatically            |
+
 ## License
 
 MIT

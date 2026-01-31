@@ -123,6 +123,19 @@ When Claude reaches a natural stop point:
 # Restart Claude Code for hooks to take effect
 ```
 
+## Troubleshooting
+
+| Issue                      | Cause                           | Solution                                           |
+| -------------------------- | ------------------------------- | -------------------------------------------------- |
+| Loop not starting          | Hooks not installed             | Run `/ru:hooks install` and restart Claude Code    |
+| Loop stops unexpectedly    | STOP_LOOP file created          | Remove `.claude/STOP_LOOP` to allow continuation   |
+| Guidance not loading       | ru-config.json missing or empty | Run `/ru:wizard` to configure guidance             |
+| State file corrupted       | Interrupted during write        | Delete `.claude/ru-state.json` and restart         |
+| Hooks fire outside loop    | State check failing             | Verify `ru-state.json` has `"state": "running"`    |
+| Wrong iteration count      | State not persisting            | Check `.claude/` directory permissions             |
+| Loop ignores forbidden     | Guidance not loaded at start    | Use `/ru:start` without `--quick` to load guidance |
+| Emergency stop not working | STOP_LOOP not in right location | Create file at `.claude/STOP_LOOP` (project root)  |
+
 ## License
 
 MIT

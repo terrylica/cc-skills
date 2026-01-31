@@ -113,6 +113,19 @@ alpha-forge-worktree/
 - [ADR: Alpha-Forge Git Worktree Management](/docs/adr/2025-12-14-alpha-forge-worktree-management.md)
 - [Design Spec](/docs/design/2025-12-14-alpha-forge-worktree-management/spec.md)
 
+## Troubleshooting
+
+| Issue                      | Cause                         | Solution                                            |
+| -------------------------- | ----------------------------- | --------------------------------------------------- |
+| Branch already exists      | Local branch with same name   | Use existing branch mode or rename slug             |
+| Remote branch not found    | Typo or not pushed yet        | Run `git fetch --all --prune` and check branch list |
+| Worktree path exists       | Previous worktree not cleaned | Remove old worktree with cleanup script             |
+| Main worktree not on main  | Previous work not committed   | Run `git checkout main` in main worktree first      |
+| iTerm2 tab not appearing   | Dynamic layout not refreshed  | Restart iTerm2 to regenerate tabs                   |
+| Slug derivation wrong      | Word economy rules unclear    | Check naming-conventions.md for examples            |
+| Stale worktree not removed | Branch still has commits      | Use `--delete-branch` flag with cleanup script      |
+| direnv not loading         | Shell hook not configured     | Add `eval "$(direnv hook zsh)"` to `~/.zshrc`       |
+
 ## License
 
 MIT

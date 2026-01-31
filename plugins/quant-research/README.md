@@ -68,6 +68,19 @@ Per-fold adaptive epoch selection using Walk-Forward Efficiency (WFE):
 - `itp`: Workflow automation for research experiments
 - `alpha-forge-worktree`: Git worktree management for parallel experiments
 
+## Troubleshooting
+
+| Issue                        | Cause                          | Solution                                          |
+| ---------------------------- | ------------------------------ | ------------------------------------------------- |
+| Sharpe ratio NaN             | Zero variance in returns       | Check for flat price data or insufficient samples |
+| PSR calculation fails        | scipy not installed            | Run `uv pip install scipy` for statistical tests  |
+| DSR too low                  | Many trials in backtest        | Expected with large search spaces; check MinTRL   |
+| WFE negative                 | OOS underperforming IS         | Model may be overfitting; reduce complexity       |
+| Epoch search bounds too wide | Long runtime                   | Narrow search bounds based on prior experiments   |
+| Range bar aggregation wrong  | Incorrect timestamp handling   | Verify bars are price-based not time-based        |
+| Memory error on large data   | Polars operations on full data | Use lazy frames (scan_csv) for large datasets     |
+| Annualization factor wrong   | Using daily for crypto         | Use sqrt(7) for 24/7 crypto markets               |
+
 ## License
 
 MIT

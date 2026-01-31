@@ -66,6 +66,18 @@ claude plugin install productivity-tools@cc-skills
 - [HOW_TO_USE.md](skills/slash-command-factory/HOW_TO_USE.md) - Usage guide
 - [presets.json](skills/slash-command-factory/presets.json) - Preset definitions
 
+## Troubleshooting
+
+| Issue                          | Cause                          | Solution                                              |
+| ------------------------------ | ------------------------------ | ----------------------------------------------------- |
+| Command not found after create | Output directory not in skills | Move generated files to `~/.claude/commands/`         |
+| YAML frontmatter invalid       | Syntax error in generated file | Check for missing quotes or invalid characters        |
+| Preset not loading             | presets.json not found         | Verify plugin installed correctly with `/plugin ls`   |
+| Question flow interrupted      | Context lost mid-generation    | Restart with `/slash-command-factory` trigger         |
+| Generated command too simple   | Wrong pattern selected         | Choose Multi-Phase or Agent-Style for complex needs   |
+| Bun not available              | Optional dependency missing    | Install with `brew install bun` for TypeScript        |
+| Validation warnings            | Missing required fields        | Add description and allowed-tools to YAML frontmatter |
+
 ## License
 
 MIT
