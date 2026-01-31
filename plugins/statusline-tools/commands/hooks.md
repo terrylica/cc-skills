@@ -74,3 +74,26 @@ After install/uninstall operations:
 **IMPORTANT: Restart Claude Code session for changes to take effect.**
 
 Hooks are loaded at session start. Modifications to settings.json require a restart.
+
+## Examples
+
+```bash
+# Check current installation status
+/statusline-tools:hooks status
+
+# Install the Stop hook for link validation
+/statusline-tools:hooks install
+
+# Uninstall hooks
+/statusline-tools:hooks uninstall
+```
+
+## Troubleshooting
+
+| Issue                      | Cause                        | Solution                           |
+| -------------------------- | ---------------------------- | ---------------------------------- |
+| jq not found               | jq not installed             | `brew install jq`                  |
+| lychee not found           | Link validator not installed | `brew install lychee`              |
+| Hooks not working          | Session not restarted        | Restart Claude Code session        |
+| lint-relative-paths errors | Invalid path patterns        | Check file paths in SKILL.md files |
+| Cache stale                | Stop hook failed             | Check ~/.claude/statusline/ logs   |
