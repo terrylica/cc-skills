@@ -11,6 +11,10 @@
 #
 # ADR: /docs/adr/2025-12-26-asciinema-daemon-architecture.md
 
+# NOTE: Intentionally using `set -uo pipefail` WITHOUT `-e` (errexit).
+# Daemons should NOT exit on individual command failures - they should
+# handle errors gracefully and continue monitoring. Each function has
+# explicit error handling for critical operations.
 set -uo pipefail
 
 # Configuration
