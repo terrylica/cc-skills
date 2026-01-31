@@ -11,6 +11,16 @@ Patterns for efficient ML data pipelines using Polars, Arrow, and ClickHouse.
 
 > **Note**: A PreToolUse hook enforces Polars preference. To use Pandas, add `# polars-exception: <reason>` at file top.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Deciding between Polars and Pandas for a data pipeline
+- Optimizing memory usage with zero-copy Arrow patterns
+- Loading data from ClickHouse into PyTorch DataLoaders
+- Implementing lazy evaluation for large datasets
+- Migrating existing Pandas code to Polars
+
 ---
 
 ## 1. Decision Tree: Polars vs Pandas

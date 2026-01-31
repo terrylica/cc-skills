@@ -7,6 +7,16 @@ description: POC validation patterns to catch issues before committing to long-r
 
 POC validation patterns to catch issues before committing to long-running ML experiments.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Starting a new ML experiment that will run for hours
+- Validating model architecture before full training
+- Checking gradient flow and data pipeline integrity
+- Implementing POC validation checklists
+- Debugging prediction collapse or gradient explosion issues
+
 ---
 
 ## 1. Why Fail-Fast?
