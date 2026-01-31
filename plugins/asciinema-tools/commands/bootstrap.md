@@ -367,3 +367,15 @@ Script generated at: `tmp/bootstrap-claude-session.sh`
 - If `-r` and `-b` provided -> skip repository selection
 - If `-y` provided -> skip all confirmations
 - If `--setup-orphan` provided -> force create orphan branch
+
+## Troubleshooting
+
+| Issue                 | Cause                   | Solution                            |
+| --------------------- | ----------------------- | ----------------------------------- |
+| asciinema not found   | asciinema not installed | `brew install asciinema`            |
+| zstd not found        | zstd not installed      | `brew install zstd`                 |
+| Daemon not running    | Daemon not started      | Run `/asciinema-tools:daemon-start` |
+| Git clone fails       | Auth issue or wrong URL | Run `gh auth login`                 |
+| Orphan branch error   | Branch already exists   | Remove `--setup-orphan` flag        |
+| Script not executable | Permission issue        | Run `chmod +x tmp/bootstrap-*.sh`   |
+| Source error          | Script was sourced      | Execute directly: `./script.sh`     |
