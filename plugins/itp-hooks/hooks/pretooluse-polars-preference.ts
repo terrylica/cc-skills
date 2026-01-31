@@ -84,7 +84,11 @@ async function main(): Promise<void> {
   let input: HookInput;
   try {
     input = JSON.parse(inputText);
-  } catch {
+  } catch (err) {
+    console.error(
+      "[polars-preference] JSON parse error:",
+      err instanceof Error ? err.message : String(err)
+    );
     process.exit(0);
   }
 
