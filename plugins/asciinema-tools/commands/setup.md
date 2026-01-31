@@ -46,3 +46,26 @@ Check and install all dependencies for asciinema-tools.
 3. **Selection**: AskUserQuestion for components
 4. **Install**: Run selected installations
 5. **Verify**: Confirm installation success
+
+## Examples
+
+```bash
+# Check all dependencies
+/asciinema-tools:setup check
+
+# Install core dependencies
+/asciinema-tools:setup install --core
+
+# Install everything without prompts
+/asciinema-tools:setup install --all -y
+```
+
+## Troubleshooting
+
+| Issue               | Cause                  | Solution                           |
+| ------------------- | ---------------------- | ---------------------------------- |
+| brew not found      | Homebrew not installed | Install from <https://brew.sh>     |
+| Permission denied   | Need sudo for install  | Run `brew doctor` for diagnostics  |
+| asciinema not found | PATH not updated       | Restart terminal or source profile |
+| gh auth failed      | Not authenticated      | Run `gh auth login`                |
+| YAKE import error   | Python package missing | `uv pip install yake`              |
