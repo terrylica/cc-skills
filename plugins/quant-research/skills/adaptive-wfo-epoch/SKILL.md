@@ -1495,3 +1495,18 @@ See [references/look-ahead-bias.md](./references/look-ahead-bias.md) for detaile
 - López de Prado, M. (2018). _Advances in Financial Machine Learning_. Wiley. Chapter 7.
 - Nomura, M., & Ono, I. (2021). Warm Starting CMA-ES for Hyperparameter Optimization. _AAAI Conference on Artificial Intelligence_.
 - Pardo, R. E. (2008). _The Evaluation and Optimization of Trading Strategies, 2nd Edition_. John Wiley & Sons.
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                       | Solution                                           |
+| --------------------------- | --------------------------- | -------------------------------------------------- |
+| WFE is None                 | IS_Sharpe below noise floor | Check if IS_Sharpe > 2/sqrt(n_samples)             |
+| All epochs rejected         | Severe overfitting          | Reduce model complexity, add regularization        |
+| Bayesian posterior unstable | High WFE variance           | Increase observation_variance or use median WFE    |
+| Epoch always at boundary    | Search range too narrow     | Expand min_epoch or max_epoch bounds               |
+| Look-ahead bias detected    | Using val_optimal for test  | Use prior_bayesian_epoch for test evaluation       |
+| DSR too aggressive          | Too many epoch candidates   | Limit to 3-5 epoch configs (meta-overfitting risk) |
+| Cauchy mean issues          | Arithmetic mean of WFE      | Use median or pooled WFE for aggregation           |
+| Fold metrics inconsistent   | Variable fold sizes         | Use pooled WFE (precision-weighted)                |

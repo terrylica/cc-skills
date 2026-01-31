@@ -256,3 +256,18 @@ depends = ["test:unit", "validate:symmetric"]
 
 - [Dogfooding (DevIQ)](https://deviq.com/practices/dogfooding/)
 - [CDC Testing (Microsoft)](https://microsoft.github.io/code-with-engineering-playbook/automated-testing/cdc-testing/)
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                          | Solution                                         |
+| --------------------------- | ------------------------------ | ------------------------------------------------ |
+| Dependency resolution fails | Version pin outdated           | Update tag/SHA pin to latest stable version      |
+| Tests pass locally fail CI  | Different partner repo version | Pin exact same version in both environments      |
+| Breaking change not caught  | One-direction testing only     | Run validate:symmetric in BOTH repos             |
+| Integration surface unclear | Undocumented exports           | Map all imports/exports before setting up tests  |
+| Too many parts moving       | Uncoordinated releases         | Coordinate breaking changes, test branches first |
+| Mock data hiding bugs       | Using stubs instead of real    | Always import real partner repo for integration  |
+| Version matrix explosion    | Too many combinations          | Limit support to N-1 versions, document clearly  |
+| Circular dependency         | Both repos require each other  | Use optional-dependencies for validation only    |

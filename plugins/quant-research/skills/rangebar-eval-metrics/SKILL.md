@@ -209,3 +209,18 @@ DROPOUT = 0.3     # Less aggressive regularization
 ```
 
 See reference docs for complete implementation details.
+
+---
+
+## Troubleshooting
+
+| Issue                      | Cause                        | Solution                                           |
+| -------------------------- | ---------------------------- | -------------------------------------------------- |
+| weekly_sharpe is 0         | Constant predictions         | Check for model collapse, increase hidden_size     |
+| IC returns None            | Zero variance in predictions | Model collapsed - check architecture               |
+| prediction_autocorr is NaN | Division by zero             | Guard for std < 1e-10 in autocorr calculation      |
+| Ulcer Index divide error   | Peak equity is zero          | Add guard: np.where(peak > 1e-10, ...)             |
+| profit_factor = 1.0        | No bars processed            | Return NaN when n_bars is 0                        |
+| Sharpe inflated 18%        | Wrong annualization for data | Use sqrt(5) for session-filtered, sqrt(7) for 24/7 |
+| PSR/DSR not computed       | Missing scipy                | Install: `pip install scipy`                       |
+| Timestamps not parsed      | Wrong format                 | Ensure Unix timestamps, not datetime strings       |

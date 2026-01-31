@@ -318,3 +318,18 @@ df = client.query_df("SELECT * FROM trades")  # Pandas integration
 | `devops-tools:clickhouse-pydantic-config`  | DBeaver connection generation |
 | `quality-tools:schema-e2e-validation`      | YAML schema contracts         |
 | `quality-tools:multi-agent-e2e-validation` | Database migration validation |
+
+---
+
+## Troubleshooting
+
+| Issue                        | Cause                          | Solution                                         |
+| ---------------------------- | ------------------------------ | ------------------------------------------------ |
+| Too many parts               | Over-partitioned               | Reduce partition granularity (monthly not daily) |
+| Slow queries                 | Wrong ORDER BY order           | Put lowest cardinality columns first             |
+| High memory usage            | No memory limits set           | Configure max_memory_usage setting               |
+| Codec error on Delta+Gorilla | Suspicious codec combination   | Use each codec family independently              |
+| Projection not used          | Optimizer chose different plan | Check EXPLAIN to verify projection selection     |
+| Dictionary stale             | Lifetime expired               | Increase LIFETIME or trigger refresh             |
+| Replication lag              | Part merges falling behind     | Check merge_tree settings, add resources         |
+| INSERT too slow              | Small batch sizes              | Batch to 10k-100k rows per INSERT                |

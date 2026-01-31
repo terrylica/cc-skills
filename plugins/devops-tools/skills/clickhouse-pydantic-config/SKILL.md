@@ -190,3 +190,18 @@ For Python application code connecting to ClickHouse (not DBeaver), use `clickho
 | -------------------------------------------------------------- | ---------------------------- |
 | [references/pydantic-model.md](./references/pydantic-model.md) | Complete model documentation |
 | [references/dbeaver-format.md](./references/dbeaver-format.md) | DBeaver JSON format spec     |
+
+---
+
+## Troubleshooting
+
+| Issue                   | Cause                        | Solution                                          |
+| ----------------------- | ---------------------------- | ------------------------------------------------- |
+| DBeaver can't connect   | Port mismatch (8123 vs 9000) | HTTP uses 8123, native uses 9000 - check config   |
+| Credentials not loading | .env not sourced             | Run `mise trust` or source .env manually          |
+| JSON validation fails   | Invalid data-sources.json    | Validate with `jq . .dbeaver/data-sources.json`   |
+| Cloud SSL error         | Missing SSL on port 8443     | Cloud mode auto-enables SSL - verify port is 8443 |
+| mise task not found     | Missing task definition      | Add task to mise.toml `[tasks]` section           |
+| .dbeaver/ in git        | Missing gitignore entry      | Add `.dbeaver/` to `.gitignore`                   |
+| Connection ID conflict  | Duplicate connection names   | Each connection needs unique ID (random hex)      |
+| Config not updating     | DBeaver caching              | Restart DBeaver to reload data-sources.json       |

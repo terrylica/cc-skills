@@ -438,3 +438,18 @@ The `default-layout.py` script auto-discovers worktrees:
 - [Naming Conventions](./references/naming-conventions.md)
 - [ADR: Alpha-Forge Git Worktree Management](/docs/adr/2025-12-14-alpha-forge-worktree-management.md)
 - [Design Spec](/docs/design/2025-12-14-alpha-forge-worktree-management/spec.md)
+
+---
+
+## Troubleshooting
+
+| Issue                     | Cause                          | Solution                                        |
+| ------------------------- | ------------------------------ | ----------------------------------------------- |
+| Branch already exists     | Local branch with same name    | Use Mode 3 (existing branch) or rename slug     |
+| Remote branch not found   | Typo or not pushed yet         | Run `git fetch --all --prune` and list branches |
+| Worktree path exists      | Previous worktree not cleaned  | Remove old worktree or use different slug       |
+| direnv not loading        | Shell hook not configured      | Add `eval "$(direnv hook zsh)"` to ~/.zshrc     |
+| Shared secrets not found  | ~/eon/.env.alpha-forge missing | Create shared secrets file with required vars   |
+| iTerm2 tab not appearing  | Dynamic layout not refreshed   | Restart iTerm2 to trigger layout regeneration   |
+| Main worktree not on main | Previous work not switched     | Run `git checkout main` in main worktree first  |
+| Stale worktree detected   | Branch merged but not cleaned  | Run `git worktree remove <path>` to cleanup     |

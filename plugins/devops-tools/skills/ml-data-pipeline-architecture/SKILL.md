@@ -298,3 +298,20 @@ for batch in pl.scan_parquet("huge_file.parquet").iter_batches():
 - [ClickHouse Python Client](https://clickhouse.com/docs/integrations/python)
 - [PyTorch Data Loading](https://pytorch.org/tutorials/beginner/data_loading_tutorial.html)
 - [Polars Preference Hook ADR](/docs/adr/2026-01-22-polars-preference-hook.md)
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                            | Solution                                             |
+| --------------------------- | -------------------------------- | ---------------------------------------------------- |
+| Memory spike during load    | Collecting too early             | Use lazy evaluation, call collect() only when needed |
+| Arrow conversion fails      | Unsupported data type            | Check for object columns, convert to native types    |
+| ClickHouse connection error | Wrong port or credentials        | Verify host:8123 (HTTP) or host:9000 (native)        |
+| Zero-copy not working       | Intermediate pandas conversion   | Remove to_pandas() calls, stay in Arrow/Polars       |
+| Polars hook blocking code   | Pandas used without exception    | Add `# polars-exception: reason` comment at file top |
+| Slow group-by operations    | Using pandas for large datasets  | Migrate to Polars for 5-10x speedup                  |
+| Schema validation failure   | Column names case-sensitive      | Verify exact column names from source                |
+| PyTorch DataLoader OOM      | Loading full dataset into memory | Use PolarsDataset with Arrow backing for lazy access |
+| Parquet scan performance    | Not using predicate pushdown     | Add filters before collect() for lazy evaluation     |
+| Type mismatch in tensor     | Float64 vs Float32 mismatch      | Explicitly cast with .cast(pl.Float32) before numpy  |

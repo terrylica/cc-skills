@@ -108,3 +108,18 @@ uv run scripts/validate_links.py .
 ## Reference Documentation
 
 - [Link Patterns Reference](./references/link-patterns.md) - Detailed pattern explanations and fix strategies
+
+---
+
+## Troubleshooting
+
+| Issue                     | Cause                         | Solution                                          |
+| ------------------------- | ----------------------------- | ------------------------------------------------- |
+| Script not found          | Path or plugin not installed  | Verify plugin installed with `claude plugin list` |
+| Exit code 2               | Invalid path or no .md files  | Check target path exists and contains markdown    |
+| False positive on URL     | Regex matched external link   | URLs starting with `http` should be ignored       |
+| Anchor link flagged       | Script treating `#` as path   | Anchor links (`#section`) are allowed by design   |
+| Relative path still fails | Wrong relative direction      | Use `./` for same dir, `../` for parent           |
+| Validation passes locally | CI uses different working dir | Ensure CI runs from correct repo root             |
+| Too many violations       | Legacy codebase               | Fix incrementally, prioritize high-impact files   |
+| Can't determine fix       | Complex path structure        | Read link-patterns.md for detailed fix strategies |

@@ -69,6 +69,21 @@ These patterns solve the most common indicator development issues encountered in
 
 ---
 
+## Troubleshooting
+
+| Issue                     | Cause                          | Solution                                              |
+| ------------------------- | ------------------------------ | ----------------------------------------------------- |
+| Blank indicator window    | Scale not set for small values | Set INDICATOR_MINIMUM/MAXIMUM explicitly              |
+| Values drifting over time | Rolling window not reset       | Use new bar detection with hidden buffer              |
+| Misaligned plot start     | Wrong PLOT_DRAW_BEGIN          | Calculate: underlying_warmup + own_warmup             |
+| Reversed array indexing   | Series mode enabled            | Call ArraySetAsSeries(buffer, false)                  |
+| Buffer values incorrect   | Wrong INDICATOR_DATA type      | Use INDICATOR_CALCULATIONS for hidden buffers         |
+| Compile error on buffer   | Buffer count mismatch          | Match #property indicator_buffers with SetIndexBuffer |
+| Indicator not updating    | OnCalculate return wrong       | Return rates_total to signal successful calculation   |
+| Performance issues        | Recalculating all bars         | Only recalculate from prev_calculated onwards         |
+
+---
+
 ## Reference Documentation
 
 For detailed information, see:

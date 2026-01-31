@@ -127,3 +127,18 @@ For detailed information, see:
 - `examples/notify-restart.sh` - Complete dual-channel notification script
 - `examples/bot-wrapper.sh` - watchexec wrapper with restart detection
 - `examples/setup-example.sh` - Setup guide and installation steps
+
+---
+
+## Troubleshooting
+
+| Issue                      | Cause                          | Solution                                       |
+| -------------------------- | ------------------------------ | ---------------------------------------------- |
+| Telegram escaping errors   | Using Markdown instead of HTML | Switch to HTML mode with parse_mode=HTML       |
+| Pushover shows HTML tags   | HTML not stripped              | Strip tags with sed before sending to Pushover |
+| Notifications not arriving | Credentials missing            | Verify BOT_TOKEN, CHAT_ID, Pushover keys       |
+| Special chars broken       | Missing HTML escaping          | Escape &, <, > in dynamic content              |
+| find -newermt fails macOS  | macOS incompatibility          | Use stat for file detection instead            |
+| Notifications blocking     | Not running in background      | Add & to run notify script fire-and-forget     |
+| Duplicate notifications    | Restart loop                   | Add debounce logic or cooldown period          |
+| Missing crash context      | Context file not written       | Verify watchexec info file path exists         |

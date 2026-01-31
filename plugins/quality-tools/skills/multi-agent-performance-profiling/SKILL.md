@@ -386,3 +386,18 @@ Not applicable - profiling scripts are project-specific (stored in `tmp/perf-opt
 ### assets/
 
 Not applicable - profiling artifacts are project-specific
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                     | Solution                                            |
+| --------------------------- | ------------------------- | --------------------------------------------------- |
+| Agents running sequentially | Using separate messages   | Spawn all agents in single message with multi-Task  |
+| Integration report empty    | Agent reports not written | Wait for all 4 investigation agents to complete     |
+| Wrong bottleneck identified | Single-layer profiling    | Profile entire pipeline, not just assumed layer     |
+| Profiling results vary      | No warmup runs            | Run 3-5 warmup iterations before measuring          |
+| Memory not profiled         | Missing tracemalloc       | Add tracemalloc instrumentation to profiling script |
+| P0/P1 priority unclear      | No impact quantification  | Include expected Nx improvement for each finding    |
+| Consensus missing           | Agents not compared       | Integration agent must synthesize all 4 reports     |
+| Re-profile shows no change  | Caching effects           | Clear caches, restart services before re-profiling  |
