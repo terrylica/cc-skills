@@ -186,6 +186,7 @@ SETUP_EOF
 ```
 
 **Expected output for fork workflow:**
+
 ```
 Branches:
   main branch: main
@@ -253,3 +254,14 @@ Next steps:
 # Check current configuration
 /git-town-workflow:setup --check
 ```
+
+## Troubleshooting
+
+| Issue                 | Cause                        | Solution                            |
+| --------------------- | ---------------------------- | ----------------------------------- |
+| git-town not found    | git-town not installed       | `brew install git-town`             |
+| gh auth failed        | GitHub CLI not authenticated | `gh auth login`                     |
+| Not in a git repo     | Missing .git directory       | Run from within a git repository    |
+| No remotes configured | Repo has no remotes          | `git remote add origin <url>`       |
+| Upstream not found    | Fork not configured          | Run `/git-town-workflow:fork` first |
+| Config not persisting | Git config scope issue       | Check `--global` vs `--local` scope |
