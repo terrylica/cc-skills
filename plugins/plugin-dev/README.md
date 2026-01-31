@@ -93,6 +93,16 @@ bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts <path> [--dry]
 ```
 
+## Troubleshooting
+
+| Issue                  | Cause                    | Solution                                        |
+| ---------------------- | ------------------------ | ----------------------------------------------- |
+| Plugin not found       | Not in marketplace.json  | Add entry to `.claude-plugin/marketplace.json`  |
+| Validation fails       | Missing plugin.json      | Create plugin.json with required fields         |
+| Skill validation error | Invalid YAML frontmatter | Check SKILL.md format and required fields       |
+| Link validation fails  | Absolute paths in skill  | Use relative paths (`./`, `../`) in skill files |
+| Bash block warning     | Missing heredoc wrapper  | Run `fix-bash-blocks.ts` to auto-fix            |
+
 ## License
 
 MIT
