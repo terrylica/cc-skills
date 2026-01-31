@@ -4,7 +4,7 @@ allowed-tools: Bash, AskUserQuestion
 argument-hint: ""
 ---
 
-# RU: Configure
+# RU: Wizard
 
 Interactive configuration wizard using AskUserQuestion to set up forbidden and encouraged items.
 
