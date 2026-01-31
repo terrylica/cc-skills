@@ -67,6 +67,16 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - MacTeX or TeX Live installation
 - Pandoc (`brew install pandoc`)
 
+## Troubleshooting
+
+| Issue                          | Cause                  | Solution                            |
+| ------------------------------ | ---------------------- | ----------------------------------- |
+| xelatex not found              | MacTeX not installed   | `brew install --cask mactex`        |
+| Pandoc PDF fails               | Missing LaTeX packages | Run `tlmgr install <package>`       |
+| ASCII diagram validation fails | Misaligned characters  | Check Unicode box-drawing alignment |
+| Bibliography not rendering     | Missing citeproc       | Add `--citeproc` flag to pandoc     |
+| Skim not syncing               | SyncTeX disabled       | Enable in MacTeX preferences        |
+
 ## License
 
 MIT

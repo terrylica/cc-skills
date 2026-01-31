@@ -157,6 +157,16 @@ import pandas as pd
 
 See [ADR](/docs/adr/2026-01-22-polars-preference-hook.md) for details.
 
+## Troubleshooting
+
+| Issue                        | Cause               | Solution                                            |
+| ---------------------------- | ------------------- | --------------------------------------------------- |
+| Hooks not triggering         | Not installed       | Run `/itp-hooks:hooks install` and restart          |
+| ruff not found               | Not installed       | `brew install ruff` or `/itp-hooks:setup --install` |
+| shellcheck not found         | Not installed       | `brew install shellcheck`                           |
+| Polars dialog on legacy code | Missing exception   | Add `# polars-exception:` comment                   |
+| GPU guard false positive     | Inference-only code | Add `# gpu-optimization-bypass:` comment            |
+
 ## License
 
 MIT
