@@ -50,3 +50,28 @@ Manage Claude Code hooks for asciinema-tools automation.
 3. **Hooks**: AskUserQuestion for hook selection
 4. **Execute**: Modify settings.json
 5. **Verify**: Confirm changes applied
+
+## Examples
+
+```bash
+# Check current hook status
+/asciinema-tools:hooks status
+
+# Install auto-backup hook
+/asciinema-tools:hooks install --backup-on-stop
+
+# Install without prompts
+/asciinema-tools:hooks install -y
+
+# Remove all asciinema hooks
+/asciinema-tools:hooks uninstall
+```
+
+## Troubleshooting
+
+| Issue                   | Cause                    | Solution                          |
+| ----------------------- | ------------------------ | --------------------------------- |
+| jq not found            | jq not installed         | `brew install jq`                 |
+| Settings file not found | ~/.claude/ doesn't exist | Create with `mkdir -p ~/.claude`  |
+| Hooks not working       | Session not restarted    | Restart Claude Code session       |
+| Backup not triggering   | No active recordings     | Start recording first with daemon |
