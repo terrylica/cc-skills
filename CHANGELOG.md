@@ -1,3 +1,29 @@
+## [10.2.1](https://github.com/terrylica/cc-skills/compare/v10.2.0...v10.2.1) (2026-01-31)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [RU](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/README.md) - updated (+2/-2)
+
+### Commands
+
+<details>
+<summary><strong>ru</strong> (2 commands)</summary>
+
+- [RU: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/start.md) - updated (+1/-1)
+- [RU: Wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/wizard.md) - renamed from `plugins/ru/commands/configure.md`
+
+</details>
+
 # [10.2.0](https://github.com/terrylica/cc-skills/compare/v10.1.2...v10.2.0) (2026-01-31)
 
 
