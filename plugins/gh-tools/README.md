@@ -213,6 +213,15 @@ Future skills to be added to gh-tools:
 - [ ] **pr-template**: Smart PR description templates per project
 - [ ] **check-status**: Monitor CI/CD status and report failures
 
+## Dependencies
+
+| Component | Required | Installation       |
+| --------- | -------- | ------------------ |
+| gh CLI    | Yes      | `brew install gh`  |
+| Git       | Yes      | 2.30+ (bundled)    |
+| jq        | Optional | `brew install jq`  |
+| Bun       | Hooks    | `brew install bun` |
+
 ## References
 
 - [ADR: gh-tools WebFetch Enforcement](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
