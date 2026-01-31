@@ -23,11 +23,18 @@ Terminal recording, playback, streaming, and analysis plugin for Claude Code. Re
 | `/asciinema-tools:format`        | Reference for asciinema v3 .cast format                |
 | `/asciinema-tools:convert`       | Convert .cast to .txt for analysis                     |
 | `/asciinema-tools:analyze`       | Semantic analysis of converted recordings              |
-| `/asciinema-tools:post-session`  | Post-session workflow: convert + analyze               |
+| `/asciinema-tools:summarize`     | AI-powered iterative deep-dive analysis                |
+| `/asciinema-tools:post-session`  | Post-session workflow: finalize + convert + summarize  |
 | `/asciinema-tools:full-workflow` | Full workflow: record + backup + convert + analyze     |
 | `/asciinema-tools:bootstrap`     | Pre-session setup for automatic streaming (PRE-CLAUDE) |
+| `/asciinema-tools:finalize`      | Finalize orphaned recordings (stop, compress, push)    |
 | `/asciinema-tools:setup`         | Check and install dependencies                         |
 | `/asciinema-tools:hooks`         | Install/uninstall auto-backup hooks                    |
+| `/asciinema-tools:daemon-setup`  | Set up chunker daemon with interactive wizard          |
+| `/asciinema-tools:daemon-start`  | Start the asciinema chunker daemon                     |
+| `/asciinema-tools:daemon-stop`   | Stop the asciinema chunker daemon                      |
+| `/asciinema-tools:daemon-status` | Check daemon status and unhandled .cast files          |
+| `/asciinema-tools:daemon-logs`   | View chunker daemon logs                               |
 
 ## Installation
 
