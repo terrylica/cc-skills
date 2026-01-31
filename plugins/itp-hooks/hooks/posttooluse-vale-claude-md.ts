@@ -45,7 +45,11 @@ async function parseStdin(): Promise<PostToolUseInput | null> {
     const stdin = await Bun.stdin.text();
     if (!stdin.trim()) return null;
     return JSON.parse(stdin) as PostToolUseInput;
-  } catch {
+  } catch (err) {
+    console.error(
+      "[vale-claude-md] JSON parse error:",
+      err instanceof Error ? err.message : String(err)
+    );
     return null;
   }
 }
@@ -130,7 +134,11 @@ async function runVale(
       warnings: summaryMatch ? parseInt(summaryMatch[2], 10) : 0,
       suggestions: summaryMatch ? parseInt(summaryMatch[3], 10) : 0,
     };
-  } catch {
+  } catch (err) {
+    console.error(
+      "[vale-claude-md] Vale execution failed:",
+      err instanceof Error ? err.message : String(err)
+    );
     return { output: "", exitCode: 0, errors: 0, warnings: 0, suggestions: 0 };
   }
 }

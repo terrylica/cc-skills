@@ -132,6 +132,9 @@ async function main(): Promise<never> {
     console.error("[glossary-sync] Unexpected error:");
     if (err instanceof Error) {
       console.error(`  Message: ${err.message}`);
+      console.error(`  Stack: ${err.stack}`);
+    } else {
+      console.error(`  Value: ${String(err)}`);
     }
     return process.exit(0);
   }

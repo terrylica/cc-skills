@@ -84,7 +84,11 @@ async function loadConfig(projectDir: string | undefined): Promise<GuardConfig> 
         const loaded = await file.json();
         return { ...config, ...loaded };
       } catch (e) {
-        logger.warn("Failed to parse project config", { path: projectConfig });
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        logger.warn("Failed to parse project config", {
+          path: projectConfig,
+          error: errorMsg,
+        });
       }
     }
   }
@@ -97,7 +101,11 @@ async function loadConfig(projectDir: string | undefined): Promise<GuardConfig> 
       const loaded = await globalFile.json();
       return { ...config, ...loaded };
     } catch (e) {
-      logger.warn("Failed to parse global config", { path: globalConfig });
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      logger.warn("Failed to parse global config", {
+        path: globalConfig,
+        error: errorMsg,
+      });
     }
   }
 

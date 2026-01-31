@@ -570,6 +570,12 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error("[posttooluse-reminder] Error:", err);
+  console.error(
+    "[posttooluse-reminder] Error:",
+    err instanceof Error ? err.message : String(err)
+  );
+  if (err instanceof Error && err.stack) {
+    console.error(err.stack);
+  }
   process.exit(0);
 });
