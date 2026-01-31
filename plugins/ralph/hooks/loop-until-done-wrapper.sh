@@ -71,6 +71,9 @@ done
 
 if [[ -z "$UV_CMD" ]]; then
     echo "[ralph] ERROR: uv not found, cannot run Stop hook" >&2
+    echo "[ralph] Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+    echo "[ralph] Or via mise: mise install uv" >&2
+    echo "[ralph] Or via brew: brew install uv" >&2
     echo '{}'
     exit 0
 fi
