@@ -56,13 +56,13 @@ git log --format='%(trailers:key=SRED-Claim,valueonly)' | sort | uniq -c
 
 ## Official Documentation References
 
-| Component                   | Verified Source                                                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Hook output format          | [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks)                                                   |
-| `permissionDecision` values | [Hooks guide](https://platform.claude.com/docs/en/agent-sdk/hooks)                                                     |
-| `settingSources` isolation  | [TypeScript SDK Reference](https://platform.claude.com/docs/en/agent-sdk/typescript)                                   |
-| `query()` API               | [TypeScript SDK Reference](https://platform.claude.com/docs/en/agent-sdk/typescript)                                   |
-| Model selection (`haiku`)   | [TypeScript SDK Reference - AgentDefinition](https://platform.claude.com/docs/en/agent-sdk/typescript#agentdefinition) |
+| Component                   | Verified Source                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| Hook output format          | [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks)                 |
+| `permissionDecision` values | [Hooks guide](https://platform.claude.com/docs/en/agent-sdk/hooks)                   |
+| `settingSources` isolation  | [TypeScript SDK Reference](https://platform.claude.com/docs/en/agent-sdk/typescript) |
+| `query()` API               | [TypeScript SDK Reference](https://platform.claude.com/docs/en/agent-sdk/typescript) |
+| Model selection (`haiku`)   | [TypeScript SDK Reference](https://platform.claude.com/docs/en/agent-sdk/typescript) |
 
 ## Architecture
 
