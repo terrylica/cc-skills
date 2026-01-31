@@ -211,5 +211,5 @@ After modifying this skill:
 ## Reference Documentation
 
 - [asciinema asciicast v2 Format](https://docs.asciinema.org/manual/asciicast/v2/)
-- [asciinema CLI Usage](https://docs.asciinema.org/manual/cli/usage/)
+- [asciinema CLI Usage](https://docs.asciinema.org/manual/cli/)
 - [jq Manual](https://jqlang.github.io/jq/manual/)

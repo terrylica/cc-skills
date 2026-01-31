@@ -349,7 +349,7 @@ After modifying this skill:
 
 ## Reference Documentation
 
-- [asciinema play Usage](https://docs.asciinema.org/manual/cli/usage/)
+- [asciinema play Usage](https://docs.asciinema.org/manual/cli/)
 - [asciinema CLI Options](https://man.archlinux.org/man/extra/asciinema/asciinema-play.1.en)
 - [iTerm2 AppleScript Documentation](https://iterm2.com/documentation-scripting.html)
 - [asciinema Markers](https://docs.asciinema.org/manual/cli/markers/)

@@ -296,4 +296,4 @@ Examples:
 
 - [loguru documentation](https://loguru.readthedocs.io/)
 - [NDJSON specification](http://ndjson.org/)
-- [devops-tools:python-logging-best-practices](../../../devops-tools/skills/python-logging-best-practices/SKILL.md)
+- [devops-tools:python-logging-best-practices](../../../../devops-tools/skills/python-logging-best-practices/SKILL.md)
