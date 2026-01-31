@@ -1,21 +1,15 @@
-# RU (Ralph Universal)
+# RU
 
 Autonomous loop mode for **any project** - short name for quick invocation.
 
 ## Quick Start
 
 ```bash
-# Install hooks
-/ru:hooks install
+# Start with interactive guidance setup
+/ru:start
 
-# Restart Claude Code (hooks only load at startup)
-
-# Start the loop
-/ru:start --poc
-
-# Configure what to work on
-/ru:encourage test coverage
-/ru:forbid refactoring
+# Or skip guidance setup
+/ru:start --poc --quick
 
 # Stop the loop
 /ru:stop
@@ -23,49 +17,45 @@ Autonomous loop mode for **any project** - short name for quick invocation.
 
 ## Commands
 
-| Command         | Description                                  |
-| --------------- | -------------------------------------------- |
-| `/ru:start`     | Enable loop mode (POC or Production presets) |
-| `/ru:stop`      | Disable loop mode immediately                |
-| `/ru:status`    | Show current state                           |
-| `/ru:forbid`    | Add item to forbidden list                   |
-| `/ru:encourage` | Add item to encouraged list                  |
-| `/ru:config`    | View or modify configuration                 |
-| `/ru:audit-now` | Force immediate validation round             |
-| `/ru:hooks`     | Install/uninstall hooks                      |
+| Command         | Description                                 |
+| --------------- | ------------------------------------------- |
+| `/ru:start`     | Start loop with interactive guidance setup  |
+| `/ru:stop`      | Stop the loop immediately                   |
+| `/ru:status`    | Show current state                          |
+| `/ru:configure` | Interactive wizard for forbidden/encouraged |
+| `/ru:forbid`    | Add item to forbidden list                  |
+| `/ru:encourage` | Add item to encouraged list                 |
+| `/ru:config`    | View or modify configuration                |
+| `/ru:audit-now` | Force immediate validation round            |
+| `/ru:hooks`     | Install/uninstall hooks                     |
 
-## Configuring Guidance
+## Interactive Guidance Setup
 
-Control what the loop works on:
+When you run `/ru:start`, you'll see AskUserQuestion prompts:
+
+1. **Mode Selection** - POC (5-10 min) or Production (4-9 hours)
+2. **Forbidden Items** - What should RU avoid? (multiselect)
+3. **Encouraged Items** - What should RU prioritize? (multiselect)
+
+Use `--quick` to skip guidance and use existing config.
+
+## Manual Guidance
 
 ```bash
 # Add items to work on
-/ru:encourage test coverage
-/ru:encourage documentation
+/ru:encourage bug fixes
+/ru:encourage performance
 
 # Block certain work
-/ru:forbid refactoring
-/ru:forbid dependency updates
+/ru:forbid documentation
+/ru:forbid dependency upgrades
 
 # List current configuration
 /ru:forbid --list
 /ru:encourage --list
 
-# Clear all
-/ru:forbid --clear
-```
-
-## Configuration
-
-```bash
-# Show current config
-/ru:config show
-
-# Set a value
-/ru:config set loop_limits.min_hours=2
-
-# Reset to defaults
-/ru:config reset
+# Interactive reconfiguration
+/ru:configure
 ```
 
 ## State Files
@@ -75,13 +65,6 @@ Control what the loop works on:
 | `.claude/ru-state.json`  | Current loop state           |
 | `.claude/ru-config.json` | Configuration and guidance   |
 | `.claude/STOP_LOOP`      | Kill switch (emergency stop) |
-
-## Why "RU"?
-
-Short for "Ralph Universal" - designed for quick typing:
-
-- `/ru:start` instead of `/ralph-universal:start`
-- All commands are 2-4 keystrokes shorter
 
 ## What It Does
 
