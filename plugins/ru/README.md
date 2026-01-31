@@ -81,3 +81,44 @@ RU runs an autonomous improvement loop on your project:
 2. Pivots to exploration when done
 3. Finds new improvement opportunities
 4. Repeats until time/iteration limits reached
+
+## Hooks
+
+RU uses an **activation-gated design** - hooks only fire when the loop is active.
+
+| Hook                               | Event      | Matcher     | Purpose                              |
+| ---------------------------------- | ---------- | ----------- | ------------------------------------ |
+| `loop-until-done-wrapper.sh`       | Stop       | (all)       | Continues loop if state is `running` |
+| `archive-plan.sh`                  | PreToolUse | Write\|Edit | Archives plan file before overwrite  |
+| `pretooluse-loop-guard-wrapper.sh` | PreToolUse | Bash        | Enforces loop boundaries             |
+
+### Activation Check
+
+All hooks check for `$PROJECT/.claude/ru-state.json`:
+
+```json
+{ "state": "running", "iteration": 36, "startTime": "2026-01-30T..." }
+```
+
+If state is not `running`, hooks exit silently (no-op).
+
+### Stop Hook: Loop Continuation
+
+When Claude reaches a natural stop point:
+
+1. Hook checks `ru-state.json` for `state: running`
+2. If running, increments iteration counter
+3. Injects continuation prompt with guidance context
+4. Loop continues until time/iteration limits or `/ru:stop`
+
+### Installing Hooks
+
+```bash
+# Check hook status
+/ru:hooks status
+
+# Install hooks
+/ru:hooks install
+
+# Restart Claude Code for hooks to take effect
+```
