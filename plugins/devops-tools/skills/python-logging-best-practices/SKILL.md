@@ -184,3 +184,16 @@ logger.info(
 3. **Bare except** - Catch specific exceptions, log them
 4. **Silent failures** - Log errors before suppressing
 5. **Hardcoded paths** - Use platformdirs for cross-platform
+
+---
+
+## Troubleshooting
+
+| Issue                     | Cause                   | Solution                               |
+| ------------------------- | ----------------------- | -------------------------------------- |
+| loguru not found          | Not installed           | Run `uv add loguru`                    |
+| Logs not appearing        | Wrong log level         | Set level to DEBUG for troubleshooting |
+| Log rotation not working  | Missing rotation config | Add rotation param to logger.add()     |
+| platformdirs import error | Not installed           | Run `uv add platformdirs`              |
+| JSONL parse errors        | Malformed log line      | Check for unescaped special characters |
+| Logs in wrong directory   | Using hardcoded path    | Use platformdirs.user_log_dir()        |

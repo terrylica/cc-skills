@@ -526,3 +526,16 @@ For complete code patterns and examples, see: **[`references/patterns.md`](./ref
 **Wiki Documentation**: [Pattern-mise-Configuration](https://github.com/terrylica/cc-skills/wiki/Pattern-mise-Configuration) - Copyable CLAUDE.md footer prompt, hub-spoke architecture, quick reference
 
 **ADR Reference**: When implementing mise configuration, create an ADR at `docs/adr/YYYY-MM-DD-mise-env-centralized-config.md` in your project.
+
+---
+
+## Troubleshooting
+
+| Issue                    | Cause                    | Solution                                     |
+| ------------------------ | ------------------------ | -------------------------------------------- |
+| Env vars not loading     | mise not activated       | Add mise activate to shell rc file           |
+| Venv not created         | Python not installed     | Run `mise install python`                    |
+| Tasks not found          | Wrong mise.toml location | Ensure mise.toml is in project root          |
+| PATH not updated         | Shims not in PATH        | Add mise shims to ~/.zshenv                  |
+| \_.file not loading      | .env file missing        | Create .env file or remove \_.file directive |
+| Subfolder config ignored | Missing min_version      | Add min_version to subfolder mise.toml       |
