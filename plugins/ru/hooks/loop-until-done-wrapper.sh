@@ -54,36 +54,35 @@ if ! grep -q '"state"[[:space:]]*:[[:space:]]*"running"' "$STATE_FILE" 2>/dev/nu
 fi
 
 # ===== RALPH IS ACTIVE =====
-# Only now do we invoke the Python script via uv
-# Use --no-project to prevent uv from inspecting local .venv
-
-# Find uv (same discovery pattern as other Ralph scripts)
-UV_CMD=""
-for loc in \
-    "$HOME/.local/share/mise/shims/uv" \
-    "$HOME/.local/bin/uv" \
-    "$HOME/.cargo/bin/uv" \
-    "/opt/homebrew/bin/uv" \
-    "/usr/local/bin/uv" \
-    "uv"; do
-    if command -v "$loc" &>/dev/null || [[ -x "$loc" ]]; then
-        UV_CMD="$loc"
-        break
-    fi
-done
-
-if [[ -z "$UV_CMD" ]]; then
-    echo "[ru] ERROR: uv not found, cannot run Stop hook" >&2
-    echo "[ru] Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
-    echo "[ru] Or via mise: mise install uv" >&2
-    echo "[ru] Or via brew: brew install uv" >&2
-    echo '{}'
-    exit 0
-fi
+# Only now do we invoke the TypeScript script via Bun
+# TypeScript/Bun is preferred for hooks (easier validation, type safety)
 
 # Get the directory where this script lives
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Run the Python script with --no-project to avoid local .venv inspection
+# Find bun (same discovery pattern as other hooks)
+BUN_CMD=""
+for loc in \
+    "$HOME/.local/share/mise/shims/bun" \
+    "$HOME/.bun/bin/bun" \
+    "/opt/homebrew/bin/bun" \
+    "/usr/local/bin/bun" \
+    "bun"; do
+    if command -v "$loc" &>/dev/null || [[ -x "$loc" ]]; then
+        BUN_CMD="$loc"
+        break
+    fi
+done
+
+if [[ -z "$BUN_CMD" ]]; then
+    echo "[ru] ERROR: bun not found, cannot run Stop hook" >&2
+    echo "[ru] Install bun: curl -fsSL https://bun.sh/install | bash" >&2
+    echo "[ru] Or via mise: mise install bun" >&2
+    echo "[ru] Or via brew: brew install oven-sh/bun/bun" >&2
+    echo '{}'
+    exit 0
+fi
+
+# Run the TypeScript script via Bun
 # Pass stdin through for hook input
-exec "$UV_CMD" run --no-project "$SCRIPT_DIR/loop-until-done.py"
+exec "$BUN_CMD" "$SCRIPT_DIR/loop-until-done.ts"
