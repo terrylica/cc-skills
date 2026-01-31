@@ -317,6 +317,29 @@ function stringSimilarity(a: string, b: string): number {
 
 // --- Template Rendering (calls Python until migrated) ---
 
+function findUvCommand(): string {
+  // Find uv executable (same pattern as finding bun in wrapper)
+  const locations = [
+    `${homedir()}/.local/share/mise/shims/uv`,
+    `${homedir()}/.local/bin/uv`,
+    "/opt/homebrew/bin/uv",
+    "/usr/local/bin/uv",
+  ];
+  for (const loc of locations) {
+    if (existsSync(loc)) return loc;
+  }
+  // Try PATH
+  try {
+    const result = spawnSync("which", ["uv"], { encoding: "utf-8" });
+    if (result.status === 0 && result.stdout.trim()) {
+      return result.stdout.trim();
+    }
+  } catch {
+    // Ignore
+  }
+  return "uv"; // Fallback to PATH lookup
+}
+
 function renderTemplate(
   taskComplete: boolean,
   iteration: number,
@@ -325,7 +348,9 @@ function renderTemplate(
   adapterName: string,
 ): string {
   // Call Python template_loader until migrated
+  // Use uv run for proper dependency management (Jinja2)
   const hooksDir = dirname(new URL(import.meta.url).pathname);
+  const uvCmd = findUvCommand();
   const pythonScript = `
 import sys
 sys.path.insert(0, '${hooksDir}')
@@ -357,10 +382,18 @@ print(prompt)
 `;
 
   try {
-    const result = spawnSync("python3", ["-c", pythonScript], {
+    // Use uv run with inline script metadata for Jinja2 dependency
+    const wrappedScript = `# /// script
+# requires-python = ">=3.11"
+# dependencies = ["jinja2"]
+# ///
+${pythonScript}`;
+
+    const result = spawnSync(uvCmd, ["run", "--no-project", "--script", "-"], {
       encoding: "utf-8",
-      timeout: 10000,
+      timeout: 15000,
       cwd: hooksDir,
+      input: wrappedScript,
     });
     if (result.status === 0) {
       return result.stdout.trim();
@@ -382,7 +415,11 @@ function checkTaskComplete(planFile: string | null): { complete: boolean; reason
   if (!planFile) return { complete: false, reason: "", confidence: 0 };
 
   const hooksDir = dirname(new URL(import.meta.url).pathname);
-  const pythonScript = `
+  const uvCmd = findUvCommand();
+  const pythonScript = `# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
 import sys
 sys.path.insert(0, '${hooksDir}')
 from completion import check_task_complete_ralph
@@ -392,10 +429,11 @@ print(json.dumps({"complete": complete, "reason": reason, "confidence": confiden
 `;
 
   try {
-    const result = spawnSync("python3", ["-c", pythonScript], {
+    const result = spawnSync(uvCmd, ["run", "--no-project", "--script", "-"], {
       encoding: "utf-8",
-      timeout: 10000,
+      timeout: 15000,
       cwd: hooksDir,
+      input: pythonScript,
     });
     if (result.status === 0) {
       return JSON.parse(result.stdout.trim());
@@ -413,7 +451,11 @@ function discoverTargetFile(
   projectDir: string
 ): { file: string | null; method: string; candidates: string[] } {
   const hooksDir = dirname(new URL(import.meta.url).pathname);
-  const pythonScript = `
+  const uvCmd = findUvCommand();
+  const pythonScript = `# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
 import sys
 sys.path.insert(0, '${hooksDir}')
 from discovery import discover_target_file
@@ -423,10 +465,11 @@ print(json.dumps({"file": file, "method": method, "candidates": candidates}))
 `;
 
   try {
-    const result = spawnSync("python3", ["-c", pythonScript], {
+    const result = spawnSync(uvCmd, ["run", "--no-project", "--script", "-"], {
       encoding: "utf-8",
-      timeout: 10000,
+      timeout: 15000,
       cwd: hooksDir,
+      input: pythonScript,
     });
     if (result.status === 0) {
       return JSON.parse(result.stdout.trim());
