@@ -37,3 +37,29 @@ Invoke the `asciinema-streaming-backup` skill with user-selected options.
 3. **Config**: AskUserQuestion for backup settings
 4. **Repo**: AskUserQuestion for repository selection
 5. **Execute**: Run selected action
+
+## Examples
+
+```bash
+# Check current backup status
+/asciinema-tools:backup status
+
+# Configure and start backup automation
+/asciinema-tools:backup install
+
+# View recent backup history
+/asciinema-tools:backup history
+
+# Stop backup for current session
+/asciinema-tools:backup stop
+```
+
+## Troubleshooting
+
+| Issue               | Cause                        | Solution                            |
+| ------------------- | ---------------------------- | ----------------------------------- |
+| gh not found        | gh CLI not installed         | `brew install gh`                   |
+| fswatch not found   | fswatch not installed        | `brew install fswatch`              |
+| Auth error          | GitHub token invalid/expired | Run `gh auth login`                 |
+| Orphan branch error | Branch not initialized       | Run `/asciinema-tools:daemon-setup` |
+| No recordings found | No active .cast files        | Start a recording first             |
