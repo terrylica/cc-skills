@@ -1,3 +1,446 @@
+# [10.3.0](https://github.com/terrylica/cc-skills/compare/v10.2.2...v10.3.0) (2026-01-31)
+
+
+### Bug Fixes
+
+* add recovery tips to error messages in hooks ([18e82e8](https://github.com/terrylica/cc-skills/commit/18e82e8fc8f415a35759228ebe73cb82f89176ad))
+* **alpha-forge-worktree:** improve error messages with recovery instructions ([9f6e51e](https://github.com/terrylica/cc-skills/commit/9f6e51e7c70d54ec82a23967d24449a3486cf497))
+* **asciinema-tools:** correct broken asciinema-summarizer link ([c6bcf90](https://github.com/terrylica/cc-skills/commit/c6bcf9001002eda9859c3b01b767505769285788))
+* correct broken links across multiple plugins ([71deb47](https://github.com/terrylica/cc-skills/commit/71deb47e59396a15bd0ded79b4f2a4a02ab2fed9)), closes [#model-collapse-detection](https://github.com/terrylica/cc-skills/issues/model-collapse-detection)
+* **devops-tools:** remove broken launchagent-log-rotation references ([830e2c8](https://github.com/terrylica/cc-skills/commit/830e2c81665d18b9cce60e42d8cbc3eecc3f7d41))
+* **devops-tools:** remove broken zerotier-network link in firecrawl skill ([914c844](https://github.com/terrylica/cc-skills/commit/914c844e1d9bc35a23775eb3728311bd82490722))
+* **doc-tools:** improve error handling in build-pdf.sh ([20a90d9](https://github.com/terrylica/cc-skills/commit/20a90d938fd9207a7f4f87721c88551444478b7b))
+* **docs:** correct external link and hook documentation ([6c75dd0](https://github.com/terrylica/cc-skills/commit/6c75dd0983ae3d9b0f9bb4cf51a6f9f2aaabf85b))
+* **docs:** correct hook badge count and installation command format ([8b02660](https://github.com/terrylica/cc-skills/commit/8b02660ebe34cacc1ccbac15711673a271b97e81))
+* **docs:** remove broken external references ([85d5344](https://github.com/terrylica/cc-skills/commit/85d534406caf79630254aaf3d02b6424b1875504))
+* **docs:** remove remaining private repo URL references ([59a3e03](https://github.com/terrylica/cc-skills/commit/59a3e031654b7d03f3a1a338be2321e164c4f35f))
+* **hooks:** improve error messages with recovery tips ([14971ed](https://github.com/terrylica/cc-skills/commit/14971ed786f99f984b3255479f7897a590ce320b))
+* **itp-hooks:** add error context to catch blocks in TypeScript hooks ([7d0b63f](https://github.com/terrylica/cc-skills/commit/7d0b63fcc7871238634490992d38905d66121ca0))
+* **itp-hooks:** add file readability check before analysis ([d9e4279](https://github.com/terrylica/cc-skills/commit/d9e42791ee9e29d7853ac632576070bc95c9f50f))
+* **itp-hooks:** improve error messages with actionable guidance ([5b958da](https://github.com/terrylica/cc-skills/commit/5b958dac6f82f8e1c441f363b587a171588e97a2))
+* **itp:** correct broken anchor link in README ([706a5df](https://github.com/terrylica/cc-skills/commit/706a5dfa6608bc8b6c878f2d9ccc43dcf9a779b7)), closes [#0-most-common-plugin-not-found-after-successful-add](https://github.com/terrylica/cc-skills/issues/0-most-common-plugin-not-found-after-successful-add) [#1-plugin-not-found-after-successful-marketplace-add](https://github.com/terrylica/cc-skills/issues/1-plugin-not-found-after-successful-marketplace-add)
+* **itp:** correct broken anchor links in mise-configuration SKILL.md ([469e1d0](https://github.com/terrylica/cc-skills/commit/469e1d0995ade5dfe28144af03e3e99cc9343600)), closes [authentication.md#controlmaster-cache-issues](https://github.com/authentication.md/issues/controlmaster-cache-issues) [troubleshooting.md#ssh-controlmaster-cache](https://github.com/troubleshooting.md/issues/ssh-controlmaster-cache) [#hub-spoke](https://github.com/terrylica/cc-skills/issues/hub-spoke)
+* **itp:** correct broken anchor links in semantic-release references ([7a115b2](https://github.com/terrylica/cc-skills/commit/7a115b234a2bc70db6bf9a2e42ff2810964de406)), closes [authentication.md#controlmaster-cache-issues](https://github.com/authentication.md/issues/controlmaster-cache-issues) [troubleshooting.md#ssh-controlmaster-cache](https://github.com/troubleshooting.md/issues/ssh-controlmaster-cache) [#controlmaster-cache-issues](https://github.com/terrylica/cc-skills/issues/controlmaster-cache-issues) [./troubleshooting.md#ssh-controlmaster-cache](https://github.com/./troubleshooting.md/issues/ssh-controlmaster-cache) [#macos-gatekeeper-blocks-node-files](https://github.com/terrylica/cc-skills/issues/macos-gatekeeper-blocks-node-files)
+* **itp:** update skills badge count to 11 ([04b77f9](https://github.com/terrylica/cc-skills/commit/04b77f917c85f91379eb91870b742acb93d143df))
+* **scripts:** add error handling for mkdir and cp operations ([0183d3d](https://github.com/terrylica/cc-skills/commit/0183d3ddf7d9ba009059564bd4a4b8471470a124))
+* **statusline-tools:** escape bracket notation to prevent false hyperlink ([7808153](https://github.com/terrylica/cc-skills/commit/78081539d52ece7c5593b9b7e051277ff4ece382))
+
+
+### Features
+
+* **ru:** modernize ralph-unified template for Claude Code 2.1+ ([2989aa4](https://github.com/terrylica/cc-skills/commit/2989aa45d21582e8acde51432be9583ba9e144c0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [mise [env] Token Loading: read_file vs exec](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-15-mise-env-token-loading-patterns.md) | updated (+1/-1) |
+| accepted | [SR&ED Dynamic Project Discovery via Claude Agent SDK](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-18-sred-dynamic-discovery.md) | coupled |
+
+### Design Specs
+
+- [SR&ED Project Discovery: Forked Haiku Session via Claude Agent SDK](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-18-sred-dynamic-discovery/spec.md) - updated (+7/-7)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>alpha-forge-worktree</strong> (1 change)</summary>
+
+- [worktree-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/SKILL.md) - updated (+21/-8)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools</strong> (6 changes)</summary>
+
+- [asciinema-analyzer](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-analyzer/SKILL.md) - updated (+25)
+- [asciinema-cast-format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-cast-format/SKILL.md) - updated (+26/-1)
+- [asciinema-converter](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/SKILL.md) - updated (+26/-1)
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-player/SKILL.md) - updated (+10/-1)
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-recorder/SKILL.md) - updated (+10/-2)
+- [asciinema-streaming-backup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/SKILL.md) - updated (+9)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (12 changes)</summary>
+
+- [clickhouse-pydantic-config](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/clickhouse-pydantic-config/SKILL.md) - updated (+25)
+- [doppler-secret-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-secret-validation/SKILL.md) - updated (+15)
+- [doppler-workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-workflows/SKILL.md) - updated (+19/-2)
+- [dual-channel-watchexec-notifications](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/SKILL.md) - updated (+25)
+- [firecrawl-self-hosted](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-self-hosted/SKILL.md) - updated (+15/-1)
+- [ml-data-pipeline-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-data-pipeline-architecture/SKILL.md) - updated (+32/-2)
+- [ml-failfast-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-failfast-validation/SKILL.md) - updated (+31/-1)
+- [mlflow-python](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/mlflow-python/SKILL.md) - updated (+15)
+- [python-logging-best-practices](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/SKILL.md) - updated (+23/-1)
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+15)
+- [session-recovery](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-recovery/SKILL.md) - updated (+19/-2)
+- [telegram-bot-management](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/telegram-bot-management/SKILL.md) - updated (+15)
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (7 changes)</summary>
+
+- [ascii-diagram-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/SKILL.md) - updated (+15)
+- [documentation-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/documentation-standards/SKILL.md) - updated (+15)
+- [latex-build](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/SKILL.md) - updated (+19/-2)
+- [latex-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/SKILL.md) - updated (+19/-2)
+- [latex-tables](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/SKILL.md) - updated (+19/-2)
+- [pandoc-pdf-generation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/SKILL.md) - updated (+15)
+- [terminal-print](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/terminal-print/SKILL.md) - updated (+9)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 change)</summary>
+
+- [chezmoi-workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/SKILL.md) - updated (+23)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (2 changes)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+3/-1)
+- [pr-gfm-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/pr-gfm-validator/SKILL.md) - updated (+15)
+
+</details>
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 change)</summary>
+
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/skills/iterm2-layout/SKILL.md) - updated (+6/-9)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (9 changes)</summary>
+
+- [adr-code-traceability](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/adr-code-traceability/SKILL.md) - updated (+12)
+- [bootstrap-monorepo](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/bootstrap-monorepo/SKILL.md) - updated (+18/-1)
+- [code-hardcode-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/code-hardcode-audit/SKILL.md) - updated (+15)
+- [impl-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/impl-standards/SKILL.md) - updated (+12)
+- [implement-plan-preflight](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/implement-plan-preflight/SKILL.md) - updated (+13)
+- [mise-configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/SKILL.md) - updated (+25/-3)
+- [mise-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/SKILL.md) - updated (+13)
+- [pypi-doppler](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/pypi-doppler/SKILL.md) - updated (+9)
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+16)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 change)</summary>
+
+- [hooks-development](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/SKILL.md) - updated (+15)
+
+</details>
+
+<details>
+<summary><strong>link-tools</strong> (2 changes)</summary>
+
+- [link-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validation/SKILL.md) - updated (+22)
+- [link-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validator/SKILL.md) - updated (+15)
+
+</details>
+
+<details>
+<summary><strong>mql5</strong> (4 changes)</summary>
+
+- [article-extractor](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/SKILL.md) - updated (+24)
+- [log-reader](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/log-reader/SKILL.md) - updated (+16/-1)
+- [mql5-indicator-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/SKILL.md) - updated (+24)
+- [python-workspace](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/SKILL.md) - updated (+15)
+
+</details>
+
+<details>
+<summary><strong>notion-api</strong> (1 change)</summary>
+
+- [notion-sdk](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/skills/notion-sdk/SKILL.md) - updated (+27/-2)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (2 changes)</summary>
+
+- [plugin-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/plugin-validator/SKILL.md) - updated (+24)
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+24)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 change)</summary>
+
+- [slash-command-factory](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/slash-command-factory/SKILL.md) - updated (+25)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (6 changes)</summary>
+
+- [clickhouse-architect](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/SKILL.md) - updated (+25)
+- [code-clone-assistant](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/code-clone-assistant/SKILL.md) - updated (+22/-2)
+- [multi-agent-e2e-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-e2e-validation/SKILL.md) - updated (+18/-1)
+- [multi-agent-performance-profiling](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-performance-profiling/SKILL.md) - updated (+18/-1)
+- [schema-e2e-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/schema-e2e-validation/SKILL.md) - updated (+3/-1)
+- [symmetric-dogfooding](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/symmetric-dogfooding/SKILL.md) - updated (+22/-7)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (2 changes)</summary>
+
+- [adaptive-wfo-epoch](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/SKILL.md) - updated (+25)
+- [rangebar-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/SKILL.md) - updated (+25)
+
+</details>
+
+<details>
+<summary><strong>ralph</strong> (2 changes)</summary>
+
+- [constraint-discovery](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/skills/constraint-discovery/SKILL.md) - updated (+18/-1)
+- [session-guidance](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/skills/session-guidance/SKILL.md) - updated (+18/-1)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (1 change)</summary>
+
+- [session-info](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/SKILL.md) - updated (+18/-1)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Alpha-Forge Worktree Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/README.md) - updated (+28)
+- [asciinema-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/README.md) - updated (+30/-1)
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+14)
+- [doc-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/README.md) - updated (+24/-5)
+- [dotfiles-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/README.md) - updated (+18/-3)
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+57/-6)
+- [Git-Town Workflow Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/README.md) - updated (+40/-14)
+- [iterm2-layout-config](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/README.md) - updated (+22)
+- [ITP Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/README.md) - updated (+14)
+- [ITP Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/README.md) - updated (+2/-2)
+- [link-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/README.md) - updated (+52/-4)
+- [mql5](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/README.md) - updated (+25/-4)
+- [Notion API Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/README.md) - updated (+17/-1)
+- [plugin-dev](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/README.md) - updated (+44/-5)
+- [productivity-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/README.md) - updated (+23)
+- [quality-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/README.md) - updated (+78/-19)
+- [quant-research](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/README.md) - updated (+53/-10)
+- [Ralph Plugin for Claude Code](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/README.md) - updated (+17/-3)
+- [RU](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/README.md) - updated (+70)
+- [statusline-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/README.md) - updated (+48)
+
+### Skill References
+
+<details>
+<summary><strong>asciinema-tools/asciinema-converter</strong> (1 file)</summary>
+
+- [Integration Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/references/integration-guide.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/python-logging-best-practices</strong> (1 file)</summary>
+
+- [Python Logging Architecture Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/logging-architecture.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-configuration</strong> (1 file)</summary>
+
+- [GitHub Token Multi-Account Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/references/github-tokens.md) - updated (+10/-6)
+
+</details>
+
+<details>
+<summary><strong>itp/semantic-release</strong> (2 files)</summary>
+
+- [Authentication for semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/authentication.md) - updated (+2/-1)
+- [Local Release Workflow (Canonical)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/local-release-workflow.md) - updated (+13/-11)
+
+</details>
+
+<details>
+<summary><strong>mql5/article-extractor</strong> (1 file)</summary>
+
+- [Data Sources](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/references/data-sources.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>quant-research/adaptive-wfo-epoch</strong> (2 files)</summary>
+
+- [Range Bar Metrics: Time-Weighted Sharpe Ratio](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/range-bar-metrics.md) - updated (-4)
+- [xLSTM Implementation Patterns for Financial Time Series](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/xlstm-implementation.md) - updated (-1)
+
+</details>
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (2 files)</summary>
+
+- [Anti-Patterns in Range Bar Metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/anti-patterns.md) - updated (+1/-1)
+- [Structured Logging Contract for AWFES Experiments](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/structured-logging.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/session-info</strong> (1 file)</summary>
+
+- [Session Registry Format](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/references/registry-format.md) - updated (+1/-1)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (18 commands)</summary>
+
+- [/asciinema-tools:analyze](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/analyze.md) - updated (+21)
+- [/asciinema-tools:backup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/backup.md) - updated (+26)
+- [/asciinema-tools:bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/bootstrap.md) - updated (+12)
+- [/asciinema-tools:convert](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/convert.md) - updated (+10)
+- [/asciinema-tools:daemon-logs](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-logs.md) - updated (+22)
+- [/asciinema-tools:daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-setup.md) - updated (+11)
+- [/asciinema-tools:daemon-start](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-start.md) - updated (+9)
+- [/asciinema-tools:daemon-status](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-status.md) - updated (+10)
+- [/asciinema-tools:daemon-stop](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-stop.md) - updated (+9)
+- [/asciinema-tools:finalize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/finalize.md) - updated (+11)
+- [/asciinema-tools:format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/format.md) - updated (+21)
+- [/asciinema-tools:full-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/full-workflow.md) - updated (+10)
+- [/asciinema-tools:hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/hooks.md) - updated (+25)
+- [/asciinema-tools:play](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/play.md) - updated (+21)
+- [/asciinema-tools:post-session](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/post-session.md) - updated (+24/-8)
+- [/asciinema-tools:record](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/record.md) - updated (+21)
+- [/asciinema-tools:setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/setup.md) - updated (+23)
+- [/asciinema-tools:summarize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/summarize.md) - updated (+32/-10)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 command)</summary>
+
+- [Dotfiles Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/commands/hooks.md) - updated (+29)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 command)</summary>
+
+- [gh-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/hooks.md) - updated (+29/-6)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow</strong> (4 commands)</summary>
+
+- [Git-Town Contribution Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/contribute.md) - updated (+28/-6)
+- [Git-Town Fork Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/fork.md) - updated (+47/-26)
+- [Git-Town Enforcement Hooks — Installation](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/hooks.md) - updated (+28/-18)
+- [Git-Town Setup — One-Time Configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/setup.md) - updated (+12)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (4 commands)</summary>
+
+- [⛔ ITP Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/go.md) - updated (+12)
+- [ITP Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/hooks.md) - updated (+30)
+- [/itp:release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/release.md) - updated (+31/-17)
+- [ITP Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/setup.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [ITP Hooks Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/setup.md) - updated (+11)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (1 command)</summary>
+
+- [⛔ Create Plugin — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/commands/create.md) - updated (+11)
+
+</details>
+
+<details>
+<summary><strong>ralph</strong> (5 commands)</summary>
+
+- [Ralph Loop: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/audit-now.md) - updated (+9)
+- [Ralph Loop: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/config.md) - updated (+10)
+- [Ralph Loop: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/forbid.md) - updated (+13/-2)
+- [Ralph Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/hooks.md) - updated (+24)
+- [Ralph Loop: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/commands/status.md) - updated (+20)
+
+</details>
+
+<details>
+<summary><strong>ru</strong> (9 commands)</summary>
+
+- [RU: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/audit-now.md) - updated (+10)
+- [RU: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/config.md) - updated (+10)
+- [RU: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/encourage.md) - updated (+10)
+- [RU: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/forbid.md) - updated (+10)
+- [RU: Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/hooks.md) - updated (+21)
+- [RU: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/start.md) - updated (+22)
+- [RU: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/status.md) - updated (+19)
+- [RU: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/stop.md) - updated (+10)
+- [RU: Wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/wizard.md) - updated (+10)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (3 commands)</summary>
+
+- [Status Line Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/hooks.md) - updated (+23)
+- [Global Ignore Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/ignore.md) - updated (+9)
+- [Status Line Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/setup.md) - updated (+10)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+5/-5)
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+15/-10)
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+1/-1)
+- [Release Workflow Guide](https://github.com/terrylica/cc-skills/blob/main/docs/RELEASE.md) - updated (+35/-35)
+
+## Other Documentation
+
+### Other
+
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - updated (+2/-2)
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+1)
+- [Getting Started with Ralph (First-Time Users)](https://github.com/terrylica/cc-skills/blob/main/plugins/ralph/GETTING-STARTED.md) - updated (+1/-1)
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+117/-21)
+
 ## [10.2.2](https://github.com/terrylica/cc-skills/compare/v10.2.1...v10.2.2) (2026-01-31)
 
 
