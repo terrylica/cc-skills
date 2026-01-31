@@ -1159,3 +1159,18 @@ Generated commands should:
 ---
 
 **Build powerful custom slash commands in minutes!**
+
+---
+
+## Troubleshooting
+
+| Issue                     | Cause                          | Solution                                          |
+| ------------------------- | ------------------------------ | ------------------------------------------------- |
+| Command not found         | Not installed to commands dir  | Copy .md file to ~/.claude/commands/ or .claude/  |
+| YAML syntax error         | Invalid frontmatter            | Validate YAML with `yq` or online validator       |
+| $ARGUMENTS not expanding  | Using $1 $2 instead            | Use $ARGUMENTS for all arguments as single string |
+| Bash permission denied    | Using blanket Bash             | Specify subcommand-level: Bash(git add:\*)        |
+| Command too verbose       | Name exceeds 4 words           | Shorten to 2-4 word kebab-case name               |
+| Agent not launching       | Task tool not in allowed-tools | Add Task to allowed-tools for agent commands      |
+| Validation fails on flags | Missing short forms            | Add 1-2 letter shortcuts for all flags            |
+| Output not generated      | Missing Write in allowed-tools | Add Write tool for file-generating commands       |

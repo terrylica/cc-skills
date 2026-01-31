@@ -77,3 +77,18 @@ For detailed information, see:
 
 - [Operational Commands](./references/operational-commands.md) - Status, restart, logs, monitoring commands
 - [Troubleshooting](./references/troubleshooting.md) - Common issues and diagnostic steps
+
+---
+
+## Troubleshooting
+
+| Issue                    | Cause                         | Solution                                      |
+| ------------------------ | ----------------------------- | --------------------------------------------- |
+| Bot not responding       | Process crashed               | Run `bot status` to check, then `bot restart` |
+| launchd not starting     | Service not loaded            | Load with `launchctl load` command            |
+| Logs empty               | Log rotation or path issue    | Verify log path in launchd plist              |
+| watchexec not reloading  | File patterns not matching    | Check watchexec filter patterns               |
+| High memory usage        | Memory leak in bot code       | Restart bot, investigate Python memory usage  |
+| Permission denied        | Script not executable         | Run `chmod +x bot-service.sh`                 |
+| Environment vars missing | .env not loaded               | Verify environment setup in launchd plist     |
+| Multiple bot instances   | Previous instance not stopped | Kill all bot processes, then restart cleanly  |

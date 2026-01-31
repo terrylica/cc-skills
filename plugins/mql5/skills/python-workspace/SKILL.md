@@ -77,3 +77,18 @@ For detailed information, see:
 - [Complete Workflows](./references/workflows-complete.md) - End-to-end user workflows
 - [Troubleshooting & Errors](./references/troubleshooting-errors.md) - Requirements, assumptions, error patterns
 - [Validation Metrics](./references/validation-metrics.md) - Success metrics and version history
+
+---
+
+## Troubleshooting
+
+| Issue                        | Cause                        | Solution                                             |
+| ---------------------------- | ---------------------------- | ---------------------------------------------------- |
+| Wine Python not found        | CrossOver/Wine not installed | Install CrossOver, verify bottle path                |
+| MT5 API connection failed    | MetaTrader not running       | Launch MetaTrader 5 before running export            |
+| Correlation below 0.999      | Indicator mismatch           | Verify warmup periods, check calculation alignment   |
+| Custom indicator not working | API restriction              | Use CSV export from MT5, not Python API              |
+| UnicodeDecodeError           | Windows path encoding        | Use raw strings for Windows paths in Wine            |
+| Symbol not found             | Wrong symbol format          | Use exact MT5 symbol name (e.g., EURUSD not EUR/USD) |
+| Timeout on export            | Too many bars requested      | Reduce bar count, default 5000 is safe               |
+| Permission denied            | Wine prefix incorrect        | Set WINEPREFIX to correct CrossOver bottle path      |

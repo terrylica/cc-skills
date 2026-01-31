@@ -801,3 +801,18 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
 - [NDJSON Specification](https://github.com/ndjson/ndjson-spec)
 - [jq Manual](https://jqlang.github.io/jq/manual/)
 - [Brotli Compression](https://github.com/google/brotli)
+
+---
+
+## Troubleshooting
+
+| Issue                     | Cause                       | Solution                                            |
+| ------------------------- | --------------------------- | --------------------------------------------------- |
+| Session storage not found | Claude Code not initialized | Start a Claude Code session first                   |
+| No sessions in project    | Wrong path encoding         | Check encoded path matches ~/.claude/projects/      |
+| jq parse error            | Malformed JSONL             | Validate each line with `jq -c .` individually      |
+| brotli not found          | Missing dependency          | Install with `brew install brotli`                  |
+| S3 upload fails           | Missing AWS credentials     | Configure AWS CLI or use 1Password injection        |
+| UUID chain broken         | Session compacted           | Check related sessions for continuation             |
+| GitHub username missing   | Attribution not set         | Always require github_username in registry entry    |
+| Registry entry invalid    | Missing required fields     | Verify id, type, created_at, session_contexts exist |

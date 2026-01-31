@@ -188,3 +188,18 @@ When using this skill:
 - MT5 file locations: `docs/guides/MT5_FILE_LOCATIONS.md`
 - Dual logging implementation: `docs/plans/cci-rising-pattern-marker.yaml` Phase 3-4
 - CSVLogger library: `Program Files/MetaTrader 5/MQL5/Indicators/Custom/Development/CCINeutrality/lib/CSVLogger.mqh`
+
+---
+
+## Troubleshooting
+
+| Issue                  | Cause                        | Solution                                          |
+| ---------------------- | ---------------------------- | ------------------------------------------------- |
+| Log file not found     | Wrong date or path           | Verify YYYYMMDD.log format and MQL5_ROOT env var  |
+| Empty log file         | MT5 not running or no output | Ensure MT5 is running and Print() is being called |
+| Encoding errors        | UTF-16LE not handled         | Read tool handles encoding automatically          |
+| Missing test results   | Test not executed            | Compile and run test script in MT5 first          |
+| Grep finds nothing     | Wrong pattern                | Use case-insensitive (-i) or broader pattern      |
+| Old log data           | Log rotation                 | Each day creates new YYYYMMDD.log file            |
+| Path contains spaces   | Unquoted path variable       | Quote paths: "$LOG_FILE"                          |
+| Sensitive data exposed | Trading info in logs         | Filter sensitive fields when reporting to user    |

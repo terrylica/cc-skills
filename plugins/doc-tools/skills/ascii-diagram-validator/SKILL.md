@@ -154,3 +154,18 @@ PREFLIGHT_EOF_4
 
 - [ARCHITECTURE.md best practices](https://github.com/joelparkerhenderson/architecture-decision-record)
 - [Unicode Box Drawing block](https://www.unicode.org/charts/PDF/U2500.pdf)
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                         | Solution                                            |
+| --------------------------- | ----------------------------- | --------------------------------------------------- |
+| Script not found            | Plugin not installed          | Verify plugin installed with `claude plugin list`   |
+| False positives with tabs   | Tab characters misalign       | Convert tabs to spaces before validation            |
+| Mixed ASCII not detected    | Using `+---+` style           | Script only validates Unicode box-drawing chars     |
+| Column numbers off          | Unicode width calculation     | Use pre-composed characters, avoid combining marks  |
+| No issues but looks wrong   | Aesthetic spacing not checked | Validator checks structure, not visual spacing      |
+| Exit code 2 unexpected      | warnings only mode            | Use --warn-only flag to treat warnings as success   |
+| Can't find validation error | Complex nested diagram        | Check line numbers in output, validate section only |
+| Unicode chars not rendering | Terminal font missing glyphs  | Use font with full Unicode box-drawing support      |
