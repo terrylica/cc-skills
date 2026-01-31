@@ -117,6 +117,43 @@ Claude Code 2.1+ provides automatic checkpoints before each change.
 
 ---
 
+## TESTING PHILOSOPHY
+
+### Anti-Patterns (FORBIDDEN)
+
+| Pattern                     | Problem                                 | Example                                                      |
+| --------------------------- | --------------------------------------- | ------------------------------------------------------------ |
+| **Goal-based testing**      | Tests accommodate code, not correctness | Asserting current behavior instead of expected behavior      |
+| **Conditional assertions**  | Silent pass when condition false        | `if X in sources: assert...` — fails silently when X missing |
+| **Silent failure patterns** | Errors hidden, bugs masked              | `except: pass`, `except: return []`, bare `except:`          |
+| **Over-mocking**            | Hides integration issues                | Mocking real dependencies that should be tested              |
+
+### Best Practices (REQUIRED)
+
+| Practice                     | Why                                | Example                                                    |
+| ---------------------------- | ---------------------------------- | ---------------------------------------------------------- |
+| **Adversarial testing**      | Expose limitations before users do | Stress test with real data, edge cases, malformed inputs   |
+| **Unconditional assertions** | Fail loudly, catch issues early    | `assert X in sources` (fails) not `if X: assert` (silent)  |
+| **Edge case coverage**       | Boundaries reveal bugs             | Empty inputs, None, max values, unicode, concurrent access |
+| **Multi-agent validation**   | Multiple perspectives catch more   | Spawn subagents to test from different angles              |
+
+### Multi-Perspective Validation
+
+For complex changes, spawn parallel validation subagents:
+
+```
+Task(
+  subagent_type: "Bash"
+  prompt: "Run tests with edge cases: empty input, malformed data, concurrent access"
+  description: "Edge case validation"
+  run_in_background: true
+)
+```
+
+**Test quality > test quantity.** One adversarial test that exposes a real limitation is worth more than ten goal-based tests that pass.
+
+---
+
 {% if not task_complete %}
 {# ======================= IMPLEMENTATION PHASE ======================= #}
 
