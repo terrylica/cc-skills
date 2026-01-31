@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Universal PDF Build Script for Pandoc
 # Usage: ./build-pdf.sh [OPTIONS] [input.md] [output.pdf]
 #
@@ -11,7 +11,7 @@
 #
 # If no input file provided, looks for single .md file in current directory
 
-set -e
+set -euo pipefail
 
 # ==============================================================================
 # Configuration
@@ -202,7 +202,12 @@ if [[ -n "$USE_HIDE_DETAILS" ]]; then
     fi
 fi
 
-# Build command
+# Build command - use array for optional arguments to avoid SC2086
+PANDOC_OPTS=()
+[[ -n "$LUA_FILTER" ]] && PANDOC_OPTS+=("$LUA_FILTER")
+[[ -n "$BIBLIOGRAPHY" ]] && PANDOC_OPTS+=("$BIBLIOGRAPHY")
+[[ -n "$CSL" ]] && PANDOC_OPTS+=("$CSL")
+
 pandoc "$INPUT_FILE" \
   -o "$OUTPUT_FILE" \
   --pdf-engine=xelatex \
@@ -215,9 +220,7 @@ pandoc "$INPUT_FILE" \
   -V geometry:margin=1in \
   -V toc-title="Table of Contents" \
   -H "$LATEX_PREAMBLE" \
-  $LUA_FILTER \
-  $BIBLIOGRAPHY \
-  $CSL
+  "${PANDOC_OPTS[@]}"
 
 # ==============================================================================
 # Post-build Validation
@@ -228,7 +231,12 @@ if [[ ! -f "$OUTPUT_FILE" ]]; then
     exit 1
 fi
 
-FILE_SIZE=$(ls -lh "$OUTPUT_FILE" | awk '{print $5}')
+# Use stat for portable file size (avoids SC2012 ls warning)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    FILE_SIZE=$(stat -f%z "$OUTPUT_FILE" | awk '{printf "%.1fK", $1/1024}')
+else
+    FILE_SIZE=$(stat --printf="%s" "$OUTPUT_FILE" | awk '{printf "%.1fK", $1/1024}')
+fi
 log_info "PDF generated: $OUTPUT_FILE ($FILE_SIZE)"
 
 # Get page count if pdfinfo available
