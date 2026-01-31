@@ -135,16 +135,16 @@ This ensures all modified, untracked, staged, and deleted files are accurately d
 
 ### 1.2 Tooling Check
 
-| Check                   | Command                       | Expected   | Resolution                                                 |
-| ----------------------- | ----------------------------- | ---------- | ---------------------------------------------------------- |
-| Git cache fresh         | `git update-index --refresh`  | No output  | Auto-runs (Step 1)                                         |
-| gh CLI installed        | `command -v gh`               | Path to gh | `brew install gh`                                          |
-| gh workflow scope       | `gh api -i user \| grep workflow` | Present | `gh auth refresh -s workflow`                              |
-| **gh account match**    | `gh api user --jq '.login'`   | = GH_ACCOUNT | `gh auth switch --user $GH_ACCOUNT`                       |
-| semantic-release global | `command -v semantic-release` | Path       | See [Troubleshooting](#macos-gatekeeper-blocks-node-files) |
-| In git repo             | `git rev-parse --git-dir`     | `.git`     | Navigate to repo root                                      |
-| On main branch          | `git branch --show-current`   | `main`     | `git checkout main`                                        |
-| Clean working directory | `git status --porcelain`      | Empty      | Commit or stash                                            |
+| Check                   | Command                           | Expected     | Resolution                                                                     |
+| ----------------------- | --------------------------------- | ------------ | ------------------------------------------------------------------------------ |
+| Git cache fresh         | `git update-index --refresh`      | No output    | Auto-runs (Step 1)                                                             |
+| gh CLI installed        | `command -v gh`                   | Path to gh   | `brew install gh`                                                              |
+| gh workflow scope       | `gh api -i user \| grep workflow` | Present      | `gh auth refresh -s workflow`                                                  |
+| **gh account match**    | `gh api user --jq '.login'`       | = GH_ACCOUNT | `gh auth switch --user $GH_ACCOUNT`                                            |
+| semantic-release global | `command -v semantic-release`     | Path         | See [Troubleshooting](./troubleshooting.md#macos-gatekeeper-blocks-node-files) |
+| In git repo             | `git rev-parse --git-dir`         | `.git`       | Navigate to repo root                                                          |
+| On main branch          | `git branch --show-current`       | `main`       | `git checkout main`                                                            |
+| Clean working directory | `git status --porcelain`          | Empty        | Commit or stash                                                                |
 
 ### 1.3 Authentication Check (HTTPS-First)
 
@@ -220,6 +220,7 @@ MAJOR_EOF
    - Migration Strategist (effort level, migration guide needs, timeline)
 
 2. **Present AskUserQuestion with multiSelect**:
+
    ```yaml
    questions:
      - question: "MAJOR version bump detected. How should we proceed?"
@@ -270,7 +271,7 @@ git push origin main
 
 **If push fails** (SSH permission issues):
 
-1. Check ControlMaster cache (see [Troubleshooting](#controlmaster-cache-issues))
+1. Check ControlMaster cache (see [SSH ControlMaster Cache](./troubleshooting.md#ssh-controlmaster-cache))
 2. With HTTPS-first, this should rarely happen
 
 ---
@@ -398,6 +399,7 @@ graph { label: "cc-skills Post-Release Cache Sync"; flow: east; }
 For all troubleshooting, see [Troubleshooting](./troubleshooting.md).
 
 Common release issues:
+
 - Authentication: [Authentication Issues](./troubleshooting.md#authentication-issues)
 - SSH: [ControlMaster Cache](./troubleshooting.md#ssh-controlmaster-cache)
 - macOS: [Gatekeeper Blocks](./troubleshooting.md#macos-gatekeeper-blocks-node-files)
