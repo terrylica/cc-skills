@@ -1,8 +1,11 @@
+---
+name: ml-data-pipeline-architecture
+description: Patterns for efficient ML data pipelines using Polars, Arrow, and ClickHouse. TRIGGERS - data pipeline, polars vs pandas, arrow format, clickhouse ml, efficient loading, zero-copy, memory optimization.
+---
+
 # ML Data Pipeline Architecture
 
 Patterns for efficient ML data pipelines using Polars, Arrow, and ClickHouse.
-
-**Triggers**: data pipeline, polars vs pandas, arrow format, clickhouse ml, efficient loading, zero-copy, memory optimization
 
 **ADR**: [2026-01-22-polars-preference-hook](/docs/adr/2026-01-22-polars-preference-hook.md) (efficiency preferences framework)
 
