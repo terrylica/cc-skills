@@ -10,6 +10,7 @@ Merged from `doc-tools` + `doc-build-tools` plugins.
 | ------------------------- | ------------------------------------------------------------------ |
 | `ascii-diagram-validator` | Validates ASCII box-drawing diagram alignment in markdown files    |
 | `documentation-standards` | Markdown documentation standards for LLM-optimized architecture    |
+| `glossary-management`     | Manage terminology glossary with Vale vocabulary sync              |
 | `latex-build`             | Build automation with latexmk, live preview, dependency tracking   |
 | `latex-setup`             | macOS environment setup with MacTeX, Skim viewer, and SyncTeX      |
 | `latex-tables`            | Modern table creation with tabularray package                      |
@@ -32,6 +33,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 - "validate ASCII diagram" → ascii-diagram-validator
 - "markdown documentation standards" → documentation-standards
+- "sync terms", "glossary validation", "Vale vocabulary" → glossary-management
 - "compile my LaTeX document" → latex-build
 - "set up LaTeX on my Mac" → latex-setup
 - "create a LaTeX table" → latex-tables
