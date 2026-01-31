@@ -89,3 +89,15 @@ const rateLimiter = new TokenBucketLimiter({ rate: 100, burst: 20 });
 
 - [Language Patterns](./references/language-patterns.md) - Python, TS, Rust, Go patterns
 - [Placement Guidelines](./references/placement-guidelines.md) - When and where to add
+
+---
+
+## Troubleshooting
+
+| Issue                  | Cause                  | Solution                                  |
+| ---------------------- | ---------------------- | ----------------------------------------- |
+| ADR not found          | Wrong path format      | Use relative path from repo root          |
+| Reference not showing  | Comment syntax wrong   | Check language-specific comment format    |
+| Too many references    | Over-documenting       | Only add where traceability adds value    |
+| Outdated ADR link      | ADR was renamed        | Update path to match current ADR filename |
+| Hook reminder annoying | No ADR for this change | Add inline ADR comment or create new ADR  |
