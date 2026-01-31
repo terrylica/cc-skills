@@ -230,3 +230,18 @@ Each agent returns NDJSON with:
 - `description`: Human-readable constraint description
 - `linked_from`: Which file the constraint was discovered from (for @ link tracing)
 - `recommendation`: What Ralph should avoid or be careful about
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                        | Solution                                           |
+| --------------------------- | ---------------------------- | -------------------------------------------------- |
+| Agent timeout               | 30s timeout too short        | Check for large files slowing Explore agent        |
+| Empty scan file             | Agents returned no findings  | Verify CLAUDE.md and .claude/ directory exist      |
+| NDJSON parse error          | Agent returned invalid JSON  | Check agent output for malformed lines             |
+| Missing @ link targets      | Files referenced don't exist | Verify linked files exist before running scan      |
+| Agent not spawning          | Task tool issue              | Ensure all 5 Task tools in single message          |
+| Duplicate constraints       | Multiple agents found same   | Dedup by description in aggregation step           |
+| .claude directory missing   | First run in project         | Create .claude/ directory before running scan      |
+| TaskOutput blocking forever | Agent still running          | Increase timeout or check agent for infinite loops |
