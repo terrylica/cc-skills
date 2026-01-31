@@ -453,3 +453,18 @@ The config file `.claude/ralph-config.json` will contain:
   "constraint_scan": { ... }
 }
 ```
+
+---
+
+## Troubleshooting
+
+| Issue                      | Cause                       | Solution                                              |
+| -------------------------- | --------------------------- | ----------------------------------------------------- |
+| Constraint scan not found  | Step 1.4 not completed      | Run constraint-discovery skill first                  |
+| Config validation fails    | Malformed JSON              | Check jq syntax, verify arrays are properly formatted |
+| Guidance not persisting    | Write permission issue      | Check `.claude/` directory exists and is writable     |
+| AUQ options missing        | No constraints detected     | Static fallback categories will be shown              |
+| Previous guidance lost     | Backup not restored         | Check `.claude/ralph-config.json.backup` file         |
+| NDJSON parse errors        | Invalid constraint format   | Verify each line in scan file is valid JSON           |
+| Acknowledged filter broken | Malformed acknowledged file | Delete `.claude/ralph-acknowledged-constraints.jsonl` |
+| Severity counts wrong      | Parsing error in scan       | Re-run constraint discovery scan                      |
