@@ -159,3 +159,16 @@ uv run scripts/preflight_validator.py <adr-id>
 # Example
 uv run scripts/preflight_validator.py 2025-12-01-my-feature
 ```
+
+---
+
+## Troubleshooting
+
+| Issue                 | Cause                    | Solution                                     |
+| --------------------- | ------------------------ | -------------------------------------------- |
+| Validator fails       | Missing ADR or spec      | Create both files before running validator   |
+| Frontmatter invalid   | Missing required fields  | Check all 7 ADR fields and 5 spec fields     |
+| Diagram not rendering | graph-easy not installed | Run `brew install graph-easy`                |
+| Spec phase mismatch   | Wrong phase value        | Use: preflight, phase-1, phase-2, or phase-3 |
+| ADR status wrong      | Manual status edit       | Let workflow manage status transitions       |
+| Design folder missing | Wrong path structure     | Use docs/design/YYYY-MM-DD-slug/spec.md      |
