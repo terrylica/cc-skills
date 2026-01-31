@@ -108,3 +108,18 @@ For detailed information, see:
 
 - Use `latex/setup` skill for installing LaTeX and configuring environment
 - Use `latex/tables` skill for creating tables with tabularray
+
+---
+
+## Troubleshooting
+
+| Issue                      | Cause                         | Solution                                             |
+| -------------------------- | ----------------------------- | ---------------------------------------------------- |
+| latexmk not found          | Not in PATH                   | Add `/Library/TeX/texbin` to PATH                    |
+| Undefined control sequence | Missing package               | Check `\usepackage` statements for required packages |
+| References show ??         | Need multiple runs            | latexmk handles this automatically; ensure no errors |
+| Live preview not updating  | Skim auto-reload disabled     | Skim Preferences → Sync → Check for file changes     |
+| Build hangs                | Input prompt in nonstop mode  | Use `-interaction=nonstopmode` flag                  |
+| PDF not updating           | Build error preventing output | Check .log file for specific error                   |
+| SyncTeX not working        | Missing -synctex=1 flag       | Add `-synctex=1` to build command                    |
+| Too many aux files         | Normal build artifacts        | Run `latexmk -c` to clean (keeps PDF)                |
