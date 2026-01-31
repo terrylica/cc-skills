@@ -1,3 +1,10 @@
+## [11.0.4](https://github.com/terrylica/cc-skills/compare/v11.0.3...v11.0.4) (2026-01-31)
+
+
+### Bug Fixes
+
+* **ru:** preserve guidance when timestamp is null (Issue [#18](https://github.com/terrylica/cc-skills/issues/18)) ([a598b76](https://github.com/terrylica/cc-skills/commit/a598b76674264b2c5827f236fde90c0939ca05b5))
+
 ## [11.0.3](https://github.com/terrylica/cc-skills/compare/v11.0.2...v11.0.3) (2026-01-31)
 
 
