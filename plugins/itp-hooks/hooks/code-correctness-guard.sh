@@ -112,6 +112,12 @@ if [[ "$TOOL_NAME" == "Write" || "$TOOL_NAME" == "Edit" ]]; then
     [[ -z "$FILE_PATH" ]] && exit 0
     [[ ! -f "$FILE_PATH" ]] && exit 0
 
+    # Verify file is readable before running analysis
+    if [[ ! -r "$FILE_PATH" ]]; then
+        echo "[code-correctness] Warning: File not readable: $FILE_PATH" >&2
+        exit 0
+    fi
+
     # Principle-based fix guidance for each language
     SHELL_FIX_GUIDANCE="SHELL SILENT FAILURE PRINCIPLES:
 1. SC2155: SPLIT declaration from assignment - 'local var=\$(cmd)' masks exit code
