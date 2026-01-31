@@ -1,3 +1,24 @@
+## [11.3.1](https://github.com/terrylica/cc-skills/compare/v11.3.0...v11.3.1) (2026-01-31)
+
+
+### Bug Fixes
+
+* **ru:** remove extra blank lines from template whitespace ([6e08e12](https://github.com/terrylica/cc-skills/commit/6e08e120426a8af181dbf2142f7db64d970d99b0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+5/-12)
+
 # [11.3.0](https://github.com/terrylica/cc-skills/compare/v11.2.0...v11.3.0) (2026-01-31)
 
 
