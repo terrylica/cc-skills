@@ -44,3 +44,24 @@ Invoke the `asciinema-analyzer` skill with user-selected options.
 8. **Density**: Calculate density windows if selected
 9. **Format**: AskUserQuestion for report format
 10. **Next**: AskUserQuestion for follow-up action
+
+## Examples
+
+```bash
+# Quick curated analysis for trading domain
+/asciinema-tools:analyze session.txt -d trading -t curated
+
+# Full analysis with density and JSON output
+/asciinema-tools:analyze session.txt -t full --density --json
+
+# Auto keyword discovery with markdown report
+/asciinema-tools:analyze session.txt -t auto --md
+```
+
+## Troubleshooting
+
+| Issue              | Cause                          | Solution                    |
+| ------------------ | ------------------------------ | --------------------------- |
+| ripgrep not found  | Not installed                  | `brew install ripgrep`      |
+| YAKE not available | Python package missing         | `uv pip install yake`       |
+| No keywords found  | Wrong domain or sparse content | Try `-t auto` for discovery |

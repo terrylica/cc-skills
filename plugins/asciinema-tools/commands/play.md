@@ -37,3 +37,24 @@ Invoke the `asciinema-player` skill with user-selected options.
 4. **Speed**: AskUserQuestion for playback speed
 5. **Options**: AskUserQuestion for additional options
 6. **Launch**: Open iTerm2 via AppleScript
+
+## Examples
+
+```bash
+# Play recording at normal speed
+/asciinema-tools:play session.cast
+
+# Play at 6x speed
+/asciinema-tools:play session.cast -s 6
+
+# Play with idle time limit and looping
+/asciinema-tools:play session.cast -i 2 -l
+```
+
+## Troubleshooting
+
+| Issue               | Cause             | Solution                               |
+| ------------------- | ----------------- | -------------------------------------- |
+| iTerm2 not found    | Not installed     | `brew install --cask iterm2`           |
+| Window not opening  | AppleScript issue | Grant iTerm2 accessibility permissions |
+| Playback stuttering | Large file        | Use `-i 1` to cap idle time            |
