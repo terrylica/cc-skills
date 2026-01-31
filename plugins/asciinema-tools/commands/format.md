@@ -33,3 +33,24 @@ Invoke the `asciinema-cast-format` skill with user-selected section.
 1. **Selection**: AskUserQuestion for section
 2. **Example**: AskUserQuestion for example file (if parsing)
 3. **Display**: Show requested documentation
+
+## Examples
+
+```bash
+# Show header format
+/asciinema-tools:format header
+
+# Show event codes
+/asciinema-tools:format events
+
+# Parse specific file with live examples
+/asciinema-tools:format parsing -f session.cast --live
+```
+
+## Troubleshooting
+
+| Issue          | Cause           | Solution                                     |
+| -------------- | --------------- | -------------------------------------------- |
+| File not found | Invalid path    | Use absolute path or ensure file exists      |
+| Parse error    | Invalid NDJSON  | Check file is valid asciinema v3 format      |
+| No output      | Missing section | Specify one of: header, events, parsing, all |
