@@ -1,3 +1,34 @@
+# [10.2.0](https://github.com/terrylica/cc-skills/compare/v10.1.2...v10.2.0) (2026-01-31)
+
+
+### Features
+
+* **ru:** add interactive AskUserQuestion guidance setup ([df61ce1](https://github.com/terrylica/cc-skills/commit/df61ce11889747771bed99cd8525dcee26486264))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [RU](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/README.md) - updated (+32/-49)
+
+### Commands
+
+<details>
+<summary><strong>ru</strong> (2 commands)</summary>
+
+- [RU: Configure](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/configure.md) - new (+155)
+- [RU: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/start.md) - updated (+150/-41)
+
+</details>
+
 ## [10.1.2](https://github.com/terrylica/cc-skills/compare/v10.1.1...v10.1.2) (2026-01-30)
 
 
