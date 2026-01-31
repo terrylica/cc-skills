@@ -1,3 +1,104 @@
+# [11.0.0](https://github.com/terrylica/cc-skills/compare/v10.3.0...v11.0.0) (2026-01-31)
+
+
+### Features
+
+* **ru:** remove deprecated ralph plugin in favor of ru (Ralph Universe) ([42cf919](https://github.com/terrylica/cc-skills/commit/42cf91972d888df19197bb7f3ba90a19a256c47e))
+
+
+### BREAKING CHANGES
+
+* **ru:** The `ralph` plugin has been removed. Use `ru` instead.
+
+Migration guide:
+- /ralph:start → /ru:start
+- /ralph:stop → /ru:stop
+- /ralph:status → /ru:status
+- /ralph:config → /ru:config
+- /ralph:encourage → /ru:encourage
+- /ralph:forbid → /ru:forbid
+- /ralph:audit-now → /ru:audit-now
+- /ralph:hooks → /ru:hooks
+
+New in ru:
+- /ru:wizard - Interactive guidance setup (replaces session-guidance skill)
+
+Removed (Alpha-Forge specific, not migrated):
+- constraint-discovery skill (5-agent parallel constraint scan)
+- session-guidance skill (NDJSON constraint integration)
+- MENTAL-MODEL.md, GETTING-STARTED.md (Alpha-Forge specific docs)
+- EXPLORE-AGENT-* documentation (13 files)
+
+The ru plugin contains all hooks and core functionality from ralph,
+now modernized for Claude Code 2.1+ with native Task system support.
+
+SRED-Type: experimental-development
+SRED-Claim: RU
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>ralph</strong> (2 changes)</summary>
+
+- [constraint discovery](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/skills/constraint-discovery/SKILL.md) - deleted
+- [session guidance](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/skills/session-guidance/SKILL.md) - deleted
+
+</details>
+
+
+### Plugin READMEs
+
+- [ralph](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/README.md) - deleted
+
+### Commands
+
+<details>
+<summary><strong>ralph</strong> (8 commands)</summary>
+
+- [audit-now](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/commands/audit-now.md) - deleted
+- [config](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/commands/config.md) - deleted
+- [encourage](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/commands/encourage.md) - deleted
+- [forbid](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/commands/forbid.md) - deleted
+- [hooks](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/commands/hooks.md) - deleted
+- [start](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/commands/start.md) - deleted
+- [status](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/commands/status.md) - deleted
+- [stop](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/commands/stop.md) - deleted
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [adapters](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/adapters.md) - deleted
+- [ALPHA-FORGE-VALIDATION-PROMPT](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/ALPHA-FORGE-VALIDATION-PROMPT.md) - deleted
+- [EXPLORE-AGENT-ARCHITECTURE](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-AGENT-ARCHITECTURE.md) - deleted
+- [EXPLORE-AGENT-DESIGN-COMPLETE](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-AGENT-DESIGN-COMPLETE.md) - deleted
+- [EXPLORE-AGENT-IMPLEMENTATION](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-AGENT-IMPLEMENTATION.md) - deleted
+- [EXPLORE-AGENT-INDEX](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-AGENT-INDEX.md) - deleted
+- [EXPLORE-AGENT-INTEGRATION-DESIGN](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-AGENT-INTEGRATION-DESIGN.md) - deleted
+- [EXPLORE-AGENT-PROMPTS](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-AGENT-PROMPTS.md) - deleted
+- [EXPLORE-AGENT-SUMMARY](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-AGENT-SUMMARY.md) - deleted
+- [EXPLORE-EXAMPLES](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-EXAMPLES.md) - deleted
+- [EXPLORE-GUIDE](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-GUIDE.md) - deleted
+- [EXPLORE-INDEX](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-INDEX.md) - deleted
+- [EXPLORE-REFERENCE](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/docs/EXPLORE-REFERENCE.md) - deleted
+- [GETTING-STARTED](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/GETTING-STARTED.md) - deleted
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/hooks/templates/ralph-unified.md) - deleted
+- [poc-task](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/hooks/tests/poc-task.md) - deleted
+- [MENTAL-MODEL](https://github.com/terrylica/cc-skills/blob/v10.3.0/plugins/ralph/MENTAL-MODEL.md) - deleted
+
 # [10.3.0](https://github.com/terrylica/cc-skills/compare/v10.2.2...v10.3.0) (2026-01-31)
 
 
