@@ -93,6 +93,13 @@ bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts <path> [--dry]
 ```
 
+## Dependencies
+
+| Component  | Required | Installation               |
+| ---------- | -------- | -------------------------- |
+| Bun        | Yes      | `brew install oven-sh/bun` |
+| ShellCheck | Optional | `brew install shellcheck`  |
+
 ## Troubleshooting
 
 | Issue                  | Cause                    | Solution                                        |
@@ -102,6 +109,7 @@ bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts <path> [--dry]
 | Skill validation error | Invalid YAML frontmatter | Check SKILL.md format and required fields       |
 | Link validation fails  | Absolute paths in skill  | Use relative paths (`./`, `../`) in skill files |
 | Bash block warning     | Missing heredoc wrapper  | Run `fix-bash-blocks.ts` to auto-fix            |
+| Bun not found          | Runtime not installed    | `brew install oven-sh/bun`                      |
 
 ## License
 
