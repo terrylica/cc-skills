@@ -1,5 +1,9 @@
 # Notion API Plugin
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Programmatically control Notion using the official `notion-client` Python SDK.
 
 **Trigger phrases:** "Notion API", "create page", "query database", "add blocks"
@@ -81,7 +85,17 @@ uv pip install notion-client>=2.6.0
 
 - **Rate limit**: 3 requests/second (scripts include auto-retry)
 - **Auth model**: Page-level sharing required
-- **API version**: Uses v2.6.0+ multi-source database model
+- **API version**: Uses latest multi-source database model
+
+## Troubleshooting
+
+| Issue               | Cause                 | Solution                                                                 |
+| ------------------- | --------------------- | ------------------------------------------------------------------------ |
+| 401 Unauthorized    | Invalid token         | Verify token starts with `ntn_` or `secret_`                             |
+| 403 Forbidden       | Page not shared       | Share page with integration via Connections menu                         |
+| 429 Rate limited    | Too many requests     | Scripts auto-retry; reduce request frequency                             |
+| Property type error | Wrong property format | Check [Property Types](./skills/notion-sdk/references/property-types.md) |
+| Database not found  | Incorrect ID          | Use 32-char ID without dashes from URL                                   |
 
 ## License
 

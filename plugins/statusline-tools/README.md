@@ -1,5 +1,10 @@
 # statusline-tools
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Custom Claude Code status line with git status, link validation, and path linting indicators.
 
 ## Skills
@@ -225,6 +230,16 @@ bats tests/
 # Run specific test file
 bats tests/test_statusline.bats
 ```
+
+## Troubleshooting
+
+| Issue                   | Cause                      | Solution                                                                     |
+| ----------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| Status line not showing | Not configured             | Run `/statusline-tools:setup install`                                        |
+| L:? indicator           | lychee not installed       | `mise install lychee`                                                        |
+| P:? indicator           | bun deps missing           | `cd ~/.claude/plugins/cache/cc-skills/statusline-tools/<ver> && bun install` |
+| False path violations   | Plugin uses relative paths | Add to ignore: `/statusline-tools:ignore add repo-name`                      |
+| Hook timeout            | Large repo                 | Increase timeout in hooks.json or exclude directories                        |
 
 ## Credits
 

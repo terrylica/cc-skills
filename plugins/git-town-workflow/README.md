@@ -1,5 +1,9 @@
 # Git-Town Workflow Plugin
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Commands](https://img.shields.io/badge/Commands-4-green.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 **Prescriptive git-town workflow enforcement for fork-based development.**
 
 ## Philosophy
@@ -92,6 +96,22 @@ These raw git commands are still allowed:
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
+
+## Dependencies
+
+| Component | Required | Installation            |
+| --------- | -------- | ----------------------- |
+| git-town  | Yes      | `brew install git-town` |
+| Git       | Yes      | 2.30+                   |
+
+## Troubleshooting
+
+| Issue               | Cause                   | Solution                                        |
+| ------------------- | ----------------------- | ----------------------------------------------- |
+| git-town not found  | Not in PATH             | `brew install git-town` and restart shell       |
+| Command blocked     | Hook enforcement active | Use git-town equivalent (see table above)       |
+| Merge conflicts     | Sync diverged           | `git town sync` handles conflicts interactively |
+| Fork not configured | Missing upstream        | Run `/git-town-workflow:fork` to configure      |
 
 ## References
 

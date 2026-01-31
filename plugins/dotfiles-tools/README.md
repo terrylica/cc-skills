@@ -1,5 +1,10 @@
 # dotfiles-tools
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Chezmoi dotfile backup, sync, and version control for cross-machine configuration management.
 
 ## Skills
@@ -103,10 +108,20 @@ The skill guides users through their own chezmoi setup:
 
 ## Requirements
 
-- Chezmoi 2.66.1+ (`brew install chezmoi`)
-- Git 2.51.1+
-- jq 1.7+ (`brew install jq`) - for hooks
+- Chezmoi (`brew install chezmoi`)
+- Git
+- jq (`brew install jq`) - for hooks
 - Platform: macOS, Linux
+
+## Troubleshooting
+
+| Issue                         | Cause                | Solution                                 |
+| ----------------------------- | -------------------- | ---------------------------------------- |
+| chezmoi not found             | Not installed        | `brew install chezmoi`                   |
+| Hook not triggering           | File not tracked     | Run `chezmoi managed` to verify tracking |
+| Git push fails                | No remote configured | `chezmoi git -- remote add origin <url>` |
+| Diff shows unexpected changes | Template variables   | Check `chezmoi data` for correct values  |
+| Permission denied             | File mode mismatch   | `chezmoi re-add --verbose` to refresh    |
 
 ## License
 
