@@ -1,7 +1,7 @@
 # ITP Hooks
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Hooks](https://img.shields.io/badge/Hooks-16-orange.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-14-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Claude Code plugin for ITP (Implement The Plan) workflow enforcement via PreToolUse and PostToolUse hooks.

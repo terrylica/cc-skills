@@ -20,8 +20,8 @@ Code quality and validation tools for Claude Code: clone detection, multi-agent 
 ## Installation
 
 ```bash
-claude plugin marketplace add terrylica/cc-skills
-claude plugin install quality-tools@cc-skills
+/plugin marketplace add terrylica/cc-skills
+/plugin install quality-tools@cc-skills
 ```
 
 ## Usage
