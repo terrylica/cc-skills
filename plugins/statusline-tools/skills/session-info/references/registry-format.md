@@ -53,7 +53,7 @@ Path encoding: `/Users/terryli/foo` → `-Users-terryli-foo`
 
 | Field       | Type   | Description                          |
 | ----------- | ------ | ------------------------------------ |
-| `repoHash`  | string | SHA256[cwd](0:12) for privacy        |
+| `repoHash`  | string | SHA256(cwd)[0:12] for privacy        |
 | `repoName`  | string | Repository name from git or basename |
 | `gitBranch` | string | Current git branch                   |
 | `model`     | string | Claude model name                    |
