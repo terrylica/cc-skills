@@ -61,7 +61,7 @@ python.uv_venv_auto = true
 
 Keep root `mise.toml` lean by delegating domain-specific tasks to subfolder `mise.toml` files.
 
-> **Wiki Reference**: [Pattern-mise-Configuration](https://github.com/terrylica/cc-skills/wiki/Pattern-mise-Configuration#hub-spoke) - Complete documentation with CLAUDE.md footer prompt
+> **Wiki Reference**: [Pattern-mise-Configuration](https://github.com/terrylica/cc-skills/wiki/Pattern-mise-Configuration) - Complete documentation with CLAUDE.md footer prompt
 
 ### When to Use
 
@@ -465,7 +465,7 @@ MISE_EOF
 
 **ADR Reference**: [GitHub Multi-Account Authentication](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md)
 
-> **SSH ControlMaster Warning**: If using multi-account SSH, ensure `ControlMaster no` is set for GitHub hosts in `~/.ssh/config`. Cached connections can authenticate with the wrong account. See [semantic-release authentication](../semantic-release/references/authentication.md#controlmaster-cache-issues) for troubleshooting.
+> **SSH ControlMaster Warning**: If using multi-account SSH, ensure `ControlMaster no` is set for GitHub hosts in `~/.ssh/config`. Cached connections can authenticate with the wrong account. See [SSH ControlMaster Cache](../semantic-release/references/troubleshooting.md#ssh-controlmaster-cache) for troubleshooting.
 
 ## Anti-Patterns
 
