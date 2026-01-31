@@ -525,3 +525,18 @@ asciinema convert --help
 
 - [asciinema convert command](https://docs.asciinema.org/manual/cli/)
 - [asciinema-cast-format skill](../asciinema-cast-format/SKILL.md)
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                     | Solution                                       |
+| --------------------------- | ------------------------- | ---------------------------------------------- |
+| convert command not found   | asciinema too old         | Upgrade: `brew upgrade asciinema` (need v2.4+) |
+| asciinema not installed     | Missing CLI               | `brew install asciinema`                       |
+| Empty output file           | Corrupted .cast input     | Verify .cast file has valid NDJSON structure   |
+| Conversion failed           | Invalid cast format       | Check header line is valid JSON with `jq`      |
+| numfmt not found            | macOS missing coreutils   | Use raw byte count or `brew install coreutils` |
+| stat syntax error           | Linux vs macOS difference | Script handles both; check stat version        |
+| Batch skipping all files    | All .txt already exist    | Use `--skip-existing=false` to reconvert       |
+| Permission denied on output | Directory not writable    | Check output directory permissions             |

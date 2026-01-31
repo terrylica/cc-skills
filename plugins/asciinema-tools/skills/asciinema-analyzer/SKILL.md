@@ -376,3 +376,18 @@ After modifying this skill:
 - [Analysis Tiers Reference](./references/analysis-tiers.md)
 - [ripgrep Manual](https://github.com/BurntSushi/ripgrep)
 - [YAKE Documentation](https://github.com/LIAAD/yake)
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                       | Solution                                          |
+| --------------------------- | --------------------------- | ------------------------------------------------- |
+| "WRONG_FORMAT" error        | .cast file provided         | Run /asciinema-tools:convert first to create .txt |
+| ripgrep not found           | Not installed               | `brew install ripgrep`                            |
+| YAKE import error           | Package not installed       | `uv run --with yake` handles this automatically   |
+| No keywords found           | Wrong domain selected       | Try different domain or auto-discovery mode       |
+| Density analysis empty      | Keyword not in file         | Use curated search first to find valid keywords   |
+| File too large for YAKE     | Memory constraints          | Use Tier 1 (ripgrep) only for large files         |
+| Zero matches in all domains | File is binary or corrupted | Verify file is plain text with `file` command     |
+| fd command not found        | Not installed               | `brew install fd` or use `find` alternative       |
