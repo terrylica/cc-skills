@@ -28,9 +28,13 @@ This plugin adds autonomous loop mode to Claude Code through 8 commands and 3 ho
 
 **Hooks:**
 
-- **Stop hook** (`loop-until-done.py`) - Autonomous operation with zero idle tolerance
-- **PreToolUse hook** (`archive-plan.sh`) - Archives `.claude/plans/*.md` files before overwrite
-- **PreToolUse hook** (`pretooluse-loop-guard.py`) - Guards loop control files from deletion
+| Hook                               | Event      | Matcher     | Purpose                              |
+| ---------------------------------- | ---------- | ----------- | ------------------------------------ |
+| `loop-until-done-wrapper.sh`       | Stop       | (all)       | Continues loop if state is `running` |
+| `archive-plan.sh`                  | PreToolUse | Write\|Edit | Archives plan file before overwrite  |
+| `pretooluse-loop-guard-wrapper.sh` | PreToolUse | Bash        | Guards loop control files            |
+
+All hooks use activation-gated design - they check for `ralph-state.json` with `state: running` before executing.
 
 ## Design Philosophy
 
