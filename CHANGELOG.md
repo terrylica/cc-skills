@@ -1,3 +1,24 @@
+# [11.2.0](https://github.com/terrylica/cc-skills/compare/v11.1.1...v11.2.0) (2026-01-31)
+
+
+### Features
+
+* **ru:** show config path at top and bottom of template ([d117fb2](https://github.com/terrylica/cc-skills/commit/d117fb27ad6befb827d06f1673d69935395de84e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+6)
+
 ## [11.1.1](https://github.com/terrylica/cc-skills/compare/v11.1.0...v11.1.1) (2026-01-31)
 
 
