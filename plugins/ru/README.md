@@ -1,5 +1,10 @@
 # RU
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Commands](https://img.shields.io/badge/Commands-9-green.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-3-orange.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Autonomous loop mode for **any project** - short name for quick invocation.
 
 ## Installation

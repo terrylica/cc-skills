@@ -1,5 +1,11 @@
 # Ralph Plugin for Claude Code
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
+[![Commands](https://img.shields.io/badge/Commands-8-green.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-3-orange.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Keep Claude Code working autonomously — implements the Ralph Wiggum technique as Claude Code hooks with **Recursively Self-Improving Superintelligence** capabilities. Ralph transcends AGI: while AGI matches human capability, Ralph recursively improves itself toward ASI (Artificial Superintelligence).
 
 > **First time here?** Start with [GETTING-STARTED.md](./GETTING-STARTED.md) — a step-by-step guide for new users covering plugin installation, hook setup, and your first Ralph session.
