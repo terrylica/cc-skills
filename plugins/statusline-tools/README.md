@@ -146,6 +146,31 @@ bun install --frozen-lockfile
 
 This installs the npm dependencies needed for the TypeScript linter.
 
+## Hooks
+
+| Hook                  | Event | Purpose                                  |
+| --------------------- | ----- | ---------------------------------------- |
+| `lychee-stop-hook.sh` | Stop  | Validates links and paths at session end |
+
+### Stop Hook: Link Validation
+
+Runs at session end (when Claude stops responding) to:
+
+1. **Link Validation** - Run lychee on markdown files to find broken links
+2. **Path Linting** - Run lint-relative-paths to check path conventions
+3. **Cache Results** - Save to `.lychee-results.json` and `.lint-relative-paths-results.txt`
+
+Results are displayed in the status line (`L:n` for broken links, `P:n` for path violations).
+
+### Installing the Hook
+
+```bash
+/statusline-tools:hooks install    # Add Stop hook
+/statusline-tools:hooks status     # Check status
+
+# Restart Claude Code for hook to take effect
+```
+
 ## How It Works
 
 1. **Status Line Script**: Reads Claude Code's status JSON from stdin, queries git for repository state, reads cached validation results, and outputs a formatted status line.
