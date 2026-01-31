@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 GitHub workflow automation for Claude Code with intelligent link validation, PR management, and gh CLI enforcement.
@@ -21,9 +21,14 @@ GitHub workflow automation for Claude Code with intelligent link validation, PR 
 
 ### Hooks
 
-- **WebFetch Enforcement**: Soft-blocks WebFetch for github.com URLs, suggests gh CLI alternatives
-- **Smart Suggestions**: Detects issue/PR/repo URLs and provides specific gh commands
-- **User Override**: Soft block allows user to proceed if needed
+| Hook                           | Matcher  | Purpose                                                 |
+| ------------------------------ | -------- | ------------------------------------------------------- |
+| `webfetch-github-guard.sh`     | WebFetch | Soft-blocks WebFetch for github.com, suggests gh CLI    |
+| `gh-issue-body-file-guard.mjs` | Bash     | Blocks `gh issue create --body`, requires `--body-file` |
+
+**WebFetch Enforcement**: Soft-blocks WebFetch for github.com URLs, suggests gh CLI alternatives. Detects issue/PR/repo URLs and provides specific gh commands. User can override if needed.
+
+**Issue Body File Guard**: Hard-blocks `gh issue create --body "..."` because inline heredocs silently fail for long content. Requires `--body-file` pattern for reliability.
 
 ## The Problem This Solves
 
@@ -106,7 +111,7 @@ The skill auto-activates when:
 
 ### Installing Hooks
 
-After plugin installation, enable the WebFetch enforcement hook:
+After plugin installation, enable hooks:
 
 ```bash
 # Check hook status
@@ -118,7 +123,7 @@ After plugin installation, enable the WebFetch enforcement hook:
 # IMPORTANT: Restart Claude Code for hooks to take effect
 ```
 
-The hook soft-blocks WebFetch requests to github.com and suggests gh CLI alternatives:
+#### WebFetch Enforcement Example
 
 ```
 [gh-tools] WebFetch to github.com detected
@@ -133,6 +138,25 @@ Why gh CLI is preferred:
 - Full JSON metadata (not HTML scraping)
 - Pagination handled automatically
 - Comments, labels, assignees included
+```
+
+#### Issue Body File Guard Example
+
+```
+[gh-issue-guard] BLOCKED: gh issue create with inline --body
+
+Inline --body with heredocs is unreliable for long issue bodies.
+Issues may appear created but not actually exist.
+
+Required pattern:
+  1. Write content to temp file:
+     echo "..." > /tmp/issue-body.md
+
+  2. Use --body-file:
+     gh issue create --title "..." --body-file /tmp/issue-body.md
+
+  3. Clean up:
+     rm /tmp/issue-body.md
 ```
 
 ## Usage Examples
@@ -192,6 +216,7 @@ Future skills to be added to gh-tools:
 ## References
 
 - [ADR: gh-tools WebFetch Enforcement](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
+- [ADR: gh issue --body-file Guard](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
 - [GitHub Relative Links](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#relative-links)
 - [GFM Specification](https://github.github.com/gfm/)
 - [GitHub CLI Documentation](https://cli.github.com/manual/)
