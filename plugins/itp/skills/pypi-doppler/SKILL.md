@@ -5,6 +5,15 @@ description: LOCAL-ONLY PyPI publishing with Doppler credentials. TRIGGERS - pub
 
 # PyPI Publishing with Doppler (Local-Only)
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Publishing Python packages to PyPI from local machine
+- Setting up Doppler for PyPI token management
+- Creating local publish scripts with CI detection guards
+- Validating repository ownership before release
+
 ## ⚠️ WORKSPACE-WIDE POLICY: LOCAL-ONLY PUBLISHING
 
 **This skill supports LOCAL machine publishing ONLY.**
