@@ -594,3 +594,14 @@ tail -20 ~/.asciinema/logs/chunker.log
 The daemon is now completely independent of Claude Code CLI.
 You can switch `gh auth` accounts freely without affecting backups.
 ```
+
+## Troubleshooting
+
+| Issue                  | Cause                          | Solution                               |
+| ---------------------- | ------------------------------ | -------------------------------------- |
+| Keychain access denied | macOS permission not granted   | Grant access in System Settings        |
+| PAT test failed        | Token expired or invalid scope | Generate new token with `repo` scope   |
+| launchctl load failed  | plist syntax error             | Check `plutil -lint <plist-path>`      |
+| Daemon keeps stopping  | Script error or crash          | Check `/asciinema-tools:daemon-logs`   |
+| Pushover not working   | Invalid credentials            | Re-run setup with correct app/user key |
+| Health file missing    | Daemon not running             | Run `/asciinema-tools:daemon-start`    |

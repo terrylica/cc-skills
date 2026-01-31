@@ -96,3 +96,25 @@ ERRORS_EOF
 | `~/.asciinema/logs/chunker.log`        | Main daemon log |
 | `~/.asciinema/logs/launchd-stdout.log` | launchd stdout  |
 | `~/.asciinema/logs/launchd-stderr.log` | launchd stderr  |
+
+## Examples
+
+```bash
+# View recent logs
+/asciinema-tools:daemon-logs
+
+# Follow logs in real-time
+/asciinema-tools:daemon-logs --follow
+
+# Show only errors
+/asciinema-tools:daemon-logs --errors
+```
+
+## Troubleshooting
+
+| Issue             | Cause                | Solution                            |
+| ----------------- | -------------------- | ----------------------------------- |
+| No logs found     | Daemon never started | Run `/asciinema-tools:daemon-start` |
+| Empty log file    | Daemon just started  | Wait a few seconds, check again     |
+| Logs not updating | Daemon crashed       | Check `/daemon-status`, restart     |
+| Permission denied | Wrong file owner     | Check `ls -la ~/.asciinema/logs/`   |
