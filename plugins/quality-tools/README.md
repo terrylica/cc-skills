@@ -24,6 +24,10 @@ Multi-agent parallel performance profiling for identifying bottlenecks. Use when
 
 Earthly E2E validation for schema-first data contracts. Use when validating schema changes or testing YAML against live databases.
 
+### symmetric-dogfooding
+
+Bidirectional integration validation where two repositories validate each other before release. Use for polyrepo integration testing, cross-repo validation, and ensuring producer/consumer relationships work correctly.
+
 ## Installation
 
 Install via cc-skills marketplace:
