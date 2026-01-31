@@ -53,6 +53,15 @@ Per-fold adaptive epoch selection using Walk-Forward Efficiency (WFE):
 - Statistical validation (PSR, DSR, MinTRL) for trading strategies
 - Crypto market-specific metric adaptations (sqrt(7) annualization, 24/7 markets)
 
+## Dependencies
+
+| Component | Required | Installation            |
+| --------- | -------- | ----------------------- |
+| Python    | Yes      | `mise use python@3.13`  |
+| Polars    | Yes      | `uv pip install polars` |
+| NumPy     | Yes      | `uv pip install numpy`  |
+| SciPy     | Optional | `uv pip install scipy`  |
+
 ## Related Plugins
 
 - `devops-tools`: MLflow integration for experiment tracking

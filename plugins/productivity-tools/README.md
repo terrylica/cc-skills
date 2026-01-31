@@ -53,6 +53,13 @@ Create a command for analyzing customer feedback
 claude plugin install productivity-tools@cc-skills
 ```
 
+## Dependencies
+
+| Component   | Required | Installation       |
+| ----------- | -------- | ------------------ |
+| Claude Code | Yes      | CLI tool           |
+| Bun         | Optional | `brew install bun` |
+
 ## References
 
 - [SKILL.md](skills/slash-command-factory/SKILL.md) - Full skill documentation

@@ -46,10 +46,14 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Python development workspace
 - Log file analysis
 
-## Requirements
+## Dependencies
 
-- MetaEditor for MQL5 development
-- MetaTrader 5 for testing
+| Component    | Required | Installation                                         |
+| ------------ | -------- | ---------------------------------------------------- |
+| MetaTrader 5 | Yes      | [Download](https://www.metatrader5.com/en/download)  |
+| MetaEditor   | Yes      | Bundled with MetaTrader 5                            |
+| Python 3.11+ | Optional | `mise use python@3.11` (for Python-MQL5 integration) |
+| MetaTrader5  | Optional | `uv pip install MetaTrader5` (Python package)        |
 
 ## License
 
