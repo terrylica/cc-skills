@@ -376,3 +376,18 @@ Not applicable - validation scripts are project-specific (stored in `tmp/e2e-val
 ### assets/
 
 Not applicable - validation artifacts are project-specific
+
+---
+
+## Troubleshooting
+
+| Issue                          | Cause                          | Solution                                             |
+| ------------------------------ | ------------------------------ | ---------------------------------------------------- |
+| Container not starting         | Colima/Docker not running      | Run `colima start` before Agent 1                    |
+| Port conflicts                 | Ports already in use           | Stop conflicting containers or use different ports   |
+| Schema application fails       | Invalid SQL syntax             | Check schema.sql for database-specific compatibility |
+| Agent 2/3 fail without Agent 1 | Environment not validated      | Ensure Agent 1 completes before starting Agent 2/3   |
+| Test script import errors      | Missing dependencies           | Run `uv pip install` in agent directory              |
+| Bug status not updating        | VALIDATION_FINDINGS.md stale   | Manually refresh status after each fix               |
+| Parallel agents interference   | Shared resources conflict      | Ensure agents use isolated directories               |
+| Decision unclear               | Severity mixed Critical/Medium | Apply Go/No-Go criteria strictly per documentation   |
