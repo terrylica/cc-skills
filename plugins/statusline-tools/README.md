@@ -2,6 +2,14 @@
 
 Custom Claude Code status line with git status, link validation, and path linting indicators.
 
+## Skills
+
+| Skill          | Description                                       |
+| -------------- | ------------------------------------------------- |
+| `session-info` | Get current Claude Code session UUID and registry |
+
+**Trigger phrases:** "current session", "session uuid", "session id", "what session"
+
 ## Features
 
 - **Git Status Indicators**: M (modified), D (deleted), S (staged), U (untracked)

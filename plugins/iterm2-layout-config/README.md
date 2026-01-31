@@ -9,6 +9,8 @@ This plugin provides skills for configuring iTerm2 workspace layouts with proper
 - **Private data** (workspace paths, project directories) → `~/.config/iterm2/layout.toml`
 - **Publishable code** (layout logic, API integration) → `default-layout.py`
 
+**Trigger phrases:** "iTerm2 layout", "workspace tabs", "layout.toml", "AutoLaunch"
+
 ## Architecture
 
 ```

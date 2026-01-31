@@ -2,6 +2,8 @@
 
 Programmatically control Notion using the official `notion-client` Python SDK.
 
+**Trigger phrases:** "Notion API", "create page", "query database", "add blocks"
+
 ## Features
 
 - **Create pages** in databases with full property support
