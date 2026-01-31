@@ -546,6 +546,5 @@ ssh littleblack 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig
 
 ## Related Documentation
 
-- [ZeroTier Network](/docs/infrastructure/zerotier-network.md) - Network topology
 - [Firecrawl Official Docs](https://docs.firecrawl.dev/) - API reference
 - [Docker Compose Restart](https://docs.docker.com/compose/compose-file/05-services/#restart) - Policy options
