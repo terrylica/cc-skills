@@ -1,5 +1,9 @@
 # mql5
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-4-blue.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 MQL5 development tools for Claude Code: indicator patterns, mql5.com article extraction, Python workspace, and log reading.
 
 Merged from `mql5-tools` + `mql5com` plugins.
