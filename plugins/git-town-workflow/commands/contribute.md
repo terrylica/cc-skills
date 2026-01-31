@@ -14,12 +14,12 @@ description: "Complete contribution workflow using git-town. Create branch → c
 
 **YOU MUST USE GIT-TOWN COMMANDS. RAW GIT BRANCH COMMANDS ARE FORBIDDEN.**
 
-| Step | ✅ Correct | ❌ Forbidden |
-|------|-----------|--------------|
-| Create branch | `git town hack` | `git checkout -b` |
-| Update branch | `git town sync` | `git pull`, `git fetch`, `git merge` |
-| Create PR | `git town propose` | Manual GitHub UI |
-| Merge PR | `git town ship` | `git merge` + `git push` |
+| Step          | ✅ Correct         | ❌ Forbidden                         |
+| ------------- | ------------------ | ------------------------------------ |
+| Create branch | `git town hack`    | `git checkout -b`                    |
+| Update branch | `git town sync`    | `git pull`, `git fetch`, `git merge` |
+| Create PR     | `git town propose` | Manual GitHub UI                     |
+| Merge PR      | `git town ship`    | `git merge` + `git push`             |
 
 ---
 
@@ -76,6 +76,7 @@ VERIFY_FORK_EOF
 ```
 
 **If verification fails:**
+
 ```
 AskUserQuestion with questions:
 - question: "Fork workflow is not configured. Run fork setup first?"
@@ -95,6 +96,7 @@ AskUserQuestion with questions:
 ```
 
 **If workspace has changes:**
+
 ```
 AskUserQuestion with questions:
 - question: "Workspace has uncommitted changes. How to proceed?"
@@ -120,6 +122,7 @@ git town sync
 ```
 
 **If conflicts occur:**
+
 1. Display conflict files
 2. Wait for user to resolve
 3. Run `git town continue`
@@ -155,6 +158,7 @@ git town hack {branch-name}
 ```
 
 **This command:**
+
 1. Fetches from origin and upstream
 2. Creates branch from updated main
 3. Sets up tracking correctly
@@ -192,6 +196,7 @@ git commit -m "feat: description of change"
 ```
 
 **Commit message format:**
+
 - `feat:` - New feature
 - `fix:` - Bug fix
 - `docs:` - Documentation
@@ -208,11 +213,13 @@ git town sync
 ```
 
 **This:**
+
 1. Pulls changes from upstream/main
 2. Rebases/merges feature branch
 3. Pushes to origin (your fork)
 
 **If conflicts:**
+
 ```
 AskUserQuestion with questions:
 - question: "Sync encountered conflicts. What next?"
@@ -256,12 +263,14 @@ git town propose
 ```
 
 **This:**
+
 1. Pushes latest changes to origin
 2. Opens browser to create PR
 3. Targets correct upstream repository
 4. Fills in branch info
 
 **For draft PR:**
+
 ```bash
 git town propose --draft
 ```
@@ -301,6 +310,7 @@ git town ship
 ```
 
 **This:**
+
 1. Verifies PR is approved
 2. Merges to main
 3. Deletes feature branch (local + remote)
@@ -354,6 +364,7 @@ git town branch  # Show full stack hierarchy
 ### Shipping Stacks
 
 **Ship from bottom up:**
+
 ```bash
 git town ship feature        # Ships feature first
 git town ship child-feature  # Then ship child
@@ -434,3 +445,14 @@ git town status
 # Ship after PR approved
 /git-town-workflow:contribute --ship
 ```
+
+## Troubleshooting
+
+| Issue               | Cause                     | Solution                                 |
+| ------------------- | ------------------------- | ---------------------------------------- |
+| Sync failed         | Merge conflicts           | Resolve conflicts, then `git town sync`  |
+| Branch parent wrong | git-town config mismatch  | `git town branch` to view/fix hierarchy  |
+| Propose failed      | No remote tracking branch | `git town sync` first to push            |
+| Ship blocked        | Branch not on main        | Merge PR first, or use `--ignore-parent` |
+| "Cannot ship"       | Uncommitted changes       | Commit or stash changes first            |
+| PR already exists   | Re-running propose        | Use `--pr` flag to view existing PR      |

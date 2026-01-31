@@ -11,6 +11,7 @@ description: "Create or configure a fork workflow with git-town. Preflight check
 **DO NOT ACT ON ASSUMPTIONS. Read this file first.**
 
 This is a **prescriptive, gated workflow**. Every step requires:
+
 1. **Preflight check** - Verify preconditions
 2. **User confirmation** - AskUserQuestion before action
 3. **Validation** - Verify action succeeded
@@ -19,13 +20,13 @@ This is a **prescriptive, gated workflow**. Every step requires:
 
 **GIT-TOWN IS CANONICAL. RAW GIT IS FORBIDDEN FOR BRANCH OPERATIONS.**
 
-| Operation | ✅ Use | ❌ Never Use |
-|-----------|--------|--------------|
-| Create branch | `git town hack` | `git checkout -b` |
-| Update branch | `git town sync` | `git pull`, `git merge` |
-| Create PR | `git town propose` | Manual web UI |
-| Merge PR | `git town ship` | `git merge` + push |
-| Switch branch | `git town switch` | `git checkout` |
+| Operation     | ✅ Use             | ❌ Never Use            |
+| ------------- | ------------------ | ----------------------- |
+| Create branch | `git town hack`    | `git checkout -b`       |
+| Update branch | `git town sync`    | `git pull`, `git merge` |
+| Create PR     | `git town propose` | Manual web UI           |
+| Merge PR      | `git town ship`    | `git merge` + push      |
+| Switch branch | `git town switch`  | `git checkout`          |
 
 **Exception**: Raw git for commits, staging, log viewing, diff (git-town doesn't replace these).
 
@@ -59,6 +60,7 @@ TodoWrite with todos:
 ```
 
 **If NOT installed:**
+
 ```
 AskUserQuestion with questions:
 - question: "git-town is not installed. Would you like to install it now?"
@@ -81,6 +83,7 @@ If "No": **STOP. Do not proceed.**
 ```
 
 **If NOT installed or NOT authenticated:**
+
 ```
 AskUserQuestion with questions:
 - question: "GitHub CLI is required for fork operations. How to proceed?"
@@ -178,13 +181,13 @@ DETECT_ACCOUNT_EOF
 
 Create a summary table of detected state:
 
-| Aspect | Detected Value | Status |
-|--------|----------------|--------|
-| Repository | {owner}/{repo} | ✅/❌ |
-| Origin remote | {url} | ✅/❌ |
-| Upstream remote | {url} | ✅/❌/MISSING |
-| GitHub account | {username} | ✅/❌ |
-| git-town configured | yes/no | ✅/❌ |
+| Aspect              | Detected Value | Status        |
+| ------------------- | -------------- | ------------- |
+| Repository          | {owner}/{repo} | ✅/❌         |
+| Origin remote       | {url}          | ✅/❌         |
+| Upstream remote     | {url}          | ✅/❌/MISSING |
+| GitHub account      | {username}     | ✅/❌         |
+| git-town configured | yes/no         | ✅/❌         |
 
 ### Step 1.2: Determine Workflow Type
 
@@ -259,6 +262,7 @@ AskUserQuestion with questions:
 ```
 
 **Validate:**
+
 ```bash
 /usr/bin/env bash -c 'gh repo view {fork_owner}/{repo} --json url'
 ```
@@ -266,16 +270,19 @@ AskUserQuestion with questions:
 ### Step 2.2: Configure Remotes
 
 **Set origin to fork (SSH preferred):**
+
 ```bash
 git remote set-url origin git@github.com:{fork_owner}/{repo}.git
 ```
 
 **Add upstream (if missing):**
+
 ```bash
 git remote add upstream git@github.com:{upstream_owner}/{repo}.git
 ```
 
 **Or fix upstream (if wrong):**
+
 ```bash
 git remote set-url upstream git@github.com:{upstream_owner}/{repo}.git
 ```
@@ -338,6 +345,7 @@ VALIDATE_REMOTES_EOF
 ```
 
 **Expected output should show:**
+
 - `sync-upstream: true`
 - `dev-remote: origin`
 
@@ -358,6 +366,7 @@ AskUserQuestion with questions:
 ```
 
 If test selected:
+
 ```bash
 git town sync --dry-run  # or without --dry-run
 ```
@@ -371,22 +380,22 @@ git town sync --dry-run  # or without --dry-run
 
 ### Daily Commands (USE THESE, NOT RAW GIT)
 
-| Task | Command |
-|------|---------|
+| Task                  | Command                      |
+| --------------------- | ---------------------------- |
 | Create feature branch | `git town hack feature-name` |
-| Update all branches | `git town sync` |
-| Create PR to upstream | `git town propose` |
-| Merge approved PR | `git town ship` |
-| Switch branches | `git town switch` |
+| Update all branches   | `git town sync`              |
+| Create PR to upstream | `git town propose`           |
+| Merge approved PR     | `git town ship`              |
+| Switch branches       | `git town switch`            |
 
 ### ⚠️ FORBIDDEN (Will Break Workflow)
 
-| ❌ Never Use | ✅ Use Instead |
-|--------------|----------------|
-| `git checkout -b` | `git town hack` |
-| `git pull` | `git town sync` |
-| `git merge` | `git town sync` or `git town ship` |
-| `git push origin main` | `git town sync` |
+| ❌ Never Use           | ✅ Use Instead                     |
+| ---------------------- | ---------------------------------- |
+| `git checkout -b`      | `git town hack`                    |
+| `git pull`             | `git town sync`                    |
+| `git merge`            | `git town sync` or `git town ship` |
+| `git push origin main` | `git town sync`                    |
 
 ### Quick Reference
 
@@ -419,6 +428,7 @@ AskUserQuestion with questions:
 ### If Remote Configuration Fails
 
 Display the error and provide manual commands:
+
 ```bash
 # Manual fix commands:
 git remote set-url origin git@github.com:{fork_owner}/{repo}.git
@@ -445,3 +455,14 @@ git remote add upstream git@github.com:{upstream_owner}/{repo}.git
 # Auto-fix misconfigured remotes
 /git-town-workflow:fork --fix
 ```
+
+## Troubleshooting
+
+| Issue                 | Cause                       | Solution                              |
+| --------------------- | --------------------------- | ------------------------------------- |
+| gh fork failed        | Already forked or no access | Use `--check` to verify existing fork |
+| Permission denied     | SSH key not added to GitHub | Add SSH key or use HTTPS URL          |
+| Remote already exists | Origin/upstream already set | Use `git remote set-url` to update    |
+| Fork not detected     | Origin URL doesn't match    | Check `git remote -v` for mismatch    |
+| Upstream sync fails   | Diverged histories          | `git town sync` to reconcile          |
+| "Not a fork" error    | Repo is origin, not a fork  | Fork first via `gh repo fork`         |
