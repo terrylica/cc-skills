@@ -10,7 +10,7 @@ research-method: incident-investigation
 
 # mise [env] Token Loading: read_file vs exec
 
-**Related**: [mise [env] Centralized Config](/docs/adr/2025-12-08-mise-env-centralized-config.md) | [GitHub Multi-Account Auth](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md)
+**Related**: [mise [env] Centralized Config](/docs/adr/2025-12-08-mise-env-centralized-config.md)
 
 ## Context and Problem Statement
 
