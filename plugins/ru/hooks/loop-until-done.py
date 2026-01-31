@@ -246,11 +246,10 @@ def build_continuation_prompt(
             except (ValueError, OSError) as e:
                 emit("Guidance", f"Timestamp check failed: {e}")
     else:
-        # No timestamp = legacy config, treat as stale
+        # No timestamp = config set via direct edit or legacy, trust it
+        # Issue #18: Don't clear guidance when timestamp is null/missing
         if config_forbidden or config_encouraged:
-            emit("Guidance", "Clearing legacy config guidance (missing timestamp)")
-            config_forbidden = []
-            config_encouraged = []
+            emit("Guidance", "Using config guidance (no timestamp - direct edit or legacy)")
 
     # Merge: fresh + current-session config (deduplicated)
     final_forbidden = list(set(fresh_forbidden + config_forbidden))
