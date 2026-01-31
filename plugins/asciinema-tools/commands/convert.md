@@ -84,3 +84,13 @@ Invoke the `asciinema-converter` skill with user-selected options.
 # Batch mode, force re-convert existing
 /asciinema-tools:convert --batch --skip-existing=false
 ```
+
+## Troubleshooting
+
+| Issue                  | Cause                   | Solution                            |
+| ---------------------- | ----------------------- | ----------------------------------- |
+| asciinema not found    | asciinema not installed | `brew install asciinema`            |
+| Convert command failed | Corrupted .cast file    | Try `asciinema cat file.cast` first |
+| No .cast files found   | Wrong directory         | Check --source path                 |
+| Output not created     | Permission denied       | Check write permissions on output   |
+| File too large         | Long recording session  | Use --chunks to split at pauses     |
