@@ -7,6 +7,7 @@
 **Git-town is canonical. Raw git branch commands are forbidden.**
 
 This plugin enforces idiomatic git-town usage through:
+
 1. **Preflight checks** at every step
 2. **AskUserQuestion gates** before destructive actions
 3. **Claude Code hooks** that block forbidden commands
@@ -14,12 +15,12 @@ This plugin enforces idiomatic git-town usage through:
 
 ## Commands
 
-| Command | Purpose |
-|---------|---------|
-| `/git-town-workflow:fork` | Create/configure fork workflow |
-| `/git-town-workflow:contribute` | Complete contribution cycle |
-| `/git-town-workflow:setup` | Initialize git-town in repository |
-| `/git-town-workflow:hooks` | Install/uninstall enforcement hooks |
+| Command                         | Purpose                             |
+| ------------------------------- | ----------------------------------- |
+| `/git-town-workflow:fork`       | Create/configure fork workflow      |
+| `/git-town-workflow:contribute` | Complete contribution cycle         |
+| `/git-town-workflow:setup`      | Initialize git-town in repository   |
+| `/git-town-workflow:hooks`      | Install/uninstall enforcement hooks |
 
 ## Quick Start
 
@@ -41,18 +42,19 @@ brew install git-town
 
 When hooks are installed, these commands are blocked:
 
-| ❌ Blocked | ✅ Use Instead |
-|-----------|----------------|
-| `git checkout -b` | `git town hack` |
-| `git pull` | `git town sync` |
-| `git merge` | `git town sync` |
-| `git push origin main` | `git town sync` |
-| `git branch -d` | `git town delete` |
-| `git rebase` | `git town sync` |
+| ❌ Blocked             | ✅ Use Instead    |
+| ---------------------- | ----------------- |
+| `git checkout -b`      | `git town hack`   |
+| `git pull`             | `git town sync`   |
+| `git merge`            | `git town sync`   |
+| `git push origin main` | `git town sync`   |
+| `git branch -d`        | `git town delete` |
+| `git rebase`           | `git town sync`   |
 
 ## What's Allowed
 
 These raw git commands are still allowed:
+
 - `git add` - Staging files
 - `git commit` - Creating commits
 - `git status` - Viewing status
@@ -103,3 +105,7 @@ These raw git commands are still allowed:
 ```
 
 Or manually add to `~/.claude/plugins/`.
+
+## License
+
+MIT

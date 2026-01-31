@@ -122,3 +122,7 @@ When Claude reaches a natural stop point:
 
 # Restart Claude Code for hooks to take effect
 ```
+
+## License
+
+MIT

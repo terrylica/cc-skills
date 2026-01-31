@@ -221,6 +221,10 @@ Future skills to be added to gh-tools:
 - [GFM Specification](https://github.github.com/gfm/)
 - [GitHub CLI Documentation](https://cli.github.com/manual/)
 
+## License
+
+MIT
+
 ---
 
 **Built for Claude Code CLI** | Designed for minimal friction, maximum reliability

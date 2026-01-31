@@ -112,3 +112,7 @@ alpha-forge-worktree/
 
 - [ADR: Alpha-Forge Git Worktree Management](/docs/adr/2025-12-14-alpha-forge-worktree-management.md)
 - [Design Spec](/docs/design/2025-12-14-alpha-forge-worktree-management/spec.md)
+
+## License
+
+MIT

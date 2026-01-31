@@ -87,3 +87,7 @@ bun run plugins/plugin-dev/scripts/validate-skill.ts <path> --skip-bash
 bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
 bun run plugins/plugin-dev/scripts/fix-bash-blocks.ts <path> [--dry]
 ```
+
+## License
+
+MIT

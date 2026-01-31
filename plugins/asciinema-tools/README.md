@@ -154,3 +154,7 @@ Run `/asciinema-tools:setup` to check and install dependencies.
 ## Architecture
 
 See [ADR: asciinema-tools Plugin](/docs/adr/2025-12-24-asciinema-tools-plugin.md) for architectural decisions.
+
+## License
+
+MIT
