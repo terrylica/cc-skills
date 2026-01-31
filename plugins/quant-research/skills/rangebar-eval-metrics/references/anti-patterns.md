@@ -220,7 +220,7 @@ HIDDEN_SIZE = 48  # Triple capacity
 DROPOUT = 0.3     # Less aggressive regularization
 ```
 
-See [ml-prediction-quality.md](./ml-prediction-quality.md#model-collapse-detection) for detection code.
+See [ml-prediction-quality.md](./ml-prediction-quality.md#model-collapse-detection-2026-01-19-audit-addition) for detection code.
 
 ## Insufficient Sample Size
 

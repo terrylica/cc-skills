@@ -249,7 +249,6 @@ assert pred_std / y_std > 0.005  # Relative to target variance
 - [xLSTM Paper (NeurIPS 2024)](https://arxiv.org/abs/2405.04517) - Original architecture
 - [xLSTMTime](https://arxiv.org/pdf/2407.10240) - Time series adaptation
 - [PyxLSTM](https://pyxlstm.readthedocs.io/) - Reference implementation
-- [Alpha Forge xlstm_models.py](examples/research/xlstm_models.py) - Working implementation
 
 ---
 

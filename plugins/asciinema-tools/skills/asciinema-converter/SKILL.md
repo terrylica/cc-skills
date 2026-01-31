@@ -523,5 +523,5 @@ asciinema convert --help
 
 ### External References
 
-- [asciinema convert command](https://docs.asciinema.org/manual/cli/usage/)
+- [asciinema convert command](https://docs.asciinema.org/manual/cli/)
 - [asciinema-cast-format skill](../asciinema-cast-format/SKILL.md)

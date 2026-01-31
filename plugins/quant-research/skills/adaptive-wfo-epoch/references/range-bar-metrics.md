@@ -51,8 +51,6 @@ sharpe = (weighted_mean / weighted_std) * sqrt(252)
 
 ### Reference Implementation
 
-**Source file**: `examples/research/exp066e_tau_precision.py:355-407`
-
 ```python
 def compute_time_weighted_sharpe(
     bar_pnl: np.ndarray,
@@ -281,8 +279,6 @@ sharpe_100 = time_weighted_sharpe(bars_100, duration_100)
 
 ## References
 
-- [Alpha Forge exp066e_tau_precision.py](examples/research/exp066e_tau_precision.py) - Canonical implementation
-- [Alpha Forge research CLAUDE.md](examples/research/CLAUDE.md) - Project standards
 - [Risk Metrics for Non-Uniform Time Series](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2587178) - Academic foundation
 - [Bailey & Lopez de Prado DSR](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551) - Multiple testing correction
 

@@ -26,7 +26,7 @@ When user makes vague request:
 
 1. **Request specific input**:
    - "Please provide one of:
-     - Article URL: <https://www.mql5.com/en/articles/[ID>]
+     - Article URL: `https://www.mql5.com/en/articles/{ID}`
      - User ID: numeric or username from mql5.com profile
      - Path to file with article URLs"
 
@@ -44,7 +44,7 @@ When user makes vague request:
 **User**: "Extract some trading articles"
 **Skill**: "This extracts from mql5.com only. Please specify:
 
-1. Article URL (<https://www.mql5.com/en/articles/[ID>])
+1. Article URL (`https://www.mql5.com/en/articles/{ID}`)
 1. MQL5 user ID (e.g., 29210372)
 1. Path to URL file
 
