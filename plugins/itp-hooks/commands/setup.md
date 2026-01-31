@@ -100,3 +100,14 @@ After setup, install the hooks to your settings:
 ```
 
 **IMPORTANT**: Restart Claude Code session for hooks to take effect.
+
+## Troubleshooting
+
+| Issue                | Cause                 | Solution                            |
+| -------------------- | --------------------- | ----------------------------------- |
+| jq not found         | jq not installed      | `brew install jq`                   |
+| bun/node not found   | Runtime not installed | `mise install bun`                  |
+| mise not installed   | Missing tool manager  | Install from <https://mise.jdx.dev> |
+| ruff version error   | Outdated ruff         | `brew upgrade ruff`                 |
+| Plugin dir not found | Plugin not installed  | Re-install plugin via marketplace   |
+| PATH issues          | Shims not in PATH     | Add mise shims to ~/.zshenv         |
