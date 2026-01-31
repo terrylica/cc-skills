@@ -9,6 +9,15 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 
 > ⚠️ **Scope**: Claude Code CLI Agent Skills (`~/.claude/skills/`), not Claude.ai API skills
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Creating new Claude Code skills from scratch
+- Learning skill YAML frontmatter and structure requirements
+- Validating skill file format and portability
+- Understanding progressive disclosure patterns for skills
+
 ---
 
 ## FIRST: TodoWrite Task Templates
