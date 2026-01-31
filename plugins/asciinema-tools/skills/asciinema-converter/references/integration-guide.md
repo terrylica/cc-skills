@@ -258,5 +258,5 @@ find ~/cast-txt -name "*.txt" | parallel -j4 '/asciinema-tools:analyze {}'
 
 - [Anti-Patterns](./anti-patterns.md) - Common mistakes to avoid
 - [Batch Processing](./batch-processing.md) - Bulk conversion patterns
-- [asciinema-analyzer skill](../../asciinema-analyzer/SKILL.md) - Keyword extraction
-- [asciinema-summarizer skill](../../asciinema-summarizer/SKILL.md) - AI analysis
+- [asciinema-analyzer skill](../../asciinema-analyzer/SKILL.md) - Keyword extraction and semantic analysis
+- `/asciinema-tools:summarize` command - AI-powered iterative deep-dive analysis
