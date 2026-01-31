@@ -205,5 +205,6 @@ Fix the issues before saving. Check ~/.claude/docs/GLOSSARY.md for correct termi
 // Entry point
 main().catch((e) => {
   console.error(`[vale-claude-md-guard] Error: ${e.message}`);
+  console.error(`[vale-claude-md-guard] Tip: Ensure Vale is installed (brew install vale) and ~/.claude/.vale.ini exists.`);
   allow();
 });
