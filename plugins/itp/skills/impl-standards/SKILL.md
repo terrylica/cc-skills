@@ -144,3 +144,15 @@ See [ml-data-pipeline-architecture](/plugins/devops-tools/skills/ml-data-pipelin
 
 - [Error Handling](./references/error-handling.md) - Raise + propagate patterns
 - [Constants Management](./references/constants-management.md) - Magic number abstraction
+
+---
+
+## Troubleshooting
+
+| Issue                  | Cause                | Solution                                   |
+| ---------------------- | -------------------- | ------------------------------------------ |
+| Silent failures        | Bare except blocks   | Catch specific exceptions, log or re-raise |
+| Magic numbers in code  | Missing constants    | Extract to named constants with context    |
+| Error swallowed        | except: pass pattern | Log error before continuing or re-raise    |
+| Type errors at runtime | Missing validation   | Add input validation at boundaries         |
+| Config not loading     | Hardcoded paths      | Use environment variables with defaults    |
