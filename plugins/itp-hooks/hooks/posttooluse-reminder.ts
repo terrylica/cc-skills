@@ -85,6 +85,7 @@ function checkGraphEasy(command: string, sessionId?: string): string | null {
     }
   } catch (err) {
     console.error(`[itp-hooks] Failed to create state directory: ${stateDir}`);
+    console.error(`[itp-hooks] Tip: Check directory permissions or run: mkdir -p ${stateDir}`);
   }
 
   return `[GRAPH-EASY SKILL] You used graph-easy CLI directly. For reproducible diagrams, prefer the graph-easy skill (or adr-graph-easy-architect for ADRs). Skills ensure: proper --as=boxart mode, correct \\n escaping, and <details> source block for future edits.`;

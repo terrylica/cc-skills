@@ -215,6 +215,7 @@ async function main(): Promise<never> {
       console.error(`  Message: ${err.message}`);
       console.error(`  Stack: ${err.stack}`);
     }
+    console.error("[vale-claude-md] Tip: Ensure Vale is installed (brew install vale) and ~/.claude/.vale.ini exists.");
     return process.exit(0);
   }
 

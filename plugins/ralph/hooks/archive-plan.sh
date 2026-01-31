@@ -71,11 +71,13 @@ fi
 if [[ -f "$FILE_PATH" && -n "$SESSION_ID" ]]; then
     if ! mkdir -p "$ARCHIVE_DIR" 2>&1; then
         echo "[ralph] Failed to create archive directory: $ARCHIVE_DIR" >&2
+        echo "[ralph] Tip: Check permissions or run: mkdir -p $ARCHIVE_DIR" >&2
     else
         TIMESTAMP=$(date +%s)
         BASENAME=$(basename "$FILE_PATH")
         if ! cp "$FILE_PATH" "$ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}" 2>&1; then
             echo "[ralph] Failed to archive: $FILE_PATH" >&2
+            echo "[ralph] Tip: Check disk space and file permissions" >&2
         else
             # Emit observability to terminal (stderr)
             echo "[ralph] Archive: Saved $BASENAME to archives/ (${TIMESTAMP})" >&2
