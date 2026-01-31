@@ -1,5 +1,9 @@
 # Alpha-Forge Worktree Plugin
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection.
 
 ## Installation
