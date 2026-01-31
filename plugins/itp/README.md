@@ -1,7 +1,7 @@
 # ITP Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-10-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-11-blue.svg)]()
 [![Commands](https://img.shields.io/badge/Commands-4-green.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
