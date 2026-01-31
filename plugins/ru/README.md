@@ -2,6 +2,13 @@
 
 Autonomous loop mode for **any project** - short name for quick invocation.
 
+## Installation
+
+```bash
+claude plugin marketplace add terrylica/cc-skills
+claude plugin install ru@cc-skills
+```
+
 ## Quick Start
 
 ```bash
