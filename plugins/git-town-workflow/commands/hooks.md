@@ -12,27 +12,27 @@ description: "Install/uninstall hooks that enforce git-town over raw git command
 
 ## What Gets Blocked
 
-| Forbidden Command | Reason | Replacement |
-|-------------------|--------|-------------|
-| `git checkout -b` | Creates untracked branches | `git town hack` |
-| `git pull` | Bypasses sync workflow | `git town sync` |
-| `git merge` | Manual merges break flow | `git town sync` |
-| `git push origin main` | Direct main push dangerous | `git town sync` |
-| `git branch -d` | Manual branch deletion | `git town delete` |
-| `git rebase` | Complex, use git-town | `git town sync` |
+| Forbidden Command      | Reason                     | Replacement       |
+| ---------------------- | -------------------------- | ----------------- |
+| `git checkout -b`      | Creates untracked branches | `git town hack`   |
+| `git pull`             | Bypasses sync workflow     | `git town sync`   |
+| `git merge`            | Manual merges break flow   | `git town sync`   |
+| `git push origin main` | Direct main push dangerous | `git town sync`   |
+| `git branch -d`        | Manual branch deletion     | `git town delete` |
+| `git rebase`           | Complex, use git-town      | `git town sync`   |
 
 ## What's Allowed
 
-| Allowed Command | Reason |
-|-----------------|--------|
-| `git add` | Staging files (git-town doesn't replace) |
-| `git commit` | Creating commits (git-town doesn't replace) |
-| `git status` | Viewing status (read-only) |
-| `git log` | Viewing history (read-only) |
-| `git diff` | Viewing changes (read-only) |
-| `git stash` | Stashing changes (utility) |
-| `git remote` | Remote management (setup only) |
-| `git config` | Configuration (setup only) |
+| Allowed Command | Reason                                      |
+| --------------- | ------------------------------------------- |
+| `git add`       | Staging files (git-town doesn't replace)    |
+| `git commit`    | Creating commits (git-town doesn't replace) |
+| `git status`    | Viewing status (read-only)                  |
+| `git log`       | Viewing history (read-only)                 |
+| `git diff`      | Viewing changes (read-only)                 |
+| `git stash`     | Stashing changes (utility)                  |
+| `git remote`    | Remote management (setup only)              |
+| `git config`    | Configuration (setup only)                  |
 
 ---
 
@@ -226,3 +226,13 @@ STATUS_HOOK_EOF
 # Remove hooks
 /git-town-workflow:hooks uninstall
 ```
+
+## Troubleshooting
+
+| Issue                   | Cause                     | Solution                            |
+| ----------------------- | ------------------------- | ----------------------------------- |
+| jq not found            | jq not installed          | `brew install jq`                   |
+| Settings file not found | ~/.claude/ doesn't exist  | Create with `mkdir -p ~/.claude`    |
+| Hook not blocking       | Session not restarted     | Restart Claude Code session         |
+| Invalid JSON error      | Corrupted settings.json   | Check JSON syntax or restore backup |
+| Hook still active       | Multiple hooks registered | Uninstall and reinstall to dedupe   |
