@@ -67,3 +67,13 @@ After install/uninstall operations:
 **IMPORTANT: Restart Claude Code session for changes to take effect.**
 
 The statusLine is loaded at session start. Modifications to settings.json require a restart.
+
+## Troubleshooting
+
+| Issue                 | Cause                   | Solution                                 |
+| --------------------- | ----------------------- | ---------------------------------------- |
+| Status line not shown | Session not restarted   | Exit and restart Claude Code             |
+| lychee not found      | mise not installed      | Install mise from <https://mise.jdx.dev> |
+| Settings file missing | ~/.claude doesn't exist | Create with `mkdir -p ~/.claude`         |
+| Install fails         | Invalid settings.json   | Validate JSON with `jq . settings.json`  |
+| Script not found      | Plugin not installed    | Reinstall plugin from marketplace        |

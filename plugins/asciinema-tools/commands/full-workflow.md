@@ -51,3 +51,13 @@ Chains multiple skills: record -> backup -> convert -> analyze
 # Record only, analyze later
 /asciinema-tools:full-workflow --no-analyze
 ```
+
+## Troubleshooting
+
+| Issue               | Cause                       | Solution                                    |
+| ------------------- | --------------------------- | ------------------------------------------- |
+| Recording not found | No active asciinema session | Run `/asciinema-tools:record` first         |
+| Backup skipped      | Daemon not running          | Run `/asciinema-tools:daemon-start`         |
+| Convert fails       | Invalid .cast format        | Check asciinema version with `asciinema -V` |
+| Analysis times out  | Large recording file        | Use `--no-analyze` and run separately       |
+| Permission denied   | Output dir not writable     | Check directory permissions                 |

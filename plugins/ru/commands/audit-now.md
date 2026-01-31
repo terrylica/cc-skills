@@ -61,3 +61,13 @@ RU_AUDIT_SCRIPT
 ```
 
 Run the bash script above to force validation mode.
+
+## Troubleshooting
+
+| Issue                   | Cause                 | Solution                         |
+| ----------------------- | --------------------- | -------------------------------- |
+| Round must be 1-5       | Invalid round number  | Use a number between 1 and 5     |
+| Loop not running        | RU not started        | Run `/ru:start` first            |
+| Config file not found   | .claude dir missing   | Create with `mkdir -p .claude`   |
+| Validation not starting | Config not read yet   | Wait for next iteration to apply |
+| jq error                | Config file malformed | Run `/ru:config reset`           |
