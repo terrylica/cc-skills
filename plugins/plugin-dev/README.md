@@ -10,8 +10,8 @@ Plugin and skill development tools for Claude Code marketplace.
 ## Installation
 
 ```bash
-claude plugin marketplace add terrylica/cc-skills
-claude plugin install plugin-dev@cc-skills
+/plugin marketplace add terrylica/cc-skills
+/plugin install plugin-dev@cc-skills
 ```
 
 ## Commands
