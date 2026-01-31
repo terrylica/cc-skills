@@ -6,9 +6,9 @@ allowed-tools: Read, Edit, Bash
 
 # LaTeX Build Automation
 
-## Quick Reference
+## When to Use This Skill
 
-**When to use this skill:**
+Use this skill when:
 
 - Compiling LaTeX documents
 - Setting up live preview with auto-rebuild
@@ -16,6 +16,8 @@ allowed-tools: Read, Edit, Bash
 - Troubleshooting build failures
 - Cleaning build artifacts
 - Automating compilation workflows
+
+## Quick Reference
 
 ## Why latexmk?
 

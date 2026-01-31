@@ -6,15 +6,17 @@ allowed-tools: Read, Edit, Bash
 
 # LaTeX Tables with tabularray
 
-## Quick Reference
+## When to Use This Skill
 
-**When to use this skill:**
+Use this skill when:
 
 - Creating tables with fixed-width columns
 - Formatting complex table layouts
 - Need precise column alignment
 - Migrating from tabular/tabularx/longtable/booktabs
 - Troubleshooting table overflow issues
+
+## Quick Reference
 
 ## Why tabularray?
 
