@@ -101,6 +101,10 @@ fi
 # Validate alpha-forge repo exists
 if [[ ! -d "$AF_ROOT/.git" ]]; then
     echo "Error: alpha-forge repo not found at $AF_ROOT" >&2
+    echo "" >&2
+    echo "Fix options:" >&2
+    echo "  1. Run from within an alpha-forge worktree (auto-detection)" >&2
+    echo "  2. Set AF_ROOT: export AF_ROOT=~/path/to/alpha-forge" >&2
     exit 1
 fi
 
