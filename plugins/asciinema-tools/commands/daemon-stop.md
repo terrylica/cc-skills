@@ -67,3 +67,12 @@ Confirmed: Daemon is no longer running
 - Stopping the daemon does NOT delete credentials from Keychain
 - To restart: `/asciinema-tools:daemon-start`
 - The daemon will NOT auto-start on next login until started again
+
+## Troubleshooting
+
+| Issue                   | Cause                    | Solution                                         |
+| ----------------------- | ------------------------ | ------------------------------------------------ |
+| Failed to stop daemon   | Launchd error            | Try `launchctl unload -F <plist-path>`           |
+| Daemon still running    | Multiple instances       | Kill manually: `pkill -f asciinema-chunker`      |
+| Can't find plist        | Setup not run            | Run `/asciinema-tools:daemon-setup` first        |
+| Recordings not stopping | asciinema rec is running | Exit recording shell first (Ctrl-D or type exit) |
