@@ -8,6 +8,15 @@ allowed-tools: Read, Bash, Glob, Grep, TodoWrite
 
 Comprehensive validation for Claude Code marketplace plugins.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Validating plugin structure before release
+- Auditing hooks for silent failures
+- Checking plugin.json syntax and required fields
+- Verifying skill file formatting and frontmatter
+
 ## Quick Start
 
 ```bash

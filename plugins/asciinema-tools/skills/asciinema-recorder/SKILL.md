@@ -10,6 +10,15 @@ Generate ready-to-copy commands for recording Claude Code sessions with asciinem
 
 > **Platform**: macOS, Linux (requires asciinema CLI)
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Starting a new terminal recording session
+- Creating demos or documentation recordings
+- Capturing Claude Code sessions for review or sharing
+- Generating workspace-specific recording filenames
+
 ---
 
 ## Why This Skill?
