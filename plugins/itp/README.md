@@ -278,7 +278,7 @@ graph { label: "📦 Artifact Transformation"; flow: east; }
 /itp:go my-feature -b
 ```
 
-> **Note**: If you get "Plugin not found" after adding the marketplace, see [installation troubleshooting](/docs/troubleshooting/marketplace-installation.md#0-most-common-plugin-not-found-after-successful-add).
+> **Note**: If you get "Plugin not found" after adding the marketplace, see [installation troubleshooting](/docs/troubleshooting/marketplace-installation.md#1-plugin-not-found-after-successful-marketplace-add).
 
 ### Option 2: Settings Configuration
 
