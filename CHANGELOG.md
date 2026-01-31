@@ -1,3 +1,10 @@
+## [11.1.1](https://github.com/terrylica/cc-skills/compare/v11.1.0...v11.1.1) (2026-01-31)
+
+
+### Bug Fixes
+
+* **ru:** use uv run for Python subprocess in TypeScript hook ([6bd378f](https://github.com/terrylica/cc-skills/commit/6bd378fc5af221710ef388ac85f6d7236f09a98f))
+
 # [11.1.0](https://github.com/terrylica/cc-skills/compare/v11.0.4...v11.1.0) (2026-01-31)
 
 
