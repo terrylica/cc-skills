@@ -1,5 +1,9 @@
 # doc-tools
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Skills](https://img.shields.io/badge/Skills-9-blue.svg)]()
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+
 Comprehensive documentation tools for Claude Code: ASCII diagram validation, documentation standards, LaTeX compilation, and Pandoc PDF generation.
 
 Merged from `doc-tools` + `doc-build-tools` plugins.
