@@ -155,6 +155,16 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - 1Password CLI (`brew install 1password-cli`) - for session-chronicle credentials
 - Claude Code CLI
 
+## Troubleshooting
+
+| Issue                         | Cause               | Solution                                 |
+| ----------------------------- | ------------------- | ---------------------------------------- |
+| Doppler auth failed           | Token expired       | `doppler login` to re-authenticate       |
+| S3 upload fails               | Missing credentials | Verify AWS credentials via 1Password CLI |
+| ClickHouse connection refused | Network/firewall    | Check ClickHouse Cloud IP allowlist      |
+| Telegram bot not responding   | Invalid token       | Verify bot token via BotFather           |
+| MLflow tracking error         | Server unreachable  | Check MLflow tracking URI configuration  |
+
 ## License
 
 MIT

@@ -76,6 +76,16 @@ Skills are model-invoked based on context.
 - Polyrepo integration testing before release
 - Cross-repo dependency verification
 
+## Troubleshooting
+
+| Issue                        | Cause                  | Solution                             |
+| ---------------------------- | ---------------------- | ------------------------------------ |
+| PMD CPD not found            | Not installed          | `brew install pmd`                   |
+| Semgrep timeout              | Large codebase         | Add `--max-target-bytes` flag        |
+| Earthly build fails          | Docker not running     | Start Docker Desktop                 |
+| ClickHouse connection error  | Network issue          | Verify ClickHouse Cloud connectivity |
+| Multi-agent validation hangs | Insufficient resources | Reduce parallel agent count          |
+
 ## License
 
 MIT
