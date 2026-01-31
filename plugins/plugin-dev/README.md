@@ -2,6 +2,13 @@
 
 Plugin and skill development tools for Claude Code marketplace.
 
+## Installation
+
+```bash
+claude plugin marketplace add terrylica/cc-skills
+claude plugin install plugin-dev@cc-skills
+```
+
 ## Commands
 
 | Command              | Description                                                       |
@@ -53,11 +60,11 @@ The `skill-architecture` skill provides:
 
 ### Validator Scripts (TypeScript/Bun)
 
-| Script               | Purpose                                           |
-| -------------------- | ------------------------------------------------- |
-| `validate-skill.ts`  | Comprehensive skill validation (11+ checks)       |
-| `validate-links.ts`  | Markdown link portability (strict `/docs/` policy)|
-| `fix-bash-blocks.ts` | Auto-fix bash blocks for zsh compatibility        |
+| Script               | Purpose                                            |
+| -------------------- | -------------------------------------------------- |
+| `validate-skill.ts`  | Comprehensive skill validation (11+ checks)        |
+| `validate-links.ts`  | Markdown link portability (strict `/docs/` policy) |
+| `fix-bash-blocks.ts` | Auto-fix bash blocks for zsh compatibility         |
 
 Run scripts with:
 

@@ -2,6 +2,13 @@
 
 Git worktree management for research-repo with ADR-style naming and dynamic iTerm2 tab detection.
 
+## Installation
+
+```bash
+claude plugin marketplace add terrylica/cc-skills
+claude plugin install research-repo-worktree@cc-skills
+```
+
 ## Features
 
 - Natural language worktree creation ("create worktree for sharpe validation")
