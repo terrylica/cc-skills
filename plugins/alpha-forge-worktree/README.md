@@ -2,6 +2,13 @@
 
 Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection.
 
+## Installation
+
+```bash
+claude plugin marketplace add terrylica/cc-skills
+claude plugin install alpha-forge-worktree@cc-skills
+```
+
 ## Features
 
 - Natural language worktree creation ("create worktree for sharpe validation")
