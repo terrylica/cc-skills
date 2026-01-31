@@ -248,6 +248,17 @@ AskUserQuestion:
 /asciinema-tools:finalize session.cast --no-push
 ```
 
+## Troubleshooting
+
+| Issue                 | Cause                        | Solution                               |
+| --------------------- | ---------------------------- | -------------------------------------- |
+| Process won't stop    | Hung asciinema process       | Use `--force` flag for SIGKILL         |
+| File may be truncated | Forced stop interrupted file | Most data preserved, try playing it    |
+| zstd not found        | zstd not installed           | `brew install zstd`                    |
+| Push failed           | No GitHub token              | Set GH_TOKEN or run `gh auth login`    |
+| No orphan branch      | Clone not configured         | Run `/asciinema-tools:bootstrap` first |
+| File not found        | Wrong path or already moved  | Check with `/daemon-status`            |
+
 ## Related Commands
 
 - `/asciinema-tools:daemon-status` - View status and find unhandled files
