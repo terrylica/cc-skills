@@ -130,3 +130,18 @@ prompt: "Validate the plugin at plugins/$PLUGIN_NAME/"
 ## References
 
 - [Silent Failure Patterns](./references/silent-failure-patterns.md)
+
+---
+
+## Troubleshooting
+
+| Issue                        | Cause                         | Solution                                            |
+| ---------------------------- | ----------------------------- | --------------------------------------------------- |
+| plugin.json not found        | Missing manifest file         | Create plugin.json with required fields             |
+| Invalid JSON syntax          | Malformed plugin.json         | Run `jq empty plugin.json` to find syntax errors    |
+| Missing required field       | Incomplete manifest           | Add name, version, description to plugin.json       |
+| Shellcheck errors            | Bash script issues            | Run `shellcheck hooks/*.sh` to see details          |
+| Silent failure in bash       | Missing error handling        | Add `if !` check around mkdir/cp/mv/rm commands     |
+| Silent except:pass in Python | Missing stderr output         | Add `print(..., file=sys.stderr)` before pass       |
+| Exit code 2                  | Invalid path or missing files | Verify plugin path exists and has correct structure |
+| Violations after --fix       | Fix suggestions not applied   | Manually apply suggested fixes from output          |
