@@ -98,7 +98,7 @@ Match host github.com,ssh.github.com exec "pwd | grep -q '/.claude'"
     ControlMaster no  # ← CRITICAL
 ```
 
-See [semantic-release authentication](../../semantic-release/references/authentication.md#controlmaster-cache-issues) for troubleshooting.
+See [SSH ControlMaster Cache](../../semantic-release/references/troubleshooting.md#ssh-controlmaster-cache) for troubleshooting.
 
 ## Troubleshooting
 
@@ -141,11 +141,15 @@ See [semantic-release authentication](../../semantic-release/references/authenti
 3. Test token directly:
 
    ```bash
+
+   ```
+
 /usr/bin/env bash << 'GITHUB_TOKENS_SCRIPT_EOF'
-   GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-accountname) gh api user --jq '.login'
-   
+GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-accountname) gh api user --jq '.login'
+
 GITHUB_TOKENS_SCRIPT_EOF
-```
+
+````
 
 ### Token Expired
 
@@ -154,7 +158,7 @@ GitHub tokens expire. Refresh with:
 ```bash
 gh auth login --hostname github.com
 gh auth token > ~/.claude/.secrets/gh-token-accountname
-```
+````
 
 ## 1Password Integration
 
@@ -168,5 +172,5 @@ GITHUB_TOKEN = "{{ cache(key='gh_token', duration='1h', run='op read op://Engine
 
 ## References
 
-- [mise env documentation](https://mise.jdx.dev/environments.html)
+- [mise env documentation](https://mise.jdx.dev/environments/)
 - [semantic-release skill](../../semantic-release/SKILL.md)
