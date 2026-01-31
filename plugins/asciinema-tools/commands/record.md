@@ -34,3 +34,24 @@ Invoke the `asciinema-recorder` skill with user-selected options.
 3. **Options**: AskUserQuestion for recording options
 4. **Generate**: Build and display recording command
 5. **Guidance**: Show step-by-step instructions
+
+## Examples
+
+```bash
+# Basic recording
+/asciinema-tools:record session.cast
+
+# Recording with title and idle limit
+/asciinema-tools:record -t "Demo Session" -i 30
+
+# Recording with GitHub backup
+/asciinema-tools:record session.cast --backup
+```
+
+## Troubleshooting
+
+| Issue                  | Cause             | Solution                                     |
+| ---------------------- | ----------------- | -------------------------------------------- |
+| asciinema not found    | Not installed     | `brew install asciinema`                     |
+| Permission denied      | Output path issue | Check write permissions for output directory |
+| Recording not starting | Terminal issue    | Ensure running in interactive terminal       |
