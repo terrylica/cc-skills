@@ -96,3 +96,24 @@ case "$COMMAND" in
 esac
 RALPH_UNIVERSAL_HOOKS
 ```
+
+## Examples
+
+```bash
+# Check current hook status
+/ru:hooks status
+
+# Install RU hooks
+/ru:hooks install
+
+# Uninstall hooks
+/ru:hooks uninstall
+```
+
+## Troubleshooting
+
+| Issue              | Cause                    | Solution                    |
+| ------------------ | ------------------------ | --------------------------- |
+| Already installed  | Hooks already registered | Restart Claude Code session |
+| Hooks not working  | Session not restarted    | Restart Claude Code session |
+| Status shows wrong | Stale timestamp          | Re-run install command      |

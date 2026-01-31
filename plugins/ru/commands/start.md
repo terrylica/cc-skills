@@ -248,3 +248,25 @@ The loop continues until:
 - Kill switch: `touch .claude/STOP_LOOP`
 
 Use `/ru:wizard` for detailed guidance setup anytime.
+
+## Examples
+
+```bash
+# Start POC mode (quick test)
+/ru:start --poc
+
+# Start production mode (longer session)
+/ru:start --production
+
+# Start with existing config, skip setup
+/ru:start --quick
+```
+
+## Troubleshooting
+
+| Issue             | Cause                     | Solution                                           |
+| ----------------- | ------------------------- | -------------------------------------------------- |
+| uv not found      | uv not installed          | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Loop already in X | Previous loop not stopped | Run `/ru:stop` first                               |
+| jq error          | jq not installed          | `brew install jq`                                  |
+| Config preserved  | Used --quick              | Delete `.claude/ru-config.json` to reset           |
