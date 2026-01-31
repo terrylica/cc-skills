@@ -64,3 +64,16 @@ See [config/lychee.toml](../../config/lychee.toml) for the default configuration
 - [ADR: Link Checker Plugin Extraction](../../../../docs/adr/2025-12-11-link-checker-plugin-extraction.md)
 - [Design Spec](../../../../docs/design/2025-12-11-link-checker-plugin-extraction/spec.md)
 - [lychee Documentation](https://github.com/lycheeverse/lychee)
+
+---
+
+## Troubleshooting
+
+| Issue                | Cause                | Solution                           |
+| -------------------- | -------------------- | ---------------------------------- |
+| lychee not found     | Not installed        | Run `mise install lychee`          |
+| Too many 403 errors  | Rate limiting        | Add rate limit to .lycheerc.toml   |
+| Relative path errors | Wrong base directory | Run from repository root           |
+| False positives      | Dynamic content      | Add URL pattern to exclude list    |
+| Timeout on links     | Slow external sites  | Increase timeout in config         |
+| Cache issues         | Stale cached results | Clear cache with `--no-cache` flag |

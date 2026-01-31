@@ -653,3 +653,16 @@ The `mise-configuration` skill covers:
 - [Polyglot Affected](./references/polyglot-affected.md) - Pants + mise integration guide and tool comparison
 - [Bootstrap Monorepo](./references/bootstrap-monorepo.md) - Autonomous polyglot monorepo bootstrap meta-prompt
 - [Release Workflow Patterns](./references/release-workflow-patterns.md) - Release task DAG patterns, build-before-publish enforcement
+
+---
+
+## Troubleshooting
+
+| Issue                  | Cause                     | Solution                                   |
+| ---------------------- | ------------------------- | ------------------------------------------ |
+| Task not found         | Typo or wrong mise.toml   | Run `mise tasks` to list available tasks   |
+| Dependencies not run   | Circular dependency       | Check task depends arrays for cycles       |
+| Sources not working    | Wrong glob pattern        | Use relative paths from mise.toml location |
+| Watch not triggering   | File outside sources list | Add file pattern to sources array          |
+| Env vars not available | Task in wrong directory   | Ensure mise.toml is in cwd or parent       |
+| Run fails with error   | Script path issue         | Use absolute path or relative to mise.toml |

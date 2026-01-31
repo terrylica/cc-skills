@@ -178,3 +178,16 @@ chezmoi git -- log --oneline -3        # Recent commit history
 - [Secret Detection](./references/secret-detection.md) - Handling detected secrets
 
 **Chezmoi docs**: <https://www.chezmoi.io/reference/>
+
+---
+
+## Troubleshooting
+
+| Issue              | Cause                      | Solution                                     |
+| ------------------ | -------------------------- | -------------------------------------------- |
+| chezmoi not found  | Not installed              | Install via `brew install chezmoi`           |
+| Source path empty  | Not initialized            | Run `chezmoi init`                           |
+| Git remote not set | Missing GitHub repo        | Run `chezmoi git -- remote add origin URL`   |
+| Apply fails        | Template error             | Check template syntax with `chezmoi diff`    |
+| Merge conflicts    | Diverged source and target | Use `chezmoi merge` to resolve               |
+| Secrets detected   | Plain text credentials     | Use chezmoi templates with 1Password/Doppler |
