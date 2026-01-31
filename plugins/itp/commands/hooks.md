@@ -48,3 +48,33 @@ After install/uninstall/restore operations:
 **IMPORTANT: Restart Claude Code session for changes to take effect.**
 
 The hooks are loaded at session start. Modifications to settings.json require a restart.
+
+## Examples
+
+```bash
+# Check current installation status
+/itp:hooks status
+
+# Install all itp-hooks
+/itp:hooks install
+
+# Uninstall hooks
+/itp:hooks uninstall
+
+# List available backups
+/itp:hooks restore
+
+# Restore most recent backup
+/itp:hooks restore latest
+```
+
+## Troubleshooting
+
+| Issue             | Cause                    | Solution                           |
+| ----------------- | ------------------------ | ---------------------------------- |
+| jq not found      | jq not installed         | `brew install jq`                  |
+| bun not found     | bun/node not installed   | `mise install bun`                 |
+| Already installed | Hook already in settings | Run `uninstall` first to reinstall |
+| Hooks not working | Session not restarted    | Restart Claude Code session        |
+| Script not found  | Plugin not installed     | Re-install plugin via marketplace  |
+| Invalid JSON      | Corrupted settings.json  | Use `restore latest` to recover    |

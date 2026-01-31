@@ -285,3 +285,27 @@ After install/uninstall operations:
 **IMPORTANT: Restart Claude Code session for changes to take effect.**
 
 The hooks are loaded at session start. Modifications to settings.json require a restart.
+
+## Examples
+
+```bash
+# Run comprehensive preflight check
+/ralph:hooks status
+
+# Install ralph hooks
+/ralph:hooks install
+
+# Uninstall hooks
+/ralph:hooks uninstall
+```
+
+## Troubleshooting
+
+| Issue                  | Cause                       | Solution                    |
+| ---------------------- | --------------------------- | --------------------------- |
+| jq not found           | jq not installed            | `brew install jq`           |
+| uv not found           | uv not installed            | `brew install uv`           |
+| Python version error   | Python < 3.11               | `mise install python@3.13`  |
+| Plugin root not found  | Plugin not installed        | Re-install via marketplace  |
+| Hooks not executable   | Permission issue            | `chmod +x <hook-script>`    |
+| Session restart needed | Hooks installed after start | Restart Claude Code session |
