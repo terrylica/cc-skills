@@ -46,7 +46,7 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 ```
 cc-skills/
 ├── .claude-plugin/marketplace.json  ← Plugin registry
-├── plugins/                         ← 19 marketplace plugins
+├── plugins/                         ← 20 marketplace plugins
 │   ├── itp/                         ← Core workflow
 │   ├── ralph/                       ← Autonomous loop (RSSI)
 │   └── ...
