@@ -42,3 +42,13 @@ RALPH_UNIVERSAL_STOP
 ```
 
 After execution, confirm the loop has been stopped.
+
+## Troubleshooting
+
+| Issue                   | Cause                 | Solution                             |
+| ----------------------- | --------------------- | ------------------------------------ |
+| Loop continues running  | Hook still active     | Wait for current iteration to finish |
+| State file not created  | .claude dir missing   | Create with `mkdir -p .claude`       |
+| jq error                | Config file malformed | Delete and recreate config file      |
+| Permission denied       | File not writable     | Check directory permissions          |
+| Global stop not working | Different project dir | Ensure CLAUDE_PROJECT_DIR is correct |

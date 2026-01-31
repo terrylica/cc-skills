@@ -753,3 +753,15 @@ Use Earthly as canonical pipeline:
 - [ ] ADR status updated to `accepted` or `implemented`
 - [ ] Release completed via semantic-release
 - [ ] If feature branch: PR created, Phase 3 skipped
+
+## Troubleshooting
+
+| Issue                  | Cause                        | Solution                                     |
+| ---------------------- | ---------------------------- | -------------------------------------------- |
+| TodoWrite not found    | Skipped mandatory first step | Start from top of file, execute TodoWrite    |
+| ADR file not created   | Preflight incomplete         | Run Skill(itp:implement-plan-preflight)      |
+| Branch mismatch        | Working on wrong branch      | Switch to correct branch with `git checkout` |
+| Phase 3 skipped        | Not on main/master           | Merge to main first, then run `/itp:go -r`   |
+| semantic-release fails | No GITHUB_TOKEN              | Check token with `echo $GITHUB_TOKEN`        |
+| Diagram missing        | graph-easy not invoked       | Run Skill(itp:adr-graph-easy-architect)      |
+| Spec validation fails  | Missing frontmatter fields   | Check required fields in Quick Reference     |

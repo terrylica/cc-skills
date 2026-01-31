@@ -198,13 +198,14 @@ When the user runs `/ralph:forbid --remove` without a phrase, use `AskUserQuesti
 4. After user selects, run `/ralph:forbid --remove-by-index <comma-separated-indices>`
 
 **Example AskUserQuestion**:
+
 ```json
 {
   "question": "Which forbidden items do you want to remove?",
   "header": "Remove items",
   "options": [
-    {"label": "documentation updates", "description": "Index 0"},
-    {"label": "refactoring", "description": "Index 1"}
+    { "label": "documentation updates", "description": "Index 0" },
+    { "label": "refactoring", "description": "Index 1" }
   ],
   "multiSelect": true
 }
@@ -236,3 +237,13 @@ This section appears **regardless of phase** (implementation or exploration), en
 | Built-in busywork | SKIP             | Soft-skip, can be chosen as fallback |
 | User-forbidden    | BLOCK            | Hard-block, cannot be chosen at all  |
 | User-encouraged   | ALLOW (priority) | Always allowed, overrides forbidden  |
+
+## Troubleshooting
+
+| Issue                  | Cause                    | Solution                              |
+| ---------------------- | ------------------------ | ------------------------------------- |
+| jq error on add        | Config file malformed    | Run `/ralph:config reset` to recreate |
+| Item not appearing     | Typo or different casing | Use `--list` to verify exact text     |
+| Forbidden not enforced | Ralph not running        | Start with `/ralph:start`             |
+| Remove by phrase fails | No match found           | Use `--list` to see exact item names  |
+| Config file not found  | .claude dir missing      | Create with `mkdir -p .claude`        |

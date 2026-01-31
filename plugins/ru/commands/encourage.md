@@ -100,3 +100,13 @@ Run the bash script above to manage encouraged items.
 2. **Next iteration applies**: The Stop hook reads config fresh on each iteration
 3. **Priority override**: Encouraged items override forbidden patterns
 4. **Template rendering**: Encouraged items appear in the `## USER GUIDANCE` section
+
+## Troubleshooting
+
+| Issue                  | Cause                    | Solution                             |
+| ---------------------- | ------------------------ | ------------------------------------ |
+| jq error on add        | Config file malformed    | Run `/ru:config reset` to recreate   |
+| Item not appearing     | Typo or different casing | Use `--list` to verify exact text    |
+| Encouraged not applied | RU not running           | Start with `/ru:start`               |
+| Remove by phrase fails | No match found           | Use `--list` to see exact item names |
+| Config file not found  | .claude dir missing      | Create with `mkdir -p .claude`       |

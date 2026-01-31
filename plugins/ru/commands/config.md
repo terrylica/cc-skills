@@ -77,3 +77,13 @@ RU_CONFIG_SCRIPT
 ```
 
 Run the bash script above to manage configuration.
+
+## Troubleshooting
+
+| Issue                 | Cause                   | Solution                                |
+| --------------------- | ----------------------- | --------------------------------------- |
+| Config file not found | .claude dir missing     | Create with `mkdir -p .claude`          |
+| jq error on set       | Invalid value syntax    | Check value type (number, string, bool) |
+| python3 not found     | python3 not in PATH     | Install Python 3 or use `jq .` instead  |
+| Reset removes state   | Intentional behavior    | State file is also removed on reset     |
+| Changes not applying  | Using wrong config file | Check PROJECT_DIR matches your cwd      |

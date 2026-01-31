@@ -153,3 +153,13 @@ done
 echo "Added $(echo $ITEMS | wc -w | tr -d ' ') items to $TYPE list"
 ADD_GUIDANCE_ITEMS
 ```
+
+## Troubleshooting
+
+| Issue                | Cause                     | Solution                             |
+| -------------------- | ------------------------- | ------------------------------------ |
+| jq error             | Config file malformed     | Run `/ru:config reset` to recreate   |
+| No options appearing | AskUserQuestion issue     | Check that multiSelect is set        |
+| Config not saved     | .claude dir missing       | Create with `mkdir -p .claude`       |
+| Items duplicated     | Ran wizard multiple times | Use `--clear` to reset before re-run |
+| Custom input empty   | Skipped text prompt       | Re-run wizard and enter items        |
