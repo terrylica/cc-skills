@@ -293,7 +293,22 @@ except APIResponseError as e:
 ## Installation
 
 ```bash
-uv pip install notion-client>=2.6.0
+uv pip install notion-client  # v2.6+ required for data_source support
 ```
 
 Or use PEP 723 inline dependencies (scripts include them).
+
+---
+
+## Troubleshooting
+
+| Issue                        | Cause                            | Solution                                              |
+| ---------------------------- | -------------------------------- | ----------------------------------------------------- |
+| Object not found             | Page not shared with integration | Share page: ... menu → Connections → Add integration  |
+| Unauthorized                 | Token invalid or expired         | Generate new token at notion.so/my-integrations       |
+| Rate limited (429)           | Too many requests                | Use `api_call_with_retry()` for automatic handling    |
+| Empty results from query     | Filter matches nothing           | Verify filter syntax and property names               |
+| Block not found after create | Eventual consistency delay       | Add 0.5s delay after write before read                |
+| Invalid property type        | Wrong builder used               | Check property type in database schema                |
+| Token format rejected        | Wrong prefix (case-sensitive)    | Token must start with `ntn_` or `secret_` (lowercase) |
+| Data source ID not working   | Old API version                  | Upgrade notion-client to latest version               |

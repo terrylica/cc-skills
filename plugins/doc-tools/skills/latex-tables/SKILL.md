@@ -112,3 +112,18 @@ For detailed information, see:
 
 - Use `latex/setup` skill for installing tabularray package
 - Use `latex/build` skill for compilation workflows
+
+---
+
+## Troubleshooting
+
+| Issue                    | Cause                     | Solution                                            |
+| ------------------------ | ------------------------- | --------------------------------------------------- |
+| Package not found        | tabularray not installed  | `sudo tlmgr install tabularray`                     |
+| Table too wide           | Fixed widths exceed page  | Use smaller Q[width] values or X for flexible       |
+| Text not wrapping        | Column spec missing width | Use Q[width] instead of c/l/r for wrapping          |
+| Alignment issues         | Mixed column types        | Ensure all columns have consistent spec             |
+| Compile error on colspec | Invalid syntax            | Check for missing commas or typos in column spec    |
+| hlines not appearing     | Missing from spec         | Add `hlines` to the spec: `{colspec={...}, hlines}` |
+| Row style not applied    | Wrong row index           | Remember row{1} is first row (1-indexed)            |
+| Package version too old  | TeX Live outdated         | `sudo tlmgr update --self --all`                    |
