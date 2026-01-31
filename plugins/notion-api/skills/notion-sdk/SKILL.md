@@ -6,7 +6,17 @@ allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 
 # Notion SDK Skill
 
-Control Notion programmatically using the official `notion-client` Python SDK (v2.6.0+).
+Control Notion programmatically using the official `notion-client` Python SDK. See [PyPI](https://pypi.org/project/notion-client/) for current version.
+
+## When to Use This Skill
+
+Use this skill when:
+
+- Creating pages or databases in Notion via API
+- Querying Notion databases programmatically
+- Adding blocks (text, code, headings) to Notion pages
+- Automating Notion workflows with Python
+- Integrating external data sources with Notion
 
 ## Preflight: Token Collection
 

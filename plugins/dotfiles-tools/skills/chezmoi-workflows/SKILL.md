@@ -6,6 +6,16 @@ allowed-tools: Read, Edit, Bash
 
 # Chezmoi Workflows
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Backing up dotfiles to Git repository
+- Syncing configuration files across machines
+- Tracking changes to shell configs, editor settings, or other dotfiles
+- Managing templated configurations with chezmoi
+- Troubleshooting dotfile drift between source and target
+
 ## Architecture
 
 | Component  | Location                         | Purpose                               |
