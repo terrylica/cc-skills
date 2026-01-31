@@ -8,6 +8,16 @@ allowed-tools: Read, Grep, Glob, Bash
 
 Machine-readable reference + computation scripts for state-of-the-art metrics evaluating range bar (price-based sampling) data.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Evaluating ML model performance on range bar data
+- Computing Sharpe ratios with non-IID bar sequences
+- Running Walk-Forward Optimization metric analysis
+- Calculating PSR, DSR, or MinTRL statistical tests
+- Generating evaluation reports from fold results
+
 ## Quick Start
 
 ```bash

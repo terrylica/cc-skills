@@ -10,6 +10,16 @@ Semantic analysis of converted .txt recordings for Claude Code consumption. Uses
 
 > **Platform**: macOS, Linux (requires ripgrep, optional YAKE)
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Searching for keywords or patterns in converted recordings
+- Extracting topics or themes from session transcripts
+- Finding specific commands or errors in session history
+- Auto-discovering unexpected terms in recordings
+- Analyzing session content for documentation or review
+
 ---
 
 ## Analysis Tiers

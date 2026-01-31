@@ -8,6 +8,16 @@ allowed-tools: Read, Grep, Glob, Bash
 
 Machine-readable reference for adaptive epoch selection within Walk-Forward Optimization (WFO). Optimizes training epochs per-fold using Walk-Forward Efficiency (WFE) as the objective.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Selecting optimal training epochs for ML models in WFO
+- Avoiding overfitting via Walk-Forward Efficiency metrics
+- Implementing per-fold adaptive epoch selection
+- Computing efficient frontiers for epoch-performance trade-offs
+- Carrying epoch priors across WFO folds
+
 ## Quick Start
 
 ```python
