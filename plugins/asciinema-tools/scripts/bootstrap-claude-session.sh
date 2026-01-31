@@ -94,8 +94,16 @@ ssh -O exit -p 443 git@ssh.github.com 2>/dev/null || true
 # ============================================================================
 
 echo "║  [2/4] Setting up directories...                               ║"
-mkdir -p "$ACTIVE_DIR"
-mkdir -p "$LOCAL_REPO/chunks"
+if ! mkdir -p "$ACTIVE_DIR"; then
+    echo "ERROR: Failed to create active recordings directory: $ACTIVE_DIR" >&2
+    echo "Tip: Check permissions and available disk space" >&2
+    exit 1
+fi
+if ! mkdir -p "$LOCAL_REPO/chunks"; then
+    echo "ERROR: Failed to create chunks directory: $LOCAL_REPO/chunks" >&2
+    echo "Tip: Check permissions and available disk space" >&2
+    exit 1
+fi
 
 # ============================================================================
 # WRITE CONFIG FOR DAEMON
