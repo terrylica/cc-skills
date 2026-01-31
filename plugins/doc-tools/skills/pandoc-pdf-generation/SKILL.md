@@ -238,3 +238,18 @@ For detailed information, see:
 - [Bibliography & Citations](./references/bibliography-citations.md) - BibTeX and CSL styles
 - [Document Patterns](./references/document-patterns.md) - Document type templates
 - [Troubleshooting](./references/troubleshooting-pandoc.md) - Common issues and fixes
+
+---
+
+## Troubleshooting
+
+| Issue                         | Cause                        | Solution                                          |
+| ----------------------------- | ---------------------------- | ------------------------------------------------- |
+| Font not found                | DejaVu Sans not installed    | `brew install font-dejavu`                        |
+| xelatex not found             | MacTeX not installed         | `brew install --cask mactex`                      |
+| Table breaks across pages     | Missing longtable package    | Include table-spacing-template.tex preamble       |
+| Double section numbers        | Manual numbering in markdown | Remove manual numbers, use --number-sections only |
+| ASCII diagram misaligned      | Manual ASCII art             | Use graph-easy skill for all diagrams             |
+| Bullet list renders as dashes | Markdown formatting issue    | Check for proper blank lines before lists         |
+| Bibliography not rendering    | Missing references.bib       | Create .bib file or remove --bibliography flag    |
+| PDF file size too large       | Embedded fonts               | Use --pdf-engine-opt=-dEmbedAllFonts=false        |

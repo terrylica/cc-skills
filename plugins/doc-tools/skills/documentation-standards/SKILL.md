@@ -188,3 +188,18 @@ Documentation standards ensure:
 - **PDF compatibility** through proper markdown formatting
 
 Follow these standards for all documentation.
+
+---
+
+## Troubleshooting
+
+| Issue                         | Cause                        | Solution                                          |
+| ----------------------------- | ---------------------------- | ------------------------------------------------- |
+| Double section numbers in PDF | Manual numbering in markdown | Remove manual numbers, use --number-sections only |
+| Broken links in PDF           | Relative paths incorrect     | Use repo-root paths for cross-document links      |
+| Code block no syntax color    | Missing language identifier  | Add language after opening triple backticks       |
+| Tables render poorly          | Column widths too wide       | Use shorter headers or pipe-table format          |
+| Hub doc too long              | Too much detail in hub       | Move details to spoke documents, link from hub    |
+| Duplicate content             | Same info in multiple docs   | Identify SSoT, remove duplicates, add links       |
+| YAML spec not rendering       | Wrong file extension         | Use .yaml extension for OpenAPI specs             |
+| Index navigation missing      | No INDEX.md or README.md     | Create navigation index in each directory         |

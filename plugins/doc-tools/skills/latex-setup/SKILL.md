@@ -82,3 +82,18 @@ For detailed information, see:
 
 - Build Workflows: Use `latex/build` skill for latexmk automation
 - Table Creation: Use `latex/tables` skill for tabularray usage
+
+---
+
+## Troubleshooting
+
+| Issue                     | Cause                         | Solution                                           |
+| ------------------------- | ----------------------------- | -------------------------------------------------- |
+| tex command not found     | PATH not configured           | Add `/Library/TeX/texbin` to PATH in shell profile |
+| Permission denied (tlmgr) | Need sudo for system packages | Use `sudo tlmgr install <package>`                 |
+| Package not found         | Missing from TeX Live         | Run `tlmgr search <package>` to find correct name  |
+| Skim not showing PDF      | SyncTeX not enabled           | Compile with `-synctex=1` flag                     |
+| Outdated TeX Live         | Old MacTeX version            | Run `sudo tlmgr update --self --all`               |
+| Compilation hangs         | Infinite loop in document     | Check for circular includes or missing \end{}      |
+| Missing font error        | Font not in TeX distribution  | Install with `tlmgr install <font-package>`        |
+| Disk space error          | Full TeX Live too large       | Consider BasicTeX (smaller) if space limited       |
