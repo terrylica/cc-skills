@@ -1,7 +1,7 @@
 ---
 description: Enable autonomous loop mode for any project
 allowed-tools: Bash, AskUserQuestion
-argument-hint: "[--poc | --production]"
+argument-hint: "[--poc | --production | --quick]"
 ---
 
 # RU: Start
@@ -12,29 +12,74 @@ Enable autonomous loop mode for **any project type**.
 
 - `--poc`: Use proof-of-concept settings (5 min / 10 min limits, 10/20 iterations)
 - `--production`: Use production settings (4h / 9h limits, 50/99 iterations)
+- `--quick`: Skip guidance setup, use existing config
 
-## Step 1: Preset Selection
+## Step 1: Mode Selection
 
-Use AskUserQuestion with questions:
+Use AskUserQuestion:
 
-- question: "Select loop configuration preset:"
-  header: "Preset"
-  multiSelect: false
-  options:
-  - label: "POC Mode (Recommended)"
-    description: "5min-10min, 10-20 iterations - ideal for testing"
-  - label: "Production Mode"
-    description: "4h-9h, 50-99 iterations - standard autonomous work"
+```yaml
+questions:
+  - question: "Select loop configuration:"
+    header: "Mode"
+    multiSelect: false
+    options:
+      - label: "POC Mode (Recommended)"
+        description: "5-10 min, 10-20 iterations - ideal for testing"
+      - label: "Production Mode"
+        description: "4-9 hours, 50-99 iterations - standard work"
+```
 
-## Step 2: Execution
+## Step 2: Guidance Setup (unless --quick)
+
+Use AskUserQuestion to configure what RU should avoid:
+
+```yaml
+questions:
+  - question: "What should RU avoid? (Select all that apply)"
+    header: "Forbid"
+    multiSelect: true
+    options:
+      - label: "Documentation updates"
+        description: "README, docstrings, comments"
+      - label: "Dependency upgrades"
+        description: "Version bumps, lock files"
+      - label: "Code formatting"
+        description: "Linting, style changes"
+      - label: "Test expansion"
+        description: "Adding tests for existing code"
+```
+
+## Step 3: Priority Setup (unless --quick)
+
+Use AskUserQuestion to configure what RU should prioritize:
+
+```yaml
+questions:
+  - question: "What should RU prioritize? (Select all that apply)"
+    header: "Encourage"
+    multiSelect: true
+    options:
+      - label: "Bug fixes"
+        description: "Fix errors, exceptions, crashes"
+      - label: "Feature completion"
+        description: "Finish incomplete features"
+      - label: "Performance"
+        description: "Speed, memory, efficiency"
+      - label: "Error handling"
+        description: "Edge cases, validation"
+```
+
+## Step 4: Execution
+
+After collecting guidance selections, save them and start the loop:
 
 ```bash
-/usr/bin/env bash << 'RALPH_UNIVERSAL_START'
+/usr/bin/env bash << 'RU_START_SCRIPT'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 echo "========================================"
-echo "  RALPH UNIVERSAL"
-echo "  Autonomous Loop Mode (Any Project)"
+echo "  RU - Autonomous Loop Mode"
 echo "========================================"
 echo ""
 
@@ -97,45 +142,109 @@ fi
 echo '{"state": "running"}' > "$STATE_FILE"
 date +%s > "$PROJECT_DIR/.claude/ru-start-timestamp"
 
-# Create config
+# Create/update config (preserve guidance if exists)
 CONFIG_FILE="$PROJECT_DIR/.claude/ru-config.json"
-jq -n \
-    --arg state "running" \
-    --argjson min_hours "$MIN_HOURS" \
-    --argjson max_hours "$MAX_HOURS" \
-    --argjson min_iterations "$MIN_ITERS" \
-    --argjson max_iterations "$MAX_ITERS" \
-    '{
-        version: "1.0.0",
-        state: $state,
-        loop_limits: {
-            min_hours: $min_hours,
-            max_hours: $max_hours,
-            min_iterations: $min_iterations,
-            max_iterations: $max_iterations
-        }
-    }' > "$CONFIG_FILE"
+if [[ -f "$CONFIG_FILE" ]]; then
+    # Update existing config, preserve guidance
+    jq --arg state "running" \
+       --argjson min_hours "$MIN_HOURS" \
+       --argjson max_hours "$MAX_HOURS" \
+       --argjson min_iterations "$MIN_ITERS" \
+       --argjson max_iterations "$MAX_ITERS" \
+       '.state = $state | .loop_limits = {
+           min_hours: $min_hours,
+           max_hours: $max_hours,
+           min_iterations: $min_iterations,
+           max_iterations: $max_iterations
+       }' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+else
+    # Create new config
+    jq -n \
+        --arg state "running" \
+        --argjson min_hours "$MIN_HOURS" \
+        --argjson max_hours "$MAX_HOURS" \
+        --argjson min_iterations "$MIN_ITERS" \
+        --argjson max_iterations "$MAX_ITERS" \
+        '{
+            version: "1.0.0",
+            state: $state,
+            loop_limits: {
+                min_hours: $min_hours,
+                max_hours: $max_hours,
+                min_iterations: $min_iterations,
+                max_iterations: $max_iterations
+            },
+            guidance: {
+                forbidden: [],
+                encouraged: []
+            }
+        }' > "$CONFIG_FILE"
+fi
 
 echo "Mode: $MODE_NAME"
-echo "Time limits: ${MIN_HOURS}h minimum / ${MAX_HOURS}h maximum"
-echo "Iterations: ${MIN_ITERS} minimum / ${MAX_ITERS} maximum"
+echo "Time: ${MIN_HOURS}h min / ${MAX_HOURS}h max"
+echo "Iterations: ${MIN_ITERS} min / ${MAX_ITERS} max"
 echo ""
+
+# Show guidance summary
+FORBIDDEN_COUNT=$(jq -r '.guidance.forbidden // [] | length' "$CONFIG_FILE" 2>/dev/null || echo "0")
+ENCOURAGED_COUNT=$(jq -r '.guidance.encouraged // [] | length' "$CONFIG_FILE" 2>/dev/null || echo "0")
+echo "Guidance:"
+echo "  Forbidden: $FORBIDDEN_COUNT items"
+echo "  Encouraged: $ENCOURAGED_COUNT items"
+echo ""
+
 echo "Project: $PROJECT_DIR"
 echo "State: RUNNING"
 echo ""
-echo "To stop: /ru:stop"
-echo "Kill switch: touch $PROJECT_DIR/.claude/STOP_LOOP"
-RALPH_UNIVERSAL_START
+echo "Commands:"
+echo "  /ru:stop     - Stop the loop"
+echo "  /ru:status   - Check status"
+echo "  /ru:forbid   - Add forbidden item"
+echo "  /ru:encourage - Add encouraged item"
+RU_START_SCRIPT
 ```
 
-Run the bash script above to enable loop mode.
+## Guidance Helper
+
+After AskUserQuestion selections, use this to add items:
+
+```bash
+/usr/bin/env bash << 'ADD_ITEMS'
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+CONFIG_FILE="$PROJECT_DIR/.claude/ru-config.json"
+TYPE="${1}"      # "forbidden" or "encouraged"
+ITEM="${2}"      # Item to add
+
+if [[ -z "$TYPE" || -z "$ITEM" ]]; then
+    exit 0
+fi
+
+# Ensure file exists
+mkdir -p "$PROJECT_DIR/.claude"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo '{"guidance": {"forbidden": [], "encouraged": []}}' > "$CONFIG_FILE"
+fi
+
+# Ensure guidance structure exists
+if ! jq -e '.guidance' "$CONFIG_FILE" >/dev/null 2>&1; then
+    jq '. + {guidance: {forbidden: [], encouraged: []}}' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+fi
+
+# Add item
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+jq --arg item "$ITEM" --arg ts "$TIMESTAMP" \
+    ".guidance.${TYPE} = ((.guidance.${TYPE} // []) + [\$item] | unique) | .guidance.timestamp = \$ts" \
+    "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+ADD_ITEMS
+```
 
 ## After Starting
 
-The loop will continue until:
+The loop continues until:
 
 - Maximum time/iterations reached
 - You run `/ru:stop`
-- Kill switch file created (`.claude/STOP_LOOP`)
+- Kill switch: `touch .claude/STOP_LOOP`
 
-The loop continues autonomously until time/iteration limits are reached.
+Use `/ru:configure` for detailed guidance setup anytime.
