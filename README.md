@@ -458,7 +458,7 @@ cc-skills/
 │   ├── plugin.json          # Marketplace metadata
 │   └── marketplace.json     # Plugin registry (20 plugins) - SSoT
 ├── plugins/
-│   ├── itp/                       # ADR-driven development workflow (10 bundled skills)
+│   ├── itp/                       # ADR-driven development workflow (11 bundled skills)
 │   ├── plugin-dev/                # Plugin development + skill architecture
 │   ├── gh-tools/                  # GitHub workflow automation
 │   ├── link-tools/                # Comprehensive link validation
@@ -536,7 +536,7 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 
 **Commands**: `/itp:go`, `/itp:setup`, `/itp:release`, `/itp:hooks`
 
-**Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, mise-configuration, mise-tasks, pypi-doppler, semantic-release
+**Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, bootstrap-monorepo, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, mise-configuration, mise-tasks, pypi-doppler, semantic-release
 
 ### plugin-dev
 
@@ -589,13 +589,13 @@ Features:
 
 **Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation.**
 
-Six bundled skills: ascii-diagram-validator, documentation-standards, latex-build, latex-setup, latex-tables, pandoc-pdf-generation
+Nine bundled skills: ascii-diagram-validator, documentation-standards, glossary-management, latex-build, latex-setup, latex-tables, pandoc-pdf-generation, plotext-financial-chart, terminal-print
 
 ### quality-tools
 
 **Code quality and validation tools: clone detection, E2E validation, profiling, schema testing.**
 
-Five bundled skills: clickhouse-architect, code-clone-assistant, multi-agent-e2e-validation, multi-agent-performance-profiling, schema-e2e-validation
+Six bundled skills: clickhouse-architect, code-clone-assistant, multi-agent-e2e-validation, multi-agent-performance-profiling, schema-e2e-validation, symmetric-dogfooding
 
 ### itp-hooks
 
