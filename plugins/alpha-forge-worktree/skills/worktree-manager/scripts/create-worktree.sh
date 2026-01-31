@@ -101,6 +101,10 @@ fi
 # Validate research-repo repo exists
 if [[ ! -d "$AF_ROOT/.git" ]]; then
     echo "Error: research-repo repo not found at $AF_ROOT" >&2
+    echo "" >&2
+    echo "Fix options:" >&2
+    echo "  1. Run from within an research-repo worktree (auto-detection)" >&2
+    echo "  2. Set AF_ROOT: export AF_ROOT=~/path/to/research-repo" >&2
     exit 1
 fi
 
