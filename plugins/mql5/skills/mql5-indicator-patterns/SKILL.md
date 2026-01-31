@@ -8,6 +8,15 @@ allowed-tools: Read, Grep, Edit, Write
 
 Battle-tested patterns for creating custom MQL5 indicators with proper display, buffer management, and real-time updates.
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Creating custom MQL5 indicators for MetaTrader 5
+- Debugging indicator display or buffer issues
+- Setting up OnCalculate with proper warmup handling
+- Implementing new bar detection patterns
+
 ## Quick Reference
 
 ### Essential Patterns

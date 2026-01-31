@@ -8,6 +8,15 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Extract technical trading articles from mql5.com for training data collection. **Scope limited to mql5.com domain only.**
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Extracting articles from mql5.com for reference or training data
+- Downloading MQL5 documentation and tutorials
+- Collecting trading articles from specific MQL5 users
+- Building a corpus of MQL5 programming examples
+
 ## Scope Boundaries
 
 **VALID requests:**

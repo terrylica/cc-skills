@@ -13,6 +13,15 @@ triggers:
 
 Validates markdown links in your workspace using [lychee](https://github.com/lycheeverse/lychee).
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Checking for broken links in markdown files
+- Validating link paths before committing documentation
+- Running automated link checks at session end
+- Detecting path policy violations (absolute paths, excessive traversal)
+
 ## What It Does
 
 At session end (Stop hook), this skill:

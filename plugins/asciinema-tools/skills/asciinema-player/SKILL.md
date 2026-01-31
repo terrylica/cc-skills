@@ -10,6 +10,15 @@ Play terminal session recordings (.cast files) in a dedicated iTerm2 window with
 
 > **Platform**: macOS only (requires iTerm2)
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Playing back .cast recordings in iTerm2
+- Reviewing session recordings without browser limitations
+- Handling large recordings (>100MB) that crash browser players
+- Demoing or reviewing terminal sessions
+
 ---
 
 ## Why iTerm2 Instead of Browser?
