@@ -38,8 +38,8 @@ claude plugin marketplace add terrylica/cc-skills
 claude plugin install itp@cc-skills
 claude plugin install plugin-dev@cc-skills
 
-# Install all plugins at once
-for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow; do claude plugin install "$p@cc-skills"; done
+# Install all plugins at once (20 plugins)
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research; do claude plugin install "$p@cc-skills"; done
 ```
 
 ### Marketplace Directory
