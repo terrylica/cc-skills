@@ -2,7 +2,7 @@
 
 Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI.
 
-[![Plugins](https://img.shields.io/badge/plugins-18-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-20-green.svg)](#plugins)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
 ## Plugins
@@ -27,6 +27,8 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [notion-api](./plugins/notion-api/)                     | Notion API integration using notion-client Python SDK with preflight credential prompting               | productivity |
 | [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon, Keychain PAT storage                  | utilities    |
 | [git-town-workflow](./plugins/git-town-workflow/)       | Prescriptive git-town workflow enforcement for fork-based development                                   | devops       |
+| [ru](./plugins/ru/)                                     | Autonomous loop mode for any project - universal Ralph implementation                                   | automation   |
+| [quant-research](./plugins/quant-research/)             | Quantitative research: SOTA range bar metrics, Sharpe ratios, ML prediction quality, WFO epochs         | trading      |
 
 ## Installation
 
@@ -45,7 +47,7 @@ Run these commands in your **terminal** (not inside Claude Code):
 claude plugin marketplace add terrylica/cc-skills
 
 # 2. Install all plugins (one-liner)
-for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow; do claude plugin install "$p@cc-skills"; done
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research; do claude plugin install "$p@cc-skills"; done
 
 # 3. Sync hooks to settings.json (requires cloning the repo)
 git clone https://github.com/terrylica/cc-skills.git /tmp/cc-skills
@@ -91,11 +93,13 @@ claude plugin install mql5@cc-skills
 claude plugin install itp-hooks@cc-skills
 claude plugin install alpha-forge-worktree@cc-skills
 claude plugin install ralph@cc-skills
+claude plugin install ru@cc-skills
 claude plugin install iterm2-layout-config@cc-skills
 claude plugin install statusline-tools@cc-skills
 claude plugin install notion-api@cc-skills
 claude plugin install asciinema-tools@cc-skills
 claude plugin install git-town-workflow@cc-skills
+claude plugin install quant-research@cc-skills
 ```
 
 #### Step 3: Sync Hooks
@@ -452,7 +456,7 @@ Marketplace plugin commands display with the `plugin:command` format:
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (18 plugins) - SSoT
+│   └── marketplace.json     # Plugin registry (20 plugins) - SSoT
 ├── plugins/
 │   ├── itp/                       # ADR-driven development workflow (10 bundled skills)
 │   ├── plugin-dev/                # Plugin development + skill architecture
@@ -467,11 +471,13 @@ cc-skills/
 │   ├── itp-hooks/                 # ITP workflow enforcement hooks
 │   ├── alpha-forge-worktree/      # Git worktree management
 │   ├── ralph/                     # Autonomous AI orchestration
+│   ├── ru/                        # Universal autonomous loop mode
 │   ├── iterm2-layout-config/      # iTerm2 workspace layout configuration
 │   ├── statusline-tools/          # Custom status line with indicators
 │   ├── notion-api/                # Notion API integration
 │   ├── asciinema-tools/           # Terminal recording automation
-│   └── git-town-workflow/         # Prescriptive git-town workflow
+│   ├── git-town-workflow/         # Prescriptive git-town workflow
+│   └── quant-research/            # Quantitative research metrics
 ├── scripts/
 │   ├── sync-hooks-to-settings.sh  # Hook synchronization
 │   ├── validate-plugins.mjs       # Plugin validation
