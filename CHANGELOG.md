@@ -1,3 +1,33 @@
+## [11.0.3](https://github.com/terrylica/cc-skills/compare/v11.0.2...v11.0.3) (2026-01-31)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| superseded | [Polars Preference Hook (Efficiency Preferences Framework)](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-22-polars-preference-hook.md) | updated (+4/-1) |
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+3/-5)
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+12/-53)
+
 ## [11.0.2](https://github.com/terrylica/cc-skills/compare/v11.0.1...v11.0.2) (2026-01-31)
 
 
