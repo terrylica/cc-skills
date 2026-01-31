@@ -1,6 +1,6 @@
 # link-tools
 
-Comprehensive link validation for Claude Code projects.
+Comprehensive link validation for Claude Code: portability checks, lychee broken link detection, and path policy linting.
 
 Merged from `link-validator` + `link-checker` plugins.
 
@@ -11,11 +11,23 @@ Merged from `link-validator` + `link-checker` plugins.
 | `link-validator`  | Validate markdown link portability (relative vs absolute paths) |
 | `link-validation` | Lychee broken link detection with path policy linting           |
 
+## Installation
+
+```bash
+claude plugin marketplace add terrylica/cc-skills
+claude plugin install link-tools@cc-skills
+```
+
 ## Hooks
 
 | Hook                 | Event | Description                                 |
 | -------------------- | ----- | ------------------------------------------- |
 | `stop-link-check.py` | Stop  | Validates links at session end using lychee |
+
+**Trigger phrases:**
+
+- "check links", "validate portability", "fix broken links" → link-validator
+- "lychee", "broken link detection", "path policy" → link-validation
 
 ## Usage
 
@@ -56,3 +68,7 @@ See [config/lychee.toml](./config/lychee.toml) for defaults.
 ## References
 
 - [ADR: Link Checker Plugin Extraction](/docs/adr/2025-12-11-link-checker-plugin-extraction.md)
+
+## License
+
+MIT
