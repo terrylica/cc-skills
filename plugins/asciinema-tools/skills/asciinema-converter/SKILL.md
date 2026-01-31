@@ -10,6 +10,16 @@ Convert asciinema .cast recordings to clean .txt files for Claude Code analysis.
 
 > **Platform**: macOS, Linux (requires asciinema CLI v2.4+)
 
+## When to Use This Skill
+
+Use this skill when:
+
+- Converting .cast recordings to searchable .txt format
+- Preparing recordings for Claude Code Read/Grep tools
+- Batch converting multiple recordings
+- Reducing storage size of session archives
+- Extracting clean text from ANSI-coded terminal output
+
 ---
 
 ## Why Convert?
