@@ -29,10 +29,13 @@ export interface PreToolUseResponse {
 }
 
 // Output helpers
+
+/** Write a JSON response to stdout for Claude Code hook protocol */
 export function output(response: object): void {
   console.log(JSON.stringify(response));
 }
 
+/** Allow the tool to execute without modification */
 export function allow(): void {
   output({
     hookSpecificOutput: {
@@ -42,6 +45,7 @@ export function allow(): void {
   });
 }
 
+/** Deny the tool execution with an explanation shown to user */
 export function deny(reason: string): void {
   output({
     hookSpecificOutput: {
@@ -52,6 +56,7 @@ export function deny(reason: string): void {
   });
 }
 
+/** Show a confirmation dialog to the user before proceeding */
 export function ask(reason: string): void {
   output({
     hookSpecificOutput: {
@@ -62,7 +67,10 @@ export function ask(reason: string): void {
   });
 }
 
-// Stdin parsing with allow-on-error semantics + logging
+/**
+ * Parse stdin JSON and return PreToolUseInput, or null if parsing fails.
+ * On parse failure, automatically calls allow() and returns null (fail-open).
+ */
 export async function parseStdinOrAllow(
   hookName: string
 ): Promise<PreToolUseInput | null> {
