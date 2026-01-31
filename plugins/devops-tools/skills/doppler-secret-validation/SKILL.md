@@ -188,3 +188,18 @@ CONFIG_EOF_3
 - Doppler docs: <https://docs.doppler.com/docs>
 - CLI install: `brew install dopplerhq/cli/doppler`
 - See [doppler-patterns.md](./references/doppler-patterns.md) for comprehensive patterns
+
+---
+
+## Troubleshooting
+
+| Issue                       | Cause                          | Solution                                              |
+| --------------------------- | ------------------------------ | ----------------------------------------------------- |
+| Secret not found            | Wrong project/config specified | Verify with `doppler secrets ls --project X --config` |
+| Auth test fails with 401    | Token expired or invalid       | Regenerate token, re-add to Doppler                   |
+| doppler run hangs           | CLI waiting for input          | Add `--no-interactive` flag                           |
+| Token prefix mismatch       | Wrong token type used          | Check expected format (pypi-, ghp-, AKIA, etc.)       |
+| Validation script not found | Wrong directory context        | Ensure CLAUDE_PLUGIN_ROOT is set correctly            |
+| Secret retrieval empty      | Secret name typo               | List secrets: `doppler secrets ls --project X`        |
+| mise cache stale            | Duration expired               | Clear cache or reduce duration setting                |
+| Multiple configs confusion  | Secrets differ across envs     | Use explicit --config flag for each command           |
