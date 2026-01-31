@@ -317,6 +317,5 @@ After modifying this skill:
 
 ## Reference Documentation
 
-- [asciinema rec Usage](https://docs.asciinema.org/manual/cli/usage/)
-- [asciinema CLI Options](https://man.archlinux.org/man/extra/asciinema/asciinema-rec.1.en)
+- [asciinema CLI Documentation](https://docs.asciinema.org/manual/cli/)
 - [asciinema Markers](https://docs.asciinema.org/manual/cli/markers/)
