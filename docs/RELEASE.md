@@ -6,51 +6,51 @@ Comprehensive guide for releasing cc-skills marketplace plugins.
 
 ```bash
 # Check release status
-mise run release_status
+mise run release:status
 
 # Dry run (preview)
-mise run release_dry
+mise run release:dry
 
 # Full release (4 phases)
-mise run release_full
+mise run release:full
 ```
 
 ## 4-Phase Release Workflow
 
-| Phase       | Command                    | Description                              |
-| ----------- | -------------------------- | ---------------------------------------- |
-| Preflight   | `mise run release_preflight` | Validate working dir, auth, plugins    |
-| Version     | `mise run release_version`   | Run semantic-release (bump + changelog)|
-| Sync        | `mise run release_sync`      | Update marketplace, sync hooks         |
-| Verify      | `mise run release_verify`    | Confirm tag, release, cache, hooks     |
+| Phase     | Command                      | Description                             |
+| --------- | ---------------------------- | --------------------------------------- |
+| Preflight | `mise run release:preflight` | Validate working dir, auth, plugins     |
+| Version   | `mise run release:version`   | Run semantic-release (bump + changelog) |
+| Sync      | `mise run release:sync`      | Update marketplace, sync hooks          |
+| Verify    | `mise run release:verify`    | Confirm tag, release, cache, hooks      |
 
 ## Available mise Tasks
 
 ```bash
 mise tasks                    # List all tasks
 mise run release              # Show help
-mise run release_status       # Current version info
-mise run release_preflight    # Validate before release
-mise run release_version      # semantic-release only
-mise run release_sync         # Sync hooks + cache
-mise run release_verify       # Verify release artifacts
-mise run release_full         # Complete 4-phase workflow
-mise run release_dry          # Dry-run preview
-mise run release_hooks        # Install hooks only
-mise run release_clean        # Clean old cache versions
+mise run release:status       # Current version info
+mise run release:preflight    # Validate before release
+mise run release:version      # semantic-release only
+mise run release:sync         # Sync hooks + cache
+mise run release:verify       # Verify release artifacts
+mise run release:full         # Complete 4-phase workflow
+mise run release:dry          # Dry-run preview
+mise run release:hooks        # Install hooks only
+mise run release:clean        # Clean old cache versions
 ```
 
 ## Commit Conventions
 
 All commit types trigger patch releases (marketplace constraint):
 
-| Type       | Release | Release Notes |
-| ---------- | ------- | ------------- |
-| `feat:`    | minor   | Features      |
-| `fix:`     | patch   | Bug Fixes     |
-| `docs:`    | patch   | Not shown     |
-| `chore:`   | patch   | Not shown     |
-| `refactor:`| patch   | Not shown     |
+| Type        | Release | Release Notes |
+| ----------- | ------- | ------------- |
+| `feat:`     | minor   | Features      |
+| `fix:`      | patch   | Bug Fixes     |
+| `docs:`     | patch   | Not shown     |
+| `chore:`    | patch   | Not shown     |
+| `refactor:` | patch   | Not shown     |
 
 **Tip**: Use `fix(docs):` for documentation changes that should appear in release notes.
 
@@ -79,7 +79,7 @@ npm run release
 
 ```bash
 # Check specific issue
-mise run release_preflight
+mise run release:preflight
 
 # Common fixes:
 git stash                    # Dirty working directory
@@ -100,21 +100,21 @@ bun scripts/validate-plugins.mjs  # Plugin validation
 
 ```bash
 # Clean old versions
-mise run release_clean
+mise run release:clean
 
 # Force re-sync
-mise run release_sync
+mise run release:sync
 ```
 
 ## Key Files
 
-| File                          | Purpose                           |
-| ----------------------------- | --------------------------------- |
-| `.releaserc.yml`              | semantic-release configuration    |
-| `.mise/tasks/release:*`       | mise release tasks                |
-| `scripts/release-preflight.sh`| Preflight validation              |
-| `scripts/sync-hooks-to-settings.sh` | Hook synchronization        |
-| `scripts/sync-versions.mjs`   | Version alignment across files    |
+| File                                | Purpose                        |
+| ----------------------------------- | ------------------------------ |
+| `.releaserc.yml`                    | semantic-release configuration |
+| `.mise/tasks/release:*`             | mise release tasks             |
+| `scripts/release-preflight.sh`      | Preflight validation           |
+| `scripts/sync-hooks-to-settings.sh` | Hook synchronization           |
+| `scripts/sync-versions.mjs`         | Version alignment across files |
 
 ## Related Documentation
 
