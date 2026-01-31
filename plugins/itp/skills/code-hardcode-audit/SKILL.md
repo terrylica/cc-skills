@@ -111,3 +111,18 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 - ADR-0046: Semantic Constants Abstraction
 - ADR-0047: Code Hardcode Audit Skill
 - `code-clone-assistant` - PMD CPD-based clone detection (DRY focus)
+
+---
+
+## Troubleshooting
+
+| Issue                    | Cause                       | Solution                                                     |
+| ------------------------ | --------------------------- | ------------------------------------------------------------ |
+| Ruff PLR2004 not found   | Ruff not installed or old   | `uv tool install ruff` or upgrade                            |
+| Semgrep timeout          | Large codebase scan         | Use `--exclude` to limit scope                               |
+| jscpd memory error       | Too many files              | Increase Node heap: `NODE_OPTIONS=--max-old-space-size=4096` |
+| gitleaks false positives | Test data flagged           | Add patterns to `.gitleaks.toml` allowlist                   |
+| No findings in output    | Wrong directory specified   | Verify path exists and contains source files                 |
+| JSON parse error         | Tool output malformed       | Run tool individually with `--output text`                   |
+| Missing tool in PATH     | Tool not installed globally | Install via mise, homebrew, or npm                           |
+| Severity filter empty    | No findings at that level   | Use `--severity all` to see all findings                     |
