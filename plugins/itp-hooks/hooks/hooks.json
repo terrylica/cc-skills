@@ -1,5 +1,5 @@
 {
-  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, time-weighted Sharpe guard (multi-layer), code correctness, SR&ED commit validation, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync, and Polars preference",
+  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, time-weighted Sharpe guard (multi-layer), code correctness, SR&ED commit validation, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -79,16 +79,6 @@
           {
             "type": "command",
             "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-hoisted-deps-guard.mjs",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-polars-preference.ts",
             "timeout": 5000
           }
         ]

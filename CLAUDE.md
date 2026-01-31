@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **20 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **19 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -46,9 +46,9 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 ```
 cc-skills/
 ├── .claude-plugin/marketplace.json  ← Plugin registry
-├── plugins/                         ← 20 marketplace plugins
+├── plugins/                         ← 19 marketplace plugins
 │   ├── itp/                         ← Core workflow
-│   ├── ralph/                       ← Autonomous loop (RSSI)
+│   ├── ru/                          ← Ralph Universe (autonomous loop)
 │   └── ...
 ├── docs/
 │   ├── adr/                         ← Architecture decisions
@@ -90,8 +90,6 @@ bun pm ls -g                 # List
 ## Recent Lessons Learned
 
 **2026-01-24**: Code correctness hooks check silent failures only - NO unused imports (F401). [itp-hooks CLAUDE.md](./plugins/itp-hooks/CLAUDE.md#code-correctness-philosophy)
-
-**2026-01-22**: Polars preference hook enforces Polars over Pandas (PreToolUse dialog + PostToolUse backup). [ADR](/docs/adr/2026-01-22-polars-preference-hook.md)
 
 **2026-01-22**: posttooluse-reminder migrated from bash to TypeScript/Bun (33 tests). [Design Spec](/docs/design/2026-01-10-uv-reminder-hook/spec.md)
 
