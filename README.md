@@ -543,8 +543,7 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 **Plugin and skill development: structure validation, silent failure auditing, skill architecture meta-skill.**
 
 - **skill-architecture** - Meta-skill for creating skills (YAML frontmatter, TodoWrite templates)
-- **validate-plugin-structure** - Verify plugin directory and manifest compliance
-- **silent-failure-auditor** - Detect and fix silent script failures
+- **plugin-validator** - Validate plugin structure, manifests, and detect silent script failures
 
 **Commands**: `/plugin-dev:create`
 
