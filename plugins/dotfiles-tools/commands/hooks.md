@@ -40,3 +40,32 @@ After install/uninstall/restore operations:
 **IMPORTANT: Restart Claude Code session for changes to take effect.**
 
 The hooks are loaded at session start. Modifications to settings.json require a restart.
+
+## Examples
+
+```bash
+# Check current installation status
+/dotfiles-tools:hooks status
+
+# Install the chezmoi sync reminder hook
+/dotfiles-tools:hooks install
+
+# Uninstall hooks
+/dotfiles-tools:hooks uninstall
+
+# List available backups
+/dotfiles-tools:hooks restore
+
+# Restore most recent backup
+/dotfiles-tools:hooks restore latest
+```
+
+## Troubleshooting
+
+| Issue                   | Cause                    | Solution                                    |
+| ----------------------- | ------------------------ | ------------------------------------------- |
+| jq not found            | jq not installed         | `brew install jq`                           |
+| Already installed       | Hook already in settings | Run `uninstall` first to reinstall          |
+| Hooks not working       | Session not restarted    | Restart Claude Code session                 |
+| Settings file not found | ~/.claude/ doesn't exist | Create with `mkdir -p ~/.claude`            |
+| Invalid JSON            | Corrupted settings.json  | Use `restore latest` to recover from backup |

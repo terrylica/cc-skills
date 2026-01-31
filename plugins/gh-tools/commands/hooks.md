@@ -20,13 +20,13 @@ This hook soft-blocks WebFetch requests to github.com URLs and suggests using th
 
 ## Why Use gh CLI Instead of WebFetch?
 
-| Aspect         | WebFetch           | gh CLI               |
-| -------------- | ------------------ | -------------------- |
-| Authentication | None               | gh auth token        |
-| Data format    | HTML scraping      | Native JSON API      |
+| Aspect         | WebFetch           | gh CLI                 |
+| -------------- | ------------------ | ---------------------- |
+| Authentication | None               | gh auth token          |
+| Data format    | HTML scraping      | Native JSON API        |
 | Rate limits    | Strict (anonymous) | Higher (authenticated) |
-| Pagination     | Manual             | Automatic            |
-| Metadata       | Limited            | Full (labels, etc.)  |
+| Pagination     | Manual             | Automatic              |
+| Metadata       | Limited            | Full (labels, etc.)    |
 
 ## Execution
 
@@ -78,6 +78,29 @@ After install/uninstall operations:
 **IMPORTANT: Restart Claude Code session for changes to take effect.**
 
 The hooks are loaded at session start. Modifications to settings.json require a restart.
+
+## Examples
+
+```bash
+# Check current installation status
+/gh-tools:hooks status
+
+# Install the WebFetch enforcement hook
+/gh-tools:hooks install
+
+# Uninstall hooks
+/gh-tools:hooks uninstall
+```
+
+## Troubleshooting
+
+| Issue                  | Cause                 | Solution                            |
+| ---------------------- | --------------------- | ----------------------------------- |
+| jq not found           | jq not installed      | `brew install jq`                   |
+| Plugin root not found  | Plugin not installed  | Re-install via marketplace          |
+| Hooks not working      | Session not restarted | Restart Claude Code session         |
+| gh not authenticated   | gh CLI not set up     | Run `gh auth login`                 |
+| WebFetch still allowed | Hook not triggered    | Check settings.json has hooks entry |
 
 ## Reference
 
