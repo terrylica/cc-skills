@@ -2,7 +2,7 @@
 
 # Authentication for semantic-release
 
-> **2025-12-19 Update**: HTTPS-first authentication is now the primary method. SSH is retained as reference/fallback only. See [GitHub Multi-Account Authentication ADR](https://github.com/terrylica/claude-config/blob/main/docs/adr/2025-12-17-github-multi-account-authentication.md).
+> **2025-12-19 Update**: HTTPS-first authentication is now the primary method. SSH is retained as reference/fallback only. Use mise `[env]` for per-directory GitHub token configuration.
 
 ## Authentication Priority Order (HTTPS-First)
 
@@ -167,6 +167,7 @@ Commit Changelog       Update Issues/PRs
 For authentication issues, see [Troubleshooting](./troubleshooting.md#authentication-issues).
 
 Common issues:
+
 - Permission denied (publickey)
 - No GitHub token specified
 - GitHub account mismatch
