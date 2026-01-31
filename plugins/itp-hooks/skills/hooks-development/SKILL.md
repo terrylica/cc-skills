@@ -121,3 +121,18 @@ When this skill is updated:
 - [ADR: PostToolUse Hook Visibility](../../../../docs/adr/2025-12-17-posttooluse-hook-visibility.md)
 - [GitHub Issue #3983](https://github.com/anthropics/claude-code/issues/3983) - Original bug report
 - [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) - Official documentation
+
+---
+
+## Troubleshooting
+
+| Issue                      | Cause                          | Solution                                            |
+| -------------------------- | ------------------------------ | --------------------------------------------------- |
+| Hook output not visible    | Missing decision:block in JSON | Add `"decision": "block"` to JSON output            |
+| JSON parse error in hook   | Invalid JSON syntax            | Use `jq -n` to generate valid JSON                  |
+| Hook not executing         | Wrong matcher pattern          | Check hooks.json matcher regex matches tool name    |
+| Plain text output ignored  | Only JSON parsed               | Wrap output in JSON with decision:block             |
+| Exit code 2 behavior       | stderr used instead of stdout  | Use exit 0 with JSON, or exit 2 for stderr messages |
+| Session not seeing changes | Hooks cached                   | Restart Claude Code session after hook changes      |
+| Verbose mode not showing   | Disabled by default            | Enable verbose mode in Claude Code settings         |
+| jq command not found       | jq not installed               | `brew install jq`                                   |
