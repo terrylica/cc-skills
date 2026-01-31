@@ -238,8 +238,16 @@ esac
 
 # Create GitHub Actions workflow
 echo "Creating .github/workflows/release.yml..."
-mkdir -p .github/workflows
-cp "$TEMPLATES_DIR/github-workflow.yml" .github/workflows/release.yml
+if ! mkdir -p .github/workflows; then
+    echo "ERROR: Failed to create .github/workflows directory" >&2
+    echo "Tip: Check permissions and available disk space" >&2
+    exit 1
+fi
+if ! cp "$TEMPLATES_DIR/github-workflow.yml" .github/workflows/release.yml; then
+    echo "ERROR: Failed to copy workflow template" >&2
+    echo "Tip: Verify template exists at $TEMPLATES_DIR/github-workflow.yml" >&2
+    exit 1
+fi
 
 # Update .gitignore - exact line match to prevent false positives
 # ADR: /docs/adr/2025-12-07-idempotency-backup-traceability.md

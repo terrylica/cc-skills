@@ -54,10 +54,18 @@ echo "Package:      @$ORG_NAME/$CONFIG_NAME"
 echo ""
 
 # Create output directory
-mkdir -p "$FULL_PATH"
+if ! mkdir -p "$FULL_PATH"; then
+    echo "ERROR: Failed to create output directory: $FULL_PATH" >&2
+    echo "Tip: Check permissions and available disk space" >&2
+    exit 1
+fi
 
 # Copy templates
-cp "$TEMPLATE_DIR/package.json" "$FULL_PATH/"
+if ! cp "$TEMPLATE_DIR/package.json" "$FULL_PATH/"; then
+    echo "ERROR: Failed to copy package.json template" >&2
+    echo "Tip: Verify template exists at $TEMPLATE_DIR/package.json" >&2
+    exit 1
+fi
 cp "$TEMPLATE_DIR/index.js" "$FULL_PATH/"
 cp "$TEMPLATE_DIR/README.md" "$FULL_PATH/"
 
