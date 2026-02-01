@@ -30,9 +30,9 @@ adr: 2025-12-20-ralph-rssi-eternal-loop
 ### FORBIDDEN (User-Defined)
 
 **YOU SHALL NOT work on:**
-{% for item in forbidden_items %}
+{% for item in forbidden_items -%}
 - {{ item }}
-{% endfor %}
+{% endfor -%}
 ⚠️ These are user-specified constraints. If you find yourself about to work on any of these, STOP and find alternative work.
 {% endif %}
 {% if encouraged_items.size > 0 %}
@@ -40,9 +40,9 @@ adr: 2025-12-20-ralph-rssi-eternal-loop
 ### ENCOURAGED (User Priorities)
 
 **Focus your work on these high-value areas:**
-{% for item in encouraged_items %}
+{% for item in encouraged_items -%}
 {{ forloop.index }}. **{{ item }}**
-{% endfor %}
+{% endfor -%}
 ✅ These override forbidden patterns. If an opportunity matches both forbidden AND encouraged, proceed with the work.
 {% endif %}
 {% if forbidden_items.size == 0 and encouraged_items.size == 0 %}
