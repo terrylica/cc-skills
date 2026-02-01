@@ -1,3 +1,37 @@
+# [11.4.0](https://github.com/terrylica/cc-skills/compare/v11.3.2...v11.4.0) (2026-02-01)
+
+
+### Features
+
+* **ru:** redesign wizard flow to agnostic classification approach ([2dfb58e](https://github.com/terrylica/cc-skills/commit/2dfb58e322d4fae85304b9a932b50c9a74728e75))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>ru</strong> (2 commands)</summary>
+
+- [RU: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/start.md) - updated (+88/-20)
+- [RU: Wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/wizard.md) - updated (+154/-69)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+4/-3)
+
 ## [11.3.2](https://github.com/terrylica/cc-skills/compare/v11.3.1...v11.3.2) (2026-02-01)
 
 
