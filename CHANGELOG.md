@@ -1,3 +1,24 @@
+# [11.6.0](https://github.com/terrylica/cc-skills/compare/v11.5.1...v11.6.0) (2026-02-01)
+
+
+### Features
+
+* **ru:** add Polars/Arrow preference to template ([74ff93b](https://github.com/terrylica/cc-skills/commit/74ff93b18e954a4a29a97bde074a944daea59243))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+6)
+
 ## [11.5.1](https://github.com/terrylica/cc-skills/compare/v11.5.0...v11.5.1) (2026-02-01)
 
 
