@@ -30,34 +30,14 @@ questions:
         description: "4-9 hours, 50-99 iterations - standard work"
 ```
 
-## Step 2: Guidance Setup (unless --quick)
+## Step 2: Work Selection (unless --quick)
 
-Use AskUserQuestion to configure what RU should avoid:
-
-```yaml
-questions:
-  - question: "What should RU avoid? (Select all that apply)"
-    header: "Forbid"
-    multiSelect: true
-    options:
-      - label: "Documentation updates"
-        description: "README, docstrings, comments"
-      - label: "Dependency upgrades"
-        description: "Version bumps, lock files"
-      - label: "Code formatting"
-        description: "Linting, style changes"
-      - label: "Test expansion"
-        description: "Adding tests for existing code"
-```
-
-## Step 3: Priority Setup (unless --quick)
-
-Use AskUserQuestion to configure what RU should prioritize:
+Present ALL work categories neutrally. Let user select which ones they want to configure:
 
 ```yaml
 questions:
-  - question: "What should RU prioritize? (Select all that apply)"
-    header: "Encourage"
+  - question: "Which work areas do you want to configure? (Select all relevant)"
+    header: "Work Areas"
     multiSelect: true
     options:
       - label: "Bug fixes"
@@ -68,11 +48,65 @@ questions:
         description: "Speed, memory, efficiency"
       - label: "Error handling"
         description: "Edge cases, validation"
+      - label: "Documentation"
+        description: "README, docstrings, comments"
+      - label: "Dependency upgrades"
+        description: "Version bumps, lock files"
+      - label: "Code formatting"
+        description: "Linting, style changes"
+      - label: "Test expansion"
+        description: "Adding tests for existing code"
+      - label: "Refactoring"
+        description: "Code restructuring, DRY improvements"
+      - label: "Security"
+        description: "Vulnerability fixes, auth improvements"
 ```
 
-## Step 4: Execution
+## Step 3: Classify Each Selection
 
-After collecting guidance selections, save them and start the loop:
+For EACH item selected in Step 2, ask whether to Encourage or Forbid:
+
+```yaml
+questions:
+  - question: "For '[ITEM]': Should RU prioritize or avoid this?"
+    header: "Classify"
+    multiSelect: false
+    options:
+      - label: "Encourage (Prioritize)"
+        description: "RU should actively seek this type of work"
+      - label: "Forbid (Avoid)"
+        description: "RU should not work on this unless necessary"
+      - label: "Skip (No preference)"
+        description: "Leave neutral, neither prioritize nor avoid"
+```
+
+Repeat for each selected item.
+
+## Step 4: Conflict Detection
+
+After classification, check for conflicts (same item in both encouraged AND forbidden).
+
+If conflicts detected:
+
+```yaml
+questions:
+  - question: "[ITEM] is marked both Encouraged AND Forbidden. Which takes priority?"
+    header: "Conflict"
+    multiSelect: false
+    options:
+      - label: "Encourage wins"
+        description: "Prioritize this work, remove from forbidden"
+      - label: "Forbid wins"
+        description: "Avoid this work, remove from encouraged"
+      - label: "Remove both"
+        description: "Leave neutral, no guidance for this item"
+```
+
+Only proceed when all conflicts are resolved.
+
+## Step 5: Execution
+
+After collecting and validating guidance selections, save them and start the loop:
 
 ```bash
 /usr/bin/env bash << 'RU_START_SCRIPT'
@@ -248,6 +282,40 @@ The loop continues until:
 - Kill switch: `touch .claude/STOP_LOOP`
 
 Use `/ru:wizard` for detailed guidance setup anytime.
+
+## Flow Summary
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Step 1: Mode Selection                                     │
+│  [POC Mode] / [Production Mode]                             │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Step 2: Work Selection (neutral, multiSelect)              │
+│  [ ] Bug fixes    [ ] Features     [ ] Performance          │
+│  [ ] Docs         [ ] Deps         [ ] Formatting           │
+│  [ ] Tests        [ ] Refactoring  [ ] Security             │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Step 3: Classify Each (for each selected item)             │
+│  "For 'Bug fixes': Encourage / Forbid / Skip?"              │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Step 4: Conflict Resolution (if any)                       │
+│  "'X' is both Encouraged AND Forbidden. Which wins?"        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Step 5: Save config + Start loop                           │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Examples
 
