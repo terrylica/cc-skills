@@ -104,11 +104,12 @@ Commit atomically with task tracing:
 
 ## ERROR RECOVERY
 
-Claude Code 2.1+ provides automatic checkpoints before each change.
+Recovery strategies for autonomous operation (no human interaction available):
 
-- **On failure**: Use `/rewind` to restore code to a previous state
-- **On blocked task**: Keep task `in_progress`, create new task describing the blocker
+- **On test failure**: Fix the code, don't adjust the test to pass
+- **On blocked task**: Keep task `in_progress`, create new task describing the blocker, move to next available task
 - **On unexpected state**: Query `TaskList` to reassess available work
+- **On repeated failures**: Commit working state, document the issue in a new task, pivot to different work
 
 ---
 
