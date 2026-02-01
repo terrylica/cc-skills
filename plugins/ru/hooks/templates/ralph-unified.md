@@ -113,6 +113,71 @@ Recovery strategies for autonomous operation (no human interaction available):
 
 ---
 
+## GPU ACCELERATION POLICY
+
+**PRIORITY**: Always identify slow-performing processes that can benefit from GPU acceleration.
+
+### Discovery Protocol
+
+When encountering CPU-bound bottlenecks (data processing, ML inference, scientific computing):
+
+1. **Search for GPU-accelerated OSS alternatives** (WebSearch for "GPU accelerated [task] Python")
+2. **Evaluate candidates** by: stars, last commit date, CUDA version support, Python version
+3. **Prefer tools with**: active maintenance, Python 3.13 support, CUDA 12.x compatibility
+
+### Fork-and-Fix Protocol
+
+When a promising GPU tool is **outdated or broken** (compilation errors, dependency conflicts, incompatible Python/CUDA):
+
+1. **Fork to `~/fork-tools/`** on the local machine:
+   ```bash
+   mkdir -p ~/fork-tools && cd ~/fork-tools
+   git clone https://github.com/OWNER/REPO.git
+   cd REPO
+   ```
+
+2. **Patch for compatibility**:
+   - Update to **Python 3.13 ONLY** (never other versions)
+   - Update CUDA calls for latest compatible driver
+   - Fix deprecated APIs, type hints, dependency versions
+   - Run tests, fix failures
+
+3. **Document changes** in fork's README with:
+   - Original issue/error
+   - Patches applied
+   - Tested Python/CUDA versions
+
+### GPU Workstations (SSH Access)
+
+| Host          | SSH Alias     | GPU              | Use Case                   |
+| ------------- | ------------- | ---------------- | -------------------------- |
+| LittleBlack   | `littleblack` | RTX 2080 Ti 11GB | Light inference, dev/test  |
+| BigBlack      | `bigblack`    | RTX 4090 24GB    | Heavy training, production |
+
+**SSH config already set** - use aliases directly: `ssh littleblack`, `ssh bigblack`
+
+### Deployment Pattern
+
+```bash
+# Copy forked tool to GPU workstation
+rsync -avz ~/fork-tools/REPO/ littleblack:~/tools/REPO/
+
+# Install on workstation
+ssh littleblack "cd ~/tools/REPO && uv pip install -e ."
+
+# Run GPU-accelerated task
+ssh littleblack "cd ~/tools/REPO && uv run python script.py --device cuda"
+```
+
+### Constraints
+
+- **Python 3.13 ONLY** - never downgrade or use other versions
+- **Document all forks** in `~/fork-tools/README.md` with purpose and patches
+- **Prefer LittleBlack** for testing, **BigBlack** for production workloads
+- **Commit fork patches** to local git for reproducibility
+
+---
+
 ## TESTING PHILOSOPHY
 
 ### Anti-Patterns (FORBIDDEN)
