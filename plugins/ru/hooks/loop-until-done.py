@@ -3,6 +3,21 @@
 # requires-python = ">=3.11"
 # dependencies = ["rapidfuzz>=3.0.0,<4.0.0", "jinja2>=3.1.0,<4.0.0", "pydantic>=2.10.0", "filelock>=3.20.0"]
 # ///
+#
+# ╔════════════════════════════════════════════════════════════════════════════╗
+# ║  DEPRECATED: This file is superseded by loop-until-done.ts                 ║
+# ║                                                                            ║
+# ║  Active hook chain:                                                        ║
+# ║    loop-until-done-wrapper.sh → loop-until-done.ts → Python modules        ║
+# ║                                                                            ║
+# ║  This file is kept for:                                                    ║
+# ║    - Reference implementation                                              ║
+# ║    - Standalone testing via: uv run loop-until-done.py                     ║
+# ║    - Comparison during incremental TypeScript migration                    ║
+# ║                                                                            ║
+# ║  See: https://github.com/terrylica/cc-skills/issues/19                     ║
+# ╚════════════════════════════════════════════════════════════════════════════╝
+#
 # ADR: Multi-Repository Adapter Architecture
 # ADR: 2025-12-20-ralph-rssi-eternal-loop
 # Adds project-specific convergence detection via adapter registry
@@ -83,7 +98,7 @@ from ralph_evolution import (
     get_prioritized_checks,
     suggest_capability_expansion,
 )
-from observability import emit, flush_to_claude, reset_timer
+from observability import emit, reset_timer
 
 
 def _run_constraint_scanner(project_dir: Path | None) -> list[dict]:
@@ -139,6 +154,7 @@ def _run_constraint_scanner(project_dir: Path | None) -> list[dict]:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,  # Handle non-zero exit manually below
             env={**os.environ, "UV_VERBOSITY": "0"},
         )
         if result.returncode == 0:
@@ -236,7 +252,6 @@ def build_continuation_prompt(
         if session_start_file and session_start_file.exists():
             try:
                 session_start = int(session_start_file.read_text().strip())
-                from datetime import timezone
                 guidance_dt = datetime.fromisoformat(guidance_timestamp.replace("Z", "+00:00"))
                 guidance_epoch = int(guidance_dt.timestamp())
                 if guidance_epoch < session_start:
@@ -676,12 +691,13 @@ def main():
         try:
             result = subprocess.run(
                 ["git", "diff", "--name-only", "HEAD~1", "--", "."],
-                cwd=project_dir, capture_output=True, text=True, timeout=5
+                cwd=project_dir, capture_output=True, text=True, timeout=5,
+                check=False,  # Don't raise on non-zero exit (e.g., no commits)
             )
             changed_files = [f for f in result.stdout.strip().split('\n')
                            if f and not f.startswith('.claude/')]
             real_work_done = len(changed_files) > 0
-        except Exception as e:
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError) as e:
             print(f"[ralph] Warning: Git diff check failed, assuming work done: {e}", file=sys.stderr)
             real_work_done = True  # Assume work done if can't check
 
@@ -780,7 +796,7 @@ def main():
             elif convergence.confidence >= ADAPTER_CONFIDENCE_THRESHOLD:
                 adapter_should_stop = not convergence.should_continue
                 adapter_confidence = convergence.confidence
-        except Exception as e:
+        except (ValueError, TypeError, KeyError, OSError, AttributeError) as e:
             logger.warning(f"Adapter convergence check failed: {e}")
 
     min_hours_met = runtime_hours >= config["min_hours"]

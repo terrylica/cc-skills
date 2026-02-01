@@ -141,6 +141,66 @@ When Claude reaches a natural stop point:
 | Loop ignores forbidden     | Guidance not loaded at start    | Use `/ru:start` without `--quick` to load guidance |
 | Emergency stop not working | STOP_LOOP not in right location | Create file at `.claude/STOP_LOOP` (project root)  |
 
+## Architecture (Developer Reference)
+
+The Stop hook uses a multi-layer architecture for activation gating and template rendering:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Claude Code Stop Event                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  loop-until-done-wrapper.sh (Bash)                              │
+│  ├── Activation gate: checks ru-state.json for "running"        │
+│  ├── Fast exit if not active (< 1ms, no Python/Bun deps)        │
+│  └── Finds Bun executable and invokes TypeScript                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  loop-until-done.ts (TypeScript/Bun)                            │
+│  ├── State machine: RUNNING → DRAINING → STOPPED                │
+│  ├── Kill switch detection (.claude/STOP_LOOP)                  │
+│  ├── Runtime/iteration tracking                                 │
+│  └── Calls Python modules via subprocess for:                   │
+│      ├── template_loader.py → ralph-unified.md (Jinja2)         │
+│      ├── completion.py (task completion detection)              │
+│      ├── discovery.py (file discovery)                          │
+│      └── ralph_evolution.py (learned patterns)                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  templates/ralph-unified.md (Jinja2)                            │
+│  ├── Hardcoded: AUTONOMOUS MODE, TASK ORCHESTRATION,            │
+│  │   COMMIT STRATEGY, ERROR RECOVERY, TESTING PHILOSOPHY,       │
+│  │   CONSTRAINTS                                                │
+│  └── User-customizable: forbidden[], encouraged[] from config   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### File Status
+
+| File                         | Status     | Purpose                                |
+| ---------------------------- | ---------- | -------------------------------------- |
+| `loop-until-done-wrapper.sh` | Active     | Bash activation gate                   |
+| `loop-until-done.ts`         | Active     | TypeScript entry point (Bun runtime)   |
+| `loop-until-done.py`         | Deprecated | Reference/testing only (see Issue #19) |
+| `template_loader.py`         | Active     | Jinja2 template rendering              |
+| `completion.py`              | Active     | Task completion detection              |
+| `discovery.py`               | Active     | File discovery                         |
+| `ralph_evolution.py`         | Active     | Pattern learning                       |
+
+### Why This Architecture?
+
+1. **Bash wrapper** - Activation check without Python/Bun dependencies (fast exit for inactive projects)
+2. **TypeScript entry** - Type safety, easier validation, modern tooling
+3. **Python subprocess** - Incremental migration from Python; Jinja2 template rendering requires Python
+
+See [Issue #19](https://github.com/terrylica/cc-skills/issues/19) for migration roadmap.
+
 ## License
 
 MIT
