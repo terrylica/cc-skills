@@ -1,3 +1,25 @@
+## [11.6.3](https://github.com/terrylica/cc-skills/compare/v11.6.2...v11.6.3) (2026-02-01)
+
+
+### Bug Fixes
+
+* **itp-hooks:** remove obsolete Polars preference tests ([da86063](https://github.com/terrylica/cc-skills/commit/da8606317d58a928034a36cd4f66f28a448fa87a))
+* **ru:** remove extra blank lines in LiquidJS for loop output ([6736148](https://github.com/terrylica/cc-skills/commit/67361489c936896edf59bfad9ef818d7389f181a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+4/-4)
+
 ## [11.6.2](https://github.com/terrylica/cc-skills/compare/v11.6.1...v11.6.2) (2026-02-01)
 
 ## [11.6.1](https://github.com/terrylica/cc-skills/compare/v11.6.0...v11.6.1) (2026-02-01)
