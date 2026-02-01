@@ -315,164 +315,16 @@ function stringSimilarity(a: string, b: string): number {
   return matches / longer.length;
 }
 
-// --- Template Rendering (migrated from Python/Jinja2) ---
+// --- Template Rendering (using LiquidJS) ---
 
-interface TemplateContext {
-  task_complete: boolean;
-  iteration: number;
-  project_dir: string;
-  forbidden_items: string[];
-  encouraged_items: string[];
-  opportunities: string[];
-  accumulated_patterns: string[];
-  disabled_checks: string[];
-  effective_checks: string[];
-  feature_ideas: Array<{ idea: string; priority: string; source: string }>;
-}
+import { Liquid } from "liquidjs";
 
-function renderJinja2Template(template: string, ctx: TemplateContext): string {
-  let result = template;
-
-  // Remove YAML frontmatter (--- ... ---)
-  result = result.replace(/^---[\s\S]*?---\n/, "");
-
-  // Simple variable substitution: {{ var }}
-  result = result.replace(/\{\{\s*project_dir\s*\}\}/g, ctx.project_dir);
-  result = result.replace(/\{\{\s*iteration\s*\}\}/g, String(ctx.iteration));
-
-  // Handle IMPLEMENTATION vs EXPLORATION phase
-  // Pattern: {% if not task_complete %} IMPLEMENTATION {% else %} EXPLORATION {% endif %}
-  const phaseBlockRegex = /\{% if not task_complete %\}[\s\S]*?\{#[^#]*IMPLEMENTATION[^#]*#\}([\s\S]*?)\{% else %\}[\s\S]*?\{#[^#]*EXPLORATION[^#]*#\}([\s\S]*?)\{% endif %\}/;
-  const phaseMatch = result.match(phaseBlockRegex);
-  if (phaseMatch) {
-    // phaseMatch[1] = implementation content, phaseMatch[2] = exploration content
-    result = result.replace(phaseBlockRegex, ctx.task_complete ? phaseMatch[2] : phaseMatch[1]);
-  }
-
-  // Handle forbidden_items block
-  const forbiddenBlockRegex = /\{% if forbidden_items %\}([\s\S]*?)\{% endif %\}/;
-  if (ctx.forbidden_items.length > 0) {
-    result = result.replace(forbiddenBlockRegex, (_, content) => {
-      // Render for loop
-      const forLoopRegex = /\{% for item in forbidden_items %\}([\s\S]*?)\{% endfor -%?\}/;
-      return content.replace(forLoopRegex, (_: string, itemTemplate: string) => {
-        return ctx.forbidden_items.map(item =>
-          itemTemplate.replace(/\{\{\s*item\s*\}\}/g, item)
-        ).join("");
-      });
-    });
-  } else {
-    result = result.replace(forbiddenBlockRegex, "");
-  }
-
-  // Handle encouraged_items block
-  const encouragedBlockRegex = /\{% if encouraged_items %\}([\s\S]*?)\{% endif %\}/;
-  if (ctx.encouraged_items.length > 0) {
-    result = result.replace(encouragedBlockRegex, (_, content) => {
-      const forLoopRegex = /\{% for item in encouraged_items %\}([\s\S]*?)\{% endfor -%?\}/;
-      return content.replace(forLoopRegex, (_: string, itemTemplate: string) => {
-        return ctx.encouraged_items.map((item, idx) =>
-          itemTemplate
-            .replace(/\{\{\s*loop\.index\s*\}\}/g, String(idx + 1))
-            .replace(/\{\{\s*item\s*\}\}/g, item)
-        ).join("");
-      });
-    });
-  } else {
-    result = result.replace(encouragedBlockRegex, "");
-  }
-
-  // Handle "no guidance" fallback
-  const noGuidanceRegex = /\{% if not forbidden_items and not encouraged_items %\}([\s\S]*?)\{% endif %\}/;
-  if (ctx.forbidden_items.length === 0 && ctx.encouraged_items.length === 0) {
-    result = result.replace(noGuidanceRegex, (_, content) => content);
-  } else {
-    result = result.replace(noGuidanceRegex, "");
-  }
-
-  // Handle opportunities block
-  const opportunitiesIfRegex = /\{% if opportunities %\}([\s\S]*?)\{% else %\}([\s\S]*?)\{% endif %\}/;
-  result = result.replace(opportunitiesIfRegex, (_, withOpp, withoutOpp) => {
-    if (ctx.opportunities.length > 0) {
-      const forLoopRegex = /\{% for opp in opportunities %\}([\s\S]*?)\{% endfor %\}/;
-      return withOpp.replace(forLoopRegex, (_: string, oppTemplate: string) => {
-        return ctx.opportunities.map((opp, idx) =>
-          oppTemplate
-            .replace(/\{\{\s*loop\.index\s*\}\}/g, String(idx + 1))
-            .replace(/\{\{\s*opp\s*\}\}/g, opp)
-        ).join("");
-      });
-    }
-    return withoutOpp;
-  });
-
-  // Handle accumulated_patterns
-  const patternsRegex = /\{% if accumulated_patterns %\}([\s\S]*?)\{% endif %\}/;
-  if (ctx.accumulated_patterns.length > 0) {
-    result = result.replace(patternsRegex, (_, content) =>
-      content.replace(/\{\{\s*accumulated_patterns\|length\s*\}\}/g, String(ctx.accumulated_patterns.length))
-    );
-  } else {
-    result = result.replace(patternsRegex, "");
-  }
-
-  // Handle disabled_checks
-  const disabledRegex = /\{% if disabled_checks %\}([\s\S]*?)\{% endif %\}/;
-  if (ctx.disabled_checks.length > 0) {
-    result = result.replace(disabledRegex, (_, content) =>
-      content.replace(/\{\{\s*disabled_checks\|length\s*\}\}/g, String(ctx.disabled_checks.length))
-    );
-  } else {
-    result = result.replace(disabledRegex, "");
-  }
-
-  // Handle effective_checks
-  const effectiveRegex = /\{% if effective_checks %\}([\s\S]*?)\{% endif %\}/;
-  if (ctx.effective_checks.length > 0) {
-    result = result.replace(effectiveRegex, (_, content) =>
-      content.replace(/\{\{\s*effective_checks\|length\s*\}\}/g, String(ctx.effective_checks.length))
-    );
-  } else {
-    result = result.replace(effectiveRegex, "");
-  }
-
-  // Handle feature_ideas
-  const ideasBlockRegex = /\{% if feature_ideas %\}([\s\S]*?)\{% endif %\}/;
-  if (ctx.feature_ideas.length > 0) {
-    result = result.replace(ideasBlockRegex, (_, content) => {
-      const forLoopRegex = /\{% for idea in feature_ideas %\}([\s\S]*?)\{% endfor -%?\}/;
-      return content.replace(forLoopRegex, (_: string, ideaTemplate: string) => {
-        return ctx.feature_ideas.map(idea =>
-          ideaTemplate
-            .replace(/\{\{\s*idea\.idea\s*\}\}/g, idea.idea)
-            .replace(/\{\{\s*idea\.priority\s*\}\}/g, idea.priority)
-            .replace(/\{\{\s*idea\.source\s*\}\}/g, idea.source)
-        ).join("");
-      });
-    });
-  } else {
-    result = result.replace(ideasBlockRegex, "");
-  }
-
-  // Handle task_complete mode display at bottom
-  const modeDisplayRegex = /\{% if not task_complete %\}\s*\*\*MODE\*\*: Implementation[^{]*\{% else %\}\s*\*\*MODE\*\*: Exploration[^{]*\{% endif %\}/;
-  result = result.replace(modeDisplayRegex,
-    ctx.task_complete
-      ? "**MODE**: Exploration - discovering and creating new tasks."
-      : "**MODE**: Implementation - execute tasks before exploring new frontiers."
-  );
-
-  // Clean up remaining Jinja2 comments
-  result = result.replace(/\{#[\s\S]*?#\}/g, "");
-
-  // Clean up any remaining Jinja2 tags ({% ... %})
-  result = result.replace(/\{%[\s\S]*?%\}/g, "");
-
-  // Clean up extra blank lines
-  result = result.replace(/\n{3,}/g, "\n\n");
-
-  return result.trim();
-}
+const liquid = new Liquid({
+  // Preserve template whitespace for markdown formatting
+  trimTagLeft: false,
+  trimTagRight: false,
+  greedy: false,
+});
 
 function renderTemplate(
   taskComplete: boolean,
@@ -485,20 +337,31 @@ function renderTemplate(
   const templatePath = join(hooksDir, "templates", "ralph-unified.md");
 
   try {
-    const template = readFileSync(templatePath, "utf-8");
-    const ctx: TemplateContext = {
+    let template = readFileSync(templatePath, "utf-8");
+
+    // Remove YAML frontmatter
+    template = template.replace(/^---[\s\S]*?---\n/, "");
+
+    // Remove Jinja2 comments (LiquidJS uses different syntax)
+    template = template.replace(/\{#[\s\S]*?#\}/g, "");
+
+    const ctx = {
       task_complete: taskComplete,
       iteration,
       project_dir: projectDir,
       forbidden_items: guidance.forbidden || [],
       encouraged_items: guidance.encouraged || [],
-      opportunities: [],
+      opportunities: [] as string[],
       accumulated_patterns: loadLearnedPatterns(),
-      disabled_checks: [],
-      effective_checks: [],
-      feature_ideas: [],
+      disabled_checks: [] as string[],
+      effective_checks: [] as string[],
+      feature_ideas: [] as Array<{ idea: string; priority: string; source: string }>,
     };
-    return renderJinja2Template(template, ctx);
+
+    const result = liquid.parseAndRenderSync(template, ctx);
+
+    // Clean up extra blank lines
+    return result.replace(/\n{3,}/g, "\n\n").trim();
   } catch (e) {
     emit("Template", `Template render error: ${e}`);
   }
