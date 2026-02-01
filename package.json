@@ -17,8 +17,7 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.0",
-    "liquidjs": "^10.24.0",
-    "zod": "^3.24.0"
+    "liquidjs": "^10.24.0"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
@@ -29,7 +28,8 @@
     "@semantic-release/release-notes-generator": "^14.0.1",
     "ajv": "^8.17.1",
     "semantic-release": "^25.0.0",
-    "tinyglobby": "^0.2.15"
+    "tinyglobby": "^0.2.15",
+    "valibot": "^1.2.0"
   },
   "engines": {
     "node": ">=22.0.0"

@@ -7,7 +7,6 @@
       "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "^0.1.0",
         "liquidjs": "^10.24.0",
-        "zod": "^3.24.0",
       },
       "devDependencies": {
         "@semantic-release/changelog": "^6.0.3",
@@ -19,6 +18,7 @@
         "ajv": "^8.17.1",
         "semantic-release": "^25.0.0",
         "tinyglobby": "^0.2.15",
+        "valibot": "^1.2.0",
       },
     },
   },
@@ -545,6 +545,8 @@
 
     "util-deprecate": ["util-deprecate@1.0.2", "", {}, ""],
 
+    "valibot": ["valibot@1.2.0", "", { "peerDependencies": { "typescript": ">=5" }, "optionalPeers": ["typescript"] }, "sha512-mm1rxUsmOxzrwnX5arGS+U4T25RdvpPjPN4yR0u9pUBov9+zGVtO84tif1eY4r6zWxVxu3KzIyknJy3rxfRZZg=="],
+
     "validate-npm-package-license": ["validate-npm-package-license@3.0.4", "", { "dependencies": { "spdx-correct": "^3.0.0", "spdx-expression-parse": "^3.0.0" } }, ""],
 
     "web-worker": ["web-worker@1.2.0", "", {}, ""],
@@ -565,7 +567,7 @@
 
     "yoctocolors": ["yoctocolors@2.1.2", "", {}, ""],
 
-    "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
+    "zod": ["zod@4.3.6", "", {}, "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="],
 
     "@actions/http-client/undici": ["undici@5.29.0", "", { "dependencies": { "@fastify/busboy": "^2.0.0" } }, ""],
 
