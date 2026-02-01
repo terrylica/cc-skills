@@ -227,9 +227,9 @@ Task(
 
 {% if opportunities.size > 0 %}
 **Discovered Opportunities**:
-{% for opp in opportunities %}
+{% for opp in opportunities -%}
 {{ forloop.index }}. {{ opp }}
-{% endfor %}
+{% endfor -%}
 {% else %}
 **DYNAMIC DISCOVERY ACTIVE** - Scanning project for opportunities.
 {% endif %}
@@ -287,9 +287,9 @@ Task(
 {% if feature_ideas.size > 0 %}
 
 ### Accumulated Feature Ideas
-{% for idea in feature_ideas %}
+{% for idea in feature_ideas -%}
 - **{{ idea.idea }}** ({{ idea.priority }}, source: {{ idea.source }})
-{% endfor %}
+{% endfor -%}
 {% endif %}
 
 ---
