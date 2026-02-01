@@ -126,6 +126,12 @@ Recovery strategies for autonomous operation (no human interaction available):
 
 ---
 
+## DATA PROCESSING
+
+**Polars + Arrow first.** Only use Pandas when external API requires it (MLflow, legacy integrations). Polars is faster, zero-copy with Arrow, better memory efficiency.
+
+---
+
 ## TESTING PHILOSOPHY
 
 ### Anti-Patterns (FORBIDDEN)
