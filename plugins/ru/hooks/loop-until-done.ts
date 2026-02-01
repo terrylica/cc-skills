@@ -409,39 +409,125 @@ ${pythonScript}`;
 Execute tasks from the Task system. Use TaskList to find available work.`;
 }
 
-// --- Task Completion Check (calls Python until migrated) ---
+// --- Task Completion Check (migrated from Python) ---
+
+// Completion confidence levels (from config_schema.py defaults)
+const COMPLETION_CONFIDENCE = {
+  explicit_marker: 1.0,
+  frontmatter_status: 0.95,
+  all_checkboxes: 0.9,
+  no_pending_items: 0.85,
+  semantic_phrases: 0.7,
+};
+
+const COMPLETION_PHRASES = [
+  "task complete",
+  "all done",
+  "finished",
+  "implementation complete",
+  "work complete",
+];
+
+function hasFrontmatterValue(content: string, key: string, value: string): boolean {
+  const lines = content.split("\n");
+  if (!lines.length || lines[0].trim() !== "---") return false;
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === "---") break;
+    if (line.startsWith(`${key}:`)) {
+      let lineValue = line.split(":", 2)[1]?.trim() || "";
+      lineValue = lineValue.replace(/^["']|["']$/g, "");
+      if (lineValue === value) return true;
+    }
+  }
+  return false;
+}
+
+function hasExplicitCompletionMarker(content: string): boolean {
+  for (const line of content.split("\n")) {
+    const stripped = line.trim().toLowerCase();
+    if (stripped.includes("task_complete") && stripped.includes("[x]")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function countCheckboxes(content: string): { total: number; checked: number } {
+  let total = 0;
+  let checked = 0;
+  for (const line of content.split("\n")) {
+    const stripped = line.trim();
+    if (stripped.startsWith("- [ ]") || stripped.startsWith("* [ ]")) {
+      total++;
+    } else if (
+      stripped.startsWith("- [x]") || stripped.startsWith("* [x]") ||
+      stripped.startsWith("- [X]") || stripped.startsWith("* [X]")
+    ) {
+      total++;
+      checked++;
+    }
+  }
+  return { total, checked };
+}
 
 function checkTaskComplete(planFile: string | null): { complete: boolean; reason: string; confidence: number } {
-  if (!planFile) return { complete: false, reason: "", confidence: 0 };
-
-  const hooksDir = dirname(new URL(import.meta.url).pathname);
-  const uvCmd = findUvCommand();
-  const pythonScript = `# /// script
-# requires-python = ">=3.11"
-# dependencies = []
-# ///
-import sys
-sys.path.insert(0, '${hooksDir}')
-from completion import check_task_complete_ralph
-complete, reason, confidence = check_task_complete_ralph("${planFile}")
-import json
-print(json.dumps({"complete": complete, "reason": reason, "confidence": confidence}))
-`;
-
-  try {
-    const result = spawnSync(uvCmd, ["run", "--no-project", "--script", "-"], {
-      encoding: "utf-8",
-      timeout: 15000,
-      cwd: hooksDir,
-      input: pythonScript,
-    });
-    if (result.status === 0) {
-      return JSON.parse(result.stdout.trim());
-    }
-  } catch {
-    // Ignore
+  if (!planFile || !existsSync(planFile)) {
+    return { complete: false, reason: "no file", confidence: 0 };
   }
-  return { complete: false, reason: "", confidence: 0 };
+
+  let content: string;
+  try {
+    content = readFileSync(planFile, "utf-8");
+  } catch {
+    return { complete: false, reason: "read error", confidence: 0 };
+  }
+
+  const signals: Array<{ reason: string; confidence: number }> = [];
+
+  // Signal 1: Explicit marker [x] TASK_COMPLETE
+  if (hasExplicitCompletionMarker(content)) {
+    signals.push({ reason: "explicit_marker", confidence: COMPLETION_CONFIDENCE.explicit_marker });
+  }
+
+  // Signal 2: Frontmatter status
+  if (hasFrontmatterValue(content, "implementation-status", "completed") ||
+      hasFrontmatterValue(content, "implementation-status", "complete")) {
+    signals.push({ reason: "frontmatter_completed", confidence: COMPLETION_CONFIDENCE.frontmatter_status });
+  }
+  if (hasFrontmatterValue(content, "status", "implemented")) {
+    signals.push({ reason: "adr_implemented", confidence: COMPLETION_CONFIDENCE.frontmatter_status });
+  }
+
+  // Signal 3: All checkboxes checked
+  const { total, checked } = countCheckboxes(content);
+  if (total > 0 && checked === total) {
+    signals.push({ reason: "all_checkboxes_checked", confidence: COMPLETION_CONFIDENCE.all_checkboxes });
+  }
+
+  // Signal 4: Semantic completion phrases
+  const contentLower = content.toLowerCase();
+  for (const phrase of COMPLETION_PHRASES) {
+    const pattern = new RegExp(`\\b${phrase.replace(/\s+/g, "\\s+")}\\b`, "i");
+    if (pattern.test(contentLower)) {
+      signals.push({ reason: "semantic_phrase", confidence: COMPLETION_CONFIDENCE.semantic_phrases });
+      break;
+    }
+  }
+
+  // Signal 5: No unchecked items remain (but has checked items)
+  if (!content.includes("[ ]") && content.toLowerCase().includes("[x]")) {
+    signals.push({ reason: "no_pending_items", confidence: COMPLETION_CONFIDENCE.no_pending_items });
+  }
+
+  // Return highest confidence signal
+  if (signals.length > 0) {
+    const best = signals.reduce((a, b) => a.confidence > b.confidence ? a : b);
+    return { complete: true, reason: best.reason, confidence: best.confidence };
+  }
+
+  return { complete: false, reason: "not_complete", confidence: 0 };
 }
 
 // --- File Discovery (calls Python until migrated) ---
