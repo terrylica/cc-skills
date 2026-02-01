@@ -1,3 +1,24 @@
+# [11.5.0](https://github.com/terrylica/cc-skills/compare/v11.4.0...v11.5.0) (2026-02-01)
+
+
+### Features
+
+* **ru:** add GPU acceleration policy to autonomous loop template ([1414a82](https://github.com/terrylica/cc-skills/commit/1414a8240e6b57be04bad7408473e3f2b05b28e5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Copy forked tool to GPU workstation](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+65)
+
 # [11.4.0](https://github.com/terrylica/cc-skills/compare/v11.3.2...v11.4.0) (2026-02-01)
 
 
