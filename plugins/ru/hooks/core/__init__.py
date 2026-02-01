@@ -2,18 +2,15 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Core adapter infrastructure for Ralph multi-repository support."""
+"""Core configuration for Ralph Universal PreToolUse hook.
 
-from core.path_hash import build_state_file_path, get_path_hash, load_session_state
-from core.protocols import ConvergenceResult, MetricsEntry, ProjectAdapter
-from core.registry import AdapterRegistry
+ADR: /docs/adr/2025-12-20-ralph-rssi-eternal-loop.md
+Issue #12: https://github.com/terrylica/cc-skills/issues/12
+"""
+
+from core.config_schema import ProtectionConfig, load_config
 
 __all__ = [
-    "MetricsEntry",
-    "ConvergenceResult",
-    "ProjectAdapter",
-    "AdapterRegistry",
-    "get_path_hash",
-    "build_state_file_path",
-    "load_session_state",
+    "ProtectionConfig",
+    "load_config",
 ]
