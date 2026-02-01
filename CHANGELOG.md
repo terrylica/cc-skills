@@ -1,3 +1,19 @@
+## [11.5.1](https://github.com/terrylica/cc-skills/compare/v11.5.0...v11.5.1) (2026-02-01)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+7/-59)
+
 # [11.5.0](https://github.com/terrylica/cc-skills/compare/v11.4.0...v11.5.0) (2026-02-01)
 
 
