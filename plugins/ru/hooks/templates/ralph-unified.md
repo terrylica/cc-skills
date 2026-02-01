@@ -25,29 +25,27 @@ adr: 2025-12-20-ralph-rssi-eternal-loop
 ---
 
 ## USER GUIDANCE
-{% if forbidden_items %}
+{% if forbidden_items.size > 0 %}
 
 ### FORBIDDEN (User-Defined)
 
 **YOU SHALL NOT work on:**
 {% for item in forbidden_items %}
 - {{ item }}
-{% endfor -%}
-
+{% endfor %}
 ⚠️ These are user-specified constraints. If you find yourself about to work on any of these, STOP and find alternative work.
 {% endif %}
-{% if encouraged_items %}
+{% if encouraged_items.size > 0 %}
 
 ### ENCOURAGED (User Priorities)
 
 **Focus your work on these high-value areas:**
 {% for item in encouraged_items %}
-{{ loop.index }}. **{{ item }}**
-{% endfor -%}
-
+{{ forloop.index }}. **{{ item }}**
+{% endfor %}
 ✅ These override forbidden patterns. If an opportunity matches both forbidden AND encouraged, proceed with the work.
 {% endif %}
-{% if not forbidden_items and not encouraged_items %}
+{% if forbidden_items.size == 0 and encouraged_items.size == 0 %}
 
 _No custom guidance configured. Working autonomously._
 {% endif %}
@@ -227,10 +225,10 @@ Task(
 4. **CODE ANALYSIS** - Find TODO/FIXME code comments, improvement opportunities
 5. **TEST COVERAGE** - Are there untested code paths?
 
-{% if opportunities %}
+{% if opportunities.size > 0 %}
 **Discovered Opportunities**:
 {% for opp in opportunities %}
-{{ loop.index }}. {{ opp }}
+{{ forloop.index }}. {{ opp }}
 {% endfor %}
 {% else %}
 **DYNAMIC DISCOVERY ACTIVE** - Scanning project for opportunities.
@@ -277,21 +275,21 @@ Task(
 
 ## LEARNING CONTEXT
 
-{% if accumulated_patterns %}
-**{{ accumulated_patterns|length }} patterns** learned from past sessions
+{% if accumulated_patterns.size > 0 %}
+**{{ accumulated_patterns.size }} patterns** learned from past sessions
 {% endif %}
-{% if disabled_checks %}
-**{{ disabled_checks|length }} checks** disabled (proven ineffective)
+{% if disabled_checks.size > 0 %}
+**{{ disabled_checks.size }} checks** disabled (proven ineffective)
 {% endif %}
-{% if effective_checks %}
-**{{ effective_checks|length }} checks** prioritized (proven valuable)
+{% if effective_checks.size > 0 %}
+**{{ effective_checks.size }} checks** prioritized (proven valuable)
 {% endif %}
-{% if feature_ideas %}
+{% if feature_ideas.size > 0 %}
 
 ### Accumulated Feature Ideas
 {% for idea in feature_ideas %}
 - **{{ idea.idea }}** ({{ idea.priority }}, source: {{ idea.source }})
-{% endfor -%}
+{% endfor %}
 {% endif %}
 
 ---
