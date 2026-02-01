@@ -530,40 +530,110 @@ function checkTaskComplete(planFile: string | null): { complete: boolean; reason
   return { complete: false, reason: "not_complete", confidence: 0 };
 }
 
-// --- File Discovery (calls Python until migrated) ---
+// --- File Discovery (migrated from Python) ---
+
+const PLAN_MODE_PATTERN = /create your plan at ([^\s"]+\.md)/g;
+
+function discoverPlanModeFile(transcriptPath: string): string | null {
+  if (!transcriptPath || !existsSync(transcriptPath)) return null;
+  try {
+    const content = readFileSync(transcriptPath, "utf-8");
+    const matches = [...content.matchAll(PLAN_MODE_PATTERN)].map(m => m[1]);
+    const realFiles = matches.filter(m =>
+      !m.startsWith("/path/") && !m.includes("XXXX") && m.startsWith("/")
+    );
+    return realFiles.length > 0 ? realFiles[realFiles.length - 1] : null;
+  } catch {
+    return null;
+  }
+}
+
+function discoverFromTranscript(transcriptPath: string): string | null {
+  if (!transcriptPath || !existsSync(transcriptPath)) return null;
+  try {
+    const lines = readFileSync(transcriptPath, "utf-8").trim().split("\n");
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      try {
+        const entry = JSON.parse(line);
+        const content = entry?.message?.content;
+        if (!Array.isArray(content)) continue;
+        for (const block of content) {
+          if (block?.type !== "tool_use") continue;
+          if (!["Write", "Edit", "Read"].includes(block?.name)) continue;
+          const filePath = block?.input?.file_path || "";
+          if (filePath.includes("/.claude/plans/") && filePath.endsWith(".md")) {
+            return filePath;
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+  } catch {
+    // Ignore
+  }
+  return null;
+}
+
+function findNewestPlan(plansDir: string): string | null {
+  if (!existsSync(plansDir)) return null;
+  try {
+    const files = require("fs").readdirSync(plansDir) as string[];
+    const mdFiles = files
+      .filter((f: string) => f.endsWith(".md") && !f.includes("-agent-"))
+      .map((f: string) => join(plansDir, f));
+    if (mdFiles.length === 0) return null;
+    // Sort by mtime, newest first
+    mdFiles.sort((a: string, b: string) => {
+      const statA = require("fs").statSync(a);
+      const statB = require("fs").statSync(b);
+      return statB.mtimeMs - statA.mtimeMs;
+    });
+    return mdFiles[0];
+  } catch {
+    return null;
+  }
+}
 
 function discoverTargetFile(
   transcriptPath: string | undefined,
   projectDir: string
 ): { file: string | null; method: string; candidates: string[] } {
-  const hooksDir = dirname(new URL(import.meta.url).pathname);
-  const uvCmd = findUvCommand();
-  const pythonScript = `# /// script
-# requires-python = ">=3.11"
-# dependencies = []
-# ///
-import sys
-sys.path.insert(0, '${hooksDir}')
-from discovery import discover_target_file
-import json
-file, method, candidates = discover_target_file(${transcriptPath ? `"${transcriptPath}"` : "None"}, "${projectDir}")
-print(json.dumps({"file": file, "method": method, "candidates": candidates}))
-`;
-
-  try {
-    const result = spawnSync(uvCmd, ["run", "--no-project", "--script", "-"], {
-      encoding: "utf-8",
-      timeout: 15000,
-      cwd: hooksDir,
-      input: pythonScript,
-    });
-    if (result.status === 0) {
-      return JSON.parse(result.stdout.trim());
+  // Priority 0: Plan mode system-assigned file
+  if (transcriptPath) {
+    const planModeFile = discoverPlanModeFile(transcriptPath);
+    if (planModeFile) {
+      return { file: planModeFile, method: "plan_mode", candidates: [] };
     }
-  } catch {
-    // Ignore
   }
-  return { file: null, method: "", candidates: [] };
+
+  // Priority 1: Transcript parsing (Write/Edit/Read to .claude/plans/)
+  if (transcriptPath) {
+    const transcriptFile = discoverFromTranscript(transcriptPath);
+    if (transcriptFile) {
+      return { file: transcriptFile, method: "transcript", candidates: [] };
+    }
+  }
+
+  // Priority 4: Local .claude/plans/ (newest)
+  if (projectDir) {
+    const localPlans = join(projectDir, ".claude/plans");
+    const localNewest = findNewestPlan(localPlans);
+    if (localNewest) {
+      return { file: localNewest, method: "local_plan", candidates: [] };
+    }
+  }
+
+  // Priority 6: Global plans (most recent fallback)
+  const globalPlans = join(homedir(), ".claude/plans");
+  const globalNewest = findNewestPlan(globalPlans);
+  if (globalNewest) {
+    return { file: globalNewest, method: "global_plan_mtime", candidates: [] };
+  }
+
+  return { file: null, method: "none", candidates: [] };
 }
 
 // --- Main ---
