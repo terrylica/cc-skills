@@ -1,17 +1,6 @@
 {
-  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, time-weighted Sharpe guard (multi-layer), code correctness, SR&ED commit validation, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync",
+  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, code correctness, SR&ED commit validation, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync",
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit-sharpe-context.mjs",
-            "timeout": 3000
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit",
@@ -29,16 +18,6 @@
           {
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-fake-data-guard.mjs",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-time-weighted-sharpe-guard.mjs",
             "timeout": 5000
           }
         ]
@@ -115,16 +94,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-time-weighted-sharpe-reminder.mjs",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-vale-claude-md.ts",
             "timeout": 5000
           },
@@ -141,16 +110,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-time-weighted-sharpe-audit.mjs",
-            "timeout": 10000
-          }
-        ]
-      }
-    ]
+    "Stop": []
   }
 }
