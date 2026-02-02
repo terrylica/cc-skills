@@ -1,7 +1,7 @@
 # gh-tools Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-3-blue.svg)]()
 [![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
@@ -52,6 +52,7 @@ When creating pull requests from feature branches, repository-relative links in 
 | -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
 | **pr-gfm-validator** | Validate and auto-fix GFM links in PR bodies              | `pr create`, `pull request`, `gfm link`, `pr links`, `validate pr`        |
 | **issue-create**     | Create issues with AI labeling and content type detection | `create issue`, `file bug`, `feature request`, `report issue`, `gh issue` |
+| **project-workflow** | GitHub Issues + Projects v2 integration and automation    | `project create`, `link issue to project`, `project status`, `auto-link`  |
 
 ## How It Works
 
@@ -209,9 +210,11 @@ https://github.com/{owner}/{repo}/blob/{branch}/{path}
 Future skills to be added to gh-tools:
 
 - [x] **issue-create**: GitHub Issues creation with AI labeling (completed)
+- [x] **project-workflow**: GitHub Issues + Projects v2 integration (completed)
 - [ ] **release-notes**: Auto-generate release notes from commits
 - [ ] **pr-template**: Smart PR description templates per project
 - [ ] **check-status**: Monitor CI/CD status and report failures
+- [ ] **discussion-create**: Create and manage GitHub Discussions
 
 ## Dependencies
 
