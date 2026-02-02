@@ -1,3 +1,34 @@
+## [11.7.2](https://github.com/terrylica/cc-skills/compare/v11.7.1...v11.7.2) (2026-02-02)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [project-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/project-workflow/SKILL.md) - updated (+70/-8)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/project-workflow</strong> (1 file)</summary>
+
+- [GraphQL Queries Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/project-workflow/references/graphql-queries.md) - updated (+110/-5)
+
+</details>
+
 ## [11.7.1](https://github.com/terrylica/cc-skills/compare/v11.7.0...v11.7.1) (2026-02-02)
 
 
