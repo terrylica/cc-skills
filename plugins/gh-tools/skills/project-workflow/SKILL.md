@@ -8,15 +8,68 @@ allowed-tools: Read, Bash, Grep, Glob, Write
 
 Integrate GitHub Issues with Projects v2 for organized tracking. Create projects, link issues automatically by labels, manage custom fields, and sync status across issue lifecycle.
 
+## Critical Principle: Issues Are the Source of Truth
+
+**GitHub Issues = Primary content repository with full version tracking.**
+**GitHub Projects v2 = Personal visual tracker (no version history).**
+
+### Why Issues First
+
+| Feature             | Issues                  | Projects v2     | Discussions           |
+| ------------------- | ----------------------- | --------------- | --------------------- |
+| **Edit history**    | Full diff on every edit | None            | "Edited" badge only   |
+| **Timeline**        | All changes logged      | None            | None                  |
+| **Comment history** | Full diff               | N/A             | "Edited" badge only   |
+| **Audit log**       | Enterprise              | Enterprise only | Team discussions only |
+| **Searchable**      | Full-text + filters     | Limited         | Full-text             |
+| **API history**     | `timelineItems` GraphQL | None            | None                  |
+
+### Workflow Principle
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CONTENT WORKFLOW                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   1. WRITE in Issues (source of truth)                       │
+│      - Research findings, analysis, conclusions              │
+│      - Full edit history preserved                           │
+│      - Comments track evolving understanding                 │
+│      - Labels categorize and filter                          │
+│                                                              │
+│   2. TRACK in Projects v2 (personal dashboard)               │
+│      - Visual kanban/table/roadmap views                     │
+│      - Status, Priority, Iteration fields                    │
+│      - Cross-repo organization                               │
+│      - NO content here - just links to Issues                │
+│                                                              │
+│   3. LINK bidirectionally                                    │
+│      - Issues reference project for context                  │
+│      - Projects link to Issues for content                   │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### What NOT to Put in Projects
+
+- Research findings (put in Issue body)
+- Analysis details (put in Issue comments)
+- Conclusions (put in Issue body)
+- Code snippets (put in Issue body with fenced blocks)
+
+Projects v2 custom fields (Text, Number) have **no edit history**. If you update a field value, the previous value is lost forever.
+
 ## When to Use This Skill
 
 Use this skill when:
 
-- Creating GitHub Projects v2 boards for repositories
+- Creating GitHub Projects v2 boards for visual organization
 - Linking issues to projects (manually or automatically by labels)
 - Managing project custom fields (Status, Priority, Iteration, etc.)
 - Setting up research-specific project tracking
 - Automating issue-to-project workflows
+
+**Remember**: Write content in Issues first, then link to Projects for tracking.
 
 ## Invocation
 
