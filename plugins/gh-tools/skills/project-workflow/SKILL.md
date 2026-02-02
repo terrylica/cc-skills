@@ -15,14 +15,16 @@ Integrate GitHub Issues with Projects v2 for organized tracking. Create projects
 
 ### Why Issues First
 
-| Feature             | Issues                  | Projects v2     | Discussions           |
-| ------------------- | ----------------------- | --------------- | --------------------- |
-| **Edit history**    | Full diff on every edit | None            | "Edited" badge only   |
-| **Timeline**        | All changes logged      | None            | None                  |
-| **Comment history** | Full diff               | N/A             | "Edited" badge only   |
-| **Audit log**       | Enterprise              | Enterprise only | Team discussions only |
-| **Searchable**      | Full-text + filters     | Limited         | Full-text             |
-| **API history**     | `timelineItems` GraphQL | None            | None                  |
+| Feature             | Issues                  | Projects v2                | Discussions           |
+| ------------------- | ----------------------- | -------------------------- | --------------------- |
+| **Edit history**    | Full diff on every edit | None                       | "Edited" badge only   |
+| **Timeline**        | All changes logged      | Status changes only (2025) | None                  |
+| **Comment history** | Full diff               | N/A                        | "Edited" badge only   |
+| **Audit log**       | Enterprise              | Enterprise only            | Team discussions only |
+| **Searchable**      | Full-text + filters     | Limited                    | Full-text             |
+| **API history**     | `timelineItems` GraphQL | Status only (30-day limit) | None                  |
+
+**API Retention**: Timeline Events API retains data for 30 days only. For permanent audit trail, use Enterprise audit log or webhook-based logging.
 
 ### Workflow Principle
 
@@ -104,8 +106,68 @@ Use this skill when:
 │  - Text/Number: Free-form data                          │
 ├─────────────────────────────────────────────────────────┤
 │  Items: Issues | Pull Requests | Draft Issues           │
+├─────────────────────────────────────────────────────────┤
+│  Capacity: Up to 50,000 items per project (2025)        │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### 2025 Features
+
+#### Sub-Issues (GA April 2025)
+
+Hierarchical issue organization for breaking down complex work:
+
+```bash
+# Sub-issues are native GitHub Issues with parent relationship
+# View parent: Issue sidebar shows "Parent issue" link
+# View children: Parent issue shows "Sub-issues" section with progress bar
+
+# Use for research hierarchies:
+# Parent: "Investigate regime detection patterns"
+#   └── Sub: "Analyze high-volatility regimes"
+#   └── Sub: "Analyze low-volatility regimes"
+#   └── Sub: "Cross-validate with duration analysis"
+```
+
+**Limit**: 100 sub-issues per parent issue.
+
+#### Issue Types (GA 2025)
+
+Organization-level standardization for issue classification:
+
+```bash
+# Issue Types provide consistent categorization across all repos
+# Configure at: Organization Settings → Issues → Issue Types
+
+# Research-specific types:
+# - Research Hypothesis: Initial research question
+# - Research Finding: Validated insight with evidence
+# - Research Invalidation: Documented dead end (negative result)
+# - Research Blocked: Technical/data issues preventing completion
+```
+
+#### Status Updates
+
+High-level project status communication with stakeholder visibility:
+
+```bash
+# Create status update via GraphQL
+gh api graphql -f query='
+mutation($projectId: ID!, $body: String!, $status: ProjectV2StatusUpdateStatus!) {
+  createProjectV2StatusUpdate(input: {
+    projectId: $projectId
+    body: $body
+    startDate: "2026-02-01"
+    status: $status
+  }) {
+    statusUpdate { id status body }
+  }
+}' -f projectId="PVT_xxx" -f body="Research phase complete" -f status="ON_TRACK"
+
+# Status values: ON_TRACK | AT_RISK | OFF_TRACK | COMPLETE | INACTIVE
+```
+
+Status updates create a **feed of history** visible to stakeholders - use for milestone communication.
 
 ### Token Requirements
 

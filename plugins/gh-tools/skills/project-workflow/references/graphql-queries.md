@@ -337,15 +337,120 @@ query($login: String!, $number: Int!) {
 }' -f login="terrylica" -F number=2 | jq '.'
 ```
 
+## 2025 Mutations
+
+### Status Updates (June 2024+)
+
+Create project status updates for stakeholder communication:
+
+```bash
+gh api graphql -f query='
+mutation($projectId: ID!, $body: String!, $startDate: Date!, $status: ProjectV2StatusUpdateStatus!) {
+  createProjectV2StatusUpdate(input: {
+    projectId: $projectId
+    body: $body
+    startDate: $startDate
+    status: $status
+  }) {
+    statusUpdate {
+      id
+      body
+      status
+      startDate
+      targetDate
+      createdAt
+    }
+  }
+}' \
+  -f projectId="PVT_xxx" \
+  -f body="Sprint 3 research complete - all hypotheses tested" \
+  -f startDate="2026-02-01" \
+  -f status="ON_TRACK"
+```
+
+**Status enum**: `ON_TRACK` | `AT_RISK` | `OFF_TRACK` | `COMPLETE` | `INACTIVE`
+
+### Update Status Update
+
+```bash
+gh api graphql -f query='
+mutation($statusUpdateId: ID!, $body: String, $status: ProjectV2StatusUpdateStatus) {
+  updateProjectV2StatusUpdate(input: {
+    statusUpdateId: $statusUpdateId
+    body: $body
+    status: $status
+  }) {
+    statusUpdate { id status body }
+  }
+}' -f statusUpdateId="PVTSU_xxx" -f status="COMPLETE"
+```
+
+### Convert Draft to Issue
+
+Convert draft issues to real issues (with full version tracking):
+
+```bash
+gh api graphql -f query='
+mutation($projectId: ID!, $itemId: ID!, $repositoryId: ID!) {
+  convertProjectV2DraftIssueItemToIssue(input: {
+    projectId: $projectId
+    itemId: $itemId
+    repositoryId: $repositoryId
+  }) {
+    item {
+      id
+      content {
+        ... on Issue { number title url }
+      }
+    }
+  }
+}' \
+  -f projectId="PVT_xxx" \
+  -f itemId="PVTI_xxx" \
+  -f repositoryId="R_xxx"
+```
+
+**Note**: Convert drafts to Issues promptly - drafts lack labels, milestones, notifications, and version history.
+
+### Add Draft Issue
+
+Quick capture before converting to real Issue:
+
+```bash
+gh api graphql -f query='
+mutation($projectId: ID!, $title: String!, $body: String) {
+  addProjectV2DraftIssue(input: {
+    projectId: $projectId
+    title: $title
+    body: $body
+  }) {
+    projectItem { id }
+  }
+}' \
+  -f projectId="PVT_xxx" \
+  -f title="Research idea: cross-asset correlation" \
+  -f body="Initial hypothesis to explore"
+```
+
 ## Error Handling
 
 Common errors and solutions:
 
-| Error           | Cause                   | Solution                     |
-| --------------- | ----------------------- | ---------------------------- |
-| `NOT_FOUND`     | Wrong project/item ID   | Verify IDs with query first  |
-| `FORBIDDEN`     | Missing `project` scope | Use Classic PAT              |
-| `UNPROCESSABLE` | Invalid field value     | Check field type and options |
+| Error                      | Cause                   | Solution                           |
+| -------------------------- | ----------------------- | ---------------------------------- |
+| `NOT_FOUND`                | Wrong project/item ID   | Verify IDs with query first        |
+| `FORBIDDEN`                | Missing `project` scope | Use Classic PAT                    |
+| `UNPROCESSABLE`            | Invalid field value     | Check field type and options       |
+| `RESOURCE_LIMITS_EXCEEDED` | Query too complex       | Reduce nesting depth or pagination |
+
+## API Limits
+
+| Limit                | Value                          | Notes                                |
+| -------------------- | ------------------------------ | ------------------------------------ |
+| Points per hour      | 5,000 (10,000 with GitHub App) | Monitor with `X-RateLimit-*` headers |
+| Concurrent requests  | 100                            | Per authenticated user               |
+| Node limit per query | 500,000                        | Reduce `first:` values if exceeded   |
+| Timeline retention   | 30 days                        | For Events API access                |
 
 ## Related
 
