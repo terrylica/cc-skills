@@ -94,7 +94,27 @@ Use this skill when:
 
 ### Sub-Issues: Native Hierarchy (GA April 2025)
 
-Sub-issues replace the need for Projects v2 hierarchy. Use for all structured work:
+Sub-issues replace the need for Projects v2 hierarchy. Use for all structured work.
+
+#### When to Use Sub-Issues
+
+| Use Case                     | Example                                                             | Why Sub-Issues                             |
+| ---------------------------- | ------------------------------------------------------------------- | ------------------------------------------ |
+| **Research breakdown**       | Parent: "Investigate microstructure" → Subs: individual patterns    | Track which patterns validated/invalidated |
+| **Epic decomposition**       | Parent: "User authentication" → Subs: login, logout, password reset | Progress bar shows completion %            |
+| **Multi-step investigation** | Parent: "Debug performance issue" → Subs: profiling, memory, CPU    | Each sub can be assigned differently       |
+| **Phased work**              | Parent: "v2.0 release" → Subs: Phase 1, Phase 2, Phase 3            | Natural ordering with timeline             |
+
+#### When NOT to Use Sub-Issues
+
+| Situation                    | Use Instead                           | Why                            |
+| ---------------------------- | ------------------------------------- | ------------------------------ |
+| Simple checklist (< 5 items) | Markdown checkboxes in issue body     | Less overhead, editable inline |
+| Cross-repo dependencies      | Issue references (`See org/repo#123`) | Sub-issues are same-repo only  |
+| Loose relationships          | "Related to #X" in body               | Sub-issues imply containment   |
+| One-off tasks                | Single issue with labels              | Don't over-structure           |
+
+#### Creating Sub-Issues
 
 ```bash
 # Create parent issue
@@ -116,15 +136,15 @@ gh issue create --title "Regime detection patterns" \
 └── #104 Microstructure features v7.0 - Open
 ```
 
-**Features**:
+#### Sub-Issue Features
 
-- Parent shows "Sub-issues" section with progress bar
-- Each sub-issue shows "Parent issue" link in sidebar
-- Progress tracked automatically (X of Y completed)
+- **Progress bar**: Parent shows "X of Y completed" with visual bar
+- **Bidirectional links**: Sub shows "Parent issue" in sidebar, parent lists all subs
+- **Automatic tracking**: Close sub → parent progress updates
+- **Nesting**: Up to 8 levels deep (sub-sub-sub-issues)
+- **Limit**: 100 sub-issues per parent
 
-**Limits**: 100 sub-issues per parent. Up to 8 levels of nesting depth.
-
-**Migration Note**: Tasklist blocks retired April 30, 2025. Sub-issues are the official replacement. No migration tooling exists - manual conversion required.
+**Migration Note**: Tasklist blocks retired April 30, 2025. Sub-issues are the official replacement. No migration tooling - manual conversion required.
 
 ### Status via Labels (No Projects Needed)
 
