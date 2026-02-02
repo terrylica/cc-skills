@@ -1,6 +1,6 @@
 ---
-name: project-workflow
-description: GitHub Issues-first workflow with Projects v2 for visualization. TRIGGERS - issue hierarchy, sub-issues, project visualization, cross-repo dashboard.
+name: issues-workflow
+description: GitHub Issues-first workflow with sub-issues hierarchy. TRIGGERS - issue hierarchy, sub-issues, issue tracking, research workflow, cross-repo issues.
 allowed-tools: Read, Bash, Grep, Glob, Write
 ---
 
@@ -81,7 +81,7 @@ Use this skill when:
 
 ## Invocation
 
-**Slash command**: `/gh-tools:project-workflow`
+**Slash command**: `/gh-tools:issues-workflow`
 
 **Natural language triggers**:
 
