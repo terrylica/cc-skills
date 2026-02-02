@@ -10,40 +10,26 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### PreToolUse Hooks
 
-| Hook                                        | Matcher           | Purpose                                           |
-| ------------------------------------------- | ----------------- | ------------------------------------------------- |
-| `pretooluse-guard.sh`                       | Write\|Edit       | Implementation standards enforcement              |
-| `pretooluse-fake-data-guard.mjs`            | Write             | Prevents fake/placeholder data in production code |
-| `pretooluse-time-weighted-sharpe-guard.mjs` | Write\|Edit       | Time-weighted Sharpe ratio enforcement            |
-| `pretooluse-version-guard.mjs`              | Write\|Edit       | Version consistency validation                    |
-| `pretooluse-process-storm-guard.mjs`        | Bash\|Write\|Edit | Prevents fork bomb patterns                       |
-| `pretooluse-vale-claude-md-guard.ts`        | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations  |
-| `pretooluse-hoisted-deps-guard.mjs`         | Write\|Edit       | pyproject.toml root-only and path escape policies |
-| `pretooluse-gpu-optimization-guard.ts`      | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)  |
-| `sred-commit-guard.ts`                      | Bash              | SR&ED commit format enforcement                   |
+| Hook                                   | Matcher           | Purpose                                           |
+| -------------------------------------- | ----------------- | ------------------------------------------------- |
+| `pretooluse-guard.sh`                  | Write\|Edit       | Implementation standards enforcement              |
+| `pretooluse-fake-data-guard.mjs`       | Write             | Prevents fake/placeholder data in production code |
+| `pretooluse-version-guard.mjs`         | Write\|Edit       | Version consistency validation                    |
+| `pretooluse-process-storm-guard.mjs`   | Bash\|Write\|Edit | Prevents fork bomb patterns                       |
+| `pretooluse-vale-claude-md-guard.ts`   | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations  |
+| `pretooluse-hoisted-deps-guard.mjs`    | Write\|Edit       | pyproject.toml root-only and path escape policies |
+| `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)  |
+| `sred-commit-guard.ts`                 | Bash              | SR&ED commit format enforcement                   |
 
 ### PostToolUse Hooks
 
-| Hook                                            | Matcher           | Purpose                                                     |
-| ----------------------------------------------- | ----------------- | ----------------------------------------------------------- |
-| `posttooluse-reminder.ts`                       | Bash\|Write\|Edit | Context-aware reminders (UV, graph-easy, ADR sync)          |
-| `code-correctness-guard.sh`                     | Bash\|Write\|Edit | Silent failure detection only (NO unused imports, NO style) |
-| `posttooluse-time-weighted-sharpe-reminder.mjs` | Write\|Edit       | Time-weighted Sharpe ratio monitoring                       |
-| `posttooluse-vale-claude-md.ts`                 | Write\|Edit       | Vale terminology check on CLAUDE.md files                   |
-| `posttooluse-glossary-sync.ts`                  | Write\|Edit       | Auto-sync GLOSSARY.md to Vale vocabulary                    |
-| `posttooluse-terminology-sync.ts`               | Write\|Edit       | Project CLAUDE.md to global GLOSSARY.md sync                |
-
-### UserPromptSubmit Hooks
-
-| Hook                                  | Matcher | Purpose                              |
-| ------------------------------------- | ------- | ------------------------------------ |
-| `userpromptsubmit-sharpe-context.mjs` | (all)   | Injects time-weighted Sharpe context |
-
-### Stop Hooks
-
-| Hook                                  | Matcher | Purpose                        |
-| ------------------------------------- | ------- | ------------------------------ |
-| `stop-time-weighted-sharpe-audit.mjs` | (all)   | Session-end Sharpe ratio audit |
+| Hook                              | Matcher           | Purpose                                                     |
+| --------------------------------- | ----------------- | ----------------------------------------------------------- |
+| `posttooluse-reminder.ts`         | Bash\|Write\|Edit | Context-aware reminders (UV, graph-easy, ADR sync)          |
+| `code-correctness-guard.sh`       | Bash\|Write\|Edit | Silent failure detection only (NO unused imports, NO style) |
+| `posttooluse-vale-claude-md.ts`   | Write\|Edit       | Vale terminology check on CLAUDE.md files                   |
+| `posttooluse-glossary-sync.ts`    | Write\|Edit       | Auto-sync GLOSSARY.md to Vale vocabulary                    |
+| `posttooluse-terminology-sync.ts` | Write\|Edit       | Project CLAUDE.md to global GLOSSARY.md sync                |
 
 ## SR&ED Commit Guard
 
