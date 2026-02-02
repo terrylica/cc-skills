@@ -1,3 +1,57 @@
+# [11.7.0](https://github.com/terrylica/cc-skills/compare/v11.6.3...v11.7.0) (2026-02-02)
+
+
+### Bug Fixes
+
+* **ru:** apply whitespace trimming to all LiquidJS for loops ([033effe](https://github.com/terrylica/cc-skills/commit/033effef03dd70e62badb0c27669aa1c31111602))
+
+
+### Features
+
+* **gh-tools:** add project-workflow skill for GitHub Projects v2 integration ([42021f6](https://github.com/terrylica/cc-skills/commit/42021f6bf6b283815c120757190011df033a8a2c)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#20](https://github.com/terrylica/cc-skills/issues/20) [#TOOLS](https://github.com/terrylica/cc-skills/issues/TOOLS)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [project-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/project-workflow/SKILL.md) - new (+314)
+
+</details>
+
+
+### Plugin READMEs
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+4/-1)
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/project-workflow</strong> (3 files)</summary>
+
+- [Auto-Link Configuration Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/project-workflow/references/auto-link-config.md) - new (+269)
+- [GitHub Projects v2 Field Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/project-workflow/references/field-types.md) - new (+175)
+- [GraphQL Queries Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/project-workflow/references/graphql-queries.md) - new (+353)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+4/-4)
+
 ## [11.6.3](https://github.com/terrylica/cc-skills/compare/v11.6.2...v11.6.3) (2026-02-01)
 
 
