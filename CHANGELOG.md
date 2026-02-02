@@ -1,3 +1,24 @@
+## [11.7.5](https://github.com/terrylica/cc-skills/compare/v11.7.4...v11.7.5) (2026-02-02)
+
+
+### Bug Fixes
+
+* **itp-hooks:** remove obsolete Polars preference tests ([a4cd8c2](https://github.com/terrylica/cc-skills/commit/a4cd8c23d15ad5a029b38236262ba9657603346d))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+17/-31)
+
 ## [11.7.4](https://github.com/terrylica/cc-skills/compare/v11.7.3...v11.7.4) (2026-02-02)
 
 
