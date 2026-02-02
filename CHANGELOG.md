@@ -1,3 +1,24 @@
+## [11.7.1](https://github.com/terrylica/cc-skills/compare/v11.7.0...v11.7.1) (2026-02-02)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [project-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/project-workflow/SKILL.md) - updated (+54/-1)
+
+</details>
+
 # [11.7.0](https://github.com/terrylica/cc-skills/compare/v11.6.3...v11.7.0) (2026-02-02)
 
 
