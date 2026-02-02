@@ -1,3 +1,44 @@
+## [11.7.3](https://github.com/terrylica/cc-skills/compare/v11.7.2...v11.7.3) (2026-02-02)
+
+
+### Documentation
+
+* **gh-tools:** make Issues-first default, Projects v2 visualization-only ([e9f5f75](https://github.com/terrylica/cc-skills/commit/e9f5f75b06d97350599db956aa0c6526106c9f1b)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#TOOLS](https://github.com/terrylica/cc-skills/issues/TOOLS)
+
+
+### BREAKING CHANGES
+
+* **gh-tools:** Reposition workflow from "Issues + Projects" to "Issues-first"
+
+- Issues are now the default for all content, hierarchy, and tracking
+- Sub-issues replace Projects for hierarchy (100 per parent, 8 levels)
+- Labels replace Project fields for status/priority tracking
+- Projects v2 reduced to optional cross-repo visualization layer
+- Add complete GitHub Issues feature reference (30+ filters, milestones)
+- Add tasklist retirement notice (April 30, 2025)
+- Clarify when to use Projects v2 vs skip entirely
+
+SRED-Type: support-work
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [project-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/project-workflow/SKILL.md) - updated (+257/-286)
+
+</details>
+
 ## [11.7.2](https://github.com/terrylica/cc-skills/compare/v11.7.1...v11.7.2) (2026-02-02)
 
 
