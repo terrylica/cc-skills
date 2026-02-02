@@ -52,7 +52,7 @@ When creating pull requests from feature branches, repository-relative links in 
 | -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
 | **pr-gfm-validator** | Validate and auto-fix GFM links in PR bodies              | `pr create`, `pull request`, `gfm link`, `pr links`, `validate pr`        |
 | **issue-create**     | Create issues with AI labeling and content type detection | `create issue`, `file bug`, `feature request`, `report issue`, `gh issue` |
-| **project-workflow** | GitHub Issues + Projects v2 integration and automation    | `project create`, `link issue to project`, `project status`, `auto-link`  |
+| **issues-workflow**  | Issues-first workflow with sub-issues hierarchy           | `issue hierarchy`, `sub-issues`, `research workflow`, `issue tracking`    |
 
 ## How It Works
 
@@ -210,7 +210,7 @@ https://github.com/{owner}/{repo}/blob/{branch}/{path}
 Future skills to be added to gh-tools:
 
 - [x] **issue-create**: GitHub Issues creation with AI labeling (completed)
-- [x] **project-workflow**: GitHub Issues + Projects v2 integration (completed)
+- [x] **issues-workflow**: GitHub Issues + Projects v2 integration (completed)
 - [ ] **release-notes**: Auto-generate release notes from commits
 - [ ] **pr-template**: Smart PR description templates per project
 - [ ] **check-status**: Monitor CI/CD status and report failures
