@@ -1,3 +1,40 @@
+## [11.7.6](https://github.com/terrylica/cc-skills/compare/v11.7.5...v11.7.6) (2026-02-02)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issues-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/SKILL.md) - renamed from `plugins/gh-tools/skills/project-workflow/SKILL.md`
+
+</details>
+
+
+### Plugin READMEs
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+2/-2)
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/issues-workflow</strong> (3 files)</summary>
+
+- [Auto-Link Configuration Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/auto-link-config.md) - renamed from `plugins/gh-tools/skills/project-workflow/references/auto-link-config.md`
+- [GitHub Projects v2 Field Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/field-types.md) - renamed from `plugins/gh-tools/skills/project-workflow/references/field-types.md`
+- [GraphQL Queries Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/graphql-queries.md) - renamed from `plugins/gh-tools/skills/project-workflow/references/graphql-queries.md`
+
+</details>
+
 ## [11.7.5](https://github.com/terrylica/cc-skills/compare/v11.7.4...v11.7.5) (2026-02-02)
 
 
