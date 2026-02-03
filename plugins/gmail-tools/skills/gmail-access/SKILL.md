@@ -15,7 +15,32 @@ Before using Gmail commands, verify setup:
 1. **Check environment**: `echo $GMAIL_OP_UUID`
 2. **If not set**: Run discovery flow (see Setup section below)
 
+## CLI Location
+
+The Gmail CLI binary is located at:
+
+```bash
+GMAIL_CLI="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail"
+```
+
+**First-time setup** (if binary doesn't exist):
+
+```bash
+cd ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts
+bun install && bun run build
+```
+
 ## Commands
+
+Run commands using the full path or set an alias:
+
+```bash
+# Full path
+$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail list -n 10
+
+# Or create alias in shell config
+alias gmail='$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail'
+```
 
 | Command                                | Description                          |
 | -------------------------------------- | ------------------------------------ |
