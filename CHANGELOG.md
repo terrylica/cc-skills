@@ -1,3 +1,55 @@
+# [11.8.0](https://github.com/terrylica/cc-skills/compare/v11.7.6...v11.8.0) (2026-02-03)
+
+
+### Features
+
+* **gmail-tools:** add Gmail access plugin with 1Password OAuth ([29a2513](https://github.com/terrylica/cc-skills/commit/29a251366b76fb69298d3dd49815430c52d43d06))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-tools</strong> (1 change)</summary>
+
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/SKILL.md) - new (+198)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Gmail Tools](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/README.md) - new (+101)
+
+### Skill References
+
+<details>
+<summary><strong>gmail-tools/gmail-access</strong> (3 files)</summary>
+
+- [Gmail API OAuth Setup Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/references/gmail-api-setup.md) - new (+114)
+- [mise Setup Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/references/mise-setup.md) - new (+113)
+- [mise Configuration Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/references/mise-templates.md) - new (+96)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>gmail-tools</strong> (1 command)</summary>
+
+- [Gmail Tools Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/commands/setup.md) - new (+68)
+
+</details>
+
 ## [11.7.6](https://github.com/terrylica/cc-skills/compare/v11.7.5...v11.7.6) (2026-02-02)
 
 
