@@ -5,6 +5,7 @@ Reference guide for semantic versioning and release automation in Rust workspace
 ## Overview
 
 release-plz is a Rust-native release automation tool that:
+
 - Analyzes conventional commits since last tag
 - Runs cargo-semver-checks for API compatibility validation
 - Determines version bump (MAJOR/MINOR/PATCH)
@@ -78,6 +79,29 @@ edition.workspace = true
 license.workspace = true
 ```
 
+### Anti-Pattern: Hardcoded Version in `[package]`
+
+**CRITICAL**: Never use `version = "<version>"` in `[package]` when using workspace inheritance.
+
+```toml
+# ❌ WRONG - Version drift on release
+[package]
+name = "my-crate"
+version = "<old-version>"  # BUG: Doesn't update when workspace version changes
+
+# ✅ CORRECT - Inherits from workspace
+[package]
+name = "my-crate"
+version.workspace = true
+```
+
+**Verification**: Before release, check for duplicate versions:
+
+```bash
+grep -n "^version = " Cargo.toml
+# Should show only ONE line (in [workspace.package] section)
+```
+
 ## README SSoT Architecture
 
 The Single Source of Truth (SSoT) chain:
@@ -89,6 +113,7 @@ lib.rs doc comments → cargo-rdme → README.md → crates.io
 ### Setup
 
 1. **Add markers to README.md**:
+
 ```markdown
 # Project Name
 
@@ -100,8 +125,9 @@ lib.rs doc comments → cargo-rdme → README.md → crates.io
 ## License
 ```
 
-2. **Write documentation in lib.rs**:
-```rust
+1. **Write documentation in lib.rs**:
+
+````rust
 //! Project description.
 //!
 //! [![Crates.io](https://img.shields.io/crates/v/crate.svg)](https://crates.io/crates/crate)
@@ -119,14 +145,16 @@ lib.rs doc comments → cargo-rdme → README.md → crates.io
 //! use crate::Thing;
 //! let thing = Thing::new();
 //! ```
-```
+````
 
-3. **Configure pre_release_hook** in release-plz.toml:
+1. **Configure pre_release_hook** in release-plz.toml:
+
 ```toml
 pre_release_hook = "cargo rdme --workspace-project my-crate --readme-path README.md"
 ```
 
-4. **Add version-sync validation**:
+1. **Add version-sync validation**:
+
 ```toml
 # Cargo.toml [dev-dependencies]
 version-sync = "0.9"
@@ -178,20 +206,22 @@ PREFLIGHT_EOF
 
 release-plz analyzes commits since last tag:
 
-| Commit Type | Version Bump |
-|-------------|--------------|
-| `feat:` or `feat!:` | MINOR |
-| `fix:` | PATCH |
-| `BREAKING CHANGE:` in body | MAJOR |
-| `chore:`, `docs:`, `refactor:` | No bump |
+| Commit Type                    | Version Bump |
+| ------------------------------ | ------------ |
+| `feat:` or `feat!:`            | MINOR        |
+| `fix:`                         | PATCH        |
+| `BREAKING CHANGE:` in body     | MAJOR        |
+| `chore:`, `docs:`, `refactor:` | No bump      |
 
 cargo-semver-checks additionally validates:
+
 - Public API changes match commit types
 - Breaking changes have `BREAKING CHANGE:` or `!` in commit
 
 ## Multi-Crate Workspace
 
 release-plz automatically publishes in dependency order. For a workspace with:
+
 - `core` (no deps)
 - `providers` (depends on core)
 - `cli` (depends on providers)
