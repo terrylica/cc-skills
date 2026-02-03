@@ -46,7 +46,7 @@ Run these commands in your **terminal** (not inside Claude Code):
 claude plugin marketplace add terrylica/cc-skills
 
 # 2. Install all plugins (one-liner)
-for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research; do claude plugin install "$p@cc-skills"; done
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research gmail-tools; do claude plugin install "$p@cc-skills"; done
 
 # 3. Sync hooks to settings.json (requires cloning the repo)
 git clone https://github.com/terrylica/cc-skills.git /tmp/cc-skills
@@ -91,7 +91,6 @@ claude plugin install productivity-tools@cc-skills
 claude plugin install mql5@cc-skills
 claude plugin install itp-hooks@cc-skills
 claude plugin install alpha-forge-worktree@cc-skills
-claude plugin install ralph@cc-skills
 claude plugin install ru@cc-skills
 claude plugin install iterm2-layout-config@cc-skills
 claude plugin install statusline-tools@cc-skills
@@ -469,8 +468,7 @@ cc-skills/
 │   ├── mql5/                      # MQL5 development (indicators + mql5.com)
 │   ├── itp-hooks/                 # ITP workflow enforcement hooks
 │   ├── alpha-forge-worktree/      # Git worktree management
-│   ├── ralph/                     # Autonomous AI orchestration
-│   ├── ru/                        # Universal autonomous loop mode
+│   ├── ru/                        # Autonomous loop mode (Ralph Universe)
 │   ├── iterm2-layout-config/      # iTerm2 workspace layout configuration
 │   ├── statusline-tools/          # Custom status line with indicators
 │   ├── notion-api/                # Notion API integration
