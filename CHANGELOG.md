@@ -1,3 +1,48 @@
+## [11.8.3](https://github.com/terrylica/cc-skills/compare/v11.8.2...v11.8.3) (2026-02-03)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issues-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Plugin READMEs
+
+- [ITP Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/README.md) - updated (+13/-36)
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+2/-2)
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+4/-5)
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+8/-8)
+- [Session Resume Context](https://github.com/terrylica/cc-skills/blob/main/docs/RESUME.md) - updated (+1/-1)
+
+## Other Documentation
+
+### Other
+
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - updated (+2/-2)
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+1/-1)
+
 ## [11.8.2](https://github.com/terrylica/cc-skills/compare/v11.8.1...v11.8.2) (2026-02-03)
 
 
