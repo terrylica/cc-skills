@@ -24,6 +24,12 @@ gmail read <message_id>
 
 # Export to JSON
 gmail export -q "label:inbox" -o emails.json -n 100
+
+# Create a draft email
+gmail draft --to "user@example.com" --subject "Hello" --body "Message body"
+
+# Create a draft reply (threads into existing conversation)
+gmail draft --to "user@example.com" --subject "Re: Hello" --body "Reply" --reply-to <message_id>
 ```
 
 ## Setup
@@ -65,9 +71,9 @@ Or run: `/gmail-tools:setup`
 
 ## Skills
 
-| Skill          | Description                   |
-| -------------- | ----------------------------- |
-| `gmail-access` | Read and search Gmail via CLI |
+| Skill          | Description                            |
+| -------------- | -------------------------------------- |
+| `gmail-access` | Read, search, and draft emails via CLI |
 
 ## Commands
 

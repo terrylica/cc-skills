@@ -1,6 +1,6 @@
 ---
 name: gmail-access
-description: Access Gmail via CLI with 1Password OAuth. Use when user wants to read emails, search inbox, export messages, or mentions gmail access. TRIGGERS - gmail, email, read email, list emails, search inbox, export emails.
+description: Access Gmail via CLI with 1Password OAuth. Use when user wants to read emails, search inbox, export messages, create drafts, or mentions gmail access. TRIGGERS - gmail, email, read email, list emails, search inbox, export emails, create draft, draft email, compose email.
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 ---
 
@@ -178,7 +178,47 @@ $GMAIL_CLI export -q "label:inbox" -o emails.json -n 100
 
 # JSON output (for parsing)
 $GMAIL_CLI list -n 10 --json
+
+# Create a draft email
+$GMAIL_CLI draft --to "user@example.com" --subject "Hello" --body "Message body"
+
+# Create a draft reply (threads into existing conversation)
+$GMAIL_CLI draft --to "user@example.com" --subject "Re: Hello" --body "Reply text" --reply-to <message_id>
 ```
+
+## Creating Draft Emails
+
+The `draft` command creates emails in your Gmail Drafts folder for review before sending.
+
+**Required options:**
+
+- `--to` - Recipient email address
+- `--subject` - Email subject line
+- `--body` - Email body text
+
+**Optional:**
+
+- `--reply-to` - Message ID to reply to (creates threaded reply with proper headers)
+- `--json` - Output draft details as JSON
+
+**Example: Create reply drafts from conversation:**
+
+```bash
+# 1. Find the message to reply to
+$GMAIL_CLI search "from:someone@example.com subject:meeting" -n 5 --json
+
+# 2. Create draft reply using message ID
+$GMAIL_CLI draft \
+  --to "someone@example.com" \
+  --subject "Re: Meeting tomorrow" \
+  --body "Thanks for the update. I'll be there at 2pm." \
+  --reply-to "19c1e6a97124aed8"
+
+# 3. Review drafts in Gmail
+# Open: https://mail.google.com/mail/u/0/#drafts
+```
+
+**Note:** After creating drafts, users need to re-authenticate if they previously only had read access. The CLI will prompt for OAuth consent to add the `gmail.compose` scope.
 
 ## Gmail Search Syntax
 
