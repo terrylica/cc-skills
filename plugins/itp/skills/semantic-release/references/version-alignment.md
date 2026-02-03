@@ -220,6 +220,44 @@ version_toml = [
 | pyproject.toml: `dynamic = ["version"]`          | maturin reads Cargo.toml at build time                                |
 | semantic-release: Only update Cargo.toml         | Use `version_toml` not `prepareCmd` with sed                          |
 
+### Anti-Pattern: Duplicate Version in `[package]`
+
+**CRITICAL**: The `[package]` section must use `version.workspace = true`, NOT a hardcoded version.
+
+```toml
+# ❌ WRONG - Creates version drift on release
+[workspace.package]
+version = "<new-version>"
+
+[package]
+name = "myproject-py"
+version = "<old-version>"  # ← BUG: Stale version, wheels built with wrong version
+
+# ✅ CORRECT - Single source of truth
+[workspace.package]
+version = "<version>"
+
+[package]
+name = "myproject-py"
+version.workspace = true  # ← Inherits from workspace
+```
+
+**Real-world regression**: Built wheels showed old version because `[package]` had hardcoded version instead of workspace inheritance. Fixed by changing to `version.workspace = true`.
+
+### Verification Checklist
+
+Before release, verify SSoT is intact:
+
+```bash
+# Check for duplicate version definitions
+grep -n "^version = " Cargo.toml
+
+# Expected output (only workspace.package should have literal version):
+# 23:version = "X.Y.Z"  ← [workspace.package] section only
+
+# If you see TWO version lines, the [package] section has a hardcoded version (BUG)
+```
+
 ### Why This Works
 
 1. **No dual-file sync** - Python version derived from Rust, not duplicated
