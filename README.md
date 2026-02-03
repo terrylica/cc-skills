@@ -21,13 +21,12 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [mql5](./plugins/mql5/)                                 | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace                     | trading      |
 | [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement: ASCII art blocking, graph-easy reminders, Ruff linting                        | enforcement  |
 | [alpha-forge-worktree](./plugins/alpha-forge-worktree/) | Git worktree management for alpha-forge with ADR-style naming and dynamic iTerm2 tab detection          | development  |
-| [ralph](./plugins/ralph/)                               | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete          | automation   |
+| [ru](./plugins/ru/)                                     | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete          | automation   |
 | [iterm2-layout-config](./plugins/iterm2-layout-config/) | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code | development  |
 | [statusline-tools](./plugins/statusline-tools/)         | Custom status line with git status, link validation (L), and path linting (P) indicators                | utilities    |
 | [notion-api](./plugins/notion-api/)                     | Notion API integration using notion-client Python SDK with preflight credential prompting               | productivity |
 | [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon, Keychain PAT storage                  | utilities    |
 | [git-town-workflow](./plugins/git-town-workflow/)       | Prescriptive git-town workflow enforcement for fork-based development                                   | devops       |
-| [ru](./plugins/ru/)                                     | Autonomous loop mode for any project - universal Ralph implementation                                   | automation   |
 | [quant-research](./plugins/quant-research/)             | Quantitative research: SOTA range bar metrics, Sharpe ratios, ML prediction quality, WFO epochs         | trading      |
 
 ## Installation
@@ -547,7 +546,7 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 
 **Commands**: `/plugin-dev:create`
 
-### ralph
+### ru (Ralph Universe)
 
 **Autonomous AI orchestration with Ralph Wiggum technique.**
 
@@ -559,9 +558,9 @@ Features:
 - Plan archive preservation
 - Runtime limit configuration
 
-**Commands**: `/ralph:start`, `/ralph:stop`, `/ralph:status`, `/ralph:config`, `/ralph:hooks`
+**Commands**: `/ru:start`, `/ru:stop`, `/ru:status`, `/ru:config`, `/ru:hooks`
 
-**Additional setup required**: See [plugins/ralph/GETTING-STARTED.md](./plugins/ralph/GETTING-STARTED.md)
+**Additional setup required**: See [plugins/ru/README.md](./plugins/ru/README.md)
 
 ### gh-tools
 

@@ -1,7 +1,7 @@
 # ITP Hooks
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Hooks](https://img.shields.io/badge/Hooks-14-orange.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-12-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Claude Code plugin for ITP (Implement The Plan) workflow enforcement via PreToolUse and PostToolUse hooks.
@@ -43,12 +43,11 @@ Then install hooks to your settings:
 
 ### Soft Blocks (PreToolUse - User can override)
 
-| Check             | Trigger                              | Action                              |
-| ----------------- | ------------------------------------ | ----------------------------------- |
-| Polars preference | Write/Edit with Pandas in `.py`      | Dialog asking to use Polars instead |
-| Fake data guard   | Write with test/fake data            | Block with explanation              |
-| Hoisted deps      | pyproject.toml outside git root      | Block non-root pyproject.toml       |
-| GPU optimization  | PyTorch training without AMP/compile | Block with optimization guidance    |
+| Check            | Trigger                              | Action                           |
+| ---------------- | ------------------------------------ | -------------------------------- |
+| Fake data guard  | Write with test/fake data            | Block with explanation           |
+| Hoisted deps     | pyproject.toml outside git root      | Block non-root pyproject.toml    |
+| GPU optimization | PyTorch training without AMP/compile | Block with optimization guidance |
 
 ### Non-blocking Reminders (PostToolUse)
 
@@ -56,7 +55,6 @@ Then install hooks to your settings:
 | --------------------- | ------------------------------ | ------------------------------------- |
 | **Ruff linting**      | Edit/Write `.py` files         | Shows lint errors (9 rule categories) |
 | UV preference         | pip install in Bash            | Prefer `uv pip install`               |
-| Polars preference     | Pandas usage (backup check)    | Prefer Polars for dataframes          |
 | Graph-easy skill      | Direct `graph-easy` CLI usage  | Prefer skill for reproducibility      |
 | ADR→Spec sync         | Modify `docs/adr/*.md`         | Check if Design Spec needs updating   |
 | Spec→ADR sync         | Modify `docs/design/*/spec.md` | Check if ADR needs updating           |
@@ -129,43 +127,22 @@ The GPU optimization guard hook enforces **mandatory** GPU optimization best pra
 - `commands/hooks.md` - Hook management command
 - `hooks/hooks.json` - Hook configuration
 - `hooks/pretooluse-guard.sh` - ASCII art blocking
-- `hooks/pretooluse-polars-preference.ts` - Polars over Pandas dialog
 - `hooks/pretooluse-gpu-optimization-guard.ts` - GPU optimization enforcement
-- `hooks/posttooluse-reminder.ts` - Sync reminders + UV/Polars preference
+- `hooks/posttooluse-reminder.ts` - Sync reminders + UV preference
 - `hooks/code-correctness-guard.sh` - Code correctness detection (silent failures + cross-language syntax)
 - `hooks/ruff.toml` - Ruff rule documentation
 - `scripts/install-dependencies.sh` - Linter dependency installer
-- `scripts/manage-hooks.sh` - Settings.json hook manager
 - `README.md`
 - `LICENSE`
 
-## Polars Preference
-
-The Polars preference hook enforces Polars over Pandas for dataframe operations:
-
-- **PreToolUse** (`pretooluse-polars-preference.ts`): Shows dialog before writing Pandas code
-- **PostToolUse** (`posttooluse-reminder.ts`): Backup reminder if PreToolUse bypassed
-
-**Exception**: Add at file top to allow Pandas:
-
-```python
-# polars-exception: MLflow requires Pandas DataFrames
-import pandas as pd
-```
-
-**Auto-skip paths**: `mlflow-python`, `legacy/`, `third-party/`
-
-See [ADR](/docs/adr/2026-01-22-polars-preference-hook.md) for details.
-
 ## Troubleshooting
 
-| Issue                        | Cause               | Solution                                            |
-| ---------------------------- | ------------------- | --------------------------------------------------- |
-| Hooks not triggering         | Not installed       | Run `/itp-hooks:hooks install` and restart          |
-| ruff not found               | Not installed       | `brew install ruff` or `/itp-hooks:setup --install` |
-| shellcheck not found         | Not installed       | `brew install shellcheck`                           |
-| Polars dialog on legacy code | Missing exception   | Add `# polars-exception:` comment                   |
-| GPU guard false positive     | Inference-only code | Add `# gpu-optimization-bypass:` comment            |
+| Issue                    | Cause               | Solution                                            |
+| ------------------------ | ------------------- | --------------------------------------------------- |
+| Hooks not triggering     | Not installed       | Run `/itp-hooks:hooks install` and restart          |
+| ruff not found           | Not installed       | `brew install ruff` or `/itp-hooks:setup --install` |
+| shellcheck not found     | Not installed       | `brew install shellcheck`                           |
+| GPU guard false positive | Inference-only code | Add `# gpu-optimization-bypass:` comment            |
 
 ## License
 

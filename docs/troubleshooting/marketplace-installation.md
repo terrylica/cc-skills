@@ -39,7 +39,7 @@ claude plugin install itp@cc-skills
 claude plugin install plugin-dev@cc-skills
 
 # Install all plugins at once (20 plugins)
-for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ralph ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research; do claude plugin install "$p@cc-skills"; done
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research gmail-tools; do claude plugin install "$p@cc-skills"; done
 ```
 
 ### Marketplace Directory
@@ -471,4 +471,4 @@ claude plugin marketplace add OWNER/REPO_NAME
 ### Internal Documentation
 
 - [cc-skills Installation](/README.md#installation)
-- [Ralph Getting Started](/plugins/ralph/GETTING-STARTED.md)
+- [RU Plugin README](/plugins/ru/README.md)

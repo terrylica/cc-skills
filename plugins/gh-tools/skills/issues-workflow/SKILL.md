@@ -413,7 +413,7 @@ done
 
 ## References
 
-- [gh-tools Issue Create Skill](./issue-create/SKILL.md)
+- [gh-tools Issue Create Skill](../issue-create/SKILL.md)
 - [Field Types Reference](./references/field-types.md)
 - [Auto-Link Configuration](./references/auto-link-config.md)
 - [GraphQL Queries Reference](./references/graphql-queries.md)

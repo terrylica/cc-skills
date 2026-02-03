@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **19 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **20 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -46,7 +46,7 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 ```
 cc-skills/
 ├── .claude-plugin/marketplace.json  ← Plugin registry
-├── plugins/                         ← 19 marketplace plugins
+├── plugins/                         ← 20 marketplace plugins
 │   ├── itp/                         ← Core workflow
 │   ├── ru/                          ← Ralph Universe (autonomous loop)
 │   └── ...
