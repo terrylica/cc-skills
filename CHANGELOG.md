@@ -1,3 +1,25 @@
+## [11.8.4](https://github.com/terrylica/cc-skills/compare/v11.8.3...v11.8.4) (2026-02-03)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (2 files)</summary>
+
+- [Rust Projects with release-plz](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/rust.md) - updated (+41/-11)
+- [Version Alignment Standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/version-alignment.md) - updated (+38)
+
+</details>
+
 ## [11.8.3](https://github.com/terrylica/cc-skills/compare/v11.8.2...v11.8.3) (2026-02-03)
 
 
