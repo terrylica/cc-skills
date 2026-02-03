@@ -8,47 +8,177 @@ allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 
 Read and search Gmail programmatically via Claude Code CLI.
 
-## Prerequisite Discovery
+## MANDATORY PREFLIGHT (Execute Before Any Gmail Operation)
 
-Before using Gmail commands, verify setup:
+**CRITICAL**: You MUST complete this preflight checklist before running any Gmail commands. Do NOT skip steps.
 
-1. **Check environment**: `echo $GMAIL_OP_UUID`
-2. **If not set**: Run discovery flow (see Setup section below)
+### Step 1: Check CLI Binary Exists
 
-## CLI Location
+```bash
+ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail" 2>/dev/null || echo "BINARY_NOT_FOUND"
+```
 
-The Gmail CLI binary is located at:
+**If BINARY_NOT_FOUND**: Build it first:
+
+```bash
+cd ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts && bun install && bun run build
+```
+
+### Step 2: Check GMAIL_OP_UUID Environment Variable
+
+```bash
+echo "GMAIL_OP_UUID: ${GMAIL_OP_UUID:-NOT_SET}"
+```
+
+**If NOT_SET**: You MUST run the Setup Flow below. Do NOT proceed to Gmail commands.
+
+### Step 3: Verify 1Password Authentication
+
+```bash
+op account list 2>&1 | head -3
+```
+
+**If error or not signed in**: Inform user to run `op signin` first.
+
+---
+
+## Setup Flow (When GMAIL_OP_UUID is NOT_SET)
+
+Follow these steps IN ORDER. Use AskUserQuestion at decision points.
+
+### Setup Step 1: Check 1Password CLI
+
+```bash
+command -v op && echo "OP_CLI_INSTALLED" || echo "OP_CLI_MISSING"
+```
+
+**If OP_CLI_MISSING**: Stop and inform user:
+
+> 1Password CLI is required. Install with: `brew install 1password-cli`
+
+### Setup Step 2: Discover Gmail OAuth Items in 1Password
+
+```bash
+op item list --vault Employee --format json 2>/dev/null | jq -r '.[] | select(.title | test("gmail|oauth|google"; "i")) | "\(.id)\t\(.title)"'
+```
+
+**Parse the output** and proceed based on results:
+
+### Setup Step 3: User Selects OAuth Credentials
+
+**If items found**, use AskUserQuestion with discovered items:
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "Which 1Password item contains your Gmail OAuth credentials?",
+    header: "Gmail OAuth",
+    options: [
+      // POPULATE FROM op item list RESULTS - example:
+      { label: "Gmail API - dental-quizzes (56peh...)", description: "OAuth client in Employee vault" },
+      { label: "Gmail API - personal (abc12...)", description: "Personal OAuth client" },
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+**If NO items found**, use AskUserQuestion to guide setup:
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "No Gmail OAuth credentials found in 1Password. How would you like to proceed?",
+    header: "Setup",
+    options: [
+      { label: "Create new OAuth credentials (Recommended)", description: "I'll guide you through Google Cloud Console setup" },
+      { label: "I have credentials elsewhere", description: "Help me add them to 1Password" },
+      { label: "Skip for now", description: "I'll set this up later" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+- If "Create new OAuth credentials": Read and present [references/gmail-api-setup.md](./references/gmail-api-setup.md)
+- If "I have credentials elsewhere": Guide user to add to 1Password with required fields
+- If "Skip for now": Inform user the skill won't work until configured
+
+### Setup Step 4: Confirm mise Configuration
+
+After user selects an item (with UUID), use AskUserQuestion:
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "Add GMAIL_OP_UUID to .mise.local.toml in current project?",
+    header: "Configure",
+    options: [
+      { label: "Yes, add to .mise.local.toml (Recommended)", description: "Creates/updates gitignored config file" },
+      { label: "Show me the config only", description: "I'll add it manually" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+**If "Yes, add to .mise.local.toml"**:
+
+1. Check if `.mise.local.toml` exists
+2. If exists, append `GMAIL_OP_UUID` to `[env]` section
+3. If not exists, create with:
+
+```toml
+[env]
+GMAIL_OP_UUID = "<selected-uuid>"
+```
+
+1. Verify `.mise.local.toml` is in `.gitignore`
+
+**If "Show me the config only"**: Output the TOML for user to add manually.
+
+### Setup Step 5: Reload and Verify
+
+```bash
+mise trust 2>/dev/null || true
+cd . && echo "GMAIL_OP_UUID after reload: ${GMAIL_OP_UUID:-NOT_SET}"
+```
+
+**If still NOT_SET**: Inform user to restart their shell or run `source ~/.zshrc`.
+
+### Setup Step 6: Test Connection
+
+```bash
+GMAIL_OP_UUID="${GMAIL_OP_UUID}" $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail list -n 1
+```
+
+**If OAuth prompt appears**: This is expected on first run. Browser will open for Google consent.
+
+---
+
+## Gmail Commands (Only After Preflight Passes)
 
 ```bash
 GMAIL_CLI="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail"
+
+# List recent emails
+$GMAIL_CLI list -n 10
+
+# Search emails
+$GMAIL_CLI search "from:someone@example.com" -n 20
+
+# Search with date range
+$GMAIL_CLI search "from:phoebe after:2026/01/27" -n 10
+
+# Read specific email with full body
+$GMAIL_CLI read <message_id>
+
+# Export to JSON
+$GMAIL_CLI export -q "label:inbox" -o emails.json -n 100
+
+# JSON output (for parsing)
+$GMAIL_CLI list -n 10 --json
 ```
-
-**First-time setup** (if binary doesn't exist):
-
-```bash
-cd ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts
-bun install && bun run build
-```
-
-## Commands
-
-Run commands using the full path or set an alias:
-
-```bash
-# Full path
-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail list -n 10
-
-# Or create alias in shell config
-alias gmail='$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail'
-```
-
-| Command                                | Description                          |
-| -------------------------------------- | ------------------------------------ |
-| `gmail list -n 10`                     | List recent emails                   |
-| `gmail list -l INBOX -l UNREAD --json` | List with label filters, JSON output |
-| `gmail search "from:x"`                | Search with Gmail query syntax       |
-| `gmail read <id>`                      | Read full email body                 |
-| `gmail export -q "query" -o file.json` | Export to JSON                       |
 
 ## Gmail Search Syntax
 
@@ -65,132 +195,12 @@ alias gmail='$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/sk
 
 Reference: <https://support.google.com/mail/answer/7190>
 
-## Setup Flow
-
-If `GMAIL_OP_UUID` is not set, follow this discovery flow:
-
-### Step 1 - Check 1Password CLI
-
-```bash
-command -v op
-```
-
-If not installed, instruct user to install 1Password CLI.
-
-### Step 2 - List Gmail OAuth items in 1Password
-
-```bash
-op item list --vault Employee --format json | jq '.[] | select(.title | test("gmail|oauth"; "i")) | {id, title}'
-```
-
-### Step 3 - User selects OAuth credentials
-
-Use AskUserQuestion to let user select from discovered items:
-
-```typescript
-AskUserQuestion({
-  questions: [
-    {
-      question: "Which 1Password item contains your Gmail OAuth credentials?",
-      header: "Gmail OAuth",
-      options: [
-        // Populate from op item list results
-        { label: "Item Name (uuid)", description: "OAuth client description" },
-      ],
-      multiSelect: false,
-    },
-  ],
-});
-```
-
-If no items found:
-
-```typescript
-AskUserQuestion({
-  questions: [
-    {
-      question:
-        "No Gmail OAuth credentials found in 1Password. How would you like to proceed?",
-      header: "Setup",
-      options: [
-        {
-          label: "Create new OAuth credentials",
-          description: "Guide through Google Cloud Console setup",
-        },
-        {
-          label: "I have credentials elsewhere",
-          description: "Help add them to 1Password",
-        },
-        { label: "Skip for now", description: "Set up later" },
-      ],
-      multiSelect: false,
-    },
-  ],
-});
-```
-
-### Step 4 - Output mise configuration
-
-After user selects item, output the configuration to add:
-
-```toml
-# Add to .mise.local.toml (gitignored)
-[env]
-GMAIL_OP_UUID = "<selected-uuid>"
-```
-
-### Step 5 - Confirm configuration update
-
-```typescript
-AskUserQuestion({
-  questions: [
-    {
-      question: "Add GMAIL_OP_UUID to .mise.local.toml in current project?",
-      header: "Configure",
-      options: [
-        {
-          label: "Yes, add to .mise.local.toml (Recommended)",
-          description: "Creates/updates gitignored config file",
-        },
-        {
-          label: "Show me the config only",
-          description: "I'll add it manually",
-        },
-      ],
-      multiSelect: false,
-    },
-  ],
-});
-```
-
-### Step 6 - Reload environment
-
-Instruct user to reload mise:
-
-```bash
-cd . && mise trust
-```
-
-### Step 7 - Test
-
-```bash
-gmail list -n 1
-```
-
 ## Environment Variables
 
 | Variable         | Required | Description                               |
 | ---------------- | -------- | ----------------------------------------- |
 | `GMAIL_OP_UUID`  | Yes      | 1Password item UUID for OAuth credentials |
 | `GMAIL_OP_VAULT` | No       | 1Password vault (default: Employee)       |
-
-## mise Configuration Reference
-
-See [references/mise-templates.md](./references/mise-templates.md) for complete templates:
-
-- `.mise.local.toml` (gitignored, contains GMAIL_OP_UUID)
-- `.mise.local.toml.example` (committed, template for users)
-- `.mise.toml` gmail tasks (optional convenience tasks)
 
 ## Token Storage
 
@@ -200,20 +210,11 @@ OAuth tokens stored at: `~/.claude/tools/gmail-tokens/<uuid>.json`
 - Organized by 1Password UUID (supports multi-account)
 - Created with chmod 600
 
-## Programmatic Usage
+## References
 
-```typescript
-import {
-  createGmailClient,
-  listEmails,
-  searchEmails,
-  readEmail,
-} from "./scripts/lib/index.ts";
-
-const client = await createGmailClient();
-const emails = await listEmails(client, { maxResults: 10 });
-console.log(emails);
-```
+- [mise-templates.md](./references/mise-templates.md) - Complete mise configuration templates
+- [mise-setup.md](./references/mise-setup.md) - Step-by-step mise setup guide
+- [gmail-api-setup.md](./references/gmail-api-setup.md) - Google Cloud OAuth setup guide
 
 ## Post-Change Checklist
 
