@@ -92,7 +92,7 @@ If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 | ------------ | --------------------------- |
 | `itp`        | Core 4-phase workflow       |
 | `itp-hooks`  | Workflow enforcement hooks  |
-| `ralph`      | Autonomous loop mode (RSSI) |
+| `ru`         | Autonomous loop mode (RSSI) |
 | `plugin-dev` | Plugin creation meta-skill  |
 | `gh-tools`   | GitHub CLI enforcement      |
 
