@@ -1,3 +1,34 @@
+# [11.9.0](https://github.com/terrylica/cc-skills/compare/v11.8.4...v11.9.0) (2026-02-03)
+
+
+### Features
+
+* **gmail-tools:** Add draft creation capability ([aa49215](https://github.com/terrylica/cc-skills/commit/aa49215f7021cf19456baa995bdf9f2db4b09e13))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-tools</strong> (1 change)</summary>
+
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/SKILL.md) - updated (+41/-1)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Gmail Tools](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/README.md) - updated (+9/-3)
+
 ## [11.8.4](https://github.com/terrylica/cc-skills/compare/v11.8.3...v11.8.4) (2026-02-03)
 
 
