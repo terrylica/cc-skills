@@ -1,3 +1,25 @@
+## [11.9.1](https://github.com/terrylica/cc-skills/compare/v11.9.0...v11.9.1) (2026-02-03)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [RU](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/README.md) - updated (+15/-19)
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+2/-4)
+
 # [11.9.0](https://github.com/terrylica/cc-skills/compare/v11.8.4...v11.9.0) (2026-02-03)
 
 
