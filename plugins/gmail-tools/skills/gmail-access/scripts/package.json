@@ -1,0 +1,24 @@
+{
+  "name": "gmail-access",
+  "version": "1.0.0",
+  "description": "Gmail API client for Claude Code CLI",
+  "type": "module",
+  "private": true,
+  "main": "lib/index.ts",
+  "bin": {
+    "gmail": "cli.ts"
+  },
+  "scripts": {
+    "start": "bun run cli.ts",
+    "build": "bun build cli.ts --compile --outfile gmail",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.2.0",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@googleapis/gmail": "^16.1.1"
+  }
+}

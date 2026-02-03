@@ -431,6 +431,28 @@
         "wfo"
       ],
       "strict": false
+    },
+    {
+      "name": "gmail-tools",
+      "description": "Gmail API access via CLI with 1Password OAuth: list, search, read, export emails with multi-account support via mise environment variables",
+      "version": "11.7.6",
+      "source": "./plugins/gmail-tools",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "gmail",
+        "email",
+        "oauth",
+        "1password",
+        "api",
+        "mise",
+        "bun",
+        "typescript"
+      ],
+      "strict": false
     }
   ]
 }
