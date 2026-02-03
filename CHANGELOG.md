@@ -1,3 +1,29 @@
+## [11.8.1](https://github.com/terrylica/cc-skills/compare/v11.8.0...v11.8.1) (2026-02-03)
+
+
+### Bug Fixes
+
+* **gmail-tools:** add CLI location and first-run setup instructions ([ef31ff4](https://github.com/terrylica/cc-skills/commit/ef31ff4112ef4be83c57ee77cd5ea3bf5880fa4b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-tools</strong> (1 change)</summary>
+
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/SKILL.md) - updated (+25)
+
+</details>
+
 # [11.8.0](https://github.com/terrylica/cc-skills/compare/v11.7.6...v11.8.0) (2026-02-03)
 
 
