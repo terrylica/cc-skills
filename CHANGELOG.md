@@ -1,3 +1,29 @@
+## [11.8.2](https://github.com/terrylica/cc-skills/compare/v11.8.1...v11.8.2) (2026-02-03)
+
+
+### Bug Fixes
+
+* **gmail-tools:** add mandatory preflight with AskUserQuestion flows ([f9ee5d7](https://github.com/terrylica/cc-skills/commit/f9ee5d72dd3442ed5c91a8e7acd0dbe055fa2272))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-tools</strong> (1 change)</summary>
+
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/SKILL.md) - updated (+142/-141)
+
+</details>
+
 ## [11.8.1](https://github.com/terrylica/cc-skills/compare/v11.8.0...v11.8.1) (2026-02-03)
 
 
