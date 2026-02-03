@@ -199,14 +199,14 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 
 ## Plugins with Hooks
 
-| Plugin             | Hook Types                                      | Purpose                                                 |
-| ------------------ | ----------------------------------------------- | ------------------------------------------------------- |
-| `itp-hooks`        | PreToolUse, PostToolUse, UserPromptSubmit, Stop | Workflow + SR&ED + Polars preference + GPU optimization |
-| `ralph`            | PreToolUse, Stop                                | Autonomous loop control                                 |
-| `gh-tools`         | PreToolUse                                      | GitHub CLI enforcement                                  |
-| `dotfiles-tools`   | PostToolUse, Stop                               | Chezmoi sync reminder                                   |
-| `statusline-tools` | Stop                                            | Session metrics                                         |
-| `link-tools`       | Stop                                            | Link validation                                         |
+| Plugin             | Hook Types                    | Purpose                             |
+| ------------------ | ----------------------------- | ----------------------------------- |
+| `itp-hooks`        | PreToolUse, PostToolUse, Stop | Workflow + SR&ED + GPU optimization |
+| `ru`               | PreToolUse, Stop              | Autonomous loop control             |
+| `gh-tools`         | PreToolUse                    | GitHub CLI enforcement              |
+| `dotfiles-tools`   | PostToolUse, Stop             | Chezmoi sync reminder               |
+| `statusline-tools` | Stop                          | Session metrics                     |
+| `link-tools`       | Stop                          | Link validation                     |
 
 ## Related ADRs
 

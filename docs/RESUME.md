@@ -21,7 +21,7 @@ Last updated: 2026-01-24
 
 - `plugins/itp-hooks/hooks/ruff.toml` - Ruff config (reference only)
 - `plugins/itp-hooks/hooks/code-correctness-guard.sh` - Main hook (unchanged, already correct)
-- `plugins/ralph/hooks/alpha_forge_filter.py` - EXCLUDED_RUFF_RULES with justification
+- `plugins/ru/hooks/loop-until-done.ts` - TypeScript implementation (migrated from Python)
 - `plugins/itp-hooks/CLAUDE.md` - Philosophy section added
 
 **Justification for NOT checking unused imports**:
