@@ -51,8 +51,11 @@ export function getTokensDir(): string {
   return join(homedir(), ".claude", "tools", "gmail-tokens");
 }
 
-// Gmail API scopes
-export const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"] as const;
+// Gmail API scopes - readonly + compose for draft creation
+export const SCOPES = [
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.compose",
+] as const;
 
 // OAuth callback server configuration
 export const AUTH_TIMEOUT_MS = 120_000;

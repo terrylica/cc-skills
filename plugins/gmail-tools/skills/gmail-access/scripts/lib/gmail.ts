@@ -175,3 +175,84 @@ export async function exportEmails(
   await Bun.write(options.outputPath, JSON.stringify(emails, null, 2));
   return emails;
 }
+
+/**
+ * Create RFC 2822 formatted email for Gmail API
+ */
+function createRawEmail(
+  to: string,
+  subject: string,
+  body: string,
+  inReplyTo?: string
+): string {
+  const headers = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "Content-Type: text/plain; charset=utf-8",
+  ];
+
+  if (inReplyTo) {
+    headers.push(`In-Reply-To: ${inReplyTo}`);
+    headers.push(`References: ${inReplyTo}`);
+  }
+
+  const email = headers.join("\r\n") + "\r\n\r\n" + body;
+  return Buffer.from(email).toString("base64url");
+}
+
+export interface DraftOptions {
+  to: string;
+  subject: string;
+  body: string;
+  replyToMessageId?: string;
+}
+
+export interface DraftResult {
+  draftId: string;
+  messageId: string;
+  threadId?: string;
+}
+
+/**
+ * Create a Gmail draft
+ */
+export async function createDraft(
+  client: gmail_v1.Gmail,
+  options: DraftOptions
+): Promise<DraftResult> {
+  let threadId: string | undefined;
+  let inReplyTo: string | undefined;
+
+  // If replying, get the original message's thread and Message-ID header
+  if (options.replyToMessageId) {
+    const original = await client.users.messages.get({
+      userId: "me",
+      id: options.replyToMessageId,
+      format: "metadata",
+      metadataHeaders: ["Message-ID"],
+    });
+    threadId = original.data.threadId ?? undefined;
+    const msgIdHeader = original.data.payload?.headers?.find(
+      (h) => h.name === "Message-ID"
+    );
+    inReplyTo = msgIdHeader?.value ?? undefined;
+  }
+
+  const raw = createRawEmail(options.to, options.subject, options.body, inReplyTo);
+
+  const res = await client.users.drafts.create({
+    userId: "me",
+    requestBody: {
+      message: {
+        raw,
+        threadId,
+      },
+    },
+  });
+
+  return {
+    draftId: res.data.id!,
+    messageId: res.data.message?.id!,
+    threadId: res.data.message?.threadId ?? undefined,
+  };
+}
