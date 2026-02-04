@@ -1,22 +1,37 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **20 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **21 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
+## Documentation Hierarchy
+
+```
+CLAUDE.md (this file)           ◄── Hub: Navigation + Essentials
+    │
+    ├── plugins/CLAUDE.md       ◄── Spoke: Plugin development
+    │       └── itp-hooks/CLAUDE.md  ◄── Deep: Hook reference
+    │
+    └── docs/CLAUDE.md          ◄── Spoke: Documentation standards
+            ├── HOOKS.md             ◄── Hook development patterns
+            ├── RELEASE.md           ◄── Release workflow
+            └── PLUGIN-LIFECYCLE.md  ◄── Plugin internals
+```
+
 ## Navigation
 
-| Topic           | Document                                         |
-| --------------- | ------------------------------------------------ |
-| Installation    | [README.md](./README.md)                         |
-| Plugin Dev      | [plugins/CLAUDE.md](./plugins/CLAUDE.md)         |
-| Documentation   | [docs/CLAUDE.md](./docs/CLAUDE.md)               |
-| Hooks Dev       | [docs/HOOKS.md](./docs/HOOKS.md)                 |
-| Release         | [docs/RELEASE.md](./docs/RELEASE.md)             |
-| ITP Workflow    | [plugins/itp/README.md](./plugins/itp/README.md) |
-| Troubleshooting | [docs/troubleshooting/](./docs/troubleshooting/) |
-| ADRs            | [docs/adr/](./docs/adr/)                         |
-| Resume Context  | [docs/RESUME.md](./docs/RESUME.md)               |
+| Topic            | Document                                               |
+| ---------------- | ------------------------------------------------------ |
+| Installation     | [README.md](./README.md)                               |
+| Plugin Dev       | [plugins/CLAUDE.md](./plugins/CLAUDE.md)               |
+| Documentation    | [docs/CLAUDE.md](./docs/CLAUDE.md)                     |
+| Hooks Dev        | [docs/HOOKS.md](./docs/HOOKS.md)                       |
+| Release          | [docs/RELEASE.md](./docs/RELEASE.md)                   |
+| Plugin Lifecycle | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md) |
+| ITP Workflow     | [plugins/itp/README.md](./plugins/itp/README.md)       |
+| Troubleshooting  | [docs/troubleshooting/](./docs/troubleshooting/)       |
+| ADRs             | [docs/adr/](./docs/adr/)                               |
+| Resume Context   | [docs/RESUME.md](./docs/RESUME.md)                     |
 
 ## Essential Commands
 
@@ -45,16 +60,20 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 
 ```
 cc-skills/
-├── .claude-plugin/marketplace.json  ← Plugin registry
-├── plugins/                         ← 20 marketplace plugins
-│   ├── itp/                         ← Core workflow
-│   ├── ru/                          ← Ralph Universe (autonomous loop)
-│   └── ...
+├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT)
+├── plugins/                         ← 21 marketplace plugins
+│   ├── itp/                         ← Core 4-phase workflow
+│   ├── itp-hooks/                   ← Workflow enforcement + code correctness
+│   ├── ru/                          ← RU autonomous loop mode
+│   ├── gmail-tools/                 ← Gmail API (1Password OAuth)
+│   ├── gdrive-tools/                ← Google Drive API (1Password OAuth)
+│   └── ...                          ← 16 more plugins
 ├── docs/
-│   ├── adr/                         ← Architecture decisions
-│   ├── design/                      ← Implementation specs
-│   ├── HOOKS.md                     ← Hook development
-│   └── RELEASE.md                   ← Release workflow
+│   ├── adr/                         ← Architecture Decision Records
+│   ├── design/                      ← Implementation specs (1:1 with ADRs)
+│   ├── HOOKS.md                     ← Hook development patterns
+│   ├── RELEASE.md                   ← Release workflow
+│   └── PLUGIN-LIFECYCLE.md          ← Plugin internals
 └── .mise/tasks/                     ← Release automation
 ```
 
@@ -89,6 +108,8 @@ bun pm ls -g                 # List
 
 ## Recent Lessons Learned
 
+**2026-02-04**: gdrive-tools plugin added for Google Drive API access with 1Password OAuth.
+
 **2026-01-24**: Code correctness hooks check silent failures only - NO unused imports (F401). [itp-hooks CLAUDE.md](./plugins/itp-hooks/CLAUDE.md#code-correctness-philosophy)
 
 **2026-01-22**: posttooluse-reminder migrated from bash to TypeScript/Bun (33 tests). [Design Spec](/docs/design/2026-01-10-uv-reminder-hook/spec.md)
@@ -98,5 +119,3 @@ bun pm ls -g                 # List
 **2026-01-11**: Use `--body-file` for `gh issue create` body content. [ADR](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
 
 **2026-01-10**: uv-reminder hook detects pip and venv activation, suggests uv. [ADR](/docs/adr/2026-01-10-uv-reminder-hook.md)
-
-**2026-01-03**: WebFetch to github.com soft-blocked; use `gh` CLI. [ADR](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)

@@ -6,7 +6,7 @@ Context for developing plugins in the cc-skills marketplace.
 
 ## Plugin Discovery (Critical)
 
-**Single source of truth**: `.claude-plugin/marketplace.json`
+**SSoT**: `.claude-plugin/marketplace.json`
 
 Creating a plugin directory without registering it results in "Plugin not found" error.
 
@@ -88,13 +88,15 @@ If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
 ## Core Plugins
 
-| Plugin       | Purpose                     |
-| ------------ | --------------------------- |
-| `itp`        | Core 4-phase workflow       |
-| `itp-hooks`  | Workflow enforcement hooks  |
-| `ru`         | Autonomous loop mode (RSSI) |
-| `plugin-dev` | Plugin creation meta-skill  |
-| `gh-tools`   | GitHub CLI enforcement      |
+| Plugin         | Purpose                            |
+| -------------- | ---------------------------------- |
+| `itp`          | Core 4-phase workflow              |
+| `itp-hooks`    | Workflow enforcement hooks         |
+| `ru`           | Autonomous loop mode               |
+| `plugin-dev`   | Plugin creation meta-skill         |
+| `gh-tools`     | GitHub CLI enforcement             |
+| `gmail-tools`  | Gmail API (1Password OAuth)        |
+| `gdrive-tools` | Google Drive API (1Password OAuth) |
 
 ## Toolchain
 

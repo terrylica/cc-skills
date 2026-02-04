@@ -1,0 +1,38 @@
+# Google Drive Tools - mise configuration
+#
+# This file documents the environment variables needed for gdrive-tools.
+# Actual secrets should be in .mise.local.toml (gitignored) or user's config.
+#
+# SETUP: Copy the [env] section to your project's .mise.local.toml:
+#   [env]
+#   GDRIVE_OP_UUID = "<your-1password-item-uuid>"
+#
+# Or add to ~/.config/mise/config.local.toml for global access.
+
+[env]
+# These are template placeholders - actual UUIDs go in .mise.local.toml
+# GDRIVE_OP_UUID = "<1password-item-uuid>"
+# GDRIVE_OP_VAULT = "Employee"  # Optional, defaults to Employee
+
+[tools]
+bun = "1.3"
+
+[tasks.build]
+description = "Build gdrive CLI binary"
+dir = "skills/gdrive-access/scripts"
+run = "bun install && bun run build"
+
+[tasks.test]
+description = "Test gdrive CLI (requires GDRIVE_OP_UUID)"
+dir = "skills/gdrive-access/scripts"
+run = "./gdrive --help"
+
+[tasks.list]
+description = "List files in a Drive folder"
+dir = "skills/gdrive-access/scripts"
+run = "./gdrive list {{arg(name='folder_id')}}"
+
+[tasks.sync]
+description = "Sync Drive folder to local directory"
+dir = "skills/gdrive-access/scripts"
+run = "./gdrive sync {{arg(name='folder_id')}} -o {{arg(name='output', default='./gdrive-sync')}}"

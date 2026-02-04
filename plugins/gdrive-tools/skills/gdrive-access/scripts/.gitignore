@@ -1,0 +1,3 @@
+node_modules/
+gdrive
+*.bun-build

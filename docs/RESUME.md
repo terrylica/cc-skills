@@ -1,8 +1,28 @@
 # Session Resume Context
 
-Last updated: 2026-01-24
+Last updated: 2026-02-04
 
 ## Recent Work
+
+### Documentation Architecture Update (2026-02-04)
+
+**Status**: Complete
+
+**What was done**:
+
+- Added gdrive-tools plugin to marketplace.json (21 plugins total)
+- Updated root CLAUDE.md with documentation hierarchy diagram
+- Added PLUGIN-LIFECYCLE.md to navigation (was orphaned)
+- Updated plugins/CLAUDE.md core plugins table (gmail-tools, gdrive-tools)
+- Updated docs/CLAUDE.md spoke documents table
+- Fixed Vale terminology warning (SSoT)
+
+**Key files**:
+
+- `.claude-plugin/marketplace.json` - Added gdrive-tools
+- `CLAUDE.md` - Documentation hierarchy + 21 plugins
+- `plugins/CLAUDE.md` - Core plugins table
+- `docs/CLAUDE.md` - Spoke documents table
 
 ### Code Correctness Philosophy Documentation (2026-01-24)
 
