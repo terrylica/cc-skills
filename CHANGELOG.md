@@ -1,3 +1,62 @@
+# [11.10.0](https://github.com/terrylica/cc-skills/compare/v11.9.1...v11.10.0) (2026-02-04)
+
+
+### Features
+
+* **gdrive-tools:** add Google Drive API plugin with documentation updates ([7513c3a](https://github.com/terrylica/cc-skills/commit/7513c3a11c2b0b707a1daed152d68ef07322db9f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gdrive-tools</strong> (1 change)</summary>
+
+- [gdrive-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gdrive-tools/skills/gdrive-access/SKILL.md) - new (+247)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Google Drive Tools](https://github.com/terrylica/cc-skills/blob/main/plugins/gdrive-tools/README.md) - new (+102)
+
+### Skill References
+
+<details>
+<summary><strong>gdrive-tools/gdrive-access</strong> (2 files)</summary>
+
+- [Google Drive API OAuth Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/gdrive-tools/skills/gdrive-access/references/gdrive-api-setup.md) - new (+139)
+- [OAuth Client Setup Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gdrive-tools/skills/gdrive-access/references/oauth-clients.md) - new (+68)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+42/-23)
+
+### General Documentation
+
+- [Documentation Guide](https://github.com/terrylica/cc-skills/blob/main/docs/CLAUDE.md) - updated (+1)
+- [Session Resume Context](https://github.com/terrylica/cc-skills/blob/main/docs/RESUME.md) - updated (+21/-1)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+10/-8)
+
 ## [11.9.1](https://github.com/terrylica/cc-skills/compare/v11.9.0...v11.9.1) (2026-02-03)
 
 
