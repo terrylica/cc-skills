@@ -1,0 +1,24 @@
+{
+  "name": "gdrive-access",
+  "version": "1.0.0",
+  "description": "Google Drive API client for Claude Code CLI",
+  "type": "module",
+  "private": true,
+  "main": "lib/index.ts",
+  "bin": {
+    "gdrive": "cli.ts"
+  },
+  "scripts": {
+    "start": "bun run cli.ts",
+    "build": "bun build cli.ts --compile --outfile gdrive",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@googleapis/drive": "^8.0.0"
+  }
+}

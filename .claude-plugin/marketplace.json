@@ -453,6 +453,29 @@
         "typescript"
       ],
       "strict": false
+    },
+    {
+      "name": "gdrive-tools",
+      "description": "Google Drive API access via CLI with 1Password OAuth: list, download, sync files with multi-account support via mise environment variables",
+      "version": "11.9.1",
+      "source": "./plugins/gdrive-tools",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "gdrive",
+        "google-drive",
+        "files",
+        "oauth",
+        "1password",
+        "api",
+        "mise",
+        "bun",
+        "typescript"
+      ],
+      "strict": false
     }
   ]
 }
