@@ -71,6 +71,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-mise-hygiene-guard.ts",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "PostToolUse": [
