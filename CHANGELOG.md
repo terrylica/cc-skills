@@ -1,3 +1,21 @@
+## [11.11.1](https://github.com/terrylica/cc-skills/compare/v11.11.0...v11.11.1) (2026-02-05)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [mise.toml Hygiene Guard Hook](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-02-05-mise-hygiene-guard.md) | new (+80) |
+
 # [11.11.0](https://github.com/terrylica/cc-skills/compare/v11.10.1...v11.11.0) (2026-02-05)
 
 
