@@ -6,12 +6,14 @@
  * Provides non-blocking reminders for decision traceability:
  * 1. graph-easy CLI used → remind about using the skill for reproducibility
  * 2. pip/venv usage → remind about using uv instead
- * 3. ADR modified → remind to update Design Spec
- * 4. Design Spec modified → remind to update ADR
- * 5. Implementation code modified → remind about ADR traceability + ruff linting
+ * 3. Long-running tasks → remind about using Pueue for job orchestration
+ * 4. ADR modified → remind to update Design Spec
+ * 5. Design Spec modified → remind to update ADR
+ * 6. Implementation code modified → remind about ADR traceability + ruff linting
  *
  * ADR: 2025-12-17-posttooluse-hook-visibility.md
  * ADR: 2026-01-10-uv-reminder-hook.md
+ * Issue: https://github.com/terrylica/rangebar-py/issues/77 (Pueue reminder)
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
@@ -186,6 +188,102 @@ PREFERRED: ${suggested}
 WHY UV: 10-100x faster, lockfile management (uv.lock), reproducible builds
 
 QUICK REF: pip install → uv add | pip uninstall → uv remove | pip -e . → uv pip install -e .`;
+}
+
+/**
+ * Check for long-running tasks that should use Pueue
+ * Issue: https://github.com/terrylica/rangebar-py/issues/77
+ *
+ * Detects patterns that indicate long-running or batch processing tasks:
+ * - Data population/cache scripts
+ * - Batch processing with loops
+ * - Multi-symbol/multi-threshold operations
+ * - SSH commands running remote jobs
+ */
+function checkPueueUsage(command: string): string | null {
+  const commandLower = command.toLowerCase();
+
+  // === EXCEPTIONS ===
+
+  // 1. Already using pueue
+  if (/pueue\s+(add|status|follow|log|restart)/i.test(commandLower)) {
+    return null;
+  }
+
+  // 2. Quick status/check commands (not long-running)
+  if (/--status|--plan|--help|-h|--version/i.test(commandLower)) {
+    return null;
+  }
+
+  // 3. Documentation/echo context
+  if (/^\s*(echo|printf|#|grep)/i.test(commandLower)) {
+    return null;
+  }
+
+  // 4. Already in background mode (nohup, &, screen, tmux)
+  if (/nohup\s|&\s*$|\bscreen\s|\btmux\s/i.test(command)) {
+    return null;
+  }
+
+  // === DETECT: Long-running task patterns ===
+
+  const longRunningPatterns = [
+    // Data population/cache scripts
+    /populate[_-]?(cache|full|data)/i,
+    /cache[_-]?populat/i,
+    /bulk[_-]?(insert|load|import)/i,
+
+    // Batch processing with multiple items
+    /--phase\s+\d/i, // Phase-based execution
+    /for\s+\w+\s+in.*;\s*do/i, // Shell for loops
+    /while.*;\s*do/i, // Shell while loops
+
+    // Multi-symbol/multi-threshold crypto operations
+    /(BTCUSDT|ETHUSDT|SOLUSDT|BNBUSDT).*--threshold/i,
+    /--symbol\s+\w+USDT.*--threshold/i,
+
+    // Long date ranges (multi-year)
+    /201[789]|202[0-6].*--end|--start.*201[789]/i,
+
+    // SSH with long-running remote commands
+    /ssh\s+\S+\s+["']?.*populate/i,
+    /ssh\s+\S+\s+["']?.*--phase/i,
+  ];
+
+  const matchedPattern = longRunningPatterns.find((p) => p.test(command));
+  if (!matchedPattern) {
+    return null;
+  }
+
+  // Check if this is running on a remote host via SSH
+  const isRemote = /^ssh\s+(\S+)/i.test(command);
+  const remoteHost = isRemote ? command.match(/^ssh\s+(\S+)/i)?.[1] : null;
+
+  const pueueCommand = remoteHost
+    ? `ssh ${remoteHost} "~/.local/bin/pueue add -- ${command.replace(/^ssh\s+\S+\s+["']?/, "").replace(/["']?\s*$/, "")}"`
+    : `pueue add -- ${command}`;
+
+  return `[PUEUE-REMINDER] Long-running task detected - consider using Pueue
+
+EXECUTED: ${command}
+PREFERRED: ${pueueCommand}
+
+WHY PUEUE:
+- Daemon survives SSH disconnects, crashes, reboots
+- Queue persisted to disk - auto-resumes after failure
+- Per-group parallelism limits (avoid resource exhaustion)
+- Easy restart of failed jobs: pueue restart <id>
+
+QUICK REF:
+  pueue add -- <cmd>          # Queue a job
+  pueue status                # Check progress
+  pueue follow <id>           # Watch job in real-time
+  pueue log <id>              # View completed job output
+  pueue restart <id>          # Restart failed job
+
+SETUP (if not installed):
+  macOS: brew install pueue && pueued -d
+  Linux: ~/.local/bin/pueued -d  # See setup-pueue-linux.sh`;
 }
 
 /**
@@ -421,6 +519,11 @@ async function main(): Promise<void> {
     // Check pip usage
     if (!reminder) {
       reminder = checkPipUsage(command);
+    }
+
+    // Check for long-running tasks that should use Pueue
+    if (!reminder) {
+      reminder = checkPueueUsage(command);
     }
 
     if (reminder) {

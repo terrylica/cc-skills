@@ -383,6 +383,17 @@ describe("Reminder priority", () => {
     expect(result.parsed).not.toBeNull();
     expect((result.parsed as any).reason).toContain("venv activation");
   });
+
+  it("pip should take priority over pueue", () => {
+    // If command has both pip and long-running patterns, pip takes priority
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "pip install rangebar && python populate_cache.py --phase 1" },
+    });
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).reason).toContain("[UV-REMINDER]");
+    expect((result.parsed as any).reason).not.toContain("[PUEUE-REMINDER]");
+  });
 });
 
 // ============================================================================
@@ -486,6 +497,117 @@ valid = { path = "packages/valid" }
       tool_input: { file_path: testFile },
     });
 
+    expect(result.stdout).toBe("");
+  });
+});
+
+// ============================================================================
+// Pueue Reminder Tests
+// Issue: https://github.com/terrylica/rangebar-py/issues/77
+// ============================================================================
+
+describe("Bash: Pueue long-running task detection", () => {
+  it("should detect populate_cache scripts", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "uv run python scripts/populate_full_cache.py --phase 1" },
+    });
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).decision).toBe("block");
+    expect((result.parsed as any).reason).toContain("[PUEUE-REMINDER]");
+    expect((result.parsed as any).reason).toContain("pueue add");
+  });
+
+  it("should detect symbol + threshold patterns", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "python script.py --symbol BTCUSDT --threshold 250" },
+    });
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).reason).toContain("[PUEUE-REMINDER]");
+  });
+
+  it("should detect SSH with long-running commands", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "ssh bigblack 'cd ~/rangebar-py && uv run python scripts/populate_full_cache.py --phase 1'" },
+    });
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).reason).toContain("[PUEUE-REMINDER]");
+    expect((result.parsed as any).reason).toContain("ssh bigblack");
+  });
+
+  it("should detect shell for loops", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "for symbol in BTCUSDT ETHUSDT; do ./process.sh $symbol; done" },
+    });
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).reason).toContain("[PUEUE-REMINDER]");
+  });
+
+  it("should detect bulk_insert patterns", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "python bulk_insert_data.py" },
+    });
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).reason).toContain("[PUEUE-REMINDER]");
+  });
+
+  it("should NOT trigger when already using pueue", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "pueue add -- python scripts/populate_full_cache.py --phase 1" },
+    });
+    expect(result.stdout).toBe("");
+  });
+
+  it("should NOT trigger on --status flag", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "python scripts/populate_full_cache.py --status" },
+    });
+    expect(result.stdout).toBe("");
+  });
+
+  it("should NOT trigger on --plan flag", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "python scripts/populate_full_cache.py --plan" },
+    });
+    expect(result.stdout).toBe("");
+  });
+
+  it("should NOT trigger on echo documentation", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "echo 'run: populate_cache.py'" },
+    });
+    expect(result.stdout).toBe("");
+  });
+
+  it("should NOT trigger on nohup (already backgrounded)", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "nohup python populate_cache.py &" },
+    });
+    expect(result.stdout).toBe("");
+  });
+
+  it("should NOT trigger on screen sessions", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "screen -S populate python populate_cache.py" },
+    });
+    expect(result.stdout).toBe("");
+  });
+
+  it("should NOT trigger on simple commands", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "ls -la" },
+    });
     expect(result.stdout).toBe("");
   });
 });
