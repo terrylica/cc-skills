@@ -19,6 +19,7 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 | `pretooluse-vale-claude-md-guard.ts`   | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations  |
 | `pretooluse-hoisted-deps-guard.mjs`    | Write\|Edit       | pyproject.toml root-only and path escape policies |
 | `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)  |
+| `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection) |
 | `sred-commit-guard.ts`                 | Bash              | SR&ED commit format enforcement                   |
 
 ### PostToolUse Hooks
