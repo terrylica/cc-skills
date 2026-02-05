@@ -129,3 +129,10 @@ export { createHookLogger, type HookLogContext };
 
 // Re-export plan mode detection utilities
 export { isPlanMode, isQuickPlanMode, type HookInputWithPlanMode, type PlanModeContext };
+
+// Re-export read-only command detection utilities
+export {
+  isReadOnlyCommand,
+  isReadOnly,
+  type ReadOnlyCheckResult,
+} from "./lib/readonly-command-detector.ts";

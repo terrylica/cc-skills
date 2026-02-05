@@ -114,6 +114,37 @@ if (planContext.inPlanMode) {
 
 **ADR**: [/docs/adr/2026-02-05-plan-mode-detection-hooks.md](/docs/adr/2026-02-05-plan-mode-detection-hooks.md)
 
+## Read-Only Command Detection
+
+Hooks can skip validation for read-only commands (grep, find, ls, etc.) to reduce noise. This follows the [Claude Code hooks best practice](https://code.claude.com/docs/en/hooks) of skipping non-destructive operations.
+
+### Usage
+
+```typescript
+import { isReadOnly, allow } from "./pretooluse-helpers.ts";
+
+if (tool_name === "Bash") {
+  const command = tool_input.command || "";
+  if (isReadOnly(command)) {
+    return allow(); // Skip validation for read-only commands
+  }
+}
+```
+
+### Detected Read-Only Commands
+
+| Category      | Commands                                          |
+| ------------- | ------------------------------------------------- |
+| Search        | `rg`, `grep`, `ag`, `ack`, `find`, `fd`, `locate` |
+| File viewing  | `cat`, `less`, `head`, `tail`, `bat`              |
+| Directory     | `ls`, `tree`, `exa`, `eza`                        |
+| Git read-only | `git status`, `git log`, `git diff`, `git show`   |
+| Package info  | `npm list`, `pip list`, `cargo tree`              |
+
+### Hooks with Read-Only Detection
+
+- `pretooluse-process-storm-guard.mjs` - Skips process storm checks for read-only commands
+
 ## Language Policy
 
 Per `lifecycle-reference.md`, **TypeScript/Bun is preferred** for new hooks:
