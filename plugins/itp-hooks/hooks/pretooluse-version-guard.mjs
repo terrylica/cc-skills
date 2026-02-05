@@ -6,11 +6,15 @@
  * Forces use of "<version>" placeholder pattern.
  * Universal across all projects - Rust, Python, JavaScript, etc.
  *
+ * Plan Mode: Automatically skipped when Claude is in planning phase.
+ * This prevents blocking during /plan exploration where version references
+ * in plan files are acceptable.
+ *
  * Usage:
  *   Installed via /itp:hooks install
  *   Escape hatch: # SSoT-OK comment in file
  *
- * ADR: /docs/adr/2026-01-09-version-ssot-guard.md (to be created)
+ * ADR: /docs/adr/2026-02-05-plan-mode-detection-hooks.md
  */
 
 // ============================================================================
@@ -69,11 +73,19 @@ const EXCLUDED_PATHS = [
   /\/development\//i, // Development docs
 ];
 
-import { allow, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
+import {
+  allow,
+  deny,
+  parseStdinOrAllow,
+  isPlanMode,
+  createHookLogger,
+} from "./pretooluse-helpers.ts";
 
 // ============================================================================
 // MAIN LOGIC
 // ============================================================================
+
+const logger = createHookLogger("VERSION-GUARD");
 
 async function main() {
   // Parse stdin JSON input (allow-on-error semantics)
@@ -84,6 +96,21 @@ async function main() {
 
   // Early exit: Only check Write and Edit tools
   if (tool_name !== "Write" && tool_name !== "Edit") {
+    allow();
+    return;
+  }
+
+  // Early exit: Skip in plan mode
+  // Plan files and planning phase should not be blocked by version checks
+  const planContext = isPlanMode(input, { checkPermission: true, checkPath: true });
+  if (planContext.inPlanMode) {
+    logger.debug("Skipping version check in plan mode", {
+      hook_event: "PreToolUse",
+      tool_name,
+      trace_id: input.tool_use_id,
+      reason: planContext.reason,
+      permission_mode: planContext.permissionMode,
+    });
     allow();
     return;
   }
