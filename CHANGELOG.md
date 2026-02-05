@@ -1,3 +1,24 @@
+# [11.13.0](https://github.com/terrylica/cc-skills/compare/v11.12.0...v11.13.0) (2026-02-05)
+
+
+### Features
+
+* **itp-hooks:** add Pueue reminder for long-running tasks ([292060b](https://github.com/terrylica/cc-skills/commit/292060b887e2f2500c858039f1185bd986a74ec4))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+53/-1)
+
 # [11.12.0](https://github.com/terrylica/cc-skills/compare/v11.11.1...v11.12.0) (2026-02-05)
 
 
