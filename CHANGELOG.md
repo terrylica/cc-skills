@@ -1,3 +1,24 @@
+# [11.12.0](https://github.com/terrylica/cc-skills/compare/v11.11.1...v11.12.0) (2026-02-05)
+
+
+### Features
+
+* **itp-hooks:** add read-only command detection to reduce hook noise ([2a916be](https://github.com/terrylica/cc-skills/commit/2a916bedf7e23733d62a20fe52d4f0c2784c954c))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+31)
+
 ## [11.11.1](https://github.com/terrylica/cc-skills/compare/v11.11.0...v11.11.1) (2026-02-05)
 
 
