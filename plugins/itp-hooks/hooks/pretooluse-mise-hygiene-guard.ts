@@ -172,7 +172,7 @@ function isTargetFile(filePath: string): boolean {
 /**
  * Generate hub-spoke refactoring suggestion
  */
-function generateHubSpokeSuggestion(result: HygieneResult): string {
+function generateHubSpokeSuggestion(): string {
   const suggestions: string[] = [
     "",
     "**Recommended hub-spoke structure:**",
@@ -310,7 +310,7 @@ async function main(): Promise<void> {
       `Large mise.toml files become hard to maintain. Consider hub-spoke refactoring:`,
       `- Keep [env], [tools], [task_config] in root mise.toml (hub)`,
       `- Move [tasks.*] to .mise/tasks/*.toml files (spokes)`,
-      generateHubSpokeSuggestion(result),
+      generateHubSpokeSuggestion(),
     ].join("\n");
 
     return deny(message);
@@ -321,5 +321,5 @@ async function main(): Promise<void> {
 
 main().catch((err) => {
   console.error(`[mise-hygiene-guard] Error: ${err.message}`);
-  process.exit(0); // Don't block on errors
+  allow(); // Fail-open: don't block on errors
 });
