@@ -21,7 +21,7 @@
  */
 
 import { detectPatterns, formatFindings, DEFAULT_CONFIG } from "./process-storm-patterns.mjs";
-import { allow, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
+import { allow, deny, parseStdinOrAllow, isReadOnly } from "./pretooluse-helpers.ts";
 
 // ============================================================================
 // MAIN LOGIC
@@ -39,6 +39,12 @@ async function main() {
 
   if (tool_name === "Bash") {
     content = tool_input.command || "";
+    // Early exit: Skip read-only commands (grep, find, ls, etc.)
+    // These can't cause process storms and skipping reduces hook noise
+    if (isReadOnly(content)) {
+      allow();
+      return;
+    }
   } else if (tool_name === "Write") {
     content = tool_input.content || "";
   } else if (tool_name === "Edit") {
