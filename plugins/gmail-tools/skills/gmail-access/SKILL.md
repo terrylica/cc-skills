@@ -32,6 +32,42 @@ echo "GMAIL_OP_UUID: ${GMAIL_OP_UUID:-NOT_SET}"
 
 **If NOT_SET**: You MUST run the Setup Flow below. Do NOT proceed to Gmail commands.
 
+### Step 2.5: Verify Account Context (CRITICAL)
+
+**ALWAYS verify you're accessing the correct email account for the current project.**
+
+```bash
+# Show current project context
+echo "=== Gmail Account Context ==="
+echo "Working directory: $(pwd)"
+echo "GMAIL_OP_UUID: ${GMAIL_OP_UUID}"
+
+# Check where GMAIL_OP_UUID is defined (mise hierarchy)
+echo ""
+echo "=== mise Config Source ==="
+grep -l "GMAIL_OP_UUID" .mise.local.toml .mise.toml ~/.config/mise/config.toml 2>/dev/null || echo "Not found in standard locations"
+
+# Get the email address from 1Password for this UUID
+echo ""
+echo "=== Email Account for this UUID ==="
+op item get "${GMAIL_OP_UUID}" --fields label=email 2>/dev/null || op item get "${GMAIL_OP_UUID}" --format json 2>/dev/null | jq -r '.title'
+```
+
+**STOP and confirm with user** before proceeding:
+
+- Display the email account that will be accessed
+- Verify this matches the project's intended email (check `RECRUITER_EMAIL` or similar project-specific vars)
+- If mismatch, inform user and do NOT proceed
+
+**Example verification:**
+
+```bash
+# Compare configured email with project expectation
+PROJECT_EMAIL="${RECRUITER_EMAIL:-$(grep -m1 'email' .mise.toml 2>/dev/null | cut -d'"' -f2)}"
+echo "Project expects: ${PROJECT_EMAIL:-'(not specified)'}"
+echo "Gmail UUID maps to: $(op item get "${GMAIL_OP_UUID}" --fields label=email 2>/dev/null)"
+```
+
 ### Step 3: Verify 1Password Authentication
 
 ```bash
