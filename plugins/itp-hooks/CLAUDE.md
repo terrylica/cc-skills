@@ -79,6 +79,40 @@ git log --format='%H|%ad|%s|%(trailers:key=SRED-Type,valueonly)' --date=short | 
 git log --format='%(trailers:key=SRED-Type,valueonly)' | sort | uniq -c
 ```
 
+## Plan Mode Detection
+
+Hooks can detect when Claude is in plan mode and skip validation. This prevents blocking during planning phase when Claude writes to plan files or explores the codebase.
+
+### Usage
+
+```typescript
+import { isPlanMode, allow } from "./pretooluse-helpers.ts";
+
+const planContext = isPlanMode(input, {
+  checkPermission: true,
+  checkPath: true,
+});
+if (planContext.inPlanMode) {
+  logger.debug("Skipping in plan mode", { reason: planContext.reason });
+  return allow();
+}
+```
+
+### Detection Signals
+
+| Signal                             | Priority  | Description                                          |
+| ---------------------------------- | --------- | ---------------------------------------------------- |
+| `permission_mode: "plan"`          | Primary   | Claude Code sets this when `EnterPlanMode` is active |
+| File path `/plans/*.md`            | Secondary | Catches writes to plan directories                   |
+| Active files in `~/.claude/plans/` | Tertiary  | Expensive filesystem check (disabled by default)     |
+
+### Hooks with Plan Mode Support
+
+- `pretooluse-version-guard.mjs` - Skips version checks in plan mode
+- `pretooluse-mise-hygiene-guard.ts` - Skips hygiene checks in plan mode
+
+**ADR**: [/docs/adr/2026-02-05-plan-mode-detection-hooks.md](/docs/adr/2026-02-05-plan-mode-detection-hooks.md)
+
 ## Language Policy
 
 Per `lifecycle-reference.md`, **TypeScript/Bun is preferred** for new hooks:

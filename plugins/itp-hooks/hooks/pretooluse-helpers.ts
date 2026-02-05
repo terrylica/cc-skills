@@ -2,11 +2,34 @@
 /**
  * Shared helpers for PreToolUse hooks.
  * Extracted from pretooluse-{fake-data,process-storm,version}-guard.mjs
+ *
+ * Includes plan mode detection for hooks that should behave differently
+ * during Claude Code's planning phase.
+ *
+ * ADR: /docs/adr/2026-02-05-plan-mode-detection-hooks.md
  */
 
 import { createHookLogger, type HookLogContext } from "./lib/logger.ts";
+import {
+  isPlanMode,
+  isQuickPlanMode,
+  type HookInputWithPlanMode,
+  type PlanModeContext,
+  type PermissionMode,
+} from "./lib/plan-mode-detector.ts";
 
 // Types
+
+/**
+ * Permission modes supported by Claude Code.
+ * Re-exported from plan-mode-detector for convenience.
+ */
+export type { PermissionMode };
+
+/**
+ * PreToolUse hook input from Claude Code.
+ * Includes all documented fields including plan mode indicators.
+ */
 export interface PreToolUseInput {
   tool_name: string;
   tool_input: {
@@ -18,6 +41,14 @@ export interface PreToolUseInput {
   };
   tool_use_id?: string;
   cwd?: string;
+  /** Session identifier for state tracking */
+  session_id?: string;
+  /** Path to conversation transcript JSONL */
+  transcript_path?: string;
+  /** Permission mode - "plan" indicates Claude is in planning phase */
+  permission_mode?: PermissionMode;
+  /** Name of the hook event (always "PreToolUse" for this input) */
+  hook_event_name?: string;
 }
 
 export interface PreToolUseResponse {
@@ -95,3 +126,6 @@ export async function parseStdinOrAllow(
 
 // Re-export logger for hooks that need additional logging
 export { createHookLogger, type HookLogContext };
+
+// Re-export plan mode detection utilities
+export { isPlanMode, isQuickPlanMode, type HookInputWithPlanMode, type PlanModeContext };
