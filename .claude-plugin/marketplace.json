@@ -45,7 +45,10 @@
         "workflow",
         "implementation",
         "release",
-        "semantic-release"
+        "semantic-release",
+        "mise",
+        "mise.toml",
+        "task-runner"
       ],
       "strict": false
     },
