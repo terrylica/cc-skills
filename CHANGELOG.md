@@ -1,3 +1,41 @@
+## [11.10.1](https://github.com/terrylica/cc-skills/compare/v11.10.0...v11.10.1) (2026-02-05)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-tools</strong> (1 change)</summary>
+
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/SKILL.md) - updated (+36)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>gmail-tools/gmail-access</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [Release Workflow Patterns for mise Tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/release-workflow-patterns.md) - updated (+75)
+
+</details>
+
 # [11.10.0](https://github.com/terrylica/cc-skills/compare/v11.9.1...v11.10.0) (2026-02-04)
 
 
