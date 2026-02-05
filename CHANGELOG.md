@@ -1,3 +1,29 @@
+# [11.14.0](https://github.com/terrylica/cc-skills/compare/v11.13.0...v11.14.0) (2026-02-05)
+
+
+### Features
+
+* **devops-tools:** add pueue-job-orchestration skill ([2f03bd8](https://github.com/terrylica/cc-skills/commit/2f03bd895ce1ebd5cc83a90d42ed454249217730))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - new (+227)
+
+</details>
+
 # [11.13.0](https://github.com/terrylica/cc-skills/compare/v11.12.0...v11.13.0) (2026-02-05)
 
 
