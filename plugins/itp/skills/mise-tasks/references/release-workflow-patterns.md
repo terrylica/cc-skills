@@ -220,6 +220,7 @@ When reviewing a release workflow in `.mise.toml`:
 - [ ] `release:full` includes all phases including publish in its dependency chain
 - [ ] Standalone invocation of any task is safe (prerequisites enforced by DAG)
 - [ ] Version bump happens before build (so artifacts have correct version)
+- [ ] Cross-compilation tools have their helper binaries declared (e.g., `cargo-zigbuild` for `maturin --zig`)
 
 ---
 
@@ -237,3 +238,77 @@ The rangebar-py project (Rust+Python via maturin) hit the "publish without build
 **Fix**: Added `depends = ["release:build-all"]` to `release:pypi` and included `release:pypi` in `release:full`'s dependency chain.
 
 **Lesson**: If two tasks must always run in a specific order, use `depends`. "Manual step after X" is not enforcement — it's documentation that gets ignored under time pressure.
+
+---
+
+## Anti-Pattern 5: Implicit Tool Dependencies
+
+### The Problem
+
+Some tools require other tools to be installed but don't fail fast when they're missing. Instead, they produce incorrect results or cryptic errors late in the build.
+
+**Real-world example**: maturin's `--zig` flag for cross-compilation.
+
+```toml
+# ❌ zig is installed, but cargo-zigbuild is missing
+[tools]
+zig = "<version>"
+"cargo:maturin" = "latest"
+
+[tasks."release:linux"]
+run = """
+maturin build --release \
+    --target x86_64-unknown-linux-gnu \
+    --zig \
+    --compatibility manylinux_2_17
+"""
+```
+
+**What happens**: The build appears to succeed, produces a wheel file, but the wheel fails manylinux_2_17 compliance check:
+
+```
+💥 maturin failed
+  Caused by: Error ensuring manylinux_2_17 compliance
+  Caused by: Your library is not manylinux_2_17 compliant because of
+             too-recent versioned symbols: GLIBC_2.18, GLIBC_2.25, GLIBC_2.33
+```
+
+**Why it fails late**: maturin's `--zig` flag internally uses `cargo-zigbuild` to properly target glibc 2.17. Without `cargo-zigbuild`, maturin still uses zig as a linker but doesn't set the glibc version target, producing binaries linked against the host's glibc.
+
+### The Fix
+
+Declare all implicit dependencies explicitly in `[tools]`:
+
+```toml
+# ✅ All tools that work together are declared together
+[tools]
+zig = "<version>"
+"cargo:maturin" = "latest"
+"cargo:cargo-zigbuild" = "latest"  # Required for maturin --zig
+```
+
+### Common Implicit Dependencies
+
+| Primary Tool         | Implicit Dependency    | Symptom if Missing                       |
+| -------------------- | ---------------------- | ---------------------------------------- |
+| `maturin --zig`      | `cargo-zigbuild`       | manylinux compliance failure             |
+| `cargo build` (PyO3) | `python` in path       | "Python not found" during link           |
+| `semantic-release`   | `bun` or `npm`         | "Cannot find module" errors              |
+| `uv run --with`      | Network access         | Silent fallback to cached stale versions |
+| `gh pr create`       | `GH_TOKEN` environment | 401 or prompt for login                  |
+
+### The Lesson
+
+**Tools that accept flags for integration features often have undeclared dependencies on other tools.** When a flag like `--zig` implies "use zig for cross-compilation," read the documentation to discover what else must be installed.
+
+Practical rule: **If a tool flag name-checks another tool, check if that tool (or a helper for it) needs to be in `[tools]`.**
+
+---
+
+## Checklist Addition: Tool Dependencies
+
+Add to the release task audit:
+
+- [ ] Cross-compilation tools have their helper binaries declared (e.g., `cargo-zigbuild` for `maturin --zig`)
+- [ ] Build tools that interact with language runtimes have those runtimes in `[tools]` (e.g., Python for PyO3)
+- [ ] Tasks using external services have their CLI tools and credentials configured
