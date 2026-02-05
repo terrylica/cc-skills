@@ -252,7 +252,9 @@
         "standards",
         "ruff",
         "python",
-        "linting"
+        "linting",
+        "mise",
+        "mise-hygiene"
       ],
       "hooks": "./plugins/itp-hooks/hooks/hooks.json",
       "strict": false
