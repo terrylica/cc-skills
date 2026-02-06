@@ -63,15 +63,17 @@ Return format: ["label1", "label2"]
 
 ## Title Extraction (Future)
 
-**Purpose**: Extract a clear, searchable title from issue content.
+**Purpose**: Extract an informative title from issue content.
 
 ```
-Extract a clear, searchable GitHub issue title (max 72 chars).
-Format: "{Type}: {Specific description}"
+Extract an informative GitHub issue title (max 256 chars).
+Maximize the character limit based on the nature of the content.
 Content: {content}
 ```
 
-**Expected Response**: Single line title string
+**Expected Response**: Single line title string (up to 256 characters)
+
+**Principle**: GitHub allows 256 characters for issue titles. Maximize this limit to create informative, searchable titles. The approach depends on the nature of the content.
 
 ## Error Handling
 

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/Skills-3-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-3-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 GitHub workflow automation for Claude Code with intelligent link validation, PR management, and gh CLI enforcement.
@@ -21,14 +21,22 @@ GitHub workflow automation for Claude Code with intelligent link validation, PR 
 
 ### Hooks
 
-| Hook                           | Matcher  | Purpose                                                 |
-| ------------------------------ | -------- | ------------------------------------------------------- |
-| `webfetch-github-guard.sh`     | WebFetch | Soft-blocks WebFetch for github.com, suggests gh CLI    |
-| `gh-issue-body-file-guard.mjs` | Bash     | Blocks `gh issue create --body`, requires `--body-file` |
+| Hook                           | Matcher  | Type        | Purpose                                                 |
+| ------------------------------ | -------- | ----------- | ------------------------------------------------------- |
+| `webfetch-github-guard.sh`     | WebFetch | PreToolUse  | Soft-blocks WebFetch for github.com, suggests gh CLI    |
+| `gh-issue-body-file-guard.mjs` | Bash     | PreToolUse  | Blocks `gh issue create --body`, requires `--body-file` |
+| `gh-issue-title-reminder.mjs`  | Bash     | PostToolUse | Reminds to optimize issue title after commenting        |
 
 **WebFetch Enforcement**: Soft-blocks WebFetch for github.com URLs, suggests gh CLI alternatives. Detects issue/PR/repo URLs and provides specific gh commands. User can override if needed.
 
 **Issue Body File Guard**: Hard-blocks `gh issue create --body "..."` because inline heredocs silently fail for long content. Requires `--body-file` pattern for reliability.
+
+**Issue Title Reminder**: After commenting on a GitHub issue, reminds to optimize the title if:
+
+1. The current user owns the issue (author check via token filename)
+2. The current title is under 200 characters (room for improvement)
+
+This supports the "Title Evolution" pattern - re-evaluating titles as issues gain new information.
 
 ## The Problem This Solves
 
@@ -181,6 +189,26 @@ Required pattern:
 3. Convert them to https://github.com/Org/Repo/blob/feat/my-feature/path/file.md
 4. Create PR with valid links
 ```
+
+## GitHub Issue Title Best Practices
+
+### Maximize the 256-Character Limit
+
+GitHub allows **256 characters** for issue titles. Maximize this limit for informative, searchable titles based on the nature of the content.
+
+### Title Evolution on New Comments
+
+Re-evaluate and update issue titles when significant new information is added. The AI agent determines the best way to maximize informativeness.
+
+```bash
+# Check current title length
+gh issue view <number> --json title --jq '.title | length'
+
+# Update title
+gh issue edit <number> --title "..."
+```
+
+See [issues-workflow SKILL.md](./skills/issues-workflow/SKILL.md#title-evolution-re-evaluate-on-new-comments) for details.
 
 ## Technical Details
 
