@@ -1,3 +1,24 @@
+## [11.16.2](https://github.com/terrylica/cc-skills/compare/v11.16.1...v11.16.2) (2026-02-06)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [dead-code-detector](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/dead-code-detector/SKILL.md) - updated (+46/-44)
+
+</details>
+
 ## [11.16.1](https://github.com/terrylica/cc-skills/compare/v11.16.0...v11.16.1) (2026-02-06)
 
 
