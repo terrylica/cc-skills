@@ -184,6 +184,150 @@ For detailed information, see:
 
 ---
 
+## Multi-Perspective Validation (Critical)
+
+**IMPORTANT**: Before removing any detected "dead code", spawn parallel subagents to validate findings from multiple perspectives. Dead code may actually be **unimplemented features** or **incomplete integrations**.
+
+### Classification Matrix
+
+| Finding Type    | True Dead Code                | Unimplemented Feature               | Incomplete Integration    |
+| --------------- | ----------------------------- | ----------------------------------- | ------------------------- |
+| Unused function | No callers, no tests, no docs | Has TODO/FIXME, referenced in specs | Partial call chain exists |
+| Unused export   | Not imported anywhere         | In public API, documented           | Used in sibling package   |
+| Unused import   | Typo, refactored away         | Needed for side effects             | Type-only usage           |
+| Unused variable | Assigned but never read       | Placeholder for future              | Debug/logging removed     |
+
+### Validation Workflow
+
+After running detection tools, **spawn these parallel subagents**:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Dead Code Findings                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ Intent Agent    │ │ Integration     │ │ History Agent   │
+│                 │ │ Agent           │ │                 │
+│ - Check TODOs   │ │ - Trace call    │ │ - Git blame     │
+│ - Search specs  │ │   chains        │ │ - Commit msgs   │
+│ - Find issues   │ │ - Check exports │ │ - PR context    │
+│ - Read ADRs     │ │ - Test coverage │ │ - Author intent │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+          │                   │                   │
+          └───────────────────┼───────────────────┘
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              AskUserQuestion: Confirm Classification            │
+│  [ ] True dead code - safe to remove                            │
+│  [ ] Unimplemented - create GitHub Issue to track               │
+│  [ ] Incomplete - investigate integration gaps                  │
+│  [ ] False positive - add to whitelist                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Agent Prompts
+
+**Intent Agent** (searches for planned usage):
+
+```
+Search for references to [SYMBOL] in:
+1. TODO/FIXME comments in codebase
+2. GitHub Issues (open and closed)
+3. ADRs and design docs
+4. README and CLAUDE.md files
+Report: Was this code planned but not yet integrated?
+```
+
+**Integration Agent** (traces execution paths):
+
+```
+For [SYMBOL], analyze:
+1. All import/require statements
+2. Dynamic imports (importlib, require.resolve)
+3. Framework magic (decorators, annotations, config)
+4. Test files that may exercise this code
+Report: Is there a partial or indirect call chain?
+```
+
+**History Agent** (investigates provenance):
+
+```
+For [SYMBOL], check:
+1. git blame - who wrote it and when
+2. Commit message - what was the intent
+3. PR description - was it part of larger feature
+4. Recent commits - was calling code removed
+Report: Was this intentionally orphaned or accidentally broken?
+```
+
+### Example: Validating Python Findings
+
+```bash
+# Step 1: Run vulture
+vulture src/ --min-confidence 80 > findings.txt
+
+# Step 2: For each high-confidence finding, spawn validation
+# (Claude Code will use Task tool with Explore agents)
+```
+
+**Sample finding**: `unused function 'calculate_metrics' (src/analytics.py:45)`
+
+**Multi-agent investigation results**:
+
+- Intent Agent: "Found TODO in src/dashboard.py:12 - 'integrate calculate_metrics here'"
+- Integration Agent: "Function is imported in tests/test_analytics.py but test is skipped"
+- History Agent: "Added in PR #234 'Add analytics foundation' - dashboard integration deferred"
+
+**Conclusion**: NOT dead code - it's an **unimplemented feature**. Create tracking issue.
+
+### User Confirmation Flow
+
+After agent analysis, use `AskUserQuestion` with `multiSelect: true`:
+
+```typescript
+AskUserQuestion({
+  questions: [
+    {
+      question: "How should we handle these findings?",
+      header: "Action",
+      multiSelect: true,
+      options: [
+        {
+          label: "Remove confirmed dead code",
+          description: "Delete items verified as truly unused",
+        },
+        {
+          label: "Create issues for unimplemented",
+          description: "Track planned features in GitHub Issues",
+        },
+        {
+          label: "Investigate incomplete integrations",
+          description: "Spawn deeper analysis for partial implementations",
+        },
+        {
+          label: "Update whitelist",
+          description: "Add false positives to tool whitelist",
+        },
+      ],
+    },
+  ],
+});
+```
+
+### Risk Classification
+
+| Risk Level   | Criteria                                               | Action                     |
+| ------------ | ------------------------------------------------------ | -------------------------- |
+| **Low**      | 100% confidence, no references anywhere, >6 months old | Auto-remove with commit    |
+| **Medium**   | 80-99% confidence, some indirect references            | Validate with agents first |
+| **High**     | <80% confidence, recent code, has tests                | Manual review required     |
+| **Critical** | Public API, documented, has dependents                 | NEVER auto-remove          |
+
+---
+
 ## Sources
 
 - [vulture GitHub](https://github.com/jendrikseipp/vulture)
