@@ -1,3 +1,58 @@
+# [11.15.0](https://github.com/terrylica/cc-skills/compare/v11.14.0...v11.15.0) (2026-02-06)
+
+
+### Features
+
+* **gh-tools:** add gh-issue-title-reminder hook for 256-char title optimization ([9cd7ceb](https://github.com/terrylica/cc-skills/commit/9cd7ceb03a6900bfd2685a5413c2b81fab4f705c)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#issue-title-reminder](https://github.com/terrylica/cc-skills/issues/issue-title-reminder) [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#TOOLS](https://github.com/terrylica/cc-skills/issues/TOOLS)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (2 changes)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+2/-2)
+- [issues-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/SKILL.md) - updated (+21)
+
+</details>
+
+
+### Plugin READMEs
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+33/-5)
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/issue-create</strong> (1 file)</summary>
+
+- [AI Prompts Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/references/ai-prompts.md) - updated (+6/-4)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+17/-13)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+9/-9)
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - new (+125)
+
 # [11.14.0](https://github.com/terrylica/cc-skills/compare/v11.13.0...v11.14.0) (2026-02-05)
 
 
