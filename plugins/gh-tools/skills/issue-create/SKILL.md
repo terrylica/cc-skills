@@ -45,9 +45,9 @@ Use this skill when:
 
 ### 3. Title Extraction
 
-- Extracts clear title from content
+- Extracts informative title from content
 - Adds type prefix (Bug:, Feature:, etc.)
-- Limits to 72 characters
+- **Maximizes GitHub's 256-character limit** for informative titles
 
 ### 4. Template Formatting
 

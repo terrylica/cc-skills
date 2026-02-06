@@ -402,6 +402,26 @@ while read url; do
 done
 ```
 
+## Title Evolution: Re-evaluate on New Comments
+
+**PRINCIPLE**: GitHub issue titles have a **256-character limit**. Maximize this limit to create informative titles that reflect the current state of the issue.
+
+### When to Re-evaluate
+
+Re-evaluate and potentially update the issue title when significant new information is added - new findings, status changes, scope expansion, or when the journey is complete.
+
+### Commands
+
+```bash
+# Check current title length
+gh issue view <number> --json title --jq '.title | length'
+
+# Update title (maximize 256 chars based on content)
+gh issue edit <number> --title "..."
+```
+
+The AI agent determines the best way to maximize informativeness based on the nature of the content.
+
 ## Troubleshooting
 
 | Issue                          | Cause                 | Fix                                   |
@@ -410,6 +430,7 @@ done
 | Sub-issues not linking         | Wrong body format     | Use exact "Parent: #123" syntax       |
 | Labels not filtering correctly | Typo in label name    | `gh label list` to verify exact names |
 | Long body truncated            | Inline `--body` limit | Use `--body-file` instead             |
+| Title too short/vague          | Not using full limit  | Maximize 256-char limit for context   |
 
 ## References
 

@@ -10,7 +10,8 @@ Claude Code skills marketplace: **21 plugins** with skills for ADR-driven develo
 CLAUDE.md (this file)           ◄── Hub: Navigation + Essentials
     │
     ├── plugins/CLAUDE.md       ◄── Spoke: Plugin development
-    │       └── itp-hooks/CLAUDE.md  ◄── Deep: Hook reference
+    │       ├── itp-hooks/CLAUDE.md  ◄── Deep: Hook reference
+    │       └── gh-tools/CLAUDE.md   ◄── Deep: GitHub CLI enforcement
     │
     └── docs/CLAUDE.md          ◄── Spoke: Documentation standards
             ├── HOOKS.md             ◄── Hook development patterns
@@ -20,18 +21,19 @@ CLAUDE.md (this file)           ◄── Hub: Navigation + Essentials
 
 ## Navigation
 
-| Topic            | Document                                               |
-| ---------------- | ------------------------------------------------------ |
-| Installation     | [README.md](./README.md)                               |
-| Plugin Dev       | [plugins/CLAUDE.md](./plugins/CLAUDE.md)               |
-| Documentation    | [docs/CLAUDE.md](./docs/CLAUDE.md)                     |
-| Hooks Dev        | [docs/HOOKS.md](./docs/HOOKS.md)                       |
-| Release          | [docs/RELEASE.md](./docs/RELEASE.md)                   |
-| Plugin Lifecycle | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md) |
-| ITP Workflow     | [plugins/itp/README.md](./plugins/itp/README.md)       |
-| Troubleshooting  | [docs/troubleshooting/](./docs/troubleshooting/)       |
-| ADRs             | [docs/adr/](./docs/adr/)                               |
-| Resume Context   | [docs/RESUME.md](./docs/RESUME.md)                     |
+| Topic            | Document                                                   |
+| ---------------- | ---------------------------------------------------------- |
+| Installation     | [README.md](./README.md)                                   |
+| Plugin Dev       | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                   |
+| Documentation    | [docs/CLAUDE.md](./docs/CLAUDE.md)                         |
+| Hooks Dev        | [docs/HOOKS.md](./docs/HOOKS.md)                           |
+| gh-tools         | [plugins/gh-tools/CLAUDE.md](./plugins/gh-tools/CLAUDE.md) |
+| Release          | [docs/RELEASE.md](./docs/RELEASE.md)                       |
+| Plugin Lifecycle | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)     |
+| ITP Workflow     | [plugins/itp/README.md](./plugins/itp/README.md)           |
+| Troubleshooting  | [docs/troubleshooting/](./docs/troubleshooting/)           |
+| ADRs             | [docs/adr/](./docs/adr/)                                   |
+| Resume Context   | [docs/RESUME.md](./docs/RESUME.md)                         |
 
 ## Essential Commands
 
@@ -107,6 +109,8 @@ bun pm ls -g                 # List
 **Auto-upgrade**: `com.terryli.mise_autoupgrade` runs every 2 hours.
 
 ## Recent Lessons Learned
+
+**2026-02-05**: gh-issue-title-reminder hook added - maximizes 256-char GitHub issue titles. [gh-tools CLAUDE.md](./plugins/gh-tools/CLAUDE.md#github-issue-title-optimization-2026-02-05)
 
 **2026-02-04**: gdrive-tools plugin added for Google Drive API access with 1Password OAuth.
 
