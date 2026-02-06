@@ -96,12 +96,14 @@ cargo clippy --fix --allow-dirty
 | 80-99%     | Very likely unused                          | Review before removing          |
 | 60-79%     | Possibly unused (dynamic calls, frameworks) | Add to whitelist if intentional |
 
-**Common false positives**:
+**Common false positives** (framework-invoked code):
 
-- Django/Flask view functions (called by framework)
-- pytest fixtures (implicitly used)
-- `__all__` exports
-- Celery tasks
+- Route handlers / controller methods (invoked by web frameworks)
+- Test fixtures and setup utilities (invoked by test runners)
+- Public API surface exports (re-exported for consumers)
+- Background job handlers (invoked by task queues / schedulers)
+- Event listeners / hooks (invoked by event systems)
+- Serialization callbacks (invoked during encode/decode)
 
 ### TypeScript (knip)
 
@@ -174,13 +176,13 @@ For detailed information, see:
 
 ## Troubleshooting
 
-| Issue                         | Cause                     | Solution                                                           |
-| ----------------------------- | ------------------------- | ------------------------------------------------------------------ |
-| vulture reports Django views  | Framework magic           | Add to whitelist: `vulture --make-whitelist`                       |
-| knip misses dynamic imports   | Not in entry points       | Add to `entry` array in knip.json                                  |
-| Rust warns about test helpers | Tests compiled separately | Use `#[cfg(test)]` module with `#[allow(...)]`                     |
-| Too many false positives      | Threshold too low         | Increase `--min-confidence` (vulture) or configure ignore patterns |
-| Missing type exports (TS)     | Type-only exports         | knip handles these automatically since v5                          |
+| Issue                          | Cause                         | Solution                                                       |
+| ------------------------------ | ----------------------------- | -------------------------------------------------------------- |
+| Reports framework-invoked code | Framework magic / callbacks   | Add to whitelist or exclusion config                           |
+| Misses dynamically loaded code | Not in static entry points    | Configure entry points to include plugin/extension directories |
+| Warns about test-only helpers  | Test code compiled separately | Use conditional compilation or test-specific exclusions        |
+| Too many false positives       | Threshold too low             | Increase confidence threshold or configure ignore patterns     |
+| Missing type-only references   | Compile-time only usage       | Most modern tools handle this; check tool version              |
 
 ---
 
@@ -190,12 +192,12 @@ For detailed information, see:
 
 ### Classification Matrix
 
-| Finding Type    | True Dead Code                | Unimplemented Feature               | Incomplete Integration    |
-| --------------- | ----------------------------- | ----------------------------------- | ------------------------- |
-| Unused function | No callers, no tests, no docs | Has TODO/FIXME, referenced in specs | Partial call chain exists |
-| Unused export   | Not imported anywhere         | In public API, documented           | Used in sibling package   |
-| Unused import   | Typo, refactored away         | Needed for side effects             | Type-only usage           |
-| Unused variable | Assigned but never read       | Placeholder for future              | Debug/logging removed     |
+| Finding Type          | True Dead Code                | Unimplemented Feature               | Incomplete Integration        |
+| --------------------- | ----------------------------- | ----------------------------------- | ----------------------------- |
+| Unused callable       | No callers, no tests, no docs | Has TODO/FIXME, referenced in specs | Partial call chain exists     |
+| Unused export/public  | Not imported anywhere         | In public API, documented           | Used in sibling module        |
+| Unused import/include | Typo, refactored away         | Needed for side effects             | Type-only or compile-time     |
+| Unused binding        | Assigned but never read       | Placeholder for future              | Debug/instrumentation removed |
 
 ### Validation Workflow
 
@@ -233,41 +235,41 @@ After running detection tools, **spawn these parallel subagents**:
 **Intent Agent** (searches for planned usage):
 
 ```
-Search for references to [SYMBOL] in:
-1. TODO/FIXME comments in codebase
-2. GitHub Issues (open and closed)
-3. ADRs and design docs
-4. README and CLAUDE.md files
+Search for references to [IDENTIFIER] in:
+1. TODO/FIXME/HACK comments in codebase
+2. Issue tracker (open and closed issues)
+3. Design documents and architecture decision records
+4. README and project documentation files
 Report: Was this code planned but not yet integrated?
 ```
 
 **Integration Agent** (traces execution paths):
 
 ```
-For [SYMBOL], analyze:
-1. All import/require statements
-2. Dynamic imports (importlib, require.resolve)
-3. Framework magic (decorators, annotations, config)
-4. Test files that may exercise this code
+For [IDENTIFIER], analyze:
+1. All module import/include/use statements
+2. Runtime module loading mechanisms (lazy loading, plugins)
+3. Framework-invoked patterns (metadata attributes, config bindings, annotations)
+4. Test files that may exercise this code path
 Report: Is there a partial or indirect call chain?
 ```
 
 **History Agent** (investigates provenance):
 
 ```
-For [SYMBOL], check:
-1. git blame - who wrote it and when
-2. Commit message - what was the intent
-3. PR description - was it part of larger feature
-4. Recent commits - was calling code removed
+For [IDENTIFIER], check:
+1. VCS blame/annotate - who wrote it and when
+2. Commit message - what was the stated intent
+3. Code review / merge request context - was it part of larger feature
+4. Recent commits - was calling code removed or refactored
 Report: Was this intentionally orphaned or accidentally broken?
 ```
 
-### Example: Validating Python Findings
+### Example: Validating Findings
 
 ```bash
-# Step 1: Run vulture
-vulture src/ --min-confidence 80 > findings.txt
+# Step 1: Run detection tool for your language
+<tool> <source-path> --confidence-threshold 80 > findings.txt
 
 # Step 2: For each high-confidence finding, spawn validation
 # (Claude Code will use Task tool with Explore agents)
@@ -278,8 +280,8 @@ vulture src/ --min-confidence 80 > findings.txt
 **Multi-agent investigation results**:
 
 - Intent Agent: "Found TODO in src/dashboard.py:12 - 'integrate calculate_metrics here'"
-- Integration Agent: "Function is imported in tests/test_analytics.py but test is skipped"
-- History Agent: "Added in PR #234 'Add analytics foundation' - dashboard integration deferred"
+- Integration Agent: "Function is imported in tests/test_analytics.py but test is marked skip/pending"
+- History Agent: "Added in MR #234 'Add analytics foundation' - dashboard integration deferred"
 
 **Conclusion**: NOT dead code - it's an **unimplemented feature**. Create tracking issue.
 
@@ -319,12 +321,12 @@ AskUserQuestion({
 
 ### Risk Classification
 
-| Risk Level   | Criteria                                               | Action                     |
-| ------------ | ------------------------------------------------------ | -------------------------- |
-| **Low**      | 100% confidence, no references anywhere, >6 months old | Auto-remove with commit    |
-| **Medium**   | 80-99% confidence, some indirect references            | Validate with agents first |
-| **High**     | <80% confidence, recent code, has tests                | Manual review required     |
-| **Critical** | Public API, documented, has dependents                 | NEVER auto-remove          |
+| Risk Level   | Criteria                                                | Action                      |
+| ------------ | ------------------------------------------------------- | --------------------------- |
+| **Low**      | 100% confidence, no references anywhere, >6 months old  | Auto-remove with VCS commit |
+| **Medium**   | 80-99% confidence, some indirect references             | Validate with agents first  |
+| **High**     | <80% confidence, recent code, has test coverage         | Manual review required      |
+| **Critical** | Public API surface, documented, has external dependents | NEVER auto-remove           |
 
 ---
 
