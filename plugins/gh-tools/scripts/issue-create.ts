@@ -169,7 +169,7 @@ function extractTitle(content: string, contentType: string): string {
   let title = firstLine
     .replace(/^#+\s*/, "") // Remove markdown headers
     .replace(/^(bug|feature|question|docs?):\s*/i, "") // Remove type prefixes
-    .slice(0, 72); // Limit length
+    .slice(0, 256); // GitHub issue title limit: 256 characters (maximize descriptiveness)
 
   // Add type prefix if not already present
   const prefix = getTitlePrefix(contentType as any);
@@ -177,7 +177,8 @@ function extractTitle(content: string, contentType: string): string {
     title = `${prefix} ${title}`;
   }
 
-  return title;
+  // Final truncation to ensure we stay within limit after prefix
+  return title.slice(0, 256);
 }
 
 function formatBody(content: string, contentType: string): string {
