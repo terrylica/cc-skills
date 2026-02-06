@@ -1,3 +1,41 @@
+# [11.16.0](https://github.com/terrylica/cc-skills/compare/v11.15.0...v11.16.0) (2026-02-06)
+
+
+### Features
+
+* **quality-tools:** add dead-code-detector skill for polyglot codebases ([6c0e7c5](https://github.com/terrylica/cc-skills/commit/6c0e7c5806b22884d00559b3be65679c7e72acbb))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [dead-code-detector](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/dead-code-detector/SKILL.md) - new (+193)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quality-tools/dead-code-detector</strong> (3 files)</summary>
+
+- [Python Dead Code Detection with vulture](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/dead-code-detector/references/python-workflow.md) - new (+158)
+- [Rust Dead Code Detection with cargo clippy](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/dead-code-detector/references/rust-workflow.md) - new (+197)
+- [TypeScript Dead Code Detection with knip](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/dead-code-detector/references/typescript-workflow.md) - new (+184)
+
+</details>
+
 # [11.15.0](https://github.com/terrylica/cc-skills/compare/v11.14.0...v11.15.0) (2026-02-06)
 
 
