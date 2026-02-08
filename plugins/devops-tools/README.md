@@ -1,7 +1,7 @@
 # devops-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-13-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-14-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, notifications, and session recovery.
@@ -27,6 +27,7 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **session-chronicle**             | Session provenance tracking with S3 artifact sharing for team access       |
 | **dual-channel-watchexec**        | Send notifications to Telegram + Pushover on process events                |
 | **python-logging-best-practices** | Unified Python logging with loguru, platformdirs, RotatingFileHandler      |
+| **disk-hygiene**                  | macOS disk cleanup, cache pruning, stale file detection, Downloads triage  |
 
 ## Installation
 
@@ -54,6 +55,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "who created this", "trace origin", "provenance" -> session-chronicle
 - "watchexec notifications", "Telegram + Pushover" -> dual-channel-watchexec
 - "loguru", "python logging", "structured logging" -> python-logging-best-practices
+- "disk space", "cleanup", "stale files", "cache clean", "forgotten files" -> disk-hygiene
 
 ## Key Features
 
@@ -146,6 +148,14 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - platformdirs for XDG-compliant log locations
 - RotatingFileHandler with compression
 - Structured JSONL/NDJSON output
+
+### Disk Hygiene
+
+- Cache audit and cleanup (uv, brew, pip, npm, cargo, rustup, Docker)
+- Forgotten file detection (>50MB, untouched 180+ days)
+- Disk analysis tool benchmarks (dust, dua, gdu, ncdu)
+- Downloads triage with interactive AskUserQuestion flow
+- Quick wins summary ordered by typical savings
 
 ## Requirements
 
