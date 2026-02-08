@@ -481,6 +481,29 @@
         "typescript"
       ],
       "strict": false
+    },
+    {
+      "name": "imessage-tools",
+      "description": "macOS iMessage database querying - decode NSAttributedString messages, search conversations, build sourced timelines from chat.db",
+      "version": "11.16.2",
+      "source": "./plugins/imessage-tools",
+      "category": "utilities",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "imessage",
+        "macos",
+        "chat-db",
+        "sqlite",
+        "messages",
+        "NSAttributedString",
+        "attributedBody",
+        "conversation",
+        "timeline"
+      ],
+      "strict": false
     }
   ]
 }
