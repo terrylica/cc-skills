@@ -1,3 +1,81 @@
+# [11.17.0](https://github.com/terrylica/cc-skills/compare/v11.16.2...v11.17.0) (2026-02-08)
+
+
+### Bug Fixes
+
+* **gh-tools:** add GFM rendering anti-patterns reference to issues-workflow ([15dc28b](https://github.com/terrylica/cc-skills/commit/15dc28b0c03f750d0008714720a9ef668d8f1a24)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#N](https://github.com/terrylica/cc-skills/issues/N)
+
+
+### Features
+
+* **devops-tools:** add disk-hygiene skill for macOS disk cleanup ([2155eac](https://github.com/terrylica/cc-skills/commit/2155eacdd2cbf811d9d8d624e9417900f95d0d4e))
+* **imessage-tools:** add iMessage database querying plugin ([9e8079a](https://github.com/terrylica/cc-skills/commit/9e8079a611e93809ad20241ef66e3b5fa591eca5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [disk-hygiene](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/disk-hygiene/SKILL.md) - new (+289)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issues-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/SKILL.md) - updated (+19/-7)
+
+</details>
+
+<details>
+<summary><strong>imessage-tools</strong> (1 change)</summary>
+
+- [imessage-query](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/SKILL.md) - new (+218)
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+11/-1)
+- [imessage-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/README.md) - new (+25)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/disk-hygiene</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/disk-hygiene/references/evolution-log.md) - new (+12)
+
+</details>
+
+<details>
+<summary><strong>gh-tools/issues-workflow</strong> (1 file)</summary>
+
+- [GFM Anti-Patterns in Issue Comments](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/gfm-antipatterns.md) - new (+209)
+
+</details>
+
+<details>
+<summary><strong>imessage-tools/imessage-query</strong> (4 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/evolution-log.md) - new (+29)
+- [Known Pitfalls](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/known-pitfalls.md) - new (+152)
+- [Reusable SQL Query Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/query-patterns.md) - new (+184)
+- [iMessage Database Schema Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/schema-reference.md) - new (+138)
+
+</details>
+
 ## [11.16.2](https://github.com/terrylica/cc-skills/compare/v11.16.1...v11.16.2) (2026-02-06)
 
 
