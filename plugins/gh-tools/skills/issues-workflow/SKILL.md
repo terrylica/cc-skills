@@ -422,19 +422,31 @@ gh issue edit <number> --title "..."
 
 The AI agent determines the best way to maximize informativeness based on the nature of the content.
 
+## GFM Rendering Anti-Patterns
+
+**NEVER use bare `#N` in issue/PR comments.** GitHub auto-links any `#N` where issue N exists — in prose, tables, lists. This is unpredictable and inconsistent (some numbers link, others don't).
+
+- **To reference an issue**: Use explicit full URL → `[Issue 13](https://github.com/owner/repo/issues/13)`
+- **For non-issue numbers**: Suppress with backtick → `` `#1` ``
+- **Backslash `\#1` does NOT work** inside table cells
+
+See the full reference for 6 documented anti-patterns: **[GFM Anti-Patterns Reference](./references/gfm-antipatterns.md)**
+
 ## Troubleshooting
 
-| Issue                          | Cause                 | Fix                                   |
-| ------------------------------ | --------------------- | ------------------------------------- |
-| "Resource not accessible"      | Fine-grained PAT      | Use Classic PAT for Projects v2       |
-| Sub-issues not linking         | Wrong body format     | Use exact "Parent: #123" syntax       |
-| Labels not filtering correctly | Typo in label name    | `gh label list` to verify exact names |
-| Long body truncated            | Inline `--body` limit | Use `--body-file` instead             |
-| Title too short/vague          | Not using full limit  | Maximize 256-char limit for context   |
+| Issue                          | Cause                 | Fix                                                                                                                          |
+| ------------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `#N` auto-links in tables      | GFM auto-reference    | Use backtick code span: `` `#1` `` ([details](./references/gfm-antipatterns.md#ap-01-n-auto-links-to-issues-in-table-cells)) |
+| "Resource not accessible"      | Fine-grained PAT      | Use Classic PAT for Projects v2                                                                                              |
+| Sub-issues not linking         | Wrong body format     | Use exact "Parent: #123" syntax                                                                                              |
+| Labels not filtering correctly | Typo in label name    | `gh label list` to verify exact names                                                                                        |
+| Long body truncated            | Inline `--body` limit | Use `--body-file` instead                                                                                                    |
+| Title too short/vague          | Not using full limit  | Maximize 256-char limit for context                                                                                          |
 
 ## References
 
 - [gh-tools Issue Create Skill](../issue-create/SKILL.md)
+- [GFM Anti-Patterns](./references/gfm-antipatterns.md)
 - [Field Types Reference](./references/field-types.md)
 - [Auto-Link Configuration](./references/auto-link-config.md)
 - [GraphQL Queries Reference](./references/graphql-queries.md)
