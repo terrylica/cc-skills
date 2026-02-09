@@ -1,21 +1,22 @@
 # quality-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-6-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-7-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Code quality and validation tools for Claude Code: clone detection, multi-agent E2E validation, performance profiling, and schema testing.
 
 ## Skills
 
-| Skill                               | Description                                                   |
-| ----------------------------------- | ------------------------------------------------------------- |
-| `clickhouse-architect`              | ClickHouse schema design, compression codecs, ORDER BY keys   |
-| `code-clone-assistant`              | Detect and refactor code duplication with PMD CPD and Semgrep |
-| `multi-agent-e2e-validation`        | Parallel E2E validation for database refactors and migrations |
-| `multi-agent-performance-profiling` | Parallel performance profiling for pipeline bottlenecks       |
-| `schema-e2e-validation`             | Earthly E2E validation for schema-first data contracts        |
-| `symmetric-dogfooding`              | Bidirectional integration validation between repositories     |
+| Skill                               | Description                                                                |
+| ----------------------------------- | -------------------------------------------------------------------------- |
+| `clickhouse-architect`              | ClickHouse schema design, compression codecs, ORDER BY keys                |
+| `code-clone-assistant`              | Detect and refactor code duplication with PMD CPD and Semgrep              |
+| `multi-agent-e2e-validation`        | Parallel E2E validation for database refactors and migrations              |
+| `multi-agent-performance-profiling` | Parallel performance profiling for pipeline bottlenecks                    |
+| `pre-ship-review`                   | Structured quality review before shipping code (PRs, releases, milestones) |
+| `schema-e2e-validation`             | Earthly E2E validation for schema-first data contracts                     |
+| `symmetric-dogfooding`              | Bidirectional integration validation between repositories                  |
 
 ## Installation
 
@@ -34,6 +35,7 @@ Skills are model-invoked based on context.
 - "code clones", "DRY violations", "duplicate code", "PMD CPD" → code-clone-assistant
 - "E2E validation", "schema migration", "database refactor" → multi-agent-e2e-validation
 - "performance profiling", "pipeline bottlenecks", "parallel profiling" → multi-agent-performance-profiling
+- "pre-ship review", "ship check", "quality review", "release review", "self review", "pre-submit" → pre-ship-review
 - "schema validation", "YAML schema", "Earthly E2E" → schema-e2e-validation
 - "cross-repo validation", "polyrepo integration", "bidirectional testing" → symmetric-dogfooding
 
@@ -57,6 +59,13 @@ Skills are model-invoked based on context.
 - Parallel agent execution for independent validation tasks
 - Database refactor validation with before/after comparison
 - Bulk data pipeline verification
+
+### Pre-Ship Review
+
+- Three-phase workflow: external tools → cc-skills orchestration → human judgment
+- Orchestrates Pyright, Vulture, import-linter, deptry, Semgrep, Griffe
+- 9-category anti-pattern taxonomy for integration boundary failures
+- TodoWrite templates for new features, bug fixes, and refactoring ships
 
 ### Performance Profiling
 
