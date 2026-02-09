@@ -429,7 +429,19 @@ run = "Get-Process | Select-Object -First 5"
 
 ## Level 9: Watch Mode
 
-### Basic Watch
+### Prefer Runtime-Native Watch
+
+When the runtime has a built-in file watcher, use it instead of `mise watch` / `watchexec` — zero extra memory, zero extra processes.
+
+| Runtime     | Command                       | Notes                                                |
+| ----------- | ----------------------------- | ---------------------------------------------------- |
+| **Bun**     | `bun --watch run src/main.ts` | 0 MB overhead. Do NOT use `bun --hot` (stale state). |
+| **Node.js** | `node --watch src/main.js`    | 0 MB overhead.                                       |
+| **Python**  | `uvicorn app:main --reload`   | 0 MB overhead.                                       |
+
+### External Watch (mise watch)
+
+Use `mise watch` for runtimes without built-in watchers (Go, Rust, shell) or multi-language orchestration.
 
 ```bash
 mise watch build  # Re-run on source changes
