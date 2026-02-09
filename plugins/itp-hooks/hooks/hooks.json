@@ -47,6 +47,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-cwd-deletion-guard.ts",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/sred-commit-guard.ts",
             "timeout": 10000
           }

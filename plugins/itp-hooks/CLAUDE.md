@@ -16,6 +16,7 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 | `pretooluse-fake-data-guard.mjs`       | Write             | Prevents fake/placeholder data in production code |
 | `pretooluse-version-guard.mjs`         | Write\|Edit       | Version consistency validation                    |
 | `pretooluse-process-storm-guard.mjs`   | Bash\|Write\|Edit | Prevents fork bomb patterns                       |
+| `pretooluse-cwd-deletion-guard.ts`     | Bash              | Prevents deleting the current working directory   |
 | `pretooluse-vale-claude-md-guard.ts`   | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations  |
 | `pretooluse-hoisted-deps-guard.mjs`    | Write\|Edit       | pyproject.toml root-only and path escape policies |
 | `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)  |
@@ -144,6 +145,48 @@ if (tool_name === "Bash") {
 ### Hooks with Read-Only Detection
 
 - `pretooluse-process-storm-guard.mjs` - Skips process storm checks for read-only commands
+- `pretooluse-cwd-deletion-guard.ts` - Skips CWD deletion checks for read-only commands
+
+## CWD Deletion Guard
+
+The `pretooluse-cwd-deletion-guard.ts` hook prevents commands that would delete the current working directory. When CWD is deleted, the shell becomes permanently broken — every subsequent command (including `cd`) fails with exit code 1.
+
+### Two Lessons Encoded
+
+| Lesson              | Problem                                   | Solution                                                |
+| ------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| Never delete CWD    | Shell unrecoverable after `rm -rf $(pwd)` | `cd /tmp && rm -rf <target>`                            |
+| Don't rm + re-clone | Wasteful and breaks CWD                   | `git remote set-url` + `git fetch` + `git reset --hard` |
+
+### Detection Patterns
+
+| Pattern          | Example                                               |
+| ---------------- | ----------------------------------------------------- |
+| Exact path match | `rm -rf /path/to/cwd` where path = CWD                |
+| Parent deletion  | `rm -rf ~/fork-tools` when CWD is `~/fork-tools/repo` |
+| Relative CWD     | `rm -rf .` or `rm -rf ./`                             |
+| Shell expansion  | `rm -rf $(pwd)` or `rm -rf $PWD`                      |
+| Tilde expansion  | `rm -rf ~/project` matching CWD                       |
+
+### Git-Aware Guidance
+
+When the command includes `git clone` or `gh repo clone` (rm-before-reclone pattern), the denial message suggests `git remote set-url` instead:
+
+```bash
+# Instead of: rm -rf ~/fork-tools/repo && git clone <new-url> ~/fork-tools/repo
+# Do:
+git remote set-url origin <new-url>
+git fetch origin
+git reset --hard origin/main
+```
+
+### Escape Hatch
+
+Add `# CWD-DELETE-OK` comment to bypass:
+
+```bash
+rm -rf ~/fork-tools/repo  # CWD-DELETE-OK
+```
 
 ## Language Policy
 
