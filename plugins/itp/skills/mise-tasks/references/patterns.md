@@ -219,6 +219,30 @@ run = '/usr/bin/env bash -c '\''GITHUB_TOKEN=$(gh auth token) npx semantic-relea
 
 Development workflow with file watching.
 
+### Runtime-Native Watch (Preferred)
+
+Use the runtime's built-in file watcher when available — zero extra processes, zero extra memory.
+
+**Bun/TypeScript** (preferred for all Bun services):
+
+```toml
+[tasks.start]
+description = "Start service (auto-restarts on file changes)"
+run = "bun --watch run src/main.ts"
+
+[tasks.start-plain]
+description = "Start without file watching"
+run = "bun run src/main.ts"
+```
+
+> **Anti-pattern**: Do NOT use `bun --hot`, `nodemon`, `ts-node-dev`, `tsx watch`, or
+> `watchexec` for Bun/TypeScript projects. `bun --watch` uses the same kqueue/inotify
+> primitives built into the Bun runtime with zero overhead (tested: +0 MB RSS vs plain
+> `bun run`). `bun --hot` preserves module state across reloads which causes stale state
+> bugs in long-running services.
+
+**Python** (uvicorn built-in reload):
+
 ```toml
 [tasks.dev]
 description = "Start development server"
@@ -234,11 +258,23 @@ depends = ["dev-db"]
 run = "mise run dev"
 ```
 
-**With watch mode**:
+### External Watch (Polyglot / Non-Runtime)
+
+Use `mise watch` or `watchexec` only when the runtime lacks a built-in watcher (Go, Rust, shell scripts, multi-language orchestration).
 
 ```bash
-mise watch dev  # Auto-restart on file changes
+mise watch dev  # Auto-restart on file changes (requires watchexec)
 ```
+
+### Watch Method Decision Table
+
+| Runtime            | Method             | Command                         | Extra overhead          |
+| ------------------ | ------------------ | ------------------------------- | ----------------------- |
+| **Bun**            | Built-in `--watch` | `bun --watch run src/main.ts`   | 0 MB, 0 processes       |
+| **Python**         | uvicorn reload     | `uvicorn app:main --reload`     | 0 MB, 0 processes       |
+| **Node.js**        | Built-in `--watch` | `node --watch src/main.js`      | 0 MB, 0 processes       |
+| **Go/Rust/other**  | watchexec          | `watchexec -w src -- cargo run` | +10 MB, 1 process       |
+| **Multi-language** | mise watch         | `mise watch dev`                | +10 MB (uses watchexec) |
 
 ---
 

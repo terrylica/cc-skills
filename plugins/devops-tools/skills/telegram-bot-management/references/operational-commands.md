@@ -1,6 +1,5 @@
 **Skill**: [Telegram Bot Management](../SKILL.md)
 
-
 Temporarily stops the bot. Use `bot start` to resume.
 
 ### Start Bot
@@ -21,6 +20,7 @@ cd automation/claude-orchestrator/runtime/bot
 ```
 
 This:
+
 - Installs launchd service
 - Auto-starts on login
 - Auto-restarts on crashes
@@ -52,24 +52,41 @@ launchd (macOS top supervisor)
 
 **No manual restart needed!**
 
+### Bun/TypeScript Bots — Use `bun --watch` Instead
+
+For bots written in Bun/TypeScript, prefer `bun --watch` over `watchexec`:
+
+```
+launchd (macOS top supervisor)
+  └─> bun --watch run src/main.ts
+```
+
+**Why**: `bun --watch` uses the same kqueue/inotify primitives built into the Bun runtime. Empirically tested: 0 MB extra RSS, 0 extra processes (vs +10 MB for watchexec). It restarts on any imported `.ts` file change automatically.
+
+**Anti-pattern**: Do NOT use `bun --hot` for long-running services — it preserves module state across reloads, causing stale state bugs. `--watch` does a clean restart.
+
 ## Health Monitoring
 
 ### Layer 1: launchd
+
 - Monitors: watchexec crashes
 - Action: Auto-restart watchexec
 - Alerts: System logs
 
 ### Layer 2: watchexec
+
 - Monitors: Bot crashes
 - Action: Auto-restart bot
 - Alerts: Automatic (no intervention needed)
 
 ### Layer 3: bot-wrapper-prod
+
 - Monitors: Crash loops (5+ restarts/60s)
 - Action: Telegram alert with full context
 - Alerts: Telegram (critical)
 
 ### Layer 4: bot
+
 - Monitors: Internal errors
 - Action: Telegram alert
 - Alerts: Telegram (errors)
