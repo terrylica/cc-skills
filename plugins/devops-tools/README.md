@@ -1,7 +1,7 @@
 # devops-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-14-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-15-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, notifications, and session recovery.
@@ -28,6 +28,7 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **dual-channel-watchexec**        | Send notifications to Telegram + Pushover on process events                |
 | **python-logging-best-practices** | Unified Python logging with loguru, platformdirs, RotatingFileHandler      |
 | **disk-hygiene**                  | macOS disk cleanup, cache pruning, stale file detection, Downloads triage  |
+| **project-directory-migration**   | Migrate Claude Code sessions when renaming project directories             |
 
 ## Installation
 
@@ -56,6 +57,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "watchexec notifications", "Telegram + Pushover" -> dual-channel-watchexec
 - "loguru", "python logging", "structured logging" -> python-logging-best-practices
 - "disk space", "cleanup", "stale files", "cache clean", "forgotten files" -> disk-hygiene
+- "rename directory", "move project", "migrate sessions", "project path change" -> project-directory-migration
 
 ## Key Features
 
@@ -156,6 +158,14 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Disk analysis tool benchmarks (dust, dua, gdu, ncdu)
 - Downloads triage with interactive AskUserQuestion flow
 - Quick wins summary ordered by typical savings
+
+### Project Directory Migration
+
+- Interactive AskUserQuestion workflow for safe migration
+- Automatic session count audit and dry-run preview
+- Backup, rollback, and symlink backward-compatibility
+- Environment fixups: mise trust, venv recreation, direnv/asdf warnings
+- Universal script for any Claude Code project
 
 ## Requirements
 
