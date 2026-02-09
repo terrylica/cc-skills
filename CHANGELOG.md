@@ -1,3 +1,71 @@
+# [11.19.0](https://github.com/terrylica/cc-skills/compare/v11.18.0...v11.19.0) (2026-02-09)
+
+
+### Bug Fixes
+
+* **mise-tasks,telegram-bot:** prefer runtime-native watch over external watchers ([bc0348a](https://github.com/terrylica/cc-skills/commit/bc0348aad49a7124544cf54689325268cc5519b1))
+
+
+### Features
+
+* **devops-tools:** add project-directory-migration skill ([9229b86](https://github.com/terrylica/cc-skills/commit/9229b8687bc0ca9dfd0edec56fd941b062285013))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [project-directory-migration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/project-directory-migration/SKILL.md) - new (+169)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [mise-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/SKILL.md) - updated (+13/-1)
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+11/-1)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/project-directory-migration</strong> (3 files)</summary>
+
+- [project-directory-migration Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/project-directory-migration/references/evolution-log.md) - new (+28)
+- [Claude Code Session Storage Anatomy](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/project-directory-migration/references/session-storage-anatomy.md) - new (+86)
+- [Troubleshooting Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/project-directory-migration/references/troubleshooting.md) - new (+92)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/telegram-bot-management</strong> (1 file)</summary>
+
+- [Or use alias](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/telegram-bot-management/references/operational-commands.md) - updated (+18/-1)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [mise Tasks Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/patterns.md) - updated (+38/-2)
+
+</details>
+
 # [11.18.0](https://github.com/terrylica/cc-skills/compare/v11.17.0...v11.18.0) (2026-02-09)
 
 
