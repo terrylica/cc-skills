@@ -122,7 +122,8 @@
         "loguru",
         "platformdirs",
         "structured-logging",
-        "jsonl"
+        "jsonl",
+        "project-directory-migration"
       ],
       "strict": false
     },
