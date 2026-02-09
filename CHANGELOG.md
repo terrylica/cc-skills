@@ -1,3 +1,24 @@
+# [11.20.0](https://github.com/terrylica/cc-skills/compare/v11.19.0...v11.20.0) (2026-02-09)
+
+
+### Features
+
+* **itp-hooks:** add CWD deletion guard hook ([0b4fd5f](https://github.com/terrylica/cc-skills/commit/0b4fd5f9aa0feeb7acc07bb8a60cc13febb18548))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+43)
+
 # [11.19.0](https://github.com/terrylica/cc-skills/compare/v11.18.0...v11.19.0) (2026-02-09)
 
 
