@@ -1,3 +1,47 @@
+# [11.18.0](https://github.com/terrylica/cc-skills/compare/v11.17.0...v11.18.0) (2026-02-09)
+
+
+### Features
+
+* **quality-tools:** add pre-ship-review skill ([6662dbd](https://github.com/terrylica/cc-skills/commit/6662dbd89366640550e201160601e12e4703d0cc))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [pre-ship-review](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/SKILL.md) - new (+256)
+
+</details>
+
+
+### Plugin READMEs
+
+- [quality-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/README.md) - updated (+18/-9)
+
+### Skill References
+
+<details>
+<summary><strong>quality-tools/pre-ship-review</strong> (5 files)</summary>
+
+- [Anti-Pattern Catalog](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/references/anti-pattern-catalog.md) - new (+240)
+- [Automated Checks Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/references/automated-checks.md) - new (+288)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/references/evolution-log.md) - new (+16)
+- [Judgment Checks Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/references/judgment-checks.md) - new (+205)
+- [Tool Install Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/references/tool-install-guide.md) - new (+214)
+
+</details>
+
 # [11.17.0](https://github.com/terrylica/cc-skills/compare/v11.16.2...v11.17.0) (2026-02-08)
 
 
