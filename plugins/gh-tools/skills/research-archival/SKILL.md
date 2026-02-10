@@ -98,7 +98,11 @@ Route scrape requests based on URL pattern. See [url-routing.md](./references/ur
 ### Decision Tree
 
 ```
-URL contains chatgpt.com/share/ or gemini.google.com/share/
+URL contains chatgpt.com/share/
+  → Jina Reader (https://r.jina.ai/{URL})
+  → Use curl (not WebFetch — it summarizes instead of returning raw)
+
+URL contains gemini.google.com/share/
   → Firecrawl (JS-heavy SPA)
   → Preflight: ping -c1 -W2 172.25.236.1
 
