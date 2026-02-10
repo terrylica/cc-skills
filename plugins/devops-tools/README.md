@@ -1,7 +1,7 @@
 # devops-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-15-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-16-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, notifications, and session recovery.
@@ -29,6 +29,7 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **python-logging-best-practices** | Unified Python logging with loguru, platformdirs, RotatingFileHandler      |
 | **disk-hygiene**                  | macOS disk cleanup, cache pruning, stale file detection, Downloads triage  |
 | **project-directory-migration**   | Migrate Claude Code sessions when renaming project directories             |
+| **distributed-job-safety**        | Concurrency safety patterns for pueue + mise + systemd-run job pipelines   |
 
 ## Installation
 
@@ -58,6 +59,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "loguru", "python logging", "structured logging" -> python-logging-best-practices
 - "disk space", "cleanup", "stale files", "cache clean", "forgotten files" -> disk-hygiene
 - "rename directory", "move project", "migrate sessions", "project path change" -> project-directory-migration
+- "concurrent jobs", "checkpoint race", "cgroup memory", "systemd-run", "autoscale" -> distributed-job-safety
 
 ## Key Features
 
@@ -166,6 +168,15 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Backup, rollback, and symlink backward-compatibility
 - Environment fixups: mise trust, venv recreation, direnv/asdf warnings
 - Universal script for any Claude Code project
+
+### Distributed Job Safety
+
+- 7 formal concurrency invariants (filename isolation, atomic writes, idempotent cleanup)
+- 7 anti-patterns learned from production failures
+- Mise + pueue + systemd-run stack with responsibility boundaries
+- Per-job cgroup memory caps with MemorySwapMax=0
+- Autoscaler concept with incremental scaling protocol
+- Two-layer pattern: universal skill + project-specific `*-job-safety` extension
 
 ## Requirements
 
