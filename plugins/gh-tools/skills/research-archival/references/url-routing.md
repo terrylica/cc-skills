@@ -4,12 +4,16 @@ Route scrape requests to the correct backend based on URL pattern.
 
 ## Routing Table
 
-| URL Pattern                 | Scraper     | Why                                    | Endpoint                          |
-| --------------------------- | ----------- | -------------------------------------- | --------------------------------- |
-| `chatgpt.com/share/*`       | Firecrawl   | JS-heavy SPA, needs headless browser   | `http://172.25.236.1:3003/scrape` |
-| `gemini.google.com/share/*` | Firecrawl   | JS-heavy SPA, needs headless browser   | `http://172.25.236.1:3003/scrape` |
-| `claude.ai/artifacts/*`     | Jina Reader | Static content, no JS rendering needed | `https://r.jina.ai/{URL}`         |
-| Other web pages             | Jina Reader | Default fallback for static pages      | `https://r.jina.ai/{URL}`         |
+| URL Pattern                 | Scraper     | Why                                                | Endpoint                          |
+| --------------------------- | ----------- | -------------------------------------------------- | --------------------------------- |
+| `chatgpt.com/share/*`       | Jina Reader | Cleaner markdown than Firecrawl (no escaped chars) | `https://r.jina.ai/{URL}`         |
+| `gemini.google.com/share/*` | Firecrawl   | JS-heavy SPA, needs headless browser               | `http://172.25.236.1:3003/scrape` |
+| `claude.ai/artifacts/*`     | Jina Reader | Static content, no JS rendering needed             | `https://r.jina.ai/{URL}`         |
+| Other web pages             | Jina Reader | Default fallback for static pages                  | `https://r.jina.ai/{URL}`         |
+
+> **2026-02-09 finding**: ChatGPT share URLs moved from Firecrawl to Jina Reader.
+> Firecrawl produced escaped markdown (`\*\*bold\*\*`) and included ChatGPT UI chrome.
+> Jina Reader via `curl` produces clean, structured conversation output.
 
 ## Firecrawl (Self-Hosted)
 
