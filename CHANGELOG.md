@@ -1,3 +1,48 @@
+# [11.21.0](https://github.com/terrylica/cc-skills/compare/v11.20.1...v11.21.0) (2026-02-10)
+
+
+### Features
+
+* **gh-tools:** add repo identity guard hook and research-archival skill ([b565c6a](https://github.com/terrylica/cc-skills/commit/b565c6a45fa3c172f30132845d38fe6f7ae480aa)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#6](https://github.com/terrylica/cc-skills/issues/6)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [research-archival](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/SKILL.md) - new (+269)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/research-archival</strong> (3 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/evolution-log.md) - new (+11)
+- [Frontmatter Schema](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/frontmatter-schema.md) - new (+60)
+- [URL Routing](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/url-routing.md) - new (+71)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+47/-7)
+
 ## [11.20.1](https://github.com/terrylica/cc-skills/compare/v11.20.0...v11.20.1) (2026-02-10)
 
 
