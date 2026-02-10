@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 4: Verify release artifacts"
+#MISE description="Phase 4 of 4: Post-release verification of all artifacts. Checks: git tag exists, GitHub release published (via curl API, not gh CLI), marketplace repo at correct version, hooks synced in settings.json, and hooks.json files valid in marketplace. Prints user-facing post-release steps."
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"

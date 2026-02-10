@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 1: Validate prerequisites for release"
+#MISE description="Phase 1 of 4: Validate all release prerequisites before version bump. Checks: clean working directory, GH_TOKEN presence and format, GH_ACCOUNT target, plugin validation via validate-plugins.mjs, and releasable conventional commits since last tag. Exits non-zero on any failure. Must pass before release:version can run."
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"
