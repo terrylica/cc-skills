@@ -16,6 +16,7 @@ This plugin provides GitHub CLI enforcement through hooks and skills for PR crea
 | ------------------------------ | -------- | -------------------------------------------- |
 | `webfetch-github-guard.sh`     | WebFetch | Soft-blocks WebFetch for github.com URLs     |
 | `gh-issue-body-file-guard.mjs` | Bash     | Requires `--body-file` for `gh issue create` |
+| `gh-repo-identity-guard.mjs`   | Bash     | Blocks gh writes when user lacks push access |
 
 ### PostToolUse Hooks
 
@@ -88,13 +89,51 @@ The `gh-issue-body-file-guard.mjs` hook blocks `gh issue create --body "..."`:
 
 **ADR**: [/docs/adr/2026-01-11-gh-issue-body-file-guard.md](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
 
+## Repo Identity Guard (2026-02-09)
+
+The `gh-repo-identity-guard.mjs` hook blocks gh CLI write operations when the authenticated user lacks push access to the target repository.
+
+### Incident
+
+On 2026-02-09, Issue #6 was posted to `459ecs/dental-career-opportunities` by `terrylica` (wrong account). Root cause: `GH_TOKEN` set to `terrylica` from global mise config; project-specific config had a parse error preventing override.
+
+### Guard Behavior
+
+1. **Detect write commands**: `gh issue/pr/label create|comment|edit|close|delete`, `gh api -X POST/PUT/PATCH/DELETE`
+2. **Extract target repo**: from `--repo`/`-R` flag, `gh api repos/owner/repo/...` path, or git remote
+3. **Resolve authenticated user**: `GH_ACCOUNT` env var → cache → `curl /user` API
+4. **Check permission**: owner match → allow; push permission → allow; otherwise → **DENY**
+
+### Process Safety
+
+- **No `gh` CLI calls** — uses `curl` with `Authorization: token` header (prevents credential helper recursion / process storms)
+- **Fail-open** — if API fails or token missing, allows through (gh CLI will fail itself)
+- **Cache-backed** — `/tmp/.gh-identity-cache-{uid}.json` with 5-min TTL prevents repeated API calls
+
+### Deny Message
+
+```
+[gh-identity-guard] BLOCKED: Wrong GitHub account for owner/repo
+
+Authenticated as: username (via source)
+Target repository: owner/repo
+Push permission: DENIED
+
+Fix:
+  1. Check mise config: mise env | grep GH_TOKEN
+  2. Verify GH_ACCOUNT: echo $GH_ACCOUNT
+  3. If mise parse error: mise doctor
+  4. Set correct token: export GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-owner)
+```
+
 ## Skills
 
-| Skill              | Purpose                                          |
-| ------------------ | ------------------------------------------------ |
-| `pr-gfm-validator` | Validate and auto-fix GFM links in PR bodies     |
-| `issue-create`     | Create issues with AI labeling (256-char titles) |
-| `issues-workflow`  | Issues-first workflow with sub-issues hierarchy  |
+| Skill               | Purpose                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `pr-gfm-validator`  | Validate and auto-fix GFM links in PR bodies               |
+| `issue-create`      | Create issues with AI labeling (256-char titles)           |
+| `issues-workflow`   | Issues-first workflow with sub-issues hierarchy            |
+| `research-archival` | Scrape AI research URLs, archive with frontmatter + Issues |
 
 ## Multi-Account Authentication
 
@@ -114,8 +153,8 @@ GH_ACCOUNT = "terrylica"
 The hooks avoid credential helper recursion by:
 
 1. Using `GH_TOKEN` environment variable (not credential helpers)
-2. Using `gh issue view` (read-only operations)
-3. Including 10-second timeout on all gh CLI calls
+2. Using `gh issue view` (read-only operations) or `curl` with `Authorization: token` header
+3. Including 10-second timeout on all hook operations
 
 ## References
 
@@ -123,3 +162,4 @@ The hooks avoid credential helper recursion by:
 - [hooks.json](./hooks/hooks.json) - Hook configuration
 - [Issue Create Skill](./skills/issue-create/SKILL.md)
 - [Issues Workflow Skill](./skills/issues-workflow/SKILL.md)
+- [Research Archival Skill](./skills/research-archival/SKILL.md)
