@@ -61,19 +61,39 @@ mise r build            # Short form
 run = "echo 'Hello, World!'"
 ```
 
-### With Description
+### With Description (AI-Agent Context Priming)
+
+**CRITICAL**: The `description` field is the single most important field for AI coding agent discoverability. When an AI agent runs `mise tasks ls`, the description is the ONLY context it has to decide whether and how to use a task. Write descriptions that answer: **what does it do, what does it need, what are its side effects, and when should it be run?**
 
 ```toml
+# BAD: Too minimal - AI agent has no context
 [tasks.test]
 description = "Run test suite"
 run = "pytest tests/"
+
+# GOOD: Rich context for AI agent decision-making
+[tasks.test]
+description = "Run pytest test suite against src/ with coverage reporting. Requires virtualenv activated or uv. Depends on build completing first. Exits non-zero on any test failure. Safe to run repeatedly."
+run = "pytest tests/"
+```
+
+**Description checklist**:
+
+- What it does (action + scope)
+- What it requires (env vars, tools, prerequisites)
+- What it produces or modifies (side effects, outputs)
+- When to run it (phase context, safety notes)
+
+```toml
+# File-based task equivalent (in .mise/tasks/release/preflight):
+#MISE description="Phase 1 of 4: Validate all release prerequisites before version bump. Checks: clean working directory, GH_TOKEN presence and format, GH_ACCOUNT target, plugin validation, and releasable conventional commits since last tag. Exits non-zero on any failure."
 ```
 
 ### With Alias
 
 ```toml
 [tasks.test]
-description = "Run test suite"
+description = "Run pytest test suite with coverage. Requires virtualenv or uv. Exits non-zero on failure."
 alias = "t"
 run = "pytest tests/"
 ```
@@ -629,14 +649,14 @@ run = "deploy.sh"
 
 ## Anti-Patterns
 
-| Anti-Pattern                    | Why Bad                                       | Instead                                                                  |
-| ------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------ |
-| Replace /itp:go with mise tasks | No TodoWrite, no ADR tracking, no checkpoints | Use mise tasks for project workflows, /itp:go for ADR-driven development |
-| Hardcode secrets in tasks       | Security risk                                 | Use `_.file = ".env.secrets"` with `redact = true`                       |
-| Giant monolithic tasks          | Hard to debug, no reuse                       | Break into small tasks with dependencies                                 |
-| Skip `description`              | Poor discoverability                          | Always add descriptions                                                  |
-| Publish without build `depends` | Runtime failure instead of DAG prevention     | Add `depends = ["build"]` to publish tasks                               |
-| Orchestrator without all phases | "Run X next" messages get ignored             | Include all phases in `release:full` depends array                       |
+| Anti-Pattern                    | Why Bad                                             | Instead                                                                  |
+| ------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------ |
+| Replace /itp:go with mise tasks | No TodoWrite, no ADR tracking, no checkpoints       | Use mise tasks for project workflows, /itp:go for ADR-driven development |
+| Hardcode secrets in tasks       | Security risk                                       | Use `_.file = ".env.secrets"` with `redact = true`                       |
+| Giant monolithic tasks          | Hard to debug, no reuse                             | Break into small tasks with dependencies                                 |
+| Skip or minimal `description`   | AI agents cannot infer task purpose from name alone | Write rich descriptions: what it does, requires, produces, when to run   |
+| Publish without build `depends` | Runtime failure instead of DAG prevention           | Add `depends = ["build"]` to publish tasks                               |
+| Orchestrator without all phases | "Run X next" messages get ignored                   | Include all phases in `release:full` depends array                       |
 
 For release-specific anti-patterns and patterns, see [Release Workflow Patterns](./references/release-workflow-patterns.md).
 

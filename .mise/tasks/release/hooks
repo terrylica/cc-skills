@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Install/update all cc-skills hooks to settings.json"
+#MISE description="Sync all cc-skills PreToolUse/PostToolUse/Stop hooks into ~/.claude/settings.json. Wraps scripts/sync-hooks-to-settings.sh. Requires Claude Code restart after running. Run after adding new hook files or updating hook configurations."
 set -euo pipefail
 
 ./scripts/sync-hooks-to-settings.sh

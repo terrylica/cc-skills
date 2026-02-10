@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Clean old versions from plugin cache"
+#MISE description="Remove stale plugin cache versions from ~/.claude/plugins/cache/cc-skills/, keeping only the current version from package.json. Run after release to free disk space. Safe to run anytime - only deletes outdated cached versions."
 set -euo pipefail
 
 CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
