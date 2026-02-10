@@ -2,150 +2,132 @@
 name: release
 description: Run semantic-release with preflight checks. TRIGGERS - npm run release, version bump, changelog, release automation.
 allowed-tools: Read, Bash, Glob, Grep, Edit, AskUserQuestion, TodoWrite
-argument-hint: "[--dry] [--skip-preflight]"
+argument-hint: "[--dry] [--status]"
 ---
-
-<!-- ⛔⛔⛔ MANDATORY: LOAD THE SEMANTIC-RELEASE SKILL FIRST ⛔⛔⛔ -->
 
 # /itp:release
 
-**FIRST ACTION**: Read the semantic-release skill to load the complete workflow knowledge:
+Delegate to the repository's **mise release tasks**. Every repo should define its own release DAG in `.mise/tasks/release/`.
+
+## First Action: Detect Repo's Release Tasks
+
+```bash
+# Check if the repo has mise release tasks
+mise tasks ls 2>/dev/null | grep -i release
+```
+
+- **If tasks exist**: Delegate to `mise run release:full` (or the repo's equivalent)
+- **If no tasks**: Fall back to reading the semantic-release skill for guidance
+
+## Arguments
+
+| Flag       | Short | Description                              |
+| ---------- | ----- | ---------------------------------------- |
+| `--dry`    | `-d`  | Dry-run mode (preview, no modifications) |
+| `--status` | `-s`  | Show current version and release state   |
+
+## Execution
+
+```bash
+# Full release (preflight → version → sync → verify)
+mise run release:full
+
+# Dry-run (preview what would be released)
+mise run release:dry
+
+# Check current state
+mise run release:status
+```
+
+## Why mise Tasks Over Prescriptive Skills
+
+| Concern             | Prescriptive Skill   | mise Task Delegation              |
+| ------------------- | -------------------- | --------------------------------- |
+| Repo-specific logic | Duplicated in skill  | Lives in `.mise/tasks/`           |
+| DAG enforcement     | Manual ordering      | `depends` array enforced          |
+| Maintainability     | Update skill + tasks | Single source in tasks            |
+| Portability         | Assumes npm/bun      | Uses whatever the repo configures |
+| Secrets             | Hardcoded patterns   | `[env]` in `.mise.toml`           |
+
+## Expected mise Release Task Structure
+
+Repos should follow the hub-and-spoke pattern:
+
+```
+.mise.toml                      # Hub: [env] + [tools] + task docs
+.mise/tasks/
+  └── release/
+      ├── _default              # Help / navigation
+      ├── preflight             # Phase 1: Validate prerequisites
+      ├── version               # Phase 2: Bump version (semantic-release)
+      ├── sync                  # Phase 3: Sync artifacts (marketplace, cache)
+      ├── verify                # Phase 4: Verify release artifacts
+      ├── full                  # Orchestrator: depends on all phases
+      ├── dry                   # Dry-run preview
+      └── status                # Current version info
+```
+
+### Task DAG
+
+```
+            ┌──────────┐
+            │ preflight│
+            └─────┬────┘
+                  │ depends
+            ┌─────▼────┐
+            │ version  │
+            └─────┬────┘
+                  │ sequential
+            ┌─────▼────┐
+            │   sync   │
+            └─────┬────┘
+                  │ sequential
+            ┌─────▼────┐
+            │  verify  │
+            └──────────┘
+```
+
+### Key Patterns
+
+```toml
+# .mise/tasks/release/full (orchestrator)
+depends = ["release:preflight"]
+# Chains: preflight → version → sync → verify
+
+# .mise/tasks/release/preflight (guard)
+# Checks: clean dir, auth, plugins, releasable commits
+
+# .mise/tasks/release/version (core)
+depends = ["release:preflight"]
+# Runs: semantic-release (or language-specific versioning)
+```
+
+## Fallback: No mise Tasks
+
+If the repo has no mise release tasks, read the semantic-release skill:
 
 ```
 Read: ${CLAUDE_PLUGIN_ROOT}/skills/semantic-release/SKILL.md
 Read: ${CLAUDE_PLUGIN_ROOT}/skills/semantic-release/references/local-release-workflow.md
 ```
 
-This command wraps the [semantic-release skill](../skills/semantic-release/SKILL.md) with automatic preflight validation.
-
-## Arguments
-
-| Flag               | Short | Description                                      |
-| ------------------ | ----- | ------------------------------------------------ |
-| `--dry`            | `-d`  | Dry-run mode (preview changes, no modifications) |
-| `--skip-preflight` | `-s`  | Skip preflight checks (use with caution)         |
-
-## Examples
-
-```bash
-/itp:release          # Full release with preflight
-/itp:release --dry    # Preview what would be released
-/itp:release -d       # Same as --dry
-```
+Then follow the 4-phase workflow documented there.
 
 ---
 
-## ⛔ MANDATORY: Load Skill Knowledge First
+## Error Recovery
 
-Before executing ANY release steps, you MUST read these files to load the semantic-release skill:
+| Error                  | Resolution                                            |
+| ---------------------- | ----------------------------------------------------- |
+| `mise tasks` not found | Install mise: `curl https://mise.run \| sh`           |
+| No release tasks       | Create `.mise/tasks/release/` or use fallback skill   |
+| Working dir not clean  | `git stash` or commit changes                         |
+| Not on main branch     | `git checkout main`                                   |
+| No releasable commits  | Create a `feat:` or `fix:` commit first               |
+| Wrong account          | Check `GH_TOKEN` / `GH_ACCOUNT` in `.mise.toml [env]` |
 
-1. **SKILL.md** — Core workflow, conventional commits, MAJOR confirmation
-2. **local-release-workflow.md** — 4-phase release process (PREFLIGHT → SYNC → RELEASE → POSTFLIGHT)
+## Reference
 
-```bash
-# Environment-agnostic paths
-SKILL_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/cache/cc-skills/itp/*/skills/semantic-release}"
-```
-
-**After reading the skill files, follow the Local Release Workflow (4 phases).**
-
----
-
-## Execution Flow (from skill)
-
-```
-                 Release Workflow Pipeline
-
- -----------      +------+     +---------+      ------------
-| PREFLIGHT | --> | SYNC | --> | RELEASE | --> | POSTFLIGHT |
- -----------      +------+     +---------+      ------------
-```
-
-### Phase 1: Preflight
-
-**From skill: Section 1.1-1.5**
-
-1. **Git Cache Refresh** (MANDATORY first step)
-
-   ```bash
-   git update-index --refresh -q || true
-   ```
-
-2. **Tooling Check** — gh CLI, semantic-release, git repo, main branch, clean directory
-
-3. **Authentication Check** — Verify correct GitHub account via `gh api user --jq '.login'`
-
-4. **Releasable Commits Validation** — Must have `feat:`, `fix:`, or `BREAKING CHANGE:` since last tag
-
-5. **MAJOR Version Confirmation** — If breaking changes detected, spawn 3 Task subagents + AskUserQuestion
-
-### Phase 2: Sync
-
-```bash
-git pull --rebase origin main
-git push origin main
-```
-
-### Phase 3: Release
-
-**If --dry flag:**
-
-```bash
-npm run release:dry
-```
-
-**Production:**
-
-```bash
-npm run release
-```
-
-### Phase 4: Postflight
-
-1. Verify pristine state: `git status --porcelain`
-2. Verify release: `gh release list --limit 1`
-3. Update tracking refs: `git fetch origin main:refs/remotes/origin/main --no-tags`
-4. Plugin cache sync (cc-skills only): Automatic via successCmd
-
----
-
-## Quick Reference
-
-| Scenario                  | Command              | Result                        |
-| ------------------------- | -------------------- | ----------------------------- |
-| Standard release          | `/itp:release`       | Load skill → 4-phase workflow |
-| Preview changes           | `/itp:release --dry` | Load skill → Dry-run only     |
-| Force release (dangerous) | `/itp:release -s`    | Skip preflight → Release      |
-
----
-
-## Error Recovery (from skill)
-
-| Error                       | Resolution                                                                        |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| Working directory not clean | `git stash` or `git commit`                                                       |
-| Not on main branch          | `git checkout main`                                                               |
-| Wrong GitHub account        | `gh auth switch --user <correct-account>`                                         |
-| No releasable commits       | Create a `feat:` or `fix:` commit first                                           |
-| MAJOR version detected      | Follow skill's multi-perspective analysis                                         |
-| Release failed              | Check [Troubleshooting](../skills/semantic-release/references/troubleshooting.md) |
-
----
-
-## Skill Reference (MUST READ)
-
-- **[semantic-release SKILL](../skills/semantic-release/SKILL.md)** — Full documentation, MAJOR confirmation workflow
-- **[Local Release Workflow](../skills/semantic-release/references/local-release-workflow.md)** — Canonical 4-phase process
-- [Troubleshooting](../skills/semantic-release/references/troubleshooting.md) — Common issues and solutions
-- [Authentication](../skills/semantic-release/references/authentication.md) — Multi-account GitHub setup
-
-## Troubleshooting
-
-| Issue                     | Cause                     | Solution                                                                          |
-| ------------------------- | ------------------------- | --------------------------------------------------------------------------------- |
-| Working dir not clean     | Uncommitted changes       | Run `git stash` or commit changes                                                 |
-| Not on main branch        | Wrong branch checked out  | Run `git checkout main`                                                           |
-| No releasable commits     | Only chore/docs commits   | Add a feat: or fix: commit                                                        |
-| Release failed            | Auth or network issue     | Check [Troubleshooting](../skills/semantic-release/references/troubleshooting.md) |
-| npm run release not found | Missing script in package | Check package.json has release script                                             |
-| Wrong GitHub account      | Multi-account confusion   | Check token with `echo $GITHUB_TOKEN`                                             |
+- [mise Task Configuration](https://mise.jdx.dev/tasks/task-configuration.html)
+- [Release Workflow Patterns](../skills/mise-tasks/references/release-workflow-patterns.md)
+- [semantic-release Skill](../skills/semantic-release/SKILL.md) (fallback)
