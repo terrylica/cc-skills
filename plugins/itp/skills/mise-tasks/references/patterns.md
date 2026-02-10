@@ -357,6 +357,101 @@ run = "esbuild dist/index.js --bundle --outfile=build/bundle.js"
 
 ---
 
+## Pueue Pipeline Orchestration Pattern
+
+Delegate long-running, multi-step pipelines to [pueue](https://github.com/Nukesor/pueue) for SSH-safe persistence and dependency chaining. Battle-tested during rangebar-py Issue #88 production deployment (batch repopulation -> OPTIMIZE TABLE -> validation).
+
+### mise Entry Points
+
+```toml
+# .mise/tasks/cache.toml
+
+# Individual steps (can run standalone)
+["cache:detect-overflow"]
+description = "Detect volume overflow (negative volumes) in ClickHouse cache"
+run = "python scripts/detect_volume_overflow.py"
+
+["cache:optimize"]
+description = "Run OPTIMIZE TABLE FINAL on range_bars"
+run = "./scripts/pueue-populate.sh optimize"
+
+# Fully-chained pueue pipeline (recommended for production)
+["cache:postprocess-all"]
+description = "Full post-fix pipeline via pueue: repopulate → optimize → detect (auto-chained)"
+run = "./scripts/pueue-populate.sh postprocess-all"
+```
+
+### Shell Script DAG Builder
+
+The shell script captures pueue job IDs with `--print-task-id` and chains steps with `--after`:
+
+```bash
+postprocess_all() {
+    # Step 1: Queue batch jobs, capture IDs
+    JOB_IDS=()
+    for threshold in 250 500 750 1000; do
+        local job_id
+        job_id=$(pueue add --print-task-id --group postfix \
+            --label "SYMBOL@${threshold}" \
+            --working-directory "$PROJECT_DIR" \
+            -- uv run python scripts/populate.py --threshold "$threshold" --force-refresh)
+        JOB_IDS+=("$job_id")
+    done
+
+    # Step 2: Chain OPTIMIZE TABLE --after all batch jobs
+    local optimize_id
+    optimize_id=$(pueue add --print-task-id --group postfix \
+        --label "optimize-table" \
+        --after "${JOB_IDS[@]}" \
+        --working-directory "$PROJECT_DIR" \
+        -- clickhouse-client --query "OPTIMIZE TABLE mydb.mytable FINAL")
+
+    # Step 3: Chain validation --after optimize
+    pueue add --group postfix \
+        --label "detect-overflow" \
+        --after "$optimize_id" \
+        --working-directory "$PROJECT_DIR" \
+        -- uv run python scripts/detect_overflow.py
+
+    echo "Pipeline: ${#JOB_IDS[@]} batch jobs → optimize → detect"
+}
+```
+
+### Key Principles
+
+- **mise provides the entry point**: `mise run cache:postprocess-all` — human-friendly, discoverable via `mise tasks`
+- **Pueue provides the execution engine**: Dependency resolution, SSH-safe persistence, group-based parallelism
+- **Shell script is the glue**: Captures pueue job IDs with `--print-task-id`, chains with `--after`
+- **Each step also standalone**: `mise run cache:optimize` works independently for ad-hoc use
+
+### Anti-Pattern: mise `depends` for Long-Running Remote Jobs
+
+```toml
+# BAD: mise blocks waiting for each step
+["cache:postprocess-all"]
+depends = ["cache:repopulate", "cache:optimize", "cache:detect"]
+# This runs synchronously — if SSH disconnects, everything dies
+
+# GOOD: Delegate to pueue for persistence
+["cache:postprocess-all"]
+run = "./scripts/pueue-populate.sh postprocess-all"
+# This queues everything in pueue and returns immediately
+```
+
+### When to Use
+
+| Scenario                                       | Use This Pattern | Use Plain mise `depends`     |
+| ---------------------------------------------- | ---------------- | ---------------------------- |
+| Long-running jobs (hours/days) on remote hosts | Yes              | No                           |
+| Multi-step pipelines with dependencies         | Yes              | No                           |
+| Jobs that must survive SSH disconnects         | Yes              | No                           |
+| Group-based parallelism limits needed          | Yes              | No                           |
+| Fast local tasks (< 5 minutes)                 | No               | Yes                          |
+| CI/CD pipelines                                | No               | Yes (with parallel operator) |
+| Single-step operations                         | No               | Yes                          |
+
+---
+
 ## Complete Project Template
 
 Full `.mise.toml` template combining all patterns.
