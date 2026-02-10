@@ -220,8 +220,145 @@ The rangebar-py project has Pueue integration scripts:
 | SSH disconnect kills jobs  | Not using Pueue          | Queue via Pueue instead of direct SSH |
 | Job fails immediately      | Wrong working directory  | Use `cd /path && command` pattern     |
 
+## Production Lessons (Issue #88)
+
+Battle-tested patterns from real production deployments.
+
+### Dependency Chaining with `--after`
+
+Pueue supports automatic job dependency resolution via `--after`. This is critical for post-processing pipelines where steps must run sequentially after batch jobs complete.
+
+**Key flags:**
+
+- `--after <id>...` -- Start job only after ALL specified jobs succeed. If any dependency fails, this job fails too.
+- `--print-task-id` (or `-p`) -- Return only the numeric job ID (for scripting).
+
+**Pattern: Capturing job IDs for dependency wiring**
+
+```bash
+# Capture job IDs during batch submission
+JOB_IDS=()
+for symbol in BTCUSDT ETHUSDT; do
+    job_id=$(pueue add --print-task-id --group mygroup \
+        --label "${symbol}@250" \
+        --working-directory /path/to/project \
+        -- uv run python scripts/process.py --symbol "$symbol")
+    JOB_IDS+=("$job_id")
+done
+
+# Chain post-processing after ALL batch jobs
+optimize_id=$(pueue add --print-task-id --group mygroup \
+    --label "optimize-table" \
+    --after "${JOB_IDS[@]}" \
+    -- clickhouse-client --query "OPTIMIZE TABLE mydb.mytable FINAL")
+
+# Chain validation after optimize
+pueue add --group mygroup \
+    --label "validate" \
+    --after "$optimize_id" \
+    -- uv run python scripts/validate.py
+```
+
+**Result in pueue status:**
+
+```
+Job 0  BTCUSDT@250    Running
+Job 1  ETHUSDT@250    Running
+Job 2  optimize-table Queued  Deps: 0, 1
+Job 3  validate       Queued  Deps: 2
+```
+
+**When to use `--after`:**
+
+- Post-processing steps (OPTIMIZE TABLE, validation scripts, cleanup)
+- Multi-stage pipelines where Stage N depends on Stage N-1
+- Verification jobs that should only run after data is fully written
+
+**Anti-pattern: Manual waiting**
+
+```bash
+# BAD: Manual polling or instructions to "run this after that finishes"
+postprocess_all() {
+    queue_repopulation_jobs
+    echo "Run 'pueue wait --group postfix' then run optimize manually"  # NO!
+}
+
+# GOOD: Automatic dependency chain
+postprocess_all() {
+    queue_repopulation_jobs  # captures JOB_IDS
+    pueue add --after "${JOB_IDS[@]}" -- optimize_command
+    pueue add --after "$optimize_id" -- validate_command
+}
+```
+
+### Mise Task to Pueue Pipeline Integration
+
+Pattern for `mise run` commands that build pueue DAGs:
+
+```toml
+# .mise/tasks/cache.toml
+["cache:postprocess-all"]
+description = "Full post-fix pipeline via pueue: repopulate -> optimize -> detect (auto-chained)"
+run = "./scripts/pueue-populate.sh postprocess-all"
+```
+
+The shell script captures pueue job IDs and chains them with `--after`. Mise provides the entry point; pueue provides the execution engine with dependency resolution.
+
+### Forensic Audit Before Deployment
+
+ALWAYS audit the remote host before mutating anything:
+
+```bash
+# 1. Pueue job state
+ssh host 'pueue status'
+ssh host 'pueue status --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(sum(1 for t in d[\"tasks\"].values() if \"Running\" in str(t[\"status\"])))"'
+
+# 2. Database state (ClickHouse example)
+ssh host 'clickhouse-client --query "SELECT symbol, threshold, count(), countIf(volume < 0) FROM mytable GROUP BY ALL"'
+
+# 3. Checkpoint state
+ssh host 'ls -la ~/.cache/myapp/checkpoints/'
+ssh host 'cat ~/.cache/myapp/checkpoints/latest.json'
+
+# 4. System resources
+ssh host 'uptime && free -h && df -h /home'
+
+# 5. Installed version
+ssh host 'cd ~/project && git log --oneline -1'
+```
+
+### Force-Refresh vs Checkpoint Resume
+
+Decision matrix for restarting killed/failed jobs:
+
+| Scenario                                     | Action                 | Flag                 |
+| -------------------------------------------- | ---------------------- | -------------------- |
+| Job killed mid-run, data is clean            | Resume from checkpoint | (no --force-refresh) |
+| Data is corrupt (overflow, schema bug)       | Wipe and restart       | --force-refresh      |
+| Code fix changes output format               | Wipe and restart       | --force-refresh      |
+| Code fix is internal-only (no output change) | Resume from checkpoint | (no --force-refresh) |
+
+### PATH Gotcha: Rust Not in PATH via `uv run`
+
+On remote hosts, `uv run maturin develop` may fail because `~/.cargo/bin` is not in `uv run`'s PATH:
+
+```bash
+# FAILS: rustc not found
+ssh host 'cd ~/project && uv run maturin develop --uv'
+
+# WORKS: Prepend cargo bin to PATH
+ssh host 'cd ~/project && PATH="$HOME/.cargo/bin:$PATH" uv run maturin develop --uv'
+```
+
+For pueue jobs that need Rust compilation:
+
+```bash
+pueue add -- env PATH="/home/user/.cargo/bin:$PATH" uv run maturin develop
+```
+
 ## Related
 
 - **Hook**: `itp-hooks/posttooluse-reminder.ts` - Reminds to use Pueue for detected long-running commands
 - **Reference**: [Pueue GitHub](https://github.com/Nukesor/pueue)
 - **Issue**: [rangebar-py#77](https://github.com/terrylica/rangebar-py/issues/77) - Original implementation
+- **Issue**: [rangebar-py#88](https://github.com/terrylica/rangebar-py/issues/88) - Production deployment lessons
