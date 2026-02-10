@@ -1,3 +1,54 @@
+# [11.23.0](https://github.com/terrylica/cc-skills/compare/v11.22.0...v11.23.0) (2026-02-10)
+
+
+### Features
+
+* **skills:** add battle-tested pueue + mise patterns from Issue [#88](https://github.com/terrylica/cc-skills/issues/88) deployment ([37a9b1d](https://github.com/terrylica/cc-skills/commit/37a9b1dc5ac01991e78f14c0f06f2984cc392dab))
+* **skills:** add distributed-job-safety universal concurrency patterns ([d067711](https://github.com/terrylica/cc-skills/commit/d0677115c048e6be0f4e3bf588d22ca8c39f079c))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/SKILL.md) - new (+374)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+137)
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+12/-1)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/distributed-job-safety</strong> (3 files)</summary>
+
+- [Concurrency Invariants](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/concurrency-invariants.md) - new (+242)
+- [Deployment Checklist](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/deployment-checklist.md) - new (+207)
+- [Environment Gotchas](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/environment-gotchas.md) - new (+249)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [mise Tasks Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/patterns.md) - updated (+95)
+
+</details>
+
 # [11.22.0](https://github.com/terrylica/cc-skills/compare/v11.21.1...v11.22.0) (2026-02-10)
 
 
