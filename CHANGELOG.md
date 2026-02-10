@@ -1,3 +1,29 @@
+# [11.22.0](https://github.com/terrylica/cc-skills/compare/v11.21.1...v11.22.0) (2026-02-10)
+
+
+### Features
+
+* **mise:** enrich all task descriptions for AI coding agent context priming ([9730d9b](https://github.com/terrylica/cc-skills/commit/9730d9b3774527ed811857fa8b0a70ab5f791f7e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [mise-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/SKILL.md) - updated (+30/-10)
+
+</details>
+
 ## [11.21.1](https://github.com/terrylica/cc-skills/compare/v11.21.0...v11.21.1) (2026-02-10)
 
 
