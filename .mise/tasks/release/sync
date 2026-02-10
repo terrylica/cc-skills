@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 3: Sync hooks and update plugin cache"
+#MISE description="Phase 3 of 4: Sync released version to local Claude Code environment. Updates ~/.claude/plugins/marketplaces/cc-skills/ to new git tag, syncs PreToolUse/PostToolUse/Stop hooks to settings.json, auto-enables new plugins, and clears stale plugin cache. Ensures local Claude Code installation matches the release."
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"
