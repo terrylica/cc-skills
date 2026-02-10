@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Dry-run release (no changes)"
+#MISE description="Preview what semantic-release would do without making any changes. Runs preflight first, then semantic-release --dry-run. Shows next version number, commits to be included, and changelog preview. No git tags, no GitHub releases, no pushes. Safe to run repeatedly."
 #MISE depends=["release:preflight"]
 set -euo pipefail
 

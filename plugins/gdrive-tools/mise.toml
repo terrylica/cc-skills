@@ -18,21 +18,21 @@
 bun = "1.3"
 
 [tasks.build]
-description = "Build gdrive CLI binary"
+description = "Compile the gdrive CLI binary from TypeScript source using Bun. Installs dependencies first, then builds. Output binary at skills/gdrive-access/scripts/gdrive. Prerequisite for all other gdrive tasks."
 dir = "skills/gdrive-access/scripts"
 run = "bun install && bun run build"
 
 [tasks.test]
-description = "Test gdrive CLI (requires GDRIVE_OP_UUID)"
+description = "Verify gdrive CLI binary works by running --help. Requires GDRIVE_OP_UUID environment variable set in .mise.local.toml for 1Password OAuth credential lookup. Quick smoke test, no API calls made."
 dir = "skills/gdrive-access/scripts"
 run = "./gdrive --help"
 
 [tasks.list]
-description = "List files in a Drive folder"
+description = "List files and folders in a Google Drive folder by ID. Authenticates via 1Password OAuth (GDRIVE_OP_UUID). Pass folder_id as argument. Returns file names, IDs, MIME types, and sizes."
 dir = "skills/gdrive-access/scripts"
 run = "./gdrive list {{arg(name='folder_id')}}"
 
 [tasks.sync]
-description = "Sync Drive folder to local directory"
+description = "Download and sync a Google Drive folder to a local directory. Authenticates via 1Password OAuth (GDRIVE_OP_UUID). Args: folder_id (required), output directory (default: ./gdrive-sync). Overwrites existing local files if newer version exists in Drive."
 dir = "skills/gdrive-access/scripts"
 run = "./gdrive sync {{arg(name='folder_id')}} -o {{arg(name='output', default='./gdrive-sync')}}"

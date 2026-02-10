@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Show current version and release status"
+#MISE description="Display current release state: package.json version, latest git tag, number of unreleased commits, working directory cleanliness, and GH_TOKEN/GH_ACCOUNT configuration. Read-only, no side effects. Use before release to assess readiness."
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"

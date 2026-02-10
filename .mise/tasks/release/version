@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 2: Run semantic-release (version bump + changelog)"
+#MISE description="Phase 2 of 4: Execute semantic-release to analyze conventional commits, determine version bump (patch/minor/major), update CHANGELOG.md, sync version across package.json + plugin.json + marketplace.json, create git tag, publish GitHub release, and push. Depends on preflight passing. Uses .releaserc.yml configuration."
 #MISE depends=["release:preflight"]
 set -euo pipefail
 

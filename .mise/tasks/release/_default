@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Show release task help"
+#MISE description="Show all available release tasks with usage examples. Run this when unsure which release phase to invoke. Lists full workflow, individual phases, and utility commands."
 
 echo "═══════════════════════════════════════════════════════════"
 echo "  cc-skills Release Workflow (mise-controlled)"
