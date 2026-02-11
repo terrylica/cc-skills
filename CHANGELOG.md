@@ -1,3 +1,41 @@
+# [11.24.0](https://github.com/terrylica/cc-skills/compare/v11.23.0...v11.24.0) (2026-02-11)
+
+
+### Features
+
+* **devops-tools:** add pipeline monitoring, per-year parallelization, and new anti-patterns ([fa8b283](https://github.com/terrylica/cc-skills/commit/fa8b28379febca44de2f596e2737bfb0e46ec691))
+* **devops-tools:** add state file management and bulk submission patterns ([433d675](https://github.com/terrylica/cc-skills/commit/433d675bee69b5f678cc945841a28a71ccb75bf9)), closes [hi#throughput](https://github.com/hi/issues/throughput)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/SKILL.md) - updated (+107/-1)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+275)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/distributed-job-safety</strong> (1 file)</summary>
+
+- [Concurrency Invariants](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/concurrency-invariants.md) - updated (+32)
+
+</details>
+
 # [11.23.0](https://github.com/terrylica/cc-skills/compare/v11.22.0...v11.23.0) (2026-02-10)
 
 
