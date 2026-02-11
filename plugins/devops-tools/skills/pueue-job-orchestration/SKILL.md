@@ -356,6 +356,135 @@ For pueue jobs that need Rust compilation:
 pueue add -- env PATH="/home/user/.cargo/bin:$PATH" uv run maturin develop
 ```
 
+### Per-Year (Epoch) Parallelization
+
+When a processing pipeline has natural reset boundaries (yearly, monthly, etc.) where processor state resets, each epoch becomes an independent processing unit. This enables massive speedup by splitting a multi-year sequential job into concurrent per-year pueue jobs.
+
+**Why it's safe** (three isolation layers):
+
+| Layer            | Why No Conflicts                                                 |
+| ---------------- | ---------------------------------------------------------------- |
+| Checkpoint files | Filename includes `{start}_{end}` — each year gets unique file   |
+| Database writes  | INSERT is append-only; `OPTIMIZE TABLE FINAL` deduplicates after |
+| Source data      | Read-only files (Parquet, CSV, etc.) — no write contention       |
+
+**Pattern: Per-symbol pueue groups**
+
+Give each symbol (or job family) its own pueue group for independent parallelism control:
+
+```bash
+# Create per-symbol groups
+pueue group add btc-yearly --parallel 4
+pueue group add eth-yearly --parallel 4
+pueue group add shib-yearly --parallel 4
+
+# Queue per-year jobs
+for year in 2019 2020 2021 2022 2023 2024 2025 2026; do
+    pueue add --group btc-yearly \
+        --label "BTC@250:${year}" \
+        -- uv run python scripts/process.py \
+        --symbol BTCUSDT --threshold 250 \
+        --start-date "${year}-01-01" --end-date "${year}-12-31"
+done
+
+# Chain post-processing after ALL groups complete
+ALL_JOB_IDS=($(pueue status --json | jq -r \
+    '.tasks | to_entries[] | select(.value.group | test("-yearly$")) | .value.id'))
+pueue add --after "${ALL_JOB_IDS[@]}" \
+    --label "optimize-table:final" \
+    -- clickhouse-client --query "OPTIMIZE TABLE mydb.mytable FINAL"
+```
+
+**When to use per-year vs sequential:**
+
+| Scenario                                | Approach                 |
+| --------------------------------------- | ------------------------ |
+| High-volume symbol (many output items)  | Per-year (5+ cores idle) |
+| Low-volume symbol (fast enough already) | Sequential (simpler)     |
+| Single parameter, long backfill         | Per-year                 |
+| Multiple parameters, same symbol        | Sequential per parameter |
+
+**Critical rules:**
+
+1. First year uses domain-specific effective start date, not `01-01`
+2. Last year uses actual latest available date as end
+3. Chain `OPTIMIZE TABLE FINAL` after ALL year-jobs via `--after`
+4. Memory budget: each job peaks independently — with 61 GB total, 4-5 concurrent jobs at 5 GB each are safe
+
+### Pipeline Monitoring (Group-Based Phase Detection)
+
+For multi-group pipelines, monitor job phases by **group completion**, not hardcoded job IDs. Job IDs change when jobs are removed, re-queued, or split into per-year jobs.
+
+**Anti-pattern: Hardcoded job IDs in monitors**
+
+```bash
+# WRONG: Breaks when jobs are removed/re-queued
+job14=$(echo "$JOBS" | grep "^14|")
+if [ "$(echo "$job14" | cut -d'|' -f2)" = "Done" ]; then
+    echo "Phase 1 complete"
+fi
+```
+
+**Correct pattern: Dynamic group detection**
+
+```bash
+get_job_status() {
+    ssh host "pueue status --json 2>/dev/null" | jq -r \
+        '.tasks | to_entries[] |
+         "\(.value.id)|\(.value.status | if type == "object" then keys[0] else . end)|\(.value.label // "-")|\(.value.group)"'
+}
+
+group_all_done() {
+    local group="$1"
+    local group_jobs
+    group_jobs=$(echo "$JOBS" | grep "|${group}$" || true)
+    [ -z "$group_jobs" ] && return 1
+    echo "$group_jobs" | grep -qE "\|(Running|Queued)\|" && return 1
+    return 0
+}
+
+# Detect phase transitions by group name
+SEEN_GROUPS=""
+for group in $(echo "$JOBS" | cut -d'|' -f4 | sort -u); do
+    if group_all_done "$group" && [[ "$SEEN_GROUPS" != *"|${group}|"* ]]; then
+        echo "GROUP COMPLETE: $group"
+        run_integrity_checks "$group"
+        SEEN_GROUPS="${SEEN_GROUPS}|${group}|"
+    fi
+done
+```
+
+**Integrity checks at phase boundaries:**
+
+Run automated validation when a group finishes, before starting the next phase:
+
+```bash
+run_integrity_checks() {
+    local phase="$1"
+    # Check 1: Data corruption (negative values, out-of-bounds)
+    ssh host 'clickhouse-client --query "SELECT ... countIf(value < 0) ... HAVING count > 0"'
+    # Check 2: Duplicate rows
+    ssh host 'clickhouse-client --query "SELECT ... count(*) - uniqExact(key) as dupes HAVING dupes > 0"'
+    # Check 3: Coverage gaps (NULL required fields)
+    ssh host 'clickhouse-client --query "SELECT ... countIf(field IS NULL) ... HAVING missing > 0"'
+    # Check 4: System resources (load, memory)
+    ssh host 'uptime && free -h'
+}
+```
+
+**Monitoring as a background loop:**
+
+```bash
+POLL_INTERVAL=300  # 5 minutes
+while true; do
+    JOBS=$(get_job_status)
+    # Count statuses, detect failures, detect group completions
+    # Run integrity checks at phase boundaries
+    # Exit when all jobs complete
+    sleep "$POLL_INTERVAL"
+done
+```
+
 ## Related
 
 - **Hook**: `itp-hooks/posttooluse-reminder.ts` - Reminds to use Pueue for detected long-running commands

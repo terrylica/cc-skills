@@ -209,6 +209,38 @@ cat $CGROUP/memory.swap.max   # Should be 0
 
 ---
 
+## INV-8: Monitor by Stable Identifiers, Not Ephemeral IDs
+
+**Statement**: Pipeline monitors and orchestration scripts must identify jobs by stable attributes (group names, label patterns) — never by ephemeral numeric IDs that change when jobs are removed, re-queued, or restructured.
+
+**Violation scenario**:
+
+```bash
+# Monitor hardcodes job IDs from initial queue submission
+optimize_job=14
+detect_job=15
+backfill_jobs=(16 17 18)
+
+# Later: jobs 16-18 are killed and replaced with per-year splits (IDs 21-47)
+# Monitor still checks job 16 -> empty result -> crash or false positive
+```
+
+**Enforcement**: Use group names and label patterns:
+
+```bash
+# Query by group (stable)
+group_jobs=$(pueue status --json | jq -r \
+    '.tasks | to_entries[] | select(.value.group == "btc-yearly") | .value.id')
+
+# Query by label pattern (stable)
+optimize_job=$(pueue status --json | jq -r \
+    '.tasks | to_entries[] | select(.value.label == "optimize-table:final") | .value.id')
+```
+
+**Principle**: Pueue group names and job labels are chosen by the user and remain stable. Job IDs are auto-incremented integers that shift with every queue mutation.
+
+---
+
 ## Testing Invariants
 
 Verify these invariants hold after any code change:
