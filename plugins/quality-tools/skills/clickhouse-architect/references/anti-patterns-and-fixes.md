@@ -180,6 +180,8 @@ count UInt64 CODEC(T64, ZSTD)
 
 **Still Avoid For**: Ultra-low-latency (<10ms) requirements.
 
+**CTE Range Joins**: The v24.4+ improvement does NOT apply to range joins on CTEs (e.g., `FROM cte_a JOIN cte_b ON b.rn BETWEEN a.rn + 1 AND a.rn + 101`). ClickHouse cannot index into CTEs — these remain O(N×M) nested loop scans. For forward-looking array collection patterns, use window functions (`groupArray() OVER (ROWS BETWEEN ...)`) instead of self-joins. See rangebar-patterns AP-14 for benchmarks showing 11x speedup.
+
 **Better Alternative**: Dictionaries for dimension lookups.
 
 ```sql
