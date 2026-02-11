@@ -106,6 +106,16 @@ ssh host 'nproc && free -h && uptime'
 # )
 ```
 
+**For ClickHouse workloads**: The bottleneck is often ClickHouse's `concurrent_threads_soft_limit` (default: 2 × nproc), not pueue's parallelism. Each query requests `max_threads` threads (default: nproc). Right-size `--max_threads` per query to match the effective thread count (soft_limit / pueue_slots), then increase pueue slots. Pueue parallelism can be adjusted live without restarting running jobs.
+
+**Post-bump monitoring** (mandatory for 5 minutes after any parallelism change):
+
+- `uptime` — load average should stay below 0.9 × nproc
+- `vmstat 1 5` — si/so columns must remain 0 (no active swapping)
+- ClickHouse errors: `SELECT count() FROM system.query_log WHERE event_time > now() - INTERVAL 5 MINUTE AND type = 'ExceptionWhileProcessing'` — must be 0
+
+**Cross-reference**: See `devops-tools:pueue-job-orchestration` ClickHouse Parallelism Tuning section for the full decision matrix.
+
 ### 7. Per-Job Memory Caps via systemd-run
 
 On Linux with cgroups v2, wrap each job with `systemd-run` to enforce hard memory limits.
@@ -298,7 +308,27 @@ ls -lh "$STATE_FILE"  # Should be <10MB for healthy operation
 
 **Cross-reference**: See `devops-tools:pueue-job-orchestration` State File Management section for benchmarks and the periodic clean pattern.
 
-### AP-11: Per-File SSH for Bulk Job Submission
+### AP-11: Wrong Working Directory in Remote Pueue Jobs
+
+**Symptom**: Jobs fail immediately (exit code 2) with `can't open file 'scripts/populate.py': [Errno 2] No such file or directory`.
+
+**Root cause**: `ssh host "pueue add -- uv run python scripts/process.py"` queues the job with the SSH session's cwd (typically `$HOME`), not the project directory. The script path is relative, so pueue looks for `~/scripts/process.py` instead of `~/project/scripts/process.py`.
+
+**Fix**: Always `cd` to the project directory before `pueue add`:
+
+```bash
+# WRONG: pueue inherits SSH cwd ($HOME)
+ssh host "pueue add --group mygroup -- uv run python scripts/process.py"
+
+# RIGHT: cd first, then pueue add inherits project cwd
+ssh host "cd ~/project && pueue add --group mygroup -- uv run python scripts/process.py"
+```
+
+**Why not `--working-directory`?** Pueue v4 doesn't have a `--working-directory` flag. The `cd && pueue add` pattern is the only way to set the job's working directory.
+
+**Test**: After queuing, verify the Path column in `pueue status` shows the project directory, not `$HOME`.
+
+### AP-12: Per-File SSH for Bulk Job Submission
 
 **Symptom**: Submitting 300K jobs takes days because each `pueue add` requires a separate SSH round-trip from the local machine to the remote host.
 
