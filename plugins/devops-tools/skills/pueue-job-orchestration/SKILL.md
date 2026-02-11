@@ -212,13 +212,13 @@ The rangebar-py project has Pueue integration scripts:
 
 ## Troubleshooting
 
-| Issue                      | Cause                    | Solution                              |
-| -------------------------- | ------------------------ | ------------------------------------- |
-| `pueue: command not found` | Not in PATH              | Use full path: `~/.local/bin/pueue`   |
-| `Connection refused`       | Daemon not running       | Start with `pueued -d`                |
-| Jobs stuck in Queued       | Group paused or at limit | Check `pueue status`, `pueue start`   |
-| SSH disconnect kills jobs  | Not using Pueue          | Queue via Pueue instead of direct SSH |
-| Job fails immediately      | Wrong working directory  | Use `cd /path && command` pattern     |
+| Issue                      | Cause                    | Solution                                                          |
+| -------------------------- | ------------------------ | ----------------------------------------------------------------- |
+| `pueue: command not found` | Not in PATH              | Use full path: `~/.local/bin/pueue`                               |
+| `Connection refused`       | Daemon not running       | Start with `pueued -d`                                            |
+| Jobs stuck in Queued       | Group paused or at limit | Check `pueue status`, `pueue start`                               |
+| SSH disconnect kills jobs  | Not using Pueue          | Queue via Pueue instead of direct SSH                             |
+| Job fails immediately      | Wrong working directory  | Use `cd /path && pueue add` (see AP-11 in distributed-job-safety) |
 
 ## Production Lessons (Issue #88)
 
@@ -356,7 +356,9 @@ For pueue jobs that need Rust compilation:
 pueue add -- env PATH="/home/user/.cargo/bin:$PATH" uv run maturin develop
 ```
 
-### Per-Year (Epoch) Parallelization
+### Per-Year (Epoch) Parallelization — DEFAULT STRATEGY
+
+**This is the default approach for all multi-year cache population.** Never queue a monolithic multi-year job when epoch boundaries exist. A single DOGEUSDT@500 job estimated 22 days; per-year splits brought it to ~3-4 days with 4 parallel cores.
 
 When a processing pipeline has natural reset boundaries (yearly, monthly, etc.) where processor state resets, each epoch becomes an independent processing unit. This enables massive speedup by splitting a multi-year sequential job into concurrent per-year pueue jobs.
 
@@ -406,10 +408,12 @@ pueue add --after "${ALL_JOB_IDS[@]}" \
 
 **Critical rules:**
 
-1. First year uses domain-specific effective start date, not `01-01`
-2. Last year uses actual latest available date as end
-3. Chain `OPTIMIZE TABLE FINAL` after ALL year-jobs via `--after`
-4. Memory budget: each job peaks independently — with 61 GB total, 4-5 concurrent jobs at 5 GB each are safe
+1. **Working directory**: Always `cd ~/project &&` before `pueue add` — SSH cwd defaults to `$HOME`, not the project directory. Jobs fail instantly with `No such file or directory` if this is missed.
+2. First year uses domain-specific effective start date, not `01-01`
+3. Last year uses actual latest available date as end
+4. Chain `OPTIMIZE TABLE FINAL` after ALL year-jobs via `--after`
+5. Memory budget: each job peaks independently — with 61 GB total, 4-5 concurrent jobs at 5 GB each are safe
+6. **No `--force-refresh` on per-year jobs** when other year-jobs for the same symbol are running — it deletes cached bars by date range and can conflict with concurrent writes.
 
 ### Pipeline Monitoring (Group-Based Phase Detection)
 
@@ -628,6 +632,73 @@ done > /tmp/commands.txt
 ```
 
 **Requirements**: bash 4+ for associative arrays (`declare -A`).
+
+---
+
+## ClickHouse Parallelism Tuning (pueue + ClickHouse)
+
+When using pueue to orchestrate ClickHouse queries, the interaction between pueue parallelism and ClickHouse's thread scheduler determines actual throughput.
+
+### The Thread Soft Limit
+
+ClickHouse has a `concurrent_threads_soft_limit_ratio_to_cores` setting (default: 2). On a 32-core machine, this means ClickHouse allows **64 concurrent execution threads** total, regardless of how many queries are running.
+
+Each query requests `max_threads` threads (default: auto = nproc = 32 on a 32-core machine). With 8 parallel queries each requesting 32 threads (= 256 requested), ClickHouse throttles to 64 actual threads. **The queries get ~8 effective threads each, not 32.**
+
+### Right-Size `max_threads` Per Query
+
+**Anti-pattern**: Letting each query request 32 threads when it only gets 8 effective threads. This creates scheduling overhead for no benefit.
+
+**Fix**: Set `--max_threads` to match the effective thread count:
+
+```bash
+# In the job wrapper script:
+clickhouse-client --max_threads=8 --multiquery < "$SQL_FILE"
+```
+
+This reduces thread scheduling overhead and allows higher pueue parallelism without oversubscription.
+
+### Parallelism Sizing Formula
+
+```
+effective_threads_per_query = concurrent_threads_soft_limit / pueue_parallel_slots
+concurrent_threads_soft_limit = nproc * concurrent_threads_soft_limit_ratio_to_cores
+
+# Example: 32-core machine, ratio=2, soft_limit=64
+# 8 pueue slots  → 8 effective threads/query  → ~55% CPU (baseline)
+# 16 pueue slots → 4 effective threads/query  → ~87% CPU (1.5-1.8x throughput)
+# 24 pueue slots → 2-3 effective threads/query → ~95% CPU (diminishing returns)
+```
+
+### Decision Matrix
+
+| Dimension     | Check                                         | Safe Threshold                     |
+| ------------- | --------------------------------------------- | ---------------------------------- |
+| **Memory**    | p99 per-query × N slots < server memory limit | < 50% of `max_server_memory_usage` |
+| **CPU**       | Load average < 90% of nproc                   | load < 0.9 × nproc                 |
+| **I/O**       | `iostat` disk utilization                     | < 70%                              |
+| **Swap**      | `vmstat` si/so columns                        | Must be 0                          |
+| **CH errors** | `system.query_log` ExceptionWhileProcessing   | Must be 0                          |
+
+### Live Tuning (No Restart Required)
+
+Pueue parallelism can be changed live — running jobs finish with old settings, new jobs use the new limit:
+
+```bash
+# Check current
+pueue group | grep mygroup
+
+# Bump up
+pueue parallel 16 -g mygroup
+
+# Monitor for 2-3 minutes, then check
+uptime                    # Load average
+free -h                   # Memory
+vmstat 1 3                # Swap (si/so = 0?)
+clickhouse-client --query "SELECT count() FROM system.query_log
+    WHERE event_time > now() - INTERVAL 5 MINUTE
+    AND type = 'ExceptionWhileProcessing'"  # Errors = 0?
+```
 
 ---
 
