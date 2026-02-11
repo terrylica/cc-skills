@@ -232,6 +232,28 @@ pueue add -- env PATH="/home/user/.cargo/bin:$PATH" uv run maturin develop --uv
 
 ---
 
+## G-12: Pueue `add` Inherits SSH cwd, Not Project Directory
+
+**Symptom**: Pueue job fails instantly with `No such file or directory` for a relative script path.
+
+**Root cause**: When running `ssh host "pueue add -- cmd"`, pueue records the working directory as the SSH session's cwd (typically `$HOME`). Relative paths in the command resolve against `$HOME`, not the project root.
+
+**Fix**: Always `cd` to the project directory in the same shell command:
+
+```bash
+# WRONG
+ssh host "pueue add -- uv run python scripts/process.py"
+# Job runs in $HOME, fails to find scripts/process.py
+
+# RIGHT
+ssh host "cd ~/project && pueue add -- uv run python scripts/process.py"
+# Job runs in ~/project, relative paths work correctly
+```
+
+**Verify**: Check the Path column in `pueue status` output — it should show the project directory.
+
+---
+
 ## Quick Reference Table
 
 | Gotcha | Symptom                 | One-Line Fix                                  |
@@ -247,3 +269,4 @@ pueue add -- env PATH="/home/user/.cargo/bin:$PATH" uv run maturin develop --uv
 | G-9    | Version not found       | `--refresh` flag on uv pip install            |
 | G-10   | MemoryMax not enforced  | Add `-p MemorySwapMax=0` to systemd-run       |
 | G-11   | rustc not in PATH       | `PATH="$HOME/.cargo/bin:$PATH"` before uv run |
+| G-12   | Script not found        | `cd ~/project &&` before `pueue add`          |
