@@ -1,3 +1,47 @@
+# [11.25.0](https://github.com/terrylica/cc-skills/compare/v11.24.0...v11.25.0) (2026-02-11)
+
+
+### Features
+
+* **devops-tools:** add ClickHouse parallelism tuning and state management best practices ([f4a2b66](https://github.com/terrylica/cc-skills/commit/f4a2b66d352d6082d0cf021922e04290d0b3d968))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/SKILL.md) - updated (+34/-18)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+83/-12)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/distributed-job-safety</strong> (1 file)</summary>
+
+- [Environment Gotchas](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/environment-gotchas.md) - updated (+23)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/clickhouse-architect</strong> (1 file)</summary>
+
+- [Anti-Patterns and Fixes](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/references/anti-patterns-and-fixes.md) - updated (+2)
+
+</details>
+
 # [11.24.0](https://github.com/terrylica/cc-skills/compare/v11.23.0...v11.24.0) (2026-02-11)
 
 
