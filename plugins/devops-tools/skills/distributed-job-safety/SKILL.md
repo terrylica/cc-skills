@@ -119,7 +119,7 @@ systemd-run --user --scope -p MemoryMax=8G -p MemorySwapMax=0 \
 
 ---
 
-## Seven Anti-Patterns (Learned from Production)
+## Anti-Patterns (Learned from Production)
 
 ### AP-1: Redeploying Without Checking Running Jobs
 
@@ -271,6 +271,53 @@ done
 **When this applies**: Any pipeline where the processor explicitly resets state at time boundaries (ouroboros pattern, rolling windows, annual rebalancing). If the processor carries state across boundaries, per-epoch splitting is NOT safe.
 
 **Cross-reference**: See `devops-tools:pueue-job-orchestration` Per-Year Parallelization section for full patterns.
+
+### AP-10: State File Bloat Causing Silent Performance Regression
+
+**Symptom**: Job submission that used to take 10 minutes now takes 6+ hours. No errors — just slow. Pipeline appears healthy but execution slots sit idle waiting for new jobs to be queued.
+
+**Root cause**: Pueue's `state.json` grows with every completed task. At 50K+ completed tasks (80-100MB state file), each `pueue add` takes 1-2 seconds instead of <100ms. This is invisible — no errors, no warnings, just gradually degrading throughput.
+
+**Why it's dangerous**: The regression is proportional to total completed tasks across the daemon's lifetime. A sweep that runs 10K jobs/day hits the problem by day 5. The first day runs fine, creating a false sense of security.
+
+**Fix**: Treat `state.json` as infrastructure that requires periodic maintenance:
+
+```bash
+# Before bulk submission: always clean
+pueue clean -g mygroup 2>/dev/null || true
+
+# During long sweeps: clean between batches
+# (See pueue-job-orchestration skill for full batch pattern)
+
+# Monitor state size as part of health checks
+STATE_FILE="$HOME/.local/share/pueue/state.json"
+ls -lh "$STATE_FILE"  # Should be <10MB for healthy operation
+```
+
+**Invariant**: `state.json` size should stay below 50MB during active sweeps. Above 50MB, `pueue add` latency exceeds 500ms and parallel submission gains vanish.
+
+**Cross-reference**: See `devops-tools:pueue-job-orchestration` State File Management section for benchmarks and the periodic clean pattern.
+
+### AP-11: Per-File SSH for Bulk Job Submission
+
+**Symptom**: Submitting 300K jobs takes days because each `pueue add` requires a separate SSH round-trip from the local machine to the remote host.
+
+**Root cause**: The submission script runs locally and calls `ssh host "pueue add ..."` per job. Each SSH connection has ~50-100ms overhead. At 300K jobs: 300K \* 75ms = 6.25 hours just for SSH, before any submission latency.
+
+**Fix**: Generate a commands file locally, rsync it to the remote host, then run `xargs -P` **on the remote host** to eliminate SSH overhead entirely:
+
+```bash
+# Step 1 (local): Generate commands file
+bash gen_commands.sh > /tmp/commands.txt
+
+# Step 2 (local): Transfer to remote
+rsync /tmp/commands.txt host:/tmp/commands.txt
+
+# Step 3 (remote): Feed via xargs -P (no SSH per-job)
+ssh host "xargs -P16 -I{} bash -c '{}' < /tmp/commands.txt"
+```
+
+**Invariant**: Bulk submission should run ON the same host as pueue. The only SSH call should be to start the feeder process, not per-job.
 
 ---
 

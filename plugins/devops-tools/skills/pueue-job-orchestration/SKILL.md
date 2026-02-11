@@ -485,6 +485,152 @@ while true; do
 done
 ```
 
+## State File Management (CRITICAL)
+
+Pueue stores ALL task metadata in a single `state.json` file. This file grows with every completed task and is read/written on EVERY `pueue add` call. Neglecting state hygiene is the #1 cause of slow job submission in large sweeps.
+
+### The State Bloat Anti-Pattern
+
+**Symptom**: `pueue add` takes 1-2 seconds instead of <100ms.
+
+**Root cause**: Pueue serializes/deserializes the entire state file on every operation. With 50K+ completed tasks, `state.json` grows to 80-100MB. Each `pueue add` becomes 80MB read + 80MB write = 160MB I/O.
+
+**Benchmarks** (pueue v4, NVMe SSD, 32-core Linux):
+
+| Completed Tasks | state.json Size | `pueue add` Latency (sequential) | `pueue add` Latency (xargs -P16) |
+| --------------- | --------------- | -------------------------------- | -------------------------------- |
+| 53,000          | 94 MB           | 1,300 ms/add                     | 455 ms/add (mutex contention)    |
+| 0 (after clean) | 245 KB          | 106 ms/add                       | 8 ms/add (effective)             |
+
+**Key insight**: Parallelism does NOT help when state is bloated — the pueue daemon serializes all operations through a mutex. The 455ms at P16 is WORSE per-operation than 1,300ms sequential because of lock contention overhead. **Clean first, then parallelize.**
+
+### Pre-Submission Clean (Mandatory Pattern)
+
+Before any bulk submission (>100 jobs), clean completed tasks:
+
+```bash
+# ALWAYS clean before bulk submission
+pueue clean -g mygroup 2>/dev/null || true
+
+# Verify state is manageable
+STATE_FILE="$HOME/.local/share/pueue/state.json"
+STATE_SIZE=$(stat -c%s "$STATE_FILE" 2>/dev/null || stat -f%z "$STATE_FILE" 2>/dev/null || echo 0)
+if [ "$STATE_SIZE" -gt 52428800 ]; then  # 50MB
+    echo "WARNING: state.json is $(( STATE_SIZE / 1048576 ))MB — running extra clean"
+    pueue clean 2>/dev/null || true
+fi
+```
+
+### Periodic Clean During Long Sweeps
+
+For sweeps with 100K+ jobs, clean periodically between submission batches:
+
+```bash
+BATCH_SIZE=5000
+POS=0
+while [ "$POS" -lt "$TOTAL" ]; do
+    # Submit batch
+    tail -n +$((POS + 1)) "$CMDFILE" | head -n "$BATCH_SIZE" | \
+        xargs -P16 -I{} bash -c '{}' 2>/dev/null || true
+    POS=$((POS + BATCH_SIZE))
+
+    # Prevent state bloat between batches
+    pueue clean -g mygroup 2>/dev/null || true
+done
+```
+
+---
+
+## Bulk Submission with xargs -P (High-Throughput Pattern)
+
+For large job counts (1K+), submitting one `pueue add` at a time via SSH is prohibitively slow. Use a **batch command file** fed through `xargs -P` for parallel submission.
+
+### Why Not GNU Parallel?
+
+**CRITICAL**: Many Linux hosts (including Ubuntu/Debian) ship with **moreutils `parallel`**, NOT **GNU Parallel**. They share the binary name `/usr/bin/parallel` but are completely different tools:
+
+| Feature            | GNU Parallel                     | moreutils parallel         |
+| ------------------ | -------------------------------- | -------------------------- |
+| Job file           | `--jobs 16 --bar < commands.txt` | Not supported              |
+| Progress bar       | `--bar`, `--eta`                 | None                       |
+| Resume             | `--resume --joblog log.txt`      | Not supported              |
+| Syntax             | `parallel ::: arg1 arg2`         | `parallel -- cmd1 -- cmd2` |
+| `--version` output | `GNU parallel YYYY`              | `parallel from moreutils`  |
+
+**Detection**:
+
+```bash
+if parallel --version 2>&1 | grep -q 'GNU'; then
+    echo "GNU Parallel available"
+else
+    echo "moreutils parallel (or none) — use xargs -P instead"
+fi
+```
+
+**Safe default**: Always use `xargs -P` — it's POSIX standard and available everywhere.
+
+### Batch Command File Pattern
+
+**Step 1: Generate commands file** (one `pueue add` per line):
+
+```bash
+# gen_commands.sh — generates commands.txt
+for SQL_FILE in /tmp/sweep_sql/*.sql; do
+    echo "pueue add -g p1 -- /tmp/run_job.sh '${SQL_FILE}' '${LOG_FILE}'"
+done > /tmp/commands.txt
+echo "Generated $(wc -l < /tmp/commands.txt) commands"
+```
+
+**Step 2: Feed via xargs -P** (parallel submission):
+
+```bash
+# Submit in batches with periodic state cleanup
+BATCH=5000
+P=16
+TOTAL=$(wc -l < /tmp/commands.txt)
+POS=0
+
+while [ "$POS" -lt "$TOTAL" ]; do
+    tail -n +$((POS + 1)) /tmp/commands.txt | head -n "$BATCH" | \
+        xargs -P"$P" -I{} bash -c '{}' 2>/dev/null || true
+    POS=$((POS + BATCH))
+
+    # Clean between batches to prevent state bloat
+    pueue clean -g p1 2>/dev/null || true
+
+    QUEUED=$(pueue status -g p1 --json 2>/dev/null | python3 -c \
+        "import json,sys; d=json.load(sys.stdin); print(sum(1 for t in d.get('tasks',{}).values() if 'Queued' in str(t.get('status',''))))" 2>/dev/null || echo "?")
+    echo "Batch: ${POS}/${TOTAL} | Queued: ${QUEUED}"
+done
+```
+
+### Crash Recovery with Skip-Done
+
+For idempotent resubmission after SSH drops or crashes:
+
+```bash
+# Build done-set from existing JSONL output
+declare -A DONE_SET
+for logfile in /tmp/sweep_*.jsonl; do
+    while IFS= read -r config_id; do
+        DONE_SET["${config_id}"]=1
+    done < <(jq -r '.feature_config // empty' "$logfile" 2>/dev/null | sort -u)
+done
+
+# Generate commands, skipping completed configs
+for SQL_FILE in /tmp/sweep_sql/*.sql; do
+    CONFIG_ID=$(basename "$SQL_FILE" .sql)
+    if [ "${DONE_SET[${CONFIG_ID}]+_}" ]; then
+        continue  # Already completed
+    fi
+    echo "pueue add -g p1 -- /tmp/run_job.sh '${SQL_FILE}' '${LOG_FILE}'"
+done > /tmp/commands.txt
+```
+
+**Requirements**: bash 4+ for associative arrays (`declare -A`).
+
+---
+
 ## Related
 
 - **Hook**: `itp-hooks/posttooluse-reminder.ts` - Reminds to use Pueue for detected long-running commands
