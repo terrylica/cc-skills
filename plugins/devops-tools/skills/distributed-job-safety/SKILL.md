@@ -223,6 +223,55 @@ postprocess_all() {
 
 **Cross-reference**: See `devops-tools:pueue-job-orchestration` Dependency Chaining section for full `--after` patterns.
 
+### AP-8: Hardcoded Job IDs in Pipeline Monitors
+
+**Symptom**: Background monitor crashes with empty variable or wrong comparison after jobs are removed, re-queued, or split into per-year jobs.
+
+**Root cause**: Monitor uses `grep "^14|"` to find specific job IDs. When those IDs no longer exist (killed, removed, replaced by per-year splits), the grep returns empty and downstream comparisons fail.
+
+**Fix**: Detect phase transitions by **group completion patterns**, not by tracking individual job IDs:
+
+```bash
+# WRONG: Breaks when job 14 is removed
+job14_status=$(echo "$JOBS" | grep "^14|" | cut -d'|' -f2)
+if [ "$job14_status" = "Done" ]; then ...
+
+# RIGHT: Check if ALL jobs in a group are done
+group_all_done() {
+    local group="$1"
+    local group_jobs
+    group_jobs=$(echo "$JOBS" | grep "|${group}$" || true)
+    [ -z "$group_jobs" ] && return 1
+    echo "$group_jobs" | grep -qE "\|(Running|Queued)\|" && return 1
+    return 0
+}
+```
+
+**Principle**: Pueue group names and job labels are stable identifiers. Job IDs are ephemeral.
+
+### AP-9: Sequential Processing When Epoch Resets Enable Parallelism
+
+**Symptom**: A multi-year job runs for days single-threaded while 25+ cores sit idle. ETA: 1,700 hours.
+
+**Root cause**: Pipeline processor resets state at epoch boundaries (yearly, monthly) — each epoch is already independent. But the job was queued as one monolithic range.
+
+**Fix**: Split into per-epoch pueue jobs running concurrently:
+
+```bash
+# WRONG: Single monolithic job, wastes idle cores
+pueue add -- process --start 2019-01-01 --end 2026-12-31  # 1,700 hours single-threaded
+
+# RIGHT: Per-year splits, 5x+ speedup on multi-core
+for year in 2019 2020 2021 2022 2023 2024 2025 2026; do
+    pueue add --group item-yearly --label "ITEM@250:${year}" \
+        -- process --start "${year}-01-01" --end "${year}-12-31"
+done
+```
+
+**When this applies**: Any pipeline where the processor explicitly resets state at time boundaries (ouroboros pattern, rolling windows, annual rebalancing). If the processor carries state across boundaries, per-epoch splitting is NOT safe.
+
+**Cross-reference**: See `devops-tools:pueue-job-orchestration` Per-Year Parallelization section for full patterns.
+
 ---
 
 ## The Mise + Pueue + systemd-run Stack
@@ -339,6 +388,16 @@ pueue parallel 5 --group group2
 
 # Scale down if memory pressure detected
 pueue parallel 2 --group group1
+```
+
+**Per-symbol/per-family groups**: When jobs have vastly different resource profiles, give each family its own pueue group. This prevents a single high-memory job type from starving lighter jobs:
+
+```bash
+# Example: high-volume symbols need fewer concurrent jobs (5 GB each)
+pueue group add highvol-yearly --parallel 2
+
+# Low-volume symbols can run more concurrently (1 GB each)
+pueue group add lowvol-yearly --parallel 6
 ```
 
 ---
