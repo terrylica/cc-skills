@@ -239,25 +239,11 @@ postprocess_all() {
 
 **Root cause**: Monitor uses `grep "^14|"` to find specific job IDs. When those IDs no longer exist (killed, removed, replaced by per-year splits), the grep returns empty and downstream comparisons fail.
 
-**Fix**: Detect phase transitions by **group completion patterns**, not by tracking individual job IDs:
-
-```bash
-# WRONG: Breaks when job 14 is removed
-job14_status=$(echo "$JOBS" | grep "^14|" | cut -d'|' -f2)
-if [ "$job14_status" = "Done" ]; then ...
-
-# RIGHT: Check if ALL jobs in a group are done
-group_all_done() {
-    local group="$1"
-    local group_jobs
-    group_jobs=$(echo "$JOBS" | grep "|${group}$" || true)
-    [ -z "$group_jobs" ] && return 1
-    echo "$group_jobs" | grep -qE "\|(Running|Queued)\|" && return 1
-    return 0
-}
-```
+**Fix**: Detect phase transitions by **group completion patterns**, not by tracking individual job IDs. Use `group_all_done()` to check if all jobs in a pueue group have finished.
 
 **Principle**: Pueue group names and job labels are stable identifiers. Job IDs are ephemeral.
+
+**Cross-reference**: See `devops-tools:pueue-job-orchestration` Pipeline Monitoring section for the full `group_all_done()` implementation and integrity check patterns.
 
 ### AP-9: Sequential Processing When Epoch Resets Enable Parallelism
 
