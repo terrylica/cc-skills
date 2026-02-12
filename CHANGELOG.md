@@ -1,3 +1,10 @@
+# [11.26.0](https://github.com/terrylica/cc-skills/compare/v11.25.1...v11.26.0) (2026-02-12)
+
+
+### Features
+
+* **itp-hooks:** add __init__ structure guard for Python packages ([026dc27](https://github.com/terrylica/cc-skills/commit/026dc273c63d1053a08fed89c81d4fb22155b9d7))
+
 ## [11.25.1](https://github.com/terrylica/cc-skills/compare/v11.25.0...v11.25.1) (2026-02-12)
 
 
