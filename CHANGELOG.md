@@ -1,3 +1,10 @@
+# [11.29.0](https://github.com/terrylica/cc-skills/compare/v11.28.0...v11.29.0) (2026-02-12)
+
+
+### Features
+
+* **itp-hooks:** convert PreToolUse hooks from ask to deny + fix version guard false positives ([7765434](https://github.com/terrylica/cc-skills/commit/77654344d802b11e38086f201f0d2dc3e08ba8ae))
+
 # [11.28.0](https://github.com/terrylica/cc-skills/compare/v11.27.0...v11.28.0) (2026-02-12)
 
 
