@@ -1,3 +1,10 @@
+## [11.29.1](https://github.com/terrylica/cc-skills/compare/v11.29.0...v11.29.1) (2026-02-12)
+
+
+### Bug Fixes
+
+* **itp-hooks:** flip pueue wrap guard from blocklist to allowlist ([08d9931](https://github.com/terrylica/cc-skills/commit/08d993132520bc206603dd9ef9c98ed004152cc5))
+
 # [11.29.0](https://github.com/terrylica/cc-skills/compare/v11.28.0...v11.29.0) (2026-02-12)
 
 
