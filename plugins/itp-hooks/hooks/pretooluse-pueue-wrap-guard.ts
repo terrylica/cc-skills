@@ -2,92 +2,86 @@
 /**
  * PreToolUse hook: Pueue Auto-Wrap Guard
  *
- * Silently wraps non-trivial Bash commands with pueue for universal CLI telemetry.
- * Uses `permissionDecision: "allow"` + `updatedInput` for invisible command rewriting.
+ * Wraps known long-running Bash commands with pueue for CLI telemetry.
+ * Uses allowlist approach: ONLY wraps commands matching LONG_RUNNING_PATTERNS.
+ * All other commands pass through unchanged.
  *
  * Two tiers:
- *   Skip  — read-only, trivial, interactive, pueue commands → allow() with no updatedInput
- *   Wrap  — everything else → allow + updatedInput with synchronous pueue wrapper
+ *   Allow — everything by default → allow() with no updatedInput
+ *   Wrap  — known long-running patterns → allow + updatedInput with synchronous pueue wrapper
  *
  * IMPORTANT: This MUST be the LAST PreToolUse entry in hooks.json.
  * Reason: GitHub #15897 — multi-hook updatedInput aggregation bug means the
  * last hook's updatedInput wins unconditionally (even if undefined).
  *
- * Escape hatch: # PUEUE-SKIP comment in command
+ * Opt-in:  # PUEUE-WRAP comment forces wrapping for any command
+ * Opt-out: # PUEUE-SKIP comment prevents wrapping even for long-running patterns
  *
  * Reference: /plugins/devops-tools/skills/pueue-job-orchestration/references/claude-code-integration.md
  * GitHub Issue: https://github.com/anthropics/claude-code/issues/15897 (updatedInput aggregation bug)
  * GitHub Issue: https://github.com/anthropics/claude-code/issues/11282 (ask + updatedInput broken)
  */
 
-import { allow, output, parseStdinOrAllow, isReadOnly } from "./pretooluse-helpers.ts";
+import { allow, output, parseStdinOrAllow } from "./pretooluse-helpers.ts";
+
+/** Opt-in escape hatch — force wrapping */
+const WRAP_COMMENT = /# *PUEUE-WRAP/i;
+
+/** Opt-out escape hatch — prevent wrapping */
+const SKIP_COMMENT = /# *PUEUE-SKIP/i;
 
 /** Commands that are already pueue-related */
 const PUEUE_COMMANDS = /^\s*(?:pueue|pueued)\b/i;
 
-/** Interactive/credential operations that can't be wrapped */
-const INTERACTIVE_PATTERNS = [
-  /\bgit\s+commit\b/i,
-  /\bgit\s+push\b/i,
-  /\bgit\s+pull\b/i,
-  /\bgit\s+rebase\b/i,
-  /\bgit\s+merge\b/i,
-  /\bnano\b|\bvim?\b|\bemacs\b/i,
-  /\bpython3?\s*$/i, // bare python REPL
-  /\bnode\s*$/i, // bare node REPL
-  /\birb\s*$/i,
-  /\bssh\s+\S+\s*$/i, // interactive SSH (no command)
-];
-
 /** Already backgrounded commands */
 const BACKGROUNDED = /\bnohup\s|&\s*$|\bscreen\s|\btmux\s/i;
 
-/** Quick flags that indicate non-executable inspection */
-const QUICK_FLAGS = /--status|--plan|--help\b|-h\b|--version\b/i;
+/**
+ * Known long-running patterns that benefit from pueue wrapping.
+ * Mirrors posttooluse-reminder.ts detection patterns (SSoT alignment).
+ */
+const LONG_RUNNING_PATTERNS = [
+  // Data population/cache scripts
+  /populate[_-]?(cache|full|data)/i,
+  /cache[_-]?populat/i,
+  /bulk[_-]?(insert|load|import)/i,
 
-/** Documentation/print commands */
-const PRINT_ONLY = /^\s*(echo|printf|#)\b/i;
+  // Batch processing with multiple items
+  /--phase\s+\d/i,
+  /for\s+\w+\s+in.*;\s*do/i,
+  /while.*;\s*do/i,
 
-/** Composite task managers that manage their own subprocesses */
-const TASK_MANAGERS = /\bmise\s+run\b/i;
+  // Multi-symbol/multi-threshold crypto operations
+  /(BTCUSDT|ETHUSDT|SOLUSDT|BNBUSDT).*--threshold/i,
+  /--symbol\s+\w+USDT.*--threshold/i,
 
-/** Minimum command length worth wrapping */
-const MIN_COMMAND_LENGTH = 10;
+  // Long date ranges (multi-year)
+  /201[789]|202[0-6].*--end|--start.*201[789]/i,
 
-/** Escape hatch comment */
-const SKIP_COMMENT = /# *PUEUE-SKIP/i;
+  // SSH with long-running remote commands
+  /ssh\s+\S+\s+["']?.*populate/i,
+  /ssh\s+\S+\s+["']?.*--phase/i,
+];
 
-function shouldSkip(command: string): boolean {
-  // Escape hatch
-  if (SKIP_COMMENT.test(command)) return true;
+/**
+ * Check if a command matches known long-running patterns.
+ * Returns true ONLY for commands that should be wrapped.
+ */
+function shouldWrap(command: string): boolean {
+  // Opt-in: explicit wrap request
+  if (WRAP_COMMENT.test(command)) return true;
 
-  // Read-only commands (ls, cat, grep, git status, etc.)
-  if (isReadOnly(command)) return true;
+  // Opt-out: explicit skip request
+  if (SKIP_COMMENT.test(command)) return false;
 
-  // Already using pueue
-  if (PUEUE_COMMANDS.test(command)) return true;
+  // Never wrap pueue commands themselves
+  if (PUEUE_COMMANDS.test(command)) return false;
 
-  // Quick flags
-  if (QUICK_FLAGS.test(command)) return true;
+  // Never wrap already-backgrounded commands
+  if (BACKGROUNDED.test(command)) return false;
 
-  // Print/documentation only
-  if (PRINT_ONLY.test(command)) return true;
-
-  // Already backgrounded
-  if (BACKGROUNDED.test(command)) return true;
-
-  // Interactive/credential operations
-  for (const pattern of INTERACTIVE_PATTERNS) {
-    if (pattern.test(command)) return true;
-  }
-
-  // Composite task managers
-  if (TASK_MANAGERS.test(command)) return true;
-
-  // Very short commands (pwd, date, whoami, etc.)
-  if (command.trim().length < MIN_COMMAND_LENGTH) return true;
-
-  return false;
+  // Check against known long-running patterns
+  return LONG_RUNNING_PATTERNS.some((p) => p.test(command));
 }
 
 /**
@@ -120,8 +114,8 @@ async function main() {
 
   const command = tool_input.command || "";
 
-  // Skip tier: allow without wrapping
-  if (shouldSkip(command)) {
+  // Allowlist check: only wrap known long-running commands
+  if (!shouldWrap(command)) {
     allow();
     return;
   }
@@ -137,7 +131,7 @@ async function main() {
     return;
   }
 
-  // Silent wrap tier: rewrite command with pueue wrapper
+  // Wrap tier: rewrite command with pueue wrapper
   const workingDir = cwd || process.cwd();
   const wrappedCommand = buildWrappedCommand(command, workingDir);
 
