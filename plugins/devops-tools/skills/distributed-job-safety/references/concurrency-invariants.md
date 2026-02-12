@@ -271,4 +271,8 @@ p.unlink(missing_ok=True)  # Second call also safe
 
 # INV-7: Memory isolation
 # Run job under systemd-run with MemoryMax, verify cgroup limits are enforced
+
+# INV-8: Monitor by stable identifiers
+# After re-queuing a job, verify monitoring scripts still find it by group/label
+# (not by old job ID which no longer exists)
 ```
