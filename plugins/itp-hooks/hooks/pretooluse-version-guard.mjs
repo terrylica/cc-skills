@@ -22,26 +22,22 @@
 // ============================================================================
 
 const VERSION_PATTERNS = [
-  // Rust/TOML: package = "1.2.3" or version = "1.2.3"
+  // Rust/TOML: package = "1.2.3" or version = "1.2.3" (semver only, NOT 2-segment or 1-segment)
   /=\s*"(\d+\.\d+\.\d+)"/g,
-  /=\s*"(\d+\.\d+)"/g,
-  /=\s*"(\d+)"/g, // Major-only
 
-  // Python: package==1.2.3, >=1.2.3, ~=1.2.3
+  // Python: package==1.2.3, ~=1.2.3
   /==\s*(\d+\.\d+\.\d+)/g,
-  />=\s*(\d+\.\d+\.\d+)/g,
   /~=\s*(\d+\.\d+\.\d+)/g,
 
   // JSON: "version": "1.2.3"
   /"version"\s*:\s*"(\d+\.\d+\.\d+)"/g,
 
-  // Prose patterns: Version 1.2.3, v1.2.3, **Version**: 1.2.3
+  // Prose patterns: Version 1.2.3, **Version**: 1.2.3
   /Version:\s*(\d+\.\d+\.\d+)/gi,
   /\*\*Version\*\*:\s*v?(\d+\.\d+\.\d+)/gi,
-  /\bv(\d+\.\d+\.\d+)\b/g,
 
-  // Forward-compatible: v1.2.3+
-  /\bv?(\d+\.\d+\.\d+)\+/g,
+  // Exact version pin in prose: v1.2.3 (but NOT v1.2.3+ which is a minimum requirement)
+  /\bv(\d+\.\d+\.\d+)\b(?!\+)/g,
 
   // Pre-release patterns: 1.2.3-alpha.1, 1.2.3-beta.2, 1.2.3-rc.1
   /(\d+\.\d+\.\d+)-(alpha|beta|rc)(\.\d+)?/gi,
@@ -49,6 +45,12 @@ const VERSION_PATTERNS = [
   // Calendar versioning: 2024.9.5
   /\b(\d{4}\.\d{1,2}\.\d{1,2})\b/g,
 ];
+
+// Removed patterns (false positive sources):
+// - /=\s*"(\d+\.\d+)"/g — caught XML plist version="1.0" boilerplate
+// - /=\s*"(\d+)"/g — caught any ="1" including XML attributes
+// - /\bv?(\d+\.\d+\.\d+)\+/g — v1.2.3+ is a minimum requirement, not a pin
+// - />=\s*(\d+\.\d+\.\d+)/g — >= is a constraint, not a pin
 
 // ============================================================================
 // ALLOWED PATTERNS & EXCLUDED PATHS
@@ -63,6 +65,7 @@ const EXCLUDED_PATHS = [
   /\/archive\//i, // Archived docs
   /\/milestones\//i, // Milestone tracking
   /\/planning\//i, // Planning documents
+  /\/plans\//i, // Claude Code plan files (~/.claude/plans/)
   /\/reports\//i, // Generated reports
   /\/outputs?\//i, // Output directories (output/ or outputs/)
   /\/adr\//i, // Architecture Decision Records
@@ -139,12 +142,19 @@ async function main() {
   // NOTE: Placeholder pattern does NOT exempt file from checking (STRICT mode)
   // Block if ANY hardcoded version, even if placeholder is also present
 
+  // Strip content inside fenced code blocks with xml/html/plist language tags
+  // These contain boilerplate like <?xml version="1.0"?> that aren't version pins
+  const strippedContent = content.replace(
+    /```(?:xml|html|plist)\b[^]*?```/gi,
+    ""
+  );
+
   // Find hardcoded versions
   const versions = new Set();
   for (const pattern of VERSION_PATTERNS) {
     // Reset lastIndex for global patterns
     pattern.lastIndex = 0;
-    for (const match of content.matchAll(pattern)) {
+    for (const match of strippedContent.matchAll(pattern)) {
       versions.add(match[1]);
     }
   }

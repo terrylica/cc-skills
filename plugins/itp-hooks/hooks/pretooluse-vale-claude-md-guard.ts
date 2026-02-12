@@ -31,7 +31,7 @@ const HOME = process.env.HOME || "";
 const VALE_INI = join(HOME, ".claude/.vale.ini");
 
 // Mode: "deny" = hard block, "ask" = permission dialog
-const MODE: "deny" | "ask" = "ask"; // Start with ask mode for safety
+const MODE: "deny" | "ask" = "deny"; // Hard block — Claude autonomously fixes terminology
 
 // Severity threshold: "error" = only errors, "warning" = warnings+errors
 const SEVERITY_THRESHOLD = "warning";
