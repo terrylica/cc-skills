@@ -10,19 +10,20 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### PreToolUse Hooks
 
-| Hook                                   | Matcher           | Purpose                                           |
-| -------------------------------------- | ----------------- | ------------------------------------------------- |
-| `pretooluse-guard.sh`                  | Write\|Edit       | Implementation standards enforcement              |
-| `pretooluse-fake-data-guard.mjs`       | Write             | Prevents fake/placeholder data in production code |
-| `pretooluse-version-guard.mjs`         | Write\|Edit       | Version consistency validation                    |
-| `pretooluse-process-storm-guard.mjs`   | Bash\|Write\|Edit | Prevents fork bomb patterns                       |
-| `pretooluse-cwd-deletion-guard.ts`     | Bash              | Prevents deleting the current working directory   |
-| `pretooluse-vale-claude-md-guard.ts`   | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations  |
-| `pretooluse-hoisted-deps-guard.mjs`    | Write\|Edit       | pyproject.toml root-only and path escape policies |
-| `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)  |
-| `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection) |
-| `pretooluse-file-size-guard.ts`        | Write\|Edit       | File size bloat prevention (per-extension limits) |
-| `sred-commit-guard.ts`                 | Bash              | SR&ED commit format enforcement                   |
+| Hook                                   | Matcher           | Purpose                                                                    |
+| -------------------------------------- | ----------------- | -------------------------------------------------------------------------- |
+| `pretooluse-guard.sh`                  | Write\|Edit       | Implementation standards enforcement                                       |
+| `pretooluse-fake-data-guard.mjs`       | Write             | Prevents fake/placeholder data in production code                          |
+| `pretooluse-version-guard.mjs`         | Write\|Edit       | Version consistency validation                                             |
+| `pretooluse-process-storm-guard.mjs`   | Bash\|Write\|Edit | Prevents fork bomb patterns                                                |
+| `pretooluse-cwd-deletion-guard.ts`     | Bash              | Prevents deleting the current working directory                            |
+| `pretooluse-vale-claude-md-guard.ts`   | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations                           |
+| `pretooluse-hoisted-deps-guard.mjs`    | Write\|Edit       | pyproject.toml root-only and path escape policies                          |
+| `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)                           |
+| `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection)                          |
+| `pretooluse-file-size-guard.ts`        | Write\|Edit       | File size bloat prevention (per-extension limits)                          |
+| `sred-commit-guard.ts`                 | Bash              | SR&ED commit format enforcement                                            |
+| `pretooluse-pueue-wrap-guard.ts`       | Bash              | Auto-wraps non-trivial commands with pueue (MUST be LAST PreToolUse entry) |
 
 ### PostToolUse Hooks
 

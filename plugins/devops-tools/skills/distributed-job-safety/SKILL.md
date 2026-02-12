@@ -101,6 +101,8 @@ pueue add -- env MY_APP_MIN_THRESHOLD=50 uv run python script.py
 pueue add -- uv run python script.py
 ```
 
+**Controlled exception**: `pueue env set <id> KEY VALUE` is acceptable for one-off overrides on stashed/queued tasks (e.g., hyperparameter sweeps). The key distinction: mise `[env]` is SSoT for **defaults** that apply to all runs; `pueue env set` is for **one-time parameterization** of a specific task without modifying the config file. See `devops-tools:pueue-job-orchestration` Per-Task Environment Override section.
+
 ### 6. Maximize Parallelism Within Safe Margins
 
 Always probe host resources and scale parallelism to use available capacity. Conservative defaults waste hours of idle compute.
@@ -324,17 +326,20 @@ ls -lh "$STATE_FILE"  # Should be <10MB for healthy operation
 
 **Root cause**: `ssh host "pueue add -- uv run python scripts/process.py"` queues the job with the SSH session's cwd (typically `$HOME`), not the project directory. The script path is relative, so pueue looks for `~/scripts/process.py` instead of `~/project/scripts/process.py`.
 
-**Fix**: Always `cd` to the project directory before `pueue add`:
+**Fix**: Use `-w` (preferred) or `cd &&` to set the working directory:
 
 ```bash
 # WRONG: pueue inherits SSH cwd ($HOME)
 ssh host "pueue add --group mygroup -- uv run python scripts/process.py"
 
-# RIGHT: cd first, then pueue add inherits project cwd
+# RIGHT (preferred): -w flag sets working directory explicitly
+ssh host "pueue add -w ~/project --group mygroup -- uv run python scripts/process.py"
+
+# RIGHT (alternative): cd first, then pueue add inherits project cwd
 ssh host "cd ~/project && pueue add --group mygroup -- uv run python scripts/process.py"
 ```
 
-**Why not `--working-directory`?** Pueue v4 doesn't have a `--working-directory` flag. The `cd && pueue add` pattern is the only way to set the job's working directory.
+**Note**: Pueue v4 **does** have `-w` / `--working-directory`. Use it as the primary approach. Fall back to `cd &&` for SSH-piped commands where `-w` path expansion may differ. On macOS, `-w /tmp` resolves to `/private/tmp` (symlink).
 
 **Test**: After queuing, verify the Path column in `pueue status` shows the project directory, not `$HOME`.
 

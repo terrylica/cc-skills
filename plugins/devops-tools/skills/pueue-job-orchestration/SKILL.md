@@ -1,12 +1,12 @@
 ---
 name: pueue-job-orchestration
-description: Pueue job queue for long-running tasks on remote GPU workstations. TRIGGERS - run on bigblack, run on littleblack, queue job, long-running task, cache population, batch processing, GPU workstation.
+description: Pueue universal CLI telemetry and job orchestration. TRIGGERS - run on bigblack, run on littleblack, queue job, long-running task, cache population, batch processing, GPU workstation, pueue callback, pueue delay, pueue priority.
 allowed-tools: Read, Bash, Write
 ---
 
 # Pueue Job Orchestration
 
-> Manage long-running tasks on BigBlack/LittleBlack GPU workstations using Pueue job queue.
+> Universal CLI telemetry layer and job management — every command routed through pueue gets precise timing, exit code capture, full stdout/stderr logs, environment snapshots, and callback-on-completion.
 
 ## Overview
 
@@ -16,6 +16,18 @@ allowed-tools: Read, Bash, Write
 - **Disk-backed queue** - Auto-resumes after any failure
 - **Group-based parallelism** - Control concurrent jobs per group
 - **Easy failure recovery** - Restart failed jobs with one command
+- **Full telemetry** - Timing, exit codes, stdout/stderr logs, env snapshots per task
+
+## When to Route Through Pueue
+
+| Operation                             | Route Through Pueue? | Why                                    |
+| ------------------------------------- | -------------------- | -------------------------------------- |
+| Any command >30 seconds               | **Always**           | Telemetry, persistence, log capture    |
+| Batch operations (>3 items)           | **Always**           | Parallelism control, failure isolation |
+| Build/test pipelines                  | **Recommended**      | `--after` DAGs, group monitoring       |
+| Data processing                       | **Always**           | Checkpoint resume, state management    |
+| Quick one-off commands (<5s)          | Optional             | Overhead is ~100ms, but you get logs   |
+| Interactive commands (editors, REPLs) | **Never**            | Pueue can't handle stdin interaction   |
 
 ## When to Use This Skill
 
@@ -28,6 +40,7 @@ Use this skill when the user mentions:
 | Batch/parallel operations             | "Process these 70 jobs"                    |
 | SSH remote execution                  | "Execute this overnight on the GPU server" |
 | Cache population                      | "Fill the ClickHouse cache"                |
+| Pueue features                        | "Set up a callback", "delay this job"      |
 
 ## Quick Reference
 
@@ -44,14 +57,17 @@ ssh bigblack "~/.local/bin/pueue status"
 ### Queue a Job
 
 ```bash
-# Local
+# Local (with working directory)
+pueue add -w ~/project -- python long_running_script.py
+
+# Local (simple)
 pueue add -- python long_running_script.py
 
 # Remote (BigBlack)
-ssh bigblack "~/.local/bin/pueue add -- cd ~/project && uv run python script.py"
+ssh bigblack "~/.local/bin/pueue add -w ~/project -- uv run python script.py"
 
 # With group (for parallelism control)
-pueue add --group p1 --label "BTCUSDT@1000" -- python populate.py --symbol BTCUSDT
+pueue add --group p1 --label "BTCUSDT@1000" -w ~/project -- python populate.py --symbol BTCUSDT
 ```
 
 ### Monitor Jobs
@@ -212,13 +228,13 @@ The rangebar-py project has Pueue integration scripts:
 
 ## Troubleshooting
 
-| Issue                      | Cause                    | Solution                                                          |
-| -------------------------- | ------------------------ | ----------------------------------------------------------------- |
-| `pueue: command not found` | Not in PATH              | Use full path: `~/.local/bin/pueue`                               |
-| `Connection refused`       | Daemon not running       | Start with `pueued -d`                                            |
-| Jobs stuck in Queued       | Group paused or at limit | Check `pueue status`, `pueue start`                               |
-| SSH disconnect kills jobs  | Not using Pueue          | Queue via Pueue instead of direct SSH                             |
-| Job fails immediately      | Wrong working directory  | Use `cd /path && pueue add` (see AP-11 in distributed-job-safety) |
+| Issue                      | Cause                    | Solution                                            |
+| -------------------------- | ------------------------ | --------------------------------------------------- |
+| `pueue: command not found` | Not in PATH              | Use full path: `~/.local/bin/pueue`                 |
+| `Connection refused`       | Daemon not running       | Start with `pueued -d`                              |
+| Jobs stuck in Queued       | Group paused or at limit | Check `pueue status`, `pueue start`                 |
+| SSH disconnect kills jobs  | Not using Pueue          | Queue via Pueue instead of direct SSH               |
+| Job fails immediately      | Wrong working directory  | Use `pueue add -w /path` or `cd /path && pueue add` |
 
 ## Production Lessons (Issue #88)
 
@@ -407,7 +423,7 @@ pueue add --after "${ALL_JOB_IDS[@]}" \
 
 **Critical rules:**
 
-1. **Working directory**: Always `cd ~/project &&` before `pueue add` — SSH cwd defaults to `$HOME`, not the project directory. Jobs fail instantly with `No such file or directory` if this is missed.
+1. **Working directory**: Use `pueue add -w ~/project` (preferred) or `cd ~/project && pueue add` — SSH cwd defaults to `$HOME`, not the project directory. Jobs fail instantly with `No such file or directory` if this is missed. Note: on macOS, `-w /tmp` resolves to `/private/tmp` (symlink).
 2. First year uses domain-specific effective start date, not `01-01`
 3. Last year uses actual latest available date as end
 4. Chain `OPTIMIZE TABLE FINAL` after ALL year-jobs via `--after`
@@ -786,6 +802,244 @@ clickhouse-client --query "SELECT count() FROM system.query_log
     WHERE event_time > now() - INTERVAL 5 MINUTE
     AND type = 'ExceptionWhileProcessing'"  # Errors = 0?
 ```
+
+---
+
+## Callback Hooks (Completion Notifications)
+
+Pueue fires a callback command on **every** task completion. Configure in `pueue.yml`:
+
+```yaml
+daemon:
+  callback: 'curl -s -X POST https://hooks.example.com/pueue -d ''{"id":{{id}},"result":"{{result}}","exit_code":{{exit_code}},"command":"{{command}}"}'''
+  callback_log_lines: 10 # Lines of stdout/stderr available in {{output}}
+```
+
+### Template Variables (14 total, Handlebars syntax)
+
+| Variable            | Type   | Description                                              |
+| ------------------- | ------ | -------------------------------------------------------- |
+| `{{id}}`            | int    | Task ID                                                  |
+| `{{command}}`       | string | The command that was run                                 |
+| `{{path}}`          | string | Working directory                                        |
+| `{{group}}`         | string | Group name                                               |
+| `{{result}}`        | string | `Success`, `Failed`, `Killed`, `DependencyFailed`        |
+| `{{exit_code}}`     | string | `0` on success, error code on failure, `None` otherwise  |
+| `{{start}}`         | string | Unix timestamp of start time                             |
+| `{{end}}`           | string | Unix timestamp of end time                               |
+| `{{output}}`        | string | Last N lines of stdout/stderr (see `callback_log_lines`) |
+| `{{output_path}}`   | string | Full path to log file on disk                            |
+| `{{queued_count}}`  | string | Remaining queued tasks in this group                     |
+| `{{stashed_count}}` | string | Remaining stashed tasks in this group                    |
+
+### Production Examples
+
+```bash
+# File-based sentinel (for script polling)
+callback: "echo '{{id}}:{{result}}:{{exit_code}}' >> /tmp/pueue-completions.log"
+
+# Telegram notification
+callback: "curl -s 'https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=Job%20{{id}}%20{{result}}%20(exit%20{{exit_code}})'"
+
+# Conditional alert (only on failure)
+callback: "/bin/bash -c 'if [ \"{{result}}\" != \"Success\" ]; then echo \"FAILED: {{command}}\" | mail -s \"Pueue Alert\" user@example.com; fi'"
+```
+
+### Config File Location (Platform Difference)
+
+| Platform  | Config Path                                     |
+| --------- | ----------------------------------------------- |
+| **macOS** | `~/Library/Application Support/pueue/pueue.yml` |
+| **Linux** | `~/.config/pueue/pueue.yml`                     |
+
+See [Pueue Config Reference](./references/pueue-config-reference.md) for all settings.
+
+---
+
+## Delayed Scheduling (`--delay`)
+
+Queue a job that starts after a specified delay:
+
+```bash
+# Relative time
+pueue add --delay 3h -- python heavy_computation.py
+
+# Natural language
+pueue add --delay "next wednesday 5pm" -- python weekly_report.py
+
+# RFC 3339
+pueue add --delay "2026-03-01T02:00:00" -- python overnight_batch.py
+```
+
+### Stashed + Delay Combo
+
+Create stashed jobs that auto-enqueue at a future time:
+
+```bash
+# Stash now, auto-enqueue in 2 hours
+pueue add --stashed --delay 2h -- python populate_cache.py
+```
+
+### Patterns
+
+| Pattern                              | Command                                                |
+| ------------------------------------ | ------------------------------------------------------ |
+| Off-peak batch scheduling            | `pueue add --delay "2am" -- python heavy_etl.py`       |
+| Staggered thundering-herd prevention | `pueue add --delay "${i}s" -- curl api/endpoint`       |
+| Weekend-only processing              | `pueue add --delay "next saturday" -- python batch.py` |
+
+---
+
+## Priority Scheduling (`--priority`)
+
+Higher priority number = runs first when a queue slot opens:
+
+```bash
+# Urgent validation (runs before queued lower-priority jobs)
+pueue add --priority 10 -- python validate_critical.py
+
+# Normal compute (default priority is 0)
+pueue add -- python train_model.py
+
+# Low-priority background task
+pueue add --priority -5 -- python cleanup_logs.py
+```
+
+Priority only affects **queued** jobs waiting for an open slot. Running jobs are not preempted.
+
+---
+
+## Per-Task Environment Override (`pueue env`)
+
+Inject or override environment variables on **stashed or queued** tasks:
+
+```bash
+# Create a stashed job
+JOB_ID=$(pueue add --stashed --print-task-id -- python train.py)
+
+# Set environment variables (NOTE: separate args, NOT KEY=VALUE)
+pueue env set "$JOB_ID" BATCH_SIZE 64
+pueue env set "$JOB_ID" LEARNING_RATE 0.001
+
+# Enqueue when ready
+pueue enqueue "$JOB_ID"
+```
+
+**Syntax**: `pueue env set <id> KEY VALUE` — the key and value are separate positional arguments.
+
+**Constraint**: Only works on stashed/queued tasks. Cannot modify environment of running tasks.
+
+**Relationship to mise.toml `[env]`**: mise `[env]` remains the SSoT for default environment. Use `pueue env set` only for one-off overrides (e.g., hyperparameter sweeps) without modifying config files.
+
+---
+
+## Blocking Wait (`pueue wait`)
+
+Block until tasks complete — simpler than polling loops for scripts:
+
+```bash
+# Wait for specific task
+pueue wait 42
+
+# Wait for all tasks in a group
+pueue wait --group mygroup
+
+# Wait for ALL tasks across all groups
+pueue wait --all
+
+# Wait quietly (no progress output)
+pueue wait 42 --quiet
+
+# Wait for tasks to reach a specific status
+pueue wait --status queued
+```
+
+### Script Integration Pattern
+
+```bash
+# Queue → wait → process results
+TASK_ID=$(pueue add --print-task-id -- python etl_pipeline.py)
+pueue wait "$TASK_ID" --quiet
+EXIT_CODE=$(pueue status --json | jq -r ".tasks[\"$TASK_ID\"].status.Done.result" 2>/dev/null)
+if [ "$EXIT_CODE" = "Success" ]; then
+    echo "Pipeline succeeded"
+    pueue log "$TASK_ID" --full
+else
+    echo "Pipeline failed"
+    pueue log "$TASK_ID" --full >&2
+fi
+```
+
+---
+
+## Compressed State File
+
+Reduce I/O for state persistence with zstd compression:
+
+```yaml
+# In pueue.yml
+daemon:
+  compress_state_file: true
+```
+
+**Compression ratio**: ~10:1 (from pueue source code).
+
+**When to enable**:
+
+- I/O-constrained hosts (spinning disks, NFS mounts)
+- Large task histories (hundreds of completed tasks)
+- Defense-in-depth alongside periodic `pueue clean`
+
+**Note**: Compression helps I/O performance. `pueue clean` reduces data volume. They are complementary, not alternatives.
+
+---
+
+## macOS Auto-Start (launchd)
+
+Auto-start the pueue daemon on login. Create the plist at `~/Library/LaunchAgents/com.nukesor.pueued.plist`:
+
+```bash
+# Generate the launchd plist (standard Apple plist format)  # SSoT-OK
+cat > ~/Library/LaunchAgents/com.nukesor.pueued.plist << 'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.nukesor.pueued</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/pueued</string>
+        <string>-v</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/pueued.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/pueued.stderr.log</string>
+</dict>
+</plist>
+PLIST
+```
+
+Then load the agent:
+
+```bash
+# Load (starts immediately + on login)
+launchctl load ~/Library/LaunchAgents/com.nukesor.pueued.plist
+
+# Unload
+launchctl unload ~/Library/LaunchAgents/com.nukesor.pueued.plist
+
+# Check status
+launchctl list | grep pueued
+```
+
+**Linux equivalent**: Use systemd — see `pueued --systemd` or create a user service in `~/.config/systemd/user/`.
 
 ---
 
