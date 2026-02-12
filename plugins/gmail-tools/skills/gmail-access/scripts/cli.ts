@@ -40,6 +40,7 @@ OPTIONS:
   -o, --output      Output file path (for export command)
   --json            Output as JSON
   --to              Recipient email (for draft command)
+  --from            Sender email alias (for draft command, auto-detected from original if replying)
   --subject         Email subject (for draft command)
   --body            Email body (for draft command)
   --reply-to        Message ID to reply to (for draft command)
@@ -80,6 +81,7 @@ async function main() {
       json: { type: "boolean", default: false },
       help: { type: "boolean", short: "h" },
       to: { type: "string" },
+      from: { type: "string" },
       subject: { type: "string" },
       body: { type: "string" },
       "reply-to": { type: "string" },
@@ -161,6 +163,7 @@ async function main() {
 
       case "draft": {
         const to = values.to;
+        const from = values.from;
         const subject = values.subject;
         const body = values.body;
         const replyTo = values["reply-to"];
@@ -172,6 +175,7 @@ async function main() {
 
         const result = await createDraft(client, {
           to,
+          from,
           subject,
           body,
           replyToMessageId: replyTo,
@@ -184,6 +188,9 @@ async function main() {
           console.log(`Draft ID: ${result.draftId}`);
           if (result.threadId) {
             console.log(`Thread ID: ${result.threadId}`);
+          }
+          if (result.fromAddress) {
+            console.log(`From: ${result.fromAddress}${result.fromAutoDetected ? " (auto-detected from original email)" : ""}`);
           }
           console.log(`\nOpen Gmail to review: https://mail.google.com/mail/u/0/#drafts`);
         }
