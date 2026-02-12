@@ -183,13 +183,18 @@ function createRawEmail(
   to: string,
   subject: string,
   body: string,
-  inReplyTo?: string
+  inReplyTo?: string,
+  from?: string
 ): string {
-  const headers = [
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    "Content-Type: text/plain; charset=utf-8",
-  ];
+  const headers: string[] = [];
+
+  if (from) {
+    headers.push(`From: ${from}`);
+  }
+
+  headers.push(`To: ${to}`);
+  headers.push(`Subject: ${subject}`);
+  headers.push("Content-Type: text/plain; charset=utf-8");
 
   if (inReplyTo) {
     headers.push(`In-Reply-To: ${inReplyTo}`);
@@ -205,16 +210,24 @@ export interface DraftOptions {
   subject: string;
   body: string;
   replyToMessageId?: string;
+  from?: string;
 }
 
 export interface DraftResult {
   draftId: string;
   messageId: string;
   threadId?: string;
+  fromAddress?: string;
+  fromAutoDetected?: boolean;
 }
 
 /**
  * Create a Gmail draft
+ *
+ * When replying (replyToMessageId set) and no explicit `from` is provided,
+ * auto-detects the correct sender by reading the original email's To/Cc/Delivered-To
+ * headers. This ensures replies use the same alias the original was addressed to,
+ * which is critical for accounts with multiple Send As addresses configured.
  */
 export async function createDraft(
   client: gmail_v1.Gmail,
@@ -222,23 +235,57 @@ export async function createDraft(
 ): Promise<DraftResult> {
   let threadId: string | undefined;
   let inReplyTo: string | undefined;
+  let detectedFrom: string | undefined;
 
-  // If replying, get the original message's thread and Message-ID header
+  // If replying, get the original message's thread, Message-ID, and recipient headers
   if (options.replyToMessageId) {
     const original = await client.users.messages.get({
       userId: "me",
       id: options.replyToMessageId,
       format: "metadata",
-      metadataHeaders: ["Message-ID"],
+      metadataHeaders: ["Message-ID", "To", "Cc", "Delivered-To"],
     });
     threadId = original.data.threadId ?? undefined;
     const msgIdHeader = original.data.payload?.headers?.find(
       (h) => h.name === "Message-ID"
     );
     inReplyTo = msgIdHeader?.value ?? undefined;
+
+    // Auto-detect sender: find which of our aliases the original was sent to
+    if (!options.from) {
+      // Get user's configured Send As aliases
+      const profile = await client.users.getProfile({ userId: "me" });
+      const primaryEmail = profile.data.emailAddress;
+
+      let sendAsAddresses: string[] = [];
+      try {
+        const sendAs = await client.users.settings.sendAs.list({ userId: "me" });
+        sendAsAddresses = (sendAs.data.sendAs ?? [])
+          .map((s) => s.sendAsEmail?.toLowerCase())
+          .filter((e): e is string => !!e);
+      } catch {
+        // Fallback: just use primary email if sendAs API not available
+        if (primaryEmail) sendAsAddresses = [primaryEmail.toLowerCase()];
+      }
+
+      // Check To, Cc, Delivered-To headers for a matching alias
+      const toHeader = original.data.payload?.headers?.find((h) => h.name === "To")?.value ?? "";
+      const ccHeader = original.data.payload?.headers?.find((h) => h.name === "Cc")?.value ?? "";
+      const deliveredTo = original.data.payload?.headers?.find((h) => h.name === "Delivered-To")?.value ?? "";
+
+      const allRecipients = `${toHeader}, ${ccHeader}, ${deliveredTo}`.toLowerCase();
+
+      for (const alias of sendAsAddresses) {
+        if (allRecipients.includes(alias)) {
+          detectedFrom = alias;
+          break;
+        }
+      }
+    }
   }
 
-  const raw = createRawEmail(options.to, options.subject, options.body, inReplyTo);
+  const fromAddress = options.from ?? detectedFrom;
+  const raw = createRawEmail(options.to, options.subject, options.body, inReplyTo, fromAddress);
 
   const res = await client.users.drafts.create({
     userId: "me",
@@ -254,5 +301,7 @@ export async function createDraft(
     draftId: res.data.id!,
     messageId: res.data.message?.id!,
     threadId: res.data.message?.threadId ?? undefined,
+    fromAddress: fromAddress,
+    fromAutoDetected: !options.from && !!detectedFrom,
   };
 }

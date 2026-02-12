@@ -234,24 +234,92 @@ The `draft` command creates emails in your Gmail Drafts folder for review before
 
 **Optional:**
 
+- `--from` - Sender email alias (auto-detected when replying, see Sender Alignment below)
 - `--reply-to` - Message ID to reply to (creates threaded reply with proper headers)
 - `--json` - Output draft details as JSON
 
-**Example: Create reply drafts from conversation:**
+### MANDATORY Sender Alignment (NON-NEGOTIABLE)
+
+The user has multiple Send As aliases configured in Gmail. The From address MUST match correctly or the recipient sees a reply from the wrong identity.
+
+**Rule 1 - Replies (--reply-to is set):**
+The CLI auto-detects the correct sender by reading the original email's To/Cc/Delivered-To headers and matching against the user's Send As aliases. No manual intervention needed. The CLI will print:
+
+```
+From: amonic@gmail.com (auto-detected from original email)
+```
+
+If auto-detection fails (e.g., the email was BCC'd), explicitly pass `--from`.
+
+**Rule 2 - New emails (no --reply-to):**
+When drafting a brand new email (not a reply), you MUST use AskUserQuestion to confirm which sender alias to use BEFORE creating the draft. Never assume the default.
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "Which email address should this be sent from?",
+    header: "Send As",
+    options: [
+      // Populate from known aliases or let user specify
+      { label: "amonic@gmail.com", description: "Personal Gmail" },
+      { label: "terry@eonlabs.com", description: "Work email" },
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+Then pass the selected address via `--from`:
+
+```bash
+$GMAIL_CLI draft --to "recipient@example.com" --from "amonic@gmail.com" --subject "Hello" --body "Message"
+```
+
+**Rule 3 - Always verify in output:**
+After draft creation, confirm the From address is shown in the output. If it's missing or wrong, delete the draft and recreate.
+
+### MANDATORY Post-Draft Step (NON-NEGOTIABLE)
+
+After EVERY draft creation, you MUST present the user with a direct Gmail link to review the draft. This is critical because drafts should always be visually confirmed before sending.
+
+**Always output this after creating a draft:**
+
+```
+Draft created! Review it here:
+  https://mail.google.com/mail/u/0/#drafts
+From: <sender_address>
+```
+
+**Never skip this step.** The user must be able to click through to Gmail and visually verify the draft content, sender, recipients, and threading before sending.
+
+### Example: Reply to an email (auto-detected sender)
 
 ```bash
 # 1. Find the message to reply to
 $GMAIL_CLI search "from:someone@example.com subject:meeting" -n 5 --json
 
-# 2. Create draft reply using message ID
+# 2. Create draft reply - From is auto-detected from original email's To header
 $GMAIL_CLI draft \
   --to "someone@example.com" \
   --subject "Re: Meeting tomorrow" \
   --body "Thanks for the update. I'll be there at 2pm." \
   --reply-to "19c1e6a97124aed8"
 
-# 3. Review drafts in Gmail
-# Open: https://mail.google.com/mail/u/0/#drafts
+# 3. ALWAYS present the review link + From address to user
+```
+
+### Example: New email (must ask user for sender)
+
+```bash
+# 1. Ask user which alias to send from (AskUserQuestion)
+# 2. Create draft with explicit --from
+$GMAIL_CLI draft \
+  --to "someone@example.com" \
+  --from "amonic@gmail.com" \
+  --subject "Hello" \
+  --body "Message body"
+
+# 3. ALWAYS present the review link + From address to user
 ```
 
 **Note:** After creating drafts, users need to re-authenticate if they previously only had read access. The CLI will prompt for OAuth consent to add the `gmail.compose` scope.
