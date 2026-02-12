@@ -182,6 +182,8 @@ count UInt64 CODEC(T64, ZSTD)
 
 **CTE Range Joins**: The v24.4+ improvement does NOT apply to range joins on CTEs (e.g., `FROM cte_a JOIN cte_b ON b.rn BETWEEN a.rn + 1 AND a.rn + 101`). ClickHouse cannot index into CTEs — these remain O(N×M) nested loop scans. For forward-looking array collection patterns, use window functions (`groupArray() OVER (ROWS BETWEEN ...)`) instead of self-joins. See rangebar-patterns AP-14 for benchmarks showing 11x speedup.
 
+**Signal Timing**: When using `lagInFrame()` for pattern detection in CTE-based signal pipelines, verify that lag offsets match the intended bar. Off-by-one errors cause SQL signals to fire 1 bar late relative to event-driven backtesting engines. See rangebar-patterns AP-15 (Signal Timing Off-by-One) for the `lagInFrame` offset correction rules.
+
 **Better Alternative**: Dictionaries for dimension lookups.
 
 ```sql
