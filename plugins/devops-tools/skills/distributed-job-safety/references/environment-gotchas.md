@@ -254,6 +254,52 @@ ssh host "cd ~/project && pueue add -- uv run python scripts/process.py"
 
 ---
 
+## G-13: SIGPIPE (Exit 141) Under set -euo pipefail
+
+**Symptom**: Bash script exits with code 141 on `ls | head`, `cat | head`, or similar pipe-to-head patterns.
+
+**Root cause**: Under `set -o pipefail`, when `head` closes its stdin after reading N lines, the upstream command receives SIGPIPE (signal 13). Exit code = 128 + 13 = 141.
+
+**Fix**: Avoid piping to `head`/`tail -n` in strict-mode scripts. Write to temp file first:
+
+```bash
+# WRONG (exit 141 under set -euo pipefail)
+ls /tmp/gen600_sql/2down/*.sql | head -10
+
+# RIGHT
+find /tmp/gen600_sql/2down/ -name '*.sql' -print0 | head -z -n 10
+
+# RIGHT (temp file approach)
+ls /tmp/gen600_sql/2down/*.sql > /tmp/filelist.txt
+head -10 /tmp/filelist.txt
+```
+
+---
+
+## G-14: Pipe Subshell Data Loss in While Loops
+
+**Symptom**: `while read ... done > $TMPOUT` produces empty or truncated output when the input comes from a pipe.
+
+**Root cause**: `echo "$OUTPUT" | while read ...; do ...; done > file` runs the while loop in a **subshell** (because it's the right side of a pipe). Variables set inside the loop are lost when the subshell exits. More critically, output redirection may not flush correctly under concurrent execution.
+
+**Fix**: Use process substitution to keep the while loop in the main shell:
+
+```bash
+# WRONG (subshell, data loss risk)
+echo "$OUTPUT" | while IFS=$'\t' read -r col1 col2 col3; do
+    echo "processed: $col1"
+done > "$TMPOUT"
+
+# RIGHT (process substitution, main shell)
+while IFS=$'\t' read -r col1 col2 col3; do
+    echo "processed: $col1"
+done < <(echo "$OUTPUT" | tail -n +2) > "$TMPOUT"
+```
+
+**Affected**: Any bash script that parses multi-line command output (ClickHouse TSV, CSV, etc.) into a while-read loop.
+
+---
+
 ## Quick Reference Table
 
 | Gotcha | Symptom                 | One-Line Fix                                  |
@@ -270,3 +316,5 @@ ssh host "cd ~/project && pueue add -- uv run python scripts/process.py"
 | G-10   | MemoryMax not enforced  | Add `-p MemorySwapMax=0` to systemd-run       |
 | G-11   | rustc not in PATH       | `PATH="$HOME/.cargo/bin:$PATH"` before uv run |
 | G-12   | Script not found        | `cd ~/project &&` before `pueue add`          |
+| G-13   | Exit 141 on pipe+head   | Write to temp file, then `head` on file       |
+| G-14   | While-read output empty | Process substitution: `< <(echo "$OUT")`      |

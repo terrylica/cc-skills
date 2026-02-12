@@ -74,11 +74,11 @@ pueue reset               # Clear all jobs (use with caution)
 
 ## Host Configuration
 
-| Host          | Location                  | Parallelism Groups             |
-| ------------- | ------------------------- | ------------------------------ |
-| BigBlack      | `~/.local/bin/pueue`      | p1 (4), p2 (2), p3 (3), p4 (1) |
-| LittleBlack   | `~/.local/bin/pueue`      | default (2)                    |
-| Local (macOS) | `/opt/homebrew/bin/pueue` | default                        |
+| Host          | Location                  | Parallelism Groups              |
+| ------------- | ------------------------- | ------------------------------- |
+| BigBlack      | `~/.local/bin/pueue`      | p1 (16), p2 (2), p3 (3), p4 (1) |
+| LittleBlack   | `~/.local/bin/pueue`      | default (2)                     |
+| Local (macOS) | `/opt/homebrew/bin/pueue` | default                         |
 
 ## Workflows
 
@@ -239,9 +239,8 @@ Pueue supports automatic job dependency resolution via `--after`. This is critic
 # Capture job IDs during batch submission
 JOB_IDS=()
 for symbol in BTCUSDT ETHUSDT; do
-    job_id=$(pueue add --print-task-id --group mygroup \
+    job_id=$(cd /path/to/project && pueue add --print-task-id --group mygroup \
         --label "${symbol}@250" \
-        --working-directory /path/to/project \
         -- uv run python scripts/process.py --symbol "$symbol")
     JOB_IDS+=("$job_id")
 done
@@ -632,6 +631,94 @@ done > /tmp/commands.txt
 ```
 
 **Requirements**: bash 4+ for associative arrays (`declare -A`).
+
+---
+
+## Two-Tier Architecture (300K+ Jobs)
+
+For sweeps exceeding 10K queries, the single-tier "pueue add per query" pattern is unusable — `pueue add` has 148ms overhead per call even with clean state (= 8+ hours for 196K jobs). The fix is eliminating `pueue add` at the query level entirely.
+
+### Architecture
+
+```
+macOS (local)
+  mise run gen:generate   → N SQL files
+  mise run gen:submit-all → rsync + queue M pueue units
+  mise run gen:collect    → scp + validate JSONL
+
+BigBlack (remote)
+  pueue group p1 (parallel=1)   ← sequential units (avoid log contention)
+    ├── Unit 1: submit_unit.sh pattern1 BTCUSDT 750
+    │     └── xargs -P16 → K queries (direct clickhouse-client, no pueue add)
+    ├── Unit 2: submit_unit.sh pattern1 BTCUSDT 1000
+    │     └── xargs -P16 → K queries
+    └── ... (M total units)
+```
+
+### Key Principles
+
+| Principle                                      | Rationale                                                                      |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| Pueue at **unit** level (100s of tasks)        | Crash recovery per unit, `pueue status` readable                               |
+| xargs -P16 at **query** level (1000s per unit) | Zero overhead, direct process execution                                        |
+| Sequential units (`parallel=1`)                | Each unit appends to one JSONL file via `flock` — parallel units would contend |
+| Skip-done dedup inside each unit               | `comm -23` on sorted config lists (O(N+M))                                     |
+
+### When to Use Each Tier
+
+| Job Count | Pattern                                                              |
+| --------- | -------------------------------------------------------------------- |
+| 1-10      | Direct `pueue add` per job                                           |
+| 10-1K     | Batch `pueue add` via xargs -P (see "Bulk Submission" section above) |
+| 1K-10K    | Batch `pueue add` with periodic `pueue clean` between batches        |
+| **10K+**  | **Two-tier: pueue per unit + xargs -P per query (this section)**     |
+
+### Shell Script Safety (set -euo pipefail)
+
+| Trap                    | Symptom                                                                | Fix                                                           |
+| ----------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------- |
+| SIGPIPE (exit 141)      | `ls path/*.sql \| head -10` — `head` closes pipe early                 | Write to temp file first, or use `find -print0 \| head -z`    |
+| Pipe subshell data loss | `echo "$OUT" \| while read ...; done > file` — writes lost in subshell | Process substitution: `while read ...; done < <(echo "$OUT")` |
+| eval injection          | `eval "val=\$$var"` with untrusted input                               | Use `case` statement or parameter expansion instead           |
+
+### Skipped Config NDJSON Pattern
+
+Configs with 0 signals after feature filtering produce **1 JSONL line** (skipped entry), not N barrier lines. This is correct behavior, not data loss.
+
+When validating line counts:
+
+```
+expected_lines = (N_normal × barriers_per_query) + (N_skipped × 1) + (N_error × 1)
+```
+
+Example: 95 normal configs × 3 barriers + 5 skipped × 1 = 290 lines (not 300).
+
+### comm -23 for Large Skip-Done Sets (100K+)
+
+For done-sets exceeding 10K entries, `comm -23` (sorted set difference) is O(N+M) vs grep-per-file O(N×M):
+
+```bash
+# Build sorted done-set from JSONL
+python3 -c "
+import json
+seen = set()
+for line in open('\${LOG_FILE}'):
+    try:
+        d = json.loads(line)
+        fc = d.get('feature_config','')
+        if fc: seen.add(fc)
+    except: pass
+for s in sorted(seen): print(s)
+" > /tmp/done.txt
+
+# Build sorted all-configs, compute set difference
+ls \${DIR}/*.sql | xargs -n1 basename | sed 's/\.sql$//' | sort > /tmp/all.txt
+comm -23 /tmp/all.txt /tmp/done.txt > /tmp/todo.txt
+
+# Submit remaining via xargs
+cat /tmp/todo.txt | while read C; do echo "\${DIR}/\${C}.sql"; done | \
+    xargs -P16 -I{} bash /tmp/wrapper.sh {} \${LOG} \${SYM} \${THR} \${GIT}
+```
 
 ---
 
