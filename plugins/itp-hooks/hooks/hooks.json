@@ -1,5 +1,5 @@
 {
-  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, code correctness, SR&ED commit validation, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync",
+  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, code correctness, SR&ED commit validation, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync, file size bloat prevention",
   "hooks": {
     "PreToolUse": [
       {
@@ -98,6 +98,16 @@
           {
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pyi-stub-guard.ts",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-file-size-guard.ts",
             "timeout": 5000
           }
         ]

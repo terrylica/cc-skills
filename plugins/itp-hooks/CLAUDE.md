@@ -21,6 +21,7 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 | `pretooluse-hoisted-deps-guard.mjs`    | Write\|Edit       | pyproject.toml root-only and path escape policies |
 | `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)  |
 | `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection) |
+| `pretooluse-file-size-guard.ts`        | Write\|Edit       | File size bloat prevention (per-extension limits) |
 | `sred-commit-guard.ts`                 | Bash              | SR&ED commit format enforcement                   |
 
 ### PostToolUse Hooks
@@ -187,6 +188,51 @@ Add `# CWD-DELETE-OK` comment to bypass:
 ```bash
 rm -rf ~/fork-tools/repo  # CWD-DELETE-OK
 ```
+
+## File Size Bloat Guard
+
+The `pretooluse-file-size-guard.ts` hook prevents single-file bloat by checking line count before Write/Edit operations. Uses `ask` mode (confirmation dialog) so the user can override when intentional.
+
+### Detection
+
+| Tool  | Method                                                                  |
+| ----- | ----------------------------------------------------------------------- |
+| Write | Counts lines in proposed `content`                                      |
+| Edit  | Reads existing file, applies `old_string` → `new_string`, counts result |
+
+### Default Thresholds
+
+| Extension                  | Warn | Block |
+| -------------------------- | ---- | ----- |
+| `.rs`, `.py`, `.ts`, `.go` | 500  | 1000  |
+| `.md`                      | 800  | 1500  |
+| `.toml`                    | 200  | 500   |
+| `.json`                    | 1000 | 3000  |
+| Other                      | 500  | 1000  |
+
+### Exclusions
+
+Lock files (`*.lock`, `package-lock.json`, `Cargo.lock`, `uv.lock`), generated files (`*.generated.*`, `*.min.js`, `*.min.css`).
+
+### Escape Hatch
+
+Add `# FILE-SIZE-OK` comment anywhere in the file to suppress the warning.
+
+### Configuration
+
+Create `.claude/file-size-guard.json` (project-level) or `~/.claude/file-size-guard.json` (global):
+
+```json
+{
+  "defaults": { "warn": 600, "block": 1200 },
+  "extensions": { ".rs": { "warn": 400, "block": 800 } },
+  "excludes": ["my-generated-file.ts"]
+}
+```
+
+### Plan Mode
+
+Automatically skipped when Claude is in planning phase.
 
 ## Language Policy
 
