@@ -1,3 +1,49 @@
+# [11.28.0](https://github.com/terrylica/cc-skills/compare/v11.27.0...v11.28.0) (2026-02-12)
+
+
+### Features
+
+* **devops-tools,itp-hooks:** pueue universal CLI telemetry layer + auto-wrap hook ([ea2df82](https://github.com/terrylica/cc-skills/commit/ea2df82c69fdbfb5497e93ababb54d1a458a4da6))
+* **itp-hooks:** add posttooluse-readme-pypi-links hook ([1656783](https://github.com/terrylica/cc-skills/commit/165678315da5147afe0c39af95e2ffcb1b387180))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/SKILL.md) - updated (+8/-3)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+267/-13)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/pueue-job-orchestration</strong> (2 files)</summary>
+
+- [Claude Code + Pueue Integration Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/references/claude-code-integration.md) - new (+158)
+- [Pueue Configuration Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/references/pueue-config-reference.md) - new (+115)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+14/-13)
+
 # [11.27.0](https://github.com/terrylica/cc-skills/compare/v11.26.0...v11.27.0) (2026-02-12)
 
 
