@@ -1,3 +1,29 @@
+# [11.30.0](https://github.com/terrylica/cc-skills/compare/v11.29.1...v11.30.0) (2026-02-12)
+
+
+### Features
+
+* **gmail-tools:** add sender alignment with auto-detection for multi-alias accounts ([93b60f2](https://github.com/terrylica/cc-skills/commit/93b60f280c89bbd9de5ea445285f56ec5cc605cb))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-tools</strong> (1 change)</summary>
+
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-tools/skills/gmail-access/SKILL.md) - updated (+72/-4)
+
+</details>
+
 ## [11.29.1](https://github.com/terrylica/cc-skills/compare/v11.29.0...v11.29.1) (2026-02-12)
 
 
