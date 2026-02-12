@@ -111,6 +111,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -146,6 +156,16 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-terminology-sync.ts",
             "timeout": 8000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-readme-pypi-links.ts",
+            "timeout": 5000
           }
         ]
       }
