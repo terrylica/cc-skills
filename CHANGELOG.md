@@ -1,3 +1,36 @@
+## [11.25.1](https://github.com/terrylica/cc-skills/compare/v11.25.0...v11.25.1) (2026-02-12)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/SKILL.md) - updated (+66/-4)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+94/-7)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/distributed-job-safety</strong> (2 files)</summary>
+
+- [Concurrency Invariants](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/concurrency-invariants.md) - updated (+4)
+- [Environment Gotchas](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/environment-gotchas.md) - updated (+48)
+
+</details>
+
 # [11.25.0](https://github.com/terrylica/cc-skills/compare/v11.24.0...v11.25.0) (2026-02-11)
 
 
