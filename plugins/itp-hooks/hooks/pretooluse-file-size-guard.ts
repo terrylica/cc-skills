@@ -29,7 +29,7 @@ import { join } from "path";
 import {
   parseStdinOrAllow,
   allow,
-  ask,
+  deny,
   isPlanMode,
   createHookLogger,
 } from "./pretooluse-helpers.ts";
@@ -264,20 +264,11 @@ async function main(): Promise<void> {
       `Current: ${lineCount} lines | Warn: ${thresholds.warn} | Block: ${thresholds.block}`,
     ].join("\n");
 
-    return ask(reason);
+    return deny(reason);
   }
 
-  // Between warn and block — ask with softer language
-  const reason = [
-    `[FILE-SIZE-GUARD] ${fileName} is ${lineCount} lines (warn threshold: ${thresholds.warn} for ${ext || "default"})`,
-    "",
-    `This file is getting large. Consider whether it should be split.`,
-    `Add \`# ${config.escapeComment}\` comment to suppress this warning.`,
-    "",
-    `Current: ${lineCount} lines | Warn: ${thresholds.warn} | Block: ${thresholds.block}`,
-  ].join("\n");
-
-  return ask(reason);
+  // Between warn and block — allow through (PostToolUse reminder handles soft notification for code files)
+  return allow();
 }
 
 main().catch((err) => {

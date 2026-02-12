@@ -392,6 +392,45 @@ REFERENCE: https://docs.astral.sh/uv/concepts/projects/dependencies/`;
 }
 
 /**
+ * Check file size for code files (500-1000 lines = soft reminder).
+ * PreToolUse hard-blocks >1000 lines; this covers the warn tier.
+ * Only code files — markdown excluded (docs are naturally long).
+ */
+function checkFileSizeReminder(filePath: string): string | null {
+  const CODE_EXTENSIONS = new Set([
+    ".rs", ".py", ".ts", ".tsx", ".js", ".jsx",
+    ".go", ".java", ".c", ".cpp", ".h", ".hpp",
+    ".rb", ".swift", ".kt", ".sh", ".bash",
+    ".toml", ".yml", ".yaml", ".json",
+  ]);
+
+  const lastDot = filePath.lastIndexOf(".");
+  if (lastDot === -1) return null;
+  const ext = filePath.substring(lastDot);
+
+  // Only check code files, NOT markdown
+  if (!CODE_EXTENSIONS.has(ext)) return null;
+
+  // Only check files that exist
+  if (!existsSync(filePath)) return null;
+
+  const content = readFileSync(filePath, "utf-8");
+  const lineCount = content.split("\n").length;
+
+  const WARN = 500;
+  const BLOCK = 1000;
+
+  // Skip if under warn threshold or over block threshold (PreToolUse handles >1000)
+  if (lineCount < WARN || lineCount > BLOCK) return null;
+
+  // Skip if escape hatch present
+  if (content.includes("FILE-SIZE-OK")) return null;
+
+  const fileName = filePath.split("/").pop();
+  return `[FILE-SIZE-REMINDER] ${fileName} is ${lineCount} lines (warn: ${WARN}, block: ${BLOCK}). Consider splitting into smaller files. Add \`# FILE-SIZE-OK\` to suppress.`;
+}
+
+/**
  * Check implementation code for ruff issues and ADR/Issue traceability
  * ADR: 2025-12-11-ruff-posttooluse-linting
  */
@@ -561,6 +600,11 @@ async function main(): Promise<void> {
     // Check implementation code (uses raw path for file reading)
     if (!reminder) {
       reminder = checkImplementationCode(rawFilePath, content);
+    }
+
+    // Check file size for code files (500-1000 line soft reminder)
+    if (!reminder) {
+      reminder = checkFileSizeReminder(rawFilePath);
     }
 
     if (reminder) {
