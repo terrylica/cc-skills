@@ -18,7 +18,7 @@ Patterns and anti-patterns for concurrent job management with pueue + mise + sys
 
 ---
 
-## The Seven Invariants
+## The Eight Invariants
 
 Non-negotiable rules for concurrent job safety. Violating any one causes silent data corruption or job failure.
 
@@ -79,6 +79,16 @@ with os.fdopen(fd, "w") as f:
 os.replace(temp_path, path)  # POSIX atomic rename
 ```
 
+**Bash equivalent** (for NDJSON telemetry appends):
+
+```bash
+# Atomic multi-line append via flock + temp file
+TMPOUT=$(mktemp)
+# ... write lines to $TMPOUT ...
+flock "${LOG_FILE}.lock" bash -c "cat '${TMPOUT}' >> '${LOG_FILE}'"
+rm -f "$TMPOUT"
+```
+
 ### 5. Config File Is SSoT
 
 The `.mise.toml` `[env]` section is the single source of truth for environment defaults. Per-job `env` overrides bypass the SSoT and allow arbitrary values with no review gate.
@@ -126,6 +136,20 @@ systemd-run --user --scope -p MemoryMax=8G -p MemorySwapMax=0 \
 ```
 
 **Critical**: `MemorySwapMax=0` is mandatory. Without it, the process escapes into swap and the memory limit is effectively meaningless.
+
+### 8. Monitor by Stable Identifiers, Not Ephemeral IDs
+
+Pueue job IDs are ephemeral — they shift when jobs are removed, re-queued, or split. Use group names and label patterns for monitoring.
+
+```bash
+# WRONG: Hardcoded job IDs
+if pueue status --json | jq -e ".tasks.\"14\"" >/dev/null; then ...
+
+# RIGHT: Query by group/label
+pueue status --json | jq -r '.tasks | to_entries[] | select(.value.group == "mygroup") | .value.id'
+```
+
+Full specification: [references/concurrency-invariants.md](./references/concurrency-invariants.md#inv-8)
 
 ---
 
@@ -335,6 +359,35 @@ ssh host "xargs -P16 -I{} bash -c '{}' < /tmp/commands.txt"
 
 **Invariant**: Bulk submission should run ON the same host as pueue. The only SSH call should be to start the feeder process, not per-job.
 
+### AP-13: SIGPIPE Under set -euo pipefail
+
+**Symptom**: Script exits with code 141 (128 + SIGPIPE=13) on harmless pipe operations.
+
+**Root cause**: `ls *.sql | head -10` — `head` reads 10 lines then closes stdin. `ls` gets SIGPIPE writing to closed pipe. Under `set -o pipefail`, this propagates as exit 141.
+
+**Fix**: Avoid piping to `head` in strict-mode scripts:
+
+```bash
+# WRONG (exit 141)
+ls /tmp/sql/*.sql | head -10
+
+# RIGHT (temp file)
+ls /tmp/sql/*.sql > /tmp/filelist.txt
+head -10 /tmp/filelist.txt
+```
+
+### AP-14: False Data Loss From Variable-Width NDJSON Output
+
+**Symptom**: `wc -l` shows fewer lines than expected. Appears as 3-6% "data loss".
+
+**Root cause**: Configs with 0 signals after feature filtering produce 1 NDJSON line (skipped entry), not N barrier lines. Example: 95 normal × 3 + 5 skipped × 1 = 290 (not 300).
+
+**Fix**: Account for variable output width in line count validation:
+
+```
+expected = N_normal * barriers_per_query + N_skipped * 1 + N_error * 1
+```
+
 ---
 
 ## The Mise + Pueue + systemd-run Stack
@@ -343,7 +396,16 @@ ssh host "xargs -P16 -I{} bash -c '{}' < /tmp/commands.txt"
 mise (environment + task discovery)
   |-- .mise.toml [env] -> SSoT for defaults
   |-- .mise/tasks/jobs.toml -> task definitions
-  |     |-- mise run jobs:process-all
+  |     |-- mise run jobs:submit-all
+  |     |     |-- submit-all.sh (orchestrator)
+  |     |           |-- pueue add (per-unit, NOT per-query)
+  |     |                 |-- submit_unit.sh (per unit)
+  |     |                       |-- xargs -P16 (parallel queries)
+  |     |                             |-- wrapper.sh (per query)
+  |     |                                   |-- clickhouse-client < sql_file
+  |     |                                   |-- flock + append NDJSON
+  |     |
+  |     |-- mise run jobs:process-all (Python pipeline variant)
   |     |     |-- job-runner.sh (orchestrator)
   |     |           |-- pueue add (per-job)
   |     |                 |-- systemd-run --scope -p MemoryMax=XG -p MemorySwapMax=0
@@ -490,7 +552,7 @@ devops-tools:distributed-job-safety    (universal patterns - this skill)
 
 ## References
 
-- [Concurrency Invariants](./references/concurrency-invariants.md) -- Formal invariant specifications (INV-1 through INV-7)
+- [Concurrency Invariants](./references/concurrency-invariants.md) -- Formal invariant specifications (INV-1 through INV-8)
 - [Deployment Checklist](./references/deployment-checklist.md) -- Step-by-step remote deployment protocol
-- [Environment Gotchas](./references/environment-gotchas.md) -- Host-specific pitfalls (G-1 through G-11)
+- [Environment Gotchas](./references/environment-gotchas.md) -- Host-specific pitfalls (G-1 through G-14)
 - **Cross-reference**: `devops-tools:pueue-job-orchestration` -- Pueue basics, dependency chaining, installation
