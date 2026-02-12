@@ -1,3 +1,43 @@
+# [11.27.0](https://github.com/terrylica/cc-skills/compare/v11.26.0...v11.27.0) (2026-02-12)
+
+
+### Features
+
+* **itp-hooks:** add file-size bloat guard hook ([33e38b2](https://github.com/terrylica/cc-skills/commit/33e38b24835cd6a898b5b657edffb48aa8ab3b6b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+185/-89)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/clickhouse-architect</strong> (1 file)</summary>
+
+- [Anti-Patterns and Fixes](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/references/anti-patterns-and-fixes.md) - updated (+2)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+46)
+
 # [11.26.0](https://github.com/terrylica/cc-skills/compare/v11.25.1...v11.26.0) (2026-02-12)
 
 
