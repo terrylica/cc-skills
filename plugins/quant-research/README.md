@@ -1,7 +1,7 @@
 # quant-research
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-3-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Quantitative research skills for financial data analysis and ML model evaluation: SOTA metrics for range bars, Sharpe ratios, ML prediction quality, and WFO epoch selection.
@@ -12,6 +12,7 @@ Quantitative research skills for financial data analysis and ML model evaluation
 | ---------------------------------------------------------------- | --------------------------------------------------------------- |
 | [rangebar-eval-metrics](./skills/rangebar-eval-metrics/SKILL.md) | SOTA metrics for range bar evaluation: Sharpe, risk, ML quality |
 | [adaptive-wfo-epoch](./skills/adaptive-wfo-epoch/SKILL.md)       | Adaptive epoch selection for Walk-Forward Optimization (WFO)    |
+| [backtesting-py-oracle](./skills/backtesting-py-oracle/SKILL.md) | backtesting.py config for SQL oracle validation (hedging, NaN)  |
 
 ## Installation
 
@@ -28,6 +29,7 @@ Skills are model-invoked based on context.
 
 - "range bar metrics", "Sharpe ratio", "WFO metrics", "DSR", "PSR" → rangebar-eval-metrics
 - "WFO epoch", "epoch selection", "adaptive epochs", "WFE" → adaptive-wfo-epoch
+- "backtesting.py", "hedging", "exclusive_orders", "oracle validation", "SQL vs Python" → backtesting-py-oracle
 
 ## Features
 
@@ -49,6 +51,16 @@ Per-fold adaptive epoch selection using Walk-Forward Efficiency (WFE):
 - Computes WFE = OOS_Sharpe / IS_Sharpe for each epoch
 - Finds efficient frontier (max WFE vs training cost)
 - Carries forward priors between folds
+
+### backtesting-py-oracle
+
+Configuration and anti-patterns for SQL oracle validation:
+
+- **Multi-position mode**: `hedging=True, exclusive_orders=False` for overlapping trades
+- **Trade sort alignment**: Sort `stats._trades` by EntryTime (default is ExitTime)
+- **NaN poisoning prevention**: Skip NaN in rolling quantile windows
+- **5-gate oracle framework**: Signal count, timestamp, price, exit type, Kelly comparison
+- **Strategy templates**: Single-position vs multi-position with per-trade barrier tracking
 
 ## Use Cases
 
