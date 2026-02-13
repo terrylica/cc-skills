@@ -238,13 +238,6 @@ function checkPueueUsage(command: string): string | null {
     /for\s+\w+\s+in.*;\s*do/i, // Shell for loops
     /while.*;\s*do/i, // Shell while loops
 
-    // Multi-symbol/multi-threshold crypto operations
-    /(BTCUSDT|ETHUSDT|SOLUSDT|BNBUSDT).*--threshold/i,
-    /--symbol\s+\w+USDT.*--threshold/i,
-
-    // Long date ranges (multi-year)
-    /201[789]|202[0-6].*--end|--start.*201[789]/i,
-
     // SSH with long-running remote commands
     /ssh\s+\S+\s+["']?.*populate/i,
     /ssh\s+\S+\s+["']?.*--phase/i,

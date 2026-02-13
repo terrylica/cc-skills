@@ -51,13 +51,6 @@ const LONG_RUNNING_PATTERNS = [
   /for\s+\w+\s+in.*;\s*do/i,
   /while.*;\s*do/i,
 
-  // Multi-symbol/multi-threshold crypto operations
-  /(BTCUSDT|ETHUSDT|SOLUSDT|BNBUSDT).*--threshold/i,
-  /--symbol\s+\w+USDT.*--threshold/i,
-
-  // Long date ranges (multi-year)
-  /201[789]|202[0-6].*--end|--start.*201[789]/i,
-
   // SSH with long-running remote commands
   /ssh\s+\S+\s+["']?.*populate/i,
   /ssh\s+\S+\s+["']?.*--phase/i,
@@ -94,7 +87,8 @@ function buildWrappedCommand(command: string, cwd: string): string {
   const escapedCwd = cwd.replace(/'/g, "'\\''");
 
   return (
-    `TASK_ID=$(pueue add --print-task-id -w '${escapedCwd}' -- ${escapedCommand}) && ` +
+    `TASK_ID=$(pueue add --print-task-id -w '${escapedCwd}' -- ${escapedCommand} 2>/dev/null | grep -oE '^[0-9]+$' | tail -1) && ` +
+    `[ -n "$TASK_ID" ] && ` +
     `pueue wait "$TASK_ID" --quiet && ` +
     `pueue log "$TASK_ID" --full`
   );

@@ -518,13 +518,12 @@ describe("Bash: Pueue long-running task detection", () => {
     expect((result.parsed as any).reason).toContain("pueue add");
   });
 
-  it("should detect symbol + threshold patterns", () => {
+  it("should NOT wrap local symbol + threshold commands (issue #23)", () => {
     const result = runHook({
       tool_name: "Bash",
       tool_input: { command: "python script.py --symbol BTCUSDT --threshold 250" },
     });
-    expect(result.parsed).not.toBeNull();
-    expect((result.parsed as any).reason).toContain("[PUEUE-REMINDER]");
+    expect(result.stdout).toBe("");
   });
 
   it("should detect SSH with long-running commands", () => {
