@@ -2,6 +2,17 @@
 
 Reverse chronological — newest entries on top.
 
+## 2026-02-13 — Add Firecrawl health check + auto-revival to scraping workflow
+
+- Firecrawl containers can show "Up" while internal processes are dead (RAM/CPU overload: `WORKER STALLED cpuUsage=0.998 memoryUsage=0.858`)
+- Added 3-step deep health check: ZeroTier ping → API HTTP probe → log inspection
+- Added auto-revival: `docker restart` with 20s wait and verification
+- Escalation path: restart → force-recreate → manual intervention → Jina fallback
+- Added "Container Up but dead" failure mode documentation with diagnosis and fix
+- Added troubleshooting rows: "Firecrawl Up but dead", "WORKER STALLED", "Jina login page shell"
+- Fixed frontmatter-schema.md: `chatgpt-share` scraper corrected from Firecrawl to Jina Reader (missed in 2026-02-09)
+- Discovery: Gemini deep research scrape failed because Firecrawl was dead for 4+ days undetected
+
 ## 2026-02-09 — Route ChatGPT shares to Jina Reader
 
 - Firecrawl produced escaped markdown (`\*\*bold\*\*`) and ChatGPT UI chrome for `chatgpt.com/share/*` URLs
