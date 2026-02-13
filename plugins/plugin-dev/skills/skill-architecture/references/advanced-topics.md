@@ -185,7 +185,7 @@ my-plugin/
         "hooks": [
           {
             "type": "command",
-            "command": "bun $CLAUDE_PLUGIN_ROOT/hooks/my-handler.ts",
+            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/my-plugin/hooks/my-handler.ts",
             "timeout": 10000
           }
         ]
@@ -196,6 +196,18 @@ my-plugin/
 ```
 
 **Available events**: `PreToolUse`, `PostToolUse`, `Stop` (see Hooks Development Guide in repo docs)
+
+> **Anti-Pattern: `$CLAUDE_PLUGIN_ROOT` in hooks.json**
+>
+> `$CLAUDE_PLUGIN_ROOT` is available inside Claude Code's plugin execution context (skill loading) but is **NOT** a shell environment variable. Hook commands from `hooks.json` are synced verbatim to `~/.claude/settings.json` and executed as shell commands, where `$CLAUDE_PLUGIN_ROOT` resolves to empty string → "Module not found" errors.
+>
+> | Variable              | Available In              | Works in hooks.json? |
+> | --------------------- | ------------------------- | -------------------- |
+> | `$CLAUDE_PLUGIN_ROOT` | Plugin skill loading only | **NO**               |
+> | `$HOME`               | All shell contexts        | **YES**              |
+> | `$CLAUDE_PROJECT_DIR` | Hook stdin JSON only      | **NO** (not env var) |
+>
+> **Always use `$HOME`-based absolute paths in hooks.json commands.**
 
 ### When to Use Hooks
 
@@ -211,4 +223,4 @@ my-plugin/
 3. **Fail silently** - Hooks should not block Claude Code operation on failure
 4. **File-based communication** - Write to notification directories rather than calling APIs directly from hooks
 5. **Provide a management command** - Include a `/plugin:hooks` command for install/uninstall/status (see [Command-Skill Duality](./command-skill-duality.md))
-6. **Use `$CLAUDE_PLUGIN_ROOT`** - Reference hook scripts relative to the plugin root for portability
+6. **Use `$HOME`-based absolute paths** - Never use `$CLAUDE_PLUGIN_ROOT` in hook commands (see anti-pattern above)

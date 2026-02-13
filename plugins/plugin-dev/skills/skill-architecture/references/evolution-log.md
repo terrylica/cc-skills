@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-02-13: Fix Hook Integration Anti-Pattern (CLAUDE_PLUGIN_ROOT)
+
+**Trigger**: The `$CLAUDE_PLUGIN_ROOT` variable was recommended in the Hook Integration Pattern (advanced-topics.md) but does NOT work in hooks.json commands. When hooks.json is synced to settings.json, the variable is copied verbatim and resolves to empty string at shell execution time, causing "Module not found" errors.
+
+### Anti-Patterns Documented
+
+1. **`$CLAUDE_PLUGIN_ROOT` in hooks.json**: This env var only exists inside Claude Code's internal plugin skill loading context, not as a shell environment variable. Hook commands must use `$HOME`-based absolute paths.
+2. **Empty TOML table sections**: mise rejects `[hooks.enter]` containing only comments (no key-value pairs). Either add a key or remove the section.
+
+### Changes Made
+
+1. **advanced-topics.md**: Replaced `$CLAUDE_PLUGIN_ROOT` example with `$HOME`-based path, added anti-pattern callout with comparison table, fixed guideline #6
+2. **lifecycle-reference.md** (itp-hooks): Clarified `CLAUDE_PLUGIN_ROOT` documentation, added both anti-patterns to Common Pitfalls table
+
+### Key Insight
+
+Plugin context variables (`CLAUDE_PLUGIN_ROOT`) are available when Claude Code loads skills but NOT when hook commands execute as shell processes from settings.json. The sync script copies hooks.json commands verbatim without variable resolution. Only standard shell env vars (`$HOME`) are safe in hook commands.
+
+---
+
 ## 2026-02-13: Extract Advanced Patterns from tts-telegram-sync
 
 **Trigger**: The tts-telegram-sync plugin (8 skills, 3 commands, hooks, shared library) demonstrated 10 advanced patterns not captured in skill-architecture. These were extracted as agnostic, universally applicable patterns.
