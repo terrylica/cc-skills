@@ -1,3 +1,32 @@
+## [11.35.2](https://github.com/terrylica/cc-skills/compare/v11.35.1...v11.35.2) (2026-02-13)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+19/-17)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (2 files)</summary>
+
+- [Agent Skill Name](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/advanced-topics.md) - updated (+14/-2)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - updated (+20)
+
+</details>
+
 ## [11.35.1](https://github.com/terrylica/cc-skills/compare/v11.35.0...v11.35.1) (2026-02-13)
 
 
