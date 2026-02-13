@@ -1,3 +1,10 @@
+## [11.35.1](https://github.com/terrylica/cc-skills/compare/v11.35.0...v11.35.1) (2026-02-13)
+
+
+### Bug Fixes
+
+* **tts-telegram-sync:** resolve $CLAUDE_PLUGIN_ROOT in stop hook path ([4ec307d](https://github.com/terrylica/cc-skills/commit/4ec307de5659c8118b3f51b794757d85d4eb7f98))
+
 # [11.35.0](https://github.com/terrylica/cc-skills/compare/v11.34.1...v11.35.0) (2026-02-13)
 
 
