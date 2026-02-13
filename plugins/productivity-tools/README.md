@@ -1,7 +1,7 @@
 # productivity-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Productivity and automation tools for Claude Code.
@@ -50,6 +50,32 @@ Create a command for analyzing customer feedback
 
 **Output**: Complete command files in `generated-commands/[name]/`
 
+### calendar-event-manager
+
+Create macOS Calendar events with tiered sound alarms and auto-paired Reminders.
+
+**Triggers**: `add event`, `calendar event`, `create reminder`, `schedule event`, `RSVP`
+
+**Features**:
+
+- **6-Tier Sound Alarms**: Escalating sounds from gentle (Blow) to urgent (Funk)
+- **Paired Reminders**: Auto-creates 3 Reminders (TOMORROW, TODAY, due-time) via hook
+- **Sound Validation**: Blocks short sounds (< 1.4s) that get missed
+- **PostToolUse Hook**: Validates alarm compliance and auto-creates Reminders
+
+**Alarm Tiers**:
+
+| Tier         | Trigger   | Sound  | Duration |
+| ------------ | --------- | ------ | -------- |
+| 1 day before | -1440 min | Blow   | 1.40s    |
+| Morning-of   | 9 AM      | Sosumi | 1.54s    |
+| 3 hours      | -180 min  | Pop    | 1.63s    |
+| 1 hour       | -60 min   | Glass  | 1.65s    |
+| 30 min       | -30 min   | Ping   | 1.50s    |
+| At event     | 0 min     | Funk   | 2.16s    |
+
+**Hook**: Install with `/productivity-tools:hooks install` (opt-in, not auto-enabled).
+
 ## Installation
 
 ```bash
@@ -59,16 +85,20 @@ claude plugin install productivity-tools@cc-skills
 
 ## Dependencies
 
-| Component   | Required | Installation       |
-| ----------- | -------- | ------------------ |
-| Claude Code | Yes      | CLI tool           |
-| Bun         | Optional | `brew install bun` |
+| Component       | Required             | Installation       |
+| --------------- | -------------------- | ------------------ |
+| Claude Code     | Yes                  | CLI tool           |
+| Bun             | Yes (calendar hook)  | `brew install bun` |
+| macOS Calendar  | Yes (calendar skill) | Built-in           |
+| macOS Reminders | Yes (calendar skill) | Built-in           |
 
 ## References
 
-- [SKILL.md](skills/slash-command-factory/SKILL.md) - Full skill documentation
+- [SKILL.md](skills/slash-command-factory/SKILL.md) - Slash command factory documentation
 - [HOW_TO_USE.md](skills/slash-command-factory/HOW_TO_USE.md) - Usage guide
 - [presets.json](skills/slash-command-factory/presets.json) - Preset definitions
+- [Calendar SKILL.md](skills/calendar-event-manager/SKILL.md) - Calendar event skill
+- [Sound Reference](skills/calendar-event-manager/references/sound-reference.md) - Sound duration data
 
 ## Troubleshooting
 
@@ -81,6 +111,8 @@ claude plugin install productivity-tools@cc-skills
 | Generated command too simple   | Wrong pattern selected         | Choose Multi-Phase or Agent-Style for complex needs   |
 | Bun not available              | Optional dependency missing    | Install with `brew install bun` for TypeScript        |
 | Validation warnings            | Missing required fields        | Add description and allowed-tools to YAML frontmatter |
+| Sound alarm not playing        | Notifications disabled         | Enable in System Settings > Notifications > Calendar  |
+| Reminders not created          | Hook not installed             | Run `/productivity-tools:hooks install`               |
 
 ## License
 

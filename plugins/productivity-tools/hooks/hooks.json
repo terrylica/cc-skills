@@ -1,0 +1,17 @@
+{
+  "description": "Calendar event alarm validation and Reminders auto-sync",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/calendar-reminder-sync.ts",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}

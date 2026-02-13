@@ -196,7 +196,7 @@
     },
     {
       "name": "productivity-tools",
-      "description": "Slash command factory: 10 preset commands, custom generation via guided flow, 3 official patterns",
+      "description": "Slash command factory and calendar event management with tiered sound alarms",
       "version": "11.30.0",
       "source": "./plugins/productivity-tools",
       "category": "productivity",
@@ -208,7 +208,13 @@
         "productivity",
         "automation",
         "commands",
-        "slash-commands"
+        "slash-commands",
+        "calendar",
+        "reminders",
+        "macos",
+        "applescript",
+        "events",
+        "sound-alarms"
       ],
       "strict": false
     },
