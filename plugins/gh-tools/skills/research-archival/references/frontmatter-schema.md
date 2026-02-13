@@ -25,7 +25,7 @@ YAML frontmatter contract for archived research files.
 
 | Value             | Platform                      | Scraper     |
 | ----------------- | ----------------------------- | ----------- |
-| `chatgpt-share`   | ChatGPT shared conversations  | Firecrawl   |
+| `chatgpt-share`   | ChatGPT shared conversations  | Jina Reader |
 | `gemini-share`    | Google Gemini shared outputs  | Firecrawl   |
 | `claude-artifact` | Claude artifacts/shared links | Jina Reader |
 | `web-page`        | General web pages             | Jina Reader |

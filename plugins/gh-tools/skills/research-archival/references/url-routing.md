@@ -19,17 +19,53 @@ Route scrape requests to the correct backend based on URL pattern.
 
 **Host**: `littleblack` via ZeroTier (`172.25.236.1:3003`)
 
-### Preflight Check
+### Preflight Check (3-Step Deep Health Check)
+
+A simple `ping` is **insufficient** — containers can be "Up" while internal processes are dead from RAM/CPU overload.
 
 ```bash
-# Verify ZeroTier connectivity
-ping -c1 -W2 172.25.236.1 >/dev/null 2>&1 && echo "OK" || echo "UNREACHABLE"
+# Step 1: ZeroTier connectivity
+ping -c1 -W2 172.25.236.1 >/dev/null 2>&1 && echo "Network: OK" || echo "Network: UNREACHABLE"
+
+# Step 2: Deep API health — test actual scrape capability
+HTTP_CODE=$(ssh littleblack 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
+  -X POST http://localhost:3002/v1/scrape \
+  -H "Content-Type: application/json" \
+  -d "{\"url\":\"https://example.com\",\"formats\":[\"markdown\"]}"' 2>/dev/null || echo "000")
+echo "API health: HTTP $HTTP_CODE"
+
+# Step 3: If unhealthy, check logs for WORKER STALLED
+if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ]; then
+  echo "UNHEALTHY — checking logs..."
+  ssh littleblack 'docker logs firecrawl-api-1 --tail 20 2>&1 | grep -iE "stalled|error|exit" || echo "No error indicators found"'
+fi
+```
+
+### Auto-Revival (If Unhealthy)
+
+```bash
+# Restart critical containers (not docker compose — may lack permissions to compose dir)
+ssh littleblack 'docker restart firecrawl-api-1 firecrawl-playwright-service-1'
+sleep 20  # Wait for API initialization
+
+# Verify recovery
+ssh littleblack 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
+  -X POST http://localhost:3002/v1/scrape \
+  -H "Content-Type: application/json" \
+  -d "{\"url\":\"https://example.com\",\"formats\":[\"markdown\"]}"'
+# Expected: 200
+```
+
+If still unhealthy after restart, escalate to full recreate:
+
+```bash
+ssh littleblack 'cd ~/firecrawl && docker compose up -d --force-recreate'
 ```
 
 ### Scrape Command
 
 ```bash
-curl -s "http://172.25.236.1:3003/scrape?url=${URL}&name=${SLUG}"
+curl -s --max-time 120 "http://172.25.236.1:3003/scrape?url=${URL}&name=${SLUG}"
 ```
 
 **Parameters**:
@@ -67,9 +103,12 @@ curl -s "https://r.jina.ai/${URL}"
 
 ## Troubleshooting
 
-| Issue                          | Diagnosis              | Fix                                 |
-| ------------------------------ | ---------------------- | ----------------------------------- |
-| Firecrawl connection refused   | ZeroTier not connected | `zerotier-cli status`, join network |
-| Firecrawl timeout              | Page too complex       | Increase timeout, try Jina fallback |
-| Jina returns truncated content | Page is JS-heavy       | Use Firecrawl instead               |
-| Empty response                 | URL requires auth      | Cannot scrape — note in frontmatter |
+| Issue                          | Diagnosis                          | Fix                                                                       |
+| ------------------------------ | ---------------------------------- | ------------------------------------------------------------------------- |
+| Firecrawl connection refused   | ZeroTier not connected             | `zerotier-cli status`, join network                                       |
+| Firecrawl "Up" but dead        | Container alive, processes crashed | `docker restart firecrawl-api-1 firecrawl-playwright-service-1`, wait 20s |
+| Firecrawl WORKER STALLED       | RAM/CPU overload (>85% mem)        | Same as above; check `docker logs firecrawl-api-1 --tail 50`              |
+| Firecrawl timeout              | Page too complex                   | Increase timeout, try Jina fallback                                       |
+| Jina returns login page shell  | Gemini/ChatGPT login wall          | Must use Firecrawl for JS-heavy SPA share URLs                            |
+| Jina returns truncated content | Page is JS-heavy                   | Use Firecrawl instead                                                     |
+| Empty response                 | URL requires auth                  | Cannot scrape — note in frontmatter                                       |
