@@ -1,10 +1,10 @@
 # devops-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-16-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-15-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
-DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, Telegram bot management, MLflow queries, notifications, and session recovery.
+DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, MLflow queries, notifications, and session recovery.
 
 Merged: `notification-tools` (dual-channel-watchexec) moved here.
 
@@ -21,7 +21,6 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **firecrawl-self-hosted**         | Self-hosted Firecrawl deployment, Docker restart policies, troubleshooting |
 | **ml-data-pipeline-architecture** | Polars vs Pandas decision tree, zero-copy patterns for ML pipelines        |
 | **ml-failfast-validation**        | POC validation patterns for ML experiments (10-check framework)            |
-| **telegram-bot-management**       | Production bot management, monitoring, restart, and troubleshooting        |
 | **mlflow-python**                 | Log backtest metrics, query experiments, QuantStats integration            |
 | **session-recovery**              | Troubleshoot Claude Code session issues and HOME variable problems         |
 | **session-chronicle**             | Session provenance tracking with S3 artifact sharing for team access       |
@@ -51,7 +50,6 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "firecrawl setup", "self-hosted scraper", "docker restart policy" -> firecrawl-self-hosted
 - "Polars vs Pandas", "ML data pipeline", "zero-copy" -> ml-data-pipeline-architecture
 - "POC validation", "fail-fast checks", "ML experiment validation" -> ml-failfast-validation
-- "telegram bot", "bot status", "restart bot" -> telegram-bot-management
 - "log backtest", "MLflow metrics", "search runs" -> mlflow-python
 - "no conversations found to resume" -> session-recovery
 - "who created this", "trace origin", "provenance" -> session-chronicle
@@ -88,12 +86,6 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Validate token format before storage
 - Test secret retrieval and environment injection
 - API authentication testing with bundled scripts
-
-### Telegram Bot Management
-
-- Bot status, restart, and log monitoring
-- Launchd service management
-- Troubleshooting connectivity and state issues
 
 ### MLflow Python
 
@@ -193,7 +185,6 @@ Skills are model-invoked — Claude automatically activates them based on contex
 | Doppler auth failed           | Token expired       | `doppler login` to re-authenticate       |
 | S3 upload fails               | Missing credentials | Verify AWS credentials via 1Password CLI |
 | ClickHouse connection refused | Network/firewall    | Check ClickHouse Cloud IP allowlist      |
-| Telegram bot not responding   | Invalid token       | Verify bot token via BotFather           |
 | MLflow tracking error         | Server unreachable  | Check MLflow tracking URI configuration  |
 
 ## License
