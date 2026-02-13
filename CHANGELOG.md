@@ -1,3 +1,30 @@
+## [11.34.1](https://github.com/terrylica/cc-skills/compare/v11.34.0...v11.34.1) (2026-02-13)
+
+
+### Bug Fixes
+
+* **devops-tools:** remove stale telegram-bot-management references ([518cb26](https://github.com/terrylica/cc-skills/commit/518cb269dda83d0a7cd652c75e6856f8027b4ec4))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+2/-11)
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+2/-2)
+
 # [11.34.0](https://github.com/terrylica/cc-skills/compare/v11.33.0...v11.34.0) (2026-02-13)
 
 
