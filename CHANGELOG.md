@@ -1,3 +1,41 @@
+# [11.33.0](https://github.com/terrylica/cc-skills/compare/v11.32.0...v11.33.0) (2026-02-13)
+
+
+### Features
+
+* **gh-tools:** add Firecrawl health check + auto-revival to research-archival skill ([de5e7ce](https://github.com/terrylica/cc-skills/commit/de5e7ce8c28c388b22532cb92db4da6d68afeef5)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [research-archival](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/SKILL.md) - updated (+74/-12)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/research-archival</strong> (3 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/evolution-log.md) - updated (+11)
+- [Frontmatter Schema](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/frontmatter-schema.md) - updated (+1/-1)
+- [URL Routing](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/url-routing.md) - updated (+49/-10)
+
+</details>
+
 # [11.32.0](https://github.com/terrylica/cc-skills/compare/v11.31.0...v11.32.0) (2026-02-13)
 
 
