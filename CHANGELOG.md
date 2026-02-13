@@ -1,3 +1,46 @@
+# [11.35.0](https://github.com/terrylica/cc-skills/compare/v11.34.1...v11.35.0) (2026-02-13)
+
+
+### Features
+
+* **plugin-dev:** add advanced patterns to skill-architecture from tts-telegram-sync ([62384d3](https://github.com/terrylica/cc-skills/commit/62384d38e8515b759dee640f924fbf2ea385d588))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+23/-2)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (8 files)</summary>
+
+- [Agent Skill Name](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/advanced-topics.md) - updated (+97)
+- [Command-Skill Duality](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/command-skill-duality.md) - new (+132)
+- [Creation Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/creation-workflow.md) - updated (+11/-6)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - updated (+21)
+- [Interactive Patterns (AskUserQuestion)](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/interactive-patterns.md) - new (+265)
+- [Phased Execution Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/phased-execution.md) - new (+223)
+- [Scripts Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/scripts-reference.md) - updated (+52/-4)
+- [Structural Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/structural-patterns.md) - updated (+65/-6)
+
+</details>
+
 ## [11.34.1](https://github.com/terrylica/cc-skills/compare/v11.34.0...v11.34.1) (2026-02-13)
 
 
