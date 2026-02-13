@@ -27,6 +27,8 @@ Gather real examples of how the skill will be used.
 - "Can you give examples of how it would be used?"
 - "What would trigger this skill?"
 - "What file types or domains are involved?"
+- "Is this part of a larger lifecycle? (bootstrap, operate, diagnose, upgrade, teardown)"
+- "Does the user need to make choices? (intent branching, configuration selection)"
 
 **Example conversation**:
 
@@ -45,12 +47,15 @@ Analyze each use case to identify resources needed.
 
 **Decision matrix**:
 
-| Task Type        | Resource Type | Example                        |
-| ---------------- | ------------- | ------------------------------ |
-| Repeated code    | scripts/      | PDF rotation algorithm         |
-| Domain knowledge | references/   | Database schemas, API docs     |
-| Templates/assets | assets/       | HTML boilerplate, config files |
-| Simple workflows | SKILL.md only | Basic instructions             |
+| Task Type                      | Resource Type  | Example                                    |
+| ------------------------------ | -------------- | ------------------------------------------ |
+| Repeated code                  | scripts/       | PDF rotation algorithm                     |
+| Domain knowledge               | references/    | Database schemas, API docs                 |
+| Templates/assets               | assets/        | HTML boilerplate, config files             |
+| Simple workflows               | SKILL.md only  | Basic instructions                         |
+| Multi-component integration    | Suite Pattern  | Full lifecycle: bootstrap through teardown |
+| Branching/destructive workflow | Interactive    | AskUserQuestion for confirmation/selection |
+| Multiple scripts sharing logic | Shared Library | `scripts/lib/common.sh`                    |
 
 **Example analysis**:
 

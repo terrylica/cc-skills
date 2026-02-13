@@ -1,6 +1,6 @@
 ---
 name: skill-architecture
-description: Meta-skill for creating Claude Code skills. TRIGGERS - create skill, YAML frontmatter, validate skill, skill architecture.
+description: Meta-skill for creating Claude Code skills. TRIGGERS - create skill, YAML frontmatter, validate skill, skill architecture, lifecycle pattern, suite pattern, phased execution, command vs skill.
 ---
 
 # Skill Architecture
@@ -98,6 +98,21 @@ Use this skill when:
 8. Verify against Skill Quality Checklist below
 ```
 
+### Template F: Create Lifecycle Suite
+
+```
+1. Identify lifecycle phases needed (bootstrap, operate, diagnose, configure, upgrade, teardown)
+2. Create one skill per lifecycle phase (see Suite Pattern in Structural Patterns)
+3. Create shared library in scripts/lib/ for common functions (logging, locking, config)
+4. Create commands for most-used operations (setup, health, hooks)
+5. Add hooks for event-driven automation if cross-session behavior needed
+6. Ensure skills cross-reference each other (health check failure → suggest diagnostic skill)
+7. Write CLAUDE.md for the plugin (conventions, key paths, shared library API)
+8. Validate each skill: bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
+9. Test full lifecycle: bootstrap → operate → diagnose → configure → upgrade → teardown
+10. Verify against Skill Quality Checklist below
+```
+
 ### Skill Quality Checklist
 
 After ANY skill work, verify:
@@ -111,6 +126,8 @@ After ANY skill work, verify:
 - [ ] Validated with quick_validate.py
 - [ ] All markdown links use relative paths (plugin-portable)
 - [ ] No broken internal links (validate-links.ts passes)
+- [ ] Phased execution: TodoWrite templates use `[Preflight]`/`[Execute]`/`[Verify]` labels where applicable
+- [ ] Interactive: AskUserQuestion used for destructive actions and multi-option workflows
 - [ ] No unsafe path patterns (see [Path Patterns](./references/path-patterns.md)):
   - No hardcoded `/Users/<user>` or `/home/<user>` (use `$HOME`)
   - No hardcoded `/tmp` in Python (use `tempfile.TemporaryDirectory`)
@@ -367,6 +384,7 @@ See [Structural Patterns](./references/structural-patterns.md) for detailed guid
 2. **Task Pattern** - Specific, bounded tasks
 3. **Reference Pattern** - Knowledge repository
 4. **Capabilities Pattern** - Tool integrations
+5. **Suite Pattern** - Multi-skill lifecycle management (bootstrap, operate, diagnose, configure, upgrade, teardown)
 
 ---
 
@@ -391,12 +409,15 @@ See [Scripts Reference](./references/scripts-reference.md) for marketplace scrip
 
 For detailed information, see:
 
-- [Structural Patterns](./references/structural-patterns.md) - 4 skill architecture patterns
+- [Structural Patterns](./references/structural-patterns.md) - 5 skill architecture patterns (including Suite Pattern)
 - [Workflow Patterns](./references/workflow-patterns.md) - Workflow skill implementation patterns
 - [Progressive Disclosure](./references/progressive-disclosure.md) - Context management patterns
 - [Creation Workflow](./references/creation-workflow.md) - Step-by-step process
 - [Scripts Reference](./references/scripts-reference.md) - Marketplace script usage
 - [Security Practices](./references/security-practices.md) - Threats and defenses (CVE references)
+- [Phased Execution](./references/phased-execution.md) - Preflight/Execute/Verify patterns and variants
+- [Command-Skill Duality](./references/command-skill-duality.md) - When to use commands vs skills
+- [Interactive Patterns](./references/interactive-patterns.md) - AskUserQuestion integration patterns
 - [Token Efficiency](./references/token-efficiency.md) - Context optimization
 - [Advanced Topics](./references/advanced-topics.md) - CLI vs API, composition, bugs
 - [Path Patterns](./references/path-patterns.md) - Safe/unsafe path references (known bugs documented)

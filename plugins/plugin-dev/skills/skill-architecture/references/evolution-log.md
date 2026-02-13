@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-02-13: Extract Advanced Patterns from tts-telegram-sync
+
+**Trigger**: The tts-telegram-sync plugin (8 skills, 3 commands, hooks, shared library) demonstrated 10 advanced patterns not captured in skill-architecture. These were extracted as agnostic, universally applicable patterns.
+
+### Changes Made
+
+1. **structural-patterns.md**: Added Pattern 5 (Suite Pattern) for multi-skill lifecycle management
+2. **New: phased-execution.md**: Preflight/Execute/Verify pattern with 3 variants (Sandwich Verification, Dependency-Aware Teardown, Config Read-Edit-Validate-Apply) and TodoWrite phase labels
+3. **New: command-skill-duality.md**: When to use commands vs skills, complementary design, plugin layout with both
+4. **New: interactive-patterns.md**: 5 AskUserQuestion patterns (intent branching, destructive confirmation, config group selection, symptom collection, feedback collection)
+5. **advanced-topics.md**: Added Known Issue Table pattern and Hook Integration pattern
+6. **scripts-reference.md**: Added Shared Library pattern (scripts/lib/ convention)
+7. **creation-workflow.md**: Added lifecycle and interactive questions to Steps 1-2, expanded decision matrix
+8. **SKILL.md**: Added Suite Pattern to structural patterns list, Template F for lifecycle suites, 2 checklist items, 3 new reference links, expanded trigger keywords in description
+
+### Key Insight
+
+A single mature plugin demonstrated patterns that individual simple skills never encounter. The Suite Pattern is a fundamentally new structural category alongside Workflow, Task, Reference, and Capabilities. All patterns were generalized to use generic domain language (service, component, integration) with no TTS/Telegram-specific references.
+
+---
+
 ## 2025-12-04: Expand Path Patterns for Script Portability
 
 **Trigger**: Multi-agent audit found hardcoded paths across all skills/scripts.
