@@ -1,3 +1,58 @@
+# [11.31.0](https://github.com/terrylica/cc-skills/compare/v11.30.0...v11.31.0) (2026-02-13)
+
+
+### Bug Fixes
+
+* **itp-hooks:** remove over-broad pueue wrap patterns and fix task ID extraction ([#23](https://github.com/terrylica/cc-skills/issues/23)) ([12bedf7](https://github.com/terrylica/cc-skills/commit/12bedf7023c43926b0c72fc4dd98fb6b4970c1b3))
+
+
+### Features
+
+* **productivity-tools:** add calendar event manager with tiered sound alarms ([f2fc18b](https://github.com/terrylica/cc-skills/commit/f2fc18bad43fc3816f8725ed8f982a0cf1435d1a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>productivity-tools</strong> (1 change)</summary>
+
+- [calendar-event-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/calendar-event-manager/SKILL.md) - new (+169)
+
+</details>
+
+
+### Plugin READMEs
+
+- [productivity-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/README.md) - updated (+38/-6)
+
+### Skill References
+
+<details>
+<summary><strong>productivity-tools/calendar-event-manager</strong> (1 file)</summary>
+
+- [macOS System Sounds Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/calendar-event-manager/references/sound-reference.md) - new (+77)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>productivity-tools</strong> (1 command)</summary>
+
+- [productivity-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/commands/hooks.md) - new (+102)
+
+</details>
+
 # [11.30.0](https://github.com/terrylica/cc-skills/compare/v11.29.1...v11.30.0) (2026-02-12)
 
 
