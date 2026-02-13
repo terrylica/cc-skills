@@ -92,10 +92,10 @@ Options:
 
 **Context-Aware Validation**:
 
-| Context | Link Policy | Bash Policy |
-|---------|-------------|-------------|
-| Marketplace plugin | Only `./`, `/docs/adr/*`, `/docs/design/*` | Heredoc required |
-| Project-local skill | Any `/...` repo path allowed | Same (or `--skip-bash`) |
+| Context             | Link Policy                                | Bash Policy             |
+| ------------------- | ------------------------------------------ | ----------------------- |
+| Marketplace plugin  | Only `./`, `/docs/adr/*`, `/docs/design/*` | Heredoc required        |
+| Project-local skill | Any `/...` repo path allowed               | Same (or `--skip-bash`) |
 
 Project-local skills are auto-detected from paths containing `.claude/skills/`.
 
@@ -167,6 +167,54 @@ bash plugins/itp/skills/semantic-release/scripts/init_project.sh
 bash plugins/itp/skills/semantic-release/scripts/init_user_config.sh
 bash plugins/itp/skills/semantic-release/scripts/create_org_config.sh
 ```
+
+## Shared Library Pattern
+
+When multiple scripts in a plugin share common functionality, extract it into a shared library to reduce duplication and ensure consistent behavior.
+
+### Structure
+
+```
+scripts/
+├── lib/
+│   └── common.sh         # Shared functions (sourced, not executed)
+├── action-a.sh           # Sources lib/common.sh
+├── action-b.sh           # Sources lib/common.sh
+└── action-c.sh           # Sources lib/common.sh
+```
+
+### Source Convention
+
+Each script sources the shared library relative to its own location:
+
+```bash
+/usr/bin/env bash << 'SOURCE_LIB_EOF'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+SOURCE_LIB_EOF
+```
+
+### What Belongs in the Shared Library
+
+| Function Type        | Example                               | Why Shared                              |
+| -------------------- | ------------------------------------- | --------------------------------------- |
+| Logging              | `app_log()` with consistent format    | All scripts need uniform log output     |
+| Lock management      | `acquire_lock()`, `release_lock()`    | Prevents race conditions across scripts |
+| Cleanup handlers     | `cleanup()` with trap integration     | Ensures resources are released on exit  |
+| Config loading       | Read env vars with defaults           | Consistent defaults across all scripts  |
+| Detection heuristics | Language detection, platform checks   | Same logic needed in multiple contexts  |
+| Process management   | `kill_existing()`, `wait_for_ready()` | Consistent process lifecycle handling   |
+
+### Design Guidelines
+
+1. **Configurable defaults**: Use `VAR="${VAR:-default_value}"` so callers can override
+2. **No side effects on source**: Sourcing the library should only define functions, not execute code
+3. **Prefix internal variables**: Use underscore prefix (`_INTERNAL_VAR`) to avoid collisions with caller variables
+4. **Document the public API**: Comment which functions are intended for callers vs internal helpers
+5. **One library per concern**: If the shared code grows large, split into `lib/logging.sh`, `lib/locking.sh`, etc.
+6. **Trap-safe cleanup**: Use `trap cleanup EXIT` in individual scripts, not in the library (callers own their own trap chain)
+
+---
 
 ## Creating New Plugins
 
