@@ -101,7 +101,7 @@
     },
     {
       "name": "devops-tools",
-      "description": "DevOps automation: ClickHouse, Doppler, Telegram, MLflow, notifications, session recovery",
+      "description": "DevOps automation: ClickHouse, Doppler, MLflow, notifications, session recovery",
       "version": "11.33.0",
       "source": "./plugins/devops-tools",
       "category": "devops",
@@ -113,7 +113,6 @@
         "doppler",
         "credentials",
         "secrets",
-        "telegram",
         "mlflow",
         "session-recovery",
         "pushover",
@@ -510,6 +509,31 @@
         "conversation",
         "timeline"
       ],
+      "strict": false
+    },
+    {
+      "name": "tts-telegram-sync",
+      "description": "TTS and Telegram bot lifecycle: Kokoro engine bootstrap, voice audition, bot process control, health checks, diagnostics",
+      "version": "11.33.0",
+      "source": "./plugins/tts-telegram-sync",
+      "category": "devops",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "tts",
+        "kokoro",
+        "telegram",
+        "bot",
+        "voice-synthesis",
+        "audio",
+        "notifications",
+        "iterm2",
+        "session-sync",
+        "health-check"
+      ],
+      "hooks": "./plugins/tts-telegram-sync/hooks/hooks.json",
       "strict": false
     }
   ]
