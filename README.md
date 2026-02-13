@@ -577,9 +577,9 @@ Features:
 
 ### devops-tools
 
-**Doppler credentials, Firecrawl self-hosted, ML pipelines, Telegram bot management, MLflow queries, and session recovery.**
+**Doppler credentials, Firecrawl self-hosted, ML pipelines, MLflow queries, notifications, and session recovery.**
 
-13 bundled skills: clickhouse-cloud-management, clickhouse-pydantic-config, doppler-workflows, doppler-secret-validation, dual-channel-watchexec, firecrawl-self-hosted, ml-data-pipeline-architecture, ml-failfast-validation, mlflow-python, python-logging-best-practices, session-chronicle, session-recovery, telegram-bot-management
+15 bundled skills: clickhouse-cloud-management, clickhouse-pydantic-config, disk-hygiene, distributed-job-safety, doppler-workflows, doppler-secret-validation, dual-channel-watchexec, firecrawl-self-hosted, ml-data-pipeline-architecture, ml-failfast-validation, mlflow-python, project-directory-migration, python-logging-best-practices, session-chronicle, session-recovery
 
 ### doc-tools
 
