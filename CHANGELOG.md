@@ -1,3 +1,150 @@
+# [11.34.0](https://github.com/terrylica/cc-skills/compare/v11.33.0...v11.34.0) (2026-02-13)
+
+
+### Bug Fixes
+
+* **tts-telegram-sync:** correct CLAUDE.md to match actual implementation ([4ef4dca](https://github.com/terrylica/cc-skills/commit/4ef4dcaf056a0dc42e1a1ae98905bd4048d9083a))
+
+
+### Features
+
+* **tts-telegram-sync:** add plugin with full lifecycle management ([7de6290](https://github.com/terrylica/cc-skills/commit/7de62900efc2accf0faccba2e8a4ccabbd565ce8)), closes [#24](https://github.com/terrylica/cc-skills/issues/24)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [telegram bot management](https://github.com/terrylica/cc-skills/blob/v11.33.0/plugins/devops-tools/skills/telegram-bot-management/SKILL.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (8 changes)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/SKILL.md) - new (+121)
+- [clean-component-removal](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/clean-component-removal/SKILL.md) - new (+156)
+- [component-version-upgrade](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/component-version-upgrade/SKILL.md) - new (+126)
+- [diagnostic-issue-resolver](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/SKILL.md) - new (+153)
+- [full-stack-bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/full-stack-bootstrap/SKILL.md) - new (+199)
+- [settings-and-tuning](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/settings-and-tuning/SKILL.md) - new (+128)
+- [system-health-check](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/system-health-check/SKILL.md) - new (+196)
+- [voice-quality-audition](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/voice-quality-audition/SKILL.md) - new (+167)
+
+</details>
+
+
+### Plugin READMEs
+
+- [TTS Telegram Sync](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/README.md) - new (+82)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/telegram-bot-management</strong> (2 files)</summary>
+
+- [Operational Commands](https://github.com/terrylica/cc-skills/blob/v11.33.0/plugins/devops-tools/skills/telegram-bot-management/references/operational-commands.md) - deleted
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/v11.33.0/plugins/devops-tools/skills/telegram-bot-management/references/troubleshooting.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/bot-process-control</strong> (3 files)</summary>
+
+- [bot-process-control Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/references/evolution-log.md) - new (+5)
+- [Operational Commands](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/references/operational-commands.md) - new (+146)
+- [Process Tree](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/references/process-tree.md) - new (+73)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/clean-component-removal</strong> (1 file)</summary>
+
+- [clean-component-removal Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/clean-component-removal/references/evolution-log.md) - new (+5)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/component-version-upgrade</strong> (2 files)</summary>
+
+- [component-version-upgrade Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/component-version-upgrade/references/evolution-log.md) - new (+5)
+- [Upgrade Procedures](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/component-version-upgrade/references/upgrade-procedures.md) - new (+158)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/diagnostic-issue-resolver</strong> (3 files)</summary>
+
+- [Common Issues -- Expanded Diagnostic Procedures](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/references/common-issues.md) - new (+186)
+- [diagnostic-issue-resolver Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/references/evolution-log.md) - new (+5)
+- [Lock Debugging -- Two-Layer Lock Mechanism](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/references/lock-debugging.md) - new (+209)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/full-stack-bootstrap</strong> (4 files)</summary>
+
+- [BotFather Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/botfather-guide.md) - new (+139)
+- [full-stack-bootstrap Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/evolution-log.md) - new (+5)
+- [Kokoro TTS Engine Bootstrap Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/kokoro-bootstrap.md) - new (+114)
+- [Upstream Fork: hexgrad/kokoro](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/upstream-fork.md) - new (+66)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/settings-and-tuning</strong> (3 files)</summary>
+
+- [Configuration Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/settings-and-tuning/references/config-reference.md) - new (+147)
+- [settings-and-tuning Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/settings-and-tuning/references/evolution-log.md) - new (+5)
+- [mise.toml Architecture Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/settings-and-tuning/references/mise-toml-reference.md) - new (+128)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/system-health-check</strong> (2 files)</summary>
+
+- [system-health-check Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/system-health-check/references/evolution-log.md) - new (+5)
+- [Health Checks Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/system-health-check/references/health-checks.md) - new (+266)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/voice-quality-audition</strong> (2 files)</summary>
+
+- [voice-quality-audition Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/voice-quality-audition/references/evolution-log.md) - new (+5)
+- [Voice Catalog](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/voice-quality-audition/references/voice-catalog.md) - new (+139)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (3 commands)</summary>
+
+- [TTS Telegram Sync Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/health.md) - new (+52)
+- [TTS Telegram Sync Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/hooks.md) - new (+81)
+- [TTS Telegram Sync Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/setup.md) - new (+99)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [tts-telegram-sync Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/CLAUDE.md) - new (+48)
+
 # [11.33.0](https://github.com/terrylica/cc-skills/compare/v11.32.0...v11.33.0) (2026-02-13)
 
 
