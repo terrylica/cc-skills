@@ -1,3 +1,34 @@
+# [11.32.0](https://github.com/terrylica/cc-skills/compare/v11.31.0...v11.32.0) (2026-02-13)
+
+
+### Features
+
+* **quant-research:** add backtesting-py-oracle skill for SQL oracle validation ([1a23bb1](https://github.com/terrylica/cc-skills/commit/1a23bb16d037a429df1012a0d6419eaf524a81f9))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [backtesting-py-oracle](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/backtesting-py-oracle/SKILL.md) - new (+196)
+
+</details>
+
+
+### Plugin READMEs
+
+- [quant-research](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/README.md) - updated (+13/-1)
+
 # [11.31.0](https://github.com/terrylica/cc-skills/compare/v11.30.0...v11.31.0) (2026-02-13)
 
 
