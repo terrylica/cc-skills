@@ -30,7 +30,7 @@ This plugin manages the full lifecycle of a local Kokoro TTS engine, a Telegram 
 
 `scripts/lib/tts-common.sh` provides common functions sourced by all TTS shell scripts:
 
-- `log_json` - NDJSON structured logging
+- `tts_log` - Plain text logging to `$LOG` (default: `/tmp/kokoro-tts.log`)
 - `acquire_tts_lock` / `release_tts_lock` - Lock with heartbeat
 - `detect_language` - CJK ratio heuristic
 - `kill_existing_tts` - Stop active playback
@@ -38,8 +38,8 @@ This plugin manages the full lifecycle of a local Kokoro TTS engine, a Telegram 
 
 ## Telemetry
 
-All components emit NDJSON with core fields: `ts`, `level`, `event`, `component`, `pid`.
-Logs to `~/.local/share/tts-telegram-sync/logs/{audit,tts-shell,bot-console}/`.
+Bot emits NDJSON with core fields: `ts`, `level`, `event`, `component`, `pid` via `audit-log.ts`.
+Shell scripts use plain text via `tts_log`. Logs: `~/.local/share/tts-telegram-sync/logs/audit/` (NDJSON), `/tmp/kokoro-tts.log` (plain text).
 
 ## References
 
