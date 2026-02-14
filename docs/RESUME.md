@@ -13,7 +13,7 @@ Last updated: 2026-02-04
 - Added gdrive-tools plugin to marketplace.json (21 plugins total)
 - Updated root CLAUDE.md with documentation hierarchy diagram
 - Added PLUGIN-LIFECYCLE.md to navigation (was orphaned)
-- Updated plugins/CLAUDE.md core plugins table (gmail-tools, gdrive-tools)
+- Updated plugins/CLAUDE.md core plugins table (gmail-commander, gdrive-tools)
 - Updated docs/CLAUDE.md spoke documents table
 - Fixed Vale terminology warning (SSoT)
 
