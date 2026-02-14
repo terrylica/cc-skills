@@ -1,3 +1,43 @@
+## [11.37.1](https://github.com/terrylica/cc-skills/compare/v11.37.0...v11.37.1) (2026-02-14)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>gmail-commander/gmail-access</strong> (1 file)</summary>
+
+- [mise Configuration Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/gmail-access/references/mise-templates.md) - updated (+4/-4)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+1/-1)
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+1/-1)
+
+### General Documentation
+
+- [Session Resume Context](https://github.com/terrylica/cc-skills/blob/main/docs/RESUME.md) - updated (+1/-1)
+
+## Other Documentation
+
+### Other
+
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - updated (+1/-1)
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+9/-9)
+
 # [11.37.0](https://github.com/terrylica/cc-skills/compare/v11.36.1...v11.37.0) (2026-02-14)
 
 
