@@ -15,13 +15,13 @@ Read and search Gmail programmatically via Claude Code CLI.
 ### Step 1: Check CLI Binary Exists
 
 ```bash
-ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail" 2>/dev/null || echo "BINARY_NOT_FOUND"
+ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail" 2>/dev/null || echo "BINARY_NOT_FOUND"
 ```
 
 **If BINARY_NOT_FOUND**: Build it first:
 
 ```bash
-cd ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts && bun install && bun run build
+cd ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli && bun install && bun run build
 ```
 
 ### Step 2: Check GMAIL_OP_UUID Environment Variable
@@ -185,7 +185,7 @@ cd . && echo "GMAIL_OP_UUID after reload: ${GMAIL_OP_UUID:-NOT_SET}"
 ### Setup Step 6: Test Connection
 
 ```bash
-GMAIL_OP_UUID="${GMAIL_OP_UUID}" $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail list -n 1
+GMAIL_OP_UUID="${GMAIL_OP_UUID}" $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail list -n 1
 ```
 
 **If OAuth prompt appears**: This is expected on first run. Browser will open for Google consent.
@@ -195,7 +195,7 @@ GMAIL_OP_UUID="${GMAIL_OP_UUID}" $HOME/.claude/plugins/marketplaces/cc-skills/pl
 ## Gmail Commands (Only After Preflight Passes)
 
 ```bash
-GMAIL_CLI="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail"
+GMAIL_CLI="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail"
 
 # List recent emails
 $GMAIL_CLI list -n 10
