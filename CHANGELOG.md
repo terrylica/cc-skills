@@ -1,3 +1,75 @@
+# [11.36.0](https://github.com/terrylica/cc-skills/compare/v11.35.2...v11.36.0) (2026-02-14)
+
+
+### Features
+
+* **gmail-commander:** interactive Telegram bot with Agent SDK, absorb gmail-tools ([65b2d12](https://github.com/terrylica/cc-skills/commit/65b2d12e89c0f3504b5f8ee732e7b890e592931d))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-commander</strong> (4 changes)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/bot-process-control/SKILL.md) - new (+154)
+- [email-triage](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/email-triage/SKILL.md) - new (+67)
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/gmail-access/SKILL.md) - renamed from `plugins/gmail-tools/skills/gmail-access/SKILL.md`
+- [interactive-bot](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/interactive-bot/SKILL.md) - new (+72)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Gmail Commander](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/README.md) - new (+51)
+- [gmail-tools](https://github.com/terrylica/cc-skills/blob/v11.35.2/plugins/gmail-tools/README.md) - deleted
+
+### Skill References
+
+<details>
+<summary><strong>gmail-commander/gmail-access</strong> (4 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/gmail-access/references/evolution-log.md) - renamed from `plugins/gmail-tools/skills/gmail-access/references/evolution-log.md`
+- [Gmail API OAuth Setup Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/gmail-access/references/gmail-api-setup.md) - renamed from `plugins/gmail-tools/skills/gmail-access/references/gmail-api-setup.md`
+- [mise Setup Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/gmail-access/references/mise-setup.md) - renamed from `plugins/gmail-tools/skills/gmail-access/references/mise-setup.md`
+- [mise Configuration Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/gmail-access/references/mise-templates.md) - renamed from `plugins/gmail-tools/skills/gmail-access/references/mise-templates.md`
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>gmail-commander</strong> (2 commands)</summary>
+
+- [Gmail Commander Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/health.md) - new (+84)
+- [Gmail Commander Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/setup.md) - new (+152)
+
+</details>
+
+<details>
+<summary><strong>gmail-tools</strong> (1 command)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/v11.35.2/plugins/gmail-tools/commands/setup.md) - deleted
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Gmail Commander Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/CLAUDE.md) - new (+35)
+
 ## [11.35.2](https://github.com/terrylica/cc-skills/compare/v11.35.1...v11.35.2) (2026-02-13)
 
 
