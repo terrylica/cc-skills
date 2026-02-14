@@ -102,6 +102,10 @@ export async function listInboxEmails(count: number = 10): Promise<Email[]> {
   return parseEmailJson(stdout);
 }
 
+export async function listDrafts(count: number = 10): Promise<Email[]> {
+  return searchEmails("in:drafts", count);
+}
+
 export async function createDraft(opts: DraftOptions): Promise<string> {
   const args = ["draft", "--to", opts.to, "--subject", opts.subject, "--body", opts.body];
   if (opts.from) args.push("--from", opts.from);
