@@ -1,8 +1,15 @@
 {
-  "hooks": [
-    {
-      "event": "Stop",
-      "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/hooks/bot-shutdown-notify.ts"
-    }
-  ]
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/hooks/bot-shutdown-notify.ts",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
 }

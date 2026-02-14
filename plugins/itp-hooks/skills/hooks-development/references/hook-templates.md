@@ -2,6 +2,59 @@
 
 Copy-paste templates for common hook patterns.
 
+## Plugin hooks.json Structure
+
+Every plugin with hooks must have `hooks/hooks.json` using this canonical object format. The `.hooks` key must be an **object** keyed by event type — never a flat array.
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<script>",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<script>",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<script>",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Rules**:
+
+- `matcher` — Regex against tool name. **Required** for PreToolUse/PostToolUse. **Optional** for Stop.
+- `timeout` — Milliseconds. Default is 600000 (10 min). Set explicit lower values for fast-fail hooks.
+- **Always use `$HOME`-based paths**, never `${CLAUDE_PLUGIN_ROOT}` (it's not a shell env var — see Common Pitfalls in lifecycle-reference.md).
+- Include only the event types your plugin uses. Most plugins only need 1-2.
+
 ## PostToolUse: Non-Blocking Reminder
 
 Use when you want Claude to see a message but NOT block the operation.
