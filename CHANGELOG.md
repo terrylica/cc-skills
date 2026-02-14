@@ -1,3 +1,30 @@
+## [11.36.1](https://github.com/terrylica/cc-skills/compare/v11.36.0...v11.36.1) (2026-02-14)
+
+
+### Bug Fixes
+
+* **hooks:** use canonical object format in gmail-commander hooks.json ([2ff36bb](https://github.com/terrylica/cc-skills/commit/2ff36bbf8fcf12c363161d7fa4e21fb3f623979f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (2 files)</summary>
+
+- [Hook Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/hook-templates.md) - updated (+53)
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+74/-18)
+
+</details>
+
 # [11.36.0](https://github.com/terrylica/cc-skills/compare/v11.35.2...v11.36.0) (2026-02-14)
 
 
