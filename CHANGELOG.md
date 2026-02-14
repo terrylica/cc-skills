@@ -1,3 +1,101 @@
+# [11.37.0](https://github.com/terrylica/cc-skills/compare/v11.36.1...v11.37.0) (2026-02-14)
+
+
+### Bug Fixes
+
+* **gmail-commander:** refactor commands and digest, fix state file path ([88814ab](https://github.com/terrylica/cc-skills/commit/88814ab9331a7faad35d35a714bc92aac3c59cec))
+
+
+### Features
+
+* **calcom-commander:** add Cal.com + Telegram bot plugin ([9e1acec](https://github.com/terrylica/cc-skills/commit/9e1acecf030def5c10fa8717d9c0edfc3cb158a0))
+* **devops-tools:** add pueue+dotenv patterns and mise/checkpoint gotchas ([8b5fab7](https://github.com/terrylica/cc-skills/commit/8b5fab7ab2f4f9e2e86ad48dfd62c76e40592470))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>calcom-commander</strong> (4 changes)</summary>
+
+- [booking-config](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-config/SKILL.md) - new (+138)
+- [booking-notify](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-notify/SKILL.md) - new (+75)
+- [calcom-access](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/calcom-access/SKILL.md) - new (+176)
+- [infra-deploy](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/infra-deploy/SKILL.md) - new (+196)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/SKILL.md) - updated (+52/-1)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+52)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [mise-configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/SKILL.md) - updated (+33/-6)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Cal.com Commander](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/README.md) - new (+51)
+
+### Skill References
+
+<details>
+<summary><strong>calcom-commander/booking-notify</strong> (2 files)</summary>
+
+- [Notification Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-notify/references/notification-templates.md) - new (+52)
+- [Sync Configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-notify/references/sync-config.md) - new (+51)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander/calcom-access</strong> (2 files)</summary>
+
+- [Cal.com API Setup Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/calcom-access/references/calcom-api-setup.md) - new (+55)
+- [mise Configuration for Cal.com Commander](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/calcom-access/references/mise-setup.md) - new (+65)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/distributed-job-safety</strong> (1 file)</summary>
+
+- [Environment Gotchas](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/environment-gotchas.md) - updated (+109/-16)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>calcom-commander</strong> (2 commands)</summary>
+
+- [Cal.com Commander Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/health.md) - new (+96)
+- [Cal.com Commander Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/setup.md) - new (+191)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Cal.com Commander Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/CLAUDE.md) - new (+35)
+
 ## [11.36.1](https://github.com/terrylica/cc-skills/compare/v11.36.0...v11.36.1) (2026-02-14)
 
 
