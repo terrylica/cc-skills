@@ -46,7 +46,7 @@ Run these commands in your **terminal** (not inside Claude Code):
 claude plugin marketplace add terrylica/cc-skills
 
 # 2. Install all plugins (one-liner)
-for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research gmail-tools; do claude plugin install "$p@cc-skills"; done
+for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks alpha-forge-worktree ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research gmail-commander; do claude plugin install "$p@cc-skills"; done
 
 # 3. Sync hooks to settings.json (requires cloning the repo)
 git clone https://github.com/terrylica/cc-skills.git /tmp/cc-skills

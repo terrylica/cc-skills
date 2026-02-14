@@ -88,15 +88,15 @@ If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
 ## Core Plugins
 
-| Plugin         | Purpose                                                         |
-| -------------- | --------------------------------------------------------------- |
-| `itp`          | Core 4-phase workflow                                           |
-| `itp-hooks`    | Workflow enforcement hooks ([CLAUDE.md](./itp-hooks/CLAUDE.md)) |
-| `ru`           | Autonomous loop mode                                            |
-| `plugin-dev`   | Plugin creation meta-skill                                      |
-| `gh-tools`     | GitHub CLI enforcement ([CLAUDE.md](./gh-tools/CLAUDE.md))      |
-| `gmail-tools`  | Gmail API (1Password OAuth)                                     |
-| `gdrive-tools` | Google Drive API (1Password OAuth)                              |
+| Plugin            | Purpose                                                         |
+| ----------------- | --------------------------------------------------------------- |
+| `itp`             | Core 4-phase workflow                                           |
+| `itp-hooks`       | Workflow enforcement hooks ([CLAUDE.md](./itp-hooks/CLAUDE.md)) |
+| `ru`              | Autonomous loop mode                                            |
+| `plugin-dev`      | Plugin creation meta-skill                                      |
+| `gh-tools`        | GitHub CLI enforcement ([CLAUDE.md](./gh-tools/CLAUDE.md))      |
+| `gmail-commander` | Gmail bot + CLI (1Password OAuth)                               |
+| `gdrive-tools`    | Google Drive API (1Password OAuth)                              |
 
 ## Toolchain
 

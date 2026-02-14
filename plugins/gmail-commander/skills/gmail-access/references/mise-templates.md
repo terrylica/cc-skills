@@ -48,19 +48,19 @@ Add these convenience tasks to your project's `.mise.toml` for quick Gmail acces
 
 [tasks.gmail]
 description = "Gmail CLI - run with arguments"
-run = "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail"
+run = "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail"
 
 [tasks."gmail:list"]
 description = "List recent emails"
-run = "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail list -n 10"
+run = "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail list -n 10"
 
 [tasks."gmail:search"]
 description = "Search emails (pass query as argument)"
-run = "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail search"
+run = "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail search"
 
 [tasks."gmail:unread"]
 description = "List unread emails"
-run = "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/skills/gmail-access/scripts/gmail list -l UNREAD -n 20"
+run = "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail list -l UNREAD -n 20"
 ```
 
 ## .gitignore Entry

@@ -67,7 +67,7 @@ cc-skills/
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
 │   ├── ru/                          ← RU autonomous loop mode
-│   ├── gmail-tools/                 ← Gmail API (1Password OAuth)
+│   ├── gmail-commander/              ← Gmail bot + CLI (1Password OAuth)
 │   ├── gdrive-tools/                ← Google Drive API (1Password OAuth)
 │   └── ...                          ← 16 more plugins
 ├── docs/
