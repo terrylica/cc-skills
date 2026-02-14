@@ -1,0 +1,15 @@
+{
+  "name": "gmail-commander",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.30",
+    "@grammyjs/ratelimiter": "^1.2.1",
+    "grammy": "^1.39.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
