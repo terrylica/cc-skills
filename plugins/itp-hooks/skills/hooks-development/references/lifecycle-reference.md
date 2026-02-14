@@ -611,6 +611,61 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 
 > **Note**: Stop hooks do NOT support `hookSpecificOutput`. Use `additionalContext` for Claude visibility, `systemMessage` for user visibility. Using only `systemMessage` means Claude won't see the message in context (verified 2026-01-21).
 
+### Plugin hooks.json Format (Canonical)
+
+Plugin hooks are declared in `hooks/hooks.json` and synced to `~/.claude/settings.json` during release. The format **must match settings.json structure** — an object keyed by event type.
+
+**Canonical format** (3-level nesting):
+
+```json
+{
+  "hooks": {
+    "<EventType>": [
+      {
+        "matcher": "<regex>",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<script>",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Structure breakdown**:
+
+| Level | Key            | Type   | Purpose                                                                          |
+| ----- | -------------- | ------ | -------------------------------------------------------------------------------- |
+| 1     | `.hooks`       | object | Top-level, keyed by event type                                                   |
+| 2     | `.<EventType>` | array  | Array of hook entries for this event (e.g., `Stop`, `PreToolUse`, `PostToolUse`) |
+| 3     | `[].hooks`     | array  | Array of command objects within each entry                                       |
+
+**Optional fields per entry**:
+
+- `matcher` — Regex against tool name (e.g., `"Bash"`, `"Edit|Write"`). Required for PreToolUse/PostToolUse. Optional for Stop.
+
+**Canonical examples**:
+
+| Plugin            | Events Used                     | Reference                   |
+| ----------------- | ------------------------------- | --------------------------- |
+| tts-telegram-sync | Stop                            | Simple single-event example |
+| gh-tools          | PreToolUse + PostToolUse        | Multi-event with matchers   |
+| itp-hooks         | PreToolUse + PostToolUse + Stop | Full 3-event example        |
+
+**Anti-pattern — flat array format**:
+
+```json
+{
+  "hooks": [{ "event": "Stop", "command": "..." }]
+}
+```
+
+This format **breaks the sync script** (`scripts/sync-hooks-to-settings.sh`) because it cannot extract hooks by event type key. The sync script expects `.hooks.Stop`, `.hooks.PreToolUse`, etc. — which fails with "Cannot index array with string" when `.hooks` is an array.
+
 ```{=latex}
 \newpage
 ```
@@ -819,24 +874,25 @@ def hard_stop(reason: str):
 
 ### Common Pitfalls
 
-| Pitfall                                  | Problem                                                  | Solution                                                                                                                                                                                                                                                                                                                                                               |
-| ---------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Session-locked hooks**                 | Hook changes don't take effect                           | Hooks snapshot at session start. Run `/hooks` to apply pending changes OR restart Claude Code                                                                                                                                                                                                                                                                          |
-| **Script not executable**                | Hook silently fails                                      | Run `chmod +x script.sh` on all hook scripts                                                                                                                                                                                                                                                                                                                           |
-| **Non-zero exit codes**                  | Hook blocks Claude unexpectedly                          | Ensure scripts return 0 on success; non-zero = error                                                                                                                                                                                                                                                                                                                   |
-| **Missing file matchers**                | Hook doesn't trigger on edits                            | Use `Edit\|MultiEdit\|Write` to catch ALL file modifications                                                                                                                                                                                                                                                                                                           |
-| **Case sensitivity**                     | Matcher doesn't match                                    | Matchers are case-sensitive: `Bash` ≠ `bash`                                                                                                                                                                                                                                                                                                                           |
-| **Relative paths**                       | Script not found                                         | Use `$CLAUDE_PROJECT_DIR` or absolute paths                                                                                                                                                                                                                                                                                                                            |
-| **Timeout too short**                    | Hook killed mid-execution                                | Default is 600s (10 min); set explicit lower timeout for fast-fail hooks                                                                                                                                                                                                                                                                                               |
-| **JSON syntax errors**                   | All hooks fail to load                                   | Validate with `cat settings.json \| python -m json.tool`                                                                                                                                                                                                                                                                                                               |
-| **Stop hook wrong schema**               | "Stop hook prevented continuation"                       | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                                                                                                                                                                                                                                                                                         |
-| **Local symlink caching**                | Edits to source not picked up                            | Release new version, `/plugin install`, restart Claude Code (see Plugin Cache section below)                                                                                                                                                                                                                                                                           |
-| **Reading input from env vars**          | Hook receives empty input, silently fails                | Use `INPUT=$(cat)` + `jq` to parse stdin JSON (see Hook Input Delivery Mechanism above)                                                                                                                                                                                                                                                                                |
-| **Using non-existent hook types**        | `"Invalid key in record"` error, settings.json rejected  | Valid: SessionStart, Setup, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PostToolUseFailure, Notification, SubagentStart, SubagentStop, Stop, TeammateIdle, TaskCompleted, PreCompact, SessionEnd (15 total). **PostToolUseError does NOT exist.**                                                                                                    |
-| **Assuming PostToolUse fires on errors** | Hook never fires for failed commands                     | PostToolUse ONLY fires on successful tool completion. Use PreToolUse to prevent errors instead.                                                                                                                                                                                                                                                                        |
-| **Trusting GitHub issues as features**   | Implement non-existent functionality                     | Issues are REQUESTS not implementations. Always verify against official Claude Code docs.                                                                                                                                                                                                                                                                              |
-| **`$CLAUDE_PLUGIN_ROOT` in hooks.json**  | Hook command resolves to empty path → "Module not found" | `$CLAUDE_PLUGIN_ROOT` is only available inside Claude Code's plugin skill loading context, NOT as a shell env var. Hook commands in hooks.json are synced verbatim to settings.json and run as shell commands. **Always use `$HOME`-based absolute paths** in hook commands (e.g., `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/my-plugin/hooks/handler.ts`). |
-| **Empty TOML table sections**            | mise rejects file with parse error                       | TOML tables (e.g., `[hooks.enter]`) containing only comments and no key-value pairs cause parse errors. Either add at least one key or remove the section entirely. For mise hooks, `.mise.local.toml` auto-loads on directory entry without needing `[hooks.enter]`.                                                                                                  |
+| Pitfall                                  | Problem                                                                                       | Solution                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Session-locked hooks**                 | Hook changes don't take effect                                                                | Hooks snapshot at session start. Run `/hooks` to apply pending changes OR restart Claude Code                                                                                                                                                                                                                                                                          |
+| **Script not executable**                | Hook silently fails                                                                           | Run `chmod +x script.sh` on all hook scripts                                                                                                                                                                                                                                                                                                                           |
+| **Non-zero exit codes**                  | Hook blocks Claude unexpectedly                                                               | Ensure scripts return 0 on success; non-zero = error                                                                                                                                                                                                                                                                                                                   |
+| **Missing file matchers**                | Hook doesn't trigger on edits                                                                 | Use `Edit\|MultiEdit\|Write` to catch ALL file modifications                                                                                                                                                                                                                                                                                                           |
+| **Case sensitivity**                     | Matcher doesn't match                                                                         | Matchers are case-sensitive: `Bash` ≠ `bash`                                                                                                                                                                                                                                                                                                                           |
+| **Relative paths**                       | Script not found                                                                              | Use `$CLAUDE_PROJECT_DIR` or absolute paths                                                                                                                                                                                                                                                                                                                            |
+| **Timeout too short**                    | Hook killed mid-execution                                                                     | Default is 600s (10 min); set explicit lower timeout for fast-fail hooks                                                                                                                                                                                                                                                                                               |
+| **JSON syntax errors**                   | All hooks fail to load                                                                        | Validate with `cat settings.json \| python -m json.tool`                                                                                                                                                                                                                                                                                                               |
+| **Stop hook wrong schema**               | "Stop hook prevented continuation"                                                            | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                                                                                                                                                                                                                                                                                         |
+| **Local symlink caching**                | Edits to source not picked up                                                                 | Release new version, `/plugin install`, restart Claude Code (see Plugin Cache section below)                                                                                                                                                                                                                                                                           |
+| **Reading input from env vars**          | Hook receives empty input, silently fails                                                     | Use `INPUT=$(cat)` + `jq` to parse stdin JSON (see Hook Input Delivery Mechanism above)                                                                                                                                                                                                                                                                                |
+| **Using non-existent hook types**        | `"Invalid key in record"` error, settings.json rejected                                       | Valid: SessionStart, Setup, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PostToolUseFailure, Notification, SubagentStart, SubagentStop, Stop, TeammateIdle, TaskCompleted, PreCompact, SessionEnd (15 total). **PostToolUseError does NOT exist.**                                                                                                    |
+| **Assuming PostToolUse fires on errors** | Hook never fires for failed commands                                                          | PostToolUse ONLY fires on successful tool completion. Use PreToolUse to prevent errors instead.                                                                                                                                                                                                                                                                        |
+| **Trusting GitHub issues as features**   | Implement non-existent functionality                                                          | Issues are REQUESTS not implementations. Always verify against official Claude Code docs.                                                                                                                                                                                                                                                                              |
+| **`$CLAUDE_PLUGIN_ROOT` in hooks.json**  | Hook command resolves to empty path → "Module not found"                                      | `$CLAUDE_PLUGIN_ROOT` is only available inside Claude Code's plugin skill loading context, NOT as a shell env var. Hook commands in hooks.json are synced verbatim to settings.json and run as shell commands. **Always use `$HOME`-based absolute paths** in hook commands (e.g., `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/my-plugin/hooks/handler.ts`). |
+| **Empty TOML table sections**            | mise rejects file with parse error                                                            | TOML tables (e.g., `[hooks.enter]`) containing only comments and no key-value pairs cause parse errors. Either add at least one key or remove the section entirely. For mise hooks, `.mise.local.toml` auto-loads on directory entry without needing `[hooks.enter]`.                                                                                                  |
+| **Flat array hooks.json format**         | `.hooks` is array instead of object → sync script fails with "Cannot index array with string" | Use canonical object format: `"hooks": {"Stop": [{"hooks": [{"type": "command", ...}]}]}`. The `.hooks` key must be an **object** keyed by event type, not a flat array. See Plugin hooks.json Format section above and tts-telegram-sync as reference.                                                                                                                |
 
 ```{=latex}
 \newpage
