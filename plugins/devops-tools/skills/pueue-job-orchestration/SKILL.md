@@ -933,6 +933,58 @@ pueue enqueue "$JOB_ID"
 
 ---
 
+## Preferred Pattern: python-dotenv for Pueue Job Secrets
+
+Pueue jobs run in **clean shells** without `.bashrc`, `.zshrc`, or mise activation. This means `mise.toml [env]` variables are invisible to pueue jobs. The most portable solution is `python-dotenv`:
+
+### Architecture
+
+```
+mise.toml           → Task definitions only (no [env] for secrets)
+.env                → Secrets (gitignored, loaded by python-dotenv at runtime)
+scripts/backfill.sh → Pueue orchestrator (just `cd $PROJECT_DIR` for dotenv)
+```
+
+### Implementation
+
+**1. Project `.env`** (gitignored):
+
+```bash
+# .env — loaded by python-dotenv at runtime
+API_KEY=sk-abc123
+DATABASE_URL=postgresql://localhost/mydb
+```
+
+**2. Python entry point** — call `load_dotenv()` early:
+
+```python
+from dotenv import load_dotenv
+load_dotenv()  # Auto-loads .env from cwd
+
+import os
+API_KEY = os.getenv("API_KEY")  # Works everywhere
+```
+
+**3. Pueue job** — just needs `cd` to project root:
+
+```bash
+# The only requirement: cwd must contain .env
+pueue add -- bash -c 'cd ~/project && uv run python my_script.py'
+```
+
+### Why This Beats Alternatives
+
+| Approach                   | Interactive Shell | Pueue Job | Cron    | SSH Remote  | Cross-Platform |
+| -------------------------- | ----------------- | --------- | ------- | ----------- | -------------- |
+| mise `[env]`               | Yes               | **No**    | **No**  | **Fragile** | macOS+Linux    |
+| `pueue env set`            | N/A               | Yes       | **No**  | **No**      | N/A            |
+| Export in `.bashrc`        | Yes               | **No**    | **No**  | Depends     | Varies         |
+| **python-dotenv + `.env`** | **Yes**           | **Yes**   | **Yes** | **Yes**     | **Yes**        |
+
+**Cross-reference**: See `distributed-job-safety` skill — [G-15](../distributed-job-safety/references/environment-gotchas.md#g-15-pueue-jobs-cannot-see-mise-env-variables), [AP-16](../distributed-job-safety/SKILL.md)
+
+---
+
 ## Blocking Wait (`pueue wait`)
 
 Block until tasks complete — simpler than polling loops for scripts:
