@@ -540,6 +540,35 @@
       ],
       "hooks": "./plugins/tts-telegram-sync/hooks/hooks.json",
       "strict": false
+    },
+    {
+      "name": "calcom-commander",
+      "description": "Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key",
+      "version": "11.36.1",
+      "source": "./plugins/calcom-commander",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "calcom",
+        "cal.com",
+        "calendar",
+        "booking",
+        "scheduling",
+        "telegram",
+        "bot",
+        "cloud-run",
+        "gcp",
+        "supabase",
+        "agent-sdk",
+        "1password",
+        "mise",
+        "bun"
+      ],
+      "hooks": "./plugins/calcom-commander/hooks/hooks.json",
+      "strict": false
     }
   ]
 }

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+scripts/calcom-cli/node_modules/
+scripts/calcom-cli/calcom
+scripts/calcom-cli/bun.lock
+bun.lock
+state/
+logs/
