@@ -59,7 +59,14 @@ main() {
             local plugin_name
             plugin_name=$(basename "$(dirname "$(dirname "$hooks_file")")")
 
-            # Read hooks from plugin
+            # Read hooks from plugin — must be object format (keyed by event type)
+            local hooks_type
+            hooks_type=$(jq -r '.hooks | type' "$hooks_file" 2>/dev/null) || continue
+            if [[ "$hooks_type" != "object" ]]; then
+                warn "Skipping $plugin_name: hooks.json uses $hooks_type format (expected object keyed by event type)"
+                continue
+            fi
+
             local plugin_hooks
             plugin_hooks=$(jq '.hooks' "$hooks_file" 2>/dev/null) || continue
 
