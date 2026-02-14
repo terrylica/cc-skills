@@ -77,7 +77,7 @@ Missing: ${ENV_GMAIL_OP_UUID} environment variable
 
 Ask Claude Code: "Help me set up Gmail access"
   - OR -
-Run: /gmail-tools:setup
+Run: /gmail-commander:setup
 
 ━━━ MANUAL SETUP ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -92,7 +92,7 @@ Run: /gmail-tools:setup
 
 ━━━ NEED OAUTH CREDENTIALS? ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-See: ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-tools/
+See: ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/
      skills/gmail-access/references/gmail-api-setup.md
 `;
   console.error(message);
