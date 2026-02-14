@@ -1,0 +1,8 @@
+{
+  "hooks": [
+    {
+      "event": "Stop",
+      "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/hooks/bot-shutdown-notify.ts"
+    }
+  ]
+}

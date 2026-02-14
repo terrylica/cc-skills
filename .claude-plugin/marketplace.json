@@ -444,10 +444,10 @@
       "strict": false
     },
     {
-      "name": "gmail-tools",
-      "description": "Gmail API access via CLI with 1Password OAuth: list, search, read, export emails with multi-account support via mise environment variables",
+      "name": "gmail-commander",
+      "description": "Gmail + Telegram bot lifecycle - email triage, interactive commands, voice digest, Agent SDK routing, 1Password OAuth",
       "version": "11.35.2",
-      "source": "./plugins/gmail-tools",
+      "source": "./plugins/gmail-commander",
       "category": "productivity",
       "author": {
         "name": "Terry Li",
@@ -456,13 +456,18 @@
       "keywords": [
         "gmail",
         "email",
+        "telegram",
+        "bot",
+        "triage",
+        "digest",
+        "voice",
+        "agent-sdk",
         "oauth",
         "1password",
-        "api",
         "mise",
-        "bun",
-        "typescript"
+        "bun"
       ],
+      "hooks": "./plugins/gmail-commander/hooks/hooks.json",
       "strict": false
     },
     {

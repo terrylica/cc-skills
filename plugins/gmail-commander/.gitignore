@@ -1,0 +1,8 @@
+node_modules/
+dist/
+scripts/gmail-cli/node_modules/
+scripts/gmail-cli/gmail
+scripts/gmail-cli/bun.lock
+bun.lock
+state/
+logs/
