@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/hooks/bot-shutdown-notify.ts",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}
