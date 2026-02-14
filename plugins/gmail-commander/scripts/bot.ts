@@ -28,7 +28,7 @@ const PID_FILE = "/tmp/gmail-commander-bot.pid";
 const auditDir = Bun.env.AUDIT_DIR || join(process.env.HOME || "~", "own", "amonic", "logs", "audit");
 setAuditDir(auditDir);
 
-const stateFile = Bun.env.BOT_STATE_FILE || join(process.cwd(), "state", "bot-state.json");
+const stateFile = Bun.env.BOT_STATE_FILE || join(process.env.HOME || "~", "own", "amonic", "logs", "bot-state.json");
 setStateFile(stateFile);
 
 // --- Main ---
@@ -54,7 +54,7 @@ async function main() {
     const state = loadBotState();
 
     // Register commands and callbacks
-    registerCommands(bot, state, config.chatId);
+    registerCommands(bot, state, config.chatId, pendingSessions);
     registerCallbacks(bot, state);
 
     // Handle text messages for pending sessions (compose/reply body input)

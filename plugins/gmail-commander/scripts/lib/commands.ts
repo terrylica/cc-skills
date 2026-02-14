@@ -8,11 +8,13 @@
  * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { Bot, InlineKeyboard } from "grammy";
 import type { BotState } from "./state.js";
-import { listInboxEmails, searchEmails, readEmail } from "./gmail-client.js";
-import { escapeHtml, formatEmailList } from "./telegram-format.js";
+import { listInboxEmails, searchEmails, readEmail, fetchRecentEmails, listDrafts } from "./gmail-client.js";
+import { escapeHtml, formatEmailList, formatDigestHtml } from "./telegram-format.js";
 import { chunkTelegramHtml } from "./telegram-chunk.js";
+import { parseTriageResponse, formatEmailsForTriage, isSkillContaminated, TRIAGE_SYSTEM_PROMPT, ANTI_SKILL_PREFIX } from "./triage.js";
 import { auditLog } from "./audit.js";
 
 /**
@@ -75,7 +77,12 @@ export async function setCommandMenu(bot: Bot): Promise<void> {
 /**
  * Register all command handlers with the bot.
  */
-export function registerCommands(bot: Bot, state: BotState, authorizedChatId: number) {
+export function registerCommands(
+  bot: Bot,
+  state: BotState,
+  authorizedChatId: number,
+  sessions?: Map<number, { type: string; step: string; messageId?: string; to?: string; from?: string; subject?: string; expiresAt: number }>
+) {
   // Auth guard — only respond to authorized chat
   bot.use(async (ctx, next) => {
     if (ctx.chat?.id !== authorizedChatId) {
@@ -127,7 +134,7 @@ export function registerCommands(bot: Bot, state: BotState, authorizedChatId: nu
 
       // Build inline keyboard with Read/Reply buttons
       const keyboard = new InlineKeyboard();
-      for (const email of emails.slice(0, 5)) {
+      for (const email of emails.slice(0, 10)) {
         const idx = registerCallback(ctx.chat.id, email.id, email.from, email.subject);
         keyboard.text(`Read #${idx}`, `read:${idx}`).text(`Reply #${idx}`, `reply:${idx}`).row();
       }
@@ -182,7 +189,7 @@ export function registerCommands(bot: Bot, state: BotState, authorizedChatId: nu
       const formatted = formatEmailList(emails);
 
       const keyboard = new InlineKeyboard();
-      for (const email of emails.slice(0, 5)) {
+      for (const email of emails.slice(0, 10)) {
         const idx = registerCallback(ctx.chat.id, email.id, email.from, email.subject);
         keyboard.text(`Read #${idx}`, `read:${idx}`).text(`Reply #${idx}`, `reply:${idx}`).row();
       }
@@ -236,7 +243,9 @@ export function registerCommands(bot: Bot, state: BotState, authorizedChatId: nu
         .text("Reply", `reply_direct:${messageId}`)
         .url("Open in Gmail", `https://mail.google.com/mail/u/0/#inbox/${messageId}`);
 
-      const chunks = chunkTelegramHtml(`<pre>${escapeHtml(content)}</pre>`, 4096);
+      const escaped = escapeHtml(content);
+      // Reserve space for <pre></pre> tags (11 chars) in each chunk
+      const chunks = chunkTelegramHtml(escaped, 4096 - 11).map(c => `<pre>${c}</pre>`);
 
       await ctx.api.editMessageText(ctx.chat.id, thinking.message_id, chunks[0]!, {
         parse_mode: "HTML",
@@ -256,27 +265,205 @@ export function registerCommands(bot: Bot, state: BotState, authorizedChatId: nu
     }
   });
 
-  // /digest — trigger manual digest
+  // /digest [hours] — run triage pipeline inline
   bot.command("digest", async (ctx) => {
     state.incrementCommands();
     state.incrementDigests();
-    await ctx.reply(
-      "<i>Digest triggered manually. Use the scheduled digest for full triage.</i>\n" +
-      "<i>Running /inbox to show current emails...</i>",
-      { parse_mode: "HTML" }
-    );
-    // Delegate to inbox handler with default count
-    // This will be enhanced in Phase 5 with full triage pipeline
-    auditLog("bot.digest_manual");
+
+    const text = (ctx.message?.text || "").replace(/^\/digest\s*/, "").trim();
+    const hours = parseInt(text, 10) || 6;
+
+    const thinking = await ctx.reply(`<i>Running email digest (last ${hours}h)...</i>`, { parse_mode: "HTML" });
+
+    try {
+      const emails = await fetchRecentEmails(hours);
+
+      if (emails.length === 0) {
+        await ctx.api.editMessageText(ctx.chat.id, thinking.message_id,
+          `<b>Digest</b> (${hours}h window)\n\n<i>No emails found. Inbox is clean.</i>`,
+          { parse_mode: "HTML" });
+        auditLog("bot.digest_silent", { hours, reason: "no_emails" });
+        return;
+      }
+
+      await ctx.api.editMessageText(ctx.chat.id, thinking.message_id,
+        `<i>Found ${emails.length} emails. Triaging with AI...</i>`,
+        { parse_mode: "HTML" });
+
+      const emailText = formatEmailsForTriage(emails);
+      const prompt = `${ANTI_SKILL_PREFIX}Triage these ${emails.length} emails:\n\n${emailText}`;
+
+      const model = Bun.env.HAIKU_MODEL;
+      if (!model) throw new Error("HAIKU_MODEL not set in env");
+
+      let triageText = "";
+      const result = query({
+        prompt,
+        options: {
+          model: model as "haiku",
+          maxTurns: 1,
+          persistSession: false,
+          tools: [],
+          settingSources: [],
+          systemPrompt: TRIAGE_SYSTEM_PROMPT,
+        },
+      });
+
+      for await (const message of result) {
+        if (message.type === "assistant" && message.message?.content) {
+          for (const block of message.message.content) {
+            if (block.type === "text") {
+              triageText += block.text;
+            }
+          }
+        }
+      }
+
+      if (isSkillContaminated(triageText)) {
+        auditLog("bot.digest_contaminated", { textLen: triageText.length });
+        await ctx.api.editMessageText(ctx.chat.id, thinking.message_id,
+          `<b>Digest Error</b>: AI response was contaminated. Try again.`,
+          { parse_mode: "HTML" });
+        return;
+      }
+
+      const items = parseTriageResponse(triageText);
+
+      if (items.length === 0) {
+        await ctx.api.editMessageText(ctx.chat.id, thinking.message_id,
+          `<b>Digest</b> (${hours}h window)\n\n<i>No significant emails among ${emails.length} checked. All clear.</i>`,
+          { parse_mode: "HTML" });
+        auditLog("bot.digest_silent", { hours, totalEmails: emails.length, reason: "no_significant" });
+        return;
+      }
+
+      const digestHtml = formatDigestHtml(items, emails.length);
+      const chunks = chunkTelegramHtml(digestHtml, 4096);
+
+      await ctx.api.editMessageText(ctx.chat.id, thinking.message_id, chunks[0]!, {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+      });
+
+      for (let i = 1; i < chunks.length; i++) {
+        await ctx.reply(chunks[i]!, {
+          parse_mode: "HTML",
+          link_preview_options: { is_disabled: true },
+        });
+      }
+
+      auditLog("bot.digest_manual", {
+        hours,
+        totalEmails: emails.length,
+        significantItems: items.length,
+      });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      try {
+        await ctx.api.editMessageText(ctx.chat.id, thinking.message_id,
+          `<b>Digest Error</b>: ${escapeHtml(msg)}`, { parse_mode: "HTML" });
+      } catch {
+        // Edit may fail if message was deleted
+      }
+      auditLog("bot.digest_error", { error: msg });
+    }
   });
 
-  // /drafts — list drafts (placeholder for Phase 4)
-  bot.command("drafts", async (ctx) => {
+  // /compose — start compose flow
+  bot.command("compose", async (ctx) => {
     state.incrementCommands();
+    if (!sessions) {
+      await ctx.reply("<i>Compose not available. Use the AI: just type your message.</i>", { parse_mode: "HTML" });
+      return;
+    }
+    const PENDING_TTL_MS = 5 * 60 * 1000;
+
+    sessions.set(ctx.chat.id, {
+      type: "compose",
+      step: "to",
+      expiresAt: Date.now() + PENDING_TTL_MS,
+    });
+
     await ctx.reply(
-      "<i>Draft listing coming soon. For now, view drafts at:</i>\n" +
-      `<a href="https://mail.google.com/mail/u/0/#drafts">Gmail Drafts</a>`,
+      `<b>Compose New Email</b>\n\n<i>To (email address):</i>`,
       { parse_mode: "HTML" }
     );
+    auditLog("bot.compose_start");
+  });
+
+  // /reply <message_id> — start reply flow
+  bot.command("reply", async (ctx) => {
+    state.incrementCommands();
+    const messageId = (ctx.message?.text || "").replace(/^\/reply\s*/, "").trim();
+
+    if (!messageId) {
+      await ctx.reply(
+        `<b>Usage</b>: /reply &lt;message_id&gt;\n\nGet message IDs from /inbox or /search, or use the Reply button.`,
+        { parse_mode: "HTML" }
+      );
+      return;
+    }
+
+    if (!sessions) {
+      await ctx.reply("<i>Reply not available. Use the AI: just type your message.</i>", { parse_mode: "HTML" });
+      return;
+    }
+    const PENDING_TTL_MS = 5 * 60 * 1000;
+
+    sessions.set(ctx.chat.id, {
+      type: "reply",
+      step: "body",
+      messageId,
+      expiresAt: Date.now() + PENDING_TTL_MS,
+    });
+
+    await ctx.reply(
+      `<b>Replying to</b>: <code>${escapeHtml(messageId)}</code>\n\n<i>Type your reply message:</i>`,
+      { parse_mode: "HTML" }
+    );
+    auditLog("bot.reply_start", { messageId });
+  });
+
+  // /drafts — list draft emails
+  bot.command("drafts", async (ctx) => {
+    state.incrementCommands();
+    const thinking = await ctx.reply("<i>Fetching drafts...</i>", { parse_mode: "HTML" });
+
+    try {
+      const drafts = await listDrafts(20);
+      const formatted = formatEmailList(drafts);
+
+      const keyboard = new InlineKeyboard();
+      for (const draft of drafts.slice(0, 10)) {
+        const idx = registerCallback(ctx.chat.id, draft.id, draft.from, draft.subject);
+        keyboard.text(`Read #${idx}`, `read:${idx}`).row();
+      }
+
+      const chunks = chunkTelegramHtml(
+        `<b>Drafts</b> (${drafts.length} found)\n\n${formatted}\n\n` +
+        `<a href="https://mail.google.com/mail/u/0/#drafts">Open in Gmail</a>`,
+        4096
+      );
+
+      await ctx.api.editMessageText(ctx.chat.id, thinking.message_id, chunks[0]!, {
+        parse_mode: "HTML",
+        reply_markup: drafts.length > 0 ? keyboard : undefined,
+        link_preview_options: { is_disabled: true },
+      });
+
+      for (let i = 1; i < chunks.length; i++) {
+        await ctx.reply(chunks[i]!, {
+          parse_mode: "HTML",
+          link_preview_options: { is_disabled: true },
+        });
+      }
+
+      auditLog("bot.drafts", { count: drafts.length });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      await ctx.api.editMessageText(ctx.chat.id, thinking.message_id,
+        `<b>Error</b>: ${escapeHtml(msg)}`, { parse_mode: "HTML" });
+      auditLog("bot.drafts_error", { error: msg });
+    }
   });
 }

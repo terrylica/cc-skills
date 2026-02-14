@@ -68,7 +68,9 @@ export function registerCallbacks(bot: Bot, _state: BotState) {
         .text("Reply", `reply_direct:${data.messageId}`)
         .url("Open in Gmail", `https://mail.google.com/mail/u/0/#inbox/${data.messageId}`);
 
-      const chunks = chunkTelegramHtml(`<pre>${escapeHtml(content)}</pre>`, 4096);
+      const escaped = escapeHtml(content);
+      // Reserve space for <pre></pre> tags (11 chars) in each chunk
+      const chunks = chunkTelegramHtml(escaped, 4096 - 11).map(c => `<pre>${c}</pre>`);
 
       // First chunk with buttons
       await ctx.reply(chunks[0]!, {
