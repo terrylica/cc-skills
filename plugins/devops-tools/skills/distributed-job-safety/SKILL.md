@@ -393,6 +393,57 @@ head -10 /tmp/filelist.txt
 expected = N_normal * barriers_per_query + N_skipped * 1 + N_error * 1
 ```
 
+### AP-15: Cursor File Deletion on Completion
+
+**Symptom**: ETL/indexer job succeeds, but next invocation does a full re-run instead of incremental resume.
+
+**Root cause**: Code deletes the cursor/checkpoint/offset file after processing completes (e.g., `CURSOR_FILE.unlink()` in the "done" branch). The cursor IS the resume state — deleting it forces a full re-index.
+
+**Fix**: Never delete checkpoint files on success. Add a filename-based fallback for recovery:
+
+```python
+# WRONG
+if not has_more_data:
+    cursor_file.unlink()  # "Clean up" destroys resume state
+
+# RIGHT
+# Leave cursor in place. Next run reads it, queries for new data, finds none, exits quickly.
+# Add fallback: derive position from output filenames if cursor is lost.
+```
+
+See also: [G-17](./references/environment-gotchas.md#g-17-cursorcheckpoint-file-deletion-destroys-incremental-resume)
+
+### AP-16: Using mise `[env]` for Secrets Consumed by Pueue/Cron/Systemd Jobs
+
+**Symptom**: Jobs work in interactive shell but fail in pueue/cron/systemd with empty env vars.
+
+**Root cause**: mise `[env]` variables require mise activation in the shell. Pueue jobs, cron jobs, and systemd services run in clean shells without mise. Workarounds (`eval "$(mise env)"` inside jobs) introduce trust issues, version incompatibilities, and `__MISE_DIFF` leakage over SSH. # PROCESS-STORM-OK (documentation of anti-pattern)
+
+**Fix**: Use `python-dotenv` + `.env` for secrets. Use `mise.toml [tasks]` for task definitions only:
+
+```toml
+# mise.toml — tasks only, no [env] for secrets
+[tasks.backfill]
+run = "bash scripts/backfill.sh"
+
+[tasks.ingest]
+run = "bash scripts/ingest.sh"
+```
+
+```bash
+# scripts/backfill.sh — just cd so python-dotenv finds .env
+pueue add -- bash -c 'cd ~/project && uv run python my_indexer.py'
+```
+
+```python
+# my_indexer.py — loads .env from cwd automatically
+from dotenv import load_dotenv
+load_dotenv()
+API_KEY = os.getenv("API_KEY")  # Works in interactive shell AND pueue jobs
+```
+
+See also: [G-15](./references/environment-gotchas.md#g-15-pueue-jobs-cannot-see-mise-env-variables)
+
 ---
 
 ## The Mise + Pueue + systemd-run Stack
@@ -559,5 +610,5 @@ devops-tools:distributed-job-safety    (universal patterns - this skill)
 
 - [Concurrency Invariants](./references/concurrency-invariants.md) -- Formal invariant specifications (INV-1 through INV-8)
 - [Deployment Checklist](./references/deployment-checklist.md) -- Step-by-step remote deployment protocol
-- [Environment Gotchas](./references/environment-gotchas.md) -- Host-specific pitfalls (G-1 through G-14)
+- [Environment Gotchas](./references/environment-gotchas.md) -- Host-specific pitfalls (G-1 through G-17)
 - **Cross-reference**: `devops-tools:pueue-job-orchestration` -- Pueue basics, dependency chaining, installation
