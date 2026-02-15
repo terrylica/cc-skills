@@ -1,3 +1,67 @@
+# [11.41.0](https://github.com/terrylica/cc-skills/compare/v11.40.0...v11.41.0) (2026-02-15)
+
+
+### Features
+
+* **calcom-commander:** add Pushover dual-channel notifications + webhook relay ([dbf17ea](https://github.com/terrylica/cc-skills/commit/dbf17ea321e1cc86b9053ff7c7d7e6c5ed7f5eef))
+* **gmail-commander:** add draft lifecycle management (list, delete, update) ([48294c0](https://github.com/terrylica/cc-skills/commit/48294c087f316cd5a2b65d38b9f8c147a0dd72bc))
+* **imessage-tools:** v4 native pitfall protections + full metadata extraction ([a7eb486](https://github.com/terrylica/cc-skills/commit/a7eb486930d6230061cc90bbdc2d3c0d2a419212))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>calcom-commander</strong> (3 changes)</summary>
+
+- [booking-config](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-config/SKILL.md) - updated (+28)
+- [booking-notify](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-notify/SKILL.md) - updated (+66/-10)
+- [infra-deploy](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/infra-deploy/SKILL.md) - updated (+66)
+
+</details>
+
+<details>
+<summary><strong>imessage-tools</strong> (1 change)</summary>
+
+- [imessage-query](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/SKILL.md) - updated (+30/-2)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>calcom-commander/booking-notify</strong> (3 files)</summary>
+
+- [Notification Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-notify/references/notification-templates.md) - updated (+69/-1)
+- [Pushover Setup Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-notify/references/pushover-setup.md) - new (+87)
+- [Webhook Relay Deployment](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-notify/references/webhook-relay.md) - new (+120)
+
+</details>
+
+<details>
+<summary><strong>imessage-tools/imessage-query</strong> (2 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/evolution-log.md) - updated (+57)
+- [Known Pitfalls](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/known-pitfalls.md) - updated (+41/-15)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Cal.com Commander Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/CLAUDE.md) - updated (+24/-6)
+
 # [11.40.0](https://github.com/terrylica/cc-skills/compare/v11.39.0...v11.40.0) (2026-02-15)
 
 
