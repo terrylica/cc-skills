@@ -102,8 +102,30 @@ export async function listInboxEmails(count: number = 10): Promise<Email[]> {
   return parseEmailJson(stdout);
 }
 
-export async function listDrafts(count: number = 10): Promise<Email[]> {
-  return searchEmails("in:drafts", count);
+export interface DraftSummary {
+  draftId: string;
+  messageId: string;
+  threadId: string;
+  from: string;
+  to: string;
+  subject: string;
+  snippet: string;
+  date: string;
+}
+
+export async function listDrafts(count: number = 10): Promise<DraftSummary[]> {
+  const { stdout, stderr, exitCode } = await runGmailCli(
+    ["drafts", "-n", String(count), "--json"]
+  );
+  if (exitCode !== 0) {
+    auditLog("gmail.drafts_error", { exitCode, stderr: stderr.slice(0, 500) });
+    throw new Error(`Gmail drafts failed (exit ${exitCode}): ${stderr.slice(0, 200)}`);
+  }
+  try {
+    return JSON.parse(stdout);
+  } catch {
+    return [];
+  }
 }
 
 export async function createDraft(opts: DraftOptions): Promise<string> {
@@ -115,6 +137,27 @@ export async function createDraft(opts: DraftOptions): Promise<string> {
   if (exitCode !== 0) {
     auditLog("gmail.draft_error", { exitCode, stderr: stderr.slice(0, 500) });
     throw new Error(`Gmail draft failed (exit ${exitCode}): ${stderr.slice(0, 200)}`);
+  }
+  return stdout;
+}
+
+export async function deleteDraft(draftId: string): Promise<void> {
+  const { stderr, exitCode } = await runGmailCli(["draft-delete", draftId]);
+  if (exitCode !== 0) {
+    auditLog("gmail.draft_delete_error", { draftId, exitCode, stderr: stderr.slice(0, 500) });
+    throw new Error(`Gmail draft-delete failed (exit ${exitCode}): ${stderr.slice(0, 200)}`);
+  }
+}
+
+export async function updateDraft(draftId: string, opts: DraftOptions): Promise<string> {
+  const args = ["draft-update", draftId, "--to", opts.to, "--subject", opts.subject, "--body", opts.body];
+  if (opts.from) args.push("--from", opts.from);
+  if (opts.replyTo) args.push("--reply-to", opts.replyTo);
+
+  const { stdout, stderr, exitCode } = await runGmailCli(args);
+  if (exitCode !== 0) {
+    auditLog("gmail.draft_update_error", { draftId, exitCode, stderr: stderr.slice(0, 500) });
+    throw new Error(`Gmail draft-update failed (exit ${exitCode}): ${stderr.slice(0, 200)}`);
   }
   return stdout;
 }
