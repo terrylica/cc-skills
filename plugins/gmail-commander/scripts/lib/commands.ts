@@ -12,7 +12,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { Bot, InlineKeyboard } from "grammy";
 import type { BotState } from "./state.js";
 import { listInboxEmails, searchEmails, readEmail, fetchRecentEmails, listDrafts } from "./gmail-client.js";
-import { escapeHtml, formatEmailList, formatDigestHtml } from "./telegram-format.js";
+import { escapeHtml, formatEmailList, formatDigestHtml, formatEmailReadView } from "./telegram-format.js";
 import { chunkTelegramHtml } from "./telegram-chunk.js";
 import { parseTriageResponse, formatEmailsForTriage, isSkillContaminated, TRIAGE_SYSTEM_PROMPT, ANTI_SKILL_PREFIX } from "./triage.js";
 import { auditLog } from "./audit.js";
@@ -134,9 +134,10 @@ export function registerCommands(
 
       // Build inline keyboard with Read/Reply buttons
       const keyboard = new InlineKeyboard();
-      for (const email of emails.slice(0, 10)) {
-        const idx = registerCallback(ctx.chat.id, email.id, email.from, email.subject);
-        keyboard.text(`Read #${idx}`, `read:${idx}`).text(`Reply #${idx}`, `reply:${idx}`).row();
+      for (let i = 0; i < Math.min(emails.length, 10); i++) {
+        const email = emails[i]!;
+        const cbId = registerCallback(ctx.chat.id, email.id, email.from, email.subject);
+        keyboard.text(`Read #${i + 1}`, `read:${cbId}`).text(`Reply #${i + 1}`, `reply:${cbId}`).row();
       }
 
       const chunks = chunkTelegramHtml(`<b>Inbox</b> (${emails.length} emails)\n\n${formatted}`, 4096);
@@ -189,9 +190,10 @@ export function registerCommands(
       const formatted = formatEmailList(emails);
 
       const keyboard = new InlineKeyboard();
-      for (const email of emails.slice(0, 10)) {
-        const idx = registerCallback(ctx.chat.id, email.id, email.from, email.subject);
-        keyboard.text(`Read #${idx}`, `read:${idx}`).text(`Reply #${idx}`, `reply:${idx}`).row();
+      for (let i = 0; i < Math.min(emails.length, 10); i++) {
+        const email = emails[i]!;
+        const cbId = registerCallback(ctx.chat.id, email.id, email.from, email.subject);
+        keyboard.text(`Read #${i + 1}`, `read:${cbId}`).text(`Reply #${i + 1}`, `reply:${cbId}`).row();
       }
 
       const chunks = chunkTelegramHtml(
@@ -243,9 +245,8 @@ export function registerCommands(
         .text("Reply", `reply_direct:${messageId}`)
         .url("Open in Gmail", `https://mail.google.com/mail/u/0/#inbox/${messageId}`);
 
-      const escaped = escapeHtml(content);
-      // Reserve space for <pre></pre> tags (11 chars) in each chunk
-      const chunks = chunkTelegramHtml(escaped, 4096 - 11).map(c => `<pre>${c}</pre>`);
+      const formatted = formatEmailReadView(content);
+      const chunks = chunkTelegramHtml(formatted, 4096);
 
       await ctx.api.editMessageText(ctx.chat.id, thinking.message_id, chunks[0]!, {
         parse_mode: "HTML",
@@ -434,9 +435,10 @@ export function registerCommands(
       const formatted = formatEmailList(drafts);
 
       const keyboard = new InlineKeyboard();
-      for (const draft of drafts.slice(0, 10)) {
-        const idx = registerCallback(ctx.chat.id, draft.id, draft.from, draft.subject);
-        keyboard.text(`Read #${idx}`, `read:${idx}`).row();
+      for (let i = 0; i < Math.min(drafts.length, 10); i++) {
+        const draft = drafts[i]!;
+        const cbId = registerCallback(ctx.chat.id, draft.id, draft.from, draft.subject);
+        keyboard.text(`Read #${i + 1}`, `read:${cbId}`).row();
       }
 
       const chunks = chunkTelegramHtml(

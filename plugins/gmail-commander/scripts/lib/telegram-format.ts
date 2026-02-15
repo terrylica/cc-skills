@@ -129,6 +129,106 @@ export function formatEmailList(
   return emails.map((e, i) => formatEmailCard(e, i + 1)).join("\n\n");
 }
 
+// --- Email Read View (structured from raw gmail-cli output) ---
+
+export function formatEmailReadView(raw: string): string {
+  // Parse header block (before "--- Body ---") and body (after)
+  const bodyMarker = raw.indexOf("--- Body ---");
+  const headerSection = bodyMarker >= 0 ? raw.slice(0, bodyMarker) : raw;
+  const bodySection = bodyMarker >= 0 ? raw.slice(bodyMarker + 12).trim() : "";
+
+  // Extract header fields
+  const headers: Record<string, string> = {};
+  for (const line of headerSection.split("\n")) {
+    const match = line.match(/^(From|To|Subject|Date|Labels|Cc|Bcc):\s*(.+)/);
+    if (match) headers[match[1]!] = match[2]!.trim();
+  }
+
+  // Build header display
+  let html = "";
+  if (headers.Subject) html += `<b>${escapeHtml(headers.Subject)}</b>\n`;
+  if (headers.From) html += `<b>From:</b> ${escapeHtml(headers.From)}\n`;
+  if (headers.To) html += `<b>To:</b> ${escapeHtml(headers.To)}\n`;
+  if (headers.Cc) html += `<b>Cc:</b> ${escapeHtml(headers.Cc)}\n`;
+  if (headers.Date) html += `<i>${escapeHtml(headers.Date)}</i>\n`;
+  if (headers.Labels && headers.Labels !== "INBOX") {
+    html += `<code>${escapeHtml(headers.Labels)}</code>\n`;
+  }
+
+  if (!bodySection) return html || escapeHtml(raw);
+
+  html += "\n";
+
+  // Process body: separate main content from quoted thread
+  const bodyLines = bodySection.split("\n");
+  const mainLines: string[] = [];
+  const quotedLines: string[] = [];
+  let inQuote = false;
+  let hitSignature = false;
+
+  for (const line of bodyLines) {
+    // Detect signature markers
+    if (!hitSignature && /^--\s*$/.test(line)) {
+      hitSignature = true;
+      continue;
+    }
+    // Detect quoted reply start
+    if (!inQuote && /^On .+ wrote:$/.test(line.trim())) {
+      inQuote = true;
+      quotedLines.push(line);
+      continue;
+    }
+    // Lines starting with > are quoted
+    if (line.startsWith(">")) {
+      inQuote = true;
+      quotedLines.push(line);
+      continue;
+    }
+
+    if (inQuote) {
+      quotedLines.push(line);
+    } else if (hitSignature) {
+      // Skip signature content
+      continue;
+    } else {
+      mainLines.push(line);
+    }
+  }
+
+  // Format main body — clean up blank lines, strip tracking URLs
+  const mainText = mainLines
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")                           // Collapse excess blank lines
+    .replace(/https?:\/\/\S{100,}/g, "[tracking link]")   // Strip long tracking URLs
+    .replace(/\[image:\s*photo\]/gi, "[image]")            // Clean image refs
+    .trim();
+
+  if (mainText) {
+    html += escapeHtml(mainText) + "\n";
+  }
+
+  // Format quoted thread — truncated, in blockquote
+  if (quotedLines.length > 0) {
+    const cleaned = quotedLines
+      .map(l => l.replace(/^>\s?/, ""))         // Strip > prefix
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/https?:\/\/\S{100,}/g, "")     // Strip tracking URLs entirely
+      .replace(/\[image:\s*photo\]/gi, "")
+      .trim();
+
+    if (cleaned) {
+      // Truncate quoted thread to ~500 chars
+      const truncated = cleaned.length > 500
+        ? cleaned.slice(0, 500).replace(/\n[^\n]*$/, "") + "\n..."
+        : cleaned;
+      html += `\n<blockquote>${escapeHtml(truncated)}</blockquote>`;
+    }
+  }
+
+  return html;
+}
+
 // --- Send Helpers (raw fetch, used by digest — bot uses grammY) ---
 
 export async function sendTelegramMessage(chatId: string, html: string): Promise<boolean> {
