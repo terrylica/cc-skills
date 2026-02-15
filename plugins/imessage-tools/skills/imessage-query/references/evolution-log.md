@@ -6,6 +6,63 @@ Reverse chronological record of changes to this skill.
 
 ---
 
+## 2026-02-15 — v4 Native Pitfall Protections + Full Metadata Extraction
+
+**Context**: After correcting the "voice message" misconception (actually retracted messages — pitfall #14) and discovering that `thread_originator_guid` provides inline quote context for 291 messages in the Phoebe chat, we upgraded the script to natively handle every known pitfall deterministically rather than relying on contextual documentation alone. Cross-referenced all 5 forked OSS repos and the full 92-column `message` schema to identify missing attributes.
+
+**Changes**:
+
+1. **Retracted message exclusion (pitfall #14)** — Messages with `date_retracted > 0` are deterministically excluded from both stdout and NDJSON export. Also handles older iOS pattern where Undo Send set `date_edited` instead of `date_retracted` (detected when `date_edited > 0` + empty text/attributedBody).
+
+2. **Edited message flagging** — Messages with `date_edited > 0` that still have content are included but flagged with `[edited]` in stdout and `"edited": true` in NDJSON.
+
+3. **Audio message identification (pitfall #9 correction)** — Uses `is_audio_message` column (definitive) instead of heuristic guessing from NULL text + attachments. Audio messages emit `[audio message]` placeholder instead of being silently dropped.
+
+4. **Inline quote resolution** — Builds GUID→message index via `_build_guid_index()`. Messages with `thread_originator_guid` get their `reply_to` field populated with the quoted message's `{ts, sender, text}`. Shown as `[replying to sender: "quoted text"]` in stdout and `"reply_to": {...}` in NDJSON.
+
+5. **Attachment surfacing** — Messages with no text but `cache_has_attachments = 1` now emit `[attachment: filename]` or `[attachment: mime_type]` instead of being silently dropped. LEFT JOINs to `attachment` table via `message_attachment_join`.
+
+6. **Message effects** — `expressive_send_style_id` decoded to human-readable names (slam, loud, gentle, invisible_ink). Shown as `[slam]` in stdout and `"effect": "slam"` in NDJSON.
+
+7. **Service type** — `service` column distinguishes iMessage from SMS. Non-iMessage messages flagged with `[SMS]` in stdout and `"service": "SMS"` in NDJSON.
+
+8. **Enhanced stats** — `--stats` now shows retracted, edited, audio, threaded replies, SMS counts, and adjusted coverage (excluding retracted).
+
+9. **Row deduplication** — LEFT JOIN to attachment table can produce duplicate rows for multi-attachment messages. Dedup key `(ts, is_from_me, text)` prevents duplicates in output.
+
+**SQL query changes**:
+
+- Added columns: `m.date_retracted`, `m.date_edited`, `m.is_audio_message`, `m.service`, `m.expressive_send_style_id`, `m.cache_has_attachments`, `a.transfer_name`, `a.mime_type`
+- Added JOINs: `LEFT JOIN message_attachment_join`, `LEFT JOIN attachment`
+- New function: `_build_guid_index()` for GUID→message resolution
+
+**NDJSON schema v2**:
+
+```json
+{
+  "ts": "2026-02-14 07:16:22",
+  "sender": "them",
+  "is_from_me": false,
+  "text": "I was not trying to loop around you...",
+  "decoded": false,
+  "type": "text",
+  "edited": true,
+  "service": "SMS",
+  "effect": "slam",
+  "reply_to": {
+    "ts": "2026-02-13 23:30:00",
+    "sender": "me",
+    "text": "Original message..."
+  }
+}
+```
+
+Fields `edited`, `service`, `effect`, `reply_to` are optional — only present when applicable.
+
+**Informed by**: macos-messages (columns: `date_edited`, `date_retracted`, `expressive_send_style_id`, `thread_originator_guid`), imessage-exporter (attachment handling), full `PRAGMA table_info(message)` audit (92 columns).
+
+---
+
 ## 2026-02-14 — v3 Decoder: 3-Tier with pytypedstream + Cross-Repo Analysis
 
 **Context**: After the v2 fix (NSString marker + length-prefix), conducted a cross-repo analysis of 5 open-source iMessage decoder implementations to find the best-in-class approaches. Forked and studied: imessage-exporter (Rust), macos-messages (Python), imessage-conversation-analyzer (Python), imessage_tools (Python), pymessage-lite (Python). Full analysis in [cross-repo-analysis.md](./cross-repo-analysis.md).
