@@ -46,6 +46,10 @@ plugins:
         - plugins/dotfiles-tools/hooks/hooks.json
         - plugins/statusline-tools/hooks/hooks.json
         - plugins/gh-tools/hooks/hooks.json
+        # Command definition files (ensures command changes are tracked)
+        - plugins/mise/commands/run-full-release.md
+        - plugins/mise/commands/show-env-status.md
+        - plugins/mise/commands/list-repo-tasks.md
       message: "chore(release): ${nextRelease.version} [skip ci]"
   # Push commit and tags after @semantic-release/git creates them
   # Belt-and-suspenders: ensures push happens even in --no-ci mode
