@@ -116,7 +116,7 @@ export const PATTERNS = {
  */
 export const DEFAULT_CONFIG = {
   enabled: true,
-  mode: "ask", // "ask" | "deny"
+  mode: "deny", // "deny" | "ask" — deny gives Claude Code actionable guidance to self-correct
   patterns: {
     numpy_random: true,
     python_random: true,

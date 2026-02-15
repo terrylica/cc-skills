@@ -192,7 +192,7 @@ rm -rf ~/fork-tools/repo  # CWD-DELETE-OK
 
 ## File Size Bloat Guard
 
-The `pretooluse-file-size-guard.ts` hook prevents single-file bloat by checking line count before Write/Edit operations. Uses `ask` mode (confirmation dialog) so the user can override when intentional.
+The `pretooluse-file-size-guard.ts` hook prevents single-file bloat by checking line count before Write/Edit operations. Uses tiered approach: warn via PostToolUse (soft notification), block via `deny` (hard block with guidance) at the block threshold.
 
 ### Detection
 
