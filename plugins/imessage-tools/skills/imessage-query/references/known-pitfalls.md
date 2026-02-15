@@ -25,15 +25,16 @@ Every gotcha discovered when working with the macOS iMessage database, with symp
 | #   | Pitfall                       | Symptom                                         | Solution                                                                                                 |
 | --- | ----------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | 1   | `text` column NULL            | Message appears empty/missing                   | Check `attributedBody` — use decode script                                                               |
-| 2   | NSAttributedString binary     | Raw binary garbage in output                    | Split on null bytes, filter NS\* class names, take longest chunk                                         |
+| 2   | NSAttributedString binary     | Raw binary garbage in output                    | **v2**: NSString marker + length-prefix extraction (no filtering needed)                                 |
 | 3   | Tapback reactions as messages | Duplicate/phantom messages                      | Filter with `associated_message_type = 0`                                                                |
-| 4   | `iI` suffix artifacts         | Decoded text ends with `iI` + random chars      | Strip with regex `r'iI.{0,5}$'`                                                                          |
-| 5   | `+` length prefix             | Decoded text starts with `+` then a single char | Strip with regex `r'^\+.'`                                                                               |
+| 4   | `iI` suffix artifacts         | Decoded text ends with `iI` + random chars      | **v1 only** — v2 length-prefix extraction doesn't include trailing artifacts                             |
+| 5   | `+` length prefix             | Decoded text starts with `+` then a single char | **v1 only** — v2 length-prefix extraction doesn't include leading artifacts                              |
 | 6   | Wrong timezone                | Timestamps off by hours                         | Add `'localtime'` modifier to `datetime()`                                                               |
 | 7   | zsh `!=` escaping             | Shell error when using `!=` in SQL              | Use `length(m.text) > 0` instead of `m.text != ''`                                                       |
 | 8   | `kIMMessagePartAttributeName` | Garbage metadata text in decoded output         | These are tapback metadata — filter by `associated_message_type = 0`                                     |
 | 9   | Voice vs dictated confusion   | Both have NULL `text`                           | Voice: `cache_has_attachments = 1`. Dictated: `cache_has_attachments = 0` + `attributedBody` > 100 bytes |
 | 10  | `NSValue` in decoded text     | Short garbage strings like "NSValue"            | These are tapback/reaction attribute values — already filtered by `associated_message_type = 0`          |
+| 11  | Short messages invisible      | Messages <50 chars return `None` from decode    | **FIXED v2** — replaced null-split decoder with NSString marker + length-prefix extraction               |
 
 ---
 
@@ -44,38 +45,33 @@ Every gotcha discovered when working with the macOS iMessage database, with symp
 The `attributedBody` column contains a serialized `NSAttributedString` object. The binary format includes:
 
 - A `streamtyped` header
-- The actual text content
+- The actual text content (after a `b"NSString"` marker + 5-byte preamble + length prefix)
 - Attribute dictionaries (font, color, paragraph style)
 - Apple framework class names as markers
 
-**Decode strategy** (used by the bundled script):
+**Decode strategy v2** (used by the bundled script — NSString marker + length-prefix):
 
 ```python
-import re
-
 def decode_attributed_body(attr_body: bytes) -> str | None:
-    decoded = attr_body.decode("utf-8", errors="ignore")
-    chunks = re.split(r"\x00+", decoded)
-
-    # Filter out Apple framework noise
-    ns_classes = {"NSDictionary", "NSMutableParagraphStyle", "NSFont",
-                  "NSColor", "NSString", "NSAttributedString", "NSObject",
-                  "NSNumber", "NSValue", "NSArray", "NSURL", "NSRange",
-                  "streamtyped", "kIMMessagePartAttributeName",
-                  "__kIMMessagePartAttributeName"}
-
-    meaningful = [c.strip() for c in chunks
-                  if len(c.strip()) > 3
-                  and not any(cls in c for cls in ns_classes)]
-
-    if not meaningful:
+    if not attr_body:
         return None
-
-    text = max(meaningful, key=len)
-    text = re.sub(r"iI.{0,5}$", "", text).strip()
-    text = re.sub(r"^\+.", "", text).strip()
-    return text if len(text) > 1 else None
+    try:
+        parts = attr_body.split(b"NSString")
+        if len(parts) < 2:
+            return None
+        content = parts[1][5:]  # skip 5-byte preamble after NSString
+        length = content[0]
+        start = 1
+        if content[0] == 129:  # 0x81 = 2-byte length follows (little-endian)
+            length = int.from_bytes(content[1:3], "little")
+            start = 3
+        text = content[start:start + length].decode("utf-8", errors="ignore").strip()
+        return text if len(text) >= 1 else None
+    except (IndexError, ValueError):
+        return None
 ```
+
+> **Why v2?** The original v1 approach (null-byte split + framework class name filtering) silently dropped short messages where the text and NS class names coexisted in the same chunk. See pitfall #11.
 
 ### 2. Tapback Reactions
 
@@ -150,3 +146,19 @@ sqlite3 ~/Library/Messages/chat.db "SELECT ..."
 ```
 
 Never attempt to write to `chat.db` — it will corrupt the database.
+
+### 7. Short Messages Invisible to v1 Decoder (FIXED)
+
+**Pitfall #11** — Messages under ~50 characters returned `None` from the original v1 decode function. Searching for known keywords returned "No messages found" despite messages existing in the DB.
+
+**Root cause**: The v1 null-byte split approach puts actual message text in the same chunk as NSString/NSDictionary class markers. The framework class filter (`any(cls in chunk for cls in NS_FRAMEWORK_CLASSES)`) then discards the entire chunk — throwing out the message text along with the metadata.
+
+**Affected messages** (discovered during Tiemar recruitment case, 2026-02-13):
+
+- "She gave me these references" + phone numbers
+- "The current office gave her a glaring reference"
+- "Yes", "Cool.", "Never", and other short messages
+
+**Solution**: Replaced with NSString marker + length-prefix extraction (v2, 2026-02-14). No filtering needed — the length prefix gives exact text boundaries.
+
+**Anti-pattern**: Never filter decoded chunks by checking if they _contain_ framework class names. The message text and class names coexist in the same binary region for short messages.

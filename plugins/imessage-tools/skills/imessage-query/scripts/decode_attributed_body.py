@@ -14,95 +14,48 @@ Usage:
     python3 decode_attributed_body.py --chat "+1234567890" --after "2026-01-01" --before "2026-02-01"
     python3 decode_attributed_body.py --chat "+1234567890" --sender me
     python3 decode_attributed_body.py --chat "+1234567890" --sender them
+    python3 decode_attributed_body.py --chat "+1234567890" --search "keyword" --context 3
+    python3 decode_attributed_body.py --chat "+1234567890" --after "2026-02-01" --export thread.jsonl
 
 Output: timestamp|sender|text (pipe-delimited, one message per line)
         Messages decoded from attributedBody are marked with [decoded] prefix.
 """
 
 import argparse
+import json
 import os
-import re
 import sqlite3
 import sys
 
 # Apple epoch offset: seconds between Unix epoch (1970-01-01) and Apple epoch (2001-01-01)
 APPLE_EPOCH_OFFSET = 978307200
 
-# Framework class names to filter out when decoding NSAttributedString
-NS_FRAMEWORK_CLASSES = frozenset([
-    "NSDictionary",
-    "NSMutableDictionary",
-    "NSMutableParagraphStyle",
-    "NSParagraphStyle",
-    "NSObject",
-    "NSColor",
-    "NSFont",
-    "NSString",
-    "NSMutableString",
-    "NSAttributedString",
-    "NSMutableAttributedString",
-    "NSNumber",
-    "NSValue",
-    "NSArray",
-    "NSMutableArray",
-    "NSData",
-    "NSURL",
-    "NSRange",
-    "streamtyped",
-    "kIMMessagePartAttributeName",
-    "__kIMMessagePartAttributeName",
-])
-
 
 def decode_attributed_body(attr_body: bytes) -> str | None:
     """Decode NSAttributedString binary blob to plain text.
 
-    Strategy:
-    1. Decode bytes as UTF-8 (ignoring errors)
-    2. Split on null bytes
-    3. Filter out Apple framework class names and short fragments
-    4. Return the longest meaningful text chunk
-    5. Clean up trailing iMessage artifacts
+    Uses the NSString marker + length-prefix approach (same algorithm as
+    LangChain's iMessage loader). The binary format stores text after a
+    b"NSString" marker, a 5-byte preamble, and a variable-length field.
     """
     if not attr_body:
         return None
-
     try:
-        decoded = attr_body.decode("utf-8", errors="ignore")
-    except (UnicodeDecodeError, AttributeError):
+        parts = attr_body.split(b"NSString")
+        if len(parts) < 2:
+            return None
+        content = parts[1][5:]  # skip 5-byte preamble after NSString
+        length = content[0]
+        start = 1
+        if content[0] == 129:  # 0x81 = 2-byte length follows (little-endian)
+            length = int.from_bytes(content[1:3], "little")
+            start = 3
+        text = content[start:start + length].decode("utf-8", errors="ignore").strip()
+        if len(text) < 1:
+            return None
+        return text
+    except (IndexError, ValueError):
         return None
-
-    # Split on null bytes
-    chunks = re.split(r"\x00+", decoded)
-
-    # Filter meaningful chunks
-    meaningful = []
-    for chunk in chunks:
-        chunk = chunk.strip()
-        if len(chunk) < 4:
-            continue
-        # Skip Apple framework class names
-        if any(cls in chunk for cls in NS_FRAMEWORK_CLASSES):
-            continue
-        meaningful.append(chunk)
-
-    if not meaningful:
-        return None
-
-    # Take the longest meaningful chunk (most likely the actual message text)
-    text = max(meaningful, key=len)
-
-    # Clean up common artifacts
-    # Strip trailing iMessage marker (iI followed by 0-5 chars at end)
-    text = re.sub(r"iI.{0,5}$", "", text).strip()
-    # Strip leading + followed by single non-space char (length prefix artifact)
-    text = re.sub(r"^\+.", "", text).strip()
-
-    # Final sanity check
-    if len(text) < 2:
-        return None
-
-    return text
 
 
 def get_db_path() -> str:
@@ -213,8 +166,22 @@ def main() -> None:
         action="store_true",
         help="Show statistics instead of messages",
     )
+    parser.add_argument(
+        "--context",
+        type=int,
+        metavar="N",
+        help="Show N messages before and after each --search match",
+    )
+    parser.add_argument(
+        "--export",
+        metavar="PATH",
+        help="Export messages to NDJSON file (.jsonl) instead of stdout",
+    )
 
     args = parser.parse_args()
+
+    if args.context and not args.search:
+        parser.error("--context requires --search")
 
     db_path = args.db or get_db_path()
 
@@ -288,48 +255,130 @@ def _print_stats(conn: sqlite3.Connection, args: argparse.Namespace) -> None:
     print(f"  Decode coverage: {((has_text + hidden_text) / total * 100):.1f}%")
 
 
+def _resolve_message(ts, is_from_me, text, attr_body, me_label, them_label):
+    """Resolve a raw DB row into a message dict. Returns None if no content."""
+    sender_label = me_label if is_from_me else them_label
+    sender_key = "me" if is_from_me else "them"
+    content = None
+    is_decoded = False
+
+    if text and len(text.strip()) > 0:
+        content = text.strip()
+    elif attr_body and len(attr_body) > 50:
+        decoded = decode_attributed_body(attr_body)
+        if decoded:
+            content = decoded
+            is_decoded = True
+
+    if not content:
+        return None
+
+    return {
+        "ts": ts,
+        "sender_label": sender_label,
+        "sender": sender_key,
+        "is_from_me": bool(is_from_me),
+        "text": content,
+        "decoded": is_decoded,
+    }
+
+
 def _print_messages(conn: sqlite3.Connection, args: argparse.Namespace) -> None:
     """Print messages with attributedBody decoding."""
     query, params = build_query(args)
     cur = conn.cursor()
     cur.execute(query, params)
 
+    # Collect all resolved messages into a list
+    messages = []
+    for ts, is_from_me, text, attr_body in cur:
+        msg = _resolve_message(ts, is_from_me, text, attr_body, args.me_label, args.them_label)
+        if msg:
+            messages.append(msg)
+
     search_lower = args.search.lower() if args.search else None
+    context_n = args.context or 0
+
+    # Determine which messages to output
+    if search_lower:
+        # Find matching indices
+        match_indices = set()
+        for i, msg in enumerate(messages):
+            if search_lower in msg["text"].lower():
+                match_indices.add(i)
+
+        if not match_indices:
+            if args.export:
+                print(f"No messages matching '{args.search}' for chat: {args.chat}", file=sys.stderr)
+            else:
+                print(f"No messages found for chat: {args.chat}", file=sys.stderr)
+            return
+
+        # Expand with context windows
+        output_indices = set()
+        for idx in match_indices:
+            start = max(0, idx - context_n)
+            end = min(len(messages) - 1, idx + context_n)
+            for i in range(start, end + 1):
+                output_indices.add(i)
+
+        output_indices = sorted(output_indices)
+    else:
+        output_indices = list(range(len(messages)))
+        match_indices = set()
+
+    # Export to NDJSON if requested
+    if args.export:
+        _export_ndjson(args.export, messages, output_indices)
+        return
+
+    # Print to stdout
     count = 0
     decoded_count = 0
 
-    for ts, is_from_me, text, attr_body in cur:
-        sender = args.me_label if is_from_me else args.them_label
-        content = None
-        is_decoded = False
+    for pos, idx in enumerate(output_indices):
+        # Insert context separator for non-contiguous groups
+        if context_n and pos > 0 and output_indices[pos] > output_indices[pos - 1] + 1:
+            print("--- context ---")
 
-        # Try text column first
-        if text and len(text.strip()) > 0:
-            content = text.strip()
-        # Fall back to attributedBody decoding
-        elif attr_body and len(attr_body) > 50:
-            decoded = decode_attributed_body(attr_body)
-            if decoded:
-                content = f"[decoded] {decoded}"
-                is_decoded = True
-
-        if not content:
-            continue
-
-        # Apply keyword search filter
-        if search_lower and search_lower not in content.lower():
-            continue
-
-        print(f"{ts}|{sender}|{content}")
+        msg = messages[idx]
+        prefix = "[decoded] " if msg["decoded"] else ""
+        # Mark search matches with [match] when using --context
+        if context_n and idx in match_indices:
+            prefix = "[match] " + prefix
+        print(f"{msg['ts']}|{msg['sender_label']}|{prefix}{msg['text']}")
         count += 1
-        if is_decoded:
+        if msg["decoded"]:
             decoded_count += 1
 
     # Print summary to stderr
     if count > 0:
-        print(f"\n--- {count} messages ({decoded_count} decoded from attributedBody) ---", file=sys.stderr)
+        summary = f"--- {count} messages ({decoded_count} decoded from attributedBody)"
+        if match_indices:
+            summary += f", {len(match_indices)} matches"
+        summary += " ---"
+        print(f"\n{summary}", file=sys.stderr)
     else:
         print(f"No messages found for chat: {args.chat}", file=sys.stderr)
+
+
+def _export_ndjson(path: str, messages: list[dict], indices: list[int]) -> None:
+    """Export messages to NDJSON (.jsonl) file."""
+    count = 0
+    with open(path, "w", encoding="utf-8") as f:
+        for idx in indices:
+            msg = messages[idx]
+            record = {
+                "ts": msg["ts"],
+                "sender": msg["sender"],
+                "is_from_me": msg["is_from_me"],
+                "text": msg["text"],
+                "decoded": msg["decoded"],
+            }
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            count += 1
+
+    print(f"Exported {count} messages to {path}", file=sys.stderr)
 
 
 if __name__ == "__main__":

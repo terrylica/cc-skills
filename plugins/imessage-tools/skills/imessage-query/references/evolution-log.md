@@ -6,6 +6,36 @@ Reverse chronological record of changes to this skill.
 
 ---
 
+## 2026-02-14 — v2 Decoder + Context & Export Features
+
+**Context**: During analysis of the Tiemar recruitment case, the v1 decoder (null-byte split + NS framework class filter) failed to extract 23+ messages including critical evidence like "The current office gave her a glaring reference" and "She gave me these references" + phone numbers. This caused multiple wasted search attempts and missed evidence that took hours to find manually via screenshots.
+
+**Root cause**: The v1 `any(cls in chunk for cls in NS_FRAMEWORK_CLASSES)` filter discards chunks containing both message text AND framework class names. For short messages, the actual text and NSString/NSDictionary markers always land in the same null-delimited chunk — so the filter throws out the message with the metadata.
+
+**Changes**:
+
+1. **Replaced `decode_attributed_body()` with NSString marker + length-prefix algorithm** — Same approach as [LangChain's iMessage loader](https://github.com/langchain-ai/langchain/blob/master/libs/community/langchain_community/chat_loaders/imessage.py). Splits on `b"NSString"`, skips 5-byte preamble, reads length-prefix (single byte or 0x81 + 2-byte little-endian), extracts exact text. No filtering needed.
+
+2. **Added `--context N` flag** — When used with `--search`, shows N messages before and after each match. Solves the "isolated keyword match loses conversational meaning" problem. Uses `--- context ---` separators between non-contiguous groups and `[match]` markers on actual matches.
+
+3. **Added `--export <path.jsonl>` flag** — Exports conversation to NDJSON file for offline analysis. Format: `{"ts", "sender", "is_from_me", "text", "decoded"}` per line. Enables export-once-analyze-many workflow instead of repeated SQLite queries.
+
+**Removals**:
+
+- `NS_FRAMEWORK_CLASSES` frozenset (no longer needed)
+- `re` import (no longer needed)
+- Null-byte split logic
+- `iI` cleanup regex (length-prefix extraction doesn't include trailing artifacts)
+- `+.` cleanup regex (same reason)
+
+**Anti-patterns documented**:
+
+1. Searching multiple chat identifiers for the same person without first checking `--stats`
+2. Keyword search without context — always use `--context 5` with `--search`
+3. Repeated narrow-window SQLite queries — export first, then grep
+
+---
+
 ## 2026-02-07 — Initial Creation
 
 **Context**: During iMessage retrieval work, discovered that 20-60% of messages in real conversations have NULL `text` columns but contain valid, recoverable text in `attributedBody` (NSAttributedString binary blobs). Without documented knowledge of this pattern, every future session would rediscover the same workaround from scratch.
