@@ -15,6 +15,9 @@ import {
   readEmail,
   exportEmails,
   createDraft,
+  listDrafts,
+  deleteDraft,
+  updateDraft,
   printEmails,
   printJson,
   printProgress,
@@ -32,6 +35,9 @@ COMMANDS:
   read <id>         Read a specific email with full body
   export            Export emails to JSON file
   draft             Create a draft email
+  drafts            List drafts with draft IDs
+  draft-delete <id> Delete a draft by draft ID
+  draft-update <id> Replace a draft (delete + recreate)
 
 OPTIONS:
   -n, --number      Number of emails to fetch (default: 10)
@@ -39,11 +45,11 @@ OPTIONS:
   -q, --query       Search query (for export command)
   -o, --output      Output file path (for export command)
   --json            Output as JSON
-  --to              Recipient email (for draft command)
-  --from            Sender email alias (for draft command, auto-detected from original if replying)
-  --subject         Email subject (for draft command)
-  --body            Email body (for draft command)
-  --reply-to        Message ID to reply to (for draft command)
+  --to              Recipient email (for draft/draft-update)
+  --from            Sender alias (for draft/draft-update, auto-detected if replying)
+  --subject         Email subject (for draft/draft-update)
+  --body            Email body (for draft/draft-update)
+  --reply-to        Message ID to reply to (for draft/draft-update)
 
 ENVIRONMENT:
   GMAIL_OP_UUID     1Password item UUID for OAuth credentials (required)
@@ -58,6 +64,9 @@ EXAMPLES:
   gmail export -q "label:inbox" -o emails.json -n 100
   gmail draft --to "user@example.com" --subject "Hello" --body "Message body"
   gmail draft --to "user@example.com" --subject "Re: Hello" --body "Reply" --reply-to 18abc123def
+  gmail drafts --json
+  gmail draft-delete r8104335052503336070
+  gmail draft-update r8104335052503336070 --to "user@example.com" --subject "Updated" --body "New body"
 
 GMAIL SEARCH SYNTAX:
   from:sender@example.com    From specific sender
@@ -191,6 +200,82 @@ async function main() {
           }
           if (result.fromAddress) {
             console.log(`From: ${result.fromAddress}${result.fromAutoDetected ? " (auto-detected from original email)" : ""}`);
+          }
+          console.log(`\nOpen Gmail to review: https://mail.google.com/mail/u/0/#drafts`);
+        }
+        break;
+      }
+
+      case "drafts": {
+        const drafts = await listDrafts(client, maxResults);
+        if (asJson) {
+          printJson(drafts);
+        } else {
+          for (const d of drafts) {
+            console.log("─".repeat(60));
+            console.log(`Draft ID: ${d.draftId}`);
+            console.log(`Message ID: ${d.messageId}`);
+            console.log(`From: ${d.from}`);
+            console.log(`To: ${d.to}`);
+            console.log(`Subject: ${d.subject}`);
+            console.log(`Date: ${d.date}`);
+            console.log(`Snippet: ${d.snippet}`);
+          }
+          console.log("─".repeat(60));
+          console.log(`\n${drafts.length} draft(s)`);
+        }
+        break;
+      }
+
+      case "draft-delete": {
+        const draftId = args[0];
+        if (!draftId) {
+          console.error("Error: Draft ID required (use 'drafts --json' to find IDs)");
+          process.exit(1);
+        }
+        await deleteDraft(client, draftId);
+        if (asJson) {
+          printJson({ deleted: draftId });
+        } else {
+          console.log(`Deleted draft: ${draftId}`);
+        }
+        break;
+      }
+
+      case "draft-update": {
+        const draftId = args[0];
+        if (!draftId) {
+          console.error("Error: Draft ID required (use 'drafts --json' to find IDs)");
+          process.exit(1);
+        }
+        const to = values.to;
+        const from = values.from;
+        const subject = values.subject;
+        const body = values.body;
+        const replyTo = values["reply-to"];
+
+        if (!to || !subject || !body) {
+          console.error("Error: --to, --subject, and --body are required for draft-update");
+          process.exit(1);
+        }
+
+        const result = await updateDraft(client, draftId, {
+          to,
+          from,
+          subject,
+          body,
+          replyToMessageId: replyTo,
+        });
+
+        if (asJson) {
+          printJson(result);
+        } else {
+          console.log(`Updated draft (old: ${draftId} → new: ${result.draftId})`);
+          if (result.threadId) {
+            console.log(`Thread ID: ${result.threadId}`);
+          }
+          if (result.fromAddress) {
+            console.log(`From: ${result.fromAddress}${result.fromAutoDetected ? " (auto-detected)" : ""}`);
           }
           console.log(`\nOpen Gmail to review: https://mail.google.com/mail/u/0/#drafts`);
         }
