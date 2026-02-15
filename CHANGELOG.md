@@ -1,3 +1,70 @@
+# [11.38.0](https://github.com/terrylica/cc-skills/compare/v11.37.2...v11.38.0) (2026-02-15)
+
+
+### Features
+
+* **gmail-commander:** structured email read view + keyboard button fix ([edf839f](https://github.com/terrylica/cc-skills/commit/edf839f16b02dd127d3143faf057117b18c97223))
+* **imessage-tools:** add search context flag and NDJSON export ([2606231](https://github.com/terrylica/cc-skills/commit/2606231fd388c2b55f0eff6c1f06fe1b49eba0a9))
+* **itp-hooks:** add OP token injector lib + update hook table formatting ([3ac264a](https://github.com/terrylica/cc-skills/commit/3ac264a805abe437423beb4dc5c2248a95093811))
+* **quant-research:** add evolutionary metric ranking skill ([6758340](https://github.com/terrylica/cc-skills/commit/6758340360e21ad0d1018476e56f58fe5932c454))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>imessage-tools</strong> (1 change)</summary>
+
+- [imessage-query](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/SKILL.md) - updated (+57)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [evolutionary-metric-ranking](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/evolutionary-metric-ranking/SKILL.md) - new (+491)
+
+</details>
+
+
+### Plugin READMEs
+
+- [quant-research](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/README.md) - updated (+25/-7)
+
+### Skill References
+
+<details>
+<summary><strong>imessage-tools/imessage-query</strong> (2 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/evolution-log.md) - updated (+30)
+- [Known Pitfalls](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/known-pitfalls.md) - updated (+39/-27)
+
+</details>
+
+<details>
+<summary><strong>quant-research/evolutionary-metric-ranking</strong> (3 files)</summary>
+
+- [Case Study - Range Bar Pattern Ranking (Issue `#17`)](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/evolutionary-metric-ranking/references/case-study-rangebar-ranking.md) - new (+223)
+- [Metric Design Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/evolutionary-metric-ranking/references/metric-design-guide.md) - new (+123)
+- [Objective Function Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/evolutionary-metric-ranking/references/objective-functions.md) - new (+223)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+14/-14)
+
 ## [11.37.2](https://github.com/terrylica/cc-skills/compare/v11.37.1...v11.37.2) (2026-02-15)
 
 
