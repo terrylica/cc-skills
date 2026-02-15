@@ -163,15 +163,15 @@ Every hook can output these fields:
 
 ### Blocking Mechanisms
 
-| Hook                   | Hard Block                          | Soft Block                | Effect                                              |
-| ---------------------- | ----------------------------------- | ------------------------- | --------------------------------------------------- |
-| **UserPromptSubmit**   | Exit 2 OR `decision:block`          | —                         | Erases prompt, shows reason to user only            |
-| **PreToolUse**         | Exit 2 OR `permissionDecision:deny` | `permissionDecision:ask`  | Prevents tool execution, reason fed to Claude       |
-| **PermissionRequest**  | `behavior:deny`                     | —                         | Rejects permission, optional interrupt flag         |
-| **PostToolUse**        | —                                   | `decision:block` + reason | Tool succeeded; `decision:block` = visibility only  |
-| **PostToolUseFailure** | —                                   | `decision:block` + reason | Tool failed; `decision:block` = visibility only     |
-| **SubagentStop**       | `decision:block` + reason           | —                         | Forces subagent to continue working                 |
-| **Stop**               | `decision:block` + reason           | —                         | Forces Claude to continue (check stop_hook_active!) |
+| Hook                   | Hard Block                          | Soft Block                | Effect                                                                                                  |
+| ---------------------- | ----------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **UserPromptSubmit**   | Exit 2 OR `decision:block`          | —                         | Erases prompt, shows reason to user only                                                                |
+| **PreToolUse**         | Exit 2 OR `permissionDecision:deny` | `permissionDecision:ask`  | Prevents tool execution, reason fed to Claude. **Prefer `deny` over `ask`** — see Decision Policy below |
+| **PermissionRequest**  | `behavior:deny`                     | —                         | Rejects permission, optional interrupt flag                                                             |
+| **PostToolUse**        | —                                   | `decision:block` + reason | Tool succeeded; `decision:block` = visibility only                                                      |
+| **PostToolUseFailure** | —                                   | `decision:block` + reason | Tool failed; `decision:block` = visibility only                                                         |
+| **SubagentStop**       | `decision:block` + reason           | —                         | Forces subagent to continue working                                                                     |
+| **Stop**               | `decision:block` + reason           | —                         | Forces Claude to continue (check stop_hook_active!)                                                     |
 
 ### Universal Control (All Hooks)
 
@@ -589,7 +589,7 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 {
   "hookSpecificOutput": {
     "hookEventName": "...",
-    "permissionDecision": "allow|deny|ask"
+    "permissionDecision": "allow|deny|ask" // Prefer "deny" — see Decision Policy
   }
 }
 ```
@@ -827,6 +827,61 @@ if [[ dangerous_command ]]; then
 fi
 exit 0
 ```
+
+### PreToolUse Decision Policy: Prefer `deny` Over `ask`
+
+**Policy**: Default to `permissionDecision: "deny"` with actionable guidance. Only use `"ask"` when genuine human judgment is required.
+
+**Rationale**: `"ask"` pauses execution and shows a confirmation dialog, requiring a human to click through. In most cases, the denial message already contains everything Claude Code needs to self-correct. Using `"deny"` keeps the autonomous loop running — Claude reads the rejection reason and adjusts its approach without human intervention.
+
+**When to use `deny` (default)**:
+
+| Scenario                                              | Why deny works                                                       |
+| ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Policy violation (wrong format, missing trailer)      | Message tells Claude exactly what format is required                 |
+| Dangerous pattern detected (fork bomb, CWD deletion)  | Message explains the safe alternative                                |
+| File too large / fake data detected                   | Message lists escape hatches (`# noqa: fake-data`, `# FILE-SIZE-OK`) |
+| Wrong tool usage (`gh issue --body` vs `--body-file`) | Message shows the correct pattern                                    |
+| Terminology violation (Vale)                          | Message shows which terms to fix and where the glossary is           |
+
+**When to use `ask` (rare — genuine ambiguity only)**:
+
+| Scenario                                                  | Why ask is needed                                                 |
+| --------------------------------------------------------- | ----------------------------------------------------------------- |
+| Destructive action on shared state (delete remote branch) | Human must confirm intent — Claude cannot know if this is desired |
+| Account/identity choice (which GitHub account to use)     | Multiple valid options, no policy to decide automatically         |
+| Licensing/legal compliance (open-source vs proprietary)   | Requires human judgment on business context                       |
+
+**Decision tree**:
+
+```
+Is the rejection message actionable enough for Claude to self-correct?
+├── YES → use "deny" with clear guidance in permissionDecisionReason
+│         (Claude reads the reason, fixes the issue, retries)
+└── NO, genuine ambiguity exists → use "ask"
+          BUT FIRST: Can this ambiguity be resolved via AskUserQuestion
+          in a skill instead of a hook?
+          ├── YES → use "deny" in hook, let the skill handle clarification
+          └── NO → use "ask" as last resort
+```
+
+**Key principle**: Hooks should enforce policy, not gather preferences. If a hook needs human input to decide, the complexity likely belongs in a skill (with AskUserQuestion) rather than a hook (which runs outside conversation context).
+
+**Example — converting `ask` to `deny`**:
+
+```typescript
+// ❌ BEFORE: Pauses for human confirmation
+if (findings.length > 0) {
+  ask(`[GUARD] Found issues:\n${formatted}\nFix before proceeding.`);
+}
+
+// ✅ AFTER: Claude self-corrects autonomously
+if (findings.length > 0) {
+  deny(`[GUARD] Found issues:\n${formatted}\nFix before proceeding.`);
+}
+```
+
+The message is identical — only the decision changes. Claude receives the same guidance either way, but `deny` keeps the autonomous loop running.
 
 ### References
 
