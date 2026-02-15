@@ -97,6 +97,7 @@ If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 | `gh-tools`        | GitHub CLI enforcement ([CLAUDE.md](./gh-tools/CLAUDE.md))      |
 | `gmail-commander` | Gmail bot + CLI (1Password OAuth)                               |
 | `gdrive-tools`    | Google Drive API (1Password OAuth)                              |
+| `mise`            | User-global mise workflow commands                              |
 
 ## Toolchain
 
