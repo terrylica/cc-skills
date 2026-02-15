@@ -1,3 +1,41 @@
+# [11.39.0](https://github.com/terrylica/cc-skills/compare/v11.38.0...v11.39.0) (2026-02-15)
+
+
+### Features
+
+* **imessage-tools:** v3 3-tier decoder with pytypedstream + cross-repo analysis ([e6e783c](https://github.com/terrylica/cc-skills/commit/e6e783c73bae5098a0fb883bca444e4f342dcdda))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>imessage-tools</strong> (1 change)</summary>
+
+- [imessage-query](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/SKILL.md) - updated (+11/-3)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>imessage-tools/imessage-query</strong> (3 files)</summary>
+
+- [Cross-Repository Analysis: iMessage Decoder Implementations](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/cross-repo-analysis.md) - new (+252)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/evolution-log.md) - updated (+34)
+- [Known Pitfalls](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/skills/imessage-query/references/known-pitfalls.md) - updated (+31/-22)
+
+</details>
+
 # [11.38.0](https://github.com/terrylica/cc-skills/compare/v11.37.2...v11.38.0) (2026-02-15)
 
 
