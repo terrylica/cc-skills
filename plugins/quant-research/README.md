@@ -1,18 +1,19 @@
 # quant-research
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-3-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-4-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
-Quantitative research skills for financial data analysis and ML model evaluation: SOTA metrics for range bars, Sharpe ratios, ML prediction quality, and WFO epoch selection.
+Quantitative research skills for financial data analysis and ML model evaluation: SOTA metrics for range bars, Sharpe ratios, ML prediction quality, WFO epoch selection, and evolutionary multi-metric ranking.
 
 ## Skills
 
-| Skill                                                            | Description                                                     |
-| ---------------------------------------------------------------- | --------------------------------------------------------------- |
-| [rangebar-eval-metrics](./skills/rangebar-eval-metrics/SKILL.md) | SOTA metrics for range bar evaluation: Sharpe, risk, ML quality |
-| [adaptive-wfo-epoch](./skills/adaptive-wfo-epoch/SKILL.md)       | Adaptive epoch selection for Walk-Forward Optimization (WFO)    |
-| [backtesting-py-oracle](./skills/backtesting-py-oracle/SKILL.md) | backtesting.py config for SQL oracle validation (hedging, NaN)  |
+| Skill                                                                        | Description                                                      |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [rangebar-eval-metrics](./skills/rangebar-eval-metrics/SKILL.md)             | SOTA metrics for range bar evaluation: Sharpe, risk, ML quality  |
+| [adaptive-wfo-epoch](./skills/adaptive-wfo-epoch/SKILL.md)                   | Adaptive epoch selection for Walk-Forward Optimization (WFO)     |
+| [backtesting-py-oracle](./skills/backtesting-py-oracle/SKILL.md)             | backtesting.py config for SQL oracle validation (hedging, NaN)   |
+| [evolutionary-metric-ranking](./skills/evolutionary-metric-ranking/SKILL.md) | Multi-objective evolutionary optimization for per-metric cutoffs |
 
 ## Installation
 
@@ -30,6 +31,7 @@ Skills are model-invoked based on context.
 - "range bar metrics", "Sharpe ratio", "WFO metrics", "DSR", "PSR" → rangebar-eval-metrics
 - "WFO epoch", "epoch selection", "adaptive epochs", "WFE" → adaptive-wfo-epoch
 - "backtesting.py", "hedging", "exclusive_orders", "oracle validation", "SQL vs Python" → backtesting-py-oracle
+- "ranking optimization", "cutoff search", "metric intersection", "Optuna cutoffs", "Pareto frontier cutoffs" → evolutionary-metric-ranking
 
 ## Features
 
@@ -62,12 +64,24 @@ Configuration and anti-patterns for SQL oracle validation:
 - **5-gate oracle framework**: Signal count, timestamp, price, exit type, Kelly comparison
 - **Strategy templates**: Single-position vs multi-position with per-trade barrier tracking
 
+### evolutionary-metric-ranking
+
+Multi-objective evolutionary optimization for per-metric percentile ranking:
+
+- **Percentile normalization**: Incompatible metric scales unified to [0, 100]
+- **Per-metric cutoffs**: Each metric independently tunable via env vars
+- **5 objective functions**: Efficiency frontier, constrained quality, tightest nonempty, Pareto, diversity
+- **Forensic analysis**: Universal champions, binding constraints, inert dimension detection
+- **Optuna integration**: TPE (single-objective) and NSGA-II (multi-objective) samplers
+
 ## Use Cases
 
 - Evaluating BiLSTM/transformer models on range bar data
 - Walk-Forward Optimization (WFO) metrics calculation
 - Statistical validation (PSR, DSR, MinTRL) for trading strategies
 - Crypto market-specific metric adaptations (sqrt(7) annualization, 24/7 markets)
+- Ranking and filtering configs across heterogeneous quality metrics
+- Multi-objective cutoff optimization for strategy portfolio selection
 
 ## Dependencies
 
@@ -77,6 +91,7 @@ Configuration and anti-patterns for SQL oracle validation:
 | Polars    | Yes      | `uv pip install polars` |
 | NumPy     | Yes      | `uv pip install numpy`  |
 | SciPy     | Optional | `uv pip install scipy`  |
+| Optuna    | Optional | `uv pip install optuna` |
 
 ## Related Plugins
 
@@ -96,6 +111,9 @@ Configuration and anti-patterns for SQL oracle validation:
 | Range bar aggregation wrong  | Incorrect timestamp handling   | Verify bars are price-based not time-based        |
 | Memory error on large data   | Polars operations on full data | Use lazy frames (scan_csv) for large datasets     |
 | Annualization factor wrong   | Using daily for crypto         | Use sqrt(7) for 24/7 crypto markets               |
+| Ranking returns all configs  | All cutoffs at 100%            | Set `RBP_RANK_CUT_*` env vars to tighten          |
+| Optuna slow (>1s/trial)      | Not pre-loading metric data    | Pass `metric_data=` to run_ranking_with_cutoffs   |
+| Zero intersection at 50%     | Inert metric inflating dims    | Remove inert metrics (P7 in skill)                |
 
 ## License
 
