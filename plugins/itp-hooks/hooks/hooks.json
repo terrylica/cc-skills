@@ -117,6 +117,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-local-guard.ts",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
             "timeout": 5000
           }

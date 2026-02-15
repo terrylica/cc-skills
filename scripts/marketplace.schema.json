@@ -81,6 +81,11 @@
             "pattern": "^\\./plugins/[a-z0-9-]+/hooks/hooks\\.json$",
             "description": "Optional hooks configuration path"
           },
+          "commands": {
+            "type": "string",
+            "pattern": "^\\./plugins/[a-z0-9-]+/commands$",
+            "description": "Optional commands directory path"
+          },
           "requires": {
             "type": "array",
             "items": { "type": "string" },

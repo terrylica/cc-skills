@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// FILE-SIZE-OK — comprehensive validator for 24+ plugins, hooks, commands, dependencies
 /**
  * Plugin Registration Validator
  *
@@ -167,6 +168,35 @@ function validateMarketplaceEntries() {
       const hooksPath = resolve(process.cwd(), plugin.hooks);
       if (!existsSync(hooksPath)) {
         errors.push(`${prefix}: Hooks file does not exist: ${plugin.hooks}`);
+      }
+    }
+
+    // Validate commands path exists (if specified)
+    if (plugin.commands) {
+      const commandsPath = resolve(process.cwd(), plugin.commands);
+      if (!existsSync(commandsPath)) {
+        errors.push(`${prefix}: Commands directory does not exist: ${plugin.commands}`);
+      } else {
+        const cmdFiles = readdirSync(commandsPath).filter(f => f.endsWith(".md"));
+        for (const cmdFile of cmdFiles) {
+          const cmdContent = readFileSync(join(commandsPath, cmdFile), "utf8");
+          const fmMatch = cmdContent.match(/^---\n([\s\S]*?)\n---/);
+          if (!fmMatch) {
+            errors.push(`${prefix}: Command ${cmdFile} missing YAML frontmatter`);
+          } else {
+            const fm = fmMatch[1];
+            if (!fm.includes("name:")) errors.push(`${prefix}: Command ${cmdFile} missing 'name' in frontmatter`);
+            if (!fm.includes("description:")) errors.push(`${prefix}: Command ${cmdFile} missing 'description' in frontmatter`);
+          }
+        }
+      }
+    }
+
+    // Warn if plugin has commands/ directory but no "commands" field
+    if (plugin.source) {
+      const implicitCmdsDir = resolve(process.cwd(), plugin.source, "commands");
+      if (existsSync(implicitCmdsDir) && !plugin.commands) {
+        warnings.push(`${prefix}: Has commands/ directory but no "commands" field in marketplace.json`);
       }
     }
 
@@ -1366,6 +1396,17 @@ console.log("═".repeat(60));
 console.log(`Errors:   ${allErrors.length}`);
 console.log(`Warnings: ${allWarnings.length}`);
 console.log(`Plugins:  ${directories.length} directories, ${registered.length} registered`);
+// Count commands across all plugins
+const commandCount = registered.reduce((count, p) => {
+  if (p.commands) {
+    const cmdsDir = resolve(process.cwd(), p.commands);
+    if (existsSync(cmdsDir)) {
+      count += readdirSync(cmdsDir).filter(f => f.endsWith(".md")).length;
+    }
+  }
+  return count;
+}, 0);
+if (commandCount > 0) console.log(`Commands: ${commandCount} command(s) across plugins with commands field`);
 console.log(`Dependencies: ${depGraph.size} plugins depend on ${[...new Set([...depGraph.values()].flatMap(s => [...s]))].length} others`);
 console.log("═".repeat(60));
 

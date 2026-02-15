@@ -569,6 +569,27 @@
       ],
       "hooks": "./plugins/calcom-commander/hooks/hooks.json",
       "strict": false
+    },
+    {
+      "name": "mise",
+      "description": "User-global mise workflow commands: release pipeline delegation, environment status, task discovery across any repo",
+      "version": "11.41.1",
+      "source": "./plugins/mise",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "mise",
+        "release",
+        "task-runner",
+        "workflow",
+        "user-global",
+        "cross-repo"
+      ],
+      "commands": "./plugins/mise/commands",
+      "strict": false
     }
   ]
 }
