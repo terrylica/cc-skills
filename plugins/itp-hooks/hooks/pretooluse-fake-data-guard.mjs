@@ -2,8 +2,8 @@
 /**
  * PreToolUse hook: Fake Data Guard
  *
- * Detects fake/synthetic data patterns in new Python files and shows
- * a permission dialog for user discretion. Universal across all projects.
+ * Detects fake/synthetic data patterns in new Python files and denies
+ * with actionable guidance for Claude Code to self-correct. Universal across all projects.
  *
  * Usage:
  *   Installed via /itp:hooks install
