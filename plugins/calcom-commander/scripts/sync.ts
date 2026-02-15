@@ -1,9 +1,13 @@
 // ADR: docs/adr/2026-02-14-calcom-commander.md
 /**
- * Cal.com Commander Sync — Scheduled booking sync + Telegram notifications.
+ * Cal.com Commander Sync — Scheduled booking sync + dual-channel notifications.
  *
  * Runs every 6h via launchd StartInterval (com.terryli.calcom-commander-sync).
- * Fetches recent bookings, detects changes, sends notifications to Telegram.
+ * Fetches recent bookings, detects changes, sends notifications to:
+ *   - Telegram (HTML format, interactive)
+ *   - Pushover (plain text, emergency alerts with custom sound)
+ *
+ * Pushover is optional — gracefully degrades to Telegram-only if not configured.
  *
  * Entry point: bun run scripts/sync.ts
  */
@@ -13,6 +17,7 @@ import { loadBotCredentials } from "./lib/credentials";
 import { CircuitBreaker } from "./lib/circuit-breaker";
 import { audit } from "./lib/audit";
 import { sendTelegramMessage } from "./lib/telegram-format";
+import { sendPushover, stripHtmlForPushover } from "./lib/pushover";
 
 const PID_FILE = "/tmp/calcom-sync.pid";
 const CIRCUIT_FILE = "/tmp/calcom-sync-circuit.json";
@@ -67,7 +72,21 @@ async function main() {
 
     // TODO: Send notifications for changes
     // for (const booking of newBookings) {
-    //   await sendTelegramMessage(creds, formatNewBooking(booking));
+    //   const htmlMessage = formatNewBooking(booking);
+    //   await sendTelegramMessage(creds, htmlMessage);
+    //
+    //   // Dual-channel: also send to Pushover if configured
+    //   if (creds.pushoverToken && creds.pushoverUser) {
+    //     const plainMessage = stripHtmlForPushover(htmlMessage);
+    //     await sendPushover(creds.pushoverToken, creds.pushoverUser, {
+    //       title: "Cal.com: New Booking",
+    //       message: plainMessage,
+    //       priority: 2,
+    //       sound: creds.pushoverSound || "dune",
+    //       retry: 30,
+    //       expire: 300,
+    //     });
+    //   }
     //   await audit("sync.new_booking", { bookingId: booking.id });
     // }
 

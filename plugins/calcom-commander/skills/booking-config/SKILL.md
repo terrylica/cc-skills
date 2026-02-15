@@ -131,6 +131,34 @@ $CALCOM_CLI event-types create \
   --description "Drop-in office hours for team questions"
 ```
 
+## Webhook Management
+
+Manage Cal.com webhooks for real-time Pushover notifications via the webhook relay.
+
+### List Webhooks
+
+```bash
+CALCOM_API_KEY=$(op item get "$CALCOM_OP_UUID" --vault "Claude Automation" --fields password --reveal)
+
+curl -s "https://api.cal.com/v1/webhooks?apiKey=$CALCOM_API_KEY" | python3 -m json.tool
+```
+
+### Register Webhook
+
+```bash
+curl -s -X POST "https://api.cal.com/v1/webhooks?apiKey=$CALCOM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"subscriberUrl\":\"$WEBHOOK_RELAY_URL\",\"eventTriggers\":[\"BOOKING_CREATED\",\"BOOKING_RESCHEDULED\",\"BOOKING_CANCELLED\"],\"active\":true}"
+```
+
+### Delete Webhook
+
+```bash
+curl -s -X DELETE "https://api.cal.com/v1/webhooks/<webhook-id>?apiKey=$CALCOM_API_KEY"
+```
+
+**Prerequisites**: `WEBHOOK_RELAY_URL` must be set in `.mise.local.toml`. Deploy the relay first via the `infra-deploy` skill.
+
 ## Post-Change Checklist
 
 - [ ] YAML frontmatter valid (no colons in description)

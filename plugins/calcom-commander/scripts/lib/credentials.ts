@@ -8,6 +8,10 @@ export interface BotCredentials {
   chatId: string;
   haikuModel: string;
   calcomOpUuid: string;
+  // Optional Pushover dual-channel notifications
+  pushoverToken?: string;
+  pushoverUser?: string;
+  pushoverSound?: string;
 }
 
 export function loadBotCredentials(): BotCredentials {
@@ -21,5 +25,10 @@ export function loadBotCredentials(): BotCredentials {
   if (!haikuModel) throw new Error("HAIKU_MODEL not set");
   if (!calcomOpUuid) throw new Error("CALCOM_OP_UUID not set");
 
-  return { botToken, chatId, haikuModel, calcomOpUuid };
+  // Pushover is optional — Telegram-only operation still works
+  const pushoverToken = process.env.PUSHOVER_APP_TOKEN || undefined;
+  const pushoverUser = process.env.PUSHOVER_USER_KEY || undefined;
+  const pushoverSound = process.env.PUSHOVER_SOUND || "dune";
+
+  return { botToken, chatId, haikuModel, calcomOpUuid, pushoverToken, pushoverUser, pushoverSound };
 }
