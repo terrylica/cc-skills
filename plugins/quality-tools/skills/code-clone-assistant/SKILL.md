@@ -73,6 +73,64 @@ semgrep --config=clone-rules.yaml --sarif --quiet > semgrep-results.sarif
 
 ---
 
+## Accepted Exceptions (Known Intentional Duplication)
+
+Not all code duplication is a problem. Some codebases deliberately use copy-and-adapt patterns where refactoring would be harmful. When running clone detection, **always check for accepted exceptions before recommending refactoring**.
+
+### When Duplication Is Acceptable
+
+| Pattern                                         | Why Acceptable                                                                                                                                                                                                    | Example                                                            |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Generation-per-directory experiments**        | Each generation is an immutable, self-contained experiment. Sharing code across generations would break provenance and make past experiments non-reproducible.                                                    | SQL templates, sweep scripts where each `gen{NNN}/` is independent |
+| **SQL templates with placeholder substitution** | SQL has no import/include mechanism. Templates use `sed` placeholder replacement (`__PLACEHOLDER__`), not function calls. Extracting shared CTEs into separate files would break the single-file execution model. | ClickHouse sweep templates sharing signal detection + metrics CTEs |
+| **Protocol/schema boilerplate**                 | Serialization formats, API contracts, and wire protocols require exact structure in each location. Abstracting them hides the contract.                                                                           | NDJSON telemetry line construction in wrapper scripts              |
+| **Test fixtures and golden files**              | Test data intentionally duplicates production patterns to verify behavior. Sharing fixtures creates brittle cross-test dependencies.                                                                              | Test setup code, expected output snapshots                         |
+
+### How to Report Accepted Exceptions
+
+When clone detection finds duplication that matches an accepted exception pattern:
+
+1. **Report it** — always show the user what was found (lines, tokens, files)
+2. **Flag as accepted** — explicitly state it matches a known exception pattern
+3. **Explain why** — cite the specific reason refactoring is not recommended
+4. **Do NOT recommend refactoring** — this is the key difference from actionable findings
+
+**Example output format**:
+
+```
+Code Clone Analysis Results
+
+PMD CPD Findings:
+  Clone 1: 115 lines (575 tokens) — base_bars → signals CTEs
+    gen610_template.sql:33 ↔ gen710_template.sql:38
+    Status: ACCEPTED EXCEPTION (generation-per-directory experiment)
+    Reason: Each generation is immutable. Shared CTEs would break
+            experiment provenance and reproducibility.
+
+  Clone 2: 36 lines (478 tokens) — metrics aggregation
+    gen610_template.sql:207 ↔ gen710_template.sql:244
+    Status: ACCEPTED EXCEPTION (SQL template without include mechanism)
+
+Actionable Findings: 0
+Accepted Exceptions: 2
+```
+
+### Project-Level Exception Configuration
+
+Projects can declare accepted exception patterns in their `CLAUDE.md`:
+
+```markdown
+## Code Clone Exceptions
+
+- `sql/gen*_template.sql` — generation-per-directory experiments (immutable)
+- `scripts/gen*/` — copy-and-adapt sweep scripts (no shared infrastructure)
+- `tests/fixtures/` — intentional duplication for test isolation
+```
+
+When this section exists in a project's `CLAUDE.md`, the code-clone-assistant should check it before classifying findings.
+
+---
+
 ## Reference Documentation
 
 For detailed information, see:
