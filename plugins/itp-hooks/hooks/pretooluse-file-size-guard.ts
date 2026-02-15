@@ -3,7 +3,7 @@
  * PreToolUse hook: File Size Bloat Guard
  *
  * Prevents single-file bloat by checking line count before Write/Edit.
- * Uses "ask" mode by default so the user can override when intentional.
+ * Uses tiered approach: warn via PostToolUse (soft), block via deny (hard).
  *
  * Detection:
  * - Write: counts lines in proposed content
