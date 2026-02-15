@@ -146,6 +146,9 @@ python3 <skill-path>/scripts/decode_attributed_body.py --chat "+1234567890" --li
 # Search for keyword
 python3 <skill-path>/scripts/decode_attributed_body.py --chat "+1234567890" --search "meeting"
 
+# Search with surrounding context (3 messages before and after each match)
+python3 <skill-path>/scripts/decode_attributed_body.py --chat "+1234567890" --search "meeting" --context 3
+
 # Date range
 python3 <skill-path>/scripts/decode_attributed_body.py --chat "+1234567890" --after "2026-01-01" --before "2026-02-01"
 
@@ -154,9 +157,53 @@ python3 <skill-path>/scripts/decode_attributed_body.py --chat "+1234567890" --se
 
 # Only messages from me
 python3 <skill-path>/scripts/decode_attributed_body.py --chat "+1234567890" --sender me
+
+# Export conversation to NDJSON for offline analysis
+python3 <skill-path>/scripts/decode_attributed_body.py --chat "+1234567890" --after "2026-02-01" --export thread.jsonl
 ```
 
 Output format: `timestamp|sender|text` (pipe-delimited, one message per line)
+
+### Context Search (`--context N`)
+
+When `--search` is combined with `--context N`, the script shows N messages before and after each match:
+
+- Matches are prefixed with `[match]`
+- Non-contiguous context groups are separated by `--- context ---`
+- Overlapping context windows are deduplicated
+
+### NDJSON Export (`--export`)
+
+Exports messages to a NDJSON (.jsonl) file for offline analysis:
+
+```json
+{
+  "ts": "2026-02-13 18:30:17",
+  "sender": "them",
+  "is_from_me": false,
+  "text": "Message text here",
+  "decoded": true
+}
+```
+
+**Export-first workflow** (recommended for multi-query analysis):
+
+```bash
+# Step 1: Export once
+python3 <skill-path>/scripts/decode_attributed_body.py --chat "+1234567890" \
+  --after "2026-02-01" --export thread.jsonl
+
+# Step 2: Analyze many times without re-querying SQLite
+grep -i "keyword" thread.jsonl
+jq 'select(.text | test("reference"; "i"))' thread.jsonl
+jq 'select(.sender == "them")' thread.jsonl
+```
+
+## Anti-Patterns to Avoid
+
+1. **Searching multiple chat identifiers blindly** — Always run `--stats` first to confirm the right chat identifier has messages in the expected date range
+2. **Keyword search without context** — Always use `--context 5` (or more) with `--search` to understand conversational meaning around matches
+3. **Repeated narrow-window SQLite queries** — Export the full date range to NDJSON first, then grep/jq the file for all subsequent analysis
 
 **Note**: Replace `<skill-path>` with the actual installed skill path. To find it:
 
@@ -202,6 +249,16 @@ find ~/.claude -path "*/imessage-query/scripts/decode_attributed_body.py" 2>/dev
 3. Merge and sort by timestamp
 4. Format as sourced quotes with timestamps for documentation
 5. Verify no messages were missed (compare total count vs decoded count)
+```
+
+### Template D - Export-First Deep Analysis
+
+```
+1. Run --stats to confirm chat_identifier and date range
+2. Export full date range to NDJSON: --export thread.jsonl
+3. Use grep/jq on the NDJSON file for all keyword searches
+4. Use --search with --context 5 for contextual understanding of specific matches
+5. All subsequent analysis reads from the NDJSON file (no more SQLite queries)
 ```
 
 ---
