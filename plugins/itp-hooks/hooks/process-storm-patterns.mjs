@@ -39,21 +39,20 @@ export const PATTERNS = {
     ],
   },
 
-  // CRITICAL: gh CLI in hooks/credential helpers - causes recursion
+  // CRITICAL: gh CLI credential helper recursion patterns # PROCESS-STORM-OK
+  // Only block subshell patterns that trigger credential helper loops.
+  // Direct gh commands (gh api, gh issue, gh pr) are safe from Claude Code
+  // Bash tool — recursion only happens inside hooks/credential helpers.
   gh_recursion: {
     severity: "critical",
-    description: "gh CLI calls that cause credential helper recursion",
+    description: "gh CLI subshell patterns that cause credential helper recursion",
     patterns: [
-      // gh auth token (triggers credential helper)
-      /gh\s+auth\s+token/i,
-      // gh auth status (can trigger auth flow)
-      /gh\s+auth\s+status/i,
-      // gh api user (common in validation hooks)
-      /gh\s+api\s+user/i,
-      // GH_TOKEN=$(gh auth ...) subshell pattern
+      // GH_TOKEN=$(gh auth ...) subshell pattern (credential helper recursion)
       /GH_TOKEN\s*=\s*\$\(\s*gh\s+auth/i,
       // GITHUB_TOKEN=$(gh auth ...) subshell pattern
       /GITHUB_TOKEN\s*=\s*\$\(\s*gh\s+auth/i,
+      // $(gh auth token) in any subshell context
+      /\$\(\s*gh\s+auth\s+(token|status)/i,
     ],
   },
 
