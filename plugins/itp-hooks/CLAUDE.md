@@ -22,6 +22,7 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 | `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)                                                                                           |
 | `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection)                                                                                          |
 | `pretooluse-file-size-guard.ts`        | Write\|Edit       | File size bloat prevention (per-extension limits)                                                                                          |
+| `pretooluse-native-binary-guard.ts`    | Write\|Edit       | Enforces compiled Swift binaries for launchd (no bash scripts)                                                                             |
 | `sred-commit-guard.ts`                 | Bash              | SR&ED commit format enforcement                                                                                                            |
 | `pretooluse-pueue-wrap-guard.ts`       | Bash              | Auto-wraps long-running commands with pueue + injects OP_SERVICE_ACCOUNT_TOKEN for Claude Automation vault (MUST be LAST PreToolUse entry) |
 
@@ -370,6 +371,58 @@ WHY PUEUE:
 
 - Issue: [rangebar-py#77](https://github.com/terrylica/rangebar-py/issues/77)
 - Pueue: [github.com/Nukesor/pueue](https://github.com/Nukesor/pueue)
+
+## Native Binary Guard (macOS Launchd)
+
+The `pretooluse-native-binary-guard.ts` hook enforces that all macOS launchd services use compiled native binaries (Swift preferred), never bash scripts.
+
+### Why
+
+Using `/bin/bash` in launchd plists shows a generic "bash" entry in System Settings > Login Items, which looks like unidentified malware. Compiled Swift binaries show their actual executable name (e.g., "calendar-announce").
+
+### Detections
+
+| Pattern                              | Example                               | Decision            |
+| ------------------------------------ | ------------------------------------- | ------------------- |
+| `.sh`/`.bash` file in automation dir | `~/.claude/automation/foo/run.sh`     | **DENY**            |
+| `.plist` with `/bin/bash`            | `<string>/bin/bash</string>`          | **DENY**            |
+| `.plist` with `.sh` script path      | `<string>/path/to/script.sh</string>` | **DENY**            |
+| `.swift` file in automation dir      | `~/.claude/automation/foo/Main.swift` | ALLOW               |
+| `.plist` with compiled binary        | `<string>/path/to/binary</string>`    | ALLOW               |
+| Any file outside automation dirs     | `~/eon/project/script.sh`             | ALLOW (not checked) |
+
+### Scope (Narrow)
+
+Only triggers for files in these directories:
+
+- `~/.claude/automation/`
+- `~/Library/LaunchAgents/`
+- `~/Library/LaunchDaemons/`
+
+### Performance
+
+Uses a **raw-stdin fast path**: checks for launchd-related keywords (`.plist`, `.sh`, `LaunchAgent`, `automation/`) in the raw stdin string BEFORE JSON parsing. For 99%+ of Write/Edit calls (normal code files), exits in <1ms without parsing JSON.
+
+### Required Pattern
+
+```bash
+# 1. Write logic in Swift
+vim ~/.claude/automation/my-tool/swift-cli/MyTool.swift
+
+# 2. Compile to native binary
+swiftc -O -framework EventKit -o my-tool MyTool.swift
+
+# 3. Reference binary directly in plist (NOT /bin/bash)
+# <string>/Users/terryli/.claude/automation/my-tool/swift-cli/my-tool</string>
+```
+
+### Escape Hatch
+
+Add `# BASH-LAUNCHD-OK` (in scripts) or `<!-- BASH-LAUNCHD-OK -->` (in plists) to bypass.
+
+### Reference
+
+- Examples: `~/.claude/automation/calendar-alarm-sweep/swift-cli/` (CalendarAnnounce.swift, CalendarAlarmSweep.swift)
 
 ## Code Correctness Philosophy
 
