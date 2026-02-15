@@ -25,7 +25,7 @@ Every gotcha discovered when working with the macOS iMessage database, with symp
 | #   | Pitfall                       | Symptom                                         | Solution                                                                                                 |
 | --- | ----------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | 1   | `text` column NULL            | Message appears empty/missing                   | Check `attributedBody` — use decode script                                                               |
-| 2   | NSAttributedString binary     | Raw binary garbage in output                    | **v2**: NSString marker + length-prefix extraction (no filtering needed)                                 |
+| 2   | NSAttributedString binary     | Raw binary garbage in output                    | **v3**: 3-tier decoder (pytypedstream → multi-format binary → NSString marker)                           |
 | 3   | Tapback reactions as messages | Duplicate/phantom messages                      | Filter with `associated_message_type = 0`                                                                |
 | 4   | `iI` suffix artifacts         | Decoded text ends with `iI` + random chars      | **v1 only** — v2 length-prefix extraction doesn't include trailing artifacts                             |
 | 5   | `+` length prefix             | Decoded text starts with `+` then a single char | **v1 only** — v2 length-prefix extraction doesn't include leading artifacts                              |
@@ -34,7 +34,9 @@ Every gotcha discovered when working with the macOS iMessage database, with symp
 | 8   | `kIMMessagePartAttributeName` | Garbage metadata text in decoded output         | These are tapback metadata — filter by `associated_message_type = 0`                                     |
 | 9   | Voice vs dictated confusion   | Both have NULL `text`                           | Voice: `cache_has_attachments = 1`. Dictated: `cache_has_attachments = 0` + `attributedBody` > 100 bytes |
 | 10  | `NSValue` in decoded text     | Short garbage strings like "NSValue"            | These are tapback/reaction attribute values — already filtered by `associated_message_type = 0`          |
-| 11  | Short messages invisible      | Messages <50 chars return `None` from decode    | **FIXED v2** — replaced null-split decoder with NSString marker + length-prefix extraction               |
+| 11  | Short messages invisible      | Messages <50 chars return `None` from decode    | **FIXED v2/v3** — replaced null-split decoder; v3 uses pytypedstream for reliable decode                 |
+| 12  | pytypedstream module name     | `ImportError` when importing `pytypedstream`    | Package = `pytypedstream` (PyPI), module = `typedstream`. Use `from typedstream import Unarchiver`       |
+| 13  | Unarchiver not iterable       | `TypeError` iterating `Unarchiver.from_data()`  | Must call `.decode_all()` first — returns `list[TypedValue]`, not an iterator                            |
 
 ---
 
@@ -49,29 +51,24 @@ The `attributedBody` column contains a serialized `NSAttributedString` object. T
 - Attribute dictionaries (font, color, paragraph style)
 - Apple framework class names as markers
 
-**Decode strategy v2** (used by the bundled script — NSString marker + length-prefix):
+**Decode strategy v3** (used by the bundled script — 3-tier with pytypedstream):
 
 ```python
-def decode_attributed_body(attr_body: bytes) -> str | None:
-    if not attr_body:
-        return None
-    try:
-        parts = attr_body.split(b"NSString")
-        if len(parts) < 2:
-            return None
-        content = parts[1][5:]  # skip 5-byte preamble after NSString
-        length = content[0]
-        start = 1
-        if content[0] == 129:  # 0x81 = 2-byte length follows (little-endian)
-            length = int.from_bytes(content[1:3], "little")
-            start = 3
-        text = content[start:start + length].decode("utf-8", errors="ignore").strip()
-        return text if len(text) >= 1 else None
-    except (IndexError, ValueError):
-        return None
+# Tier 1: pytypedstream (proper deserialization, most reliable)
+from typedstream import Unarchiver
+result = Unarchiver.from_data(attr_body).decode_all()
+# Navigate: TypedValue.value → GenericArchivedObject.contents → NSMutableString.value → str
+
+# Tier 2: Multi-format binary (0x2B/0x4F/0x49 markers with variable-length encoding)
+# Ported from macos-messages — handles 4 encoding formats, zero external deps
+
+# Tier 3: NSString marker + length-prefix (v2 legacy, LangChain approach)
+# Split on b"NSString", skip 5-byte preamble, read length — simplest last resort
 ```
 
-> **Why v2?** The original v1 approach (null-byte split + framework class name filtering) silently dropped short messages where the text and NS class names coexisted in the same chunk. See pitfall #11.
+> **Why v3?** The v2 approach (NSString marker only) fixed the v1 short-message bug but only handles one encoding format. The v3 3-tier strategy handles all known formats via pytypedstream (tier 1), falls through to multi-format binary parsing (tier 2), and keeps the v2 approach as a last resort (tier 3). See [cross-repo-analysis.md](./cross-repo-analysis.md) for full comparison.
+
+> **Why v2 over v1?** The original v1 approach (null-byte split + framework class name filtering) silently dropped short messages where the text and NS class names coexisted in the same chunk. See pitfall #11.
 
 ### 2. Tapback Reactions
 
@@ -159,6 +156,18 @@ Never attempt to write to `chat.db` — it will corrupt the database.
 - "The current office gave her a glaring reference"
 - "Yes", "Cool.", "Never", and other short messages
 
-**Solution**: Replaced with NSString marker + length-prefix extraction (v2, 2026-02-14). No filtering needed — the length prefix gives exact text boundaries.
+**Solution**: Replaced with NSString marker + length-prefix extraction (v2, 2026-02-14), then upgraded to 3-tier decoder with pytypedstream (v3, 2026-02-14). No filtering needed — pytypedstream does proper deserialization, and the length-prefix fallbacks give exact text boundaries.
 
 **Anti-pattern**: Never filter decoded chunks by checking if they _contain_ framework class names. The message text and class names coexist in the same binary region for short messages.
+
+### 8. pytypedstream Module Name Mismatch
+
+**Pitfall #12** — `from pytypedstream import Unarchiver` raises `ImportError`. The PyPI package name (`pytypedstream`) differs from the installed module name (`typedstream`).
+
+**Solution**: `from typedstream import Unarchiver` — always import from `typedstream`, not `pytypedstream`.
+
+### 9. Unarchiver Object Not Iterable
+
+**Pitfall #13** — `for value in Unarchiver.from_data(blob):` raises `TypeError`. The `Unarchiver` object is not directly iterable.
+
+**Solution**: Call `.decode_all()` first: `Unarchiver.from_data(blob).decode_all()` returns a `list[TypedValue]` that you can iterate.
