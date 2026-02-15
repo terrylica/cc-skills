@@ -1,3 +1,10 @@
+## [11.37.2](https://github.com/terrylica/cc-skills/compare/v11.37.1...v11.37.2) (2026-02-15)
+
+
+### Bug Fixes
+
+* **itp-hooks:** reduce false positives in storm guard and pueue wrap ([3b59543](https://github.com/terrylica/cc-skills/commit/3b595431e7f962aaec957636b0c1a25330fc1a3c))
+
 ## [11.37.1](https://github.com/terrylica/cc-skills/compare/v11.37.0...v11.37.1) (2026-02-14)
 
 
