@@ -1,3 +1,39 @@
+# [11.40.0](https://github.com/terrylica/cc-skills/compare/v11.39.0...v11.40.0) (2026-02-15)
+
+
+### Features
+
+* **code-clone-assistant:** add accepted exceptions for intentional duplication ([eba0757](https://github.com/terrylica/cc-skills/commit/eba07570159c1e414002a295b7ad38bc4ddc67e8))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [code-clone-assistant](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/code-clone-assistant/SKILL.md) - updated (+58)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quality-tools/code-clone-assistant</strong> (1 file)</summary>
+
+- [Create working directory](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/code-clone-assistant/references/complete-workflow.md) - updated (+27/-18)
+
+</details>
+
 # [11.39.0](https://github.com/terrylica/cc-skills/compare/v11.38.0...v11.39.0) (2026-02-15)
 
 
