@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-#MISE description="Phase 3 of 4: Sync released version to local Claude Code environment. Updates ~/.claude/plugins/marketplaces/cc-skills/ to new git tag, syncs PreToolUse/PostToolUse/Stop hooks to settings.json, auto-enables new plugins, and clears stale plugin cache. Ensures local Claude Code installation matches the release."
+#MISE description="Phase 3 of 4: Sync released version to local Claude Code environment. Updates marketplace repo, syncs hooks to settings.json, syncs commands to ~/.claude/commands/, auto-enables new plugins, and clears stale plugin cache."
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"
-echo "  Phase 3: SYNC (hooks + cache)"
+echo "  Phase 3: SYNC (hooks + commands + cache)"
 echo "═══════════════════════════════════════════════════════════"
 
 MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
@@ -33,7 +33,15 @@ else
     echo "  ⚠ Hook sync script not found"
 fi
 
-# Step 2b: Auto-enable new plugins in settings.json
+# Step 2b: Sync commands to ~/.claude/commands/
+echo "→ Syncing commands to ~/.claude/commands/..."
+if [[ -x "./scripts/sync-commands-to-settings.sh" ]]; then
+    ./scripts/sync-commands-to-settings.sh
+else
+    echo "  ⚠ Command sync script not found"
+fi
+
+# Step 2c: Auto-enable new plugins in settings.json
 echo "→ Enabling new plugins in settings.json..."
 if [[ -x "./scripts/sync-enabled-plugins.sh" ]]; then
     ./scripts/sync-enabled-plugins.sh
