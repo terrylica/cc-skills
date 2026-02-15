@@ -21,6 +21,7 @@ Query the macOS iMessage SQLite database (`~/Library/Messages/chat.db`) to retri
 1. **macOS only** — `chat.db` is a macOS-specific database
 2. **Full Disk Access** — The terminal running Claude Code must have FDA granted in System Settings > Privacy & Security > Full Disk Access
 3. **Read-only** — Never write to `chat.db`. Always use read-only SQLite access.
+4. **Optional**: `pip install pytypedstream` — Enables tier 1 decoder (proper typedstream deserialization). Script works without it (falls through to pure-binary tiers 2/3).
 
 ## Critical Knowledge - The `text` vs `attributedBody` Problem
 
@@ -52,13 +53,19 @@ AND m.cache_has_attachments = 0;
 
 ### How to decode
 
-Use the bundled decode script for reliable extraction:
+Use the bundled decode script for reliable extraction (v3 — 3-tier decoder):
 
 ```bash
 python3 <skill-path>/scripts/decode_attributed_body.py --chat "<CHAT_IDENTIFIER>" --limit 50
 ```
 
-Or use inline Python for one-off decoding (see [Known Pitfalls](./references/known-pitfalls.md) for the technique).
+The decoder uses a 3-tier strategy:
+
+1. **Tier 1**: `pytypedstream` Unarchiver — proper Apple typedstream deserialization (requires `pip install pytypedstream`)
+2. **Tier 2**: Multi-format binary — 0x2B/0x4F/0x49 length-prefix parsing (zero deps, ported from [macos-messages](https://github.com/bettercallsean/macos-messages))
+3. **Tier 3**: NSString marker + length-prefix — v2 legacy approach (zero deps, last resort)
+
+Falls through tiers on failure. Works without pytypedstream installed (skips tier 1). See [Cross-Repo Analysis](./references/cross-repo-analysis.md) for decoder comparison.
 
 ## Date Formula
 
@@ -216,6 +223,7 @@ find ~/.claude -path "*/imessage-query/scripts/decode_attributed_body.py" 2>/dev
 - [Schema Reference](./references/schema-reference.md) — Tables, columns, relationships
 - [Query Patterns](./references/query-patterns.md) — Reusable SQL templates for common operations
 - [Known Pitfalls](./references/known-pitfalls.md) — Every gotcha discovered and how to handle it
+- [Cross-Repo Analysis](./references/cross-repo-analysis.md) — Comparison of 5 OSS decoder implementations and what we adopted
 
 ---
 
@@ -270,6 +278,6 @@ After modifying this skill:
 1. [ ] YAML frontmatter valid (name, description with triggers)
 2. [ ] No private data (phone numbers, names, emails) in any file
 3. [ ] All SQL uses parameterized placeholders
-4. [ ] Decode script works with `python3` (no external deps)
+4. [ ] Decode script works with `python3` (pytypedstream optional, tiers 2/3 are stdlib-only)
 5. [ ] All reference links are relative paths
 6. [ ] Append changes to [evolution-log.md](./references/evolution-log.md)

@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
+# dependencies = ["pytypedstream"]
 # ///
 """
 Decode iMessage messages from macOS chat.db, including NSAttributedString binary blobs.
 
 Many iOS messages store text in the `attributedBody` column (as NSAttributedString binary)
 rather than the `text` column. This script handles both transparently.
+
+Decoder strategy (v3 — 3-tier with pytypedstream):
+  1. pytypedstream (Unarchiver) — proper typedstream deserialization, handles all formats
+  2. Multi-format binary — 0x2B length-prefix with 1-4 byte lengths, 0x4F, 0x49 fallbacks
+  3. NSString marker — split on b"NSString" + length-prefix (v2 legacy)
 
 Usage:
     python3 decode_attributed_body.py --chat "+1234567890" --limit 50
@@ -24,38 +30,174 @@ Output: timestamp|sender|text (pipe-delimited, one message per line)
 import argparse
 import json
 import os
+import re
 import sqlite3
 import sys
 
 # Apple epoch offset: seconds between Unix epoch (1970-01-01) and Apple epoch (2001-01-01)
 APPLE_EPOCH_OFFSET = 978307200
 
+# Try to import pytypedstream (preferred decoder)
+try:
+    from typedstream import Unarchiver
 
-def decode_attributed_body(attr_body: bytes) -> str | None:
-    """Decode NSAttributedString binary blob to plain text.
+    _HAS_TYPEDSTREAM = True
+except ImportError:
+    _HAS_TYPEDSTREAM = False
 
-    Uses the NSString marker + length-prefix approach (same algorithm as
-    LangChain's iMessage loader). The binary format stores text after a
-    b"NSString" marker, a 5-byte preamble, and a variable-length field.
+
+def _decode_via_typedstream(attr_body: bytes) -> str | None:
+    """Tier 1: Decode via pytypedstream Unarchiver (proper typedstream deserialization).
+
+    Source: pytypedstream package (same approach as imessage-conversation-analyzer).
+    Handles all message lengths, emoji, and rich formatting correctly.
     """
-    if not attr_body:
+    try:
+        result = Unarchiver.from_data(attr_body).decode_all()
+        for tv in result:
+            obj = tv.value
+            if hasattr(obj, "contents"):
+                for item in obj.contents:
+                    val = item.value
+                    # NSMutableString wraps a str
+                    if hasattr(val, "value") and isinstance(val.value, str):
+                        text = val.value.strip()
+                        return text if text else None
+                    elif isinstance(val, str):
+                        text = val.strip()
+                        return text if text else None
+    except (IndexError, ValueError, UnicodeDecodeError, TypeError, OSError):
         return None
+    return None
+
+
+def _decode_via_multiformat(attr_body: bytes) -> str | None:
+    """Tier 2: Multi-format binary length-prefix decoder (from macos-messages).
+
+    Handles 0x2B (+) marker with 1-4 byte lengths, 0x4F extended encoding,
+    and 0x49 (I) legacy format. No external dependencies.
+    """
+    try:
+        text_section = attr_body.split(b"NSString")[1].split(b"NSDictionary")[0]
+
+        # Try + marker (0x2B) — most common
+        plus_idx = text_section.find(b"+")
+        if plus_idx != -1 and plus_idx + 2 < len(text_section):
+            marker = text_section[plus_idx + 1]
+            if marker < 0x80:
+                length, start = marker, plus_idx + 2
+            elif marker == 0x81 and plus_idx + 4 <= len(text_section):
+                length = int.from_bytes(text_section[plus_idx + 2 : plus_idx + 4], "little")
+                start = plus_idx + 4
+            elif marker == 0x82 and plus_idx + 5 <= len(text_section):
+                length = int.from_bytes(text_section[plus_idx + 2 : plus_idx + 5], "little")
+                start = plus_idx + 5
+            elif marker == 0x83 and plus_idx + 6 <= len(text_section):
+                length = int.from_bytes(text_section[plus_idx + 2 : plus_idx + 6], "little")
+                start = plus_idx + 6
+            else:
+                length, start = 0, 0
+
+            if length > 0 and start + length <= len(text_section):
+                text = text_section[start : start + length].decode("utf-8", errors="ignore").strip()
+                if text:
+                    return text
+
+        # Try 0x4F extended length encoding
+        for i in range(len(text_section) - 2):
+            if text_section[i] != 0x4F:
+                continue
+            size_marker = text_section[i + 1]
+            if size_marker == 0x10:
+                length, start = text_section[i + 2], i + 3
+            elif size_marker == 0x11 and i + 4 <= len(text_section):
+                length = int.from_bytes(text_section[i + 2 : i + 4], "big")
+                start = i + 4
+            elif size_marker == 0x12 and i + 6 <= len(text_section):
+                length = int.from_bytes(text_section[i + 2 : i + 6], "big")
+                start = i + 6
+            else:
+                continue
+            if 0 < length < 100000 and start + length <= len(text_section):
+                text = text_section[start : start + length].decode("utf-8", errors="ignore").strip()
+                if text:
+                    return text
+
+        # Try legacy I marker (0x49) — 4-byte big-endian length
+        i_idx = text_section.find(b"I")
+        if i_idx != -1 and i_idx + 5 < len(text_section):
+            length = int.from_bytes(text_section[i_idx + 1 : i_idx + 5], "big")
+            if 0 < length < 100000 and i_idx + 5 + length <= len(text_section):
+                text = text_section[i_idx + 5 : i_idx + 5 + length].decode("utf-8", errors="ignore").strip()
+                if text:
+                    return text
+    except (IndexError, ValueError):
+        pass
+
+    # Heuristic fallback: find readable text sequences after NSString
+    try:
+        if b"streamtyped" in attr_body:
+            parts = attr_body.split(b"NSString")
+            if len(parts) > 1:
+                matches = re.findall(rb"[\x20-\x7e\xc0-\xff]{4,}", parts[1])
+                for m in matches:
+                    decoded = m.decode("utf-8", errors="ignore").strip()
+                    if decoded and not decoded.startswith(("NS", "{")):
+                        return decoded
+    except (IndexError, ValueError, UnicodeDecodeError):
+        return None
+
+    return None
+
+
+def _decode_via_nsstring_marker(attr_body: bytes) -> str | None:
+    """Tier 3: NSString marker + length-prefix (v2 legacy, LangChain approach).
+
+    Simplest approach — split on b"NSString", skip 5-byte preamble, read length.
+    Kept as last resort for unusual blob formats.
+    """
     try:
         parts = attr_body.split(b"NSString")
         if len(parts) < 2:
             return None
-        content = parts[1][5:]  # skip 5-byte preamble after NSString
+        content = parts[1][5:]
         length = content[0]
         start = 1
-        if content[0] == 129:  # 0x81 = 2-byte length follows (little-endian)
+        if content[0] == 0x81:
             length = int.from_bytes(content[1:3], "little")
             start = 3
-        text = content[start:start + length].decode("utf-8", errors="ignore").strip()
-        if len(text) < 1:
-            return None
-        return text
+        text = content[start : start + length].decode("utf-8", errors="ignore").strip()
+        return text if text else None
     except (IndexError, ValueError):
         return None
+
+
+def decode_attributed_body(attr_body: bytes) -> str | None:
+    """Decode NSAttributedString binary blob to plain text.
+
+    3-tier strategy:
+      1. pytypedstream (Unarchiver) — proper deserialization, most reliable
+      2. Multi-format binary — 0x2B/0x4F/0x49 length-prefix parsing
+      3. NSString marker — v2 legacy split approach
+
+    Falls through tiers on failure. Returns None if all tiers fail.
+    """
+    if not attr_body:
+        return None
+
+    # Tier 1: pytypedstream (if available)
+    if _HAS_TYPEDSTREAM:
+        result = _decode_via_typedstream(attr_body)
+        if result:
+            return result
+
+    # Tier 2: Multi-format binary parsing
+    result = _decode_via_multiformat(attr_body)
+    if result:
+        return result
+
+    # Tier 3: NSString marker (v2 legacy)
+    return _decode_via_nsstring_marker(attr_body)
 
 
 def get_db_path() -> str:
