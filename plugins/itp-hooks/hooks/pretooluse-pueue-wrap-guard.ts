@@ -1,14 +1,17 @@
 #!/usr/bin/env bun
 /**
- * PreToolUse hook: Pueue Auto-Wrap Guard
+ * PreToolUse hook: Pueue Auto-Wrap Guard + 1Password Token Injection
  *
- * Wraps known long-running Bash commands with pueue for CLI telemetry.
- * Uses allowlist approach: ONLY wraps commands matching LONG_RUNNING_PATTERNS.
- * All other commands pass through unchanged.
+ * Two responsibilities (combined due to GitHub #15897):
  *
- * Two tiers:
- *   Allow — everything by default → allow() with no updatedInput
- *   Wrap  — known long-running patterns → allow + updatedInput with synchronous pueue wrapper
+ * 1. OP TOKEN INJECTION: Prepends OP_SERVICE_ACCOUNT_TOKEN for commands
+ *    targeting the "Claude Automation" 1Password vault. Avoids biometric prompts.
+ *    Token: ~/.claude/.secrets/op-service-account-token
+ *
+ * 2. PUEUE WRAPPING: Wraps known long-running Bash commands with pueue.
+ *    Uses allowlist approach: ONLY wraps commands matching LONG_RUNNING_PATTERNS.
+ *
+ * Pipeline: originalCommand → maybeInjectOpToken → shouldWrap → output
  *
  * IMPORTANT: This MUST be the LAST PreToolUse entry in hooks.json.
  * Reason: GitHub #15897 — multi-hook updatedInput aggregation bug means the
@@ -16,6 +19,7 @@
  *
  * Opt-in:  # PUEUE-WRAP comment forces wrapping for any command
  * Opt-out: # PUEUE-SKIP comment prevents wrapping even for long-running patterns
+ * Op-token bypass: OP_SERVICE_ACCOUNT_TOKEN already in command → skip injection
  *
  * Reference: /plugins/devops-tools/skills/pueue-job-orchestration/references/claude-code-integration.md
  * GitHub Issue: https://github.com/anthropics/claude-code/issues/15897 (updatedInput aggregation bug)
@@ -23,6 +27,7 @@
  */
 
 import { allow, output, parseStdinOrAllow } from "./pretooluse-helpers.ts";
+import { maybeInjectOpToken } from "./lib/op-token-injector.ts";
 
 /** Opt-in escape hatch — force wrapping */
 const WRAP_COMMENT = /# *PUEUE-WRAP/i;
@@ -48,8 +53,10 @@ const LONG_RUNNING_PATTERNS = [
 
   // Batch processing with multiple items
   /--phase\s+\d/i,
-  /for\s+\w+\s+in.*;\s*do/i,
-  /while.*;\s*do/i,
+  // Shell loops with known long-running inner commands (populate, bulk, python)
+  // Simple loops (curl, echo, git) are NOT wrapped — they complete quickly
+  /for\s+\w+\s+in.*;\s*do[^;]*(populate|bulk|cache|python|uv\s+run)/i,
+  /while.*;\s*do[^;]*(populate|bulk|cache|python|uv\s+run)/i,
 
   // SSH with long-running remote commands
   /ssh\s+\S+\s+["']?.*populate/i,
@@ -106,11 +113,28 @@ async function main() {
     return;
   }
 
-  const command = tool_input.command || "";
+  const originalCommand = tool_input.command || "";
 
-  // Allowlist check: only wrap known long-running commands
+  // Step 1: Maybe inject OP_SERVICE_ACCOUNT_TOKEN for Claude Automation vault
+  const command = await maybeInjectOpToken(originalCommand);
+  const opTokenInjected = command !== originalCommand;
+
+  // Step 2: Allowlist check — only wrap known long-running commands
   if (!shouldWrap(command)) {
-    allow();
+    if (opTokenInjected) {
+      // Token was injected but no pueue wrapping needed — still emit updatedInput
+      output({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "allow",
+          updatedInput: {
+            command,
+          },
+        },
+      });
+    } else {
+      allow();
+    }
     return;
   }
 
@@ -120,8 +144,20 @@ async function main() {
     stderr: "ignore",
   });
   if (daemonCheck.exitCode !== 0) {
-    // Daemon not running — allow original command through
-    allow();
+    // Daemon not running — still apply token injection if present
+    if (opTokenInjected) {
+      output({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "allow",
+          updatedInput: {
+            command,
+          },
+        },
+      });
+    } else {
+      allow();
+    }
     return;
   }
 
