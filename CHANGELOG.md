@@ -1,3 +1,36 @@
+## [11.41.1](https://github.com/terrylica/cc-skills/compare/v11.41.0...v11.41.1) (2026-02-15)
+
+
+### Bug Fixes
+
+* **itp-hooks:** convert fake-data-guard from ask to deny mode ([5d5faac](https://github.com/terrylica/cc-skills/commit/5d5faacc3a621d9a4b1a9b56c59ba505efadef94))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+65/-10)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+1/-1)
+
 # [11.41.0](https://github.com/terrylica/cc-skills/compare/v11.40.0...v11.41.0) (2026-02-15)
 
 
