@@ -221,6 +221,91 @@ export interface DraftResult {
   fromAutoDetected?: boolean;
 }
 
+export interface DraftSummary {
+  draftId: string;
+  messageId: string;
+  threadId: string;
+  from: string;
+  to: string;
+  subject: string;
+  snippet: string;
+  date: string;
+}
+
+/**
+ * List Gmail drafts with metadata
+ *
+ * Returns proper draft IDs (required for delete/update) unlike searching "in:drafts"
+ * which only returns message IDs.
+ */
+export async function listDrafts(
+  client: gmail_v1.Gmail,
+  maxResults: number = 20
+): Promise<DraftSummary[]> {
+  const res = await client.users.drafts.list({
+    userId: "me",
+    maxResults,
+  });
+
+  const drafts = res.data.drafts ?? [];
+
+  return Promise.all(
+    drafts.map(async (d) => {
+      const detail = await client.users.drafts.get({
+        userId: "me",
+        id: d.id!,
+        format: "metadata",
+      });
+      const headers = detail.data.message?.payload?.headers ?? [];
+      const getH = (name: string) =>
+        headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
+
+      return {
+        draftId: d.id!,
+        messageId: detail.data.message?.id ?? "",
+        threadId: detail.data.message?.threadId ?? "",
+        from: getH("From"),
+        to: getH("To"),
+        subject: getH("Subject"),
+        snippet: detail.data.message?.snippet ?? "",
+        date: getH("Date"),
+      };
+    })
+  );
+}
+
+/**
+ * Delete a Gmail draft by draft ID
+ *
+ * Permanently removes the draft. Use listDrafts to get draft IDs.
+ */
+export async function deleteDraft(
+  client: gmail_v1.Gmail,
+  draftId: string
+): Promise<void> {
+  await client.users.drafts.delete({
+    userId: "me",
+    id: draftId,
+  });
+}
+
+/**
+ * Update (replace) an existing Gmail draft
+ *
+ * Deletes the old draft and creates a new one in the same thread.
+ * Gmail API's drafts.update replaces the entire message, so this
+ * delete-then-create approach is equivalent and simpler.
+ */
+export async function updateDraft(
+  client: gmail_v1.Gmail,
+  draftId: string,
+  options: DraftOptions
+): Promise<DraftResult> {
+  // Delete old draft then create replacement
+  await client.users.drafts.delete({ userId: "me", id: draftId });
+  return createDraft(client, options);
+}
+
 /**
  * Create a Gmail draft
  *
