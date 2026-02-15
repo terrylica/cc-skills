@@ -12,7 +12,7 @@ import { Bot } from "grammy";
 import type { BotState } from "./state.js";
 import { getCallbackData } from "./commands.js";
 import { readEmail } from "./gmail-client.js";
-import { escapeHtml } from "./telegram-format.js";
+import { escapeHtml, formatEmailReadView } from "./telegram-format.js";
 import { chunkTelegramHtml } from "./telegram-chunk.js";
 import { auditLog } from "./audit.js";
 import { InlineKeyboard } from "grammy";
@@ -68,9 +68,8 @@ export function registerCallbacks(bot: Bot, _state: BotState) {
         .text("Reply", `reply_direct:${data.messageId}`)
         .url("Open in Gmail", `https://mail.google.com/mail/u/0/#inbox/${data.messageId}`);
 
-      const escaped = escapeHtml(content);
-      // Reserve space for <pre></pre> tags (11 chars) in each chunk
-      const chunks = chunkTelegramHtml(escaped, 4096 - 11).map(c => `<pre>${c}</pre>`);
+      const formatted = formatEmailReadView(content);
+      const chunks = chunkTelegramHtml(formatted, 4096);
 
       // First chunk with buttons
       await ctx.reply(chunks[0]!, {
