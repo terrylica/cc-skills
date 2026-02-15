@@ -1,3 +1,24 @@
+# [11.43.0](https://github.com/terrylica/cc-skills/compare/v11.42.0...v11.43.0) (2026-02-15)
+
+
+### Features
+
+* **itp-hooks:** add native binary guard for macOS launchd automation ([72edf29](https://github.com/terrylica/cc-skills/commit/72edf292c07bde841e5f21c95a4cf3db93387a6d))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+53)
+
 # [11.42.0](https://github.com/terrylica/cc-skills/compare/v11.41.1...v11.42.0) (2026-02-15)
 
 
