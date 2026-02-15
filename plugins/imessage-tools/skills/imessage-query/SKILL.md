@@ -53,7 +53,7 @@ AND m.cache_has_attachments = 0;
 
 ### How to decode
 
-Use the bundled decode script for reliable extraction (v3 — 3-tier decoder):
+Use the bundled decode script for reliable extraction (v4 — 3-tier decoder + native pitfall protections):
 
 ```bash
 python3 <skill-path>/scripts/decode_attributed_body.py --chat "<CHAT_IDENTIFIER>" --limit 50
@@ -189,9 +189,22 @@ Exports messages to a NDJSON (.jsonl) file for offline analysis:
   "sender": "them",
   "is_from_me": false,
   "text": "Message text here",
-  "decoded": true
+  "decoded": true,
+  "type": "text",
+  "edited": true,
+  "service": "SMS",
+  "effect": "slam",
+  "reply_to": {
+    "ts": "2026-02-13 18:00:00",
+    "sender": "me",
+    "text": "Original message..."
+  }
 }
 ```
+
+Fields `edited`, `service`, `effect`, `reply_to` are optional — only present when applicable. The `type` field is always present (`"text"`, `"audio"`, or `"attachment"`).
+
+**Retracted messages are NEVER exported** — they are deterministically excluded (see Native Protections below).
 
 **Export-first workflow** (recommended for multi-query analysis):
 
@@ -205,6 +218,21 @@ grep -i "keyword" thread.jsonl
 jq 'select(.text | test("reference"; "i"))' thread.jsonl
 jq 'select(.sender == "them")' thread.jsonl
 ```
+
+## Native Protections (v4)
+
+The decode script natively handles these pitfalls — no manual SQL workarounds needed:
+
+| Protection                     | Column Used                               | Behavior                                                                |
+| ------------------------------ | ----------------------------------------- | ----------------------------------------------------------------------- |
+| Retracted messages (Undo Send) | `date_retracted`, `date_edited`           | **Excluded** from output — content wiped by iOS, not admissible         |
+| Edited messages                | `date_edited`                             | **Flagged** with `[edited]` / `"edited": true`                          |
+| Audio/voice messages           | `is_audio_message`                        | **Identified** as `[audio message]` — not misclassified as empty        |
+| Inline quotes (swipe-to-reply) | `thread_originator_guid`                  | **Resolved** to quoted message text via GUID index                      |
+| Attachments without text       | `cache_has_attachments`, attachment table | **Surfaced** as `[attachment: filename]` instead of silently dropped    |
+| Message effects                | `expressive_send_style_id`                | **Decoded** to human-readable names (slam, loud, gentle, invisible_ink) |
+| Service type                   | `service`                                 | **Flagged** when SMS instead of iMessage                                |
+| Tapback reactions              | `associated_message_type`                 | **Filtered** (only `= 0` included)                                      |
 
 ## Anti-Patterns to Avoid
 
