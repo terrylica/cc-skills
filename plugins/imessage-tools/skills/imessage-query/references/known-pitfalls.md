@@ -22,21 +22,22 @@ Every gotcha discovered when working with the macOS iMessage database, with symp
 
 ## Pitfall Reference Table
 
-| #   | Pitfall                       | Symptom                                         | Solution                                                                                                 |
-| --- | ----------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 1   | `text` column NULL            | Message appears empty/missing                   | Check `attributedBody` — use decode script                                                               |
-| 2   | NSAttributedString binary     | Raw binary garbage in output                    | **v3**: 3-tier decoder (pytypedstream → multi-format binary → NSString marker)                           |
-| 3   | Tapback reactions as messages | Duplicate/phantom messages                      | Filter with `associated_message_type = 0`                                                                |
-| 4   | `iI` suffix artifacts         | Decoded text ends with `iI` + random chars      | **v1 only** — v2 length-prefix extraction doesn't include trailing artifacts                             |
-| 5   | `+` length prefix             | Decoded text starts with `+` then a single char | **v1 only** — v2 length-prefix extraction doesn't include leading artifacts                              |
-| 6   | Wrong timezone                | Timestamps off by hours                         | Add `'localtime'` modifier to `datetime()`                                                               |
-| 7   | zsh `!=` escaping             | Shell error when using `!=` in SQL              | Use `length(m.text) > 0` instead of `m.text != ''`                                                       |
-| 8   | `kIMMessagePartAttributeName` | Garbage metadata text in decoded output         | These are tapback metadata — filter by `associated_message_type = 0`                                     |
-| 9   | Voice vs dictated confusion   | Both have NULL `text`                           | Voice: `cache_has_attachments = 1`. Dictated: `cache_has_attachments = 0` + `attributedBody` > 100 bytes |
-| 10  | `NSValue` in decoded text     | Short garbage strings like "NSValue"            | These are tapback/reaction attribute values — already filtered by `associated_message_type = 0`          |
-| 11  | Short messages invisible      | Messages <50 chars return `None` from decode    | **FIXED v2/v3** — replaced null-split decoder; v3 uses pytypedstream for reliable decode                 |
-| 12  | pytypedstream module name     | `ImportError` when importing `pytypedstream`    | Package = `pytypedstream` (PyPI), module = `typedstream`. Use `from typedstream import Unarchiver`       |
-| 13  | Unarchiver not iterable       | `TypeError` iterating `Unarchiver.from_data()`  | Must call `.decode_all()` first — returns `list[TypedValue]`, not an iterator                            |
+| #   | Pitfall                       | Symptom                                                                      | Solution                                                                                                                                                                                                                |
+| --- | ----------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `text` column NULL            | Message appears empty/missing                                                | Check `attributedBody` — use decode script                                                                                                                                                                              |
+| 2   | NSAttributedString binary     | Raw binary garbage in output                                                 | **v3**: 3-tier decoder (pytypedstream → multi-format binary → NSString marker)                                                                                                                                          |
+| 3   | Tapback reactions as messages | Duplicate/phantom messages                                                   | Filter with `associated_message_type = 0`                                                                                                                                                                               |
+| 4   | `iI` suffix artifacts         | Decoded text ends with `iI` + random chars                                   | **v1 only** — v2 length-prefix extraction doesn't include trailing artifacts                                                                                                                                            |
+| 5   | `+` length prefix             | Decoded text starts with `+` then a single char                              | **v1 only** — v2 length-prefix extraction doesn't include leading artifacts                                                                                                                                             |
+| 6   | Wrong timezone                | Timestamps off by hours                                                      | Add `'localtime'` modifier to `datetime()`                                                                                                                                                                              |
+| 7   | zsh `!=` escaping             | Shell error when using `!=` in SQL                                           | Use `length(m.text) > 0` instead of `m.text != ''`                                                                                                                                                                      |
+| 8   | `kIMMessagePartAttributeName` | Garbage metadata text in decoded output                                      | These are tapback metadata — filter by `associated_message_type = 0`                                                                                                                                                    |
+| 9   | Voice vs dictated confusion   | Both have NULL `text`                                                        | Voice: `cache_has_attachments = 1`. Dictated: `cache_has_attachments = 0` + `attributedBody` > 100 bytes                                                                                                                |
+| 10  | `NSValue` in decoded text     | Short garbage strings like "NSValue"                                         | These are tapback/reaction attribute values — already filtered by `associated_message_type = 0`                                                                                                                         |
+| 11  | Short messages invisible      | Messages <50 chars return `None` from decode                                 | **FIXED v2/v3** — replaced null-split decoder; v3 uses pytypedstream for reliable decode                                                                                                                                |
+| 12  | pytypedstream module name     | `ImportError` when importing `pytypedstream`                                 | Package = `pytypedstream` (PyPI), module = `typedstream`. Use `from typedstream import Unarchiver`                                                                                                                      |
+| 13  | Unarchiver not iterable       | `TypeError` iterating `Unarchiver.from_data()`                               | Must call `.decode_all()` first — returns `list[TypedValue]`, not an iterator                                                                                                                                           |
+| 14  | Retracted messages look empty | NULL `text`, NULL `attributedBody`, 0 attachments — looks like voice message | Check `date_edited > 0`: these are unsent/retracted messages with content wiped by iOS. NOT recoverable. NOT admissible — both parties know they were retracted. `message_summary_info.otr.le` records original length. |
 
 ---
 
@@ -171,3 +172,28 @@ Never attempt to write to `chat.db` — it will corrupt the database.
 **Pitfall #13** — `for value in Unarchiver.from_data(blob):` raises `TypeError`. The `Unarchiver` object is not directly iterable.
 
 **Solution**: Call `.decode_all()` first: `Unarchiver.from_data(blob).decode_all()` returns a `list[TypedValue]` that you can iterate.
+
+### 10. Retracted Messages Mistaken for Voice Messages or Missing Content
+
+**Pitfall #14** — Messages with NULL `text`, NULL/empty `attributedBody`, and `cache_has_attachments = 0` look identical to the "voice message" pattern from pitfall #9. Previous sessions incorrectly classified these as voice messages, inflating the "undecodable" count.
+
+**Root cause**: When a sender uses "Undo Send" (iOS 16+), the message row stays in the database but both `text` and `attributedBody` are wiped. The `date_edited` field is set to the retraction timestamp (typically 3–64 seconds after `date`).
+
+**How to detect**:
+
+```sql
+-- Retracted messages (NOT voice, NOT missing content — intentionally unsent)
+SELECT datetime(m.date/1000000000 + 978307200, 'unixepoch', 'localtime') as sent,
+       datetime(m.date_edited/1000000000 + 978307200, 'unixepoch', 'localtime') as retracted,
+       (m.date_edited - m.date) / 1000000000 as delay_secs
+FROM message m
+WHERE m.date_edited > 0
+AND (m.text IS NULL OR length(m.text) = 0)
+AND (m.attributedBody IS NULL OR length(m.attributedBody) < 50)
+```
+
+**Original text length**: The `message_summary_info` blob (a plist) contains `otr.0.le` which records the original text length before retraction. This confirms the message had real content, but that content is unrecoverable.
+
+**Admissibility**: Retracted messages are NOT admissible in conversation logs or NDJSON exports. Both parties saw the retraction notification. The decode script correctly excludes them (no `text` or `attributedBody` means `_resolve_message()` returns `None`).
+
+**Anti-pattern**: Never assume that NULL `text` + NULL `attributedBody` = voice message. Always check `date_edited` first — if set, it's a retracted message, not a voice message.
