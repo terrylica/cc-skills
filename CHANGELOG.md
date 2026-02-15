@@ -1,3 +1,45 @@
+# [11.42.0](https://github.com/terrylica/cc-skills/compare/v11.41.1...v11.42.0) (2026-02-15)
+
+
+### Features
+
+* **mise:** add mise plugin with command distribution infrastructure ([b89bf0e](https://github.com/terrylica/cc-skills/commit/b89bf0e420f33a28cb59f58cba05cd8424f63729))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>mise</strong> (3 commands)</summary>
+
+- [/mise:list-repo-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/list-repo-tasks.md) - new (+98)
+- [/mise:run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/run-full-release.md) - new (+108)
+- [/mise:show-env-status](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/show-env-status.md) - new (+82)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+11/-9)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+1)
+- [mise Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/CLAUDE.md) - new (+53)
+
 ## [11.41.1](https://github.com/terrylica/cc-skills/compare/v11.41.0...v11.41.1) (2026-02-15)
 
 
