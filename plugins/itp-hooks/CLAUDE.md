@@ -420,6 +420,17 @@ swiftc -O -framework EventKit -o my-tool MyTool.swift
 
 Add `# BASH-LAUNCHD-OK` (in scripts) or `<!-- BASH-LAUNCHD-OK -->` (in plists) to bypass.
 
+### TCC Anti-Pattern: Duplicate EventKit Access
+
+**Problem**: Each compiled Swift binary that imports EventKit triggers a separate macOS TCC prompt ("Would Like Full Access to Your Calendar"). Multiple binaries = multiple manual approval dialogs.
+
+**Fix**: Designate ONE binary as the EventKit reader (e.g., `calendar-event-reader`). Other binaries call it as a subprocess and parse its JSON stdout. Only the reader needs the TCC grant.
+
+| Pattern                                    | TCC Prompts | Approach     |
+| ------------------------------------------ | ----------- | ------------ |
+| 3 binaries each import EventKit            | 3 prompts   | Anti-pattern |
+| 1 reader binary + 2 callers via subprocess | 1 prompt    | Correct      |
+
 ### Reference
 
 - Examples: `~/.claude/automation/calendar-alarm-sweep/swift-cli/` (CalendarAnnounce.swift, CalendarAlarmSweep.swift)
