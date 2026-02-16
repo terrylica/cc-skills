@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Source shared library
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
 # shellcheck source=lib/tts-common.sh
 source "${SCRIPT_DIR}/lib/tts-common.sh"
 
