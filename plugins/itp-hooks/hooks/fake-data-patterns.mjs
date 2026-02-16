@@ -59,7 +59,7 @@ export const PATTERNS = {
     /\bFactory\.create\b/,
     /\bfactory_boy\b/,
     /\bFactoryBoy\b/,
-    /_factory\b/,
+    /(?<!default)_factory\b/,
     /\.make_\w+/,
     /\bbuild_batch\b/,
     /\bcreate_batch\b/,
