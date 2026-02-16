@@ -1,3 +1,19 @@
+## [11.43.1](https://github.com/terrylica/cc-skills/compare/v11.43.0...v11.43.1) (2026-02-16)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+11)
+
 # [11.43.0](https://github.com/terrylica/cc-skills/compare/v11.42.0...v11.43.0) (2026-02-15)
 
 
