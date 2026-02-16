@@ -1,3 +1,10 @@
+## [11.43.4](https://github.com/terrylica/cc-skills/compare/v11.43.3...v11.43.4) (2026-02-16)
+
+
+### Bug Fixes
+
+* **tts-telegram-sync:** resolve symlinks in SCRIPT_DIR for reliable path detection ([069f53b](https://github.com/terrylica/cc-skills/commit/069f53bfb69cfa8b8ecdbdf0c0ae8c5c46846e4f))
+
 ## [11.43.3](https://github.com/terrylica/cc-skills/compare/v11.43.2...v11.43.3) (2026-02-16)
 
 
