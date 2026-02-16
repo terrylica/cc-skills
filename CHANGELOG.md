@@ -1,3 +1,10 @@
+## [11.43.2](https://github.com/terrylica/cc-skills/compare/v11.43.1...v11.43.2) (2026-02-16)
+
+
+### Bug Fixes
+
+* **itp-hooks:** narrow ruff hook to silent failure patterns only ([d6fb9fa](https://github.com/terrylica/cc-skills/commit/d6fb9fae7d659c65389c11e263a2d12febef4b25))
+
 ## [11.43.1](https://github.com/terrylica/cc-skills/compare/v11.43.0...v11.43.1) (2026-02-16)
 
 
