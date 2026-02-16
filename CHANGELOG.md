@@ -1,3 +1,34 @@
+# [11.44.0](https://github.com/terrylica/cc-skills/compare/v11.43.5...v11.44.0) (2026-02-16)
+
+
+### Bug Fixes
+
+* **hooks:** replace console.error with trackHookError across 29 hook files ([79fe6dd](https://github.com/terrylica/cc-skills/commit/79fe6dd4cb728a233c6569141d971227facef87b))
+
+
+### Features
+
+* **itp-hooks:** add hook-error-tracker library with threshold-based escalation ([eb6f83a](https://github.com/terrylica/cc-skills/commit/eb6f83ad3a1a59d07260ef82e50dcc9a31d42620))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+49/-8)
+
+</details>
+
 ## [11.43.5](https://github.com/terrylica/cc-skills/compare/v11.43.4...v11.43.5) (2026-02-16)
 
 
