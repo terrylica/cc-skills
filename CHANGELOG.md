@@ -1,3 +1,10 @@
+## [11.43.3](https://github.com/terrylica/cc-skills/compare/v11.43.2...v11.43.3) (2026-02-16)
+
+
+### Bug Fixes
+
+* **itp-hooks:** exclude Pydantic default_factory from fake-data guard ([fec9442](https://github.com/terrylica/cc-skills/commit/fec94427eb77f848bc55e5250583cc8934f315b3))
+
 ## [11.43.2](https://github.com/terrylica/cc-skills/compare/v11.43.1...v11.43.2) (2026-02-16)
 
 
