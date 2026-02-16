@@ -1182,6 +1182,52 @@ Existing bash hooks with >50 lines or complex logic should be migrated to TypeSc
 3. Replace settings.json reference
 4. Archive bash version in `legacy/` directory
 
+## Hook Error Handling Policy
+
+**Rule: Never write to stderr on exit 0.**
+
+Per [Claude Code official docs](https://code.claude.com/docs/en/hooks) and the [official hook example](https://github.com/anthropics/claude-code/blob/main/examples/hooks/bash_command_validator_example.py), hooks that exit 0 should produce no stderr output. Stderr on exit 0 triggers spurious "hook error" UI labels.
+
+### Error Channels by Exit Code
+
+| Exit Code | Meaning        | stderr Behavior                     | stdout Behavior      |
+| --------- | -------------- | ----------------------------------- | -------------------- |
+| 0         | Allow/Success  | **NEVER** (silent or file log only) | JSON output (if any) |
+| 1         | Non-blocking   | Shown in verbose mode only          | Ignored              |
+| 2         | Blocking error | Fed to Claude as error message      | Ignored              |
+
+### Fail-Open Error Handling (TypeScript)
+
+Use `trackHookError()` from `lib/hook-error-tracker.ts` instead of `console.error()`:
+
+```typescript
+import { trackHookError } from "./lib/hook-error-tracker.ts";
+
+// In catch blocks that exit 0 (fail-open):
+} catch (err: unknown) {
+  trackHookError("hook-name", err instanceof Error ? err.message : String(err));
+  return process.exit(0);  // Allow through - no stderr noise
+}
+```
+
+**Behavior**: Logs to `~/.claude/logs/hook-errors.jsonl` silently. On 3rd error from the same hook in a session, emits ONE stderr escalation. Session-end Stop hook provides aggregate summary.
+
+### Fail-Open Error Handling (Bash)
+
+Shell hooks should simply omit stderr in non-critical paths:
+
+```bash
+if [[ ! -r "$FILE_PATH" ]]; then
+    # Do NOT write to stderr - just exit cleanly
+    exit 0
+fi
+```
+
+### When stderr IS Appropriate
+
+- Exit 2 (blocking error): stderr is fed to Claude as the error message
+- Intentional user-facing guidance in deny/block responses
+
 ```{=latex}
 \newpage
 ```
@@ -1346,16 +1392,11 @@ async function main(): Promise<never> {
   try {
     result = await runHook();
   } catch (err: unknown) {
-    // Unexpected error - log and allow through to avoid blocking on bugs
-    console.error("[HOOK] Unexpected error:");
-    if (err instanceof Error) {
-      console.error(`  Message: ${err.message}`);
-      console.error(`  Stack: ${err.stack}`);
-    }
+    // Unexpected error - log silently and allow through (never stderr on exit 0)
+    trackHookError("HOOK", err instanceof Error ? err.message : String(err));
     return process.exit(0);
   }
 
-  if (result.stderr) console.error(result.stderr);
   if (result.stdout) console.log(result.stdout);
   return process.exit(result.exitCode);
 }
@@ -1368,7 +1409,7 @@ void main();
 - `Bun.stdin.text()` reads JSON from stdin (equivalent to bash `cat`)
 - Pure `runHook()` function returns `HookResult` - no `process.exit()` in logic
 - Single `main()` entry point handles all `process.exit()` calls
-- Structured error handling with full stack trace logging
+- Error handling uses `trackHookError()` — never `console.error()` on exit 0 (see Hook Error Handling Policy)
 - Type-safe interfaces prevent silent failures from typos
 - Easier to unit test than bash scripts
 
