@@ -20,12 +20,27 @@ mise tasks ls 2>/dev/null | grep -i release
 ### If release tasks FOUND → Execute
 
 1. Check working directory cleanliness: `git status --porcelain`
-2. If untracked files exist, stash them: `git stash push -u -m "pre-release stash"`
+2. **If working directory is dirty → Autonomously resolve ALL changes before releasing:**
+   a. Run `git status --porcelain` and `git diff` to understand every pending change
+   b. For each group of related changes:
+   - Read the changed files to understand what was modified and why
+   - Craft a conventional commit message (`fix:`, `feat:`, `chore:`, `docs:`) that accurately describes the change
+   - Stage specific files (never `git add -A`) and commit
+     c. For untracked files that should NOT be committed (e.g., work-in-progress from other branches):
+   - Stash them: `git stash push -u -m "pre-release: description"`
+     d. Verify working directory is clean: `git status --porcelain` should be empty
+     e. Restore any stash after release: `git stash pop`
+
+   **Commit guidelines:**
+   - Group logically related files into a single commit
+   - Use the repo's existing commit message style (check `git log --oneline -5`)
+   - Never skip pre-commit hooks (`--no-verify`)
+   - If unsure whether a change should be committed or stashed, review the file contents and decide based on whether it's a completed change or work-in-progress
+
 3. Route by flags:
    - `--dry` → `mise run release:dry`
    - `--status` → `mise run release:status`
    - No flags → `mise run release:full`
-4. If stashed, restore: `git stash pop`
 
 ### If release tasks NOT FOUND → Audit & Scaffold
 
@@ -101,7 +116,7 @@ Run `mise run release:full` with the newly created tasks.
 | ------------------------------- | ------------------------------------------------- |
 | `mise` not found                | Install: `curl https://mise.run \| sh`            |
 | No release tasks                | Scaffold using audit above                        |
-| Working dir not clean           | `git stash` or commit changes                     |
+| Working dir not clean           | Review, commit, or stash all changes autonomously |
 | Not on main branch              | `git checkout main`                               |
 | No releasable commits           | Create a `feat:` or `fix:` commit first           |
 | Missing GH_TOKEN                | Add to `.mise.toml` `[env]` section               |
