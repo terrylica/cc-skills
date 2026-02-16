@@ -1,3 +1,29 @@
+## [11.43.5](https://github.com/terrylica/cc-skills/compare/v11.43.4...v11.43.5) (2026-02-16)
+
+
+### Bug Fixes
+
+* **mise:** auto-resolve dirty working directory before release ([3705a1f](https://github.com/terrylica/cc-skills/commit/3705a1fc144e08afae884fef84b4c0816ad4c493))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>mise</strong> (1 command)</summary>
+
+- [/mise:run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/run-full-release.md) - updated (+18/-3)
+
+</details>
+
 ## [11.43.4](https://github.com/terrylica/cc-skills/compare/v11.43.3...v11.43.4) (2026-02-16)
 
 
