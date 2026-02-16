@@ -20,7 +20,7 @@ VERSION_FILE="${KOKORO_DIR}/version.json"
 LEGACY_DIR="${HOME}/fork-tools/kokoro"
 
 # Script directory (for bundled tts_generate.py)
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
 BUNDLED_SCRIPT="${SCRIPT_DIR}/tts_generate.py"
 
 # Python deps
