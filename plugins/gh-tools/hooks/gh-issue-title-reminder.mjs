@@ -66,15 +66,14 @@ if (apiMatch) {
 // For issue create, we skip - can't check ownership of a new issue
 if (isIssueCreate) {
   // Remind to maximize title for new issues
-  console.error(`
-[gh-tools] GitHub Issue Created
+  const template = `[gh-tools] GitHub Issue Created
 
 Title Optimization Reminder:
    GitHub allows 256 characters for issue titles.
    Maximize this limit to create informative, searchable titles.
 
-   Check current length: gh issue view <number> --json title --jq '.title | length'
-`);
+   Check current length: gh issue view <number> --json title --jq '.title | length'`;
+  console.log(JSON.stringify({ decision: "block", reason: template }));
   process.exit(0);
 }
 
@@ -169,8 +168,7 @@ if (titleLength >= OPTIMIZATION_THRESHOLD) {
 
 // Show reminder
 const repoDisplay = repo || "(current repo)";
-console.error(`
-[gh-tools] Issue Title Optimization Reminder
+const template = `[gh-tools] Issue Title Optimization Reminder
 
 Issue: #${issueNumber} in ${repoDisplay}
 Current title (${titleLength}/${MAX_TITLE_LENGTH} chars):
@@ -183,7 +181,7 @@ Consider updating the title to:
 
 Commands:
   gh issue view ${issueNumber} --json title --jq '.title | length'
-  gh issue edit ${issueNumber} --title "..."
-`);
+  gh issue edit ${issueNumber} --title "..."`;
+console.log(JSON.stringify({ decision: "block", reason: template }));
 
 process.exit(0);

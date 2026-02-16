@@ -20,6 +20,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { join, basename } from "path";
 import { execSync } from "child_process";
 import { homedir } from "os";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // --- Types ---
 
@@ -84,8 +85,7 @@ function checkGraphEasy(command: string, sessionId?: string): string | null {
       );
     }
   } catch (err) {
-    console.error(`[itp-hooks] Failed to create state directory: ${stateDir}`);
-    console.error(`[itp-hooks] Tip: Check directory permissions or run: mkdir -p ${stateDir}`);
+    trackHookError("posttooluse-reminder", `Failed to create state directory: ${stateDir}`);
   }
 
   return `[GRAPH-EASY SKILL] You used graph-easy CLI directly. For reproducible diagrams, prefer the graph-easy skill (or adr-graph-easy-architect for ADRs). Skills ensure: proper --as=boxart mode, correct \\n escaping, and <details> source block for future edits.`;
@@ -612,12 +612,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error(
-    "[posttooluse-reminder] Error:",
-    err instanceof Error ? err.message : String(err)
-  );
-  if (err instanceof Error && err.stack) {
-    console.error(err.stack);
-  }
+  trackHookError("posttooluse-reminder", err instanceof Error ? err.message : String(err));
   process.exit(0);
 });

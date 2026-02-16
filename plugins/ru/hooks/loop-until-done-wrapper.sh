@@ -75,10 +75,6 @@ for loc in \
 done
 
 if [[ -z "$BUN_CMD" ]]; then
-    echo "[ru] ERROR: bun not found, cannot run Stop hook" >&2
-    echo "[ru] Install bun: curl -fsSL https://bun.sh/install | bash" >&2
-    echo "[ru] Or via mise: mise install bun" >&2
-    echo "[ru] Or via brew: brew install oven-sh/bun/bun" >&2
     echo '{}'
     exit 0
 fi

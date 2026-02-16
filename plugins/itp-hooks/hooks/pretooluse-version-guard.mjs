@@ -83,6 +83,7 @@ import {
   isPlanMode,
   createHookLogger,
 } from "./pretooluse-helpers.ts";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // ============================================================================
 // MAIN LOGIC
@@ -182,6 +183,6 @@ SSoT: Version only in Cargo.toml/pyproject.toml/package.json`);
 
 // Run with error handling (always allow on error)
 main().catch((e) => {
-  console.error(`[VERSION-GUARD] Unhandled error: ${e.message}`);
+  trackHookError("pretooluse-version-guard", `Unhandled error: ${e.message}`);
   allow();
 });

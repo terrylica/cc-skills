@@ -15,6 +15,7 @@
 
 import { discoverProject, formatDiscoveryResult } from './sred-discovery';
 import { type PreToolUseInput } from './pretooluse-helpers.ts';
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // ============================================================================
 // CONFIGURATION
@@ -567,21 +568,14 @@ async function main(): Promise<never> {
   try {
     result = await runHook();
   } catch (unexpectedError: unknown) {
-    // Unexpected error - log full details for debugging
-    console.error('[SRED-COMMIT-GUARD] Unexpected error:');
-    if (unexpectedError instanceof Error) {
-      console.error(`  Message: ${unexpectedError.message}`);
-      console.error(`  Stack: ${unexpectedError.stack}`);
-    } else {
-      console.error(`  Value: ${String(unexpectedError)}`);
-    }
+    trackHookError("sred-commit-guard", unexpectedError instanceof Error ? unexpectedError.message : String(unexpectedError));
     // Allow through to avoid blocking on hook bugs
     return process.exit(0);
   }
 
   // Output results
   if (result.stderr) {
-    console.error(result.stderr);
+    trackHookError("sred-commit-guard", result.stderr);
   }
   if (result.stdout) {
     console.log(result.stdout);

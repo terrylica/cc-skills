@@ -17,6 +17,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { Glob, $ } from "bun";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // ============================================================================
 // CONFIGURATION
@@ -531,15 +532,11 @@ async function main(): Promise<never> {
   try {
     result = await runHook();
   } catch (err: unknown) {
-    console.error("[terminology-sync] Unexpected error:");
-    if (err instanceof Error) {
-      console.error(`  Message: ${err.message}`);
-      console.error(`  Stack: ${err.stack}`);
-    }
+    trackHookError("posttooluse-terminology-sync", err instanceof Error ? err.message : String(err));
     return process.exit(0);
   }
 
-  if (result.stderr) console.error(result.stderr);
+  if (result.stderr) trackHookError("posttooluse-terminology-sync", result.stderr);
   if (result.stdout) console.log(result.stdout);
   return process.exit(result.exitCode);
 }
