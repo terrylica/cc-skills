@@ -11,6 +11,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { $ } from "bun";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // ============================================================================
 // CONFIGURATION
@@ -129,17 +130,11 @@ async function main(): Promise<never> {
   try {
     result = await runHook();
   } catch (err: unknown) {
-    console.error("[glossary-sync] Unexpected error:");
-    if (err instanceof Error) {
-      console.error(`  Message: ${err.message}`);
-      console.error(`  Stack: ${err.stack}`);
-    } else {
-      console.error(`  Value: ${String(err)}`);
-    }
+    trackHookError("posttooluse-glossary-sync", err instanceof Error ? err.message : String(err));
     return process.exit(0);
   }
 
-  if (result.stderr) console.error(result.stderr);
+  if (result.stderr) trackHookError("posttooluse-glossary-sync", result.stderr);
   if (result.stdout) console.log(result.stdout);
   return process.exit(result.exitCode);
 }

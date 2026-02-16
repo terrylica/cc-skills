@@ -22,6 +22,7 @@ import {
   formatFindings,
 } from "./fake-data-patterns.mjs";
 import { allow, ask, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 /**
  * Load configuration from project or global config file.
@@ -41,7 +42,7 @@ function loadConfig(projectDir) {
         const loaded = JSON.parse(readFileSync(projectConfig, "utf8"));
         return mergeConfig(config, loaded);
       } catch (e) {
-        console.error(`[fake-data-guard] Warning: Failed to parse ${projectConfig}: ${e.message}`);
+        trackHookError("pretooluse-fake-data-guard", `Failed to parse ${projectConfig}: ${e.message}`);
       }
     }
   }
@@ -55,7 +56,7 @@ function loadConfig(projectDir) {
         const loaded = JSON.parse(readFileSync(globalConfig, "utf8"));
         return mergeConfig(config, loaded);
       } catch (e) {
-        console.error(`[fake-data-guard] Warning: Failed to parse ${globalConfig}: ${e.message}`);
+        trackHookError("pretooluse-fake-data-guard", `Failed to parse ${globalConfig}: ${e.message}`);
       }
     }
   }
@@ -147,6 +148,6 @@ To whitelist: add "# noqa: fake-data" comment to the line.`;
 
 // Run
 main().catch((e) => {
-  console.error(`[fake-data-guard] Error: ${e.message}`);
+  trackHookError("pretooluse-fake-data-guard", `Error: ${e.message}`);
   allow();
 });

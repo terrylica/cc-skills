@@ -15,23 +15,20 @@ set -euo pipefail
 if ! command -v jq &> /dev/null; then
     # Try mise install first (preferred tool manager)
     if command -v mise &> /dev/null; then
-        echo "[ralph] jq not found, attempting mise install..." >&2
         if ! mise install jq 2>&1; then
-            echo "[ralph] mise install jq failed" >&2
+            :
         fi
     fi
     # Try brew install (macOS fallback)
     if ! command -v jq &> /dev/null && command -v brew &> /dev/null; then
-        echo "[ralph] Attempting brew install jq..." >&2
         if ! brew install jq 2>&1; then
-            echo "[ralph] brew install jq failed" >&2
+            :
         fi
     fi
     # If still unavailable, block and notify user
     # ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
     # PreToolUse uses permissionDecision (not deprecated decision:block)
     if ! command -v jq &> /dev/null; then
-        echo "[ralph] ERROR: jq required but could not be installed" >&2
         echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "jq is required for archive-plan.sh but could not be installed. Please install manually: brew install jq OR mise install jq"}}'
         exit 0
     fi
@@ -57,21 +54,17 @@ fi
 # Archive the EXISTING file before it gets overwritten
 if [[ -f "$FILE_PATH" && -n "$SESSION_ID" ]]; then
     if ! mkdir -p "$ARCHIVE_DIR" 2>&1; then
-        echo "[ru] Failed to create archive directory: $ARCHIVE_DIR" >&2
-        echo "[ru] Tip: Check permissions or run: mkdir -p $ARCHIVE_DIR" >&2
+        :
     else
         TIMESTAMP=$(date +%s)
         BASENAME=$(basename "$FILE_PATH")
         if ! cp "$FILE_PATH" "$ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}" 2>&1; then
-            echo "[ru] Failed to archive: $FILE_PATH" >&2
-            echo "[ru] Tip: Check disk space and file permissions" >&2
+            :
         else
-            # Emit observability to terminal (stderr)
-            echo "[ralph] Archive: Saved $BASENAME to archives/ (${TIMESTAMP})" >&2
             # Log the archival
             echo "[$(date -Iseconds)] Archived: $FILE_PATH -> $ARCHIVE_DIR/${SESSION_ID}-${TIMESTAMP}-${BASENAME}" \
                 >> "$HOME/.claude/automation/loop-orchestrator/state/archive.log" 2>&1 || \
-                echo "[ralph] Failed to write archive log" >&2
+                :
         fi
     fi
 fi

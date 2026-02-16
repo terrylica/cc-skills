@@ -14,6 +14,7 @@
 
 import { basename } from "path";
 import { loadConfig, type ProtectionConfig } from "./core/config-schema";
+import { trackHookError } from "../../itp-hooks/hooks/lib/hook-error-tracker.ts";
 
 // --- Types ---
 
@@ -131,7 +132,7 @@ async function main(): Promise<void> {
     toolInput = JSON.parse(inputText);
   } catch (e) {
     // Can't parse input, allow the command but warn
-    console.error(`[ralph] Warning: Failed to parse tool input: ${e}`);
+    trackHookError("pretooluse-loop-guard", `Failed to parse tool input: ${e}`);
     allowCommand();
     return;
   }
@@ -165,7 +166,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e) => {
-  console.error(`[ralph] Error in pretooluse-loop-guard: ${e}`);
+  trackHookError("pretooluse-loop-guard", `Error in pretooluse-loop-guard: ${e}`);
   // On error, allow command to avoid blocking legitimate operations
   allowCommand();
 });
