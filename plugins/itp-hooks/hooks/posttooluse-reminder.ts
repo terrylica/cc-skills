@@ -450,9 +450,10 @@ function checkImplementationCode(
       // Check if ruff is available
       execSync("command -v ruff", { stdio: "pipe" });
 
-      // Run ruff with comprehensive rule set
+      // Run ruff for silent failure patterns ONLY (per code-correctness philosophy)
+      // NO: F401 (unused imports), UP (upgrade), SIM (simplify), I (import sort)
       const ruffOutput = execSync(
-        `ruff check "${filePath}" --select BLE,S110,E722,F,UP,SIM,B,I,RUF --ignore D,ANN --no-fix --output-format=concise 2>/dev/null | grep -v "All checks passed" | head -20`,
+        `ruff check "${filePath}" --select E722,S110,S112,BLE001,PLW1510 --no-fix --output-format=concise 2>/dev/null | grep -v "All checks passed" | head -20`,
         { stdio: "pipe", encoding: "utf-8" }
       ).trim();
 
