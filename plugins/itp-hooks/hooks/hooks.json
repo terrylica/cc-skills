@@ -190,6 +190,16 @@
         ]
       }
     ],
-    "Stop": []
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook-error-summary.ts",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
   }
 }
