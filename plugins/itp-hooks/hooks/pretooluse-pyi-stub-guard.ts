@@ -20,7 +20,7 @@
  * Applies to: Any Python repository (not project-specific)
  */
 
-import { parseStdinOrAllow, allow, deny } from "./pretooluse-helpers.ts";
+import { parseStdinOrAllow, allow, deny, trackHookError } from "./pretooluse-helpers.ts";
 
 const HOOK_NAME = "INIT-STRUCTURE-GUARD";
 
@@ -230,6 +230,6 @@ ${guidance}
 }
 
 main().catch((err) => {
-  console.error(`[${HOOK_NAME}] Unhandled error: ${err instanceof Error ? err.message : String(err)}`);
+  trackHookError("pretooluse-pyi-stub-guard", err instanceof Error ? err.message : String(err));
   allow(); // Fail-open
 });

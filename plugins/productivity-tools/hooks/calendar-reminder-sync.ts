@@ -284,19 +284,18 @@ async function runHook(): Promise<HookResult> {
 // ENTRY POINT
 // ============================================================================
 
+import { trackHookError } from "../../itp-hooks/hooks/lib/hook-error-tracker.ts";
+
 async function main(): Promise<never> {
   let result: HookResult;
   try {
     result = await runHook();
   } catch (err: unknown) {
-    console.error("[CALENDAR-SYNC] Unexpected error:");
-    if (err instanceof Error) {
-      console.error(`  ${err.message}`);
-    }
+    trackHookError("calendar-reminder-sync", err instanceof Error ? err.message : String(err));
     return process.exit(0);
   }
 
-  if (result.stderr) console.error(result.stderr);
+  if (result.stderr) trackHookError("calendar-reminder-sync", result.stderr);
   if (result.stdout) console.log(result.stdout);
   return process.exit(result.exitCode);
 }

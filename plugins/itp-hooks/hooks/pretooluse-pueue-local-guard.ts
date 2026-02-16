@@ -14,7 +14,7 @@
  * SSH-wrapped commands are automatically skipped.
  */
 
-import { allow, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
+import { allow, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 
 /** Escape hatch — explicit opt-in for local pueue submission */
 const LOCAL_OK_COMMENT = /# *PUEUE-LOCAL-OK/i;
@@ -103,6 +103,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`[PUEUE-LOCAL-GUARD] Unhandled error: ${err.message}`);
+  trackHookError("pretooluse-pueue-local-guard", err instanceof Error ? err.message : String(err));
   allow();
 });

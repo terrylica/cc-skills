@@ -114,7 +114,6 @@ if [[ "$TOOL_NAME" == "Write" || "$TOOL_NAME" == "Edit" ]]; then
 
     # Verify file is readable before running analysis
     if [[ ! -r "$FILE_PATH" ]]; then
-        echo "[code-correctness] Warning: File not readable: $FILE_PATH" >&2
         exit 0
     fi
 

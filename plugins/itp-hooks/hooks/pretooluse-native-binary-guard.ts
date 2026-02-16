@@ -22,6 +22,8 @@
  * Escape hatch: # BASH-LAUNCHD-OK comment in content
  */
 
+import { trackHookError } from "./lib/hook-error-tracker.ts";
+
 const HOOK_NAME = "NATIVE-BINARY-GUARD";
 
 // Fast-path keywords — if stdin doesn't contain ANY of these, skip entirely.
@@ -172,6 +174,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`[${HOOK_NAME}] Unhandled error: ${err}`);
+  trackHookError("pretooluse-native-binary-guard", err instanceof Error ? err.message : String(err));
   outputAllow(); // Fail-open
 });

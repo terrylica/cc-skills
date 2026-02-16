@@ -22,6 +22,7 @@
 
 import { detectPatterns, formatFindings, DEFAULT_CONFIG } from "./process-storm-patterns.mjs";
 import { allow, deny, parseStdinOrAllow, isReadOnly } from "./pretooluse-helpers.ts";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // ============================================================================
 // MAIN LOGIC
@@ -77,6 +78,6 @@ async function main() {
 
 // Run with error handling (always allow on error to avoid blocking)
 main().catch((unhandledError) => {
-  console.error(`[PROCESS-STORM-GUARD] Unhandled error: ${unhandledError.message}`);
+  trackHookError("pretooluse-process-storm-guard", `Unhandled error: ${unhandledError.message}`);
   allow();
 });

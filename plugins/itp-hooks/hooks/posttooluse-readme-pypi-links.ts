@@ -13,6 +13,7 @@
  */
 
 import { basename, dirname, resolve } from "node:path";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // ============================================================================
 // TYPES
@@ -45,10 +46,7 @@ async function parseStdin(): Promise<PostToolUseInput | null> {
     if (!stdin.trim()) return null;
     return JSON.parse(stdin) as PostToolUseInput;
   } catch (err) {
-    console.error(
-      "[readme-pypi-links] JSON parse error:",
-      err instanceof Error ? err.message : String(err),
-    );
+    trackHookError("posttooluse-readme-pypi-links", err instanceof Error ? err.message : String(err));
     return null;
   }
 }
@@ -146,15 +144,11 @@ async function main(): Promise<never> {
   try {
     result = await runHook();
   } catch (err: unknown) {
-    console.error("[readme-pypi-links] Unexpected error:");
-    if (err instanceof Error) {
-      console.error(`  Message: ${err.message}`);
-      console.error(`  Stack: ${err.stack}`);
-    }
+    trackHookError("posttooluse-readme-pypi-links", err instanceof Error ? err.message : String(err));
     return process.exit(0);
   }
 
-  if (result.stderr) console.error(result.stderr);
+  if (result.stderr) trackHookError("posttooluse-readme-pypi-links", result.stderr);
   if (result.stdout) console.log(result.stdout);
   return process.exit(result.exitCode);
 }

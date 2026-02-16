@@ -69,7 +69,6 @@ for loc in \
 done
 
 if [[ -z "$BUN_CMD" ]]; then
-    echo "[ru] ERROR: bun not found, cannot run PreToolUse hook" >&2
     # Allow command to proceed even if we can't run the guard
     echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}}'
     exit 0

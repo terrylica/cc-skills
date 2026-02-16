@@ -13,6 +13,7 @@
 
 import { dirname, basename, resolve, relative } from "path";
 import { execSync } from "child_process";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // --- Types ---
 
@@ -315,6 +316,6 @@ REFERENCE: https://docs.astral.sh/uv/concepts/projects/dependencies/`);
 }
 
 main().catch((err) => {
-  console.error("[pretooluse-hoisted-deps-guard] Error:", err);
+  trackHookError("pretooluse-hoisted-deps-guard", `Error: ${err?.message ?? err}`);
   process.exit(0);
 });

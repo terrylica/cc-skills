@@ -22,6 +22,7 @@ import {
   allow,
   isPlanMode,
   createHookLogger,
+  trackHookError,
 } from "./pretooluse-helpers.ts";
 
 // ============================================================================
@@ -320,6 +321,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error(`[mise-hygiene-guard] Error: ${err.message}`);
+  trackHookError("pretooluse-mise-hygiene-guard", err instanceof Error ? err.message : String(err));
   allow(); // Fail-open: don't block on errors
 });

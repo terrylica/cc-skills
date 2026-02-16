@@ -15,6 +15,7 @@
  */
 
 import { join } from "path";
+import { trackHookError } from "../../itp-hooks/hooks/lib/hook-error-tracker.ts";
 
 interface StopHookInput {
   session_id?: string;  // Claude Code uses snake_case
@@ -54,7 +55,7 @@ async function main() {
       try {
         input = JSON.parse(stdin);
       } catch (e) {
-        console.error("Failed to parse hook input:", e);
+        trackHookError("telegram-notify-stop", `Failed to parse hook input: ${e}`);
       }
     }
 
@@ -64,8 +65,8 @@ async function main() {
     const slug = input.slug || "unknown";
 
     // Debug logging
-    console.error(`📋 Hook input: ${stdin.slice(0, 200)}`);
-    console.error(`📋 Session ID: ${sessionId}, CWD: ${cwd}`);
+    hookLog(`Hook input: ${stdin.slice(0, 200)}`);
+    hookLog(`Session ID: ${sessionId}, CWD: ${cwd}`);
 
     // Find transcript file by scanning all project directories
     const projectsDir = join(
@@ -87,12 +88,12 @@ async function main() {
           const candidatePath = join(projectsDir, dir, `${sessionId}.jsonl`);
           if (existsSync(candidatePath)) {
             transcriptPath = candidatePath;
-            console.error(`📋 Found session at: ${transcriptPath}`);
+            hookLog(`Found session at: ${transcriptPath}`);
             break;
           }
         }
       } catch (e) {
-        console.error(`📋 Error searching for session: ${e}`);
+        trackHookError("telegram-notify-stop", `Error searching for session: ${e}`);
       }
     }
 
@@ -130,15 +131,15 @@ async function main() {
         if (allFiles.length > 0 && allFiles[0]) {
           transcriptPath = allFiles[0].path;
           finalSessionId = allFiles[0].name.replace(".jsonl", "");
-          console.error(`📋 Found most recent session: ${finalSessionId.slice(0, 8)} at ${transcriptPath}`);
+          hookLog(`Found most recent session: ${finalSessionId.slice(0, 8)} at ${transcriptPath}`);
         }
       } catch (e) {
-        console.error(`📋 Could not find session files: ${e}`);
+        trackHookError("telegram-notify-stop", `Could not find session files: ${e}`);
       }
     }
 
     if (!transcriptPath) {
-      console.error(`❌ No transcript file found`);
+      trackHookError("telegram-notify-stop", "No transcript file found");
       process.exit(0);
     }
 
@@ -171,11 +172,10 @@ async function main() {
     await Bun.write(notificationPath, JSON.stringify(notification, null, 2));
 
     hookLog(`[STOP-HOOK] wrote ${notificationPath} sessionId=${finalSessionId.slice(0, 8)}`);
-    console.error(`✅ Telegram notification queued: ${finalSessionId.slice(0, 8)}`);
     process.exit(0);
   } catch (error) {
     hookLog(`[STOP-HOOK] ERROR: ${error}`);
-    console.error("❌ Stop hook error:", error);
+    console.error("Stop hook error:", error);
     process.exit(1);
   }
 }

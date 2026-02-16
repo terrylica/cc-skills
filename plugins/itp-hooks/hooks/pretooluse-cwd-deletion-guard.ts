@@ -18,7 +18,7 @@
  */
 
 import { detectCwdDeletion, formatDenial } from "./cwd-deletion-patterns.mjs";
-import { allow, deny, parseStdinOrAllow, isReadOnly } from "./pretooluse-helpers.ts";
+import { allow, deny, parseStdinOrAllow, isReadOnly, trackHookError } from "./pretooluse-helpers.ts";
 
 async function main() {
   const input = await parseStdinOrAllow("CWD-DELETION-GUARD");
@@ -65,6 +65,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`[CWD-DELETION-GUARD] Unhandled error: ${err.message}`);
+  trackHookError("pretooluse-cwd-deletion-guard", err instanceof Error ? err.message : String(err));
   allow();
 });

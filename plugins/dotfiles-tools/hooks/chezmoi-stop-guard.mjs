@@ -202,8 +202,9 @@ This Stop hook will allow session end once chezmoi diff returns clean.`,
   console.log(JSON.stringify(result));
 }
 
-main().catch((err) => {
-  console.error("chezmoi-stop-guard error:", err);
+main().catch(async (err) => {
+  const { trackHookError } = await import("../../itp-hooks/hooks/lib/hook-error-tracker.ts");
+  trackHookError("chezmoi-stop-guard", err instanceof Error ? err.message : String(err));
   console.log("{}"); // Allow stop on error
   process.exit(0);
 });

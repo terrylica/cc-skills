@@ -32,6 +32,7 @@ import {
   deny,
   isPlanMode,
   createHookLogger,
+  trackHookError,
 } from "./pretooluse-helpers.ts";
 
 // ============================================================================
@@ -272,6 +273,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error(`[file-size-guard] Error: ${err.message}`);
+  trackHookError("pretooluse-file-size-guard", err instanceof Error ? err.message : String(err));
   allow(); // Fail-open
 });

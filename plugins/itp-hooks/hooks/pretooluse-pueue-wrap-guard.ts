@@ -26,7 +26,7 @@
  * GitHub Issue: https://github.com/anthropics/claude-code/issues/11282 (ask + updatedInput broken)
  */
 
-import { allow, output, parseStdinOrAllow } from "./pretooluse-helpers.ts";
+import { allow, output, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 import { maybeInjectOpToken } from "./lib/op-token-injector.ts";
 
 /** Opt-in escape hatch — force wrapping */
@@ -177,6 +177,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`[PUEUE-WRAP-GUARD] Unhandled error: ${err.message}`);
+  trackHookError("pretooluse-pueue-wrap-guard", err instanceof Error ? err.message : String(err));
   allow();
 });

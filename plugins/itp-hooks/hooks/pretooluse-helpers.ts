@@ -10,6 +10,7 @@
  */
 
 import { createHookLogger, type HookLogContext } from "./lib/logger.ts";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 import {
   isPlanMode,
   isQuickPlanMode,
@@ -118,7 +119,7 @@ export async function parseStdinOrAllow(
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     logger.error("Failed to parse stdin", { hook_event: "PreToolUse", error: message });
-    console.error(`[${hookName}] Failed to parse stdin: ${message}`);
+    trackHookError(hookName, `Failed to parse stdin: ${message}`);
     allow();
     return null;
   }
@@ -126,6 +127,9 @@ export async function parseStdinOrAllow(
 
 // Re-export logger for hooks that need additional logging
 export { createHookLogger, type HookLogContext };
+
+// Re-export hook error tracker for fail-open error handling
+export { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // Re-export plan mode detection utilities
 export { isPlanMode, isQuickPlanMode, type HookInputWithPlanMode, type PlanModeContext };

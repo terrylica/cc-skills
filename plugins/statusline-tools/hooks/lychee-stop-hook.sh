@@ -26,7 +26,7 @@ set -u
 
 # Verbose error logging for Claude Code CLI
 log_error() {
-    echo "[lychee-stop-hook] ERROR: $*" >&2
+    :
 }
 
 log_debug() {
