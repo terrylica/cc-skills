@@ -147,6 +147,13 @@ describe("detectFakeData - Factory Patterns", () => {
     const findings = detectFakeData(content, ALL_PATTERNS_ENABLED);
     expect(findings.length).toBeGreaterThan(0);
   });
+
+  it("does NOT flag Pydantic default_factory", () => {
+    const content = '    folds: list[WFComboV1] = Field(default_factory=list)';
+    const findings = detectFakeData(content, ALL_PATTERNS_ENABLED);
+    const factoryFindings = findings.filter(f => f.category === "factory_patterns");
+    expect(factoryFindings.length).toBe(0);
+  });
 });
 
 describe("detectFakeData - Synthetic Keywords", () => {
@@ -378,8 +385,8 @@ describe("DEFAULT_CONFIG", () => {
     }
   });
 
-  it("has ask mode by default", () => {
-    expect(DEFAULT_CONFIG.mode).toBe("ask");
+  it("has deny mode by default", () => {
+    expect(DEFAULT_CONFIG.mode).toBe("deny");
   });
 
   it("has default whitelist comments", () => {
