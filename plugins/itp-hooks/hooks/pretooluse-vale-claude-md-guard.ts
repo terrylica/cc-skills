@@ -21,7 +21,7 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdtempSync } from
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { $ } from "bun";
-import { allow, deny, ask, parseStdinOrAllow } from "./pretooluse-helpers.ts";
+import { allow, deny, ask, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 
 // ============================================================================
 // CONFIGURATION
@@ -68,7 +68,7 @@ async function runVale(content: string): Promise<{ severity: string; message: st
 
     if (result.exitCode !== 0 && result.exitCode !== 1) {
       // Vale error (not lint issues)
-      console.error(`[vale-claude-md-guard] Vale failed: ${result.stderr.toString()}`);
+      trackHookError("pretooluse-vale-claude-md-guard", `Vale failed: ${result.stderr.toString()}`);
       return [];
     }
 
@@ -204,7 +204,6 @@ Fix the issues before saving. Check ~/.claude/docs/GLOSSARY.md for correct termi
 
 // Entry point
 main().catch((e) => {
-  console.error(`[vale-claude-md-guard] Error: ${e.message}`);
-  console.error(`[vale-claude-md-guard] Tip: Ensure Vale is installed (brew install vale) and ~/.claude/.vale.ini exists.`);
+  trackHookError("pretooluse-vale-claude-md-guard", e instanceof Error ? e.message : String(e));
   allow();
 });

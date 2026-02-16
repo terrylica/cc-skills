@@ -13,6 +13,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { $ } from "bun";
+import { trackHookError } from "./lib/hook-error-tracker.ts";
 
 // ============================================================================
 // TYPES
@@ -46,10 +47,7 @@ async function parseStdin(): Promise<PostToolUseInput | null> {
     if (!stdin.trim()) return null;
     return JSON.parse(stdin) as PostToolUseInput;
   } catch (err) {
-    console.error(
-      "[vale-claude-md] JSON parse error:",
-      err instanceof Error ? err.message : String(err)
-    );
+    trackHookError("posttooluse-vale-claude-md", err instanceof Error ? err.message : String(err));
     return null;
   }
 }
@@ -135,10 +133,7 @@ async function runVale(
       suggestions: summaryMatch ? parseInt(summaryMatch[3], 10) : 0,
     };
   } catch (err) {
-    console.error(
-      "[vale-claude-md] Vale execution failed:",
-      err instanceof Error ? err.message : String(err)
-    );
+    trackHookError("posttooluse-vale-claude-md", err instanceof Error ? err.message : String(err));
     return { output: "", exitCode: 0, errors: 0, warnings: 0, suggestions: 0 };
   }
 }
@@ -217,17 +212,11 @@ async function main(): Promise<never> {
   try {
     result = await runHook();
   } catch (err: unknown) {
-    // Unexpected error - log and allow through to avoid blocking on bugs
-    console.error("[vale-claude-md] Unexpected error:");
-    if (err instanceof Error) {
-      console.error(`  Message: ${err.message}`);
-      console.error(`  Stack: ${err.stack}`);
-    }
-    console.error("[vale-claude-md] Tip: Ensure Vale is installed (brew install vale) and ~/.claude/.vale.ini exists.");
+    trackHookError("posttooluse-vale-claude-md", err instanceof Error ? err.message : String(err));
     return process.exit(0);
   }
 
-  if (result.stderr) console.error(result.stderr);
+  if (result.stderr) trackHookError("posttooluse-vale-claude-md", result.stderr);
   if (result.stdout) console.log(result.stdout);
   return process.exit(result.exitCode);
 }
