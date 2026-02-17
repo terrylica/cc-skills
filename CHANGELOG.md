@@ -1,3 +1,39 @@
+# [11.45.0](https://github.com/terrylica/cc-skills/compare/v11.44.1...v11.45.0) (2026-02-17)
+
+
+### Features
+
+* **distributed-job-safety:** add INV-9 artifact category isolation + AP-17 ([9412097](https://github.com/terrylica/cc-skills/commit/94120978cd38c6fa0367e76ae81e504ad7c3aff8))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/SKILL.md) - updated (+61/-2)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/distributed-job-safety</strong> (1 file)</summary>
+
+- [Concurrency Invariants](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/concurrency-invariants.md) - updated (+48)
+
+</details>
+
 ## [11.44.1](https://github.com/terrylica/cc-skills/compare/v11.44.0...v11.44.1) (2026-02-17)
 
 
