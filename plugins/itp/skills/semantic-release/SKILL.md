@@ -268,7 +268,7 @@ Auto-include doc changes in release notes. Add to `.releaserc.yml`:
 
 Detects: ADRs, Design Specs, Skills, Plugin READMEs. See [Doc Release Linking](./references/doc-release-linking.md).
 
-> **Note**: The `@semantic-release/exec` plugin uses Lodash templates (`${var}`). This conflicts with bash default syntax (`${VAR:-default}`). See [Troubleshooting: Lodash Template Conflicts](./references/troubleshooting.md#semantic-releaseexec-lodash-template-conflicts).
+> **Note**: The `@semantic-release/exec` plugin uses Lodash templates (`${var}`). This conflicts with bash default syntax (`${VAR:-default}`) and subshell syntax (`$(cmd)`). **Preferred fix**: remove `successCmd` entirely if your task runner already handles post-release steps. See [Troubleshooting: Lodash Template Conflicts](./references/troubleshooting.md#semantic-releaseexec-lodash-template-conflicts).
 
 ---
 

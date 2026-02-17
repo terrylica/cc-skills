@@ -363,7 +363,7 @@ Update `.github/workflows/release.yml`:
 
 ## @semantic-release/exec Lodash Template Conflicts
 
-The `@semantic-release/exec` plugin uses [Lodash templates](https://lodash.com/docs/#template) to interpolate variables. **This conflicts with bash variable syntax** because both use `${...}` delimiters.
+The `@semantic-release/exec` plugin uses [Lodash templates](https://lodash.com/docs/#template) to interpolate variables. **This conflicts with bash variable syntax** because both use `${...}` delimiters. There is no upstream fix — [PR #460](https://github.com/semantic-release/exec/pull/460) has been open since Jun 2025 with no ETA.
 
 ### Symptom
 
@@ -386,6 +386,28 @@ Lodash interprets ALL `${...}` patterns, including bash constructs:
 | `${VAR}`                     | Bash variable      | ❌ Looks for `VAR` in template context |
 
 The colon in bash default syntax (`${VAR:-default}`) causes "Unexpected token ':'" because Lodash tries to parse it as JavaScript.
+
+### Solution 0 (Preferred): Remove successCmd Entirely
+
+If your task runner (e.g., mise `release:full`) already orchestrates post-release steps (deploy, verify), the `successCmd` is redundant. Removing it eliminates the lodash conflict entirely and makes the pipeline easier to debug:
+
+```yaml
+# BEFORE - successCmd duplicates what release:full already does
+- - "@semantic-release/exec"
+  - successCmd: |
+      /usr/bin/env bash << 'EOF'
+      set -euo pipefail
+      if [ -z "${TOKEN:-}" ]; then exit 1; fi  # ← crashes lodash
+      npx wrangler deploy
+      EOF
+
+# AFTER - remove the plugin block, let release:full handle it
+# (no second @semantic-release/exec with successCmd)
+```
+
+**Why this is best**: ERB escaping and external scripts are workarounds — they add complexity to avoid a parser bug. If the work is already done outside semantic-release, just delete the hook. The release (tag, changelog, GitHub release) completes before `successCmd` runs, so a crash there causes a non-zero exit that aborts downstream steps despite the release itself succeeding.
+
+**Real-world example**: `dental-career-opportunities` had a `successCmd` that ran quarto render + wrangler deploy + curl verify — all of which `release:full` already handled via `depends_post = ["publish:verify"]`. The `${CLOUDFLARE_API_TOKEN:-}` crashed lodash, requiring manual deploys after every release. Fix: delete the entire `successCmd` block ([commit 2a08ecd](https://github.com/terrylica/dental-career-opportunities/commit/2a08ecd)).
 
 ### Solution 1: Use ERB-Style for Lodash Variables
 
@@ -456,10 +478,11 @@ echo "Released $VERSION"
 
 | Context                   | Use This                     |
 | ------------------------- | ---------------------------- |
+| Don't need successCmd?    | **Remove it** (Solution 0)   |
 | semantic-release variable | `<%= nextRelease.version %>` |
 | Bash variable             | `$VAR` or `"$VAR"`           |
 | Bash with default         | Move to external script      |
-| Bash subshell             | `$(command)` is safe         |
+| Bash subshell             | Move to external script      |
 
 ---
 
