@@ -1,3 +1,34 @@
+## [11.44.1](https://github.com/terrylica/cc-skills/compare/v11.44.0...v11.44.1) (2026-02-17)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/semantic-release</strong> (1 file)</summary>
+
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/troubleshooting.md) - updated (+25/-2)
+
+</details>
+
 # [11.44.0](https://github.com/terrylica/cc-skills/compare/v11.43.5...v11.44.0) (2026-02-16)
 
 
