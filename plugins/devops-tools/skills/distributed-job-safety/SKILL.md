@@ -18,7 +18,7 @@ Patterns and anti-patterns for concurrent job management with pueue + mise + sys
 
 ---
 
-## The Eight Invariants
+## The Nine Invariants
 
 Non-negotiable rules for concurrent job safety. Violating any one causes silent data corruption or job failure.
 
@@ -139,7 +139,7 @@ systemd-run --user --scope -p MemoryMax=8G -p MemorySwapMax=0 \
 
 **Critical**: `MemorySwapMax=0` is mandatory. Without it, the process escapes into swap and the memory limit is effectively meaningless.
 
-### 8. Monitor by Stable Identifiers, Not Ephemeral IDs
+### 8. Monitor by Stable Identifiers, Not Ephemeral IDs (INV-8)
 
 Pueue job IDs are ephemeral — they shift when jobs are removed, re-queued, or split. Use group names and label patterns for monitoring.
 
@@ -152,6 +152,36 @@ pueue status --json | jq -r '.tasks | to_entries[] | select(.value.group == "myg
 ```
 
 Full specification: [references/concurrency-invariants.md](./references/concurrency-invariants.md#inv-8)
+
+### 9. Derived Artifact Filenames Must Include ALL Category Dimensions (INV-9)
+
+When concurrent or sequential pipeline phases produce derived artifacts (Parquet chunks, JSONL summaries, temp files) that share a directory, **every filename must include ALL discriminating dimensions** — not just the job-level parameters (INV-1), but also pipeline-level categories like direction, strategy, or generation.
+
+```
+WRONG:  _chunk_{formation}_{symbol}_{threshold}.parquet     # No direction — LONG glob eats SHORT files
+RIGHT:  _chunk_{direction}_{formation}_{symbol}_{threshold}.parquet  # Direction-scoped
+```
+
+**Glob scope rule**: Cleanup and merge globs must match the filename pattern exactly:
+
+```python
+# WRONG: Unscoped glob — consumes artifacts from other categories
+chunk_files = folds_dir.glob("_chunk_*.parquet")
+
+# RIGHT: Category-scoped glob — only touches this category's artifacts
+chunk_files = folds_dir.glob(f"_chunk_{direction}_*.parquet")
+```
+
+**Post-merge validation**: After merging artifacts, assert expected values in category columns:
+
+```python
+merged_df = pl.concat([pl.read_parquet(p) for p in chunk_files])
+assert set(merged_df["strategy"].unique()) == {"standard"}, "Direction contamination!"
+```
+
+**Relationship to INV-1**: INV-1 ensures checkpoint file uniqueness by job parameters (runtime isolation). INV-9 extends this to derived artifacts that persist across pipeline phases (artifact isolation). Both prevent the same class of bug — silent cross-contamination from filename collisions.
+
+Full specification: [references/concurrency-invariants.md](./references/concurrency-invariants.md#inv-9)
 
 ---
 
@@ -443,6 +473,35 @@ API_KEY = os.getenv("API_KEY")  # Works in interactive shell AND pueue jobs
 ```
 
 See also: [G-15](./references/environment-gotchas.md#g-15-pueue-jobs-cannot-see-mise-env-variables)
+
+### AP-17: Unscoped Glob Consumes Artifacts From Other Pipeline Categories
+
+**Symptom**: Phase A aggregation produces correct results. Phase B aggregation finds empty input (no files). Or Phase B produces mixed/contaminated results containing Phase A's data.
+
+**Root cause**: Both phases write artifacts to the same directory with filenames that differ only by a dimension NOT included in the cleanup glob. Phase A's glob matches ALL artifacts, consuming or deleting Phase B's files.
+
+```python
+# WRONG: Unscoped glob matches ALL categories
+chunk_files = folds_dir.glob("_chunk_*.parquet")  # Eats long AND short
+for p in chunk_files:
+    p.unlink()  # Deletes short's chunks too
+
+# RIGHT: Category-scoped glob
+chunk_files = folds_dir.glob(f"_chunk_{direction}_*.parquet")
+for p in chunk_files:
+    p.unlink()  # Only deletes this direction's chunks
+```
+
+**The pattern**: This occurs whenever:
+
+1. Two pipeline phases share an output directory
+2. Artifacts are named by a subset of discriminating dimensions
+3. A glob pattern doesn't include ALL discriminating dimensions
+4. One phase runs before the other and "cleans up" shared files
+
+**Fix**: Apply INV-9 — include ALL category dimensions in filenames AND scope all globs to the current category. Add post-merge validation to catch contamination early.
+
+**Discovery**: Gen720 WFO pipeline (2026-02-17). LONG aggregation consumed SHORT Parquet chunks via `_chunk_*.parquet` glob, producing a mixed 8.7M-row Parquet. SHORT aggregation found 0 chunks.
 
 ---
 
