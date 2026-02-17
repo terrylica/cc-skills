@@ -241,6 +241,49 @@ optimize_job=$(pueue status --json | jq -r \
 
 ---
 
+## INV-9: Derived Artifact Category Isolation
+
+**Statement**: For any two pipeline phases P_a and P_b that write derived artifacts to a shared directory, every artifact filename must include ALL dimensions that differentiate P_a from P_b. Glob patterns used for reading, merging, or deleting artifacts must be scoped to the executing phase's dimensions.
+
+**Violation scenario**:
+
+```
+P_a = (direction=long, formation=exh_l, symbol=SOLUSDT, threshold=500)
+P_b = (direction=short, formation=exh_s, symbol=SOLUSDT, threshold=500)
+
+# Without direction in filename:
+artifact(P_a) = folds/_chunk_exh_l_SOLUSDT_500.parquet
+artifact(P_b) = folds/_chunk_exh_s_SOLUSDT_500.parquet
+
+# P_a merges with: glob("_chunk_*.parquet")
+# COLLISION: glob matches BOTH P_a and P_b artifacts
+# P_a merges all into long_folds.parquet (now contaminated with SHORT data)
+# P_a deletes all chunks (P_b's chunks are gone)
+# P_b runs: glob("_chunk_*.parquet") -> 0 files -> empty output
+```
+
+**Enforcement**:
+
+```python
+# Include ALL category dimensions in filename
+chunk_path = folds_dir / f"_chunk_{direction}_{formation}_{symbol}_{threshold}.parquet"
+
+# Scope glob to current phase's category
+chunk_files = folds_dir.glob(f"_chunk_{direction}_*.parquet")
+
+# Post-merge validation
+merged_df = pl.concat([pl.read_parquet(p) for p in chunk_files])
+expected_strategies = {"standard"} if direction == "long" else {"A_mirrored", "B_reverse"}
+actual = set(merged_df["strategy"].unique().to_list())
+assert actual == expected_strategies, f"Category contamination: expected {expected_strategies}, got {actual}"
+```
+
+**Verification**: After merging derived artifacts, assert that category columns contain only the expected values for the current phase. This catches contamination even if filenames are accidentally unscoped.
+
+**Relationship to INV-1**: INV-1 ensures runtime checkpoint uniqueness. INV-9 extends the same principle to derived artifacts that persist across pipeline phases and may be consumed by later phases running in different category contexts.
+
+---
+
 ## Testing Invariants
 
 Verify these invariants hold after any code change:
@@ -275,4 +318,9 @@ p.unlink(missing_ok=True)  # Second call also safe
 # INV-8: Monitor by stable identifiers
 # After re-queuing a job, verify monitoring scripts still find it by group/label
 # (not by old job ID which no longer exists)
+
+# INV-9: Derived artifact category isolation
+# Write artifacts with two different category values to same directory
+# Verify that merging for category A does not include category B's artifacts
+# Verify that cleanup for category A does not delete category B's artifacts
 ```
