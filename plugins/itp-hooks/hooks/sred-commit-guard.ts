@@ -443,6 +443,65 @@ function createClaudeBlockOutput(reason: string): string {
 async function runHook(): Promise<HookResult> {
   const args = process.argv.slice(2);
 
+  // Validate-message mode: CLI validation for /mise:sred-commit slash command
+  // Usage: bun sred-commit-guard.ts --validate-message <file>
+  if (args[0] === '--validate-message') {
+    const filePath = args[1];
+    if (!filePath) {
+      return {
+        exitCode: 1,
+        stdout: JSON.stringify({ valid: false, errors: [{ field: 'usage', message: 'Missing file path. Usage: --validate-message <file>' }] }),
+      };
+    }
+
+    const file = Bun.file(filePath);
+    const exists = await file.exists();
+    if (!exists) {
+      return {
+        exitCode: 1,
+        stdout: JSON.stringify({ valid: false, errors: [{ field: 'file', message: `File not found: ${filePath}` }] }),
+      };
+    }
+
+    const message = (await file.text()).trim();
+    const errors = validateCommitMessage(message);
+
+    // If only SRED-Claim is missing, try discovery
+    const hasMissingSredClaim = errors.some((e) => e.field === 'SRED-Claim' && e.message.includes('Missing'));
+    const otherErrors = errors.filter((e) => e.field !== 'SRED-Claim' || !e.message.includes('Missing'));
+
+    if (hasMissingSredClaim && otherErrors.length === 0) {
+      try {
+        const discoveryResult = await discoverProject(message);
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            valid: false,
+            errors: errors.map((e) => ({ field: e.field, message: e.message })),
+            discovery: discoveryResult,
+          }),
+        };
+      } catch {
+        // Discovery failed — return errors without discovery
+      }
+    }
+
+    if (errors.length > 0) {
+      return {
+        exitCode: 0,
+        stdout: JSON.stringify({
+          valid: false,
+          errors: errors.map((e) => ({ field: e.field, message: e.message })),
+        }),
+      };
+    }
+
+    return {
+      exitCode: 0,
+      stdout: JSON.stringify({ valid: true }),
+    };
+  }
+
   // Git hook mode
   if (args[0] === '--git-hook') {
     const filePath = args[1] || '.git/COMMIT_EDITMSG';
