@@ -1,3 +1,46 @@
+# [11.48.0](https://github.com/terrylica/cc-skills/compare/v11.47.0...v11.48.0) (2026-02-18)
+
+
+### Features
+
+* **devops-tools:** add cloudflare-workers-publish skill for static HTML deployment ([70b849f](https://github.com/terrylica/cc-skills/commit/70b849fd8859927613d4f14ba748039a2b5307a7))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [cloudflare-workers-publish](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/cloudflare-workers-publish/SKILL.md) - new (+293)
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+16/-2)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/cloudflare-workers-publish</strong> (4 files)</summary>
+
+- [Cloudflare Workers Publish Anti-Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/cloudflare-workers-publish/references/anti-patterns.md) - new (+286)
+- [cloudflare-workers-publish Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/cloudflare-workers-publish/references/evolution-log.md) - new (+28)
+- [1Password Credential Setup for Cloudflare Workers](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/cloudflare-workers-publish/references/onep-credential-setup.md) - new (+136)
+- [Wrangler Setup Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/cloudflare-workers-publish/references/wrangler-setup.md) - new (+87)
+
+</details>
+
 # [11.47.0](https://github.com/terrylica/cc-skills/compare/v11.46.0...v11.47.0) (2026-02-18)
 
 
