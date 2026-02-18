@@ -23,8 +23,9 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 | `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection)                                                                                          |
 | `pretooluse-file-size-guard.ts`        | Write\|Edit       | File size bloat prevention (per-extension limits)                                                                                          |
 | `pretooluse-native-binary-guard.ts`    | Write\|Edit       | Enforces compiled Swift binaries for launchd (no bash scripts)                                                                             |
-| `sred-commit-guard.ts`                 | Bash              | SR&ED commit format enforcement                                                                                                            |
 | `pretooluse-pueue-wrap-guard.ts`       | Bash              | Auto-wraps long-running commands with pueue + injects OP_SERVICE_ACCOUNT_TOKEN for Claude Automation vault (MUST be LAST PreToolUse entry) |
+
+> **Note**: `sred-commit-guard.ts` was migrated from a PreToolUse hook to the `/mise:sred-commit` slash command. The script remains for CLI validation (`--validate-message`, `--git-hook`).
 
 ### PostToolUse Hooks
 
