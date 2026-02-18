@@ -1,7 +1,7 @@
 # devops-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-15-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-16-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, MLflow queries, notifications, and session recovery.
@@ -28,6 +28,7 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **python-logging-best-practices** | Unified Python logging with loguru, platformdirs, RotatingFileHandler      |
 | **disk-hygiene**                  | macOS disk cleanup, cache pruning, stale file detection, Downloads triage  |
 | **project-directory-migration**   | Migrate Claude Code sessions when renaming project directories             |
+| **cloudflare-workers-publish**    | Deploy static HTML to Cloudflare Workers with 1Password credentials        |
 | **distributed-job-safety**        | Concurrency safety patterns for pueue + mise + systemd-run job pipelines   |
 
 ## Installation
@@ -57,6 +58,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "loguru", "python logging", "structured logging" -> python-logging-best-practices
 - "disk space", "cleanup", "stale files", "cache clean", "forgotten files" -> disk-hygiene
 - "rename directory", "move project", "migrate sessions", "project path change" -> project-directory-migration
+- "cloudflare deploy", "publish static", "wrangler deploy", "workers.dev", "HTML hosting" -> cloudflare-workers-publish
 - "concurrent jobs", "checkpoint race", "cgroup memory", "systemd-run", "autoscale" -> distributed-job-safety
 
 ## Key Features
@@ -161,6 +163,15 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Environment fixups: mise trust, venv recreation, direnv/asdf warnings
 - Universal script for any Claude Code project
 
+### Cloudflare Workers Publish
+
+- Static HTML deployment to workers.dev (Bokeh charts, dashboards, reports)
+- 1Password credential management (Claude Automation vault integration)
+- Auto-generated directory listing (index.html)
+- 15 documented anti-patterns from production deployment (CFW-01..CFW-15)
+- Git LFS pointer detection before deploy
+- Minimal wrangler.toml template (3 fields for static-only)
+
 ### Distributed Job Safety
 
 - 7 formal concurrency invariants (filename isolation, atomic writes, idempotent cleanup)
@@ -175,7 +186,8 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Doppler CLI (`brew install dopplerhq/cli/doppler`)
 - Brotli (`brew install brotli`) - for session-chronicle
 - AWS CLI (`brew install awscli`) - for session-chronicle S3 upload
-- 1Password CLI (`brew install 1password-cli`) - for session-chronicle credentials
+- 1Password CLI (`brew install 1password-cli`) - for session-chronicle and cloudflare-workers-publish credentials
+- wrangler (`npx wrangler` via Node.js) - for cloudflare-workers-publish
 - Claude Code CLI
 
 ## Troubleshooting
@@ -186,6 +198,8 @@ Skills are model-invoked — Claude automatically activates them based on contex
 | S3 upload fails               | Missing credentials | Verify AWS credentials via 1Password CLI |
 | ClickHouse connection refused | Network/firewall    | Check ClickHouse Cloud IP allowlist      |
 | MLflow tracking error         | Server unreachable  | Check MLflow tracking URI configuration  |
+| Wrangler deploy fails         | Wrong directory     | `cd` to directory with wrangler.toml     |
+| Cloudflare 403 on workers.dev | Subdomain disabled  | Enable workers.dev in CF dashboard       |
 
 ## License
 
