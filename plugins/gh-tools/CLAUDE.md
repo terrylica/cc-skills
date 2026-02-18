@@ -134,6 +134,7 @@ Fix:
 | `issue-create`      | Create issues with AI labeling (256-char titles)           |
 | `issues-workflow`   | Issues-first workflow with sub-issues hierarchy            |
 | `research-archival` | Scrape AI research URLs, archive with frontmatter + Issues |
+| `fork-intelligence` | Discover valuable fork divergence beyond stars             |
 
 ## Multi-Account Authentication
 
