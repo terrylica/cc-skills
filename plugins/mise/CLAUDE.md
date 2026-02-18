@@ -4,11 +4,12 @@
 
 ## Commands
 
-| Command                  | Purpose                                                          | Flags               |
-| ------------------------ | ---------------------------------------------------------------- | ------------------- |
-| `/mise:run-full-release` | Run the current repo's mise release pipeline                     | `--dry`, `--status` |
-| `/mise:show-env-status`  | Show mise environment: tools, env vars, tasks, release readiness | —                   |
-| `/mise:list-repo-tasks`  | List mise tasks grouped by namespace with dependencies           | `[namespace]`       |
+| Command                  | Purpose                                                          | Flags                      |
+| ------------------------ | ---------------------------------------------------------------- | -------------------------- |
+| `/mise:run-full-release` | Run the current repo's mise release pipeline                     | `--dry`, `--status`        |
+| `/mise:show-env-status`  | Show mise environment: tools, env vars, tasks, release readiness | —                          |
+| `/mise:list-repo-tasks`  | List mise tasks grouped by namespace with dependencies           | `[namespace]`              |
+| `/mise:sred-commit`      | Create a git commit with SR&ED (CRA tax credit) trailers         | `[commit message summary]` |
 
 ## Command Naming Convention
 
