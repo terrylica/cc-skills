@@ -1,3 +1,49 @@
+# [11.47.0](https://github.com/terrylica/cc-skills/compare/v11.46.0...v11.47.0) (2026-02-18)
+
+
+### Features
+
+* **gh-tools:** add fork-intelligence skill for discovering valuable fork divergence ([5cc73a5](https://github.com/terrylica/cc-skills/commit/5cc73a5a087d1768df2db4f77f13ea32bb64cd83)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [fork-intelligence](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/fork-intelligence/SKILL.md) - new (+322)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/fork-intelligence</strong> (4 files)</summary>
+
+- [Domain-Specific Fork Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/fork-intelligence/references/domain-patterns.md) - new (+143)
+- [Empirical Data — Stars Anti-Correlation](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/fork-intelligence/references/empirical-data.md) - new (+77)
+- [Evolution Log — fork-intelligence](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/fork-intelligence/references/evolution-log.md) - new (+10)
+- [Signal Priority Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/fork-intelligence/references/signal-priority.md) - new (+124)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+1)
+
 # [11.46.0](https://github.com/terrylica/cc-skills/compare/v11.45.0...v11.46.0) (2026-02-18)
 
 
