@@ -1,3 +1,42 @@
+# [11.46.0](https://github.com/terrylica/cc-skills/compare/v11.45.0...v11.46.0) (2026-02-18)
+
+
+### Bug Fixes
+
+* **pueue:** exclude git commands from pueue wrapping and reminders ([3c55df7](https://github.com/terrylica/cc-skills/commit/3c55df7bcf03d45256ddc3e6aa4af2c68a04f7c2))
+
+
+### Features
+
+* **mise:** migrate sred-commit-guard from hook to /mise:sred-commit command ([1829bf2](https://github.com/terrylica/cc-skills/commit/1829bf2f435419aaa3569cf2997699e6fad24148))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>mise</strong> (1 command)</summary>
+
+- [/mise:sred-commit](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/sred-commit.md) - new (+100)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+2/-1)
+- [mise Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/CLAUDE.md) - updated (+6/-5)
+
 # [11.45.0](https://github.com/terrylica/cc-skills/compare/v11.44.1...v11.45.0) (2026-02-17)
 
 
