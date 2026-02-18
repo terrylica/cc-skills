@@ -225,6 +225,13 @@ function checkPueueUsage(command: string): string | null {
     return null;
   }
 
+  // 5. Fast local commands — their arguments (inline JS, commit messages) can
+  //    contain pattern keywords as string literals, not actual shell commands.
+  //    Aligned with NEVER_WRAP in pretooluse-pueue-wrap-guard.ts (SSoT)
+  if (/^\s*(git\s|bun\s|node\s|gh\s)/i.test(command)) {
+    return null;
+  }
+
   // === DETECT: Long-running task patterns ===
 
   const longRunningPatterns = [
@@ -235,8 +242,11 @@ function checkPueueUsage(command: string): string | null {
 
     // Batch processing with multiple items
     /--phase\s+\d/i, // Phase-based execution
-    /for\s+\w+\s+in.*;\s*do/i, // Shell for loops
-    /while.*;\s*do/i, // Shell while loops
+    // Shell loops with known long-running inner commands ONLY
+    // Simple loops (gh api, curl, echo, git) are NOT flagged — they complete quickly
+    // Aligned with pretooluse-pueue-wrap-guard.ts (SSoT)
+    /for\s+\w+\s+in.*;\s*do[^;]*(populate|bulk|cache|python|uv\s+run)/i,
+    /while.*;\s*do[^;]*(populate|bulk|cache|python|uv\s+run)/i,
 
     // SSH with long-running remote commands
     /ssh\s+\S+\s+["']?.*populate/i,

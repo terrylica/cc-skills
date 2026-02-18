@@ -41,6 +41,10 @@ const PUEUE_COMMANDS = /^\s*(?:pueue|pueued)\b/i;
 /** Already backgrounded commands */
 const BACKGROUNDED = /\bnohup\s|&\s*$|\bscreen\s|\btmux\s/i;
 
+/** Fast local commands that should never be wrapped, even if their arguments
+ *  (commit messages, branch names) happen to match LONG_RUNNING_PATTERNS. */
+const NEVER_WRAP = /^\s*git\s/i;
+
 /**
  * Known long-running patterns that benefit from pueue wrapping.
  * Mirrors posttooluse-reminder.ts detection patterns (SSoT alignment).
@@ -79,6 +83,9 @@ function shouldWrap(command: string): boolean {
 
   // Never wrap already-backgrounded commands
   if (BACKGROUNDED.test(command)) return false;
+
+  // Never wrap fast local commands (git commit messages can contain any text)
+  if (NEVER_WRAP.test(command)) return false;
 
   // Check against known long-running patterns
   return LONG_RUNNING_PATTERNS.some((p) => p.test(command));
