@@ -1,3 +1,130 @@
+# [11.51.0](https://github.com/terrylica/cc-skills/compare/v11.50.0...v11.51.0) (2026-02-19)
+
+
+### Features
+
+* **commands:** add model: haiku to 29 procedural slash commands ([ae34ec9](https://github.com/terrylica/cc-skills/commit/ae34ec95afa8897c5b494fd0828738781f8bead1))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (7 commands)</summary>
+
+- [/asciinema-tools:daemon-logs](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-logs.md) - updated (+1)
+- [/asciinema-tools:daemon-start](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-start.md) - updated (+1)
+- [/asciinema-tools:daemon-status](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-status.md) - updated (+1)
+- [/asciinema-tools:daemon-stop](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-stop.md) - updated (+1)
+- [/asciinema-tools:format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/format.md) - updated (+1)
+- [/asciinema-tools:play](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/play.md) - updated (+1)
+- [/asciinema-tools:setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/setup.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander</strong> (1 command)</summary>
+
+- [Cal.com Commander Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/health.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 command)</summary>
+
+- [Dotfiles Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/commands/hooks.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 command)</summary>
+
+- [gh-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/hooks.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow</strong> (1 command)</summary>
+
+- [Git-Town Enforcement Hooks — Installation](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/hooks.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (1 command)</summary>
+
+- [Gmail Commander Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/health.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (1 command)</summary>
+
+- [ITP Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/hooks.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [ITP Hooks Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/setup.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>mise</strong> (3 commands)</summary>
+
+- [/mise:list-repo-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/list-repo-tasks.md) - updated (+1)
+- [/mise:run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/run-full-release.md) - updated (+6/-2)
+- [/mise:show-env-status](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/show-env-status.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 command)</summary>
+
+- [productivity-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/commands/hooks.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>ru</strong> (7 commands)</summary>
+
+- [RU: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/audit-now.md) - updated (+1)
+- [RU: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/config.md) - updated (+1)
+- [RU: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/encourage.md) - updated (+1)
+- [RU: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/forbid.md) - updated (+1)
+- [RU: Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/hooks.md) - updated (+1)
+- [RU: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/status.md) - updated (+1)
+- [RU: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/stop.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (3 commands)</summary>
+
+- [Status Line Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/hooks.md) - updated (+1)
+- [Global Ignore Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/ignore.md) - updated (+1)
+- [Status Line Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/setup.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (2 commands)</summary>
+
+- [TTS Telegram Sync Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/health.md) - updated (+1)
+- [TTS Telegram Sync Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/hooks.md) - updated (+1)
+
+</details>
+
 # [11.50.0](https://github.com/terrylica/cc-skills/compare/v11.49.0...v11.50.0) (2026-02-19)
 
 
