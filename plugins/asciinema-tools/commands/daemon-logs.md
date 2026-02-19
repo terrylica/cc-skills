@@ -3,6 +3,7 @@ name: daemon-logs
 description: View asciinema chunker daemon logs. TRIGGERS - daemon logs, chunker logs, backup logs.
 allowed-tools: Bash
 argument-hint: "[-n lines] [--follow] [--errors]"
+model: haiku
 ---
 
 # /asciinema-tools:daemon-logs
