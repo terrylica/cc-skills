@@ -3,6 +3,7 @@ name: daemon-stop
 description: Stop the asciinema chunker daemon. TRIGGERS - stop daemon, pause chunker, disable backup.
 allowed-tools: Bash
 argument-hint: ""
+model: haiku
 ---
 
 # /asciinema-tools:daemon-stop

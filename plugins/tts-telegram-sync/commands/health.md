@@ -2,6 +2,7 @@
 name: health
 description: "Health check for TTS and Telegram bot subsystems"
 allowed-tools: Read, Bash, Glob
+model: haiku
 ---
 
 # TTS Telegram Sync Health Check

@@ -3,6 +3,7 @@ name: hooks
 description: "Install/uninstall chezmoi hooks to ~/.claude/settings.json"
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
+model: haiku
 ---
 
 # Dotfiles Hooks Manager

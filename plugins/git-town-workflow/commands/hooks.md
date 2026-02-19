@@ -3,6 +3,7 @@ name: hooks
 allowed-tools: Read, Write, Edit, Bash(cat:*), Bash(jq:*), Grep, Glob, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 description: "Install/uninstall hooks that enforce git-town over raw git commands in Claude Code. Blocks forbidden git commands. TRIGGERS - enforce git-town, install hooks, git-town hooks, prevent raw git."
+model: haiku
 ---
 
 <!-- ⛔⛔⛔ MANDATORY: READ THIS ENTIRE FILE BEFORE ANY ACTION ⛔⛔⛔ -->

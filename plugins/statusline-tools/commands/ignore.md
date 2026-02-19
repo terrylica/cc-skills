@@ -3,6 +3,7 @@ name: ignore
 description: "Manage global ignore patterns for lint-relative-paths"
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[add|list|remove] [pattern]"
+model: haiku
 ---
 
 # Global Ignore Patterns

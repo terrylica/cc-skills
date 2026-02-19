@@ -3,6 +3,7 @@ name: setup
 description: "Configure statusline-tools status line and dependencies"
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status|deps]"
+model: haiku
 ---
 
 # Status Line Setup

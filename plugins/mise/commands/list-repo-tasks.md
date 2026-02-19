@@ -3,6 +3,7 @@ name: list-repo-tasks
 description: "List mise tasks grouped by namespace with dependency info. TRIGGERS - mise tasks, task list, show tasks, available tasks."
 allowed-tools: Bash
 argument-hint: "[namespace]"
+model: haiku
 ---
 
 # /mise:list-repo-tasks

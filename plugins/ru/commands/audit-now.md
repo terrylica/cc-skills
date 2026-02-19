@@ -3,6 +3,7 @@ name: audit-now
 description: Force immediate validation round
 allowed-tools: Bash
 argument-hint: "[round-number 1-5]"
+model: haiku
 ---
 
 # RU: Audit Now

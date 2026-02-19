@@ -3,6 +3,7 @@ name: forbid
 description: Add item to forbidden list (blocks work on matching topics)
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "<phrase> | --list | --clear | --remove"
+model: haiku
 ---
 
 # RU: Forbid

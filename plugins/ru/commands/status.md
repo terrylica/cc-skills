@@ -3,6 +3,7 @@ name: status
 description: Show current loop state
 allowed-tools: Bash
 argument-hint: ""
+model: haiku
 ---
 
 # RU: Status
