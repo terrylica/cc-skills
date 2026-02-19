@@ -1,3 +1,201 @@
+# [11.49.0](https://github.com/terrylica/cc-skills/compare/v11.48.0...v11.49.0) (2026-02-19)
+
+
+### Bug Fixes
+
+* **docs:** comprehensive documentation alignment from 9-agent audit ([775a6fd](https://github.com/terrylica/cc-skills/commit/775a6fd3d02d5132e19d2998586e565ccb0b07cd)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **itp-hooks:** scope code-correctness-guard to changed lines for Edit tool ([e8de281](https://github.com/terrylica/cc-skills/commit/e8de28189600f61b3697bb62fb28b02b772bd5c7))
+
+
+### Features
+
+* **statusline-tools:** rename Session UUID label to ~/.claude/projects JSONL ID ([42f42f8](https://github.com/terrylica/cc-skills/commit/42f42f8a3771666435aaa89563b8a2e461116aa0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md) | updated (+1/-1) |
+| unknown | [Ralph Dual Time Tracking (Runtime + Wall-Clock)](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-ralph-dual-time-tracking.md) | updated (+1/-1) |
+| unknown | [Ralph Stop Visibility Observability](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-ralph-stop-visibility-observability.md) | updated (+1/-1) |
+| unknown | [Ralph Constraint Scanning](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-29-ralph-constraint-scanning.md) | updated (+1/-1) |
+| accepted | [Ralph Guidance Freshness Detection](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-02-ralph-guidance-freshness-detection.md) | updated (+8/-8) |
+
+### Design Specs
+
+- [Design Spec: Ralph Eternal Loop Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-20-ralph-rssi-eternal-loop/spec.md) - coupled
+- [Diagnosis: /ralph:encourage → Stop Hook Data Flow](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-02-ralph-guidance-freshness-detection/spec.md) - coupled
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>statusline-tools</strong> (1 change)</summary>
+
+- [session-info](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+3/-1)
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+8/-6)
+- [quality-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/README.md) - updated (+3/-1)
+- [statusline-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/README.md) - updated (+2/-2)
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+4/-4)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (18 commands)</summary>
+
+- [/asciinema-tools:analyze](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/analyze.md) - updated (+1)
+- [/asciinema-tools:backup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/backup.md) - updated (+1)
+- [/asciinema-tools:bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/bootstrap.md) - updated (+1)
+- [/asciinema-tools:convert](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/convert.md) - updated (+1)
+- [/asciinema-tools:daemon-logs](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-logs.md) - updated (+1)
+- [/asciinema-tools:daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-setup.md) - updated (+1)
+- [/asciinema-tools:daemon-start](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-start.md) - updated (+1)
+- [/asciinema-tools:daemon-status](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-status.md) - updated (+1)
+- [/asciinema-tools:daemon-stop](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-stop.md) - updated (+1)
+- [/asciinema-tools:finalize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/finalize.md) - updated (+1)
+- [/asciinema-tools:format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/format.md) - updated (+1)
+- [/asciinema-tools:full-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/full-workflow.md) - updated (+1)
+- [/asciinema-tools:hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/hooks.md) - updated (+1)
+- [/asciinema-tools:play](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/play.md) - updated (+1)
+- [/asciinema-tools:post-session](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/post-session.md) - updated (+1)
+- [/asciinema-tools:record](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/record.md) - updated (+1)
+- [/asciinema-tools:setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/setup.md) - updated (+1)
+- [/asciinema-tools:summarize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/summarize.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 command)</summary>
+
+- [Dotfiles Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/commands/hooks.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 command)</summary>
+
+- [gh-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/hooks.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow</strong> (4 commands)</summary>
+
+- [Git-Town Contribution Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/contribute.md) - updated (+1)
+- [Git-Town Fork Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/fork.md) - updated (+1)
+- [Git-Town Enforcement Hooks — Installation](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/hooks.md) - updated (+1)
+- [Git-Town Setup — One-Time Configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/commands/setup.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (3 commands)</summary>
+
+- [⛔ ITP Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/go.md) - updated (+1)
+- [ITP Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/hooks.md) - updated (+1)
+- [ITP Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/setup.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [ITP Hooks Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/setup.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (1 command)</summary>
+
+- [⛔ Create Plugin — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/commands/create.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 command)</summary>
+
+- [productivity-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/commands/hooks.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>ru</strong> (9 commands)</summary>
+
+- [RU: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/audit-now.md) - updated (+1)
+- [RU: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/config.md) - updated (+1)
+- [RU: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/encourage.md) - updated (+1)
+- [RU: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/forbid.md) - updated (+1)
+- [RU: Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/hooks.md) - updated (+1)
+- [RU: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/start.md) - updated (+1)
+- [RU: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/status.md) - updated (+1)
+- [RU: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/stop.md) - updated (+1)
+- [RU: Wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/wizard.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (3 commands)</summary>
+
+- [Status Line Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/hooks.md) - updated (+1)
+- [Global Ignore Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/ignore.md) - updated (+1)
+- [Status Line Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/setup.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (3 commands)</summary>
+
+- [TTS Telegram Sync Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/health.md) - updated (+1)
+- [TTS Telegram Sync Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/hooks.md) - updated (+1)
+- [TTS Telegram Sync Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/setup.md) - updated (+1)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+3/-3)
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+12/-8)
+- [Plugin Authoring Guide](https://github.com/terrylica/cc-skills/blob/main/docs/plugin-authoring.md) - updated (+2/-2)
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+16/-7)
+
 # [11.48.0](https://github.com/terrylica/cc-skills/compare/v11.47.0...v11.48.0) (2026-02-18)
 
 
