@@ -1,4 +1,5 @@
 ---
+name: fork
 allowed-tools: Read, Write, Edit, Bash(git town:*), Bash(git remote:*), Bash(git config:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(gh repo:*), Bash(gh api:*), Bash(gh auth:*), Bash(which:*), Bash(brew:*), Grep, Glob, AskUserQuestion, TodoWrite
 argument-hint: "[upstream-url] | --check | --fix"
 description: "Create or configure a fork workflow with git-town. Preflight checks at every step. TRIGGERS - fork repo, setup fork, git-town fork, create fork, fork workflow, upstream setup."

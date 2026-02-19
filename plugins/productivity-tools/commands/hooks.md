@@ -1,4 +1,5 @@
 ---
+name: hooks
 description: "Install/uninstall productivity-tools hooks to ~/.claude/settings.json"
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"

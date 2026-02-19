@@ -1,4 +1,5 @@
 ---
+name: contribute
 allowed-tools: Read, Write, Edit, Bash(git town:*), Bash(git remote:*), Bash(git config:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(gh pr:*), Bash(gh api:*), Grep, Glob, AskUserQuestion, TodoWrite
 argument-hint: "[feature-name] | --pr | --ship"
 description: "Complete contribution workflow using git-town. Create branch → commit → PR → ship. Preflight at every step. TRIGGERS - contribute, feature branch, create PR, submit PR, git-town contribute."

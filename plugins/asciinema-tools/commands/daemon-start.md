@@ -1,4 +1,5 @@
 ---
+name: daemon-start
 description: Start the asciinema chunker daemon. TRIGGERS - start daemon, resume chunker, enable backup.
 allowed-tools: Bash
 argument-hint: ""

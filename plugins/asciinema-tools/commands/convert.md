@@ -1,4 +1,5 @@
 ---
+name: convert
 description: Convert .cast to .txt for Claude Code analysis. Supports batch mode. TRIGGERS - convert cast, cast to txt, batch convert, bulk convert, iTerm2 logs, prepare analysis.
 allowed-tools: Bash, AskUserQuestion, Glob, Write
 argument-hint: "[file] [-o output] [--batch] [--source dir] [--output-dir dir] [--skip-existing] [--index] [--analyze]"

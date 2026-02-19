@@ -1,4 +1,5 @@
 ---
+name: backup
 description: Stream-backup active recordings to GitHub. TRIGGERS - backup recording, sync cast, streaming backup.
 allowed-tools: Bash, AskUserQuestion, Glob, Write
 argument-hint: "[install|status|stop|history] [-r repo] [-i interval] [--chunk] [--meta]"

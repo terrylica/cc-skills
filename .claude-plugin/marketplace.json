@@ -28,6 +28,7 @@
         "templates",
         "shellcheck"
       ],
+      "commands": "./plugins/plugin-dev/commands",
       "strict": false
     },
     {
@@ -50,11 +51,12 @@
         "mise.toml",
         "task-runner"
       ],
+      "commands": "./plugins/itp/commands",
       "strict": false
     },
     {
       "name": "gh-tools",
-      "description": "GitHub workflow automation: GFM link validation, WebFetch enforcement (use gh CLI instead)",
+      "description": "GitHub workflow automation: GFM link validation, WebFetch enforcement, issue management, fork intelligence",
       "version": "11.48.0",
       "source": "./plugins/gh-tools",
       "category": "development",
@@ -72,6 +74,7 @@
         "enforcement"
       ],
       "hooks": "./plugins/gh-tools/hooks/hooks.json",
+      "commands": "./plugins/gh-tools/commands",
       "strict": false
     },
     {
@@ -101,7 +104,7 @@
     },
     {
       "name": "devops-tools",
-      "description": "DevOps automation: ClickHouse, Doppler, MLflow, notifications, session recovery",
+      "description": "DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery",
       "version": "11.48.0",
       "source": "./plugins/devops-tools",
       "category": "devops",
@@ -144,6 +147,7 @@
         "git"
       ],
       "hooks": "./plugins/dotfiles-tools/hooks/hooks.json",
+      "commands": "./plugins/dotfiles-tools/commands",
       "strict": false
     },
     {
@@ -215,6 +219,8 @@
         "events",
         "sound-alarms"
       ],
+      "hooks": "./plugins/productivity-tools/hooks/hooks.json",
+      "commands": "./plugins/productivity-tools/commands",
       "strict": false
     },
     {
@@ -263,6 +269,7 @@
         "mise-hygiene"
       ],
       "hooks": "./plugins/itp-hooks/hooks/hooks.json",
+      "commands": "./plugins/itp-hooks/commands",
       "strict": false
     },
     {
@@ -305,6 +312,7 @@
         "ru"
       ],
       "hooks": "./plugins/ru/hooks/hooks.json",
+      "commands": "./plugins/ru/commands",
       "strict": false
     },
     {
@@ -346,6 +354,7 @@
         "path-linting"
       ],
       "hooks": "./plugins/statusline-tools/hooks/hooks.json",
+      "commands": "./plugins/statusline-tools/commands",
       "strict": false
     },
     {
@@ -392,6 +401,7 @@
         "keychain",
         "pushover"
       ],
+      "commands": "./plugins/asciinema-tools/commands",
       "strict": false
     },
     {
@@ -415,6 +425,7 @@
         "hooks",
         "enforcement"
       ],
+      "commands": "./plugins/git-town-workflow/commands",
       "strict": false
     },
     {
@@ -468,6 +479,7 @@
         "bun"
       ],
       "hooks": "./plugins/gmail-commander/hooks/hooks.json",
+      "commands": "./plugins/gmail-commander/commands",
       "strict": false
     },
     {
@@ -539,6 +551,7 @@
         "health-check"
       ],
       "hooks": "./plugins/tts-telegram-sync/hooks/hooks.json",
+      "commands": "./plugins/tts-telegram-sync/commands",
       "strict": false
     },
     {
@@ -568,6 +581,7 @@
         "bun"
       ],
       "hooks": "./plugins/calcom-commander/hooks/hooks.json",
+      "commands": "./plugins/calcom-commander/commands",
       "strict": false
     },
     {
