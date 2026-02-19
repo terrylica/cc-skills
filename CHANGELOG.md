@@ -1,3 +1,34 @@
+# [11.50.0](https://github.com/terrylica/cc-skills/compare/v11.49.0...v11.50.0) (2026-02-19)
+
+
+### Bug Fixes
+
+* **hooks:** add jq error handling and +x permission for bash hooks ([5ad7ded](https://github.com/terrylica/cc-skills/commit/5ad7ded6168d3045e10b2c0d25b13b6acc141007))
+
+
+### Features
+
+* **mise:** add model: haiku to run-full-release slash command ([9aa2d1e](https://github.com/terrylica/cc-skills/commit/9aa2d1ee4b65a3fec36d377e33e1ce955e4089b9))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>mise</strong> (1 command)</summary>
+
+- [/mise:run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/run-full-release.md) - updated (+1)
+
+</details>
+
 # [11.49.0](https://github.com/terrylica/cc-skills/compare/v11.48.0...v11.49.0) (2026-02-19)
 
 
