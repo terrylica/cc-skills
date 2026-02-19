@@ -90,10 +90,10 @@ repo-name/path | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 | L:0 P:0 | 25Jan07 14:
 https://github.com/user/repo/tree/branch | 25Jan07 14:32Z
 ```
 
-**Line 3**: Session UUID
+**Line 3**: ~/.claude/projects JSONL ID
 
 ```
-Session UUID: abc12345-def4-5678-90ab-cdef12345678
+~/.claude/projects JSONL ID: abc12345-def4-5678-90ab-cdef12345678
 ```
 
 ### Indicators

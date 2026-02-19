@@ -73,7 +73,7 @@ Where `encoded-path` replaces `/` with `-`:
 | Issue                     | Cause                      | Solution                                         |
 | ------------------------- | -------------------------- | ------------------------------------------------ |
 | Script not found          | Plugin not installed       | Run `claude plugin list` to verify installation  |
-| Session UUID undefined    | No active session          | Start Claude Code session first                  |
+| JSONL ID undefined        | No active session          | Start Claude Code session first                  |
 | Registry file not found   | First session in project   | Registry created automatically on first session  |
 | Chain length is 0         | Fresh project              | Normal for new projects, chain grows over time   |
 | Metadata missing          | Older session format       | Recent sessions include metadata automatically   |

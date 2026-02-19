@@ -16,17 +16,15 @@
 #   L = Broken links (lychee)  P = Path violations (lint-relative-paths)
 #
 # Session line format:
-#   Session UUID: <claude-code-uuid> | Cast: <iterm2-uuid>
+#   ~/.claude/projects JSONL ID: <claude-code-uuid> | Cast: <iterm2-uuid>
 #   The Cast UUID maps to: ~/Downloads/*.<iterm2-uuid>.*.cast
 
 # ANSI Color codes
 RESET='\033[0m'
-CYAN='\033[36m'
 BRIGHT_BLACK='\033[90m'
 MAGENTA='\033[35m'
 YELLOW='\033[33m'
 RED='\033[91m'
-BLUE='\033[94m'
 GREEN='\033[92m'
 
 # Get path display with ~ substitution
@@ -154,10 +152,10 @@ fi
 # ↑n = commits ahead (need to push), ↓n = commits behind (need to pull)
 ahead=0
 behind=0
-if git rev-parse --abbrev-ref @{u} >/dev/null 2>&1; then
+if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
     # Get counts from local tracking ref (fast, may be stale after external push)
-    ahead=$(git rev-list @{u}..HEAD --count 2>/dev/null || echo 0)
-    behind=$(git rev-list HEAD..@{u} --count 2>/dev/null || echo 0)
+    ahead=$(git rev-list '@{u}..HEAD' --count 2>/dev/null || echo 0)
+    behind=$(git rev-list 'HEAD..@{u}' --count 2>/dev/null || echo 0)
 
     # Quick staleness check: if ahead > 0, verify with remote (cached for 30s)
     # This catches the case where external tools pushed but local refs are stale
@@ -174,7 +172,7 @@ if git rev-parse --abbrev-ref @{u} >/dev/null 2>&1; then
         # Only query remote every 30 seconds to avoid network overhead
         if [ "$cache_age" -gt 30 ]; then
             local_head=$(git rev-parse HEAD 2>/dev/null)
-            remote_name=$(git config branch.$(git branch --show-current).remote 2>/dev/null || echo "origin")
+            remote_name=$(git config "branch.$(git branch --show-current).remote" 2>/dev/null || echo "origin")
             remote_head=$(git ls-remote --heads "$remote_name" "$(git branch --show-current)" 2>/dev/null | cut -f1)
             echo "${local_head}:${remote_head}" > "$cache_file" 2>/dev/null
         else
@@ -219,18 +217,18 @@ colorize_stat() {
 }
 
 # File changes group (each stat colored independently)
-git_changes="$(colorize_stat M $modified) $(colorize_stat D $deleted) $(colorize_stat S $staged) $(colorize_stat U $untracked)"
+git_changes="$(colorize_stat M "$modified") $(colorize_stat D "$deleted") $(colorize_stat S "$staged") $(colorize_stat U "$untracked")"
 
 # Remote tracking (always show if tracking remote)
-if git rev-parse --abbrev-ref @{u} >/dev/null 2>&1; then
-    git_changes="${git_changes} $(colorize_stat ↑ $ahead) $(colorize_stat ↓ $behind)"
+if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
+    git_changes="${git_changes} $(colorize_stat ↑ "$ahead") $(colorize_stat ↓ "$behind")"
 fi
 
 # Stash count (always show)
-git_changes="${git_changes} $(colorize_stat ≡ $stash_count)"
+git_changes="${git_changes} $(colorize_stat ≡ "$stash_count")"
 
 # Conflict indicator (RED when non-zero)
-git_changes="${git_changes} $(colorize_stat ⚠ $conflicts $RED)"
+git_changes="${git_changes} $(colorize_stat ⚠ "$conflicts" "$RED")"
 
 # =============================================================================
 # Lychee Link Checker + lint-relative-paths (reads from cached results)
@@ -270,7 +268,7 @@ fi
 
 # Add separator and link checker indicators (L=Links, P=Paths)
 # These are separate from git status, so use | delimiter
-link_status="$(colorize_stat L $link_errors $RED) $(colorize_stat P $path_violations $RED)"
+link_status="$(colorize_stat L "$link_errors" "$RED") $(colorize_stat P "$path_violations" "$RED")"
 git_changes="${git_changes} | ${link_status}"
 
 # Get GitHub remote URL (convert SSH to HTTPS for browser link)
@@ -329,8 +327,8 @@ fi
 echo -e "$line1"
 echo -e "$line2"
 
-# Line 3: Session UUID + Cast file reference (for asciinema playback)
-# Format: Session UUID: <claude-code-uuid> | Cast: <iterm2-uuid>
+# Line 3: ~/.claude/projects JSONL ID + Cast file reference (for asciinema playback)
+# Format: ~/.claude/projects JSONL ID: <claude-code-uuid> | Cast: <iterm2-uuid>
 # The Cast UUID directly maps to asciinema recording filename in ~/Downloads/
 
 # Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
@@ -343,15 +341,15 @@ fi
 if [ -n "$session_chain" ]; then
     # Claude Code UUID already includes ANSI colors from Bun script
     if [ -n "$iterm_session_uuid" ]; then
-        echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain} ${BRIGHT_BLACK}| Cast: ${iterm_session_uuid}${RESET}"
+        echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain} ${BRIGHT_BLACK}| Cast: ${iterm_session_uuid}${RESET}"
     else
-        echo -e "${BRIGHT_BLACK}Session UUID:${RESET} ${session_chain}"
+        echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
     fi
 elif [ -n "$session_id" ]; then
     # Fallback if Bun script unavailable
     if [ -n "$iterm_session_uuid" ]; then
-        echo -e "${BRIGHT_BLACK}Session UUID: ${session_id} | Cast: ${iterm_session_uuid}${RESET}"
+        echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id} | Cast: ${iterm_session_uuid}${RESET}"
     else
-        echo -e "${BRIGHT_BLACK}Session UUID: ${session_id}${RESET}"
+        echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
     fi
 fi
