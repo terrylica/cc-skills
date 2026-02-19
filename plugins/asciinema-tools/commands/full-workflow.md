@@ -1,4 +1,5 @@
 ---
+name: full-workflow
 description: Full workflow - record + backup + convert + analyze. TRIGGERS - full workflow, complete recording, end-to-end.
 allowed-tools: Bash, Grep, AskUserQuestion, Glob, Write
 argument-hint: "[-t title] [-q|--quick] [-f|--full] [-d domains] [--no-backup] [--no-analyze]"

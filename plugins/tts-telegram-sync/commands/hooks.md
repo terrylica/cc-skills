@@ -1,4 +1,5 @@
 ---
+name: hooks
 description: "Install/uninstall tts-telegram-sync Stop hook to ~/.claude/settings.json"
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 argument-hint: "[install|uninstall|status]"

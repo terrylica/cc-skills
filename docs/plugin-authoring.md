@@ -48,8 +48,8 @@ fi
 
 Use descriptive heredoc names matching the command:
 
-- `start.md` → `RALPH_START_SCRIPT`
-- `status.md` → `RALPH_STATUS_SCRIPT`
+- `start.md` → `RU_START_SCRIPT`
+- `status.md` → `RU_STATUS_SCRIPT`
 - `config.md` → `PLUGIN_CONFIG_SHOW`
 
 ### Reference

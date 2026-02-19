@@ -1,7 +1,7 @@
 # gh-tools Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-3-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-5-blue.svg)]()
 [![Hooks](https://img.shields.io/badge/Hooks-3-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
@@ -56,11 +56,13 @@ When creating pull requests from feature branches, repository-relative links in 
 
 ## Bundled Skills
 
-| Skill                | Purpose                                                   | Trigger Keywords                                                          |
-| -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **pr-gfm-validator** | Validate and auto-fix GFM links in PR bodies              | `pr create`, `pull request`, `gfm link`, `pr links`, `validate pr`        |
-| **issue-create**     | Create issues with AI labeling and content type detection | `create issue`, `file bug`, `feature request`, `report issue`, `gh issue` |
-| **issues-workflow**  | Issues-first workflow with sub-issues hierarchy           | `issue hierarchy`, `sub-issues`, `research workflow`, `issue tracking`    |
+| Skill                 | Purpose                                                   | Trigger Keywords                                                          |
+| --------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **pr-gfm-validator**  | Validate and auto-fix GFM links in PR bodies              | `pr create`, `pull request`, `gfm link`, `pr links`, `validate pr`        |
+| **issue-create**      | Create issues with AI labeling and content type detection | `create issue`, `file bug`, `feature request`, `report issue`, `gh issue` |
+| **issues-workflow**   | Issues-first workflow with sub-issues hierarchy           | `issue hierarchy`, `sub-issues`, `research workflow`, `issue tracking`    |
+| **fork-intelligence** | Discover valuable fork divergence beyond stars            | `fork analysis`, `fork divergence`, `valuable forks`, `fork intelligence` |
+| **research-archival** | Scrape AI research URLs, archive with frontmatter         | `archive research`, `scrape URL`, `research archival`, `save findings`    |
 
 ## How It Works
 

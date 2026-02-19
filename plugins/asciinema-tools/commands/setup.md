@@ -1,4 +1,5 @@
 ---
+name: setup
 description: Check and install dependencies for asciinema-tools. TRIGGERS - setup, check deps, preflight.
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "[check|install|repair] [--all] [--core] [--optional] [-y|--yes]"
