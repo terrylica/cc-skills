@@ -117,6 +117,38 @@ if [[ "$TOOL_NAME" == "Write" || "$TOOL_NAME" == "Edit" ]]; then
         exit 0
     fi
 
+    # For Edit tool: determine changed line range to scope linter output.
+    # Only reports issues on lines that were actually modified (± buffer).
+    # This prevents flagging pre-existing issues elsewhere in the file.
+    # Write tool checks the entire file (it's all new content).
+    EDIT_LINE_START=""
+    EDIT_LINE_END=""
+    if [[ "$TOOL_NAME" == "Edit" ]]; then
+        EDIT_REPLACE_ALL=$(echo "$INPUT" | jq -r '.tool_input.replace_all // false')
+        if [[ "$EDIT_REPLACE_ALL" != "true" ]]; then
+            EDIT_NEW_STRING=$(echo "$INPUT" | jq -r '.tool_input.new_string // ""')
+            if [[ -n "$EDIT_NEW_STRING" ]]; then
+                # Use first non-empty line of new_string to locate the edit
+                EDIT_FIRST_LINE=$(echo "$EDIT_NEW_STRING" | grep -m1 '.' || true)
+                if [[ -n "$EDIT_FIRST_LINE" ]]; then
+                    # Only scope if we can uniquely identify the location
+                    EDIT_MATCH_COUNT=$(grep -c -F -- "$EDIT_FIRST_LINE" "$FILE_PATH" 2>/dev/null || echo "0")
+                    if [[ "$EDIT_MATCH_COUNT" -eq 1 ]]; then
+                        EDIT_LINE_START=$(grep -n -F -- "$EDIT_FIRST_LINE" "$FILE_PATH" 2>/dev/null | head -1 | cut -d: -f1)
+                        if [[ -n "$EDIT_LINE_START" ]]; then
+                            EDIT_NEW_LINE_COUNT=$(echo "$EDIT_NEW_STRING" | wc -l | tr -d ' ')
+                            EDIT_LINE_END=$((EDIT_LINE_START + EDIT_NEW_LINE_COUNT - 1))
+                            # Buffer: check 3 lines before and after the edit
+                            EDIT_BUFFER=3
+                            EDIT_LINE_START=$((EDIT_LINE_START > EDIT_BUFFER ? EDIT_LINE_START - EDIT_BUFFER : 1))
+                            EDIT_LINE_END=$((EDIT_LINE_END + EDIT_BUFFER))
+                        fi
+                    fi
+                fi
+            fi
+        fi
+    fi
+
     # Principle-based fix guidance for each language
     SHELL_FIX_GUIDANCE="SHELL SILENT FAILURE PRINCIPLES:
 1. SC2155: SPLIT declaration from assignment - 'local var=\$(cmd)' masks exit code
@@ -183,6 +215,14 @@ Silent JS failures are debugging nightmares. Make every error VISIBLE."
                     "$FILE_PATH" 2>/dev/null || true)
 
                 if [[ -n "$SHELLCHECK_OUTPUT" ]] && [[ "$SHELLCHECK_OUTPUT" != "[]" ]]; then
+                    # For Edit tool: scope to changed lines only (skip pre-existing issues)
+                    if [[ -n "$EDIT_LINE_START" && -n "$EDIT_LINE_END" ]]; then
+                        SHELLCHECK_OUTPUT=$(echo "$SHELLCHECK_OUTPUT" | jq \
+                            --argjson start "$EDIT_LINE_START" \
+                            --argjson end "$EDIT_LINE_END" \
+                            '[.[] | select(.line >= $start and .line <= $end)]')
+                    fi
+
                     ISSUE_COUNT=$(echo "$SHELLCHECK_OUTPUT" | jq 'length')
 
                     ISSUES_SUMMARY=$(echo "$SHELLCHECK_OUTPUT" | jq -r '
@@ -265,6 +305,14 @@ Reference: CLAUDE.md Process Storm Prevention section"
                     "$FILE_PATH" 2>/dev/null || true)
 
                 if [[ -n "$RUFF_OUTPUT" ]] && [[ "$RUFF_OUTPUT" != "[]" ]]; then
+                    # For Edit tool: scope to changed lines only (skip pre-existing issues)
+                    if [[ -n "$EDIT_LINE_START" && -n "$EDIT_LINE_END" ]]; then
+                        RUFF_OUTPUT=$(echo "$RUFF_OUTPUT" | jq \
+                            --argjson start "$EDIT_LINE_START" \
+                            --argjson end "$EDIT_LINE_END" \
+                            '[.[] | select(.location.row >= $start and .location.row <= $end)]')
+                    fi
+
                     ISSUE_COUNT=$(echo "$RUFF_OUTPUT" | jq 'length')
 
                     ISSUES_SUMMARY=$(echo "$RUFF_OUTPUT" | jq -r '
