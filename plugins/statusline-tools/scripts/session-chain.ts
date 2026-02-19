@@ -1,13 +1,12 @@
 #!/usr/bin/env bun
 /**
- * session-chain.ts - Session UUID display for statusline
+ * session-chain.ts - ~/.claude/projects JSONL ID display for statusline
  *
  * Usage: bun session-chain.ts <session-id>
- * Output: Full session UUID in gray
+ * Output: Full JSONL ID in gray
  *
- * Simplified implementation: Just displays the current session UUID.
- * Auto-compaction does NOT create new session UUIDs - the UUID stays
- * the same throughout a session's lifetime.
+ * The ID maps to ~/.claude/projects/<encoded-path>/<id>.jsonl
+ * and stays the same throughout a session's lifetime.
  */
 
 import { formatSessionId } from "../lib/chain-formatter";
@@ -20,5 +19,5 @@ if (!sessionId) {
   process.exit(1);
 }
 
-// Output formatted session UUID (full UUID in gray)
+// Output formatted JSONL ID (full UUID in gray)
 console.log(formatSessionId(sessionId));
