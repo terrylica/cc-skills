@@ -3,6 +3,7 @@ name: run-full-release
 description: "Run the current repo's mise release pipeline with auto-scaffolding. TRIGGERS - mise release, full release, version bump, release automation, mise run release."
 allowed-tools: Read, Bash, Glob, Grep, Write, Edit, AskUserQuestion
 argument-hint: "[--dry] [--status]"
+model: haiku
 ---
 
 # /mise:run-full-release
