@@ -11,7 +11,12 @@
  * 2. Get proposed content (content or apply edit to existing)
  * 3. Write to temp file
  * 4. Run Vale on temp file
- * 5. Return permissionDecision: "deny" if issues found
+ * 5. For Edit: only report issues on changed lines (± 3 line buffer)
+ * 6. Return permissionDecision: "deny" if issues found on changed lines
+ *
+ * Scoping: For Edit tool, only blocks on Vale issues affecting the lines
+ * being changed. Pre-existing issues elsewhere in the file are ignored.
+ * Write tool checks the entire file (all content is new).
  *
  * Pattern: PreToolUse with deny semantics (lifecycle-reference.md)
  * ADR: To be created if hook proves useful
@@ -40,16 +45,32 @@ const SEVERITY_THRESHOLD = "warning";
 // HELPERS
 // ============================================================================
 
+interface EditResult {
+  content: string;
+  /** 1-based line range of the changed region (with ± buffer) */
+  lineRange: { start: number; end: number } | null;
+}
+
 /**
- * Apply an edit to existing content.
+ * Apply an edit to existing content and compute the affected line range.
  */
-function applyEdit(existing: string, oldString: string, newString: string): string {
+function applyEdit(existing: string, oldString: string, newString: string): EditResult {
+  const BUFFER = 3;
   const index = existing.indexOf(oldString);
   if (index === -1) {
     // Edit target not found - return original (let Claude handle the error)
-    return existing;
+    return { content: existing, lineRange: null };
   }
-  return existing.slice(0, index) + newString + existing.slice(index + oldString.length);
+
+  const content = existing.slice(0, index) + newString + existing.slice(index + oldString.length);
+
+  // Compute line range of the edit in the NEW content
+  const prefixLines = existing.slice(0, index).split("\n").length; // line where edit starts (1-based)
+  const newStringLines = newString.split("\n").length;
+  const editStart = Math.max(1, prefixLines - BUFFER);
+  const editEnd = prefixLines + newStringLines - 1 + BUFFER;
+
+  return { content, lineRange: { start: editStart, end: editEnd } };
 }
 
 /**
@@ -156,11 +177,12 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Get the proposed content
+  // Get the proposed content and edit line range
   let proposedContent: string;
+  let editLineRange: { start: number; end: number } | null = null;
 
   if (toolName === "Write") {
-    // Write: content is the full new content
+    // Write: content is the full new content — check all lines
     proposedContent = (toolInput.content as string) || "";
   } else {
     // Edit: apply old_string -> new_string to existing content
@@ -174,12 +196,19 @@ async function main(): Promise<void> {
     }
 
     const existing = readFileSync(filePath, "utf8");
-    proposedContent = applyEdit(existing, oldString, newString);
+    const editResult = applyEdit(existing, oldString, newString);
+    proposedContent = editResult.content;
+    editLineRange = editResult.lineRange;
   }
 
-  // Run Vale
+  // Run Vale on proposed content
   const allIssues = await runVale(proposedContent);
-  const issues = filterBySeverity(allIssues, SEVERITY_THRESHOLD);
+  const severityFiltered = filterBySeverity(allIssues, SEVERITY_THRESHOLD);
+
+  // For Edit: scope to changed lines only (skip pre-existing issues)
+  const issues = editLineRange
+    ? severityFiltered.filter((i) => i.line >= editLineRange!.start && i.line <= editLineRange!.end)
+    : severityFiltered;
 
   if (issues.length === 0) {
     allow();
@@ -188,7 +217,10 @@ async function main(): Promise<void> {
 
   // Format rejection message
   const fileName = filePath.split("/").pop() || "CLAUDE.md";
-  const reason = `[VALE-CLAUDE-MD-GUARD] Found ${issues.length} terminology issue(s) in ${fileName}:
+  const scopeNote = editLineRange
+    ? ` (scoped to changed lines ${editLineRange.start}-${editLineRange.end})`
+    : "";
+  const reason = `[VALE-CLAUDE-MD-GUARD] Found ${issues.length} terminology issue(s) in ${fileName}${scopeNote}:
 
 ${formatIssues(issues)}
 

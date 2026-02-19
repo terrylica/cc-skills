@@ -7,10 +7,14 @@
  * Trigger: After Edit or Write on any CLAUDE.md file.
  * Output: { decision: "block", reason: "..." } for Claude visibility.
  *
+ * Scoping: For Edit tool, only reports issues on lines that were actually
+ * changed (± 3 line buffer). This prevents flagging pre-existing issues
+ * elsewhere in the file. Write tool checks the entire file.
+ *
  * ADR: hooks-development/references/lifecycle-reference.md (lines 503-526)
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { $ } from "bun";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
@@ -23,9 +27,17 @@ interface PostToolUseInput {
   tool_name: string;
   tool_input: {
     file_path?: string;
+    old_string?: string;
+    new_string?: string;
+    replace_all?: boolean;
     [key: string]: unknown;
   };
   tool_response?: unknown;
+}
+
+interface LineRange {
+  start: number;
+  end: number;
 }
 
 interface HookResult {
@@ -89,6 +101,47 @@ function findValeConfig(filePath: string): string | null {
 }
 
 /**
+ * Compute the line range affected by an Edit operation.
+ * Returns null for Write (entire file is new) or if range can't be determined.
+ * Uses ±3 line buffer to catch context-dependent issues.
+ */
+function computeEditLineRange(filePath: string, newString: string): LineRange | null {
+  const BUFFER = 3;
+
+  if (!newString || !existsSync(filePath)) return null;
+
+  try {
+    const content = readFileSync(filePath, "utf8");
+    const lines = content.split("\n");
+
+    // Find the first non-empty line of new_string in the file
+    const firstLine = newString.split("\n").find((l) => l.trim().length > 0);
+    if (!firstLine) return null;
+
+    // Find the line number (1-based)
+    let matchCount = 0;
+    let matchLineNum = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(firstLine.trim())) {
+        matchCount++;
+        matchLineNum = i + 1; // 1-based
+      }
+    }
+
+    // Only scope if we can uniquely identify the location
+    if (matchCount !== 1 || matchLineNum < 1) return null;
+
+    const newLineCount = newString.split("\n").length;
+    const start = Math.max(1, matchLineNum - BUFFER);
+    const end = matchLineNum + newLineCount - 1 + BUFFER;
+
+    return { start, end };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Check if Vale is installed.
  */
 async function isValeInstalled(): Promise<boolean> {
@@ -100,41 +153,57 @@ async function isValeInstalled(): Promise<boolean> {
   }
 }
 
+interface ValeIssue {
+  line: number;
+  severity: "error" | "warning" | "suggestion";
+  message: string;
+  rule: string;
+}
+
 /**
- * Run Vale and return output with parsed counts.
+ * Run Vale and return structured issues with line numbers.
  * Must run Vale from the file's directory for glob patterns to match.
  */
 async function runVale(
   filePath: string,
   configPath: string,
-): Promise<{ output: string; exitCode: number; errors: number; warnings: number; suggestions: number }> {
+): Promise<ValeIssue[]> {
   try {
-    // Vale glob patterns in .vale.ini are relative to cwd
-    // We must cd to the file's directory for patterns like [CLAUDE.md] to match
     const fileDir = dirname(filePath);
     const fileName = basename(filePath);
 
-    const result = await $`cd ${fileDir} && vale --config ${configPath} ${fileName}`
+    const result = await $`cd ${fileDir} && vale --config ${configPath} --output=JSON ${fileName}`
       .quiet()
       .nothrow();
-    const output = result.stdout.toString() + result.stderr.toString();
 
-    // Parse counts from Vale's summary line: "✖ 0 errors, 6 warnings and 0 suggestions in 1 file."
-    // Note: Vale output contains ANSI escape codes for colors, e.g., "\x1b[31m0 errors\x1b[0m"
-    // Strip ANSI codes before parsing to ensure reliable matching
-    const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, "");
-    const summaryMatch = cleanOutput.match(/(\d+)\s+errors?,\s+(\d+)\s+warnings?\s+and\s+(\d+)\s+suggestions?/i);
+    const stdout = result.stdout.toString().trim();
+    const issues: ValeIssue[] = [];
 
-    return {
-      output,
-      exitCode: result.exitCode,
-      errors: summaryMatch ? parseInt(summaryMatch[1], 10) : 0,
-      warnings: summaryMatch ? parseInt(summaryMatch[2], 10) : 0,
-      suggestions: summaryMatch ? parseInt(summaryMatch[3], 10) : 0,
-    };
+    if (stdout) {
+      try {
+        const valeOutput = JSON.parse(stdout);
+        for (const [_file, fileIssues] of Object.entries(valeOutput)) {
+          if (Array.isArray(fileIssues)) {
+            for (const issue of fileIssues) {
+              const i = issue as { Line?: number; Severity?: string; Message?: string; Check?: string };
+              issues.push({
+                line: i.Line || 0,
+                severity: (i.Severity?.toLowerCase() || "warning") as ValeIssue["severity"],
+                message: i.Message || "Unknown issue",
+                rule: i.Check || "",
+              });
+            }
+          }
+        }
+      } catch {
+        // JSON parse failed
+      }
+    }
+
+    return issues;
   } catch (err) {
     trackHookError("posttooluse-vale-claude-md", err instanceof Error ? err.message : String(err));
-    return { output: "", exitCode: 0, errors: 0, warnings: 0, suggestions: 0 };
+    return [];
   }
 }
 
@@ -177,16 +246,40 @@ async function runHook(): Promise<HookResult> {
     return { exitCode: 0 };
   }
 
+  // For Edit tool: compute changed line range to scope output
+  // Write tool checks the entire file (all content is new)
+  let lineRange: LineRange | null = null;
+  if (toolName === "Edit" && !input.tool_input?.replace_all) {
+    const newString = input.tool_input?.new_string || "";
+    lineRange = computeEditLineRange(filePath, newString);
+  }
+
   // Run Vale
-  const { output, errors, warnings, suggestions } = await runVale(filePath, configPath);
+  const issues = await runVale(filePath, configPath);
 
-  // If Vale found any issues
+  // Filter issues to changed lines only (for Edit tool)
+  const scopedIssues = lineRange
+    ? issues.filter((i) => i.line >= lineRange!.start && i.line <= lineRange!.end)
+    : issues;
+
+  // Count by severity
+  const errors = scopedIssues.filter((i) => i.severity === "error").length;
+  const warnings = scopedIssues.filter((i) => i.severity === "warning").length;
+  const suggestions = scopedIssues.filter((i) => i.severity === "suggestion").length;
+
+  // If Vale found issues on changed lines
   if (errors > 0 || warnings > 0 || suggestions > 0) {
-    // Strip ANSI codes from output for cleaner display
-    const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, "");
-    const reason = `[VALE] Found ${errors} errors, ${warnings} warnings, ${suggestions} suggestions in ${basename(filePath)}:
+    const issueLines = scopedIssues
+      .map((i) => `  Line ${i.line}: [${i.severity.toUpperCase()}] ${i.message} (${i.rule})`)
+      .join("\n");
 
-${cleanOutput.trim()}
+    const scopeNote = lineRange
+      ? ` (scoped to changed lines ${lineRange.start}-${lineRange.end})`
+      : "";
+
+    const reason = `[VALE] Found ${errors} errors, ${warnings} warnings, ${suggestions} suggestions in ${basename(filePath)}${scopeNote}:
+
+${issueLines}
 
 **Options:**
 1. Fix terminology automatically (use acronyms: ITH, TMAEG, MCOT, NAV, CV, dbps)
