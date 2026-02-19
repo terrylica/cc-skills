@@ -1,3 +1,10 @@
+## [11.51.2](https://github.com/terrylica/cc-skills/compare/v11.51.1...v11.51.2) (2026-02-19)
+
+
+### Bug Fixes
+
+* **itp-hooks:** scope Vale terminology checks to changed lines only ([a6598b1](https://github.com/terrylica/cc-skills/commit/a6598b1f4ac16cc216de77d1c7d99b282f8736bd))
+
 ## [11.51.1](https://github.com/terrylica/cc-skills/compare/v11.51.0...v11.51.1) (2026-02-19)
 
 
