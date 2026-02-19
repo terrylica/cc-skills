@@ -3,6 +3,7 @@ name: play
 description: Play .cast recordings in iTerm2 with speed controls. TRIGGERS - play recording, asciinema play, view cast.
 allowed-tools: Bash, AskUserQuestion, Glob
 argument-hint: "[file] [-s speed] [-i idle-limit] [-l loop] [-r resize] [-m markers]"
+model: haiku
 ---
 
 # /asciinema-tools:play
