@@ -21,7 +21,10 @@ mise tasks ls 2>/dev/null | grep -i release
 ### If release tasks FOUND → Execute
 
 1. Check working directory cleanliness: `git status --porcelain`
-2. **If working directory is dirty → Autonomously resolve ALL changes before releasing:**
+2. **Check for unpushed commits:** `git log --oneline @{u}..HEAD 2>/dev/null`
+   - If unpushed commits exist → `git push origin main` before proceeding
+   - semantic-release needs all commits pushed to analyze and version correctly
+3. **If working directory is dirty → Autonomously resolve ALL changes before releasing:**
    a. Run `git status --porcelain` and `git diff` to understand every pending change
    b. For each group of related changes:
    - Read the changed files to understand what was modified and why
@@ -38,7 +41,7 @@ mise tasks ls 2>/dev/null | grep -i release
    - Never skip pre-commit hooks (`--no-verify`)
    - If unsure whether a change should be committed or stashed, review the file contents and decide based on whether it's a completed change or work-in-progress
 
-3. Route by flags:
+4. Route by flags:
    - `--dry` → `mise run release:dry`
    - `--status` → `mise run release:status`
    - No flags → `mise run release:full`
@@ -118,6 +121,7 @@ Run `mise run release:full` with the newly created tasks.
 | `mise` not found                | Install: `curl https://mise.run \| sh`            |
 | No release tasks                | Scaffold using audit above                        |
 | Working dir not clean           | Review, commit, or stash all changes autonomously |
+| Unpushed commits                | `git push origin main` before release             |
 | Not on main branch              | `git checkout main`                               |
 | No releasable commits           | Create a `feat:` or `fix:` commit first           |
 | Missing GH_TOKEN                | Add to `.mise.toml` `[env]` section               |
