@@ -1,7 +1,7 @@
 /**
  * Claude Code session types
- * Simplified - just for session UUID display
+ * Simplified - just for ~/.claude/projects JSONL ID display
  */
 
-// Session UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+// JSONL ID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (maps to ~/.claude/projects/<path>/<id>.jsonl)
 export type SessionId = string;
