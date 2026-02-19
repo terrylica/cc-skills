@@ -1,5 +1,5 @@
 /**
- * chain-formatter.ts - Format session UUID for statusline display
+ * chain-formatter.ts - Format ~/.claude/projects JSONL ID for statusline display
  *
  * Output format: Full UUID in gray (BRIGHT_BLACK)
  * Example: 8e017a43-227e-4b37-b1bb-0d136f894271
@@ -10,7 +10,7 @@ const BRIGHT_BLACK = "\x1b[90m"; // Gray
 const RESET = "\x1b[0m";
 
 /**
- * Format session UUID for display
+ * Format JSONL ID for display
  * Returns full UUID in gray for uniform, non-distracting reference display
  */
 export function formatSessionId(sessionId: string): string {
