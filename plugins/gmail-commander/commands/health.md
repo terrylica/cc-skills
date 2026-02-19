@@ -1,6 +1,7 @@
 ---
 name: health
 description: Gmail Commander health check across all subsystems.
+model: haiku
 ---
 
 # Gmail Commander Health Check

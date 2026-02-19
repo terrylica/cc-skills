@@ -1,6 +1,7 @@
 ---
 name: health
 description: Cal.com Commander health check across all subsystems.
+model: haiku
 ---
 
 # Cal.com Commander Health Check

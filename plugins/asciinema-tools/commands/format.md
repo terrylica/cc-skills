@@ -3,6 +3,7 @@ name: format
 description: Reference for asciinema v3 .cast NDJSON format. TRIGGERS - cast format, asciicast spec, event codes.
 allowed-tools: Read, AskUserQuestion, Bash
 argument-hint: "[header|events|parsing|all] [-f file] [--live]"
+model: haiku
 ---
 
 # /asciinema-tools:format

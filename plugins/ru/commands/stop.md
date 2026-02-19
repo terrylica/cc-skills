@@ -3,6 +3,7 @@ name: stop
 description: Disable autonomous loop mode immediately
 allowed-tools: Bash
 argument-hint: ""
+model: haiku
 ---
 
 # RU: Stop
