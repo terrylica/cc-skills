@@ -24,7 +24,12 @@ mise tasks ls 2>/dev/null | grep -i release
 2. **Check for unpushed commits:** `git log --oneline @{u}..HEAD 2>/dev/null`
    - If unpushed commits exist → `git push origin main` before proceeding
    - semantic-release needs all commits pushed to analyze and version correctly
-3. **If working directory is dirty → Autonomously resolve ALL changes before releasing:**
+3. **Reset lockfile drift** (caused by preflight commands like `uv run pytest`):
+   - Check for modified lockfiles: `git diff --name-only | grep -E '(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb|yarn\.lock|pnpm-lock\.yaml)$'`
+   - If ONLY lockfiles are dirty and no other changes exist → `git checkout -- <lockfile>` to reset them
+   - If lockfiles are dirty alongside intentional changes → reset lockfiles first, then handle remaining changes in step 4
+   - **Rationale**: Lockfiles modified by `uv run`, `npm install`, etc. during preflight are artifacts, not intentional changes. They should never block or pollute a release.
+4. **If working directory is dirty → Autonomously resolve ALL changes before releasing:**
    a. Run `git status --porcelain` and `git diff` to understand every pending change
    b. For each group of related changes:
    - Read the changed files to understand what was modified and why
@@ -41,7 +46,11 @@ mise tasks ls 2>/dev/null | grep -i release
    - Never skip pre-commit hooks (`--no-verify`)
    - If unsure whether a change should be committed or stashed, review the file contents and decide based on whether it's a completed change or work-in-progress
 
-4. Route by flags:
+5. **Post-release lockfile cleanup**: After release completes, check again for lockfile drift and reset:
+   - `git diff --name-only | grep -E '(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb|yarn\.lock|pnpm-lock\.yaml)$' | xargs -r git checkout --`
+   - This catches lockfiles modified by release tasks themselves (e.g., version bumps triggering lockfile updates)
+
+6. Route by flags:
    - `--dry` → `mise run release:dry`
    - `--status` → `mise run release:status`
    - No flags → `mise run release:full`
@@ -116,13 +125,14 @@ Run `mise run release:full` with the newly created tasks.
 
 ## Error Recovery
 
-| Error                           | Resolution                                        |
-| ------------------------------- | ------------------------------------------------- |
-| `mise` not found                | Install: `curl https://mise.run \| sh`            |
-| No release tasks                | Scaffold using audit above                        |
-| Working dir not clean           | Review, commit, or stash all changes autonomously |
-| Unpushed commits                | `git push origin main` before release             |
-| Not on main branch              | `git checkout main`                               |
-| No releasable commits           | Create a `feat:` or `fix:` commit first           |
-| Missing GH_TOKEN                | Add to `.mise.toml` `[env]` section               |
-| semantic-release not configured | Create `.releaserc.yml` (see cc-skills reference) |
+| Error                           | Resolution                                            |
+| ------------------------------- | ----------------------------------------------------- |
+| `mise` not found                | Install: `curl https://mise.run \| sh`                |
+| No release tasks                | Scaffold using audit above                            |
+| Working dir not clean           | Review, commit, or stash all changes autonomously     |
+| Lockfile drift (uv.lock etc.)   | `git checkout -- uv.lock` (artifact, not intentional) |
+| Unpushed commits                | `git push origin main` before release                 |
+| Not on main branch              | `git checkout main`                                   |
+| No releasable commits           | Create a `feat:` or `fix:` commit first               |
+| Missing GH_TOKEN                | Add to `.mise.toml` `[env]` section                   |
+| semantic-release not configured | Create `.releaserc.yml` (see cc-skills reference)     |
