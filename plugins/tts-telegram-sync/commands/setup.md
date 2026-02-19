@@ -1,4 +1,5 @@
 ---
+name: setup
 description: "One-time bootstrap for Kokoro TTS, Telegram bot, and BotFather setup"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[--check|--install]"

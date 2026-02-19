@@ -1,4 +1,5 @@
 ---
+name: summarize
 description: AI-powered iterative deep-dive analysis of converted recordings. TRIGGERS - summarize recording, analyze session, what happened, session summary, deep analysis, findings extraction.
 allowed-tools: Bash, Grep, Read, AskUserQuestion, Task, Write
 argument-hint: "[file] [--topic topic] [--depth quick|medium|deep] [--output file]"

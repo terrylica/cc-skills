@@ -1,4 +1,5 @@
 ---
+name: daemon-status
 description: Check asciinema status - daemon, running processes, and unhandled .cast files. TRIGGERS - daemon status, check backup, chunker health, recording status, unhandled files.
 allowed-tools: Bash
 argument-hint: "[--verbose] [--files-only] [--processes-only]"

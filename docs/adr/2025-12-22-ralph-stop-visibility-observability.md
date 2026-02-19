@@ -134,4 +134,4 @@ rm -f "$HOME/.claude/ralph-stop-reason.json"
 ## References
 
 - [Ralph Eternal Loop ADR](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
-- [Ralph Plugin README](/plugins/ralph/README.md#stop-visibility-observability-v770)
+- [Ralph Plugin README](/plugins/ru/README.md#stop-visibility-observability-v770)

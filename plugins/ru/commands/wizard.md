@@ -1,4 +1,5 @@
 ---
+name: wizard
 description: Interactive guidance setup with AskUserQuestion flow
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "[--clear]"

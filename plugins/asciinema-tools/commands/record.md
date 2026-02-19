@@ -1,4 +1,5 @@
 ---
+name: record
 description: Start terminal recording with asciinema. TRIGGERS - record session, capture terminal, start recording.
 allowed-tools: Bash, AskUserQuestion, Glob
 argument-hint: "[file] [-t title] [-i idle-limit] [--backup] [--append]"

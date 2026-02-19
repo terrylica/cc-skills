@@ -1,4 +1,5 @@
 ---
+name: setup
 allowed-tools: Read, Write, Edit, Bash(git town:*), Bash(git config:*), Bash(git remote:*), Bash(which:*), Bash(brew:*), Bash(gh:*), Grep, Glob, AskUserQuestion, TodoWrite
 argument-hint: "[--check]"
 description: "Initialize git-town in current repository with fork-aware configuration. One-time setup. TRIGGERS - git-town setup, initialize git-town, configure git-town, git town init."

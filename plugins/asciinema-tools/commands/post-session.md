@@ -1,4 +1,5 @@
 ---
+name: post-session
 description: Complete post-session workflow - finalize orphaned recordings, convert, and AI summarize. TRIGGERS - post session, analyze recording, session review, complete workflow.
 allowed-tools: Bash, Grep, AskUserQuestion, Glob, Write, Read, Task
 argument-hint: "[file] [--finalize] [-q|--quick] [-f|--full] [--summarize] [--output file]"

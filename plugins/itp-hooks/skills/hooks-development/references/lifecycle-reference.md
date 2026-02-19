@@ -960,14 +960,14 @@ def hard_stop(reason: str):
 Plugins are stored in `~/.claude/plugins/cache/<marketplace>/<plugin-name>/`:
 
 ```
-~/.claude/plugins/cache/cc-skills/ralph/
+~/.claude/plugins/cache/cc-skills/ru/
 ├── 5.15.0/              # Released version (immutable)
 │   ├── commands/
 │   └── hooks/
 ├── 5.16.0/              # Newer released version
 │   ├── commands/
 │   └── hooks/
-└── local -> /path/to/source/repo/plugins/ralph   # Development symlink
+└── local -> /path/to/source/repo/plugins/ru   # Development symlink
 ```
 
 ### Critical Insight: Version vs Content Resolution
@@ -1001,10 +1001,10 @@ Even though the source file has the fix, Claude Code reads skill content from th
 
 ### Correct Update Workflow
 
-1. **Edit source file** - `plugins/ralph/commands/start.md`
+1. **Edit source file** - `plugins/ru/commands/start.md`
 2. **Commit and push** - `git add . && git commit -m "fix: ..." && git push`
 3. **Release new version** - `npm run release` (creates v5.16.0)
-4. **Remove local symlink** (optional) - `rm ~/.claude/plugins/cache/cc-skills/ralph/local`
+4. **Remove local symlink** (optional) - `rm ~/.claude/plugins/cache/cc-skills/ru/local`
 5. **Reinstall plugin** - `/plugin install cc-skills`
 6. **Restart Claude Code** - Exit (Ctrl+C) and run `claude` again
 7. **Verify** - Banner shows `v5.16.0 (cache)` not `(local)`

@@ -1,7 +1,7 @@
 # quality-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-7-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-8-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Code quality and validation tools for Claude Code: clone detection, multi-agent E2E validation, performance profiling, and schema testing.
@@ -17,6 +17,7 @@ Code quality and validation tools for Claude Code: clone detection, multi-agent 
 | `pre-ship-review`                   | Structured quality review before shipping code (PRs, releases, milestones) |
 | `schema-e2e-validation`             | Earthly E2E validation for schema-first data contracts                     |
 | `symmetric-dogfooding`              | Bidirectional integration validation between repositories                  |
+| `dead-code-detector`                | Detect and remove dead code with Vulture and coverage analysis             |
 
 ## Installation
 
@@ -38,6 +39,7 @@ Skills are model-invoked based on context.
 - "pre-ship review", "ship check", "quality review", "release review", "self review", "pre-submit" → pre-ship-review
 - "schema validation", "YAML schema", "Earthly E2E" → schema-e2e-validation
 - "cross-repo validation", "polyrepo integration", "bidirectional testing" → symmetric-dogfooding
+- "dead code", "unused functions", "vulture", "code coverage", "unreachable code" → dead-code-detector
 
 ## Features
 

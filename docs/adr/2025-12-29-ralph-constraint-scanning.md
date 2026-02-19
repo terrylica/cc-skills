@@ -184,4 +184,4 @@ class RalphConfig(BaseModel):
 
 - [ADR 2025-12-20: Ralph Eternal Loop](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
 - [ADR 2025-12-14: Alpha Forge Worktree Management](/docs/adr/2025-12-14-alpha-forge-worktree-management.md)
-- [MENTAL-MODEL.md](/plugins/ralph/MENTAL-MODEL.md) - Updated with constraint scanner flow
+- [MENTAL-MODEL.md](/plugins/ru/MENTAL-MODEL.md) - Updated with constraint scanner flow

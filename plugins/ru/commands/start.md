@@ -1,4 +1,5 @@
 ---
+name: start
 description: Enable autonomous loop mode for any project
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "[--poc | --production | --quick]"

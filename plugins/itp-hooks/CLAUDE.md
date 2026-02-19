@@ -23,19 +23,28 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 | `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection)                                                                                          |
 | `pretooluse-file-size-guard.ts`        | Write\|Edit       | File size bloat prevention (per-extension limits)                                                                                          |
 | `pretooluse-native-binary-guard.ts`    | Write\|Edit       | Enforces compiled Swift binaries for launchd (no bash scripts)                                                                             |
+| `pretooluse-pyi-stub-guard.ts`         | Write\|Edit       | Validates `.pyi` stub files match source signatures                                                                                        |
+| `pretooluse-pueue-local-guard.ts`      | Bash              | Ensures pueue commands target local daemon (not remote)                                                                                    |
 | `pretooluse-pueue-wrap-guard.ts`       | Bash              | Auto-wraps long-running commands with pueue + injects OP_SERVICE_ACCOUNT_TOKEN for Claude Automation vault (MUST be LAST PreToolUse entry) |
 
 > **Note**: `sred-commit-guard.ts` was migrated from a PreToolUse hook to the `/mise:sred-commit` slash command. The script remains for CLI validation (`--validate-message`, `--git-hook`).
 
 ### PostToolUse Hooks
 
-| Hook                              | Matcher           | Purpose                                                     |
-| --------------------------------- | ----------------- | ----------------------------------------------------------- |
-| `posttooluse-reminder.ts`         | Bash\|Write\|Edit | Context-aware reminders (UV, Pueue, graph-easy, ADR sync)   |
-| `code-correctness-guard.sh`       | Bash\|Write\|Edit | Silent failure detection only (NO unused imports, NO style) |
-| `posttooluse-vale-claude-md.ts`   | Write\|Edit       | Vale terminology check on CLAUDE.md files                   |
-| `posttooluse-glossary-sync.ts`    | Write\|Edit       | Auto-sync GLOSSARY.md to Vale vocabulary                    |
-| `posttooluse-terminology-sync.ts` | Write\|Edit       | Project CLAUDE.md to global GLOSSARY.md sync                |
+| Hook                               | Matcher                | Purpose                                                     |
+| ---------------------------------- | ---------------------- | ----------------------------------------------------------- |
+| `posttooluse-reminder.ts`          | Bash\|Write\|Edit      | Context-aware reminders (UV, Pueue, graph-easy, ADR sync)   |
+| `code-correctness-guard.sh`        | Bash\|Write\|Edit      | Silent failure detection only (NO unused imports, NO style) |
+| `posttooluse-vale-claude-md.ts`    | Write\|Edit            | Vale terminology check on CLAUDE.md files                   |
+| `posttooluse-glossary-sync.ts`     | Write\|Edit            | Auto-sync GLOSSARY.md to Vale vocabulary                    |
+| `posttooluse-terminology-sync.ts`  | Write\|Edit            | Project CLAUDE.md to global GLOSSARY.md sync                |
+| `posttooluse-readme-pypi-links.ts` | Write\|Edit\|MultiEdit | Validates PyPI badge/link consistency in README files       |
+
+### Stop Hooks
+
+| Hook                         | Purpose                                                |
+| ---------------------------- | ------------------------------------------------------ |
+| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit |
 
 ## SR&ED Commit Guard
 

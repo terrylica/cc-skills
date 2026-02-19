@@ -1,4 +1,5 @@
 ---
+name: finalize
 description: Finalize orphaned recordings - stop processes, compress, push to orphan branch. TRIGGERS - finalize recording, stop asciinema, orphaned recording, cleanup recording, push recording.
 allowed-tools: Bash, AskUserQuestion, Glob, Read
 argument-hint: "[file|--all] [--force] [--no-push] [--keep-local]"

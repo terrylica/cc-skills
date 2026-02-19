@@ -1,4 +1,5 @@
 ---
+name: create
 allowed-tools: Read, Write, Edit, Bash(node:*), Bash(git:*), Bash(npm:*), Bash(ls:*), Bash(mkdir:*), Grep, Glob, TodoWrite, TodoRead, AskUserQuestion, Skill, Task
 argument-hint: "[plugin-name] (optional - will prompt if not provided)"
 description: "Create a new plugin for Claude Code marketplace with validation, ADR, and release automation"

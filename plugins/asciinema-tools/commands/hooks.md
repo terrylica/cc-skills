@@ -1,4 +1,5 @@
 ---
+name: hooks
 description: Install/uninstall hooks for auto-backup on session end. TRIGGERS - hooks, auto backup, session hooks.
 allowed-tools: Bash, Read, Write, AskUserQuestion
 argument-hint: "[install|uninstall|status] [--backup-on-stop] [--convert-on-stop] [-y|--yes]"

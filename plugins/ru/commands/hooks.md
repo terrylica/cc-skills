@@ -1,4 +1,5 @@
 ---
+name: hooks
 description: Install/uninstall RU hooks
 allowed-tools: Bash
 argument-hint: "[install|uninstall|status]"

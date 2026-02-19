@@ -1,4 +1,5 @@
 ---
+name: encourage
 description: Add item to encouraged list (prioritizes work on matching topics)
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "<phrase> | --list | --clear | --remove"

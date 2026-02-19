@@ -1,4 +1,5 @@
 ---
+name: go
 allowed-tools: Read, Write, Edit, Bash(git checkout:*), Bash(git pull:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git branch:*), Bash(prettier --write:*), Bash(open:*), Bash(gh repo:*), Bash(cp:*), Bash(mkdir -p:*), Bash(date:*), Bash(PLUGIN_DIR:*), Bash(uv run:*), Grep, Glob, Task
 argument-hint: "Start: [name] [-b] [-r] [-p] | Resume: -c [choice]"
 description: "WORKFLOW COMMAND - Execute TodoWrite FIRST, then Preflight → Phase 1 → 2 → 3. Do NOT read ~/.claude/plans/ until after TodoWrite."
