@@ -1,3 +1,24 @@
+## [11.51.1](https://github.com/terrylica/cc-skills/compare/v11.51.0...v11.51.1) (2026-02-19)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>mise</strong> (1 command)</summary>
+
+- [/mise:run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/run-full-release.md) - updated (+22/-12)
+
+</details>
+
 # [11.51.0](https://github.com/terrylica/cc-skills/compare/v11.50.0...v11.51.0) (2026-02-19)
 
 
