@@ -23,7 +23,7 @@ set -euo pipefail
 
 # Read JSON input from Claude Code
 INPUT=$(cat)
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""')
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || exit 0
 
 # Emit warning in Claude-visible format with FIX GUIDANCE
 # Per ADR 2025-12-17: "decision: block" is required for Claude to see PostToolUse output
