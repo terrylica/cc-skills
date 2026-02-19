@@ -1,4 +1,5 @@
 ---
+name: analyze
 description: Semantic analysis of converted recordings. TRIGGERS - analyze cast, keyword extraction, find patterns.
 allowed-tools: Bash, Grep, AskUserQuestion, Read
 argument-hint: "[file] [-d domains] [-t type] [--json] [--md] [--density] [--jump]"

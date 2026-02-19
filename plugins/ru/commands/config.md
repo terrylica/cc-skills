@@ -1,4 +1,5 @@
 ---
+name: config
 description: View or modify loop configuration
 allowed-tools: Bash
 argument-hint: "[show|reset|set <key>=<value>]"

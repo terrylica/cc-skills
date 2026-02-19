@@ -199,14 +199,18 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 
 ## Plugins with Hooks
 
-| Plugin             | Hook Types                    | Purpose                             |
-| ------------------ | ----------------------------- | ----------------------------------- |
-| `itp-hooks`        | PreToolUse, PostToolUse, Stop | Workflow + SR&ED + GPU optimization |
-| `ru`               | PreToolUse, Stop              | Autonomous loop control             |
-| `gh-tools`         | PreToolUse                    | GitHub CLI enforcement              |
-| `dotfiles-tools`   | PostToolUse, Stop             | Chezmoi sync reminder               |
-| `statusline-tools` | Stop                          | Session metrics                     |
-| `link-tools`       | Stop                          | Link validation                     |
+| Plugin               | Hook Types                    | Purpose                             |
+| -------------------- | ----------------------------- | ----------------------------------- |
+| `itp-hooks`          | PreToolUse, PostToolUse, Stop | Workflow + SR&ED + GPU optimization |
+| `ru`                 | PreToolUse, Stop              | Autonomous loop control             |
+| `gh-tools`           | PreToolUse, PostToolUse       | GitHub CLI enforcement              |
+| `dotfiles-tools`     | PostToolUse, Stop             | Chezmoi sync reminder               |
+| `statusline-tools`   | Stop                          | Session metrics                     |
+| `link-tools`         | Stop                          | Link validation                     |
+| `productivity-tools` | PreToolUse                    | Calendar event management           |
+| `gmail-commander`    | Stop                          | Bot lifecycle management            |
+| `calcom-commander`   | Stop                          | Bot lifecycle management            |
+| `tts-telegram-sync`  | Stop                          | TTS/bot process cleanup             |
 
 ## Related ADRs
 

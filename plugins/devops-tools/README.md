@@ -1,7 +1,7 @@
 # devops-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-16-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-17-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, MLflow queries, notifications, and session recovery.
@@ -29,6 +29,7 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **disk-hygiene**                  | macOS disk cleanup, cache pruning, stale file detection, Downloads triage  |
 | **project-directory-migration**   | Migrate Claude Code sessions when renaming project directories             |
 | **cloudflare-workers-publish**    | Deploy static HTML to Cloudflare Workers with 1Password credentials        |
+| **pueue-job-orchestration**       | Pueue job lifecycle orchestration for long-running tasks                   |
 | **distributed-job-safety**        | Concurrency safety patterns for pueue + mise + systemd-run job pipelines   |
 
 ## Installation
@@ -59,6 +60,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "disk space", "cleanup", "stale files", "cache clean", "forgotten files" -> disk-hygiene
 - "rename directory", "move project", "migrate sessions", "project path change" -> project-directory-migration
 - "cloudflare deploy", "publish static", "wrangler deploy", "workers.dev", "HTML hosting" -> cloudflare-workers-publish
+- "pueue jobs", "pueue status", "pueue orchestration", "job queue" -> pueue-job-orchestration
 - "concurrent jobs", "checkpoint race", "cgroup memory", "systemd-run", "autoscale" -> distributed-job-safety
 
 ## Key Features

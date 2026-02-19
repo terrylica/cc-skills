@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **22 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **25 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -63,14 +63,14 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 ```
 cc-skills/
 ├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT)
-├── plugins/                         ← 22 marketplace plugins
+├── plugins/                         ← 25 marketplace plugins
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
 │   ├── ru/                          ← RU autonomous loop mode
 │   ├── mise/                        ← User-global mise workflow commands
 │   ├── gmail-commander/             ← Gmail bot + CLI (1Password OAuth)
 │   ├── gdrive-tools/                ← Google Drive API (1Password OAuth)
-│   └── ...                          ← 16 more plugins
+│   └── ...                          ← 19 more plugins
 ├── docs/
 │   ├── adr/                         ← Architecture Decision Records
 │   ├── design/                      ← Implementation specs (1:1 with ADRs)

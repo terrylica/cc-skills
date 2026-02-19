@@ -267,12 +267,12 @@ In addition to the three-layer freshness detection, a `--remove` flag was implem
 
 **Removal Capabilities**:
 
-| Command                              | Behavior                                          |
-| ------------------------------------ | ------------------------------------------------- |
-| `/ralph:encourage --remove`          | Interactive AUQ picker with multiSelect           |
-| `/ralph:encourage --remove <phrase>` | Fuzzy substring match (case-insensitive)          |
-| `/ralph:encourage --remove-by-index` | Internal: removes by comma-separated indices      |
-| `/ralph:forbid --remove`             | Same as encourage (for forbidden list)            |
+| Command                              | Behavior                                     |
+| ------------------------------------ | -------------------------------------------- |
+| `/ralph:encourage --remove`          | Interactive AUQ picker with multiSelect      |
+| `/ralph:encourage --remove <phrase>` | Fuzzy substring match (case-insensitive)     |
+| `/ralph:encourage --remove-by-index` | Internal: removes by comma-separated indices |
+| `/ralph:forbid --remove`             | Same as encourage (for forbidden list)       |
 
 **Why --remove instead of --replace**:
 
@@ -283,8 +283,8 @@ In addition to the three-layer freshness detection, a `--remove` flag was implem
 
 **Command Documentation**:
 
-- [/ralph:encourage](/plugins/ralph/commands/encourage.md) - Lines 19-20, 70-145, 189-211
-- [/ralph:forbid](/plugins/ralph/commands/forbid.md) - Lines 19-20, 70-145, 191-213
+- [/ru:encourage](/plugins/ru/commands/encourage.md) - Lines 19-20, 70-145, 189-211
+- [/ru:forbid](/plugins/ru/commands/forbid.md) - Lines 19-20, 70-145, 191-213
 
 ## References
 
