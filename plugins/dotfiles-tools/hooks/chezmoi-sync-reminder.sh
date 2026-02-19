@@ -14,7 +14,7 @@ set -euo pipefail
 PAYLOAD=$(cat)
 
 # Extract file path from tool input
-FILE_PATH=$(echo "$PAYLOAD" | jq -r '.tool_input.file_path // empty')
+FILE_PATH=$(echo "$PAYLOAD" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
 
 # Exit silently if no file path (shouldn't happen for Edit/Write)
 [[ -z "$FILE_PATH" ]] && exit 0

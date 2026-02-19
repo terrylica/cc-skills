@@ -14,8 +14,8 @@ set -euo pipefail
 INPUT=$(cat)
 
 # Parse tool info
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""')
-URL=$(echo "$INPUT" | jq -r '.tool_input.url // ""')
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || exit 0
+URL=$(echo "$INPUT" | jq -r '.tool_input.url // ""' 2>/dev/null) || exit 0
 
 # Only intercept WebFetch tool
 if [[ "$TOOL_NAME" != "WebFetch" ]]; then
