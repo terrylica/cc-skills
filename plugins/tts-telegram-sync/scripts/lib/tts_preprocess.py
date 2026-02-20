@@ -168,7 +168,29 @@ def _reflow_block(lines: list[str]) -> str:
     return result
 
 
-def preprocess(text: str) -> str:
+def _split_sentences(text: str) -> str:
+    """
+    Optional: split reflowed paragraphs into one-sentence-per-line using pySBD.
+    pySBD handles abbreviations (Dr., p. 5, etc.) that fool naive regex.
+    Falls back gracefully if pySBD is not installed.
+    """
+    try:
+        import pysbd  # type: ignore[import]
+        seg = pysbd.Segmenter(language='en', clean=False)
+        paragraphs = text.split('\n\n')
+        result_paragraphs = []
+        for para in paragraphs:
+            if para.strip():
+                sentences = seg.segment(para)
+                result_paragraphs.append(' '.join(s.strip() for s in sentences))
+            else:
+                result_paragraphs.append('')
+        return '\n\n'.join(result_paragraphs)
+    except ImportError:
+        return text
+
+
+def preprocess(text: str, split_sentences: bool = False) -> str:
     """Full TTS preprocessing pipeline."""
     # 1. Apply symbol / markdown substitutions
     text = _apply_substitutions(text)
@@ -191,20 +213,27 @@ def preprocess(text: str) -> str:
     result = re.sub(r'\n{3,}', '\n\n', result)
     result = re.sub(r'[ \t]+\n', '\n', result)
 
+    # 5. Optional: sentence splitting (pySBD) for more natural TTS pacing
+    if split_sentences:
+        result = _split_sentences(result)
+
     return result.strip()
 
 
 def main() -> None:
-    if len(sys.argv) > 1:
-        # Inline text passed as argument (from shell: --text "...")
-        text = ' '.join(sys.argv[1:])
+    split = '--split-sentences' in sys.argv
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+
+    if args:
+        # Inline text passed as argument
+        text = ' '.join(args)
     elif not sys.stdin.isatty():
         text = sys.stdin.read()
     else:
         print(__doc__)
         sys.exit(0)
 
-    print(preprocess(text), end='')
+    print(preprocess(text, split_sentences=split), end='')
 
 
 if __name__ == '__main__':
