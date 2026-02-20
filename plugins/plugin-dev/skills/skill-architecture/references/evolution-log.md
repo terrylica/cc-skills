@@ -53,7 +53,7 @@ A single mature plugin demonstrated patterns that individual simple skills never
 
 Path-patterns.md only covered markdown-specific patterns. Scripts had transgressions:
 
-- `/Users/terryli/.claude/skills` (user-specific path)
+- `/Users/<username>/.claude/skills` (user-specific path)
 - `/tmp/jscpd-report` (hardcoded temp directory)
 - `~/.local/bin/graph-easy` (hardcoded binary location)
 

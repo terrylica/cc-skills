@@ -1,6 +1,6 @@
 ---
 name: health
-description: Gmail Commander health check across all subsystems.
+description: "Gmail Commander health check across all subsystems. TRIGGERS - gmail health, email bot status, gmail diagnostics, gmail bot check."
 model: haiku
 ---
 

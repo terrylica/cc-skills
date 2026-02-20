@@ -297,7 +297,7 @@ The PostToolUse Vale hook is **cwd-agnostic** and works from any directory:
 | PreToolUse  | BEFORE tool runs | YES         | Block bad edits                  |
 | PostToolUse | AFTER tool runs  | NO          | Inform about issues (visibility) |
 
-The PreToolUse hook uses `permissionDecision: "ask"` by default (shows dialog). Change MODE to `"deny"` for hard rejection.
+The PreToolUse hook uses `permissionDecision: "deny"` (hard rejection). Change MODE to `"ask"` for a permission dialog instead.
 
 > **Note**: glossary-sync runs before terminology-sync to ensure Vale vocabulary is current before terminology validation.
 
@@ -423,7 +423,7 @@ vim ~/.claude/automation/my-tool/swift-cli/MyTool.swift
 swiftc -O -framework EventKit -o my-tool MyTool.swift
 
 # 3. Reference binary directly in plist (NOT /bin/bash)
-# <string>/Users/terryli/.claude/automation/my-tool/swift-cli/my-tool</string>
+# <string>$HOME/.claude/automation/my-tool/swift-cli/my-tool</string>
 ```
 
 ### Escape Hatch

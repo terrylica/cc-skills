@@ -1,6 +1,6 @@
 ---
 name: config
-description: View or modify loop configuration
+description: "View or modify loop configuration. TRIGGERS - ru config, loop settings, show config, ru configuration."
 allowed-tools: Bash
 argument-hint: "[show|reset|set <key>=<value>]"
 model: haiku

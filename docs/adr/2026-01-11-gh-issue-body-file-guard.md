@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2026-01-11
+---
+
 # ADR: gh issue create --body-file Requirement
 
 ## Status
@@ -16,6 +21,7 @@ EOF
 ```
 
 The command often fails silently:
+
 - Issue URL is returned (appears successful)
 - Issue does not actually exist in the repository
 - No error message displayed

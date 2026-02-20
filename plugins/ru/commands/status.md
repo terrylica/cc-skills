@@ -1,6 +1,6 @@
 ---
 name: status
-description: Show current loop state
+description: "Show current loop state. TRIGGERS - ru status, loop status, autonomous status, check ru state."
 allowed-tools: Bash
 argument-hint: ""
 model: haiku

@@ -1,6 +1,7 @@
 ---
 name: calendar-event-manager
 description: Create macOS Calendar events with sound alarms and paired Reminders. TRIGGERS - add event, calendar event, create reminder, birthday party, schedule event, RSVP, don't miss, set reminder
+allowed-tools: Bash, Read, AskUserQuestion
 ---
 
 # Calendar Event Manager

@@ -20,7 +20,7 @@ pgrep -c -f 'bun.*src/main.ts'
 Expected output when running:
 
 ```
-12345 /Users/terryli/.local/share/mise/installs/bun/latest/bin/bun --watch run src/main.ts
+12345 $HOME/.local/share/mise/installs/bun/latest/bin/bun --watch run src/main.ts
 ```
 
 Expected output when stopped: no output, exit code 1.

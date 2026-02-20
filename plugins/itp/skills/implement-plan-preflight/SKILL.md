@@ -1,6 +1,7 @@
 ---
 name: implement-plan-preflight
 description: Execute Preflight phase for /itp:go workflow. TRIGGERS - ADR creation, design spec, MADR format, preflight verification.
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
 # Implement Plan Preflight

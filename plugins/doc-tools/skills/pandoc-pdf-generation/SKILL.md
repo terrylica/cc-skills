@@ -1,6 +1,7 @@
 ---
 name: pandoc-pdf-generation
 description: PDF generation from markdown via Pandoc/XeLaTeX. TRIGGERS - markdown for PDF, print document, pandoc, xelatex, section numbering, table of contents, page breaks.
+allowed-tools: Bash, Read, Write
 ---
 
 # Pandoc PDF Generation

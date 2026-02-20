@@ -1,6 +1,6 @@
 ---
 name: hooks
-description: "Install/uninstall chezmoi hooks to ~/.claude/settings.json"
+description: "Install/uninstall chezmoi hooks to ~/.claude/settings.json. TRIGGERS - dotfiles hooks, chezmoi hooks, install chezmoi hook, dotfiles sync hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
 model: haiku

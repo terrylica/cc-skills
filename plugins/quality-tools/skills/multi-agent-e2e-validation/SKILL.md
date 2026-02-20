@@ -1,6 +1,7 @@
 ---
 name: multi-agent-e2e-validation
 description: Multi-agent parallel E2E validation for database refactors. TRIGGERS - E2E validation, schema migration testing, database refactor validation.
+allowed-tools: Bash, Read, Write, Glob, Grep
 ---
 
 # Multi-Agent E2E Validation

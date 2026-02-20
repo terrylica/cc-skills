@@ -1,6 +1,7 @@
 ---
 name: glossary-management
 description: Manage terminology glossary with Vale. TRIGGERS - sync terms, glossary validation, add terms, Vale vocabulary.
+allowed-tools: Bash, Read, Edit, Grep
 ---
 
 # Glossary Management

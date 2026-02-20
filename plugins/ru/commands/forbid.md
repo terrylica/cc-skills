@@ -1,6 +1,6 @@
 ---
 name: forbid
-description: Add item to forbidden list (blocks work on matching topics)
+description: "Add item to forbidden list (blocks work on matching topics). TRIGGERS - ru forbid, block topic, add forbidden, prevent work."
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "<phrase> | --list | --clear | --remove"
 model: haiku

@@ -53,7 +53,7 @@ brew install earthly
 ### Generation only (no secrets)
 
 ```bash
-cd /Users/terryli/eon/gapless-network-data
+cd ~/eon/gapless-network-data
 colima start  # If not already running
 earthly +test-schema-generate
 ```
@@ -61,7 +61,7 @@ earthly +test-schema-generate
 ### Full E2E with validation (requires Doppler)
 
 ```bash
-cd /Users/terryli/eon/gapless-network-data
+cd ~/eon/gapless-network-data
 colima start  # If not already running
 ./scripts/earthly-with-doppler.sh +test-schema-e2e
 ```
@@ -69,7 +69,7 @@ colima start  # If not already running
 ### All non-secret targets
 
 ```bash
-cd /Users/terryli/eon/gapless-network-data
+cd ~/eon/gapless-network-data
 earthly +all
 ```
 
@@ -201,12 +201,12 @@ The wrapper script `scripts/earthly-with-doppler.sh`:
 
 ## Related Files
 
-| File                                                                                | Purpose                  |
-| ----------------------------------------------------------------------------------- | ------------------------ |
-| `/Users/terryli/eon/gapless-network-data/Earthfile`                                 | Main build file          |
-| `/Users/terryli/eon/gapless-network-data/scripts/earthly-with-doppler.sh`           | Secret injection wrapper |
-| `/Users/terryli/eon/gapless-network-data/schema/clickhouse/ethereum_mainnet.yaml`   | SSoT schema              |
-| `/Users/terryli/eon/gapless-network-data/docs/adr/2025-12-03-earthly-schema-e2e.md` | ADR                      |
+| File                                                                   | Purpose                  |
+| ---------------------------------------------------------------------- | ------------------------ |
+| `~/eon/gapless-network-data/Earthfile`                                 | Main build file          |
+| `~/eon/gapless-network-data/scripts/earthly-with-doppler.sh`           | Secret injection wrapper |
+| `~/eon/gapless-network-data/schema/clickhouse/ethereum_mainnet.yaml`   | SSoT schema              |
+| `~/eon/gapless-network-data/docs/adr/2025-12-03-earthly-schema-e2e.md` | ADR                      |
 
 ---
 

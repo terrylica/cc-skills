@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2026-01-03
+---
+
 # ADR: gh-tools WebFetch Enforcement Hook
 
 **Status**: Accepted
@@ -9,10 +14,10 @@
 
 When Claude Code needs to access GitHub resources (issues, PRs, repository data), it defaults to using `WebFetch` for github.com URLs. This produces inferior results compared to the `gh` CLI:
 
-| Method | Raw API Access | Authentication | Rich Data | Pagination |
-|--------|----------------|----------------|-----------|------------|
-| WebFetch | HTML scraping | None | Limited | No |
-| gh CLI | Native API | gh auth token | Full JSON | Automatic |
+| Method   | Raw API Access | Authentication | Rich Data | Pagination |
+| -------- | -------------- | -------------- | --------- | ---------- |
+| WebFetch | HTML scraping  | None           | Limited   | No         |
+| gh CLI   | Native API     | gh auth token  | Full JSON | Automatic  |
 
 Users lose context and functionality when WebFetch is used for GitHub operations instead of gh CLI.
 
@@ -26,16 +31,19 @@ Users lose context and functionality when WebFetch is used for GitHub operations
 ## Considered Options
 
 ### Option 1: CLAUDE.md Guidance Only
+
 - Add policy section to ~/.claude/CLAUDE.md instructing gh CLI preference
 - Pros: Zero configuration, immediate effect
 - Cons: Soft guidance, may be ignored under context pressure
 
 ### Option 2: Separate gh-workflow-enforcer Plugin
+
 - Create new plugin dedicated to GitHub workflow enforcement
 - Pros: Clean separation
 - Cons: Unnecessary fragmentation, gh-tools already exists for GitHub workflows
 
 ### Option 3: Add Hook to gh-tools Plugin ✓
+
 - Extend gh-tools with PreToolUse hook for WebFetch detection
 - Pros: Semantic cohesion, single install for GitHub workflow automation
 - Cons: Changes skill-only plugin to skills+hooks hybrid
@@ -82,11 +90,11 @@ graph { label: "PreToolUse WebFetch Guard"; flow: east; }
 
 ### Files Created
 
-| File | Purpose |
-|------|---------|
-| `plugins/gh-tools/hooks/hooks.json` | Hook configuration |
-| `plugins/gh-tools/hooks/webfetch-github-guard.sh` | Detection script |
-| `plugins/gh-tools/skills/hooks/SKILL.md` | `/gh-tools:hooks` installer |
+| File                                              | Purpose                     |
+| ------------------------------------------------- | --------------------------- |
+| `plugins/gh-tools/hooks/hooks.json`               | Hook configuration          |
+| `plugins/gh-tools/hooks/webfetch-github-guard.sh` | Detection script            |
+| `plugins/gh-tools/skills/hooks/SKILL.md`          | `/gh-tools:hooks` installer |
 
 ### Hook Behavior
 
@@ -104,12 +112,12 @@ Added to `~/.claude/CLAUDE.md`:
 
 **Use gh CLI for all GitHub operations** - WebFetch for github.com URLs is blocked.
 
-| Operation | Command |
-|-----------|---------|
-| View issue | `gh issue view <num>` |
-| List issues | `gh issue list --state open` |
-| View PR | `gh pr view <num>` |
-| API access | `gh api repos/{owner}/{repo}/...` |
+| Operation   | Command                           |
+| ----------- | --------------------------------- |
+| View issue  | `gh issue view <num>`             |
+| List issues | `gh issue list --state open`      |
+| View PR     | `gh pr view <num>`                |
+| API access  | `gh api repos/{owner}/{repo}/...` |
 ```
 
 ## Consequences

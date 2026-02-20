@@ -1,6 +1,7 @@
 ---
 name: documentation-standards
 description: Markdown documentation standards for LLM and Pandoc PDF. TRIGGERS - markdown standards, section numbering, documentation style.
+allowed-tools: Read, Glob, Grep
 ---
 
 # Documentation Standards

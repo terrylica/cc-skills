@@ -1,6 +1,7 @@
 ---
 name: ml-failfast-validation
 description: POC validation patterns to catch issues before committing to long-running ML experiments. TRIGGERS - fail-fast, POC validation, preflight check, experiment validation, schema validation, gradient check, sanity check, smoke test.
+allowed-tools: Read, Grep, Glob
 ---
 
 # ML Fail-Fast Validation

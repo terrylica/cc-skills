@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2025-12-26
+---
+
 # asciinema-tools Daemon Architecture
 
 ## Status
@@ -194,14 +199,14 @@ ssh -O exit -p 443 git@ssh.github.com 2>/dev/null || true
 
 ### Silent Failure Fixes (v9.4.2)
 
-| File | Fix | Evidence |
-|------|-----|----------|
-| `idle-chunker-daemon.sh` | SC2012: `find` instead of `ls` | `shellcheck --format=gcc` passes |
-| `idle-chunker-daemon.sh` | SC2155: separate declare/assign | Line 222-223: `local chunk_name; chunk_name=...` |
-| `idle-chunker-daemon.sh` | git add errors logged | Line 242-244: `if ! git add ... | tee -a "$LOG_FILE"` |
-| `idle-chunker.sh` | zstd errors to stderr | Line 78-80: `if ! zstd ... 2>&1; then echo ERROR >&2` |
-| `idle-chunker.sh` | git push errors captured | Line 87-94: `push_output=$(git push 2>&1)` with exit code |
-| `validate_secret.py` | stderr emission | `print(..., file=sys.stderr)` in exception handlers |
+| File                     | Fix                             | Evidence                                                  |
+| ------------------------ | ------------------------------- | --------------------------------------------------------- | ------------------- |
+| `idle-chunker-daemon.sh` | SC2012: `find` instead of `ls`  | `shellcheck --format=gcc` passes                          |
+| `idle-chunker-daemon.sh` | SC2155: separate declare/assign | Line 222-223: `local chunk_name; chunk_name=...`          |
+| `idle-chunker-daemon.sh` | git add errors logged           | Line 242-244: `if ! git add ...                           | tee -a "$LOG_FILE"` |
+| `idle-chunker.sh`        | zstd errors to stderr           | Line 78-80: `if ! zstd ... 2>&1; then echo ERROR >&2`     |
+| `idle-chunker.sh`        | git push errors captured        | Line 87-94: `push_output=$(git push 2>&1)` with exit code |
+| `validate_secret.py`     | stderr emission                 | `print(..., file=sys.stderr)` in exception handlers       |
 
 ### Security
 

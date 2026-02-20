@@ -1,6 +1,6 @@
 ---
 name: wizard
-description: Interactive guidance setup with AskUserQuestion flow
+description: "Interactive guidance setup with AskUserQuestion flow. TRIGGERS - ru wizard, configure guidance, setup encourage forbid, ru interactive setup."
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "[--clear]"
 ---

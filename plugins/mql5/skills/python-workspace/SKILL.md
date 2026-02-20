@@ -1,6 +1,7 @@
 ---
 name: python-workspace
 description: Python workspace for MQL5 integration. TRIGGERS - MetaTrader 5 Python, mt5 package, MQL5-Python setup.
+allowed-tools: Bash, Read, Write
 ---
 
 # MQL5-Python Translation Workspace Skill
@@ -32,7 +33,7 @@ Use this skill when the user wants to:
 1. **Self-correction** (documented failures prevent future mistakes)
 1. **Clear boundaries** (what works vs what doesn't, with alternatives)
 
-**Project Root**: `/Users/terryli/Library/Application Support/CrossOver/Bottles/MetaTrader 5/drive_c`
+**Project Root**: `~/Library/Application Support/CrossOver/Bottles/MetaTrader 5/drive_c`
 
 ---
 

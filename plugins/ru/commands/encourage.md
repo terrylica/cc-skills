@@ -1,6 +1,6 @@
 ---
 name: encourage
-description: Add item to encouraged list (prioritizes work on matching topics)
+description: "Add item to encouraged list (prioritizes work on matching topics). TRIGGERS - ru encourage, add encouraged, prioritize topic, encourage work."
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "<phrase> | --list | --clear | --remove"
 model: haiku

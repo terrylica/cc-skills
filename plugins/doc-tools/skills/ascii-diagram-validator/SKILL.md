@@ -1,6 +1,7 @@
 ---
 name: ascii-diagram-validator
 description: Validate ASCII diagram alignment in markdown. TRIGGERS - diagram alignment, ASCII art, box-drawing diagrams.
+allowed-tools: Bash, Read, Glob
 ---
 
 # ASCII Diagram Validator

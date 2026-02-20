@@ -1,6 +1,6 @@
 ---
 name: start
-description: Enable autonomous loop mode for any project
+description: "Enable autonomous loop mode for any project. TRIGGERS - ru start, start autonomous, enable loop mode, begin autonomous work."
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "[--poc | --production | --quick]"
 ---

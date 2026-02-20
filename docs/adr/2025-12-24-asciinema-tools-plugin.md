@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2025-12-24
+---
+
 # asciinema-tools Plugin Architecture
 
 ## Status

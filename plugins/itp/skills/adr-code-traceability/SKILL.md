@@ -1,6 +1,7 @@
 ---
 name: adr-code-traceability
 description: Add ADR references to code for traceability. TRIGGERS - ADR traceability, code reference, document decision in code.
+allowed-tools: Read, Edit, Grep, Glob
 ---
 
 # ADR Code Traceability

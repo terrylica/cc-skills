@@ -1,6 +1,7 @@
 ---
 name: pypi-doppler
 description: LOCAL-ONLY PyPI publishing with Doppler credentials. TRIGGERS - publish to PyPI, pypi upload, local publish. NEVER use in CI/CD.
+allowed-tools: Bash, Read
 ---
 
 # PyPI Publishing with Doppler (Local-Only)

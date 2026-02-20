@@ -1,6 +1,7 @@
 ---
 name: session-info
 description: Get current Claude Code session UUID and registry info. TRIGGERS - current session, session uuid, session id, what session, which session.
+allowed-tools: Bash, Read
 ---
 
 # Session Info Skill
@@ -60,7 +61,7 @@ The session registry follows Claude Code's native path encoding:
 
 Where `encoded-path` replaces `/` with `-`:
 
-- `/Users/terryli/eon/cc-skills` → `-Users-terryli-eon-cc-skills`
+- `/Users/username/eon/cc-skills` → `-Users-username-eon-cc-skills`
 
 ## References
 

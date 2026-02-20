@@ -1,6 +1,7 @@
 ---
 name: hooks-development
 description: Claude Code hooks development guide. TRIGGERS - create hook, PostToolUse, PreToolUse, Stop hook, hook lifecycle, decision block.
+allowed-tools: Read, Bash, Write, Edit, Glob, Grep
 ---
 
 # Hooks Development

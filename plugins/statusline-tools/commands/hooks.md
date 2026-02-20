@@ -1,6 +1,6 @@
 ---
 name: hooks
-description: "Install/uninstall statusline-tools Stop hook to ~/.claude/settings.json"
+description: "Install/uninstall statusline-tools Stop hook to ~/.claude/settings.json. TRIGGERS - statusline hooks, install statusline hook, statusline stop hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku

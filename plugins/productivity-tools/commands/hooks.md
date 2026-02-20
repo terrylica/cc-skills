@@ -1,6 +1,6 @@
 ---
 name: hooks
-description: "Install/uninstall productivity-tools hooks to ~/.claude/settings.json"
+description: "Install/uninstall productivity-tools hooks to ~/.claude/settings.json. TRIGGERS - productivity hooks, install productivity hook, calendar alarm hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"
 model: haiku

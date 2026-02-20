@@ -1,6 +1,7 @@
 ---
 name: link-validation
 description: Universal link validation using lychee for Claude Code sessions. Runs at session end to detect broken links and path policy violations.
+allowed-tools: Bash, Read, Glob
 triggers:
   - link validation
   - broken links

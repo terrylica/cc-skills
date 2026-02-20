@@ -46,7 +46,7 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
     <string>com.terryli.gmail-commander-bot</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/terryli/own/amonic/bin/gmail-commander-bot</string>
+        <string>{{HOME}}/own/amonic/bin/gmail-commander-bot</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -56,13 +56,13 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
         <true/>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/terryli/own/amonic/logs/bot-stdout.log</string>
+    <string>{{HOME}}/own/amonic/logs/bot-stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/terryli/own/amonic/logs/bot-stderr.log</string>
+    <string>{{HOME}}/own/amonic/logs/bot-stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/Users/terryli/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
+        <string>{{HOME}}/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
     <key>ThrottleInterval</key>
     <integer>10</integer>
@@ -81,18 +81,18 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
     <string>com.terryli.gmail-commander-digest</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/terryli/own/amonic/bin/gmail-commander-digest</string>
+        <string>{{HOME}}/own/amonic/bin/gmail-commander-digest</string>
     </array>
     <key>StartInterval</key>
     <integer>21600</integer>
     <key>StandardOutPath</key>
-    <string>/Users/terryli/own/amonic/logs/digest-stdout.log</string>
+    <string>{{HOME}}/own/amonic/logs/digest-stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/terryli/own/amonic/logs/digest-stderr.log</string>
+    <string>{{HOME}}/own/amonic/logs/digest-stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/Users/terryli/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
+        <string>{{HOME}}/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
 </dict>
 </plist>

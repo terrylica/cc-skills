@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2025-12-22
+---
+
 # ADR: Ralph Dual Time Tracking (Runtime + Wall-Clock)
 
 **Date**: 2025-12-22

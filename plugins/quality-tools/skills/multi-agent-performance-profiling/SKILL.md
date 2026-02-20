@@ -1,6 +1,7 @@
 ---
 name: multi-agent-performance-profiling
 description: Multi-agent performance profiling for pipeline bottlenecks. TRIGGERS - performance profiling, bottleneck analysis, pipeline optimization.
+allowed-tools: Bash, Read, Write, Glob, Grep
 ---
 
 # Multi-Agent Performance Profiling

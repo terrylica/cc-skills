@@ -1,6 +1,7 @@
 ---
 name: firecrawl-self-hosted
 description: Self-hosted Firecrawl deployment, troubleshooting, and best practices. TRIGGERS - firecrawl, self-hosted scraping, web scrape, scraper wrapper, littleblack, ZeroTier scraping.
+allowed-tools: Bash, Read
 ---
 
 # Firecrawl Self-Hosted Operations

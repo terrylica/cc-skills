@@ -1449,7 +1449,7 @@ All files must be in the same directory (`tmp/`):
 ### Build Command
 
 ```bash
-cd /Users/terryli/eon/alpha-forge/tmp
+cd ~/eon/alpha-forge/tmp
 
 pandoc claude-code-hooks-lifecycle.md \
   -o claude-code-hooks-lifecycle.pdf \

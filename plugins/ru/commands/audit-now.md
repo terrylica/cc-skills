@@ -1,6 +1,6 @@
 ---
 name: audit-now
-description: Force immediate validation round
+description: "Force immediate validation round. TRIGGERS - ru audit, force validation, audit now, run audit."
 allowed-tools: Bash
 argument-hint: "[round-number 1-5]"
 model: haiku

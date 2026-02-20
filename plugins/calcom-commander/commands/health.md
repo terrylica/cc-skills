@@ -1,6 +1,6 @@
 ---
 name: health
-description: Cal.com Commander health check across all subsystems.
+description: "Cal.com Commander health check across all subsystems. TRIGGERS - calcom health, calendar bot status, cal.com diagnostics, booking bot check."
 model: haiku
 ---
 
