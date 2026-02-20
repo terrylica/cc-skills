@@ -1,6 +1,6 @@
 ---
 name: hooks
-description: "Install/uninstall gh-tools hooks to ~/.claude/settings.json"
+description: "Install/uninstall gh-tools hooks to ~/.claude/settings.json. TRIGGERS - gh hooks, github hooks, install gh hook, webfetch guard hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"
 model: haiku

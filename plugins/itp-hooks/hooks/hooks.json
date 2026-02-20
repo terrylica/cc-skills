@@ -113,6 +113,16 @@
         ]
       },
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-vale-claude-md-guard.ts",
+            "timeout": 10000
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

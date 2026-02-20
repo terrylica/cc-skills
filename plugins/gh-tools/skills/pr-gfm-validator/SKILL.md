@@ -1,6 +1,7 @@
 ---
 name: pr-gfm-validator
 description: Validate and fix GFM links in PR descriptions. TRIGGERS - PR links, gh pr create, GFM validation, broken PR links.
+allowed-tools: Bash, Read, Grep
 ---
 
 # PR GFM Link Validator

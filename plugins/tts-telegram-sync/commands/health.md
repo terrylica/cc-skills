@@ -1,6 +1,6 @@
 ---
 name: health
-description: "Health check for TTS and Telegram bot subsystems"
+description: "Health check for TTS and Telegram bot subsystems. TRIGGERS - tts health, kokoro status, telegram bot check, tts diagnostics."
 allowed-tools: Read, Bash, Glob
 model: haiku
 ---

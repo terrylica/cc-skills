@@ -1,6 +1,7 @@
 ---
 name: impl-standards
 description: Core engineering standards for implementation. TRIGGERS - error handling, constants management, progress logging, code quality.
+allowed-tools: Read, Grep, Glob
 ---
 
 # Implementation Standards
