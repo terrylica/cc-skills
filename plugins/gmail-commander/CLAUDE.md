@@ -1,6 +1,8 @@
 # Gmail Commander Plugin
 
-Gmail + Telegram bot lifecycle — email triage, interactive commands, voice digest, Agent SDK routing, 1Password OAuth.
+Gmail + Telegram bot lifecycle — email triage, interactive commands, voice digest, 1Password OAuth.
+
+**Skill**: [bot-process-control](./skills/bot-process-control/SKILL.md) — start/stop/restart/status/logs, launchd plist management, OAuth token diagnosis.
 
 ## Architecture
 
@@ -13,6 +15,57 @@ Two independent processes sharing `scripts/lib/`:
 
 Gmail CLI (absorbed from gmail-tools): `scripts/gmail-cli/` — separate `package.json` + build process.
 
+## Bot Commands (10 total)
+
+| Command    | Description                                  |
+| ---------- | -------------------------------------------- |
+| `/inbox`   | Show recent inbox emails                     |
+| `/search`  | Search emails (Gmail query syntax)           |
+| `/read`    | Read email by ID                             |
+| `/compose` | Compose a new email                          |
+| `/reply`   | Reply to an email                            |
+| `/abort`   | Cancel in-progress compose/reply at any step |
+| `/drafts`  | List draft emails                            |
+| `/digest`  | Run email digest now                         |
+| `/status`  | Bot status and stats                         |
+| `/help`    | Show all commands                            |
+
+## OAuth Token Architecture
+
+Two-layer token system:
+
+```
+Browser Auth (one-time, interactive)
+  → Google issues: access_token (1h TTL) + refresh_token (7d TTL in Testing mode)
+  → Saved to: ~/.claude/tools/gmail-tokens/<GMAIL_OP_UUID>.json
+
+Hourly Refresher (automatic, launchd, no browser)
+  → Swift binary: gmail-oauth-token-hourly-refresher
+  → Reads: refresh_token from token JSON + client credentials from local cache
+  → Writes: new access_token (+ expiry_date) back to token JSON
+```
+
+### Credential Cache (TCC Anti-Pattern Fix)
+
+The hourly refresher uses a **two-file** strategy to avoid macOS TCC prompts:
+
+| File                          | Contents                                 | Changes?                       |
+| ----------------------------- | ---------------------------------------- | ------------------------------ |
+| `<uuid>.json`                 | access_token, refresh_token, expiry_date | Every hour                     |
+| `<uuid>.app-credentials.json` | client_id, client_secret                 | Never (static OAuth app creds) |
+
+`client_id`/`client_secret` are fetched from 1Password **once** on first run and cached locally. All subsequent hourly runs read only local files → no `op` subprocess → no TCC prompt.
+
+To force a fresh 1Password lookup (e.g., after rotating OAuth app credentials):
+
+```bash
+rm ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
+```
+
+### Diagnosing `invalid_grant`
+
+The refresh_token has a 7-day TTL in Google OAuth Testing mode. When it expires, the bot logs `invalid_grant`. Fix: delete the token file and re-auth via browser. See [bot-process-control SKILL.md](./skills/bot-process-control/SKILL.md#diagnosing-invalid_grant) for full diagnosis and fix steps.
+
 ## Environment Variables
 
 | Variable                   | Required | Description                                                |
@@ -24,7 +77,7 @@ Gmail CLI (absorbed from gmail-tools): `scripts/gmail-cli/` — separate `packag
 | `OP_SERVICE_ACCOUNT_TOKEN` | Yes      | 1Password service account (biometric-free)                 |
 | `AUDIT_DIR`                | No       | Audit log directory (default: `~/own/amonic/logs/audit`)   |
 | `BOT_STATE_FILE`           | No       | Bot state file path                                        |
-| `GMAIL_OP_VAULT`           | No       | 1Password vault (default: Employee)                        |
+| `GMAIL_OP_VAULT`           | No       | 1Password vault (default: `Claude Automation`)             |
 
 ## Conventions
 

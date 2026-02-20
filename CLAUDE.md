@@ -7,33 +7,37 @@ Claude Code skills marketplace: **25 plugins** with skills for ADR-driven develo
 ## Documentation Hierarchy
 
 ```
-CLAUDE.md (this file)           ◄── Hub: Navigation + Essentials
+CLAUDE.md (this file)                  ◄── Hub: Navigation + Essentials
     │
-    ├── plugins/CLAUDE.md       ◄── Spoke: Plugin development
-    │       ├── itp-hooks/CLAUDE.md  ◄── Deep: Hook reference
-    │       └── gh-tools/CLAUDE.md   ◄── Deep: GitHub CLI enforcement
+    ├── plugins/CLAUDE.md              ◄── Spoke: Plugin development (all 25 plugins listed)
+    │       ├── itp-hooks/CLAUDE.md    ◄── Deep: Hook reference (hooks, SR&ED, TCC patterns)
+    │       ├── gh-tools/CLAUDE.md     ◄── Deep: GitHub CLI enforcement
+    │       ├── gmail-commander/CLAUDE.md  ◄── Deep: Gmail bot + OAuth token lifecycle
+    │       └── tts-telegram-sync/CLAUDE.md ◄── Deep: TTS + Telegram bot runtime
     │
-    └── docs/CLAUDE.md          ◄── Spoke: Documentation standards
-            ├── HOOKS.md             ◄── Hook development patterns
-            ├── RELEASE.md           ◄── Release workflow
-            └── PLUGIN-LIFECYCLE.md  ◄── Plugin internals
+    └── docs/CLAUDE.md                 ◄── Spoke: Documentation standards
+            ├── HOOKS.md               ◄── Hook development patterns
+            ├── RELEASE.md             ◄── Release workflow
+            └── PLUGIN-LIFECYCLE.md    ◄── Plugin internals
 ```
 
 ## Navigation
 
-| Topic            | Document                                                   |
-| ---------------- | ---------------------------------------------------------- |
-| Installation     | [README.md](./README.md)                                   |
-| Plugin Dev       | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                   |
-| Documentation    | [docs/CLAUDE.md](./docs/CLAUDE.md)                         |
-| Hooks Dev        | [docs/HOOKS.md](./docs/HOOKS.md)                           |
-| gh-tools         | [plugins/gh-tools/CLAUDE.md](./plugins/gh-tools/CLAUDE.md) |
-| Release          | [docs/RELEASE.md](./docs/RELEASE.md)                       |
-| Plugin Lifecycle | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)     |
-| ITP Workflow     | [plugins/itp/README.md](./plugins/itp/README.md)           |
-| Troubleshooting  | [docs/troubleshooting/](./docs/troubleshooting/)           |
-| ADRs             | [docs/adr/](./docs/adr/)                                   |
-| Resume Context   | [docs/RESUME.md](./docs/RESUME.md)                         |
+| Topic            | Document                                                                     |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Installation     | [README.md](./README.md)                                                     |
+| Plugin Dev       | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                     |
+| Documentation    | [docs/CLAUDE.md](./docs/CLAUDE.md)                                           |
+| Hooks Dev        | [docs/HOOKS.md](./docs/HOOKS.md)                                             |
+| gh-tools         | [plugins/gh-tools/CLAUDE.md](./plugins/gh-tools/CLAUDE.md)                   |
+| Gmail Bot        | [plugins/gmail-commander/CLAUDE.md](./plugins/gmail-commander/CLAUDE.md)     |
+| TTS Bot          | [plugins/tts-telegram-sync/CLAUDE.md](./plugins/tts-telegram-sync/CLAUDE.md) |
+| Release          | [docs/RELEASE.md](./docs/RELEASE.md)                                         |
+| Plugin Lifecycle | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                       |
+| ITP Workflow     | [plugins/itp/README.md](./plugins/itp/README.md)                             |
+| Troubleshooting  | [docs/troubleshooting/](./docs/troubleshooting/)                             |
+| ADRs             | [docs/adr/](./docs/adr/)                                                     |
+| Resume Context   | [docs/RESUME.md](./docs/RESUME.md)                                           |
 
 ## Essential Commands
 
@@ -112,6 +116,8 @@ bun pm ls -g                 # List
 
 ## Recent Lessons Learned
 
+**2026-02-20**: Swift launchd binaries that spawn `op` CLI trigger macOS TCC "access data from other apps" prompt — compiled Swift does NOT bypass TCC. Fix: cache static credentials (client_id/client_secret) locally on first run; subsequent runs read only local files, no TCC prompt. [itp-hooks CLAUDE.md](./plugins/itp-hooks/CLAUDE.md#native-binary-guard-macos-launchd)
+
 **2026-02-05**: gh-issue-title-reminder hook added - maximizes 256-char GitHub issue titles. [gh-tools CLAUDE.md](./plugins/gh-tools/CLAUDE.md#github-issue-title-optimization-2026-02-05)
 
 **2026-02-04**: gdrive-tools plugin added for Google Drive API access with 1Password OAuth.
@@ -121,7 +127,3 @@ bun pm ls -g                 # List
 **2026-01-22**: posttooluse-reminder migrated from bash to TypeScript/Bun (33 tests). [Design Spec](/docs/design/2026-01-10-uv-reminder-hook/spec.md)
 
 **2026-01-12**: gh CLI must use Homebrew, not mise (iTerm2 tab spawning). [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
-
-**2026-01-11**: Use `--body-file` for `gh issue create` body content. [ADR](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
-
-**2026-01-10**: uv-reminder hook detects pip and venv activation, suggests uv. [ADR](/docs/adr/2026-01-10-uv-reminder-hook.md)

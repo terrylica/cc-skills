@@ -56,6 +56,16 @@ When linking from docs:
 | Plugins    | Repo-root (`/plugins/itp/README.md`) |
 | External   | Full URL                             |
 
+## Terminology Enforcement
+
+CLAUDE.md files are linted for consistent terminology via Vale hooks:
+
+- **SSoT**: `~/.claude/docs/GLOSSARY.md` (canonical term definitions)
+- **Hook chain**: PreToolUse rejects edits with violations; PostToolUse shows informational warnings
+- **Configuration**: `~/.claude/.vale.ini` (global) or per-project `.vale.ini`
+
+Full details: [itp-hooks CLAUDE.md](../plugins/itp-hooks/CLAUDE.md#vale-terminology-enforcement)
+
 ## Toolchain
 
 **Bun-first** for JavaScript globals. See [Root CLAUDE.md](../CLAUDE.md#development-toolchain).
