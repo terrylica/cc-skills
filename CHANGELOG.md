@@ -1,3 +1,237 @@
+## [11.53.3](https://github.com/terrylica/cc-skills/compare/v11.53.2...v11.53.3) (2026-02-20)
+
+
+### Bug Fixes
+
+* **commands:** expose 89 skills as user-invocable commands + enforce invariant ([981906f](https://github.com/terrylica/cc-skills/commit/981906f774931e17d07c927315c17b5160820d5a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>alpha-forge-worktree</strong> (1 command)</summary>
+
+- [Alpha-Forge Worktree Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/commands/worktree-manager.md) - new (+454)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools</strong> (6 commands)</summary>
+
+- [asciinema-analyzer](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/asciinema-analyzer.md) - new (+403)
+- [asciinema-cast-format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/asciinema-cast-format.md) - new (+240)
+- [asciinema-converter](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/asciinema-converter.md) - new (+552)
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/asciinema-player.md) - new (+364)
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/asciinema-recorder.md) - new (+330)
+- [asciinema-streaming-backup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/asciinema-streaming-backup.md) - new (+1076)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander</strong> (4 commands)</summary>
+
+- [Booking Configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/booking-config.md) - new (+166)
+- [Booking Notifications (Dual-Channel)](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/booking-notify.md) - new (+131)
+- [Cal.com Access](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/calcom-access.md) - new (+176)
+- [Infrastructure Deployment](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/infra-deploy.md) - new (+262)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (18 commands)</summary>
+
+- [ClickHouse Cloud Management](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/clickhouse-cloud-management.md) - new (+180)
+- [ClickHouse Pydantic Config](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/clickhouse-pydantic-config.md) - new (+217)
+- [Cloudflare Workers Publish](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/cloudflare-workers-publish.md) - new (+293)
+- [Disk Hygiene](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/disk-hygiene.md) - new (+289)
+- [Distributed Job Safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/distributed-job-safety.md) - new (+673)
+- [Doppler Secret Validation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/doppler-secret-validation.md) - new (+205)
+- [Doppler Credential Workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/doppler-workflows.md) - new (+135)
+- [Dual-Channel Watchexec Notifications](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/dual-channel-watchexec-notifications.md) - new (+154)
+- [Dual-Channel Watchexec Notifications](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/dual-channel-watchexec.md) - new (+154)
+- [Firecrawl Self-Hosted Operations](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/firecrawl-self-hosted.md) - new (+561)
+- [ML Data Pipeline Architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/ml-data-pipeline-architecture.md) - new (+328)
+- [ML Fail-Fast Validation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/ml-failfast-validation.md) - new (+481)
+- [MLflow Python Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/mlflow-python.md) - new (+176)
+- [Project Directory Migration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/project-directory-migration.md) - new (+169)
+- [Pueue Job Orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/pueue-job-orchestration.md) - new (+1103)
+- [Python Logging Best Practices](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/python-logging-best-practices.md) - new (+208)
+- [Session Chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/session-chronicle.md) - new (+818)
+- [Claude Code Session Recovery Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/commands/session-recovery.md) - new (+87)
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (9 commands)</summary>
+
+- [ASCII Diagram Validator](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/ascii-diagram-validator.md) - new (+172)
+- [Documentation Standards](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/documentation-standards.md) - new (+206)
+- [Glossary Management](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/glossary-management.md) - new (+269)
+- [LaTeX Build Automation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/latex-build.md) - new (+127)
+- [LaTeX Environment Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/latex-setup.md) - new (+101)
+- [LaTeX Tables with tabularray](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/latex-tables.md) - new (+131)
+- [Pandoc PDF Generation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/pandoc-pdf-generation.md) - new (+256)
+- [Plotext Financial Chart Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/plotext-financial-chart.md) - new (+152)
+- [Terminal Print](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/commands/terminal-print.md) - new (+127)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 command)</summary>
+
+- [Chezmoi Workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/commands/chezmoi-workflows.md) - new (+203)
+
+</details>
+
+<details>
+<summary><strong>gdrive-tools</strong> (1 command)</summary>
+
+- [Google Drive Access](https://github.com/terrylica/cc-skills/blob/main/plugins/gdrive-tools/commands/gdrive-access.md) - new (+247)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (4 commands)</summary>
+
+- [Bot Process Control](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/bot-process-control.md) - new (+255)
+- [Email Triage (Scheduled Digest)](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/email-triage.md) - new (+67)
+- [Gmail Access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/gmail-access.md) - new (+368)
+- [Interactive Bot](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/interactive-bot.md) - new (+72)
+
+</details>
+
+<details>
+<summary><strong>imessage-tools</strong> (1 command)</summary>
+
+- [iMessage Database Query](https://github.com/terrylica/cc-skills/blob/main/plugins/imessage-tools/commands/imessage-query.md) - new (+311)
+
+</details>
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 command)</summary>
+
+- [iTerm2 Layout Configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/commands/iterm2-layout.md) - new (+206)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (11 commands)</summary>
+
+- [ADR Code Traceability](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/adr-code-traceability.md) - new (+104)
+- [ADR Graph-Easy Architect](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/adr-graph-easy-architect.md) - new (+702)
+- [Bootstrap Polyglot Monorepo](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/bootstrap-monorepo.md) - new (+58)
+- [Code Hardcode Audit](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/code-hardcode-audit.md) - new (+128)
+- [Graph-Easy Diagram Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/graph-easy.md) - new (+691)
+- [Implementation Standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/impl-standards.md) - new (+159)
+- [Implement Plan Preflight](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/implement-plan-preflight.md) - new (+175)
+- [mise Configuration as Single Source of Truth](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/mise-configuration.md) - new (+577)
+- [mise Tasks Orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/mise-tasks.md) - new (+700)
+- [PyPI Publishing with Doppler (Local-Only)](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/pypi-doppler.md) - new (+603)
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/semantic-release.md) - new (+374)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [Hooks Development](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/hooks-development.md) - new (+139)
+
+</details>
+
+<details>
+<summary><strong>link-tools</strong> (1 command)</summary>
+
+- [Link Validator](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/commands/link-validator.md) - new (+126)
+
+</details>
+
+<details>
+<summary><strong>mql5</strong> (4 commands)</summary>
+
+- [MQL5 Article Extractor](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/commands/article-extractor.md) - new (+98)
+- [MT5 Log Reader](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/commands/log-reader.md) - new (+205)
+- [MQL5 Visual Indicator Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/commands/mql5-indicator-patterns.md) - new (+104)
+- [MQL5-Python Translation Workspace Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/commands/python-workspace.md) - new (+95)
+
+</details>
+
+<details>
+<summary><strong>notion-api</strong> (1 command)</summary>
+
+- [Notion SDK Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/notion-api/commands/notion-sdk.md) - new (+324)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (2 commands)</summary>
+
+- [Plugin Validator](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/commands/plugin-validator.md) - new (+156)
+- [Skill Architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/commands/skill-architecture.md) - new (+441)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (2 commands)</summary>
+
+- [Calendar Event Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/commands/calendar-event-manager.md) - new (+170)
+- [Slash Command Factory](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/commands/slash-command-factory.md) - new (+1186)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (8 commands)</summary>
+
+- [ClickHouse Architect](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/commands/clickhouse-architect.md) - new (+345)
+- [Code Clone Assistant](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/commands/code-clone-assistant.md) - new (+155)
+- [Dead Code Detector](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/commands/dead-code-detector.md) - new (+339)
+- [Multi-Agent E2E Validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/commands/multi-agent-e2e-validation.md) - new (+396)
+- [Multi-Agent Performance Profiling](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/commands/multi-agent-performance-profiling.md) - new (+406)
+- [Pre-Ship Review](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/commands/pre-ship-review.md) - new (+257)
+- [Schema E2E Validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/commands/schema-e2e-validation.md) - new (+236)
+- [Symmetric Dogfooding](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/commands/symmetric-dogfooding.md) - new (+274)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (4 commands)</summary>
+
+- [Adaptive Walk-Forward Epoch Selection (AWFES)](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/commands/adaptive-wfo-epoch.md) - new (+1522)
+- [backtesting.py Oracle Validation for Range Bar Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/commands/backtesting-py-oracle.md) - new (+197)
+- [Evolutionary Metric Ranking](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/commands/evolutionary-metric-ranking.md) - new (+491)
+- [Range Bar Evaluation Metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/commands/rangebar-eval-metrics.md) - new (+236)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (1 command)</summary>
+
+- [Session Info Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/session-info.md) - new (+83)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (8 commands)</summary>
+
+- [Bot Process Control](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/bot-process-control.md) - new (+121)
+- [Clean Component Removal](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/clean-component-removal.md) - new (+156)
+- [Component Version Upgrade](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/component-version-upgrade.md) - new (+126)
+- [Diagnostic Issue Resolver](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/diagnostic-issue-resolver.md) - new (+153)
+- [Full Stack Bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/full-stack-bootstrap.md) - new (+199)
+- [Settings and Tuning](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/settings-and-tuning.md) - new (+128)
+- [System Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/system-health-check.md) - new (+196)
+- [Voice Quality Audition](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/voice-quality-audition.md) - new (+167)
+
+</details>
+
 ## [11.53.2](https://github.com/terrylica/cc-skills/compare/v11.53.1...v11.53.2) (2026-02-20)
 
 
