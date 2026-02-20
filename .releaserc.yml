@@ -41,15 +41,14 @@ plugins:
         - plugins/itp-hooks/plugin.json
         # Hook definition files (ensures hooks.json changes are tracked)
         - plugins/itp-hooks/hooks/hooks.json
-        - plugins/ralph/hooks/hooks.json
         - plugins/link-tools/hooks/hooks.json
         - plugins/dotfiles-tools/hooks/hooks.json
         - plugins/statusline-tools/hooks/hooks.json
         - plugins/gh-tools/hooks/hooks.json
-        # Command definition files (ensures command changes are tracked)
-        - plugins/mise/commands/run-full-release.md
-        - plugins/mise/commands/show-env-status.md
-        - plugins/mise/commands/list-repo-tasks.md
+        # Skill definition files (ensures skill changes are tracked)
+        - plugins/mise/skills/run-full-release/SKILL.md
+        - plugins/mise/skills/show-env-status/SKILL.md
+        - plugins/mise/skills/list-repo-tasks/SKILL.md
       message: "chore(release): ${nextRelease.version} [skip ci]"
   # Push commit and tags after @semantic-release/git creates them
   # Belt-and-suspenders: ensures push happens even in --no-ci mode

@@ -61,6 +61,25 @@ for PLUGIN_DIR in $(ls -d "$MARKETPLACE_DIR/plugins"/*/ 2>/dev/null); do
 done
 echo "  ✓ Valid hooks.json: $HOOKS_OK plugins"
 
+# Check 6: No legacy commands/ directories in marketplace
+echo "→ Checking for legacy commands/ directories..."
+LEGACY_DIRS=$(find "$MARKETPLACE_DIR/plugins" -type d -name 'commands' 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$LEGACY_DIRS" -eq 0 ]]; then
+    echo "  ✓ No legacy commands/ dirs (migration complete)"
+else
+    echo "  ✗ Found $LEGACY_DIRS legacy commands/ dir(s) — run: find \$MARKETPLACE_DIR/plugins -type d -name commands"
+fi
+
+# Check 7: Commands synced from skills
+echo "→ Verifying commands synced to ~/.claude/commands/..."
+COMMANDS_DIR="$HOME/.claude/commands"
+CC_SKILLS_CMDS=$(grep -rl "cc-skills-marketplace" "$COMMANDS_DIR" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$CC_SKILLS_CMDS" -gt 0 ]]; then
+    echo "  ✓ Commands synced: $CC_SKILLS_CMDS skill(s) in ~/.claude/commands/"
+else
+    echo "  ⚠ No cc-skills commands found in $COMMANDS_DIR — run sync-commands-to-settings.sh"
+fi
+
 echo ""
 echo "═══════════════════════════════════════════════════════════"
 echo "  ✓ Release v$VERSION verified"
@@ -70,5 +89,6 @@ echo "Post-release steps for users:"
 echo "  1. Update marketplace: cd ~/.claude/plugins/marketplaces/cc-skills && git pull"
 echo "  2. Reinstall plugins: claude plugin install itp@cc-skills"
 echo "  3. Sync hooks: ./scripts/sync-hooks-to-settings.sh"
-echo "  4. Restart Claude Code"
+echo "  4. Sync commands: ./scripts/sync-commands-to-settings.sh"
+echo "  5. Restart Claude Code"
 echo ""
