@@ -21,6 +21,7 @@
  *   6. Inter-plugin dependencies are tracked and circular deps detected
  *   7. Referenced skills exist in target plugins
  *   8. Hook JSON structure from manage-hooks.sh (prevents "Invalid discriminator value")
+ *   9. Skill→command parity: SKILL.md with TRIGGERS must have commands/<name>.md
  *
  * Integration:
  *   - Pre-commit hook: Add to .husky/pre-commit or .git/hooks/pre-commit
@@ -1050,6 +1051,66 @@ function validateSkillExistence(details) {
 }
 
 /**
+ * Validate TRIGGERS → commands/ parity (ADR: 2026-02-20 regression fix)
+ *
+ * Rule: Any SKILL.md whose frontmatter 'description' contains "TRIGGERS"
+ * MUST have a corresponding commands/{skill-name}.md file.
+ *
+ * Rationale: The Skill() tool resolves only from commands/ (files synced from
+ * plugins/{plugin}/commands/). Skills in skills/{skill}/SKILL.md are passive context
+ * files. Without commands/{name}.md, Skill(plugin:name) returns "Unknown skill".
+ *
+ * Returns { errors: [...], warnings: [...] }
+ */
+async function validateSkillCommandParity() {
+  const pluginsDir = resolve(process.cwd(), "plugins");
+  const errors = [];
+  const warnings = [];
+
+  // Find all SKILL.md files across all plugins
+  const skillPaths = await glob("plugins/*/skills/*/SKILL.md", {
+    cwd: process.cwd(),
+    absolute: true,
+    onlyFiles: true,
+  });
+
+  for (const skillPath of skillPaths) {
+    const relPath = relative(process.cwd(), skillPath);
+    // path: plugins/<plugin>/skills/<skill>/SKILL.md
+    const parts = relPath.split("/");
+    if (parts.length < 5) continue;
+    const pluginName = parts[1];
+    const skillName = parts[3];
+
+    try {
+      const content = readFileSync(skillPath, "utf8");
+
+      // Parse frontmatter only
+      const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+      if (!fmMatch) continue; // No frontmatter, skip
+
+      const fm = fmMatch[1];
+
+      // Only enforce for skills that declare TRIGGERS (user-invocable intent)
+      if (!fm.includes("TRIGGERS")) continue;
+
+      // Check if commands/<skill-name>.md exists
+      const commandPath = join(pluginsDir, pluginName, "commands", `${skillName}.md`);
+      if (!existsSync(commandPath)) {
+        errors.push(
+          `${relPath}: SKILL.md has TRIGGERS but missing commands/${skillName}.md` +
+          ` — Skill(${pluginName}:${skillName}) returns "Unknown skill"`
+        );
+      }
+    } catch (err) {
+      warnings.push(`Could not validate skill parity: ${relPath} (${err.message})`);
+    }
+  }
+
+  return { errors, warnings };
+}
+
+/**
  * Extract declared dependencies from marketplace.json 'requires' field
  * Returns Map<plugin, string[]> of declared dependencies
  */
@@ -1281,6 +1342,10 @@ const { errors: hookErrors, warnings: hookWarnings } = await validateHookOutputF
 // ADR: Lesson from user "Chen" - "Invalid discriminator value" from malformed hook structure
 const { errors: hookStructErrors, warnings: hookStructWarnings } = await validateHooksJsonStructure();
 
+// Skill → command parity (TRIGGERS in description must have commands/{name}.md)
+// ADR: 2026-02-20 — skills with TRIGGERS not in commands/ return "Unknown skill" via Skill() tool
+const { errors: parityErrors, warnings: parityWarnings } = await validateSkillCommandParity();
+
 // Declared dependency validation (from 'requires' field in marketplace.json)
 // Reference: https://github.com/anthropics/claude-code/issues/9444
 const declaredDeps = getDeclaredDependencies();
@@ -1337,6 +1402,22 @@ if (hookWarnings.length > 0) {
   hasWarnings = true;
 }
 
+// Report skill → command parity errors
+// ADR: 2026-02-20 regression fix — Skill() tool resolves only from commands/
+if (parityErrors.length > 0) {
+  console.error(`\n❌ SKILL → COMMAND PARITY ERRORS (${parityErrors.length}):`);
+  console.error(`   Skills with TRIGGERS in description must have commands/<name>.md`);
+  console.error(`   (Skill() tool resolves only from commands/ — missing file = "Unknown skill")`);
+  parityErrors.forEach((e) => console.error(`   - ${e}`));
+  hasErrors = true;
+}
+
+if (parityWarnings.length > 0) {
+  console.warn(`\n⚠️  Skill parity warnings (${parityWarnings.length}):`);
+  parityWarnings.forEach((w) => console.warn(`   - ${w}`));
+  hasWarnings = true;
+}
+
 // Report hook structure issues (manage-hooks.sh jq validation)
 // ADR: Lesson from user "Chen" - "Invalid discriminator value" from malformed hook structure
 if (hookStructErrors.length > 0) {
@@ -1373,6 +1454,7 @@ const allErrors = [
   ...declErrors,
   ...hookErrors,
   ...hookStructErrors,
+  ...parityErrors,
 ];
 const allWarnings = [
   ...(orphaned.length > 0 ? [`${orphaned.length} orphaned entries`] : []),
@@ -1381,6 +1463,7 @@ const allWarnings = [
   ...declWarnings,
   ...hookWarnings,
   ...hookStructWarnings,
+  ...parityWarnings,
   ...(cycles.length > 0 ? [`${cycles.length} circular dependencies`] : []),
 ];
 
