@@ -1,3 +1,319 @@
+# [11.52.0](https://github.com/terrylica/cc-skills/compare/v11.51.2...v11.52.0) (2026-02-20)
+
+
+### Bug Fixes
+
+* **docs:** second documentation alignment pass from 9-agent audit ([991a6d4](https://github.com/terrylica/cc-skills/commit/991a6d43ada9e3e53cde4f8beeb8cf393fb8d297))
+
+
+### Features
+
+* **mise:** /mise:run-full-release handles PyPI + crates.io end-to-end ([783c991](https://github.com/terrylica/cc-skills/commit/783c991d201f19737193504f92aa4ed13b9f7cf5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph Dual Time Tracking (Runtime + Wall-Clock)](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-ralph-dual-time-tracking.md) | updated (+5) |
+| accepted | [Ralph Stop Visibility Observability](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-ralph-stop-visibility-observability.md) | updated (+5) |
+| accepted | [Skill Bash Compatibility Enforcement](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-skill-bash-compatibility-enforcement.md) | updated (+5) |
+| accepted | [asciinema-tools Plugin Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-24-asciinema-tools-plugin.md) | updated (+5) |
+| accepted | [asciinema-tools Daemon Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-26-asciinema-daemon-architecture.md) | updated (+13/-8) |
+| accepted | [Ralph Constraint Scanning](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-29-ralph-constraint-scanning.md) | updated (+6/-1) |
+| accepted | [gh-tools WebFetch Enforcement Hook](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md) | updated (+23/-15) |
+| accepted | [gh issue create --body-file Requirement](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-11-gh-issue-body-file-guard.md) | updated (+6) |
+| accepted | [mise gh CLI Incompatibility with Claude Code](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md) | updated (+5) |
+| accepted | [mise.toml Hygiene Guard Hook](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-02-05-mise-hygiene-guard.md) | updated (+5) |
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>alpha-forge-worktree</strong> (1 change)</summary>
+
+- [worktree-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-worktree/skills/worktree-manager/SKILL.md) - updated (+2/-1)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (3 changes)</summary>
+
+- [firecrawl-self-hosted](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-self-hosted/SKILL.md) - updated (+1)
+- [ml-data-pipeline-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-data-pipeline-architecture/SKILL.md) - updated (+1)
+- [ml-failfast-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-failfast-validation/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (5 changes)</summary>
+
+- [ascii-diagram-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/SKILL.md) - updated (+1)
+- [documentation-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/documentation-standards/SKILL.md) - updated (+1)
+- [glossary-management](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/glossary-management/SKILL.md) - updated (+1)
+- [pandoc-pdf-generation](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/SKILL.md) - updated (+1)
+- [terminal-print](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/terminal-print/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [pr-gfm-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/pr-gfm-validator/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (1 change)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/bot-process-control/SKILL.md) - updated (+8/-8)
+
+</details>
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 change)</summary>
+
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/main/plugins/iterm2-layout-config/skills/iterm2-layout/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (7 changes)</summary>
+
+- [adr-code-traceability](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/adr-code-traceability/SKILL.md) - updated (+1)
+- [adr-graph-easy-architect](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/adr-graph-easy-architect/SKILL.md) - updated (+1)
+- [graph-easy](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/graph-easy/SKILL.md) - updated (+1)
+- [impl-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/impl-standards/SKILL.md) - updated (+1)
+- [implement-plan-preflight](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/implement-plan-preflight/SKILL.md) - updated (+1)
+- [mise-configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/SKILL.md) - updated (+1/-1)
+- [pypi-doppler](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/pypi-doppler/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 change)</summary>
+
+- [hooks-development](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>link-tools</strong> (2 changes)</summary>
+
+- [link-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validation/SKILL.md) - updated (+1)
+- [link-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validator/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>mql5</strong> (1 change)</summary>
+
+- [python-workspace](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/SKILL.md) - updated (+2/-1)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 change)</summary>
+
+- [calendar-event-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/calendar-event-manager/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (5 changes)</summary>
+
+- [multi-agent-e2e-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-e2e-validation/SKILL.md) - updated (+1)
+- [multi-agent-performance-profiling](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-performance-profiling/SKILL.md) - updated (+1)
+- [pre-ship-review](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/SKILL.md) - updated (+1)
+- [schema-e2e-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/schema-e2e-validation/SKILL.md) - updated (+9/-9)
+- [symmetric-dogfooding](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/symmetric-dogfooding/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [backtesting-py-oracle](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/backtesting-py-oracle/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (1 change)</summary>
+
+- [session-info](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/SKILL.md) - updated (+2/-1)
+
+</details>
+
+
+### Plugin READMEs
+
+- [mise](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/README.md) - new (+85)
+
+### Skill References
+
+<details>
+<summary><strong>asciinema-tools/asciinema-converter</strong> (1 file)</summary>
+
+- [Integration Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/references/integration-guide.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/session-info</strong> (1 file)</summary>
+
+- [Session Registry Format](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/references/registry-format.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/bot-process-control</strong> (1 file)</summary>
+
+- [Operational Commands](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/references/operational-commands.md) - updated (+1/-1)
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>asciinema-tools</strong> (1 command)</summary>
+
+- [/asciinema-tools:daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/commands/daemon-setup.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander</strong> (2 commands)</summary>
+
+- [Cal.com Commander Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/health.md) - updated (+1/-1)
+- [Cal.com Commander Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/commands/setup.md) - updated (+5/-5)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 command)</summary>
+
+- [Dotfiles Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/commands/hooks.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 command)</summary>
+
+- [gh-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/hooks.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (2 commands)</summary>
+
+- [Gmail Commander Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/health.md) - updated (+1/-1)
+- [Gmail Commander Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/commands/setup.md) - updated (+5/-5)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (3 commands)</summary>
+
+- [⛔ ITP Workflow — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/go.md) - updated (+1/-1)
+- [ITP Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/hooks.md) - updated (+1/-1)
+- [ITP Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/commands/setup.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [ITP Hooks Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/commands/setup.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>mise</strong> (1 command)</summary>
+
+- [/mise:run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/commands/run-full-release.md) - updated (+263/-25)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (1 command)</summary>
+
+- [⛔ Create Plugin — STOP AND READ](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/commands/create.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 command)</summary>
+
+- [productivity-tools Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/commands/hooks.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>ru</strong> (9 commands)</summary>
+
+- [RU: Audit Now](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/audit-now.md) - updated (+1/-1)
+- [RU: Config](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/config.md) - updated (+1/-1)
+- [RU: Encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/encourage.md) - updated (+1/-1)
+- [RU: Forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/forbid.md) - updated (+1/-1)
+- [RU: Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/hooks.md) - updated (+1/-1)
+- [RU: Start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/start.md) - updated (+1/-1)
+- [RU: Status](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/status.md) - updated (+1/-1)
+- [RU: Stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/stop.md) - updated (+1/-1)
+- [RU: Wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/commands/wizard.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (3 commands)</summary>
+
+- [Status Line Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/hooks.md) - updated (+1/-1)
+- [Global Ignore Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/ignore.md) - updated (+1/-1)
+- [Status Line Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/commands/setup.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (3 commands)</summary>
+
+- [TTS Telegram Sync Health Check](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/health.md) - updated (+1/-1)
+- [TTS Telegram Sync Hooks Manager](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/hooks.md) - updated (+1/-1)
+- [TTS Telegram Sync Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/commands/setup.md) - updated (+1/-1)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+29/-12)
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+2/-2)
+
 ## [11.51.2](https://github.com/terrylica/cc-skills/compare/v11.51.1...v11.51.2) (2026-02-19)
 
 
