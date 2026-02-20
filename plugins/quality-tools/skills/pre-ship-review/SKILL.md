@@ -1,6 +1,7 @@
 ---
 name: pre-ship-review
 description: Structured quality review before shipping code (PRs, releases, milestones). Catches integration boundary failures where AI code breaks between components. Orchestrates external tools and existing cc-skills. TRIGGERS - pre-ship review, ship check, quality review, release review, self review, pre-submit, integration check, contract violations.
+allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Pre-Ship Review

@@ -1,6 +1,6 @@
 ---
 name: hooks
-description: "Install/uninstall itp-hooks (ASCII guard, ADR sync reminder, fake-data-guard) to ~/.claude/settings.json"
+description: "Install/uninstall itp-hooks (ASCII guard, ADR sync reminder, fake-data-guard) to ~/.claude/settings.json. TRIGGERS - itp hooks, install itp hooks, itp hook manager, adr sync hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
 model: haiku

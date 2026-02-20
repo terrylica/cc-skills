@@ -121,8 +121,8 @@ For automated pipelines, batch convert generates a manifest:
 
 ```json
 {
-  "source_dir": "/Users/<you>/Downloads",
-  "output_dir": "/Users/<you>/cast-txt",
+  "source_dir": "~/Downloads",
+  "output_dir": "~/cast-txt",
   "converted": [
     {
       "source": "session1.cast",

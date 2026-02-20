@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "Configure statusline-tools status line and dependencies"
+description: "Configure statusline-tools status line and dependencies. TRIGGERS - statusline setup, install statusline, configure status bar, statusline deps."
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status|deps]"
 model: haiku

@@ -1,6 +1,6 @@
 ---
 name: ignore
-description: "Manage global ignore patterns for lint-relative-paths"
+description: "Manage global ignore patterns for lint-relative-paths. TRIGGERS - statusline ignore, add ignore pattern, lint ignore, path lint exclude."
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[add|list|remove] [pattern]"
 model: haiku

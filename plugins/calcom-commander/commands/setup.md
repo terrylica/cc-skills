@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Full Cal.com Commander setup wizard - Cal.com API, Telegram bot, Supabase DB, GCP project, launchd services. Discovers 1Password items, configures mise environment, installs launchd plists.
+description: "Full Cal.com Commander setup wizard - Cal.com API, Telegram bot, Supabase DB, GCP project, launchd services. Discovers 1Password items, configures mise environment, installs launchd plists. TRIGGERS - calcom setup, calendar bot setup, cal.com install, booking bot configure."
 ---
 
 # Cal.com Commander Setup
@@ -130,8 +130,8 @@ mkdir -p ~/own/<automation-repo>/bin ~/own/<automation-repo>/logs
 cat > ~/own/<automation-repo>/bin/calcom-commander-bot << 'SCRIPT'
 #!/bin/bash
 set -euo pipefail
-eval "$(/Users/<you>/.local/bin/mise activate bash)"
-cd /Users/<you>/own/<automation-repo>
+eval "$("$HOME/.local/bin/mise" activate bash)"
+cd "$HOME/own/<automation-repo>"
 exec bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/bot.ts"
 SCRIPT
 chmod +x ~/own/<automation-repo>/bin/calcom-commander-bot
@@ -140,8 +140,8 @@ chmod +x ~/own/<automation-repo>/bin/calcom-commander-bot
 cat > ~/own/<automation-repo>/bin/calcom-commander-sync << 'SCRIPT'
 #!/bin/bash
 set -euo pipefail
-eval "$(/Users/<you>/.local/bin/mise activate bash)"
-cd /Users/<you>/own/<automation-repo>
+eval "$("$HOME/.local/bin/mise" activate bash)"
+cd "$HOME/own/<automation-repo>"
 exec bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/sync.ts"
 SCRIPT
 chmod +x ~/own/<automation-repo>/bin/calcom-commander-sync

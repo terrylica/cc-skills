@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "SETUP COMMAND - Execute TodoWrite FIRST, then Check -> Gate -> Install -> Verify"
+description: "SETUP COMMAND - Execute TodoWrite FIRST, then Check -> Gate -> Install -> Verify. TRIGGERS - itp setup, install dependencies, check prerequisites, itp preflight."
 allowed-tools: Read, Bash(brew:*), Bash(npm:*), Bash(cpanm:*), Bash(uv:*), Bash(which:*), Bash(command -v:*), Bash(PLUGIN_DIR:*), Bash(source:*), AskUserQuestion, TodoWrite, TodoRead
 argument-hint: "[--check | --install | --yes]"
 ---

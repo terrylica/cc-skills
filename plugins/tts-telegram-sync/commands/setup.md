@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "One-time bootstrap for Kokoro TTS, Telegram bot, and BotFather setup"
+description: "One-time bootstrap for Kokoro TTS, Telegram bot, and BotFather setup. TRIGGERS - tts setup, kokoro install, telegram bot setup, tts bootstrap, voice synthesis setup."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[--check|--install]"
 ---
