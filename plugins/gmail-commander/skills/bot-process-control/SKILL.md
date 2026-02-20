@@ -130,13 +130,16 @@ rm -f /tmp/gmail-commander-bot.pid
 
 ```bash
 # Recent bot output
-tail -50 ~/own/amonic/logs/bot-stderr.log
+tail -50 $PROJECT_DIR/logs/bot-stderr.log
 
 # Recent digest output
-tail -50 ~/own/amonic/logs/digest-stderr.log
+tail -50 $PROJECT_DIR/logs/digest-stderr.log
 
 # Audit log (NDJSON)
-cat ~/own/amonic/logs/audit/$(date +%Y-%m-%d).ndjson | jq .
+cat $PROJECT_DIR/logs/audit/$(date +%Y-%m-%d).ndjson | jq .
+
+# OAuth token refresher log
+tail -20 $PROJECT_DIR/logs/token-refresher.log
 ```
 
 ## System Resources (Expected)
@@ -146,9 +149,107 @@ cat ~/own/amonic/logs/audit/$(date +%Y-%m-%d).ndjson | jq .
 - **Network**: Minimal (single long-poll connection to Telegram API)
 - **Disk**: ~1 MB/day audit logs (14-day rotation)
 
+## Telegram Commands
+
+| Command  | Description                         |
+| -------- | ----------------------------------- |
+| /inbox   | Show recent inbox emails            |
+| /search  | Search emails (Gmail query syntax)  |
+| /read    | Read email by ID                    |
+| /compose | Compose a new email                 |
+| /reply   | Reply to an email                   |
+| /abort   | Cancel current compose/reply action |
+| /drafts  | List draft emails                   |
+| /digest  | Run email digest now                |
+| /status  | Bot status and stats                |
+| /help    | Show all commands                   |
+
+> **Note**: `/abort` cancels any in-progress compose or reply session. Works at any step in the flow.
+
+## OAuth Token Management
+
+### Two-Layer Token Architecture
+
+```
+Browser Auth (one-time, interactive)
+  → Google issues: access_token (1h TTL) + refresh_token (7d TTL in Testing mode)
+  → Saved to: ~/.claude/tools/gmail-tokens/<GMAIL_OP_UUID>.json
+
+Silent Refresh (automatic, no browser)
+  → Uses refresh_token to get new access_token
+  → Fails with invalid_grant when refresh_token itself expires
+```
+
+### Hourly Token Refresher (launchd)
+
+A compiled Swift binary runs hourly to proactively refresh the access token:
+
+| File   | Path                                                                            |
+| ------ | ------------------------------------------------------------------------------- |
+| Source | `~/.claude/automation/gmail-token-refresher/main.swift`                         |
+| Binary | `~/.claude/automation/gmail-token-refresher/gmail-oauth-token-hourly-refresher` |
+| Plist  | `~/Library/LaunchAgents/com.terryli.gmail-oauth-token-hourly-refresher.plist`   |
+| Log    | `$PROJECT_DIR/logs/token-refresher.log`                                         |
+
+**Why hourly**: Access tokens expire every 1 hour. Refreshing hourly keeps the token perpetually valid. Frequent refresh also increases the chance Google issues a new `refresh_token`, resetting its 7-day clock.
+
+**Verify it's running**:
+
+```bash
+launchctl list | grep gmail-oauth-token
+tail -5 $PROJECT_DIR/logs/token-refresher.log
+```
+
+**Credentials source**: `GMAIL_OP_UUID` item in 1Password Claude Automation vault (fields: `client_id`, `client_secret`). Accessed via service account token — no biometric prompt required.
+
+### Diagnosing `invalid_grant`
+
+`invalid_grant` means the **refresh token** itself expired (not just the access token):
+
+```bash
+# Symptom in audit log:
+cat $PROJECT_DIR/logs/audit/$(date +%Y-%m-%d).ndjson | jq 'select(.event == "gmail.error")'
+# → "Token expired, refreshing...\nError: invalid_grant\n"
+
+# Check token file age:
+ls -la ~/.claude/tools/gmail-tokens/<GMAIL_OP_UUID>.json
+```
+
+**Fix**:
+
+```bash
+# 1. Delete expired token
+rm ~/.claude/tools/gmail-tokens/<GMAIL_OP_UUID>.json
+
+# 2. Trigger browser re-auth (opens Google consent page)
+source $PROJECT_DIR/.env.launchd
+$PLUGIN_DIR/scripts/gmail-cli/gmail list -n 1
+
+# 3. Restart bot
+launchctl unload ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
+launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
+```
+
+**Root cause**: Google OAuth apps in **Testing mode** issue refresh tokens with 7-day TTL. Permanent fix: publish the Google Cloud OAuth app (Google Cloud Console → OAuth consent screen → Publish app).
+
+### Diagnosing Stale PID Lock
+
+If the bot exits uncleanly, the PID file may block restart:
+
+```bash
+# Symptom: launchctl shows bot loaded but PID is dead
+kill -0 $(cat /tmp/gmail-commander-bot.pid) 2>&1
+# → "No such process"
+
+# Fix: restart via launchctl (acquireLock handles stale PIDs automatically)
+launchctl unload ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
+launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
+```
+
 ## Post-Change Checklist
 
 - [ ] YAML frontmatter valid (no colons in description)
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
 - [ ] launchd plist templates match actual launcher scripts
+- [ ] OAuth token refresher launchd service loaded and running
