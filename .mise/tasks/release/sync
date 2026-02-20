@@ -19,6 +19,7 @@ if [[ -d "$MARKETPLACE_DIR/.git" ]]; then
     cd "$MARKETPLACE_DIR"
     git fetch origin --tags --quiet
     git reset --hard "v$VERSION" --quiet 2>/dev/null || git reset --hard origin/main --quiet
+    git clean -fd --quiet
     echo "  ✓ Marketplace updated to v$VERSION"
     cd - > /dev/null
 else
@@ -49,14 +50,40 @@ else
     echo "  ⚠ Plugin sync script not found"
 fi
 
-# Step 3: Clear stale plugin cache (users reinstall manually)
-echo "→ Clearing stale plugin cache..."
-if [[ -d "$CACHE_DIR" ]]; then
-    rm -rf "$CACHE_DIR"
-    echo "  ✓ Cache cleared - users should reinstall plugins with:"
-    echo "    claude plugin install plugin-name@cc-skills"
+# Step 3: Rebuild plugin cache from marketplace + update installed_plugins.json
+echo "→ Rebuilding plugin cache..."
+rm -rf "$CACHE_DIR"
+CACHE_COUNT=0
+for plugin_source in "$MARKETPLACE_DIR/plugins"/*/; do
+    [[ -d "$plugin_source" ]] || continue
+    plugin_name=$(basename "$plugin_source")
+    plugin_target="$CACHE_DIR/$plugin_name/$VERSION"
+    mkdir -p "$plugin_target"
+    [[ -d "$plugin_source/skills" ]] && cp -r "$plugin_source/skills" "$plugin_target/"
+    [[ -d "$plugin_source/hooks" ]] && cp -r "$plugin_source/hooks" "$plugin_target/"
+    [[ -f "$plugin_source/plugin.json" ]] && cp "$plugin_source/plugin.json" "$plugin_target/"
+    ((CACHE_COUNT++))
+done
+echo "  ✓ Cache rebuilt: $CACHE_COUNT plugin(s) at v$VERSION"
+
+echo "→ Syncing installed_plugins.json..."
+INSTALLED="$HOME/.claude/plugins/installed_plugins.json"
+if [[ -f "$INSTALLED" ]]; then
+    jq --arg v "$VERSION" --arg base "$CACHE_DIR" '
+      del(.plugins["ralph@cc-skills"]) |
+      del(.plugins["gmail-tools@cc-skills"]) |
+      .plugins |= with_entries(
+        if (.key | test("@cc-skills$")) then
+          .value[0].version = $v |
+          .value[0].installPath = ($base + "/" + (.key | split("@")[0]) + "/" + $v) |
+          .value[0].lastUpdated = (now | todate)
+        else . end
+      )
+    ' "$INSTALLED" > /tmp/cc_skills_installed.json \
+    && mv /tmp/cc_skills_installed.json "$INSTALLED"
+    echo "  ✓ installed_plugins.json synced to v$VERSION"
 else
-    echo "  ✓ No cache to clear"
+    echo "  ⚠ installed_plugins.json not found at $INSTALLED"
 fi
 
 echo ""
