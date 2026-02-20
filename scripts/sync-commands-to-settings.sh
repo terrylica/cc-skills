@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# sync-commands-to-settings.sh - Sync plugin commands to ~/.claude/commands/
+# sync-commands-to-settings.sh - Sync plugin skills to ~/.claude/commands/
 #
 # Called during post-release to ensure any new slash commands are automatically
 # available in the user's ~/.claude/commands/ without manual intervention.
 #
 # Design:
-# - Scans commands/*.md from each plugin in the marketplace
-# - Copies to ~/.claude/commands/ with plugin:command namespacing
+# - Scans skills/{name}/SKILL.md from each plugin in the marketplace (v11.54.0+)
+# - Copies to ~/.claude/commands/ with plugin:skill namespacing
 # - Preserves existing user commands that aren't from cc-skills plugins
 # - Uses marketplace path (not cache) for reliability
 # - Adds provenance comment to track cc-skills origin
@@ -38,7 +38,7 @@ backup_commands() {
 
 # Main
 main() {
-    echo "→ Syncing plugin commands to ~/.claude/commands/..."
+    echo "→ Syncing plugin skills to ~/.claude/commands/..."
 
     # Ensure commands dir exists
     mkdir -p "$COMMANDS_DIR"
@@ -57,47 +57,44 @@ main() {
         fi
     done
 
-    # Find all command files in marketplace plugins
+    # Find all skill files in marketplace plugins (canonical: skills/{skill}/SKILL.md)
     local commands_added=0
-    for plugin_dir in "$MARKETPLACE_DIR"/plugins/*/commands; do
-        [[ -d "$plugin_dir" ]] || continue
+    for skill_md in "$MARKETPLACE_DIR"/plugins/*/skills/*/SKILL.md; do
+        [[ -f "$skill_md" ]] || continue
 
+        # path: .../plugins/{plugin}/skills/{skill}/SKILL.md
         local plugin_name
-        plugin_name=$(basename "$(dirname "$plugin_dir")")
+        plugin_name=$(basename "$(dirname "$(dirname "$(dirname "$skill_md")")")")
 
-        for cmd_file in "$plugin_dir"/*.md; do
-            [[ -f "$cmd_file" ]] || continue
+        local cmd_name
+        cmd_name=$(basename "$(dirname "$skill_md")")
 
-            local cmd_name
-            cmd_name=$(basename "$cmd_file" .md)
+        # Target: ~/.claude/commands/plugin:skill.md
+        local target="$COMMANDS_DIR/${plugin_name}:${cmd_name}.md"
 
-            # Target: ~/.claude/commands/plugin:command.md
-            local target="$COMMANDS_DIR/${plugin_name}:${cmd_name}.md"
+        # Copy with provenance marker injected after frontmatter opening ---
+        # The marker lets us identify cc-skills commands for clean removal
+        if head -1 "$skill_md" | grep -q "^---"; then
+            {
+                echo "---"
+                echo "# cc-skills-marketplace: ${plugin_name}/${cmd_name}"
+                # Skip the opening --- and output the rest
+                tail -n +2 "$skill_md"
+            } > "$target"
+        else
+            # No frontmatter — copy as-is with provenance at top
+            {
+                echo "---"
+                echo "# cc-skills-marketplace: ${plugin_name}/${cmd_name}"
+                echo "---"
+                cat "$skill_md"
+            } > "$target"
+        fi
 
-            # Copy with provenance marker injected after frontmatter opening ---
-            # The marker lets us identify cc-skills commands for clean removal
-            if head -1 "$cmd_file" | grep -q "^---"; then
-                {
-                    echo "---"
-                    echo "# cc-skills-marketplace: ${plugin_name}/${cmd_name}"
-                    # Skip the opening --- and output the rest
-                    tail -n +2 "$cmd_file"
-                } > "$target"
-            else
-                # No frontmatter — copy as-is with provenance at top
-                {
-                    echo "---"
-                    echo "# cc-skills-marketplace: ${plugin_name}/${cmd_name}"
-                    echo "---"
-                    cat "$cmd_file"
-                } > "$target"
-            fi
-
-            ((commands_added++))
-        done
+        ((commands_added++))
     done
 
-    info "Commands synced: $commands_added command(s) from cc-skills marketplace"
+    info "Commands synced: $commands_added skill(s) from cc-skills marketplace"
 }
 
 main "$@"

@@ -210,6 +210,40 @@ Skills are modular, self-contained packages that extend Claude's capabilities wi
 
 ---
 
+## cc-skills Plugin Architecture
+
+> This section applies specifically to the **cc-skills marketplace** plugin structure. Generic standalone skills are unaffected.
+
+### Canonical Structure
+
+```
+plugins/<plugin>/
+└── skills/
+    └── <skill-name>/
+        └── SKILL.md   ← single canonical file (context AND user-invocable)
+```
+
+`skills/<name>/SKILL.md` is the **single source of truth**. The separate `commands/` layer was eliminated — it required maintaining two identical files per skill and caused `Skill()` invocations to return "Unknown skill". See [migration issue](https://github.com/terrylica/cc-skills/issues/26) for full context.
+
+### How Skills Become Slash Commands
+
+Two install paths, both supported:
+
+| Path                    | Mechanism                                                                                                                           | Notes                                                                                                                                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Automated (primary)** | `mise run release:full` → `sync-commands-to-settings.sh` reads `skills/*/SKILL.md` → writes `~/.claude/commands/<plugin>:<name>.md` | Fully automated post-release. Bypasses Anthropic cache bugs [#17361](https://github.com/anthropics/claude-code/issues/17361), [#14061](https://github.com/anthropics/claude-code/issues/14061) |
+| **Official CLI**        | `claude plugin install itp@cc-skills` → reads from `skills/` in plugin cache                                                        | Cache may not refresh on update — use `claude plugin update` after new releases                                                                                                                |
+
+### Hooks
+
+`sync-hooks-to-settings.sh` reads `hooks/hooks.json` directly → merges into `~/.claude/settings.json`. Bypasses path re-expansion bug [#18517](https://github.com/anthropics/claude-code/issues/18517).
+
+### Creating a New Skill in cc-skills
+
+Place the SKILL.md under `plugins/<plugin>/skills/<name>/SKILL.md`. No `commands/` copy needed. The validator (`bun scripts/validate-plugins.mjs`) checks frontmatter completeness.
+
+---
+
 ## Skill Creation Process (Detailed Tutorial)
 
 > **Note**: Use TodoWrite templates above for execution. This section provides detailed context for each phase.
@@ -429,13 +463,13 @@ For detailed information, see:
 
 ## Troubleshooting
 
-| Issue                  | Cause                          | Solution                                                  |
-| ---------------------- | ------------------------------ | --------------------------------------------------------- |
-| Skill not triggering   | Missing trigger keywords       | Add trigger phrases to description field                  |
-| YAML parse error       | Colon in description           | Replace colons with dashes in description                 |
-| Skill not found        | Wrong location                 | Place in `~/.claude/skills/` or project `.claude/skills/` |
-| validate script fails  | Invalid frontmatter            | Check name format (lowercase-hyphen only)                 |
-| Resources not loading  | Wrong path in SKILL.md         | Use relative paths from skill directory                   |
-| Script execution fails | Missing shebang or permissions | Add `#!/usr/bin/env python3` and `chmod +x`               |
-| allowed-tools ignored  | API skill (not CLI)            | allowed-tools only works in CLI skills                    |
-| Description too long   | Over 1024 chars                | Shorten description, move details to SKILL.md body        |
+| Issue                  | Cause                          | Solution                                                                                                                |
+| ---------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Skill not triggering   | Missing trigger keywords       | Add trigger phrases to description field                                                                                |
+| YAML parse error       | Colon in description           | Replace colons with dashes in description                                                                               |
+| Skill not found        | Wrong location or not synced   | Standalone: place in `~/.claude/skills/` or project `.claude/skills/`. Marketplace: run `mise run release:full` to sync |
+| validate script fails  | Invalid frontmatter            | Check name format (lowercase-hyphen only)                                                                               |
+| Resources not loading  | Wrong path in SKILL.md         | Use relative paths from skill directory                                                                                 |
+| Script execution fails | Missing shebang or permissions | Add `#!/usr/bin/env python3` and `chmod +x`                                                                             |
+| allowed-tools ignored  | API skill (not CLI)            | allowed-tools only works in CLI skills                                                                                  |
+| Description too long   | Over 1024 chars                | Shorten description, move details to SKILL.md body                                                                      |

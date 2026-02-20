@@ -21,7 +21,7 @@
  *   6. Inter-plugin dependencies are tracked and circular deps detected
  *   7. Referenced skills exist in target plugins
  *   8. Hook JSON structure from manage-hooks.sh (prevents "Invalid discriminator value")
- *   9. Skill→command parity: SKILL.md with TRIGGERS must have commands/<name>.md
+ *   9. All skills/{name}/SKILL.md must have name + description frontmatter
  *
  * Integration:
  *   - Pre-commit hook: Add to .husky/pre-commit or .git/hooks/pre-commit
@@ -172,33 +172,9 @@ function validateMarketplaceEntries() {
       }
     }
 
-    // Validate commands path exists (if specified)
+    // Warn if plugin still has deprecated "commands" field (commands/ layer eliminated in v11.54.0)
     if (plugin.commands) {
-      const commandsPath = resolve(process.cwd(), plugin.commands);
-      if (!existsSync(commandsPath)) {
-        errors.push(`${prefix}: Commands directory does not exist: ${plugin.commands}`);
-      } else {
-        const cmdFiles = readdirSync(commandsPath).filter(f => f.endsWith(".md"));
-        for (const cmdFile of cmdFiles) {
-          const cmdContent = readFileSync(join(commandsPath, cmdFile), "utf8");
-          const fmMatch = cmdContent.match(/^---\n([\s\S]*?)\n---/);
-          if (!fmMatch) {
-            errors.push(`${prefix}: Command ${cmdFile} missing YAML frontmatter`);
-          } else {
-            const fm = fmMatch[1];
-            if (!fm.includes("name:")) errors.push(`${prefix}: Command ${cmdFile} missing 'name' in frontmatter`);
-            if (!fm.includes("description:")) errors.push(`${prefix}: Command ${cmdFile} missing 'description' in frontmatter`);
-          }
-        }
-      }
-    }
-
-    // Warn if plugin has commands/ directory but no "commands" field
-    if (plugin.source) {
-      const implicitCmdsDir = resolve(process.cwd(), plugin.source, "commands");
-      if (existsSync(implicitCmdsDir) && !plugin.commands) {
-        warnings.push(`${prefix}: Has commands/ directory but no "commands" field in marketplace.json`);
-      }
+      warnings.push(`${prefix}: Has deprecated "commands" field in marketplace.json — remove it (commands/ layer eliminated, see v11.54.0 migration)`);
     }
 
     // Warn about missing optional but recommended fields
@@ -1051,23 +1027,18 @@ function validateSkillExistence(details) {
 }
 
 /**
- * Validate TRIGGERS → commands/ parity (ADR: 2026-02-20 regression fix)
+ * Validate skills frontmatter completeness (v11.54.0 — replaces parity check)
  *
- * Rule: Any SKILL.md whose frontmatter 'description' contains "TRIGGERS"
- * MUST have a corresponding commands/{skill-name}.md file.
- *
- * Rationale: The Skill() tool resolves only from commands/ (files synced from
- * plugins/{plugin}/commands/). Skills in skills/{skill}/SKILL.md are passive context
- * files. Without commands/{name}.md, Skill(plugin:name) returns "Unknown skill".
+ * Rule: Every skills/{skill}/SKILL.md must have 'name' and 'description'
+ * in its YAML frontmatter. This is the canonical source for both context
+ * and user-invocable slash commands (via sync-commands-to-settings.sh).
  *
  * Returns { errors: [...], warnings: [...] }
  */
-async function validateSkillCommandParity() {
-  const pluginsDir = resolve(process.cwd(), "plugins");
+async function validateAllSkillsFrontmatter() {
   const errors = [];
   const warnings = [];
 
-  // Find all SKILL.md files across all plugins
   const skillPaths = await glob("plugins/*/skills/*/SKILL.md", {
     cwd: process.cwd(),
     absolute: true,
@@ -1076,34 +1047,18 @@ async function validateSkillCommandParity() {
 
   for (const skillPath of skillPaths) {
     const relPath = relative(process.cwd(), skillPath);
-    // path: plugins/<plugin>/skills/<skill>/SKILL.md
-    const parts = relPath.split("/");
-    if (parts.length < 5) continue;
-    const pluginName = parts[1];
-    const skillName = parts[3];
-
     try {
       const content = readFileSync(skillPath, "utf8");
-
-      // Parse frontmatter only
       const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
-      if (!fmMatch) continue; // No frontmatter, skip
-
-      const fm = fmMatch[1];
-
-      // Only enforce for skills that declare TRIGGERS (user-invocable intent)
-      if (!fm.includes("TRIGGERS")) continue;
-
-      // Check if commands/<skill-name>.md exists
-      const commandPath = join(pluginsDir, pluginName, "commands", `${skillName}.md`);
-      if (!existsSync(commandPath)) {
-        errors.push(
-          `${relPath}: SKILL.md has TRIGGERS but missing commands/${skillName}.md` +
-          ` — Skill(${pluginName}:${skillName}) returns "Unknown skill"`
-        );
+      if (!fmMatch) {
+        errors.push(`${relPath}: SKILL.md missing YAML frontmatter`);
+        continue;
       }
+      const fm = fmMatch[1];
+      if (!fm.includes("name:")) errors.push(`${relPath}: missing 'name' in frontmatter`);
+      if (!fm.includes("description:")) errors.push(`${relPath}: missing 'description' in frontmatter`);
     } catch (err) {
-      warnings.push(`Could not validate skill parity: ${relPath} (${err.message})`);
+      warnings.push(`Could not validate skill frontmatter: ${relPath} (${err.message})`);
     }
   }
 
@@ -1342,9 +1297,8 @@ const { errors: hookErrors, warnings: hookWarnings } = await validateHookOutputF
 // ADR: Lesson from user "Chen" - "Invalid discriminator value" from malformed hook structure
 const { errors: hookStructErrors, warnings: hookStructWarnings } = await validateHooksJsonStructure();
 
-// Skill → command parity (TRIGGERS in description must have commands/{name}.md)
-// ADR: 2026-02-20 — skills with TRIGGERS not in commands/ return "Unknown skill" via Skill() tool
-const { errors: parityErrors, warnings: parityWarnings } = await validateSkillCommandParity();
+// Skills frontmatter validation (v11.54.0 — all skills/*/SKILL.md must have name + description)
+const { errors: skillsFrontmatterErrors, warnings: skillsFrontmatterWarnings } = await validateAllSkillsFrontmatter();
 
 // Declared dependency validation (from 'requires' field in marketplace.json)
 // Reference: https://github.com/anthropics/claude-code/issues/9444
@@ -1402,19 +1356,17 @@ if (hookWarnings.length > 0) {
   hasWarnings = true;
 }
 
-// Report skill → command parity errors
-// ADR: 2026-02-20 regression fix — Skill() tool resolves only from commands/
-if (parityErrors.length > 0) {
-  console.error(`\n❌ SKILL → COMMAND PARITY ERRORS (${parityErrors.length}):`);
-  console.error(`   Skills with TRIGGERS in description must have commands/<name>.md`);
-  console.error(`   (Skill() tool resolves only from commands/ — missing file = "Unknown skill")`);
-  parityErrors.forEach((e) => console.error(`   - ${e}`));
+// Report skills frontmatter errors (v11.54.0 — name + description required in all SKILL.md)
+if (skillsFrontmatterErrors.length > 0) {
+  console.error(`\n❌ SKILLS FRONTMATTER ERRORS (${skillsFrontmatterErrors.length}):`);
+  console.error(`   All skills/*/SKILL.md must have 'name' and 'description' in YAML frontmatter`);
+  skillsFrontmatterErrors.forEach((e) => console.error(`   - ${e}`));
   hasErrors = true;
 }
 
-if (parityWarnings.length > 0) {
-  console.warn(`\n⚠️  Skill parity warnings (${parityWarnings.length}):`);
-  parityWarnings.forEach((w) => console.warn(`   - ${w}`));
+if (skillsFrontmatterWarnings.length > 0) {
+  console.warn(`\n⚠️  Skills frontmatter warnings (${skillsFrontmatterWarnings.length}):`);
+  skillsFrontmatterWarnings.forEach((w) => console.warn(`   - ${w}`));
   hasWarnings = true;
 }
 
@@ -1454,7 +1406,7 @@ const allErrors = [
   ...declErrors,
   ...hookErrors,
   ...hookStructErrors,
-  ...parityErrors,
+  ...skillsFrontmatterErrors,
 ];
 const allWarnings = [
   ...(orphaned.length > 0 ? [`${orphaned.length} orphaned entries`] : []),
@@ -1463,7 +1415,7 @@ const allWarnings = [
   ...declWarnings,
   ...hookWarnings,
   ...hookStructWarnings,
-  ...parityWarnings,
+  ...skillsFrontmatterWarnings,
   ...(cycles.length > 0 ? [`${cycles.length} circular dependencies`] : []),
 ];
 
@@ -1479,17 +1431,19 @@ console.log("═".repeat(60));
 console.log(`Errors:   ${allErrors.length}`);
 console.log(`Warnings: ${allWarnings.length}`);
 console.log(`Plugins:  ${directories.length} directories, ${registered.length} registered`);
-// Count commands across all plugins
-const commandCount = registered.reduce((count, p) => {
-  if (p.commands) {
-    const cmdsDir = resolve(process.cwd(), p.commands);
-    if (existsSync(cmdsDir)) {
-      count += readdirSync(cmdsDir).filter(f => f.endsWith(".md")).length;
+// Count skills across all plugins (canonical source: skills/{name}/SKILL.md)
+const skillCount = (getMarketplaceData().plugins || []).reduce((count, p) => {
+  if (p.source) {
+    const skillsDir = resolve(process.cwd(), p.source, "skills");
+    if (existsSync(skillsDir)) {
+      count += readdirSync(skillsDir).filter(d => {
+        return existsSync(join(skillsDir, d, "SKILL.md"));
+      }).length;
     }
   }
   return count;
 }, 0);
-if (commandCount > 0) console.log(`Commands: ${commandCount} command(s) across plugins with commands field`);
+if (skillCount > 0) console.log(`Skills: ${skillCount} skill(s) across registered plugins`);
 console.log(`Dependencies: ${depGraph.size} plugins depend on ${[...new Set([...depGraph.values()].flatMap(s => [...s]))].length} others`);
 console.log("═".repeat(60));
 
