@@ -1,6 +1,7 @@
 ---
 name: symmetric-dogfooding
 description: Bidirectional integration validation where two repositories validate each other before release. TRIGGERS - symmetric dogfooding, bidirectional testing, cross-repo validation, reciprocal testing, polyrepo integration.
+allowed-tools: Read, Bash, Write, Edit, Grep, Glob
 ---
 
 # Symmetric Dogfooding

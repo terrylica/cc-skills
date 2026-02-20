@@ -1,6 +1,7 @@
 ---
 name: iterm2-layout
 description: Configure iTerm2 workspace layouts with TOML. TRIGGERS - iTerm2 layout, workspace tabs, layout.toml, AutoLaunch.
+allowed-tools: Bash, Read, Edit
 ---
 
 # iTerm2 Layout Configuration

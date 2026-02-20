@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2026-02-05
+---
+
 # mise.toml Hygiene Guard Hook
 
 ## Status

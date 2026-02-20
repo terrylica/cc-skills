@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2026-01-12
+---
+
 # mise gh CLI Incompatibility with Claude Code
 
 **Date**: 2026-01-12

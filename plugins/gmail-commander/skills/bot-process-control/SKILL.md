@@ -46,7 +46,7 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
     <string>com.example.gmail-commander-bot</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/<you>/own/<automation-repo>/bin/gmail-commander-bot</string>
+        <string>{{HOME}}/own/<automation-repo>/bin/gmail-commander-bot</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -56,13 +56,13 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
         <true/>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/<you>/own/<automation-repo>/logs/bot-stdout.log</string>
+    <string>{{HOME}}/own/<automation-repo>/logs/bot-stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/<you>/own/<automation-repo>/logs/bot-stderr.log</string>
+    <string>{{HOME}}/own/<automation-repo>/logs/bot-stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/Users/<you>/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
+        <string>{{HOME}}/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
     <key>ThrottleInterval</key>
     <integer>10</integer>
@@ -81,18 +81,18 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
     <string>com.example.gmail-commander-digest</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/<you>/own/<automation-repo>/bin/gmail-commander-digest</string>
+        <string>{{HOME}}/own/<automation-repo>/bin/gmail-commander-digest</string>
     </array>
     <key>StartInterval</key>
     <integer>21600</integer>
     <key>StandardOutPath</key>
-    <string>/Users/<you>/own/<automation-repo>/logs/digest-stdout.log</string>
+    <string>{{HOME}}/own/<automation-repo>/logs/digest-stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/<you>/own/<automation-repo>/logs/digest-stderr.log</string>
+    <string>{{HOME}}/own/<automation-repo>/logs/digest-stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/Users/<you>/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
+        <string>{{HOME}}/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
 </dict>
 </plist>

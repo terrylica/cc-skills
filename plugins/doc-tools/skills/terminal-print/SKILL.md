@@ -1,6 +1,7 @@
 ---
 name: terminal-print
 description: Print iTerm2 terminal output to network printer. TRIGGERS - print terminal, terminal PDF, print session output.
+allowed-tools: Bash, Read
 ---
 
 # Terminal Print

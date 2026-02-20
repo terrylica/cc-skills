@@ -1,6 +1,7 @@
 ---
 name: link-validator
 description: Validate markdown link portability in skills. TRIGGERS - check links, validate portability, fix broken links, relative paths.
+allowed-tools: Bash, Read, Edit, Glob
 ---
 
 # Link Validator

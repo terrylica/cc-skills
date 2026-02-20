@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Full Gmail Commander setup wizard - Gmail OAuth, Telegram bot, launchd services. Discovers 1Password items, configures mise environment, installs launchd plists.
+description: "Full Gmail Commander setup wizard - Gmail OAuth, Telegram bot, launchd services. Discovers 1Password items, configures mise environment, installs launchd plists. TRIGGERS - gmail setup, email bot setup, gmail install, gmail oauth configure."
 ---
 
 # Gmail Commander Setup
@@ -96,8 +96,8 @@ mkdir -p ~/own/<automation-repo>/bin ~/own/<automation-repo>/logs
 cat > ~/own/<automation-repo>/bin/gmail-commander-bot << 'SCRIPT'
 #!/bin/bash
 set -euo pipefail
-eval "$(/Users/<you>/.local/bin/mise activate bash)"
-cd /Users/<you>/own/<automation-repo>
+eval "$("$HOME/.local/bin/mise" activate bash)"
+cd "$HOME/own/<automation-repo>"
 exec bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/bot.ts"
 SCRIPT
 chmod +x ~/own/<automation-repo>/bin/gmail-commander-bot
@@ -106,8 +106,8 @@ chmod +x ~/own/<automation-repo>/bin/gmail-commander-bot
 cat > ~/own/<automation-repo>/bin/gmail-commander-digest << 'SCRIPT'
 #!/bin/bash
 set -euo pipefail
-eval "$(/Users/<you>/.local/bin/mise activate bash)"
-cd /Users/<you>/own/<automation-repo>
+eval "$("$HOME/.local/bin/mise" activate bash)"
+cd "$HOME/own/<automation-repo>"
 exec bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/digest.ts"
 SCRIPT
 chmod +x ~/own/<automation-repo>/bin/gmail-commander-digest

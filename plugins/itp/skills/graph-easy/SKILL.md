@@ -1,6 +1,7 @@
 ---
 name: graph-easy
 description: Create ASCII diagrams for markdown using graph-easy. TRIGGERS - ASCII diagram, graph-easy, architecture diagram, markdown diagram.
+allowed-tools: Bash, Read, Write, Edit
 ---
 
 # Graph-Easy Diagram Skill

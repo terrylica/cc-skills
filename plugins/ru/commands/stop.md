@@ -1,6 +1,6 @@
 ---
 name: stop
-description: Disable autonomous loop mode immediately
+description: "Disable autonomous loop mode immediately. TRIGGERS - ru stop, stop autonomous, disable loop, end autonomous mode."
 allowed-tools: Bash
 argument-hint: ""
 model: haiku

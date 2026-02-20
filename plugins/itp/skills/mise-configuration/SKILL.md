@@ -510,7 +510,7 @@ DATABASE_PASSWORD=hunter2
 
 This works identically in interactive shells, pueue jobs, cron, systemd, and across macOS/Linux.
 
-**Cross-reference**: See `devops-tools:distributed-job-safety` — [G-15](../../devops-tools/skills/distributed-job-safety/references/environment-gotchas.md), [AP-16](../../devops-tools/skills/distributed-job-safety/SKILL.md)
+**Cross-reference**: See `devops-tools:distributed-job-safety` — [G-15](../distributed-job-safety/references/environment-gotchas.md), [AP-16](../distributed-job-safety/SKILL.md)
 
 ## Task Orchestration Integration
 

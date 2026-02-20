@@ -1,6 +1,7 @@
 ---
 name: adr-graph-easy-architect
 description: ASCII architecture diagrams for ADRs via graph-easy. TRIGGERS - ADR diagram, architecture diagram, ASCII diagram.
+allowed-tools: Bash, Read, Write, Edit
 ---
 
 # ADR Graph-Easy Architect
