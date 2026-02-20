@@ -1,3 +1,30 @@
+## [11.53.1](https://github.com/terrylica/cc-skills/compare/v11.53.0...v11.53.1) (2026-02-20)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+27/-25)
+
+### General Documentation
+
+- [Documentation Guide](https://github.com/terrylica/cc-skills/blob/main/docs/CLAUDE.md) - updated (+10)
+
+## Other Documentation
+
+### Other
+
+- [Gmail Commander Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/CLAUDE.md) - updated (+55/-2)
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+35)
+
 # [11.53.0](https://github.com/terrylica/cc-skills/compare/v11.52.0...v11.53.0) (2026-02-20)
 
 
