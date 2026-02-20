@@ -40,7 +40,6 @@ plugins/my-plugin/
 │       ├── SKILL.md      # Main skill content
 │       └── references/   # Supporting docs
 ├── hooks/                # Hook scripts + hooks.json
-├── commands/             # Slash commands (*.md)
 └── scripts/              # Installation/management
 ```
 
