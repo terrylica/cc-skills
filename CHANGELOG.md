@@ -1,3 +1,405 @@
+# [11.54.0](https://github.com/terrylica/cc-skills/compare/v11.53.3...v11.54.0) (2026-02-20)
+
+
+### Features
+
+* **skills:** conform to official skills/ architecture, eliminate commands/ layer ([fdc4837](https://github.com/terrylica/cc-skills/commit/fdc48376e2d77e4ff7fb20273fdff902e139ee9a)), closes [#17361](https://github.com/terrylica/cc-skills/issues/17361) [#18517](https://github.com/terrylica/cc-skills/issues/18517) [#14061](https://github.com/terrylica/cc-skills/issues/14061)
+* **tts:** add optional pySBD sentence-split pass to preprocess pipeline ([f5aad02](https://github.com/terrylica/cc-skills/commit/f5aad02e4c70a127d42743acfd2f3551f7746a91))
+* **tts:** intelligent hard-wrap reflow preprocessing for clipboard TTS ([d4a3750](https://github.com/terrylica/cc-skills/commit/d4a3750d16c4569dc289fa0c20795ef9209011dc))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>asciinema-tools</strong> (18 changes)</summary>
+
+- [analyze](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/analyze/SKILL.md) - renamed from `plugins/asciinema-tools/commands/analyze.md`
+- [backup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/backup/SKILL.md) - renamed from `plugins/asciinema-tools/commands/backup.md`
+- [bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/bootstrap/SKILL.md) - renamed from `plugins/asciinema-tools/commands/bootstrap.md`
+- [convert](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/convert/SKILL.md) - renamed from `plugins/asciinema-tools/commands/convert.md`
+- [daemon-logs](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-logs/SKILL.md) - renamed from `plugins/asciinema-tools/commands/daemon-logs.md`
+- [daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-setup/SKILL.md) - renamed from `plugins/asciinema-tools/commands/daemon-setup.md`
+- [daemon-start](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-start/SKILL.md) - renamed from `plugins/asciinema-tools/commands/daemon-start.md`
+- [daemon-status](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-status/SKILL.md) - renamed from `plugins/asciinema-tools/commands/daemon-status.md`
+- [daemon-stop](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-stop/SKILL.md) - renamed from `plugins/asciinema-tools/commands/daemon-stop.md`
+- [finalize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/finalize/SKILL.md) - renamed from `plugins/asciinema-tools/commands/finalize.md`
+- [format](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/format/SKILL.md) - renamed from `plugins/asciinema-tools/commands/format.md`
+- [full-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/full-workflow/SKILL.md) - renamed from `plugins/asciinema-tools/commands/full-workflow.md`
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/hooks/SKILL.md) - renamed from `plugins/asciinema-tools/commands/hooks.md`
+- [play](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/play/SKILL.md) - renamed from `plugins/asciinema-tools/commands/play.md`
+- [post-session](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/post-session/SKILL.md) - renamed from `plugins/asciinema-tools/commands/post-session.md`
+- [record](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/record/SKILL.md) - renamed from `plugins/asciinema-tools/commands/record.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/setup/SKILL.md) - renamed from `plugins/asciinema-tools/commands/setup.md`
+- [summarize](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/summarize/SKILL.md) - renamed from `plugins/asciinema-tools/commands/summarize.md`
+
+</details>
+
+<details>
+<summary><strong>calcom-commander</strong> (2 changes)</summary>
+
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/health/SKILL.md) - renamed from `plugins/calcom-commander/commands/health.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/setup/SKILL.md) - renamed from `plugins/calcom-commander/commands/setup.md`
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [dual-channel-watchexec-notifications](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec-notifications/SKILL.md) - renamed from `plugins/devops-tools/commands/dual-channel-watchexec-notifications.md`
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 change)</summary>
+
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/hooks/SKILL.md) - renamed from `plugins/dotfiles-tools/commands/hooks.md`
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/hooks/SKILL.md) - renamed from `plugins/gh-tools/commands/hooks.md`
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow</strong> (4 changes)</summary>
+
+- [contribute](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/contribute/SKILL.md) - renamed from `plugins/git-town-workflow/commands/contribute.md`
+- [fork](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/fork/SKILL.md) - renamed from `plugins/git-town-workflow/commands/fork.md`
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/hooks/SKILL.md) - renamed from `plugins/git-town-workflow/commands/hooks.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/setup/SKILL.md) - renamed from `plugins/git-town-workflow/commands/setup.md`
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (2 changes)</summary>
+
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/health/SKILL.md) - renamed from `plugins/gmail-commander/commands/health.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/setup/SKILL.md) - renamed from `plugins/gmail-commander/commands/setup.md`
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (4 changes)</summary>
+
+- [go](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/go/SKILL.md) - renamed from `plugins/itp/commands/go.md`
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/hooks/SKILL.md) - renamed from `plugins/itp/commands/hooks.md`
+- [release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/release/SKILL.md) - renamed from `plugins/itp/commands/release.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/setup/SKILL.md) - renamed from `plugins/itp/commands/setup.md`
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 change)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/setup/SKILL.md) - renamed from `plugins/itp-hooks/commands/setup.md`
+
+</details>
+
+<details>
+<summary><strong>mise</strong> (4 changes)</summary>
+
+- [list-repo-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/list-repo-tasks/SKILL.md) - renamed from `plugins/mise/commands/list-repo-tasks.md`
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - renamed from `plugins/mise/commands/run-full-release.md`
+- [show-env-status](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/show-env-status/SKILL.md) - renamed from `plugins/mise/commands/show-env-status.md`
+- [sred-commit](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/sred-commit/SKILL.md) - renamed from `plugins/mise/commands/sred-commit.md`
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (2 changes)</summary>
+
+- [create](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/create/SKILL.md) - renamed from `plugins/plugin-dev/commands/create.md`
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+44/-10)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 change)</summary>
+
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/hooks/SKILL.md) - renamed from `plugins/productivity-tools/commands/hooks.md`
+
+</details>
+
+<details>
+<summary><strong>ru</strong> (9 changes)</summary>
+
+- [audit-now](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/audit-now/SKILL.md) - renamed from `plugins/ru/commands/audit-now.md`
+- [config](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/config/SKILL.md) - renamed from `plugins/ru/commands/config.md`
+- [encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/encourage/SKILL.md) - renamed from `plugins/ru/commands/encourage.md`
+- [forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/forbid/SKILL.md) - renamed from `plugins/ru/commands/forbid.md`
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/hooks/SKILL.md) - renamed from `plugins/ru/commands/hooks.md`
+- [start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/start/SKILL.md) - renamed from `plugins/ru/commands/start.md`
+- [status](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/status/SKILL.md) - renamed from `plugins/ru/commands/status.md`
+- [stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/stop/SKILL.md) - renamed from `plugins/ru/commands/stop.md`
+- [wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/wizard/SKILL.md) - renamed from `plugins/ru/commands/wizard.md`
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (3 changes)</summary>
+
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/hooks/SKILL.md) - renamed from `plugins/statusline-tools/commands/hooks.md`
+- [ignore](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/ignore/SKILL.md) - renamed from `plugins/statusline-tools/commands/ignore.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/setup/SKILL.md) - renamed from `plugins/statusline-tools/commands/setup.md`
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (3 changes)</summary>
+
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/health/SKILL.md) - renamed from `plugins/tts-telegram-sync/commands/health.md`
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/hooks/SKILL.md) - renamed from `plugins/tts-telegram-sync/commands/hooks.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/setup/SKILL.md) - renamed from `plugins/tts-telegram-sync/commands/setup.md`
+
+</details>
+
+
+### Commands
+
+<details>
+<summary><strong>alpha-forge-worktree</strong> (1 command)</summary>
+
+- [worktree-manager](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/alpha-forge-worktree/commands/worktree-manager.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools</strong> (6 commands)</summary>
+
+- [asciinema-analyzer](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/asciinema-tools/commands/asciinema-analyzer.md) - deleted
+- [asciinema-cast-format](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/asciinema-tools/commands/asciinema-cast-format.md) - deleted
+- [asciinema-converter](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/asciinema-tools/commands/asciinema-converter.md) - deleted
+- [asciinema-player](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/asciinema-tools/commands/asciinema-player.md) - deleted
+- [asciinema-recorder](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/asciinema-tools/commands/asciinema-recorder.md) - deleted
+- [asciinema-streaming-backup](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/asciinema-tools/commands/asciinema-streaming-backup.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>calcom-commander</strong> (4 commands)</summary>
+
+- [booking-config](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/calcom-commander/commands/booking-config.md) - deleted
+- [booking-notify](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/calcom-commander/commands/booking-notify.md) - deleted
+- [calcom-access](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/calcom-commander/commands/calcom-access.md) - deleted
+- [infra-deploy](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/calcom-commander/commands/infra-deploy.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (17 commands)</summary>
+
+- [clickhouse-cloud-management](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/clickhouse-cloud-management.md) - deleted
+- [clickhouse-pydantic-config](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/clickhouse-pydantic-config.md) - deleted
+- [cloudflare-workers-publish](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/cloudflare-workers-publish.md) - deleted
+- [disk-hygiene](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/disk-hygiene.md) - deleted
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/distributed-job-safety.md) - deleted
+- [doppler-secret-validation](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/doppler-secret-validation.md) - deleted
+- [doppler-workflows](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/doppler-workflows.md) - deleted
+- [dual-channel-watchexec](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/dual-channel-watchexec.md) - deleted
+- [firecrawl-self-hosted](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/firecrawl-self-hosted.md) - deleted
+- [ml-data-pipeline-architecture](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/ml-data-pipeline-architecture.md) - deleted
+- [ml-failfast-validation](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/ml-failfast-validation.md) - deleted
+- [mlflow-python](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/mlflow-python.md) - deleted
+- [project-directory-migration](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/project-directory-migration.md) - deleted
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/pueue-job-orchestration.md) - deleted
+- [python-logging-best-practices](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/python-logging-best-practices.md) - deleted
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/session-chronicle.md) - deleted
+- [session-recovery](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/devops-tools/commands/session-recovery.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (9 commands)</summary>
+
+- [ascii-diagram-validator](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/ascii-diagram-validator.md) - deleted
+- [documentation-standards](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/documentation-standards.md) - deleted
+- [glossary-management](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/glossary-management.md) - deleted
+- [latex-build](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/latex-build.md) - deleted
+- [latex-setup](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/latex-setup.md) - deleted
+- [latex-tables](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/latex-tables.md) - deleted
+- [pandoc-pdf-generation](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/pandoc-pdf-generation.md) - deleted
+- [plotext-financial-chart](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/plotext-financial-chart.md) - deleted
+- [terminal-print](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/doc-tools/commands/terminal-print.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 command)</summary>
+
+- [chezmoi-workflows](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/dotfiles-tools/commands/chezmoi-workflows.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>gdrive-tools</strong> (1 command)</summary>
+
+- [gdrive-access](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gdrive-tools/commands/gdrive-access.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (5 commands)</summary>
+
+- [fork-intelligence](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gh-tools/commands/fork-intelligence.md) - deleted
+- [issue-create](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gh-tools/commands/issue-create.md) - deleted
+- [issues-workflow](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gh-tools/commands/issues-workflow.md) - deleted
+- [pr-gfm-validator](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gh-tools/commands/pr-gfm-validator.md) - deleted
+- [research-archival](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gh-tools/commands/research-archival.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (4 commands)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gmail-commander/commands/bot-process-control.md) - deleted
+- [email-triage](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gmail-commander/commands/email-triage.md) - deleted
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gmail-commander/commands/gmail-access.md) - deleted
+- [interactive-bot](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/gmail-commander/commands/interactive-bot.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>imessage-tools</strong> (1 command)</summary>
+
+- [imessage-query](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/imessage-tools/commands/imessage-query.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>iterm2-layout-config</strong> (1 command)</summary>
+
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/iterm2-layout-config/commands/iterm2-layout.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (11 commands)</summary>
+
+- [adr-code-traceability](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/adr-code-traceability.md) - deleted
+- [adr-graph-easy-architect](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/adr-graph-easy-architect.md) - deleted
+- [bootstrap-monorepo](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/bootstrap-monorepo.md) - deleted
+- [code-hardcode-audit](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/code-hardcode-audit.md) - deleted
+- [graph-easy](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/graph-easy.md) - deleted
+- [impl-standards](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/impl-standards.md) - deleted
+- [implement-plan-preflight](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/implement-plan-preflight.md) - deleted
+- [mise-configuration](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/mise-configuration.md) - deleted
+- [mise-tasks](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/mise-tasks.md) - deleted
+- [pypi-doppler](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/pypi-doppler.md) - deleted
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp/commands/semantic-release.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 command)</summary>
+
+- [hooks-development](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/itp-hooks/commands/hooks-development.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>link-tools</strong> (1 command)</summary>
+
+- [link-validator](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/link-tools/commands/link-validator.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>mql5</strong> (4 commands)</summary>
+
+- [article-extractor](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/mql5/commands/article-extractor.md) - deleted
+- [log-reader](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/mql5/commands/log-reader.md) - deleted
+- [mql5-indicator-patterns](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/mql5/commands/mql5-indicator-patterns.md) - deleted
+- [python-workspace](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/mql5/commands/python-workspace.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>notion-api</strong> (1 command)</summary>
+
+- [notion-sdk](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/notion-api/commands/notion-sdk.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (2 commands)</summary>
+
+- [plugin-validator](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/plugin-dev/commands/plugin-validator.md) - deleted
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/plugin-dev/commands/skill-architecture.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (2 commands)</summary>
+
+- [calendar-event-manager](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/productivity-tools/commands/calendar-event-manager.md) - deleted
+- [slash-command-factory](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/productivity-tools/commands/slash-command-factory.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (8 commands)</summary>
+
+- [clickhouse-architect](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quality-tools/commands/clickhouse-architect.md) - deleted
+- [code-clone-assistant](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quality-tools/commands/code-clone-assistant.md) - deleted
+- [dead-code-detector](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quality-tools/commands/dead-code-detector.md) - deleted
+- [multi-agent-e2e-validation](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quality-tools/commands/multi-agent-e2e-validation.md) - deleted
+- [multi-agent-performance-profiling](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quality-tools/commands/multi-agent-performance-profiling.md) - deleted
+- [pre-ship-review](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quality-tools/commands/pre-ship-review.md) - deleted
+- [schema-e2e-validation](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quality-tools/commands/schema-e2e-validation.md) - deleted
+- [symmetric-dogfooding](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quality-tools/commands/symmetric-dogfooding.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (4 commands)</summary>
+
+- [adaptive-wfo-epoch](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quant-research/commands/adaptive-wfo-epoch.md) - deleted
+- [backtesting-py-oracle](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quant-research/commands/backtesting-py-oracle.md) - deleted
+- [evolutionary-metric-ranking](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quant-research/commands/evolutionary-metric-ranking.md) - deleted
+- [rangebar-eval-metrics](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/quant-research/commands/rangebar-eval-metrics.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (1 command)</summary>
+
+- [session-info](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/statusline-tools/commands/session-info.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (8 commands)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/tts-telegram-sync/commands/bot-process-control.md) - deleted
+- [clean-component-removal](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/tts-telegram-sync/commands/clean-component-removal.md) - deleted
+- [component-version-upgrade](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/tts-telegram-sync/commands/component-version-upgrade.md) - deleted
+- [diagnostic-issue-resolver](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/tts-telegram-sync/commands/diagnostic-issue-resolver.md) - deleted
+- [full-stack-bootstrap](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/tts-telegram-sync/commands/full-stack-bootstrap.md) - deleted
+- [settings-and-tuning](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/tts-telegram-sync/commands/settings-and-tuning.md) - deleted
+- [system-health-check](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/tts-telegram-sync/commands/system-health-check.md) - deleted
+- [voice-quality-audition](https://github.com/terrylica/cc-skills/blob/v11.53.3/plugins/tts-telegram-sync/commands/voice-quality-audition.md) - deleted
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (-1)
+
 ## [11.53.3](https://github.com/terrylica/cc-skills/compare/v11.53.2...v11.53.3) (2026-02-20)
 
 
