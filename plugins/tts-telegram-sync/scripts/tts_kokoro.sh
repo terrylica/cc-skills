@@ -36,12 +36,28 @@ kill_existing_tts
 tts_log "Killed existing TTS playback, cleared lock, cleaned stale WAVs"
 
 # --- Read clipboard ---
-TEXT="$(pbpaste 2>/dev/null)"
-if [[ -z "$TEXT" ]]; then
+RAW_TEXT="$(pbpaste 2>/dev/null)"
+if [[ -z "$RAW_TEXT" ]]; then
     tts_log "Clipboard is empty"
     exit 1
 fi
-tts_log "Clipboard: ${#TEXT} chars"
+tts_log "Clipboard: ${#RAW_TEXT} chars (raw)"
+
+# --- Preprocess: reflow hard-wrapped lines for natural TTS ---
+PREPROCESS_SCRIPT="${SCRIPT_DIR}/lib/tts_preprocess.py"
+if [[ -f "$PREPROCESS_SCRIPT" ]] && [[ -x "$KOKORO_PYTHON" ]]; then
+    TEXT="$(printf '%s' "$RAW_TEXT" | "$KOKORO_PYTHON" "$PREPROCESS_SCRIPT" 2>>"$LOG" || printf '%s' "$RAW_TEXT")"
+    if [[ "${#TEXT}" -ne "${#RAW_TEXT}" ]]; then
+        tts_log "Preprocessed: ${#RAW_TEXT} → ${#TEXT} chars"
+    fi
+else
+    TEXT="$RAW_TEXT"
+fi
+
+if [[ -z "$TEXT" ]]; then
+    tts_log "Text empty after preprocessing"
+    exit 1
+fi
 
 # --- Signal that TTS is processing ---
 play_tts_signal
