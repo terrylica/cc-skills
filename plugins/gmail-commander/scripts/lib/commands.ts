@@ -27,6 +27,7 @@ export const BOT_COMMANDS = [
   { command: "read", description: "Read email by ID" },
   { command: "compose", description: "Compose a new email" },
   { command: "reply", description: "Reply to an email" },
+  { command: "abort", description: "Cancel current compose/reply action" },
   { command: "drafts", description: "List draft emails" },
   { command: "digest", description: "Run email digest now" },
   { command: "status", description: "Bot status and stats" },
@@ -423,6 +424,19 @@ export function registerCommands(
       { parse_mode: "HTML" }
     );
     auditLog("bot.reply_start", { messageId });
+  });
+
+  // /abort — cancel current compose/reply session
+  bot.command("abort", async (ctx) => {
+    state.incrementCommands();
+    if (sessions?.has(ctx.chat.id)) {
+      sessions.delete(ctx.chat.id);
+      await ctx.reply("<i>Action cancelled.</i>", { parse_mode: "HTML" });
+      auditLog("bot.abort", { hadSession: true });
+    } else {
+      await ctx.reply("<i>Nothing to cancel.</i>", { parse_mode: "HTML" });
+      auditLog("bot.abort", { hadSession: false });
+    }
   });
 
   // /drafts — list draft emails
