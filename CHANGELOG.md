@@ -1,3 +1,29 @@
+# [11.53.0](https://github.com/terrylica/cc-skills/compare/v11.52.0...v11.53.0) (2026-02-20)
+
+
+### Features
+
+* **gmail-commander:** add /abort command + hourly OAuth token refresher ([a84d1d4](https://github.com/terrylica/cc-skills/commit/a84d1d4dfacce76d660953b468ce410a97432561))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-commander</strong> (1 change)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/bot-process-control/SKILL.md) - updated (+104/-3)
+
+</details>
+
 # [11.52.0](https://github.com/terrylica/cc-skills/compare/v11.51.2...v11.52.0) (2026-02-20)
 
 
