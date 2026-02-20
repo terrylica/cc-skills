@@ -1,3 +1,33 @@
+## [11.53.2](https://github.com/terrylica/cc-skills/compare/v11.53.1...v11.53.2) (2026-02-20)
+
+
+### Bug Fixes
+
+* **gh-tools:** expose 5 skills as user-invocable slash commands ([001e9a6](https://github.com/terrylica/cc-skills/commit/001e9a6eb1fb191edef07100f14a2fa9d9930e9c)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Commands
+
+<details>
+<summary><strong>gh-tools</strong> (5 commands)</summary>
+
+- [Fork Intelligence](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/fork-intelligence.md) - new (+322)
+- [Issue Create Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/issue-create.md) - new (+198)
+- [GitHub Issues-First Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/issues-workflow.md) - new (+453)
+- [PR GFM Link Validator](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/pr-gfm-validator.md) - new (+277)
+- [Research Archival](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/commands/research-archival.md) - new (+335)
+
+</details>
+
 ## [11.53.1](https://github.com/terrylica/cc-skills/compare/v11.53.0...v11.53.1) (2026-02-20)
 
 
