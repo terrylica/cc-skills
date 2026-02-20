@@ -441,9 +441,44 @@ Add `# BASH-LAUNCHD-OK` (in scripts) or `<!-- BASH-LAUNCHD-OK -->` (in plists) t
 | 3 binaries each import EventKit            | 3 prompts   | Anti-pattern |
 | 1 reader binary + 2 callers via subprocess | 1 prompt    | Correct      |
 
+### TCC Anti-Pattern: Subprocess Credential Access
+
+**Problem**: A launchd Swift binary that spawns `op` (1Password CLI) as a subprocess on every run triggers the macOS TCC prompt "would like to access data from other apps" — even though the binary is compiled Swift. **Compiled language does NOT bypass TCC. TCC is based on what the binary does at runtime, not what language it's written in.**
+
+**Context**: The `gmail-oauth-token-hourly-refresher` runs hourly to refresh OAuth access tokens. It originally called `op item get` on every run to fetch OAuth app credentials (`client_id`/`client_secret`) from 1Password.
+
+**Fix**: Cache static credentials locally on first run. Subsequent runs read from local cache files only — no subprocess spawning, no TCC prompt.
+
+```swift
+// Cache file: ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
+// Check cache first; fall back to `op` only when cache is missing
+
+if cacheExists && cacheValid {
+    clientId = cache["client_id"]       // Local file read — no TCC
+    clientSecret = cache["client_secret"]
+} else {
+    // One-time 1Password fetch → TCC prompt appears ONCE
+    fetchFromOP() → writeCache()        // All future runs skip this branch
+}
+```
+
+**When to apply**: Any binary that fetches the same static credentials (OAuth app credentials, API keys, etc.) on every invocation. Dynamic credentials (tokens, session keys) cannot be cached and must be fetched fresh — but those typically live in local files already.
+
+**To force re-fetch** (e.g., after rotating credentials in 1Password):
+
+```bash
+rm ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
+```
+
+| Pattern                                    | TCC Prompts      | Approach     |
+| ------------------------------------------ | ---------------- | ------------ |
+| Call `op` on every hourly run              | Every run        | Anti-pattern |
+| Cache static creds, call `op` only on miss | Once (first run) | Correct      |
+
 ### Reference
 
 - Examples: `~/.claude/automation/calendar-alarm-sweep/swift-cli/` (CalendarAnnounce.swift, CalendarAlarmSweep.swift)
+- Credential caching: `~/.claude/automation/gmail-token-refresher/main.swift`
 
 ## Code Correctness Philosophy
 
