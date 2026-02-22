@@ -22,6 +22,7 @@ interface StopHookInput {
   sessionId?: string;   // Fallback
   cwd?: string;
   slug?: string;
+  transcript_path?: string;  // Claude Code provides this directly
 }
 
 interface NotificationFile {
@@ -68,73 +69,63 @@ async function main() {
     hookLog(`Hook input: ${stdin.slice(0, 200)}`);
     hookLog(`Session ID: ${sessionId}, CWD: ${cwd}`);
 
-    // Find transcript file by scanning all project directories
-    const projectsDir = join(
-      process.env.HOME || "~",
-      ".claude",
-      "projects"
-    );
+    // Use transcript_path from stdin (Claude Code provides it directly).
+    // Fall back to filesystem scan only when transcript_path is absent.
+    const { readdirSync, statSync, existsSync, mkdirSync } = await import("fs");
 
-    let transcriptPath = "";
+    let transcriptPath = input.transcript_path || "";
     let finalSessionId = sessionId;
 
-    const { readdirSync, statSync, existsSync } = await import("fs");
+    if (transcriptPath) {
+      hookLog(`Using transcript_path from stdin: ${transcriptPath}`);
+    } else {
+      // Fallback: scan project directories for the session JSONL
+      const projectsDir = join(process.env.HOME || "~", ".claude", "projects");
 
-    // If we have a session ID, search for it across all project directories
-    if (sessionId !== "unknown") {
-      try {
-        const projectDirs = readdirSync(projectsDir);
-        for (const dir of projectDirs) {
-          const candidatePath = join(projectsDir, dir, `${sessionId}.jsonl`);
-          if (existsSync(candidatePath)) {
-            transcriptPath = candidatePath;
-            hookLog(`Found session at: ${transcriptPath}`);
-            break;
+      if (sessionId !== "unknown") {
+        try {
+          const projectDirs = readdirSync(projectsDir);
+          for (const dir of projectDirs) {
+            const candidatePath = join(projectsDir, dir, `${sessionId}.jsonl`);
+            if (existsSync(candidatePath)) {
+              transcriptPath = candidatePath;
+              hookLog(`Found session at: ${transcriptPath}`);
+              break;
+            }
           }
+        } catch (e) {
+          trackHookError("telegram-notify-stop", `Error searching for session: ${e}`);
         }
-      } catch (e) {
-        trackHookError("telegram-notify-stop", `Error searching for session: ${e}`);
       }
-    }
 
-    // If session not found or unknown, find the most recently modified .jsonl across all projects
-    if (!transcriptPath) {
-      try {
-        const allFiles: { name: string; path: string; mtime: number }[] = [];
-        const projectDirs = readdirSync(projectsDir);
-
-        for (const dir of projectDirs) {
-          const projectDir = join(projectsDir, dir);
-          try {
-            const stat = statSync(projectDir);
-            if (!stat.isDirectory()) continue;
-
-            const files = readdirSync(projectDir)
-              .filter(f => f.endsWith(".jsonl") && !f.includes("subagents"))
-              .map(f => {
-                const filePath = join(projectDir, f);
-                return {
-                  name: f,
-                  path: filePath,
-                  mtime: statSync(filePath).mtimeMs
-                };
-              });
-            allFiles.push(...files);
-          } catch (e) {
-            // Skip directories we can't read
+      // Last resort: most recently modified .jsonl across all projects
+      if (!transcriptPath) {
+        try {
+          const allFiles: { name: string; path: string; mtime: number }[] = [];
+          const projectDirs = readdirSync(projectsDir);
+          for (const dir of projectDirs) {
+            const projectDir = join(projectsDir, dir);
+            try {
+              const stat = statSync(projectDir);
+              if (!stat.isDirectory()) continue;
+              const files = readdirSync(projectDir)
+                .filter(f => f.endsWith(".jsonl") && !f.includes("subagents"))
+                .map(f => {
+                  const filePath = join(projectDir, f);
+                  return { name: f, path: filePath, mtime: statSync(filePath).mtimeMs };
+                });
+              allFiles.push(...files);
+            } catch { /* skip unreadable dirs */ }
           }
+          allFiles.sort((a, b) => b.mtime - a.mtime);
+          if (allFiles.length > 0 && allFiles[0]) {
+            transcriptPath = allFiles[0].path;
+            finalSessionId = allFiles[0].name.replace(".jsonl", "");
+            hookLog(`Found most recent session: ${finalSessionId.slice(0, 8)} at ${transcriptPath}`);
+          }
+        } catch (e) {
+          trackHookError("telegram-notify-stop", `Could not find session files: ${e}`);
         }
-
-        // Sort by modification time and get the most recent
-        allFiles.sort((a, b) => b.mtime - a.mtime);
-
-        if (allFiles.length > 0 && allFiles[0]) {
-          transcriptPath = allFiles[0].path;
-          finalSessionId = allFiles[0].name.replace(".jsonl", "");
-          hookLog(`Found most recent session: ${finalSessionId.slice(0, 8)} at ${transcriptPath}`);
-        }
-      } catch (e) {
-        trackHookError("telegram-notify-stop", `Could not find session files: ${e}`);
       }
     }
 
@@ -152,6 +143,7 @@ async function main() {
       "state",
       "notifications"
     );
+    mkdirSync(notificationDir, { recursive: true });
 
     // Extract iTerm2 session UUID (format: "w0t1p1:UUID")
     const rawItermId = process.env.ITERM_SESSION_ID || "";
@@ -176,7 +168,7 @@ async function main() {
   } catch (error) {
     hookLog(`[STOP-HOOK] ERROR: ${error}`);
     console.error("Stop hook error:", error);
-    process.exit(1);
+    process.exit(0); // fail-open: errors tracked via hookLog + trackHookError
   }
 }
 
