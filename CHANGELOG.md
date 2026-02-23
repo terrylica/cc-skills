@@ -1,3 +1,47 @@
+# [11.55.0](https://github.com/terrylica/cc-skills/compare/v11.54.2...v11.55.0) (2026-02-23)
+
+
+### Bug Fixes
+
+* **ru:** narrow deletion_patterns to prevent false-positive blocking ([69c502e](https://github.com/terrylica/cc-skills/commit/69c502ea3ba7c5bca87613d06131b5f8e7c32c29))
+
+
+### Features
+
+* **devops-tools:** add claude-code-proxy-patterns skill ([9b1c75b](https://github.com/terrylica/cc-skills/commit/9b1c75ba4569cfd958e63053ba1ffaafdd3337bc))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [claude-code-proxy-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) - new (+358)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/claude-code-proxy-patterns</strong> (4 files)</summary>
+
+- [Claude Code Proxy Anti-Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/anti-patterns.md) - new (+242)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/evolution-log.md) - new (+10)
+- [Claude Code OAuth Internals](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/oauth-internals.md) - new (+244)
+- [Provider Compatibility Matrix](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/provider-compatibility.md) - new (+104)
+
+</details>
+
 ## [11.54.2](https://github.com/terrylica/cc-skills/compare/v11.54.1...v11.54.2) (2026-02-23)
 
 
