@@ -1,3 +1,24 @@
+## [11.57.1](https://github.com/terrylica/cc-skills/compare/v11.57.0...v11.57.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* **itp-hooks:** expand cargo-tty-guard to protect foreground cargo commands ([cf188f6](https://github.com/terrylica/cc-skills/commit/cf188f6a0afe534c920acc216529b7cf5214bc1a)), closes [#11898](https://github.com/terrylica/cc-skills/issues/11898) [#12507](https://github.com/terrylica/cc-skills/issues/12507) [#13598](https://github.com/terrylica/cc-skills/issues/13598)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+2)
+
 # [11.57.0](https://github.com/terrylica/cc-skills/compare/v11.56.1...v11.57.0) (2026-02-23)
 
 
