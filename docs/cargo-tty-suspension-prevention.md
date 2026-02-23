@@ -79,6 +79,57 @@ NO  → Allow command to pass through
 | `cargo bench & # CARGO-TTY-SKIP` | ✓ Opt-out          | Allow             | ✅ User override        |
 | `cargo bench # CARGO-TTY-WRAP`   | ✓ Opt-in           | PUEUE wrapper     | ✅ Force protection     |
 
+## Hook Implementation Details
+
+### PUEUE Integration
+
+The hook automatically queues cargo commands to the PUEUE daemon for process isolation:
+
+```bash
+# What happens internally:
+TASK_ID=$(pueue add --print-task-id -w '/cwd' -- cargo bench 2>/dev/null | tail -1)
+pueue wait "$TASK_ID" --quiet 2>/dev/null
+pueue log "$TASK_ID" 2>/dev/null  # Show output (cleaner than --full)
+```
+
+**Key design points**:
+
+- Uses PUEUE's `--print-task-id` for reliable task tracking
+- Suppresses STDERR logging (`2>/dev/null`) for cleaner output
+- Extracts task ID with `tail -1` (simpler than regex)
+- Waits for task completion synchronously before returning
+- Falls back to `nohup` if PUEUE daemon unavailable
+
+### Task Observability
+
+When a cargo command is queued:
+
+```
+🛡️  Cargo TTY Guard: Redirecting cargo command to PUEUE daemon
+ℹ️  PUEUE task 42 queued
+✓ PUEUE task 42 completed
+[actual cargo output...]
+```
+
+User can manually track task progress:
+
+```bash
+pueue log 42              # View task output
+pueue status              # View all queued tasks
+pueue follow 42           # Stream task output in real-time
+```
+
+### Fallback Behavior
+
+If PUEUE daemon is not running:
+
+```bash
+⚠️  PUEUE unavailable, falling back to nohup
+   Output saved to: /tmp/cargo-tty-12345.log
+```
+
+The command still completes safely with output logged to a temporary file for debugging.
+
 ## Installation & Deployment
 
 ### Prerequisites
