@@ -1,3 +1,27 @@
+## [11.54.2](https://github.com/terrylica/cc-skills/compare/v11.54.1...v11.54.2) (2026-02-23)
+
+
+### Bug Fixes
+
+* **gmail-commander:** filter stop hook to gmail project dir, prevent cross-session noise ([f81d9c3](https://github.com/terrylica/cc-skills/commit/f81d9c34367aea31762c8e68d71c099a8d7a60dd))
+* **tts-telegram-sync:** use transcript_path from stdin, fail-open, mkdirSync ([a9f2fb1](https://github.com/terrylica/cc-skills/commit/a9f2fb17706453aaa9a92cbfd264953b81292f46))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [devops-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/CLAUDE.md) - new (+86)
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+53)
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+32)
+
 ## [11.54.1](https://github.com/terrylica/cc-skills/compare/v11.54.0...v11.54.1) (2026-02-20)
 
 # [11.54.0](https://github.com/terrylica/cc-skills/compare/v11.53.3...v11.54.0) (2026-02-20)
