@@ -1,3 +1,10 @@
+# [11.57.0](https://github.com/terrylica/cc-skills/compare/v11.56.1...v11.57.0) (2026-02-23)
+
+
+### Features
+
+* **itp-hooks:** universal subprocess TTY guard - expanded scope to all tools ([3d157e1](https://github.com/terrylica/cc-skills/commit/3d157e103cdc3dfd0c4a75ed8173a77f89252ac7)), closes [#11898](https://github.com/terrylica/cc-skills/issues/11898) [#12507](https://github.com/terrylica/cc-skills/issues/12507) [#13598](https://github.com/terrylica/cc-skills/issues/13598)
+
 ## [11.56.1](https://github.com/terrylica/cc-skills/compare/v11.56.0...v11.56.1) (2026-02-23)
 
 
