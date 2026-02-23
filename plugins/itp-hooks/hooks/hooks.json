@@ -3,6 +3,17 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-subprocess-stdin-inlet-guard.ts",
+            "timeout": 5000,
+            "description": "Universal stdin inlet guard - disconnects subprocess stdin for ALL tools"
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {
@@ -155,6 +166,17 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-subprocess-orphan-cleanup.ts",
+            "timeout": 5000,
+            "description": "Orphan process cleanup - removes zombie/orphaned subprocesses after tool execution"
+          }
+        ]
+      },
+      {
         "matcher": "Bash|Write|Edit",
         "hooks": [
           {
@@ -203,6 +225,12 @@
     "Stop": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-subprocess-session-cleanup.ts",
+            "timeout": 10000,
+            "description": "Session cleanup - kills PUEUE jobs, background processes, clears TTY references"
+          },
           {
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook-error-summary.ts",
