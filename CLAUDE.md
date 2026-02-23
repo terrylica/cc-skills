@@ -23,21 +23,23 @@ CLAUDE.md (this file)                  ◄── Hub: Navigation + Essentials
 
 ## Navigation
 
-| Topic            | Document                                                                     |
-| ---------------- | ---------------------------------------------------------------------------- |
-| Installation     | [README.md](./README.md)                                                     |
-| Plugin Dev       | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                     |
-| Documentation    | [docs/CLAUDE.md](./docs/CLAUDE.md)                                           |
-| Hooks Dev        | [docs/HOOKS.md](./docs/HOOKS.md)                                             |
-| gh-tools         | [plugins/gh-tools/CLAUDE.md](./plugins/gh-tools/CLAUDE.md)                   |
-| Gmail Bot        | [plugins/gmail-commander/CLAUDE.md](./plugins/gmail-commander/CLAUDE.md)     |
-| TTS Bot          | [plugins/tts-telegram-sync/CLAUDE.md](./plugins/tts-telegram-sync/CLAUDE.md) |
-| Release          | [docs/RELEASE.md](./docs/RELEASE.md)                                         |
-| Plugin Lifecycle | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                       |
-| ITP Workflow     | [plugins/itp/README.md](./plugins/itp/README.md)                             |
-| Troubleshooting  | [docs/troubleshooting/](./docs/troubleshooting/)                             |
-| ADRs             | [docs/adr/](./docs/adr/)                                                     |
-| Resume Context   | [docs/RESUME.md](./docs/RESUME.md)                                           |
+| Topic                      | Document                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------ |
+| Installation               | [README.md](./README.md)                                                             |
+| Plugin Dev                 | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                             |
+| Documentation              | [docs/CLAUDE.md](./docs/CLAUDE.md)                                                   |
+| Hooks Dev                  | [docs/HOOKS.md](./docs/HOOKS.md)                                                     |
+| Cargo TTY Suspension Fix   | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md) |
+| gh-tools                   | [plugins/gh-tools/CLAUDE.md](./plugins/gh-tools/CLAUDE.md)                           |
+| Gmail Bot                  | [plugins/gmail-commander/CLAUDE.md](./plugins/gmail-commander/CLAUDE.md)             |
+| TTS Bot                    | [plugins/tts-telegram-sync/CLAUDE.md](./plugins/tts-telegram-sync/CLAUDE.md)         |
+| ITP Hooks (Process Guards) | [plugins/itp-hooks/CLAUDE.md](./plugins/itp-hooks/CLAUDE.md)                         |
+| Release                    | [docs/RELEASE.md](./docs/RELEASE.md)                                                 |
+| Plugin Lifecycle           | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                               |
+| ITP Workflow               | [plugins/itp/README.md](./plugins/itp/README.md)                                     |
+| Troubleshooting            | [docs/troubleshooting/](./docs/troubleshooting/)                                     |
+| ADRs                       | [docs/adr/](./docs/adr/)                                                             |
+| Resume Context             | [docs/RESUME.md](./docs/RESUME.md)                                                   |
 
 ## Essential Commands
 
@@ -115,6 +117,8 @@ bun pm ls -g                 # List
 **Auto-upgrade**: `com.example.mise_autoupgrade` runs every 2 hours.
 
 ## Recent Lessons Learned
+
+**2026-02-23**: Cargo TTY suspension prevention hook added - prevents Claude Code suspension when running `cargo bench/test/build &`. Uses PUEUE daemon for process isolation (eliminates stdin inheritance). [Full Guide](./docs/cargo-tty-suspension-prevention.md) | [Hook](./plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts) | [GitHub Issues #11898, #12507, #13598](https://github.com/anthropics/claude-code/issues)
 
 **2026-02-20**: Swift launchd binaries that spawn `op` CLI trigger macOS TCC "access data from other apps" prompt — compiled Swift does NOT bypass TCC. Fix: cache static credentials (client_id/client_secret) locally on first run; subsequent runs read only local files, no TCC prompt. [itp-hooks CLAUDE.md](./plugins/itp-hooks/CLAUDE.md#native-binary-guard-macos-launchd)
 

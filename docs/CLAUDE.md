@@ -37,14 +37,15 @@ docs/
 
 ## Spoke Documents
 
-| Document                                     | Purpose                       |
-| -------------------------------------------- | ----------------------------- |
-| [HOOKS.md](./HOOKS.md)                       | Hook development patterns     |
-| [RELEASE.md](./RELEASE.md)                   | Release workflow (mise tasks) |
-| [PLUGIN-LIFECYCLE.md](./PLUGIN-LIFECYCLE.md) | Plugin internals & config     |
-| [RESUME.md](./RESUME.md)                     | Session resume context        |
-| [plugin-authoring.md](./plugin-authoring.md) | Shell compatibility           |
-| [troubleshooting/](./troubleshooting/)       | Issue resolution              |
+| Document                                                                   | Purpose                         |
+| -------------------------------------------------------------------------- | ------------------------------- |
+| [HOOKS.md](./HOOKS.md)                                                     | Hook development patterns       |
+| [RELEASE.md](./RELEASE.md)                                                 | Release workflow (mise tasks)   |
+| [PLUGIN-LIFECYCLE.md](./PLUGIN-LIFECYCLE.md)                               | Plugin internals & config       |
+| [cargo-tty-suspension-prevention.md](./cargo-tty-suspension-prevention.md) | Cargo TTY fix (PUEUE isolation) |
+| [RESUME.md](./RESUME.md)                                                   | Session resume context          |
+| [plugin-authoring.md](./plugin-authoring.md)                               | Shell compatibility             |
+| [troubleshooting/](./troubleshooting/)                                     | Issue resolution                |
 
 ## Link Conventions
 
