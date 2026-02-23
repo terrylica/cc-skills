@@ -68,21 +68,28 @@ function isUnsafeBackground(command: string): boolean {
 /**
  * Build safe PUEUE wrapper for cargo commands.
  * Pattern: queue → wait → capture output
+ *
+ * Improvements:
+ * 1. Use 2>/dev/null | tail -1 instead of grep (simpler, more reliable)
+ * 2. Remove unnecessary quote escaping (-- protects special chars)
+ * 3. Use default pueue log (cleaner output, no --full clutter)
+ * 4. Show task ID for observability (user can pueue log $ID manually)
+ * 5. Fallback logs to file instead of /dev/null (debugging visibility)
  */
 function buildSafeWrapper(command: string, cwd: string): string {
   // Remove trailing & from command
   const cleanCommand = command.replace(/\s+&\s*$/, "");
 
-  // Escape single quotes for shell
-  const escapedCommand = cleanCommand.replace(/'/g, "'\\''");
+  // Note: No quote escaping needed - the '--' in pueue separates options from command
+  // pueue passes everything after '--' as the command string as-is
   const escapedCwd = cwd.replace(/'/g, "'\\''");
 
   // Build pueue wrapper with proper output capture
   // Returns: queue the job, wait for it, stream the output
   return (
-    `(TASK_ID=$(pueue add --print-task-id -w '${escapedCwd}' -- ${escapedCommand} 2>&1 | grep -oE '^[0-9]+$' | head -1) && ` +
-    `if [ -n "$TASK_ID" ]; then pueue wait "$TASK_ID" --quiet 2>/dev/null && echo "✓ PUEUE task $TASK_ID completed" && pueue log "$TASK_ID" --full 2>/dev/null; fi) || ` +
-    `(echo "⚠️ PUEUE unavailable, falling back to nohup" && nohup ${cleanCommand} </dev/null >/dev/null 2>&1 &)`
+    `(TASK_ID=$(pueue add --print-task-id -w '${escapedCwd}' -- ${cleanCommand} 2>/dev/null | tail -1) && ` +
+    `if [ -n "$TASK_ID" ]; then echo "ℹ️  PUEUE task $TASK_ID queued" && pueue wait "$TASK_ID" --quiet 2>/dev/null && echo "✓ PUEUE task $TASK_ID completed" && pueue log "$TASK_ID" 2>/dev/null; fi) || ` +
+    `(echo "⚠️ PUEUE unavailable, falling back to nohup" && FALLBACK_LOG="/tmp/cargo-tty-$$.log" && nohup ${cleanCommand} </dev/null >"$FALLBACK_LOG" 2>&1 & echo "   Output saved to: $FALLBACK_LOG")`
   );
 }
 
