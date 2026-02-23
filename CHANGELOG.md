@@ -1,3 +1,35 @@
+# [11.56.0](https://github.com/terrylica/cc-skills/compare/v11.55.0...v11.56.0) (2026-02-23)
+
+
+### Features
+
+* **itp-hooks:** cargo TTY suspension prevention hook with PUEUE isolation ([65008a9](https://github.com/terrylica/cc-skills/commit/65008a909b4362df4d7a392c33766f6f3f304d29))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+19/-15)
+
+### General Documentation
+
+- [Cargo TTY Suspension Prevention Hook](https://github.com/terrylica/cc-skills/blob/main/docs/cargo-tty-suspension-prevention.md) - new (+319)
+- [Documentation Guide](https://github.com/terrylica/cc-skills/blob/main/docs/CLAUDE.md) - updated (+9/-8)
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+55/-16)
+
 # [11.55.0](https://github.com/terrylica/cc-skills/compare/v11.54.2...v11.55.0) (2026-02-23)
 
 
