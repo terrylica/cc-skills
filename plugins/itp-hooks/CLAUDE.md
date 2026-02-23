@@ -10,22 +10,23 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### PreToolUse Hooks
 
-| Hook                                   | Matcher           | Purpose                                                                                                                                    |
-| -------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pretooluse-guard.sh`                  | Write\|Edit       | Implementation standards enforcement                                                                                                       |
-| `pretooluse-fake-data-guard.mjs`       | Write             | Prevents fake/placeholder data in production code                                                                                          |
-| `pretooluse-version-guard.mjs`         | Write\|Edit       | Version consistency validation                                                                                                             |
-| `pretooluse-process-storm-guard.mjs`   | Bash\|Write\|Edit | Prevents fork bomb patterns                                                                                                                |
-| `pretooluse-cwd-deletion-guard.ts`     | Bash              | Prevents deleting the current working directory                                                                                            |
-| `pretooluse-vale-claude-md-guard.ts`   | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations                                                                                           |
-| `pretooluse-hoisted-deps-guard.mjs`    | Write\|Edit       | pyproject.toml root-only and path escape policies                                                                                          |
-| `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)                                                                                           |
-| `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection)                                                                                          |
-| `pretooluse-file-size-guard.ts`        | Write\|Edit       | File size bloat prevention (per-extension limits)                                                                                          |
-| `pretooluse-native-binary-guard.ts`    | Write\|Edit       | Enforces compiled Swift binaries for launchd (no bash scripts)                                                                             |
-| `pretooluse-pyi-stub-guard.ts`         | Write\|Edit       | Validates `.pyi` stub files match source signatures                                                                                        |
-| `pretooluse-pueue-local-guard.ts`      | Bash              | Ensures pueue commands target local daemon (not remote)                                                                                    |
-| `pretooluse-pueue-wrap-guard.ts`       | Bash              | Auto-wraps long-running commands with pueue + injects OP_SERVICE_ACCOUNT_TOKEN for Claude Automation vault (MUST be LAST PreToolUse entry) |
+| Hook                                   | Matcher           | Purpose                                                                                                                                                                                                      |
+| -------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pretooluse-guard.sh`                  | Write\|Edit       | Implementation standards enforcement                                                                                                                                                                         |
+| `pretooluse-fake-data-guard.mjs`       | Write             | Prevents fake/placeholder data in production code                                                                                                                                                            |
+| `pretooluse-version-guard.mjs`         | Write\|Edit       | Version consistency validation                                                                                                                                                                               |
+| `pretooluse-process-storm-guard.mjs`   | Bash\|Write\|Edit | Prevents fork bomb patterns                                                                                                                                                                                  |
+| `pretooluse-cwd-deletion-guard.ts`     | Bash              | Prevents deleting the current working directory                                                                                                                                                              |
+| `pretooluse-vale-claude-md-guard.ts`   | Write\|Edit       | **Rejects** CLAUDE.md edits with Vale violations                                                                                                                                                             |
+| `pretooluse-hoisted-deps-guard.mjs`    | Write\|Edit       | pyproject.toml root-only and path escape policies                                                                                                                                                            |
+| `pretooluse-gpu-optimization-guard.ts` | Write\|Edit       | GPU optimization enforcement (AMP, batch sizing)                                                                                                                                                             |
+| `pretooluse-mise-hygiene-guard.ts`     | Write\|Edit       | mise.toml hygiene (line limit, secrets detection)                                                                                                                                                            |
+| `pretooluse-file-size-guard.ts`        | Write\|Edit       | File size bloat prevention (per-extension limits)                                                                                                                                                            |
+| `pretooluse-native-binary-guard.ts`    | Write\|Edit       | Enforces compiled Swift binaries for launchd (no bash scripts)                                                                                                                                               |
+| `pretooluse-pyi-stub-guard.ts`         | Write\|Edit       | Validates `.pyi` stub files match source signatures                                                                                                                                                          |
+| `pretooluse-pueue-local-guard.ts`      | Bash              | Ensures pueue commands target local daemon (not remote)                                                                                                                                                      |
+| `pretooluse-cargo-tty-guard.ts`        | Bash              | **Cargo TTY suspension prevention** — Redirects `cargo bench/test/build &` to PUEUE daemon (eliminates stdin inheritance, prevents SIGSTOP). See [Full Guide](../../docs/cargo-tty-suspension-prevention.md) |
+| `pretooluse-pueue-wrap-guard.ts`       | Bash              | Auto-wraps long-running commands with pueue + injects OP_SERVICE_ACCOUNT_TOKEN for Claude Automation vault (MUST be LAST PreToolUse entry)                                                                   |
 
 > **Note**: `sred-commit-guard.ts` was migrated from a PreToolUse hook to the `/mise:sred-commit` slash command. The script remains for CLI validation (`--validate-message`, `--git-hook`).
 
@@ -545,6 +546,44 @@ mv ~/.claude/cclsp-config.json.disabled ~/.claude/cclsp-config.json
 ```
 
 **Verify**: `ps aux | grep -c '[p]yright'` (should be 0 when disabled)
+
+## Cargo TTY Suspension Prevention (2026-02-23)
+
+**Problem**: Running `cargo bench` or `cargo test` with backgrounding (`&`) in Claude Code causes immediate suspension with `suspended (tty input)`.
+
+**Root Cause**: Cargo spawns subprocesses that inherit stdin. When backgrounded, TTY contention triggers SIGSTOP.
+
+**Solution**: `pretooluse-cargo-tty-guard.ts` hook automatically redirects to PUEUE daemon (process-isolated, no stdin inheritance).
+
+### Usage
+
+**Automatic (default)**:
+
+```bash
+cargo bench --bench rangebar_bench &
+# 🛡️ Cargo TTY Guard: Redirecting to PUEUE daemon
+# ✓ PUEUE task 42 completed
+```
+
+**Override (opt-out)**:
+
+```bash
+cargo bench & # CARGO-TTY-SKIP
+```
+
+**Force (opt-in)**:
+
+```bash
+cargo bench # CARGO-TTY-WRAP
+```
+
+**Full Documentation**: [cargo-tty-suspension-prevention.md](../../docs/cargo-tty-suspension-prevention.md)
+
+### Related GitHub Issues
+
+- [#11898](https://github.com/anthropics/claude-code/issues/11898): TTY suspension on iTerm2
+- [#12507](https://github.com/anthropics/claude-code/issues/12507): Subprocess stdin inheritance
+- [#13598](https://github.com/anthropics/claude-code/issues/13598): Spurious /dev/tty reader
 
 ## References
 
