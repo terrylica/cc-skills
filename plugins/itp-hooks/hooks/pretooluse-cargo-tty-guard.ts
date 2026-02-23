@@ -45,8 +45,13 @@ const SKIP_COMMENT = /# *CARGO-TTY-SKIP/i;
 const FORCE_WRAP_COMMENT = /# *CARGO-TTY-WRAP/i;
 
 /**
- * Detect if cargo command is being backgrounded unsafely.
- * Returns true if command ends with & (or similar backgrounding).
+ * Detect if cargo command needs TTY protection.
+ * Now wraps BOTH foreground and background cargo commands with PUEUE
+ * to prevent subprocess from directly opening /dev/tty and causing suspension.
+ *
+ * Previously only protected background commands (`&`), but `< /dev/null`
+ * doesn't prevent cargo from explicitly opening /dev/tty via libc open().
+ * PUEUE process isolation is the only reliable protection.
  */
 function isUnsafeBackground(command: string): boolean {
   // Must be a cargo command
@@ -61,13 +66,19 @@ function isUnsafeBackground(command: string): boolean {
   // Explicit force wrap
   if (FORCE_WRAP_COMMENT.test(command)) return true;
 
-  // Check if trailing & (the problematic pattern)
-  return /\s+&\s*$/.test(command);
+  // NOW: Wrap ALL cargo commands (foreground and background) for TTY protection
+  // This prevents cargo from opening /dev/tty directly, which bypasses stdin redirect
+  return true;
 }
 
 /**
- * Build safe PUEUE wrapper for cargo commands.
+ * Build safe PUEUE wrapper for cargo commands (foreground and background).
+ * Provides full process isolation to prevent cargo from opening /dev/tty directly.
  * Pattern: queue → wait → capture output
+ *
+ * Works for:
+ * - Foreground: `cargo test -p module` → queued, waits synchronously
+ * - Background: `cargo test -p module &` → queued, waits synchronously (& removed)
  *
  * Improvements:
  * 1. Use 2>/dev/null | tail -1 instead of grep (simpler, more reliable)
@@ -77,7 +88,7 @@ function isUnsafeBackground(command: string): boolean {
  * 5. Fallback logs to file instead of /dev/null (debugging visibility)
  */
 function buildSafeWrapper(command: string, cwd: string): string {
-  // Remove trailing & from command
+  // Remove trailing & from command (if present)
   const cleanCommand = command.replace(/\s+&\s*$/, "");
 
   // Note: No quote escaping needed - the '--' in pueue separates options from command
@@ -118,7 +129,8 @@ async function main() {
 
   const command = tool_input.command || "";
 
-  // Check if this is an unsafe cargo background command
+  // Check if this is a cargo command requiring TTY protection
+  // (both foreground and background commands now wrapped with PUEUE)
   if (!isUnsafeBackground(command)) {
     allow();
     return;
