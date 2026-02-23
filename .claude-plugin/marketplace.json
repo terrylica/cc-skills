@@ -122,7 +122,12 @@
         "platformdirs",
         "structured-logging",
         "jsonl",
-        "project-directory-migration"
+        "project-directory-migration",
+        "proxy",
+        "oauth",
+        "claude-code-proxy",
+        "anthropic-base-url",
+        "model-routing"
       ],
       "strict": false
     },
