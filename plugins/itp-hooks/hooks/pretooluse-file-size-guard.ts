@@ -26,6 +26,7 @@
 
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { spawnSync } from "child_process";
 import {
   parseStdinOrAllow,
   allow,
@@ -137,15 +138,42 @@ function getThresholds(
   return config.extensions[ext] || config.defaults;
 }
 
+const EXEMPT_MIN_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
+
+/**
+ * Returns the age in ms since the file's first git commit, or null if the
+ * file has no git history (untracked) or git is unavailable.
+ */
+function gitFirstCommitAgeMs(filePath: string): number | null {
+  try {
+    const r = spawnSync("git", ["log", "--format=%at", "--", filePath], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      timeout: 3000,
+    });
+    if (r.status !== 0 || !r.stdout.trim()) return null;
+    const lines = r.stdout.trim().split("\n");
+    const oldest = parseInt(lines[lines.length - 1], 10);
+    if (isNaN(oldest)) return null;
+    return Date.now() - oldest * 1000;
+  } catch {
+    return null;
+  }
+}
+
 function isExcluded(config: GuardConfig, filePath: string): boolean {
   const fileName = filePath.split("/").pop() || "";
 
   for (const pattern of config.excludes) {
-    // Simple glob matching: *.ext and exact matches
     if (pattern.startsWith("*.")) {
-      const suffix = pattern.slice(1); // ".ext" or ".generated.ts"
+      // Wildcard patterns (*.lock, *.generated.*) — always exempt
+      const suffix = pattern.slice(1);
       if (fileName.endsWith(suffix)) return true;
     } else if (fileName === pattern) {
+      // Named file pattern: only exempt if first committed > 1 week ago.
+      // Untracked files (null age) are never exempt — they're new.
+      const ageMs = gitFirstCommitAgeMs(filePath);
+      if (ageMs === null || ageMs < EXEMPT_MIN_AGE_MS) return false;
       return true;
     }
   }
