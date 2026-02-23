@@ -118,6 +118,8 @@ bun pm ls -g                 # List
 
 ## Recent Lessons Learned
 
+**2026-02-23**: HTTP proxy migrated from Python FastAPI+httpx to Go compiled binary for macOS launchd deployment. Python proxy had 0 commits in 74 days (supply chain risk). Go optimal: stdlib httputil.ReverseProxy handles SSE with `FlushInterval:-1`, 15–30s builds vs Swift's 60–300s, exact-match routing prevents provider switching bugs. Deployed to `/usr/local/bin/claude-proxy` with per-provider weighted semaphores + exponential backoff retries + OAuth header forwarding. 9 independent audits converged on Go. [Implementation](../../.claude/tools/claude-code-proxy-go/CLAUDE.md)
+
 **2026-02-23**: Cargo TTY suspension prevention hook added - prevents Claude Code suspension when running `cargo bench/test/build &`. Uses PUEUE daemon for process isolation (eliminates stdin inheritance). [Full Guide](./docs/cargo-tty-suspension-prevention.md) | [Hook](./plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts) | [GitHub Issues #11898, #12507, #13598](https://github.com/anthropics/claude-code/issues)
 
 **2026-02-20**: Swift launchd binaries that spawn `op` CLI trigger macOS TCC "access data from other apps" prompt — compiled Swift does NOT bypass TCC. Fix: cache static credentials (client_id/client_secret) locally on first run; subsequent runs read only local files, no TCC prompt. [itp-hooks CLAUDE.md](./plugins/itp-hooks/CLAUDE.md#native-binary-guard-macos-launchd)
