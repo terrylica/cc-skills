@@ -514,6 +514,38 @@ The `code-correctness-guard.sh` hook checks **only for silent failure patterns**
 5. **Low severity**: No runtime failures, security issues, or silent bugs
 6. **Pre-commit/CI is better**: Catch in git hooks or CI, not interactive sessions
 
+## LSP Configuration
+
+**Status**: DISABLED (2026-01-12) - pyright-langserver caused process storms.
+
+### To Disable LSP (all three required)
+
+```bash
+# 1. Environment variable
+grep ENABLE_LSP_TOOL ~/.zshenv  # Should show: export ENABLE_LSP_TOOL=0
+
+# 2. Config file
+ls ~/.claude/cclsp-config.json  # Should not exist (or .disabled)
+
+# 3. Plugin setting
+grep pyright-lsp ~/.claude/settings.json  # Should show: false
+```
+
+### To Re-enable LSP
+
+```bash
+# 1. ~/.zshenv
+export ENABLE_LSP_TOOL=1
+
+# 2. Restore config (if needed)
+mv ~/.claude/cclsp-config.json.disabled ~/.claude/cclsp-config.json
+
+# 3. ~/.claude/settings.json
+"pyright-lsp@claude-plugins-official": true
+```
+
+**Verify**: `ps aux | grep -c '[p]yright'` (should be 0 when disabled)
+
 ## References
 
 - [lifecycle-reference.md](skills/hooks-development/references/lifecycle-reference.md) - Hook lifecycle and best practices
