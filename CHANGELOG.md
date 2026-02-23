@@ -1,3 +1,24 @@
+## [11.56.1](https://github.com/terrylica/cc-skills/compare/v11.56.0...v11.56.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* **itp-hooks:** improve cargo-tty-guard hook reliability and UX ([2514257](https://github.com/terrylica/cc-skills/commit/2514257f735e29abf960f2de1a154598fa482009))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### General Documentation
+
+- [Cargo TTY Suspension Prevention Hook](https://github.com/terrylica/cc-skills/blob/main/docs/cargo-tty-suspension-prevention.md) - updated (+51)
+
 # [11.56.0](https://github.com/terrylica/cc-skills/compare/v11.55.0...v11.56.0) (2026-02-23)
 
 
