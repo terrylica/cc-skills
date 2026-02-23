@@ -39,9 +39,7 @@ export const ProtectionConfigSchema = v.object({
     [
       "\\brm\\b",
       "\\bunlink\\b",
-      "> /dev/null",
-      ">\\s*/dev/null",
-      "truncate\\b",
+      "\\btruncate\\b",
     ]
   ),
   bypass_markers: v.optional(
