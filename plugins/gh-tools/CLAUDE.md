@@ -136,6 +136,59 @@ Fix:
 | `research-archival` | Scrape AI research URLs, archive with frontmatter + Issues |
 | `fork-intelligence` | Discover valuable fork divergence beyond stars             |
 
+## GitHub Operations Policy
+
+**Use gh CLI** for all GitHub operations — WebFetch to github.com is soft-blocked by `webfetch-github-guard.sh`.
+
+**Install gh via Homebrew ONLY**: `brew install gh` (mise causes iTerm2 tab spawning).
+
+**GitHub Actions Policy**: NO testing or linting in GitHub Actions — local-first philosophy.
+
+- **Forbidden**: pytest, jest, cargo test, ruff, eslint, clippy, prettier, mypy
+- **Allowed**: semantic-release, CodeQL, Dependabot, deployment
+
+**Reference**: [GitHub Actions ADR](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-11-21-github-actions-no-testing-linting.md)
+
+## GitHub Issues as Insight Repository
+
+**CRITICAL**: Only post to repositories owned by `terrylica` (your own repos or forks). NEVER post to upstream third-party repositories.
+
+**Philosophy**: Treat GitHub Issues as human-readable insight repository for research and findings.
+
+### When to Post Issue Comments
+
+| Action                  | Safe to Post?            | Example                                                    |
+| ----------------------- | ------------------------ | ---------------------------------------------------------- |
+| Your own repository     | Always                   | `terrylica/cc-skills`, `terrylica/data-source-manager`     |
+| Your fork               | Always                   | `terrylica/claude-code` (fork of `anthropics/claude-code`) |
+| Upstream third-party    | NEVER (read-only)        | `anthropics/claude-code`, `jdx/mise`                       |
+| Collaborative team repo | If you have write access | Repos where you're a collaborator                          |
+
+### Best Practices
+
+**Post validated findings to relevant GitHub Issues**:
+
+- Comment on open OR closed issues with new insights discovered during research
+- Use Issue comments to track evolving understanding (more visible than git commits)
+- Reference Issue numbers in commit messages for traceability (e.g., `fix: address issue #123`)
+- Create new Issues when discovering genuinely new research directions
+
+**Upstream repositories (read-only)**:
+
+- Search and read existing Issues for insights
+- Reference upstream Issue numbers in your own repo's Issues (e.g., "Related to anthropics/claude-code#22055")
+- DO NOT comment, create, or modify Issues in upstream repos
+
+**Example workflow**:
+
+1. Discover insight while investigating Claude Code permissions behavior
+2. Search `anthropics/claude-code` for related Issues (read-only)
+3. Create Issue in `terrylica/cc-skills` documenting findings
+4. Reference upstream Issue: "Investigation of anthropics/claude-code#22055 revealed..."
+5. Post follow-up findings as comments in YOUR repo's Issue
+
+**Repositories you own**: `terrylica/*` (verify with `gh repo list terrylica`)
+
 ## Multi-Account Authentication
 
 This plugin respects the multi-account setup via mise:
