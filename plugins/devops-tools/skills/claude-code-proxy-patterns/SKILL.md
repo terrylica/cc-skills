@@ -4,19 +4,23 @@ description: >-
   Claude Code OAuth proxy patterns and anti-patterns for multi-provider model routing.
   TRIGGERS - proxy Claude Code, OAuth token Keychain, route Haiku to MiniMax,
   ANTHROPIC_BASE_URL, model routing proxy, claude-code-proxy, proxy-toggle,
-  multi-provider setup, anthropic-beta oauth, proxy auth failure
-allowed-tools: Read, Bash, Grep, Glob
+  multi-provider setup, anthropic-beta oauth, proxy auth failure, go proxy,
+  failover proxy, launchd proxy, proxy failover
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 <!-- # SSoT-OK: version references are documentation of binary analysis findings, not package versions -->
 
 # Claude Code Proxy Patterns
 
-Multi-provider proxy that routes Claude Code model tiers to different backends. Haiku to MiniMax (cost/speed), Sonnet/Opus to Anthropic (native OAuth passthrough). Captured from empirical reverse-engineering of the Claude Code v2.1.50 binary.
+Multi-provider proxy that routes Claude Code model tiers to different backends. Haiku to MiniMax (cost/speed), Sonnet/Opus to Anthropic (native OAuth passthrough). Includes Go binary proxy with launchd auto-restart and failover wrapper for resilience.
 
 **Scope**: Local reverse proxy for Claude Code with OAuth subscription (Max plan). Routes based on model name in request body.
 
-**Reference implementation**: `$HOME/.claude/tools/claude-code-proxy/proxy.py`
+**Reference implementations**: 
+- Python proxy: `$HOME/.claude/tools/claude-code-proxy/proxy.py` (port 3000)
+- Go proxy: `/usr/local/bin/claude-proxy` (port 8082)
+- Failover wrapper: `$HOME/eon/cc-skills/tools/claude-code-failover/main.go` (port 8083)
 
 ---
 
@@ -37,25 +41,39 @@ Multi-provider proxy that routes Claude Code model tiers to different backends. 
 ```
 Claude Code (OAuth/Max subscription)
     |
-    |  ANTHROPIC_BASE_URL=http://127.0.0.1:3000
+    |  ANTHROPIC_BASE_URL=http://127.0.0.1:8083 (failover wrapper)
     |  ANTHROPIC_API_KEY=proxy-managed
     v
-+----------------------------+
-| claude-code-proxy          |
-| (localhost:3000)           |
-| proxy.py (FastAPI/httpx)   |
-+----------------------------+
-    |                    |
-    | model =            | model = anything else
-    | claude-haiku-      | (sonnet, opus, etc.)
-    | 4-5-20251001       |
-    v                    v
-+-----------+    +------------------+
-| MiniMax   |    | api.anthropic.com|
-| M2.5      |    | (OAuth headers   |
-| highspeed |    |  forwarded)      |
-+-----------+    +------------------+
++------------------------------------------+
+| failover-proxy (:8083)                   |
+| Go + cenkalti/backoff retry (3x)        |
++------------------------------------------+
+    |                              |
+    | primary fail                  | fallback
+    v                              v
++-----------+              +------------------+
+| Go proxy  |              | Python proxy     |
+| (:8082)   |              | (:3000)         |
+| launchd   |              | manual          |
++-----------+              +------------------+
+    |                              |
+    | model =                      | model =
+    | claude-haiku-               | anything else
+    | 4-5-20251001               | (sonnet, opus)
+    v                              v
++-----------+              +------------------+
+| MiniMax   |              | api.anthropic.com|
+| M2.5      |              | (OAuth headers   |
+| highspeed |              |  forwarded)      |
++-----------+              +------------------+
 ```
+
+**Port Configuration**:
+- `:8083` - Failover wrapper (entry point, tries Go → Python)
+- `:8082` - Go proxy (primary, launchd-managed, auto-restart)
+- `:3000` - Python proxy (fallback, manual start)
+
+The failover wrapper uses `cenkalti/backoff/v4` for exponential backoff retry (500ms → 1s → 2s) before falling back.
 
 The proxy reads the `model` field from each `/v1/messages` request body. If it matches the configured Haiku model ID, the request goes to MiniMax. Everything else falls through to real Anthropic with OAuth passthrough.
 
@@ -239,6 +257,108 @@ curl -s http://127.0.0.1:3000/health | python3 -m json.tool
     "uses_oauth": true
   }
 }
+```
+
+### WP-12: Failover Proxy with Retry
+
+A wrapper proxy that tries primary first, retries on failure with exponential backoff, then falls back to secondary.
+
+**Use case**: When primary Go proxy (8082) is down, automatically retry then route to Python fallback (3000).
+
+**Architecture**:
+```
+Claude Code → :8083 (failover wrapper)
+                   |
+                   ├─→ :8082 (Go proxy) [PRIMARY, 3 retries, exponential backoff]
+                   |   - 500ms → 1s → 2s
+                   |
+                   └─→ :3000 (Python) [FALLBACK]
+```
+
+**Go implementation** uses `cenkalti/backoff/v4` for exponential backoff:
+```go
+import "github.com/cenkalti/backoff/v4"
+
+backoffConfig := backoff.NewExponentialBackOff(
+    backoff.WithInitialInterval(500 * time.Millisecond),
+    backoff.WithMultiplier(2),
+    backoff.WithMaxInterval(2 * time.Second),
+    backoff.WithMaxElapsedTime(5 * time.Second),
+)
+err := backoff.Retry(operation, backoffConfig)
+```
+
+**Location**: `$HOME/eon/cc-skills/tools/claude-code-failover/`
+
+**Management**:
+```bash
+# Start
+cd $HOME/eon/cc-skills/tools/claude-code-failover
+go build -o proxy-failover .
+nohup ./proxy-failover > ~/.claude/logs/proxy-failover.log 2>&1 &
+
+# Status
+curl -s http://127.0.0.1:8083/health | jq .
+
+# Logs
+tail -f ~/.claude/logs/proxy-failover.log
+```
+
+**Environment** (in `.zshenv`):
+```bash
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8083"
+export ANTHROPIC_API_KEY="proxy-managed"
+```
+
+**Telemetry**: `/health` returns failover stats:
+```json
+{
+  "primary_attempts": 47,
+  "primary_success": 46,
+  "primary_failures": 1,
+  "fallback_attempts": 1,
+  "fallback_success": 1,
+  "current_proxy": "go:8082"
+}
+```
+
+### WP-13: Launchd Service for Go Proxy
+
+The Go proxy runs as a launchd daemon for auto-restart on crash and boot.
+
+**Location**: `/Library/LaunchDaemons/com.terryli.claude-proxy.plist`
+
+**Configuration**:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.terryli.claude-proxy</string>
+    <key>ProgramArguments</key>
+    <array><string>/usr/local/bin/claude-proxy</string></array>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PORT</key><string>8082</string>
+        <key>HAIKU_PROVIDER_API_KEY</key><string>sk-cp-...</string>
+        <key>HAIKU_PROVIDER_BASE_URL</key><string>https://api.minimax.io/anthropic</string>
+    </dict>
+</dict>
+</plist>
+```
+
+**Commands**:
+```bash
+# Load (start)
+sudo launchctl load -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+
+# Unload (stop)
+sudo launchctl unload -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+
+# Check status
+sudo launchctl list | grep claude-proxy
 ```
 
 ---

@@ -64,29 +64,67 @@ To be compatible with claude-code-proxy, a provider must:
 ## Adding a New Provider
 
 1. Verify the provider has an Anthropic-compatible endpoint
-2. Add env vars to proxy `.env`:
+2. Add env vars to proxy `.env` (Python) or launchd plist (Go):
 
 ```bash
-# Example: adding a hypothetical provider for Opus tier
-OPUS_PROVIDER_API_KEY=your_key_here
-OPUS_PROVIDER_BASE_URL=https://api.example.com/anthropic
+# Python proxy (.env)
+HAIKU_PROVIDER_API_KEY=your_key_here
+HAIKU_PROVIDER_BASE_URL=https://api.example.com/anthropic
+
+# Go proxy (add to EnvironmentVariables in plist)
+<key>HAIKU_PROVIDER_API_KEY</key><string>your_key_here</string>
+<key>HAIKU_PROVIDER_BASE_URL</key><string>https://api.example.com/anthropic</string>
 ```
 
 1. Set the model tier mapping:
 
 ```bash
-ANTHROPIC_DEFAULT_OPUS_MODEL=example-model-name
+ANTHROPIC_DEFAULT_HAIKU_MODEL=example-model-name
 ```
 
-1. Restart the proxy and test:
+1. Restart the proxy:
 
 ```bash
+# Python (port 3000)
+cd $HOME/.claude/tools/claude-code-proxy
+source .venv/bin/activate
+pkill -f proxy.py
+python proxy.py &
+
+# Go (port 8082) - via launchd
+sudo launchctl unload -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+
+# Failover (port 8083) - via failover wrapper
+cd $HOME/eon/cc-skills/tools/claude-code-failover
+go build -o proxy-failover .
+pkill -f proxy-failover
+nohup ./proxy-failover > ~/.claude/logs/proxy-failover.log 2>&1 &
+```
+
+1. Test:
+
+```bash
+# Python proxy (3000)
 curl -s http://127.0.0.1:3000/v1/messages \
   -H "Content-Type: application/json" \
   -H "x-api-key: any-value" \
   -H "anthropic-version: 2023-06-01" \
-  -d '{"model": "example-model-name", "max_tokens": 100, "messages": [{"role": "user", "content": "Hello"}]}' \
-  | python3 -m json.tool
+  -d '{"model": "example-model-name", "max_tokens": 100, "messages": [{"role": "user", "content": "Hello"}]}'
+
+# Go proxy (8082)
+curl -s http://127.0.0.1:8082/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: any-value" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{"model": "example-model-name", "max_tokens": 100, "messages": [{"role": "user", "content": "Hello"}]}'
+
+# Failover wrapper (8083)
+curl -s http://127.0.0.1:8083/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: any-value" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{"model": "example-model-name", "max_tokens": 100, "messages": [{"role": "user", "content": "Hello"}]}'
 ```
 
 1. Update this file with the provider's compatibility details.
