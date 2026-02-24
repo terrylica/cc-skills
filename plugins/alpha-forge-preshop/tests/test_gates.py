@@ -1,4 +1,5 @@
 """Comprehensive tests for all Phase 1 quality gates"""
+# GitHub Issue: https://github.com/example-org/research-repo/issues/154
 import pytest
 import tempfile
 import os
@@ -99,4 +100,4 @@ class TestG12Manifest:
         yaml_manifest = {'outputs': {'columns': ['rsi']}}
         issues = ManifestSyncValidator.validate_decorator_yaml_sync(decorator, yaml_manifest)
         assert len(issues) > 0
-        assert any('mismatch' in i.lower() for i in issues)
+        assert any('mismatch' in str(i).lower() for i in issues)

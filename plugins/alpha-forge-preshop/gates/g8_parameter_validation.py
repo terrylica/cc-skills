@@ -1,13 +1,13 @@
 """G8: Parameter Validation Validator
 
 Detects invalid parameter ranges, inverted thresholds, missing enums.
-Triggers: Runtime (before plugin execution)  
+Triggers: Runtime (before plugin execution)
 Prevents: E1, E2 (silent calculation failures)
 ROI: 100% effectiveness, 0% false positives
 Coverage: 5 validation types
 """
 
-from typing import Any, List, Optional, Union, Tuple
+from typing import Any, List, Optional, Union
 
 
 class ParameterValidator:
@@ -19,32 +19,30 @@ class ParameterValidator:
         min_val: Union[int, float],
         max_val: Union[int, float],
         param_name: str = "parameter"
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> None:
         """Validate numeric bounds.
 
-        Returns:
-            (is_valid, error_message) tuple
+        Raises:
+            ValueError: If value is outside allowed range
         """
         if value < min_val:
-            return (False, f"Parameter '{param_name}' must be >= {min_val} (got {value})")
+            raise ValueError(f"Parameter '{param_name}' must be >= {min_val} (got {value})")
         if value > max_val:
-            return (False, f"Parameter '{param_name}' must be <= {max_val} (got {value})")
-        return (True, None)
+            raise ValueError(f"Parameter '{param_name}' must be <= {max_val} (got {value})")
 
     @staticmethod
     def validate_enum(
         value: Any,
         allowed: List[Any],
         param_name: str = "parameter"
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> None:
         """Validate enum membership.
 
-        Returns:
-            (is_valid, error_message) tuple
+        Raises:
+            ValueError: If value is not in allowed list
         """
         if value not in allowed:
-            return (False, f"Parameter '{param_name}' must be one of {allowed} (got '{value}')")
-        return (True, None)
+            raise ValueError(f"Parameter '{param_name}' must be one of {allowed} (got '{value}')")
 
     @staticmethod
     def validate_relationship(
@@ -53,11 +51,11 @@ class ParameterValidator:
         rule: str,
         param1_name: str = "param1",
         param2_name: str = "param2"
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> None:
         """Validate multi-parameter constraints.
 
-        Returns:
-            (is_valid, error_message) tuple
+        Raises:
+            ValueError: If relationship constraint is violated
         """
         is_valid = False
         op_str = ""
@@ -78,27 +76,24 @@ class ParameterValidator:
             is_valid = param1 != param2
             op_str = "!="
         else:
-            return (False, f"Unknown relationship rule: {rule}")
+            raise ValueError(f"Unknown relationship rule: {rule}")
 
         if not is_valid:
-            return (False, f"Parameter '{param1_name}' must be {op_str} '{param2_name}' ({param1} vs {param2})")
-        return (True, None)
+            raise ValueError(f"Parameter '{param1_name}' must be {op_str} '{param2_name}' ({param1} vs {param2})")
 
     @staticmethod
-    def validate_column_existence(
-        columns: List[str],
-        required: List[str],
+    def validate_column_exists(
+        required_column: str,
+        available_columns: List[str],
         context: str = "data"
-    ) -> Tuple[bool, Optional[str]]:
-        """Validate that required columns exist.
+    ) -> None:
+        """Validate that required column exists in available columns.
 
-        Returns:
-            (is_valid, error_message) tuple
+        Raises:
+            ValueError: If required column is not found
         """
-        missing = set(required) - set(columns)
-        if missing:
-            return (False, f"Parameter '{context}': missing required columns {sorted(missing)}")
-        return (True, None)
+        if required_column not in available_columns:
+            raise ValueError(f"Parameter '{context}': required column '{required_column}' not found in {available_columns}")
 
     @staticmethod
     def validate_plugin_parameters(
@@ -121,23 +116,22 @@ class ParameterValidator:
             param_value = parameters[param_name]
             constraint_type = constraint.get("type")
 
-            if constraint_type == "numeric_range":
-                is_valid, error = validator.validate_numeric_range(
-                    param_value,
-                    constraint.get("min"),
-                    constraint.get("max"),
-                    param_name
-                )
-                if not is_valid:
-                    errors.append({"parameter": param_name, "error": error})
+            try:
+                if constraint_type == "numeric_range":
+                    validator.validate_numeric_range(
+                        param_value,
+                        constraint.get("min"),
+                        constraint.get("max"),
+                        param_name
+                    )
 
-            elif constraint_type == "enum":
-                is_valid, error = validator.validate_enum(
-                    param_value,
-                    constraint.get("allowed_values", []),
-                    param_name
-                )
-                if not is_valid:
-                    errors.append({"parameter": param_name, "error": error})
+                elif constraint_type == "enum":
+                    validator.validate_enum(
+                        param_value,
+                        constraint.get("allowed_values", []),
+                        param_name
+                    )
+            except ValueError as e:
+                errors.append({"parameter": param_name, "error": str(e)})
 
         return errors
