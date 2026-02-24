@@ -18,7 +18,6 @@ Multi-provider proxy that routes Claude Code model tiers to different backends. 
 **Scope**: Local reverse proxy for Claude Code with OAuth subscription (Max plan). Routes based on model name in request body.
 
 **Reference implementations**: 
-- Python proxy: `$HOME/.claude/tools/claude-code-proxy/proxy.py` (port 3000)
 - Go proxy: `/usr/local/bin/claude-proxy` (port 8082)
 - Failover wrapper: `$HOME/eon/cc-skills/tools/claude-code-failover/main.go` (port 8083)
 
@@ -41,39 +40,30 @@ Multi-provider proxy that routes Claude Code model tiers to different backends. 
 ```
 Claude Code (OAuth/Max subscription)
     |
-    |  ANTHROPIC_BASE_URL=http://127.0.0.1:8083 (failover wrapper)
+    |  ANTHROPIC_BASE_URL=http://127.0.0.1:8082 (Go proxy)
     |  ANTHROPIC_API_KEY=proxy-managed
     v
-+------------------------------------------+
-| failover-proxy (:8083)                   |
-| Go + cenkalti/backoff retry (3x)        |
-+------------------------------------------+
-    |                              |
-    | primary fail                  | fallback
-    v                              v
-+-----------+              +------------------+
-| Go proxy  |              | Python proxy     |
-| (:8082)   |              | (:3000)         |
-| launchd   |              | manual          |
-+-----------+              +------------------+
-    |                              |
-    | model =                      | model =
-    | claude-haiku-               | anything else
-    | 4-5-20251001               | (sonnet, opus)
-    v                              v
-+-----------+              +------------------+
-| MiniMax   |              | api.anthropic.com|
-| M2.5      |              | (OAuth headers   |
-| highspeed |              |  forwarded)      |
-+-----------+              +------------------+
++----------------------------------+
+| Go proxy (:8082)                 |
+| launchd managed, auto-restart   |
++----------------------------------+
+    |                    
+    | model =         
+    | claude-haiku-  
+    | 4-5-20251001  
+    v                    
++-----------+    
+| MiniMax   |    
+| M2.5      |    
+| highspeed |    
++-----------+    
 ```
 
 **Port Configuration**:
-- `:8083` - Failover wrapper (entry point, tries Go → Python)
-- `:8082` - Go proxy (primary, launchd-managed, auto-restart)
-- `:3000` - Python proxy (fallback, manual start)
+- `:8082` - Go proxy (entry point, launchd-managed, auto-restart)
+- `:8083` - Failover wrapper (optional, for redundancy)
 
-The failover wrapper uses `cenkalti/backoff/v4` for exponential backoff retry (500ms → 1s → 2s) before falling back.
+The Go proxy uses `cenkalti/backoff/v4` for built-in retry logic.
 
 The proxy reads the `model` field from each `/v1/messages` request body. If it matches the configured Haiku model ID, the request goes to MiniMax. Everything else falls through to real Anthropic with OAuth passthrough.
 
@@ -142,7 +132,7 @@ Setting `ANTHROPIC_BASE_URL` alone is insufficient in OAuth mode. Claude Code mu
 
 ```bash
 # In .zshenv (managed by proxy-toggle)
-export ANTHROPIC_BASE_URL="http://127.0.0.1:3000"
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
 export ANTHROPIC_API_KEY="proxy-managed"
 ```
 
@@ -234,7 +224,7 @@ The `proxy-toggle` script manages `.zshenv` entries and a flag file atomically.
 The `/health` endpoint returns provider configuration state for monitoring.
 
 ```bash
-curl -s http://127.0.0.1:3000/health | python3 -m json.tool
+curl -s http://127.0.0.1:8082/health | jq .
 ```
 
 ```json
@@ -259,20 +249,17 @@ curl -s http://127.0.0.1:3000/health | python3 -m json.tool
 }
 ```
 
-### WP-12: Failover Proxy with Retry
+### WP-12: Go Proxy with Retry
 
-A wrapper proxy that tries primary first, retries on failure with exponential backoff, then falls back to secondary.
+A Go proxy with built-in retry using `cenkalti/backoff/v4` for resilience.
 
-**Use case**: When primary Go proxy (8082) is down, automatically retry then route to Python fallback (3000).
+**Use case**: Primary Go proxy with exponential backoff retry (500ms → 1s → 2s).
 
 **Architecture**:
 ```
-Claude Code → :8083 (failover wrapper)
+Claude Code → :8082 (Go proxy with retry)
                    |
-                   ├─→ :8082 (Go proxy) [PRIMARY, 3 retries, exponential backoff]
-                   |   - 500ms → 1s → 2s
-                   |
-                   └─→ :3000 (Python) [FALLBACK]
+                   └─→ MiniMax or Anthropic
 ```
 
 **Go implementation** uses `cenkalti/backoff/v4` for exponential backoff:
@@ -288,38 +275,17 @@ backoffConfig := backoff.NewExponentialBackOff(
 err := backoff.Retry(operation, backoffConfig)
 ```
 
-**Location**: `$HOME/eon/cc-skills/tools/claude-code-failover/`
-
-**Management**:
-```bash
-# Start
-cd $HOME/eon/cc-skills/tools/claude-code-failover
-go build -o proxy-failover .
-nohup ./proxy-failover > ~/.claude/logs/proxy-failover.log 2>&1 &
-
-# Status
-curl -s http://127.0.0.1:8083/health | jq .
-
-# Logs
-tail -f ~/.claude/logs/proxy-failover.log
-```
+**Location**: `/usr/local/bin/claude-proxy`
 
 **Environment** (in `.zshenv`):
 ```bash
-export ANTHROPIC_BASE_URL="http://127.0.0.1:8083"
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
 export ANTHROPIC_API_KEY="proxy-managed"
 ```
 
-**Telemetry**: `/health` returns failover stats:
-```json
-{
-  "primary_attempts": 47,
-  "primary_success": 46,
-  "primary_failures": 1,
-  "fallback_attempts": 1,
-  "fallback_success": 1,
-  "current_proxy": "go:8082"
-}
+**Test**:
+```bash
+curl -s http://127.0.0.1:8082/health | jq .
 ```
 
 ### WP-13: Launchd Service for Go Proxy
@@ -344,6 +310,7 @@ The Go proxy runs as a launchd daemon for auto-restart on crash and boot.
         <key>PORT</key><string>8082</string>
         <key>HAIKU_PROVIDER_API_KEY</key><string>sk-cp-...</string>
         <key>HAIKU_PROVIDER_BASE_URL</key><string>https://api.minimax.io/anthropic</string>
+        <key>ANTHROPIC_DEFAULT_HAIKU_MODEL</key><string>claude-haiku-4-5-20251001</string>
     </dict>
 </dict>
 </plist>
@@ -359,6 +326,9 @@ sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # Check status
 sudo launchctl list | grep claude-proxy
+
+# View logs
+tail -f /Users/<you>/.claude/logs/proxy-stdout.log
 ```
 
 ---
@@ -384,51 +354,46 @@ Full details with code examples: [references/anti-patterns.md](./references/anti
 
 ## TodoWrite Task Templates
 
-### Template A - Set Up New Multi-Provider Proxy
+### Template A - Set Up Go Proxy
 
 ```
-1. [Preflight] Verify Python 3.13, uv, and curl installed
+1. [Preflight] Verify Go 1.21+ installed: go version
 2. [Preflight] Verify 1Password CLI for API key resolution
-3. [Execute] Clone proxy repo to ~/.claude/tools/claude-code-proxy/
-4. [Execute] Create virtualenv: uv venv --python 3.13 .venv
-5. [Execute] Install deps: uv pip install --python .venv/bin/python -r requirements.txt
-6. [Execute] Create .env file with provider config (chmod 600)
-7. [Execute] Resolve API keys from 1Password into .env
-8. [Execute] Start proxy: nohup .venv/bin/python proxy.py > /tmp/claude-code-proxy.log 2>&1 &
-9. [Execute] Install proxy-toggle to ~/.claude/bin/
-10. [Execute] Run proxy-toggle enable
-11. [Verify] Health check: curl -s http://127.0.0.1:3000/health
-12. [Verify] Restart Claude Code and verify Haiku routes to provider (check proxy logs)
+3. [Execute] Build Go proxy: go build -o /usr/local/bin/claude-proxy
+4. [Execute] Create launchd plist with provider config
+5. [Execute] Load launchd: sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+6. [Execute] Enable proxy in .zshenv
+7. [Verify] Health check: curl -s http://127.0.0.1:8082/health
+8. [Verify] Restart Claude Code and verify Haiku routes to MiniMax
 ```
 
 ### Template B - Add New Provider
 
 ```
 1. [Preflight] Verify provider supports /v1/messages Anthropic-compatible endpoint
-2. [Execute] Add provider env vars to .env (BASE_URL + API_KEY)
-3. [Execute] Configure model tier mapping (HAIKU/SONNET/OPUS)
-4. [Verify] Restart proxy and test with curl
-5. [Verify] Update references/provider-compatibility.md
+2. [Execute] Add provider env vars to launchd plist EnvironmentVariables
+3. [Execute] Configure model tier mapping
+4. [Execute] Reload: sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist && sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+5. [Verify] Test with curl http://127.0.0.1:8082/health
+6. [Verify] Update references/provider-compatibility.md
 ```
 
 ### Template C - Diagnose Proxy Auth Failure
 
 ```
-1. Check proxy is running: curl -s http://127.0.0.1:3000/health
-2. Check .zshenv has ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY set
-3. Check proxy logs: tail -50 /tmp/claude-code-proxy.log
-4. Verify auth method in logs: look for "OAuth (Keychain)" vs "No auth"
-5. Test Keychain read: security find-generic-password -s "Claude Code-credentials" -a $(whoami) -w | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('claudeAiOauth',{}).get('accessToken','NONE')[:20])"
-6. Check anthropic-beta header in proxy logs (must contain oauth-2025-04-20)
-7. If all else fails: proxy-toggle disable, restart Claude Code, verify native auth works
+1. Check proxy is running: curl -s http://127.0.0.1:8082/health
+2. Check .zshenv has ANTHROPIC_BASE_URL=http://127.0.0.1:8082 and ANTHROPIC_API_KEY=proxy-managed
+3. Check proxy logs: tail -50 /Users/<you>/.claude/logs/proxy-stdout.log
+4. Check launchd status: sudo launchctl list | grep claude-proxy
+5. If all else fails: disable proxy in .zshenv, restart Claude Code, verify native auth works
 ```
 
 ### Template D - Disable Proxy and Revert
 
 ```
-1. [Execute] ~/.claude/bin/proxy-toggle disable
-2. [Execute] Stop proxy: pkill -f "python proxy.py" (or mise run proxy_stop)
-3. [Verify] grep ANTHROPIC_BASE_URL ~/.zshenv returns nothing
+1. [Execute] Comment out ANTHROPIC_BASE_URL in ~/.zshenv
+2. [Execute] Unload launchd: sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+3. [Verify] grep ANTHROPIC_BASE_URL ~/.zshenv returns nothing or commented
 4. [Verify] Restart Claude Code and verify native auth works
 ```
 
