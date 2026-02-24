@@ -9,13 +9,15 @@
 ## Phase 1: The 4 Bulletproof Gates
 
 ### G5: RNG Determinism Validator (Pre-commit)
+
 - **File**: `gates/g5_rng_determinism.py`
-- **Detects**: Global `np.random.seed()` usage  
+- **Detects**: Global `np.random.seed()` usage
 - **Prevents**: C8 (test isolation violations)
 - **ROI**: 95% effectiveness, 0% false positives
 - **Trigger**: Pre-commit hook
 
 ### G4: URL Fork Validator (Pre-commit)
+
 - **File**: `gates/g4_url_validation.py`
 - **Detects**: Fork URLs (terrylica/) vs org URLs (EonLabs-Spartan/)
 - **Prevents**: C7 (link rot)
@@ -23,6 +25,7 @@
 - **Trigger**: Pre-commit hook
 
 ### G8: Parameter Validation (Runtime/CI)
+
 - **File**: `gates/g8_parameter_validation.py`
 - **Detects**: Invalid ranges, inverted thresholds, missing enums, missing columns
 - **Prevents**: E1, E2 (silent calculation failures)
@@ -30,6 +33,7 @@
 - **Trigger**: Plugin execution validation
 
 ### G12: Manifest Sync Validator (CI)
+
 - **File**: `gates/g12_manifest_sync.py`
 - **Detects**: Decorator-YAML mismatches
 - **Prevents**: C2 (integration misalignment)
@@ -47,11 +51,12 @@
 
 ## Test Status
 
-- **G5 Tests**: ✅ 4/4 passing
-- **G4 Tests**: ✅ 6/6 passing  
-- **G8 Tests**: ✅ 6/6 passing (ParameterValidator static methods)
-- **G12 Tests**: ✅ 2/2 passing
-- **Total**: ✅ 18/18 comprehensive tests
+- **G5 Tests**: ✅ 5/5 passing
+- **G4 Tests**: ✅ 5/5 passing
+- **G8 Tests**: ✅ 8/8 passing (ParameterValidator methods + TestG8Parameter)
+- **G12 Tests**: ✅ 4/4 passing (decorator_yaml_sync tests)
+- **Integration Tests**: ✅ 4/4 passing (test_gates.py)
+- **Total**: ✅ 26/26 comprehensive tests
 
 ## Architecture
 
