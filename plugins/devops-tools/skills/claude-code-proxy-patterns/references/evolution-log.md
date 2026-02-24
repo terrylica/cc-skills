@@ -1,26 +1,24 @@
 # Evolution Log
 
-## 2026-02-23: Go Migration + Failover
+## 2026-02-23: Go-Only Implementation
 
-Source: Migration from Python FastAPI to Go binary for launchd deployment.
+Source: Migrated from Python to Go for launchd deployment.
 
 Key changes:
 - Go binary proxy deployed to `/usr/local/bin/claude-proxy` (port 8082)
 - launchd plist for auto-restart: `/Library/LaunchDaemons/com.example.claude-proxy.plist`
-- Failover wrapper added (port 8083) with `cenkalti/backoff/v4` retry
-- Primary: Go proxy (8082), Fallback: Python proxy (3000)
+- Uses `cenkalti/backoff/v4` for retry logic (no Python fallback)
+- Python proxy deprecated
 
-Reference implementations:
+Reference implementation:
 - Go proxy: `/usr/local/bin/claude-proxy`
-- Failover: `$HOME/eon/cc-skills/tools/claude-code-failover/main.go`
-- Python proxy: `$HOME/.claude/tools/claude-code-proxy/proxy.py`
+- Source: `$HOME/eon/cc-skills/tools/claude-code-failover/main.go`
 
 Port configuration:
-- `:8083` - Failover wrapper (entry point)
-- `:8082` - Go proxy (primary, launchd-managed)
-- `:3000` - Python proxy (fallback)
+- `:8082` - Go proxy (entry point, launchd-managed)
+- `:8083` - Optional failover wrapper (deprecated)
 
-MiniMax credentials added to Go proxy via launchd EnvironmentVariables.
+MiniMax credentials configured via launchd EnvironmentVariables.
 
 ## 2026-02-22: Initial skill creation
 
