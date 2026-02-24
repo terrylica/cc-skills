@@ -3,7 +3,7 @@
 <!-- PROCESS-STORM-OK: This file documents anti-patterns including gh CLI recursion as a WARNING, not as executable code -->
 <!-- SSoT-OK: version references below are documentation of binary analysis findings, not package versions -->
 
-Gotchas discovered during multi-provider proxy implementation (2026-02-22). Severity ratings indicate impact of hitting each issue without prior knowledge.
+Gotchas discovered during multi-provider proxy implementation (2026-02-22 to 2026-02-23). Severity ratings indicate impact of hitting each issue without prior knowledge.
 
 ---
 
@@ -17,14 +17,14 @@ Gotchas discovered during multi-provider proxy implementation (2026-02-22). Seve
 
 ```bash
 # WRONG - Claude Code ignores ANTHROPIC_BASE_URL in OAuth mode
-export ANTHROPIC_BASE_URL="http://127.0.0.1:3000"
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8083"
 
 # RIGHT - forces Claude Code to use ANTHROPIC_BASE_URL
-export ANTHROPIC_BASE_URL="http://127.0.0.1:3000"
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8083"
 export ANTHROPIC_API_KEY="proxy-managed"
 ```
 
-The proxy detects `"proxy-managed"` and never forwards it to providers (`proxy.py:324`).
+The proxy detects `"proxy-managed"` and never forwards it to providers.
 
 ---
 
