@@ -18,8 +18,7 @@ Multi-provider proxy that routes Claude Code model tiers to different backends. 
 **Scope**: Local reverse proxy for Claude Code with OAuth subscription (Max plan). Routes based on model name in request body.
 
 **Reference implementations**: 
-- Go proxy: `/usr/local/bin/claude-proxy` (port 8082)
-- Failover wrapper: `$HOME/eon/cc-skills/tools/claude-code-failover/main.go` (port 8083)
+- Go proxy binary: `/usr/local/bin/claude-proxy` (port 8082)
 
 ---
 
@@ -61,7 +60,6 @@ Claude Code (OAuth/Max subscription)
 
 **Port Configuration**:
 - `:8082` - Go proxy (entry point, launchd-managed, auto-restart)
-- `:8083` - Failover wrapper (optional, for redundancy)
 
 The Go proxy uses `cenkalti/backoff/v4` for built-in retry logic.
 
@@ -288,47 +286,136 @@ export ANTHROPIC_API_KEY="proxy-managed"
 curl -s http://127.0.0.1:8082/health | jq .
 ```
 
-### WP-13: Launchd Service for Go Proxy
+### WP-13: Launchd Service Configuration
 
-The Go proxy runs as a launchd daemon for auto-restart on crash and boot.
+The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot persistence.
 
-**Location**: `/Library/LaunchDaemons/com.example.claude-proxy.plist`
+**Why launchd?**:
+- Auto-restarts if proxy crashes
+- Starts on system boot (RunAtLoad)
+- Runs as root (needed for port 80/443 if ever needed)
+- Resource limits can be enforced
 
-**Configuration**:
+**Plist Location**: `/Library/LaunchDaemons/com.example.claude-proxy.plist`
+
+**Full Configuration**:
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Unique identifier -->
     <key>Label</key><string>com.example.claude-proxy</string>
+    
+    <!-- Program to run -->
     <key>ProgramArguments</key>
-    <array><string>/usr/local/bin/claude-proxy</string></array>
+    <array>
+        <string>/usr/local/bin/claude-proxy</string>
+    </array>
+    
+    <!-- Start on boot -->
     <key>RunAtLoad</key><true/>
-    <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+    
+    <!-- Auto-restart on crash (any non-zero exit) -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key><false/>
+    </dict>
+    
+    <!-- Environment variables passed to the proxy -->
     <key>EnvironmentVariables</key>
     <dict>
         <key>PORT</key><string>8082</string>
-        <key>HAIKU_PROVIDER_API_KEY</key><string>sk-cp-...</string>
+        <key>HAIKU_PROVIDER_API_KEY</key><string>sk-cp-49GSmHBfC0c65pvYrFoZZy8xEjOVxXrUiTIJn65ynTvgzoiGEvM7q9V5dYYe6PwjMfZaGelKoE2oTq1hKnttv8ODm36O8gklUIi1eaTVOKbPILlIPfNcM0E</string>
         <key>HAIKU_PROVIDER_BASE_URL</key><string>https://api.minimax.io/anthropic</string>
         <key>ANTHROPIC_DEFAULT_HAIKU_MODEL</key><string>claude-haiku-4-5-20251001</string>
     </dict>
+    
+    <!-- Resource limits -->
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key><integer>65536</integer>
+    </dict>
+    
+    <!-- Log output -->
+    <key>StandardOutPath</key><string>/Users/<you>/.claude/logs/proxy-stdout.log</string>
+    <key>StandardErrorPath</key><string>/Users/<you>/.claude/logs/proxy-stderr.log</string>
 </dict>
 </plist>
 ```
 
+**Key launchd Properties Explained**:
+
+| Key | Purpose | Value for Proxy |
+|-----|---------|----------------|
+| `Label` | Unique identifier | `com.example.claude-proxy` |
+| `ProgramArguments` | Command + args | `["/usr/local/bin/claude-proxy"]` |
+| `RunAtLoad` | Start at boot | `true` |
+| `KeepAlive/SuccessfulExit` | Restart on crash | `false` (always restart) |
+| `EnvironmentVariables` | Env vars for proxy | PORT, API keys, etc. |
+| `SoftResourceLimits/NumberOfFiles` | FD limit | `65536` |
+| `StandardOutPath` | stdout log | `/Users/<you>/.claude/logs/proxy-stdout.log` |
+| `StandardErrorPath` | stderr log | `/Users/<you>/.claude/logs/proxy-stderr.log` |
+
 **Commands**:
 ```bash
-# Load (start)
+# Install plist (one-time)
+sudo cp /path/to/com.example.claude-proxy.plist /Library/LaunchDaemons/
+sudo chown root:wheel /Library/LaunchDaemons/com.example.claude-proxy.plist
+sudo chmod 644 /Library/LaunchDaemons/com.example.claude-proxy.plist
+
+# Start (load)
 sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
 
-# Unload (stop)
+# Stop (unload)
 sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+
+# Restart
+sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # Check status
 sudo launchctl list | grep claude-proxy
 
+# View running PID info
+ps aux | grep claude-proxy
+
 # View logs
 tail -f /Users/<you>/.claude/logs/proxy-stdout.log
+tail -f /Users/<you>/.claude/logs/proxy-stderr.log
+
+# Test health
+curl -s http://127.0.0.1:8082/health | jq .
+```
+
+**Verification Checklist**:
+```bash
+# 1. Plist exists
+ls -la /Library/LaunchDaemons/com.example.claude-proxy.plist
+
+# 2. Loaded in launchd
+sudo launchctl list | grep claude-proxy
+
+# 3. Process running
+ps aux | grep claude-proxy | grep -v grep
+
+# 4. Port listening
+lsof -i :8082
+
+# 5. Health endpoint responds
+curl -s http://127.0.0.1:8082/health | jq .
+```
+
+**Debugging launchd Issues**:
+```bash
+# Check if plist is valid
+plutil -lint /Library/LaunchDaemons/com.example.claude-proxy.plist
+
+# View full launchd logs
+log show --predicate 'process == "claude-proxy"' --last 5m
+
+# Check stderr for errors
+tail -50 /Users/<you>/.claude/logs/proxy-stderr.log
 ```
 
 ---
@@ -358,43 +445,42 @@ Full details with code examples: [references/anti-patterns.md](./references/anti
 
 ```
 1. [Preflight] Verify Go 1.21+ installed: go version
-2. [Preflight] Verify 1Password CLI for API key resolution
-3. [Execute] Build Go proxy: go build -o /usr/local/bin/claude-proxy
-4. [Execute] Create launchd plist with provider config
-5. [Execute] Load launchd: sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-6. [Execute] Enable proxy in .zshenv
-7. [Verify] Health check: curl -s http://127.0.0.1:8082/health
-8. [Verify] Restart Claude Code and verify Haiku routes to MiniMax
+2. [Execute] Build Go proxy to /usr/local/bin/claude-proxy
+3. [Execute] Create launchd plist at /Library/LaunchDaemons/com.example.claude-proxy.plist
+4. [Execute] Load launchd: sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+5. [Execute] Add to ~/.zshenv: export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
+6. [Execute] Add to ~/.zshenv: export ANTHROPIC_API_KEY="proxy-managed"
+7. [Verify] Health: curl -s http://127.0.0.1:8082/health
+8. [Verify] Restart Claude Code
 ```
 
 ### Template B - Add New Provider
 
 ```
-1. [Preflight] Verify provider supports /v1/messages Anthropic-compatible endpoint
-2. [Execute] Add provider env vars to launchd plist EnvironmentVariables
-3. [Execute] Configure model tier mapping
-4. [Execute] Reload: sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist && sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-5. [Verify] Test with curl http://127.0.0.1:8082/health
-6. [Verify] Update references/provider-compatibility.md
+1. [Preflight] Verify provider supports /v1/messages
+2. [Execute] Edit launchd plist, add to EnvironmentVariables:
+   - PROVIDER_API_KEY
+   - PROVIDER_BASE_URL
+3. [Execute] Reload: sudo launchctl unload -w ... && sudo launchctl load -w ...
+4. [Verify] Test: curl http://127.0.0.1:8082/health
 ```
 
 ### Template C - Diagnose Proxy Auth Failure
 
 ```
-1. Check proxy is running: curl -s http://127.0.0.1:8082/health
-2. Check .zshenv has ANTHROPIC_BASE_URL=http://127.0.0.1:8082 and ANTHROPIC_API_KEY=proxy-managed
-3. Check proxy logs: tail -50 /Users/<you>/.claude/logs/proxy-stdout.log
-4. Check launchd status: sudo launchctl list | grep claude-proxy
-5. If all else fails: disable proxy in .zshenv, restart Claude Code, verify native auth works
+1. Check running: sudo launchctl list | grep claude-proxy
+2. Check port: lsof -i :8082
+3. Check .zshenv: grep ANTHROPIC ~/.zshenv
+4. Check logs: tail -50 /Users/<you>/.claude/logs/proxy-stdout.log
+5. Health check: curl http://127.0.0.1:8082/health
 ```
 
-### Template D - Disable Proxy and Revert
+### Template D - Disable Proxy
 
 ```
-1. [Execute] Comment out ANTHROPIC_BASE_URL in ~/.zshenv
-2. [Execute] Unload launchd: sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-3. [Verify] grep ANTHROPIC_BASE_URL ~/.zshenv returns nothing or commented
-4. [Verify] Restart Claude Code and verify native auth works
+1. Comment out ANTHROPIC_BASE_URL in ~/.zshenv
+2. Unload: sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+3. Restart Claude Code
 ```
 
 ---
