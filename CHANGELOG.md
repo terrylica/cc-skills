@@ -1,3 +1,74 @@
+# [11.58.0](https://github.com/terrylica/cc-skills/compare/v11.57.1...v11.58.0) (2026-02-24)
+
+
+### Bug Fixes
+
+* **g12:** return dict format for manifest sync validation issues ([756bc07](https://github.com/terrylica/cc-skills/commit/756bc07bda052d9569699d6de841675583701381))
+
+
+### Features
+
+* **alpha-forge-preshop:** implement Phase 1 quality gates G4, G5, G8, G12 ([ce15689](https://github.com/terrylica/cc-skills/commit/ce15689b01a2cfee5662651e162cd53970d713e6))
+* **gates:** implement Phase 2 quality gates (G6, G7, G10, G1-G3) ([a348d22](https://github.com/terrylica/cc-skills/commit/a348d222b51d2e0559879cc1121c1ec1beb82c55))
+* Phase 1 quality gates implementation for Alpha Forge ([46d8be4](https://github.com/terrylica/cc-skills/commit/46d8be45a848f879712f8a0486b402e95d3a1cfa)), closes [#154](https://github.com/terrylica/cc-skills/issues/154)
+* **preshop:** implement Phase 1 quality gates (G4, G5, G8, G12) ([68b1a74](https://github.com/terrylica/cc-skills/commit/68b1a741c025e8491e6483f2c9e4acfff0d73e34)), closes [#154](https://github.com/terrylica/cc-skills/issues/154) [#154](https://github.com/terrylica/cc-skills/issues/154)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [claude-code-proxy-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) - updated (+223/-52)
+
+</details>
+
+
+### Plugin Skills
+
+- [Alpha Forge Pre-Ship Quality Gates - Phase 1](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/SKILL.md) - new (+67)
+
+### Plugin READMEs
+
+- [Alpha Forge Pre-Ship Quality Gates - Phase 1](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/README.md) - new (+100)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/claude-code-proxy-patterns</strong> (3 files)</summary>
+
+- [Claude Code Proxy Anti-Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/anti-patterns.md) - updated (+4/-4)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/evolution-log.md) - updated (+20)
+- [Provider Compatibility Matrix](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/provider-compatibility.md) - updated (+46/-8)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [5-Layer Defense-in-Depth Synthesis: Complete Architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/5_LAYER_DEFENSE_SYNTHESIS_2026-02-23.md) - new (+343)
+- [Phase 1 Quality Gates Implementation - COMPLETE ✅](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/IMPLEMENTATION_SUMMARY.md) - new (+176)
+- [Official Phase 1 Implementation Handoff](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/OFFICIAL_PHASE1_HANDOFF_2026-02-23.md) - new (+323)
+- [Phase 1 Quality Gates - Implementation Status](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/PHASE_1_STATUS.md) - new (+165)
+- [Phase 2 Quality Gates - Implementation Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/PHASE_2_IMPLEMENTATION_SUMMARY.md) - new (+409)
+- [Phase 1 Quality Gates Implementation Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/PHASE1_IMPLEMENTATION_SUMMARY.md) - new (+175)
+- [Phase 1 Quality Gates: Production Ready - Final Verification](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/PHASE1_PRODUCTION_READY_2026-02-23.md) - new (+357)
+- [TGI-1 Project Archive - Final Closure](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/PROJECT_ARCHIVE_2026-02-23.md) - new (+386)
+- [TGI-1 Project: OFFICIALLY COMPLETE - FINAL CLOSURE](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/PROJECT_COMPLETE_FINAL_2026-02-23.md) - new (+416)
+- [Alpha Forge Pre-Ship Audit Framework - Complete Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/reference.md) - new (+516)
+- [Phase 1 Quality Gates - Verification Report](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preshop/VERIFICATION.md) - new (+120)
+
 ## [11.57.1](https://github.com/terrylica/cc-skills/compare/v11.57.0...v11.57.1) (2026-02-23)
 
 
