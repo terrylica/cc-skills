@@ -595,6 +595,28 @@
         "cross-repo"
       ],
       "strict": false
+    },
+    {
+      "name": "research-repo-preshop",
+      "description": "Phase 1 Quality Gates for Research Repo PR review: RNG determinism, URL validation, parameter validation, manifest sync",
+      "version": "1.0.0",
+      "source": "./plugins/research-repo-preshop",
+      "category": "quality",
+      "author": {
+        "name": "<user>ca",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "research-repo",
+        "quality-gates",
+        "pre-commit",
+        "validation",
+        "parameter-safety",
+        "manifest-sync",
+        "rng-determinism",
+        "pr-review"
+      ],
+      "strict": false
     }
   ]
 }
