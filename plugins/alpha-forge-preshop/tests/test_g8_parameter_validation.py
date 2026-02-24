@@ -1,47 +1,33 @@
-'''Tests for G8: Parameter Validation'''
-
-from pathlib import Path
+"""Tests for G8: Parameter Validation"""
+import pytest
 import sys
+import os
+from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+parent = Path(__file__).parent.parent
+sys.path.insert(0, str(parent))
 
-from gates.g8_parameter_validation import ParameterValidator, validate_parameters
-
-
-def test_numeric_range_validation():
-    '''Test numeric bounds validation.'''
-    validator = ParameterValidator()
-    
-    # Valid: within range
-    is_valid, error = validator.validate_numeric_range(5.0, min_val=0, max_val=10)
-    assert is_valid and error is None
-    
-    # Invalid: below minimum
-    is_valid, error = validator.validate_numeric_range(-1.0, min_val=0, max_val=10)
-    assert not is_valid and error is not None
+from gates.g8_parameter_validation import ParameterValidator
 
 
-def test_enum_validation():
-    '''Test enum membership validation.'''
-    validator = ParameterValidator()
-    allowed = ['bullish_only', 'not_bearish', 'any']
-    
-    # Valid: in enum
-    is_valid, error = validator.validate_enum('bullish_only', allowed)
-    assert is_valid and error is None
+class TestG8:
+    def test_numeric_range_valid(self):
+        ParameterValidator.validate_numeric_range(50, 0, 100, "test")
 
+    def test_numeric_range_invalid(self):
+        with pytest.raises(ValueError):
+            ParameterValidator.validate_numeric_range(150, 0, 100, "test")
 
-def test_validate_parameters_spec():
-    '''Test parameter validation against specification.'''
-    spec = {
-        'atr_period': {
-            'type': 'numeric',
-            'min': 1,
-            'max': 100,
-        },
-    }
-    
-    # Valid parameters
-    params_valid = {'atr_period': 32}
-    errors = validate_parameters(params_valid, spec)
-    assert len(errors) == 0
+    def test_enum_valid(self):
+        ParameterValidator.validate_enum("bullish_only", ["bullish_only", "any"], "regime")
+
+    def test_enum_invalid(self):
+        with pytest.raises(ValueError):
+            ParameterValidator.validate_enum("invalid", ["bullish_only"], "regime")
+
+    def test_column_valid(self):
+        ParameterValidator.validate_column_exists("price.close", ["price.open", "price.close"])
+
+    def test_column_invalid(self):
+        with pytest.raises(ValueError):
+            ParameterValidator.validate_column_exists("regime", ["price.open"], "data")
