@@ -1,3 +1,47 @@
+## [11.58.1](https://github.com/terrylica/cc-skills/compare/v11.58.0...v11.58.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* allow public-safe gh operations (issue create/comment) on public repos without push access ([39b154c](https://github.com/terrylica/cc-skills/commit/39b154c8c741649eab208a9c459c6d985ef08a0f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [claude-code-proxy-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) - updated (+126/-50)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/claude-code-proxy-patterns</strong> (2 files)</summary>
+
+- [Claude Code Proxy Anti-Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/anti-patterns.md) - updated (+63/-17)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/evolution-log.md) - updated (+26)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+18/-17)
+
 # [11.58.0](https://github.com/terrylica/cc-skills/compare/v11.57.1...v11.58.0) (2026-02-24)
 
 
