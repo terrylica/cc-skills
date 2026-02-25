@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
-// gh-repo-identity-guard.mjs - Block gh CLI writes when user lacks push access
+// gh-repo-identity-guard.mjs - Block gh CLI writes based on permission level
 //
 // Incident: 2026-02-09 — Issue #6 posted to work/client-career-opportunities
 // by terrylica (wrong account). Root cause: GH_TOKEN set to wrong account via
 // global mise config; project-specific mise config had a parse error.
 //
-// This PreToolUse hook prevents gh CLI write operations when the authenticated
-// user does not have push access to the target repository.
+// This PreToolUse hook enforces two permission tiers:
+// - "Public-safe" ops (issue create/comment): allowed on any public repo
+// - "Push-required" ops (edit, close, merge, label): require push access
 //
 // Safety:
 // - No `gh` CLI calls (avoids credential helper recursion / process storms)
@@ -40,16 +41,28 @@ if (toolName !== "Bash") {
 }
 
 // ─── Match gh write commands ────────────────────────────────────────────────
-const GH_WRITE_PATTERNS = [
-  /\bgh\s+issue\s+(create|comment|edit|close|delete|label)\b/,
+// "Public-safe" commands: any authenticated user can do these on public repos
+// (gh issue create/comment, gh pr comment). Only require owner/push for
+// privileged operations (edit, close, delete, merge, label management).
+const GH_PUBLIC_SAFE_PATTERNS = [
+  /\bgh\s+issue\s+(create|comment)\b/,
+  /\bgh\s+pr\s+comment\b/,
+];
+
+const GH_PUSH_REQUIRED_PATTERNS = [
+  /\bgh\s+issue\s+(edit|close|delete|label)\b/,
   /\bgh\s+label\s+(create|edit|delete)\b/,
-  /\bgh\s+pr\s+(create|comment|review|edit|close|merge)\b/,
+  /\bgh\s+pr\s+(create|edit|close|merge|review)\b/,
   /\bgh\s+api\b.*(?:-X|--method)\s+(POST|PUT|PATCH|DELETE)\b/,
 ];
 
-const isWriteCommand = GH_WRITE_PATTERNS.some((pat) => pat.test(command));
-if (!isWriteCommand) {
-  process.exit(0);
+const isPublicSafe = GH_PUBLIC_SAFE_PATTERNS.some((pat) => pat.test(command));
+const isPushRequired = GH_PUSH_REQUIRED_PATTERNS.some((pat) =>
+  pat.test(command)
+);
+
+if (!isPublicSafe && !isPushRequired) {
+  process.exit(0); // Not a write command — allow
 }
 
 // ─── Extract target repo ────────────────────────────────────────────────────
@@ -177,8 +190,9 @@ if (authenticatedUser === repoOwner) {
   process.exit(0);
 }
 
-// ─── Check push permission ──────────────────────────────────────────────────
+// ─── Check repo visibility and permissions ──────────────────────────────────
 let hasPush = false;
+let isPublicRepo = false;
 try {
   const repoResult = execSync(
     `curl -sf --max-time 5 -H "Authorization: token ${ghToken}" https://api.github.com/repos/${targetRepo}`,
@@ -186,21 +200,28 @@ try {
   );
   const repoData = JSON.parse(repoResult);
   hasPush = repoData.permissions?.push === true;
+  isPublicRepo = repoData.private === false;
 } catch {
   // API failed — fail-open (gh CLI will fail itself if no access)
   process.exit(0);
 }
 
 if (hasPush) {
-  process.exit(0); // Has push access — allow
+  process.exit(0); // Has push access — allow all operations
+}
+
+// Public-safe operations on public repos: any authenticated user can do these
+if (isPublicSafe && isPublicRepo) {
+  process.exit(0);
 }
 
 // ─── DENY ───────────────────────────────────────────────────────────────────
+const action = isPushRequired ? "Push permission" : "Repo access";
 const reason = `[gh-identity-guard] BLOCKED: Wrong GitHub account for ${targetRepo}
 
 Authenticated as: ${authenticatedUser} (via ${source})
 Target repository: ${targetRepo}
-Push permission: DENIED
+${action}: DENIED
 
 Fix:
   1. Check mise config: mise env | grep GH_TOKEN
