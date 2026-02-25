@@ -17,7 +17,8 @@ Multi-provider proxy that routes Claude Code model tiers to different backends. 
 
 **Scope**: Local reverse proxy for Claude Code with OAuth subscription (Max plan). Routes based on model name in request body.
 
-**Reference implementations**: 
+**Reference implementations**:
+
 - Go proxy binary: `/usr/local/bin/claude-proxy` (port 8082)
 
 ---
@@ -40,25 +41,26 @@ Multi-provider proxy that routes Claude Code model tiers to different backends. 
 Claude Code (OAuth/Max subscription)
     |
     |  ANTHROPIC_BASE_URL=http://127.0.0.1:8082 (Go proxy)
-    |  ANTHROPIC_API_KEY=proxy-managed
+    |  (unset ANTHROPIC_API_KEY to avoid auth conflict)
     v
 +----------------------------------+
 | Go proxy (:8082)                 |
 | launchd managed, auto-restart   |
 +----------------------------------+
-    |                    
-    | model =         
-    | claude-haiku-  
-    | 4-5-20251001  
-    v                    
-+-----------+    
-| MiniMax   |    
-| M2.5      |    
-| highspeed |    
-+-----------+    
+    |
+    | model =
+    | claude-haiku-
+    | 4-5-20251001
+    v
++-----------+
+| MiniMax   |
+| M2.5      |
+| highspeed |
++-----------+
 ```
 
 **Port Configuration**:
+
 - `:8082` - Go proxy (entry point, launchd-managed, auto-restart)
 
 The Go proxy uses `cenkalti/backoff/v4` for built-in retry logic.
@@ -254,6 +256,7 @@ A Go proxy with built-in retry using `cenkalti/backoff/v4` for resilience.
 **Use case**: Primary Go proxy with exponential backoff retry (500ms → 1s → 2s).
 
 **Architecture**:
+
 ```
 Claude Code → :8082 (Go proxy with retry)
                    |
@@ -261,6 +264,7 @@ Claude Code → :8082 (Go proxy with retry)
 ```
 
 **Go implementation** uses `cenkalti/backoff/v4` for exponential backoff:
+
 ```go
 import "github.com/cenkalti/backoff/v4"
 
@@ -276,12 +280,14 @@ err := backoff.Retry(operation, backoffConfig)
 **Location**: `/usr/local/bin/claude-proxy`
 
 **Environment** (in `.zshenv`):
+
 ```bash
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
 export ANTHROPIC_API_KEY="proxy-managed"
 ```
 
 **Test**:
+
 ```bash
 curl -s http://127.0.0.1:8082/health | jq .
 ```
@@ -291,6 +297,7 @@ curl -s http://127.0.0.1:8082/health | jq .
 The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot persistence.
 
 **Why launchd?**:
+
 - Auto-restarts if proxy crashes
 - Starts on system boot (RunAtLoad)
 - Runs as root (needed for port 80/443 if ever needed)
@@ -299,6 +306,7 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
 **Plist Location**: `/Library/LaunchDaemons/com.example.claude-proxy.plist`
 
 **Full Configuration**:
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -306,22 +314,22 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
 <dict>
     <!-- Unique identifier -->
     <key>Label</key><string>com.example.claude-proxy</string>
-    
+
     <!-- Program to run -->
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/claude-proxy</string>
     </array>
-    
+
     <!-- Start on boot -->
     <key>RunAtLoad</key><true/>
-    
+
     <!-- Auto-restart on crash (any non-zero exit) -->
     <key>KeepAlive</key>
     <dict>
         <key>SuccessfulExit</key><false/>
     </dict>
-    
+
     <!-- Environment variables passed to the proxy -->
     <key>EnvironmentVariables</key>
     <dict>
@@ -330,13 +338,13 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
         <key>HAIKU_PROVIDER_BASE_URL</key><string>https://api.minimax.io/anthropic</string>
         <key>ANTHROPIC_DEFAULT_HAIKU_MODEL</key><string>claude-haiku-4-5-20251001</string>
     </dict>
-    
+
     <!-- Resource limits -->
     <key>SoftResourceLimits</key>
     <dict>
         <key>NumberOfFiles</key><integer>65536</integer>
     </dict>
-    
+
     <!-- Log output -->
     <key>StandardOutPath</key><string>/Users/<you>/.claude/logs/proxy-stdout.log</string>
     <key>StandardErrorPath</key><string>/Users/<you>/.claude/logs/proxy-stderr.log</string>
@@ -346,18 +354,19 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
 
 **Key launchd Properties Explained**:
 
-| Key | Purpose | Value for Proxy |
-|-----|---------|----------------|
-| `Label` | Unique identifier | `com.example.claude-proxy` |
-| `ProgramArguments` | Command + args | `["/usr/local/bin/claude-proxy"]` |
-| `RunAtLoad` | Start at boot | `true` |
-| `KeepAlive/SuccessfulExit` | Restart on crash | `false` (always restart) |
-| `EnvironmentVariables` | Env vars for proxy | PORT, API keys, etc. |
-| `SoftResourceLimits/NumberOfFiles` | FD limit | `65536` |
-| `StandardOutPath` | stdout log | `/Users/<you>/.claude/logs/proxy-stdout.log` |
-| `StandardErrorPath` | stderr log | `/Users/<you>/.claude/logs/proxy-stderr.log` |
+| Key                                | Purpose            | Value for Proxy                                |
+| ---------------------------------- | ------------------ | ---------------------------------------------- |
+| `Label`                            | Unique identifier  | `com.example.claude-proxy`                     |
+| `ProgramArguments`                 | Command + args     | `["/usr/local/bin/claude-proxy"]`              |
+| `RunAtLoad`                        | Start at boot      | `true`                                         |
+| `KeepAlive/SuccessfulExit`         | Restart on crash   | `false` (always restart)                       |
+| `EnvironmentVariables`             | Env vars for proxy | PORT, API keys, etc.                           |
+| `SoftResourceLimits/NumberOfFiles` | FD limit           | `65536`                                        |
+| `StandardOutPath`                  | stdout log         | `/Users/<you>/.claude/logs/proxy-stdout.log` |
+| `StandardErrorPath`                | stderr log         | `/Users/<you>/.claude/logs/proxy-stderr.log` |
 
 **Commands**:
+
 ```bash
 # Install plist (one-time)
 sudo cp /path/to/com.example.claude-proxy.plist /Library/LaunchDaemons/
@@ -389,6 +398,7 @@ curl -s http://127.0.0.1:8082/health | jq .
 ```
 
 **Verification Checklist**:
+
 ```bash
 # 1. Plist exists
 ls -la /Library/LaunchDaemons/com.example.claude-proxy.plist
@@ -407,6 +417,7 @@ curl -s http://127.0.0.1:8082/health | jq .
 ```
 
 **Debugging launchd Issues**:
+
 ```bash
 # Check if plist is valid
 plutil -lint /Library/LaunchDaemons/com.example.claude-proxy.plist
@@ -417,6 +428,66 @@ log show --predicate 'process == "claude-proxy"' --last 5m
 # Check stderr for errors
 tail -50 /Users/<you>/.claude/logs/proxy-stderr.log
 ```
+
+### WP-14: OAuth Token Auto-Refresh
+
+The Go proxy automatically refreshes OAuth tokens before they expire.
+
+**Use case**: Prevent auth failures when tokens expire during long-running Claude Code sessions.
+
+**Implementation**: Background goroutine runs every 30 minutes, checks if token expires within 5 minutes, and refreshes using the refresh token.
+
+```go
+// oauth_refresh.go
+func startTokenRefreshLoop() {
+    ticker := time.NewTicker(30 * time.Minute)
+    defer ticker.Stop()
+    refreshTokenIfNeeded() // Run immediately on startup
+    for {
+        select {
+        case <-ticker.C:
+            refreshTokenIfNeeded()
+        }
+    }
+}
+
+func refreshTokenIfNeeded() {
+    // Check if token expires within 5 minutes
+    needsRefresh := oauthCache.token == "" ||
+        (!oauthCache.expiresAt.IsZero() && time.Now().Add(5*time.Minute).After(oauthCache.expiresAt))
+
+    if !needsRefresh {
+        return // Token still valid
+    }
+
+    // Try API refresh first
+    newToken, newRefreshToken, newExpiresAt, err := refreshOAuthToken(refreshToken)
+    if err != nil {
+        // Fallback: get fresh token from Keychain
+        tryKeychainRefresh()
+        return
+    }
+
+    // Update cache and persist
+    oauthCache.token = newToken
+    oauthCache.refreshToken = newRefreshToken
+    oauthCache.expiresAt = newExpiresAt
+    saveOAuthToFile(newToken, newRefreshToken, newExpiresAt)
+}
+```
+
+**Refresh Logic**:
+
+1. Runs every 30 minutes in background goroutine
+2. Checks if token expires within 5 minutes
+3. If refresh token available → calls Anthropic OAuth refresh endpoint
+4. If API fails → falls back to Keychain retrieval
+5. Saves new tokens to `.oauth.json` for persistence
+
+**Key files**:
+
+- `oauth_refresh.go` - Auto-refresh logic (~80 lines)
+- `main.go` - Token cache + refreshOAuthToken function
 
 ---
 
@@ -433,9 +504,11 @@ Full details with code examples: [references/anti-patterns.md](./references/anti
 | CCP-05 | MEDIUM   | Reading `~/.claude/.credentials.json` as primary       | Keychain is SSoT; credential file is stale fallback                    |
 | CCP-06 | HIGH     | Hardcoding OAuth tokens                                | Tokens expire; read dynamically with cache                             |
 | CCP-07 | HIGH     | Using `gh auth token` in proxy/hooks                   | Causes process storms (recursive spawning)                             |
-| CCP-08 | MEDIUM   | Setting ANTHROPIC_API_KEY to real key while proxy runs | Proxy forwards it to all providers, leaking key                        |
-| CCP-09 | MEDIUM   | Not handling `/v1/messages/count_tokens`               | Causes auth failures on preflight requests                             |
-| CCP-10 | LOW      | Running proxy on 0.0.0.0                               | Bind to 127.0.0.1 for security                                         |
+| CCP-08 | HIGH     | ANTHROPIC_API_KEY set in env while having OAuth token  | Auth conflict warning in Claude Code; unset it                         |
+| CCP-09 | MEDIUM   | cache_control param sent to MiniMax                    | MiniMax doesn't support it; remove from allowedParams                  |
+| CCP-10 | MEDIUM   | Setting ANTHROPIC_API_KEY to real key while proxy runs | Proxy forwards it to all providers, leaking key                        |
+| CCP-11 | MEDIUM   | Not handling `/v1/messages/count_tokens`               | Causes auth failures on preflight requests                             |
+| CCP-12 | LOW      | Running proxy on 0.0.0.0                               | Bind to 127.0.0.1 for security                                         |
 
 ---
 
@@ -487,15 +560,16 @@ Full details with code examples: [references/anti-patterns.md](./references/anti
 
 ## Reference Implementation
 
-The working production deployment:
+The working production deployment (Go proxy is primary):
 
-| File                                         | Purpose                                     |
-| -------------------------------------------- | ------------------------------------------- |
-| `~/.claude/tools/claude-code-proxy/proxy.py` | Main proxy server (~660 lines)              |
-| `~/.claude/tools/claude-code-proxy/.env`     | Provider config (chmod 600)                 |
-| `~/.claude/bin/proxy-toggle`                 | Enable/disable/status script                |
-| `~/.claude/.proxy-enabled`                   | Empty flag file (present = routing enabled) |
-| `~/.claude/docs/haiku-minimax-proxy.md`      | Operational documentation                   |
+| File                                                    | Purpose                          |
+| ------------------------------------------------------- | -------------------------------- |
+| `/usr/local/bin/claude-proxy`                           | Go proxy binary (~960 lines)     |
+| `~/.claude/tools/claude-code-proxy-go/main.go`          | Go proxy source                  |
+| `~/.claude/tools/claude-code-proxy-go/oauth_refresh.go` | OAuth auto-refresh (80 lines)    |
+| `~/.claude/tools/claude-code-proxy-go/.env`             | Provider config (chmod 600)      |
+| `/Library/LaunchDaemons/com.example.claude-proxy.plist` | launchd config                   |
+| `~/.zshenv`                                             | Environment (ANTHROPIC_BASE_URL) |
 
 ---
 
@@ -516,14 +590,16 @@ After modifying this skill:
 
 ## Troubleshooting
 
-| Issue                                  | Cause                                      | Solution                                         |
-| -------------------------------------- | ------------------------------------------ | ------------------------------------------------ |
-| Claude Code ignores ANTHROPIC_BASE_URL | Missing ANTHROPIC_API_KEY (CCP-01)         | Set `ANTHROPIC_API_KEY=proxy-managed` in .zshenv |
-| 401 Unauthorized from Anthropic        | Missing anthropic-beta header (CCP-02)     | Ensure proxy appends `oauth-2025-04-20`          |
-| Keychain read returns empty            | Wrong service name (CCP-04)                | Use `"Claude Code-credentials"` (with space)     |
-| Proxy forwards real API key            | ANTHROPIC_API_KEY set to real key (CCP-08) | Use `proxy-managed` sentinel value               |
-| count_tokens auth failure              | Missing endpoint handler (CCP-09)          | Proxy must handle `/v1/messages/count_tokens`    |
-| Proxy accessible from network          | Bound to 0.0.0.0 (CCP-10)                  | Bind to 127.0.0.1 only                           |
-| Process storms on enable               | gh auth token in hooks (CCP-07)            | Never call gh CLI from hooks/credential helpers  |
-| MiniMax returns wrong model name       | MiniMax quirk                              | Cosmetic only; Claude Code handles it            |
-| Token expired after 5 min              | Cache TTL (WP-05)                          | Normal behavior; proxy re-reads from Keychain    |
+| Issue                                  | Cause                                          | Solution                                         |
+| -------------------------------------- | ---------------------------------------------- | ------------------------------------------------ |
+| Claude Code ignores ANTHROPIC_BASE_URL | Missing ANTHROPIC_API_KEY (CCP-01)             | Set `ANTHROPIC_API_KEY=proxy-managed` in .zshenv |
+| 401 Unauthorized from Anthropic        | Missing anthropic-beta header (CCP-02)         | Ensure proxy appends `oauth-2025-04-20`          |
+| Keychain read returns empty            | Wrong service name (CCP-04)                    | Use `"Claude Code-credentials"` (with space)     |
+| Proxy forwards real API key            | ANTHROPIC_API_KEY set to real key (CCP-10)     | Use `proxy-managed` sentinel value               |
+| count_tokens auth failure              | Missing endpoint handler (CCP-11)              | Proxy must handle `/v1/messages/count_tokens`    |
+| Proxy accessible from network          | Bound to 0.0.0.0 (CCP-12)                      | Bind to 127.0.0.1 only                           |
+| Process storms on enable               | gh auth token in hooks (CCP-07)                | Never call gh CLI from hooks/credential helpers  |
+| MiniMax returns wrong model name       | MiniMax quirk                                  | Cosmetic only; Claude Code handles it            |
+| Token expired after 5 min              | Cache TTL (WP-05)                              | Normal behavior; proxy re-reads from Keychain    |
+| Auth conflict warning in Claude Code   | ANTHROPIC_API_KEY set (CCP-08)                 | Unset ANTHROPIC_API_KEY in .zshenv               |
+| cache_control.ephemeral.scope error    | MiniMax doesn't support cache_control (CCP-09) | Remove cache_control from allowedParams          |

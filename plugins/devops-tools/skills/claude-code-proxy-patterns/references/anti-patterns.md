@@ -196,7 +196,63 @@ If you need to use a real API key for Anthropic-bound requests, set `REAL_ANTHRO
 
 ---
 
-## CCP-09: Not Handling /v1/messages/count_tokens [MEDIUM]
+## CCP-08b: ANTHROPIC_API_KEY Set in Environment With OAuth Token [HIGH]
+
+**Symptom**: Claude Code shows "Auth conflict: Both a token (claude.ai) and an API key (ANTHROPIC_API_KEY) are set" warning in the header.
+
+**Root cause**: Even setting `ANTHROPIC_API_KEY=proxy-managed` causes a conflict warning because Claude Code detects any ANTHROPIC_API_KEY as both a token AND an API key being present.
+
+**Fix**: Unset ANTHROPIC_API_KEY entirely. The Go proxy handles the sentinel internally via request header `x-api-key: proxy-managed`, not environment variable.
+
+```bash
+# WRONG - causes auth conflict warning
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
+export ANTHROPIC_API_KEY="proxy-managed"
+
+# RIGHT - unset ANTHROPIC_API_KEY, proxy uses x-api-key header
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
+unset ANTHROPIC_API_KEY
+```
+
+In `.zshenv`:
+
+```bash
+# Claude Code proxy configuration
+unset ANTHROPIC_API_KEY  # CRITICAL: unset to avoid auth conflict
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
+```
+
+---
+
+## CCP-09: cache_control Parameter Sent to MiniMax [MEDIUM]
+
+**Symptom**: API error: `system.2.cache_control.ephemeral.scope: Extra inputs are not permitted` or similar cache_control validation error.
+
+**Root cause**: MiniMax (and some other Anthropic-compatible providers) does not support the `cache_control` parameter that Anthropic's API accepts. The Go proxy's `processBody` function was passing this through to MiniMax.
+
+**Fix**: Remove `cache_control` from the allowed parameters map in the Go proxy.
+
+```go
+// WRONG - allows cache_control through to MiniMax
+var allowedParams = map[string]bool{
+    // ...
+    "cache_control": true,  // Remove this
+}
+
+// RIGHT - filter out cache_control for all providers
+var allowedParams = map[string]bool{
+    "model": true, "messages": true, "system": true, "max_tokens": true,
+    "metadata": true, "stream": true, "temperature": true, "top_p": true,
+    "top_k": true, "stop_sequences": true, "tools": true, "tool_choice": true,
+    "thinking": true, "prompt_truncation": true, "provider": true,
+    "extra": true, "force_conclusive": true, "include_usage_for": true,
+    "output": true,  // Note: cache_control removed
+}
+```
+
+---
+
+## CCP-11: Not Handling /v1/messages/count_tokens [MEDIUM]
 
 **Symptom**: Claude Code shows errors during preflight token counting, or silently falls back to estimation. Auth failures appear in proxy logs for count_tokens requests.
 
@@ -204,26 +260,16 @@ If you need to use a real API key for Anthropic-bound requests, set `REAL_ANTHRO
 
 **Fix**: Add a dedicated handler for the count_tokens endpoint with the same auth logic.
 
-```python
-# WRONG - only handling /v1/messages
-@app.post("/v1/messages")
-async def proxy_messages(request: Request):
-    ...
-
-# RIGHT - handle both endpoints
-@app.post("/v1/messages")
-async def proxy_messages(request: Request):
-    ...
-
-@app.post("/v1/messages/count_tokens")
-async def proxy_count_tokens(request: Request):
-    # Same auth logic as proxy_messages
-    # Return 501 for providers that don't support it (MiniMax, etc.)
+```go
+// Go proxy: handle count_tokens endpoint
+case strings.HasPrefix(r.URL.Path, "/v1/messages/count_tokens"):
+    // Same auth logic as /v1/messages
+    // Return 501 for MiniMax (doesn't support it)
 ```
 
 ---
 
-## CCP-10: Running Proxy on 0.0.0.0 [LOW]
+## CCP-12: Running Proxy on 0.0.0.0 [LOW]
 
 **Symptom**: The proxy is accessible from other machines on the network. OAuth tokens in transit could be intercepted on the local network.
 
