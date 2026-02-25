@@ -23,23 +23,24 @@ CLAUDE.md (this file)                  ◄── Hub: Navigation + Essentials
 
 ## Navigation
 
-| Topic                      | Document                                                                             |
-| -------------------------- | ------------------------------------------------------------------------------------ |
-| Installation               | [README.md](./README.md)                                                             |
-| Plugin Dev                 | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                             |
-| Documentation              | [docs/CLAUDE.md](./docs/CLAUDE.md)                                                   |
-| Hooks Dev                  | [docs/HOOKS.md](./docs/HOOKS.md)                                                     |
-| Cargo TTY Suspension Fix   | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md) |
-| gh-tools                   | [plugins/gh-tools/CLAUDE.md](./plugins/gh-tools/CLAUDE.md)                           |
-| Gmail Bot                  | [plugins/gmail-commander/CLAUDE.md](./plugins/gmail-commander/CLAUDE.md)             |
-| TTS Bot                    | [plugins/tts-telegram-sync/CLAUDE.md](./plugins/tts-telegram-sync/CLAUDE.md)         |
-| ITP Hooks (Process Guards) | [plugins/itp-hooks/CLAUDE.md](./plugins/itp-hooks/CLAUDE.md)                         |
-| Release                    | [docs/RELEASE.md](./docs/RELEASE.md)                                                 |
-| Plugin Lifecycle           | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                               |
-| ITP Workflow               | [plugins/itp/README.md](./plugins/itp/README.md)                                     |
-| Troubleshooting            | [docs/troubleshooting/](./docs/troubleshooting/)                                     |
-| ADRs                       | [docs/adr/](./docs/adr/)                                                             |
-| Resume Context             | [docs/RESUME.md](./docs/RESUME.md)                                                   |
+| Topic                      | Document                                                                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Installation               | [README.md](./README.md)                                                                                                     |
+| Plugin Dev                 | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                                                                     |
+| Documentation              | [docs/CLAUDE.md](./docs/CLAUDE.md)                                                                                           |
+| Hooks Dev                  | [docs/HOOKS.md](./docs/HOOKS.md)                                                                                             |
+| Cargo TTY Suspension Fix   | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md)                                         |
+| gh-tools                   | [plugins/gh-tools/CLAUDE.md](./plugins/gh-tools/CLAUDE.md)                                                                   |
+| Gmail Bot                  | [plugins/gmail-commander/CLAUDE.md](./plugins/gmail-commander/CLAUDE.md)                                                     |
+| TTS Bot                    | [plugins/tts-telegram-sync/CLAUDE.md](./plugins/tts-telegram-sync/CLAUDE.md)                                                 |
+| ITP Hooks (Process Guards) | [plugins/itp-hooks/CLAUDE.md](./plugins/itp-hooks/CLAUDE.md)                                                                 |
+| Claude Code Proxy          | [devops-tools/skills/claude-code-proxy-patterns/SKILL.md](./plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) |
+| Release                    | [docs/RELEASE.md](./docs/RELEASE.md)                                                                                         |
+| Plugin Lifecycle           | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
+| ITP Workflow               | [plugins/itp/README.md](./plugins/itp/README.md)                                                                             |
+| Troubleshooting            | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
+| ADRs                       | [docs/adr/](./docs/adr/)                                                                                                     |
+| Resume Context             | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
 
 ## Essential Commands
 
