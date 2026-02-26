@@ -1,3 +1,113 @@
+## [11.59.1](https://github.com/terrylica/cc-skills/compare/v11.59.0...v11.59.1) (2026-02-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [worktree-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/worktree-manager/SKILL.md) - renamed from `plugins/alpha-forge-worktree/skills/worktree-manager/SKILL.md`
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (4 changes)</summary>
+
+- [gdrive-access](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/gdrive-access/SKILL.md) - renamed from `plugins/gdrive-tools/skills/gdrive-access/SKILL.md`
+- [imessage-query](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/imessage-query/SKILL.md) - renamed from `plugins/imessage-tools/skills/imessage-query/SKILL.md`
+- [iterm2-layout](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/iterm2-layout/SKILL.md) - renamed from `plugins/iterm2-layout-config/skills/iterm2-layout/SKILL.md`
+- [notion-sdk](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/notion-sdk/SKILL.md) - renamed from `plugins/notion-api/skills/notion-sdk/SKILL.md`
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [alpha-forge-preship](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/alpha-forge-preship/SKILL.md) - renamed from `plugins/alpha-forge-preship/SKILL.md`
+
+</details>
+
+
+### Plugin READMEs
+
+- [alpha-forge-worktree](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-worktree/README.md) - deleted
+- [gdrive-tools](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/gdrive-tools/README.md) - deleted
+- [imessage-tools](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/imessage-tools/README.md) - deleted
+- [iterm2-layout-config](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/iterm2-layout-config/README.md) - deleted
+- [notion-api](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/notion-api/README.md) - deleted
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/worktree-manager</strong> (1 file)</summary>
+
+- [Alpha-Forge Worktree Naming Conventions](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/worktree-manager/references/naming-conventions.md) - renamed from `plugins/alpha-forge-worktree/skills/worktree-manager/references/naming-conventions.md`
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/gdrive-access</strong> (2 files)</summary>
+
+- [Google Drive API OAuth Setup](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/gdrive-access/references/gdrive-api-setup.md) - renamed from `plugins/gdrive-tools/skills/gdrive-access/references/gdrive-api-setup.md`
+- [OAuth Client Setup Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/gdrive-access/references/oauth-clients.md) - renamed from `plugins/gdrive-tools/skills/gdrive-access/references/oauth-clients.md`
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/imessage-query</strong> (5 files)</summary>
+
+- [Cross-Repository Analysis: iMessage Decoder Implementations](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/imessage-query/references/cross-repo-analysis.md) - renamed from `plugins/imessage-tools/skills/imessage-query/references/cross-repo-analysis.md`
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/imessage-query/references/evolution-log.md) - renamed from `plugins/imessage-tools/skills/imessage-query/references/evolution-log.md`
+- [Known Pitfalls](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/imessage-query/references/known-pitfalls.md) - renamed from `plugins/imessage-tools/skills/imessage-query/references/known-pitfalls.md`
+- [Reusable SQL Query Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/imessage-query/references/query-patterns.md) - renamed from `plugins/imessage-tools/skills/imessage-query/references/query-patterns.md`
+- [iMessage Database Schema Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/imessage-query/references/schema-reference.md) - renamed from `plugins/imessage-tools/skills/imessage-query/references/schema-reference.md`
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/notion-sdk</strong> (4 files)</summary>
+
+- [Notion Block Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/notion-sdk/references/block-types.md) - renamed from `plugins/notion-api/skills/notion-sdk/references/block-types.md`
+- [Pagination Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/notion-sdk/references/pagination.md) - renamed from `plugins/notion-api/skills/notion-sdk/references/pagination.md`
+- [Notion Property Types Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/notion-sdk/references/property-types.md) - renamed from `plugins/notion-api/skills/notion-sdk/references/property-types.md`
+- [Rich Text Formatting Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/notion-sdk/references/rich-text.md) - renamed from `plugins/notion-api/skills/notion-sdk/references/rich-text.md`
+
+</details>
+
+<details>
+<summary><strong>quality-tools/alpha-forge-preship</strong> (1 file)</summary>
+
+- [Alpha Forge Pre-Ship Audit Framework - Complete Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/alpha-forge-preship/references/reference.md) - renamed from `plugins/alpha-forge-preship/reference.md`
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [5_LAYER_DEFENSE_SYNTHESIS_2026-02-23](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/5_LAYER_DEFENSE_SYNTHESIS_2026-02-23.md) - deleted
+- [IMPLEMENTATION_SUMMARY](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/IMPLEMENTATION_SUMMARY.md) - deleted
+- [OFFICIAL_PHASE1_HANDOFF_2026-02-23](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/OFFICIAL_PHASE1_HANDOFF_2026-02-23.md) - deleted
+- [PHASE_1_STATUS](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/PHASE_1_STATUS.md) - deleted
+- [PHASE_2_IMPLEMENTATION_SUMMARY](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/PHASE_2_IMPLEMENTATION_SUMMARY.md) - deleted
+- [PHASE1_IMPLEMENTATION_SUMMARY](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/PHASE1_IMPLEMENTATION_SUMMARY.md) - deleted
+- [PHASE1_PRODUCTION_READY_2026-02-23](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/PHASE1_PRODUCTION_READY_2026-02-23.md) - deleted
+- [PROJECT_ARCHIVE_2026-02-23](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/PROJECT_ARCHIVE_2026-02-23.md) - deleted
+- [PROJECT_COMPLETE_FINAL_2026-02-23](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/PROJECT_COMPLETE_FINAL_2026-02-23.md) - deleted
+- [VERIFICATION](https://github.com/terrylica/cc-skills/blob/v11.59.0/plugins/alpha-forge-preship/VERIFICATION.md) - deleted
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+24/-29)
+- [Alpha Forge Pre-Ship Quality Gates - Phase 1](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/alpha-forge-preship/README.md) - renamed from `plugins/alpha-forge-preship/README.md`
+
 # [11.59.0](https://github.com/terrylica/cc-skills/compare/v11.58.2...v11.59.0) (2026-02-26)
 
 
