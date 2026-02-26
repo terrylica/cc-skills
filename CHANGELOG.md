@@ -1,3 +1,44 @@
+## [11.58.2](https://github.com/terrylica/cc-skills/compare/v11.58.1...v11.58.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* rename research-repo-preshop to research-repo-preship (typo) ([379eba1](https://github.com/terrylica/cc-skills/commit/379eba16190c712671942c1be3c6a349e31e5fd9))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin Skills
+
+- [Research Repo Pre-Ship Quality Gates - Phase 1](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/SKILL.md) - renamed from `plugins/research-repo-preshop/SKILL.md`
+
+### Plugin READMEs
+
+- [Research Repo Pre-Ship Quality Gates - Phase 1](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/README.md) - renamed from `plugins/research-repo-preshop/README.md`
+
+## Other Documentation
+
+### Other
+
+- [5-Layer Defense-in-Depth Synthesis: Complete Architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/5_LAYER_DEFENSE_SYNTHESIS_2026-02-23.md) - renamed from `plugins/research-repo-preshop/5_LAYER_DEFENSE_SYNTHESIS_2026-02-23.md`
+- [Phase 1 Quality Gates Implementation - COMPLETE ✅](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/IMPLEMENTATION_SUMMARY.md) - renamed from `plugins/research-repo-preshop/IMPLEMENTATION_SUMMARY.md`
+- [Official Phase 1 Implementation Handoff](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/OFFICIAL_PHASE1_HANDOFF_2026-02-23.md) - renamed from `plugins/research-repo-preshop/OFFICIAL_PHASE1_HANDOFF_2026-02-23.md`
+- [Phase 1 Quality Gates - Implementation Status](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/PHASE_1_STATUS.md) - renamed from `plugins/research-repo-preshop/PHASE_1_STATUS.md`
+- [Phase 2 Quality Gates - Implementation Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/PHASE_2_IMPLEMENTATION_SUMMARY.md) - renamed from `plugins/research-repo-preshop/PHASE_2_IMPLEMENTATION_SUMMARY.md`
+- [Phase 1 Quality Gates Implementation Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/PHASE1_IMPLEMENTATION_SUMMARY.md) - renamed from `plugins/research-repo-preshop/PHASE1_IMPLEMENTATION_SUMMARY.md`
+- [Phase 1 Quality Gates: Production Ready - Final Verification](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/PHASE1_PRODUCTION_READY_2026-02-23.md) - renamed from `plugins/research-repo-preshop/PHASE1_PRODUCTION_READY_2026-02-23.md`
+- [TGI-1 Project Archive - Final Closure](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/PROJECT_ARCHIVE_2026-02-23.md) - renamed from `plugins/research-repo-preshop/PROJECT_ARCHIVE_2026-02-23.md`
+- [TGI-1 Project: OFFICIALLY COMPLETE - FINAL CLOSURE](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/PROJECT_COMPLETE_FINAL_2026-02-23.md) - renamed from `plugins/research-repo-preshop/PROJECT_COMPLETE_FINAL_2026-02-23.md`
+- [Research Repo Pre-Ship Audit Framework - Complete Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/reference.md) - renamed from `plugins/research-repo-preshop/reference.md`
+- [Phase 1 Quality Gates - Verification Report](https://github.com/terrylica/cc-skills/blob/main/plugins/research-repo-preship/VERIFICATION.md) - renamed from `plugins/research-repo-preshop/VERIFICATION.md`
+
 ## [11.58.1](https://github.com/terrylica/cc-skills/compare/v11.58.0...v11.58.1) (2026-02-25)
 
 
