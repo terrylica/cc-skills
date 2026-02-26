@@ -35,11 +35,15 @@ get_repo_path() {
 
 repo_path=$(get_repo_path)
 
+# Debug logging (temporary) - logs invocations to diagnose intermittent failures
+DEBUG_LOG="/tmp/ccstatusline-invocation.log"
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) PID=$$ PPID=$PPID PWD=$(pwd)" >> "$DEBUG_LOG" 2>/dev/null
 # Read JSON from stdin
 input=$(cat)
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INPUT_LEN=${#input} MODEL_RAW=$(echo "$input" | jq -r '.model // "null"' 2>/dev/null | head -c 80)" >> "$DEBUG_LOG" 2>/dev/null
 
 # Extract fields
-model=$(echo "$input" | jq -r '.model.name // .model.id // "Unknown"' | sed 's/Claude //' | sed 's/ 4.5/4.5/')
+model=$(echo "$input" | jq -r '.model.display_name // .model.id // .model // "Unknown"' | sed 's/Claude //' | sed 's/ 4.5/4.5/')
 session_id=$(echo "$input" | jq -r '.session_id // ""')
 
 # === Session Chain (Bun-based) ===
