@@ -4,6 +4,7 @@ description: "Install/uninstall itp-hooks (ASCII guard, ADR sync reminder, fake-
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
 model: haiku
+disable-model-invocation: true
 ---
 
 <!--

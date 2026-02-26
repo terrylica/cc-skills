@@ -1,6 +1,8 @@
 # Gmail Commander Plugin
 
-Gmail + Telegram bot lifecycle — email triage, interactive commands, voice digest, 1Password OAuth.
+> Gmail + Telegram bot lifecycle — email triage, interactive commands, voice digest, 1Password OAuth.
+
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [calcom-commander CLAUDE.md](../calcom-commander/CLAUDE.md)
 
 **Skill**: [bot-process-control](./skills/bot-process-control/SKILL.md) — start/stop/restart/status/logs, launchd plist management, OAuth token diagnosis.
 

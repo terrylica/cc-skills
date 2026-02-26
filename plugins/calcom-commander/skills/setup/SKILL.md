@@ -1,6 +1,7 @@
 ---
 name: setup
 description: "Full Cal.com Commander setup wizard - Cal.com API, Telegram bot, Supabase DB, GCP project, launchd services. Discovers 1Password items, configures mise environment, installs launchd plists. TRIGGERS - calcom setup, calendar bot setup, cal.com install, booking bot configure."
+disable-model-invocation: true
 ---
 
 # Cal.com Commander Setup

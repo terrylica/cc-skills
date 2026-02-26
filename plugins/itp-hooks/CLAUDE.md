@@ -2,6 +2,8 @@
 
 > Claude Code hooks for ITP workflow enforcement, code correctness, and commit validation.
 
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [gh-tools CLAUDE.md](../gh-tools/CLAUDE.md)
+
 ## Overview
 
 This plugin provides PreToolUse and PostToolUse hooks that enforce development standards, prevent common mistakes, and ensure compliance with project requirements.

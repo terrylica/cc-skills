@@ -1,3 +1,5 @@
+**Skill**: [asciinema-streaming-backup](../SKILL.md)
+
 # Autonomous Validation Reference
 
 **Purpose**: Validation tests that Claude Code executes autonomously, plus user-required test flows.

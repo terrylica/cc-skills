@@ -1,3 +1,5 @@
+**Skill**: [asciinema-streaming-backup](../SKILL.md)
+
 # Setup Scripts
 
 Complete setup and validation scripts for the asciinema streaming backup system.

@@ -4,6 +4,7 @@ description: "Install/uninstall RU hooks. TRIGGERS - ru hooks, install ru hooks,
 allowed-tools: Bash
 argument-hint: "[install|uninstall|status]"
 model: haiku
+disable-model-invocation: true
 ---
 
 # RU: Hooks
