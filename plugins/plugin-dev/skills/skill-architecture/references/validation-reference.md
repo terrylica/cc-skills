@@ -23,15 +23,23 @@ These terms have distinct meanings in the skill ecosystem:
 Before finalizing:
 
 - [ ] YAML frontmatter valid (name, description)
-- [ ] `name` follows rules (lowercase, hyphens, \<64 chars)
+- [ ] `name` follows rules (lowercase, hyphens, \<64 chars, no `--`, matches directory name)
 - [ ] `description` includes WHAT + WHEN (\<1024 chars, specific triggers)
+- [ ] `description` not too broad (doesn't false-trigger on unrelated conversations)
 - [ ] `description` single-line, no colons in text (use `-` not `:`), unquoted
+- [ ] SKILL.md body under 500 lines (move detail to `references/`)
 - [ ] Instructions use imperative mood
 - [ ] Markdown formatting: No manual section numbering (use `--number-sections` for PDFs)
 - [ ] At least one concrete example
+- [ ] Classify as **reference** (inline knowledge) or **task** (side-effect action):
+  - Task skills (deploy, commit, send): `disable-model-invocation: true`
+  - Background knowledge skills: `user-invocable: false`
+- [ ] If using `context: fork`, skill has explicit actionable instructions (not guidelines-only)
+- [ ] If skill requires external tools (git, docker, jq), add `compatibility` field
 - [ ] Security audit passed (no secrets, input validation)
-- [ ] `allowed-tools` restricts dangerous operations
-- [ ] Tested activation with trigger keywords
+- [ ] `allowed-tools` grants tools without per-use approval (does NOT restrict — unlisted tools still available)
+- [ ] Tested activation **both ways**: manual `/name` AND organic trigger keywords
+- [ ] Run `/context` to verify skill is loaded (not excluded by description budget)
 - [ ] File paths relative or documented
 - [ ] No duplicate functionality
 - [ ] Supporting files in scripts/, reference.md, examples.md
@@ -130,14 +138,22 @@ When adding a new plugin, use this template:
 {
   "name": "my-plugin",
   "description": "Brief description of what the plugin does",
-  "version": "1.0.0",
+  "version": "<version>",
   "source": "./plugins/my-plugin/",
   "category": "productivity",
   "author": { "name": "Your Name", "url": "https://github.com/username" },
   "keywords": ["relevant", "keywords"],
-  "strict": false
+  "strict": false,
+  "agents": [],
+  "skills": [],
+  "hooks": [],
+  "mcpServers": [],
+  "outputStyles": [],
+  "lspServers": []
 }
 ```
+
+> **Note**: Only `name` is required. All component paths (`skills`, `hooks`, `agents`, etc.) supplement default directory discovery — if your plugin uses the standard `skills/`, `hooks/` directory layout, these fields are optional.
 
 ### Workflow Recommendation
 

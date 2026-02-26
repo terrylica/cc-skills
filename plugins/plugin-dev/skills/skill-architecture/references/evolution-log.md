@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-02-25: Add 10 Checklist Items from Official Sources
+
+**Trigger**: Gap analysis of Skill Quality Checklist (SKILL.md) and Validation Checklist (validation-reference.md) against Claude Code docs + agentskills.io spec revealed 10 missing items.
+
+### Items Added (both checklists)
+
+1. `name` must match parent directory, no consecutive hyphens
+2. Description not too broad (false-trigger guard)
+3. SKILL.md body under 500 lines
+4. Classify as reference vs task → set invocation control accordingly
+5. `context: fork` requires actionable instructions (not guidelines-only)
+6. `compatibility` field for external tool requirements
+7. Fixed `allowed-tools` wording: "grants" not "restricts" (validation-reference.md)
+8. Test activation both ways: manual `/name` AND organic triggers
+9. Run `/context` to verify not excluded by budget
+10. Reference-vs-task classification drives `disable-model-invocation` / `user-invocable` defaults
+
+---
+
+## 2026-02-25: Align with Official Claude Code Skills Docs (28 Findings)
+
+**Trigger**: 9-agent forensic audit compared skill-architecture docs against `code.claude.com/docs/en/skills` and `agentskills.io/specification`. Found 2 CRITICAL, 8 HIGH, 11 MEDIUM, 7 LOW misalignments + 2 internal contradictions.
+
+### Changes Made (8 Work Units)
+
+1. **SKILL.md frontmatter**: Expanded 3-field table → 10-field table with all official fields (`context`, `agent`, `disable-model-invocation`, `user-invocable`, `argument-hint`, `allowed-permission-prompt`, `name-aliases`). Fixed `allowed-tools` semantics: grants tools, doesn't restrict. Added invocation control truth table and Skill Permission Rules.
+2. **SKILL.md budget**: Added Skill Description Budget subsection (2% context window, `/context` command, `SLASH_COMMAND_TOOL_CHAR_BUDGET` override).
+3. **TodoWrite → TaskCreate**: Migrated all 8 SKILL.md occurrences. Terminology now matches Claude Code's `TaskCreate` tool.
+4. **SKILL.md CLI features**: Added String Substitutions table (`$ARGUMENTS`, `$N`, `${CLAUDE_SESSION_ID}`), Dynamic Context Injection (`` !`cmd` `` syntax), Extended Thinking (`ultrathink` keyword).
+5. **Skill Discovery**: Added precedence chain (Enterprise > Personal > Project > Plugin > Nested > --add-dir), monorepo auto-discovery, `claude plugin enable/disable` commands.
+6. **command-skill-duality.md → invocation-control.md**: Complete rewrite. Old dual-entity model replaced with merged command/skill reality. Added truth table, permission rules, migration guide, historical note.
+7. **advanced-topics.md**: Fixed CLI vs API table (`SKILL.md` everywhere, `claude plugin install`, removed unverifiable 200-char limit). Added Plugin-Level Features table (`outputStyles`, `lspServers`, `mcpServers`, `settings`).
+8. **validation-reference.md**: Added 6 optional `plugin.json` fields to template. **SYNC-TRACKING.md**: Updated sync date, added official docs + agentskills.io sources, added Known Spec Discrepancies table.
+9. **progressive-disclosure.md**: Replaced 7 absolute paths with relative paths.
+10. **Continuous Improvement**: Condensed from 42 lines to 7 lines (offset new content growth).
+
+### Key Insight
+
+Documentation alignment requires auditing against multiple official sources simultaneously. The Claude Code docs and Agent Skills spec have subtle discrepancies (comma vs space delimiters, `name` requirement) that must be explicitly documented rather than silently choosing one.
+
+---
+
 ## 2026-02-13: Fix Hook Integration Anti-Pattern (CLAUDE_PLUGIN_ROOT)
 
 **Trigger**: The `$CLAUDE_PLUGIN_ROOT` variable was recommended in the Hook Integration Pattern (advanced-topics.md) but does NOT work in hooks.json commands. When hooks.json is synced to settings.json, the variable is copied verbatim and resolves to empty string at shell execution time, causing "Module not found" errors.

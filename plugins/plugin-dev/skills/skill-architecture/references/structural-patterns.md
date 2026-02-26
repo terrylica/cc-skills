@@ -145,10 +145,6 @@ my-integration/
 │   ├── component-version-upgrade/ # Upgrades
 │   ├── clean-component-removal/   # Teardown
 │   └── option-quality-audition/   # A/B comparison
-├── commands/
-│   ├── setup.md                   # Quick-access bootstrap
-│   ├── health.md                  # Quick-access health check
-│   └── hooks.md                   # Hook management
 ├── hooks/
 │   └── hooks.json                 # Event-driven automation
 └── scripts/
@@ -159,7 +155,7 @@ my-integration/
 
 - Skills reference each other: health check failure → suggest diagnostic skill
 - Shared library in `scripts/lib/` reduces duplication
-- Commands provide quick-access for common operations (see [Command-Skill Duality](./command-skill-duality.md))
+- Manual-only skills (`disable-model-invocation: true`) provide quick-access for common operations (see [Invocation Control](./invocation-control.md))
 - Hooks enable cross-session automation (see [Advanced Topics](./advanced-topics.md))
 - Each skill follows [Phased Execution](./phased-execution.md) (Preflight → Execute → Verify)
 
