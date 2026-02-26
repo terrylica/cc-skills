@@ -2,7 +2,7 @@
 
 **Date**: 2026-02-24
 **Status**: ✅ IMPLEMENTATION COMPLETE
-**Location**: ~/eon/cc-skills/plugins/alpha-forge-preshop/
+**Location**: ~/eon/cc-skills/plugins/alpha-forge-preship/
 
 ## Implementation Status
 
@@ -63,7 +63,7 @@
 ## File Structure
 
 ```
-alpha-forge-preshop/
+alpha-forge-preship/
 ├── gates/
 │   ├── __init__.py                    # Gate module exports
 │   ├── g4_url_validation.py          # URL fork detector

@@ -479,10 +479,10 @@ All validators include:
 
 ```bash
 # Run all tests
-uv run pytest plugins/alpha-forge-preshop/tests/ -v --cov
+uv run pytest plugins/alpha-forge-preship/tests/ -v --cov
 
 # Run specific gate tests
-uv run pytest plugins/alpha-forge-preshop/tests/test_g5_*.py -v
+uv run pytest plugins/alpha-forge-preship/tests/test_g5_*.py -v
 ```
 
 ---

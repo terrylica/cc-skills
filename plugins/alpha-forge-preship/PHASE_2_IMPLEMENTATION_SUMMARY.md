@@ -250,35 +250,35 @@ URLs & Links
 ```yaml
 - repo: local
   hooks:
-    - id: alpha-forge-preshop-g1
+    - id: alpha-forge-preship-g1
       name: Documentation Scope Validator
       entry: python gates/g1_documentation_scope.py
       files: '\.md$'
-    - id: alpha-forge-preshop-g2
+    - id: alpha-forge-preship-g2
       name: Documentation Clarity Validator
       entry: python gates/g2_documentation_clarity.py
       files: '\.md$'
-    - id: alpha-forge-preshop-g3
+    - id: alpha-forge-preship-g3
       name: Documentation Completeness Validator
       entry: python gates/g3_documentation_completeness.py
       files: '\.md$'
-    - id: alpha-forge-preshop-g4
+    - id: alpha-forge-preship-g4
       name: URL Validator
       entry: python gates/g4_url_validation.py
       files: '\.(py|yaml|md)$'
-    - id: alpha-forge-preshop-g5
+    - id: alpha-forge-preship-g5
       name: RNG Determinism Validator
       entry: python gates/g5_rng_determinism.py
       files: 'test_.*\.py$'
-    - id: alpha-forge-preshop-g6
+    - id: alpha-forge-preship-g6
       name: Warmup Alignment Validator
       entry: python gates/g6_warmup_alignment.py
       files: '\.py$'
-    - id: alpha-forge-preshop-g7
+    - id: alpha-forge-preship-g7
       name: Parameter Documentation Validator
       entry: python gates/g7_parameter_documentation.py
       files: '\.py$'
-    - id: alpha-forge-preshop-g10
+    - id: alpha-forge-preship-g10
       name: Performance Red Flags Validator
       entry: python gates/g10_performance_red_flags.py
       files: '\.py$'

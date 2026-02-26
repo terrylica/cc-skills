@@ -2,7 +2,7 @@
 
 **Status**: ✅ COMPLETE - 4/4 gates implemented and tested
 
-**Deployment Location**: `plugins/alpha-forge-preshop/`
+**Deployment Location**: `plugins/alpha-forge-preship/`
 
 **Implementation Timeline**: ~4 hours (completed)
 
@@ -61,7 +61,7 @@
 ## Architecture
 
 ```
-plugins/alpha-forge-preshop/
+plugins/alpha-forge-preship/
 ├── gates/
 │   ├── g5_rng_determinism.py       (Pre-commit)
 │   ├── g4_url_validation.py        (Pre-commit)

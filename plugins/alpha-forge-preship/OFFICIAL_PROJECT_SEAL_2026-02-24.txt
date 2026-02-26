@@ -118,7 +118,7 @@ TEST COVERAGE:
   - Edge Cases: All covered
 
 LOCATION:
-  /Users/terryli/eon/cc-skills/plugins/alpha-forge-preshop/gates/
+  /Users/terryli/eon/cc-skills/plugins/alpha-forge-preship/gates/
 
 ═══════════════════════════════════════════════════════════════════════════════
                      COMPLETE DOCUMENTATION (20+ DOCUMENTS)

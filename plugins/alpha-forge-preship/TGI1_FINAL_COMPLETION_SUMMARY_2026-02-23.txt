@@ -50,8 +50,8 @@ PHASE 2 GATES (Extended - 6 validators):
 PHASE 3: IMPLEMENTATION (Production Code Delivery)
 ═══════════════════════════════════════════════════════════════════════════════
 
-REPOSITORY: cc-skills/plugins/alpha-forge-preshop/
-BRANCH: feat/2026-02-24-alpha-forge-preshop-phase1
+REPOSITORY: cc-skills/plugins/alpha-forge-preship/
+BRANCH: feat/2026-02-24-alpha-forge-preship-phase1
 STATUS: ✅ Merged to main (PR #27)
 
 CODE DELIVERED:

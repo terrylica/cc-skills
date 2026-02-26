@@ -107,7 +107,7 @@ All 4 gates are production-ready and can be:
 
 ## Next Steps
 
-1. **Review**: Examine implementation in `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preshop/`
+1. **Review**: Examine implementation in `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preship/`
 2. **Test**: Run pytest to verify functionality
 3. **Integrate**: Add to pre-commit hooks and CI workflows
 4. **Deploy**: Merge to cc-skills main branch

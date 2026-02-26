@@ -150,7 +150,7 @@ alpha-forge-core/alpha_forge_preshop:
 
 ## Documentation Complete
 
-### In cc-skills/plugins/alpha-forge-preshop/
+### In cc-skills/plugins/alpha-forge-preship/
 
 - ✅ `reference.md` — Technical reference handbook (517 lines)
 - ✅ `README.md` — Quick start guide
@@ -333,7 +333,7 @@ The Phase 1 Quality Gates implementation is:
 
 **Locations**:
 
-- **cc-skills**: `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preshop/`
+- **cc-skills**: `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preship/`
 - **alpha-forge**: `/Users/terryli/eon/alpha-forge/gates/` + integrated into core tests
 
 ---

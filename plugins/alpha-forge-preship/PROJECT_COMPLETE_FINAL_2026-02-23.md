@@ -332,7 +332,7 @@ def my_plugin(...):
 
 ### Repository Locations
 
-- **cc-skills**: `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preshop/`
+- **cc-skills**: `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preship/`
 - **alpha-forge**: `/Users/terryli/eon/alpha-forge/gates/` + integrated tests
 
 ### Key Files

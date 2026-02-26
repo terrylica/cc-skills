@@ -597,10 +597,10 @@
       "strict": false
     },
     {
-      "name": "alpha-forge-preshop",
+      "name": "alpha-forge-preship",
       "description": "Phase 1 Quality Gates for Alpha Forge PR review: RNG determinism, URL validation, parameter validation, manifest sync",
       "version": "11.58.1",
-      "source": "./plugins/alpha-forge-preshop",
+      "source": "./plugins/alpha-forge-preship",
       "category": "quality",
       "author": {
         "name": "Terry Li",

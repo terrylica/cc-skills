@@ -52,7 +52,7 @@ The TGI-1 project successfully conducted a comprehensive unified analysis of 13 
 
 ### Code Repositories
 
-- **cc-skills**: `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preshop/`
+- **cc-skills**: `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preship/`
   - Commit: ad1e239 (PR #27 merged)
   - Status: Main branch, synced with origin
 

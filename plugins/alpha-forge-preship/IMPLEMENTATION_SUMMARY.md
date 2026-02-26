@@ -2,7 +2,7 @@
 
 **Date**: 2026-02-24  
 **Status**: ✅ Phase 1 Implementation Complete  
-**Location**: `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preshop/`
+**Location**: `/Users/terryli/eon/cc-skills/plugins/alpha-forge-preship/`
 
 ## Deliverables
 
@@ -59,7 +59,7 @@
 
 ### Directory Structure
 ```
-alpha-forge-preshop/
+alpha-forge-preship/
 ├── gates/
 │   ├── g5_rng_determinism.py       (RNG isolation validator)
 │   ├── g4_url_validation.py        (Fork URL detector)

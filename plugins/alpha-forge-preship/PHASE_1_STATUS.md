@@ -2,7 +2,7 @@
 
 **Date**: 2026-02-24
 **Status**: ✅ COMPLETE AND READY FOR MERGE
-**Branch**: `feat/2026-02-24-alpha-forge-preshop-phase1`
+**Branch**: `feat/2026-02-24-alpha-forge-preship-phase1`
 **Reference**: `/tmp/CANONICAL_PRESHOP_AUDIT_HANDBOOK.md`
 
 ---
@@ -93,7 +93,7 @@ Detects decorator-YAML mismatches in plugin manifests. Ensures plugin metadata s
 ## Files Included
 
 ```
-plugins/alpha-forge-preshop/
+plugins/alpha-forge-preship/
 ├── gates/
 │   ├── g5_rng_determinism.py       ✅ Pre-commit hook
 │   ├── g4_url_validation.py        ✅ Pre-commit hook
@@ -117,8 +117,8 @@ Add to `.pre-commit-config.yaml` in alpha-forge:
 ```yaml
 - repo: https://github.com/terrylica/cc-skills
   hooks:
-    - id: alpha-forge-preshop-g5
-    - id: alpha-forge-preshop-g4
+    - id: alpha-forge-preship-g5
+    - id: alpha-forge-preship-g4
 ```
 
 ### CI Pipeline Integration
