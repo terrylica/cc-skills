@@ -58,7 +58,7 @@ The TGI-1 project successfully conducted a comprehensive unified analysis of 13 
 
 - **alpha-forge**: `/Users/terryli/eon/alpha-forge/`
   - Gates: `/gates/g*.py` (10 validators)
-  - Tests: `packages/alpha-forge-core/alpha_forge_preshop/tests/` (78 tests)
+  - Tests: `packages/alpha-forge-core/alpha_forge_preship/tests/` (78 tests)
   - Status: Fully integrated, all tests passing
 
 ### Quality Gates Implemented

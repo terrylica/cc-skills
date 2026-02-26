@@ -93,7 +93,7 @@ cc-skills:
   Phase 2: 52/52 tests passing ✅
   Total: 78/78 tests passing ✅
 
-alpha-forge-core/alpha_forge_preshop:
+alpha-forge-core/alpha_forge_preship:
   Phase 1: 26/26 tests passing ✅
   Phase 2: 52/52 tests passing ✅
   Total: 78/78 tests passing ✅
