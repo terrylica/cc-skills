@@ -1,3 +1,59 @@
+# [11.59.0](https://github.com/terrylica/cc-skills/compare/v11.58.2...v11.59.0) (2026-02-26)
+
+
+### Bug Fixes
+
+* replace remaining preshop→preship typos in plugin docs ([fa3a983](https://github.com/terrylica/cc-skills/commit/fa3a98337e6d7d62c3ec5ddfcd9cbe958d4e832d))
+
+
+### Features
+
+* add firecrawl-research-patterns skill to devops-tools ([fb8e0ad](https://github.com/terrylica/cc-skills/commit/fb8e0ad358502df62567fa1bcc068b168245a4ca))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [firecrawl-research-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/SKILL.md) - new (+311)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/firecrawl-research-patterns</strong> (4 files)</summary>
+
+- [Academic Paper Routing](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/academic-paper-routing.md) - new (+202)
+- [API Endpoint Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/api-endpoint-reference.md) - new (+258)
+- [Corpus Persistence Format](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/corpus-persistence-format.md) - new (+249)
+- [Recursive Research Protocol](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/recursive-research-protocol.md) - new (+244)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Phase 1 Quality Gates - Implementation Status](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preship/PHASE_1_STATUS.md) - updated (+1/-1)
+- [Phase 2 Quality Gates - Implementation Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preship/PHASE_2_IMPLEMENTATION_SUMMARY.md) - updated (+2/-2)
+- [Phase 1 Quality Gates: Production Ready - Final Verification](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preship/PHASE1_PRODUCTION_READY_2026-02-23.md) - updated (+1/-1)
+- [TGI-1 Project Archive - Final Closure](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preship/PROJECT_ARCHIVE_2026-02-23.md) - updated (+1/-1)
+- [Alpha Forge Pre-Ship Audit Framework - Complete Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/alpha-forge-preship/reference.md) - updated (+1/-1)
+- [devops-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/CLAUDE.md) - updated (+20/-19)
+
 ## [11.58.2](https://github.com/terrylica/cc-skills/compare/v11.58.1...v11.58.2) (2026-02-26)
 
 
