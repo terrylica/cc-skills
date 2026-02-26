@@ -1,6 +1,8 @@
 # Cal.com Commander Plugin
 
-Cal.com + Telegram + Pushover lifecycle — booking management, interactive commands, scheduled sync, webhook relay, Agent SDK routing, 1Password OAuth.
+> Cal.com + Telegram + Pushover lifecycle — booking management, interactive commands, scheduled sync, webhook relay, Agent SDK routing, 1Password OAuth.
+
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [gmail-commander CLAUDE.md](../gmail-commander/CLAUDE.md)
 
 ## Architecture
 

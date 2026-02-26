@@ -1,3 +1,5 @@
+**Skill**: [asciinema-streaming-backup](../SKILL.md)
+
 # Idle Chunker Script (DEPRECATED)
 
 > **DEPRECATED**: This inline chunker has been superseded by the launchd daemon architecture.

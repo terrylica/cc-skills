@@ -7,7 +7,7 @@ description: Meta-skill for creating Claude Code skills. TRIGGERS - create skill
 
 Comprehensive guide for creating effective Claude Code skills following Anthropic's official standards with emphasis on security, CLI-specific features, and progressive disclosure architecture.
 
-> ⚠️ **Scope**: Claude Code CLI Agent Skills (`~/.claude/skills/`), not Claude.ai API skills
+> **Scope**: Claude Code CLI Agent Skills (`~/.claude/skills/`), not Claude.ai API skills
 
 ## When to Use This Skill
 
@@ -20,134 +20,20 @@ Use this skill when:
 
 ---
 
-## FIRST: Task Templates
+## Task Templates
 
-**MANDATORY**: Select and load the appropriate template into TaskCreate before any skill work.
+**MANDATORY**: Select and load the appropriate template before any skill work.
 
-> For detailed context on each step, see [Skill Creation Process (Detailed Tutorial)](#skill-creation-process-detailed-tutorial) below.
+See [Task Templates](./references/task-templates.md) for all templates (A-F) and the quality checklist.
 
-### Template A: Create New Skill
-
-```
-1. Gather requirements (ask user for functionality, examples, triggers)
-2. Identify reusable resources (scripts, references, assets needed)
-3. Run init script to create skill directory structure
-4. Create bundled resources first (scripts/, references/, assets/)
-5. Write SKILL.md with YAML frontmatter (name, description with triggers)
-6. Add task templates section to SKILL.md
-7. Add Post-Change Checklist section to SKILL.md
-8. Validate with quick_validate.py
-9. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
-10. Test skill on real example
-11. Register skill in project CLAUDE.md
-12. Verify against Skill Quality Checklist below
-```
-
-### Template B: Update Existing Skill
-
-```
-1. Read current SKILL.md and understand structure
-2. Identify what needs changing (triggers, workflow, resources)
-3. Make targeted changes to SKILL.md
-4. Update any affected references/ or scripts/
-5. Validate with quick_validate.py
-6. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
-7. Test updated behavior
-8. Update project CLAUDE.md if description changed
-9. Verify against Skill Quality Checklist below
-```
-
-### Template C: Add Resources to Skill
-
-```
-1. Read current SKILL.md to understand skill purpose
-2. Determine resource type (script, reference, or asset)
-3. Create resource in appropriate directory
-4. Update SKILL.md to document new resource
-5. Validate with quick_validate.py
-6. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
-7. Test resource integration
-8. Verify against Skill Quality Checklist below
-```
-
-### Template D: Convert to Self-Evolving Skill
-
-```
-1. Read current SKILL.md structure
-2. Add Task Templates section (scenario-specific)
-3. Add Post-Change Checklist section
-4. Create references/evolution-log.md (reverse chronological - newest on top)
-5. Create references/config-reference.md (if skill manages external config)
-6. Update description with self-evolution triggers
-7. Validate with quick_validate.py
-8. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
-9. Test self-documentation on sample change
-10. Verify against Skill Quality Checklist below
-```
-
-### Template E: Troubleshoot Skill Not Triggering
-
-```
-1. Check YAML frontmatter syntax (no colons in description)
-2. Verify trigger keywords in description match user queries
-3. Check skill location (~/.claude/skills/ or project .claude/skills/)
-4. Validate with quick_validate.py for errors
-5. Validate links: bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
-6. Test with explicit trigger phrase
-7. Document findings in skill if new issue discovered
-8. Verify against Skill Quality Checklist below
-```
-
-### Template F: Create Lifecycle Suite
-
-```
-1. Identify lifecycle phases needed (bootstrap, operate, diagnose, configure, upgrade, teardown)
-2. Create one skill per lifecycle phase (see Suite Pattern in Structural Patterns)
-3. Create shared library in scripts/lib/ for common functions (logging, locking, config)
-4. Create commands for most-used operations (setup, health, hooks)
-5. Add hooks for event-driven automation if cross-session behavior needed
-6. Ensure skills cross-reference each other (health check failure → suggest diagnostic skill)
-7. Write CLAUDE.md for the plugin (conventions, key paths, shared library API)
-8. Validate each skill: bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
-9. Test full lifecycle: bootstrap → operate → diagnose → configure → upgrade → teardown
-10. Verify against Skill Quality Checklist below
-```
-
-### Skill Quality Checklist
-
-After ANY skill work, verify:
-
-- [ ] YAML frontmatter valid (name lowercase-hyphen, description has triggers)
-- [ ] `name` matches parent directory name exactly, no consecutive hyphens (`--`)
-- [ ] Description includes WHEN to use (trigger keywords)
-- [ ] Description not too broad (doesn't false-trigger on unrelated conversations)
-- [ ] SKILL.md body under 500 lines (move detail to `references/`)
-- [ ] Classify skill as **reference** (inline knowledge) or **task** (side-effect action):
-  - Task skills with side effects: set `disable-model-invocation: true`
-  - Reference-only skills users shouldn't invoke: set `user-invocable: false`
-- [ ] If using `context: fork`, skill has explicit actionable instructions (not guidelines-only)
-- [ ] If skill requires external tools (git, docker, jq), add `compatibility` field
-- [ ] Task templates cover all common scenarios
-- [ ] Post-Change Checklist included for self-maintenance
-- [ ] Final template step references this checklist
-- [ ] Project CLAUDE.md updated if new/renamed skill
-- [ ] Validated with quick_validate.py
-- [ ] All markdown links use relative paths (plugin-portable)
-- [ ] No broken internal links (validate-links.ts passes)
-- [ ] Tested activation **both ways**: manual `/name` AND organic trigger keywords
-- [ ] Run `/context` to verify skill is loaded (not excluded by description budget)
-- [ ] Phased execution: task templates use `[Preflight]`/`[Execute]`/`[Verify]` labels where applicable
-- [ ] Interactive: AskUserQuestion used for destructive actions and multi-option workflows
-- [ ] No unsafe path patterns (see [Path Patterns](./references/path-patterns.md)):
-  - No hardcoded `/Users/<user>` or `/home/<user>` (use `$HOME`)
-  - No hardcoded `/tmp` in Python (use `tempfile.TemporaryDirectory`)
-  - No hardcoded binary paths (use `command -v` or PATH)
-- [ ] Bash compatibility verified (see [Bash Compatibility](./references/bash-compatibility.md)):
-  - All bash code blocks wrapped with `/usr/bin/env bash << 'NAME_EOF'`
-  - No `declare -A` (associative arrays) - use parallel indexed arrays
-  - No `grep -P` (Perl regex) - use `grep -E` with awk
-  - No `\!=` in conditionals - use `!=` directly
-  - Heredoc EOF marker is descriptive (e.g., `PREFLIGHT_EOF`)
+| Template | Purpose                           |
+| -------- | --------------------------------- |
+| A        | Create New Skill                  |
+| B        | Update Existing Skill             |
+| C        | Add Resources to Skill            |
+| D        | Convert to Self-Evolving Skill    |
+| E        | Troubleshoot Skill Not Triggering |
+| F        | Create Lifecycle Suite            |
 
 ---
 
@@ -165,17 +51,17 @@ After modifying THIS skill (skill-architecture):
 
 ## Continuous Improvement
 
-Skills must actively evolve. When you notice friction, missing edge cases, better patterns, or repeated manual steps — **update immediately**: pause → fix SKILL.md or resources → log in evolution-log.md → resume.
+Skills must actively evolve. When you notice friction, missing edge cases, better patterns, or repeated manual steps -- **update immediately**: pause, fix SKILL.md or resources, log in evolution-log.md, resume.
 
 **Do NOT update immediately**: major structural changes (discuss first), speculative improvements without evidence.
 
-After completing any skill-assisted task, ask: _"Did anything feel suboptimal? What would help next time?"_ If yes → update now.
+After completing any skill-assisted task, ask: _"Did anything feel suboptimal? What would help next time?"_ If yes, update now.
 
 ---
 
 ## About Skills
 
-Skills are modular, self-contained packages that extend Claude's capabilities with specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific domains—transforming Claude from general-purpose to specialized agent with procedural knowledge no model fully possesses.
+Skills are modular, self-contained packages that extend Claude's capabilities with specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific domains -- transforming Claude from general-purpose to specialized agent with procedural knowledge no model fully possesses.
 
 ### What Skills Provide
 
@@ -188,17 +74,17 @@ Skills are modular, self-contained packages that extend Claude's capabilities wi
 
 Skills are discovered from multiple locations. When names collide, higher-precedence wins:
 
-1. **Enterprise** (managed settings) — highest
+1. **Enterprise** (managed settings) -- highest
 2. **Personal** (`~/.claude/skills/`)
 3. **Project** (`.claude/skills/` in repo)
 4. **Plugin** (namespaced: `plugin:skill-name`)
-5. **Nested** (monorepo `.claude/skills/` in subdirectories — auto-discovered)
-6. **`--add-dir`** (CLI flag, live change detection) — lowest
+5. **Nested** (monorepo `.claude/skills/` in subdirectories -- auto-discovered)
+6. **`--add-dir`** (CLI flag, live change detection) -- lowest
 
 **Management commands**:
 
-- `claude plugin enable <name>` / `claude plugin disable <name>` — toggle plugins
-- `claude skill list` — show all discovered skills with source location
+- `claude plugin enable <name>` / `claude plugin disable <name>` -- toggle plugins
+- `claude skill list` -- show all discovered skills with source location
 
 **Monorepo support**: Claude Code automatically discovers `.claude/skills/` directories in nested project roots within a monorepo. No configuration needed.
 
@@ -214,23 +100,23 @@ Skills are discovered from multiple locations. When names collide, higher-preced
 plugins/<plugin>/
 └── skills/
     └── <skill-name>/
-        └── SKILL.md   ← single canonical file (context AND user-invocable)
+        └── SKILL.md   <- single canonical file (context AND user-invocable)
 ```
 
-`skills/<name>/SKILL.md` is the **single source of truth**. The separate `commands/` layer was eliminated — it required maintaining two identical files per skill and caused `Skill()` invocations to return "Unknown skill". See [migration issue](https://github.com/terrylica/cc-skills/issues/26) for full context.
+`skills/<name>/SKILL.md` is the **single source of truth**. The separate `commands/` layer was eliminated -- it required maintaining two identical files per skill and caused `Skill()` invocations to return "Unknown skill". See [migration issue](https://github.com/terrylica/cc-skills/issues/26) for full context.
 
 ### How Skills Become Slash Commands
 
 Two install paths, both supported:
 
-| Path                    | Mechanism                                                                                                                           | Notes                                                                                                                                                                                          |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Automated (primary)** | `mise run release:full` → `sync-commands-to-settings.sh` reads `skills/*/SKILL.md` → writes `~/.claude/commands/<plugin>:<name>.md` | Fully automated post-release. Bypasses Anthropic cache bugs [#17361](https://github.com/anthropics/claude-code/issues/17361), [#14061](https://github.com/anthropics/claude-code/issues/14061) |
-| **Official CLI**        | `claude plugin install itp@cc-skills` → reads from `skills/` in plugin cache                                                        | Cache may not refresh on update — use `claude plugin update` after new releases                                                                                                                |
+| Path                    | Mechanism                                                                                                                             | Notes                                                                                                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Automated (primary)** | `mise run release:full` -> `sync-commands-to-settings.sh` reads `skills/*/SKILL.md` -> writes `~/.claude/commands/<plugin>:<name>.md` | Fully automated post-release. Bypasses Anthropic cache bugs [#17361](https://github.com/anthropics/claude-code/issues/17361), [#14061](https://github.com/anthropics/claude-code/issues/14061) |
+| **Official CLI**        | `claude plugin install itp@cc-skills` -> reads from `skills/` in plugin cache                                                         | Cache may not refresh on update -- use `claude plugin update` after new releases                                                                                                               |
 
 ### Hooks
 
-`sync-hooks-to-settings.sh` reads `hooks/hooks.json` directly → merges into `~/.claude/settings.json`. Bypasses path re-expansion bug [#18517](https://github.com/anthropics/claude-code/issues/18517).
+`sync-hooks-to-settings.sh` reads `hooks/hooks.json` directly -> merges into `~/.claude/settings.json`. Bypasses path re-expansion bug [#18517](https://github.com/anthropics/claude-code/issues/18517).
 
 ### Creating a New Skill in cc-skills
 
@@ -238,92 +124,11 @@ Place the SKILL.md under `plugins/<plugin>/skills/<name>/SKILL.md`. No `commands
 
 ---
 
-## Skill Creation Process (Detailed Tutorial)
+## Skill Creation Process
 
-> **Note**: Use task templates above for execution. This section provides detailed context for each phase.
+See [Creation Tutorial](./references/creation-tutorial.md) for the detailed 6-step walkthrough, or [Creation Workflow](./references/creation-workflow.md) for the comprehensive guide with examples.
 
-### Step 1: Understanding the Skill with Concrete Examples
-
-Clearly understand concrete examples of how the skill will be used. Ask users:
-
-- "What functionality should this skill support?"
-- "Can you give examples of how it would be used?"
-- "What would trigger this skill?"
-
-Skip only when usage patterns are already clearly understood.
-
-### Step 2: Planning Reusable Contents
-
-Analyze each example to identify what resources would be helpful:
-
-**Example 1 - PDF Editor**:
-
-- Rotating PDFs requires rewriting code each time
-- → Create `scripts/rotate_pdf.py`
-
-**Example 2 - Frontend Builder**:
-
-- Webapps need same HTML/React boilerplate
-- → Create `assets/hello-world/` template
-
-**Example 3 - BigQuery**:
-
-- Queries require rediscovering table schemas
-- → Create `references/schema.md`
-
-### Step 3: Initialize the Skill
-
-Run the init script from plugin-dev:
-
-```bash
-uv run plugins/plugin-dev/scripts/skill-creator/init_skill.py <skill-name> --path <target-path>
-```
-
-Creates: skill directory + SKILL.md template + example resource directories
-
-### Step 4: Edit the Skill
-
-**Writing Style**: Imperative/infinitive form (verb-first), not second person
-
-- ✅ "To accomplish X, do Y"
-- ❌ "You should do X"
-
-**SKILL.md must include**:
-
-1. What is the purpose? (few sentences)
-2. When should it be used? (trigger keywords in description)
-3. How should Claude use bundled resources?
-4. **Task Templates** - Pre-defined tasks for common scenarios
-5. **Post-Change Checklist** - Self-maintenance verification
-
-**Start with resources** (`scripts/`, `references/`, `assets/`), then update SKILL.md
-
-### Step 5: Validate the Skill
-
-**For local development** (validation only, no zip creation):
-
-```bash
-uv run plugins/plugin-dev/scripts/skill-creator/quick_validate.py <path/to/skill-folder>
-```
-
-**For distribution** (validates AND creates zip):
-
-```bash
-uv run plugins/plugin-dev/scripts/skill-creator/package_skill.py <path/to/skill-folder>
-```
-
-Validates: YAML frontmatter, naming, description, file organization
-
-**Note**: Use `quick_validate.py` for most workflows. Only use `package_skill.py` when actually distributing the skill to others.
-
-### Step 6: Register and Iterate
-
-1. Register skill in project CLAUDE.md (Workspace Skills section)
-2. Use skill on real tasks
-3. Notice struggles/inefficiencies
-4. Update SKILL.md or resources
-5. Test again
-6. Verify against Skill Quality Checklist above
+**Quick summary**: Gather requirements -> Plan resources -> Initialize -> Edit SKILL.md -> Validate -> Register and iterate.
 
 ---
 
@@ -340,73 +145,18 @@ skill-name/
 
 ### YAML Frontmatter (Required)
 
+See [YAML Frontmatter Reference](./references/yaml-frontmatter.md) for the complete field reference, invocation control table, permission rules, description guidelines, and YAML pitfalls.
+
+**Minimal example**:
+
 ```yaml
 ---
-name: skill-name-here
-description: What this does and when to use it (max 1024 chars)
-allowed-tools: Read, Grep, Bash
-disable-model-invocation: false
-context: fork
-agent: true
-argument-hint: <file-path> [--verbose]
+name: my-skill
+description: Does X when user mentions Y. Use for Z workflows.
 ---
 ```
 
-**Field Reference:**
-
-| Field                       | Required | Rules                                                                                                             |
-| --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
-| `name`                      | No\*     | Lowercase, hyphens, numbers. Max 64 chars. Unique. Falls back to directory name if omitted.                       |
-| `description`               | Yes      | WHAT it does + WHEN to use. Max 1024 chars. Single line. Include trigger keywords!                                |
-| `allowed-tools`             | No       | **Grants** tools without per-use approval (comma-separated). Does NOT restrict — unlisted tools still available.  |
-| `disable-model-invocation`  | No       | `true` = only manual `/name` invocation, never auto-triggered by Claude. Default: `false`.                        |
-| `user-invocable`            | No       | `false` = background-only (no `/name` slash command). Claude auto-triggers based on description. Default: `true`. |
-| `context`                   | No       | `fork` runs skill in forked context (isolated from main conversation). Default: inline.                           |
-| `agent`                     | No       | `true` enables agentic loop (skill can call tools autonomously). Default: `false`.                                |
-| `argument-hint`             | No       | Shown in autocomplete for `/name` (e.g., `<file> [--format json]`). Only relevant if user-invocable.              |
-| `allowed-permission-prompt` | No       | Comma-separated Bash permission prompts granted without user approval.                                            |
-| `name-aliases`              | No       | Comma-separated alternative names for `/name` invocation.                                                         |
-
-\* Agent Skills spec (`agentskills.io`) requires `name`. Claude Code falls back to directory name. Include it for portability.
-
-> **Note**: `allowed-tools` delimiter is **commas** in Claude Code (e.g., `Read, Grep, Bash`). The Agent Skills spec uses **spaces**. Use commas for Claude Code skills.
-
-**Invocation Control:**
-
-| Setting                          | `/name` available? | Auto-triggered? | Use case                        |
-| -------------------------------- | ------------------ | --------------- | ------------------------------- |
-| Default (both omitted)           | Yes                | Yes             | Most skills                     |
-| `disable-model-invocation: true` | Yes                | No              | Dangerous ops (deploy, release) |
-| `user-invocable: false`          | No                 | Yes             | Domain knowledge, context-only  |
-
-**Skill Permission Rules** (for `allowed-tools` in `settings.json`):
-
-- `Skill(skill-name)` — exact match, allows one specific skill
-- `Skill(skill-name *)` — prefix match, allows skill and all sub-invocations
-
-**Good vs Bad Descriptions:**
-
-✅ **Good**: "Extract text and tables from PDFs, fill forms, merge documents. Use when working with PDF files or when user mentions forms, contracts, document processing."
-
-❌ **Bad**: "Helps with documents" (too vague, no triggers)
-
-**YAML Description Pitfalls:**
-
-| Pitfall          | Problem                          | Fix                                                                                  |
-| ---------------- | -------------------------------- | ------------------------------------------------------------------------------------ |
-| Multiline syntax | `>` or `\|` not supported        | Single line only                                                                     |
-| Colons in text   | `CRITICAL: requires` breaks YAML | Use `CRITICAL - requires`                                                            |
-| Quoted strings   | Valid but not idiomatic          | Unquoted preferred (match [anthropics/skills](https://github.com/anthropics/skills)) |
-
-```yaml
-# ❌ BREAKS - colon parsed as YAML key:value
-description: ...CRITICAL: requires flag
-
-# ✅ WORKS - dash instead of colon
-description: ...CRITICAL - requires flag
-```
-
-**Validation**: GitHub renders frontmatter - invalid YAML shows red error banner.
+**Key rules**: `name` is lowercase-hyphen, `description` is single-line max 1024 chars with trigger keywords, no colons in description text.
 
 ### Progressive Disclosure (3 Levels)
 
@@ -459,7 +209,7 @@ Current branch: !`git branch --show-current`
 Last commit: !`git log -1 --oneline`
 ```
 
-The command runs when the skill loads — output replaces the `` !`...` `` block inline.
+The command runs when the skill loads -- output replaces the `` !`...` `` block inline.
 
 ### Extended Thinking
 
@@ -500,10 +250,13 @@ See [Scripts Reference](./references/scripts-reference.md) for marketplace scrip
 
 For detailed information, see:
 
+- [Task Templates](./references/task-templates.md) - Templates A-F and quality checklist
+- [Creation Tutorial](./references/creation-tutorial.md) - 6-step creation process walkthrough
+- [YAML Frontmatter](./references/yaml-frontmatter.md) - Field reference, invocation control, description guidelines
 - [Structural Patterns](./references/structural-patterns.md) - 5 skill architecture patterns (including Suite Pattern)
 - [Workflow Patterns](./references/workflow-patterns.md) - Workflow skill implementation patterns
 - [Progressive Disclosure](./references/progressive-disclosure.md) - Context management patterns
-- [Creation Workflow](./references/creation-workflow.md) - Step-by-step process
+- [Creation Workflow](./references/creation-workflow.md) - Step-by-step process with examples
 - [Scripts Reference](./references/scripts-reference.md) - Marketplace script usage
 - [Security Practices](./references/security-practices.md) - Threats and defenses (CVE references)
 - [Phased Execution](./references/phased-execution.md) - Preflight/Execute/Verify patterns and variants
@@ -512,21 +265,8 @@ For detailed information, see:
 - [Token Efficiency](./references/token-efficiency.md) - Context optimization
 - [Advanced Topics](./references/advanced-topics.md) - CLI vs API, composition, bugs
 - [Path Patterns](./references/path-patterns.md) - Safe/unsafe path references (known bugs documented)
+- [Bash Compatibility](./references/bash-compatibility.md) - Shell portability patterns
 - [Validation Reference](./references/validation-reference.md) - Quality checklist
+- [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
 - [SYNC-TRACKING](./references/SYNC-TRACKING.md) - Marketplace version tracking
 - [Evolution Log](./references/evolution-log.md) - This skill's change history
-
----
-
-## Troubleshooting
-
-| Issue                  | Cause                          | Solution                                                                                                                |
-| ---------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Skill not triggering   | Missing trigger keywords       | Add trigger phrases to description field                                                                                |
-| YAML parse error       | Colon in description           | Replace colons with dashes in description                                                                               |
-| Skill not found        | Wrong location or not synced   | Standalone: place in `~/.claude/skills/` or project `.claude/skills/`. Marketplace: run `mise run release:full` to sync |
-| validate script fails  | Invalid frontmatter            | Check name format (lowercase-hyphen only)                                                                               |
-| Resources not loading  | Wrong path in SKILL.md         | Use relative paths from skill directory                                                                                 |
-| Script execution fails | Missing shebang or permissions | Add `#!/usr/bin/env python3` and `chmod +x`                                                                             |
-| allowed-tools ignored  | API skill (not CLI)            | allowed-tools only works in CLI skills                                                                                  |
-| Description too long   | Over 1024 chars                | Shorten description, move details to SKILL.md body                                                                      |

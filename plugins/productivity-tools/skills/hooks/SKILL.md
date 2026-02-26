@@ -4,6 +4,7 @@ description: "Install/uninstall productivity-tools hooks to ~/.claude/settings.j
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"
 model: haiku
+disable-model-invocation: true
 ---
 
 # productivity-tools Hooks Manager

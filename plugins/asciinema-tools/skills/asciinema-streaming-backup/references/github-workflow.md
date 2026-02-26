@@ -1,3 +1,5 @@
+**Skill**: [asciinema-streaming-backup](../SKILL.md)
+
 # GitHub Actions Workflow
 
 Complete GitHub Actions workflow for recompressing zstd chunks to brotli archives.

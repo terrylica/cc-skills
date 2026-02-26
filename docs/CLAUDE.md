@@ -43,6 +43,7 @@ docs/
 | [RELEASE.md](./RELEASE.md)                                                 | Release workflow (mise tasks)   |
 | [PLUGIN-LIFECYCLE.md](./PLUGIN-LIFECYCLE.md)                               | Plugin internals & config       |
 | [cargo-tty-suspension-prevention.md](./cargo-tty-suspension-prevention.md) | Cargo TTY fix (PUEUE isolation) |
+| [LESSONS.md](./LESSONS.md)                                                 | Lessons learned (extracted)     |
 | [RESUME.md](./RESUME.md)                                                   | Session resume context          |
 | [plugin-authoring.md](./plugin-authoring.md)                               | Shell compatibility             |
 | [troubleshooting/](./troubleshooting/)                                     | Issue resolution                |

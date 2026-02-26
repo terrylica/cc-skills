@@ -2,6 +2,7 @@
 name: full-stack-bootstrap
 description: One-time bootstrap for Kokoro TTS engine, Telegram bot, and BotFather setup. TRIGGERS - setup tts, install kokoro, botfather, bootstrap tts-telegram-sync, configure telegram bot, full stack setup.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
+disable-model-invocation: true
 ---
 
 # Full Stack Bootstrap

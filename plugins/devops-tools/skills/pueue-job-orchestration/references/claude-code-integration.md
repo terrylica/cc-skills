@@ -1,3 +1,5 @@
+**Skill**: [Pueue Job Orchestration](../SKILL.md)
+
 # Claude Code + Pueue Integration Patterns
 
 Patterns for using pueue as a telemetry and orchestration layer within Claude Code sessions.
