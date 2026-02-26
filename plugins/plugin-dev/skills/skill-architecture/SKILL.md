@@ -20,9 +20,9 @@ Use this skill when:
 
 ---
 
-## FIRST: TodoWrite Task Templates
+## FIRST: Task Templates
 
-**MANDATORY**: Select and load the appropriate template into TodoWrite before any skill work.
+**MANDATORY**: Select and load the appropriate template into TaskCreate before any skill work.
 
 > For detailed context on each step, see [Skill Creation Process (Detailed Tutorial)](#skill-creation-process-detailed-tutorial) below.
 
@@ -34,7 +34,7 @@ Use this skill when:
 3. Run init script to create skill directory structure
 4. Create bundled resources first (scripts/, references/, assets/)
 5. Write SKILL.md with YAML frontmatter (name, description with triggers)
-6. Add TodoWrite task templates section to SKILL.md
+6. Add task templates section to SKILL.md
 7. Add Post-Change Checklist section to SKILL.md
 8. Validate with quick_validate.py
 9. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
@@ -74,7 +74,7 @@ Use this skill when:
 
 ```
 1. Read current SKILL.md structure
-2. Add TodoWrite Task Templates section (scenario-specific)
+2. Add Task Templates section (scenario-specific)
 3. Add Post-Change Checklist section
 4. Create references/evolution-log.md (reverse chronological - newest on top)
 5. Create references/config-reference.md (if skill manages external config)
@@ -118,15 +118,25 @@ Use this skill when:
 After ANY skill work, verify:
 
 - [ ] YAML frontmatter valid (name lowercase-hyphen, description has triggers)
+- [ ] `name` matches parent directory name exactly, no consecutive hyphens (`--`)
 - [ ] Description includes WHEN to use (trigger keywords)
-- [ ] TodoWrite templates cover all common scenarios
+- [ ] Description not too broad (doesn't false-trigger on unrelated conversations)
+- [ ] SKILL.md body under 500 lines (move detail to `references/`)
+- [ ] Classify skill as **reference** (inline knowledge) or **task** (side-effect action):
+  - Task skills with side effects: set `disable-model-invocation: true`
+  - Reference-only skills users shouldn't invoke: set `user-invocable: false`
+- [ ] If using `context: fork`, skill has explicit actionable instructions (not guidelines-only)
+- [ ] If skill requires external tools (git, docker, jq), add `compatibility` field
+- [ ] Task templates cover all common scenarios
 - [ ] Post-Change Checklist included for self-maintenance
 - [ ] Final template step references this checklist
 - [ ] Project CLAUDE.md updated if new/renamed skill
 - [ ] Validated with quick_validate.py
 - [ ] All markdown links use relative paths (plugin-portable)
 - [ ] No broken internal links (validate-links.ts passes)
-- [ ] Phased execution: TodoWrite templates use `[Preflight]`/`[Execute]`/`[Verify]` labels where applicable
+- [ ] Tested activation **both ways**: manual `/name` AND organic trigger keywords
+- [ ] Run `/context` to verify skill is loaded (not excluded by description budget)
+- [ ] Phased execution: task templates use `[Preflight]`/`[Execute]`/`[Verify]` labels where applicable
 - [ ] Interactive: AskUserQuestion used for destructive actions and multi-option workflows
 - [ ] No unsafe path patterns (see [Path Patterns](./references/path-patterns.md)):
   - No hardcoded `/Users/<user>` or `/home/<user>` (use `$HOME`)
@@ -153,47 +163,13 @@ After modifying THIS skill (skill-architecture):
 
 ---
 
-## Continuous Improvement (Proactive Self-Evolution)
+## Continuous Improvement
 
-**CRITICAL**: Skills must actively evolve. Don't wait for explicit requests—upgrade skills when insights emerge.
+Skills must actively evolve. When you notice friction, missing edge cases, better patterns, or repeated manual steps — **update immediately**: pause → fix SKILL.md or resources → log in evolution-log.md → resume.
 
-### During Every Skill Execution
+**Do NOT update immediately**: major structural changes (discuss first), speculative improvements without evidence.
 
-Watch for these improvement signals:
-
-| Signal                    | Example                        | Action                      |
-| ------------------------- | ------------------------------ | --------------------------- |
-| **Friction**              | Step feels awkward or unclear  | Rewrite for clarity         |
-| **Missing edge case**     | Workflow fails on valid input  | Add handling + document     |
-| **Better pattern**        | Discover more elegant approach | Update + log why            |
-| **User confusion**        | Same question asked repeatedly | Add clarification or FAQ    |
-| **Tool evolution**        | Underlying tool gains features | Update to leverage them     |
-| **Repeated manual steps** | Same code written each time    | Create script in `scripts/` |
-
-### Immediate Update Protocol
-
-When improvement opportunity identified:
-
-1. **Pause current task** (briefly)
-2. **Make the improvement** to SKILL.md or resources
-3. **Log in evolution-log.md** (one-liner is fine for small changes)
-4. **Resume original task**
-
-> **Rationale**: Small immediate updates compound. Waiting means insights are forgotten. 30 seconds now saves 5 minutes later.
-
-### What NOT to Update Immediately
-
-- Major structural changes (discuss with user first)
-- Changes that would break in-progress work
-- Speculative improvements without concrete evidence
-
-### Self-Reflection Trigger
-
-After completing any skill-assisted task, ask:
-
-> "Did anything about this skill feel suboptimal? If I encountered this again, what would help?"
-
-If answer exists → update the skill NOW.
+After completing any skill-assisted task, ask: _"Did anything feel suboptimal? What would help next time?"_ If yes → update now.
 
 ---
 
@@ -207,6 +183,24 @@ Skills are modular, self-contained packages that extend Claude's capabilities wi
 2. **Tool integrations** - Instructions for working with specific file formats or APIs
 3. **Domain expertise** - Company-specific knowledge, schemas, business logic
 4. **Bundled resources** - Scripts, references, assets for complex/repetitive tasks
+
+### Skill Discovery and Precedence
+
+Skills are discovered from multiple locations. When names collide, higher-precedence wins:
+
+1. **Enterprise** (managed settings) — highest
+2. **Personal** (`~/.claude/skills/`)
+3. **Project** (`.claude/skills/` in repo)
+4. **Plugin** (namespaced: `plugin:skill-name`)
+5. **Nested** (monorepo `.claude/skills/` in subdirectories — auto-discovered)
+6. **`--add-dir`** (CLI flag, live change detection) — lowest
+
+**Management commands**:
+
+- `claude plugin enable <name>` / `claude plugin disable <name>` — toggle plugins
+- `claude skill list` — show all discovered skills with source location
+
+**Monorepo support**: Claude Code automatically discovers `.claude/skills/` directories in nested project roots within a monorepo. No configuration needed.
 
 ---
 
@@ -246,7 +240,7 @@ Place the SKILL.md under `plugins/<plugin>/skills/<name>/SKILL.md`. No `commands
 
 ## Skill Creation Process (Detailed Tutorial)
 
-> **Note**: Use TodoWrite templates above for execution. This section provides detailed context for each phase.
+> **Note**: Use task templates above for execution. This section provides detailed context for each phase.
 
 ### Step 1: Understanding the Skill with Concrete Examples
 
@@ -299,7 +293,7 @@ Creates: skill directory + SKILL.md template + example resource directories
 1. What is the purpose? (few sentences)
 2. When should it be used? (trigger keywords in description)
 3. How should Claude use bundled resources?
-4. **TodoWrite Task Templates** - Pre-defined todos for common scenarios
+4. **Task Templates** - Pre-defined tasks for common scenarios
 5. **Post-Change Checklist** - Self-maintenance verification
 
 **Start with resources** (`scripts/`, `references/`, `assets/`), then update SKILL.md
@@ -349,18 +343,46 @@ skill-name/
 ```yaml
 ---
 name: skill-name-here
-description: What this does and when to use it (max 1024 chars for CLI)
-allowed-tools: Read, Grep, Bash # Optional, CLI-only feature
+description: What this does and when to use it (max 1024 chars)
+allowed-tools: Read, Grep, Bash
+disable-model-invocation: false
+context: fork
+agent: true
+argument-hint: <file-path> [--verbose]
 ---
 ```
 
-**Field Requirements:**
+**Field Reference:**
 
-| Field           | Rules                                                                           |
-| --------------- | ------------------------------------------------------------------------------- |
-| `name`          | Lowercase, hyphens, numbers. Max 64 chars. Unique.                              |
-| `description`   | WHAT it does + WHEN to use. Max 1024 chars (CLI) / 200 (API). Include triggers! |
-| `allowed-tools` | **CLI-only**. Comma-separated list restricts tools. Optional.                   |
+| Field                       | Required | Rules                                                                                                             |
+| --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `name`                      | No\*     | Lowercase, hyphens, numbers. Max 64 chars. Unique. Falls back to directory name if omitted.                       |
+| `description`               | Yes      | WHAT it does + WHEN to use. Max 1024 chars. Single line. Include trigger keywords!                                |
+| `allowed-tools`             | No       | **Grants** tools without per-use approval (comma-separated). Does NOT restrict — unlisted tools still available.  |
+| `disable-model-invocation`  | No       | `true` = only manual `/name` invocation, never auto-triggered by Claude. Default: `false`.                        |
+| `user-invocable`            | No       | `false` = background-only (no `/name` slash command). Claude auto-triggers based on description. Default: `true`. |
+| `context`                   | No       | `fork` runs skill in forked context (isolated from main conversation). Default: inline.                           |
+| `agent`                     | No       | `true` enables agentic loop (skill can call tools autonomously). Default: `false`.                                |
+| `argument-hint`             | No       | Shown in autocomplete for `/name` (e.g., `<file> [--format json]`). Only relevant if user-invocable.              |
+| `allowed-permission-prompt` | No       | Comma-separated Bash permission prompts granted without user approval.                                            |
+| `name-aliases`              | No       | Comma-separated alternative names for `/name` invocation.                                                         |
+
+\* Agent Skills spec (`agentskills.io`) requires `name`. Claude Code falls back to directory name. Include it for portability.
+
+> **Note**: `allowed-tools` delimiter is **commas** in Claude Code (e.g., `Read, Grep, Bash`). The Agent Skills spec uses **spaces**. Use commas for Claude Code skills.
+
+**Invocation Control:**
+
+| Setting                          | `/name` available? | Auto-triggered? | Use case                        |
+| -------------------------------- | ------------------ | --------------- | ------------------------------- |
+| Default (both omitted)           | Yes                | Yes             | Most skills                     |
+| `disable-model-invocation: true` | Yes                | No              | Dangerous ops (deploy, release) |
+| `user-invocable: false`          | No                 | Yes             | Domain knowledge, context-only  |
+
+**Skill Permission Rules** (for `allowed-tools` in `settings.json`):
+
+- `Skill(skill-name)` — exact match, allows one specific skill
+- `Skill(skill-name *)` — prefix match, allows skill and all sub-invocations
 
 **Good vs Bad Descriptions:**
 
@@ -396,6 +418,15 @@ Skills use progressive loading to manage context efficiently:
 
 \*Scripts can execute without reading into context.
 
+### Skill Description Budget
+
+Skills are loaded into the context window based on description relevance. Large skills may be **excluded** if the budget is exceeded:
+
+- **Budget**: ~2% of context window (16K character fallback)
+- **Check**: Run `/context` to see which skills are loaded vs excluded
+- **Override**: Set `SLASH_COMMAND_TOOL_CHAR_BUDGET` env var to increase budget
+- **Mitigation**: Keep SKILL.md body lean, move detail to `references/`
+
 ---
 
 ## Bundled Resources
@@ -406,7 +437,33 @@ Skills can include `scripts/`, `references/`, and `assets/` directories. See [Pr
 
 ## CLI-Specific Features
 
-CLI skills support `allowed-tools` restriction for security. See [Security Practices](./references/security-practices.md) for details.
+CLI skills support `allowed-tools` for granting tool access without per-use approval. See [Security Practices](./references/security-practices.md) for details.
+
+### String Substitutions
+
+Skill bodies support these substitutions (resolved at load time):
+
+| Variable               | Resolves To                                 | Example               |
+| ---------------------- | ------------------------------------------- | --------------------- |
+| `$ARGUMENTS`           | Full argument string from `/name arg1 arg2` | `Process: $ARGUMENTS` |
+| `$ARGUMENTS[N]`        | Nth argument (0-indexed)                    | `File: $ARGUMENTS[0]` |
+| `$N`                   | Shorthand for `$ARGUMENTS[N]`               | `$0` = first arg      |
+| `${CLAUDE_SESSION_ID}` | Current session UUID                        | Log correlation       |
+
+### Dynamic Context Injection
+
+Use `` !`command` `` in skill body to inject command output at load time:
+
+```markdown
+Current branch: !`git branch --show-current`
+Last commit: !`git log -1 --oneline`
+```
+
+The command runs when the skill loads — output replaces the `` !`...` `` block inline.
+
+### Extended Thinking
+
+Include the keyword `ultrathink` in a skill body to enable extended thinking mode for that skill's execution.
 
 ---
 
@@ -450,7 +507,7 @@ For detailed information, see:
 - [Scripts Reference](./references/scripts-reference.md) - Marketplace script usage
 - [Security Practices](./references/security-practices.md) - Threats and defenses (CVE references)
 - [Phased Execution](./references/phased-execution.md) - Preflight/Execute/Verify patterns and variants
-- [Command-Skill Duality](./references/command-skill-duality.md) - When to use commands vs skills
+- [Invocation Control](./references/invocation-control.md) - Skill invocation modes, permission rules, legacy commands migration
 - [Interactive Patterns](./references/interactive-patterns.md) - AskUserQuestion integration patterns
 - [Token Efficiency](./references/token-efficiency.md) - Context optimization
 - [Advanced Topics](./references/advanced-topics.md) - CLI vs API, composition, bugs

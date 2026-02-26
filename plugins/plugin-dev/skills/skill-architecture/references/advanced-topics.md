@@ -27,7 +27,7 @@ description: This description stays on one line and works correctly.
 
 **How to prevent**:
 
-- ✅ Keep description under 200 characters (safe from Prettier wrapping)
+- ✅ Keep description under 180 characters (safe from Prettier wrapping)
 - ✅ Use third person ("Reads files...") not imperative ("Read files...")
 - ✅ Test with `/clear` and trigger keywords after creating skill
 - ✅ If skill doesn't activate, check description length/format first
@@ -105,14 +105,25 @@ For advanced examples, see examples.md.
 
 ## Part 6: CLI vs API Differences
 
-| Feature           | Claude Code CLI        | Claude.ai API            |
-| ----------------- | ---------------------- | ------------------------ |
-| File name         | `SKILL.md` (uppercase) | `Skill.md` (capitalized) |
-| Location          | `~/.claude/skills/`    | ZIP upload               |
-| Description limit | 1024 characters        | 200 characters           |
-| `allowed-tools`   | ✅ Supported           | ❌ Not supported         |
-| Privacy           | Personal or project    | Individual account only  |
-| Package install   | Pre-installed only     | Pre-installed only       |
+| Feature           | Claude Code CLI                       | Claude.ai API           |
+| ----------------- | ------------------------------------- | ----------------------- |
+| File name         | `SKILL.md` (uppercase)                | `SKILL.md` (uppercase)  |
+| Location          | `~/.claude/skills/`                   | ZIP upload              |
+| Description limit | 1024 characters                       | Max 1024 chars          |
+| `allowed-tools`   | ✅ Supported                          | ❌ Not supported        |
+| Privacy           | Personal or project                   | Individual account only |
+| Package install   | `claude plugin install` / marketplace | Pre-installed only      |
+
+### Plugin-Level Features
+
+Plugins (which contain skills) support additional configuration beyond individual skill frontmatter:
+
+| Feature        | Purpose                                      | Defined In    |
+| -------------- | -------------------------------------------- | ------------- |
+| `outputStyles` | Custom formatting rules for skill output     | `plugin.json` |
+| `lspServers`   | Language server integrations                 | `plugin.json` |
+| `mcpServers`   | Model Context Protocol server connections    | `plugin.json` |
+| `settings`     | Default settings applied when plugin enabled | `plugin.json` |
 
 **This Agent Skill teaches CLI format only.**
 
@@ -222,5 +233,5 @@ my-plugin/
 2. **Respect timeout** - Keep execution fast (typically 10s max)
 3. **Fail silently** - Hooks should not block Claude Code operation on failure
 4. **File-based communication** - Write to notification directories rather than calling APIs directly from hooks
-5. **Provide a management command** - Include a `/plugin:hooks` command for install/uninstall/status (see [Command-Skill Duality](./command-skill-duality.md))
+5. **Provide a management command** - Include a `/plugin:hooks` command for install/uninstall/status (see [Command-Skill Duality](./invocation-control.md))
 6. **Use `$HOME`-based absolute paths** - Never use `$CLAUDE_PLUGIN_ROOT` in hook commands (see anti-pattern above)

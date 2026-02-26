@@ -44,7 +44,7 @@ description: Extract text, rotate, merge, split PDFs. Use when working with PDF 
 1. Rotate PDF: Run `scripts/rotate_pdf.py <file> <degrees>`
 2. Merge PDFs: Run `scripts/merge_pdfs.py <file1> <file2>`
 
-See [Advanced Operations](/skills/pdf-editor/references/advanced.md) for complex scenarios.
+See [Advanced Operations](./references/advanced.md) for complex scenarios.
 ```
 
 ### Level 3: Bundled Resources (Loaded on Demand)
@@ -57,7 +57,7 @@ See [Advanced Operations](/skills/pdf-editor/references/advanced.md) for complex
 **References** - Loaded when Claude needs deep context:
 
 ```markdown
-See [Schema Documentation](/skills/api-client/references/schema.md)
+See [Schema Documentation](./references/schema.md)
 ```
 
 **Scripts** - May execute without loading:
@@ -117,18 +117,18 @@ Copy template: `cp assets/template.html output.html`
 - **Rotate**: `scripts/rotate_pdf.py <file> <degrees>`
 - **Merge**: `scripts/merge_pdfs.py <files...> <output>`
 - **Split**: `scripts/split_pdf.py <file> <page-ranges>`
-- **Convert**: See [Conversion Guide](/skills/pdf-editor/references/conversion.md)
+- **Convert**: See [Conversion Guide](./references/conversion.md)
 
 ## Troubleshooting
 
-Common issues: See [Troubleshooting](/skills/pdf-editor/references/troubleshooting.md)
+Common issues: See [Troubleshooting](./references/troubleshooting.md)
 ```
 
 **Benefit**: SKILL.md loads quickly, references loaded only when needed.
 
 ## When to Use Each Level
 
-### Put in SKILL.md (Level 2):
+### Put in SKILL.md (Level 2)
 
 - ✅ Common use cases (80% of tasks)
 - ✅ Quick reference commands
@@ -136,7 +136,7 @@ Common issues: See [Troubleshooting](/skills/pdf-editor/references/troubleshooti
 - ✅ Security warnings
 - ✅ Tool restrictions (`allowed-tools`)
 
-### Put in references/ (Level 3):
+### Put in references/ (Level 3)
 
 - ✅ Detailed explanations (>100 words)
 - ✅ Edge cases and advanced scenarios
@@ -144,14 +144,14 @@ Common issues: See [Troubleshooting](/skills/pdf-editor/references/troubleshooti
 - ✅ Large schemas/API docs
 - ✅ Troubleshooting guides
 
-### Put in scripts/ (Level 3):
+### Put in scripts/ (Level 3)
 
 - ✅ Deterministic operations
 - ✅ Repeatedly rewritten code
 - ✅ External tool wrappers
 - ✅ Complex algorithms
 
-### Put in assets/ (Level 3):
+### Put in assets/ (Level 3)
 
 - ✅ Templates (HTML, config files)
 - ✅ Images, icons, fonts
@@ -192,18 +192,18 @@ SELECT COUNT(*) FROM users WHERE login_date = CURRENT_DATE()
 ```
 ````
 
-Complex queries: See Query Patterns (/skills/bigquery/references/query-patterns.md)
+Complex queries: See Query Patterns (./references/query-patterns.md)
 
 ## Schema
 
 Main tables: users, sessions, events
-Full schema: See Schema Documentation (/skills/bigquery/references/schema.md)
+Full schema: See Schema Documentation (./references/schema.md)
 
-Grep for tables: `grep -i "table_name" /skills/bigquery/references/schema.md`
+Grep for tables: `grep -i "table_name" ./references/schema.md`
 
 ## Troubleshooting
 
-See Common Issues (/skills/bigquery/references/troubleshooting.md)
+See Common Issues (./references/troubleshooting.md)
 
 ```
 
