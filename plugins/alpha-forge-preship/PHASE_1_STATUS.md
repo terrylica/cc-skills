@@ -130,7 +130,7 @@ Add to `.github/workflows/quality-gates.yml`
 In plugin implementations:
 
 ```python
-from alpha_forge_preshop.gates.g8_parameter_validation import ParameterValidator
+from alpha_forge_preship.gates.g8_parameter_validation import ParameterValidator
 
 validator = ParameterValidator({'param1': param1, 'param2': param2})
 validator.validate_numeric_range('param1', min_val=1, max_val=100)
