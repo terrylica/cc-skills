@@ -597,10 +597,10 @@
       "strict": false
     },
     {
-      "name": "research-repo-preshop",
+      "name": "research-repo-preship",
       "description": "Phase 1 Quality Gates for Research Repo PR review: RNG determinism, URL validation, parameter validation, manifest sync",
       "version": "11.58.1",
-      "source": "./plugins/research-repo-preshop",
+      "source": "./plugins/research-repo-preship",
       "category": "quality",
       "author": {
         "name": "<user>ca",

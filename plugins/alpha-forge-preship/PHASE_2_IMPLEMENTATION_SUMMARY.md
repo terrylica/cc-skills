@@ -250,35 +250,35 @@ URLs & Links
 ```yaml
 - repo: local
   hooks:
-    - id: research-repo-preshop-g1
+    - id: research-repo-preship-g1
       name: Documentation Scope Validator
       entry: python gates/g1_documentation_scope.py
       files: '\.md$'
-    - id: research-repo-preshop-g2
+    - id: research-repo-preship-g2
       name: Documentation Clarity Validator
       entry: python gates/g2_documentation_clarity.py
       files: '\.md$'
-    - id: research-repo-preshop-g3
+    - id: research-repo-preship-g3
       name: Documentation Completeness Validator
       entry: python gates/g3_documentation_completeness.py
       files: '\.md$'
-    - id: research-repo-preshop-g4
+    - id: research-repo-preship-g4
       name: URL Validator
       entry: python gates/g4_url_validation.py
       files: '\.(py|yaml|md)$'
-    - id: research-repo-preshop-g5
+    - id: research-repo-preship-g5
       name: RNG Determinism Validator
       entry: python gates/g5_rng_determinism.py
       files: 'test_.*\.py$'
-    - id: research-repo-preshop-g6
+    - id: research-repo-preship-g6
       name: Warmup Alignment Validator
       entry: python gates/g6_warmup_alignment.py
       files: '\.py$'
-    - id: research-repo-preshop-g7
+    - id: research-repo-preship-g7
       name: Parameter Documentation Validator
       entry: python gates/g7_parameter_documentation.py
       files: '\.py$'
-    - id: research-repo-preshop-g10
+    - id: research-repo-preship-g10
       name: Performance Red Flags Validator
       entry: python gates/g10_performance_red_flags.py
       files: '\.py$'

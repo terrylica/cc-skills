@@ -332,7 +332,7 @@ def my_plugin(...):
 
 ### Repository Locations
 
-- **cc-skills**: `/Users/<you>/eon/cc-skills/plugins/research-repo-preshop/`
+- **cc-skills**: `/Users/<you>/eon/cc-skills/plugins/research-repo-preship/`
 - **research-repo**: `/Users/<you>/eon/research-repo/gates/` + integrated tests
 
 ### Key Files
