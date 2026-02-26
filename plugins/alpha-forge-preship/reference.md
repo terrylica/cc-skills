@@ -335,7 +335,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: G12: Manifest Sync Validation
         run: |
-          python -m plugins.alpha_forge_preshop.gates.g12_manifest_sync \
+          python -m plugins.alpha_forge_preship.gates.g12_manifest_sync \
             --decorator-file plugins/*/plugin.py \
             --manifest-file plugins/*/manifests/*.yaml
 ```

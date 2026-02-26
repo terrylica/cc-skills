@@ -298,14 +298,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: G8: Parameter Validation
-        run: python -m plugins.alpha_forge_preshop.gates.g8_parameter_validation
+        run: python -m plugins.alpha_forge_preship.gates.g8_parameter_validation
 
   manifest-sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: G12: Manifest Sync
-        run: python -m plugins.alpha_forge_preshop.gates.g12_manifest_sync
+        run: python -m plugins.alpha_forge_preship.gates.g12_manifest_sync
 ```
 
 ---
