@@ -85,35 +85,30 @@ bun scripts/validate-plugins.mjs --strict  # Fail on warnings
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (25)
+## All Plugins (20)
 
-| Plugin                 | Purpose                                                                                                    |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `alpha-forge-worktree` | Git worktree management for alpha-forge with ADR-style naming                                              |
-| `asciinema-tools`      | Terminal recording automation: asciinema capture, launchd daemon, cast conversion                          |
-| `calcom-commander`     | Cal.com + Telegram bot lifecycle ([CLAUDE.md](./calcom-commander/CLAUDE.md))                               |
-| `devops-tools`         | DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue                                  |
-| `doc-tools`            | Documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF                                 |
-| `dotfiles-tools`       | Chezmoi dotfile management via natural language workflows                                                  |
-| `gdrive-tools`         | Google Drive API access via CLI with 1Password OAuth                                                       |
-| `gh-tools`             | GitHub workflow automation: GFM link validation, WebFetch enforcement ([CLAUDE.md](./gh-tools/CLAUDE.md))  |
-| `git-town-workflow`    | Git-town workflow enforcement for fork-based development                                                   |
-| `gmail-commander`      | Gmail + Telegram bot lifecycle, email triage, voice digest ([CLAUDE.md](./gmail-commander/CLAUDE.md))      |
-| `imessage-tools`       | macOS iMessage database querying and conversation timelines                                                |
-| `iterm2-layout-config` | iTerm2 workspace layout configuration with TOML-based path separation                                      |
-| `itp`                  | Implement-The-Plan: ADR-driven 4-phase workflow                                                            |
-| `itp-hooks`            | ITP workflow enforcement: Ruff linting, ADR/Spec sync ([CLAUDE.md](./itp-hooks/CLAUDE.md))                 |
-| `link-tools`           | Link validation: portability checks, lychee broken link detection, path linting                            |
-| `mise`                 | User-global mise workflow commands: release pipeline, task discovery ([CLAUDE.md](./mise/CLAUDE.md))       |
-| `mql5`                 | MQL5 development: indicator patterns, article extraction, Python workspace                                 |
-| `notion-api`           | Notion API integration: create pages, manipulate blocks, query databases                                   |
-| `plugin-dev`           | Plugin and skill development: structure validation, skill architecture meta-skill                          |
-| `productivity-tools`   | Slash command factory and calendar event management with sound alarms                                      |
-| `quality-tools`        | Code quality: clone detection, multi-agent E2E validation, performance profiling                           |
-| `quant-research`       | Quantitative research: range bar SOTA evaluation, Sharpe ratios, ML prediction quality                     |
-| `ru`                   | Autonomous loop mode for any project                                                                       |
-| `statusline-tools`     | Custom status line with git status, link validation, and path linting indicators                           |
-| `tts-telegram-sync`    | TTS and Telegram bot lifecycle: Kokoro engine, voice audition ([CLAUDE.md](./tts-telegram-sync/CLAUDE.md)) |
+| Plugin               | Purpose                                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `asciinema-tools`    | Terminal recording automation: asciinema capture, launchd daemon, cast conversion                          |
+| `calcom-commander`   | Cal.com + Telegram bot lifecycle ([CLAUDE.md](./calcom-commander/CLAUDE.md))                               |
+| `devops-tools`       | DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare, pueue, worktree mgmt                           |
+| `doc-tools`          | Documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF                                 |
+| `dotfiles-tools`     | Chezmoi dotfile management via natural language workflows                                                  |
+| `gh-tools`           | GitHub workflow automation: GFM link validation, WebFetch enforcement ([CLAUDE.md](./gh-tools/CLAUDE.md))  |
+| `git-town-workflow`  | Git-town workflow enforcement for fork-based development                                                   |
+| `gmail-commander`    | Gmail + Telegram bot lifecycle, email triage, voice digest ([CLAUDE.md](./gmail-commander/CLAUDE.md))      |
+| `itp`                | Implement-The-Plan: ADR-driven 4-phase workflow                                                            |
+| `itp-hooks`          | ITP workflow enforcement: Ruff linting, ADR/Spec sync ([CLAUDE.md](./itp-hooks/CLAUDE.md))                 |
+| `link-tools`         | Link validation: portability checks, lychee broken link detection, path linting                            |
+| `mise`               | User-global mise workflow commands: release pipeline, task discovery ([CLAUDE.md](./mise/CLAUDE.md))       |
+| `mql5`               | MQL5 development: indicator patterns, article extraction, Python workspace                                 |
+| `plugin-dev`         | Plugin and skill development: structure validation, skill architecture meta-skill                          |
+| `productivity-tools` | Productivity: Notion, iMessage, Google Drive, iTerm2, calendar, slash commands                             |
+| `quality-tools`      | Code quality: clone detection, E2E validation, performance profiling, pre-ship gates                       |
+| `quant-research`     | Quantitative research: range bar SOTA evaluation, Sharpe ratios, ML prediction quality                     |
+| `ru`                 | Autonomous loop mode for any project                                                                       |
+| `statusline-tools`   | Custom status line with git status, link validation, and path linting indicators                           |
+| `tts-telegram-sync`  | TTS and Telegram bot lifecycle: Kokoro engine, voice audition ([CLAUDE.md](./tts-telegram-sync/CLAUDE.md)) |
 
 ## Toolchain
 
