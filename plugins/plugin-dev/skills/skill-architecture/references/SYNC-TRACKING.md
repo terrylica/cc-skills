@@ -6,10 +6,20 @@ Track content merged from Anthropic's skill-creator marketplace for future updat
 
 ## Last Sync
 
-- **Date**: 2025-11-07
-- **Marketplace Version**: `example-skills@anthropic-agent-skills` commit `c74d647`
-- **Sync Method**: Manual merge (comprehensive)
+- **Date**: 2026-02-25
+- **Sources**:
+  - Anthropic marketplace: `example-skills@anthropic-agent-skills` commit `c74d647`
+  - Claude Code official docs: `https://code.claude.com/docs/en/skills`
+  - Agent Skills spec: `https://agentskills.io/specification`
+- **Sync Method**: 9-agent forensic audit + targeted edits (28 findings)
 - **Synced By**: User (Terry) via Claude Code
+
+### Known Spec Discrepancies
+
+| Feature            | Claude Code                  | Agent Skills Spec (`agentskills.io`) | Resolution                        |
+| ------------------ | ---------------------------- | ------------------------------------ | --------------------------------- |
+| `allowed-tools`    | Comma-separated              | Space-separated                      | Use commas for Claude Code skills |
+| `name` requirement | Optional (falls back to dir) | Required                             | Include for portability           |
 
 ## Content Sources
 
@@ -135,9 +145,10 @@ claude # Test: "What are the 4 structural patterns?"
 
 ## Version History
 
-| Date       | Marketplace Commit | Changes Merged              | Notes                                                                        |
-| ---------- | ------------------ | --------------------------- | ---------------------------------------------------------------------------- |
-| 2025-11-07 | c74d647            | Initial comprehensive merge | Created skill-architecture from \_agent-skill-builder.disabled + marketplace |
+| Date       | Marketplace Commit | Changes Merged              | Notes                                                                                                     |
+| ---------- | ------------------ | --------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 2026-02-25 | c74d647 + docs     | 28-finding alignment sync   | Claude Code docs + agentskills.io audit. Frontmatter, budget, invocation, discovery, TaskCreate migration |
+| 2025-11-07 | c74d647            | Initial comprehensive merge | Created skill-architecture from \_agent-skill-builder.disabled + marketplace                              |
 
 ## Marketplace vs User Skill Positioning
 
@@ -179,7 +190,7 @@ claude # Test: "What are the 4 structural patterns?"
 
 ## Contact for Marketplace Updates
 
-**Marketplace**: https://github.com/anthropics/skills
+**Marketplace**: <https://github.com/anthropics/skills>
 **Issues**: Report at anthropics/skills repo
 **PRs**: Contribute improvements back to marketplace
 
