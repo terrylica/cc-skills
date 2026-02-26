@@ -135,7 +135,7 @@ Create the release task directory and files customized to THIS repo:
 | `version`   | semantic-release              | Repo-specific `.releaserc.yml` plugins                      |
 | `sync`      | Git push                      | PyPI publish (if exists), crates.io publish (if Rust), sync |
 | `pypi`      | (Optional)                    | `scripts/publish-to-pypi.sh` via `uv publish` or `twine`    |
-| `crates`    | (Optional)                    | `cargo publish --token=$CARGO_REGISTRY_TOKEN` (Rust only)   |
+| `crates`    | (Optional)                    | `cargo publish --workspace` (Rust 1.90+, native ordering)   |
 | `verify`    | Tag + release check           | Verify artifacts (wheels, packages, published versions)     |
 | `full`      | Orchestrator (`depends`)      | Include all repo-specific phases                            |
 | `dry`       | `semantic-release --dry-run`  | —                                                           |
@@ -293,13 +293,22 @@ fi
 
 ### `release:crates` (Optional - Only if Rust Workspace)
 
-**Triggers**: `Cargo.toml` exists AND `[workspace.package]` present
+**Triggers**: `Cargo.toml` exists AND `[workspace.package]` present AND `rust-version >= 1.90`
+
+**Use native `cargo publish --workspace`** (stabilized in Rust 1.90, Sept 2025). This single command:
+
+- Auto-discovers all publishable crates (skips `publish = false`)
+- Topologically sorts by dependency order
+- Pre-validates the entire workspace builds correctly before publishing any crate
+- Handles crates.io index propagation between dependent publishes
+
+**Never** hardcode crate lists, iterate `crates/*/` in filesystem order, or write bespoke topological sort scripts. All of these are superseded by native Cargo support.
 
 **Implementation**:
 
 ```bash
 #!/usr/bin/env bash
-#MISE description="Phase 2c: Publish Rust crates to crates.io"
+#MISE description="Phase 2c: Publish Rust crates to crates.io (native workspace publish)"
 set -euo pipefail
 
 # Requires CARGO_REGISTRY_TOKEN in .mise.toml [env]
@@ -308,26 +317,20 @@ if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
     exit 1
 fi
 
-# Get crate name and version from Cargo.toml
-CRATE_NAME=$(grep -A5 '^\[package\]' Cargo.toml | grep '^name' | head -1 | cut -d'=' -f2 | tr -d ' "')
-CRATE_VERSION=$(grep -A5 '^\[workspace\.package\]' Cargo.toml | grep '^version' | head -1 | cut -d'=' -f2 | tr -d ' "')
-
-echo "Publishing ${CRATE_NAME} v${CRATE_VERSION} to crates.io..."
-
-# Publish each crate in workspace order
-for crate_dir in crates/*/; do
-    if [[ -f "${crate_dir}Cargo.toml" ]]; then
-        CRATE=$(basename "$crate_dir")
-        echo "→ Publishing ${CRATE}..."
-        cd "$crate_dir"
-        cargo publish --token "${CARGO_REGISTRY_TOKEN}" || {
-            echo "⚠ cargo publish failed for ${CRATE} (may already exist)"
-        }
-        cd - > /dev/null
-    fi
-done
+# Native workspace publish (Rust 1.90+):
+# - Auto-discovers publishable crates (skips publish=false)
+# - Topologically sorts by dependency order
+# - Pre-validates entire workspace builds before publishing any crate
+cargo publish --workspace
 
 echo "✓ Crates.io publishing complete"
+```
+
+**Preflight Gate** (add to `release:preflight`):
+
+```bash
+# Verify all publishable crates can package before starting the release
+cargo publish --workspace --dry-run
 ```
 
 **Credentials (via `.mise.toml [env]`)**:
@@ -343,35 +346,40 @@ CARGO_REGISTRY_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/crates-i
 In `release:verify`, add:
 
 ```bash
-# Check crates.io availability
-echo "Checking crates.io for ${CRATE_NAME} v${CRATE_VERSION}..."
-if curl -s "https://crates.io/api/v1/crates/${CRATE_NAME}/${CRATE_VERSION}" | grep -q "version"; then
-    echo "✓ Published to crates.io"
-else
-    echo "⚠ Still propagating to crates.io (check in 30 seconds)"
-fi
+# Verify all published crates are available on crates.io
+CRATES=$(cargo metadata --no-deps --format-version 1 | \
+  jq -r '.packages[] | select(.source == null) | select(.publish == null) | select(.name | endswith("-py") | not) | .name')
+for crate in $CRATES; do
+    echo "Checking crates.io for ${crate} v${CRATE_VERSION}..."
+    if curl -s "https://crates.io/api/v1/crates/${crate}/${CRATE_VERSION}" | grep -q "version"; then
+        echo "✓ ${crate} published"
+    else
+        echo "⚠ ${crate} still propagating (check in 30 seconds)"
+    fi
+done
 ```
 
 ## Error Recovery
 
-| Error                                  | Resolution                                                        |
-| -------------------------------------- | ----------------------------------------------------------------- |
-| `mise` not found                       | Install: `curl https://mise.run \| sh`                            |
-| No release tasks                       | Scaffold using audit above                                        |
-| Working dir not clean                  | Review, commit, or stash all changes autonomously                 |
-| Lockfile drift (uv.lock etc.)          | `git checkout -- uv.lock` (artifact, not intentional)             |
-| Unpushed commits                       | `git push origin main` before release                             |
-| Not on main branch                     | `git checkout main`                                               |
-| No releasable commits                  | Create a `feat:` or `fix:` commit first                           |
-| Missing GH_TOKEN                       | Add to `.mise.toml` `[env]` section                               |
-| semantic-release not configured        | Create `.releaserc.yml` (see cc-skills reference)                 |
-| **PyPI-Specific Errors**               |                                                                   |
-| `UV_PUBLISH_TOKEN` not set             | Add to `.mise.toml` [env]; store token in `~/.claude/.secrets/`   |
-| `scripts/publish-to-pypi.sh` not found | Create using template (see Publishing Task Implementation above)  |
-| `twine upload` 403 Forbidden           | Check PyPI token permissions (must be account-wide, not project)  |
-| Package already exists on PyPI         | Non-fatal; release continues (tag still created on GitHub)        |
-| **Crates.io-Specific Errors**          |                                                                   |
-| `CARGO_REGISTRY_TOKEN` not set         | Add to `.mise.toml` [env]; get token from <https://crates.io/me>  |
-| `cargo publish` timeout                | Retry with `mise run release:crates` (non-fatal, tag already set) |
-| Crate already published on crates.io   | Non-fatal; check version in `Cargo.toml` for next release         |
-| Workspace publish order error          | Ensure dependencies are listed first in `crates/*/Cargo.toml`     |
+| Error                                  | Resolution                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| `mise` not found                       | Install: `curl https://mise.run \| sh`                                   |
+| No release tasks                       | Scaffold using audit above                                               |
+| Working dir not clean                  | Review, commit, or stash all changes autonomously                        |
+| Lockfile drift (uv.lock etc.)          | `git checkout -- uv.lock` (artifact, not intentional)                    |
+| Unpushed commits                       | `git push origin main` before release                                    |
+| Not on main branch                     | `git checkout main`                                                      |
+| No releasable commits                  | Create a `feat:` or `fix:` commit first                                  |
+| Missing GH_TOKEN                       | Add to `.mise.toml` `[env]` section                                      |
+| semantic-release not configured        | Create `.releaserc.yml` (see cc-skills reference)                        |
+| **PyPI-Specific Errors**               |                                                                          |
+| `UV_PUBLISH_TOKEN` not set             | Add to `.mise.toml` [env]; store token in `~/.claude/.secrets/`          |
+| `scripts/publish-to-pypi.sh` not found | Create using template (see Publishing Task Implementation above)         |
+| `twine upload` 403 Forbidden           | Check PyPI token permissions (must be account-wide, not project)         |
+| Package already exists on PyPI         | Non-fatal; release continues (tag still created on GitHub)               |
+| **Crates.io-Specific Errors**          |                                                                          |
+| `CARGO_REGISTRY_TOKEN` not set         | Add to `.mise.toml` [env]; get token from <https://crates.io/me>         |
+| `cargo publish` timeout                | Retry with `mise run release:crates` (non-fatal, tag already set)        |
+| Crate already published on crates.io   | Non-fatal; check version in `Cargo.toml` for next release                |
+| Workspace publish order error          | Use `cargo publish --workspace` (Rust 1.90+) — handles ordering natively |
+| Missing crate on crates.io             | Check `publish = false` — crate may need publishing or its dep does      |
