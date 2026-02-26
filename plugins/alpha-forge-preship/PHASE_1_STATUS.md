@@ -2,7 +2,7 @@
 
 **Date**: 2026-02-24
 **Status**: ✅ COMPLETE AND READY FOR MERGE
-**Branch**: `feat/2026-02-24-research-repo-preshop-phase1`
+**Branch**: `feat/2026-02-24-research-repo-preship-phase1`
 **Reference**: `/tmp/CANONICAL_PRESHOP_AUDIT_HANDBOOK.md`
 
 ---
@@ -93,7 +93,7 @@ Detects decorator-YAML mismatches in plugin manifests. Ensures plugin metadata s
 ## Files Included
 
 ```
-plugins/research-repo-preshop/
+plugins/research-repo-preship/
 ├── gates/
 │   ├── g5_rng_determinism.py       ✅ Pre-commit hook
 │   ├── g4_url_validation.py        ✅ Pre-commit hook
@@ -117,8 +117,8 @@ Add to `.pre-commit-config.yaml` in research-repo:
 ```yaml
 - repo: https://github.com/terrylica/cc-skills
   hooks:
-    - id: research-repo-preshop-g5
-    - id: research-repo-preshop-g4
+    - id: research-repo-preship-g5
+    - id: research-repo-preship-g4
 ```
 
 ### CI Pipeline Integration

@@ -150,7 +150,7 @@ research-repo-core/alpha_forge_preshop:
 
 ## Documentation Complete
 
-### In cc-skills/plugins/research-repo-preshop/
+### In cc-skills/plugins/research-repo-preship/
 
 - ✅ `reference.md` — Technical reference handbook (517 lines)
 - ✅ `README.md` — Quick start guide
@@ -333,7 +333,7 @@ The Phase 1 Quality Gates implementation is:
 
 **Locations**:
 
-- **cc-skills**: `/Users/<you>/eon/cc-skills/plugins/research-repo-preshop/`
+- **cc-skills**: `/Users/<you>/eon/cc-skills/plugins/research-repo-preship/`
 - **research-repo**: `/Users/<you>/eon/research-repo/gates/` + integrated into core tests
 
 ---

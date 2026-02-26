@@ -2,7 +2,7 @@
 
 **Date**: 2026-02-24
 **Status**: ✅ IMPLEMENTATION COMPLETE
-**Location**: ~/eon/cc-skills/plugins/research-repo-preshop/
+**Location**: ~/eon/cc-skills/plugins/research-repo-preship/
 
 ## Implementation Status
 
@@ -63,7 +63,7 @@
 ## File Structure
 
 ```
-research-repo-preshop/
+research-repo-preship/
 ├── gates/
 │   ├── __init__.py                    # Gate module exports
 │   ├── g4_url_validation.py          # URL fork detector

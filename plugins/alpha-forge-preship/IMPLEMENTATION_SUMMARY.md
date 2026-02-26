@@ -2,7 +2,7 @@
 
 **Date**: 2026-02-24  
 **Status**: ✅ Phase 1 Implementation Complete  
-**Location**: `/Users/<you>/eon/cc-skills/plugins/research-repo-preshop/`
+**Location**: `/Users/<you>/eon/cc-skills/plugins/research-repo-preship/`
 
 ## Deliverables
 
@@ -59,7 +59,7 @@
 
 ### Directory Structure
 ```
-research-repo-preshop/
+research-repo-preship/
 ├── gates/
 │   ├── g5_rng_determinism.py       (RNG isolation validator)
 │   ├── g4_url_validation.py        (Fork URL detector)
