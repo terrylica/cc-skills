@@ -209,6 +209,52 @@ run = "echo 'Released and published!'"
 
 ---
 
+## Pattern 3: Native Workspace Publishing (Rust 1.90+)
+
+**Use when**: Publishing multiple crates from a Cargo workspace to crates.io. **Requires Rust 1.90+** (stable Sept 2025).
+
+**Use `cargo publish --workspace`** — a single native command that:
+
+- Auto-discovers all publishable crates (skips `publish = false`)
+- Topologically sorts by dependency order
+- Pre-validates the entire workspace builds correctly before publishing any crate
+- Handles crates.io index propagation between dependent publishes
+
+```toml
+[tasks."release:crates"]
+description = "Publish to crates.io (native workspace publish)"
+run = """
+# Native workspace publish (Rust 1.90+) — one command, zero maintenance
+cargo publish --workspace
+"""
+```
+
+**Preflight dry-run**:
+
+```toml
+[tasks."release:crates-dry"]
+description = "Dry-run crates.io workspace publish"
+run = "cargo publish --workspace --dry-run"
+```
+
+**Why this supersedes all other approaches**:
+
+| Approach                            | Problem                                                        |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `for crate_dir in crates/*/`        | Filesystem alphabetical order ≠ dependency order               |
+| Hardcoded list in task file         | Drifts when new crates are added — caused rangebar-py #113     |
+| Manual `[workspace.metadata]` list  | Still requires human to update — redundant with cargo metadata |
+| `cargo metadata` + Python topo sort | Works but bespoke — superseded by native Cargo in 1.90         |
+| **`cargo publish --workspace`**     | **Zero maintenance, native, pre-validates, handles ordering**  |
+
+**Setup**: Mark internal/non-publishable crates with `publish = false` in their `Cargo.toml`. Everything else publishes automatically. The `CARGO_REGISTRY_TOKEN` env var provides authentication.
+
+### Legacy Fallback (Rust < 1.90)
+
+For projects pinned below Rust 1.90, use `cargo metadata` with Kahn's topological sort as a fallback. See the [Rust 1.90 release notes](https://www.infoworld.com/article/4060262/rust-1-90-brings-workspace-publishing-support-to-cargo.html) for migration guidance.
+
+---
+
 ## Checklist: Release Task Audit
 
 When reviewing a release workflow in `.mise.toml`:
@@ -221,6 +267,8 @@ When reviewing a release workflow in `.mise.toml`:
 - [ ] Standalone invocation of any task is safe (prerequisites enforced by DAG)
 - [ ] Version bump happens before build (so artifacts have correct version)
 - [ ] Cross-compilation tools have their helper binaries declared (e.g., `cargo-zigbuild` for `maturin --zig`)
+- [ ] **Crates.io publish uses `cargo publish --workspace` (Rust 1.90+), not hardcoded lists**
+- [ ] **Preflight includes `cargo publish --workspace --dry-run`**
 
 ---
 
@@ -238,6 +286,26 @@ The rangebar-py project (Rust+Python via maturin) hit the "publish without build
 **Fix**: Added `depends = ["release:build-all"]` to `release:pypi` and included `release:pypi` in `release:full`'s dependency chain.
 
 **Lesson**: If two tasks must always run in a specific order, use `depends`. "Manual step after X" is not enforcement — it's documentation that gets ignored under time pressure.
+
+---
+
+### 5. Filesystem-Order Crate Publishing
+
+```bash
+# ❌ Alphabetical order has no relation to dependency order
+for crate_dir in crates/*/; do
+    cargo publish -p "$(basename "$crate_dir")"
+done
+
+# ❌ Hardcoded list drifts when new crates are added
+for crate in rangebar-core rangebar-providers; do
+    cargo publish -p "$crate"
+done
+```
+
+**Fix**: Use `cargo publish --workspace` (Rust 1.90+). It auto-discovers publishable crates, topologically sorts by dependency order, and pre-validates the entire workspace before publishing. See Pattern 3 above.
+
+**Real-world failure (rangebar-py #113)**: `rangebar-hurst` was added as a workspace dependency of `rangebar-core` but not added to the hardcoded publish list. `cargo publish` for `rangebar-core` failed with "no matching package named rangebar-hurst found" — the crate existed locally but wasn't on crates.io. Three releases went unpublished before discovery. Native `cargo publish --workspace` would have caught this at pre-validation.
 
 ---
 
