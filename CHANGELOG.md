@@ -1,3 +1,41 @@
+## [11.59.2](https://github.com/terrylica/cc-skills/compare/v11.59.1...v11.59.2) (2026-02-26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+113/-56)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (8 files)</summary>
+
+- [Agent Skill Name](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/advanced-topics.md) - updated (+21/-10)
+- [Command Skill Duality](https://github.com/terrylica/cc-skills/blob/v11.59.1/plugins/plugin-dev/skills/skill-architecture/references/command-skill-duality.md) - deleted
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - updated (+42)
+- [Invocation Control](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/invocation-control.md) - new (+94)
+- [Progressive Disclosure](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/progressive-disclosure.md) - updated (+12/-12)
+- [Structural Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/structural-patterns.md) - updated (+1/-5)
+- [Marketplace Sync Tracking](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/SYNC-TRACKING.md) - updated (+18/-7)
+- [My Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/validation-reference.md) - updated (+21/-5)
+
+</details>
+
 ## [11.59.1](https://github.com/terrylica/cc-skills/compare/v11.59.0...v11.59.1) (2026-02-26)
 
 
