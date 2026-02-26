@@ -4,6 +4,7 @@ description: "Install/uninstall gh-tools hooks to ~/.claude/settings.json. TRIGG
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"
 model: haiku
+disable-model-invocation: true
 ---
 
 # gh-tools Hooks Manager

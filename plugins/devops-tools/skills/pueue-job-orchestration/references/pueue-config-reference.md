@@ -1,3 +1,5 @@
+**Skill**: [Pueue Job Orchestration](../SKILL.md)
+
 # Pueue Configuration Reference
 
 Complete `pueue.yml` configuration derived from verified source code (`settings.rs`) and empirical testing on macOS + Linux.

@@ -4,6 +4,7 @@ description: "Install/uninstall statusline-tools Stop hook to ~/.claude/settings
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku
+disable-model-invocation: true
 ---
 
 # Status Line Hooks Manager

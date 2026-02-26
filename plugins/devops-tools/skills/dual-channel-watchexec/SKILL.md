@@ -1,5 +1,5 @@
 ---
-name: dual-channel-watchexec-notifications
+name: dual-channel-watchexec
 description: Dual-channel notifications on watchexec events. TRIGGERS - watchexec alerts, Telegram+Pushover, file change notifications.
 allowed-tools: Read, Write, Edit, Bash
 ---

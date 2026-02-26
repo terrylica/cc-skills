@@ -2,6 +2,8 @@
 
 > Kokoro TTS + Telegram bot + iTerm2 integration lifecycle management.
 
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [gmail-commander CLAUDE.md](../gmail-commander/CLAUDE.md)
+
 ## Overview
 
 This plugin manages the full lifecycle of a local Kokoro TTS engine, a Telegram notification bot, and iTerm2 tab focus integration. All components share a lock file protocol and NDJSON telemetry.

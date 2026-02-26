@@ -1,11 +1,6 @@
 ---
 name: claude-code-proxy-patterns
-description: >-
-  Claude Code OAuth proxy patterns and anti-patterns for multi-provider model routing.
-  TRIGGERS - proxy Claude Code, OAuth token Keychain, route Haiku to MiniMax,
-  ANTHROPIC_BASE_URL, model routing proxy, claude-code-proxy, proxy-toggle,
-  multi-provider setup, anthropic-beta oauth, proxy auth failure, go proxy,
-  failover proxy, launchd proxy, proxy failover
+description: Claude Code OAuth proxy patterns and anti-patterns for multi-provider model routing. TRIGGERS - proxy Claude Code, OAuth token Keychain, route Haiku to MiniMax, ANTHROPIC_BASE_URL, model routing proxy, claude-code-proxy, proxy-toggle, multi-provider setup, anthropic-beta oauth, proxy auth failure, go proxy, failover proxy, launchd proxy, proxy failover
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
@@ -170,15 +165,7 @@ See `proxy.py:293-314` for the implementation.
 
 ### WP-07: count_tokens Endpoint Auth
 
-The `/v1/messages/count_tokens` endpoint needs the same auth as `/v1/messages`. Claude Code calls this for preflight token counting. Missing auth here causes silent failures.
-
-```python
-# proxy.py:460 - dedicated endpoint handler
-@app.post("/v1/messages/count_tokens")
-async def proxy_count_tokens(request: Request):
-    # Same auth logic as proxy_messages
-    # Returns 501 for non-Anthropic providers (MiniMax doesn't support it)
-```
+The `/v1/messages/count_tokens` endpoint needs the same auth as `/v1/messages`. Claude Code calls this for preflight token counting. Missing auth here causes silent failures. Returns 501 for non-Anthropic providers (MiniMax doesn't support it).
 
 ### WP-08: Anthropic-Compatible Provider URLs
 
@@ -207,14 +194,9 @@ sonnet_semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
 The `proxy-toggle` script manages `.zshenv` entries and a flag file atomically.
 
 ```bash
-# Enable: adds env vars to .zshenv, creates flag file, checks proxy health
-~/.claude/bin/proxy-toggle enable
-
-# Disable: removes env vars from .zshenv, removes flag file
-~/.claude/bin/proxy-toggle disable
-
-# Status: shows routing flag, proxy process, .zshenv state
-~/.claude/bin/proxy-toggle status
+~/.claude/bin/proxy-toggle enable    # Adds env vars, creates flag file, checks health
+~/.claude/bin/proxy-toggle disable   # Removes env vars, removes flag file
+~/.claude/bin/proxy-toggle status    # Shows routing flag, proxy process, .zshenv state
 ```
 
 **Important**: Claude Code must be restarted after toggling because `ANTHROPIC_BASE_URL` is read at startup.
@@ -227,43 +209,9 @@ The `/health` endpoint returns provider configuration state for monitoring.
 curl -s http://127.0.0.1:8082/health | jq .
 ```
 
-```json
-{
-  "status": "healthy",
-  "haiku": {
-    "model": "claude-haiku-4-5-20251001",
-    "provider_set": true,
-    "api_key_set": true
-  },
-  "opus": {
-    "model": "claude-3-opus",
-    "provider_set": false,
-    "api_key_set": false
-  },
-  "sonnet": {
-    "model": "claude-sonnet",
-    "provider_set": false,
-    "api_key_set": false,
-    "uses_oauth": true
-  }
-}
-```
-
 ### WP-12: Go Proxy with Retry
 
-A Go proxy with built-in retry using `cenkalti/backoff/v4` for resilience.
-
-**Use case**: Primary Go proxy with exponential backoff retry (500ms → 1s → 2s).
-
-**Architecture**:
-
-```
-Claude Code → :8082 (Go proxy with retry)
-                   |
-                   └─→ MiniMax or Anthropic
-```
-
-**Go implementation** uses `cenkalti/backoff/v4` for exponential backoff:
+Go proxy with built-in retry using `cenkalti/backoff/v4` (exponential backoff: 500ms -> 1s -> 2s, max 5s elapsed).
 
 ```go
 import "github.com/cenkalti/backoff/v4"
@@ -277,217 +225,21 @@ backoffConfig := backoff.NewExponentialBackOff(
 err := backoff.Retry(operation, backoffConfig)
 ```
 
-**Location**: `/usr/local/bin/claude-proxy`
-
-**Environment** (in `.zshenv`):
-
-```bash
-export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
-export ANTHROPIC_API_KEY="proxy-managed"
-```
-
-**Test**:
-
-```bash
-curl -s http://127.0.0.1:8082/health | jq .
-```
+**Location**: `/usr/local/bin/claude-proxy` | **Environment**: `ANTHROPIC_BASE_URL=http://127.0.0.1:8082` in `.zshenv`
 
 ### WP-13: Launchd Service Configuration
 
 The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot persistence.
 
-**Why launchd?**:
+**Plist**: `/Library/LaunchDaemons/com.example.claude-proxy.plist`
 
-- Auto-restarts if proxy crashes
-- Starts on system boot (RunAtLoad)
-- Runs as root (needed for port 80/443 if ever needed)
-- Resource limits can be enforced
-
-**Plist Location**: `/Library/LaunchDaemons/com.example.claude-proxy.plist`
-
-**Full Configuration**:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <!-- Unique identifier -->
-    <key>Label</key><string>com.example.claude-proxy</string>
-
-    <!-- Program to run -->
-    <key>ProgramArguments</key>
-    <array>
-        <string>/usr/local/bin/claude-proxy</string>
-    </array>
-
-    <!-- Start on boot -->
-    <key>RunAtLoad</key><true/>
-
-    <!-- Auto-restart on crash (any non-zero exit) -->
-    <key>KeepAlive</key>
-    <dict>
-        <key>SuccessfulExit</key><false/>
-    </dict>
-
-    <!-- Environment variables passed to the proxy -->
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>PORT</key><string>8082</string>
-        <key>HAIKU_PROVIDER_API_KEY</key><string>sk-cp-49GSmHBfC0c65pvYrFoZZy8xEjOVxXrUiTIJn65ynTvgzoiGEvM7q9V5dYYe6PwjMfZaGelKoE2oTq1hKnttv8ODm36O8gklUIi1eaTVOKbPILlIPfNcM0E</string>
-        <key>HAIKU_PROVIDER_BASE_URL</key><string>https://api.minimax.io/anthropic</string>
-        <key>ANTHROPIC_DEFAULT_HAIKU_MODEL</key><string>claude-haiku-4-5-20251001</string>
-    </dict>
-
-    <!-- Resource limits -->
-    <key>SoftResourceLimits</key>
-    <dict>
-        <key>NumberOfFiles</key><integer>65536</integer>
-    </dict>
-
-    <!-- Log output -->
-    <key>StandardOutPath</key><string>/Users/<you>/.claude/logs/proxy-stdout.log</string>
-    <key>StandardErrorPath</key><string>/Users/<you>/.claude/logs/proxy-stderr.log</string>
-</dict>
-</plist>
-```
-
-**Key launchd Properties Explained**:
-
-| Key                                | Purpose            | Value for Proxy                                |
-| ---------------------------------- | ------------------ | ---------------------------------------------- |
-| `Label`                            | Unique identifier  | `com.example.claude-proxy`                     |
-| `ProgramArguments`                 | Command + args     | `["/usr/local/bin/claude-proxy"]`              |
-| `RunAtLoad`                        | Start at boot      | `true`                                         |
-| `KeepAlive/SuccessfulExit`         | Restart on crash   | `false` (always restart)                       |
-| `EnvironmentVariables`             | Env vars for proxy | PORT, API keys, etc.                           |
-| `SoftResourceLimits/NumberOfFiles` | FD limit           | `65536`                                        |
-| `StandardOutPath`                  | stdout log         | `/Users/<you>/.claude/logs/proxy-stdout.log` |
-| `StandardErrorPath`                | stderr log         | `/Users/<you>/.claude/logs/proxy-stderr.log` |
-
-**Commands**:
-
-```bash
-# Install plist (one-time)
-sudo cp /path/to/com.example.claude-proxy.plist /Library/LaunchDaemons/
-sudo chown root:wheel /Library/LaunchDaemons/com.example.claude-proxy.plist
-sudo chmod 644 /Library/LaunchDaemons/com.example.claude-proxy.plist
-
-# Start (load)
-sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-
-# Stop (unload)
-sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-
-# Restart
-sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-
-# Check status
-sudo launchctl list | grep claude-proxy
-
-# View running PID info
-ps aux | grep claude-proxy
-
-# View logs
-tail -f /Users/<you>/.claude/logs/proxy-stdout.log
-tail -f /Users/<you>/.claude/logs/proxy-stderr.log
-
-# Test health
-curl -s http://127.0.0.1:8082/health | jq .
-```
-
-**Verification Checklist**:
-
-```bash
-# 1. Plist exists
-ls -la /Library/LaunchDaemons/com.example.claude-proxy.plist
-
-# 2. Loaded in launchd
-sudo launchctl list | grep claude-proxy
-
-# 3. Process running
-ps aux | grep claude-proxy | grep -v grep
-
-# 4. Port listening
-lsof -i :8082
-
-# 5. Health endpoint responds
-curl -s http://127.0.0.1:8082/health | jq .
-```
-
-**Debugging launchd Issues**:
-
-```bash
-# Check if plist is valid
-plutil -lint /Library/LaunchDaemons/com.example.claude-proxy.plist
-
-# View full launchd logs
-log show --predicate 'process == "claude-proxy"' --last 5m
-
-# Check stderr for errors
-tail -50 /Users/<you>/.claude/logs/proxy-stderr.log
-```
+Full plist configuration, commands, verification checklist, and debugging: [references/launchd-configuration.md](./references/launchd-configuration.md)
 
 ### WP-14: OAuth Token Auto-Refresh
 
-The Go proxy automatically refreshes OAuth tokens before they expire.
+Background goroutine refreshes OAuth tokens every 30 minutes, 5 minutes before expiry. Falls back to Keychain if API refresh fails.
 
-**Use case**: Prevent auth failures when tokens expire during long-running Claude Code sessions.
-
-**Implementation**: Background goroutine runs every 30 minutes, checks if token expires within 5 minutes, and refreshes using the refresh token.
-
-```go
-// oauth_refresh.go
-func startTokenRefreshLoop() {
-    ticker := time.NewTicker(30 * time.Minute)
-    defer ticker.Stop()
-    refreshTokenIfNeeded() // Run immediately on startup
-    for {
-        select {
-        case <-ticker.C:
-            refreshTokenIfNeeded()
-        }
-    }
-}
-
-func refreshTokenIfNeeded() {
-    // Check if token expires within 5 minutes
-    needsRefresh := oauthCache.token == "" ||
-        (!oauthCache.expiresAt.IsZero() && time.Now().Add(5*time.Minute).After(oauthCache.expiresAt))
-
-    if !needsRefresh {
-        return // Token still valid
-    }
-
-    // Try API refresh first
-    newToken, newRefreshToken, newExpiresAt, err := refreshOAuthToken(refreshToken)
-    if err != nil {
-        // Fallback: get fresh token from Keychain
-        tryKeychainRefresh()
-        return
-    }
-
-    // Update cache and persist
-    oauthCache.token = newToken
-    oauthCache.refreshToken = newRefreshToken
-    oauthCache.expiresAt = newExpiresAt
-    saveOAuthToFile(newToken, newRefreshToken, newExpiresAt)
-}
-```
-
-**Refresh Logic**:
-
-1. Runs every 30 minutes in background goroutine
-2. Checks if token expires within 5 minutes
-3. If refresh token available → calls Anthropic OAuth refresh endpoint
-4. If API fails → falls back to Keychain retrieval
-5. Saves new tokens to `.oauth.json` for persistence
-
-**Key files**:
-
-- `oauth_refresh.go` - Auto-refresh logic (~80 lines)
-- `main.go` - Token cache + refreshOAuthToken function
+Full implementation and refresh logic: [references/oauth-auto-refresh.md](./references/oauth-auto-refresh.md)
 
 ---
 
@@ -514,47 +266,7 @@ Full details with code examples: [references/anti-patterns.md](./references/anti
 
 ## TodoWrite Task Templates
 
-### Template A - Set Up Go Proxy
-
-```
-1. [Preflight] Verify Go 1.21+ installed: go version
-2. [Execute] Build Go proxy to /usr/local/bin/claude-proxy
-3. [Execute] Create launchd plist at /Library/LaunchDaemons/com.example.claude-proxy.plist
-4. [Execute] Load launchd: sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-5. [Execute] Add to ~/.zshenv: export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
-6. [Execute] Add to ~/.zshenv: export ANTHROPIC_API_KEY="proxy-managed"
-7. [Verify] Health: curl -s http://127.0.0.1:8082/health
-8. [Verify] Restart Claude Code
-```
-
-### Template B - Add New Provider
-
-```
-1. [Preflight] Verify provider supports /v1/messages
-2. [Execute] Edit launchd plist, add to EnvironmentVariables:
-   - PROVIDER_API_KEY
-   - PROVIDER_BASE_URL
-3. [Execute] Reload: sudo launchctl unload -w ... && sudo launchctl load -w ...
-4. [Verify] Test: curl http://127.0.0.1:8082/health
-```
-
-### Template C - Diagnose Proxy Auth Failure
-
-```
-1. Check running: sudo launchctl list | grep claude-proxy
-2. Check port: lsof -i :8082
-3. Check .zshenv: grep ANTHROPIC ~/.zshenv
-4. Check logs: tail -50 /Users/<you>/.claude/logs/proxy-stdout.log
-5. Health check: curl http://127.0.0.1:8082/health
-```
-
-### Template D - Disable Proxy
-
-```
-1. Comment out ANTHROPIC_BASE_URL in ~/.zshenv
-2. Unload: sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
-3. Restart Claude Code
-```
+Setup, provider addition, diagnostics, and disable templates: [references/task-templates.md](./references/task-templates.md)
 
 ---
 

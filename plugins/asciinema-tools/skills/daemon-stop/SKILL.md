@@ -4,6 +4,7 @@ description: Stop the asciinema chunker daemon. TRIGGERS - stop daemon, pause ch
 allowed-tools: Bash
 argument-hint: ""
 model: haiku
+disable-model-invocation: true
 ---
 
 # /asciinema-tools:daemon-stop

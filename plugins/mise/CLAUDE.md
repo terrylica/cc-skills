@@ -2,6 +2,8 @@
 
 > User-global mise workflow commands — run release pipelines, check environment status, and discover tasks across any repo.
 
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [itp CLAUDE.md](../itp/CLAUDE.md)
+
 ## Commands
 
 | Command                  | Purpose                                                          | Flags                      |

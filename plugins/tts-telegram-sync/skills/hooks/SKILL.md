@@ -4,6 +4,7 @@ description: "Install/uninstall tts-telegram-sync Stop hook to ~/.claude/setting
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku
+disable-model-invocation: true
 ---
 
 # TTS Telegram Sync Hooks Manager

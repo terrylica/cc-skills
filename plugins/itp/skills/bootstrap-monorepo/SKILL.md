@@ -2,6 +2,7 @@
 name: bootstrap-monorepo
 description: Autonomous polyglot monorepo bootstrap meta-prompt. TRIGGERS - new monorepo, polyglot setup, scaffold Python+Rust+Bun, monorepo from scratch.
 allowed-tools: Read
+disable-model-invocation: true
 ---
 
 # Bootstrap Polyglot Monorepo
