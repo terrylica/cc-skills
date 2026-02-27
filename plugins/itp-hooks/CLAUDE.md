@@ -429,6 +429,28 @@ swiftc -O -framework EventKit -o my-tool MyTool.swift
 # <string>$HOME/.claude/automation/my-tool/swift-cli/my-tool</string>
 ```
 
+### TypeScript Services: Swift Runner + `bun --watch`
+
+For TypeScript/Bun services (bots, sync daemons), the Swift binary acts as a thin launcher that delegates to `bun --watch run`. This gives you:
+
+- **Launchd compliance**: Named binary in Login Items (not "bash")
+- **Auto-restart on code changes**: `bun --watch` uses kqueue (macOS native, zero overhead) to restart the process when any `.ts` file changes — no manual kills needed
+- **Clean process tree**: launchd → Swift runner → `bun --watch` → TypeScript service
+
+```swift
+// Runner binary (compile with: swiftc -O -o my-bot my-bot-runner.swift)
+process.arguments = ["--watch", "run", scriptPath]
+```
+
+| Service type                       | Launchd binary      | Runtime                       |
+| ---------------------------------- | ------------------- | ----------------------------- |
+| System integration (EventKit, TCC) | Swift (full logic)  | Native                        |
+| TypeScript bot/daemon              | Swift (thin runner) | `bun --watch run src/main.ts` |
+
+**Anti-pattern**: `bun --hot` for long-running services (stale module state across reloads). Use `--watch` (full process restart).
+
+Reference: `~/.claude/automation/claude-telegram-sync/telegram-bot-runner.swift`
+
 ### Escape Hatch
 
 Add `# BASH-LAUNCHD-OK` (in scripts) or `<!-- BASH-LAUNCHD-OK -->` (in plists) to bypass.
