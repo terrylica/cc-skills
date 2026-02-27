@@ -48,23 +48,32 @@ Use `AskUserQuestion` to determine the desired action:
 
 ### Phase 3: Execute Action
 
-**Start**:
+In production, launchd manages the bot via a compiled Swift runner binary. The runner uses `bun --watch`, so code changes auto-restart the service.
 
-```bash
-cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts >> /private/tmp/telegram-bot.log 2>&1 &
-```
-
-**Stop**:
+**Restart** (production — kill bun, Swift runner respawns it):
 
 ```bash
 pkill -f 'bun.*src/main.ts'
+sleep 2
+pgrep -la 'bun.*src/main.ts'
 ```
 
-**Restart**:
+**Stop** (full — kills both runner and bun):
 
 ```bash
+pkill -f 'telegram-bot-runner'
 pkill -f 'bun.*src/main.ts'
-sleep 1
+```
+
+**Start** (production — via launchd):
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.terryli.telegram-bot
+```
+
+**Start** (ad-hoc — shell session, for debugging):
+
+```bash
 cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts >> /private/tmp/telegram-bot.log 2>&1 &
 ```
 
@@ -106,13 +115,13 @@ pgrep -la 'bun.*src/main.ts'
 
 | Issue                              | Cause                                 | Solution                                                                                              |
 | ---------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Bot not running                    | Process crashed or was never started  | Check with `pgrep`, restart with start command                                                        |
-| Multiple instances                 | Previous stop did not fully terminate | `pkill -f 'bun.*src/main.ts'`, wait, then start fresh                                                 |
-| Port conflict                      | Another process occupying the port    | Identify with `lsof -i :PORT`, kill conflicting process                                               |
+| Bot not running                    | Process crashed or was never started  | Check with `pgrep`, runner should auto-respawn; if runner also dead, `launchctl kickstart`            |
+| Multiple instances                 | Previous stop did not fully terminate | `pkill -f 'telegram-bot-runner'; pkill -f 'bun.*src/main.ts'`, then restart via launchd               |
+| Code changes not picked up         | Bot started without `--watch`         | Kill bun process — runner respawns with `--watch`; or recompile runner if it's outdated               |
+| `--watch` not reloading            | File outside watch scope changed      | `bun --watch` monitors the entry file's dependency tree; config-only changes (mise.toml) need a kill  |
 | Logs not writing                   | Log directory missing or permissions  | Verify `/private/tmp/` is writable; check `~/.local/share/tts-telegram-sync/logs/bot-console/` exists |
-| bun not found                      | mise shims not in PATH                | Ensure `~/.local/share/mise/shims` is in PATH                                                         |
+| bun not found                      | mise shims not in PATH                | Runner sets PATH explicitly; recompile runner if shims path changed                                   |
 | Bot starts but crashes immediately | Missing env vars or secrets           | Check `~/.claude/.secrets/ccterrybot-telegram` exists; verify mise.toml env section                   |
-| `--watch` not reloading            | File outside watch scope changed      | Restart manually; `bun --watch` monitors the entry file's dependency tree                             |
 
 ## Reference Documentation
 

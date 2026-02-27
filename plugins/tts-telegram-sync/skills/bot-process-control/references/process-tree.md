@@ -2,16 +2,31 @@
 
 Process hierarchy and design rationale for the Telegram sync bot runner.
 
-## Process Hierarchy
+## Process Hierarchy (Production)
 
 ```
 launchd (PID 1)
-  └── zsh (interactive shell or background job)
-        └── bun --watch run src/main.ts (bot runner)
+  └── telegram-bot-runner (compiled Swift binary)
+        └── bun --watch run src/main.ts (Bun runtime + kqueue file watcher)
               └── src/main.ts (application code)
 ```
 
-When started from a shell session, the bot runs as a child of that shell. The `&` operator backgrounds it, and `bun --watch` acts as both the runtime and the file watcher.
+In production, launchd manages the lifecycle via a compiled Swift runner binary (`telegram-bot-runner`). The runner is a thin launcher that sets up PATH/env and delegates to `bun --watch run`. When any `.ts` file changes, Bun automatically restarts the process — no manual kills needed.
+
+The Swift binary exists to satisfy the [native-binary-guard](../../../itp-hooks/CLAUDE.md#native-binary-guard-macos-launchd) policy: launchd requires named binaries (not bash scripts) for clean Login Items display.
+
+**Source**: `~/.claude/automation/claude-telegram-sync/telegram-bot-runner.swift`
+**Binary**: `~/.claude/automation/claude-telegram-sync/telegram-bot-runner`
+**Compile**: `swiftc -O -o telegram-bot-runner telegram-bot-runner.swift`
+
+### Ad-hoc (shell session)
+
+```
+zsh (interactive shell)
+  └── bun --watch run src/main.ts &
+```
+
+For debugging or development, the bot can also be started directly from a shell. The `&` operator backgrounds it.
 
 ## Why `bun --watch`
 

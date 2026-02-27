@@ -7,27 +7,46 @@ Reference for all bot process management commands.
 Check whether the bot is running and display process details:
 
 ```bash
-# Simple check (returns PID and command line)
-pgrep -la 'bun.*src/main.ts'
+# Simple check — both runner and bun process
+pgrep -la 'telegram-bot-runner|bun.*src/main.ts'
 
 # Detailed process info (CPU, memory, uptime)
-ps aux | grep 'bun.*src/main.ts' | grep -v grep
+ps aux | grep -E 'telegram-bot-runner|bun.*src/main.ts' | grep -v grep
 
 # Count running instances (should be 0 or 1)
 pgrep -c -f 'bun.*src/main.ts'
 ```
 
-Expected output when running:
+Expected output when running (production — launchd managed):
 
 ```
-12345 $HOME/.local/share/mise/installs/bun/latest/bin/bun --watch run src/main.ts
+91854 /Users/terryli/.claude/automation/claude-telegram-sync/telegram-bot-runner
+91870 /Users/terryli/.local/share/mise/installs/bun/1.3.5/bin/bun --watch run src/main.ts
 ```
 
 Expected output when stopped: no output, exit code 1.
 
-## Start
+## Restart (Production)
 
-Launch the bot in background with file watching enabled:
+Kill the bun process — the Swift runner respawns it automatically with `bun --watch`:
+
+```bash
+pkill -f 'bun.*src/main.ts'
+sleep 2
+pgrep -la 'telegram-bot-runner|bun.*src/main.ts'
+```
+
+Code changes also auto-restart: `bun --watch` detects `.ts` file modifications via kqueue and restarts the process without intervention.
+
+## Start (via launchd)
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.terryli.telegram-bot
+```
+
+## Start (ad-hoc, for debugging)
+
+Launch directly from a shell session:
 
 ```bash
 cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts >> /private/tmp/telegram-bot.log 2>&1 &
@@ -47,41 +66,23 @@ cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts >> /
 sleep 1 && pgrep -la 'bun.*src/main.ts'
 ```
 
-## Stop
+## Stop (Full)
 
-Terminate the bot process:
+Terminate both the Swift runner and bun process:
 
 ```bash
+pkill -f 'telegram-bot-runner'
 pkill -f 'bun.*src/main.ts'
-```
-
-**Graceful stop** (SIGTERM first, SIGKILL fallback):
-
-```bash
-pkill -TERM -f 'bun.*src/main.ts'
-sleep 2
-# If still running, force kill
-pgrep -f 'bun.*src/main.ts' && pkill -KILL -f 'bun.*src/main.ts'
 ```
 
 **Verify after stop**:
 
 ```bash
-pgrep -la 'bun.*src/main.ts'
+pgrep -la 'telegram-bot-runner|bun.*src/main.ts'
 # Should produce no output
 ```
 
-## Restart
-
-Stop then start in sequence:
-
-```bash
-pkill -f 'bun.*src/main.ts'
-sleep 1
-cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts >> /private/tmp/telegram-bot.log 2>&1 &
-sleep 1
-pgrep -la 'bun.*src/main.ts'
-```
+**Note**: If you only kill the bun process (not the runner), the runner will respawn it automatically. To fully stop, kill both.
 
 ## Logs
 
@@ -116,15 +117,16 @@ cat "$(ls -t ~/.local/share/tts-telegram-sync/logs/bot-console/*.ndjson 2>/dev/n
 When multiple instances are running or the bot is in a bad state:
 
 ```bash
-# Kill all matching processes
+# Kill everything — runner + bun
+pkill -KILL -f 'telegram-bot-runner'
 pkill -KILL -f 'bun.*src/main.ts'
 
 # Verify all killed
 sleep 1
-pgrep -la 'bun.*src/main.ts'
+pgrep -la 'telegram-bot-runner|bun.*src/main.ts'
 
-# Clean start
-cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts >> /private/tmp/telegram-bot.log 2>&1 &
+# Clean start via launchd
+launchctl kickstart -k gui/$(id -u)/com.terryli.telegram-bot
 ```
 
 ## Environment Verification
