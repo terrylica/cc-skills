@@ -1,3 +1,995 @@
+# [11.60.0](https://github.com/terrylica/cc-skills/compare/v11.59.3...v11.60.0) (2026-02-27)
+
+
+### Bug Fixes
+
+* add missing allowed-tools to setup and health skills ([cdf0422](https://github.com/terrylica/cc-skills/commit/cdf042286804d7ff46e8b04bd02bda05f54961b7))
+* **itp-hooks:** stop UV reminder from triggering on uv pip/venv commands ([9d2d715](https://github.com/terrylica/cc-skills/commit/9d2d7156422fc0e210de93a62d41b2b54c93aa46))
+
+
+### Features
+
+* add evolution-log.md to all 152 skills for self-improvement tracking ([23228c3](https://github.com/terrylica/cc-skills/commit/23228c3485d9cab54b591b41c53ea05ef47b5c59))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>calcom-commander</strong> (2 changes)</summary>
+
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/health/SKILL.md) - updated (+1)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/setup/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (2 changes)</summary>
+
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/health/SKILL.md) - updated (+1)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/setup/SKILL.md) - updated (+1)
+
+</details>
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - updated (+57/-49)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (1 change)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/SKILL.md) - updated (+20/-11)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>asciinema-tools/analyze</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/analyze/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/asciinema-analyzer</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-analyzer/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/asciinema-cast-format</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-cast-format/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/asciinema-converter</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-converter/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/asciinema-player</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-player/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/asciinema-recorder</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-recorder/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/asciinema-streaming-backup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/backup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/backup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/bootstrap</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/bootstrap/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/convert</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/convert/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/daemon-logs</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-logs/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/daemon-setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/daemon-start</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-start/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/daemon-status</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-status/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/daemon-stop</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-stop/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/finalize</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/finalize/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/format</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/format/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/full-workflow</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/full-workflow/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/play</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/play/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/post-session</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/post-session/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/record</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/record/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/summarize</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/summarize/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander/booking-config</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-config/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander/booking-notify</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/booking-notify/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander/calcom-access</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/calcom-access/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander/health</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/health/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander/infra-deploy</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/infra-deploy/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/clickhouse-cloud-management</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/clickhouse-cloud-management/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/clickhouse-pydantic-config</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/clickhouse-pydantic-config/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/distributed-job-safety</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/doppler-secret-validation</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-secret-validation/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/doppler-workflows</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-workflows/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/dual-channel-watchexec</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/dual-channel-watchexec-notifications</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/dual-channel-watchexec-notifications/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/firecrawl-research-patterns</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/firecrawl-self-hosted</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-self-hosted/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/ml-data-pipeline-architecture</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-data-pipeline-architecture/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/ml-failfast-validation</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/ml-failfast-validation/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/mlflow-python</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/mlflow-python/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/pueue-job-orchestration</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/python-logging-best-practices</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/session-chronicle</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/session-recovery</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-recovery/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/worktree-manager</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/worktree-manager/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/ascii-diagram-validator</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/documentation-standards</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/documentation-standards/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/glossary-management</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/glossary-management/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/latex-build</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-build/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/latex-setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/latex-tables</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-tables/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/pandoc-pdf-generation</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/plotext-financial-chart</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/plotext-financial-chart/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/terminal-print</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/terminal-print/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools/chezmoi-workflows</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gh-tools/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gh-tools/issue-create</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gh-tools/issues-workflow</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gh-tools/pr-gfm-validator</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/pr-gfm-validator/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow/contribute</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/contribute/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow/fork</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/fork/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander/bot-process-control</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/bot-process-control/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander/email-triage</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/email-triage/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander/health</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/health/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander/interactive-bot</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/interactive-bot/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/adr-code-traceability</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/adr-code-traceability/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/adr-graph-easy-architect</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/adr-graph-easy-architect/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/bootstrap-monorepo</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/bootstrap-monorepo/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/code-hardcode-audit</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/code-hardcode-audit/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/go</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/go/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/graph-easy</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/graph-easy/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/impl-standards</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/impl-standards/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/implement-plan-preflight</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/implement-plan-preflight/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-configuration</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (2 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/evolution-log.md) - new (+26)
+- [Release Workflow Patterns for mise Tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/release-workflow-patterns.md) - updated (+68)
+
+</details>
+
+<details>
+<summary><strong>itp/pypi-doppler</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/pypi-doppler/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/release</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/release/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>itp/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>link-tools/link-validation</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validation/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>link-tools/link-validator</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validator/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>mise/list-repo-tasks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/list-repo-tasks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>mise/run-full-release</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>mise/show-env-status</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/show-env-status/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>mise/sred-commit</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/sred-commit/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>mql5/article-extractor</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/article-extractor/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>mql5/log-reader</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/log-reader/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>mql5/mql5-indicator-patterns</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/mql5-indicator-patterns/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>mql5/python-workspace</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/python-workspace/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/create</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/create/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/plugin-validator</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/plugin-validator/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/calendar-event-manager</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/calendar-event-manager/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/gdrive-access</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/gdrive-access/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/iterm2-layout</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/iterm2-layout/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/notion-sdk</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/notion-sdk/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools/slash-command-factory</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/slash-command-factory/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/alpha-forge-preship</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/alpha-forge-preship/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/clickhouse-architect</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/code-clone-assistant</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/code-clone-assistant/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/dead-code-detector</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/dead-code-detector/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/multi-agent-e2e-validation</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-e2e-validation/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/multi-agent-performance-profiling</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/multi-agent-performance-profiling/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quality-tools/schema-e2e-validation</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/schema-e2e-validation/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quant-research/adaptive-wfo-epoch</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quant-research/backtesting-py-oracle</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/backtesting-py-oracle/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quant-research/evolutionary-metric-ranking</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/evolutionary-metric-ranking/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/audit-now</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/audit-now/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/config</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/config/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/encourage</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/encourage/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/forbid</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/forbid/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/start</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/start/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/status</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/status/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/stop</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/stop/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>ru/wizard</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/wizard/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/ignore</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/ignore/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/session-info</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/bot-process-control</strong> (2 files)</summary>
+
+- [Operational Commands](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/references/operational-commands.md) - updated (+36/-34)
+- [Process Tree](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/references/process-tree.md) - updated (+19/-4)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/health</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/health/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/hooks/references/evolution-log.md) - new (+26)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/setup/references/evolution-log.md) - new (+26)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+22)
+- [tts-telegram-sync Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/CLAUDE.md) - updated (+6)
+
 ## [11.59.3](https://github.com/terrylica/cc-skills/compare/v11.59.2...v11.59.3) (2026-02-26)
 
 
