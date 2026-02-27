@@ -38,6 +38,12 @@ This plugin manages the full lifecycle of a local Kokoro TTS engine, a Telegram 
 - `kill_existing_tts` - Stop active playback
 - `play_tts_signal` - Signal sound (Tink.aiff)
 
+## Service Architecture
+
+The bot runs as a launchd service via a compiled Swift runner binary (`telegram-bot-runner`) that launches `bun --watch run src/main.ts`. Code changes auto-restart the service — no manual kills needed.
+
+See [itp-hooks CLAUDE.md: TypeScript Services](../itp-hooks/CLAUDE.md#typescript-services-swift-runner--bun---watch) for the full pattern. Process tree and operational commands: [bot-process-control references](./skills/bot-process-control/references/).
+
 ## Telemetry
 
 Bot emits NDJSON with core fields: `ts`, `level`, `event`, `component`, `pid` via `audit-log.ts`.
