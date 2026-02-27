@@ -140,8 +140,8 @@ function checkPipUsage(command: string): string | null {
 
   // === EXCEPTIONS ===
 
-  // 1. Already in uv context
-  if (/^\s*uv\s+(run|exec|pip)/i.test(commandLower)) {
+  // 1. Already in uv context (match anywhere — catches SSH-wrapped commands)
+  if (/\buv\s+(run|exec|pip|venv)\b/i.test(commandLower)) {
     return null;
   }
 
