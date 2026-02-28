@@ -1,3 +1,10 @@
+# [11.65.0](https://github.com/terrylica/cc-skills/compare/v11.64.0...v11.65.0) (2026-02-28)
+
+
+### Features
+
+* **itp-hooks:** add Zod schema registry for input validation ([f1dfa87](https://github.com/terrylica/cc-skills/commit/f1dfa8741a447d1bb297606699486025070c7157)), closes [#13439](https://github.com/terrylica/cc-skills/issues/13439)
+
 # [11.64.0](https://github.com/terrylica/cc-skills/compare/v11.63.1...v11.64.0) (2026-02-28)
 
 
