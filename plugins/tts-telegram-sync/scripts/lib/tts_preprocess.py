@@ -42,7 +42,7 @@ import sys
 # ---------------------------------------------------------------------------
 _SUBSTITUTIONS: list[tuple[str | re.Pattern, str]] = [
     # Markdown structural noise
-    (re.compile(r'^∴\s*.*', re.MULTILINE), ''),          # "∴ Thinking…" blocks
+    (re.compile(r'^∴\s*Thinking…?\s*$', re.MULTILINE), 'Thinking.'),  # "∴ Thinking…" → spoken
     (re.compile(r'^#{1,6}\s+', re.MULTILINE), ''),        # ATX headings
     (re.compile(r'^[-*_]{3,}\s*$', re.MULTILINE), ''),    # horizontal rules
     (re.compile(r'^>\s+', re.MULTILINE), ''),             # blockquotes
