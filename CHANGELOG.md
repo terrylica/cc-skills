@@ -1,3 +1,10 @@
+# [11.63.0](https://github.com/terrylica/cc-skills/compare/v11.62.5...v11.63.0) (2026-02-28)
+
+
+### Features
+
+* **statusline:** separate Cast UUID to own line with path prefix ([18e28d6](https://github.com/terrylica/cc-skills/commit/18e28d6bd969954f4c147efb8013b5c194be124f))
+
 ## [11.62.5](https://github.com/terrylica/cc-skills/compare/v11.62.4...v11.62.5) (2026-02-28)
 
 
