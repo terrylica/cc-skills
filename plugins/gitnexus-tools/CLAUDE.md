@@ -23,15 +23,15 @@ GitNexus indexes codebases into a KuzuDB knowledge graph (nodes: functions, clas
 
 ## Hooks
 
-| Hook                             | Event       | Matcher                     | Purpose                                             |
-| -------------------------------- | ----------- | --------------------------- | --------------------------------------------------- |
-| `pretooluse-mcp-redirect`        | PreToolUse  | readMcpResource\|useMcpTool | Block MCP calls, redirect to CLI commands           |
-| `posttooluse-staleness-detector` | PostToolUse | Write\|Edit                 | Warn when index is 5+ commits behind (once/session) |
-| `stop-reindex-reminder`          | Stop        | —                           | Remind to reindex at session end if stale           |
+| Hook                             | Event       | Matcher                      | Purpose                                             |
+| -------------------------------- | ----------- | ---------------------------- | --------------------------------------------------- |
+| `posttooluse-cli-reminder`       | PostToolUse | Read\|Glob\|Grep\|Bash\|Task | CLI reminder on first exploration in indexed repo   |
+| `posttooluse-staleness-detector` | PostToolUse | Write\|Edit                  | Warn when index is 5+ commits behind (once/session) |
+| `stop-reindex-reminder`          | Stop        | —                            | Remind to reindex at session end if stale           |
 
-### MCP Redirect
+### CLI Reminder
 
-GitNexus is CLI-only by design. When Claude attempts `readMcpResource("gitnexus://...")` or `useMcpTool` targeting a gitnexus server, this hook blocks the call and provides CLI command guidance and skill invocations.
+On the first exploration tool use in a repo with `.gitnexus/meta.json`, reminds Claude to use the GitNexus CLI (`npx gitnexus@latest`) instead of MCP or manual grep. Gates once per session per repo via `/tmp/.claude-gitnexus-cli-reminder/`. MCP operations (`readMcpResource`) do not go through the hook pipeline, so this proactive reminder fires early to guide Claude before it tries MCP.
 
 ### Staleness Detection
 
