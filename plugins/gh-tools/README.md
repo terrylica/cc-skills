@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/Skills-5-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-3-orange.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 GitHub workflow automation for Claude Code with intelligent link validation, PR management, and gh CLI enforcement.
@@ -21,15 +21,12 @@ GitHub workflow automation for Claude Code with intelligent link validation, PR 
 
 ### Hooks
 
-| Hook                           | Matcher  | Type        | Purpose                                                 |
-| ------------------------------ | -------- | ----------- | ------------------------------------------------------- |
-| `webfetch-github-guard.sh`     | WebFetch | PreToolUse  | Soft-blocks WebFetch for github.com, suggests gh CLI    |
-| `gh-issue-body-file-guard.mjs` | Bash     | PreToolUse  | Blocks `gh issue create --body`, requires `--body-file` |
-| `gh-issue-title-reminder.mjs`  | Bash     | PostToolUse | Reminds to optimize issue title after commenting        |
+| Hook                          | Matcher  | Type        | Purpose                                              |
+| ----------------------------- | -------- | ----------- | ---------------------------------------------------- |
+| `webfetch-github-guard.sh`    | WebFetch | PreToolUse  | Soft-blocks WebFetch for github.com, suggests gh CLI |
+| `gh-issue-title-reminder.mjs` | Bash     | PostToolUse | Reminds to optimize issue title after commenting     |
 
 **WebFetch Enforcement**: Soft-blocks WebFetch for github.com URLs, suggests gh CLI alternatives. Detects issue/PR/repo URLs and provides specific gh commands. User can override if needed.
-
-**Issue Body File Guard**: Hard-blocks `gh issue create --body "..."` because inline heredocs silently fail for long content. Requires `--body-file` pattern for reliability.
 
 **Issue Title Reminder**: After commenting on a GitHub issue, reminds to optimize the title if:
 
@@ -151,25 +148,6 @@ Why gh CLI is preferred:
 - Comments, labels, assignees included
 ```
 
-#### Issue Body File Guard Example
-
-```
-[gh-issue-guard] BLOCKED: gh issue create with inline --body
-
-Inline --body with heredocs is unreliable for long issue bodies.
-Issues may appear created but not actually exist.
-
-Required pattern:
-  1. Write content to temp file:
-     echo "..." > /tmp/issue-body.md
-
-  2. Use --body-file:
-     gh issue create --title "..." --body-file /tmp/issue-body.md
-
-  3. Clean up:
-     rm /tmp/issue-body.md
-```
-
 ## Usage Examples
 
 ### Creating a PR with Link Validation
@@ -258,23 +236,21 @@ Future skills to be added to gh-tools:
 ## References
 
 - [ADR: gh-tools WebFetch Enforcement](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
-- [ADR: gh issue --body-file Guard](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
 - [GitHub Relative Links](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#relative-links)
 - [GFM Specification](https://github.github.com/gfm/)
 - [GitHub CLI Documentation](https://cli.github.com/manual/)
 
 ## Troubleshooting
 
-| Issue                            | Cause                              | Solution                                                |
-| -------------------------------- | ---------------------------------- | ------------------------------------------------------- |
-| Hooks not triggering             | Hooks not installed or not active  | Run `/gh-tools:hooks install` and restart Claude Code   |
-| WebFetch guard not showing       | Missing matcher in settings.json   | Check `/gh-tools:hooks status` for configuration        |
-| Issue body file guard bypassed   | Command doesn't match Bash matcher | Ensure command uses `gh issue create` pattern           |
-| Links still broken after convert | External links unchanged           | External links are preserved; only repo-relative fixed  |
-| gh CLI not authenticated         | Missing GitHub token               | Run `gh auth login` to authenticate                     |
-| Branch detection wrong           | Detached HEAD state                | Checkout a named branch before creating PR              |
-| 404 on converted links           | File doesn't exist on branch       | Verify file exists: `git ls-files path/to/file.md`      |
-| Slow PR creation                 | Large diff or many files           | Normal for large PRs; links converted before submission |
+| Issue                            | Cause                             | Solution                                                |
+| -------------------------------- | --------------------------------- | ------------------------------------------------------- |
+| Hooks not triggering             | Hooks not installed or not active | Run `/gh-tools:hooks install` and restart Claude Code   |
+| WebFetch guard not showing       | Missing matcher in settings.json  | Check `/gh-tools:hooks status` for configuration        |
+| Links still broken after convert | External links unchanged          | External links are preserved; only repo-relative fixed  |
+| gh CLI not authenticated         | Missing GitHub token              | Run `gh auth login` to authenticate                     |
+| Branch detection wrong           | Detached HEAD state               | Checkout a named branch before creating PR              |
+| 404 on converted links           | File doesn't exist on branch      | Verify file exists: `git ls-files path/to/file.md`      |
+| Slow PR creation                 | Large diff or many files          | Normal for large PRs; links converted before submission |
 
 ## License
 

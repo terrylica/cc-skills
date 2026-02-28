@@ -112,29 +112,27 @@ Color value: `#FF5733`
 
 ---
 
-## AP-04: URLs in `--body` Inline Get Truncated
+## AP-04: Shell Quoting Issues in `--body` Inline
 
-**Problem**: Long issue bodies passed via `--body "..."` get truncated or mangled by shell quoting. Complex markdown with backticks, quotes, and newlines is fragile.
+**Problem**: Complex markdown with unescaped backticks, double quotes, and newlines can be mangled by shell quoting when passed via `--body "..."`.
 
-**Fix**: Always use `--body-file`:
+**Fix**: Use single-quoted heredoc for complex content:
 
 ```bash
-# BAD: fragile, truncation risk
-gh issue comment 13 --body "## Title\n\nLong body with `code` and \"quotes\""
+# Fragile: double-quoted string with special characters
+gh issue comment 13 --body "## Title\n\nBody with `code` and \"quotes\""
 
-# GOOD: reliable, any content
-gh issue comment 13 --body-file /tmp/comment.md
-
-# GOOD: heredoc for inline composition
+# Reliable: heredoc (no escaping needed)
 gh issue comment 13 --body "$(cat <<'EOF'
 ## Title
 
 Long body with `code` and "quotes" — no escaping needed.
 EOF
 )"
-```
 
-**Note**: The `gh-issue-body-file-guard` hook in gh-tools enforces this pattern.
+# Alternative: body file for very large content (65536-char GitHub API limit)
+gh issue comment 13 --body-file /tmp/comment.md
+```
 
 ---
 
@@ -187,7 +185,7 @@ See <https://example.com/search?q=a&b=c#section>
 | AP-01        | `#N` anywhere    | **NEVER** use bare `#N`         | Backtick `` `#N` `` for non-issues; explicit URL for real references |
 | AP-02        | `@name` in prose | Suppress unintentional mentions | Backtick `` `@property` ``                                           |
 | AP-03        | Hex strings      | Suppress commit auto-links      | Backtick `` `0xDEAD` ``                                              |
-| AP-04        | Long `--body`    | Never inline long bodies        | `--body-file` or heredoc                                             |
+| AP-04        | Complex `--body` | Use heredoc for special chars   | Heredoc `$(cat <<'EOF'...)` or `--body-file`                         |
 | AP-05        | Complex URLs     | Protect special characters      | Angle brackets `<URL>`                                               |
 | AP-06        | Pipe in table    | Escape pipe character           | HTML entity `&#124;`                                                 |
 

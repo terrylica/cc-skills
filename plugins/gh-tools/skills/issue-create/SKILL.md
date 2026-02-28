@@ -167,10 +167,6 @@ Events logged:
 - `issue_created` - Successful creation
 - `dry_run` - Dry run completion
 
-## Hook Compliance
-
-This skill uses `--body-file` pattern for issue creation, complying with the `gh-issue-body-file-guard.mjs` hook that blocks inline `--body` to prevent silent failures.
-
 ## Related Documentation
 
 - [Content Types Reference](./references/content-types.md)
