@@ -1,3 +1,39 @@
+# [11.61.0](https://github.com/terrylica/cc-skills/compare/v11.60.0...v11.61.0) (2026-02-28)
+
+
+### Features
+
+* **gitnexus-tools:** GitNexus knowledge graph skills and staleness hooks ([7d58c1f](https://github.com/terrylica/cc-skills/commit/7d58c1ff4126f556c24059b8526a9197c525c584))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - new (+107)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - new (+83)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - new (+91)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - new (+72)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - new (+71)
+
 # [11.60.0](https://github.com/terrylica/cc-skills/compare/v11.59.3...v11.60.0) (2026-02-27)
 
 
