@@ -1,6 +1,6 @@
 ---
 name: explore
-description: Explore how code works using GitNexus knowledge graph. TRIGGERS - how does X work, explore symbol, understand function, trace execution, code walkthrough.
+description: "Explore how code works using GitNexus CLI (npx gitnexus@latest). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - how does X work, explore symbol, understand function, trace execution, code walkthrough."
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---

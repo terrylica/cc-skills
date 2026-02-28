@@ -1,6 +1,6 @@
 ---
 name: reindex
-description: Re-index the GitNexus knowledge graph and verify stats. TRIGGERS - reindex, refresh index, update knowledge graph, gitnexus analyze.
+description: "Re-index the GitNexus knowledge graph via CLI (npx gitnexus@latest). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - reindex, refresh index, update knowledge graph, gitnexus analyze."
 allowed-tools: Bash, Read
 model: haiku
 ---
