@@ -1,0 +1,17 @@
+id: direct-os-getenv-go
+language: go
+severity: warning
+message: >-
+  Direct os.Getenv/os.LookupEnv access — prefer config struct.
+  Centralize all env var reads in one validated config struct
+  for fail-fast startup and single-source-of-truth defaults.
+note: >-
+  [SSoT Principle]: Scattered os.Getenv calls make it impossible
+  to know which env vars a program needs without reading every file.
+  Suppress with: // SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  kind: call_expression
+  has:
+    kind: selector_expression
+    regex: os\.(Getenv|LookupEnv)

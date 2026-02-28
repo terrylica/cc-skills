@@ -1,0 +1,15 @@
+id: hardcoded-int-default-python
+language: python
+severity: warning
+message: >-
+  Hardcoded integer default in typed parameter — prefer None + config resolver.
+  Change to `param: int | None = None` and resolve from config singleton.
+note: >-
+  [SSoT Principle]: Magic numbers in function signatures drift across files.
+  Centralize defaults in a config dataclass and resolve at call time.
+  Suppress with: # SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  kind: typed_default_parameter
+  has:
+    kind: integer

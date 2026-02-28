@@ -1,0 +1,18 @@
+id: direct-env-var-rust
+language: rust
+severity: warning
+message: >-
+  Direct env var access — prefer config struct (e.g., Config::get()).
+  Centralize all env var reads in one validated config struct with Default trait
+  for fail-fast startup and single-source-of-truth defaults.
+note: >-
+  [SSoT Principle]: Scattered env::var calls make it impossible
+  to know which env vars a program needs without reading every file.
+  Suppress with: // SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  any:
+    - pattern: std::env::var($$$)
+    - pattern: env::var($$$)
+    - pattern: std::env::var_os($$$)
+    - pattern: env::var_os($$$)

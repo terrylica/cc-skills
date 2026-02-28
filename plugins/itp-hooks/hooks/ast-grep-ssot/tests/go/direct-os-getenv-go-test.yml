@@ -1,0 +1,17 @@
+id: direct-os-getenv-go
+valid:
+  - |
+    package main
+    val := config.Get("MY_VAR")
+  - |
+    package main
+    val := cfg.DatabaseURL
+invalid:
+  - |
+    package main
+    import "os"
+    val := os.Getenv("MY_VAR")
+  - |
+    package main
+    import "os"
+    val, ok := os.LookupEnv("OTHER_VAR")

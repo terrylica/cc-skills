@@ -1,0 +1,16 @@
+id: hardcoded-default-rust
+language: rust
+severity: warning
+message: >-
+  Hardcoded fallback value — prefer config-based default.
+  Use a config struct with Default trait to centralize defaults
+  instead of scattering unwrap_or("literal") across the codebase.
+note: >-
+  [SSoT Principle]: Hardcoded unwrap_or values drift across files.
+  Centralize defaults in a Config struct implementing Default.
+  Suppress with: // SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  any:
+    - pattern: $EXPR.unwrap_or($DEFAULT)
+    - pattern: $EXPR.unwrap_or_else(|$_| $DEFAULT)
