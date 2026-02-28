@@ -20,56 +20,50 @@ Re-index the current repository's GitNexus knowledge graph and verify the update
 
 ## Workflow
 
-### Step 1: Determine Repo Name
+### Step 1: Check Current Status
 
-The `--repo` flag is required for multi-repo setups. Use the basename of the git root:
-
-```bash
-REPO=$(basename "$(git rev-parse --show-toplevel)")
-```
-
-### Step 2: Check Current Status
+Run from the repo root (the CLI auto-detects the repo from cwd):
 
 ```bash
-npx gitnexus@latest status --repo "$REPO"
+npx gitnexus@latest status
 ```
 
 If already current (lastCommit matches HEAD), report "Index is up to date" and stop.
 
-### Step 3: Run Indexer
+### Step 2: Run Indexer
 
 ```bash
-npx gitnexus@latest analyze --repo "$REPO"
+npx gitnexus@latest analyze
 ```
 
 Use `--force` if the index appears corrupted or if a normal analyze doesn't pick up changes:
 
 ```bash
-npx gitnexus@latest analyze --repo "$REPO" --force
+npx gitnexus@latest analyze --force
 ```
 
 This may take 30–120 seconds depending on codebase size.
 
-### Step 4: Verify New Index
+### Step 3: Verify New Index
 
 ```bash
-npx gitnexus@latest status --repo "$REPO"
+npx gitnexus@latest status
 ```
 
-### Step 5: Report Stats
+### Step 4: Report Stats
 
 Present the updated stats:
 
 ```
 ## GitNexus Reindex Complete
 
-| Metric       | Before | After |
-|--------------|--------|-------|
-| Nodes        | ...    | ...   |
-| Edges        | ...    | ...   |
-| Communities  | ...    | ...   |
-| Flows        | ...    | ...   |
-| Last Commit  | ...    | ...   |
+| Metric      | Before | After |
+| ----------- | ------ | ----- |
+| Nodes       | ...    | ...   |
+| Edges       | ...    | ...   |
+| Communities | ...    | ...   |
+| Flows       | ...    | ...   |
+| Last Commit | ...    | ...   |
 
 Index is now current with HEAD.
 ```
