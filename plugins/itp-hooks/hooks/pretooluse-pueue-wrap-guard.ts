@@ -35,8 +35,8 @@ const WRAP_COMMENT = /# *PUEUE-WRAP/i;
 /** Opt-out escape hatch — prevent wrapping */
 const SKIP_COMMENT = /# *PUEUE-SKIP/i;
 
-/** Commands that are already pueue-related */
-const PUEUE_COMMANDS = /^\s*(?:pueue|pueued)\b/i;
+/** Commands that are already pueue-related (local or via SSH) */
+const PUEUE_COMMANDS = /\bpueue\s+(add|status|log|wait|restart|send|kill|remove|clean|reset|follow|group)\b/i;
 
 /** Already backgrounded commands */
 const BACKGROUNDED = /\bnohup\s|&\s*$|\bscreen\s|\btmux\s/i;
