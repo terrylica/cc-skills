@@ -1,3 +1,32 @@
+## [11.62.4](https://github.com/terrylica/cc-skills/compare/v11.62.3...v11.62.4) (2026-02-28)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** add CLI ONLY warning to skill description frontmatter ([9f6c7c3](https://github.com/terrylica/cc-skills/commit/9f6c7c30db4644dd0804209e66ab7e03beac9e72))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+1/-1)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+1/-1)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+1/-1)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+1/-1)
+
+</details>
+
 ## [11.62.3](https://github.com/terrylica/cc-skills/compare/v11.62.2...v11.62.3) (2026-02-28)
 
 
