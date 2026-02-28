@@ -102,7 +102,7 @@ cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts
 
 ## Post-Change Checklist
 
-- [ ] Health check passes (all 8 checks OK)
+- [ ] Health check passes (all 6 checks OK)
 - [ ] version.json updated with new versions
 - [ ] Test audio generates and plays correctly
 - [ ] Bot is running if it was restarted
@@ -116,7 +116,7 @@ cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts
 | Upgrade fails                 | No internet or PyPI issue            | Check connectivity, retry                                        |
 | Model download slow           | First-time ~400MB, subsequent cached | Wait for download to complete                                    |
 | Version mismatch              | Stale version.json                   | Re-run `kokoro-install.sh --health` to check, `--upgrade` to fix |
-| MPS unavailable after upgrade | torch version incompatibility        | `kokoro-install.sh --upgrade` reinstalls torch                   |
+| MLX-Audio import fails        | mlx-audio version incompatibility    | `kokoro-install.sh --upgrade` reinstalls mlx-audio               |
 | Bot won't start after upgrade | Dependency conflict                  | `cd ~/.claude/automation/claude-telegram-sync && bun install`    |
 
 ---

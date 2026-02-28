@@ -1,66 +1,69 @@
-# Upstream Fork: hexgrad/kokoro
+# Upstream: MLX-Audio Kokoro
 
-Reference for the relationship between the upstream Kokoro project and the bundled `tts_generate.py` script.
+Reference for the relationship between the MLX-Audio project and the bundled TTS scripts.
 
 ## Upstream Project
 
-- **Repository**: [hexgrad/kokoro](https://github.com/hexgrad/kokoro)
-- **PyPI package**: `kokoro` ([PyPI](https://pypi.org/project/kokoro/))
-- **Model**: Kokoro-82M (hosted on HuggingFace at `hexgrad/Kokoro-82M`)
+- **Repository**: [Blaizzy/mlx-audio](https://github.com/Blaizzy/mlx-audio)
+- **PyPI package**: `mlx-audio` ([PyPI](https://pypi.org/project/mlx-audio/))
+- **Model**: Kokoro-82M-bf16 (hosted on HuggingFace at `mlx-community/Kokoro-82M-bf16`)
 
-## Why We Bundle tts_generate.py
+## Why We Bundle Scripts
 
-The `tts_generate.py` script in `scripts/tts_generate.py` is the **only custom file** from the upstream project. It is not part of the PyPI package -- it is a CLI wrapper we maintain separately.
+The bundled scripts (`kokoro_common.py`, `tts_generate.py`) are custom CLI wrappers we maintain. They are not part of the `mlx-audio` PyPI package.
 
 ### Rationale
 
-1. **PyPI kokoro package** provides the `KPipeline` Python API but no standalone CLI
-2. **tts_generate.py** is our CLI adapter that wraps `KPipeline` for shell script integration
-3. The script adds features not in the upstream library:
+1. **mlx-audio** provides the `load_model` / `generate` Python API but no standalone CLI suited for shell script integration
+2. **kokoro_common.py** is our SSoT for model ID, sample rate, language aliases, and synthesis loop
+3. **tts_generate.py** is our CLI adapter that wraps `kokoro_common` for shell script integration
+4. The scripts add features not in the upstream library:
    - Chunked streaming mode (`--chunk` flag) for progressive playback
    - Text sanitization (surrogate removal, control char stripping)
    - Hierarchical text chunking (paragraph, sentence, word boundaries)
-   - MPS fallback environment variable (`PYTORCH_ENABLE_MPS_FALLBACK`)
-   - Device auto-detection (MPS, CUDA, CPU priority)
 
 ### File Flow
 
 ```
-scripts/tts_generate.py  (plugin bundle - SSoT for the script)
+scripts/kokoro_common.py     (plugin bundle - SSoT for synthesis core)
+scripts/tts_generate.py      (plugin bundle - SSoT for CLI)
         │
-        ├── kokoro-install.sh --install  (copies to venv directory)
+        ├── kokoro-install.sh --install  (copies to runtime directory)
         │
-        └── ~/.local/share/kokoro/tts_generate.py  (runtime location)
+        └── ~/.local/share/kokoro/       (runtime location)
+              ├── kokoro_common.py
+              └── tts_generate.py
 ```
 
-The installer (`kokoro-install.sh`) copies the bundled script to the Kokoro directory during `--install` and `--upgrade` operations.
+The installer (`kokoro-install.sh`) copies the bundled scripts to the Kokoro directory during `--install` and `--upgrade` operations.
 
 ## Dependency Relationship
 
 ```
-PyPI kokoro package (upstream library)
-    └── provides KPipeline API
-         └── tts_generate.py (our CLI wrapper)
-              └── tts_kokoro.sh (shell script, calls tts_generate.py)
-                   └── Bot TTS integration (TypeScript, spawns shell script)
+PyPI mlx-audio package (upstream library)
+    └── provides load_model + generate API
+         └── kokoro_common.py (our synthesis SSoT)
+              └── tts_generate.py (our CLI wrapper)
+                   └── tts_kokoro.sh (shell script, calls tts_generate.py)
+                        └── Bot TTS integration (TypeScript, spawns shell script)
 ```
 
 ## Upgrade Considerations
 
-When upgrading the kokoro PyPI package:
+When upgrading the mlx-audio package:
 
-1. Check the [hexgrad/kokoro releases](https://github.com/hexgrad/kokoro/releases) for breaking changes
+1. Check the [Blaizzy/mlx-audio releases](https://github.com/Blaizzy/mlx-audio/releases) for breaking changes
 2. Run `kokoro-install.sh --upgrade` to update all deps
-3. The upgrade re-copies `tts_generate.py` from the plugin bundle
+3. The upgrade re-copies bundled scripts from the plugin bundle
 4. Run `kokoro-install.sh --health` to verify everything works
 5. Test TTS output quality with `tts_kokoro_audition.sh`
 
 ## Model Details
 
-- **Name**: Kokoro-82M
-- **Size**: Approximately 170 MB
-- **Cache location**: `~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M/`
+- **Name**: Kokoro-82M-bf16
+- **Format**: MLX (bfloat16 quantized)
+- **Cache location**: `~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16/`
 - **Sample rate**: 24000 Hz
 - **Output format**: WAV (via soundfile)
 
-The model is downloaded automatically on first use via `huggingface_hub`. Subsequent runs use the cached version. The `--uninstall` command preserves the model cache (only removes venv and script).
+The model is downloaded automatically on first use via `huggingface_hub`. Subsequent runs use the cached version. The `--uninstall` command preserves the model cache (only removes venv and scripts).

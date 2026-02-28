@@ -1,7 +1,7 @@
 #!/bin/bash
 # Kokoro voice audition — plays a long passage with each top voice
 # Each voice announces its name before reading the passage
-# Uses local Kokoro via Apple Silicon MPS
+# Uses local Kokoro via MLX-Audio
 set -euo pipefail
 
 # Source shared library
@@ -70,7 +70,7 @@ tts() {
     fi
 }
 
-echo "=== Kokoro Voice Audition (Local MPS) ==="
+echo "=== Kokoro Voice Audition (MLX-Audio) ==="
 echo "Playing ${#VOICES[@]} voices with a long passage"
 echo ""
 

@@ -64,21 +64,21 @@ Pass if response is `true`. Fail if `false`, null, or connection error.
 
 Pass if the directory exists.
 
-#### Check 4: Kokoro Python Import
+#### Check 4: MLX-Audio Import
 
 ```bash
-~/.local/share/kokoro/.venv/bin/python -c "import kokoro"
+~/.local/share/kokoro/.venv/bin/python -c "from mlx_audio.tts.utils import load_model; print('MLX OK')"
 ```
 
 Pass if import succeeds with exit code 0.
 
-#### Check 5: MPS Available (Apple Silicon GPU)
+#### Check 5: Apple Silicon
 
 ```bash
-~/.local/share/kokoro/.venv/bin/python -c "import torch; assert torch.backends.mps.is_available()"
+[[ "$(uname -m)" == "arm64" ]]
 ```
 
-Pass if assertion succeeds. Fail if torch is missing or MPS is not available.
+Pass if architecture is arm64. MLX-Audio requires Apple Silicon (M1+).
 
 #### Check 6: Lock State
 
@@ -146,8 +146,8 @@ Display results as a table:
 | 1 | Bot Process      | [OK]   | PID 12345                       |
 | 2 | Telegram API     | [OK]   | Bot @ccterrybot responding      |
 | 3 | Kokoro venv      | [OK]   | ~/.local/share/kokoro/.venv     |
-| 4 | Kokoro Import    | [OK]   | kokoro module loaded            |
-| 5 | MPS Available    | [OK]   | Apple Silicon GPU active        |
+| 4 | MLX-Audio Import | [OK]   | mlx_audio module loaded         |
+| 5 | Apple Silicon    | [OK]   | arm64 (MLX Metal)               |
 | 6 | Lock State       | [OK]   | No lock (idle)                  |
 | 7 | Audio Processes  | [OK]   | 0 afplay, 0 say                |
 | 8 | Secrets File     | [OK]   | ccterrybot-telegram present     |
@@ -182,11 +182,11 @@ Display results as a table:
 | Issue                             | Cause                               | Solution                                                                |
 | --------------------------------- | ----------------------------------- | ----------------------------------------------------------------------- |
 | All checks fail                   | Environment not set up              | Run `full-stack-bootstrap` skill first                                  |
-| Only Kokoro checks fail (3-5)     | Kokoro venv missing or broken       | Run `kokoro-install.sh --health` for detailed report                    |
+| Only Kokoro checks fail (3-4)     | Kokoro venv missing or broken       | Run `kokoro-install.sh --health` for detailed report                    |
 | Lock stuck (check 6)              | Stale lock from crashed TTS process | Check lock age and PID; see `diagnostic-issue-resolver` skill           |
 | Bot process missing (check 1)     | Bot crashed or was never started    | See `bot-process-control` skill                                         |
 | Telegram API fails (check 2)      | Token expired or network issue      | Verify token in `~/.claude/.secrets/ccterrybot-telegram`; check network |
-| MPS not available (check 5)       | Running on Intel Mac or torch issue | Verify Apple Silicon; reinstall torch with MPS support                  |
+| Not Apple Silicon (check 5)       | Running on Intel Mac or Linux       | MLX-Audio requires Apple Silicon (M1+)                                  |
 | Stale WAVs found (check 9)        | TTS process crashed mid-generation  | Clean with `rm /tmp/kokoro-tts-*.wav`; investigate crash cause          |
 | Shell symlinks missing (check 10) | Bootstrap incomplete                | Re-run symlink setup from `full-stack-bootstrap` skill                  |
 

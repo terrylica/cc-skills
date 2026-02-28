@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Full Stack Bootstrap
 
-One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (Apple Silicon MPS), Telegram bot via BotFather, secrets management, environment configuration, and shell symlinks.
+One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (MLX-Audio on Apple Silicon), Telegram bot via BotFather, secrets management, environment configuration, and shell symlinks.
 
 > **Platform**: macOS (Apple Silicon)
 
@@ -29,7 +29,7 @@ One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (Ap
 | uv                  | Yes      | `brew install uv`                       |
 | Python 3.13         | Yes      | `uv python install 3.13`                |
 | Homebrew            | Yes      | Already installed on macOS dev machines |
-| Apple Silicon (M1+) | Yes      | Required for MPS acceleration           |
+| Apple Silicon (M1+) | Yes      | Required for MLX Metal acceleration     |
 
 ---
 
@@ -60,12 +60,12 @@ bash scripts/kokoro-install.sh --install
 
 This performs:
 
-1. Creates venv at `~/.local/share/kokoro/.venv` with Python 3.13 via uv
-2. Installs PyPI deps (kokoro, misaki, torch, soundfile, numpy, transformers, huggingface_hub, loguru) -- versions pinned in `scripts/kokoro-install.sh`
-3. Copies `tts_generate.py` from plugin bundle to `~/.local/share/kokoro/`
-4. Downloads Kokoro-82M model from HuggingFace (`hexgrad/Kokoro-82M`)
-5. Verifies Apple Silicon MPS is available via `torch.backends.mps.is_available()`
-6. Writes `version.json` with kokoro, torch, and Python versions
+1. Requires Apple Silicon (fails fast on Intel/Linux)
+2. Creates venv at `~/.local/share/kokoro/.venv` with Python 3.13 via uv
+3. Installs PyPI deps (mlx-audio, soundfile, numpy)
+4. Copies `kokoro_common.py` and `tts_generate.py` from plugin bundle to `~/.local/share/kokoro/`
+5. Downloads Kokoro-82M-bf16 MLX model from HuggingFace (`mlx-community/Kokoro-82M-bf16`)
+6. Writes `version.json` with mlx_audio version, backend, and model ID
 
 ### Phase 2: BotFather Token Setup
 
@@ -152,7 +152,7 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 3. [Preflight] Verify uv installed
 4. [Preflight] Verify Python 3.13 available via uv
 5. [Kokoro] Run kokoro-install.sh --install
-6. [Kokoro] Verify MPS acceleration
+6. [Kokoro] Verify MLX-Audio acceleration
 7. [BotFather] Guide BotFather token creation (or verify existing)
 8. [Secrets] Store token in ~/.claude/.secrets/ccterrybot-telegram
 9. [Secrets] Create .mise.local.toml with _.file reference to secrets
@@ -168,7 +168,7 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 
 After modifying this skill:
 
-1. [ ] Verify `kokoro-install.sh --health` passes all 8 checks
+1. [ ] Verify `kokoro-install.sh --health` passes all 6 checks
 2. [ ] Confirm `.mise.local.toml` is gitignored
 3. [ ] Test symlinks resolve correctly (`ls -la ~/.local/bin/tts_*.sh`)
 4. [ ] Verify bot token works via `getMe` API call
@@ -183,7 +183,7 @@ After modifying this skill:
 | ----------------------------------- | ----------------------------------- | ----------------------------------------------------------- |
 | uv not found                        | Not installed                       | `brew install uv`                                           |
 | Python 3.13 not available           | Not installed via uv                | `uv python install 3.13`                                    |
-| MPS not available                   | Not Apple Silicon                   | Requires M1 or newer Mac                                    |
+| Not Apple Silicon                   | Intel Mac or Linux                  | Requires M1 or newer Mac (MLX Metal)                        |
 | Model download fails                | Network issue or HuggingFace outage | Check internet connectivity, retry                          |
 | BotFather token invalid             | Typo or revoked token               | Verify via `curl https://api.telegram.org/bot<TOKEN>/getMe` |
 | kokoro-install.sh permission denied | Script not executable               | `chmod +x scripts/kokoro-install.sh`                        |
@@ -194,7 +194,7 @@ After modifying this skill:
 
 ## Reference Documentation
 
-- [Kokoro Bootstrap](./references/kokoro-bootstrap.md) - Detailed venv setup, Python 3.13 via uv, torch + MPS, model download
+- [Kokoro Bootstrap](./references/kokoro-bootstrap.md) - Detailed venv setup, Python 3.13 via uv, MLX-Audio, model download
 - [BotFather Guide](./references/botfather-guide.md) - Step-by-step Telegram bot creation and token management
-- [Upstream Fork](./references/upstream-fork.md) - hexgrad/kokoro fork provenance and tts_generate.py bundling rationale
+- [Upstream Fork](./references/upstream-fork.md) - MLX-Audio Kokoro upstream and bundled script rationale
 - [Evolution Log](./references/evolution-log.md) - Change history for this skill

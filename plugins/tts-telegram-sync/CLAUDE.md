@@ -1,12 +1,12 @@
 # tts-telegram-sync Plugin
 
-> Kokoro TTS + Telegram bot + iTerm2 integration lifecycle management.
+> Telegram bot + iTerm2 TTS integration lifecycle management. Depends on `kokoro-tts` for engine management.
 
-**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [gmail-commander CLAUDE.md](../gmail-commander/CLAUDE.md)
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [gmail-commander CLAUDE.md](../gmail-commander/CLAUDE.md) | **Engine**: [kokoro-tts CLAUDE.md](../kokoro-tts/CLAUDE.md)
 
 ## Overview
 
-This plugin manages the full lifecycle of a local Kokoro TTS engine, a Telegram notification bot, and iTerm2 tab focus integration. All components share a lock file protocol and NDJSON telemetry.
+This plugin manages the Telegram notification bot and iTerm2 tab focus integration for TTS. The Kokoro TTS engine itself is managed by the `kokoro-tts` plugin — use `/kokoro-tts:install`, `/kokoro-tts:health`, `/kokoro-tts:upgrade`, `/kokoro-tts:remove`, and `/kokoro-tts:diagnose` for engine management. All components share a lock file protocol and NDJSON telemetry.
 
 ## Conventions
 

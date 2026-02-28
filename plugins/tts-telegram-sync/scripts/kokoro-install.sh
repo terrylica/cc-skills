@@ -1,13 +1,14 @@
 #!/bin/bash
-# Kokoro TTS Engine Manager — install, upgrade, health, uninstall, migrate
+# Kokoro TTS Engine Manager — install, upgrade, health, uninstall
 # Manages Python venv at ~/.local/share/kokoro/ (XDG-compliant)
+# Backend: MLX-Audio on Apple Silicon (no PyTorch/ONNX fallback)
+# GitHub Issue: https://github.com/terrylica/private-config/issues/62
 #
 # Usage:
-#   kokoro-install.sh --install    # Fresh install (venv + deps + model + MPS verify)
+#   kokoro-install.sh --install    # Fresh install (venv + mlx-audio + model + verify)
 #   kokoro-install.sh --upgrade    # Upgrade deps + re-download model
-#   kokoro-install.sh --health     # Health check (venv, MPS, model, script)
+#   kokoro-install.sh --health     # Health check (venv, mlx_audio, model, scripts)
 #   kokoro-install.sh --uninstall  # Remove venv (keeps model cache)
-#   kokoro-install.sh --migrate    # Migrate from ~/fork-tools/kokoro/
 
 set -euo pipefail
 
@@ -15,22 +16,22 @@ set -euo pipefail
 KOKORO_DIR="${KOKORO_DIR:-${HOME}/.local/share/kokoro}"
 KOKORO_VENV="${KOKORO_DIR}/.venv"
 KOKORO_PYTHON="${KOKORO_VENV}/bin/python"
-KOKORO_SCRIPT="${KOKORO_DIR}/tts_generate.py"
 VERSION_FILE="${KOKORO_DIR}/version.json"
-LEGACY_DIR="${HOME}/fork-tools/kokoro"
 
-# Script directory (for bundled tts_generate.py)
+# Script directory (for bundled scripts)
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
-BUNDLED_SCRIPT="${SCRIPT_DIR}/tts_generate.py"
-
-# Python deps
-KOKORO_VERSION="0.9.4"
 
 log() { echo "[kokoro-install] $(date '+%H:%M:%S') $*"; }
 error() { echo "[kokoro-install] ERROR: $*" >&2; }
 
 # --- Install ---
 do_install() {
+    # Require Apple Silicon
+    if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
+        error "Kokoro TTS requires macOS Apple Silicon (M1+). Detected: $(uname -s) $(uname -m)"
+        exit 1
+    fi
+
     log "Installing Kokoro TTS engine to ${KOKORO_DIR}"
 
     # Prerequisites
@@ -46,47 +47,51 @@ do_install() {
     log "Creating Python 3.13 venv..."
     uv venv --python 3.13 "${KOKORO_VENV}"
 
-    # Install deps
-    log "Installing dependencies..."
+    # Install MLX-Audio deps
+    log "Installing MLX-Audio dependencies..."
     uv pip install --python "${KOKORO_PYTHON}" \
-        pip \
-        "kokoro==${KOKORO_VERSION}" \
-        "misaki[en]>=0.9.4" \
-        torch soundfile numpy transformers huggingface_hub loguru
+        mlx-audio soundfile numpy
 
-    # Copy tts_generate.py
-    if [[ -f "${BUNDLED_SCRIPT}" ]]; then
-        log "Copying tts_generate.py from plugin bundle..."
-        cp "${BUNDLED_SCRIPT}" "${KOKORO_SCRIPT}"
-    elif [[ -f "${LEGACY_DIR}/tts_generate.py" ]]; then
-        log "Copying tts_generate.py from legacy fork..."
-        cp "${LEGACY_DIR}/tts_generate.py" "${KOKORO_SCRIPT}"
-    else
-        error "tts_generate.py not found in bundle or legacy location"
-        exit 1
-    fi
+    # Verify MLX-Audio
+    log "Verifying MLX-Audio..."
+    "${KOKORO_PYTHON}" -c "from mlx_audio.tts.utils import load_model; print('MLX-Audio OK')"
 
-    # Download model
-    log "Downloading Kokoro-82M model (first run may take a minute)..."
-    "${KOKORO_PYTHON}" -c "from kokoro import KPipeline; KPipeline('en-us', repo_id='hexgrad/Kokoro-82M')"
+    # Copy bundled scripts
+    log "Copying bundled scripts..."
+    for script in kokoro_common.py tts_generate.py; do
+        if [[ -f "${SCRIPT_DIR}/${script}" ]]; then
+            cp "${SCRIPT_DIR}/${script}" "${KOKORO_DIR}/"
+            log "  Copied ${script}"
+        else
+            error "${script} not found in plugin bundle at ${SCRIPT_DIR}/"
+            exit 1
+        fi
+    done
 
-    # Verify MPS
-    log "Verifying Apple Silicon MPS..."
-    "${KOKORO_PYTHON}" -c "import torch; assert torch.backends.mps.is_available(), 'MPS not available'"
+    # Download model (warmup downloads weights from HuggingFace)
+    log "Downloading Kokoro-82M MLX model (first run may take a minute)..."
+    "${KOKORO_PYTHON}" -c "from mlx_audio.tts.utils import load_model; load_model('mlx-community/Kokoro-82M-bf16')"
 
     # Write version.json
-    local torch_ver
-    torch_ver=$("${KOKORO_PYTHON}" -c "import torch; print(torch.__version__)")
+    local mlx_ver
+    mlx_ver=$("${KOKORO_PYTHON}" -c "from importlib.metadata import version; print(version('mlx-audio'))")
     cat > "${VERSION_FILE}" <<VJSON
 {
-  "kokoro": "${KOKORO_VERSION}",
-  "torch": "${torch_ver}",
+  "mlx_audio": "${mlx_ver}",
+  "backend": "mlx",
   "python": "3.13",
+  "model": "mlx-community/Kokoro-82M-bf16",
   "installed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "source": "kokoro-install.sh --install",
   "venv_path": "${KOKORO_VENV}"
 }
 VJSON
+
+    # Verification synthesis
+    log "Running verification synthesis..."
+    "${KOKORO_PYTHON}" "${KOKORO_DIR}/tts_generate.py" \
+        --text "Warm up." --voice af_heart --lang en-us --speed 1.0 \
+        --output "/tmp/kokoro-verify-$$.wav" && rm -f "/tmp/kokoro-verify-$$.wav"
 
     log "Installation complete. Run --health to verify."
 }
@@ -101,27 +106,29 @@ do_upgrade() {
     fi
 
     uv pip install --python "${KOKORO_PYTHON}" --upgrade \
-        kokoro torch soundfile numpy transformers huggingface_hub loguru "misaki[en]"
+        mlx-audio soundfile numpy
 
-    # Re-copy tts_generate.py from bundle
-    if [[ -f "${BUNDLED_SCRIPT}" ]]; then
-        cp "${BUNDLED_SCRIPT}" "${KOKORO_SCRIPT}"
-        log "Updated tts_generate.py from plugin bundle"
-    fi
+    # Re-copy bundled scripts
+    for script in kokoro_common.py tts_generate.py; do
+        if [[ -f "${SCRIPT_DIR}/${script}" ]]; then
+            cp "${SCRIPT_DIR}/${script}" "${KOKORO_DIR}/"
+            log "Updated ${script} from plugin bundle"
+        fi
+    done
 
     # Re-download model
     log "Re-downloading model..."
-    "${KOKORO_PYTHON}" -c "from kokoro import KPipeline; KPipeline('en-us', repo_id='hexgrad/Kokoro-82M')"
+    "${KOKORO_PYTHON}" -c "from mlx_audio.tts.utils import load_model; load_model('mlx-community/Kokoro-82M-bf16')"
 
     # Update version.json
-    local torch_ver kokoro_ver
-    torch_ver=$("${KOKORO_PYTHON}" -c "import torch; print(torch.__version__)")
-    kokoro_ver=$("${KOKORO_PYTHON}" -c "import kokoro; print(kokoro.__version__)" 2>/dev/null || echo "${KOKORO_VERSION}")
+    local mlx_ver
+    mlx_ver=$("${KOKORO_PYTHON}" -c "from importlib.metadata import version; print(version('mlx-audio'))")
     cat > "${VERSION_FILE}" <<VJSON
 {
-  "kokoro": "${kokoro_ver}",
-  "torch": "${torch_ver}",
+  "mlx_audio": "${mlx_ver}",
+  "backend": "mlx",
   "python": "3.13",
+  "model": "mlx-community/Kokoro-82M-bf16",
   "upgraded_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "source": "kokoro-install.sh --upgrade",
   "venv_path": "${KOKORO_VENV}"
@@ -147,14 +154,12 @@ do_health() {
     }
 
     echo "=== Kokoro TTS Health Check ==="
-    check "Venv exists"          "[[ -d '${KOKORO_VENV}' ]]"
-    check "Python executable"    "[[ -x '${KOKORO_PYTHON}' ]]"
-    check "tts_generate.py"      "[[ -f '${KOKORO_SCRIPT}' ]]"
-    check "kokoro importable"    "'${KOKORO_PYTHON}' -c 'import kokoro'"
-    check "torch importable"     "'${KOKORO_PYTHON}' -c 'import torch'"
-    check "MPS available"        "'${KOKORO_PYTHON}' -c 'import torch; assert torch.backends.mps.is_available()'"
-    check "Model cached"         "'${KOKORO_PYTHON}' -c 'from kokoro import KPipeline; KPipeline(\"en-us\", repo_id=\"hexgrad/Kokoro-82M\")'"
-    check "version.json exists"  "[[ -f '${VERSION_FILE}' ]]"
+    check "Venv exists"            "[[ -d '${KOKORO_VENV}' ]]"
+    check "Python 3.13 executable" "'${KOKORO_PYTHON}' --version 2>&1 | grep -q '3\\.13'"
+    check "mlx_audio importable"   "'${KOKORO_PYTHON}' -c 'from mlx_audio.tts.utils import load_model'"
+    check "kokoro_common.py"       "[[ -f '${KOKORO_DIR}/kokoro_common.py' ]]"
+    check "tts_generate.py"        "[[ -f '${KOKORO_DIR}/tts_generate.py' ]]"
+    check "version.json exists"    "[[ -f '${VERSION_FILE}' ]]"
 
     echo ""
     echo "Results: ${ok} passed, ${fail} failed"
@@ -177,44 +182,15 @@ do_uninstall() {
         exit 0
     fi
 
-    # Remove venv and script (keep model cache in ~/.cache/huggingface/)
+    # Remove venv, scripts, version (keep model cache in ~/.cache/huggingface/)
     rm -rf "${KOKORO_VENV}"
-    rm -f "${KOKORO_SCRIPT}" "${VERSION_FILE}"
+    rm -f "${KOKORO_DIR}/tts_generate.py" "${KOKORO_DIR}/kokoro_common.py" "${VERSION_FILE}"
 
     # Remove dir if empty
     rmdir "${KOKORO_DIR}" 2>/dev/null || true
 
     log "Removed. Model cache at ~/.cache/huggingface/ preserved."
-    log "To also remove model cache: rm -rf ~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M"
-}
-
-# --- Migrate ---
-do_migrate() {
-    log "Migration: ~/fork-tools/kokoro/ → ~/.local/share/kokoro/"
-
-    if [[ ! -d "${LEGACY_DIR}" ]]; then
-        log "No legacy installation found at ${LEGACY_DIR}"
-        log "Run --install for a fresh installation."
-        exit 0
-    fi
-
-    if [[ -d "${KOKORO_VENV}" ]]; then
-        log "XDG installation already exists at ${KOKORO_DIR}"
-        log "Run --health to verify, or --uninstall then --install to rebuild."
-        exit 0
-    fi
-
-    log "Found legacy installation at ${LEGACY_DIR}"
-    log "This will create a new venv at ${KOKORO_DIR} and copy tts_generate.py."
-    log "The legacy dir at ${LEGACY_DIR} will NOT be deleted (it's a git repo)."
-    echo ""
-
-    do_install
-
-    log "Migration complete."
-    log "Update mise.toml:"
-    log "  KOKORO_VENV = \"{{env.HOME}}/.local/share/kokoro/.venv\""
-    log "  KOKORO_SCRIPT = \"{{env.HOME}}/.local/share/kokoro/tts_generate.py\""
+    log "To also remove model cache: rm -rf ~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16"
 }
 
 # --- Main ---
@@ -223,9 +199,8 @@ case "${1:-}" in
     --upgrade)   do_upgrade ;;
     --health)    do_health ;;
     --uninstall) do_uninstall ;;
-    --migrate)   do_migrate ;;
     *)
-        echo "Usage: kokoro-install.sh [--install|--upgrade|--health|--uninstall|--migrate]"
+        echo "Usage: kokoro-install.sh [--install|--upgrade|--health|--uninstall]"
         exit 1
         ;;
 esac
