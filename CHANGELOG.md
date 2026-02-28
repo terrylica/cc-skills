@@ -1,3 +1,10 @@
+## [11.62.3](https://github.com/terrylica/cc-skills/compare/v11.62.2...v11.62.3) (2026-02-28)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** resolve cwd from process.cwd() when file_path is outside repo ([696b18a](https://github.com/terrylica/cc-skills/commit/696b18abc36cd306ce0f8b76b1328470053c89a4))
+
 ## [11.62.2](https://github.com/terrylica/cc-skills/compare/v11.62.1...v11.62.2) (2026-02-28)
 
 
