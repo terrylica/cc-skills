@@ -214,7 +214,7 @@ function createIssue(
   labels: string[],
   body: string
 ): { number: number; url: string } {
-  // Write body to temp file (required by hook)
+  // Write body to temp file (avoids shell quoting issues with complex markdown)
   const tempFile = `/tmp/gh-issue-${Date.now()}.md`;
   writeFileSync(tempFile, body);
 
