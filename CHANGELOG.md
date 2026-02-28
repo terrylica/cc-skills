@@ -1,3 +1,10 @@
+## [11.61.1](https://github.com/terrylica/cc-skills/compare/v11.61.0...v11.61.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* **itp-hooks:** exclude /tmp/ from version guard to allow gh issue body files ([d007561](https://github.com/terrylica/cc-skills/commit/d007561e56a1b8f45436a85323265d2af8ff67c1))
+
 # [11.61.0](https://github.com/terrylica/cc-skills/compare/v11.60.0...v11.61.0) (2026-02-28)
 
 
