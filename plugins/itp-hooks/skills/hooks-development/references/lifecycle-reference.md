@@ -836,13 +836,13 @@ exit 0
 
 **When to use `deny` (default)**:
 
-| Scenario                                              | Why deny works                                                       |
-| ----------------------------------------------------- | -------------------------------------------------------------------- |
-| Policy violation (wrong format, missing trailer)      | Message tells Claude exactly what format is required                 |
-| Dangerous pattern detected (fork bomb, CWD deletion)  | Message explains the safe alternative                                |
-| File too large / fake data detected                   | Message lists escape hatches (`# noqa: fake-data`, `# FILE-SIZE-OK`) |
-| Wrong tool usage (`gh issue --body` vs `--body-file`) | Message shows the correct pattern                                    |
-| Terminology violation (Vale)                          | Message shows which terms to fix and where the glossary is           |
+| Scenario                                             | Why deny works                                                       |
+| ---------------------------------------------------- | -------------------------------------------------------------------- |
+| Policy violation (wrong format, missing trailer)     | Message tells Claude exactly what format is required                 |
+| Dangerous pattern detected (fork bomb, CWD deletion) | Message explains the safe alternative                                |
+| File too large / fake data detected                  | Message lists escape hatches (`# noqa: fake-data`, `# FILE-SIZE-OK`) |
+| Wrong tool usage (e.g., `rm -rf` on CWD)             | Message shows the safe alternative                                   |
+| Terminology violation (Vale)                         | Message shows which terms to fix and where the glossary is           |
 
 **When to use `ask` (rare — genuine ambiguity only)**:
 

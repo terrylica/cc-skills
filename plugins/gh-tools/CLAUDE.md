@@ -12,11 +12,10 @@ This plugin provides GitHub CLI enforcement through hooks and skills for PR crea
 
 ### PreToolUse Hooks
 
-| Hook                           | Matcher  | Purpose                                      |
-| ------------------------------ | -------- | -------------------------------------------- |
-| `webfetch-github-guard.sh`     | WebFetch | Soft-blocks WebFetch for github.com URLs     |
-| `gh-issue-body-file-guard.mjs` | Bash     | Requires `--body-file` for `gh issue create` |
-| `gh-repo-identity-guard.mjs`   | Bash     | Blocks gh writes when user lacks push access |
+| Hook                         | Matcher  | Purpose                                      |
+| ---------------------------- | -------- | -------------------------------------------- |
+| `webfetch-github-guard.sh`   | WebFetch | Soft-blocks WebFetch for github.com URLs     |
+| `gh-repo-identity-guard.mjs` | Bash     | Blocks gh writes when user lacks push access |
 
 ### PostToolUse Hooks
 
@@ -79,15 +78,6 @@ The `webfetch-github-guard.sh` hook soft-blocks WebFetch for github.com URLs:
 - User can override if needed
 
 **ADR**: [/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
-
-## Issue Body File Guard
-
-The `gh-issue-body-file-guard.mjs` hook blocks `gh issue create --body "..."`:
-
-- Inline heredocs silently fail for long content
-- Requires `--body-file` pattern for reliability
-
-**ADR**: [/docs/adr/2026-01-11-gh-issue-body-file-guard.md](/docs/adr/2026-01-11-gh-issue-body-file-guard.md)
 
 ## Repo Identity Guard (2026-02-09)
 

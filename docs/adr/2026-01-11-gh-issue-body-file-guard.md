@@ -1,13 +1,14 @@
 ---
-status: accepted
+status: superseded
 date: 2026-01-11
+superseded_date: 2026-02-28
 ---
 
 # ADR: gh issue create --body-file Requirement
 
 ## Status
 
-Accepted
+**Superseded** (2026-02-28) — Original premise disproved by controlled experiments.
 
 ## Context
 
@@ -20,55 +21,46 @@ EOF
 )"
 ```
 
-The command often fails silently:
+The command was believed to fail silently:
 
 - Issue URL is returned (appears successful)
 - Issue does not actually exist in the repository
 - No error message displayed
 
-This was discovered during exp-066 research session where issues #23 and #24 were "created" with returned URLs, but neither existed when checked with `gh issue list`. Only after switching to `--body-file` did issue #25 actually persist.
+This was reported during exp-066 research session where issues #23 and #24 were "created" with returned URLs, but neither existed when checked with `gh issue list`.
 
 ## Decision
 
-Implement a PreToolUse hook that soft-blocks `gh issue create` commands using inline `--body` and requires `--body-file` instead.
+~~Implement a PreToolUse hook that soft-blocks `gh issue create` commands using inline `--body` and requires `--body-file` instead.~~
 
-**Hook location**: `plugins/gh-tools/hooks/gh-issue-body-file-guard.mjs`
+**Superseded**: Hook removed, inline `--body` is now permitted.
 
-**Block type**: Soft block (`permissionDecision: deny`) - user can override if needed for short content.
+## Supersession (2026-02-28)
 
-**Runtime**: Bun (`.mjs` with `#!/usr/bin/env bun`)
+Controlled experiments on 2026-02-28 tested three methods with ~6KB and ~63KB bodies:
 
-## Consequences
+| Method                | Body Size | Result  | Content Integrity                |
+| --------------------- | --------- | ------- | -------------------------------- |
+| `--body-file`         | 6KB       | Success | Full                             |
+| `--body "$VAR"`       | 6KB       | Success | Full                             |
+| `--body "$(heredoc)"` | 6KB       | Success | Full                             |
+| `--body "$VAR"`       | 63KB      | Success | Full (near API 65536-char limit) |
 
-### Positive
+**Findings**:
 
-- Prevents silent failures when creating issues with long bodies
-- Provides clear guidance on the reliable pattern
-- Soft block allows override for legitimate short-body use cases
+- Both `--body` and `--body-file` hit the same GitHub API endpoint
+- GitHub API limit is 65,536 characters (applies equally to both methods)
+- macOS `ARG_MAX` is ~1MB (well above typical issue bodies)
+- The original exp-066 failures were likely caused by network/auth/rate-limit issues, not the heredoc pattern
 
-### Negative
+**Actions taken**:
 
-- Slightly more complex workflow (write to file first)
-- Additional temp file cleanup required
-
-## Reliable Pattern
-
-```bash
-# 1. Write content to temp file
-cat > /tmp/issue-body.md << 'EOF'
-## Summary
-Long issue content here...
-EOF
-
-# 2. Create issue with --body-file
-gh issue create --title "Feature Request" --body-file /tmp/issue-body.md
-
-# 3. Clean up
-rm /tmp/issue-body.md
-```
+- Hook (`gh-issue-body-file-guard.mjs`) and test file deleted
+- All documentation references updated to remove the requirement
+- Hook removed from `hooks.json`
 
 ## References
 
-- Issue #5: Hook Request
-- exp-066 session: Issues #23, #24 silent failure evidence
-- [lifecycle-reference.md](/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md)
+- Issue #5: Original hook request
+- exp-066 session: Original (false positive) evidence
+- [GitHub API body limit discussion](https://github.com/orgs/community/discussions/27190)

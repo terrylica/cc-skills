@@ -280,7 +280,7 @@ done
 # Create issue
 gh issue create --title "Title" --body "Body" --label "label1,label2"
 
-# Create with body file (recommended for long content)
+# Create with body file (alternative for very long content)
 gh issue create --title "Title" --body-file /tmp/issue-body.md
 
 # View issue
@@ -434,14 +434,14 @@ See the full reference for 6 documented anti-patterns: **[GFM Anti-Patterns Refe
 
 ## Troubleshooting
 
-| Issue                          | Cause                 | Fix                                                                                                                          |
-| ------------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `#N` auto-links in tables      | GFM auto-reference    | Use backtick code span: `` `#1` `` ([details](./references/gfm-antipatterns.md#ap-01-n-auto-links-to-issues-in-table-cells)) |
-| "Resource not accessible"      | Fine-grained PAT      | Use Classic PAT for Projects v2                                                                                              |
-| Sub-issues not linking         | Wrong body format     | Use exact "Parent: #123" syntax                                                                                              |
-| Labels not filtering correctly | Typo in label name    | `gh label list` to verify exact names                                                                                        |
-| Long body truncated            | Inline `--body` limit | Use `--body-file` instead                                                                                                    |
-| Title too short/vague          | Not using full limit  | Maximize 256-char limit for context                                                                                          |
+| Issue                          | Cause                       | Fix                                                                                                                          |
+| ------------------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `#N` auto-links in tables      | GFM auto-reference          | Use backtick code span: `` `#1` `` ([details](./references/gfm-antipatterns.md#ap-01-n-auto-links-to-issues-in-table-cells)) |
+| "Resource not accessible"      | Fine-grained PAT            | Use Classic PAT for Projects v2                                                                                              |
+| Sub-issues not linking         | Wrong body format           | Use exact "Parent: #123" syntax                                                                                              |
+| Labels not filtering correctly | Typo in label name          | `gh label list` to verify exact names                                                                                        |
+| Long body truncated            | GitHub 65536-char API limit | Shorten content or split across comments                                                                                     |
+| Title too short/vague          | Not using full limit        | Maximize 256-char limit for context                                                                                          |
 
 ## References
 
