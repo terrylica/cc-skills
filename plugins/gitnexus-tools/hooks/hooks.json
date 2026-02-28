@@ -1,19 +1,17 @@
 {
-  "description": "GitNexus knowledge graph — MCP redirect, staleness detection, session-end reindex reminder",
+  "description": "GitNexus knowledge graph — CLI reminder, staleness detection, session-end reindex reminder",
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
-        "matcher": "readMcpResource|useMcpTool",
+        "matcher": "Read|Glob|Grep|Bash|Task",
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-mcp-redirect.ts",
-            "timeout": 3000
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-cli-reminder.ts",
+            "timeout": 5000
           }
         ]
-      }
-    ],
-    "PostToolUse": [
+      },
       {
         "matcher": "Write|Edit",
         "hooks": [
