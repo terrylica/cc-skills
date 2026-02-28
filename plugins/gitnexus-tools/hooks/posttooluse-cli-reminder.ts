@@ -137,13 +137,15 @@ async function main(): Promise<void> {
   const repoName = gitRoot.split("/").pop() || "this repo";
 
   blockWithReminder(
-    `[GITNEXUS] This repo (${repoName}) has a GitNexus knowledge graph index. Use the CLI for code exploration — NOT MCP (no gitnexus MCP server exists, never use readMcpResource with gitnexus:// URIs):
+    `[GITNEXUS] This repo (${repoName}) has a GitNexus knowledge graph index. Use the CLI for code exploration — NOT MCP (no gitnexus MCP server exists, never use readMcpResource with gitnexus:// URIs).
 
-  npx gitnexus@latest query "<concept>" --repo ${repoName} --limit 5    # Explore execution flows
-  npx gitnexus@latest context "<symbol>" --repo ${repoName} --content    # 360° symbol view (callers, callees, source)
-  npx gitnexus@latest impact "<symbol>" --repo ${repoName} --depth 3     # Blast radius analysis
-  npx gitnexus@latest status --repo ${repoName}                          # Check index freshness
-  npx gitnexus@latest list                                               # List all indexed repos
+Run all commands from the repo root (the CLI auto-detects the repo from cwd):
+
+  npx gitnexus@latest query "<concept>" --limit 5    # Explore execution flows
+  npx gitnexus@latest context "<symbol>" --content    # 360° symbol view (callers, callees, source)
+  npx gitnexus@latest impact "<symbol>" --depth 3     # Blast radius analysis
+  npx gitnexus@latest status                          # Check index freshness
+  npx gitnexus@latest list                            # List all indexed repos
 
 Skills: /gitnexus-tools:explore | /gitnexus-tools:impact | /gitnexus-tools:dead-code | /gitnexus-tools:reindex`
   );

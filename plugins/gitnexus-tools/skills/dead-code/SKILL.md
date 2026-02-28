@@ -22,23 +22,17 @@ Find orphan functions, dangling imports, isolated files, and unreachable code us
 
 ## Workflow
 
-### Step 1: Determine Repo Name
+### Step 1: Verify Index
 
-The `--repo` flag is required for multi-repo setups. Use the basename of the git root:
-
-```bash
-REPO=$(basename "$(git rev-parse --show-toplevel)")
-```
-
-### Step 2: Verify Index
+Run from the repo root (the CLI auto-detects the repo from cwd):
 
 ```bash
-npx gitnexus@latest status --repo "$REPO"
+npx gitnexus@latest status
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
 
-### Step 3: Run Cypher Queries
+### Step 2: Run Cypher Queries
 
 Run these 4 queries to detect different categories of dead code:
 
@@ -47,7 +41,7 @@ Run these 4 queries to detect different categories of dead code:
 Functions with no incoming CALLS edges and not participating in any process:
 
 ```bash
-npx gitnexus@latest cypher --repo "$REPO" "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
+npx gitnexus@latest cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
 ```
 
 #### Dangling Imports
@@ -55,7 +49,7 @@ npx gitnexus@latest cypher --repo "$REPO" "MATCH (f:Function) WHERE NOT EXISTS {
 Import edges with low confidence (< 0.5), indicating potentially broken references:
 
 ```bash
-npx gitnexus@latest cypher --repo "$REPO" "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.name, b.name, r.confidence, a.file ORDER BY r.confidence LIMIT 30"
+npx gitnexus@latest cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.name, b.name, r.confidence, a.file ORDER BY r.confidence LIMIT 30"
 ```
 
 #### Dead Code (Unreachable)
@@ -63,7 +57,7 @@ npx gitnexus@latest cypher --repo "$REPO" "MATCH (a)-[r:IMPORTS]->(b) WHERE r.co
 Functions unreachable from any entry point — no callers and no process membership:
 
 ```bash
-npx gitnexus@latest cypher --repo "$REPO" "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } AND NOT f.name STARTS WITH '_' AND NOT f.name STARTS WITH 'test_' RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
+npx gitnexus@latest cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } AND NOT f.name STARTS WITH '_' AND NOT f.name STARTS WITH 'test_' RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
 ```
 
 #### Isolated Files
@@ -71,10 +65,10 @@ npx gitnexus@latest cypher --repo "$REPO" "MATCH (f:Function) WHERE NOT EXISTS {
 Files with no imports in or out:
 
 ```bash
-npx gitnexus@latest cypher --repo "$REPO" "MATCH (f:File) WHERE NOT EXISTS { MATCH (f)-[:IMPORTS]->() } AND NOT EXISTS { MATCH ()-[:IMPORTS]->(f) } RETURN f.path ORDER BY f.path LIMIT 30"
+npx gitnexus@latest cypher "MATCH (f:File) WHERE NOT EXISTS { MATCH (f)-[:IMPORTS]->() } AND NOT EXISTS { MATCH ()-[:IMPORTS]->(f) } RETURN f.path ORDER BY f.path LIMIT 30"
 ```
 
-### Step 4: Filter Results
+### Step 3: Filter Results
 
 Exclude false positives:
 
@@ -83,7 +77,7 @@ Exclude false positives:
 - **Entry points** (`main`, `cli`, `__main__`) — called by the runtime, not by other code
 - **Private helpers** prefixed with `_` — may be used via dynamic dispatch
 
-### Step 5: Structured Report
+### Step 4: Structured Report
 
 Present categorized by module/directory:
 

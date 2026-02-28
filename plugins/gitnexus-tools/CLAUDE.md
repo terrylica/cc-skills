@@ -57,18 +57,18 @@ Add these to project CLAUDE.md files to guide when skills are invoked:
 ## Quick CLI Reference
 
 > **CLI ONLY — no MCP server exists. Never use `readMcpResource` with `gitnexus://` URIs.**
+>
+> Run all commands from the repo root. The CLI auto-detects the repo from cwd.
 
-| Command                                                          | Purpose               |
-| ---------------------------------------------------------------- | --------------------- |
-| `npx gitnexus@latest list`                                       | List indexed repos    |
-| `npx gitnexus@latest query "<concept>" --repo <name> --limit 5`  | Find execution flows  |
-| `npx gitnexus@latest context "<symbol>" --repo <name> --content` | 360° symbol view      |
-| `npx gitnexus@latest impact "<symbol>" --repo <name> --depth 3`  | Blast radius          |
-| `npx gitnexus@latest status --repo <name>`                       | Check index freshness |
-| `npx gitnexus@latest analyze --repo <name>`                      | Re-index              |
-| `npx gitnexus@latest cypher --repo <name> "<query>"`             | Raw Cypher query      |
-
-**Multi-Repo**: The `--repo <name>` flag is required when multiple repos are indexed. Use the basename of the git root: `basename "$(git rev-parse --show-toplevel)"`. Use `list` to see all indexed repos.
+| Command                                            | Purpose               |
+| -------------------------------------------------- | --------------------- |
+| `npx gitnexus@latest list`                         | List indexed repos    |
+| `npx gitnexus@latest query "<concept>" --limit 5`  | Find execution flows  |
+| `npx gitnexus@latest context "<symbol>" --content` | 360° symbol view      |
+| `npx gitnexus@latest impact "<symbol>" --depth 3`  | Blast radius          |
+| `npx gitnexus@latest status`                       | Check index freshness |
+| `npx gitnexus@latest analyze`                      | Re-index              |
+| `npx gitnexus@latest cypher "<query>"`             | Raw Cypher query      |
 
 Disambiguate symbols with `--uid` (from candidates list) or `--file` flags.
 
