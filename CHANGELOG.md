@@ -1,3 +1,39 @@
+## [11.62.2](https://github.com/terrylica/cc-skills/compare/v11.62.1...v11.62.2) (2026-02-28)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** strengthen MCP prohibition and document --repo flag ([2cd0905](https://github.com/terrylica/cc-skills/commit/2cd0905edd1c8e6a841b58b55d2c112ad8dcd2ef))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+19/-9)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+24/-13)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+25/-14)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+18/-8)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+13/-8)
+
 ## [11.62.1](https://github.com/terrylica/cc-skills/compare/v11.62.0...v11.62.1) (2026-02-28)
 
 
