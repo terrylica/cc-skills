@@ -112,12 +112,11 @@ fi
 # === Session Registry Update (CONDITIONAL fire-and-forget) ===
 # Only fires when session_id changes - not every render (performance optimization)
 # Updates ~/.claude/projects/{encoded-path}/.session-chain-cache.json
+# NOTE: Uses per-session-UUID lock (NOT per-PID $$) to avoid /tmp file proliferation.
 if [ -n "$session_id" ]; then
-    REGISTRY_CACHE="/tmp/ccstatusline-session-$$"
-    cached_session=$(cat "$REGISTRY_CACHE" 2>/dev/null || echo "")
-
-    if [[ "$session_id" != "$cached_session" ]]; then
-        echo "$session_id" > "$REGISTRY_CACHE"
+    REGISTRY_LOCK="/tmp/ccstatusline-registered-${session_id}"
+    if [ ! -f "$REGISTRY_LOCK" ]; then
+        touch "$REGISTRY_LOCK"
         registry_script="${SCRIPT_DIR}/../scripts/update-session-registry.ts"
         if [ -f "$registry_script" ]; then
             cwd_path=$(pwd)
