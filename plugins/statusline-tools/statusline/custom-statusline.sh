@@ -16,7 +16,8 @@
 #   L = Broken links (lychee)  P = Path violations (lint-relative-paths)
 #
 # Session line format:
-#   ~/.claude/projects JSONL ID: <claude-code-uuid> | Cast: <iterm2-uuid>
+#   ~/.claude/projects JSONL ID: <claude-code-uuid>
+#   ~/asciinemalogs cast: <iterm2-uuid>
 #   The Cast UUID maps to: ~/Downloads/*.<iterm2-uuid>.*.cast
 
 # ANSI Color codes
@@ -330,9 +331,8 @@ fi
 echo -e "$line1"
 echo -e "$line2"
 
-# Line 3: ~/.claude/projects JSONL ID + Cast file reference (for asciinema playback)
-# Format: ~/.claude/projects JSONL ID: <claude-code-uuid> | Cast: <iterm2-uuid>
-# The Cast UUID directly maps to asciinema recording filename in ~/Downloads/
+# Line 3: ~/.claude/projects JSONL ID
+# Line 4: Cast UUID (iTerm2 session → asciinema recording filename)
 
 # Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
 iterm_session_uuid=""
@@ -342,17 +342,11 @@ if [ -n "$ITERM_SESSION_ID" ]; then
 fi
 
 if [ -n "$session_chain" ]; then
-    # Claude Code UUID already includes ANSI colors from Bun script
-    if [ -n "$iterm_session_uuid" ]; then
-        echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain} ${BRIGHT_BLACK}| Cast: ${iterm_session_uuid}${RESET}"
-    else
-        echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
-    fi
+    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
 elif [ -n "$session_id" ]; then
-    # Fallback if Bun script unavailable
-    if [ -n "$iterm_session_uuid" ]; then
-        echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id} | Cast: ${iterm_session_uuid}${RESET}"
-    else
-        echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
-    fi
+    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
+fi
+
+if [ -n "$iterm_session_uuid" ]; then
+    echo -e "${BRIGHT_BLACK}~/asciinemalogs cast: ${iterm_session_uuid}${RESET}"
 fi
