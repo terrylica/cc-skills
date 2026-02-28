@@ -220,6 +220,17 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-ssot-principles.ts",
+            "timeout": 3000,
+            "description": "SSoT/DI principles reminder with ast-grep detection (once per session)"
+          }
+        ]
       }
     ],
     "Stop": [

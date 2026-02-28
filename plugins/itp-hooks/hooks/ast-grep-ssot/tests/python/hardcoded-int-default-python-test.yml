@@ -1,0 +1,18 @@
+id: hardcoded-int-default-python
+valid:
+  - |
+    def good_function(batch_size: int | None = None):
+        return batch_size
+  - |
+    def another_good(count: int = some_config_value):
+        return count
+  - |
+    def untyped(size=64):
+        return size
+invalid:
+  - |
+    def process_data(batch_size: int = 64):
+        return batch_size
+  - |
+    def fetch(timeout: int = 30):
+        return timeout

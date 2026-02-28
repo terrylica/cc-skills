@@ -1,0 +1,19 @@
+id: hardcoded-string-default-typescript
+valid:
+  - |
+    function goodFunction(mode?: string) {
+      return mode;
+    }
+  - |
+    function anotherGood(mode: string) {
+      return mode;
+    }
+invalid:
+  - |
+    function processData(mode: string = "year") {
+      return mode;
+    }
+  - |
+    function fetch(url: string = "https://example.com") {
+      return url;
+    }

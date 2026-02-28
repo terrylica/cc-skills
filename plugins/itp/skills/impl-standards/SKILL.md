@@ -12,7 +12,7 @@ Apply these standards during implementation to ensure consistent, maintainable c
 
 - During `/itp:go` Phase 1
 - When writing new production code
-- User mentions "error handling", "constants", "magic numbers", "progress logging"
+- User mentions "error handling", "constants", "magic numbers", "progress logging", "SSoT", "dependency injection", "config singleton"
 - Before release to verify code quality
 
 ## Quick Reference
@@ -21,6 +21,7 @@ Apply these standards during implementation to ensure consistent, maintainable c
 | ---------------- | ------------------------------------------------------------------------ |
 | **Errors**       | Raise + propagate; no fallback/default/retry/silent                      |
 | **Constants**    | Abstract magic numbers into semantic, version-agnostic dynamic constants |
+| **SSoT/DI**      | Config singleton → None-default + resolver → entry-point validation      |
 | **Dependencies** | Prefer OSS libs over custom code; no backward-compatibility needed       |
 | **Progress**     | Operations >1min: log status every 15-60s                                |
 | **Logs**         | `logs/{adr-id}-YYYYMMDD_HHMMSS.log` (nohup)                              |
@@ -145,6 +146,7 @@ See [ml-data-pipeline-architecture](/plugins/devops-tools/skills/ml-data-pipelin
 
 - [Error Handling](./references/error-handling.md) - Raise + propagate patterns
 - [Constants Management](./references/constants-management.md) - Magic number abstraction
+- [SSoT / Dependency Injection](./references/ssot-dependency-injection.md) - Config singleton → None-default → resolver chain
 
 ---
 

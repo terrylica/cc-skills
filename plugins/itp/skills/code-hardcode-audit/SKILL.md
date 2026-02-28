@@ -14,13 +14,16 @@ Use this skill when the user mentions:
 - "constant detection", "find constants"
 - "duplicate constants", "DRY violations"
 - "code audit", "hardcode audit"
-- "PLR2004", "semgrep", "jscpd", "gitleaks"
+- "PLR2004", "semgrep", "jscpd", "gitleaks", "ast-grep", "SSoT violations"
 - "secret scanning", "leaked secrets", "API keys"
 - "passwords in code", "credential leaks"
 
 ## Quick Start
 
 ```bash
+# SSoT pattern detection (ast-grep, fastest — 6ms/file)
+cd plugins/itp-hooks/hooks/ast-grep-ssot && ast-grep scan src/
+
 # Full audit (all tools, both outputs)
 uv run --script scripts/audit_hardcodes.py -- src/
 
@@ -39,12 +42,13 @@ uv run --script scripts/run_gitleaks.py -- src/
 
 ## Tool Overview
 
-| Tool             | Detection Focus                 | Language Support | Speed  |
-| ---------------- | ------------------------------- | ---------------- | ------ |
-| **Ruff PLR2004** | Magic value comparisons         | Python           | Fast   |
-| **Semgrep**      | URLs, ports, paths, credentials | Multi-language   | Medium |
-| **jscpd**        | Duplicate code blocks           | Multi-language   | Slow   |
-| **gitleaks**     | Secrets, API keys, passwords    | Any (file-based) | Fast   |
+| Tool             | Detection Focus                   | Language Support | Speed  |
+| ---------------- | --------------------------------- | ---------------- | ------ |
+| **ast-grep**     | SSoT violations (config patterns) | Multi-language   | Fast   |
+| **Ruff PLR2004** | Magic value comparisons           | Python           | Fast   |
+| **Semgrep**      | URLs, ports, paths, credentials   | Multi-language   | Medium |
+| **jscpd**        | Duplicate code blocks             | Multi-language   | Slow   |
+| **gitleaks**     | Secrets, API keys, passwords      | Any (file-based) | Fast   |
 
 ## Output Formats
 
@@ -94,7 +98,7 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 
 ```
 --output {json,text,both}  Output format (default: both)
---tools {all,ruff,semgrep,jscpd,gitleaks}  Tools to run (default: all)
+--tools {all,ast-grep,ruff,semgrep,jscpd,gitleaks}  Tools to run (default: all)
 --severity {all,high,medium,low}  Filter by severity (default: all)
 --exclude PATTERN  Glob pattern to exclude (repeatable)
 --parallel  Run tools in parallel (default: true)

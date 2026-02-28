@@ -34,14 +34,15 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### PostToolUse Hooks
 
-| Hook                               | Matcher                | Purpose                                                     |
-| ---------------------------------- | ---------------------- | ----------------------------------------------------------- |
-| `posttooluse-reminder.ts`          | Bash\|Write\|Edit      | Context-aware reminders (UV, Pueue, graph-easy, ADR sync)   |
-| `code-correctness-guard.sh`        | Bash\|Write\|Edit      | Silent failure detection only (NO unused imports, NO style) |
-| `posttooluse-vale-claude-md.ts`    | Write\|Edit            | Vale terminology check on CLAUDE.md files                   |
-| `posttooluse-glossary-sync.ts`     | Write\|Edit            | Auto-sync GLOSSARY.md to Vale vocabulary                    |
-| `posttooluse-terminology-sync.ts`  | Write\|Edit            | Project CLAUDE.md to global GLOSSARY.md sync                |
-| `posttooluse-readme-pypi-links.ts` | Write\|Edit\|MultiEdit | Validates PyPI badge/link consistency in README files       |
+| Hook                               | Matcher                | Purpose                                                       |
+| ---------------------------------- | ---------------------- | ------------------------------------------------------------- |
+| `posttooluse-reminder.ts`          | Bash\|Write\|Edit      | Context-aware reminders (UV, Pueue, graph-easy, ADR sync)     |
+| `code-correctness-guard.sh`        | Bash\|Write\|Edit      | Silent failure detection only (NO unused imports, NO style)   |
+| `posttooluse-vale-claude-md.ts`    | Write\|Edit            | Vale terminology check on CLAUDE.md files                     |
+| `posttooluse-glossary-sync.ts`     | Write\|Edit            | Auto-sync GLOSSARY.md to Vale vocabulary                      |
+| `posttooluse-terminology-sync.ts`  | Write\|Edit            | Project CLAUDE.md to global GLOSSARY.md sync                  |
+| `posttooluse-readme-pypi-links.ts` | Write\|Edit\|MultiEdit | Validates PyPI badge/link consistency in README files         |
+| `posttooluse-ssot-principles.ts`   | Write\|Edit            | SSoT/DI principles with ast-grep detection (once per session) |
 
 ### Stop Hooks
 
@@ -608,6 +609,37 @@ cargo bench # CARGO-TTY-WRAP
 - [#11898](https://github.com/anthropics/claude-code/issues/11898): TTY suspension on iTerm2
 - [#12507](https://github.com/anthropics/claude-code/issues/12507): Subprocess stdin inheritance
 - [#13598](https://github.com/anthropics/claude-code/issues/13598): Spurious /dev/tty reader
+
+## SSoT/Dependency Injection Principles Hook
+
+The `posttooluse-ssot-principles.ts` hook reminds Claude of SSoT/DI best practices on the first code edit per session, with ast-grep AST-based detection of anti-patterns.
+
+### How It Works
+
+1. Triggers on Write/Edit of code files (`.py`, `.ts`, `.rs`, `.go`, `.java`, `.kt`, `.rb`)
+2. Skips test files (`test_*`, `*_test.*`, `*_spec.*`, `__tests__/`)
+3. Gates once per session via atomic file in `/tmp/.claude-ssot-reminder/`
+4. Runs ast-grep with rules from `hooks/ast-grep-ssot/` for AST-based detection
+5. Outputs SSoT principles + any detected anti-patterns
+
+### ast-grep Rules (9 rules, 4 languages)
+
+| Language   | Rules | Detections                                                        |
+| ---------- | ----- | ----------------------------------------------------------------- |
+| Python     | 3     | Hardcoded string/int defaults, direct `os.environ`/`os.getenv`    |
+| TypeScript | 2     | Hardcoded string defaults, direct `process.env` access            |
+| Rust       | 2     | Direct `env::var`, hardcoded `unwrap_or` fallbacks                |
+| Go         | 2     | Direct `os.Getenv`/`os.LookupEnv`, hardcoded `flag.*Var` defaults |
+
+Rules location: `hooks/ast-grep-ssot/rules/` | Test: `cd hooks/ast-grep-ssot && ast-grep test`
+
+### Escape Hatch
+
+Add `# SSoT-OK` (or `// SSoT-OK`) comment to suppress findings. Same convention as `pretooluse-version-guard.mjs`.
+
+### GitHub Issue
+
+[#28](https://github.com/terrylica/cc-skills/issues/28)
 
 ## References
 

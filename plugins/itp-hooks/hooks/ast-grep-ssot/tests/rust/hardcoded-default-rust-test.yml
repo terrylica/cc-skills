@@ -1,0 +1,10 @@
+id: hardcoded-default-rust
+valid:
+  - |
+    let val = config.mode.clone();
+  - |
+    let val = some_result.unwrap();
+invalid:
+  - |
+    use std::env;
+    let val = std::env::var("MODE").unwrap_or("year".to_string());

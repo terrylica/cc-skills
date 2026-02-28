@@ -1,0 +1,17 @@
+id: direct-env-access-python
+language: python
+severity: warning
+message: >-
+  Direct env var access — prefer config singleton (e.g., Settings.get()).
+  Centralize all env var reads in one validated config object for fail-fast
+  startup and single-source-of-truth defaults.
+note: >-
+  [SSoT Principle]: Scattered os.environ/os.getenv calls make it impossible
+  to know which env vars a program needs without reading every file.
+  Suppress with: # SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  any:
+    - pattern: os.environ.get($$$)
+    - pattern: os.getenv($$$)
+    - pattern: os.environ[$$$]
