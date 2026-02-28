@@ -130,8 +130,8 @@ Hooks defined in plugin `hooks.json` must be synced to `~/.claude/settings.json`
 
 ```bash
 # Test hook with sample input via pipe
-echo '{"tool_name": "Bash", "tool_input": {"command": "gh issue create --body test"}}' | \
-  bun plugins/gh-tools/hooks/gh-issue-body-file-guard.mjs
+echo '{"tool_name": "Bash", "tool_input": {"command": "gh issue create --title test"}}' | \
+  bun plugins/gh-tools/hooks/gh-repo-identity-guard.mjs
 ```
 
 ### Unit Testing with Bun

@@ -19,7 +19,7 @@ Scrape AI research conversations (ChatGPT, Gemini, Claude) and web pages, archiv
 2. Scrape URL — route to Firecrawl or Jina per url-routing.md
 3. Save to file — YYYY-MM-DD-{slug}-{source_type}.md with frontmatter
 4. Survey labels — gh label list, reuse existing, max 3-6
-5. Create GitHub Issue — write body to /tmp, use --body-file
+5. Create GitHub Issue — use --body with heredoc or --body-file
 6. Update frontmatter — add github_issue_url and github_issue_number
 7. Post canonical backlink comment on Issue
 ```
@@ -38,7 +38,7 @@ Scrape AI research conversations (ChatGPT, Gemini, Claude) and web pages, archiv
 1. Identity preflight
 2. Read existing file frontmatter
 3. Survey labels — gh label list, reuse existing, max 3-6
-4. Create GitHub Issue — write body to /tmp, use --body-file
+4. Create GitHub Issue — use --body with heredoc or --body-file
 5. Update file frontmatter with issue cross-reference
 6. Post canonical backlink comment on Issue
 ```
@@ -242,7 +242,7 @@ gh label list --repo owner/repo --limit 100
 
 ### Create Issue
 
-**CRITICAL**: Comply with `gh-issue-body-file-guard.mjs` — use `--body-file`, never inline `--body`.
+Use `--body` with heredoc for inline composition, or `--body-file` for very large content.
 
 ```bash
 /usr/bin/env bash << 'ISSUE_EOF'
@@ -319,7 +319,7 @@ After modifying THIS skill:
 | Issue                         | Cause                              | Fix                                                                       |
 | ----------------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
 | Wrong account posting         | GH_TOKEN mismatch                  | Check `mise env \| grep GH_TOKEN`, verify `GH_ACCOUNT`                    |
-| `--body` blocked by hook      | Missing `--body-file`              | Write to /tmp file, use `--body-file`                                     |
+| Body exceeds 65536 chars      | GitHub API limit                   | Split across issue body + first comment                                   |
 | Firecrawl unreachable         | ZeroTier down                      | `ping 172.25.236.1`, check `zerotier-cli status`                          |
 | Firecrawl "Up" but dead       | Container alive, processes crashed | `docker restart firecrawl-api-1 firecrawl-playwright-service-1`, wait 20s |
 | Firecrawl WORKER STALLED      | RAM/CPU overload (>85% mem)        | Same as above; check `docker logs firecrawl-api-1 --tail 50`              |

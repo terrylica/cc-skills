@@ -36,7 +36,7 @@ detect_plugin_root() {
     local cache_base="$HOME/.claude/plugins/cache/cc-skills/gh-tools"
     if [[ -d "$cache_base" ]]; then
         local latest
-        latest=$(ls -1 "$cache_base" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+' | sort -V | tail -1)
+        latest=$(find "$cache_base" -maxdepth 1 -type d -name '[0-9]*' -printf '%f\n' 2>/dev/null | sort -V | tail -1)
         if [[ -n "$latest" && -d "$cache_base/$latest/hooks" ]]; then
             echo "$cache_base/$latest"
             return
@@ -44,7 +44,7 @@ detect_plugin_root() {
     fi
 
     # Priority 4: Relative to script (ultimate fallback)
-    echo "$(dirname "$SCRIPT_DIR")"
+    dirname "$SCRIPT_DIR"
 }
 
 PLUGIN_ROOT="$(detect_plugin_root)"
@@ -137,16 +137,6 @@ do_status() {
         echo -e "  ${RED}✗${NC} webfetch-github-guard.sh - NOT FOUND"
     fi
 
-    local issue_hook="$HOOKS_BASE/gh-issue-body-file-guard.mjs"
-    if [[ -f "$issue_hook" ]]; then
-        if [[ -x "$issue_hook" ]]; then
-            echo -e "  ${GREEN}✓${NC} gh-issue-body-file-guard.mjs"
-        else
-            echo -e "  ${YELLOW}⚠${NC} gh-issue-body-file-guard.mjs (not executable)"
-        fi
-    else
-        echo -e "  ${RED}✗${NC} gh-issue-body-file-guard.mjs - NOT FOUND"
-    fi
     echo ""
 
     # Registration check
@@ -166,9 +156,7 @@ do_install() {
 
     # Check hook scripts exist
     local webfetch_hook="$HOOKS_BASE/webfetch-github-guard.sh"
-    local issue_hook="$HOOKS_BASE/gh-issue-body-file-guard.mjs"
     [[ -f "$webfetch_hook" ]] || die "Hook script not found: $webfetch_hook"
-    [[ -f "$issue_hook" ]] || die "Hook script not found: $issue_hook"
 
     # Check if already installed
     if is_installed; then
@@ -196,26 +184,15 @@ do_install() {
         }]
     }')
 
-    local issue_path="\$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gh-tools/hooks/gh-issue-body-file-guard.mjs"
-    local issue_entry
-    issue_entry=$(jq -n --arg cmd "$issue_path" '{
-        matcher: "Bash",
-        hooks: [{
-            type: "command",
-            command: $cmd,
-            timeout: 5000
-        }]
-    }')
-
     # Add to settings.json
     local tmp
     tmp=$(mktemp)
 
-    # Ensure hooks.PreToolUse exists and add our entries
-    jq --argjson webfetch "$webfetch_entry" --argjson issue "$issue_entry" '
+    # Ensure hooks.PreToolUse exists and add our entry
+    jq --argjson webfetch "$webfetch_entry" '
         .hooks //= {} |
         .hooks.PreToolUse //= [] |
-        .hooks.PreToolUse += [$webfetch, $issue]
+        .hooks.PreToolUse += [$webfetch]
     ' "$SETTINGS" > "$tmp"
 
     # Validate before committing
@@ -224,9 +201,8 @@ do_install() {
     # Atomic write
     mv "$tmp" "$SETTINGS"
 
-    info "gh-tools hooks installed successfully (2 hooks)"
+    info "gh-tools hooks installed successfully (1 hook)"
     echo "  - WebFetch: webfetch-github-guard.sh"
-    echo "  - Bash: gh-issue-body-file-guard.mjs"
     echo ""
     echo -e "${YELLOW}IMPORTANT:${NC} Restart Claude Code for hooks to take effect."
     echo ""
