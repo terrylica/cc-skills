@@ -1,3 +1,10 @@
+## [11.61.2](https://github.com/terrylica/cc-skills/compare/v11.61.1...v11.61.2) (2026-02-28)
+
+
+### Bug Fixes
+
+* **statusline,pueue:** prevent /tmp file proliferation and SSH double-wrapping ([4465bb9](https://github.com/terrylica/cc-skills/commit/4465bb9684f9c0df88835cba4060ad782f18d7d9))
+
 ## [11.61.1](https://github.com/terrylica/cc-skills/compare/v11.61.0...v11.61.1) (2026-02-28)
 
 
