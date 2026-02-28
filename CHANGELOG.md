@@ -1,3 +1,24 @@
+## [11.62.1](https://github.com/terrylica/cc-skills/compare/v11.62.0...v11.62.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** replace broken PreToolUse MCP hook with PostToolUse CLI reminder ([74f5a89](https://github.com/terrylica/cc-skills/commit/74f5a89ec124c9868b10d5ed7befc272c562c5be))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+7/-7)
+
 # [11.62.0](https://github.com/terrylica/cc-skills/compare/v11.61.2...v11.62.0) (2026-02-28)
 
 
