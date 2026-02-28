@@ -7,6 +7,8 @@ model: haiku
 
 # GitNexus Impact Analysis
 
+> **CLI ONLY — no MCP server exists. Never use `readMcpResource` with `gitnexus://` URIs.**
+
 Analyze the blast radius of changing a symbol — who calls it, what processes it participates in, and what tests cover it.
 
 ## When to Use
@@ -18,18 +20,26 @@ Analyze the blast radius of changing a symbol — who calls it, what processes i
 
 ## Workflow
 
-### Step 1: Verify Index
+### Step 1: Determine Repo Name
+
+The `--repo` flag is required for multi-repo setups. Use the basename of the git root:
 
 ```bash
-npx gitnexus@latest status
+REPO=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+### Step 2: Verify Index
+
+```bash
+npx gitnexus@latest status --repo "$REPO"
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
 
-### Step 2: Upstream Blast Radius
+### Step 3: Upstream Blast Radius
 
 ```bash
-npx gitnexus@latest impact "<symbol>" --depth 3
+npx gitnexus@latest impact "<symbol>" --repo "$REPO" --depth 3
 ```
 
 This shows everything that depends on the symbol (callers, transitive callers up to depth 3).
@@ -37,28 +47,28 @@ This shows everything that depends on the symbol (callers, transitive callers up
 If multiple candidates are returned, disambiguate:
 
 ```bash
-npx gitnexus@latest impact "<symbol>" --uid "<full-uid>" --depth 3
+npx gitnexus@latest impact "<symbol>" --repo "$REPO" --uid "<full-uid>" --depth 3
 # or
-npx gitnexus@latest impact "<symbol>" --file "<file-path>" --depth 3
+npx gitnexus@latest impact "<symbol>" --repo "$REPO" --file "<file-path>" --depth 3
 ```
 
-### Step 3: Downstream Dependencies (Optional)
+### Step 4: Downstream Dependencies (Optional)
 
 ```bash
-npx gitnexus@latest impact "<symbol>" --direction downstream --depth 3
+npx gitnexus@latest impact "<symbol>" --repo "$REPO" --direction downstream --depth 3
 ```
 
 Shows what the symbol depends on — useful for understanding if dependencies might change.
 
-### Step 4: Test Coverage
+### Step 5: Test Coverage
 
 ```bash
-npx gitnexus@latest impact "<symbol>" --include-tests
+npx gitnexus@latest impact "<symbol>" --repo "$REPO" --include-tests
 ```
 
 Shows which test files exercise this symbol.
 
-### Step 5: Risk Assessment
+### Step 6: Risk Assessment
 
 Based on the number of direct dependents:
 
@@ -69,7 +79,7 @@ Based on the number of direct dependents:
 | 20–50      | **HIGH**     | Consider backward-compatible API, extensive testing |
 | 50+        | **CRITICAL** | Needs deprecation strategy, phased migration        |
 
-### Step 6: Structured Report
+### Step 7: Structured Report
 
 Present:
 
@@ -84,8 +94,9 @@ Present:
 User: "What breaks if I change RangeBarProcessor?"
 
 ```bash
-npx gitnexus@latest impact "RangeBarProcessor" --depth 3
-npx gitnexus@latest impact "RangeBarProcessor" --include-tests
+REPO=$(basename "$(git rev-parse --show-toplevel)")
+npx gitnexus@latest impact "RangeBarProcessor" --repo "$REPO" --depth 3
+npx gitnexus@latest impact "RangeBarProcessor" --repo "$REPO" --include-tests
 ```
 
 Output: "CRITICAL risk — 73 dependents across 12 processes. 8 test files cover it. Recommend backward-compatible changes only."

@@ -12,7 +12,7 @@
  * Fail-open everywhere — every catch exits 0.
  */
 
-import { writeFileSync, mkdirSync, existsSync } from "fs";
+import { mkdirSync, existsSync, openSync, closeSync, constants } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
 import { createHash } from "crypto";
@@ -96,7 +96,8 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Once-per-session gate
+  // Once-per-session gate (atomic: O_CREAT|O_EXCL prevents race conditions
+  // when multiple tool calls fire in the same batch)
   const sessionId = input.session_id || "unknown";
   const repoHash = hashString(gitRoot);
   const gateFile = join(GATE_DIR, `${sessionId}-${repoHash}.reminded`);
@@ -107,26 +108,25 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  if (existsSync(gateFile)) {
-    process.exit(0);
-  }
-
-  // Mark as reminded (regardless of outcome — only fire once)
+  // Atomic create-if-not-exists — if the file already exists, O_EXCL throws
   try {
-    writeFileSync(gateFile, String(Math.floor(Date.now() / 1000)));
+    const fd = openSync(gateFile, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL);
+    closeSync(fd);
   } catch {
-    // Non-fatal
+    // File already exists (another hook instance won the race) — exit silently
+    process.exit(0);
   }
 
   const repoName = gitRoot.split("/").pop() || "this repo";
 
   blockWithReminder(
-    `[GITNEXUS] This repo (${repoName}) has a GitNexus knowledge graph index. Use the CLI for code exploration — NOT MCP (no gitnexus MCP server exists):
+    `[GITNEXUS] This repo (${repoName}) has a GitNexus knowledge graph index. Use the CLI for code exploration — NOT MCP (no gitnexus MCP server exists, never use readMcpResource with gitnexus:// URIs):
 
-  npx gitnexus@latest query "<concept>" --limit 5    # Explore execution flows
-  npx gitnexus@latest context "<symbol>" --content    # 360° symbol view (callers, callees, source)
-  npx gitnexus@latest impact "<symbol>" --depth 3     # Blast radius analysis
-  npx gitnexus@latest status                          # Check index freshness
+  npx gitnexus@latest query "<concept>" --repo ${repoName} --limit 5    # Explore execution flows
+  npx gitnexus@latest context "<symbol>" --repo ${repoName} --content    # 360° symbol view (callers, callees, source)
+  npx gitnexus@latest impact "<symbol>" --repo ${repoName} --depth 3     # Blast radius analysis
+  npx gitnexus@latest status --repo ${repoName}                          # Check index freshness
+  npx gitnexus@latest list                                               # List all indexed repos
 
 Skills: /gitnexus-tools:explore | /gitnexus-tools:impact | /gitnexus-tools:dead-code | /gitnexus-tools:reindex`
   );

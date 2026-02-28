@@ -7,6 +7,8 @@ model: haiku
 
 # GitNexus Explore
 
+> **CLI ONLY — no MCP server exists. Never use `readMcpResource` with `gitnexus://` URIs.**
+
 Trace execution flows and understand how code works using the GitNexus knowledge graph.
 
 ## When to Use
@@ -18,28 +20,36 @@ Trace execution flows and understand how code works using the GitNexus knowledge
 
 ## Workflow
 
-### Step 1: Verify Index
+### Step 1: Determine Repo Name
+
+The `--repo` flag is required for multi-repo setups. Use the basename of the git root:
 
 ```bash
-npx gitnexus@latest status
+REPO=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+### Step 2: Verify Index
+
+```bash
+npx gitnexus@latest status --repo "$REPO"
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
 
-### Step 2: Find Execution Flows
+### Step 3: Find Execution Flows
 
 ```bash
-npx gitnexus@latest query "<concept>" --limit 5
+npx gitnexus@latest query "<concept>" --repo "$REPO" --limit 5
 ```
 
 This returns ranked execution flows (process chains) related to the concept.
 
-### Step 3: Get 360° Symbol View
+### Step 4: Get 360° Symbol View
 
 For each relevant symbol found:
 
 ```bash
-npx gitnexus@latest context "<symbol>" --content
+npx gitnexus@latest context "<symbol>" --repo "$REPO" --content
 ```
 
 This shows:
@@ -52,16 +62,16 @@ This shows:
 If multiple candidates are returned, disambiguate with:
 
 ```bash
-npx gitnexus@latest context "<symbol>" --uid "<full-uid>" --content
+npx gitnexus@latest context "<symbol>" --repo "$REPO" --uid "<full-uid>" --content
 # or
-npx gitnexus@latest context "<symbol>" --file "<file-path>" --content
+npx gitnexus@latest context "<symbol>" --repo "$REPO" --file "<file-path>" --content
 ```
 
-### Step 4: Read Source Files
+### Step 5: Read Source Files
 
 Use the Read tool to examine source files at the line numbers identified by GitNexus.
 
-### Step 5: Synthesize
+### Step 6: Synthesize
 
 Present a clear explanation covering:
 
@@ -75,9 +85,10 @@ Present a clear explanation covering:
 User: "How does the kintsugi gap repair work?"
 
 ```bash
-npx gitnexus@latest query "kintsugi gap repair" --limit 5
-npx gitnexus@latest context "KintsugiReconciler" --content
-npx gitnexus@latest context "discover_shards" --content
+REPO=$(basename "$(git rev-parse --show-toplevel)")
+npx gitnexus@latest query "kintsugi gap repair" --repo "$REPO" --limit 5
+npx gitnexus@latest context "KintsugiReconciler" --repo "$REPO" --content
+npx gitnexus@latest context "discover_shards" --repo "$REPO" --content
 ```
 
 Then read the relevant source files and synthesize the explanation.
