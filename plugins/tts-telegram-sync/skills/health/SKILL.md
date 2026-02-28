@@ -11,18 +11,18 @@ Run 10 subsystem health checks to verify the full TTS + bot stack.
 
 ## Checks
 
-| #   | Check           | Command                                                              |
-| --- | --------------- | -------------------------------------------------------------------- |
-| 1   | Bot process     | `pgrep -la 'bun.*src/main.ts'`                                       |
-| 2   | Telegram API    | `curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" \| jq .ok` |
-| 3   | Kokoro venv     | `[[ -d ~/.local/share/kokoro/.venv ]]`                               |
-| 4   | Kokoro import   | `~/.local/share/kokoro/.venv/bin/python -c "import kokoro"`          |
-| 5   | MPS available   | `python -c "import torch; assert torch.backends.mps.is_available()"` |
-| 6   | Lock state      | Check `/tmp/kokoro-tts.lock` mtime and PID                           |
-| 7   | Audio processes | `pgrep -x afplay` / `pgrep -x say`                                   |
-| 8   | Secrets file    | `[[ -f ~/.claude/.secrets/ccterrybot-telegram ]]`                    |
-| 9   | Stale WAVs      | `find /tmp -name "kokoro-tts-*.wav" -mmin +5`                        |
-| 10  | Shell symlinks  | `[[ -L ~/.local/bin/tts_kokoro.sh ]]`                                |
+| #   | Check            | Command                                                                                  |
+| --- | ---------------- | ---------------------------------------------------------------------------------------- |
+| 1   | Bot process      | `pgrep -la 'bun.*src/main.ts'`                                                           |
+| 2   | Telegram API     | `curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" \| jq .ok`                     |
+| 3   | Kokoro venv      | `[[ -d ~/.local/share/kokoro/.venv ]]`                                                   |
+| 4   | MLX-Audio import | `~/.local/share/kokoro/.venv/bin/python -c "from mlx_audio.tts.utils import load_model"` |
+| 5   | Apple Silicon    | `[[ "$(uname -m)" == "arm64" ]]`                                                         |
+| 6   | Lock state       | Check `/tmp/kokoro-tts.lock` mtime and PID                                               |
+| 7   | Audio processes  | `pgrep -x afplay` / `pgrep -x say`                                                       |
+| 8   | Secrets file     | `[[ -f ~/.claude/.secrets/ccterrybot-telegram ]]`                                        |
+| 9   | Stale WAVs       | `find /tmp -name "kokoro-tts-*.wav" -mmin +5`                                            |
+| 10  | Shell symlinks   | `[[ -L ~/.local/bin/tts_kokoro.sh ]]`                                                    |
 
 ## Execution
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Kokoro TTS — clipboard to speech with auto language detection
-# Uses local Kokoro via Apple Silicon MPS, falls back to macOS say
+# Uses local Kokoro via MLX-Audio, falls back to macOS say
 #
 # Usage:
 #   bin/tts_kokoro.sh                   # local Kokoro, fallback to say
@@ -99,7 +99,7 @@ tts_log "Using local Kokoro | Voice: $VOICE | Speed: $SPEED"
 # --- Acquire TTS lock with heartbeat ---
 acquire_tts_lock
 
-# --- Generate and play via local Kokoro (Apple Silicon MPS) ---
+# --- Generate and play via local Kokoro (MLX-Audio) ---
 # Chunked streaming: Kokoro generates each chunk as a WAV and prints the path.
 # We play each WAV as soon as it's ready, so audio starts faster for long text.
 # The lock file is held for the entire duration so no other TTS slips in between.

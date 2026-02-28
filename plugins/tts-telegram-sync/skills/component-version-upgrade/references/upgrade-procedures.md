@@ -27,9 +27,9 @@ cat ~/.local/share/kokoro/version.json
 
 ### What Gets Updated
 
-- Python packages: `kokoro`, `misaki[en]`, `torch`, `soundfile`, `numpy`, `transformers`, `huggingface_hub`, `loguru`
-- Model weights: re-downloaded from `hexgrad/Kokoro-82M` (uses HuggingFace cache)
-- `tts_generate.py`: re-copied from plugin bundle to `~/.local/share/kokoro/`
+- Python packages: `mlx-audio`, `soundfile`, `numpy`
+- Model weights: re-downloaded from `mlx-community/Kokoro-82M-bf16` (uses HuggingFace cache)
+- `kokoro_common.py` and `tts_generate.py`: re-copied from plugin bundle to `~/.local/share/kokoro/`
 - `version.json`: rewritten with new versions and timestamp
 
 ### Rollback
@@ -40,7 +40,7 @@ cat ~/.local/share/kokoro/version.json
 ~/.claude/eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --install
 ```
 
-The model cache at `~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M` is preserved across uninstall, so reinstall reuses the cached model.
+The model cache at `~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16` is preserved across uninstall, so reinstall reuses the cached model.
 
 ---
 
@@ -146,10 +146,11 @@ After any upgrade, `version.json` at `~/.local/share/kokoro/` should reflect cur
 
 ```json
 {
-  "kokoro": "0.9.4",
-  "torch": "2.x.x",
+  "mlx_audio": "0.3.x",
+  "backend": "mlx",
   "python": "3.13",
-  "upgraded_at": "2026-02-13T00:00:00Z",
+  "model": "mlx-community/Kokoro-82M-bf16",
+  "upgraded_at": "2026-02-28T00:00:00Z",
   "source": "kokoro-install.sh --upgrade",
   "venv_path": "~/.local/share/kokoro/.venv"
 }

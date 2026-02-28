@@ -46,7 +46,7 @@ PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/p
 bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --install
 ```
 
-This creates a Python 3.13 venv at `~/.local/share/kokoro/`, installs deps, downloads the Kokoro-82M model, and verifies MPS acceleration.
+This creates a Python 3.13 venv at `~/.local/share/kokoro/`, installs MLX-Audio deps, downloads the Kokoro-82M-bf16 MLX model, and verifies MLX Metal acceleration.
 
 ### Step 3: BotFather Token
 
@@ -95,7 +95,7 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 | Issue               | Cause                | Solution                              |
 | ------------------- | -------------------- | ------------------------------------- |
 | uv not found        | Not installed        | `brew install uv`                     |
-| MPS not available   | Not Apple Silicon    | Requires M1+ Mac                      |
+| Not Apple Silicon   | Intel Mac or Linux   | Requires M1+ Mac (MLX Metal)          |
 | Model download slow | Large first download | ~400MB, wait for completion           |
 | Token invalid       | Typo or expired      | Re-verify with `/mybots` in BotFather |
 | Symlinks broken     | Plugin path changed  | Re-run symlink creation step          |

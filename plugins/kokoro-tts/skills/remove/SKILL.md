@@ -1,0 +1,59 @@
+---
+name: remove
+description: "Remove Kokoro TTS engine. TRIGGERS - remove kokoro, uninstall tts, delete kokoro, clean tts."
+allowed-tools: Read, Bash, Glob, AskUserQuestion
+---
+
+# Remove Kokoro TTS
+
+Clean uninstall of the Kokoro TTS engine. Preserves model cache by default.
+
+## What Gets Removed
+
+- Python venv at `~/.local/share/kokoro/.venv`
+- Scripts: `tts_generate.py`, `kokoro_common.py`
+- Metadata: `version.json`
+- Directory `~/.local/share/kokoro/` (if empty after cleanup)
+
+## What Gets Preserved
+
+- Model cache at `~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16/`
+- Launchd plist (if server was configured)
+
+## Workflow
+
+### Step 1: Confirm with user
+
+Use AskUserQuestion to confirm removal. Mention what will be removed and what will be preserved.
+
+### Step 2: Stop server (if running)
+
+```bash
+# Stop launchd service if exists
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.example.kokoro-tts-server.plist 2>/dev/null || true
+```
+
+### Step 3: Uninstall
+
+```bash
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
+bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --uninstall
+```
+
+### Step 4: (Optional) Remove model cache
+
+Only if user explicitly requests full cleanup:
+
+```bash
+rm -rf ~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16
+```
+
+### Step 5: (Optional) Remove launchd plist
+
+```bash
+rm -f ~/Library/LaunchAgents/com.example.kokoro-tts-server.plist
+```
+
+## Post-Removal
+
+To reinstall later: `/kokoro-tts:install`

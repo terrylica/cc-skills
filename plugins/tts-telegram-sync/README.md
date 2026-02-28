@@ -33,8 +33,8 @@ Full lifecycle management for Kokoro TTS, Telegram bot sync, and iTerm2 integrat
 | `full-stack-bootstrap`      | One-time bootstrap: Kokoro venv, model, BotFather, secrets, symlinks |
 | `settings-and-tuning`       | Configure TTS voices, speed, timeouts, queue depth, bot settings     |
 | `bot-process-control`       | Start/stop/restart the Telegram sync bot process                     |
-| `system-health-check`       | 10-subsystem health check (bot, TTS, locks, MPS, secrets)            |
-| `component-version-upgrade` | Upgrade Kokoro, torch, bot deps, model                               |
+| `system-health-check`       | 10-subsystem health check (bot, TTS, locks, MLX, secrets)            |
+| `component-version-upgrade` | Upgrade Kokoro, mlx-audio, bot deps, model                           |
 | `clean-component-removal`   | Orderly teardown: stop bot, remove venv, clean symlinks              |
 | `diagnostic-issue-resolver` | Diagnose lock, process, audio, queue issues                          |
 | `voice-quality-audition`    | Compare Kokoro voice quality across 10 voices                        |
@@ -56,12 +56,12 @@ Shared: Lock protocol, signal sound, NDJSON telemetry
 
 ## Components
 
-| Component         | Location                                        | Runtime                         |
-| ----------------- | ----------------------------------------------- | ------------------------------- |
-| Kokoro TTS engine | `~/.local/share/kokoro/`                        | Python 3.13 (Apple Silicon MPS) |
-| Telegram bot      | `~/.claude/automation/claude-telegram-sync/`    | Bun                             |
-| Shell scripts     | Plugin `scripts/` → symlinks in `~/.local/bin/` | Bash                            |
-| Shared library    | Plugin `scripts/lib/tts-common.sh`              | Bash                            |
+| Component         | Location                                        | Runtime                 |
+| ----------------- | ----------------------------------------------- | ----------------------- |
+| Kokoro TTS engine | `~/.local/share/kokoro/`                        | Python 3.13 (MLX-Audio) |
+| Telegram bot      | `~/.claude/automation/claude-telegram-sync/`    | Bun                     |
+| Shell scripts     | Plugin `scripts/` → symlinks in `~/.local/bin/` | Bash                    |
+| Shared library    | Plugin `scripts/lib/tts-common.sh`              | Bash                    |
 
 ## Hooks
 
@@ -71,7 +71,7 @@ Shared: Lock protocol, signal sound, NDJSON telemetry
 
 ## Requirements
 
-- macOS with Apple Silicon (M1+) for MPS acceleration
+- macOS with Apple Silicon (M1+) for MLX Metal acceleration
 - Bun runtime
 - Python 3.13 via uv
 - mise (environment management)
