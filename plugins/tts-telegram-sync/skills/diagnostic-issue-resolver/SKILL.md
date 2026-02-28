@@ -19,7 +19,7 @@ Diagnose and fix common TTS + Telegram bot issues through systematic symptom col
 - Kokoro engine errors or timeouts
 - Lock file appears stuck
 - Audio plays twice (race condition)
-- MPS acceleration is not working
+- MLX Metal acceleration is not working
 - Queue appears full or backed up
 
 ---
@@ -34,15 +34,15 @@ Diagnose and fix common TTS + Telegram bot issues through systematic symptom col
 
 ## Known Issue Table
 
-| Issue                 | Likely Cause             | Diagnostic                                                           | Fix                                                                                    |
-| --------------------- | ------------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| No audio output       | Stale TTS lock           | `stat /tmp/kokoro-tts.lock`                                          | `rm -f /tmp/kokoro-tts.lock`                                                           |
-| Bot not responding    | Process crashed          | `pgrep -la 'bun.*src/main.ts'`                                       | Restart: `cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts` |
-| Kokoro timeout        | First-run model load     | Check `~/.cache/huggingface/`                                        | Wait for download, or re-run `kokoro-install.sh --install`                             |
-| Queue full            | Rapid-fire notifications | Check queue depth in audit log                                       | Increase `TTS_MAX_QUEUE_DEPTH` in mise.toml or drain queue                             |
-| Lock stuck forever    | Heartbeat process died   | `stat /tmp/kokoro-tts.lock` + `pgrep -x afplay`                      | If lock stale >30s AND no audio process, rm lock                                       |
-| No MPS acceleration   | Wrong Python/torch       | `python -c "import torch; print(torch.backends.mps.is_available())"` | Reinstall torch via `kokoro-install.sh --upgrade`                                      |
-| Double audio playback | Lock race condition      | Check for multiple afplay processes                                  | Kill all: `pkill -x afplay`, then restart                                              |
+| Issue                 | Likely Cause             | Diagnostic                                                                | Fix                                                                                    |
+| --------------------- | ------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| No audio output       | Stale TTS lock           | `stat /tmp/kokoro-tts.lock`                                               | `rm -f /tmp/kokoro-tts.lock`                                                           |
+| Bot not responding    | Process crashed          | `pgrep -la 'bun.*src/main.ts'`                                            | Restart: `cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts` |
+| Kokoro timeout        | First-run model load     | Check `~/.cache/huggingface/`                                             | Wait for download, or re-run `kokoro-install.sh --install`                             |
+| Queue full            | Rapid-fire notifications | Check queue depth in audit log                                            | Increase `TTS_MAX_QUEUE_DEPTH` in mise.toml or drain queue                             |
+| Lock stuck forever    | Heartbeat process died   | `stat /tmp/kokoro-tts.lock` + `pgrep -x afplay`                           | If lock stale >30s AND no audio process, rm lock                                       |
+| Slow MLX acceleration | Wrong Python or deps     | `python -c "from mlx_audio.tts.utils import load_model; print('MLX OK')"` | Reinstall via `kokoro-install.sh --upgrade`                                            |
+| Double audio playback | Lock race condition      | Check for multiple afplay processes                                       | Kill all: `pkill -x afplay`, then restart                                              |
 
 ---
 
@@ -71,7 +71,7 @@ pgrep -la afplay; pgrep -la say
 pgrep -la 'bun.*src/main.ts'
 
 # Kokoro health
-~/.local/share/kokoro/.venv/bin/python -c "import kokoro; import torch; print(f'kokoro OK, MPS: {torch.backends.mps.is_available()}')"
+~/.local/share/kokoro/.venv/bin/python -c "from mlx_audio.tts.utils import load_model; print('MLX-Audio OK')"
 
 # Recent errors in audit log
 tail -20 ~/.local/share/tts-telegram-sync/logs/audit/*.ndjson 2>/dev/null | grep -i error
@@ -86,7 +86,7 @@ Map diagnostic output to the Known Issue Table above. Common patterns:
 
 - Lock file exists + mtime > 30s ago + no afplay = **stale lock**
 - No bot PID found = **bot crashed**
-- `torch.backends.mps.is_available()` returns False = **MPS broken**
+- `from mlx_audio.tts.utils import load_model` fails = **MLX-Audio broken**
 - Multiple afplay PIDs = **race condition**
 
 ### Phase 4: Fix Application
@@ -116,7 +116,7 @@ After applying the fix, verify the issue is resolved:
 2. [Triage] Map symptoms to likely causes
 3. [Lock] Check TTS lock state (mtime, PID, stale detection)
 4. [Process] Check bot process and audio processes
-5. [Kokoro] Verify Kokoro venv and MPS availability
+5. [Kokoro] Verify Kokoro venv and MLX-Audio availability
 6. [Logs] Check recent audit logs for errors
 7. [Fix] Apply targeted fix for identified root cause
 8. [Verify] Run health check to confirm resolution

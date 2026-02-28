@@ -71,19 +71,19 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 
 **Remediation**:
 
-- Run the `full-stack-bootstrap` skill to install Kokoro from scratch.
-- Or manually: `cd ~/.local/share/kokoro && uv venv --python 3.13 .venv && uv pip install kokoro torch`
+- Run `kokoro-install.sh --install` to install Kokoro from scratch.
+- Or manually: `cd ~/.local/share/kokoro && uv venv --python 3.13 .venv && uv pip install mlx-audio soundfile numpy`
 
 ---
 
-## Check 4: Kokoro Python Import
+## Check 4: MLX-Audio Import
 
-**What it tests**: Whether the `kokoro` Python package is importable within the venv.
+**What it tests**: Whether the `mlx_audio` Python package is importable within the venv.
 
 **Command**:
 
 ```bash
-~/.local/share/kokoro/.venv/bin/python -c "import kokoro"
+~/.local/share/kokoro/.venv/bin/python -c "from mlx_audio.tts.utils import load_model; print('MLX OK')"
 ```
 
 **Pass condition**: Exit code 0 (import succeeds).
@@ -96,35 +96,31 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 
 **Remediation**:
 
-- Reinstall: `~/.local/share/kokoro/.venv/bin/pip install kokoro`
+- Reinstall: `uv pip install --python ~/.local/share/kokoro/.venv/bin/python mlx-audio`
 - Rebuild venv if Python version is wrong: delete `.venv` and recreate with Python 3.13.
 
 ---
 
-## Check 5: MPS Available (Apple Silicon GPU)
+## Check 5: MLX Metal (Apple Silicon GPU)
 
-**What it tests**: Whether PyTorch can access the Metal Performance Shaders backend for GPU-accelerated TTS inference.
+**What it tests**: Whether the system is Apple Silicon with MLX Metal acceleration available.
 
 **Command**:
 
 ```bash
-~/.local/share/kokoro/.venv/bin/python -c "import torch; assert torch.backends.mps.is_available()"
+[[ "$(uname -m)" == "arm64" ]]
 ```
 
-**Pass condition**: Assertion passes (MPS is available).
+**Pass condition**: Architecture is arm64 (Apple Silicon).
 
 **Failure meaning**:
 
-- **AssertionError**: MPS not available. Could be Intel Mac, or torch built without MPS support.
-- **ModuleNotFoundError (torch)**: PyTorch not installed in the venv.
+- **Not arm64**: Intel Mac or non-macOS system. MLX-Audio requires Apple Silicon.
 
 **Remediation**:
 
-- Verify hardware: `sysctl -n machdep.cpu.brand_string` (should show Apple M-series).
-- Reinstall torch with MPS: `~/.local/share/kokoro/.venv/bin/pip install torch --upgrade`
-- MPS requires macOS 12.3+ and Apple Silicon.
-
-**Note**: Kokoro still works on CPU if MPS is unavailable, but inference will be significantly slower.
+- Verify hardware: `uname -m` (should show `arm64`).
+- MLX-Audio only runs on Apple Silicon (M1+). There is no Intel or Linux fallback.
 
 ---
 

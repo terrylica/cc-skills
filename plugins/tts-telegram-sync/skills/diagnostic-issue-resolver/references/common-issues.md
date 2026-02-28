@@ -72,21 +72,21 @@ curl -s -o /dev/null -w "%{http_code}" https://api.telegram.org/
 
 ```bash
 # Step 1: Check if model is cached
-ls -la ~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M/ 2>/dev/null
+ls -la ~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16/ 2>/dev/null
 
 # Step 2: Test manual generation with verbose output
 time ~/.local/share/kokoro/.venv/bin/python ~/.local/share/kokoro/tts_generate.py \
   --text "Test" --voice af_heart --lang en-us --speed 1.0 \
   --output /tmp/kokoro-tts-timeout-test.wav
 
-# Step 3: Check MPS (slow generation may indicate CPU fallback)
-~/.local/share/kokoro/.venv/bin/python -c "import torch; print('MPS:', torch.backends.mps.is_available())"
+# Step 3: Check MLX-Audio is importable
+~/.local/share/kokoro/.venv/bin/python -c "from mlx_audio.tts.utils import load_model; print('MLX OK')"
 ```
 
 **Resolution Tree**:
 
-- Model not cached --> First run downloads ~400MB. Wait or run `kokoro-install.sh --install`
-- MPS not available --> `kokoro-install.sh --upgrade` to reinstall torch with MPS support
+- Model not cached --> First run downloads from HuggingFace. Wait or run `kokoro-install.sh --install`
+- MLX-Audio not importable --> `kokoro-install.sh --upgrade` to reinstall dependencies
 - Generation works manually but times out from bot --> Increase `TTS_GENERATE_TIMEOUT_MS` in mise.toml
 
 ---
@@ -133,30 +133,33 @@ rm -f /tmp/kokoro-tts.lock
 
 ---
 
-## 6. No MPS Acceleration
+## 6. Slow MLX Metal Acceleration
 
 **Symptom**: TTS generation is slow (~5-10s instead of ~1-2s).
 
 **Diagnostic Steps**:
 
 ```bash
-# Step 1: Check MPS availability
+# Step 1: Check MLX-Audio is working
 ~/.local/share/kokoro/.venv/bin/python -c "
-import torch
-print('MPS available:', torch.backends.mps.is_available())
-print('MPS built:', torch.backends.mps.is_built())
-print('Torch version:', torch.__version__)
+from mlx_audio.tts.utils import load_model
+from importlib.metadata import version
+print('mlx-audio version:', version('mlx-audio'))
+print('MLX OK')
 "
 
 # Step 2: Check Python version
 ~/.local/share/kokoro/.venv/bin/python --version
+
+# Step 3: Check hardware
+uname -m  # Should be arm64
 ```
 
 **Resolution Tree**:
 
-- MPS not available --> `kokoro-install.sh --upgrade` (reinstalls torch with MPS)
+- Not arm64 --> MLX-Audio requires Apple Silicon (M1+). No Intel/Linux fallback.
 - Wrong Python version --> Must be 3.13. Rebuild venv: `kokoro-install.sh --uninstall && kokoro-install.sh --install`
-- MPS available but still slow --> Check if other GPU-heavy processes are running
+- MLX OK but still slow --> Check if other GPU-heavy processes are running, or if the model needs re-download
 
 ---
 

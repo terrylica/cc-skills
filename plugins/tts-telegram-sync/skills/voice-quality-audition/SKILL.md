@@ -25,7 +25,7 @@ Compare Kokoro TTS voice quality across all available voices. Runs `tts_kokoro_a
 ## Requirements
 
 - Kokoro TTS engine installed and healthy (`kokoro-install.sh --health`)
-- Apple Silicon Mac with MPS (Metal Performance Shaders) available
+- Apple Silicon Mac with MLX Metal available
 - `afplay` available (ships with macOS)
 - Audition script at plugin `scripts/tts_kokoro_audition.sh`
 - Shared library at plugin `scripts/lib/tts-common.sh`
@@ -68,7 +68,7 @@ Verify Kokoro is installed and healthy:
 kokoro-install.sh --health
 ```
 
-All 8 checks must pass (venv, Python, script, kokoro import, torch import, MPS, model cached, version.json).
+All 6 checks must pass (venv, Python 3.13, mlx_audio importable, kokoro_common.py, tts_generate.py, version.json).
 
 ### Phase 2: Text Selection
 

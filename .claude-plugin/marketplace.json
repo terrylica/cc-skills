@@ -416,11 +416,32 @@
       "strict": false
     },
     {
+      "name": "kokoro-tts",
+      "description": "Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, health checks, diagnostics (Apple Silicon)",
+      "version": "11.65.2",
+      "source": "./plugins/kokoro-tts",
+      "category": "devops",
+      "author": {
+        "name": "<user>ca",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "tts",
+        "kokoro",
+        "voice-synthesis",
+        "mlx",
+        "text-to-speech",
+        "apple-silicon"
+      ],
+      "strict": false
+    },
+    {
       "name": "tts-telegram-sync",
-      "description": "TTS and Telegram bot lifecycle: Kokoro engine bootstrap, voice audition, bot process control, health checks, diagnostics",
+      "description": "Telegram bot + iTerm2 TTS integration: bot process control, voice audition, settings, hooks (requires kokoro-tts for engine)",
       "version": "11.65.2",
       "source": "./plugins/tts-telegram-sync",
       "category": "devops",
+      "requires": ["kokoro-tts"],
       "author": {
         "name": "<user>ca",
         "url": "https://github.com/terrylica"
