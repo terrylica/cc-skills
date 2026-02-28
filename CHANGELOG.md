@@ -1,3 +1,73 @@
+## [11.65.2](https://github.com/terrylica/cc-skills/compare/v11.65.1...v11.65.2) (2026-02-28)
+
+
+### Bug Fixes
+
+* **gh-tools:** remove gh-issue-body-file-guard — premise disproved ([88bfc21](https://github.com/terrylica/cc-skills/commit/88bfc21b3e72db124e781475dc93eab4492a1837)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#issue-body-file-guard](https://github.com/terrylica/cc-skills/issues/issue-body-file-guard)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| superseded | [gh issue create --body-file Requirement](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-11-gh-issue-body-file-guard.md) | updated (+27/-35) |
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (3 changes)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (-4)
+- [issues-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/SKILL.md) - updated (+9/-9)
+- [research-archival](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/SKILL.md) - updated (+4/-4)
+
+</details>
+
+
+### Plugin READMEs
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+14/-38)
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/issues-workflow</strong> (1 file)</summary>
+
+- [GFM Anti-Patterns in Issue Comments](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/gfm-antipatterns.md) - updated (+10/-12)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+7/-7)
+
+</details>
+
+
+## Repository Documentation
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+2/-2)
+
+## Other Documentation
+
+### Other
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+4/-14)
+
 ## [11.65.1](https://github.com/terrylica/cc-skills/compare/v11.65.0...v11.65.1) (2026-02-28)
 
 # [11.65.0](https://github.com/terrylica/cc-skills/compare/v11.64.0...v11.65.0) (2026-02-28)
