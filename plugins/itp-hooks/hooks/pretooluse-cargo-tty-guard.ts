@@ -27,7 +27,7 @@
  * ADR: docs/adr/2026-02-23-cargo-tty-suspension-prevention.md
  */
 
-import { allow, output, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
+import { allow, allowWithInput, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 
 /** Cargo commands known to spawn heavy subprocesses */
 const CARGO_COMMANDS = /^\s*cargo\s+(bench|test|build|run|check)\b/i;
@@ -160,16 +160,8 @@ async function main() {
     );
   }
 
-  // Emit the transformed command
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "allow",
-      updatedInput: {
-        command: wrappedCommand,
-      },
-    },
-  });
+  // Emit the transformed command (Zod-validated against BashSchema.strict())
+  allowWithInput("CARGO-TTY-GUARD", tool_name, { command: wrappedCommand });
 }
 
 main().catch((err) => {
