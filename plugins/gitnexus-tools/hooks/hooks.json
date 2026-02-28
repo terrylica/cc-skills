@@ -1,0 +1,28 @@
+{
+  "description": "GitNexus knowledge graph — staleness detection on code edits, session-end reindex reminder",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-staleness-detector.ts",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-reindex-reminder.ts",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}
