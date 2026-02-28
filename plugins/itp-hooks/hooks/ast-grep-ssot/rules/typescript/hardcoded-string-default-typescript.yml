@@ -1,0 +1,16 @@
+id: hardcoded-string-default-typescript
+language: typescript
+severity: warning
+message: >-
+  Hardcoded string default in function parameter — prefer optional parameter
+  with config-based resolution. Use `param?: string` and resolve from config.
+note: >-
+  [SSoT Principle]: Changing the system default should be a one-line env var change,
+  not editing multiple function signatures across files.
+  Suppress with: // SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  kind: required_parameter
+  has:
+    kind: string
+    field: value

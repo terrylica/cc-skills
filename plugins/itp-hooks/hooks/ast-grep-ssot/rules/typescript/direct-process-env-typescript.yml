@@ -1,0 +1,16 @@
+id: direct-process-env-typescript
+language: typescript
+severity: warning
+message: >-
+  Direct process.env access — prefer config object.
+  Centralize all env var reads in one validated config module for fail-fast
+  startup and single-source-of-truth defaults.
+note: >-
+  [SSoT Principle]: Scattered process.env calls make it impossible
+  to know which env vars a program needs without reading every file.
+  Suppress with: // SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  any:
+    - pattern: process.env.$VAR
+    - pattern: "process.env[$KEY]"

@@ -1,0 +1,18 @@
+id: hardcoded-string-default-python
+valid:
+  - |
+    def good_function(mode: str | None = None):
+        return mode
+  - |
+    def another_good(value: str = some_variable):
+        return value
+  - |
+    def untyped(mode="year"):
+        return mode
+invalid:
+  - |
+    def process_data(mode: str = "year"):
+        return mode
+  - |
+    def fetch(url: str = "https://example.com"):
+        return url

@@ -1,0 +1,17 @@
+id: hardcoded-default-go
+language: go
+severity: warning
+message: >-
+  Hardcoded default in flag definition — prefer config-based default.
+  Use a config struct to centralize defaults instead of scattering
+  hardcoded values across flag.StringVar/IntVar calls.
+note: >-
+  [SSoT Principle]: Hardcoded flag defaults drift across files.
+  Centralize defaults in a config struct with functional options.
+  Suppress with: // SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  kind: call_expression
+  has:
+    kind: selector_expression
+    regex: flag\.(StringVar|IntVar|BoolVar|Float64Var|String|Int|Bool|Float64)

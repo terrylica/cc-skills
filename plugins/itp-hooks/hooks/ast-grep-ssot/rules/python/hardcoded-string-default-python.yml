@@ -1,0 +1,15 @@
+id: hardcoded-string-default-python
+language: python
+severity: warning
+message: >-
+  Hardcoded string default in typed parameter — prefer None + config resolver.
+  Change to `param: str | None = None` and resolve from config singleton.
+note: >-
+  [SSoT Principle]: Changing the system default should be a one-line env var change,
+  not editing 10+ function signatures across multiple files.
+  Suppress with: # SSoT-OK
+  Reference: /itp:impl-standards → references/ssot-dependency-injection.md
+rule:
+  kind: typed_default_parameter
+  has:
+    kind: string

@@ -1,0 +1,12 @@
+id: direct-process-env-typescript
+valid:
+  - |
+    import { config } from './config';
+    const val = config.apiUrl;
+  - |
+    const val = getConfig('API_URL');
+invalid:
+  - |
+    const apiUrl = process.env.API_URL;
+  - |
+    const secret = process.env["SECRET_KEY"];

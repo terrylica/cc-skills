@@ -1,0 +1,17 @@
+id: direct-env-access-python
+valid:
+  - |
+    from config import settings
+    val = settings.my_var
+  - |
+    val = config.get("MY_VAR")
+invalid:
+  - |
+    import os
+    val = os.environ.get("MY_VAR", "default")
+  - |
+    import os
+    val = os.getenv("OTHER_VAR")
+  - |
+    import os
+    val = os.environ["DIRECT_VAR"]

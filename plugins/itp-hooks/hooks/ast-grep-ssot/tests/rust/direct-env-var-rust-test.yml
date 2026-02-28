@@ -1,0 +1,17 @@
+id: direct-env-var-rust
+valid:
+  - |
+    use crate::config::Config;
+    let val = Config::get().my_var;
+  - |
+    let val = config.database_url.clone();
+invalid:
+  - |
+    use std::env;
+    let val = std::env::var("MY_VAR").unwrap();
+  - |
+    use std::env;
+    let val = env::var("OTHER_VAR").unwrap();
+  - |
+    use std::env;
+    let val = env::var_os("THIRD_VAR");

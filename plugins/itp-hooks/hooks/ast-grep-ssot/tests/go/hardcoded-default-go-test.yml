@@ -1,0 +1,17 @@
+id: hardcoded-default-go
+valid:
+  - |
+    package main
+    mode := config.DefaultMode
+  - |
+    package main
+    import "fmt"
+    fmt.Println("hello")
+invalid:
+  - |
+    package main
+    import "flag"
+    var mode string
+    func init() {
+        flag.StringVar(&mode, "mode", "year", "processing mode")
+    }
