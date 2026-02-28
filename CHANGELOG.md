@@ -1,3 +1,40 @@
+## [11.62.5](https://github.com/terrylica/cc-skills/compare/v11.62.4...v11.62.5) (2026-02-28)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** remove non-existent --repo flag from all CLI examples ([bd9a788](https://github.com/terrylica/cc-skills/commit/bd9a788370dfcb6292da56df7216a84e0fb8161f))
+* **tts:** unify lock protocol — tts_read_clipboard uses shared kokoro-tts.lock ([15deb40](https://github.com/terrylica/cc-skills/commit/15deb4071df875fe61b0acca6e02f1abc492fdf5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+10/-16)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+14/-21)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+15/-22)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+16/-22)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+12/-12)
+
 ## [11.62.4](https://github.com/terrylica/cc-skills/compare/v11.62.3...v11.62.4) (2026-02-28)
 
 
