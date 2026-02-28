@@ -2,6 +2,8 @@
 /**
  * Unit tests for process storm pattern detection.
  * Run with: bun test process-storm-patterns.test.mjs
+ *
+ * GitHub Issue: https://github.com/anthropics/claude-code/issues/13439
  */
 
 import { describe, test, expect } from "bun:test";
@@ -33,11 +35,11 @@ describe("gh Recursion Patterns", () => {
     expect(findings[0].severity).toBe("critical");
   });
 
-  test("detects gh api user", () => {
+  test("does NOT detect direct gh api (safe from Bash tool)", () => {
+    // Direct gh commands are safe — only subshell patterns cause recursion
     const content = 'gh api user --jq .login';
     const findings = detectPatterns(content, DEFAULT_CONFIG.categories);
-    expect(findings.length).toBeGreaterThan(0);
-    expect(findings[0].category).toBe("gh_recursion");
+    expect(findings.length).toBe(0);
   });
 
   test("detects GH_TOKEN=$(gh auth ...)", () => {
