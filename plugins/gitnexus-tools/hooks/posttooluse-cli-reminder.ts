@@ -64,29 +64,46 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Determine working directory from tool input or cwd
-  const cwd =
-    input.cwd ||
-    input.tool_input?.file_path?.substring(
+  // Build candidate directories to check for git root.
+  // Priority: input.cwd (session working dir) > file_path dir > path > process.cwd()
+  // Key insight: file_path may point to ~/.claude/skills/ cache (not a git repo),
+  // so we MUST try multiple candidates, not just the first non-empty one.
+  const candidates: string[] = [];
+  if (input.cwd) candidates.push(input.cwd);
+  if (input.tool_input?.file_path) {
+    const dir = input.tool_input.file_path.substring(
       0,
       input.tool_input.file_path.lastIndexOf("/")
-    ) ||
-    input.tool_input?.path ||
-    "";
+    );
+    if (dir) candidates.push(dir);
+  }
+  if (input.tool_input?.path) candidates.push(input.tool_input.path);
+  try {
+    candidates.push(process.cwd());
+  } catch {
+    // process.cwd() can throw if dir was deleted
+  }
 
-  if (!cwd) {
+  if (candidates.length === 0) {
     process.exit(0);
   }
 
-  // Find git root
-  let gitRoot: string;
-  try {
-    gitRoot = execSync("git rev-parse --show-toplevel", {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
+  // Find git root — try each candidate until one succeeds
+  let gitRoot: string | undefined;
+  for (const dir of candidates) {
+    try {
+      gitRoot = execSync("git rev-parse --show-toplevel", {
+        cwd: dir,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      }).trim();
+      break;
+    } catch {
+      continue;
+    }
+  }
+
+  if (!gitRoot) {
     process.exit(0);
   }
 
