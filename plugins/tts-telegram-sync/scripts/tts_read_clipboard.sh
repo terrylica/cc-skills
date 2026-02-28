@@ -16,7 +16,7 @@ set -euo pipefail
 # Debug logging (set DEBUG=1 to enable)
 DEBUG="${DEBUG:-0}"
 LOG_FILE="/tmp/tts_debug.log"
-LOCK_FILE="/tmp/tts_read_clipboard.lock"
+LOCK_FILE="/tmp/kokoro-tts.lock"
 
 debug_log() {
     if [[ "$DEBUG" == "1" ]]; then
@@ -24,42 +24,57 @@ debug_log() {
     fi
 }
 
-# Acquire lock to prevent simultaneous executions
+# Acquire lock — respects the shared /tmp/kokoro-tts.lock protocol.
+# Waits for existing holder (bot or shell script) to finish before acquiring.
+# Only force-kills a previous tts_read_clipboard instance (BTT double-tap).
 acquire_lock() {
-    local lock_pid
+    local lock_pid lock_age max_wait=60 waited=0 stale_threshold=30
 
-    # Check if lock file exists
+    # Kill previous tts_read_clipboard instance if BTT double-tapped
     if [[ -f "$LOCK_FILE" ]]; then
         lock_pid=$(cat "$LOCK_FILE" 2>/dev/null || echo "")
+        if [[ -n "$lock_pid" ]] && kill -0 "$lock_pid" 2>/dev/null; then
+            local proc_cmd
+            proc_cmd=$(ps -o command= -p "$lock_pid" 2>/dev/null || echo "")
+            if [[ "$proc_cmd" == *"tts_read_clipboard"* ]]; then
+                debug_log "Killing previous tts_read_clipboard instance (PID: $lock_pid)"
+                kill -TERM "$lock_pid" 2>/dev/null || true
+                sleep 0.3
+                kill -KILL "$lock_pid" 2>/dev/null || true
+                rm -f "$LOCK_FILE"
+            fi
+        fi
+    fi
 
-        if [[ -n "$lock_pid" ]]; then
-            # Check if this is actually our script (not a recycled PID)
-            if kill -0 "$lock_pid" 2>/dev/null; then
-                # Verify it's actually a tts script, not a recycled PID
-                local proc_cmd
-                proc_cmd=$(ps -o command= -p "$lock_pid" 2>/dev/null || echo "")
-                if [[ "$proc_cmd" == *"tts_read_clipboard"* ]]; then
-                    debug_log "Killing previous instance (PID: $lock_pid)"
-                    # Use TERM first to allow cleanup, then KILL as fallback
-                    kill -TERM "$lock_pid" 2>/dev/null || true
-                    sleep 0.3
-                    kill -KILL "$lock_pid" 2>/dev/null || true
-                else
-                    debug_log "Stale lock: PID $lock_pid is not a TTS process, removing"
+    # Wait for existing lock holder (bot, kokoro shell script) to finish
+    while [[ -f "$LOCK_FILE" ]]; do
+        if [[ $waited -ge $max_wait ]]; then
+            debug_log "Lock wait exceeded ${max_wait}s — force-breaking"
+            rm -f "$LOCK_FILE"
+            break
+        fi
+
+        # Check lock mtime for staleness (mirrors bot's waitForTtsLock)
+        if command -v stat >/dev/null 2>&1; then
+            local mtime now
+            mtime=$(stat -f %m "$LOCK_FILE" 2>/dev/null || echo 0)
+            now=$(date +%s)
+            lock_age=$((now - mtime))
+            if [[ $lock_age -gt $stale_threshold ]]; then
+                # Stale lock — but check if audio is actually playing
+                if ! pgrep -x afplay >/dev/null 2>&1 && ! pgrep -x say >/dev/null 2>&1; then
+                    debug_log "Removing stale lock (${lock_age}s old, no audio playing)"
+                    rm -f "$LOCK_FILE"
+                    break
                 fi
-            else
-                debug_log "Stale lock: PID $lock_pid no longer running, removing"
             fi
         fi
 
-        # Remove stale lock
-        rm -f "$LOCK_FILE"
-    fi
+        sleep 0.5
+        waited=$((waited + 1))
+    done
 
-    # Kill any remaining say processes
-    kill_existing_tts
-
-    # Create lock file with current PID
+    # Acquire lock with PID
     echo $$ > "$LOCK_FILE"
     debug_log "Lock acquired (PID: $$)"
 }
@@ -76,17 +91,13 @@ release_lock() {
     fi
 }
 
-# Cleanup function: kill all child processes before exiting
+# Cleanup function: kill OUR child processes only (not system-wide afplay/say)
 cleanup_on_exit() {
     debug_log "Cleanup triggered (PID: $$)"
 
-    # Kill all children of this script
+    # Kill children of this script only — do NOT pkill afplay/say globally
+    # as that would kill the Telegram bot's audio playback
     pkill -KILL -P $$ 2>/dev/null || true
-
-    # Kill any orphaned TTS processes
-    pkill -KILL say 2>/dev/null || true
-    pkill -KILL afplay 2>/dev/null || true
-    pkill -f "tts_supertonic_speak" 2>/dev/null || true
 
     # Release lock
     release_lock
@@ -153,12 +164,11 @@ wpm_to_supertonic_speed() {
     python3 -c "print(round($wpm * 1.25 / 220, 2))"
 }
 
-# Kill all existing TTS processes
+# Kill existing tts_read_clipboard processes only (not system-wide audio)
 kill_existing_tts() {
-    debug_log "Killing existing TTS..."
+    debug_log "Killing existing tts_read_clipboard TTS..."
 
-    pkill -KILL say 2>/dev/null || true
-    pkill -KILL afplay 2>/dev/null || true
+    # Only kill supertonic spawned by this script path — never global afplay/say
     pkill -f "tts_supertonic_speak" 2>/dev/null || true
 
     # Clean up temp files
