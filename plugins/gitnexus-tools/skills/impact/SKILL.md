@@ -1,6 +1,6 @@
 ---
 name: impact
-description: Blast radius analysis before modifying code. TRIGGERS - what breaks if I change, blast radius, impact analysis, safe to modify.
+description: "Blast radius analysis via GitNexus CLI (npx gitnexus@latest). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - what breaks if I change, blast radius, impact analysis, safe to modify."
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---

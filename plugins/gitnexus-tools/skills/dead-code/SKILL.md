@@ -1,6 +1,6 @@
 ---
 name: dead-code
-description: Find orphan functions, dangling imports, and dead code via GitNexus knowledge graph. TRIGGERS - dead code, orphan functions, unused imports, dangling references, unreachable code.
+description: "Find orphan functions, dangling imports, and dead code via GitNexus CLI (npx gitnexus@latest). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - dead code, orphan functions, unused imports, dangling references, unreachable code."
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---
