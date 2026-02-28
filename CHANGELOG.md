@@ -1,3 +1,24 @@
+# [11.62.0](https://github.com/terrylica/cc-skills/compare/v11.61.2...v11.62.0) (2026-02-28)
+
+
+### Features
+
+* **gitnexus-tools:** add PreToolUse hook to redirect MCP calls to CLI ([d098751](https://github.com/terrylica/cc-skills/commit/d098751ae2c8ccbf28beee7e55b75247e6507ed0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+9/-4)
+
 ## [11.61.2](https://github.com/terrylica/cc-skills/compare/v11.61.1...v11.61.2) (2026-02-28)
 
 
