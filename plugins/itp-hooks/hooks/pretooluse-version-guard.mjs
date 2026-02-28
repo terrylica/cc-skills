@@ -74,6 +74,7 @@ const EXCLUDED_PATHS = [
   /node_modules/i, // Never check node_modules
   /\/crates\/[^/]+\/README\.md$/i, // Crate-level READMEs
   /\/development\//i, // Development docs
+  /^\/tmp\//i, // Temp files (gh issue body-file, scratch docs)
 ];
 
 import {
