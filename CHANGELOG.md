@@ -1,3 +1,10 @@
+## [11.63.1](https://github.com/terrylica/cc-skills/compare/v11.63.0...v11.63.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* **itp-hooks:** fix AskUserQuestion corruption from stdin-inlet-guard ([e4cdc8a](https://github.com/terrylica/cc-skills/commit/e4cdc8a451392322eff18a3bb86886dd9515d50b)), closes [#13439](https://github.com/terrylica/cc-skills/issues/13439) [#10400](https://github.com/terrylica/cc-skills/issues/10400)
+
 # [11.63.0](https://github.com/terrylica/cc-skills/compare/v11.62.5...v11.63.0) (2026-02-28)
 
 
