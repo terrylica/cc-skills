@@ -488,6 +488,26 @@
         "cross-repo"
       ],
       "strict": false
+    },
+    {
+      "name": "gitnexus-tools",
+      "description": "GitNexus knowledge graph: explore symbols, blast radius analysis, staleness detection hooks",
+      "version": "11.60.0",
+      "source": "./plugins/gitnexus-tools",
+      "category": "development",
+      "author": {
+        "name": "<user>ca",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "gitnexus",
+        "knowledge-graph",
+        "blast-radius",
+        "impact-analysis",
+        "execution-flows"
+      ],
+      "hooks": "./plugins/gitnexus-tools/hooks/hooks.json",
+      "strict": false
     }
   ]
 }
