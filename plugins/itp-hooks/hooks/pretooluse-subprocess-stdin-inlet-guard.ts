@@ -82,71 +82,90 @@ function buildStdinDisconnectedCommand(tool_name: string, command: string): stri
 }
 
 /**
- * Check if command appears to spawn a subprocess
- * (heuristic - may have false positives)
+ * Tools that never spawn subprocesses. Returning updatedInput for these
+ * corrupts their schema (e.g., AskUserQuestion expects only {questions}).
+ * See: GitHub Issues #13439, #10400
  */
-function mightSpawnSubprocess(command: string): boolean {
-  const subprocess_patterns =
-    /spawn|exec|fork|subprocess|popen|popen2|shell|system|/i;
-  return subprocess_patterns.test(command);
-}
+const PASSTHROUGH_TOOLS = new Set([
+  "AskUserQuestion",
+  "EnterPlanMode",
+  "ExitPlanMode",
+  "TaskCreate",
+  "TaskUpdate",
+  "TaskList",
+  "TaskGet",
+  "TodoWrite",
+  "TodoRead",
+  "Read",
+  "Glob",
+  "Grep",
+  "WebSearch",
+  "WebFetch",
+  "Agent",
+  "Skill",
+]);
 
 async function main() {
   const input = await parseStdinOrAllow("STDIN-INLET-GUARD");
   if (!input) return;
 
-  const { tool_name, tool_input = {}, cwd } = input;
+  const { tool_name, tool_input = {} } = input;
 
-  // Apply environment variable injection for ALL tools
-  const enhanced_env = {
-    ...input.env,
-    ...SUBPROCESS_DISABLING_ENV,
-  };
-
-  // Tool-specific stdin disconnection
-  let updatedInput = { ...tool_input };
-
-  if (tool_name === "Bash" && typeof tool_input.command === "string") {
-    // Bash: Append stdin redirect if not already present
-    if (
-      !tool_input.command.includes("</dev/null") &&
-      !tool_input.command.includes("< /dev/null")
-    ) {
-      updatedInput.command = buildStdinDisconnectedCommand(
-        tool_name,
-        tool_input.command,
-      );
-    }
-  } else if (tool_name === "Read" && typeof tool_input.file_path === "string") {
-    // Read: Inject env vars (actual stdin disconnect not needed, but preventive)
-    // No command modification needed
-  } else if (tool_name === "Write") {
-    // Write: Inject env vars
-    // No command modification needed
-  } else if (tool_name === "LSP") {
-    // LSP: Disable subprocess spawning via env vars
-    // Force LSP to use --stdio mode (already detached)
-    if (updatedInput.operation) {
-      // Already set env vars above
-    }
+  // Tools that never spawn subprocesses — allow without any input mutation
+  if (PASSTHROUGH_TOOLS.has(tool_name)) {
+    allow();
+    return;
   }
 
-  // Emit the transformed input with environment injection
-  console.warn(
-    "🛡️  Subprocess Inlet Guard: Pre-disconnecting stdin for all subprocesses",
-  );
+  // Bash: stdin disconnection + env injection (the primary use case)
+  if (tool_name === "Bash" && typeof tool_input.command === "string") {
+    const enhanced_env = { ...SUBPROCESS_DISABLING_ENV };
 
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "allow",
-      updatedInput: {
-        ...updatedInput,
-        // Inject enhanced environment for all tools
-        env: enhanced_env,
+    let command = tool_input.command;
+    if (
+      !command.includes("</dev/null") &&
+      !command.includes("< /dev/null")
+    ) {
+      command = buildStdinDisconnectedCommand(tool_name, command);
+    }
+
+    console.warn(
+      "🛡️  Subprocess Inlet Guard: Pre-disconnecting stdin for Bash",
+    );
+
+    output({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "allow",
+        updatedInput: {
+          ...tool_input,
+          command,
+          env: enhanced_env,
+        },
       },
-    },
-  });
+    });
+    return;
+  }
+
+  // Write/Edit/NotebookEdit/LSP: env injection only (no command mutation)
+  if (["Write", "Edit", "NotebookEdit", "LSP"].includes(tool_name)) {
+    const enhanced_env = { ...SUBPROCESS_DISABLING_ENV };
+
+    output({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "allow",
+        updatedInput: {
+          ...tool_input,
+          env: enhanced_env,
+        },
+      },
+    });
+    return;
+  }
+
+  // Unknown tools: allow without mutation (safe default — avoids schema corruption)
+  allow();
 }
 
-main().catch(trackHookError("STDIN-INLET-GUARD"));
+main().catch((e) => trackHookError("STDIN-INLET-GUARD", e instanceof Error ? e.message : String(e)));
