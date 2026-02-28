@@ -1,3 +1,47 @@
+# [11.64.0](https://github.com/terrylica/cc-skills/compare/v11.63.1...v11.64.0) (2026-02-28)
+
+
+### Features
+
+* **itp-hooks:** universal SSoT/DI principles hook with ast-grep detection ([82254fb](https://github.com/terrylica/cc-skills/commit/82254fb51b36a4c23118ae41e95c35c37703ab7e)), closes [terrylica/cc-skills#28](https://github.com/terrylica/cc-skills/issues/28)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (2 changes)</summary>
+
+- [code-hardcode-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/code-hardcode-audit/SKILL.md) - updated (+12/-8)
+- [impl-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/impl-standards/SKILL.md) - updated (+3/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp/impl-standards</strong> (1 file)</summary>
+
+- [SSoT / Dependency Injection Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/impl-standards/references/ssot-dependency-injection.md) - new (+195)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+40/-8)
+
 ## [11.63.1](https://github.com/terrylica/cc-skills/compare/v11.63.0...v11.63.1) (2026-02-28)
 
 
