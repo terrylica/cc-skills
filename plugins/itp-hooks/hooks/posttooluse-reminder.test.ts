@@ -536,10 +536,12 @@ describe("Bash: Pueue long-running task detection", () => {
     expect((result.parsed as any).reason).toContain("ssh gpu-host");
   });
 
-  it("should detect shell for loops", () => {
+  it("should detect shell for loops with long-running inner commands", () => {
+    // Pattern requires inner command to match: populate|bulk|cache|python|uv run
+    // Simple loops (./process.sh) are intentionally NOT flagged (they complete quickly)
     const result = runHook({
       tool_name: "Bash",
-      tool_input: { command: "for symbol in BTCUSDT ETHUSDT; do ./process.sh $symbol; done" },
+      tool_input: { command: "for symbol in BTCUSDT ETHUSDT; do python populate_cache.py $symbol; done" },
     });
     expect(result.parsed).not.toBeNull();
     expect((result.parsed as any).reason).toContain("[PUEUE-REMINDER]");
