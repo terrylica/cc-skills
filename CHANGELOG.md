@@ -1,3 +1,10 @@
+## [11.66.1](https://github.com/terrylica/cc-skills/compare/v11.66.0...v11.66.1) (2026-02-28)
+
+
+### Bug Fixes
+
+* **tts:** speak "∴ Thinking…" instead of stripping it ([dbbedec](https://github.com/terrylica/cc-skills/commit/dbbedeca2f97cc31975fff919dee7f9da0fb3324))
+
 # [11.66.0](https://github.com/terrylica/cc-skills/compare/v11.65.2...v11.66.0) (2026-02-28)
 
 
