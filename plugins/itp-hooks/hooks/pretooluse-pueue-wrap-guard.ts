@@ -26,7 +26,7 @@
  * GitHub Issue: https://github.com/anthropics/claude-code/issues/11282 (ask + updatedInput broken)
  */
 
-import { allow, output, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
+import { allow, allowWithInput, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 import { maybeInjectOpToken } from "./lib/op-token-injector.ts";
 
 /** Opt-in escape hatch — force wrapping */
@@ -130,15 +130,7 @@ async function main() {
   if (!shouldWrap(command)) {
     if (opTokenInjected) {
       // Token was injected but no pueue wrapping needed — still emit updatedInput
-      output({
-        hookSpecificOutput: {
-          hookEventName: "PreToolUse",
-          permissionDecision: "allow",
-          updatedInput: {
-            command,
-          },
-        },
-      });
+      allowWithInput("PUEUE-WRAP-GUARD", tool_name, { command });
     } else {
       allow();
     }
@@ -153,15 +145,7 @@ async function main() {
   if (daemonCheck.exitCode !== 0) {
     // Daemon not running — still apply token injection if present
     if (opTokenInjected) {
-      output({
-        hookSpecificOutput: {
-          hookEventName: "PreToolUse",
-          permissionDecision: "allow",
-          updatedInput: {
-            command,
-          },
-        },
-      });
+      allowWithInput("PUEUE-WRAP-GUARD", tool_name, { command });
     } else {
       allow();
     }
@@ -172,15 +156,7 @@ async function main() {
   const workingDir = cwd || process.cwd();
   const wrappedCommand = buildWrappedCommand(command, workingDir);
 
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "allow",
-      updatedInput: {
-        command: wrappedCommand,
-      },
-    },
-  });
+  allowWithInput("PUEUE-WRAP-GUARD", tool_name, { command: wrappedCommand });
 }
 
 main().catch((err) => {

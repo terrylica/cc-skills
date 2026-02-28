@@ -11,6 +11,7 @@
 
 import { createHookLogger, type HookLogContext } from "./lib/logger.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+import { validateToolInput, TOOL_SCHEMAS } from "./lib/tool-schemas.ts";
 import {
   isPlanMode,
   isQuickPlanMode,
@@ -100,6 +101,40 @@ export function ask(reason: string): void {
 }
 
 /**
+ * Allow tool execution with schema-validated input mutation.
+ *
+ * Validates updatedInput against the tool's Zod schema (.strict()).
+ * Unknown properties are rejected. Unknown tools get plain allow().
+ * Fail-open: on any validation failure, falls back to allow() (no mutation).
+ */
+export function allowWithInput(
+  hookName: string,
+  toolName: string,
+  updatedInput: Record<string, unknown>,
+): void {
+  const result = validateToolInput(toolName, updatedInput);
+  if (!result.valid) {
+    trackHookError(hookName, result.error);
+    allow();
+    return;
+  }
+  output({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "allow",
+      updatedInput: result.data,
+    },
+  });
+}
+
+/**
+ * Check if a tool has a known schema (and thus can receive updatedInput).
+ */
+export function hasToolSchema(toolName: string): boolean {
+  return toolName in TOOL_SCHEMAS;
+}
+
+/**
  * Parse stdin JSON and return PreToolUseInput, or null if parsing fails.
  * On parse failure, automatically calls allow() and returns null (fail-open).
  */
@@ -140,3 +175,6 @@ export {
   isReadOnly,
   type ReadOnlyCheckResult,
 } from "./lib/readonly-command-detector.ts";
+
+// Re-export tool schema validation utilities
+export { TOOL_SCHEMAS, validateToolInput } from "./lib/tool-schemas.ts";
