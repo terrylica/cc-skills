@@ -1,3 +1,122 @@
+# [11.66.0](https://github.com/terrylica/cc-skills/compare/v11.65.2...v11.66.0) (2026-02-28)
+
+
+### Features
+
+* **plugins:** migrate to MLX-Audio backend, create universal kokoro-tts plugin ([62fa1ff](https://github.com/terrylica/cc-skills/commit/62fa1fff97da26b64a9cf945adb51c8991e43524))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>kokoro-tts</strong> (7 changes)</summary>
+
+- [diagnose](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/diagnose/SKILL.md) - new (+68)
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/health/SKILL.md) - new (+44)
+- [install](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/install/SKILL.md) - new (+67)
+- [remove](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/remove/SKILL.md) - new (+59)
+- [server](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/server/SKILL.md) - new (+66)
+- [synthesize](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/synthesize/SKILL.md) - new (+65)
+- [upgrade](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/upgrade/SKILL.md) - new (+66)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (7 changes)</summary>
+
+- [component-version-upgrade](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/component-version-upgrade/SKILL.md) - updated (+2/-2)
+- [diagnostic-issue-resolver](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/SKILL.md) - updated (+13/-13)
+- [full-stack-bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/full-stack-bootstrap/SKILL.md) - updated (+13/-13)
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/health/SKILL.md) - updated (+12/-12)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/setup/SKILL.md) - updated (+2/-2)
+- [system-health-check](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/system-health-check/SKILL.md) - updated (+9/-9)
+- [voice-quality-audition](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/voice-quality-audition/SKILL.md) - updated (+2/-2)
+
+</details>
+
+
+### Plugin READMEs
+
+- [Kokoro TTS](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/README.md) - new (+69)
+- [TTS Telegram Sync](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/README.md) - updated (+9/-9)
+
+### Skill References
+
+<details>
+<summary><strong>kokoro-tts/diagnose</strong> (1 file)</summary>
+
+- [Common Issues — Expanded Diagnostic Procedures](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/diagnose/references/common-issues.md) - new (+104)
+
+</details>
+
+<details>
+<summary><strong>kokoro-tts/health</strong> (1 file)</summary>
+
+- [Health Checks Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/health/references/health-checks.md) - new (+114)
+
+</details>
+
+<details>
+<summary><strong>kokoro-tts/server</strong> (2 files)</summary>
+
+- [Kokoro TTS Server API Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/server/references/server-api.md) - new (+92)
+- [Service Management Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/server/references/service-management.md) - new (+77)
+
+</details>
+
+<details>
+<summary><strong>kokoro-tts/synthesize</strong> (1 file)</summary>
+
+- [Kokoro Voice Catalog](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/synthesize/references/voice-catalog.md) - new (+48)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/component-version-upgrade</strong> (1 file)</summary>
+
+- [Upgrade Procedures](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/component-version-upgrade/references/upgrade-procedures.md) - updated (+8/-7)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/diagnostic-issue-resolver</strong> (1 file)</summary>
+
+- [Common Issues -- Expanded Diagnostic Procedures](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/references/common-issues.md) - updated (+16/-13)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/full-stack-bootstrap</strong> (2 files)</summary>
+
+- [Kokoro TTS Engine Bootstrap Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/kokoro-bootstrap.md) - updated (+33/-45)
+- [Upstream: MLX-Audio Kokoro](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/upstream-fork.md) - updated (+31/-28)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/system-health-check</strong> (1 file)</summary>
+
+- [Health Checks Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/system-health-check/references/health-checks.md) - updated (+13/-17)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [kokoro-tts Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/CLAUDE.md) - new (+57)
+- [tts-telegram-sync Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/CLAUDE.md) - updated (+3/-3)
+
 ## [11.65.2](https://github.com/terrylica/cc-skills/compare/v11.65.1...v11.65.2) (2026-02-28)
 
 
