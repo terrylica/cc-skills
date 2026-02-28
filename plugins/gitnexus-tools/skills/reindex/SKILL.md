@@ -7,6 +7,8 @@ model: haiku
 
 # GitNexus Reindex
 
+> **CLI ONLY — no MCP server exists. Never use `readMcpResource` with `gitnexus://` URIs.**
+
 Re-index the current repository's GitNexus knowledge graph and verify the updated stats.
 
 ## When to Use
@@ -18,35 +20,43 @@ Re-index the current repository's GitNexus knowledge graph and verify the update
 
 ## Workflow
 
-### Step 1: Check Current Status
+### Step 1: Determine Repo Name
+
+The `--repo` flag is required for multi-repo setups. Use the basename of the git root:
 
 ```bash
-npx gitnexus@latest status
+REPO=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+### Step 2: Check Current Status
+
+```bash
+npx gitnexus@latest status --repo "$REPO"
 ```
 
 If already current (lastCommit matches HEAD), report "Index is up to date" and stop.
 
-### Step 2: Run Indexer
+### Step 3: Run Indexer
 
 ```bash
-npx gitnexus@latest analyze
+npx gitnexus@latest analyze --repo "$REPO"
 ```
 
 Use `--force` if the index appears corrupted or if a normal analyze doesn't pick up changes:
 
 ```bash
-npx gitnexus@latest analyze --force
+npx gitnexus@latest analyze --repo "$REPO" --force
 ```
 
 This may take 30–120 seconds depending on codebase size.
 
-### Step 3: Verify New Index
+### Step 4: Verify New Index
 
 ```bash
-npx gitnexus@latest status
+npx gitnexus@latest status --repo "$REPO"
 ```
 
-### Step 4: Report Stats
+### Step 5: Report Stats
 
 Present the updated stats:
 
