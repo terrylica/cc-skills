@@ -1,5 +1,5 @@
 {
-  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, requires --body-file for gh issue create, blocks writes to non-owned repos, reminds to optimize issue titles",
+  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, blocks writes to non-owned repos, reminds to optimize issue titles",
   "hooks": {
     "PreToolUse": [
       {
@@ -15,11 +15,6 @@
       {
         "matcher": "Bash",
         "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-body-file-guard.mjs",
-            "timeout": 5000
-          },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-repo-identity-guard.mjs",
