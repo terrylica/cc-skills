@@ -1,3 +1,24 @@
+# [11.67.0](https://github.com/terrylica/cc-skills/compare/v11.66.1...v11.67.0) (2026-03-01)
+
+
+### Features
+
+* **itp-hooks:** add PreToolUse UV enforcement guard hook ([f9747f8](https://github.com/terrylica/cc-skills/commit/f9747f82330eecaeea6b805d8553858774f28a01))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+1)
+
 ## [11.66.1](https://github.com/terrylica/cc-skills/compare/v11.66.0...v11.66.1) (2026-02-28)
 
 
