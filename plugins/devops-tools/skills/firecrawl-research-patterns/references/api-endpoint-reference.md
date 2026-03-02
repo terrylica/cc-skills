@@ -57,12 +57,12 @@ Combined search + scrape. Searches the web for a query and returns scraped markd
 
 ### Error Responses
 
-| Status  | Meaning                         | Action                                                                  |
-| ------- | ------------------------------- | ----------------------------------------------------------------------- |
-| 400     | Invalid request (missing query) | Check request body                                                      |
-| 408     | Search timeout                  | Retry with shorter query or fewer results                               |
-| 500     | Internal server error           | Check Firecrawl logs, restart if needed                                 |
-| 502/503 | Service unavailable             | Container may be dead — see `Skill(devops-tools:firecrawl-self-hosted)` |
+| Status  | Meaning                         | Action                                                                               |
+| ------- | ------------------------------- | ------------------------------------------------------------------------------------ |
+| 400     | Invalid request (missing query) | Check request body                                                                   |
+| 408     | Search timeout                  | Retry with shorter query or fewer results                                            |
+| 500     | Internal server error           | Check Firecrawl logs, restart if needed                                              |
+| 502/503 | Service unavailable             | Container may be dead — see [self-hosted-operations.md](./self-hosted-operations.md) |
 
 ### curl Example
 

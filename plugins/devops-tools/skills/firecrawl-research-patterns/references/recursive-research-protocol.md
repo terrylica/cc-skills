@@ -41,7 +41,7 @@ try {
     signal: AbortSignal.timeout(5_000),
   });
 } catch {
-  // Abort — check Skill(devops-tools:firecrawl-self-hosted)
+  // Abort — see self-hosted-operations.md and troubleshooting.md references
 }
 ```
 

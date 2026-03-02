@@ -41,7 +41,7 @@ op item get "Item" --vault "Claude Automation" --reveal
 
 | Service    | Host        | Port | Skill                                             |
 | ---------- | ----------- | ---- | ------------------------------------------------- |
-| Firecrawl  | littleblack | 3003 | `Skill(devops-tools:firecrawl-self-hosted)`       |
+| Firecrawl  | littleblack | 3003 | `Skill(devops-tools:firecrawl-research-patterns)` |
 | ClickHouse | bigblack    | 8123 | `Skill(devops-tools:clickhouse-cloud-management)` |
 
 **Firecrawl**: Web scraping for JS-heavy pages (Gemini/ChatGPT shares). Use `curl` not `WebFetch` (ZeroTier only).
@@ -65,23 +65,22 @@ ssh bigblack "curl -s 'http://localhost:8123/?query=SELECT+1'"
 
 ## Skills
 
-| Skill                           | Purpose                                                                                            |
-| ------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `clickhouse-cloud-management`   | ClickHouse schema management and query optimization                                                |
-| `clickhouse-pydantic-config`    | ClickHouse connection config with Pydantic validation                                              |
-| `doppler-secret-validation`     | Doppler secret rotation and validation                                                             |
-| `doppler-workflows`             | Doppler project/config management workflows                                                        |
-| `firecrawl-research-patterns`   | Programmatic Firecrawl search, academic paper routing, recursive deep research, corpus persistence |
-| `firecrawl-self-hosted`         | Self-hosted Firecrawl web scraping                                                                 |
-| `pueue-job-orchestration`       | Pueue job queue management for long-running tasks                                                  |
-| `distributed-job-safety`        | Safety patterns for distributed job execution                                                      |
-| `session-recovery`              | Claude Code session recovery and continuation                                                      |
-| `session-chronicle`             | Session event logging and chronicle                                                                |
-| `disk-hygiene`                  | Disk space management and cleanup                                                                  |
-| `cloudflare-workers-publish`    | Cloudflare Workers deployment                                                                      |
-| `python-logging-best-practices` | Python logging configuration patterns                                                              |
-| `mlflow-python`                 | MLflow experiment tracking setup                                                                   |
-| `project-directory-migration`   | Project directory restructuring                                                                    |
-| `dual-channel-watchexec`        | File watcher with dual notification channels                                                       |
-| `ml-failfast-validation`        | ML pipeline fast-fail validation                                                                   |
-| `ml-data-pipeline-architecture` | ML data pipeline design patterns                                                                   |
+| Skill                           | Purpose                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `clickhouse-cloud-management`   | ClickHouse schema management and query optimization                                                          |
+| `clickhouse-pydantic-config`    | ClickHouse connection config with Pydantic validation                                                        |
+| `doppler-secret-validation`     | Doppler secret rotation and validation                                                                       |
+| `doppler-workflows`             | Doppler project/config management workflows                                                                  |
+| `firecrawl-research-patterns`   | Programmatic Firecrawl: search, scrape, academic routing, deep research, corpus persistence, self-hosted ops |
+| `pueue-job-orchestration`       | Pueue job queue management for long-running tasks                                                            |
+| `distributed-job-safety`        | Safety patterns for distributed job execution                                                                |
+| `session-recovery`              | Claude Code session recovery and continuation                                                                |
+| `session-chronicle`             | Session event logging and chronicle                                                                          |
+| `disk-hygiene`                  | Disk space management and cleanup                                                                            |
+| `cloudflare-workers-publish`    | Cloudflare Workers deployment                                                                                |
+| `python-logging-best-practices` | Python logging configuration patterns                                                                        |
+| `mlflow-python`                 | MLflow experiment tracking setup                                                                             |
+| `project-directory-migration`   | Project directory restructuring                                                                              |
+| `dual-channel-watchexec`        | File watcher with dual notification channels                                                                 |
+| `ml-failfast-validation`        | ML pipeline fast-fail validation                                                                             |
+| `ml-data-pipeline-architecture` | ML data pipeline design patterns                                                                             |

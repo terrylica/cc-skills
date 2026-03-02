@@ -1,14 +1,14 @@
 ---
 name: firecrawl-research-patterns
-description: Programmatic Firecrawl usage, academic paper routing, recursive deep research, and raw corpus persistence. TRIGGERS - firecrawl search, firecrawl scrape, academic paper, arxiv, deep research, recursive search, research pattern, corpus persistence.
+description: "Programmatic Firecrawl usage, self-hosted operations, academic paper routing, recursive deep research, and raw corpus persistence. TRIGGERS - firecrawl search, firecrawl scrape, academic paper, arxiv, deep research, recursive search, research pattern, corpus persistence, firecrawl, self-hosted scraping, web scrape, scraper wrapper, littleblack, ZeroTier scraping."
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Firecrawl Research Patterns
 
-Programmatic patterns for using self-hosted Firecrawl in research workflows — search, scrape, route academic papers, run recursive deep research, and persist raw results for future re-analysis.
+Programmatic patterns for using self-hosted Firecrawl in research workflows — search, scrape, route academic papers, run recursive deep research, and persist raw results for future re-analysis. Also covers self-hosted deployment, health checks, and recovery.
 
-**Scope boundary**: This skill covers _how to use_ Firecrawl programmatically. For deployment, troubleshooting, and Docker ops, see `Skill(devops-tools:firecrawl-self-hosted)`. For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools:research-archival)`.
+For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools:research-archival)`.
 
 ---
 
@@ -139,7 +139,7 @@ try {
 const res = await fetch("http://172.25.236.1:3002/v1/health");
 if (!res.ok)
   throw new Error(
-    "Firecrawl unhealthy — check Skill(devops-tools:firecrawl-self-hosted)",
+    "Firecrawl unhealthy — see self-hosted-operations.md and self-hosted-troubleshooting.md references",
   );
 ```
 
@@ -288,6 +288,25 @@ content_tokens_approx: 4200
 
 ---
 
+## Section 5 — Self-Hosted Operations
+
+The Firecrawl instance runs on **littleblack** (172.25.236.1) via ZeroTier. No API key needed.
+
+| Port | Service         | Type   | Purpose                    |
+| ---- | --------------- | ------ | -------------------------- |
+| 3002 | Firecrawl API   | Docker | Core scraping engine       |
+| 3003 | Scraper Wrapper | Bun    | Saves to file, returns URL |
+| 8080 | Caddy           | Binary | Serves saved markdown      |
+
+For architecture diagrams, health checks, recovery commands, and deployment details, see:
+
+- [Self-Hosted Operations](./references/self-hosted-operations.md) — Architecture, health checks, recovery commands
+- [Self-Hosted Bootstrap Guide](./references/self-hosted-bootstrap-guide.md) — Fresh installation (7 steps)
+- [Self-Hosted Best Practices](./references/self-hosted-best-practices.md) — Docker restart policies, monitoring
+- [Self-Hosted Troubleshooting](./references/self-hosted-troubleshooting.md) — Symptom-based diagnosis
+
+---
+
 ## Anti-Patterns
 
 | #   | Anti-Pattern                                | Why It Fails                                     | Correct Approach                                |
@@ -309,3 +328,7 @@ content_tokens_approx: 4200
 - [Academic Paper Routing](./references/academic-paper-routing.md) — Decision tree for paper sources
 - [Recursive Research Protocol](./references/recursive-research-protocol.md) — Step-by-step recursive pattern
 - [Corpus Persistence Format](./references/corpus-persistence-format.md) — Raw content archival format + directory layout
+- [Self-Hosted Operations](./references/self-hosted-operations.md) — Architecture, health checks, recovery
+- [Self-Hosted Bootstrap Guide](./references/self-hosted-bootstrap-guide.md) — Fresh installation guide
+- [Self-Hosted Best Practices](./references/self-hosted-best-practices.md) — Docker restart policies, monitoring
+- [Self-Hosted Troubleshooting](./references/self-hosted-troubleshooting.md) — Symptom-based diagnosis and recovery
