@@ -26,3 +26,31 @@
 {"ts":"2026-03-02T20:29:46.782Z","agent":"OakYak","type":"release","target":".claude-plugin/"}
 {"ts":"2026-03-02T20:29:46.782Z","agent":"OakYak","type":"release","target":"CLAUDE.md"}
 {"ts":"2026-03-02T20:29:59.286Z","agent":"GoldUnion","type":"edit","target":"/Users/terryli/eon/cc-skills/docs/standards-compliance-matrix.md"}
+{"ts":"2026-03-02T20:29:59.883Z","agent":"GoldUnion","type":"commit","preview":"docs: add standards compliance matrix for 23 plugins\n\nTask: task-1\n\n- Audited all 23 plugin CLAUDE.md files against docs/CLAUDE.md standards\n- Created comprehensive compliance matrix with per-plugin gap analysis\n- Identified key issues: header format inconsistencies, missing navigation, incomplete tables\n- Found critical issues: root CLAUDE.md says 20 plugins (should be 23), plugins/CLAUDE.md lists 21 (missing 2)\n\nHigh priority fixes:\n- Update root CLAUDE.md: 20 -> 23 plugins\n- Update plugins/CLAUDE.md: add kokoro-tts and gitnexus-tools to table\n- Standardize header format across all plugins"}
+{"ts":"2026-03-02T20:30:02.158Z","agent":"GoldUnion","type":"release","target":"docs/"}
+{"ts":"2026-03-02T20:30:05.863Z","agent":"GoldUnion","type":"task.done","target":"task-1","preview":"Created docs/standards-compliance-matrix.md - comprehensive audit of all 23 plugin CLAUDE.md files against documented standards. Found key issues: root CLAUDE.md says 20 plugins (should be 23), plugins/CLAUDE.md lists 21 (missing kokoro-tts and gitnexus-tools), header format inconsistencies, and incomplete tables in several plugins."}
+{"ts":"2026-03-02T20:30:05.950Z","agent":"IronPhoenix","type":"task.start","target":"task-3","preview":"Task 3: Toolchain & Automation Landscape"}
+{"ts":"2026-03-02T20:30:07.481Z","agent":"IronPhoenix","type":"join"}
+{"ts":"2026-03-02T20:30:14.280Z","agent":"OakYak","type":"task.done","target":"task-2","preview":"Created docs/format-inventory.md with comprehensive format analysis: cataloged 830+ markdown files (164 SKILL.md, 26 CLAUDE.md, 31 README.md, 88 docs/*.md), reviewed JSON schemas (marketplace.schema.json, hooks.schema.json), analyzed YAML usage, and provided recommendations for unified format strategy."}
+{"ts":"2026-03-02T20:30:14.360Z","agent":"PureMoon","type":"task.start","target":"task-4","preview":"Task 4: Version Consistency Strategy"}
+{"ts":"2026-03-02T20:30:15.716Z","agent":"PureMoon","type":"join"}
+{"ts":"2026-03-02T20:30:16.890Z","agent":"OakYak","type":"message","preview":"Completed task-2: Cross-Platform Format Analysis — created docs/format-inventory.md with format inventory, frontmatter analysis, JSON schema review, and unified strategy recommendations"}
+{"ts":"2026-03-02T20:30:24.247Z","agent":"NiceXenon","type":"join"}
+{"ts":"2026-03-02T20:30:24.255Z","agent":"OakHawk","type":"join"}
+{"ts":"2026-03-02T20:30:26.539Z","agent":"PureMoon","type":"reserve","target":".claude-plugin/marketplace.json","preview":"task-4: Analyzing version patterns"}
+{"ts":"2026-03-02T20:30:26.539Z","agent":"PureMoon","type":"reserve","target":"plugins/itp/package.json","preview":"task-4: Analyzing version patterns"}
+{"ts":"2026-03-02T20:30:26.540Z","agent":"PureMoon","type":"reserve","target":"plugins/itp/plugin.json","preview":"task-4: Analyzing version patterns"}
+{"ts":"2026-03-02T20:30:27.940Z","agent":"GoldUnion","type":"message","preview":"Completed task-1: Documentation Standards Audit — created docs/standards-compliance-matrix.md with full audit of 23 plugins. Key findings: root CLAUDE.md says 20 plugins (should be 23), plugins/CLA..."}
+{"ts":"2026-03-02T20:30:28.127Z","agent":"PureMoon","type":"message","preview":"Starting task-4 (Version Consistency Strategy) — will analyze version patterns across marketplace.json, package.json, plugin.json, and CLAUDE.md files"}
+{"ts":"2026-03-02T20:30:31.684Z","agent":"IronPhoenix","type":"reserve","target":"scripts/","preview":"task-3: Toolchain & Automation Landscape investigation"}
+{"ts":"2026-03-02T20:30:31.684Z","agent":"IronPhoenix","type":"reserve","target":"lychee.toml","preview":"task-3: Toolchain & Automation Landscape investigation"}
+{"ts":"2026-03-02T20:30:31.684Z","agent":"IronPhoenix","type":"reserve","target":".mise/","preview":"task-3: Toolchain & Automation Landscape investigation"}
+{"ts":"2026-03-02T20:30:32.046Z","agent":"NiceXenon","type":"task.start","target":"task-5","preview":"Task 5: Search & Discovery Architecture"}
+{"ts":"2026-03-02T20:30:34.126Z","agent":"NiceXenon","type":"reserve","target":"docs/","preview":"task-5"}
+{"ts":"2026-03-02T20:30:34.126Z","agent":"NiceXenon","type":"reserve","target":"CLAUDE.md","preview":"task-5"}
+{"ts":"2026-03-02T20:30:34.126Z","agent":"NiceXenon","type":"reserve","target":"plugins/","preview":"task-5"}
+{"ts":"2026-03-02T20:30:35.382Z","agent":"NiceXenon","type":"message","preview":"Starting task-5 (Search & Discovery Architecture) — will analyze discovery mechanisms and create docs/discovery-architecture.md"}
+{"ts":"2026-03-02T20:30:44.059Z","agent":"OakHawk","type":"task.start","target":"task-6","preview":"Task 6: Content Deduplication Analysis"}
+{"ts":"2026-03-02T20:30:45.647Z","agent":"OakHawk","type":"message","preview":"Starting task-6 (Content Deduplication Analysis) — will analyze duplicated/orphaned content across CLAUDE.md files and docs"}
+{"ts":"2026-03-02T20:31:36.350Z","agent":"IronPhoenix","type":"message","preview":"Completed task-3: Toolchain & Automation Landscape — created docs/tool-inventory.md with comprehensive tool inventory, maturity assessment (5 categories rated), and 7 consolidation opportunities id..."}
+{"ts":"2026-03-02T20:31:39.393Z","agent":"IronPhoenix","type":"edit","target":"/Users/terryli/eon/cc-skills/docs/tool-inventory.md"}
