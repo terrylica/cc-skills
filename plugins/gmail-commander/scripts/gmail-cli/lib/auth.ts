@@ -6,6 +6,7 @@
  */
 
 import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { auth } from "@googleapis/gmail";
 import type { OAuthCredentials, SavedToken } from "./types.ts";
 import {
@@ -23,9 +24,58 @@ import {
 type OAuth2Client = InstanceType<typeof auth.OAuth2>;
 
 /**
- * Retrieve OAuth credentials from 1Password using UUID
+ * Get path for cached app credentials
+ */
+function getAppCredentialsPath(uuid?: string): string {
+  const actualUuid = uuid ?? getOpUuid();
+  return join(getTokensDir(), `${actualUuid}.app-credentials.json`);
+}
+
+/**
+ * Load cached app credentials from disk
+ */
+async function loadAppCredentials(): Promise<{ client_id: string; client_secret: string } | null> {
+  try {
+    const file = Bun.file(getAppCredentialsPath());
+    if (await file.exists()) {
+      return await file.json();
+    }
+  } catch {
+    // Cache miss
+  }
+  return null;
+}
+
+/**
+ * Save app credentials to disk for future use
+ */
+async function saveAppCredentials(clientId: string, clientSecret: string): Promise<void> {
+  const tokensDir = getTokensDir();
+  await mkdir(tokensDir, { recursive: true, mode: 0o700 });
+  const path = getAppCredentialsPath();
+  await Bun.write(path, JSON.stringify({ client_id: clientId, client_secret: clientSecret }));
+  Bun.spawn(["chmod", "600", path]);
+}
+
+/**
+ * Retrieve OAuth credentials — cached app credentials first, 1Password fallback
  */
 export async function getCredentialsFrom1Password(): Promise<OAuthCredentials> {
+  // Try cached app credentials first (avoids 1Password call at runtime)
+  const cached = await loadAppCredentials();
+  if (cached) {
+    return {
+      installed: {
+        client_id: cached.client_id,
+        client_secret: cached.client_secret,
+        redirect_uris: ["http://localhost"],
+        auth_uri: "https://accounts.google.com/o/oauth2/auth",
+        token_uri: "https://oauth2.googleapis.com/token",
+      },
+    };
+  }
+
+  // Fallback: fetch from 1Password and cache
   const uuid = getOpUuid();
   const vault = getOpVault();
 
@@ -51,6 +101,9 @@ export async function getCredentialsFrom1Password(): Promise<OAuthCredentials> {
       fields[key] = field.value;
     }
   }
+
+  // Cache for next time
+  await saveAppCredentials(fields.client_id!, fields.client_secret!);
 
   return {
     installed: {
