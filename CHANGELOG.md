@@ -1,3 +1,31 @@
+## [11.74.1](https://github.com/terrylica/cc-skills/compare/v11.74.0...v11.74.1) (2026-03-02)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+7/-7)
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+1/-1)
+
+### General Documentation
+
+- [Session Resume Context](https://github.com/terrylica/cc-skills/blob/main/docs/RESUME.md) - updated (+2/-2)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+3/-1)
+- [kokoro-tts Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/CLAUDE.md) - updated (+1/-1)
+
 # [11.74.0](https://github.com/terrylica/cc-skills/compare/v11.73.0...v11.74.0) (2026-03-02)
 
 
