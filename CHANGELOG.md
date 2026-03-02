@@ -1,3 +1,69 @@
+# [11.73.0](https://github.com/terrylica/cc-skills/compare/v11.72.0...v11.73.0) (2026-03-02)
+
+
+### Features
+
+* **devops-tools:** consolidate firecrawl skills into unified research-patterns skill ([cf105f8](https://github.com/terrylica/cc-skills/commit/cf105f8e0eec798af38a0e99602e8231c7635639))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [firecrawl-research-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/SKILL.md) - updated (+27/-4)
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+25/-25)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/firecrawl-research-patterns</strong> (7 files)</summary>
+
+- [API Endpoint Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/api-endpoint-reference.md) - updated (+6/-6)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/evolution-log.md) - updated (+19)
+- [Recursive Research Protocol](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/recursive-research-protocol.md) - updated (+1/-1)
+- [Firecrawl Best Practices (Empirically Verified)](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-best-practices.md) - renamed from `plugins/devops-tools/skills/firecrawl-self-hosted/references/best-practices.md`
+- [Firecrawl Bootstrap: Fresh Installation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-bootstrap-guide.md) - renamed from `plugins/devops-tools/skills/firecrawl-self-hosted/references/bootstrap-guide.md`
+- [Firecrawl Self-Hosted Operations](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-operations.md) - renamed from `plugins/devops-tools/skills/firecrawl-self-hosted/SKILL.md`
+- [Firecrawl Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-troubleshooting.md) - renamed from `plugins/devops-tools/skills/firecrawl-self-hosted/references/troubleshooting.md`
+
+</details>
+
+<details>
+<summary><strong>devops-tools/firecrawl-self-hosted</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v11.72.0/plugins/devops-tools/skills/firecrawl-self-hosted/references/evolution-log.md) - deleted
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+1/-1)
+
+## Other Documentation
+
+### Other
+
+- [devops-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/CLAUDE.md) - updated (+20/-21)
+
 # [11.72.0](https://github.com/terrylica/cc-skills/compare/v11.71.0...v11.72.0) (2026-03-02)
 
 
