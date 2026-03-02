@@ -1,3 +1,70 @@
+# [11.69.0](https://github.com/terrylica/cc-skills/compare/v11.68.1...v11.69.0) (2026-03-02)
+
+
+### Features
+
+* **rust-tools:** add SOTA Rust tooling plugin - 21 docs, 2 skills, once-per-session hook ([69843c8](https://github.com/terrylica/cc-skills/commit/69843c80df5fff8b3d460cf31f67a9ef78bb726a)), closes [#21](https://github.com/terrylica/cc-skills/issues/21)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>rust-tools</strong> (2 changes)</summary>
+
+- [rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/SKILL.md) - new (+230)
+- [rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/SKILL.md) - new (+287)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>rust-tools/rust-dependency-audit</strong> (5 files)</summary>
+
+- [cargo-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/cargo-audit-guide.md) - new (+142)
+- [cargo-deny](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/cargo-deny-guide.md) - new (+223)
+- [Dependency Freshness: cargo-outdated and Alternatives](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/cargo-outdated-guide.md) - new (+169)
+- [cargo-vet](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/cargo-vet-guide.md) - new (+200)
+- [Evolution Log: rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/evolution-log.md) - new (+9)
+
+</details>
+
+<details>
+<summary><strong>rust-tools/rust-sota-arsenal</strong> (12 files)</summary>
+
+- [ast-grep for Rust](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/ast-grep-rust.md) - new (+183)
+- [cargo-hack](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-hack.md) - new (+145)
+- [cargo-mutants](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-mutants.md) - new (+172)
+- [cargo-nextest](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-nextest.md) - new (+196)
+- [cargo-pgo](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-pgo.md) - new (+157)
+- [cargo-semver-checks](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-semver-checks.md) - new (+124)
+- [cargo-wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-wizard.md) - new (+138)
+- [Benchmarking: divan and Criterion](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/divan-and-criterion.md) - new (+247)
+- [Evolution Log: rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/evolution-log.md) - new (+9)
+- [macerator: Type-Generic SIMD](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/macerator-simd.md) - new (+202)
+- [PyO3 Upgrade Guide: 0.22 → 0.28](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/pyo3-upgrade-guide.md) - new (+193)
+- [samply: Interactive Rust Profiling](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/samply-profiling.md) - new (+193)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+2/-1)
+- [rust-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/CLAUDE.md) - new (+97)
+
 ## [11.68.1](https://github.com/terrylica/cc-skills/compare/v11.68.0...v11.68.1) (2026-03-02)
 
 
