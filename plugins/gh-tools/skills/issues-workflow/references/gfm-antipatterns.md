@@ -230,6 +230,8 @@ IMG_BASE="https://github.com/${OWNER}/${REPO}/blob/${BRANCH}/${PATH_TO_DIR}"
 
 **Note**: This applies to any context where GitHub renders markdown and the browser loads images client-side — Issue bodies, Issue comments, PR descriptions, PR review comments, and Discussion posts. It does NOT affect README rendering (GitHub proxies those server-side).
 
+**Alternative: Upload to `user-attachments` CDN directly.** Instead of committing images to the repo, Playwright can automate GitHub's file-attachment flow to get permanent CDN URLs (`https://github.com/user-attachments/assets/UUID`). These URLs work regardless of repo visibility and require no commit/push preflight. See [Playwright Automation in issue-create](../../issue-create/SKILL.md#playwright-automation-programmatic-cdn-upload) for implementation details.
+
 ---
 
 ## Quick Reference Card
