@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-03-02: Merged firecrawl-self-hosted into this skill
+
+**What**: Absorbed `firecrawl-self-hosted` skill — its SKILL.md condensed into `self-hosted-operations.md` reference, and its 3 reference docs (bootstrap-guide, best-practices, troubleshooting) moved here.
+
+**Why**: The two skills covered the same service (self-hosted Firecrawl). Consolidation eliminates skill discovery friction — one skill for all Firecrawl concerns.
+
+**Files added**:
+
+- `references/self-hosted-operations.md` (new — condensed from old SKILL.md)
+- `references/self-hosted-bootstrap-guide.md` (moved + renamed)
+- `references/self-hosted-best-practices.md` (moved + renamed)
+- `references/self-hosted-troubleshooting.md` (moved + renamed)
+
+**Files modified**:
+
+- `SKILL.md` — added self-hosted triggers, Section 5, updated references, removed scope boundary note
+
+---
+
 ## 2026-02-26: Initial Evolution Log
 
 **Status**: Skill is in use and maintained. Track improvements here.

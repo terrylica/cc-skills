@@ -579,7 +579,7 @@ Features:
 
 **Doppler credentials, Firecrawl self-hosted, ML pipelines, MLflow queries, notifications, and session recovery.**
 
-15 bundled skills: clickhouse-cloud-management, clickhouse-pydantic-config, disk-hygiene, distributed-job-safety, doppler-workflows, doppler-secret-validation, dual-channel-watchexec, firecrawl-self-hosted, ml-data-pipeline-architecture, ml-failfast-validation, mlflow-python, project-directory-migration, python-logging-best-practices, session-chronicle, session-recovery
+17 bundled skills: clickhouse-cloud-management, clickhouse-pydantic-config, claude-code-proxy-patterns, disk-hygiene, distributed-job-safety, doppler-workflows, doppler-secret-validation, dual-channel-watchexec, firecrawl-research-patterns, ml-data-pipeline-architecture, ml-failfast-validation, mlflow-python, project-directory-migration, pueue-job-orchestration, python-logging-best-practices, session-chronicle, session-recovery
 
 ### doc-tools
 
