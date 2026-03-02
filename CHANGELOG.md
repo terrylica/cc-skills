@@ -1,3 +1,10 @@
+## [11.68.1](https://github.com/terrylica/cc-skills/compare/v11.68.0...v11.68.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* **gmail-commander:** cache app credentials to avoid 1Password call at runtime ([aab5a23](https://github.com/terrylica/cc-skills/commit/aab5a23ba60379c52a5e62b3bbcc67180299db2c))
+
 # [11.68.0](https://github.com/terrylica/cc-skills/compare/v11.67.0...v11.68.0) (2026-03-02)
 
 
