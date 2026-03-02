@@ -10,6 +10,8 @@ export {
   listEmails,
   searchEmails,
   readEmail,
+  readEmailWithImages,
+  saveInlineImages,
   exportEmails,
   createDraft,
   listDrafts,
@@ -17,4 +19,5 @@ export {
   updateDraft,
 } from "./gmail.ts";
 export type { DraftOptions, DraftResult, DraftSummary } from "./gmail.ts";
+export { getImageDir } from "./config.ts";
 export * from "./output.ts";
