@@ -264,15 +264,36 @@ See [AP-07 in GFM Anti-Patterns](../issues-workflow/references/gfm-antipatterns.
 
 ### Images NOT in the Repository
 
-For images only on disk (not committed), three options:
+For images only on disk (not committed), four options:
 
-| Method                   | How                                                              | Permanent?                   |
-| ------------------------ | ---------------------------------------------------------------- | ---------------------------- |
-| **Commit + push first**  | `git add` images, push, run preflight, then use `?raw=true` URLs | Yes (repo-hosted)            |
-| **Web UI paste**         | Open issue in browser, Ctrl/Cmd+V images into comment box        | Yes (`user-attachments` CDN) |
-| **Web UI drag-and-drop** | Drag image files into the comment box                            | Yes (`user-attachments` CDN) |
+| Method                    | How                                                              | Permanent?                   | Preflight?   |
+| ------------------------- | ---------------------------------------------------------------- | ---------------------------- | ------------ |
+| **Commit + push first**   | `git add` images, push, run preflight, then use `?raw=true` URLs | Yes (repo-hosted)            | Yes (5-step) |
+| **Web UI paste**          | Open issue in browser, Ctrl/Cmd+V images into comment box        | Yes (`user-attachments` CDN) | None         |
+| **Web UI drag-and-drop**  | Drag image files into the comment box                            | Yes (`user-attachments` CDN) | None         |
+| **Playwright automation** | Script automates the browser file-attachment flow                | Yes (`user-attachments` CDN) | None         |
 
-There is no CLI-only method to upload images to GitHub's `user-attachments` CDN. Tools like [`gh-attach`](https://zenn.dev/atani/articles/gh-attach-built-with-claude-code?locale=en) work around this by automating a headless browser (Playwright).
+#### Playwright Automation (Programmatic CDN Upload)
+
+GitHub has no API for image uploads, but the browser's file-attachment flow can be automated via Playwright to get permanent `user-attachments` CDN URLs without any commit/push preflight.
+
+**How it works:**
+
+1. Playwright opens the issue page in Chromium with a persistent profile (`~/.claude/tools/pw-github-profile/`)
+2. First run only: user logs in to GitHub (any method — Google SSO, passkey, password). Cookies persist.
+3. Script clicks "Paste, drop, or click to add files" → intercepts the file chooser → sets the image file
+4. GitHub uploads to its S3 backend and inserts an `<img>` tag with a `user-attachments` CDN URL into the comment textarea
+5. Script extracts the CDN URL and clears the textarea (no comment is actually posted)
+
+**Key implementation details** (GitHub's 2026 React comment composer):
+
+- Comment textarea selector: `textarea[placeholder="Use Markdown to format your comment"]` (dynamic React IDs — do NOT match by `id`)
+- File upload trigger: click the "Paste, drop, or click to add files" text, then intercept `page.waitForEvent("filechooser")`
+- Upload result format: `<img width="W" height="H" alt="Image" src="https://github.com/user-attachments/assets/UUID" />` (HTML `<img>` tag, not `![](...)` markdown)
+- Old `textarea#new_comment_field` and `file-attachment input[type='file']` selectors no longer exist
+- Batch uploads: clear textarea between uploads with `textarea.fill("")`
+
+**Chrome CDP note**: `chromium.connectOverCDP()` fails with Chrome 136+ (WebSocket timeout). Use `chromium.launchPersistentContext()` with Playwright's bundled Chromium instead. Chrome 136+ also requires `--user-data-dir` for CDP (`DevTools remote debugging requires a non-default data directory`), making CDP impractical for reusing existing browser sessions.
 
 ---
 
