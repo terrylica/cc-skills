@@ -1,3 +1,40 @@
+# [11.70.0](https://github.com/terrylica/cc-skills/compare/v11.69.4...v11.70.0) (2026-03-02)
+
+
+### Features
+
+* **rust-tools:** add web-verify-first guidance to both skills ([5905d38](https://github.com/terrylica/cc-skills/commit/5905d38d24b49a2ce00e969745a171ccf83b21e0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>rust-tools</strong> (2 changes)</summary>
+
+- [rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/SKILL.md) - updated (+25/-1)
+- [rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/SKILL.md) - updated (+27/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>rust-tools/rust-sota-arsenal</strong> (1 file)</summary>
+
+- [PyO3 Upgrade Guide: 0.22+](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/pyo3-upgrade-guide.md) - updated (+6)
+
+</details>
+
 ## [11.69.4](https://github.com/terrylica/cc-skills/compare/v11.69.3...v11.69.4) (2026-03-02)
 
 
