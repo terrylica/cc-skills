@@ -21,6 +21,15 @@ function getGmailCli(): string {
   return pluginPath;
 }
 
+export interface InlineImage {
+  attachmentId: string;
+  mimeType: string;
+  filename: string;
+  contentId: string;
+  size: number;
+  partId: string;
+}
+
 export interface Email {
   id: string;
   from: string;
@@ -29,6 +38,7 @@ export interface Email {
   date: string;
   labels: string[];
   snippet: string;
+  inlineImages?: InlineImage[];
 }
 
 export interface DraftOptions {
