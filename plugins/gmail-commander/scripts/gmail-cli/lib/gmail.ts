@@ -6,7 +6,10 @@
 
 import { gmail, type gmail_v1 } from "@googleapis/gmail";
 import { getAuthClient } from "./auth.ts";
-import type { Email, ListOptions, SearchOptions, ExportOptions } from "./types.ts";
+import type { Email, InlineImage, SavedImage, ReadOptions, ListOptions, SearchOptions, ExportOptions } from "./types.ts";
+import { getImageDir } from "./config.ts";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join, basename } from "node:path";
 
 /**
  * Create authenticated Gmail API service
@@ -58,6 +61,132 @@ function parseBody(payload: gmail_v1.Schema$MessagePart | undefined): string {
 }
 
 /**
+ * Recursively extract inline image metadata from MIME payload
+ * Collects image/* parts that have an attachmentId (Gmail stores large inline images as attachments)
+ */
+function extractInlineImages(payload: gmail_v1.Schema$MessagePart | undefined): InlineImage[] {
+  const images: InlineImage[] = [];
+  if (!payload) return images;
+
+  function walk(part: gmail_v1.Schema$MessagePart): void {
+    if (part.mimeType?.startsWith("image/") && part.body?.attachmentId) {
+      images.push({
+        attachmentId: part.body.attachmentId,
+        mimeType: part.mimeType,
+        filename: part.filename || `image.${mimeToExt(part.mimeType)}`,
+        contentId: getHeader(part.headers, "Content-Id").replace(/^<|>$/g, ""),
+        size: part.body.size ?? 0,
+        partId: part.partId ?? "",
+      });
+    }
+    if (part.parts) {
+      for (const child of part.parts) {
+        walk(child);
+      }
+    }
+  }
+
+  walk(payload);
+  return images;
+}
+
+/**
+ * Map MIME type to file extension
+ */
+function mimeToExt(mimeType: string): string {
+  const map: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/bmp": "bmp",
+    "image/svg+xml": "svg",
+    "image/tiff": "tiff",
+  };
+  return map[mimeType] ?? "bin";
+}
+
+/**
+ * Fetch attachment data from Gmail API
+ */
+async function fetchAttachmentData(
+  client: gmail_v1.Gmail,
+  messageId: string,
+  attachmentId: string
+): Promise<Buffer> {
+  const res = await client.users.messages.attachments.get({
+    userId: "me",
+    messageId,
+    id: attachmentId,
+  });
+  return Buffer.from(res.data.data!, "base64url");
+}
+
+/**
+ * Sanitize filename with zero-padded index to avoid collisions
+ * Copy-pasted images often share the same generic name (e.g. "image.png")
+ */
+function sanitizeFilename(filename: string, index: number): string {
+  const safe = basename(filename).replace(/[^a-zA-Z0-9._-]/g, "_");
+  const pad = String(index + 1).padStart(2, "0");
+  return `${pad}_${safe}`;
+}
+
+/**
+ * Download all inline images from an email to disk
+ * Returns SavedImage[] with file paths and ready-to-paste markdown references
+ */
+export async function saveInlineImages(
+  client: gmail_v1.Gmail,
+  email: Email,
+  outputDir?: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<SavedImage[]> {
+  const images = email.inlineImages;
+  if (!images || images.length === 0) return [];
+
+  const dir = outputDir ?? getImageDir(email.id);
+  await mkdir(dir, { recursive: true });
+
+  const saved: SavedImage[] = [];
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i];
+    const filename = sanitizeFilename(img.filename, i);
+    const filePath = join(dir, filename);
+    const data = await fetchAttachmentData(client, email.id, img.attachmentId);
+    await writeFile(filePath, data);
+    saved.push({
+      image: img,
+      savedPath: filePath,
+      bytesWritten: data.length,
+      markdownRef: `![${filename}](${filePath})`,
+    });
+    onProgress?.(i + 1, images.length);
+  }
+
+  return saved;
+}
+
+/**
+ * Read email with optional inline image download
+ * Convenience wrapper combining readEmail + saveInlineImages
+ */
+export async function readEmailWithImages(
+  client: gmail_v1.Gmail,
+  messageId: string,
+  options?: ReadOptions
+): Promise<{ email: Email; savedImages: SavedImage[] } | null> {
+  const email = await readEmail(client, messageId);
+  if (!email) return null;
+
+  let savedImages: SavedImage[] = [];
+  if (options?.saveImages) {
+    savedImages = await saveInlineImages(client, email, options.outputDir);
+  }
+  return { email, savedImages };
+}
+
+/**
  * Transform Gmail API message to Email type
  */
 function formatMessage(msg: gmail_v1.Schema$Message, includeBody = false): Email {
@@ -74,6 +203,7 @@ function formatMessage(msg: gmail_v1.Schema$Message, includeBody = false): Email
     date: getHeader(headers, "Date"),
     labels: msg.labelIds ?? [],
     ...(includeBody && { body: parseBody(msg.payload) }),
+    ...(includeBody && { inlineImages: extractInlineImages(msg.payload) }),
   };
 }
 

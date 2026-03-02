@@ -12,7 +12,7 @@ import {
   createGmailClient,
   listEmails,
   searchEmails,
-  readEmail,
+  readEmailWithImages,
   exportEmails,
   createDraft,
   listDrafts,
@@ -22,6 +22,7 @@ import {
   printJson,
   printProgress,
 } from "./lib/index.ts";
+import type { SavedImage } from "./lib/types.ts";
 
 const USAGE = `
 Gmail CLI - Access Gmail via command line
@@ -45,6 +46,8 @@ OPTIONS:
   -q, --query       Search query (for export command)
   -o, --output      Output file path (for export command)
   --json            Output as JSON
+  --save-images     Download inline images to disk (for read command)
+  --image-dir       Custom output directory for images (implies --save-images)
   --to              Recipient email (for draft/draft-update)
   --from            Sender alias (for draft/draft-update, auto-detected if replying)
   --subject         Email subject (for draft/draft-update)
@@ -61,6 +64,8 @@ EXAMPLES:
   gmail search "from:someone@example.com"
   gmail search "subject:job application after:2026/01/01"
   gmail read 18abc123def
+  gmail read 18abc123def --save-images
+  gmail read 18abc123def --save-images --image-dir ./attachments/
   gmail export -q "label:inbox" -o emails.json -n 100
   gmail draft --to "user@example.com" --subject "Hello" --body "Message body"
   gmail draft --to "user@example.com" --subject "Re: Hello" --body "Reply" --reply-to 18abc123def
@@ -88,6 +93,8 @@ async function main() {
       query: { type: "string", short: "q" },
       output: { type: "string", short: "o" },
       json: { type: "boolean", default: false },
+      "save-images": { type: "boolean", default: false },
+      "image-dir": { type: "string" },
       help: { type: "boolean", short: "h" },
       to: { type: "string" },
       from: { type: "string" },
@@ -144,15 +151,29 @@ async function main() {
           console.error("Error: Message ID required");
           process.exit(1);
         }
-        const email = await readEmail(client, messageId);
-        if (!email) {
+        const shouldSaveImages = values["save-images"] || !!values["image-dir"];
+        const imageDir = values["image-dir"];
+
+        const result = await readEmailWithImages(client, messageId, {
+          saveImages: shouldSaveImages,
+          outputDir: imageDir,
+        });
+        if (!result) {
           console.error("Error: Email not found");
           process.exit(1);
         }
+
         if (asJson) {
-          printJson(email);
+          printJson({
+            ...result.email,
+            ...(result.savedImages.length > 0 && { savedImages: result.savedImages }),
+          });
         } else {
-          printEmails([email]);
+          const savedMap = new Map<string, SavedImage[]>();
+          if (result.savedImages.length > 0) {
+            savedMap.set(result.email.id, result.savedImages);
+          }
+          printEmails([result.email], savedMap);
         }
         break;
       }

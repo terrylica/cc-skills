@@ -13,6 +13,28 @@ export interface Email {
   date: string;
   labels: string[];
   body?: string;
+  inlineImages?: InlineImage[];
+}
+
+export interface InlineImage {
+  attachmentId: string;
+  mimeType: string;
+  filename: string;
+  contentId: string;
+  size: number;
+  partId: string;
+}
+
+export interface SavedImage {
+  image: InlineImage;
+  savedPath: string;
+  bytesWritten: number;
+  markdownRef: string;
+}
+
+export interface ReadOptions {
+  saveImages?: boolean;
+  outputDir?: string;
 }
 
 export interface OAuthCredentials {
