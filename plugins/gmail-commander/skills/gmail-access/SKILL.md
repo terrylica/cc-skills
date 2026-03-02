@@ -47,34 +47,30 @@ echo ""
 echo "=== mise Config Source ==="
 grep -l "GMAIL_OP_UUID" .mise.local.toml .mise.toml ~/.config/mise/config.toml 2>/dev/null || echo "Not found in standard locations"
 
-# Get the email address from 1Password for this UUID
+# Quick connectivity test — shows the account email from a real email
 echo ""
-echo "=== Email Account for this UUID ==="
-op item get "${GMAIL_OP_UUID}" --fields label=email 2>/dev/null || op item get "${GMAIL_OP_UUID}" --format json 2>/dev/null | jq -r '.title'
+echo "=== Account Verification ==="
+$GMAIL_CLI list -n 1 2>&1 | head -5
 ```
 
 **STOP and confirm with user** before proceeding:
 
-- Display the email account that will be accessed
-- Verify this matches the project's intended email (check `RECRUITER_EMAIL` or similar project-specific vars)
+- The `list -n 1` output shows the account's inbox — verify this matches the project's intended email
+- If the wrong account is shown, check which `.mise.local.toml` sets `GMAIL_OP_UUID` in the mise hierarchy
 - If mismatch, inform user and do NOT proceed
 
-**Example verification:**
+### Step 3: Verify Token Health
 
 ```bash
-# Compare configured email with project expectation
-PROJECT_EMAIL="${RECRUITER_EMAIL:-$(grep -m1 'email' .mise.toml 2>/dev/null | cut -d'"' -f2)}"
-echo "Project expects: ${PROJECT_EMAIL:-'(not specified)'}"
-echo "Gmail UUID maps to: $(op item get "${GMAIL_OP_UUID}" --fields label=email 2>/dev/null)"
+# Check cached token exists and is not expired
+TOKEN_FILE="$HOME/.claude/tools/gmail-tokens/${GMAIL_OP_UUID}.json"
+APP_CREDS="$HOME/.claude/tools/gmail-tokens/${GMAIL_OP_UUID}.app-credentials.json"
+echo "Token file: $([ -f "$TOKEN_FILE" ] && echo "EXISTS" || echo "MISSING")"
+echo "App credentials: $([ -f "$APP_CREDS" ] && echo "CACHED" || echo "MISSING — will need 1Password on first run")"
 ```
 
-### Step 3: Verify 1Password Authentication
-
-```bash
-op account list 2>&1 | head -3
-```
-
-**If error or not signed in**: Inform user to run `op signin` first.
+**If token file is MISSING**: First run will open a browser for OAuth consent. This is expected.
+**If app credentials are MISSING**: 1Password will be called once to cache `client_id`/`client_secret`, then never again.
 
 ---
 
@@ -95,7 +91,11 @@ command -v op && echo "OP_CLI_INSTALLED" || echo "OP_CLI_MISSING"
 ### Setup Step 2: Discover Gmail OAuth Items in 1Password
 
 ```bash
-op item list --vault Employee --format json 2>/dev/null | jq -r '.[] | select(.title | test("gmail|oauth|google"; "i")) | "\(.id)\t\(.title)"'
+# Try common vaults — "Claude Automation" for service accounts, "Employee" for interactive
+for VAULT in "Claude Automation" "Employee" "Personal"; do
+  ITEMS=$(op item list --vault "$VAULT" --format json 2>/dev/null | jq -r '.[] | select(.title | test("gmail|oauth|google"; "i")) | "\(.id)\t\(.title)"')
+  [ -n "$ITEMS" ] && echo "=== Vault: $VAULT ===" && echo "$ITEMS"
+done
 ```
 
 **Parse the output** and proceed based on results:
@@ -209,6 +209,18 @@ $GMAIL_CLI search "from:alex after:2026/01/27" -n 10
 # Read specific email with full body
 $GMAIL_CLI read <message_id>
 
+# Read and download inline images (copy-pasted screenshots in compose)
+$GMAIL_CLI read <message_id> --save-images
+
+# Download inline images to a specific directory
+$GMAIL_CLI read <message_id> --save-images --image-dir ./attachments/my-folder/
+
+# Shorthand: --image-dir implies --save-images
+$GMAIL_CLI read <message_id> --image-dir ./attachments/my-folder/
+
+# JSON output with image metadata and saved paths
+$GMAIL_CLI read <message_id> --save-images --json
+
 # Export to JSON
 $GMAIL_CLI export -q "label:inbox" -o emails.json -n 100
 
@@ -221,6 +233,85 @@ $GMAIL_CLI draft --to "user@example.com" --subject "Hello" --body "Message body"
 # Create a draft reply (threads into existing conversation)
 $GMAIL_CLI draft --to "user@example.com" --subject "Re: Hello" --body "Reply text" --reply-to <message_id>
 ```
+
+## Inline Image Extraction
+
+Emails often contain **copy-pasted screenshots** (inline images embedded in the HTML body, not file attachments). These appear as `[image: image.png]` placeholders in plain text but contain real image data accessible via the Gmail API.
+
+### Key Behavior
+
+| Flag                 | Effect                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| `--save-images`      | Download all inline images to disk (default: `~/.claude/tools/gmail-images/<message_id>/`) |
+| `--image-dir <path>` | Custom output directory (implies `--save-images`)                                          |
+| No flag              | Shows image metadata (count, filenames, sizes) but does NOT download                       |
+
+### Output Sections (when images are present)
+
+```
+--- Inline Images (3) ---
+  image.png   image/png   245.3 KB
+  image.png   image/png   512.1 KB
+  photo.jpg   image/jpeg  89.7 KB
+
+--- Saved to Disk ---
+  ./attachments/01_image.png  (251,234 B)
+  ./attachments/02_image.png  (524,001 B)
+  ./attachments/03_photo.jpg  (91,852 B)
+
+--- Markdown References ---
+![01_image.png](./attachments/01_image.png)
+![02_image.png](./attachments/02_image.png)
+![03_photo.jpg](./attachments/03_photo.jpg)
+```
+
+### Important: Inline Images vs Attachments
+
+**`has:attachment` does NOT find inline images.** Gmail search has no operator for inline images. To discover emails with inline images, you must read the email and check the MIME tree.
+
+**Strategy for finding emails with inline images:**
+
+```bash
+# Search by sender/date, then read each to check for images
+$GMAIL_CLI search "from:sender@example.com after:2026/02/01" -n 10 --json | \
+  jq -r '.[].id' | while read id; do
+    COUNT=$($GMAIL_CLI read "$id" --json | jq '.inlineImages | length')
+    [ "$COUNT" -gt 0 ] && echo "$id has $COUNT inline image(s)"
+  done
+```
+
+### Gmail Threading and Image Deduplication
+
+When downloading images from a **thread** (multiple reply emails), later replies include all prior inline images. The last email in a thread is typically the superset.
+
+**Recommendation**: For threaded conversations, download images from the **latest reply only** to avoid duplicates. Compare by file size if unsure.
+
+### Filename Collision Handling
+
+Copy-pasted screenshots often all share the generic filename `image.png`. The CLI prefixes a zero-padded index: `01_image.png`, `02_image.png`, etc. These machine-generated names should be renamed to descriptive names for correspondence archival.
+
+### Post-Download: Annotation Transcription Protocol
+
+When inline images contain **handwritten annotations** (circles, arrows, written text overlaid on screenshots), perform a systematic two-level analysis:
+
+1. **Scene description**: What does the screenshot show? (e.g., "Career portal main page showing position listings")
+2. **Annotation inventory**: Exhaustively catalog every non-original markup element:
+   - **Hand-drawn shapes**: circles, ovals, arrows, underlines, crosses — note what they encompass
+   - **Handwritten text**: transcribe verbatim in quotes, note legibility and location on the image
+   - **Typed test inputs**: text entered into form fields visible in the screenshot
+   - **Highlights or color markings**: note color and what is highlighted
+
+**Format annotations as blockquote captions** beneath each image in markdown:
+
+```markdown
+![Scene description — annotation summary](path/to/image.png)
+
+> **Annotation transcription**: [Detailed description of visual markup.]
+> Handwritten text reads: _"exact transcription here"_
+> [Interpretation of what the annotator is requesting.]
+```
+
+**Do NOT defer annotation transcription to a second pass.** Capture all annotations on the first image examination to avoid redundant re-reads.
 
 ## Creating Draft Emails
 
@@ -326,33 +417,91 @@ $GMAIL_CLI draft \
 
 ## Gmail Search Syntax
 
-| Query                      | Description              |
-| -------------------------- | ------------------------ |
-| `from:sender@example.com`  | From specific sender     |
-| `to:recipient@example.com` | To specific recipient    |
-| `subject:keyword`          | Subject contains keyword |
-| `after:2026/01/01`         | After date               |
-| `before:2026/02/01`        | Before date              |
-| `label:inbox`              | Has label                |
-| `is:unread`                | Unread emails            |
-| `has:attachment`           | Has attachment           |
+| Query                      | Description                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------ |
+| `from:sender@example.com`  | From specific sender                                                                 |
+| `to:recipient@example.com` | To specific recipient                                                                |
+| `subject:keyword`          | Subject contains keyword                                                             |
+| `after:2026/01/01`         | After date                                                                           |
+| `before:2026/02/01`        | Before date                                                                          |
+| `label:inbox`              | Has label                                                                            |
+| `is:unread`                | Unread emails                                                                        |
+| `has:attachment`           | Has file attachment (**does NOT match inline images** — see Inline Image Extraction) |
 
 Reference: <https://support.google.com/mail/answer/7190>
 
 ## Environment Variables
 
-| Variable         | Required | Description                               |
-| ---------------- | -------- | ----------------------------------------- |
-| `GMAIL_OP_UUID`  | Yes      | 1Password item UUID for OAuth credentials |
-| `GMAIL_OP_VAULT` | No       | 1Password vault (default: Employee)       |
+| Variable         | Required | Description                                                         |
+| ---------------- | -------- | ------------------------------------------------------------------- |
+| `GMAIL_OP_UUID`  | Yes      | 1Password item UUID for OAuth credentials                           |
+| `GMAIL_OP_VAULT` | No       | 1Password vault (default: `Claude Automation` for service accounts) |
 
-## Token Storage
+## Token Architecture
 
-OAuth tokens stored at: `~/.claude/tools/gmail-tokens/<uuid>.json`
+### Storage Layout
+
+```
+~/.claude/tools/gmail-tokens/
+├── <uuid>.json                    # OAuth token (access + refresh), refreshed hourly
+└── <uuid>.app-credentials.json    # client_id + client_secret (static, cached from 1Password)
+```
 
 - Central location (not in plugin, not in project)
 - Organized by 1Password UUID (supports multi-account)
 - Created with chmod 600
+
+### Auth Flow (1Password is one-time only)
+
+1. **First run**: 1Password is called to fetch `client_id`/`client_secret` → cached to `<uuid>.app-credentials.json`
+2. **First run**: Browser opens for Google OAuth consent → tokens saved to `<uuid>.json`
+3. **All subsequent runs**: Reads cached files only — **no 1Password call, no browser**
+4. **Hourly refresher** (launchd): Keeps access_token alive by calling Google's token endpoint with the cached refresh_token
+
+To force a fresh 1Password lookup (e.g., after rotating OAuth app credentials):
+
+```bash
+rm ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
+```
+
+### Diagnosing `invalid_grant`
+
+Google OAuth "Testing" mode refresh tokens expire after **7 days** without a refresh. If the hourly refresher was not running during that window, the refresh_token becomes permanently revoked.
+
+**Fix**: Delete the expired token file and re-authorize via browser:
+
+```bash
+# 1. Back up and remove the expired token
+mv ~/.claude/tools/gmail-tokens/<uuid>.json ~/.claude/tools/gmail-tokens/<uuid>.json.expired
+
+# 2. Run any gmail command — browser will open for OAuth consent
+$GMAIL_CLI list -n 1
+
+# 3. Verify the hourly refresher picks up the new token
+~/.claude/automation/gmail-token-refresher/gmail-oauth-token-refresher 2>&1
+
+# 4. Clean up backup
+rm ~/.claude/tools/gmail-tokens/<uuid>.json.expired
+```
+
+### Multi-Account Token Status
+
+```bash
+# Check all accounts at once
+for f in ~/.claude/tools/gmail-tokens/*.json; do
+  [ "$(basename "$f")" = "*.json" ] && continue
+  case "$(basename "$f")" in *.app-credentials.json) continue ;; esac
+  UUID=$(basename "$f" .json)
+  python3 -c "
+import json, datetime
+t = json.load(open('$f'))
+exp = datetime.datetime.fromtimestamp(t.get('expiry_date',0)/1000)
+delta = (exp - datetime.datetime.now()).total_seconds()
+status = 'VALID' if delta > 0 else 'EXPIRED'
+print(f'  {\"$UUID\"}: {status} (expires in {int(delta/60)}m)' if delta > 0 else f'  {\"$UUID\"}: EXPIRED ({int(-delta/3600)}h ago)')
+" 2>/dev/null
+done
+```
 
 ## References
 
