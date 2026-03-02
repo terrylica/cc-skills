@@ -1,3 +1,30 @@
+# [11.71.0](https://github.com/terrylica/cc-skills/compare/v11.70.0...v11.71.0) (2026-03-02)
+
+
+### Features
+
+* **rust-tools:** add Firecrawl scrape as WebFetch fallback ([e72e9d5](https://github.com/terrylica/cc-skills/commit/e72e9d52eb0ecc8092db5483493a6c836e78acae))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>rust-tools</strong> (2 changes)</summary>
+
+- [rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/SKILL.md) - updated (+11)
+- [rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/SKILL.md) - updated (+11)
+
+</details>
+
 # [11.70.0](https://github.com/terrylica/cc-skills/compare/v11.69.4...v11.70.0) (2026-03-02)
 
 
