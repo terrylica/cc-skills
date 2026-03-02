@@ -92,7 +92,7 @@ cargo audit bin ./target/release/my-binary
 # audit.toml
 [advisories]
 ignore = [
-    "RUSTSEC-2024-0001",  # Reason for ignoring
+    "RUSTSEC-YYYY-NNNN",  # Reason for ignoring
 ]
 ```
 

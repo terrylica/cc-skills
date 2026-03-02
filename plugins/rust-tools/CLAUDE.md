@@ -31,10 +31,10 @@ On the first tool use in a repo with `Cargo.toml` at the git root, reminds Claud
 
 ### Refactoring
 
-| Tool                  | Purpose                               | Install                             |
-| --------------------- | ------------------------------------- | ----------------------------------- |
-| `ast-grep`            | AST-aware code search and rewrite     | `cargo install ast-grep`            |
-| `cargo-semver-checks` | API compatibility linting (245 lints) | `cargo install cargo-semver-checks` |
+| Tool                  | Purpose                                                | Install                             |
+| --------------------- | ------------------------------------------------------ | ----------------------------------- |
+| `ast-grep`            | AST-aware code search and rewrite                      | `cargo install ast-grep`            |
+| `cargo-semver-checks` | API compatibility linting (hundreds of built-in lints) | `cargo install cargo-semver-checks` |
 
 ### Performance
 
@@ -76,9 +76,9 @@ On the first tool use in a repo with `Cargo.toml` at the git root, reminds Claud
 
 ### Python Bindings
 
-| Tool | Purpose             | Reference               |
-| ---- | ------------------- | ----------------------- |
-| PyO3 | 0.22→0.28 migration | `pyo3-upgrade-guide.md` |
+| Tool | Purpose         | Reference               |
+| ---- | --------------- | ----------------------- |
+| PyO3 | 0.22+ migration | `pyo3-upgrade-guide.md` |
 
 ## Behavioral Triggers
 

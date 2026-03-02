@@ -138,7 +138,7 @@ async function main(): Promise<void> {
   blockWithReminder(
     `[RUST-TOOLS] Rust project detected (${repoName}). SOTA tools available:
 
-REFACTORING: ast-grep (AST-aware rewrite), cargo-semver-checks (API compat, 245 lints)
+REFACTORING: ast-grep (AST-aware rewrite), cargo-semver-checks (API compat)
 PERFORMANCE: samply (profiler), divan/Criterion (bench), cargo-pgo (PGO+BOLT), cargo-wizard (profile auto-config)
 TESTING: cargo-nextest (3x faster), cargo-mutants (mutation), cargo-hack (feature powerset)
 SIMD: macerator (type-generic, multiversioning on stable)

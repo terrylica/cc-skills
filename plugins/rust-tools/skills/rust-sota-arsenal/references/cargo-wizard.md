@@ -134,5 +134,5 @@ strip = false
 - **Combine templates**: Use "fast-compile" for dev, "fast-runtime" for release
 - **Review changes**: cargo-wizard shows the diff — review before accepting
 - **Author**: Kobzol (same author as cargo-pgo, major Rust/rustc contributor)
-- **Cargo team endorsed**: Featured in Cargo team discussions for the 1.92 release cycle
+- **Cargo team endorsed**: Featured in Cargo team discussions
 - **Idempotent**: Running again with same choices produces same output
