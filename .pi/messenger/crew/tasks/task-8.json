@@ -1,0 +1,13 @@
+{
+  "id": "task-8",
+  "title": "Task 8: Accessibility & Findability Review",
+  "status": "todo",
+  "depends_on": [
+    "task-1",
+    "task-5",
+    "task-6"
+  ],
+  "created_at": "2026-03-02T20:27:31.259Z",
+  "updated_at": "2026-03-02T20:27:31.260Z",
+  "attempt_count": 0
+}
