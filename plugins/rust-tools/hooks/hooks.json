@@ -1,0 +1,17 @@
+{
+  "description": "Rust SOTA tooling — once-per-session reminder in Rust projects",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Read|Glob|Grep|Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-rust-sota-reminder.ts",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}
