@@ -51,6 +51,15 @@ export function getTokensDir(): string {
   return join(homedir(), ".claude", "tools", "gmail-tokens");
 }
 
+/**
+ * Get image cache directory for a given message ID
+ * Images stored at ~/.claude/tools/gmail-images/<uuid>/<messageId>/
+ */
+export function getImageDir(messageId: string, uuid?: string): string {
+  const actualUuid = uuid ?? getOpUuid();
+  return join(homedir(), ".claude", "tools", "gmail-images", actualUuid, messageId);
+}
+
 // Gmail API scopes - readonly + compose for draft creation
 export const SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
