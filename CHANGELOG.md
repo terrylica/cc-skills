@@ -1,3 +1,73 @@
+# [11.74.0](https://github.com/terrylica/cc-skills/compare/v11.73.0...v11.74.0) (2026-03-02)
+
+
+### Features
+
+* **docs:** Add content deduplication analysis ([b80fa02](https://github.com/terrylica/cc-skills/commit/b80fa026afe79a5c4fc062be63c39ea09a47d837))
+* **docs:** add governance model with ownership assignments ([932cb15](https://github.com/terrylica/cc-skills/commit/932cb15ae599496ed10c0207c3c35bf8510af632))
+* **docs:** add governance-model.md ([ee758a3](https://github.com/terrylica/cc-skills/commit/ee758a33937c820a40881708b14318b3663341ec))
+* **docs:** add metadata and linking framework ([d182889](https://github.com/terrylica/cc-skills/commit/d182889ce5dd52181921df54fabccd9253257e0e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### General Documentation
+
+- [Accessibility & Findability Review](https://github.com/terrylica/cc-skills/blob/main/docs/accessibility-findability-review.md) - new (+120)
+- [Content Deduplication Analysis](https://github.com/terrylica/cc-skills/blob/main/docs/deduplication-analysis.md) - new (+239)
+- [Search & Discovery Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/discovery-architecture.md) - new (+278)
+- [Format Inventory: Cross-Platform Format Analysis](https://github.com/terrylica/cc-skills/blob/main/docs/format-inventory.md) - new (+225)
+- [Governance & Maintenance Model](https://github.com/terrylica/cc-skills/blob/main/docs/governance-maintenance-model.md) - new (+329)
+- [Governance & Maintenance Model](https://github.com/terrylica/cc-skills/blob/main/docs/governance-model.md) - new (+322)
+- [Metadata & Linking Framework](https://github.com/terrylica/cc-skills/blob/main/docs/metadata-linking-framework.md) - new (+520)
+- [Documentation Standards Compliance Matrix](https://github.com/terrylica/cc-skills/blob/main/docs/standards-compliance-matrix.md) - new (+252)
+- [Toolchain & Automation Landscape](https://github.com/terrylica/cc-skills/blob/main/docs/tool-inventory.md) - new (+146)
+- [Version Consistency Strategy](https://github.com/terrylica/cc-skills/blob/main/docs/version-consistency-strategy.md) - new (+179)
+
+## Other Documentation
+
+### Other
+
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_0_input.md) - new (+138)
+- [1d8a4502_crew-worker_0_output](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_0_output.md) - new (+28)
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_1_input.md) - new (+138)
+- [1d8a4502_crew-worker_1_output](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_1_output.md) - new (+37)
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_2_input.md) - new (+149)
+- [1d8a4502_crew-worker_2_output](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_2_output.md) - new (+22)
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_3_input.md) - new (+148)
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_4_input.md) - new (+148)
+- [Task for crew-planner](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/bfb3ee55_crew-planner_0_input.md) - new (+143)
+- [bfb3ee55_crew-planner_0_output](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/artifacts/bfb3ee55_crew-planner_0_output.md) - new (+256)
+- [plan](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/plan.md) - new (+256)
+- [Planning Outline](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/planning-outline.md) - new (+252)
+- [Planning Progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/planning-progress.md) - new (+267)
+- [Task 1: Documentation Standards Audit](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-1.md) - new (+10)
+- [task-1.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-1.progress.md) - new (+3)
+- [Task 2: Cross-Platform Format Analysis](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-2.md) - new (+11)
+- [task-2.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-2.progress.md) - new (+2)
+- [Task 3: Toolchain & Automation Landscape](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-3.md) - new (+11)
+- [task-3.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-3.progress.md) - new (+1)
+- [Task 4: Version Consistency Strategy](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-4.md) - new (+10)
+- [task-4.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-4.progress.md) - new (+3)
+- [Task 5: Search & Discovery Architecture](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-5.md) - new (+11)
+- [task-5.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-5.progress.md) - new (+2)
+- [Task 6: Content Deduplication Analysis](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-6.md) - new (+11)
+- [task-6.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-6.progress.md) - new (+1)
+- [Task 7: Metadata & Linking Framework](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-7.md) - new (+5)
+- [task-7.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-7.progress.md) - new (+3)
+- [Task 8: Accessibility & Findability Review](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-8.md) - new (+5)
+- [task-8.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-8.progress.md) - new (+1)
+- [Task 9: Governance & Maintenance Model](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-9.md) - new (+5)
+- [task-9.progress](https://github.com/terrylica/cc-skills/blob/main/.pi/messenger/crew/tasks/task-9.progress.md) - new (+2)
+- [PRD: Align All Docs](https://github.com/terrylica/cc-skills/blob/main/PRD.md) - new (+120)
+
 # [11.73.0](https://github.com/terrylica/cc-skills/compare/v11.72.0...v11.73.0) (2026-03-02)
 
 
