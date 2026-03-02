@@ -1,3 +1,34 @@
+## [11.69.2](https://github.com/terrylica/cc-skills/compare/v11.69.1...v11.69.2) (2026-03-02)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+47)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/issues-workflow</strong> (1 file)</summary>
+
+- [GFM Anti-Patterns in Issue Comments](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/gfm-antipatterns.md) - updated (+63/-8)
+
+</details>
+
 ## [11.69.1](https://github.com/terrylica/cc-skills/compare/v11.69.0...v11.69.1) (2026-03-02)
 
 
