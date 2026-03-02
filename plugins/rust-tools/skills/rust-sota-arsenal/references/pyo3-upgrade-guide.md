@@ -1,16 +1,15 @@
-# PyO3 Upgrade Guide: 0.22 → 0.28
+# PyO3 Upgrade Guide: 0.22+
 
-Migration guide for PyO3 Rust↔Python bindings. PyO3 has evolved significantly — the API surface changed substantially between 0.22 and 0.28.
+Migration guide for PyO3 Rust↔Python bindings. PyO3 has evolved significantly — the API surface changed substantially starting from 0.22. Always check the [PyO3 changelog](https://pyo3.rs/main/changelog.html) for the latest version.
 
 ## Version Overview
 
-| Version   | Release    | Key Change                                         |
-| --------- | ---------- | -------------------------------------------------- |
-| 0.22      | Mid 2024   | `Bound<'py, T>` API introduced (replaces GIL refs) |
-| 0.23      | Late 2024  | GIL ref removal complete, `IntoPyObject` trait     |
-| 0.24      | Early 2025 | `vectorcall` support, performance improvements     |
-| 0.25      | 2025       | Free-threaded Python (3.13t) initial support       |
-| 0.26-0.28 | 2025       | `UniqueGilRef`, improved free-threaded support     |
+| Version | Key Change                                           |
+| ------- | ---------------------------------------------------- |
+| 0.22    | `Bound<'py, T>` API introduced (replaces GIL refs)   |
+| 0.23    | GIL ref removal complete, `IntoPyObject` trait       |
+| 0.24    | `vectorcall` support, performance improvements       |
+| 0.25+   | Free-threaded Python (3.13t) support, `UniqueGilRef` |
 
 ## The Big Change: Bound API (0.22)
 

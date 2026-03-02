@@ -15,27 +15,27 @@ State-of-the-art Rust tooling knowledge for refactoring, profiling, benchmarking
 - Benchmarking (choosing divan vs Criterion, setting up benchmarks)
 - Testing (faster test runner, mutation testing, feature flag testing)
 - SIMD optimization (portable SIMD on stable Rust)
-- Migrating PyO3 bindings (0.22→0.28)
+- Migrating PyO3 bindings (0.22+)
 
 ## Quick Reference
 
-| Tool                  | Install                               | One-liner                           | Category     |
-| --------------------- | ------------------------------------- | ----------------------------------- | ------------ |
-| `ast-grep`            | `cargo install ast-grep`              | AST-aware search/rewrite for Rust   | Refactoring  |
-| `cargo-semver-checks` | `cargo install cargo-semver-checks`   | API compat linting (245 lints)      | Refactoring  |
-| `samply`              | `cargo install samply`                | Profile → Firefox Profiler UI       | Performance  |
-| `cargo-pgo`           | `cargo install cargo-pgo`             | PGO + BOLT optimization             | Performance  |
-| `cargo-wizard`        | `cargo install cargo-wizard`          | Auto-configure Cargo profiles       | Performance  |
-| `divan`               | `divan = "<version>"` in dev-deps     | `#[divan::bench]` attribute API     | Benchmarking |
-| `criterion`           | `criterion = "<version>"` in dev-deps | Statistics-driven, Gnuplot reports  | Benchmarking |
-| `cargo-nextest`       | `cargo install cargo-nextest`         | 3x faster, process-per-test         | Testing      |
-| `cargo-mutants`       | `cargo install cargo-mutants`         | Mutation testing (missed/caught)    | Testing      |
-| `cargo-hack`          | `cargo install cargo-hack`            | Feature powerset testing            | Testing      |
-| `macerator`           | `macerator = "<version>"` in deps     | Type-generic SIMD + multiversioning | SIMD         |
-| `cargo-audit`         | `cargo install cargo-audit`           | RUSTSEC vulnerability scan          | Dependencies |
-| `cargo-deny`          | `cargo install cargo-deny`            | License + advisory + ban            | Dependencies |
-| `cargo-vet`           | `cargo install cargo-vet`             | Mozilla supply chain audit          | Dependencies |
-| `cargo-outdated`      | `cargo install cargo-outdated`        | Dependency freshness                | Dependencies |
+| Tool                  | Install                               | One-liner                              | Category     |
+| --------------------- | ------------------------------------- | -------------------------------------- | ------------ |
+| `ast-grep`            | `cargo install ast-grep`              | AST-aware search/rewrite for Rust      | Refactoring  |
+| `cargo-semver-checks` | `cargo install cargo-semver-checks`   | API compat linting (hundreds of lints) | Refactoring  |
+| `samply`              | `cargo install samply`                | Profile → Firefox Profiler UI          | Performance  |
+| `cargo-pgo`           | `cargo install cargo-pgo`             | PGO + BOLT optimization                | Performance  |
+| `cargo-wizard`        | `cargo install cargo-wizard`          | Auto-configure Cargo profiles          | Performance  |
+| `divan`               | `divan = "<version>"` in dev-deps     | `#[divan::bench]` attribute API        | Benchmarking |
+| `criterion`           | `criterion = "<version>"` in dev-deps | Statistics-driven, Gnuplot reports     | Benchmarking |
+| `cargo-nextest`       | `cargo install cargo-nextest`         | 3x faster, process-per-test            | Testing      |
+| `cargo-mutants`       | `cargo install cargo-mutants`         | Mutation testing (missed/caught)       | Testing      |
+| `cargo-hack`          | `cargo install cargo-hack`            | Feature powerset testing               | Testing      |
+| `macerator`           | `macerator = "<version>"` in deps     | Type-generic SIMD + multiversioning    | SIMD         |
+| `cargo-audit`         | `cargo install cargo-audit`           | RUSTSEC vulnerability scan             | Dependencies |
+| `cargo-deny`          | `cargo install cargo-deny`            | License + advisory + ban               | Dependencies |
+| `cargo-vet`           | `cargo install cargo-vet`             | Mozilla supply chain audit             | Dependencies |
+| `cargo-outdated`      | `cargo install cargo-outdated`        | Dependency freshness                   | Dependencies |
 
 ## Refactoring Workflow
 
@@ -74,7 +74,7 @@ cargo semver-checks check-release --baseline-version 1.2.0
 cargo semver-checks check-release --workspace
 ```
 
-245 built-in lints covering function removal, type changes, trait impl changes, etc. See [cargo-semver-checks reference](./references/cargo-semver-checks.md).
+Hundreds of built-in lints covering function removal, type changes, trait impl changes, and more (lint count grows with each release). See [cargo-semver-checks reference](./references/cargo-semver-checks.md).
 
 ## Performance Workflow
 
@@ -139,7 +139,7 @@ PGO typically gives 10-20% speedup on CPU-bound code. See [cargo-pgo reference](
 | Allocation profiling | Built-in `AllocProfiler`                  | Needs external tools                                |
 | Reports              | Terminal (colored)                        | HTML + Gnuplot graphs                               |
 | CI integration       | CodSpeed (native)                         | CodSpeed + criterion-compare                        |
-| Maintenance          | Development slowed (late 2024)            | Active (new org: criterion-rs)                      |
+| Maintenance          | Maintained (check crates.io for cadence)  | Active (criterion-rs organization)                  |
 
 **Recommendation**: divan for new projects (simpler API); Criterion for existing projects or when HTML reports needed. See [divan-and-criterion reference](./references/divan-and-criterion.md).
 
@@ -235,27 +235,27 @@ Essential for library crates with multiple features. See [cargo-hack reference](
 
 ## SIMD Decision Matrix
 
-| Crate         | Stable Rust      | Type-Generic        | Multiversioning | Maintained              |
-| ------------- | ---------------- | ------------------- | --------------- | ----------------------- |
-| **macerator** | Yes              | Yes                 | Yes (stable)    | Active (mid-2025)       |
-| `wide`        | Yes              | No (concrete types) | No              | Active                  |
-| `pulp`        | Yes              | Yes                 | Yes             | Superseded by macerator |
-| `std::simd`   | **Nightly only** | Yes                 | No              | WIP (no stable date)    |
+| Crate         | Stable Rust      | Type-Generic        | Multiversioning | Maintained                                          |
+| ------------- | ---------------- | ------------------- | --------------- | --------------------------------------------------- |
+| **macerator** | Yes              | Yes                 | Yes (stable)    | Active                                              |
+| `wide`        | Yes              | No (concrete types) | No              | Active                                              |
+| `pulp`        | Yes              | Yes                 | Yes             | Superseded by macerator                             |
+| `std::simd`   | **Nightly only** | Yes                 | No              | Nightly-only (tracking issue: rust-lang/rust#86656) |
 
 **Recommendation**: macerator for new SIMD work on stable Rust. It's a fork of `pulp` with type-generic operations and runtime multiversioning (SSE4.2 → AVX2 → AVX-512 dispatch). See [macerator reference](./references/macerator-simd.md).
 
-**Watch list**: `fearless_simd` (too early — only NEON/WASM/SSE4.2), `std::simd` (nightly-only, no stabilization date).
+**Watch list**: `fearless_simd` (limited arch support — only NEON/WASM/SSE4.2), `std::simd` (nightly-only — check tracking issue for stabilization status).
 
 ## PyO3 Upgrade Path
 
-For Rust↔Python bindings, PyO3 has evolved significantly from 0.22 to 0.28:
+For Rust↔Python bindings, PyO3 has evolved significantly since 0.22. Always check the [PyO3 changelog](https://pyo3.rs/main/changelog.html) for the latest version:
 
-| Version   | Key Change                                           |
-| --------- | ---------------------------------------------------- |
-| 0.22      | `Bound<'_, T>` API introduced (replaces GIL refs)    |
-| 0.23      | GIL ref removal complete, `IntoPyObject` trait       |
-| 0.24      | `vectorcall` support, performance improvements       |
-| 0.25-0.28 | Free-threaded Python (3.13t) support, `UniqueGilRef` |
+| Version | Key Change                                           |
+| ------- | ---------------------------------------------------- |
+| 0.22    | `Bound<'_, T>` API introduced (replaces GIL refs)    |
+| 0.23    | GIL ref removal complete, `IntoPyObject` trait       |
+| 0.24    | `vectorcall` support, performance improvements       |
+| 0.25+   | Free-threaded Python (3.13t) support, `UniqueGilRef` |
 
 See [PyO3 upgrade guide](./references/pyo3-upgrade-guide.md) for migration patterns.
 

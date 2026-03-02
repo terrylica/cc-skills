@@ -1,6 +1,6 @@
 # cargo-semver-checks
 
-Lint your Rust crate's API for semver violations before publishing. Catches accidental breaking changes with 245 built-in lints.
+Lint your Rust crate's API for semver violations before publishing. Catches accidental breaking changes with hundreds of built-in lints (growing with each release).
 
 ## Installation
 
@@ -17,7 +17,7 @@ Publishing a crate with accidental breaking changes (without a major version bum
 - Changed trait requirements
 - Type alias changes
 - Struct field visibility changes
-- And 240+ more lint categories
+- And many more categories (run `cargo semver-checks --list-lints` for the full list)
 
 ## Basic Usage
 
@@ -99,7 +99,7 @@ echo "Ready to publish!"
 
 ## Cargo Integration Status
 
-cargo-semver-checks is being merged into Cargo itself (RFC approved). Until then, it's a standalone tool. The lints and behavior will be the same.
+cargo-semver-checks has an approved RFC for integration into Cargo itself. Until that lands, use it as a standalone tool. The lints and behavior will carry over.
 
 ## Custom Lints
 
@@ -120,5 +120,5 @@ cargo semver-checks --explain function_missing
 - **False positives**: Rare but possible — use lint-level overrides
 - **Workspace crates**: Use `--workspace` to check all public crates
 - **Speed**: Much faster than a full compile — uses rustdoc JSON output
-- **245 lints**: Coverage is comprehensive and growing with each release
+- **Lint coverage**: Comprehensive and growing with each release — run `--list-lints` to check
 - **Combines with**: `cargo-hack` (test all features) and `cargo-deny` (full audit)

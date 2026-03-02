@@ -213,18 +213,18 @@ cargo bench -- --baseline before_change
 
 ## Comparison
 
-| Feature                  | divan                       | Criterion                            |
-| ------------------------ | --------------------------- | ------------------------------------ |
-| **API**                  | `#[divan::bench]` attribute | `criterion_group!` macro             |
-| **Setup complexity**     | Minimal                     | Moderate (macros, groups)            |
-| **Generic benchmarks**   | Built-in `types = [...]`    | Manual with macros                   |
-| **Allocation tracking**  | Built-in `AllocProfiler`    | External (dhat, etc.)                |
-| **Statistical analysis** | Basic                       | Comprehensive (confidence intervals) |
-| **Reports**              | Terminal (colored)          | HTML + Gnuplot                       |
-| **Throughput**           | Basic                       | Built-in `Throughput` type           |
-| **Baselines/comparison** | No                          | Yes (`--save-baseline`)              |
-| **CI integration**       | CodSpeed (native)           | CodSpeed + criterion-compare         |
-| **Maintenance**          | Development slowed          | Active (criterion-rs org)            |
+| Feature                  | divan                        | Criterion                            |
+| ------------------------ | ---------------------------- | ------------------------------------ |
+| **API**                  | `#[divan::bench]` attribute  | `criterion_group!` macro             |
+| **Setup complexity**     | Minimal                      | Moderate (macros, groups)            |
+| **Generic benchmarks**   | Built-in `types = [...]`     | Manual with macros                   |
+| **Allocation tracking**  | Built-in `AllocProfiler`     | External (dhat, etc.)                |
+| **Statistical analysis** | Basic                        | Comprehensive (confidence intervals) |
+| **Reports**              | Terminal (colored)           | HTML + Gnuplot                       |
+| **Throughput**           | Basic                        | Built-in `Throughput` type           |
+| **Baselines/comparison** | No                           | Yes (`--save-baseline`)              |
+| **CI integration**       | CodSpeed (native)            | CodSpeed + criterion-compare         |
+| **Maintenance**          | Maintained (check crates.io) | Active (criterion-rs organization)   |
 
 ## CodSpeed CI Integration
 
