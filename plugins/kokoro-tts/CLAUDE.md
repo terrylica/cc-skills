@@ -2,7 +2,7 @@
 
 > Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, health checks, diagnostics.
 
-**Hub**: [Root CLAUDE.md](../../CLAUDE.md)
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [tts-telegram-sync CLAUDE.md](../tts-telegram-sync/CLAUDE.md) | [plugins/CLAUDE.md](../CLAUDE.md)
 
 ## Overview
 

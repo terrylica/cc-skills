@@ -10,7 +10,7 @@ Last updated: 2026-02-04
 
 **What was done**:
 
-- Added gdrive-tools plugin to marketplace.json (21 plugins total)
+- Added gdrive-tools plugin to marketplace.json
 - Updated root CLAUDE.md with documentation hierarchy diagram
 - Added PLUGIN-LIFECYCLE.md to navigation (was orphaned)
 - Updated plugins/CLAUDE.md core plugins table (gmail-commander, gdrive-tools)
@@ -20,7 +20,7 @@ Last updated: 2026-02-04
 **Key files**:
 
 - `.claude-plugin/marketplace.json` - Added gdrive-tools
-- `CLAUDE.md` - Documentation hierarchy + 21 plugins
+- `CLAUDE.md` - Documentation hierarchy + 23 plugins
 - `plugins/CLAUDE.md` - Core plugins table
 - `docs/CLAUDE.md` - Spoke documents table
 

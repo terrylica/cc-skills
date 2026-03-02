@@ -85,7 +85,7 @@ bun scripts/validate-plugins.mjs --strict  # Fail on warnings
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (21)
+## All Plugins (23)
 
 | Plugin               | Purpose                                                                                                                          |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -95,10 +95,12 @@ If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 | `doc-tools`          | Documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF ([CLAUDE.md](./doc-tools/CLAUDE.md))                  |
 | `dotfiles-tools`     | Chezmoi dotfile management via natural language workflows ([CLAUDE.md](./dotfiles-tools/CLAUDE.md))                              |
 | `gh-tools`           | GitHub workflow automation: GFM link validation, WebFetch enforcement ([CLAUDE.md](./gh-tools/CLAUDE.md))                        |
+| `gitnexus-tools`     | GitNexus knowledge graph: explore symbols, blast radius, dead code detection ([CLAUDE.md](./gitnexus-tools/CLAUDE.md))           |
 | `git-town-workflow`  | Git-town workflow enforcement for fork-based development ([CLAUDE.md](./git-town-workflow/CLAUDE.md))                            |
 | `gmail-commander`    | Gmail + Telegram bot lifecycle, email triage, voice digest ([CLAUDE.md](./gmail-commander/CLAUDE.md))                            |
 | `itp`                | Implement-The-Plan: ADR-driven 4-phase workflow ([CLAUDE.md](./itp/CLAUDE.md))                                                   |
 | `itp-hooks`          | ITP workflow enforcement: Ruff linting, ADR/Spec sync ([CLAUDE.md](./itp-hooks/CLAUDE.md))                                       |
+| `kokoro-tts`         | Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, diagnostics ([CLAUDE.md](./kokoro-tts/CLAUDE.md))      |
 | `link-tools`         | Link validation: portability checks, lychee broken link detection, path linting ([CLAUDE.md](./link-tools/CLAUDE.md))            |
 | `mise`               | User-global mise workflow commands: release pipeline, task discovery ([CLAUDE.md](./mise/CLAUDE.md))                             |
 | `mql5`               | MQL5 development: indicator patterns, article extraction, Python workspace ([CLAUDE.md](./mql5/CLAUDE.md))                       |
