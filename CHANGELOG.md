@@ -1,3 +1,10 @@
+# [11.68.0](https://github.com/terrylica/cc-skills/compare/v11.67.0...v11.68.0) (2026-03-02)
+
+
+### Features
+
+* **gmail-commander:** add inline image extraction and download capability to gmail-cli ([27a03b6](https://github.com/terrylica/cc-skills/commit/27a03b614445653bbf8ea41ff17b1e7de295e89e))
+
 # [11.67.0](https://github.com/terrylica/cc-skills/compare/v11.66.1...v11.67.0) (2026-03-01)
 
 
