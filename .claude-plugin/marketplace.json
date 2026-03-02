@@ -561,6 +561,27 @@
       ],
       "hooks": "./plugins/rust-tools/hooks/hooks.json",
       "strict": false
+    },
+    {
+      "name": "media-tools",
+      "description": "YouTube audio download and iOS device media transfer workflows",
+      "version": "11.74.1",
+      "source": "./plugins/media-tools",
+      "category": "utilities",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "youtube",
+        "audio",
+        "bookplayer",
+        "ios",
+        "media",
+        "pymobiledevice3",
+        "yt-dlp"
+      ],
+      "strict": false
     }
   ]
 }
