@@ -1,3 +1,55 @@
+## [11.69.4](https://github.com/terrylica/cc-skills/compare/v11.69.3...v11.69.4) (2026-03-02)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>rust-tools</strong> (2 changes)</summary>
+
+- [rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/SKILL.md) - updated (+1/-1)
+- [rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/SKILL.md) - updated (+34/-34)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>rust-tools/rust-dependency-audit</strong> (3 files)</summary>
+
+- [cargo-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/cargo-audit-guide.md) - updated (+2/-2)
+- [cargo-deny](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/cargo-deny-guide.md) - updated (+2/-2)
+- [Dependency Freshness: cargo-outdated and Alternatives](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/cargo-outdated-guide.md) - updated (+5/-5)
+
+</details>
+
+<details>
+<summary><strong>rust-tools/rust-sota-arsenal</strong> (5 files)</summary>
+
+- [cargo-semver-checks](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-semver-checks.md) - updated (+4/-4)
+- [cargo-wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-wizard.md) - updated (+1/-1)
+- [Benchmarking: divan and Criterion](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/divan-and-criterion.md) - updated (+12/-12)
+- [macerator: Type-Generic SIMD](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/macerator-simd.md) - updated (+11/-11)
+- [PyO3 Upgrade Guide: 0.22+](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/pyo3-upgrade-guide.md) - updated (+8/-9)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [rust-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/CLAUDE.md) - updated (+7/-7)
+
 ## [11.69.3](https://github.com/terrylica/cc-skills/compare/v11.69.2...v11.69.3) (2026-03-02)
 
 
