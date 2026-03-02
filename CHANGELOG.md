@@ -1,3 +1,39 @@
+# [11.72.0](https://github.com/terrylica/cc-skills/compare/v11.71.0...v11.72.0) (2026-03-02)
+
+
+### Features
+
+* **gh-tools:** document Playwright automation for GitHub Issue image uploads ([fcc7d6e](https://github.com/terrylica/cc-skills/commit/fcc7d6ed4e028d41168db4f08f1d8d32f8a38e86)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+28/-7)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/issues-workflow</strong> (1 file)</summary>
+
+- [GFM Anti-Patterns in Issue Comments](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/gfm-antipatterns.md) - updated (+2)
+
+</details>
+
 # [11.71.0](https://github.com/terrylica/cc-skills/compare/v11.70.0...v11.71.0) (2026-03-02)
 
 
