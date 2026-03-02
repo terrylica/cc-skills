@@ -454,7 +454,7 @@ Marketplace plugin commands display with the `plugin:command` format:
 cc-skills/
 ├── .claude-plugin/
 │   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (20 plugins) - SSoT
+│   └── marketplace.json     # Plugin registry (23 plugins) - SSoT
 ├── plugins/
 │   ├── itp/                       # ADR-driven development workflow (11 bundled skills)
 │   ├── plugin-dev/                # Plugin development + skill architecture
