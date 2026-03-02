@@ -178,16 +178,71 @@ See <https://example.com/search?q=a&b=c#section>
 
 ---
 
+## AP-07: Private Repo Image URLs Render as Broken
+
+**Problem**: Images committed to a **private** repository don't render in Issue/PR bodies when referenced via `raw.githubusercontent.com`. The browser fetches `<img src>` URLs directly — `raw.githubusercontent.com` is a different domain from `github.com`, so no session cookies are sent, and the image 404s silently.
+
+**Example**:
+
+```markdown
+<!-- BROKEN: raw.githubusercontent.com has no browser cookies for private repos -->
+
+![screenshot](https://raw.githubusercontent.com/owner/private-repo/main/docs/images/screenshot.png)
+
+<!-- WORKING: github.com/blob/?raw=true uses the domain where browser IS authenticated -->
+
+![screenshot](https://github.com/owner/private-repo/blob/main/docs/images/screenshot.png?raw=true)
+```
+
+**Why `?raw=true` works**:
+
+1. Browser requests `github.com/...?raw=true` — sends session cookies (same domain as the issue page)
+2. GitHub validates repo access via cookies
+3. GitHub responds with 302 redirect to `raw.githubusercontent.com/...?token=SIGNED_TEMP_TOKEN`
+4. Browser follows redirect — signed token grants access without cookies
+5. Image loads
+
+**Why `raw.githubusercontent.com` fails**:
+
+1. Browser requests `raw.githubusercontent.com/...` — **no cookies** (different domain)
+2. Private repo content requires authentication
+3. Request returns 404
+4. Image renders as broken
+
+**Key rules**:
+
+| Repo Visibility | URL Format                                 | Works?  |
+| --------------- | ------------------------------------------ | ------- |
+| Public          | `raw.githubusercontent.com/owner/repo/...` | Yes     |
+| Public          | `github.com/owner/repo/blob/...?raw=true`  | Yes     |
+| **Private**     | `raw.githubusercontent.com/owner/repo/...` | **No**  |
+| **Private**     | `github.com/owner/repo/blob/...?raw=true`  | **Yes** |
+
+**URL pattern** (for scripting):
+
+```bash
+# Base URL for private repo images in Issues/PRs
+IMG_BASE="https://github.com/${OWNER}/${REPO}/blob/${BRANCH}/${PATH_TO_DIR}"
+
+# Reference in markdown
+![alt text](${IMG_BASE}/filename.png?raw=true)
+```
+
+**Note**: This applies to any context where GitHub renders markdown and the browser loads images client-side — Issue bodies, Issue comments, PR descriptions, PR review comments, and Discussion posts. It does NOT affect README rendering (GitHub proxies those server-side).
+
+---
+
 ## Quick Reference Card
 
-| Anti-Pattern | Trigger          | Policy                          | Fix                                                                  |
-| ------------ | ---------------- | ------------------------------- | -------------------------------------------------------------------- |
-| AP-01        | `#N` anywhere    | **NEVER** use bare `#N`         | Backtick `` `#N` `` for non-issues; explicit URL for real references |
-| AP-02        | `@name` in prose | Suppress unintentional mentions | Backtick `` `@property` ``                                           |
-| AP-03        | Hex strings      | Suppress commit auto-links      | Backtick `` `0xDEAD` ``                                              |
-| AP-04        | Complex `--body` | Use heredoc for special chars   | Heredoc `$(cat <<'EOF'...)` or `--body-file`                         |
-| AP-05        | Complex URLs     | Protect special characters      | Angle brackets `<URL>`                                               |
-| AP-06        | Pipe in table    | Escape pipe character           | HTML entity `&#124;`                                                 |
+| Anti-Pattern | Trigger          | Policy                                    | Fix                                                                  |
+| ------------ | ---------------- | ----------------------------------------- | -------------------------------------------------------------------- |
+| AP-01        | `#N` anywhere    | **NEVER** use bare `#N`                   | Backtick `` `#N` `` for non-issues; explicit URL for real references |
+| AP-02        | `@name` in prose | Suppress unintentional mentions           | Backtick `` `@property` ``                                           |
+| AP-03        | Hex strings      | Suppress commit auto-links                | Backtick `` `0xDEAD` ``                                              |
+| AP-04        | Complex `--body` | Use heredoc for special chars             | Heredoc `$(cat <<'EOF'...)` or `--body-file`                         |
+| AP-05        | Complex URLs     | Protect special characters                | Angle brackets `<URL>`                                               |
+| AP-06        | Pipe in table    | Escape pipe character                     | HTML entity `&#124;`                                                 |
+| AP-07        | Private repo img | **NEVER** use `raw.githubusercontent.com` | `github.com/.../blob/...?raw=true`                                   |
 
 ---
 

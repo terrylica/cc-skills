@@ -173,6 +173,53 @@ Events logged:
 - [Label Strategy Reference](./references/label-strategy.md)
 - [AI Prompts Reference](./references/ai-prompts.md)
 
+## Embedding Images in Issues
+
+GitHub Issues have **no API for programmatic image upload**. The web UI's drag-and-drop uses an internal S3 policy flow that is intentionally not exposed to API clients ([cli/cli#1895](https://github.com/cli/cli/issues/1895)).
+
+### Images Committed to the Repository
+
+For images already committed to the repo, use `github.com/blob/...?raw=true` URLs — **not** `raw.githubusercontent.com`:
+
+```bash
+# BROKEN for private repos (no browser cookies on raw.githubusercontent.com)
+![img](https://raw.githubusercontent.com/owner/repo/main/path/image.png)
+
+# WORKING for all repos (browser has cookies on github.com, gets signed redirect)
+![img](https://github.com/owner/repo/blob/main/path/image.png?raw=true)
+```
+
+**Scripting pattern** (11 images → issue body with inline images):
+
+```bash
+IMG_BASE="https://github.com/${OWNER}/${REPO}/blob/main/${IMG_DIR}"
+
+gh issue create --title "Feedback with screenshots" --body "$(cat <<EOF
+## Item 1
+![description](${IMG_BASE}/01-screenshot.png?raw=true)
+
+## Item 2
+![description](${IMG_BASE}/02-screenshot.png?raw=true)
+EOF
+)"
+```
+
+See [AP-07 in GFM Anti-Patterns](../issues-workflow/references/gfm-antipatterns.md#ap-07-private-repo-image-urls-render-as-broken) for the full technical explanation.
+
+### Images NOT in the Repository
+
+For images only on disk (not committed), three options:
+
+| Method                   | How                                                   | Permanent?                   |
+| ------------------------ | ----------------------------------------------------- | ---------------------------- |
+| **Web UI paste**         | Open issue in browser, Ctrl/Cmd+V images into comment | Yes (`user-attachments` CDN) |
+| **Web UI drag-and-drop** | Drag image files into the comment box                 | Yes (`user-attachments` CDN) |
+| **Commit first**         | `git add` images, push, then use `?raw=true` URLs     | Yes (repo-hosted)            |
+
+There is no CLI-only method to upload images to GitHub's `user-attachments` CDN. Tools like [`gh-attach`](https://zenn.dev/atani/articles/gh-attach-built-with-claude-code?locale=en) work around this by automating a headless browser (Playwright).
+
+---
+
 ## Troubleshooting
 
 ### "No repository context"
