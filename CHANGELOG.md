@@ -1,3 +1,24 @@
+## [11.69.1](https://github.com/terrylica/cc-skills/compare/v11.69.0...v11.69.1) (2026-03-02)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-commander</strong> (1 change)</summary>
+
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/gmail-access/SKILL.md) - updated (+183/-34)
+
+</details>
+
 # [11.69.0](https://github.com/terrylica/cc-skills/compare/v11.68.1...v11.69.0) (2026-03-02)
 
 
