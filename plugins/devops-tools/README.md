@@ -12,25 +12,25 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 
 ## Skills
 
-| Skill                             | Description                                                                |
-| --------------------------------- | -------------------------------------------------------------------------- |
-| **clickhouse-cloud-management**   | ClickHouse Cloud user creation, permissions, and credential management     |
-| **clickhouse-pydantic-config**    | Generate DBeaver configurations from Pydantic ClickHouse models            |
-| **doppler-workflows**             | PyPI publishing, AWS credential rotation, multi-service patterns           |
-| **doppler-secret-validation**     | Add, validate, and test API tokens/credentials in Doppler                  |
-| **firecrawl-self-hosted**         | Self-hosted Firecrawl deployment, Docker restart policies, troubleshooting |
-| **ml-data-pipeline-architecture** | Polars vs Pandas decision tree, zero-copy patterns for ML pipelines        |
-| **ml-failfast-validation**        | POC validation patterns for ML experiments (10-check framework)            |
-| **mlflow-python**                 | Log backtest metrics, query experiments, QuantStats integration            |
-| **session-recovery**              | Troubleshoot Claude Code session issues and HOME variable problems         |
-| **session-chronicle**             | Session provenance tracking with S3 artifact sharing for team access       |
-| **dual-channel-watchexec**        | Send notifications to Telegram + Pushover on process events                |
-| **python-logging-best-practices** | Unified Python logging with loguru, platformdirs, RotatingFileHandler      |
-| **disk-hygiene**                  | macOS disk cleanup, cache pruning, stale file detection, Downloads triage  |
-| **project-directory-migration**   | Migrate Claude Code sessions when renaming project directories             |
-| **cloudflare-workers-publish**    | Deploy static HTML to Cloudflare Workers with 1Password credentials        |
-| **pueue-job-orchestration**       | Pueue job lifecycle orchestration for long-running tasks                   |
-| **distributed-job-safety**        | Concurrency safety patterns for pueue + mise + systemd-run job pipelines   |
+| Skill                             | Description                                                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------- |
+| **clickhouse-cloud-management**   | ClickHouse Cloud user creation, permissions, and credential management                   |
+| **clickhouse-pydantic-config**    | Generate DBeaver configurations from Pydantic ClickHouse models                          |
+| **doppler-workflows**             | PyPI publishing, AWS credential rotation, multi-service patterns                         |
+| **doppler-secret-validation**     | Add, validate, and test API tokens/credentials in Doppler                                |
+| **firecrawl-research-patterns**   | Programmatic Firecrawl: search, scrape, academic routing, deep research, self-hosted ops |
+| **ml-data-pipeline-architecture** | Polars vs Pandas decision tree, zero-copy patterns for ML pipelines                      |
+| **ml-failfast-validation**        | POC validation patterns for ML experiments (10-check framework)                          |
+| **mlflow-python**                 | Log backtest metrics, query experiments, QuantStats integration                          |
+| **session-recovery**              | Troubleshoot Claude Code session issues and HOME variable problems                       |
+| **session-chronicle**             | Session provenance tracking with S3 artifact sharing for team access                     |
+| **dual-channel-watchexec**        | Send notifications to Telegram + Pushover on process events                              |
+| **python-logging-best-practices** | Unified Python logging with loguru, platformdirs, RotatingFileHandler                    |
+| **disk-hygiene**                  | macOS disk cleanup, cache pruning, stale file detection, Downloads triage                |
+| **project-directory-migration**   | Migrate Claude Code sessions when renaming project directories                           |
+| **cloudflare-workers-publish**    | Deploy static HTML to Cloudflare Workers with 1Password credentials                      |
+| **pueue-job-orchestration**       | Pueue job lifecycle orchestration for long-running tasks                                 |
+| **distributed-job-safety**        | Concurrency safety patterns for pueue + mise + systemd-run job pipelines                 |
 
 ## Installation
 
@@ -49,7 +49,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "DBeaver config", "connection setup" -> clickhouse-pydantic-config
 - "publish to PyPI" -> doppler-workflows
 - "add to Doppler", "validate token" -> doppler-secret-validation
-- "firecrawl setup", "self-hosted scraper", "docker restart policy" -> firecrawl-self-hosted
+- "firecrawl setup", "self-hosted scraper", "docker restart policy", "firecrawl scrape", "deep research" -> firecrawl-research-patterns
 - "Polars vs Pandas", "ML data pipeline", "zero-copy" -> ml-data-pipeline-architecture
 - "POC validation", "fail-fast checks", "ML experiment validation" -> ml-failfast-validation
 - "log backtest", "MLflow metrics", "search runs" -> mlflow-python
@@ -120,12 +120,12 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Restart detection (startup, code change, crash)
 - Message archiving for debugging
 
-### Firecrawl Self-Hosted
+### Firecrawl Research Patterns
 
-- Docker Compose deployment with restart policies
-- Troubleshooting guide for container failures
-- Best practices: `restart: unless-stopped` for all services
-- YAML anchors for consistent configuration
+- Programmatic search and scrape via self-hosted Firecrawl (172.25.236.1)
+- Academic paper routing (arxiv, Semantic Scholar, IEEE, ACM DL)
+- Recursive deep research protocol with corpus persistence
+- Self-hosted operations: Docker Compose, health checks, recovery
 - ZeroTier network integration
 
 ### ML Data Pipeline Architecture
