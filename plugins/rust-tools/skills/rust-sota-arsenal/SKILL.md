@@ -1,12 +1,38 @@
 ---
 name: rust-sota-arsenal
 description: "SOTA Rust tooling - refactoring (ast-grep, cargo-semver-checks), profiling (samply, cargo-pgo, cargo-wizard), benchmarking (divan, Criterion), testing (cargo-nextest, cargo-mutants, cargo-hack), SIMD (macerator). TRIGGERS - rust refactoring, cargo bench, profiling rust, simd optimization, rust performance, ast-grep, divan, mutation testing, samply, cargo-nextest, cargo-wizard."
-allowed-tools: Read, Grep, Bash, Edit, Write
+allowed-tools: Read, Grep, Bash, Edit, Write, WebSearch, WebFetch
 ---
 
 # Rust SOTA Arsenal
 
 State-of-the-art Rust tooling knowledge for refactoring, profiling, benchmarking, testing, and SIMD optimization — tools that LLMs often lack deep training data on.
+
+## CRITICAL: Web-Verify Before Acting
+
+**The reference docs in this skill are a starting point, not ground truth.** Tool versions, compatibility matrices, and API surfaces evolve faster than static docs. Before recommending specific versions or making upgrade decisions:
+
+1. **Check crates.io for latest versions**: `WebFetch` the crates.io API to get current version info
+
+   ```
+   WebFetch: https://crates.io/api/v1/crates/{crate_name}
+   Prompt: "What is the latest version? List recent versions."
+   ```
+
+2. **Check dependency compatibility**: When upgrading (e.g., PyO3), verify downstream crate compatibility
+
+   ```
+   WebFetch: https://crates.io/api/v1/crates/{crate_name}/{version}/dependencies
+   Prompt: "What version of {dependency} does this require?"
+   ```
+
+3. **Search for breaking changes**: `WebSearch` for changelogs and migration guides
+
+   ```
+   WebSearch: "{crate_name} latest version changelog migration"
+   ```
+
+**Why**: The opendeviationbar session discovered PyO3 was at 0.28.2 (not 0.28) and pyo3-arrow at 0.17.0 only by web-searching — static docs would have led to wrong upgrade decisions.
 
 ## When to Use
 

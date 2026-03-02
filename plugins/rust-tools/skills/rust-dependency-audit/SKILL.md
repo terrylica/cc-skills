@@ -1,12 +1,36 @@
 ---
 name: rust-dependency-audit
 description: "Rust dependency audit - cargo-audit (vulnerabilities), cargo-deny (licenses and advisories), cargo-vet (supply chain), cargo-outdated and cargo-upgrades (freshness). TRIGGERS - cargo outdated, dependency audit, vulnerability scan, license check, cargo update, supply chain, crate freshness."
-allowed-tools: Read, Grep, Bash
+allowed-tools: Read, Grep, Bash, WebSearch, WebFetch
 ---
 
 # Rust Dependency Audit
 
 Comprehensive dependency audit workflow using four complementary tools: freshness checking, vulnerability scanning, license/advisory compliance, and supply chain verification.
+
+## CRITICAL: Web-Verify Before Upgrade Decisions
+
+**Always check crates.io for latest versions before recommending upgrades.** Static docs go stale; the crates.io API is ground truth.
+
+1. **Before upgrading a crate**: Check what version is current and what it depends on
+
+   ```
+   WebFetch: https://crates.io/api/v1/crates/{crate_name}
+   Prompt: "What is the latest version? List recent versions and their dependencies."
+   ```
+
+2. **Before ignoring a vulnerability**: Verify whether a patched version exists
+
+   ```
+   WebSearch: "{advisory_id} {crate_name} fix patch"
+   ```
+
+3. **Check compatibility chains**: When crate A depends on crate B, verify both latest versions are compatible
+
+   ```
+   WebFetch: https://crates.io/api/v1/crates/{crate_name}/{version}/dependencies
+   Prompt: "What version of {dependency} does this require?"
+   ```
 
 ## When to Use
 
