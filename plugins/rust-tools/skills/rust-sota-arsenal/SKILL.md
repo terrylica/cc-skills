@@ -32,6 +32,17 @@ State-of-the-art Rust tooling knowledge for refactoring, profiling, benchmarking
    WebSearch: "{crate_name} latest version changelog migration"
    ```
 
+4. **Fallback: Firecrawl scrape** (if WebFetch fails or returns incomplete data — e.g., JS-heavy pages, rate limits):
+
+   ```bash
+   curl -s -X POST http://172.25.236.1:3002/v1/scrape \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://crates.io/crates/{crate_name}", "formats": ["markdown"], "waitFor": 0}' \
+     | jq -r '.data.markdown'
+   ```
+
+   Requires ZeroTier connectivity. See `/devops-tools:firecrawl-research-patterns` for full API reference.
+
 **Why**: The opendeviationbar-py session discovered PyO3 was at 0.28.2 (not 0.28) and pyo3-arrow at 0.17.0 only by web-searching — static docs would have led to wrong upgrade decisions.
 
 ## When to Use
