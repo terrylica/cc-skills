@@ -177,22 +177,78 @@ Events logged:
 
 GitHub Issues have **no API for programmatic image upload**. The web UI's drag-and-drop uses an internal S3 policy flow that is intentionally not exposed to API clients ([cli/cli#1895](https://github.com/cli/cli/issues/1895)).
 
-### Images Committed to the Repository
+### Preflight: Ensure Images Are Reachable
 
-For images already committed to the repo, use `github.com/blob/...?raw=true` URLs — **not** `raw.githubusercontent.com`:
+The `?raw=true` URL resolves via `github.com` — if the image doesn't exist at that path on the remote, it silently 404s (broken image, no error). **Run this preflight before creating the issue:**
 
 ```bash
-# BROKEN for private repos (no browser cookies on raw.githubusercontent.com)
+# 1. Detect repo context
+OWNER_REPO=$(gh repo view --json nameWithOwner -q '.nameWithOwner')
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+VISIBILITY=$(gh repo view --json visibility -q '.visibility')
+
+# 2. Verify images are git-tracked (not gitignored)
+IMG_DIR="path/to/images"
+for f in ${IMG_DIR}/*.png; do
+  git ls-files --error-unmatch "$f" >/dev/null 2>&1 \
+    || echo "WARNING: $f is NOT tracked by git (check .gitignore)"
+done
+
+# 3. Verify images are committed (not just staged or untracked)
+UNCOMMITTED=$(git diff --name-only HEAD -- "${IMG_DIR}/" 2>/dev/null)
+UNTRACKED=$(git ls-files --others --exclude-standard -- "${IMG_DIR}/" 2>/dev/null)
+if [[ -n "$UNCOMMITTED" || -n "$UNTRACKED" ]]; then
+  echo "FAIL: Images not committed — commit and push first"
+  echo "  Uncommitted: ${UNCOMMITTED}"
+  echo "  Untracked:   ${UNTRACKED}"
+  exit 1
+fi
+
+# 4. Verify commit is pushed to remote (local commits invisible to github.com)
+LOCAL_SHA=$(git rev-parse HEAD)
+REMOTE_SHA=$(git rev-parse "origin/${BRANCH}" 2>/dev/null)
+if [[ "$LOCAL_SHA" != "$REMOTE_SHA" ]]; then
+  echo "FAIL: Local commits not pushed — run: git push origin ${BRANCH}"
+  exit 1
+fi
+
+# 5. Build image base URL
+IMG_BASE="https://github.com/${OWNER_REPO}/blob/${BRANCH}/${IMG_DIR}"
+echo "Image base URL: ${IMG_BASE}/<filename>.png?raw=true"
+echo "Repo visibility: ${VISIBILITY}"
+if [[ "$VISIBILITY" == "PRIVATE" ]]; then
+  echo "NOTE: Images only visible to authenticated collaborators"
+fi
+```
+
+**Preflight checklist** (what each step catches):
+
+| Step | Check                  | Failure Mode                                     |
+| ---- | ---------------------- | ------------------------------------------------ |
+| 1    | Repo context exists    | No `OWNER_REPO` to build URLs                    |
+| 2    | Images are git-tracked | `.gitignore` silently excludes them              |
+| 3    | Images are committed   | Staged/untracked files don't exist on remote     |
+| 4    | Commit is pushed       | Local-only commits are invisible to `github.com` |
+| 5    | URL construction       | Wrong branch name → 404                          |
+
+### URL Format: `?raw=true` vs `raw.githubusercontent.com`
+
+For images already committed and pushed, use `github.com/blob/...?raw=true` URLs — **not** `raw.githubusercontent.com`:
+
+```markdown
+<!-- BROKEN for private repos (no browser cookies on raw.githubusercontent.com) -->
+
 ![img](https://raw.githubusercontent.com/owner/repo/main/path/image.png)
 
-# WORKING for all repos (browser has cookies on github.com, gets signed redirect)
+<!-- WORKING for all repos (browser has cookies on github.com, gets signed redirect) -->
+
 ![img](https://github.com/owner/repo/blob/main/path/image.png?raw=true)
 ```
 
-**Scripting pattern** (11 images → issue body with inline images):
+**Scripting pattern** (batch images → issue body):
 
 ```bash
-IMG_BASE="https://github.com/${OWNER}/${REPO}/blob/main/${IMG_DIR}"
+IMG_BASE="https://github.com/${OWNER_REPO}/blob/${BRANCH}/${IMG_DIR}"
 
 gh issue create --title "Feedback with screenshots" --body "$(cat <<EOF
 ## Item 1
@@ -210,11 +266,11 @@ See [AP-07 in GFM Anti-Patterns](../issues-workflow/references/gfm-antipatterns.
 
 For images only on disk (not committed), three options:
 
-| Method                   | How                                                   | Permanent?                   |
-| ------------------------ | ----------------------------------------------------- | ---------------------------- |
-| **Web UI paste**         | Open issue in browser, Ctrl/Cmd+V images into comment | Yes (`user-attachments` CDN) |
-| **Web UI drag-and-drop** | Drag image files into the comment box                 | Yes (`user-attachments` CDN) |
-| **Commit first**         | `git add` images, push, then use `?raw=true` URLs     | Yes (repo-hosted)            |
+| Method                   | How                                                              | Permanent?                   |
+| ------------------------ | ---------------------------------------------------------------- | ---------------------------- |
+| **Commit + push first**  | `git add` images, push, run preflight, then use `?raw=true` URLs | Yes (repo-hosted)            |
+| **Web UI paste**         | Open issue in browser, Ctrl/Cmd+V images into comment box        | Yes (`user-attachments` CDN) |
+| **Web UI drag-and-drop** | Drag image files into the comment box                            | Yes (`user-attachments` CDN) |
 
 There is no CLI-only method to upload images to GitHub's `user-attachments` CDN. Tools like [`gh-attach`](https://zenn.dev/atani/articles/gh-attach-built-with-claude-code?locale=en) work around this by automating a headless browser (Playwright).
 
