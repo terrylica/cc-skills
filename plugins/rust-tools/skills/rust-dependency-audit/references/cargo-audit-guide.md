@@ -58,8 +58,8 @@ Create `audit.toml` at project root:
 [advisories]
 # Ignore specific advisories (with documented reason)
 ignore = [
-    # RUSTSEC-2024-0001: Not affected because we don't use feature X
-    "RUSTSEC-2024-0001",
+    # RUSTSEC-YYYY-NNNN: Not affected because we don't use feature X
+    "RUSTSEC-YYYY-NNNN",
 ]
 
 # Severity threshold (ignore below this level)

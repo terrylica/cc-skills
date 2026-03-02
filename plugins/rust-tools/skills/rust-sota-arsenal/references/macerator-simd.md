@@ -13,15 +13,15 @@ macerator = "<version>"  # See https://crates.io/crates/macerator
 
 ## Why macerator
 
-The Rust SIMD landscape in 2025:
+The Rust SIMD landscape:
 
-| Crate         | Stable      | Type-Generic  | Multiversioning | Status         |
-| ------------- | ----------- | ------------- | --------------- | -------------- |
-| **macerator** | Yes         | Yes           | Yes             | Active         |
-| `wide`        | Yes         | No (concrete) | No              | Active         |
-| `pulp`        | Yes         | Yes           | Yes             | Superseded     |
-| `std::simd`   | **Nightly** | Yes           | No              | No stable date |
-| `packed_simd` | **Nightly** | Yes           | No              | Deprecated     |
+| Crate         | Stable      | Type-Generic  | Multiversioning | Status                                              |
+| ------------- | ----------- | ------------- | --------------- | --------------------------------------------------- |
+| **macerator** | Yes         | Yes           | Yes             | Active                                              |
+| `wide`        | Yes         | No (concrete) | No              | Active                                              |
+| `pulp`        | Yes         | Yes           | Yes             | Superseded                                          |
+| `std::simd`   | **Nightly** | Yes           | No              | Nightly-only (tracking issue: rust-lang/rust#86656) |
+| `packed_simd` | **Nightly** | Yes           | No              | Deprecated                                          |
 
 **macerator** is the only option that provides all three: stable Rust, type-generic operations, and runtime multiversioning.
 
@@ -188,9 +188,9 @@ use macerator::Simd;
 
 ## Watch List
 
-- **`fearless_simd`**: New crate, only supports NEON/WASM/SSE4.2 — too early for production
-- **`std::simd` stabilization**: No RFC for stabilization yet; could be years away
-- **`simdeez`**: Exists but barely used despite being available for years
+- **`fearless_simd`**: Limited arch support (only NEON/WASM/SSE4.2) — check crates.io for updates
+- **`std::simd` stabilization**: Track rust-lang/rust#86656 for stabilization progress
+- **`simdeez`**: Low adoption — check crates.io download counts before adopting
 
 ## Tips
 

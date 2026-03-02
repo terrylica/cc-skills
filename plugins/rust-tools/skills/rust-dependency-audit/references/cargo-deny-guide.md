@@ -53,7 +53,7 @@ yanked = "warn"             # Warn on yanked versions
 # Ignore specific advisories
 ignore = [
     # Reason for ignoring
-    "RUSTSEC-2024-0001",
+    "RUSTSEC-YYYY-NNNN",
 ]
 ```
 
@@ -220,4 +220,4 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 - **SARIF integration**: GitHub Security tab shows cargo-deny findings inline
 - **Multiple versions**: `multiple-versions = "warn"` is a good default (strict: "deny")
 - **Complements cargo-audit**: cargo-deny does everything cargo-audit does plus more
-- **Active maintenance**: 10+ releases in 2025, by Embark Studios
+- **Active maintenance**: Frequent releases by Embark Studios — check crates.io for the latest

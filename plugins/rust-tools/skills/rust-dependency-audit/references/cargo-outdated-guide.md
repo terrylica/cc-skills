@@ -52,7 +52,7 @@ clap             4.3.0    ---     4.5.0   Normal  ---
 
 ### Note on Maintenance
 
-cargo-outdated's maintainer has indicated that Cargo is getting native outdated dependency support. The tool works well but updates may slow.
+cargo-outdated works well for comprehensive audits. Cargo is gaining native support for dependency freshness (see `cargo update --breaking` below), which may eventually reduce the need for this tool.
 
 ## cargo-upgrades
 
@@ -95,14 +95,14 @@ cargo upgrade --workspace
 
 ## Native Cargo Support (Nightly)
 
-Cargo is gaining native support for dependency freshness:
+Cargo has native support for updating dependencies including breaking changes:
 
 ```bash
-# Nightly only — update deps including breaking changes
-cargo +nightly update --breaking
+# Update deps including breaking changes (check `cargo update --help` for availability)
+cargo update --breaking
 ```
 
-This may eventually replace cargo-outdated for basic use cases.
+As Cargo's native features mature, this may reduce the need for cargo-outdated for basic use cases.
 
 ## cargo-unmaintained
 
