@@ -1,0 +1,12 @@
+{
+  "id": "task-2",
+  "title": "Task 2: Cross-Platform Format Analysis",
+  "status": "in_progress",
+  "depends_on": [],
+  "created_at": "2026-03-02T20:27:31.256Z",
+  "updated_at": "2026-03-02T20:27:31.366Z",
+  "attempt_count": 1,
+  "started_at": "2026-03-02T20:27:31.357Z",
+  "base_commit": "b6d2fb55530c5d83b3195a3eec0ec46c4ba2c7ac",
+  "assigned_to": "OakYak"
+}
