@@ -1,3 +1,24 @@
+## [11.69.3](https://github.com/terrylica/cc-skills/compare/v11.69.2...v11.69.3) (2026-03-02)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+67/-11)
+
+</details>
+
 ## [11.69.2](https://github.com/terrylica/cc-skills/compare/v11.69.1...v11.69.2) (2026-03-02)
 
 
