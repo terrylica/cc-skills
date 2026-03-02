@@ -2,6 +2,12 @@
 
 Migration guide for PyO3 Rust↔Python bindings. PyO3 has evolved significantly — the API surface changed substantially starting from 0.22. Always check the [PyO3 changelog](https://pyo3.rs/main/changelog.html) for the latest version.
 
+> **Web-verify first**: Before planning a PyO3 migration, check the actual latest versions:
+>
+> - `WebFetch: https://crates.io/api/v1/crates/pyo3` — get latest PyO3 version
+> - `WebFetch: https://crates.io/api/v1/crates/pyo3-arrow` — if using Arrow bindings
+> - Check that downstream crates (pyo3-arrow, pyo3-polars, etc.) support the target PyO3 version before upgrading
+
 ## Version Overview
 
 | Version | Key Change                                           |
