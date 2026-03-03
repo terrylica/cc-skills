@@ -1,3 +1,29 @@
+## [11.75.1](https://github.com/terrylica/cc-skills/compare/v11.75.0...v11.75.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* **docs:** Update plugin counts and navigation to reflect 23 plugins ([d07bad0](https://github.com/terrylica/cc-skills/commit/d07bad073a677015df86808a80cba5f8fa263f85))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - updated (+22/-12)
+
+</details>
+
 # [11.75.0](https://github.com/terrylica/cc-skills/compare/v11.74.1...v11.75.0) (2026-03-03)
 
 
