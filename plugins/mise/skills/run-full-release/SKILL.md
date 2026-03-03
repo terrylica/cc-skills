@@ -128,18 +128,25 @@ ls $HOME/.claude/plugins/marketplaces/cc-skills/.mise/tasks/release/
 
 Create the release task directory and files customized to THIS repo:
 
-| Task        | Always                        | Repo-Specific Additions                                     |
-| ----------- | ----------------------------- | ----------------------------------------------------------- |
-| `_default`  | Help/navigation               | —                                                           |
-| `preflight` | Clean dir, auth, branch check | Plugin validation, build tool checks                        |
-| `version`   | semantic-release              | Repo-specific `.releaserc.yml` plugins                      |
-| `sync`      | Git push                      | PyPI publish (if exists), crates.io publish (if Rust), sync |
-| `pypi`      | (Optional)                    | `scripts/publish-to-pypi.sh` via `uv publish` or `twine`    |
-| `crates`    | (Optional)                    | `cargo publish --workspace` (Rust 1.90+, native ordering)   |
-| `verify`    | Tag + release check           | Verify artifacts (wheels, packages, published versions)     |
-| `full`      | Orchestrator (`depends`)      | Include all repo-specific phases                            |
-| `dry`       | `semantic-release --dry-run`  | —                                                           |
-| `status`    | Current version info          | —                                                           |
+| Task        | Always                                          | Repo-Specific Additions                                     |
+| ----------- | ----------------------------------------------- | ----------------------------------------------------------- |
+| `_default`  | Help/navigation                                 | —                                                           |
+| `preflight` | Clean dir, auth, branch check, lockfile cleanup | Plugin validation, build tool checks                        |
+| `version`   | semantic-release                                | Repo-specific `.releaserc.yml` plugins                      |
+| `sync`      | Git push                                        | PyPI publish (if exists), crates.io publish (if Rust), sync |
+| `pypi`      | (Optional)                                      | `scripts/publish-to-pypi.sh` via `uv publish` or `twine`    |
+| `crates`    | (Optional)                                      | `cargo publish --workspace` (Rust 1.90+, native ordering)   |
+| `verify`    | Tag + release check                             | Verify artifacts (wheels, packages, published versions)     |
+| `full`      | Orchestrator, post-release lockfile cleanup     | Include all repo-specific phases                            |
+| `dry`       | `semantic-release --dry-run`                    | —                                                           |
+| `status`    | Current version info                            | —                                                           |
+
+**Lockfile cleanup** is mandatory in both `preflight` (after test/validation runs) and `full` (after all phases complete). Commands like `uv run`, `npm install`, `cargo build` during release phases modify lockfiles as an artifact — these must be reset to avoid polluting the working directory. The canonical one-liner:
+
+```bash
+# Reset lockfile drift (artifact from uv run, npm install, cargo build, etc.)
+git diff --name-only | grep -E '^(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb|yarn\.lock|pnpm-lock\.yaml)$' | xargs -r git checkout --
+```
 
 **Publishing Capability Detection:**
 
@@ -215,6 +222,9 @@ fi
 # Phase 3: Verify
 echo "→ Phase 3: Verifying..."
 mise run release:verify
+
+# Post-release: reset lockfile drift (artifact from uv run, cargo build, etc.)
+git diff --name-only | grep -E '^(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb|yarn\.lock|pnpm-lock\.yaml)$' | xargs -r git checkout --
 
 echo ""
 echo "✓ Release complete!"
