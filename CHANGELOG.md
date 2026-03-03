@@ -1,3 +1,48 @@
+# [11.75.0](https://github.com/terrylica/cc-skills/compare/v11.74.1...v11.75.0) (2026-03-03)
+
+
+### Features
+
+* **media-tools:** Add YouTube audio download and BookPlayer transfer plugin ([bb08831](https://github.com/terrylica/cc-skills/commit/bb0883107dab4e92f69d4d7b53ca72c0850e4366))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>media-tools</strong> (1 change)</summary>
+
+- [youtube-to-bookplayer](https://github.com/terrylica/cc-skills/blob/main/plugins/media-tools/skills/youtube-to-bookplayer/SKILL.md) - new (+282)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>media-tools/youtube-to-bookplayer</strong> (3 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/media-tools/skills/youtube-to-bookplayer/references/evolution-log.md) - new (+21)
+- [Tool Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/media-tools/skills/youtube-to-bookplayer/references/tool-reference.md) - new (+127)
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/media-tools/skills/youtube-to-bookplayer/references/troubleshooting.md) - new (+44)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [media-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/media-tools/CLAUDE.md) - new (+41)
+
 ## [11.74.1](https://github.com/terrylica/cc-skills/compare/v11.74.0...v11.74.1) (2026-03-02)
 
 
