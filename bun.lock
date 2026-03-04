@@ -6,6 +6,7 @@
       "name": "cc-skills",
       "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+        "ansis": "^3.0.0",
         "liquidjs": "^10.24.0",
         "zod": "^4.3.6",
       },
@@ -135,6 +136,8 @@
     "ansi-regex": ["ansi-regex@6.2.2", "", {}, ""],
 
     "ansi-styles": ["ansi-styles@3.2.1", "", { "dependencies": { "color-convert": "^1.9.0" } }, ""],
+
+    "ansis": ["ansis@3.17.0", "", {}, "sha512-0qWUglt9JEqLFr3w1I1pbrChn1grhaiAR2ocX1PP/flRmxgtwTzPFFFnfIlD6aMOLQZgSuCRlidD70lvx8yhzg=="],
 
     "any-promise": ["any-promise@1.3.0", "", {}, ""],
 
