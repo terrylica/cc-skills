@@ -85,12 +85,21 @@ function isException(command: string): boolean {
     return true;
   }
 
-  // 6. Read-only pip operations (list, show, freeze, check, --version, --help)
+  // 6. Commands whose arguments contain free-form text (commit messages, issue bodies)
+  //    These commonly reference pip/conda as documentation, not as actual operations
+  if (/^\s*gh\s+(issue|pr)\s+(create|edit|comment)\b/i.test(commandLower)) {
+    return true;
+  }
+  if (/^\s*git\s+(commit|tag)\b/i.test(commandLower)) {
+    return true;
+  }
+
+  // 7. Read-only pip operations (list, show, freeze, check, --version, --help)
   if (/\bpip3?\s+(list|show|freeze|check|--version|--help|-h)\b/i.test(commandLower)) {
     return true;
   }
 
-  // 7. pip-compile (constraint compilation tool)
+  // 8. pip-compile (constraint compilation tool)
   if (/\bpip-compile\b/i.test(commandLower)) {
     return true;
   }
