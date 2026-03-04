@@ -96,7 +96,7 @@ for PLUGIN in $(jq -r '.plugins[].name' "$MARKETPLACE_JSON"); do
         fi
     fi
     # 8b: in enabledPlugins?
-    IN_ENABLED=$(jq -r --arg k "$KEY" '.enabledPlugins // [] | index($k) // "missing"' "$SETTINGS")
+    IN_ENABLED=$(jq -r --arg k "$KEY" '.enabledPlugins[$k] // "missing"' "$SETTINGS")
     if [[ "$IN_ENABLED" == "missing" ]]; then
         echo "  ✗ $KEY missing from enabledPlugins in settings.json"
         ((ERRORS++))
