@@ -1,3 +1,10 @@
+## [11.76.6](https://github.com/terrylica/cc-skills/compare/v11.76.5...v11.76.6) (2026-03-04)
+
+
+### Bug Fixes
+
+* **itp-hooks:** Extend stdin inlet guard to protect MCP shell_execute calls ([8b01149](https://github.com/terrylica/cc-skills/commit/8b0114974cf8feff030a1534913e7b9b933fb1aa))
+
 ## [11.76.5](https://github.com/terrylica/cc-skills/compare/v11.76.4...v11.76.5) (2026-03-04)
 
 
