@@ -80,7 +80,47 @@ else
     echo "  ⚠ No cc-skills commands found in $COMMANDS_DIR — run sync-commands-to-settings.sh"
 fi
 
+# Check 8: Cross-validate runtime artifacts against marketplace.json
+echo "→ Cross-validating runtime artifacts..."
+MARKETPLACE_JSON="$MARKETPLACE_DIR/.claude-plugin/marketplace.json"
+INSTALLED="$HOME/.claude/plugins/installed_plugins.json"
+ERRORS=0
+for PLUGIN in $(jq -r '.plugins[].name' "$MARKETPLACE_JSON"); do
+    KEY="${PLUGIN}@cc-skills"
+    # 8a: in installed_plugins.json?
+    if [[ -f "$INSTALLED" ]]; then
+        IN_INSTALLED=$(jq -r --arg k "$KEY" '.plugins[$k] // "missing"' "$INSTALLED")
+        if [[ "$IN_INSTALLED" == "missing" ]]; then
+            echo "  ✗ $KEY missing from installed_plugins.json"
+            ((ERRORS++))
+        fi
+    fi
+    # 8b: in enabledPlugins?
+    IN_ENABLED=$(jq -r --arg k "$KEY" '.enabledPlugins // [] | index($k) // "missing"' "$SETTINGS")
+    if [[ "$IN_ENABLED" == "missing" ]]; then
+        echo "  ✗ $KEY missing from enabledPlugins in settings.json"
+        ((ERRORS++))
+    fi
+    # 8c: cache dir exists?
+    if [[ ! -d "$CACHE_DIR/$PLUGIN/$VERSION" ]]; then
+        echo "  ✗ $KEY missing cache dir: $CACHE_DIR/$PLUGIN/$VERSION"
+        ((ERRORS++))
+    fi
+done
+if [[ $ERRORS -eq 0 ]]; then
+    echo "  ✓ All plugins consistent across marketplace, installed, enabled, and cache"
+fi
+
 echo ""
+if [[ $ERRORS -gt 0 ]]; then
+    echo "═══════════════════════════════════════════════════════════"
+    echo "  ✗ Release v$VERSION verification FAILED ($ERRORS error(s))"
+    echo "═══════════════════════════════════════════════════════════"
+    echo ""
+    echo "Fix: run 'mise run release:sync' to bootstrap missing entries"
+    echo ""
+    exit 1
+fi
 echo "═══════════════════════════════════════════════════════════"
 echo "  ✓ Release v$VERSION verified"
 echo "═══════════════════════════════════════════════════════════"

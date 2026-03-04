@@ -82,6 +82,27 @@ if [[ -f "$INSTALLED" ]]; then
     ' "$INSTALLED" > /tmp/cc_skills_installed.json \
     && mv /tmp/cc_skills_installed.json "$INSTALLED"
     echo "  ✓ installed_plugins.json synced to v$VERSION"
+
+    # Bootstrap new plugins missing from installed_plugins.json
+    MARKETPLACE_JSON="$MARKETPLACE_DIR/.claude-plugin/marketplace.json"
+    GIT_SHA=$(git rev-parse HEAD)
+    BOOTSTRAPPED=0
+    for PLUGIN in $(jq -r '.plugins[].name' "$MARKETPLACE_JSON"); do
+        KEY="${PLUGIN}@cc-skills"
+        EXISTS=$(jq -r --arg k "$KEY" '.plugins[$k] // "missing"' "$INSTALLED")
+        if [[ "$EXISTS" == "missing" ]]; then
+            echo "  + Bootstrapping: $KEY"
+            jq --arg k "$KEY" --arg v "$VERSION" \
+               --arg p "$CACHE_DIR/$PLUGIN/$VERSION" \
+               --arg sha "$GIT_SHA" \
+            '.plugins[$k] = [{"scope":"user","installPath":$p,"version":$v,
+              "installedAt":(now|todate),"lastUpdated":(now|todate),"gitCommitSha":$sha}]
+            ' "$INSTALLED" > /tmp/cc_skills_installed.json \
+            && mv /tmp/cc_skills_installed.json "$INSTALLED"
+            ((BOOTSTRAPPED++))
+        fi
+    done
+    [[ $BOOTSTRAPPED -gt 0 ]] && echo "  + Bootstrapped $BOOTSTRAPPED new plugin(s)"
 else
     echo "  ⚠ installed_plugins.json not found at $INSTALLED"
 fi
