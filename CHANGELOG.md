@@ -1,3 +1,34 @@
+# [11.77.0](https://github.com/terrylica/cc-skills/compare/v11.76.6...v11.77.0) (2026-03-04)
+
+
+### Bug Fixes
+
+* **mise:** Enable model invocation for run-full-release skill ([5e52cad](https://github.com/terrylica/cc-skills/commit/5e52cad3c875b64a6b9cedc72aeee5e5afea6565))
+
+
+### Features
+
+* **statusline-tools:** Reorganize status line layout with ❯ prefix and time consolidation ([33a87ce](https://github.com/terrylica/cc-skills/commit/33a87cea33a9eccd097b4ccbf91fa9d920ea3619))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - updated (-1)
+
+</details>
+
 ## [11.76.6](https://github.com/terrylica/cc-skills/compare/v11.76.5...v11.76.6) (2026-03-04)
 
 
