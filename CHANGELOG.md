@@ -1,3 +1,49 @@
+# [11.76.0](https://github.com/terrylica/cc-skills/compare/v11.75.1...v11.76.0) (2026-03-04)
+
+
+### Bug Fixes
+
+* **itp-hooks:** Prevent false positive pueue reminders on pueue management scripts ([b7cf962](https://github.com/terrylica/cc-skills/commit/b7cf96215677ade4d5073882117f397d9f1c5300))
+* **itp-hooks:** Prevent wrapping of pueue management scripts ([6599611](https://github.com/terrylica/cc-skills/commit/6599611d053c08c09794932a2138f9c9a8b710d3)), closes [rangebar-py#77](https://github.com/rangebar-py/issues/77)
+
+
+### Features
+
+* **gh-tools:** add Discovery Provenance convention for issue creation ([f72c668](https://github.com/terrylica/cc-skills/commit/f72c6685f9b81cbeeacfae4fa73d13c31fca3937)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **mise:** add postflight phase to canonical release workflow (4→5 phases) ([6d9393e](https://github.com/terrylica/cc-skills/commit/6d9393ed89add2dc3a83d3725a31d4c3dd4ffc63))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - updated (+80/-16)
+
+</details>
+
+
+## Repository Documentation
+
+### General Documentation
+
+- [Release Workflow Guide](https://github.com/terrylica/cc-skills/blob/main/docs/RELEASE.md) - updated (+11/-9)
+
+## Other Documentation
+
+### Other
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+46)
+
 ## [11.75.1](https://github.com/terrylica/cc-skills/compare/v11.75.0...v11.75.1) (2026-03-03)
 
 
