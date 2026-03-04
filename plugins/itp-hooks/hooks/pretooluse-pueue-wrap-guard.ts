@@ -38,6 +38,9 @@ const SKIP_COMMENT = /# *PUEUE-SKIP/i;
 /** Commands that are already pueue-related (local or via SSH) */
 const PUEUE_COMMANDS = /\bpueue\s+(add|status|log|wait|restart|send|kill|remove|clean|reset|follow|group)\b/i;
 
+/** Scripts that ARE pueue wrappers (e.g., pueue-populate.sh, pueue-setup.sh) */
+const PUEUE_SCRIPTS = /pueue[_-]/i;
+
 /** Already backgrounded commands */
 const BACKGROUNDED = /\bnohup\s|&\s*$|\bscreen\s|\btmux\s/i;
 
@@ -78,8 +81,9 @@ function shouldWrap(command: string): boolean {
   // Opt-out: explicit skip request
   if (SKIP_COMMENT.test(command)) return false;
 
-  // Never wrap pueue commands themselves
+  // Never wrap pueue commands or pueue management scripts
   if (PUEUE_COMMANDS.test(command)) return false;
+  if (PUEUE_SCRIPTS.test(command)) return false;
 
   // Never wrap already-backgrounded commands
   if (BACKGROUNDED.test(command)) return false;
