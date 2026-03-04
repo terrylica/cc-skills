@@ -11,18 +11,19 @@ mise run release:status
 # Dry run (preview)
 mise run release:dry
 
-# Full release (4 phases)
+# Full release (5 phases)
 mise run release:full
 ```
 
-## 4-Phase Release Workflow
+## 5-Phase Release Workflow
 
-| Phase     | Command                      | Description                             |
-| --------- | ---------------------------- | --------------------------------------- |
-| Preflight | `mise run release:preflight` | Validate working dir, auth, plugins     |
-| Version   | `mise run release:version`   | Run semantic-release (bump + changelog) |
-| Sync      | `mise run release:sync`      | Update marketplace, sync hooks          |
-| Verify    | `mise run release:verify`    | Confirm tag, release, cache, hooks      |
+| Phase      | Command                       | Description                             |
+| ---------- | ----------------------------- | --------------------------------------- |
+| Preflight  | `mise run release:preflight`  | Validate working dir, auth, plugins     |
+| Version    | `mise run release:version`    | Run semantic-release (bump + changelog) |
+| Sync       | `mise run release:sync`       | Update marketplace, sync hooks          |
+| Verify     | `mise run release:verify`     | Confirm tag, release, cache, hooks      |
+| Postflight | `mise run release:postflight` | Clean git state, no unpushed commits    |
 
 ## Available mise Tasks
 
@@ -34,7 +35,8 @@ mise run release:preflight    # Validate before release
 mise run release:version      # semantic-release only
 mise run release:sync         # Sync hooks + cache
 mise run release:verify       # Verify release artifacts
-mise run release:full         # Complete 4-phase workflow
+mise run release:postflight   # Git state validation
+mise run release:full         # Complete 5-phase workflow
 mise run release:dry          # Dry-run preview
 mise run release:hooks        # Install hooks only
 mise run release:clean        # Clean old cache versions

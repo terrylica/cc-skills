@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Execute complete 4-phase release pipeline: preflight validation → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache clear → artifact verification. This is the primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
+#MISE description="Execute complete 5-phase release pipeline: preflight validation → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache clear → artifact verification → postflight git state validation. This is the primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
 #MISE depends=["release:preflight"]
 set -euo pipefail
 
@@ -17,6 +17,9 @@ mise run release:sync
 
 # Phase 4: Verify
 mise run release:verify
+
+# Phase 5: Postflight
+mise run release:postflight
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════╗"
