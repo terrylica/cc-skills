@@ -1,3 +1,10 @@
+## [11.76.1](https://github.com/terrylica/cc-skills/compare/v11.76.0...v11.76.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* **plugin-dev:** Fix skill validator resilience and missing ansis dependency ([e1e0eb9](https://github.com/terrylica/cc-skills/commit/e1e0eb97c6cca03c676323772e8fe59777474bcf))
+
 # [11.76.0](https://github.com/terrylica/cc-skills/compare/v11.75.1...v11.76.0) (2026-03-04)
 
 
