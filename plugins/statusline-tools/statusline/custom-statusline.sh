@@ -309,44 +309,44 @@ github_url=$(get_github_url)
 utc_time=$(date -u +"%y%b%d %H:%MZ")
 local_time=$(date +"%y%b%d %H:%ML")
 
-# Three-line status:
-#   Line 1: git stats | local time
-#   Line 2: ~/path | github-url | UTC time
-#   Line 3: session UUID (if available)
-line1="${git_changes} | ${BRIGHT_BLACK}${local_time}${RESET}"
+# Status line layout:
+#   Line 1: ❯  git stats
+#   Line 2:  ~/asciinemalogs cast UUID
+#   Line 3:    ~/path | github-url | UTC time | local time
+#   Line 4:    session UUID (if available)
+line1="❯   ${git_changes}"
 
-# Line 2: path | GitHub URL + UTC time
+# Line 3: path | GitHub URL + UTC time + local time (indented)
+timestamps="${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
-        line2="${GREEN}${repo_path}${RESET} | ${BRIGHT_BLACK}${github_url} | ${utc_time}${RESET}"
+        line_repo="    ${GREEN}${repo_path}${RESET} | ${BRIGHT_BLACK}${github_url}${RESET} | ${timestamps}"
     else
-        line2="${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url} | ${utc_time}${RESET}"
+        line_repo="    ${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url}${RESET} | ${timestamps}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    line2="${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET} | ${BRIGHT_BLACK}${utc_time}${RESET}"
+    line_repo="    ${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET} | ${timestamps}"
 else
-    line2="${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET} | ${BRIGHT_BLACK}${utc_time}${RESET}"
+    line_repo="    ${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET} | ${timestamps}"
 fi
-
-echo -e "$line1"
-echo -e "$line2"
-
-# Line 3: ~/.claude/projects JSONL ID
-# Line 4: Cast UUID (iTerm2 session → asciinema recording filename)
 
 # Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
 iterm_session_uuid=""
 if [ -n "$ITERM_SESSION_ID" ]; then
-    # Extract just the UUID part after the colon
     iterm_session_uuid=$(echo "$ITERM_SESSION_ID" | cut -d':' -f2)
 fi
 
-if [ -n "$session_chain" ]; then
-    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
-elif [ -n "$session_id" ]; then
-    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
-fi
+# Output: line1, cast, repo, session
+echo -e "$line1"
 
 if [ -n "$iterm_session_uuid" ]; then
-    echo -e "${BRIGHT_BLACK}~/asciinemalogs cast: ${iterm_session_uuid}${RESET}"
+    echo -e " ${BRIGHT_BLACK}~/asciinemalogs cast: ${iterm_session_uuid}${RESET}"
+fi
+
+echo -e "$line_repo"
+
+if [ -n "$session_chain" ]; then
+    echo -e "    ${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
+elif [ -n "$session_id" ]; then
+    echo -e "    ${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
 fi
