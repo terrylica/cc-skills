@@ -89,6 +89,13 @@ export const LSPSchema = z.object({
   character: z.number(),
 }).strict();
 
+/** MCP shell_execute tool input schema */
+export const McpShellExecuteSchema = z.object({
+  command: z.array(z.string()),
+  directory: z.string().optional(),
+  timeout: z.number().optional(),
+}).strict();
+
 /**
  * Registry mapping tool names to their Zod schemas.
  * Tools NOT in this registry → unknown → allow() without updatedInput (safe default).
@@ -102,6 +109,7 @@ export const TOOL_SCHEMAS: Record<string, z.ZodTypeAny> = {
   Grep: GrepSchema,
   NotebookEdit: NotebookEditSchema,
   LSP: LSPSchema,
+  mcp__shell__shell_execute: McpShellExecuteSchema,
 };
 
 /**
