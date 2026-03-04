@@ -116,6 +116,52 @@ Fix:
   4. Set correct token: export GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-owner)
 ```
 
+## Discovery Provenance (Mandatory for Issue Creation)
+
+When filing GitHub issues from a Claude Code session, **always** append a Discovery Provenance section. This links the issue back to the exact conversation and terminal recording where it was discovered.
+
+### Format (2 rows — no redundancy)
+
+```markdown
+### Discovery Provenance
+
+| Reference      | Value         |
+| -------------- | ------------- |
+| Session JSONL  | `<full path>` |
+| Asciinema Cast | `<full path>` |
+```
+
+- **Session JSONL** embeds the Claude Code session UUID in the filename — no separate "Session ID" row needed
+- **Asciinema Cast** embeds the iTerm2 session UUID, termid, profile, and timestamp — no separate "iTerm2 Session" row needed
+- **Date** is redundant — GitHub issues have creation timestamps
+
+### Deterministic Lookups
+
+**Session JSONL** — from `.session-chain-cache.json`:
+
+```bash
+ENCODED="-$(pwd | sed 's|^/||' | tr '/' '-')"
+SESSION_ID=$(jq -r '.currentSessionId' ~/.claude/projects/$ENCODED/.session-chain-cache.json)
+echo "$HOME/.claude/projects/$ENCODED/$SESSION_ID.jsonl"
+```
+
+**Asciinema Cast** — from `$ITERM_SESSION_ID`:
+
+```bash
+TERMID="${ITERM_SESSION_ID%:*}"
+UUID="${ITERM_SESSION_ID#*:}"
+ls -t ~/asciinemalogs/*."$TERMID"."$UUID".*.cast 2>/dev/null | head -1
+```
+
+### Why These Two Paths Are Sufficient
+
+| Path           | Embedded Information                                                                      |
+| -------------- | ----------------------------------------------------------------------------------------- |
+| Session JSONL  | Claude Code session UUID, project directory, full conversation transcript                 |
+| Asciinema Cast | iTerm2 session UUID, terminal pane ID (`w0t5p2`), profile name, recording start time, PID |
+
+No individual IDs need to be listed separately — the full paths are strictly more informative.
+
 ## Skills
 
 | Skill               | Purpose                                                    |
