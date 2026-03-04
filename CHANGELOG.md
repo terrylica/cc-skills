@@ -1,3 +1,10 @@
+## [11.76.5](https://github.com/terrylica/cc-skills/compare/v11.76.4...v11.76.5) (2026-03-04)
+
+
+### Bug Fixes
+
+* **release:verify:** Handle enabledPlugins as object not array ([5a3e14c](https://github.com/terrylica/cc-skills/commit/5a3e14c3537fb33809220fa8d7292b5b5362f6ed))
+
 ## [11.76.4](https://github.com/terrylica/cc-skills/compare/v11.76.3...v11.76.4) (2026-03-04)
 
 
