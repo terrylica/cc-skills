@@ -1,3 +1,11 @@
+## [11.76.3](https://github.com/terrylica/cc-skills/compare/v11.76.2...v11.76.3) (2026-03-04)
+
+
+### Bug Fixes
+
+* **itp-hooks:** Prevent UV enforcement false positive on free-form text commands ([c8742ac](https://github.com/terrylica/cc-skills/commit/c8742acdfaead7aaf2a1722843ecfc809f1d4fbc))
+* **itp-hooks:** Prevent UV reminder false positive on free-form text commands ([7025e2a](https://github.com/terrylica/cc-skills/commit/7025e2a49c616cc25fb44962e9f92ad4b9f520ac))
+
 ## [11.76.2](https://github.com/terrylica/cc-skills/compare/v11.76.1...v11.76.2) (2026-03-04)
 
 
