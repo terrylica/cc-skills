@@ -611,6 +611,30 @@ describe("Bash: Pueue long-running task detection", () => {
     });
     expect(result.stdout).toBe("");
   });
+
+  it("should NOT trigger on pueue management scripts (pueue-populate.sh)", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "ssh bigblack 'bash -c \"cd /home/tca/opendeviationbar-py && ./scripts/pueue-populate.sh setup\"'" },
+    });
+    expect(result.stdout).toBe("");
+  });
+
+  it("should NOT trigger on pueue-populate.sh backfill via heredoc", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "ssh bigblack 'bash -c \"cd /home/tca/opendeviationbar-py && ./scripts/pueue-populate.sh backfill\"'" },
+    });
+    expect(result.stdout).toBe("");
+  });
+
+  it("should NOT trigger on local pueue-setup scripts", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "./scripts/pueue-populate.sh setup" },
+    });
+    expect(result.stdout).toBe("");
+  });
 });
 
 // ============================================================================
