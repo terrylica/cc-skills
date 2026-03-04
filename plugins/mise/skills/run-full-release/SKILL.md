@@ -112,7 +112,7 @@ grep -i "maturin\|zig\|cross\|docker\|wheel\|sdist" .mise.toml Cargo.toml pyproj
 
 #### Read Reference Templates
 
-Read these files from the cc-skills marketplace for the canonical 4-phase release pattern:
+Read these files from the cc-skills marketplace for the canonical 5-phase release pattern:
 
 ```
 Read: $HOME/.claude/plugins/marketplaces/cc-skills/docs/RELEASE.md
@@ -128,18 +128,19 @@ ls $HOME/.claude/plugins/marketplaces/cc-skills/.mise/tasks/release/
 
 Create the release task directory and files customized to THIS repo:
 
-| Task        | Always                                          | Repo-Specific Additions                                     |
-| ----------- | ----------------------------------------------- | ----------------------------------------------------------- |
-| `_default`  | Help/navigation                                 | —                                                           |
-| `preflight` | Clean dir, auth, branch check, lockfile cleanup | Plugin validation, build tool checks                        |
-| `version`   | semantic-release                                | Repo-specific `.releaserc.yml` plugins                      |
-| `sync`      | Git push                                        | PyPI publish (if exists), crates.io publish (if Rust), sync |
-| `pypi`      | (Optional)                                      | `scripts/publish-to-pypi.sh` via `uv publish` or `twine`    |
-| `crates`    | (Optional)                                      | `cargo publish --workspace` (Rust 1.90+, native ordering)   |
-| `verify`    | Tag + release check                             | Verify artifacts (wheels, packages, published versions)     |
-| `full`      | Orchestrator, post-release lockfile cleanup     | Include all repo-specific phases                            |
-| `dry`       | `semantic-release --dry-run`                    | —                                                           |
-| `status`    | Current version info                            | —                                                           |
+| Task         | Always                                          | Repo-Specific Additions                                     |
+| ------------ | ----------------------------------------------- | ----------------------------------------------------------- |
+| `_default`   | Help/navigation                                 | —                                                           |
+| `preflight`  | Clean dir, auth, branch check, lockfile cleanup | Plugin validation, build tool checks                        |
+| `version`    | semantic-release                                | Repo-specific `.releaserc.yml` plugins                      |
+| `sync`       | Git push                                        | PyPI publish (if exists), crates.io publish (if Rust), sync |
+| `pypi`       | (Optional)                                      | `scripts/publish-to-pypi.sh` via `uv publish` or `twine`    |
+| `crates`     | (Optional)                                      | `cargo publish --workspace` (Rust 1.90+, native ordering)   |
+| `verify`     | Tag + release check                             | Verify artifacts (wheels, packages, published versions)     |
+| `postflight` | Clean git state, no unpushed, lockfile reset    | Repo-specific lockfile patterns, custom validations         |
+| `full`       | Orchestrator (5-phase)                          | Include all repo-specific phases                            |
+| `dry`        | `semantic-release --dry-run`                    | —                                                           |
+| `status`     | Current version info                            | —                                                           |
 
 **Lockfile cleanup** is mandatory in both `preflight` (after test/validation runs) and `full` (after all phases complete). Commands like `uv run`, `npm install`, `cargo build` during release phases modify lockfiles as an artifact — these must be reset to avoid polluting the working directory. The canonical one-liner:
 
@@ -175,7 +176,7 @@ The `release:full` task **must** use conditional task dependencies to handle opt
 
 ```bash
 #!/usr/bin/env bash
-#MISE description="Phase 4: Full release orchestration with conditional publishing"
+#MISE description="Phase 5: Full release orchestration with conditional publishing and postflight validation"
 #MISE depends=["release:preflight"]
 
 set -euo pipefail
@@ -223,8 +224,9 @@ fi
 echo "→ Phase 3: Verifying..."
 mise run release:verify
 
-# Post-release: reset lockfile drift (artifact from uv run, cargo build, etc.)
-git diff --name-only | grep -E '^(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb|yarn\.lock|pnpm-lock\.yaml)$' | xargs -r git checkout --
+# Phase 4: Postflight (git state validation + lockfile cleanup)
+echo "→ Phase 4: Postflight..."
+mise run release:postflight
 
 echo ""
 echo "✓ Release complete!"
@@ -369,6 +371,64 @@ for crate in $CRATES; do
 done
 ```
 
+## Postflight Task Implementation
+
+### `release:postflight` (Mandatory — All Repos)
+
+**Purpose**: Validates that the release process left the repository in a clean state. Catches lockfile drift, uncommitted changes, and unpushed commits that accumulate as technical debt if left unchecked.
+
+**Implementation**:
+
+```bash
+#!/usr/bin/env bash
+#MISE description="Phase 5: Post-release git state validation"
+set -euo pipefail
+
+ERRORS=0
+
+# 1. Reset lockfile drift (artifact from cargo build, uv run, npm install, etc.)
+LOCKFILE_DRIFT=$(git diff --name-only | grep -E '^(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb|yarn\.lock|pnpm-lock\.yaml)$' || true)
+if [[ -n "$LOCKFILE_DRIFT" ]]; then
+    echo "Lockfile drift detected — resetting (build artifact)"
+    echo "$LOCKFILE_DRIFT" | xargs git checkout --
+fi
+
+# 2. Check for uncommitted changes (after lockfile reset)
+DIRTY=$(git status --porcelain)
+if [[ -n "$DIRTY" ]]; then
+    echo "FAIL: Uncommitted changes detected:"
+    echo "$DIRTY" | head -20
+    ERRORS=$((ERRORS + 1))
+fi
+
+# 3. Check for unpushed commits
+UNPUSHED=$(git log --oneline @{u}..HEAD 2>/dev/null || echo "")
+if [[ -n "$UNPUSHED" ]]; then
+    echo "FAIL: Unpushed commits:"
+    echo "$UNPUSHED"
+    ERRORS=$((ERRORS + 1))
+fi
+
+if [[ $ERRORS -gt 0 ]]; then
+    echo "Postflight FAILED ($ERRORS issue(s))"
+    exit 1
+fi
+echo "✓ Postflight PASSED — clean landing"
+```
+
+**Key design decisions**:
+
+- **Lockfile reset is automatic**: Lockfiles modified by `cargo build`, `uv run`, `npm install` during release phases are artifacts, not intentional changes. Auto-reset prevents them from blocking the postflight check.
+- **Uncommitted changes are fatal**: If the release process left behind uncommitted files, something went wrong. Fail loudly so the operator can investigate.
+- **Unpushed commits are fatal**: Tags and releases reference specific commits on the remote. If commits aren't pushed, the release is incomplete.
+- **Runs after verify**: Verify checks that artifacts exist (tags, releases, packages). Postflight checks that the local repo is clean. Together they ensure both the remote and local state are correct.
+
+**Repo-specific extensions**: Add custom checks after the 3 core checks. Examples:
+
+- Native app repos: Verify `.app` bundle is signed
+- Workspace repos: Verify all sub-crate versions match
+- Monorepos: Verify all changed packages were published
+
 ## Error Recovery
 
 | Error                                  | Resolution                                                               |
@@ -393,3 +453,7 @@ done
 | Crate already published on crates.io   | Non-fatal; check version in `Cargo.toml` for next release                |
 | Workspace publish order error          | Use `cargo publish --workspace` (Rust 1.90+) — handles ordering natively |
 | Missing crate on crates.io             | Check `publish = false` — crate may need publishing or its dep does      |
+| **Postflight Errors**                  |                                                                          |
+| Uncommitted changes after release      | Release process left side-effects; commit or reset the changes           |
+| Unpushed commits after release         | `git push origin main` — release tags reference remote commits           |
+| Lockfile drift after release           | Auto-reset by postflight; if persistent, check build scripts             |
