@@ -2,20 +2,21 @@
 /**
  * PreToolUse hook: Universal Subprocess Stdin Inlet Guard
  *
- * Problem: Bash commands can spawn subprocesses that inherit
- * Claude Code's stdin, causing TTY suspension.
+ * Problem: Bash and MCP shell_execute commands spawn subprocesses that inherit
+ * Claude Code's stdin, causing TTY suspension (SIGSTOP).
  *
- * Solution: Pre-disconnect stdin for Bash commands via `< /dev/null` redirection.
- * All other tools are allowed without mutation.
+ * Solution:
+ *   - Bash: Pre-disconnect stdin via `< /dev/null` redirection.
+ *   - MCP shell_execute: Wrap command array in `bash -c '("$@") </dev/null'`
+ *     to disconnect stdin while preserving argument boundaries.
+ *
+ * The MCP shell server spawns interactive zsh sessions with PTY allocation.
+ * Parallel MCP shell_execute calls compete for the same TTY stdin, triggering
+ * the kernel's SIGSTOP. Wrapping with stdin disconnection prevents this.
  *
  * Schema safety: Uses allowWithInput() which validates updatedInput against
  * the tool's Zod schema (.strict()). Unknown properties (like `env`) are
  * automatically rejected, preventing schema corruption (GitHub #13439).
- *
- * Previous approach used PASSTHROUGH_TOOLS denylist (16 entries) + env injection.
- * The env injection was a no-op (CC ignores unknown fields in tool input).
- * The denylist was fragile (new tools needed manual addition).
- * Now Zod .strict() handles both concerns automatically.
  *
  * Reference: GitHub Issues #11898, #12507, #13598
  * GitHub Issue: https://github.com/anthropics/claude-code/issues/13439
@@ -30,7 +31,7 @@ async function main() {
 
   const { tool_name, tool_input = {} } = input;
 
-  // Only Bash benefits from command mutation (stdin disconnection)
+  // Bash: inject `< /dev/null` to disconnect stdin
   if (tool_name === "Bash" && typeof tool_input.command === "string") {
     let command = tool_input.command;
     if (!command.includes("</dev/null") && !command.includes("< /dev/null")) {
@@ -41,13 +42,40 @@ async function main() {
       "🛡️  Subprocess Inlet Guard: Pre-disconnecting stdin for Bash",
     );
 
-    // allowWithInput validates {command} against BashSchema.strict()
-    // If Zod rejects it → falls back to allow() (fail-open, no mutation)
     allowWithInput("STDIN-INLET-GUARD", tool_name, { command });
     return;
   }
 
-  // All other tools: allow without mutation (Zod prevents accidental schema corruption)
+  // MCP shell_execute: wrap command array to disconnect stdin.
+  // The MCP shell server allocates PTYs for spawned processes.
+  // Parallel calls compete for the same TTY stdin → SIGSTOP.
+  // Wrap: ["uv","run",...] → ["bash","-c","(\"$@\") </dev/null","bash","uv","run",...]
+  if (tool_name === "mcp__shell__shell_execute" && Array.isArray(tool_input.command)) {
+    const originalCommand = tool_input.command as string[];
+
+    // Skip if already wrapped with stdin disconnection
+    const joined = originalCommand.join(" ");
+    if (joined.includes("</dev/null") || joined.includes("< /dev/null")) {
+      allow();
+      return;
+    }
+
+    const wrappedCommand = ["bash", "-c", '("$@") </dev/null', "bash", ...originalCommand];
+
+    console.warn(
+      "🛡️  Subprocess Inlet Guard: Pre-disconnecting stdin for MCP shell_execute",
+    );
+
+    // Preserve directory and timeout from original input
+    const updatedInput: Record<string, unknown> = { command: wrappedCommand };
+    if (tool_input.directory) updatedInput.directory = tool_input.directory;
+    if (tool_input.timeout != null) updatedInput.timeout = tool_input.timeout;
+
+    allowWithInput("STDIN-INLET-GUARD", tool_name, updatedInput);
+    return;
+  }
+
+  // All other tools: allow without mutation
   allow();
 }
 
