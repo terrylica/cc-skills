@@ -205,8 +205,12 @@ function checkPueueUsage(command: string): string | null {
 
   // === EXCEPTIONS ===
 
-  // 1. Already using pueue
+  // 1. Already using pueue (direct commands or pueue management scripts)
   if (/pueue\s+(add|status|follow|log|restart)/i.test(commandLower)) {
+    return null;
+  }
+  // 1b. Scripts that ARE pueue wrappers (e.g., pueue-populate.sh, pueue-setup.sh)
+  if (/pueue[_-]/i.test(command)) {
     return null;
   }
 
@@ -262,9 +266,18 @@ function checkPueueUsage(command: string): string | null {
   const isRemote = /^ssh\s+(\S+)/i.test(command);
   const remoteHost = isRemote ? command.match(/^ssh\s+(\S+)/i)?.[1] : null;
 
-  const pueueCommand = remoteHost
-    ? `ssh ${remoteHost} "~/.local/bin/pueue add -- ${command.replace(/^ssh\s+\S+\s+["']?/, "").replace(/["']?\s*$/, "")}"`
-    : `pueue add -- ${command}`;
+  let pueueCommand: string;
+  if (remoteHost) {
+    // Extract the inner command from SSH, stripping outer quotes and redirections
+    const innerCmd = command
+      .replace(/^ssh\s+\S+\s+/, "") // strip "ssh host "
+      .replace(/\s*2>&1\s*$/, "") // strip trailing redirections
+      .replace(/^["']/, "") // strip leading quote
+      .replace(/["']$/, ""); // strip trailing quote
+    pueueCommand = `ssh ${remoteHost} 'pueue add -- ${innerCmd.replace(/'/g, "'\\''")}'`;
+  } else {
+    pueueCommand = `pueue add -- ${command}`;
+  }
 
   return `[PUEUE-REMINDER] Long-running task detected - consider using Pueue
 
