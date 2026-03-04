@@ -1,3 +1,10 @@
+## [11.76.4](https://github.com/terrylica/cc-skills/compare/v11.76.3...v11.76.4) (2026-03-04)
+
+
+### Bug Fixes
+
+* **release:** Prevent 'plugin failed to install' via cross-validation ([822b755](https://github.com/terrylica/cc-skills/commit/822b7550493919cf707744724e4efb5d92494bf3))
+
 ## [11.76.3](https://github.com/terrylica/cc-skills/compare/v11.76.2...v11.76.3) (2026-03-04)
 
 
