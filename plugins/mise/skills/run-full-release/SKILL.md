@@ -4,7 +4,6 @@ description: "Run the current repo's mise release pipeline with auto-scaffolding
 allowed-tools: Read, Bash, Glob, Grep, Write, Edit, AskUserQuestion
 argument-hint: "[--dry] [--status]"
 model: haiku
-disable-model-invocation: true
 ---
 
 # /mise:run-full-release
