@@ -1,3 +1,25 @@
+## [11.76.2](https://github.com/terrylica/cc-skills/compare/v11.76.1...v11.76.2) (2026-03-04)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [distributed-job-safety](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/distributed-job-safety/SKILL.md) - updated (+20)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+39/-10)
+
+</details>
+
 ## [11.76.1](https://github.com/terrylica/cc-skills/compare/v11.76.0...v11.76.1) (2026-03-04)
 
 
