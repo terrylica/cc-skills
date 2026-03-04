@@ -150,7 +150,15 @@ function checkPipUsage(command: string): string | null {
     return null;
   }
 
-  // 3. Lock file GENERATION operations
+  // 3. Commands with free-form text arguments (commit messages, issue bodies)
+  if (/^\s*gh\s+(issue|pr)\s+(create|edit|comment)\b/i.test(commandLower)) {
+    return null;
+  }
+  if (/^\s*git\s+(commit|tag)\b/i.test(commandLower)) {
+    return null;
+  }
+
+  // 4. Lock file GENERATION operations
   if (/pip-compile|pip\s+freeze/i.test(commandLower)) {
     return null;
   }
