@@ -314,7 +314,7 @@ local_time=$(date +"%y%b%d %H:%ML")
 #   Line 2:  ~/asciinemalogs cast UUID
 #   Line 3:    ~/path | github-url | UTC time | local time
 #   Line 4:    session UUID (if available)
-line1="❯   ${git_changes}"
+line1="${git_changes}"
 
 # Line 3: path | GitHub URL + UTC time + local time (indented)
 timestamps="${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
