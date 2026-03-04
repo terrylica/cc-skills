@@ -16,6 +16,10 @@ def validate_skill(skill_path):
     """Basic validation of a skill"""
     skill_path = Path(skill_path)
 
+    # If passed a file path (e.g., /path/to/SKILL.md), use its parent directory
+    if skill_path.is_file() or skill_path.name == 'SKILL.md':
+        skill_path = skill_path.parent
+
     # Check SKILL.md exists
     skill_md = skill_path / 'SKILL.md'
     if not skill_md.exists():
@@ -42,7 +46,10 @@ def validate_skill(skill_path):
         return False, f"Invalid YAML in frontmatter: {e}"
 
     # Define allowed properties
-    ALLOWED_PROPERTIES = {'name', 'description', 'license', 'allowed-tools', 'metadata'}
+    ALLOWED_PROPERTIES = {
+        'name', 'description', 'license', 'allowed-tools', 'argument-hint',
+        'disable-model-invocation', 'metadata', 'model', 'triggers',
+    }
 
     # Check for unexpected properties (excluding nested keys under metadata)
     unexpected_keys = set(frontmatter.keys()) - ALLOWED_PROPERTIES
