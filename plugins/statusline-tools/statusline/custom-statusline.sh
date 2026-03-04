@@ -304,30 +304,30 @@ get_github_url() {
 github_url=$(get_github_url)
 
 # UTC and local timestamps with dates (updated every time statusline triggers)
-# Compact format: 24Dec21 14:32Z (2-digit year + month + day + time + Z/L suffix)
-# Both dates shown since UTC and local may be different days
-utc_time=$(date -u +"%y%b%d %H:%MZ")
-local_time=$(date +"%y%b%d %H:%ML")
+# Format: Tue 04 Mar 2026 23:36 UTC | Tue 04 Mar 2026 15:36 PST
+# Both full dates shown since UTC and local may be different days
+utc_time=$(date -u +"%a %d %b %Y %H:%M UTC")
+local_time=$(date +"%a %d %b %Y %H:%M %Z")
 
 # Status line layout:
-#   Line 1: ❯  git stats
+#   Line 1: git stats
 #   Line 2:  ~/asciinemalogs cast UUID
-#   Line 3:    ~/path | github-url | UTC time | local time
+#   Line 3:    ~/path | github-url
 #   Line 4:    session UUID (if available)
+#   Line 5:    UTC time | local time
 line1="${git_changes}"
 
-# Line 3: path | GitHub URL + UTC time + local time (indented)
-timestamps="${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
+# Line 3: path | GitHub URL (indented, no timestamps)
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
-        line_repo="    ${GREEN}${repo_path}${RESET} | ${BRIGHT_BLACK}${github_url}${RESET} | ${timestamps}"
+        line_repo="    ${GREEN}${repo_path}${RESET} | ${BRIGHT_BLACK}${github_url}${RESET}"
     else
-        line_repo="    ${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url}${RESET} | ${timestamps}"
+        line_repo="    ${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url}${RESET}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    line_repo="    ${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET} | ${timestamps}"
+    line_repo="    ${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET}"
 else
-    line_repo="    ${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET} | ${timestamps}"
+    line_repo="    ${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET}"
 fi
 
 # Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
@@ -336,7 +336,7 @@ if [ -n "$ITERM_SESSION_ID" ]; then
     iterm_session_uuid=$(echo "$ITERM_SESSION_ID" | cut -d':' -f2)
 fi
 
-# Output: line1, cast, repo, session
+# Output: line1, cast, repo, session, timestamps
 echo -e "$line1"
 
 if [ -n "$iterm_session_uuid" ]; then
@@ -350,3 +350,5 @@ if [ -n "$session_chain" ]; then
 elif [ -n "$session_id" ]; then
     echo -e "    ${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
 fi
+
+echo -e "    ${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
