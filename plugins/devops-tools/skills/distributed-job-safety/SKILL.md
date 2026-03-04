@@ -301,6 +301,25 @@ devops-tools:distributed-job-safety    (universal patterns - this skill)
 
 ---
 
+## SOTA Alternative: Temporal for Durable Workflows
+
+For structured, repeatable job pipelines, [Temporal](https://temporal.io/) provides built-in enforcement of many invariants in this skill:
+
+| This Skill's Invariant              | Temporal Equivalent                                |
+| ----------------------------------- | -------------------------------------------------- |
+| INV-2 (Verify before mutate)        | Workflow ID uniqueness — duplicate starts rejected |
+| INV-3 (Idempotent operations)       | Activity retry with `non_retryable_error_types`    |
+| INV-6 (Maximize parallelism safely) | `max_concurrent_activities` per worker             |
+| INV-8 (Stable identifiers)          | Workflow IDs are user-defined and permanent        |
+
+**When to consider Temporal**: When your pipeline has well-defined activities (not ad-hoc shell commands), needs dedup/idempotency guarantees, or when the overhead of pueue guardrails (autoscaler agents, manual retry classification) exceeds the overhead of running a Temporal server.
+
+**Install**: `pip install temporalio` (Python SDK), `brew install temporal` (CLI + dev server).
+
+**Lesson from 2026-03-04 incident**: 5 autonomous Claude Code agents monitoring 60 pueue jobs created ~12,800 runaway tasks because pueue's `restart` creates new tasks (not in-place), agents had no mutation budgets, and persistent failures were blindly retried. Temporal prevents all three failure modes natively.
+
+---
+
 ## References
 
 - [Anti-Patterns](./references/anti-patterns.md) -- 17 production failure patterns (AP-1 through AP-17)
@@ -310,3 +329,4 @@ devops-tools:distributed-job-safety    (universal patterns - this skill)
 - [Stack Architecture](./references/stack-architecture.md) -- Mise + Pueue + systemd-run layer diagram
 - [Autoscaler](./references/autoscaler.md) -- Dynamic parallelism tuning patterns
 - **Cross-reference**: `devops-tools:pueue-job-orchestration` -- Pueue basics, dependency chaining, installation
+- **SOTA Alternative**: [Temporal](https://temporal.io/) -- Durable workflow orchestration with built-in dedup and retry

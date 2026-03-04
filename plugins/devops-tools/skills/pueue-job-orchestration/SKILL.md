@@ -81,12 +81,21 @@ pueue log <id> --full     # Full output (not truncated)
 ### Manage Jobs
 
 ```bash
-pueue restart <id>        # Restart failed job
-pueue restart --all-failed # Restart ALL failed jobs
-pueue kill <id>           # Kill running job
-pueue clean               # Remove completed jobs from list
-pueue reset               # Clear all jobs (use with caution)
+pueue restart <id>         # ⚠ Creates NEW task (see warning below)
+pueue restart --in-place <id>  # Restarts task in-place (no new ID)
+pueue restart --all-failed # ⚠ Restarts ALL failed across ALL groups
+pueue kill <id>            # Kill running job
+pueue clean                # Remove completed jobs from list
+pueue reset                # Clear all jobs (use with caution)
 ```
+
+**CRITICAL WARNING — `pueue restart` semantics**:
+
+`pueue restart <id>` does **NOT** restart the task in-place. It creates a **brand new task** with a new ID, copying the command from the original. The original stays as Done/Failed. This causes exponential task growth when used in loops or by autonomous agents. In a 2026-03-04 incident, agents calling `pueue restart` on failed tasks grew 60 jobs to ~12,800.
+
+- **Use `--in-place`** if you truly need to restart: `pueue restart --in-place <id>`
+- **Verify before restart**: Read `pueue log <id>` to check if the failure is persistent (missing data, bad args) — retrying will never help
+- **Never use `--all-failed`** without `--group` filter — it restarts every failed task across ALL groups
 
 ## Host Configuration
 
@@ -143,15 +152,17 @@ pueue add --group slow -- echo "slow job"
 # Check what failed
 pueue status | grep Failed
 
-# View error output
+# View error output FIRST (distinguish transient vs persistent)
 pueue log <id>
 
-# Restart specific job
-pueue restart <id>
+# Restart specific job IN-PLACE (no new task created)
+pueue restart --in-place <id>
 
-# Restart all failed jobs
-pueue restart --all-failed
+# ⚠ NEVER blindly restart all failed — classify failures first
+# pueue restart --all-failed  # DANGEROUS: no group filter, creates duplicates
 ```
+
+**Failure classification before restart**: Exit code 1 (app error) may be persistent (missing data, bad args — will never succeed). Exit code 137 (OOM) or 143 (SIGTERM) may be transient. Always read `pueue log` before restarting.
 
 ## Troubleshooting
 
@@ -256,9 +267,27 @@ fi
 
 ---
 
+## Pueue vs Temporal: When to Use Which
+
+For structured, repeatable workflows needing durability and dedup, consider [Temporal](https://temporal.io/) (`pip install temporalio`, `brew install temporal`):
+
+| Dimension        | Pueue                                  | Temporal                                                  |
+| ---------------- | -------------------------------------- | --------------------------------------------------------- |
+| **Best for**     | Ad-hoc shell commands, SSH remote jobs | Structured, repeatable workflows                          |
+| **Setup**        | Single binary, zero infra              | Server + database (dev: `temporal server start-dev`)      |
+| **Dedup**        | None — `restart` creates new tasks     | Workflow ID uniqueness (built-in)                         |
+| **Retry policy** | None — manual or external agent        | Per-activity: max attempts, backoff, non-retryable errors |
+| **Parallelism**  | `pueue parallel N --group G`           | `max_concurrent_activities=N` on worker                   |
+| **Visibility**   | `pueue status` (text, scales poorly)   | Web UI with pagination, search, event history             |
+
+**Recommendation**: Keep pueue for ad-hoc work. Migrate structured pipelines to Temporal when dedup and retry policies matter. See `devops-tools:distributed-job-safety` for invariants that apply to both.
+
+---
+
 ## Related
 
 - **Hook**: `itp-hooks/posttooluse-reminder.ts` - Reminds to use Pueue for detected long-running commands
 - **Reference**: [Pueue GitHub](https://github.com/Nukesor/pueue)
+- **SOTA Alternative**: [Temporal](https://temporal.io/) — durable workflow orchestration with built-in dedup, retry, visibility
 - **Issue**: [rangebar-py#77](https://github.com/terrylica/rangebar-py/issues/77) - Original implementation
 - **Issue**: [rangebar-py#88](https://github.com/terrylica/rangebar-py/issues/88) - Production deployment lessons
