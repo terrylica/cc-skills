@@ -1,3 +1,34 @@
+## [11.77.3](https://github.com/terrylica/cc-skills/compare/v11.77.2...v11.77.3) (2026-03-05)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+6/-6)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+9/-9)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+9/-9)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+5/-5)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+11/-11)
+
 ## [11.77.2](https://github.com/terrylica/cc-skills/compare/v11.77.1...v11.77.2) (2026-03-05)
 
 
