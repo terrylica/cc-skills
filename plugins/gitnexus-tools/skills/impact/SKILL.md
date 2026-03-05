@@ -1,6 +1,6 @@
 ---
 name: impact
-description: "Blast radius analysis via GitNexus CLI (npx gitnexus@latest). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - what breaks if I change, blast radius, impact analysis, safe to modify."
+description: "Blast radius analysis via GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - what breaks if I change, blast radius, impact analysis, safe to modify."
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---
@@ -25,7 +25,7 @@ Analyze the blast radius of changing a symbol — who calls it, what processes i
 Run from the repo root (the CLI auto-detects the repo from cwd):
 
 ```bash
-npx gitnexus@latest status
+gitnexus status
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
@@ -33,7 +33,7 @@ If stale, suggest running `/gitnexus-tools:reindex` first.
 ### Step 2: Upstream Blast Radius
 
 ```bash
-npx gitnexus@latest impact "<symbol>" --depth 3
+gitnexus impact "<symbol>" --depth 3
 ```
 
 This shows everything that depends on the symbol (callers, transitive callers up to depth 3).
@@ -41,15 +41,15 @@ This shows everything that depends on the symbol (callers, transitive callers up
 If multiple candidates are returned, disambiguate:
 
 ```bash
-npx gitnexus@latest impact "<symbol>" --uid "<full-uid>" --depth 3
+gitnexus impact "<symbol>" --uid "<full-uid>" --depth 3
 # or
-npx gitnexus@latest impact "<symbol>" --file "<file-path>" --depth 3
+gitnexus impact "<symbol>" --file "<file-path>" --depth 3
 ```
 
 ### Step 3: Downstream Dependencies (Optional)
 
 ```bash
-npx gitnexus@latest impact "<symbol>" --direction downstream --depth 3
+gitnexus impact "<symbol>" --direction downstream --depth 3
 ```
 
 Shows what the symbol depends on — useful for understanding if dependencies might change.
@@ -57,7 +57,7 @@ Shows what the symbol depends on — useful for understanding if dependencies mi
 ### Step 4: Test Coverage
 
 ```bash
-npx gitnexus@latest impact "<symbol>" --include-tests
+gitnexus impact "<symbol>" --include-tests
 ```
 
 Shows which test files exercise this symbol.
@@ -88,8 +88,8 @@ Present:
 User: "What breaks if I change RangeBarProcessor?"
 
 ```bash
-npx gitnexus@latest impact "RangeBarProcessor" --depth 3
-npx gitnexus@latest impact "RangeBarProcessor" --include-tests
+gitnexus impact "RangeBarProcessor" --depth 3
+gitnexus impact "RangeBarProcessor" --include-tests
 ```
 
 Output: "CRITICAL risk — 73 dependents across 12 processes. 8 test files cover it. Recommend backward-compatible changes only."

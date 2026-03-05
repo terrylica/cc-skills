@@ -88,7 +88,7 @@ function main(): void {
   const repoName = gitRoot.split("/").pop();
   console.log(
     JSON.stringify({
-      additionalContext: `[GITNEXUS] ${repoName}: Index is ${commitsBehind} commits behind. Run \`npx gitnexus@latest analyze\` or /gitnexus-tools:reindex to refresh the knowledge graph.`,
+      additionalContext: `[GITNEXUS] ${repoName}: Index is ${commitsBehind} commits behind. Run \`gitnexus analyze\` or /gitnexus-tools:reindex to refresh the knowledge graph.`,
     })
   );
 }

@@ -141,11 +141,11 @@ async function main(): Promise<void> {
 
 Run all commands from the repo root (the CLI auto-detects the repo from cwd):
 
-  npx gitnexus@latest query "<concept>" --limit 5    # Explore execution flows
-  npx gitnexus@latest context "<symbol>" --content    # 360° symbol view (callers, callees, source)
-  npx gitnexus@latest impact "<symbol>" --depth 3     # Blast radius analysis
-  npx gitnexus@latest status                          # Check index freshness
-  npx gitnexus@latest list                            # List all indexed repos
+  gitnexus query "<concept>" --limit 5    # Explore execution flows
+  gitnexus context "<symbol>" --content    # 360° symbol view (callers, callees, source)
+  gitnexus impact "<symbol>" --depth 3     # Blast radius analysis
+  gitnexus status                          # Check index freshness
+  gitnexus list                            # List all indexed repos
 
 Skills: /gitnexus-tools:explore | /gitnexus-tools:impact | /gitnexus-tools:dead-code | /gitnexus-tools:reindex`
   );

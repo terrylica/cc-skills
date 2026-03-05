@@ -6,7 +6,7 @@
 
 ## Overview
 
-This plugin wraps the [GitNexus](https://www.npmjs.com/package/gitnexus) CLI (`npx gitnexus@latest`) with skills for code exploration, impact analysis, and dead code detection — plus hooks for index staleness detection.
+This plugin wraps the [GitNexus](https://www.npmjs.com/package/gitnexus) CLI (`gitnexus`) with skills for code exploration, impact analysis, and dead code detection — plus hooks for index staleness detection.
 
 GitNexus indexes codebases into a KuzuDB knowledge graph (nodes: functions, classes, files; edges: calls, imports, extends). Skills provide structured workflows on top of the CLI; hooks provide passive staleness monitoring.
 
@@ -31,7 +31,7 @@ GitNexus indexes codebases into a KuzuDB knowledge graph (nodes: functions, clas
 
 ### CLI Reminder
 
-On the first exploration tool use in a repo with `.gitnexus/meta.json`, reminds Claude to use the GitNexus CLI (`npx gitnexus@latest`) instead of MCP or manual grep. Gates once per session per repo via `/tmp/.claude-gitnexus-cli-reminder/`. MCP operations (`readMcpResource`) do not go through the hook pipeline, so this proactive reminder fires early to guide Claude before it tries MCP.
+On the first exploration tool use in a repo with `.gitnexus/meta.json`, reminds Claude to use the GitNexus CLI (`gitnexus`) instead of MCP or manual grep. Gates once per session per repo via `/tmp/.claude-gitnexus-cli-reminder/`. MCP operations (`readMcpResource`) do not go through the hook pipeline, so this proactive reminder fires early to guide Claude before it tries MCP.
 
 ### Staleness Detection
 
@@ -60,15 +60,15 @@ Add these to project CLAUDE.md files to guide when skills are invoked:
 >
 > Run all commands from the repo root. The CLI auto-detects the repo from cwd.
 
-| Command                                            | Purpose               |
-| -------------------------------------------------- | --------------------- |
-| `npx gitnexus@latest list`                         | List indexed repos    |
-| `npx gitnexus@latest query "<concept>" --limit 5`  | Find execution flows  |
-| `npx gitnexus@latest context "<symbol>" --content` | 360° symbol view      |
-| `npx gitnexus@latest impact "<symbol>" --depth 3`  | Blast radius          |
-| `npx gitnexus@latest status`                       | Check index freshness |
-| `npx gitnexus@latest analyze`                      | Re-index              |
-| `npx gitnexus@latest cypher "<query>"`             | Raw Cypher query      |
+| Command                                 | Purpose               |
+| --------------------------------------- | --------------------- |
+| `gitnexus list`                         | List indexed repos    |
+| `gitnexus query "<concept>" --limit 5`  | Find execution flows  |
+| `gitnexus context "<symbol>" --content` | 360° symbol view      |
+| `gitnexus impact "<symbol>" --depth 3`  | Blast radius          |
+| `gitnexus status`                       | Check index freshness |
+| `gitnexus analyze`                      | Re-index              |
+| `gitnexus cypher "<query>"`             | Raw Cypher query      |
 
 Disambiguate symbols with `--uid` (from candidates list) or `--file` flags.
 
