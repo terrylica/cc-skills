@@ -45,8 +45,10 @@ const PUEUE_SCRIPTS = /pueue[_-]/i;
 const BACKGROUNDED = /\bnohup\s|&\s*$|\bscreen\s|\btmux\s/i;
 
 /** Fast local commands that should never be wrapped, even if their arguments
- *  (commit messages, branch names) happen to match LONG_RUNNING_PATTERNS. */
-const NEVER_WRAP = /^\s*git\s/i;
+ *  (commit messages, branch names, file paths) happen to match LONG_RUNNING_PATTERNS.
+ *  Includes linters/formatters whose file path arguments can trigger false positives
+ *  (e.g., `ruff check scripts/populate_full_cache.py` matching "populate_cache"). */
+const NEVER_WRAP = /^\s*(git|ruff|mypy|pyright|pylint|flake8|black|isort|prettier|eslint|biome|cargo\s+(clippy|fmt|doc))\s/i;
 
 /**
  * Known long-running patterns that benefit from pueue wrapping.
@@ -141,9 +143,9 @@ async function main() {
     return;
   }
 
-  // Check pueue daemon is running (fail-open if down)
-  const daemonCheck = Bun.spawnSync(["pueue", "status"], {
-    stdout: "ignore",
+  // Check pueue daemon is running and default group is not paused (fail-open if down)
+  const daemonCheck = Bun.spawnSync(["pueue", "status", "--json"], {
+    stdout: "pipe",
     stderr: "ignore",
   });
   if (daemonCheck.exitCode !== 0) {
@@ -154,6 +156,21 @@ async function main() {
       allow();
     }
     return;
+  }
+  // Check if default group is paused — queued tasks never run in a paused group
+  try {
+    const status = JSON.parse(daemonCheck.stdout.toString());
+    const defaultGroup = status?.groups?.default;
+    if (defaultGroup === "Paused" || defaultGroup?.status === "Paused") {
+      if (opTokenInjected) {
+        allowWithInput("PUEUE-WRAP-GUARD", tool_name, { command });
+      } else {
+        allow();
+      }
+      return;
+    }
+  } catch {
+    // JSON parse failed — fail-open
   }
 
   // Wrap tier: rewrite command with pueue wrapper

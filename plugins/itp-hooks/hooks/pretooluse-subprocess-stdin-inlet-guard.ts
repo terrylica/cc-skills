@@ -46,32 +46,13 @@ async function main() {
     return;
   }
 
-  // MCP shell_execute: wrap command array to disconnect stdin.
-  // The MCP shell server allocates PTYs for spawned processes.
-  // Parallel calls compete for the same TTY stdin → SIGSTOP.
-  // Wrap: ["uv","run",...] → ["bash","-c","(\"$@\") </dev/null","bash","uv","run",...]
-  if (tool_name === "mcp__shell__shell_execute" && Array.isArray(tool_input.command)) {
-    const originalCommand = tool_input.command as string[];
-
-    // Skip if already wrapped with stdin disconnection
-    const joined = originalCommand.join(" ");
-    if (joined.includes("</dev/null") || joined.includes("< /dev/null")) {
-      allow();
-      return;
-    }
-
-    const wrappedCommand = ["bash", "-c", '("$@") </dev/null', "bash", ...originalCommand];
-
-    console.warn(
-      "🛡️  Subprocess Inlet Guard: Pre-disconnecting stdin for MCP shell_execute",
-    );
-
-    // Preserve directory and timeout from original input
-    const updatedInput: Record<string, unknown> = { command: wrappedCommand };
-    if (tool_input.directory) updatedInput.directory = tool_input.directory;
-    if (tool_input.timeout != null) updatedInput.timeout = tool_input.timeout;
-
-    allowWithInput("STDIN-INLET-GUARD", tool_name, updatedInput);
+  // MCP shell_execute: cannot wrap with bash (MCP shell has a command allowlist
+  // that doesn't include bash). Wrapping ["uv","run",...] → ["bash","-c",...]
+  // changes the executable and breaks all MCP shell calls.
+  // TTY contention from parallel MCP calls must be addressed at the MCP server
+  // configuration level, not via command mutation.
+  if (tool_name === "mcp__shell__shell_execute") {
+    allow();
     return;
   }
 
