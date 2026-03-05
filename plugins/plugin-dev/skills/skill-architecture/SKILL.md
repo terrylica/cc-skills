@@ -202,14 +202,16 @@ Skill bodies support these substitutions (resolved at load time):
 
 ### Dynamic Context Injection
 
-Use `` !`command` `` in skill body to inject command output at load time:
+Use the pattern `!` + `` `command` `` (exclamation mark followed by a backtick-wrapped command) in skill body to inject command output at load time:
 
-```markdown
-Current branch: !`git branch --show-current`
-Last commit: !`git log -1 --oneline`
+```
+Current branch: <exclamation>`git branch --show-current`
+Last commit: <exclamation>`git log -1 --oneline`
 ```
 
-The command runs when the skill loads -- output replaces the `` !`...` `` block inline.
+(Replace `<exclamation>` with `!` in actual usage.)
+
+The command runs when the skill loads -- output replaces the pattern inline.
 
 ### Extended Thinking
 
