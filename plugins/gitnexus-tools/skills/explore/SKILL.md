@@ -1,6 +1,6 @@
 ---
 name: explore
-description: "Explore how code works using GitNexus CLI (npx gitnexus@latest). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - how does X work, explore symbol, understand function, trace execution, code walkthrough."
+description: "Explore how code works using GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - how does X work, explore symbol, understand function, trace execution, code walkthrough."
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---
@@ -25,7 +25,7 @@ Trace execution flows and understand how code works using the GitNexus knowledge
 Run from the repo root (the CLI auto-detects the repo from cwd):
 
 ```bash
-npx gitnexus@latest status
+gitnexus status
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
@@ -33,7 +33,7 @@ If stale, suggest running `/gitnexus-tools:reindex` first.
 ### Step 2: Find Execution Flows
 
 ```bash
-npx gitnexus@latest query "<concept>" --limit 5
+gitnexus query "<concept>" --limit 5
 ```
 
 This returns ranked execution flows (process chains) related to the concept.
@@ -43,7 +43,7 @@ This returns ranked execution flows (process chains) related to the concept.
 For each relevant symbol found:
 
 ```bash
-npx gitnexus@latest context "<symbol>" --content
+gitnexus context "<symbol>" --content
 ```
 
 This shows:
@@ -56,9 +56,9 @@ This shows:
 If multiple candidates are returned, disambiguate with:
 
 ```bash
-npx gitnexus@latest context "<symbol>" --uid "<full-uid>" --content
+gitnexus context "<symbol>" --uid "<full-uid>" --content
 # or
-npx gitnexus@latest context "<symbol>" --file "<file-path>" --content
+gitnexus context "<symbol>" --file "<file-path>" --content
 ```
 
 ### Step 4: Read Source Files
@@ -79,9 +79,9 @@ Present a clear explanation covering:
 User: "How does the kintsugi gap repair work?"
 
 ```bash
-npx gitnexus@latest query "kintsugi gap repair" --limit 5
-npx gitnexus@latest context "KintsugiReconciler" --content
-npx gitnexus@latest context "discover_shards" --content
+gitnexus query "kintsugi gap repair" --limit 5
+gitnexus context "KintsugiReconciler" --content
+gitnexus context "discover_shards" --content
 ```
 
 Then read the relevant source files and synthesize the explanation.

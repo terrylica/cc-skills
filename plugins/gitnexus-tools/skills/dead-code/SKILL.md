@@ -1,6 +1,6 @@
 ---
 name: dead-code
-description: "Find orphan functions, dangling imports, and dead code via GitNexus CLI (npx gitnexus@latest). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - dead code, orphan functions, unused imports, dangling references, unreachable code."
+description: "Find orphan functions, dangling imports, and dead code via GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - dead code, orphan functions, unused imports, dangling references, unreachable code."
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---
@@ -27,7 +27,7 @@ Find orphan functions, dangling imports, isolated files, and unreachable code us
 Run from the repo root (the CLI auto-detects the repo from cwd):
 
 ```bash
-npx gitnexus@latest status
+gitnexus status
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
@@ -41,7 +41,7 @@ Run these 4 queries to detect different categories of dead code:
 Functions with no incoming CALLS edges and not participating in any process:
 
 ```bash
-npx gitnexus@latest cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
+gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
 ```
 
 #### Dangling Imports
@@ -49,7 +49,7 @@ npx gitnexus@latest cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CAL
 Import edges with low confidence (< 0.5), indicating potentially broken references:
 
 ```bash
-npx gitnexus@latest cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.name, b.name, r.confidence, a.file ORDER BY r.confidence LIMIT 30"
+gitnexus cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.name, b.name, r.confidence, a.file ORDER BY r.confidence LIMIT 30"
 ```
 
 #### Dead Code (Unreachable)
@@ -57,7 +57,7 @@ npx gitnexus@latest cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 
 Functions unreachable from any entry point — no callers and no process membership:
 
 ```bash
-npx gitnexus@latest cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } AND NOT f.name STARTS WITH '_' AND NOT f.name STARTS WITH 'test_' RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
+gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } AND NOT f.name STARTS WITH '_' AND NOT f.name STARTS WITH 'test_' RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
 ```
 
 #### Isolated Files
@@ -65,7 +65,7 @@ npx gitnexus@latest cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CAL
 Files with no imports in or out:
 
 ```bash
-npx gitnexus@latest cypher "MATCH (f:File) WHERE NOT EXISTS { MATCH (f)-[:IMPORTS]->() } AND NOT EXISTS { MATCH ()-[:IMPORTS]->(f) } RETURN f.path ORDER BY f.path LIMIT 30"
+gitnexus cypher "MATCH (f:File) WHERE NOT EXISTS { MATCH (f)-[:IMPORTS]->() } AND NOT EXISTS { MATCH ()-[:IMPORTS]->(f) } RETURN f.path ORDER BY f.path LIMIT 30"
 ```
 
 ### Step 3: Filter Results
