@@ -6,6 +6,10 @@ Dated entries extracted from root [CLAUDE.md](../CLAUDE.md). Newest first.
 
 ---
 
+**2026-03-05**: MCP `mcp-shell-server` causes TTY suspension via hardcoded `-i` (interactive) shell flag + `pwd.getpwuid()` ignoring `$SHELL` env var. Hook-based fix impossible (MCP command allowlist rejects `bash`). Fix: monkeypatch entrypoint replacing `-i` with `-l` (login) + `stdin=DEVNULL`. [Full Guide](./cargo-tty-suspension-prevention.md#mcp-shell-server-tty-suspension-2026-03-05) | Patch: `~/.claude/bin/mcp-shell-server-patched.py`
+
+**2026-03-05**: `bun add -g` fails for packages with native deps (kuzu in gitnexus). Use `npm install -g` instead — mise reshims automatically. Bun-First Policy exception for native modules.
+
 **2026-02-23**: HTTP proxy migrated from Python FastAPI+httpx to Go compiled binary for macOS launchd deployment. Python proxy had 0 commits in 74 days (supply chain risk). Go optimal: stdlib httputil.ReverseProxy handles SSE with `FlushInterval:-1`, 15–30s builds vs Swift's 60–300s, exact-match routing prevents provider switching bugs. Deployed to `/usr/local/bin/claude-proxy` with per-provider weighted semaphores + exponential backoff retries + OAuth header forwarding. 9 independent audits converged on Go. [Implementation](../../.claude/tools/claude-code-proxy-go/CLAUDE.md)
 
 **2026-02-23**: Cargo TTY suspension prevention hook added - prevents Claude Code suspension when running `cargo bench/test/build &`. Uses PUEUE daemon for process isolation (eliminates stdin inheritance). [Full Guide](./cargo-tty-suspension-prevention.md) | [Hook](../plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts) | [GitHub Issues #11898, #12507, #13598](https://github.com/anthropics/claude-code/issues)

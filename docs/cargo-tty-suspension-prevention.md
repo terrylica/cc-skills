@@ -361,10 +361,68 @@ Claude Code Shell (TTY-safe)
    No TTY suspension, no SIGSTOP
 ```
 
+## MCP Shell Server TTY Suspension (2026-03-05)
+
+The `mcp-shell-server` PyPI package (used for `shell_execute` MCP tool) has a separate TTY suspension issue unrelated to cargo.
+
+### Root Cause
+
+`shell_executor.py` hardcodes an interactive shell invocation:
+
+```python
+shell = pwd.getpwuid(os.getuid()).pw_shell  # Always /bin/zsh from /etc/passwd
+shell_cmd = f"{shell} -i -c {shlex.quote(cmd)}"  # -i = interactive mode
+```
+
+Two problems:
+
+1. **`-i` flag** starts an interactive zsh that expects TTY input — causes SIGSTOP
+2. **`pwd.getpwuid()`** reads from `/etc/passwd`, ignoring `$SHELL` env var — so the `SHELL` env override in `.mcp.json` is silently ignored
+
+### Fix: Monkeypatch Entrypoint
+
+A patched entrypoint (`~/.claude/bin/mcp-shell-server-patched.py`) intercepts `asyncio.create_subprocess_shell` to:
+
+1. Replace `-i -c` with `-l -c` (login shell — loads PATH from `.zprofile` without TTY)
+2. Set `stdin=DEVNULL` when no explicit stdin is provided
+
+`.mcp.json` configuration:
+
+```json
+{
+  "shell": {
+    "command": "uvx",
+    "args": [
+      "--from",
+      "mcp-shell-server",
+      "--python",
+      "3.13",
+      "python",
+      "/Users/terryli/.claude/bin/mcp-shell-server-patched.py"
+    ],
+    "env": {
+      "ALLOW_COMMANDS": "git,cargo,uv,..."
+    }
+  }
+}
+```
+
+### Why Not Hook-Based
+
+The Bash tool's stdin inlet guard (`pretooluse-subprocess-stdin-inlet-guard.ts`) wraps commands with `< /dev/null`. This approach **cannot work** for MCP `shell_execute` because:
+
+- MCP shell has a command allowlist (only whitelisted executables)
+- Wrapping `["uv","run",...]` → `["bash","-c",...]` changes the executable to `bash`
+- `bash` is not in the allowlist → "Command not allowed: bash"
+
+The fix must be at the MCP server level, not via command mutation.
+
 ## References
 
 - **Hook**: `~/eon/cc-skills/plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts`
 - **Tests**: `~/eon/cc-skills/plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.test.ts`
 - **Registration**: `~/eon/cc-skills/plugins/itp-hooks/hooks/hooks.json`
+- **MCP Patch**: `~/.claude/bin/mcp-shell-server-patched.py`
 - **PUEUE Docs**: <https://github.com/Nukesor/pueue>
+- **mcp-shell-server**: <https://github.com/tumf/mcp-shell-server>
 - **GitHub Issues**: #11898, #12507, #13598
