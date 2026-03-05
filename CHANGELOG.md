@@ -1,3 +1,29 @@
+## [11.77.1](https://github.com/terrylica/cc-skills/compare/v11.77.0...v11.77.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* **plugin-dev:** Escape dynamic context injection examples in skill-architecture ([c7db45d](https://github.com/terrylica/cc-skills/commit/c7db45dd6672640f9bf446fe28d5928d2e0d5eca))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+7/-5)
+
+</details>
+
 # [11.77.0](https://github.com/terrylica/cc-skills/compare/v11.76.6...v11.77.0) (2026-03-04)
 
 
