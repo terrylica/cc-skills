@@ -1,6 +1,6 @@
 ---
 name: reindex
-description: "Re-index the GitNexus knowledge graph via CLI (npx gitnexus@latest). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - reindex, refresh index, update knowledge graph, gitnexus analyze."
+description: "Re-index the GitNexus knowledge graph via CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - reindex, refresh index, update knowledge graph, gitnexus analyze."
 allowed-tools: Bash, Read
 model: haiku
 ---
@@ -25,7 +25,7 @@ Re-index the current repository's GitNexus knowledge graph and verify the update
 Run from the repo root (the CLI auto-detects the repo from cwd):
 
 ```bash
-npx gitnexus@latest status
+gitnexus status
 ```
 
 If already current (lastCommit matches HEAD), report "Index is up to date" and stop.
@@ -33,13 +33,13 @@ If already current (lastCommit matches HEAD), report "Index is up to date" and s
 ### Step 2: Run Indexer
 
 ```bash
-npx gitnexus@latest analyze
+gitnexus analyze
 ```
 
 Use `--force` if the index appears corrupted or if a normal analyze doesn't pick up changes:
 
 ```bash
-npx gitnexus@latest analyze --force
+gitnexus analyze --force
 ```
 
 This may take 30–120 seconds depending on codebase size.
@@ -47,7 +47,7 @@ This may take 30–120 seconds depending on codebase size.
 ### Step 3: Verify New Index
 
 ```bash
-npx gitnexus@latest status
+gitnexus status
 ```
 
 ### Step 4: Report Stats

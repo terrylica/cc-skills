@@ -166,7 +166,7 @@ async function main(): Promise<void> {
   }
 
   blockWithReminder(
-    `[GITNEXUS] Index is stale (${commitsBehind} commits behind). Run \`npx gitnexus@latest analyze\` to refresh, or use /gitnexus-tools:reindex.`
+    `[GITNEXUS] Index is stale (${commitsBehind} commits behind). Run \`gitnexus analyze\` to refresh, or use /gitnexus-tools:reindex.`
   );
 }
 
