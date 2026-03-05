@@ -1,3 +1,10 @@
+## [11.77.2](https://github.com/terrylica/cc-skills/compare/v11.77.1...v11.77.2) (2026-03-05)
+
+
+### Bug Fixes
+
+* **itp-hooks:** Prevent pueue false positives and revert MCP stdin wrapping ([f920218](https://github.com/terrylica/cc-skills/commit/f9202184c7296eb242206dade09f4f317b678e42))
+
 ## [11.77.1](https://github.com/terrylica/cc-skills/compare/v11.77.0...v11.77.1) (2026-03-05)
 
 
