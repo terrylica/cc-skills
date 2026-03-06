@@ -17,8 +17,8 @@
  * Fail-open everywhere — every catch exits 0.
  */
 
-import { mkdirSync, openSync, closeSync, constants } from "fs";
-import { join } from "path";
+import { mkdirSync, openSync, closeSync, constants } from "node:fs";
+import { join } from "node:path";
 
 // --- Types ---
 
@@ -36,7 +36,7 @@ interface HookInput {
 // --- Constants ---
 
 const GATE_DIR = "/tmp/.claude-biome-install-reminder";
-const JS_TS_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx"];
+const JS_TS_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"];
 
 // --- Utility ---
 
@@ -110,6 +110,9 @@ Unique catches: useConst, noDoubleEquals, useNodejsImportProtocol, noImplicitAny
   // Run biome lint on the edited file
   // --error-on-warnings: exit 1 for warnings (useConst, noDoubleEquals, etc.)
   // --diagnostic-level=info: show info-level diagnostics too (useNodejsImportProtocol)
+  // Suppress noisy rules that cause 67% trigger rate on real codebases:
+  //   noExplicitAny (45 hits), useNodejsImportProtocol (24), noUnusedVariables (14),
+  //   noNonNullAssertion (10), useTemplate (8), noUnusedImports (1)
   const result = Bun.spawnSync(
     [
       "biome", "lint",
@@ -117,6 +120,12 @@ Unique catches: useConst, noDoubleEquals, useNodejsImportProtocol, noImplicitAny
       "--max-diagnostics=none",
       "--error-on-warnings",
       "--diagnostic-level=info",
+      "--skip=lint/suspicious/noExplicitAny",
+      "--skip=lint/style/useNodejsImportProtocol",
+      "--skip=lint/correctness/noUnusedVariables",
+      "--skip=lint/style/noNonNullAssertion",
+      "--skip=lint/style/useTemplate",
+      "--skip=lint/correctness/noUnusedImports",
       filePath,
     ],
     {

@@ -11,8 +11,8 @@
  * Fail-open everywhere — every catch exits 0.
  */
 
-import { mkdirSync, openSync, closeSync, constants } from "fs";
-import { join } from "path";
+import { mkdirSync, openSync, closeSync, constants } from "node:fs";
+import { join } from "node:path";
 
 // --- Types ---
 
@@ -57,12 +57,16 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Only check .ts, .tsx, .js, .jsx files
+  // Only check JS/TS files (including ES module and CommonJS variants)
   if (
     !filePath.endsWith(".ts") &&
     !filePath.endsWith(".tsx") &&
     !filePath.endsWith(".js") &&
-    !filePath.endsWith(".jsx")
+    !filePath.endsWith(".jsx") &&
+    !filePath.endsWith(".mjs") &&
+    !filePath.endsWith(".cjs") &&
+    !filePath.endsWith(".mts") &&
+    !filePath.endsWith(".cts")
   ) {
     process.exit(0);
   }
