@@ -30,13 +30,19 @@ REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
 
 Use `--repo "$REPO_NAME"` on all commands below.
 
-### Step 1: Verify Index
+### Step 1: Auto-Reindex If Stale
 
 ```bash
 gitnexus status --repo "$REPO_NAME"
 ```
 
-If stale, suggest running `/gitnexus-tools:reindex` first.
+If stale (indexed commit ≠ HEAD), **automatically reindex before proceeding** — do not ask the user:
+
+```bash
+gitnexus analyze --repo "$REPO_NAME"
+```
+
+Then re-check status to confirm index is current.
 
 ### Step 2: Find Execution Flows
 
