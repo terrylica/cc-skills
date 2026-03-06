@@ -22,24 +22,27 @@ Find orphan functions, dangling imports, isolated files, and unreachable code us
 
 ## Workflow
 
-### Step 0: Determine Repo Name
+### Step 0: Resolve CLI and Repo Name
 
-Multiple repos may be indexed. Always pass `--repo <name>`:
+Resolve the CLI command (bare `gitnexus` may fail if the project's mise node version differs from where it was installed):
 
 ```bash
 REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+GN=$(command -v gitnexus >/dev/null 2>&1 && echo "gitnexus" || echo "npx gitnexus")
 ```
+
+Use `$GN --repo "$REPO_NAME"` on all commands below.
 
 ### Step 1: Auto-Reindex If Stale
 
 ```bash
-gitnexus status --repo "$REPO_NAME"
+$GN status --repo "$REPO_NAME"
 ```
 
 If stale (indexed commit ≠ HEAD), **automatically reindex before proceeding** — do not ask the user:
 
 ```bash
-gitnexus analyze --repo "$REPO_NAME"
+$GN analyze --repo "$REPO_NAME"
 ```
 
 Then re-check status to confirm index is current.
@@ -53,7 +56,7 @@ Run these 4 queries to detect different categories of dead code:
 Functions with no incoming CALLS edges and not participating in any process:
 
 ```bash
-gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50" --repo "$REPO_NAME"
+$GN cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50" --repo "$REPO_NAME"
 ```
 
 #### Dangling Imports
@@ -61,7 +64,7 @@ gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } 
 Import edges with low confidence (< 0.5), indicating potentially broken references:
 
 ```bash
-gitnexus cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.name, b.name, r.confidence, a.file ORDER BY r.confidence LIMIT 30" --repo "$REPO_NAME"
+$GN cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.name, b.name, r.confidence, a.file ORDER BY r.confidence LIMIT 30" --repo "$REPO_NAME"
 ```
 
 #### Dead Code (Unreachable)
@@ -69,7 +72,7 @@ gitnexus cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.na
 Functions unreachable from any entry point — no callers and no process membership:
 
 ```bash
-gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } AND NOT f.name STARTS WITH '_' AND NOT f.name STARTS WITH 'test_' RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50" --repo "$REPO_NAME"
+$GN cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } AND NOT f.name STARTS WITH '_' AND NOT f.name STARTS WITH 'test_' RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50" --repo "$REPO_NAME"
 ```
 
 #### Isolated Files
@@ -77,7 +80,7 @@ gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } 
 Files with no imports in or out:
 
 ```bash
-gitnexus cypher "MATCH (f:File) WHERE NOT EXISTS { MATCH (f)-[:IMPORTS]->() } AND NOT EXISTS { MATCH ()-[:IMPORTS]->(f) } RETURN f.path ORDER BY f.path LIMIT 30" --repo "$REPO_NAME"
+$GN cypher "MATCH (f:File) WHERE NOT EXISTS { MATCH (f)-[:IMPORTS]->() } AND NOT EXISTS { MATCH ()-[:IMPORTS]->(f) } RETURN f.path ORDER BY f.path LIMIT 30" --repo "$REPO_NAME"
 ```
 
 ### Step 3: Filter Results

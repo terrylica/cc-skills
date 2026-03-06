@@ -60,21 +60,22 @@ Add these to project CLAUDE.md files to guide when skills are invoked:
 >
 > Run all commands from the repo root. The CLI auto-detects the repo from cwd.
 
-**Always pass `--repo <name>`** when multiple repos are indexed (avoids "Multiple repositories indexed" error):
+**Always resolve CLI and repo name first** (bare `gitnexus` may fail if the project's mise node version differs from where it was installed):
 
 ```bash
 REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+GN=$(command -v gitnexus >/dev/null 2>&1 && echo "gitnexus" || echo "npx gitnexus")
 ```
 
-| Command                                                     | Purpose               |
-| ----------------------------------------------------------- | --------------------- |
-| `gitnexus list`                                             | List indexed repos    |
-| `gitnexus query "<concept>" --limit 5 --repo "$REPO_NAME"`  | Find execution flows  |
-| `gitnexus context "<symbol>" --content --repo "$REPO_NAME"` | 360° symbol view      |
-| `gitnexus impact "<symbol>" --depth 3 --repo "$REPO_NAME"`  | Blast radius          |
-| `gitnexus status --repo "$REPO_NAME"`                       | Check index freshness |
-| `gitnexus analyze --repo "$REPO_NAME"`                      | Re-index              |
-| `gitnexus cypher "<query>" --repo "$REPO_NAME"`             | Raw Cypher query      |
+| Command                                                | Purpose               |
+| ------------------------------------------------------ | --------------------- |
+| `$GN list`                                             | List indexed repos    |
+| `$GN query "<concept>" --limit 5 --repo "$REPO_NAME"`  | Find execution flows  |
+| `$GN context "<symbol>" --content --repo "$REPO_NAME"` | 360° symbol view      |
+| `$GN impact "<symbol>" --depth 3 --repo "$REPO_NAME"`  | Blast radius          |
+| `$GN status --repo "$REPO_NAME"`                       | Check index freshness |
+| `$GN analyze --repo "$REPO_NAME"`                      | Re-index              |
+| `$GN cypher "<query>" --repo "$REPO_NAME"`             | Raw Cypher query      |
 
 Disambiguate symbols with `--uid` (from candidates list) or `--file` flags.
 
