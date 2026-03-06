@@ -1,3 +1,24 @@
+## [11.77.6](https://github.com/terrylica/cc-skills/compare/v11.77.5...v11.77.6) (2026-03-06)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** Remove Read from CLI reminder hook matcher ([5a63d30](https://github.com/terrylica/cc-skills/commit/5a63d305079ab7d333fbc3a7a9ad3858abe848a2))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+5/-5)
+
 ## [11.77.5](https://github.com/terrylica/cc-skills/compare/v11.77.4...v11.77.5) (2026-03-06)
 
 
