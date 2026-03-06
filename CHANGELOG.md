@@ -1,3 +1,10 @@
+## [11.79.1](https://github.com/terrylica/cc-skills/compare/v11.79.0...v11.79.1) (2026-03-06)
+
+
+### Bug Fixes
+
+* **itp-hooks:** Fix tsgo basename collision, biome noise, and extension gaps ([4816da6](https://github.com/terrylica/cc-skills/commit/4816da6296fd331ddce7794abd719bc302832a52))
+
 # [11.79.0](https://github.com/terrylica/cc-skills/compare/v11.78.0...v11.79.0) (2026-03-06)
 
 
