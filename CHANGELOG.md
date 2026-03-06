@@ -1,3 +1,54 @@
+# [11.80.0](https://github.com/terrylica/cc-skills/compare/v11.79.2...v11.80.0) (2026-03-06)
+
+
+### Features
+
+* **rust-tools:** Complete 4-phase release pipeline with cargo-geiger, cargo-vet, cargo-hack integration ([efdf234](https://github.com/terrylica/cc-skills/commit/efdf2343b6cec270bd8b74b46de3243f7793c917)), closes [41-#51](https://github.com/41-/issues/51)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>rust-tools</strong> (2 changes)</summary>
+
+- [rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/SKILL.md) - updated (+34)
+- [rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/SKILL.md) - updated (+49)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>rust-tools/rust-dependency-audit</strong> (1 file)</summary>
+
+- [cargo-geiger](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/references/cargo-geiger-guide.md) - new (+179)
+
+</details>
+
+<details>
+<summary><strong>rust-tools/rust-sota-arsenal</strong> (1 file)</summary>
+
+- [cargo-hack Extended Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/references/cargo-hack-extended.md) - new (+218)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [rust-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/CLAUDE.md) - updated (+27/-6)
+
 ## [11.79.2](https://github.com/terrylica/cc-skills/compare/v11.79.1...v11.79.2) (2026-03-06)
 
 
