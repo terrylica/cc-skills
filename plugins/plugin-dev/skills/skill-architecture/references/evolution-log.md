@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-03-06: Align with Anthropic skill-creator (9-Agent Deep Dive)
+
+**Trigger**: 9-agent investigation comparing our skill-architecture against Anthropic's official [skill-creator](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md) (forked to `~/fork-tools/skills`). Found 3 CRITICAL, 3 HIGH, 3 MEDIUM gaps.
+
+### Changes Made
+
+1. **Description**: Converted from keyword-list format ("TRIGGERS - keyword1, keyword2") to natural language sentences per Anthropic's guidance
+2. **Task Templates**: Replaced "MANDATORY" with reasoning-based explanation
+3. **New section: Testing and Iteration** (~50 lines): Test prompts, evaluation methodology, iteration philosophy (generalize, keep lean, explain why, bundle repeated work)
+4. **New section: Skill Writing Principles** (~15 lines): Inline key principles from Anthropic (reasoning over rigidity, pushy descriptions, natural language, keep execution out of descriptions)
+5. **New reference: writing-guide.md**: Extended guidance on tone, description optimization, leanness, generalization, examples
+6. **New reference: script-design.md**: Agentic script best practices (no interactive prompts, structured output, idempotency, PEP 723)
+7. **TOCs added**: To reference files over 500 lines (per Anthropic's guideline)
+8. **Updated Reference Documentation list**: Added links to new reference files
+
+### Key Insight
+
+> "We teach 'design and build correctly'; Anthropic teaches 'measure and iterate.' These are complementary halves."
+
+Our unique value (Task Templates, 6-level precedence, CLI features, 5 structural patterns, phased execution, security practices) is preserved. The gaps filled are eval methodology, writing philosophy, and description optimization.
+
+### Reports
+
+9 detailed agent reports at `/tmp/skill-alignment-agents/agent{1-9}-*.md`.
+
+---
+
 ## 2026-02-25: Add 10 Checklist Items from Official Sources
 
 **Trigger**: Gap analysis of Skill Quality Checklist (SKILL.md) and Validation Checklist (validation-reference.md) against Claude Code docs + agentskills.io spec revealed 10 missing items.
