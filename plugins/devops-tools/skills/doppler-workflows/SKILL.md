@@ -1,6 +1,6 @@
 ---
 name: doppler-workflows
-description: Doppler credential and publishing workflows. TRIGGERS - PyPI publish, AWS credentials, Doppler secrets.
+description: "Manage credentials and secrets through Doppler for publishing and deployment workflows. Use whenever the user needs to publish Python packages to PyPI, rotate AWS credentials, manage Doppler secrets, or configure credential pipelines for CI/CD. Do NOT use for 1Password vault operations or for secrets that are not managed through Doppler."
 allowed-tools: Read, Bash
 ---
 

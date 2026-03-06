@@ -1,6 +1,6 @@
 ---
 name: mise-configuration
-description: Configure environment via mise [env] SSoT. TRIGGERS - mise env, mise.toml, environment variables, centralize config, Python venv, mise templates, hub-spoke architecture, monorepo structure, subfolder mise.toml.
+description: "Configure environment variables and project settings using mise [env] as the single source of truth. Use whenever the user needs to set up mise.toml, centralize environment variables, configure Python venvs through mise, use mise templates, or structure hub-spoke and monorepo mise configurations with subfolder overrides. Do NOT use for mise task orchestration (use mise-tasks instead) or for runtime version management unrelated to environment configuration."
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 ---
 

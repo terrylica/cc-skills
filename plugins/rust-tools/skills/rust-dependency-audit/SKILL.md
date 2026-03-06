@@ -1,6 +1,6 @@
 ---
 name: rust-dependency-audit
-description: "Rust dependency audit - cargo-audit (vulnerabilities), cargo-deny (licenses and advisories), cargo-vet (supply chain), cargo-outdated and cargo-upgrades (freshness). TRIGGERS - cargo outdated, dependency audit, vulnerability scan, license check, cargo update, supply chain, crate freshness."
+description: "Audit Rust dependencies for vulnerabilities, license compliance, supply chain integrity, and freshness using cargo-audit, cargo-deny, cargo-vet, and cargo-outdated. Use whenever the user asks about dependency auditing, vulnerability scanning, license checks, supply chain verification, crate freshness, or says 'cargo outdated' or 'cargo update'. Also use before any Rust crate release. Do NOT use for Rust tooling guidance on refactoring, profiling, or benchmarking (use rust-sota-arsenal instead)."
 allowed-tools: Read, Grep, Bash, WebSearch, WebFetch
 ---
 
