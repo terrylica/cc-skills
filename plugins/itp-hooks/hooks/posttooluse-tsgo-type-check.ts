@@ -14,8 +14,8 @@
  * Fail-open everywhere — every catch exits 0.
  */
 
-import { mkdirSync, openSync, closeSync, constants, existsSync } from "fs";
-import { join, dirname, basename } from "path";
+import { mkdirSync, openSync, closeSync, constants, existsSync } from "node:fs";
+import { join, dirname, basename } from "node:path";
 
 // --- Types ---
 
@@ -160,14 +160,17 @@ tsgo is ~30x faster than tsc (~170ms full project check) — fast enough to run 
   // Filter output to only show errors related to the edited file.
   // tsgo checks ALL files in tsconfig scope — don't blame user for
   // pre-existing errors in other files.
-  const fileName = basename(filePath);
+  // Use relative path from tsconfigDir to avoid basename collisions
+  // (e.g., two files named index.ts in different directories).
+  const relativePath = filePath.startsWith(`${tsconfigDir}/`)
+    ? filePath.slice(tsconfigDir.length + 1)
+    : basename(filePath);
   const filteredLines = allOutput
     .split("\n")
     .filter((line) => {
       // Match error lines that reference the edited file
-      // Format: file(line,col): error TSXXXX: message
-      // The file path in output is relative to tsconfig dir
-      return line.includes(fileName) || line.includes(filePath);
+      // Format: relative/path/file(line,col): error TSXXXX: message
+      return line.startsWith(relativePath) || line.includes(filePath);
     });
 
   if (filteredLines.length === 0) {
@@ -176,7 +179,7 @@ tsgo is ~30x faster than tsc (~170ms full project check) — fast enough to run 
   }
 
   blockWithReminder(
-    `[TSGO] Type errors in ${fileName}:
+    `[TSGO] Type errors in ${basename(filePath)}:
 
 ${filteredLines.join("\n")}`
   );
