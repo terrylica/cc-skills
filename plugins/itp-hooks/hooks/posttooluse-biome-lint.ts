@@ -117,7 +117,7 @@ Unique catches: useConst, noDoubleEquals, useNodejsImportProtocol, noImplicitAny
     [
       "biome", "lint",
       "--no-errors-on-unmatched",
-      "--max-diagnostics=none",
+      "--max-diagnostics=20",
       "--error-on-warnings",
       "--diagnostic-level=info",
       "--skip=lint/suspicious/noExplicitAny",
