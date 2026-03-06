@@ -1,6 +1,6 @@
 ---
 name: documentation-standards
-description: Markdown documentation standards for LLM and Pandoc PDF. TRIGGERS - markdown standards, section numbering, documentation style.
+description: "Apply markdown documentation standards optimized for both LLM consumption and Pandoc PDF generation. Use whenever the user is writing or reviewing documentation, asks about section numbering conventions, markdown formatting standards, or documentation style guidelines. Also use when preparing documents for PDF export via Pandoc. Do NOT use for general prose editing, code commenting, or README generation unrelated to these standards."
 allowed-tools: Read, Glob, Grep
 ---
 

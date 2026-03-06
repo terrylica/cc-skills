@@ -1,6 +1,6 @@
 ---
 name: pre-ship-review
-description: Structured quality review before shipping code (PRs, releases, milestones). Catches integration boundary failures where AI code breaks between components. Orchestrates external tools and existing cc-skills. TRIGGERS - pre-ship review, ship check, quality review, release review, self review, pre-submit, integration check, contract violations.
+description: "Run a structured quality review before shipping code at any checkpoint such as PRs, releases, or milestones. Use whenever the user says 'pre-ship review', 'ship check', 'quality review', 'self review', or 'ready to ship', or before any significant code submission. This skill catches integration boundary failures where AI-generated code breaks between components. Do NOT use for routine linting or formatting (those are handled by Phase 2 of ITP) or for reviewing documentation-only changes."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

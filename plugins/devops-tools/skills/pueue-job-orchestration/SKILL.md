@@ -1,6 +1,6 @@
 ---
 name: pueue-job-orchestration
-description: Pueue universal CLI telemetry and job orchestration. TRIGGERS - run on gpu-host, run on small-host, queue job, long-running task, cache population, batch processing, GPU workstation, pueue callback, pueue delay, pueue priority.
+description: "Manage long-running jobs and batch processing with pueue queue orchestration and CLI telemetry. Use whenever the user wants to queue a job, run tasks on gpu-host or small-host, manage long-running processes, do batch processing, set up pueue callbacks or priorities, or needs GPU workstation job management. Also use for cache population tasks that run in the background. Do NOT use for simple foreground shell commands that complete quickly or for job scheduling via cron/launchd."
 allowed-tools: Read, Bash, Write
 ---
 

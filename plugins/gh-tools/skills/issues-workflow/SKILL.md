@@ -1,6 +1,6 @@
 ---
 name: issues-workflow
-description: GitHub Issues-first workflow with sub-issues hierarchy. TRIGGERS - issue hierarchy, sub-issues, issue tracking, research workflow, cross-repo issues.
+description: "Plan and track work using a GitHub Issues-first workflow with sub-issue hierarchies. Use whenever the user needs to organize issues into parent-child hierarchies, manage sub-issues, track research across multiple issues, or coordinate cross-repo issue workflows. Also use when the user asks about issue tracking strategy or how to structure work breakdown in GitHub. Do NOT use for creating individual issues (use issue-create instead) or for GitHub Projects board management."
 allowed-tools: Read, Bash, Grep, Glob, Write
 ---
 
