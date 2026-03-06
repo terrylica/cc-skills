@@ -1,3 +1,158 @@
+# [11.81.0](https://github.com/terrylica/cc-skills/compare/v11.80.0...v11.81.0) (2026-03-06)
+
+
+### Features
+
+* Refactor 13 skill descriptions to natural language format ([88516f7](https://github.com/terrylica/cc-skills/commit/88516f7f53dc3abc371a83eea0ede45ae4d7e5b9)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **skill-architecture:** Align with Anthropic skill-creator via 9-agent deep dive ([8b5da96](https://github.com/terrylica/cc-skills/commit/8b5da965ed565c70e9ca4073bed0f8bd1720ed8c))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (3 changes)</summary>
+
+- [doppler-workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/doppler-workflows/SKILL.md) - updated (+1/-1)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+1/-1)
+- [session-recovery](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-recovery/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [documentation-standards](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/documentation-standards/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (2 changes)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+1/-1)
+- [issues-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (4 changes)</summary>
+
+- [go](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/go/SKILL.md) - updated (+1/-1)
+- [implement-plan-preflight](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/implement-plan-preflight/SKILL.md) - updated (+1/-1)
+- [mise-configuration](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/SKILL.md) - updated (+1/-1)
+- [mise-tasks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+52/-2)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [pre-ship-review](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>rust-tools</strong> (2 changes)</summary>
+
+- [rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/SKILL.md) - updated (+1/-1)
+- [rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>asciinema-tools/asciinema-streaming-backup</strong> (1 file)</summary>
+
+- [Setup Scripts](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-streaming-backup/references/setup-scripts.md) - updated (+7)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/ascii-diagram-validator</strong> (2 files)</summary>
+
+- [ASCII Alignment Checker - Integration Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/references/INTEGRATION_GUIDE.md) - updated (+40)
+- [ASCII Alignment Checker - Script Design Report](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/ascii-diagram-validator/references/SCRIPT_DESIGN_REPORT.md) - updated (+41)
+
+</details>
+
+<details>
+<summary><strong>doc-tools/pandoc-pdf-generation</strong> (1 file)</summary>
+
+- [LaTeX Parameters Reference for Pandoc](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/pandoc-pdf-generation/references/latex-parameters.md) - updated (+94/-2)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+59)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-configuration</strong> (1 file)</summary>
+
+- [mise [env] Code Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-configuration/references/patterns.md) - updated (+38)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (2 files)</summary>
+
+- [Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md) - updated (+47)
+- [mise Tasks Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/patterns.md) - updated (+23)
+
+</details>
+
+<details>
+<summary><strong>itp/semantic-release</strong> (2 files)</summary>
+
+- [Python Projects Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/python.md) - updated (+32)
+- [Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/references/troubleshooting.md) - updated (+41)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (3 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - updated (+27)
+- [Script Design for Agentic Consumption](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/script-design.md) - new (+224)
+- [Skill Writing Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/writing-guide.md) - new (+143)
+
+</details>
+
+<details>
+<summary><strong>quant-research/adaptive-wfo-epoch</strong> (2 files)</summary>
+
+- [Anti-Patterns: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/anti-patterns.md) - updated (+12)
+- [Decision Tree: Adaptive Walk-Forward Epoch Selection](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/references/epoch-selection-decision-tree.md) - updated (+19)
+
+</details>
+
+<details>
+<summary><strong>quant-research/rangebar-eval-metrics</strong> (1 file)</summary>
+
+- [State-of-the-Art Methods (2025-2026)](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/rangebar-eval-metrics/references/sota-2025-2026.md) - updated (+26)
+
+</details>
+
 # [11.80.0](https://github.com/terrylica/cc-skills/compare/v11.79.2...v11.80.0) (2026-03-06)
 
 
