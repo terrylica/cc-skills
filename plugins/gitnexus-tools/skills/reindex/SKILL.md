@@ -1,6 +1,6 @@
 ---
 name: reindex
-description: "Re-index the GitNexus knowledge graph via CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - reindex, refresh index, update knowledge graph, gitnexus analyze."
+description: "Re-index the GitNexus knowledge graph via CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - reindex, refresh index, update knowledge graph, $GN analyze."
 allowed-tools: Bash, Read
 model: haiku
 ---
@@ -20,18 +20,21 @@ Re-index the current repository's GitNexus knowledge graph and verify the update
 
 ## Workflow
 
-### Step 0: Determine Repo Name
+### Step 0: Resolve CLI and Repo Name
 
-Multiple repos may be indexed. Always pass `--repo <name>`:
+Resolve the CLI command (bare `gitnexus` may fail if the project's mise node version differs from where it was installed):
 
 ```bash
 REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+GN=$(command -v gitnexus >/dev/null 2>&1 && echo "gitnexus" || echo "npx gitnexus")
 ```
+
+Use `$GN --repo "$REPO_NAME"` on all commands below.
 
 ### Step 1: Check Current Status
 
 ```bash
-gitnexus status --repo "$REPO_NAME"
+$GN status --repo "$REPO_NAME"
 ```
 
 If already current (lastCommit matches HEAD), report "Index is up to date" and stop.
@@ -39,13 +42,13 @@ If already current (lastCommit matches HEAD), report "Index is up to date" and s
 ### Step 2: Run Indexer
 
 ```bash
-gitnexus analyze --repo "$REPO_NAME"
+$GN analyze --repo "$REPO_NAME"
 ```
 
 Use `--force` if the index appears corrupted or if a normal analyze doesn't pick up changes:
 
 ```bash
-gitnexus analyze --force --repo "$REPO_NAME"
+$GN analyze --force --repo "$REPO_NAME"
 ```
 
 This may take 30–120 seconds depending on codebase size.
@@ -53,7 +56,7 @@ This may take 30–120 seconds depending on codebase size.
 ### Step 3: Verify New Index
 
 ```bash
-gitnexus status --repo "$REPO_NAME"
+$GN status --repo "$REPO_NAME"
 ```
 
 ### Step 4: Report Stats
