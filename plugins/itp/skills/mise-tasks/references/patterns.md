@@ -1,5 +1,28 @@
 # mise Tasks Patterns
 
+## Table of Contents
+
+- [Hidden Helper Tasks](#hidden-helper-tasks)
+  - [Credential Check](#credential-check)
+  - [Destructive Operation Confirmation](#destructive-operation-confirmation)
+  - [Environment Validation](#environment-validation)
+- [Database Migration Pattern](#database-migration-pattern)
+- [CI/CD Pipeline Pattern](#cicd-pipeline-pattern)
+- [Release Workflow Pattern](#release-workflow-pattern)
+- [Development Server Pattern](#development-server-pattern)
+  - [Runtime-Native Watch (Preferred)](#runtime-native-watch-preferred)
+  - [External Watch (Polyglot / Non-Runtime)](#external-watch-polyglot--non-runtime)
+  - [Watch Method Decision Table](#watch-method-decision-table)
+- [Parameterized Deployment Pattern](#parameterized-deployment-pattern)
+- [File Tracking Pattern](#file-tracking-pattern)
+- [Pueue Pipeline Orchestration Pattern](#pueue-pipeline-orchestration-pattern)
+  - [mise Entry Points](#mise-entry-points)
+  - [Shell Script DAG Builder](#shell-script-dag-builder)
+  - [Key Principles](#key-principles)
+  - [Anti-Pattern: mise `depends` for Long-Running Remote Jobs](#anti-pattern-mise-depends-for-long-running-remote-jobs)
+  - [When to Use](#when-to-use)
+- [Complete Project Template](#complete-project-template)
+
 Real-world task patterns for common workflows.
 
 ## Hidden Helper Tasks

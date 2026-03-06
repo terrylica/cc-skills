@@ -2,6 +2,47 @@
 
 # Troubleshooting
 
+## Table of Contents
+
+- [Authentication Issues](#authentication-issues)
+  - [No GitHub Token Specified](#no-github-token-specified)
+  - [Permission Denied (publickey)](#permission-denied-publickey)
+  - [GitHub Account Mismatch](#github-account-mismatch)
+  - [GitHub Token Missing 'workflow' Scope](#github-token-missing-workflow-scope)
+- [SSH ControlMaster Cache](#ssh-controlmaster-cache)
+  - [Symptoms](#symptoms)
+  - [Detection](#detection)
+  - [Resolution](#resolution)
+  - [Prevention](#prevention)
+- [Release Workflow Errors](#release-workflow-errors)
+  - [No Release Created](#no-release-created)
+  - [Repository Not Found (Valid URL)](#repository-not-found-valid-url)
+  - [Permission Denied Errors](#permission-denied-errors)
+  - [Stale Ahead/Behind Indicators](#stale-aheadbehind-indicators)
+- [Git Push Failures](#git-push-failures)
+  - [Git Push Works But Release Fails](#git-push-works-but-release-fails)
+- [Common Pitfalls](#common-pitfalls)
+  - [Dirty Working Directory](#dirty-working-directory)
+  - [Pre-Release Checklist](#pre-release-checklist)
+  - [Accidental MAJOR Version Bump](#accidental-major-version-bump)
+- [macOS Gatekeeper Blocks .node Files](#macos-gatekeeper-blocks-node-files)
+  - [Solution (Recommended): Install globally](#solution-recommended-install-globally)
+  - [Alternative: Clear quarantine from npm cache](#alternative-clear-quarantine-from-npm-cache)
+  - [For project-local installs](#for-project-local-installs)
+- [Node.js Compatibility](#nodejs-compatibility)
+  - [Node.js Version Mismatch](#nodejs-version-mismatch)
+- [@semantic-release/exec Lodash Template Conflicts](#semantic-releaseexec-lodash-template-conflicts)
+  - [Symptom](#symptom)
+  - [Cause](#cause)
+  - [Solution 0 (Preferred): Remove successCmd Entirely](#solution-0-preferred-remove-successcmd-entirely)
+  - [Solution 1: Use ERB-Style for Lodash Variables](#solution-1-use-erb-style-for-lodash-variables)
+  - [Solution 2: Remove Bash Default Syntax](#solution-2-remove-bash-default-syntax)
+  - [Solution 3: Wrap in External Script](#solution-3-wrap-in-external-script)
+  - [Available Lodash Template Variables](#available-lodash-template-variables)
+  - [Quick Reference](#quick-reference)
+- [Migration Issues (v24 to v25)](#migration-issues-v24--v25)
+- [References](#references)
+
 Consolidated troubleshooting guide for all semantic-release issues.
 
 ---

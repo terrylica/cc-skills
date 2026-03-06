@@ -1,5 +1,24 @@
 # Decision Tree: Adaptive Walk-Forward Epoch Selection
 
+## Table of Contents
+
+- [Master Decision Tree](#master-decision-tree)
+- [Detailed Decision Nodes](#detailed-decision-nodes)
+  - [Node 1: Validate Prerequisites](#node-1-validate-prerequisites)
+  - [Node 2: IS_Sharpe Validation](#node-2-is_sharpe-validation)
+  - [Node 3: WFE Computation](#node-3-wfe-computation)
+  - [Node 4: WFE Threshold Check](#node-4-wfe-threshold-check)
+  - [Node 5: Efficient Frontier](#node-5-efficient-frontier)
+  - [Node 6: Stability Penalty](#node-6-stability-penalty)
+  - [Node 7: Record and Carry Forward](#node-7-record-and-carry-forward)
+- [Complete Pipeline Example](#complete-pipeline-example)
+- [Diagnostic Checks](#diagnostic-checks)
+  - [Check 1: Peak Picking](#check-1-peak-picking)
+  - [Check 2: Selection Stability](#check-2-selection-stability)
+  - [Check 3: WFE Distribution](#check-3-wfe-distribution)
+- [Summary Flowchart](#summary-flowchart)
+- [Quick Reference: Thresholds](#quick-reference-thresholds)
+
 Practitioner decision tree for implementing AWFES in production.
 
 ## Master Decision Tree
