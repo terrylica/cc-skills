@@ -1,3 +1,24 @@
+# [11.79.0](https://github.com/terrylica/cc-skills/compare/v11.78.0...v11.79.0) (2026-03-06)
+
+
+### Features
+
+* **itp-hooks:** Add tsgo, oxlint, and biome PostToolUse hooks for JS/TS files ([e2803e4](https://github.com/terrylica/cc-skills/commit/e2803e42f43a7c7436c06f19a28b43c19fa16d96)), closes [hi#performance](https://github.com/hi/issues/performance)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+13/-10)
+
 # [11.78.0](https://github.com/terrylica/cc-skills/compare/v11.77.8...v11.78.0) (2026-03-06)
 
 
