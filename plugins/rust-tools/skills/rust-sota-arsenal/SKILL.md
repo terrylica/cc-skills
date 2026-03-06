@@ -1,6 +1,6 @@
 ---
 name: rust-sota-arsenal
-description: "SOTA Rust tooling - refactoring (ast-grep, cargo-semver-checks), profiling (samply, cargo-pgo, cargo-wizard), benchmarking (divan, Criterion), testing (cargo-nextest, cargo-mutants, cargo-hack), SIMD (macerator). TRIGGERS - rust refactoring, cargo bench, profiling rust, simd optimization, rust performance, ast-grep, divan, mutation testing, samply, cargo-nextest, cargo-wizard."
+description: "Reference guide for state-of-the-art Rust tooling across refactoring, profiling, benchmarking, testing, and SIMD optimization. Use whenever the user asks about ast-grep, cargo-semver-checks, samply, cargo-pgo, cargo-wizard, divan, Criterion, cargo-nextest, cargo-mutants, cargo-hack, or macerator. Also use when the user wants to refactor Rust code with AST-aware tools, profile or benchmark Rust performance, run mutation testing, or optimize with SIMD. Do NOT use for dependency auditing (use rust-dependency-audit instead) or for general Rust language questions unrelated to tooling."
 allowed-tools: Read, Grep, Bash, Edit, Write, WebSearch, WebFetch
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: issue-create
-description: Create GitHub issues with AI labeling. TRIGGERS - create issue, file bug, feature request, gh issue create.
+description: "Create well-formatted GitHub issues with intelligent AI-powered label suggestions and content type detection. Use whenever the user wants to create a bug report, feature request, question, or documentation issue on GitHub, or says 'file an issue', 'create an issue', or 'gh issue create'. Do NOT use for managing existing issues, organizing issue hierarchies (use issues-workflow instead), or for PR creation."
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
