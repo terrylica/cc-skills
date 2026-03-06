@@ -1,3 +1,24 @@
+# [11.78.0](https://github.com/terrylica/cc-skills/compare/v11.77.8...v11.78.0) (2026-03-06)
+
+
+### Features
+
+* **itp-hooks:** Add ty type checker hook for Python files ([6335453](https://github.com/terrylica/cc-skills/commit/6335453c70c64f51c612b99da74c8c6151c3fee6))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+1)
+
 ## [11.77.8](https://github.com/terrylica/cc-skills/compare/v11.77.7...v11.77.8) (2026-03-06)
 
 
