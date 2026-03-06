@@ -1,3 +1,31 @@
+## [11.77.5](https://github.com/terrylica/cc-skills/compare/v11.77.4...v11.77.5) (2026-03-06)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** Auto-reindex when stale instead of suggesting manual reindex ([75f7f92](https://github.com/terrylica/cc-skills/commit/75f7f92dc3033138cb69b6d763e3424703bb6f4a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (3 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+8/-2)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+8/-2)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+8/-2)
+
+</details>
+
 ## [11.77.4](https://github.com/terrylica/cc-skills/compare/v11.77.3...v11.77.4) (2026-03-06)
 
 
