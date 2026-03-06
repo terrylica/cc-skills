@@ -252,6 +252,39 @@
             "description": "ty type checker - runs on every .py file edit (4.7ms incremental)"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-tsgo-type-check.ts",
+            "timeout": 5000,
+            "description": "tsgo type checker - runs on every .ts/.tsx file edit (~170ms project check)"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-oxlint-check.ts",
+            "timeout": 5000,
+            "description": "oxlint correctness checker - runs on every .ts/.tsx/.js/.jsx file edit (~50ms)"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-biome-lint.ts",
+            "timeout": 5000,
+            "description": "biome lint - complementary JS/TS checks (useConst, noDoubleEquals, node: protocol)"
+          }
+        ]
       }
     ],
     "Stop": [

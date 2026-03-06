@@ -35,16 +35,19 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### PostToolUse Hooks
 
-| Hook                               | Matcher                | Purpose                                                       |
-| ---------------------------------- | ---------------------- | ------------------------------------------------------------- |
-| `posttooluse-reminder.ts`          | Bash\|Write\|Edit      | Context-aware reminders (UV, Pueue, graph-easy, ADR sync)     |
-| `code-correctness-guard.sh`        | Bash\|Write\|Edit      | Silent failure detection only (NO unused imports, NO style)   |
-| `posttooluse-vale-claude-md.ts`    | Write\|Edit            | Vale terminology check on CLAUDE.md files                     |
-| `posttooluse-glossary-sync.ts`     | Write\|Edit            | Auto-sync GLOSSARY.md to Vale vocabulary                      |
-| `posttooluse-terminology-sync.ts`  | Write\|Edit            | Project CLAUDE.md to global GLOSSARY.md sync                  |
-| `posttooluse-readme-pypi-links.ts` | Write\|Edit\|MultiEdit | Validates PyPI badge/link consistency in README files         |
-| `posttooluse-ssot-principles.ts`   | Write\|Edit            | SSoT/DI principles with ast-grep detection (once per session) |
-| `posttooluse-ty-type-check.ts`     | Write\|Edit            | ty type checker on .py files (4.7ms incremental, every edit)  |
+| Hook                               | Matcher                | Purpose                                                                      |
+| ---------------------------------- | ---------------------- | ---------------------------------------------------------------------------- |
+| `posttooluse-reminder.ts`          | Bash\|Write\|Edit      | Context-aware reminders (UV, Pueue, graph-easy, ADR sync)                    |
+| `code-correctness-guard.sh`        | Bash\|Write\|Edit      | Silent failure detection only (NO unused imports, NO style)                  |
+| `posttooluse-vale-claude-md.ts`    | Write\|Edit            | Vale terminology check on CLAUDE.md files                                    |
+| `posttooluse-glossary-sync.ts`     | Write\|Edit            | Auto-sync GLOSSARY.md to Vale vocabulary                                     |
+| `posttooluse-terminology-sync.ts`  | Write\|Edit            | Project CLAUDE.md to global GLOSSARY.md sync                                 |
+| `posttooluse-readme-pypi-links.ts` | Write\|Edit\|MultiEdit | Validates PyPI badge/link consistency in README files                        |
+| `posttooluse-ssot-principles.ts`   | Write\|Edit            | SSoT/DI principles with ast-grep detection (once per session)                |
+| `posttooluse-ty-type-check.ts`     | Write\|Edit            | ty type checker on .py files (4.7ms incremental, every edit)                 |
+| `posttooluse-tsgo-type-check.ts`   | Write\|Edit            | tsgo type checker on .ts/.tsx files (~170ms project check, every edit)       |
+| `posttooluse-oxlint-check.ts`      | Write\|Edit            | oxlint correctness+suspicious lint on JS/TS files (~50ms, every edit)        |
+| `posttooluse-biome-lint.ts`        | Write\|Edit            | biome complementary lint on JS/TS (useConst, noDoubleEquals, node: protocol) |
 
 ### Stop Hooks
 
