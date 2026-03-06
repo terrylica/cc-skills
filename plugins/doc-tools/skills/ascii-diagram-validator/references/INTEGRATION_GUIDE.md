@@ -2,6 +2,46 @@
 
 # ASCII Alignment Checker - Integration Guide
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Script Location](#script-location)
+- [Integration Points for Algorithm](#integration-points-for-algorithm)
+  - [1. Main Validation Method](#1-main-validation-method)
+  - [2. Helper Methods](#2-helper-methods)
+  - [3. Reporting Issues](#3-reporting-issues)
+- [Data Structures Available](#data-structures-available)
+  - [Box-Drawing Character Sets](#box-drawing-character-sets)
+  - [Character Detection](#character-detection)
+  - [Line Access](#line-access)
+- [Testing Your Algorithm](#testing-your-algorithm)
+  - [Create Test Files](#create-test-files)
+  - [JSON Output for Automation](#json-output-for-automation)
+  - [Integration with Unit Tests](#integration-with-unit-tests)
+- [CI/CD Integration Examples](#cicd-integration-examples)
+  - [GitHub Actions](#github-actions)
+  - [Pre-commit Hook](#pre-commit-hook)
+  - [Shell Script Batch Processing](#shell-script-batch-processing)
+- [Output Format Examples](#output-format-examples)
+  - [Human-Readable Output](#human-readable-output)
+  - [JSON Output](#json-output)
+- [Algorithm Implementation Checklist](#algorithm-implementation-checklist)
+  - [Vertical Alignment](#vertical-alignment)
+  - [Horizontal Connection](#horizontal-connection)
+  - [Style Consistency](#style-consistency)
+  - [Box Structure](#box-structure)
+- [Performance Considerations](#performance-considerations)
+  - [Memory](#memory)
+  - [Speed](#speed)
+  - [Scalability](#scalability)
+- [Debugging Tips](#debugging-tips)
+  - [Add Debug Output](#add-debug-output)
+  - [Test Individual Lines](#test-individual-lines)
+  - [Validate Data Structures](#validate-data-structures)
+- [Next Steps](#next-steps)
+- [Resources](#resources)
+- [Support](#support)
+
 ## Quick Start
 
 ```bash

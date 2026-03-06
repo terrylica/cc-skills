@@ -2,6 +2,47 @@
 
 # ASCII Alignment Checker - Script Design Report
 
+## Table of Contents
+
+- [Executive Summary](#executive-summary)
+- [Design Overview](#design-overview)
+  - [Architecture Components](#architecture-components)
+- [PEP 723 Header](#pep-723-header)
+- [CLI Interface](#cli-interface)
+  - [Command Syntax](#command-syntax)
+  - [Available Options](#available-options)
+  - [Exit Codes](#exit-codes)
+- [Usage Examples](#usage-examples)
+  - [Basic Check (Human-Readable)](#basic-check-human-readable)
+  - [JSON Output (Machine-Parseable)](#json-output-machine-parseable)
+  - [With Fix Suggestions](#with-fix-suggestions)
+  - [Quiet Mode (CI/CD)](#quiet-mode-cicd)
+- [Data Models](#data-models)
+  - [AlignmentIssue](#alignmentissue)
+  - [ValidationReport](#validationreport)
+  - [IssueSeverity](#issueseverity)
+- [Box-Drawing Character Sets](#box-drawing-character-sets)
+- [Integration Points for Alignment Algorithm](#integration-points-for-alignment-algorithm)
+  - [Helper Methods Available](#helper-methods-available)
+- [Output Formatting System](#output-formatting-system)
+  - [1. Human-Readable Format](#1-human-readable-format)
+  - [2. JSON Format](#2-json-format)
+  - [3. Quiet Format](#3-quiet-format)
+- [Testing the Script](#testing-the-script)
+  - [Manual Testing](#manual-testing)
+  - [Integration with CI/CD](#integration-with-cicd)
+  - [Pre-commit Hook](#pre-commit-hook)
+- [Algorithm Implementation Checklist](#algorithm-implementation-checklist)
+- [Key Design Decisions](#key-design-decisions)
+  - [Why Zero Dependencies?](#why-zero-dependencies)
+  - [Why Three Output Formats?](#why-three-output-formats)
+  - [Why Dataclasses?](#why-dataclasses)
+  - [Why Enum for Severity?](#why-enum-for-severity)
+- [Next Steps](#next-steps)
+- [File Locations](#file-locations)
+- [Example Integration with Claude Code](#example-integration-with-claude-code)
+- [Conclusion](#conclusion)
+
 ## Executive Summary
 
 Complete Python script skeleton designed for ASCII art alignment validation in Markdown documentation. Follows PEP 723 inline dependencies pattern and provides Claude Code-friendly output formatting.

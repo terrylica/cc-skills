@@ -1,5 +1,43 @@
 # mise [env] Code Patterns
 
+## Table of Contents
+
+- [Python Venv Auto-Creation](#python-venv-auto-creation)
+  - [Basic Pattern](#basic-pattern)
+  - [With uv Auto-Venv via Settings](#with-uv-auto-venv-via-settings)
+  - [Project Template with Venv](#project-template-with-venv)
+- [Special Directives](#special-directives)
+  - [Load from .env Files (`_.file`)](#load-from-env-files-_file)
+  - [Extend PATH (`_.path`)](#extend-path-_path)
+  - [Source Bash Scripts (`_.source`)](#source-bash-scripts-_source)
+  - [Complete Special Directives Example](#complete-special-directives-example)
+- [Template Syntax (Tera)](#template-syntax-tera)
+  - [Built-in Variables](#built-in-variables)
+  - [Functions](#functions)
+  - [Filters](#filters)
+  - [Conditionals](#conditionals)
+  - [Complete Template Example](#complete-template-example)
+- [Required & Redacted Variables](#required--redacted-variables)
+  - [Required Variables](#required-variables)
+  - [Redacted Variables](#redacted-variables)
+  - [Combined Patterns](#combined-patterns)
+- [[settings] Section](#settings-section)
+  - [Python Development Setup](#python-development-setup)
+- [[tools] Version Pinning](#tools-version-pinning)
+  - [Basic Pinning](#basic-pinning)
+  - [With Options](#with-options)
+  - [min_version Enforcement](#min_version-enforcement)
+  - [Full Development Environment](#full-development-environment)
+- [Python Pattern](#python-pattern)
+- [Bash Pattern](#bash-pattern)
+- [JavaScript/Node.js Pattern](#javascriptnodejs-pattern)
+- [Go Pattern](#go-pattern)
+- [Rust Pattern](#rust-pattern)
+- [Complete .mise.toml Template](#complete-misetoml-template)
+- [Real-World Examples](#real-world-examples)
+- [Testing Pattern](#testing-pattern)
+- [Migration Checklist](#migration-checklist)
+
 Complete code patterns for implementing mise `[env]` configuration with backward-compatible defaults.
 
 ## Python Venv Auto-Creation
