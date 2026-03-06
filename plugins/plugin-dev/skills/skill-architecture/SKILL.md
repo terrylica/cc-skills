@@ -1,6 +1,6 @@
 ---
 name: skill-architecture
-description: Meta-skill for creating Claude Code skills. TRIGGERS - create skill, YAML frontmatter, validate skill, skill architecture, lifecycle pattern, suite pattern, phased execution, command vs skill.
+description: Create new skills, modify existing skills, and understand skill architecture. Use when users want to create a skill from scratch, learn YAML frontmatter standards, validate skill structure, understand progressive disclosure patterns, or choose between structural patterns (workflow, task, reference, capabilities, suite). Also use for troubleshooting skills that don't trigger correctly, optimizing skill descriptions, or learning best practices for writing effective skill instructions.
 ---
 
 # Skill Architecture
@@ -22,7 +22,7 @@ Use this skill when:
 
 ## Task Templates
 
-**MANDATORY**: Select and load the appropriate template before any skill work.
+Select the appropriate template before starting skill work -- templates encode common workflows and prevent missing steps that cause silent failures.
 
 See [Task Templates](./references/task-templates.md) for all templates (A-F) and the quality checklist.
 
@@ -129,6 +129,54 @@ Place the SKILL.md under `plugins/<plugin>/skills/<name>/SKILL.md`. No `commands
 See [Creation Tutorial](./references/creation-tutorial.md) for the detailed 6-step walkthrough, or [Creation Workflow](./references/creation-workflow.md) for the comprehensive guide with examples.
 
 **Quick summary**: Gather requirements -> Plan resources -> Initialize -> Edit SKILL.md -> Validate -> Register and iterate.
+
+---
+
+## Testing and Iteration
+
+Good skills emerge through testing and feedback, not from getting the first draft perfect. After writing or updating a skill, verify it works by running it against realistic prompts.
+
+### Write Test Prompts
+
+Come up with 2-3 realistic test prompts -- the kind of thing a real user would actually say. Not abstract requests, but concrete tasks with enough detail to exercise the skill. Share them with the user for confirmation before running.
+
+### Run and Evaluate
+
+For each test prompt, run the skill and examine the output:
+
+- **Did the skill trigger?** If not, the description may need stronger trigger language.
+- **Did it follow the workflow?** Check whether instructions were followed or ignored.
+- **Was the output useful?** Compare against what you'd expect from a skilled human.
+
+When subagents are available, run with-skill and without-skill versions in parallel to measure the skill's actual value-add. When not available, run test cases yourself as a sanity check.
+
+### Iterate Based on Feedback
+
+After evaluating results, improve the skill and retest. Keep iterating until the user is satisfied or feedback is consistently positive. Key principles for each iteration:
+
+1. **Generalize from specific feedback.** Skills will be used across many different prompts. Avoid overfitting to test cases with fiddly, narrow fixes. If a pattern keeps failing, try a different approach or metaphor rather than adding more constraints.
+
+2. **Keep the skill lean.** Every section must earn its tokens. Read the execution transcripts -- if the skill causes the model to waste time on unproductive steps, cut those instructions and see what happens.
+
+3. **Explain the why, not just the what.** LLMs respond better to understanding _why_ a rule exists than to being commanded with rigid directives. Instead of "ALWAYS do X", explain: "Do X because skipping it causes Y, which leads to Z." This produces more robust behavior that generalizes to novel situations.
+
+4. **Look for repeated work across test cases.** If every test run independently creates the same helper script or takes the same multi-step approach, bundle that script in `scripts/` so future invocations don't reinvent the wheel.
+
+5. **Bundle common patterns as scripts.** When test runs reveal that the model writes similar boilerplate code every time, extract it into a bundled script. This saves tokens and improves reliability.
+
+---
+
+## Skill Writing Principles
+
+These principles (aligned with Anthropic's official guidance) apply to all skill content:
+
+- **Imperative form**: "Run the script", "Check the output" -- not passive or indirect phrasing.
+- **Explain reasoning over rigid rules**: If you find yourself writing MUST/NEVER/ALWAYS in all caps, that's a signal to reframe. Explain the reasoning so the model internalizes the principle rather than treating it as an arbitrary constraint. The model is smart -- help it understand, don't just command it.
+- **Pushy descriptions for triggering**: Claude tends to undertrigger skills. Descriptions should actively claim territory: "Use this skill whenever the user mentions X, Y, or Z, even if they don't explicitly ask for it." Include negative triggers too: "Do NOT use for A or B."
+- **Natural language descriptions**: Write descriptions as sentences a human could read, not keyword lists. "Use this skill whenever..." is better than "TRIGGERS - keyword1, keyword2".
+- **Keep execution out of descriptions**: Descriptions tell Claude _when_ to trigger. The skill body tells Claude _how_ to execute. Don't mix them.
+
+See [Writing Guide](./references/writing-guide.md) for extended guidance with examples.
 
 ---
 
@@ -269,6 +317,8 @@ For detailed information, see:
 - [Path Patterns](./references/path-patterns.md) - Safe/unsafe path references (known bugs documented)
 - [Bash Compatibility](./references/bash-compatibility.md) - Shell portability patterns
 - [Validation Reference](./references/validation-reference.md) - Quality checklist
+- [Writing Guide](./references/writing-guide.md) - Tone, reasoning-based instructions, description optimization
+- [Script Design](./references/script-design.md) - Designing scripts for agentic consumption
 - [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
 - [SYNC-TRACKING](./references/SYNC-TRACKING.md) - Marketplace version tracking
 - [Evolution Log](./references/evolution-log.md) - This skill's change history
