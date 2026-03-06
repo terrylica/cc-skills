@@ -139,13 +139,13 @@ async function main(): Promise<void> {
   blockWithReminder(
     `[GITNEXUS] This repo (${repoName}) has a GitNexus knowledge graph index. Use the CLI for code exploration — NOT MCP (no gitnexus MCP server exists, never use readMcpResource with gitnexus:// URIs).
 
-Run all commands from the repo root (the CLI auto-detects the repo from cwd):
+IMPORTANT: Always pass --repo ${repoName} to avoid "Multiple repositories indexed" errors.
 
-  gitnexus query "<concept>" --limit 5    # Explore execution flows
-  gitnexus context "<symbol>" --content    # 360° symbol view (callers, callees, source)
-  gitnexus impact "<symbol>" --depth 3     # Blast radius analysis
-  gitnexus status                          # Check index freshness
-  gitnexus list                            # List all indexed repos
+  gitnexus query "<concept>" --limit 5 --repo ${repoName}    # Explore execution flows
+  gitnexus context "<symbol>" --content --repo ${repoName}    # 360° symbol view
+  gitnexus impact "<symbol>" --depth 3 --repo ${repoName}     # Blast radius analysis
+  gitnexus status --repo ${repoName}                          # Check index freshness
+  gitnexus list                                                # List all indexed repos
 
 Skills: /gitnexus-tools:explore | /gitnexus-tools:impact | /gitnexus-tools:dead-code | /gitnexus-tools:reindex`
   );

@@ -60,15 +60,21 @@ Add these to project CLAUDE.md files to guide when skills are invoked:
 >
 > Run all commands from the repo root. The CLI auto-detects the repo from cwd.
 
-| Command                                 | Purpose               |
-| --------------------------------------- | --------------------- |
-| `gitnexus list`                         | List indexed repos    |
-| `gitnexus query "<concept>" --limit 5`  | Find execution flows  |
-| `gitnexus context "<symbol>" --content` | 360° symbol view      |
-| `gitnexus impact "<symbol>" --depth 3`  | Blast radius          |
-| `gitnexus status`                       | Check index freshness |
-| `gitnexus analyze`                      | Re-index              |
-| `gitnexus cypher "<query>"`             | Raw Cypher query      |
+**Always pass `--repo <name>`** when multiple repos are indexed (avoids "Multiple repositories indexed" error):
+
+```bash
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+| Command                                                     | Purpose               |
+| ----------------------------------------------------------- | --------------------- |
+| `gitnexus list`                                             | List indexed repos    |
+| `gitnexus query "<concept>" --limit 5 --repo "$REPO_NAME"`  | Find execution flows  |
+| `gitnexus context "<symbol>" --content --repo "$REPO_NAME"` | 360° symbol view      |
+| `gitnexus impact "<symbol>" --depth 3 --repo "$REPO_NAME"`  | Blast radius          |
+| `gitnexus status --repo "$REPO_NAME"`                       | Check index freshness |
+| `gitnexus analyze --repo "$REPO_NAME"`                      | Re-index              |
+| `gitnexus cypher "<query>" --repo "$REPO_NAME"`             | Raw Cypher query      |
 
 Disambiguate symbols with `--uid` (from candidates list) or `--file` flags.
 

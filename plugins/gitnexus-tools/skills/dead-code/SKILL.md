@@ -22,12 +22,18 @@ Find orphan functions, dangling imports, isolated files, and unreachable code us
 
 ## Workflow
 
-### Step 1: Verify Index
+### Step 0: Determine Repo Name
 
-Run from the repo root (the CLI auto-detects the repo from cwd):
+Multiple repos may be indexed. Always pass `--repo <name>`:
 
 ```bash
-gitnexus status
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+### Step 1: Verify Index
+
+```bash
+gitnexus status --repo "$REPO_NAME"
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
@@ -41,7 +47,7 @@ Run these 4 queries to detect different categories of dead code:
 Functions with no incoming CALLS edges and not participating in any process:
 
 ```bash
-gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
+gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50" --repo "$REPO_NAME"
 ```
 
 #### Dangling Imports
@@ -49,7 +55,7 @@ gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } 
 Import edges with low confidence (< 0.5), indicating potentially broken references:
 
 ```bash
-gitnexus cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.name, b.name, r.confidence, a.file ORDER BY r.confidence LIMIT 30"
+gitnexus cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.name, b.name, r.confidence, a.file ORDER BY r.confidence LIMIT 30" --repo "$REPO_NAME"
 ```
 
 #### Dead Code (Unreachable)
@@ -57,7 +63,7 @@ gitnexus cypher "MATCH (a)-[r:IMPORTS]->(b) WHERE r.confidence < 0.5 RETURN a.na
 Functions unreachable from any entry point — no callers and no process membership:
 
 ```bash
-gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } AND NOT f.name STARTS WITH '_' AND NOT f.name STARTS WITH 'test_' RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50"
+gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } AND NOT EXISTS { MATCH ()-[:STEP_IN_PROCESS]->(f) } AND NOT f.name STARTS WITH '_' AND NOT f.name STARTS WITH 'test_' RETURN f.name, f.file, f.line ORDER BY f.file LIMIT 50" --repo "$REPO_NAME"
 ```
 
 #### Isolated Files
@@ -65,7 +71,7 @@ gitnexus cypher "MATCH (f:Function) WHERE NOT EXISTS { MATCH ()-[:CALLS]->(f) } 
 Files with no imports in or out:
 
 ```bash
-gitnexus cypher "MATCH (f:File) WHERE NOT EXISTS { MATCH (f)-[:IMPORTS]->() } AND NOT EXISTS { MATCH ()-[:IMPORTS]->(f) } RETURN f.path ORDER BY f.path LIMIT 30"
+gitnexus cypher "MATCH (f:File) WHERE NOT EXISTS { MATCH (f)-[:IMPORTS]->() } AND NOT EXISTS { MATCH ()-[:IMPORTS]->(f) } RETURN f.path ORDER BY f.path LIMIT 30" --repo "$REPO_NAME"
 ```
 
 ### Step 3: Filter Results

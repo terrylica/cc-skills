@@ -20,12 +20,18 @@ Analyze the blast radius of changing a symbol — who calls it, what processes i
 
 ## Workflow
 
-### Step 1: Verify Index
+### Step 0: Determine Repo Name
 
-Run from the repo root (the CLI auto-detects the repo from cwd):
+Multiple repos may be indexed. Always pass `--repo <name>`:
 
 ```bash
-gitnexus status
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+### Step 1: Verify Index
+
+```bash
+gitnexus status --repo "$REPO_NAME"
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
@@ -33,7 +39,7 @@ If stale, suggest running `/gitnexus-tools:reindex` first.
 ### Step 2: Upstream Blast Radius
 
 ```bash
-gitnexus impact "<symbol>" --depth 3
+gitnexus impact "<symbol>" --depth 3 --repo "$REPO_NAME"
 ```
 
 This shows everything that depends on the symbol (callers, transitive callers up to depth 3).
@@ -41,15 +47,15 @@ This shows everything that depends on the symbol (callers, transitive callers up
 If multiple candidates are returned, disambiguate:
 
 ```bash
-gitnexus impact "<symbol>" --uid "<full-uid>" --depth 3
+gitnexus impact "<symbol>" --uid "<full-uid>" --depth 3 --repo "$REPO_NAME"
 # or
-gitnexus impact "<symbol>" --file "<file-path>" --depth 3
+gitnexus impact "<symbol>" --file "<file-path>" --depth 3 --repo "$REPO_NAME"
 ```
 
 ### Step 3: Downstream Dependencies (Optional)
 
 ```bash
-gitnexus impact "<symbol>" --direction downstream --depth 3
+gitnexus impact "<symbol>" --direction downstream --depth 3 --repo "$REPO_NAME"
 ```
 
 Shows what the symbol depends on — useful for understanding if dependencies might change.
@@ -57,7 +63,7 @@ Shows what the symbol depends on — useful for understanding if dependencies mi
 ### Step 4: Test Coverage
 
 ```bash
-gitnexus impact "<symbol>" --include-tests
+gitnexus impact "<symbol>" --include-tests --repo "$REPO_NAME"
 ```
 
 Shows which test files exercise this symbol.
@@ -88,8 +94,9 @@ Present:
 User: "What breaks if I change RangeBarProcessor?"
 
 ```bash
-gitnexus impact "RangeBarProcessor" --depth 3
-gitnexus impact "RangeBarProcessor" --include-tests
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+gitnexus impact "RangeBarProcessor" --depth 3 --repo "$REPO_NAME"
+gitnexus impact "RangeBarProcessor" --include-tests --repo "$REPO_NAME"
 ```
 
 Output: "CRITICAL risk — 73 dependents across 12 processes. 8 test files cover it. Recommend backward-compatible changes only."

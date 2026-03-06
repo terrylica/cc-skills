@@ -20,12 +20,20 @@ Trace execution flows and understand how code works using the GitNexus knowledge
 
 ## Workflow
 
-### Step 1: Verify Index
+### Step 0: Determine Repo Name
 
-Run from the repo root (the CLI auto-detects the repo from cwd):
+Multiple repos may be indexed. Always pass `--repo <name>` to avoid "Multiple repositories indexed" errors:
 
 ```bash
-gitnexus status
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+Use `--repo "$REPO_NAME"` on all commands below.
+
+### Step 1: Verify Index
+
+```bash
+gitnexus status --repo "$REPO_NAME"
 ```
 
 If stale, suggest running `/gitnexus-tools:reindex` first.
@@ -33,7 +41,7 @@ If stale, suggest running `/gitnexus-tools:reindex` first.
 ### Step 2: Find Execution Flows
 
 ```bash
-gitnexus query "<concept>" --limit 5
+gitnexus query "<concept>" --limit 5 --repo "$REPO_NAME"
 ```
 
 This returns ranked execution flows (process chains) related to the concept.
@@ -43,7 +51,7 @@ This returns ranked execution flows (process chains) related to the concept.
 For each relevant symbol found:
 
 ```bash
-gitnexus context "<symbol>" --content
+gitnexus context "<symbol>" --content --repo "$REPO_NAME"
 ```
 
 This shows:
@@ -56,9 +64,9 @@ This shows:
 If multiple candidates are returned, disambiguate with:
 
 ```bash
-gitnexus context "<symbol>" --uid "<full-uid>" --content
+gitnexus context "<symbol>" --uid "<full-uid>" --content --repo "$REPO_NAME"
 # or
-gitnexus context "<symbol>" --file "<file-path>" --content
+gitnexus context "<symbol>" --file "<file-path>" --content --repo "$REPO_NAME"
 ```
 
 ### Step 4: Read Source Files
@@ -79,9 +87,10 @@ Present a clear explanation covering:
 User: "How does the kintsugi gap repair work?"
 
 ```bash
-gitnexus query "kintsugi gap repair" --limit 5
-gitnexus context "KintsugiReconciler" --content
-gitnexus context "discover_shards" --content
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+gitnexus query "kintsugi gap repair" --limit 5 --repo "$REPO_NAME"
+gitnexus context "KintsugiReconciler" --content --repo "$REPO_NAME"
+gitnexus context "discover_shards" --content --repo "$REPO_NAME"
 ```
 
 Then read the relevant source files and synthesize the explanation.

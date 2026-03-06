@@ -20,12 +20,18 @@ Re-index the current repository's GitNexus knowledge graph and verify the update
 
 ## Workflow
 
-### Step 1: Check Current Status
+### Step 0: Determine Repo Name
 
-Run from the repo root (the CLI auto-detects the repo from cwd):
+Multiple repos may be indexed. Always pass `--repo <name>`:
 
 ```bash
-gitnexus status
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+```
+
+### Step 1: Check Current Status
+
+```bash
+gitnexus status --repo "$REPO_NAME"
 ```
 
 If already current (lastCommit matches HEAD), report "Index is up to date" and stop.
@@ -33,13 +39,13 @@ If already current (lastCommit matches HEAD), report "Index is up to date" and s
 ### Step 2: Run Indexer
 
 ```bash
-gitnexus analyze
+gitnexus analyze --repo "$REPO_NAME"
 ```
 
 Use `--force` if the index appears corrupted or if a normal analyze doesn't pick up changes:
 
 ```bash
-gitnexus analyze --force
+gitnexus analyze --force --repo "$REPO_NAME"
 ```
 
 This may take 30–120 seconds depending on codebase size.
@@ -47,7 +53,7 @@ This may take 30–120 seconds depending on codebase size.
 ### Step 3: Verify New Index
 
 ```bash
-gitnexus status
+gitnexus status --repo "$REPO_NAME"
 ```
 
 ### Step 4: Report Stats
