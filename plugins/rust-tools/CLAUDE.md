@@ -67,12 +67,13 @@ On the first tool use in a repo with `Cargo.toml` at the git root, reminds Claud
 
 ### Dependencies
 
-| Tool             | Purpose                         | Install                        |
-| ---------------- | ------------------------------- | ------------------------------ |
-| `cargo-audit`    | RUSTSEC vulnerability scanning  | `cargo install cargo-audit`    |
-| `cargo-deny`     | License + advisory + ban checks | `cargo install cargo-deny`     |
-| `cargo-vet`      | Mozilla supply chain audit      | `cargo install cargo-vet`      |
-| `cargo-outdated` | Dependency freshness            | `cargo install cargo-outdated` |
+| Tool             | Purpose                                    | Install                        |
+| ---------------- | ------------------------------------------ | ------------------------------ |
+| `cargo-audit`    | RUSTSEC vulnerability scanning             | `cargo install cargo-audit`    |
+| `cargo-deny`     | License + advisory + ban checks            | `cargo install cargo-deny`     |
+| `cargo-vet`      | Mozilla supply chain audit                 | `cargo install cargo-vet`      |
+| `cargo-outdated` | Dependency freshness                       | `cargo install cargo-outdated` |
+| `cargo-geiger`   | Unsafe code quantification across dep tree | `cargo install cargo-geiger`   |
 
 ### Python Bindings
 
@@ -89,6 +90,26 @@ Add these to project `CLAUDE.md` files to guide when skills are invoked:
 - **When benchmarking**: Use `/rust-tools:rust-sota-arsenal` for divan/Criterion guidance
 - **Before release**: Run `/rust-tools:rust-dependency-audit` for full audit
 - **When optimizing hot loops**: Check macerator for portable SIMD
+
+### Release Pipeline
+
+Four-phase pre-release check for Rust projects, orchestrated by `scripts/rust-release-check.sh`:
+
+1. **Audit** — `cargo audit` + `cargo deny check` + `cargo vet` (vulnerabilities, licenses, supply chain)
+2. **Unsafe** — `cargo geiger --forbid-only` (quantify unsafe code in dependency tree)
+3. **Features** — `cargo hack check --feature-powerset --depth 2 --no-dev-deps` (feature flag compatibility)
+4. **Semver** — `cargo semver-checks check-release` (API compatibility)
+
+```bash
+# Run the full pipeline
+./scripts/rust-release-check.sh
+
+# Or run phases individually
+cargo audit && cargo deny check && cargo vet
+cargo geiger --forbid-only
+cargo hack check --feature-powerset --depth 2 --no-dev-deps
+cargo semver-checks check-release
+```
 
 ## References
 
