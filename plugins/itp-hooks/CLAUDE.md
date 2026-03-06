@@ -44,6 +44,7 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 | `posttooluse-terminology-sync.ts`  | Write\|Edit            | Project CLAUDE.md to global GLOSSARY.md sync                  |
 | `posttooluse-readme-pypi-links.ts` | Write\|Edit\|MultiEdit | Validates PyPI badge/link consistency in README files         |
 | `posttooluse-ssot-principles.ts`   | Write\|Edit            | SSoT/DI principles with ast-grep detection (once per session) |
+| `posttooluse-ty-type-check.ts`     | Write\|Edit            | ty type checker on .py files (4.7ms incremental, every edit)  |
 
 ### Stop Hooks
 
