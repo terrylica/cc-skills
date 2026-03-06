@@ -209,6 +209,34 @@ Key files:
 
 See [cargo-vet reference](./references/cargo-vet-guide.md).
 
+## Unsafe Code: Dependency Safety Audit
+
+### cargo-geiger
+
+cargo-geiger quantifies unsafe code usage across your entire dependency tree:
+
+```bash
+# Quick check: which deps forbid unsafe? (fast, no compilation)
+cargo geiger --forbid-only
+
+# Full audit: count unsafe blocks per crate
+cargo geiger
+
+# Output as ratio (for CI/scripting)
+cargo geiger --forbid-only --output-format ratio
+
+# Markdown report
+cargo geiger --output-format markdown > unsafe-report.md
+```
+
+Key flags:
+
+- `--forbid-only`: Fast mode — only checks `#![forbid(unsafe_code)]` (no compilation)
+- `--output-format`: `ratio`, `markdown`, `ascii`, `json`
+- `--all-features`: Check with all features enabled
+
+See [cargo-geiger reference](./references/cargo-geiger-guide.md).
+
 ## Combined CI Workflow (GitHub Actions)
 
 ```yaml
@@ -240,6 +268,11 @@ jobs:
           cargo install cargo-vet
           cargo vet
 
+      - name: cargo-geiger
+        run: |
+          cargo install cargo-geiger
+          cargo geiger --forbid-only
+
       - name: cargo-outdated
         run: |
           cargo install cargo-outdated
@@ -252,6 +285,7 @@ jobs:
 - [cargo-deny-guide.md](./references/cargo-deny-guide.md) — License + advisory compliance
 - [cargo-outdated-guide.md](./references/cargo-outdated-guide.md) — Freshness + alternatives
 - [cargo-vet-guide.md](./references/cargo-vet-guide.md) — Supply chain audit
+- [cargo-geiger-guide.md](./references/cargo-geiger-guide.md) — Unsafe code quantification
 
 ## Troubleshooting
 
