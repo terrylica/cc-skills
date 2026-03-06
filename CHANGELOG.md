@@ -1,3 +1,10 @@
+## [11.79.2](https://github.com/terrylica/cc-skills/compare/v11.79.1...v11.79.2) (2026-03-06)
+
+
+### Bug Fixes
+
+* **itp-hooks:** Cap biome max-diagnostics to 20 to prevent timeout ([08268c6](https://github.com/terrylica/cc-skills/commit/08268c6d2d5219dd5f5b483ceff5a99cb05ab11b))
+
 ## [11.79.1](https://github.com/terrylica/cc-skills/compare/v11.79.0...v11.79.1) (2026-03-06)
 
 
