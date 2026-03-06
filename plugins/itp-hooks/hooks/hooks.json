@@ -241,6 +241,17 @@
             "description": "SSoT/DI principles reminder with ast-grep detection (once per session)"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-ty-type-check.ts",
+            "timeout": 5000,
+            "description": "ty type checker - runs on every .py file edit (4.7ms incremental)"
+          }
+        ]
       }
     ],
     "Stop": [
