@@ -23,11 +23,11 @@ GitNexus indexes codebases into a KuzuDB knowledge graph (nodes: functions, clas
 
 ## Hooks
 
-| Hook                             | Event       | Matcher                      | Purpose                                             |
-| -------------------------------- | ----------- | ---------------------------- | --------------------------------------------------- |
-| `posttooluse-cli-reminder`       | PostToolUse | Read\|Glob\|Grep\|Bash\|Task | CLI reminder on first exploration in indexed repo   |
-| `posttooluse-staleness-detector` | PostToolUse | Write\|Edit                  | Warn when index is 5+ commits behind (once/session) |
-| `stop-reindex-reminder`          | Stop        | —                            | Remind to reindex at session end if stale           |
+| Hook                             | Event       | Matcher                | Purpose                                             |
+| -------------------------------- | ----------- | ---------------------- | --------------------------------------------------- |
+| `posttooluse-cli-reminder`       | PostToolUse | Glob\|Grep\|Bash\|Task | CLI reminder on first exploration in indexed repo   |
+| `posttooluse-staleness-detector` | PostToolUse | Write\|Edit            | Warn when index is 5+ commits behind (once/session) |
+| `stop-reindex-reminder`          | Stop        | —                      | Remind to reindex at session end if stale           |
 
 ### CLI Reminder
 
