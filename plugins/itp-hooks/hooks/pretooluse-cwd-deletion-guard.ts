@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// @ts-nocheck — .mjs import lacks type declarations
 /**
  * PreToolUse hook: CWD Deletion Guard
  *

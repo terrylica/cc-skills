@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// @ts-nocheck — Bun subprocess APIs (.on() on ReadableStream) not in bun-types
 /**
  * Stop hook: Subprocess Session Cleanup
  *
