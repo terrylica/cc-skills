@@ -1,3 +1,46 @@
+## [11.77.4](https://github.com/terrylica/cc-skills/compare/v11.77.3...v11.77.4) (2026-03-06)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** Add --repo flag to all skills and hooks for multi-repo support ([310b9bb](https://github.com/terrylica/cc-skills/commit/310b9bbe4974861b15ba8fdc3ce31483d257d6c0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+13/-7)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+19/-10)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+17/-10)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+12/-6)
+
+</details>
+
+
+## Repository Documentation
+
+### General Documentation
+
+- [Cargo TTY Suspension Prevention Hook](https://github.com/terrylica/cc-skills/blob/main/docs/cargo-tty-suspension-prevention.md) - updated (+58)
+- [Lessons Learned](https://github.com/terrylica/cc-skills/blob/main/docs/LESSONS.md) - updated (+4)
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+15/-9)
+
 ## [11.77.3](https://github.com/terrylica/cc-skills/compare/v11.77.2...v11.77.3) (2026-03-05)
 
 
