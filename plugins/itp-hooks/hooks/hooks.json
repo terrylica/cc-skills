@@ -285,7 +285,7 @@
             "description": "biome lint - complementary JS/TS checks (useConst, noDoubleEquals, node: protocol)"
           }
         ]
-      }
+      },
     ],
     "Stop": [
       {

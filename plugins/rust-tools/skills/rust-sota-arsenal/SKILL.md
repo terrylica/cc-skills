@@ -73,6 +73,8 @@ State-of-the-art Rust tooling knowledge for refactoring, profiling, benchmarking
 | `cargo-deny`          | `cargo install cargo-deny`            | License + advisory + ban               | Dependencies |
 | `cargo-vet`           | `cargo install cargo-vet`             | Mozilla supply chain audit             | Dependencies |
 | `cargo-outdated`      | `cargo install cargo-outdated`        | Dependency freshness                   | Dependencies |
+| `cargo-geiger`        | `cargo install cargo-geiger`          | Detect unsafe code in deps             | Dependencies |
+| `cargo-machete`       | `cargo install cargo-machete`         | Find unused dependencies               | Dependencies |
 
 ## Refactoring Workflow
 
@@ -309,6 +311,53 @@ See [PyO3 upgrade guide](./references/pyo3-upgrade-guide.md) for migration patte
 - [macerator-simd.md](./references/macerator-simd.md) — Type-generic SIMD
 - [pyo3-upgrade-guide.md](./references/pyo3-upgrade-guide.md) — PyO3 migration
 - [samply-profiling.md](./references/samply-profiling.md) — Interactive profiling
+
+## Release Pipeline
+
+A 4-phase release gate script is available at `plugins/rust-tools/scripts/rust-release-check.sh`. It consolidates all quality gates into a single executable that can be adapted to any Rust project.
+
+### Running
+
+```bash
+# Full pipeline (Phases 1-3)
+./plugins/rust-tools/scripts/rust-release-check.sh
+
+# Include nightly-only checks (Phase 4)
+./plugins/rust-tools/scripts/rust-release-check.sh --nightly
+
+# Skip test suite (Phases 1-2 only)
+./plugins/rust-tools/scripts/rust-release-check.sh --skip-tests
+```
+
+To use as a mise task in your project, copy the script and add to `.mise/tasks/`:
+
+```bash
+cp plugins/rust-tools/scripts/rust-release-check.sh .mise/tasks/release-check
+```
+
+### Phase Overview
+
+| Phase | Name         | Tools                               | Blocking | Notes                                         |
+| ----- | ------------ | ----------------------------------- | -------- | --------------------------------------------- |
+| 1     | Fast Gates   | fmt, clippy, audit, machete, geiger | Yes      | Runs in parallel for speed                    |
+| 2     | Deep Gates   | deny, semver-checks, outdated       | Mixed    | outdated is advisory-only (never fails build) |
+| 3     | Tests        | nextest (or cargo test fallback)    | Yes      | Skippable with `--skip-tests`                 |
+| 4     | Nightly-Only | udeps, hack                         | Yes      | Opt-in via `--nightly` flag                   |
+
+**Phase 1 -- Fast Gates** runs all tools in parallel using background processes. Each tool is checked for installation first; missing tools are skipped with a warning rather than failing.
+
+**Phase 2 -- Deep Gates** runs sequentially. `cargo deny` requires a `deny.toml` to be present. `cargo semver-checks` only runs for library crates (detected via `[lib]` in Cargo.toml or `src/lib.rs`). `cargo outdated` is advisory -- it reports but never blocks.
+
+**Phase 3 -- Tests** prefers `cargo nextest run` for speed but falls back to `cargo test` if nextest is not installed.
+
+**Phase 4 -- Nightly-Only** requires the `--nightly` flag and a nightly toolchain. `cargo +nightly udeps` finds truly unused dependencies. `cargo hack check --each-feature` verifies every feature flag compiles independently.
+
+### Exit Codes
+
+- **0** -- All blocking gates passed (advisory warnings are OK)
+- **1** -- One or more blocking gates failed
+
+The summary at the end reports total passes, failures, and advisory warnings.
 
 ## Troubleshooting
 
