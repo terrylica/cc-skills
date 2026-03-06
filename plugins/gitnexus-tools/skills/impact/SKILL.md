@@ -28,13 +28,19 @@ Multiple repos may be indexed. Always pass `--repo <name>`:
 REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
 ```
 
-### Step 1: Verify Index
+### Step 1: Auto-Reindex If Stale
 
 ```bash
 gitnexus status --repo "$REPO_NAME"
 ```
 
-If stale, suggest running `/gitnexus-tools:reindex` first.
+If stale (indexed commit ≠ HEAD), **automatically reindex before proceeding** — do not ask the user:
+
+```bash
+gitnexus analyze --repo "$REPO_NAME"
+```
+
+Then re-check status to confirm index is current.
 
 ### Step 2: Upstream Blast Radius
 
