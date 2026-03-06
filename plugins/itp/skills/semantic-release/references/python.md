@@ -2,6 +2,38 @@
 
 # Python Projects Guide
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Do NOT Use python-semantic-release](#-do-not-use-python-semantic-release)
+- [Complete Setup Guide](#complete-setup-guide)
+  - [1. Project Structure](#1-project-structure)
+  - [2. Create package.json](#2-create-packagejson)
+  - [3. Create .releaserc.yml](#3-create-releasercyml)
+  - [4. Update pyproject.toml](#4-update-pyprojecttoml)
+  - [5. Update .gitignore](#5-update-gitignore)
+  - [6. Create GitHub Actions Workflow](#6-create-github-actions-workflow)
+  - [7. Create Initial Tag](#7-create-initial-tag)
+- [Usage](#usage)
+  - [Local Testing](#local-testing)
+  - [Automated Releases via GitHub Actions](#automated-releases-via-github-actions)
+- [Conventional Commits](#conventional-commits)
+  - [Version Bump Rules](#version-bump-rules)
+  - [Breaking Changes](#breaking-changes)
+- [Troubleshooting](#troubleshooting)
+- [Rust+Python Hybrid Projects (PyO3/maturin)](#rustpython-hybrid-projects-pyo3maturin)
+  - [Dual-File Version Sync](#dual-file-version-sync)
+  - [Cargo Build Profiles for PyO3 (CRITICAL)](#cargo-build-profiles-for-pyo3-critical)
+  - [Linux Wheel Builds (manylinux Docker)](#linux-wheel-builds-manylinux-docker)
+  - [mise 4-Phase Workflow](#mise-4-phase-workflow)
+- [PyPI Publishing (Optional)](#pypi-publishing-optional)
+- [Runtime Version Access (`__version__`)](#runtime-version-access-__version__)
+  - [Recommended: importlib.metadata](#recommended-importlibmetadata)
+  - [Anti-pattern: Hardcoded Version](#anti-pattern-hardcoded-version)
+  - [Version Consistency Test](#version-consistency-test)
+- [References](#references)
+- [Compatibility](#compatibility)
+
 Complete guide for Python and Rust+Python hybrid projects using semantic-release (Node.js).
 
 ## Overview

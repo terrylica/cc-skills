@@ -1,5 +1,17 @@
 # Anti-Patterns: Adaptive Walk-Forward Epoch Selection
 
+## Table of Contents
+
+- [1. Peak Picking (Severity: HIGH)](#1-peak-picking-severity-high)
+- [2. Insufficient Folds (Severity: HIGH)](#2-insufficient-folds-severity-high)
+- [3. Ignoring Temporal Autocorrelation (Severity: HIGH)](#3-ignoring-temporal-autocorrelation-severity-high)
+- [4. Overfitting to In-Sample (Severity: HIGH)](#4-overfitting-to-in-sample-severity-high)
+- [5. Using sqrt(252) for Crypto (Severity: MEDIUM)](#5-using-sqrt252-for-crypto-severity-medium)
+- [6. Single Epoch Selection (No Uncertainty) (Severity: MEDIUM)](#6-single-epoch-selection-no-uncertainty-severity-medium)
+- [7. Expanding Window for Range Bar Training (CRITICAL)](#7-expanding-window-for-range-bar-training-critical)
+- [8. Meta-Overfitting (Overfitting the Epoch Search) (Severity: HIGH)](#8-meta-overfitting-overfitting-the-epoch-search-severity-high)
+- [Summary Checklist](#summary-checklist)
+
 Common failures and how to avoid them.
 
 ## 1. Peak Picking (Severity: HIGH)

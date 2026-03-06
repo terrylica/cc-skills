@@ -2,11 +2,52 @@
 
 # LaTeX Parameters Reference for Pandoc
 
+## Table of Contents
+
+- [Document Class and Layout](#document-class-and-layout)
+  - [Document Class](#document-class)
+  - [Page Geometry](#page-geometry)
+- [Typography](#typography)
+  - [Fonts](#fonts)
+  - [Spacing](#spacing)
+- [Headers and Footers](#headers-and-footers)
+- [Table of Contents](#table-of-contents)
+- [Section Numbering](#section-numbering)
+- [Colors](#colors)
+- [Tables](#tables)
+  - [Default Table Parameters (in LaTeX preamble)](#default-table-parameters-in-latex-preamble)
+- [Page Breaks](#page-breaks)
+- [Code Highlighting](#code-highlighting)
+- [Bibliography and Citations](#bibliography-and-citations)
+- [Hyphenation and Language](#hyphenation-and-language)
+- [Advanced LaTeX Customization](#advanced-latex-customization)
+  - [Custom Preamble File](#custom-preamble-file)
+  - [Include LaTeX Inline](#include-latex-inline)
+- [Common Combinations](#common-combinations)
+  - [Academic Paper](#academic-paper)
+  - [Technical Manual](#technical-manual)
+  - [Business Report](#business-report)
+- [Troubleshooting](#troubleshooting)
+  - [Font Not Found](#font-not-found)
+  - [Package Not Found](#package-not-found)
+  - [Page Break Issues](#page-break-issues)
+  - [Section Numbering Starting at 0](#section-numbering-starting-at-0)
+- [Resources](#resources)
+- [LaTeX Customization](#latex-customization)
+  - [Custom LaTeX Preamble](#custom-latex-preamble)
+  - [Common LaTeX Variables](#common-latex-variables)
+  - [Table Spacing Troubleshooting](#table-spacing-troubleshooting)
+  - [Reducing Table Font Size](#reducing-table-font-size)
+- [Production Build Script Pattern](#production-build-script-pattern)
+  - [Example: build-pdf.sh](#example-build-pdfsh)
+- [Common Patterns and Solutions](#common-patterns-and-solutions)
+
 Comprehensive guide to LaTeX variables and customizations available through Pandoc's `-V` flag and custom preambles.
 
 ## Document Class and Layout
 
 ### Document Class
+
 ```bash
 -V documentclass=article    # Standard document (default)
 -V documentclass=report     # Longer documents with chapters
@@ -17,11 +58,13 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ### Page Geometry
 
 **Single margin:**
+
 ```bash
 -V geometry:margin=1in      # All margins 1 inch
 ```
 
 **Individual margins:**
+
 ```bash
 -V geometry:top=1in
 -V geometry:bottom=1in
@@ -30,12 +73,14 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ```
 
 **Page orientation:**
+
 ```bash
 -V geometry:landscape       # Landscape mode
 -V geometry:portrait        # Portrait mode (default)
 ```
 
 **Paper size:**
+
 ```bash
 -V geometry:a4paper         # A4 (210 × 297 mm)
 -V geometry:letterpaper     # US Letter (8.5 × 11 in) [default]
@@ -47,6 +92,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ### Fonts
 
 **Main document font:**
+
 ```bash
 -V mainfont="DejaVu Sans"
 -V mainfont="Times New Roman"
@@ -54,6 +100,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ```
 
 **Monospace font (code blocks):**
+
 ```bash
 -V monofont="DejaVu Sans Mono"
 -V monofont="Courier New"
@@ -61,12 +108,14 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ```
 
 **Sans-serif font:**
+
 ```bash
 -V sansfont="Arial"
 -V sansfont="Helvetica"
 ```
 
 **Font size:**
+
 ```bash
 -V fontsize=10pt
 -V fontsize=11pt
@@ -77,6 +126,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ### Spacing
 
 **Line spacing:**
+
 ```bash
 -V linestretch=1.0      # Single spacing
 -V linestretch=1.5      # 1.5 spacing
@@ -84,12 +134,14 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ```
 
 **Paragraph spacing:**
+
 ```bash
 -V parskip=half         # Half line between paragraphs
 -V parskip=full         # Full line between paragraphs
 ```
 
 **Paragraph indentation:**
+
 ```bash
 -V indent=true          # Indent first line (default)
 -V indent=false         # No indentation
@@ -97,14 +149,16 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 
 ## Headers and Footers
 
-### Page numbering:**
+### Page numbering:\*\*
+
 ```bash
 -V pagestyle=plain      # Page numbers at bottom center (default)
 -V pagestyle=empty      # No headers/footers
 -V pagestyle=headings   # Chapter/section in header
 ```
 
-### Custom headers:**
+### Custom headers:\*\*
+
 ```bash
 -V header-includes='\\usepackage{fancyhdr}\\pagestyle{fancy}\\fancyhead[L]{Left Header}\\fancyhead[R]{Right Header}'
 ```
@@ -112,12 +166,14 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ## Table of Contents
 
 **ToC title:**
+
 ```bash
 -V toc-title="Table of Contents"
 -V toc-title="Contents"
 ```
 
 **ToC depth (via command line):**
+
 ```bash
 --toc-depth=2           # Include h2, h3
 --toc-depth=3           # Include h2, h3, h4
@@ -125,6 +181,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ```
 
 **ToC number spacing (fix overlapping multi-digit numbers):**
+
 ```latex
 % Add to LaTeX preamble to fix subsection numbers like "2.5.10" overlapping titles
 \usepackage{tocloft}
@@ -134,6 +191,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ```
 
 **Default widths (often too small):**
+
 - `\cftsecnumwidth`: 1.5em
 - `\cftsubsecnumwidth`: 2.3em (causes overlap with multi-digit subsections)
 - `\cftsubsubsecnumwidth`: 3.2em
@@ -141,6 +199,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ## Section Numbering
 
 **Control section depth:**
+
 ```bash
 -V secnumdepth=2        # Number up to subsections
 -V secnumdepth=3        # Number up to subsubsections (default)
@@ -150,6 +209,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ## Colors
 
 **Link colors:**
+
 ```bash
 -V linkcolor=blue
 -V urlcolor=blue
@@ -163,21 +223,25 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ### Default Table Parameters (in LaTeX preamble)
 
 **Row spacing:**
+
 ```latex
 \renewcommand{\arraystretch}{1.2}    % 1.0 = tight, 1.5 = loose
 ```
 
 **Cell padding:**
+
 ```latex
 \setlength{\extrarowheight}{4pt}     % Top padding in cells
 ```
 
 **Column spacing:**
+
 ```latex
 \setlength{\tabcolsep}{8pt}          % Space between columns
 ```
 
 **Table breaking:**
+
 ```latex
 \LTchunksize=50                      % Rows processed before page break
 ```
@@ -185,6 +249,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ## Page Breaks
 
 **Penalties (higher = less likely to break):**
+
 ```latex
 \widowpenalty=10000        % Orphaned line at top of page
 \clubpenalty=10000         % Orphaned line at bottom of page
@@ -194,6 +259,7 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ## Code Highlighting
 
 **Syntax highlighting theme:**
+
 ```bash
 --highlight-style=pygments
 --highlight-style=tango
@@ -204,11 +270,13 @@ Comprehensive guide to LaTeX variables and customizations available through Pand
 ```
 
 **Custom highlight theme:**
+
 ```bash
 --highlight-style=custom.theme
 ```
 
 Generate theme file:
+
 ```bash
 pandoc --print-highlight-style=pygments > custom.theme
 ```
@@ -216,6 +284,7 @@ pandoc --print-highlight-style=pygments > custom.theme
 ## Bibliography and Citations
 
 **Citation style:**
+
 ```bash
 --csl=chicago-author-date.csl
 --csl=apa.csl
@@ -223,12 +292,14 @@ pandoc --print-highlight-style=pygments > custom.theme
 ```
 
 **Bibliography file:**
+
 ```bash
 --bibliography=references.bib
 --bibliography=refs1.bib --bibliography=refs2.bib
 ```
 
 **Bibliography title:**
+
 ```bash
 -V reference-section-title="References"
 -V reference-section-title="Bibliography"
@@ -237,6 +308,7 @@ pandoc --print-highlight-style=pygments > custom.theme
 ## Hyphenation and Language
 
 **Language:**
+
 ```bash
 -V lang=en-US           # American English (default)
 -V lang=en-GB           # British English
@@ -245,6 +317,7 @@ pandoc --print-highlight-style=pygments > custom.theme
 ```
 
 **Hyphenation:**
+
 ```bash
 -V hyphenate=true       # Allow hyphenation (default)
 -V hyphenate=false      # Disable hyphenation
@@ -257,6 +330,7 @@ pandoc --print-highlight-style=pygments > custom.theme
 Create `.tex` file with LaTeX commands:
 
 **example-preamble.tex:**
+
 ```latex
 % Custom packages
 \usepackage{booktabs}       % Professional tables
@@ -273,6 +347,7 @@ Create `.tex` file with LaTeX commands:
 ```
 
 **Usage:**
+
 ```bash
 pandoc document.md -o document.pdf -H example-preamble.tex
 ```
@@ -289,6 +364,7 @@ For simple customizations:
 ## Common Combinations
 
 ### Academic Paper
+
 ```bash
 pandoc paper.md -o paper.pdf \
   --pdf-engine=xelatex \
@@ -302,6 +378,7 @@ pandoc paper.md -o paper.pdf \
 ```
 
 ### Technical Manual
+
 ```bash
 pandoc manual.md -o manual.pdf \
   --pdf-engine=xelatex \
@@ -315,6 +392,7 @@ pandoc manual.md -o manual.pdf \
 ```
 
 ### Business Report
+
 ```bash
 pandoc report.md -o report.pdf \
   --pdf-engine=xelatex \
@@ -333,6 +411,7 @@ pandoc report.md -o report.pdf \
 **Problem:** `Font 'Arial' not found`
 
 **Solution:**
+
 ```bash
 # List available fonts
 fc-list | grep -i arial
@@ -349,6 +428,7 @@ fc-list | grep -i arial
 **Problem:** `LaTeX Error: File 'package.sty' not found`
 
 **Solution:**
+
 ```bash
 # Install missing LaTeX package (macOS)
 sudo tlmgr install package-name
@@ -362,6 +442,7 @@ brew install --cask mactex
 **Problem:** Tables or figures breaking awkwardly
 
 **Solution:**
+
 ```latex
 % Add to preamble (-H file.tex)
 \usepackage{needspace}
@@ -381,6 +462,7 @@ brew install --cask mactex
 - [LaTeX geometry package](https://ctan.org/pkg/geometry)
 - [LaTeX font catalog](https://tug.org/FontCatalogue/)
 - [CSL style repository](https://www.zotero.org/styles)
+
 ## LaTeX Customization
 
 ### Custom LaTeX Preamble
@@ -388,6 +470,7 @@ brew install --cask mactex
 Create a `.tex` file with LaTeX commands for fine-grained control:
 
 **table-spacing.tex:**
+
 ```latex
 % Compact table spacing to prevent page breaks
 \renewcommand{\arraystretch}{1.0}      % Row spacing (default: 1.0)
@@ -402,6 +485,7 @@ Create a `.tex` file with LaTeX commands for fine-grained control:
 ```
 
 **Use in build:**
+
 ```bash
 pandoc document.md -o document.pdf -H table-spacing.tex
 ```
@@ -424,6 +508,7 @@ Set LaTeX variables with `-V` flag:
 **Problem:** Tables breaking across pages awkwardly
 
 **Solution 1: Compact spacing (reduces table height 20-25%)**
+
 ```latex
 \renewcommand{\arraystretch}{1.0}      % Was 1.2
 \setlength{\extrarowheight}{2pt}       % Was 4pt
@@ -431,6 +516,7 @@ Set LaTeX variables with `-V` flag:
 ```
 
 **Solution 2: Increase page break penalties**
+
 ```latex
 \usepackage{needspace}
 \LTchunksize=100
@@ -453,23 +539,27 @@ Set LaTeX variables with `-V` flag:
 ```
 
 **How it works:**
+
 - Uses `etoolbox` package's `\AtBeginEnvironment` hook
 - Automatically applies to all Pandoc-generated tables (Pandoc uses `longtable` environment)
 - No markdown changes required - applies globally to all tables
 - Captions remain at normal size for visual hierarchy
 
 **Font size options (from largest to smallest):**
+
 - `\small` (~90% of normal) - Subtle reduction, recommended default
 - `\footnotesize` (~80% of normal) - Moderate reduction
 - `\scriptsize` (~70% of normal) - Significant reduction
 - `\tiny` (~50% of normal) - Very small, use sparingly
 
 **To also reduce caption size:**
+
 ```latex
 \usepackage[font=small]{caption}
 ```
 
 **Benefits:**
+
 - Better space efficiency without markdown modifications
 - More content fits per page (especially wide tables)
 - Maintains readability while improving density
@@ -507,11 +597,13 @@ pdfinfo DOCUMENT.pdf | grep Pages
 ```
 
 **Make executable:**
+
 ```bash
 chmod +x build-pdf.sh
 ```
 
 **Run:**
+
 ```bash
 ./build-pdf.sh
 ```

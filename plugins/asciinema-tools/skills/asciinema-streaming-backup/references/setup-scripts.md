@@ -2,6 +2,13 @@
 
 # Setup Scripts
 
+## Table of Contents
+
+- [preflight-check.sh](#preflight-checksh)
+- [setup-orphan-branch.sh](#setup-orphan-branchsh)
+- [validate-system.sh](#validate-systemsh)
+- [test-workflow.sh](#test-workflowsh)
+
 Complete setup and validation scripts for the asciinema streaming backup system.
 
 ## preflight-check.sh
