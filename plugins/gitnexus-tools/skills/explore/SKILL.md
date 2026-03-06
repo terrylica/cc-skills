@@ -20,26 +20,27 @@ Trace execution flows and understand how code works using the GitNexus knowledge
 
 ## Workflow
 
-### Step 0: Determine Repo Name
+### Step 0: Resolve CLI and Repo Name
 
-Multiple repos may be indexed. Always pass `--repo <name>` to avoid "Multiple repositories indexed" errors:
+Resolve the CLI command (bare `gitnexus` may fail if the project's mise node version differs from where it was installed):
 
 ```bash
 REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
+GN=$(command -v gitnexus >/dev/null 2>&1 && echo "gitnexus" || echo "npx gitnexus")
 ```
 
-Use `--repo "$REPO_NAME"` on all commands below.
+Use `$GN --repo "$REPO_NAME"` on all commands below.
 
 ### Step 1: Auto-Reindex If Stale
 
 ```bash
-gitnexus status --repo "$REPO_NAME"
+$GN status --repo "$REPO_NAME"
 ```
 
 If stale (indexed commit ≠ HEAD), **automatically reindex before proceeding** — do not ask the user:
 
 ```bash
-gitnexus analyze --repo "$REPO_NAME"
+$GN analyze --repo "$REPO_NAME"
 ```
 
 Then re-check status to confirm index is current.
@@ -47,7 +48,7 @@ Then re-check status to confirm index is current.
 ### Step 2: Find Execution Flows
 
 ```bash
-gitnexus query "<concept>" --limit 5 --repo "$REPO_NAME"
+$GN query "<concept>" --limit 5 --repo "$REPO_NAME"
 ```
 
 This returns ranked execution flows (process chains) related to the concept.
@@ -57,7 +58,7 @@ This returns ranked execution flows (process chains) related to the concept.
 For each relevant symbol found:
 
 ```bash
-gitnexus context "<symbol>" --content --repo "$REPO_NAME"
+$GN context "<symbol>" --content --repo "$REPO_NAME"
 ```
 
 This shows:
@@ -70,9 +71,9 @@ This shows:
 If multiple candidates are returned, disambiguate with:
 
 ```bash
-gitnexus context "<symbol>" --uid "<full-uid>" --content --repo "$REPO_NAME"
+$GN context "<symbol>" --uid "<full-uid>" --content --repo "$REPO_NAME"
 # or
-gitnexus context "<symbol>" --file "<file-path>" --content --repo "$REPO_NAME"
+$GN context "<symbol>" --file "<file-path>" --content --repo "$REPO_NAME"
 ```
 
 ### Step 4: Read Source Files
@@ -94,9 +95,9 @@ User: "How does the kintsugi gap repair work?"
 
 ```bash
 REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
-gitnexus query "kintsugi gap repair" --limit 5 --repo "$REPO_NAME"
-gitnexus context "KintsugiReconciler" --content --repo "$REPO_NAME"
-gitnexus context "discover_shards" --content --repo "$REPO_NAME"
+$GN query "kintsugi gap repair" --limit 5 --repo "$REPO_NAME"
+$GN context "KintsugiReconciler" --content --repo "$REPO_NAME"
+$GN context "discover_shards" --content --repo "$REPO_NAME"
 ```
 
 Then read the relevant source files and synthesize the explanation.
