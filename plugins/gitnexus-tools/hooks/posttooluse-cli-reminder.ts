@@ -2,7 +2,7 @@
 /**
  * PostToolUse hook: GitNexus CLI reminder
  *
- * On the first exploration tool use (Read|Glob|Grep|Bash|Task) in a repo
+ * On the first exploration tool use (Glob|Grep|Bash|Task) in a repo
  * with a .gitnexus/ index, reminds Claude to use the GitNexus CLI instead
  * of MCP or manual grep-based exploration.
  *
