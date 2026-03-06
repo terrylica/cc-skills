@@ -1,3 +1,39 @@
+## [11.77.8](https://github.com/terrylica/cc-skills/compare/v11.77.7...v11.77.8) (2026-03-06)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** Add npx fallback for gitnexus CLI shim resolution ([6199591](https://github.com/terrylica/cc-skills/commit/61995911044c7749ecd9e520303aa15229e6d23b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+11/-8)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+13/-12)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+14/-11)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+10/-7)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+11/-10)
+
 ## [11.77.7](https://github.com/terrylica/cc-skills/compare/v11.77.6...v11.77.7) (2026-03-06)
 
 ## [11.77.6](https://github.com/terrylica/cc-skills/compare/v11.77.5...v11.77.6) (2026-03-06)
