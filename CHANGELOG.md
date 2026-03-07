@@ -1,3 +1,15 @@
+# [11.83.0](https://github.com/terrylica/cc-skills/compare/v11.82.0...v11.83.0) (2026-03-07)
+
+
+### Bug Fixes
+
+* **dotfiles-tools:** Scope chezmoi-stop-guard to session CWD ([12ce9a3](https://github.com/terrylica/cc-skills/commit/12ce9a3fb8bb0e94b1fe4663c369201ed3867bba))
+
+
+### Features
+
+* **tts-telegram-sync:** register auto-continue stop hook in hooks.json ([e6e6fd9](https://github.com/terrylica/cc-skills/commit/e6e6fd933aaf4dee6a6d4bd9a8dafe4d43209a92))
+
 # [11.82.0](https://github.com/terrylica/cc-skills/compare/v11.81.0...v11.82.0) (2026-03-07)
 
 
