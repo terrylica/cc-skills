@@ -1,3 +1,10 @@
+## [11.83.1](https://github.com/terrylica/cc-skills/compare/v11.83.0...v11.83.1) (2026-03-07)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** Remove all hooks — invoke via skills only ([847eab9](https://github.com/terrylica/cc-skills/commit/847eab9012085796783bea0c97cb709dc85cd35e))
+
 # [11.83.0](https://github.com/terrylica/cc-skills/compare/v11.82.0...v11.83.0) (2026-03-07)
 
 
