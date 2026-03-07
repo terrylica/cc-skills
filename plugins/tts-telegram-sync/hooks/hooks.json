@@ -5,6 +5,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash $HOME/.claude/automation/claude-telegram-sync/src/hooks/auto-continue-wrapper.sh",
+            "timeout": 45000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-telegram-sync/hooks/telegram-notify-stop.ts",
             "timeout": 10000
           }
