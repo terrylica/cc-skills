@@ -1,3 +1,54 @@
+# [11.82.0](https://github.com/terrylica/cc-skills/compare/v11.81.0...v11.82.0) (2026-03-07)
+
+
+### Features
+
+* **dotfiles-tools:** Add plan mode bypass to chezmoi hooks ([2f7b14c](https://github.com/terrylica/cc-skills/commit/2f7b14cd5f2ab3fef596debaadca9677358c1d31))
+* **gh-tools:** add issue-branch-PR lifecycle to issues-workflow skill ([8afec55](https://github.com/terrylica/cc-skills/commit/8afec55bd37d3b5165379f31b8313222dde6767e)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [owner/repo#N](https://github.com/owner/repo/issues/N)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issues-workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/SKILL.md) - updated (+34/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>gh-tools/issues-workflow</strong> (1 file)</summary>
+
+- [Issue-Branch-PR Lifecycle Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issues-workflow/references/issue-branch-lifecycle.md) - new (+132)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+90/-70)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+7/-7)
+
 # [11.81.0](https://github.com/terrylica/cc-skills/compare/v11.80.0...v11.81.0) (2026-03-06)
 
 
