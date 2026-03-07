@@ -20,6 +20,7 @@
  */
 
 import { execSync, spawnSync } from "child_process";
+import { realpathSync } from "fs";
 
 /**
  * Check if chezmoi is available
@@ -121,6 +122,46 @@ function extractModifiedFiles(diffOutput) {
 }
 
 /**
+ * Resolve a path to its canonical absolute form.
+ *
+ * Handles: ~ expansion, symlinks (via realpathSync), case normalization
+ * on case-insensitive APFS, trailing/double slashes.
+ *
+ * Falls back to string normalization when the path doesn't exist on disk
+ * (e.g., chezmoi target not yet applied, or file was deleted).
+ *
+ * @param {string} p - Path to resolve (may start with ~/)
+ * @param {string} home - Value of $HOME
+ * @returns {string} Canonical absolute path
+ */
+function resolveCanonical(p, home) {
+  let abs = p;
+
+  // Expand ~ → $HOME
+  if (abs.startsWith("~/")) {
+    abs = home + abs.slice(1);
+  } else if (abs === "~") {
+    abs = home;
+  }
+
+  // Normalize slashes: collapse // → /, strip trailing /
+  abs = abs.replace(/\/+/g, "/").replace(/\/$/, "");
+
+  // Resolve symlinks + case normalization (APFS is case-insensitive)
+  // realpathSync returns the on-disk canonical path, handling:
+  //   - symlinks (~/eon → /Volumes/data/eon)
+  //   - case folding (/Users/Terryli → /Users/terryli)
+  try {
+    abs = realpathSync(abs);
+  } catch {
+    // Path doesn't exist on disk (deleted file, unapplied chezmoi target).
+    // Keep the string-normalized version — still good enough for prefix matching.
+  }
+
+  return abs;
+}
+
+/**
  * Parse stdin JSON to get hook input
  * @returns {object} Parsed input or empty object
  */
@@ -192,6 +233,41 @@ async function main() {
       : "(run chezmoi diff to see details)";
 
   const truncated = modifiedFiles.length > 5 ? `\n  ... and ${modifiedFiles.length - 5} more` : "";
+
+  // ============================================================================
+  // SCOPE CHECK: Only block if modified files are under the session's CWD.
+  // Pre-existing chezmoi drift from other directories should not block
+  // unrelated projects (e.g., editing ~/.claude/automation/* shouldn't block
+  // stop in ~/eon/cc-skills).
+  //
+  // Edge cases handled:
+  //   - Symlinks: realpathSync resolves ~/eon → /Volumes/data/eon
+  //   - Case-insensitive APFS: realpathSync returns canonical case
+  //   - Trailing slashes: stripped before prefix comparison
+  //   - Double slashes: collapsed via replace
+  //   - Deleted files: fallback to string normalization (no realpath)
+  //   - Missing CWD/HOME: falls through to blocking (safe default)
+  // ============================================================================
+  const cwd = input.cwd || "";
+  const homePath = process.env.HOME || "";
+  if (cwd && homePath) {
+    const cwdResolved = resolveCanonical(cwd, homePath);
+    const relevant = modifiedFiles.some((f) => {
+      const abs = resolveCanonical(f, homePath);
+      return abs.startsWith(cwdResolved + "/") || abs === cwdResolved;
+    });
+    if (!relevant) {
+      // Drift exists but is outside this project — warn, don't block
+      console.log(
+        JSON.stringify({
+          systemMessage:
+            `[CHEZMOI-GUARD] Chezmoi drift detected (${modifiedFiles.length} file(s)) but outside current project (${cwd}). ` +
+            "Run `chezmoi re-add && chezmoi git -- add -A && chezmoi git -- commit -m 'sync' && chezmoi git -- push` when convenient.",
+        }),
+      );
+      process.exit(0);
+    }
+  }
 
   // BLOCK stopping - force Claude to sync chezmoi
   const result = {
