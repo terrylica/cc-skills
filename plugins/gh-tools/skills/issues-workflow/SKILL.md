@@ -1,6 +1,6 @@
 ---
 name: issues-workflow
-description: "Plan and track work using a GitHub Issues-first workflow with sub-issue hierarchies. Use whenever the user needs to organize issues into parent-child hierarchies, manage sub-issues, track research across multiple issues, or coordinate cross-repo issue workflows. Also use when the user asks about issue tracking strategy or how to structure work breakdown in GitHub. Do NOT use for creating individual issues (use issue-create instead) or for GitHub Projects board management."
+description: "Plan and track work using a GitHub Issues-first workflow with sub-issue hierarchies, issue-branch-PR lifecycle, and auto-close on merge. Use whenever the user needs to organize issues into parent-child hierarchies, manage sub-issues, use closing keywords (Closes/Fixes/Resolves), create branches from issues (gh issue develop), coordinate cross-repo issue workflows, or asks about issue tracking strategy. Do NOT use for creating individual issues (use issue-create instead) or for GitHub Projects board management."
 allowed-tools: Read, Bash, Grep, Glob, Write
 ---
 
@@ -422,6 +422,38 @@ gh issue edit <number> --title "..."
 
 The AI agent determines the best way to maximize informativeness based on the nature of the content.
 
+## Issue-Branch-PR Lifecycle
+
+The full lifecycle from issue to merged code, with automatic issue closure. **All automation is local** — no GitHub Actions for testing/linting.
+
+### Recommended Workflow
+
+```
+1. Create issue(s)           → gh issue create --title "..." --body "..."
+2. Branch from issue         → gh issue develop <N> --checkout
+3. Implement + commit        → git commit -m "feat: description"
+4. Create PR (with keywords) → gh pr create --body "Closes #N"
+5. Merge PR                  → gh pr merge --squash --delete-branch
+6. Issue auto-closes         → GitHub handles this automatically
+```
+
+### Closing Keywords (Auto-Close on Merge)
+
+Use `Closes #N`, `Fixes #N`, or `Resolves #N` in **PR body** (not title) to auto-close issues on merge. Case-insensitive. Cross-repo: `Closes owner/repo#N`. Each issue needs its own keyword — `Closes #1, closes #2, fixes #3`.
+
+### Branch-from-Issue (`gh issue develop`)
+
+```bash
+gh issue develop 214 --checkout              # auto-names branch
+gh issue develop 214 --name feat/x --checkout  # custom name
+```
+
+Creates branch linked to issue. PRs from this branch auto-link and auto-close the issue on merge.
+
+Use both `develop` AND closing keywords — belt-and-suspenders.
+
+**Full reference**: [Issue-Branch Lifecycle Details](./references/issue-branch-lifecycle.md) — keyword placement rules, cross-repo closing, bulk closure, branch cleanup
+
 ## GFM Rendering Anti-Patterns
 
 **NEVER use bare `#N` in issue/PR comments.** GitHub auto-links any `#N` where issue N exists — in prose, tables, lists. This is unpredictable and inconsistent (some numbers link, others don't).
@@ -446,6 +478,7 @@ See the full reference for 6 documented anti-patterns: **[GFM Anti-Patterns Refe
 ## References
 
 - [gh-tools Issue Create Skill](../issue-create/SKILL.md)
+- [Issue-Branch Lifecycle](./references/issue-branch-lifecycle.md) — Closing keywords, `gh issue develop`, local-first automation
 - [GFM Anti-Patterns](./references/gfm-antipatterns.md)
 - [Field Types Reference](./references/field-types.md)
 - [Auto-Link Configuration](./references/auto-link-config.md)
