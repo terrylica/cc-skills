@@ -163,16 +163,20 @@
 | Stop               | Hard       | `decision:block` + reason           | Forces Claude to continue (check `stop_hook_active`!) |
 | TeammateIdle       | Hard       | exit 2                              | Keeps teammate working; stderr = feedback             |
 | TaskCompleted      | Hard       | exit 2                              | Prevents task completion; stderr = feedback           |
+| ConfigChange       | Hard       | exit 2 OR `decision:block`          | Blocks config change (except `policy_settings`)       |
 
 **CANNOT BLOCK** — These hooks are informational only:
 
-| Hook          | Purpose                                         |
-| ------------- | ----------------------------------------------- |
-| SessionStart  | Inject context, set env vars, run setup scripts |
-| SubagentStart | Inject context into spawned subagents           |
-| PreCompact    | Backup transcripts before summarization         |
-| Notification  | Desktop/Slack/Discord alerts (parallel event)   |
-| SessionEnd    | Cleanup, logging, archive transcripts           |
+| Hook               | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| SessionStart       | Inject context, set env vars, run setup scripts |
+| SubagentStart      | Inject context into spawned subagents           |
+| PreCompact         | Backup transcripts before summarization         |
+| Notification       | Desktop/Slack/Discord alerts (parallel event)   |
+| SessionEnd         | Cleanup, logging, archive transcripts           |
+| InstructionsLoaded | Audit logging when instruction files load       |
+| WorktreeCreate     | Worktree path output (stdout = path)            |
+| WorktreeRemove     | Cleanup when worktree removed at session exit   |
 
 ```{=latex}
 \newpage
@@ -279,25 +283,29 @@ Every hook can output these fields:
 
 ### Overview
 
-| Event                  | When It Fires                                                | Blocks? | Matchers                                                                       |
-| ---------------------- | ------------------------------------------------------------ | ------- | ------------------------------------------------------------------------------ |
-| **SessionStart**       | Session begins (new, `--resume`, `/clear`, compact)          | No      | `startup`, `resume`, `clear`, `compact`                                        |
-| **Setup**              | Repository init (`--init`, `--init-only`) or `--maintenance` | No      | `init`, `maintenance`                                                          |
-| **UserPromptSubmit**   | User presses Enter, BEFORE Claude processes                  | **Yes** | None (all prompts)                                                             |
-| **PreToolUse**         | After Claude creates tool params, BEFORE execution           | **Yes** | Tool names: `Task`, `Bash`, `Read`, `Write`, `Edit`, `mcp__*`                  |
-| **PermissionRequest**  | Permission dialog about to show                              | **Yes** | Same as PreToolUse                                                             |
-| **PostToolUse**        | After tool completes **successfully**                        | **Yes** | Same as PreToolUse                                                             |
-| **PostToolUseFailure** | After tool **fails** (Bash exit ≠ 0, Write ENOENT)           | **Yes** | Same as PreToolUse                                                             |
-| **Notification**       | System notification sent                                     | No      | `permission_prompt`, `idle_prompt`, `auth_success`, `elicitation_dialog`       |
-| **SubagentStart**      | Subagent spawned via Task tool                               | No      | Agent type: `Bash`, `Explore`, `Plan`, custom agents                           |
-| **SubagentStop**       | Subagent finishes                                            | **Yes** | Agent type: `Bash`, `Explore`, `Plan`, custom agents                           |
-| **Stop**               | Main agent finishes (not on interrupt)                       | **Yes** | None (global)                                                                  |
-| **TeammateIdle**       | Agent team teammate about to go idle                         | **Yes** | None (not supported)                                                           |
-| **TaskCompleted**      | Task marked as completed                                     | **Yes** | None (not supported)                                                           |
-| **PreCompact**         | Before context summarization                                 | No      | `manual`, `auto`                                                               |
-| **SessionEnd**         | Session terminates                                           | No      | `clear`, `logout`, `prompt_input_exit`, `bypass_permissions_disabled`, `other` |
+| Event                  | When It Fires                                                | Blocks? | Matchers                                                                           |
+| ---------------------- | ------------------------------------------------------------ | ------- | ---------------------------------------------------------------------------------- |
+| **SessionStart**       | Session begins (new, `--resume`, `/clear`, compact)          | No      | `startup`, `resume`, `clear`, `compact`                                            |
+| **Setup**              | Repository init (`--init`, `--init-only`) or `--maintenance` | No      | `init`, `maintenance`                                                              |
+| **UserPromptSubmit**   | User presses Enter, BEFORE Claude processes                  | **Yes** | None (all prompts)                                                                 |
+| **PreToolUse**         | After Claude creates tool params, BEFORE execution           | **Yes** | Tool names: `Task`, `Bash`, `Read`, `Write`, `Edit`, `mcp__*`                      |
+| **PermissionRequest**  | Permission dialog about to show                              | **Yes** | Same as PreToolUse                                                                 |
+| **PostToolUse**        | After tool completes **successfully**                        | **Yes** | Same as PreToolUse                                                                 |
+| **PostToolUseFailure** | After tool **fails** (Bash exit ≠ 0, Write ENOENT)           | **Yes** | Same as PreToolUse                                                                 |
+| **Notification**       | System notification sent                                     | No      | `permission_prompt`, `idle_prompt`, `auth_success`, `elicitation_dialog`           |
+| **SubagentStart**      | Subagent spawned via Task tool                               | No      | Agent type: `Bash`, `Explore`, `Plan`, custom agents                               |
+| **SubagentStop**       | Subagent finishes                                            | **Yes** | Agent type: `Bash`, `Explore`, `Plan`, custom agents                               |
+| **Stop**               | Main agent finishes (not on interrupt)                       | **Yes** | None (global)                                                                      |
+| **TeammateIdle**       | Agent team teammate about to go idle                         | **Yes** | None (not supported)                                                               |
+| **TaskCompleted**      | Task marked as completed                                     | **Yes** | None (not supported)                                                               |
+| **PreCompact**         | Before context summarization                                 | No      | `manual`, `auto`                                                                   |
+| **SessionEnd**         | Session terminates                                           | No      | `clear`, `logout`, `prompt_input_exit`, `bypass_permissions_disabled`, `other`     |
+| **InstructionsLoaded** | Instruction files load into context                          | No      | None                                                                               |
+| **ConfigChange**       | Settings or skill files change during session                | **Yes** | `user_settings`, `project_settings`, `local_settings`, `policy_settings`, `skills` |
+| **WorktreeCreate**     | Worktree created via `--worktree`                            | No      | None (stdout = worktree path)                                                      |
+| **WorktreeRemove**     | Worktree removed at session exit                             | No      | None (failures logged in debug mode only)                                          |
 
-> **Note**: All 15 events above are confirmed in the [JSON schema](https://json.schemastore.org/claude-code-settings.json) and source code (verified 2026-02-12). `Setup` is marked "UNDOCUMENTED" in the schema description.
+> **Note**: All 19 events above are confirmed in the [JSON schema](https://json.schemastore.org/claude-code-settings.json) and official documentation (verified 2026-03-07). `Setup` is marked "UNDOCUMENTED" in the schema description.
 
 ### Input & Output Details
 
@@ -305,33 +313,37 @@ All events receive these **universal fields** via stdin JSON (source: `t2()` bas
 
 - `session_id`, `transcript_path`, `cwd`, `permission_mode` (optional), `hook_event_name`
 
-| Event                  | Event-Specific Inputs                                                                                                       | Output Capabilities                                                                              |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **SessionStart**       | `source`, `model`, `agent_type` (optional)                                                                                  | `additionalContext`; `CLAUDE_ENV_FILE` for env vars                                              |
-| **Setup**              | `trigger`: `init`/`maintenance`                                                                                             | `additionalContext`; `CLAUDE_ENV_FILE` for env vars                                              |
-| **UserPromptSubmit**   | `prompt`                                                                                                                    | `{"decision": "block"}` to reject; `{"additionalContext": "..."}` to inject; Exit 2 = hard block |
-| **PreToolUse**         | `tool_name`, `tool_input`, `tool_use_id`                                                                                    | `permissionDecision`: `allow`/`deny`/`ask`; `updatedInput`; `additionalContext`                  |
-| **PermissionRequest**  | `tool_name`, `tool_input`, `permission_suggestions` (optional)                                                              | `decision.behavior`: `allow`/`deny`; `updatedInput`; `updatedPermissions`; `message`             |
-| **PostToolUse**        | `tool_name`, `tool_input`, `tool_response`, `tool_use_id`                                                                   | `decision:block` + `reason`; `additionalContext`; `updatedMCPToolOutput` (MCP only)              |
-| **PostToolUseFailure** | `tool_name`, `tool_input`, `tool_use_id`, `error`, `is_interrupt` (optional)                                                | `additionalContext`; `decision:block` + `reason` for visibility                                  |
-| **Notification**       | `message`, `title` (optional), `notification_type`                                                                          | `additionalContext`                                                                              |
-| **SubagentStart**      | `agent_id`, `agent_type`                                                                                                    | `additionalContext`                                                                              |
-| **SubagentStop**       | `stop_hook_active`, `agent_id`, `agent_type`, `agent_transcript_path`                                                       | `{"decision": "block", "reason": "..."}` forces continuation                                     |
-| **Stop**               | `stop_hook_active`                                                                                                          | `{"decision": "block"}` blocks stopping; `additionalContext` for info; `{}` allows stop          |
-| **TeammateIdle**       | `teammate_name`, `team_name`                                                                                                | Exit code 2 = keep working (stderr = feedback); no JSON decision control                         |
-| **TaskCompleted**      | `task_id`, `task_subject`, `task_description`, `teammate_name`, `team_name` (all optional except `task_id`, `task_subject`) | Exit code 2 = prevent completion (stderr = feedback)                                             |
-| **PreCompact**         | `trigger`: `manual`/`auto`, `custom_instructions` (nullable)                                                                | stdout in verbose mode                                                                           |
-| **SessionEnd**         | `reason`: `clear`/`logout`/`prompt_input_exit`/`bypass_permissions_disabled`/`other`                                        | Debug log only                                                                                   |
+| Event                  | Event-Specific Inputs                                                                                                       | Output Capabilities                                                                                |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **SessionStart**       | `source`, `model`, `agent_type` (optional)                                                                                  | `additionalContext`; `CLAUDE_ENV_FILE` for env vars                                                |
+| **Setup**              | `trigger`: `init`/`maintenance`                                                                                             | `additionalContext`; `CLAUDE_ENV_FILE` access unverified (official docs confirm SessionStart only) |
+| **UserPromptSubmit**   | `prompt`                                                                                                                    | `{"decision": "block"}` to reject; `{"additionalContext": "..."}` to inject; Exit 2 = hard block   |
+| **PreToolUse**         | `tool_name`, `tool_input`, `tool_use_id`                                                                                    | `permissionDecision`: `allow`/`deny`/`ask`; `updatedInput`; `additionalContext`                    |
+| **PermissionRequest**  | `tool_name`, `tool_input`, `permission_suggestions` (optional)                                                              | `decision.behavior`: `allow`/`deny`; `updatedInput`; `updatedPermissions`; `message`               |
+| **PostToolUse**        | `tool_name`, `tool_input`, `tool_response`, `tool_use_id`                                                                   | `decision:block` + `reason`; `additionalContext`; `updatedMCPToolOutput` (MCP only)                |
+| **PostToolUseFailure** | `tool_name`, `tool_input`, `tool_use_id`, `error`, `is_interrupt` (optional)                                                | `additionalContext`; `decision:block` + `reason` for visibility                                    |
+| **Notification**       | `message`, `title` (optional), `notification_type`                                                                          | `additionalContext`                                                                                |
+| **SubagentStart**      | `agent_id`, `agent_type`                                                                                                    | `additionalContext`                                                                                |
+| **SubagentStop**       | `stop_hook_active`, `agent_id`, `agent_type`, `agent_transcript_path`                                                       | `{"decision": "block", "reason": "..."}` forces continuation                                       |
+| **Stop**               | `stop_hook_active`                                                                                                          | `{"decision": "block"}` blocks stopping; `additionalContext` for info; `{}` allows stop            |
+| **TeammateIdle**       | `teammate_name`, `team_name`                                                                                                | Exit code 2 = keep working (stderr = feedback); no JSON decision control                           |
+| **TaskCompleted**      | `task_id`, `task_subject`, `task_description`, `teammate_name`, `team_name` (all optional except `task_id`, `task_subject`) | Exit code 2 = prevent completion (stderr = feedback)                                               |
+| **PreCompact**         | `trigger`: `manual`/`auto`, `custom_instructions` (nullable)                                                                | stdout in verbose mode                                                                             |
+| **SessionEnd**         | `reason`: `clear`/`logout`/`prompt_input_exit`/`bypass_permissions_disabled`/`other`                                        | Debug log only                                                                                     |
+| **InstructionsLoaded** | (none documented)                                                                                                           | Exit code ignored; used for audit logging                                                          |
+| **ConfigChange**       | Config file path, change type                                                                                               | `{"decision": "block"}` blocks change (except `policy_settings`); Exit 2 = block                   |
+| **WorktreeCreate**     | (none documented)                                                                                                           | stdout = absolute worktree path; non-zero exit = failure                                           |
+| **WorktreeRemove**     | (none documented)                                                                                                           | Failures logged in debug mode only                                                                 |
 
 ### Hook Types: Validated vs Documented (Updated 2026-02-12)
 
 **Important**: Hook type names are case-sensitive and must match exactly.
 
-#### Confirmed Hook Events (15 total, in JSON Schema)
+#### Confirmed Hook Events (19 total, in JSON Schema)
 
 These hooks are validated in the [Claude Code settings JSON schema](https://json.schemastore.org/claude-code-settings.json) with `additionalProperties: false` — any other name is rejected:
 
-- `SessionStart`, `Setup`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PostToolUseFailure`, `Notification`, `SubagentStart`, `SubagentStop`, `Stop`, `TeammateIdle`, `TaskCompleted`, `PreCompact`, `SessionEnd`
+- `SessionStart`, `Setup`, `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PostToolUseFailure`, `Notification`, `SubagentStart`, `SubagentStop`, `Stop`, `TeammateIdle`, `TaskCompleted`, `PreCompact`, `SessionEnd`, `InstructionsLoaded`, `ConfigChange`, `WorktreeCreate`, `WorktreeRemove`
 
 #### PostToolUseFailure: Error Handling Hook (Empirically Verified 2026-02-12)
 
@@ -381,17 +393,17 @@ These hooks are validated in the [Claude Code settings JSON schema](https://json
 
 #### Newer Events (Confirmed in Schema, added 2026-02)
 
-| Hook            | Trigger                                  | Blocks?          | Notes                                                                                            |
-| --------------- | ---------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------ |
-| `SubagentStart` | Subagent spawned via Task tool           | No               | Inputs: `agent_id`, `agent_type`. Output: `additionalContext`                                    |
-| `TeammateIdle`  | Agent team teammate about to go idle     | **Yes** (exit 2) | Inputs: `teammate_name`, `team_name`. No matchers. No JSON decision — exit code only             |
-| `TaskCompleted` | Task marked as completed                 | **Yes** (exit 2) | Inputs: `task_id`, `task_subject`, `task_description`. No matchers. No JSON decision             |
-| `Setup`         | `--init`, `--init-only`, `--maintenance` | No               | Inputs: `trigger` (`init`/`maintenance`). Has `CLAUDE_ENV_FILE`. Marked "UNDOCUMENTED" in schema |
+| Hook            | Trigger                                  | Blocks?          | Notes                                                                                                          |
+| --------------- | ---------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| `SubagentStart` | Subagent spawned via Task tool           | No               | Inputs: `agent_id`, `agent_type`. Output: `additionalContext`                                                  |
+| `TeammateIdle`  | Agent team teammate about to go idle     | **Yes** (exit 2) | Inputs: `teammate_name`, `team_name`. No matchers. No JSON decision — exit code only                           |
+| `TaskCompleted` | Task marked as completed                 | **Yes** (exit 2) | Inputs: `task_id`, `task_subject`, `task_description`. No matchers. No JSON decision                           |
+| `Setup`         | `--init`, `--init-only`, `--maintenance` | No               | Inputs: `trigger` (`init`/`maintenance`). `CLAUDE_ENV_FILE` access unverified. Marked "UNDOCUMENTED" in schema |
 
 **References:**
 
 - [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks) — Official documentation
-- [JSON Schema](https://json.schemastore.org/claude-code-settings.json) — Authoritative validation (15 events, `additionalProperties: false`)
+- [JSON Schema](https://json.schemastore.org/claude-code-settings.json) — Authoritative validation (19 events, `additionalProperties: false`)
 - [GitHub Issue #14859](https://github.com/anthropics/claude-code/issues/14859) — SubagentStart discussion
 - [GitHub Issue #24908](https://github.com/anthropics/claude-code/issues/24908) — PostToolUseFailure scope limitation
 
@@ -410,13 +422,13 @@ All hooks receive their input data via **stdin as a JSON object**. The JSON stru
 
 Every hook event receives these 5 fields in its stdin JSON, regardless of event type. These are injected by the base hook input constructor (`t2()` in source):
 
-| Field             | Type   | Description                                           | Example                                      |
-| ----------------- | ------ | ----------------------------------------------------- | -------------------------------------------- |
-| `session_id`      | string | Unique session identifier (UUID)                      | `"5631737f-3f98-437d-a34a-e7d7dca569bb"`     |
-| `transcript_path` | string | Absolute path to session JSONL transcript             | `"/Users/x/.claude/projects/.../abc.jsonl"`  |
-| `cwd`             | string | Current working directory at hook invocation          | `"/Users/x/project"`                         |
-| `permission_mode` | string | Active permission mode for the session                | `"default"`, `"plan"`, `"bypassPermissions"` |
-| `hook_event_name` | string | Name of the hook event that triggered this invocation | `"PreToolUse"`, `"Stop"`, `"SessionStart"`   |
+| Field             | Type   | Description                                           | Example                                                                    |
+| ----------------- | ------ | ----------------------------------------------------- | -------------------------------------------------------------------------- |
+| `session_id`      | string | Unique session identifier (UUID)                      | `"5631737f-3f98-437d-a34a-e7d7dca569bb"`                                   |
+| `transcript_path` | string | Absolute path to session JSONL transcript             | `"/Users/x/.claude/projects/.../abc.jsonl"`                                |
+| `cwd`             | string | Current working directory at hook invocation          | `"/Users/x/project"`                                                       |
+| `permission_mode` | string | Active permission mode for the session                | `"default"`, `"plan"`, `"acceptEdits"`, `"dontAsk"`, `"bypassPermissions"` |
+| `hook_event_name` | string | Name of the hook event that triggered this invocation | `"PreToolUse"`, `"Stop"`, `"SessionStart"`                                 |
 
 > **Evidence**: Confirmed via live probe capture (2026-02-12). The `permission_mode` field is especially useful for hooks that should behave differently in plan mode vs normal mode.
 
@@ -600,7 +612,7 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 
 - `CLAUDE_PROJECT_DIR` — Project root (available in all hooks)
 - `CLAUDE_CODE_REMOTE` — `"true"` if running in web mode (all hooks)
-- `CLAUDE_ENV_FILE` — Env var persistence file (SessionStart only)
+- `CLAUDE_ENV_FILE` — Env var persistence file (SessionStart only; Setup access is unverified)
 
 ### Hook Types
 
@@ -626,13 +638,21 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 }
 ```
 
+**HTTP Hook** — Sends event JSON as HTTP POST (added 2026-02):
+
+```json
+{ "type": "http", "url": "https://example.com/hook", "timeout": 30 }
+```
+
+> **Note**: HTTP hooks cannot signal blocking via status codes alone — must return a 2xx response with JSON body containing the appropriate decision fields (e.g., `decision: "block"`).
+
 ### Additional Hook Fields
 
-| Field           | Type    | Default | Description                                                  |
-| --------------- | ------- | ------- | ------------------------------------------------------------ |
-| `async`         | boolean | `false` | Run hook asynchronously (non-blocking, 15s timeout default)  |
-| `once`          | boolean | `false` | Run hook only once per session (e.g., one-time setup checks) |
-| `statusMessage` | string  | —       | Message displayed in status line while hook is running       |
+| Field           | Type    | Default | Description                                                       |
+| --------------- | ------- | ------- | ----------------------------------------------------------------- |
+| `async`         | boolean | `false` | Run hook asynchronously (non-blocking, 600s default same as sync) |
+| `once`          | boolean | `false` | Run hook only once per session (e.g., one-time setup checks)      |
+| `statusMessage` | string  | —       | Message displayed in status line while hook is running            |
 
 ### MCP Tool Naming
 
@@ -826,9 +846,9 @@ exit 2
 | Field                            | PostToolUse | PostToolUseFailure | Stop         | PreToolUse    | UserPromptSubmit |
 | -------------------------------- | ----------- | ------------------ | ------------ | ------------- | ---------------- |
 | `reason` (with `decision:block`) | ✅ Claude   | ✅ Claude          | ✅ Claude    | ❌ Deprecated | ❌ User only     |
-| `additionalContext`              | ⚠️ Maybe    | ✅ Claude          | ✅ Claude    | ❌ N/A        | ✅ Claude        |
+| `additionalContext`              | ⚠️ Maybe    | ✅ Claude          | ✅ Claude    | ✅ Claude     | ✅ Claude        |
 | `permissionDecisionReason`       | ❌ N/A      | ❌ N/A             | ❌ N/A       | ✅ Claude     | ❌ N/A           |
-| `systemMessage`                  | ✅ Both     | ✅ Both            | ⚠️ User only | ✅ Both       | ✅ Both          |
+| `systemMessage`                  | ✅ Both     | ✅ Both            | ⚠️ User only | ⚠️ Unverified | ✅ Both          |
 | `stopReason`                     | ❌ N/A      | ❌ N/A             | ✅ User      | ❌ N/A        | ❌ N/A           |
 | Plain stdout (exit 0)            | ❌ Log only | ❌ Log only        | ❌ Log only  | ❌ Log only   | ✅ Claude        |
 | stderr (exit 2)                  | ❌ N/A      | ❌ N/A             | ❌ N/A       | ✅ Claude     | ❌ N/A           |
@@ -993,7 +1013,7 @@ def hard_stop(reason: str):
 | **Session-locked hooks**                 | Hook changes don't take effect                                                                | Hooks snapshot at session start. Run `/hooks` to apply pending changes OR restart Claude Code                                                                                                                                                                                                                                                                          |
 | **Script not executable**                | Hook silently fails                                                                           | Run `chmod +x script.sh` on all hook scripts                                                                                                                                                                                                                                                                                                                           |
 | **Non-zero exit codes**                  | Hook blocks Claude unexpectedly                                                               | Ensure scripts return 0 on success; non-zero = error                                                                                                                                                                                                                                                                                                                   |
-| **Missing file matchers**                | Hook doesn't trigger on edits                                                                 | Use `Edit\|MultiEdit\|Write` to catch ALL file modifications                                                                                                                                                                                                                                                                                                           |
+| **Missing file matchers**                | Hook doesn't trigger on edits                                                                 | Use `Edit\|Write` for verified coverage. `MultiEdit` is observed in practice but not in official docs — use at your own risk                                                                                                                                                                                                                                           |
 | **Case sensitivity**                     | Matcher doesn't match                                                                         | Matchers are case-sensitive: `Bash` ≠ `bash`                                                                                                                                                                                                                                                                                                                           |
 | **Relative paths**                       | Script not found                                                                              | Use `$CLAUDE_PROJECT_DIR` or absolute paths                                                                                                                                                                                                                                                                                                                            |
 | **Timeout too short**                    | Hook killed mid-execution                                                                     | Default is 600s (10 min); set explicit lower timeout for fast-fail hooks                                                                                                                                                                                                                                                                                               |
@@ -1001,7 +1021,7 @@ def hard_stop(reason: str):
 | **Stop hook wrong schema**               | "Stop hook prevented continuation"                                                            | Use `{}` to allow stop, NOT `{"continue": false}` (see Stop Hook Schema above)                                                                                                                                                                                                                                                                                         |
 | **Local symlink caching**                | Edits to source not picked up                                                                 | Release new version, `/plugin install`, restart Claude Code (see Plugin Cache section below)                                                                                                                                                                                                                                                                           |
 | **Reading input from env vars**          | Hook receives empty input, silently fails                                                     | Use `INPUT=$(cat)` + `jq` to parse stdin JSON (see Hook Input Delivery Mechanism above)                                                                                                                                                                                                                                                                                |
-| **Using non-existent hook types**        | `"Invalid key in record"` error, settings.json rejected                                       | Valid: SessionStart, Setup, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PostToolUseFailure, Notification, SubagentStart, SubagentStop, Stop, TeammateIdle, TaskCompleted, PreCompact, SessionEnd (15 total). **PostToolUseError does NOT exist.**                                                                                                    |
+| **Using non-existent hook types**        | `"Invalid key in record"` error, settings.json rejected                                       | Valid: SessionStart, Setup, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PostToolUseFailure, Notification, SubagentStart, SubagentStop, Stop, TeammateIdle, TaskCompleted, PreCompact, SessionEnd, InstructionsLoaded, ConfigChange, WorktreeCreate, WorktreeRemove (19 total). **PostToolUseError does NOT exist.**                                  |
 | **Assuming PostToolUse fires on errors** | Hook never fires for failed commands                                                          | PostToolUse ONLY fires on successful tool completion. Use PreToolUse to prevent errors instead.                                                                                                                                                                                                                                                                        |
 | **Trusting GitHub issues as features**   | Implement non-existent functionality                                                          | Issues are REQUESTS not implementations. Always verify against official Claude Code docs.                                                                                                                                                                                                                                                                              |
 | **`$CLAUDE_PLUGIN_ROOT` in hooks.json**  | Hook command resolves to empty path → "Module not found"                                      | `$CLAUDE_PLUGIN_ROOT` is only available inside Claude Code's plugin skill loading context, NOT as a shell env var. Hook commands in hooks.json are synced verbatim to settings.json and run as shell commands. **Always use `$HOME`-based absolute paths** in hook commands (e.g., `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/my-plugin/hooks/handler.ts`). |
@@ -1154,7 +1174,7 @@ rm ~/.claude/plugins/cache/cc-skills/<plugin>/local
 - **Command hooks**: 600 seconds / 10 minutes (source constant `KX=600000`)
 - **Prompt hooks**: 30 seconds (Haiku evaluation)
 - **Agent hooks**: 60 seconds (sub-agent evaluation)
-- **Async hooks**: 15 seconds (non-blocking, fire-and-forget)
+- **Async hooks**: 600 seconds / 10 minutes (same default as sync command hooks)
 - **Recommended**: 180s explicit timeout for linting/testing operations
 
 > **Note**: The 600s default for command hooks is intentionally generous. Set explicit timeouts for hooks that should fail fast.
