@@ -13,6 +13,10 @@ set -euo pipefail
 # Read JSON payload from stdin
 PAYLOAD=$(cat)
 
+# Skip in plan mode - no files are intentionally modified during planning
+PERMISSION_MODE=$(echo "$PAYLOAD" | jq -r '.permission_mode // empty' 2>/dev/null) || true
+[[ "$PERMISSION_MODE" == "plan" ]] && exit 0
+
 # Extract file path from tool input
 FILE_PATH=$(echo "$PAYLOAD" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
 

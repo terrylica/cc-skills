@@ -141,6 +141,17 @@ async function main() {
   const input = await parseStdinInput();
 
   // ============================================================================
+  // PLAN MODE BYPASS (Skip guard entirely during plan mode)
+  // ============================================================================
+  // In plan mode, Claude is exploring/planning — no files were intentionally modified.
+  // Pre-existing chezmoi drift should not block stopping a planning session.
+  // permission_mode is a universal field available to all hook events.
+  if (input.permission_mode === "plan") {
+    console.log("{}");
+    process.exit(0);
+  }
+
+  // ============================================================================
   // LOOP PREVENTION (Critical - per lifecycle-reference.md lines 198-201)
   // ============================================================================
   // If stop_hook_active is true, a previous Stop hook already triggered continuation.
