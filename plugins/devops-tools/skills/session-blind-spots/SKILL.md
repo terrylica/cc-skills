@@ -17,34 +17,64 @@ Send a Claude Code session transcript to MiniMax 2.5 highspeed for independent d
 5. **Diverse perspectives** — Fires N parallel MiniMax calls, each with a unique specialist reviewer lens
 6. **Consensus distillation** — Feeds all N results into a final MiniMax call that merges, deduplicates, and ranks by cross-perspective agreement
 
-## 20 Specialist Perspectives
+## 50 Specialist Perspectives
 
 Each perspective is an orthogonal reviewer lens that focuses on one specific class of issues:
 
-| #   | Perspective                      | Focus                                                |
-| --- | -------------------------------- | ---------------------------------------------------- |
-| 1   | Completeness Tracker             | Unfulfilled user requests, abandoned tasks           |
-| 2   | Security Auditor                 | Credentials exposure, injection vectors, permissions |
-| 3   | Verification Engineer            | Changes never tested or validated                    |
-| 4   | Side-Effect Hunter               | Orphaned processes, dirty git state, leaked files    |
-| 5   | Architecture Critic              | Over/under-engineering, wrong abstractions           |
-| 6   | Error Flow Analyst               | Silent failures, missing error handling, race conds  |
-| 7   | User Intent Decoder              | Misunderstandings, missed implicit expectations      |
-| 8   | Regression Hunter                | Fixes that broke other things, changed contracts     |
-| 9   | Process Auditor                  | Wrong branch, skipped commits, bypassed hooks        |
-| 10  | Documentation Staleness Detector | Stale docs, outdated examples, wrong references      |
-| 11  | Concurrency & Timing Analyst     | Race conditions, lock issues, timing bugs            |
-| 12  | Dependency Chain Auditor         | Missing imports, circular deps, unpinned versions    |
-| 13  | Performance & Resource Analyst   | Memory leaks, O(n²), unbounded growth                |
-| 14  | Cross-System Impact Analyst      | Ripple effects to other services/configs             |
-| 15  | Idempotency Checker              | Operations unsafe to run twice                       |
-| 16  | Configuration Drift Detector     | SSoT violations, duplicated settings                 |
-| 17  | Rollback Feasibility Analyst     | Irreversible operations without backup               |
-| 18  | Platform Portability Reviewer    | macOS-only assumptions, hardcoded paths              |
-| 19  | Technical Debt Accountant        | Quick fixes, copy-paste, untracked TODOs             |
-| 20  | _(Reserved for future)_          |                                                      |
+| #   | Perspective                      | Focus                                                  |
+| --- | -------------------------------- | ------------------------------------------------------ |
+| 1   | Completeness Tracker             | Unfulfilled user requests, abandoned tasks             |
+| 2   | Security Auditor                 | Credentials exposure, injection vectors, permissions   |
+| 3   | Verification Engineer            | Changes never tested or validated                      |
+| 4   | Side-Effect Hunter               | Orphaned processes, dirty git state, leaked files      |
+| 5   | Architecture Critic              | Over/under-engineering, wrong abstractions             |
+| 6   | Error Flow Analyst               | Silent failures, missing error handling, race conds    |
+| 7   | User Intent Decoder              | Misunderstandings, missed implicit expectations        |
+| 8   | Regression Hunter                | Fixes that broke other things, changed contracts       |
+| 9   | Process Auditor                  | Wrong branch, skipped commits, bypassed hooks          |
+| 10  | Documentation Staleness Detector | Stale docs, outdated examples, wrong references        |
+| 11  | Concurrency & Timing Analyst     | Race conditions, lock issues, timing bugs              |
+| 12  | Dependency Chain Auditor         | Missing imports, circular deps, unpinned versions      |
+| 13  | Performance & Resource Analyst   | Memory leaks, O(n²), unbounded growth                  |
+| 14  | Cross-System Impact Analyst      | Ripple effects to other services/configs               |
+| 15  | Idempotency Checker              | Operations unsafe to run twice                         |
+| 16  | Configuration Drift Detector     | SSoT violations, duplicated settings                   |
+| 17  | Rollback Feasibility Analyst     | Irreversible operations without backup                 |
+| 18  | Platform Portability Reviewer    | macOS-only assumptions, hardcoded paths                |
+| 19  | Technical Debt Accountant        | Quick fixes, copy-paste, untracked TODOs               |
+| 20  | Data Integrity Analyst           | Data loss, truncation, encoding corruption             |
+| 21  | API Contract Reviewer            | Breaking changes, missing versioning, schema drift     |
+| 22  | Observability Gap Detector       | Missing logging, metrics, alerting, tracing            |
+| 23  | Failure Mode Analyst             | Graceful degradation, circuit breakers, resilience     |
+| 24  | Input Validation Sentinel        | Missing boundary validation, injection vectors         |
+| 25  | Resource Cleanup Inspector       | Unclosed handles, leaked listeners, orphaned temps     |
+| 26  | Naming & Semantics Reviewer      | Misleading names, inconsistent terminology             |
+| 27  | Permission & Scope Auditor       | Over-permissioned tokens, broad file access            |
+| 28  | Caching Correctness Analyst      | Stale caches, invalidation bugs, key collisions        |
+| 29  | Test Coverage Gap Finder         | Untested code paths, missing edge case tests           |
+| 30  | Logging Hygiene Auditor          | PII in logs, missing context, log level misuse         |
+| 31  | Encoding & Serialization Analyst | UTF-8 issues, JSON edge cases, date serialization      |
+| 32  | Rate Limit & Quota Tracker       | API rate limits, quota exhaustion, backpressure        |
+| 33  | Authentication Flow Auditor      | Token refresh, session expiry, auth state lifecycle    |
+| 34  | Network Resilience Analyst       | Timeout handling, DNS failures, connection pooling     |
+| 35  | Git History Hygiene Auditor      | Large files, secrets in history, messy commits         |
+| 36  | Boundary Condition Analyst       | Off-by-one, empty arrays, zero, NaN, max values        |
+| 37  | Async Lifecycle Manager          | Unresolved promises, fire-and-forget, event leaks      |
+| 38  | Environment Assumptions Detector | Missing tool checks, hardcoded paths, locale issues    |
+| 39  | Cost & Billing Analyst           | Expensive API calls, wasted compute, unbounded spend   |
+| 40  | Semantic Versioning Compliance   | Breaking changes without major bump, changelog gaps    |
+| 41  | State Machine Validator          | Invalid transitions, missing states, state corruption  |
+| 42  | Deprecation Tracker              | Deprecated APIs, unmaintained packages, old patterns   |
+| 43  | Filesystem Safety Reviewer       | rm -rf risks, disk space, symlink attacks              |
+| 44  | Migration Safety Reviewer        | Schema changes, format changes, backward compat        |
+| 45  | Internationalization Blind Spot  | Locale assumptions, hardcoded strings, CJK handling    |
+| 46  | License & Compliance Auditor     | GPL mixing, ToS violations, missing LICENSE files      |
+| 47  | Signal & Shutdown Handler        | SIGTERM handling, graceful shutdown, cleanup on exit   |
+| 48  | Secrets Rotation Analyst         | Expiry, rotation schedule, revocation, scope audit     |
+| 49  | UX Consistency Reviewer          | CLI flag naming, error formats, progress indicators    |
+| 50  | Dependency Freshness Auditor     | Outdated packages, abandoned libs, security advisories |
 
-Default: 10 perspectives per run (rotated). Use `--shots 20` for all 20.
+Default: all 50 perspectives. Use `--shots N` to limit (e.g., `--shots 5` for quick scan).
 
 ## Why Diverse Perspectives?
 
@@ -103,7 +133,7 @@ ls -lt ~/.claude/projects/-Users-terryli-eon-cc-skills/*.jsonl | head -5
 | Model              | Hardcoded in script                                              | `MiniMax-M2.5-highspeed`  |
 | Max output tokens  | Hardcoded in script                                              | 16384                     |
 | Max structured log | Hardcoded in script                                              | 890K chars (~222K tokens) |
-| Parallel shots     | `--shots N` flag                                                 | 10 (max: 20)              |
+| Parallel shots     | `--shots N` flag                                                 | 50 (max: 50)              |
 | Session chaining   | `--no-chain` flag                                                | Enabled                   |
 
 ## Context Budget
