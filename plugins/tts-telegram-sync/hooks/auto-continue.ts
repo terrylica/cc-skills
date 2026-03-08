@@ -129,6 +129,7 @@ interface AutoContinueState {
   sweep_done: boolean;
   sweep_notified: boolean;   // Prevents duplicate "Sweep complete" Telegram spam
   started_at: string;
+  last_blocked_at?: number;  // Epoch ms when hook last blocked — distinguishes auto-continue from manual intervention
 }
 
 interface HookInput {
@@ -167,13 +168,14 @@ function loadState(sessionId: string): AutoContinueState {
         sweep_done: parsed.sweep_done ?? false,
         sweep_notified: parsed.sweep_notified ?? false,
         started_at: parsed.started_at ?? new Date().toISOString(),
+        last_blocked_at: parsed.last_blocked_at,
       };
     }
   } catch {
     // Corrupted state file — reset
     hookLog(`State file corrupted for ${sessionId}, resetting`);
   }
-  return { iteration: 0, total_iterations: 0, sweep_done: false, sweep_notified: false, started_at: new Date().toISOString() };
+  return { iteration: 0, total_iterations: 0, sweep_done: false, sweep_notified: false, started_at: new Date().toISOString(), last_blocked_at: undefined };
 }
 
 function saveState(sessionId: string, state: AutoContinueState): void {
@@ -341,12 +343,19 @@ function parseDecision(text: string): EvalResult {
     return null;
   };
 
-  for (const line of text.trim().split("\n")) {
-    const reason = line.includes("|") ? line.split("|").slice(1).join("|").trim() : "";
+  const lines = text.trim().split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const firstLineReason = line.includes("|") ? line.split("|").slice(1).join("|").trim() : "";
+    // Remaining lines after the decision line are part of the reason
+    const remainingLines = lines.slice(i + 1).join("\n").trim();
 
-    // Direct match: line starts with decision keyword (e.g., "CONTINUE|do X")
+    // Direct match: line starts with decision keyword (e.g., "CONTINUE|do X\nmore details...")
     const direct = matchDecision(line);
-    if (direct) return { decision: direct, reason };
+    if (direct) {
+      const fullReason = [firstLineReason, remainingLines].filter(Boolean).join("\n");
+      return { decision: direct, reason: fullReason };
+    }
 
     // Indirect match: MiniMax echoed format literally (e.g., "DECISION|DONE — ...")
     // Check each pipe-delimited field for a decision keyword
@@ -354,10 +363,11 @@ function parseDecision(text: string): EvalResult {
       for (const field of line.split("|")) {
         const found = matchDecision(field);
         if (found) {
-          // Reason is everything after this field
           const idx = line.indexOf(field) + field.length;
           const rest = line.slice(idx).replace(/^\|/, "").trim();
-          return { decision: found, reason: rest || reason };
+          const lineReason = rest || firstLineReason;
+          const fullReason = [lineReason, remainingLines].filter(Boolean).join("\n");
+          return { decision: found, reason: fullReason };
         }
       }
     }
@@ -670,17 +680,16 @@ async function main(): Promise<void> {
   const state = loadState(sessionId);
   const cwd = input.cwd || "";
 
-  if (input.stop_hook_active) {
-    // Circuit breaker: use total_iterations (lifetime, never resets) to catch
-    // loops that survive across streak resets. The streak counter (iteration)
-    // resets on manual intervention, but total_iterations never does.
-    if (state.total_iterations >= 2) {
-      hookLog(`Breaking loop: stop_hook_active with total_iterations=${state.total_iterations} >= 2`);
-      allowStop();
-      await sendExitNotification("Loop breaker: consecutive stop_hook_active", sessionId, cwd, state);
-      return;
-    }
-    hookLog(`stop_hook_active=true for ${sessionId} (iteration=${state.iteration}, total=${state.total_iterations}), proceeding with evaluation`);
+  // Detect whether this is an auto-continue continuation or manual intervention.
+  // stop_hook_active is unreliable for this: it's always false across stop events
+  // because each stop is a new event. Instead, check last_blocked_at: if we
+  // blocked recently (< 5 min), this is auto-continue continuation.
+  const AUTO_CONTINUE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+  const isAutoContinuation = state.last_blocked_at != null
+    && (Date.now() - state.last_blocked_at) < AUTO_CONTINUE_WINDOW_MS;
+
+  if (isAutoContinuation) {
+    hookLog(`Auto-continue continuation (iteration=${state.iteration}, total=${state.total_iterations}, last_blocked=${Math.round((Date.now() - state.last_blocked_at!) / 1000)}s ago)`);
   } else {
     // Manual intervention — reset auto-iteration streak.
     // Only uninterrupted auto-iterations count toward limits.
@@ -692,6 +701,7 @@ async function main(): Promise<void> {
     state.sweep_done = false;
     state.sweep_notified = false;
     state.started_at = new Date().toISOString();
+    state.last_blocked_at = undefined;
     saveState(sessionId, state);
   }
 
@@ -785,6 +795,7 @@ async function main(): Promise<void> {
         hookLog(`0-turn session with un-swept sibling plan: ${basename(planPath)} \u2014 injecting sweep`);
         state.sweep_done = true;
         state.total_iterations++;
+        state.last_blocked_at = Date.now();
         saveState(sessionId, state);
         blockStop(SWEEP_PROMPT);
         await sendTelegramNotification({
@@ -839,12 +850,14 @@ async function main(): Promise<void> {
     case "REDIRECT":
       state.iteration++;
       state.total_iterations++;
+      state.last_blocked_at = Date.now();
       saveState(sessionId, state);
       // MiniMax crafted the continuation instruction — use it directly
       blockStop(evalResult.reason || "Continue as planned");
       break;
     case "SWEEP":
       state.sweep_done = true;
+      state.last_blocked_at = Date.now();
       saveState(sessionId, state);
       blockStop(SWEEP_PROMPT);
       break;
