@@ -652,10 +652,12 @@ async function main(): Promise<void> {
     // Manual intervention — reset auto-iteration streak.
     // Only uninterrupted auto-iterations count toward limits.
     // total_iterations is preserved for notification accuracy.
-    if (state.iteration > 0) {
-      hookLog(`Manual intervention detected (iteration=${state.iteration}\u21920), resetting streak (total=${state.total_iterations})`);
+    if (state.iteration > 0 || state.sweep_done) {
+      hookLog(`Manual intervention detected (iteration=${state.iteration}\u21920, sweep_done=${state.sweep_done}\u2192false), resetting streak (total=${state.total_iterations})`);
     }
     state.iteration = 0;
+    state.sweep_done = false;
+    state.sweep_notified = false;
     state.started_at = new Date().toISOString();
     saveState(sessionId, state);
   }
@@ -677,6 +679,7 @@ async function main(): Promise<void> {
   }
 
   if (state.sweep_done) {
+    hookLog(`sweep_done=true for ${sessionId.slice(0, 8)}, allowing stop`);
     allowStop();
     if (!state.sweep_notified) {
       state.sweep_notified = true;
