@@ -89,20 +89,17 @@ Same prompt N times is near-deterministic — different perspectives are orthogo
 
 ## Usage
 
+**IMPORTANT: Do NOT pass `--shots` unless the user explicitly requests fewer perspectives. The script defaults to all 50 perspectives. Never reduce this on your own — the user wants maximum coverage.**
+
 ### Run Analysis
 
 ```bash
-# Default: all 50 diverse perspectives → consensus distillation
+# Standard invocation — runs all 50 perspectives (DO NOT add --shots)
 bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-blind-spots.ts \
-  7873f9b4-b8f9-4746-b617-917b2e9f14a2
+  <session-uuid>
 
-# Quick scan with 5 perspectives (faster, less coverage)
-bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-blind-spots.ts \
-  7873f9b4-b8f9-4746-b617-917b2e9f14a2 --shots 5
-
-# Single perspective (no consensus, faster but less reliable)
-bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-blind-spots.ts \
-  7873f9b4-b8f9-4746-b617-917b2e9f14a2 --shots 1
+# ONLY if user explicitly asks for fewer:
+# bun run ... <session-uuid> --shots 5
 
 # Dry run — show extracted payload without calling MiniMax
 bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-blind-spots.ts \
