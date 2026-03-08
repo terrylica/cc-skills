@@ -1,3 +1,10 @@
+# [11.87.0](https://github.com/terrylica/cc-skills/compare/v11.86.5...v11.87.0) (2026-03-08)
+
+
+### Features
+
+* **validation:** Detect shadow hooks in settings.json that duplicate cc-skills hooks ([b00723a](https://github.com/terrylica/cc-skills/commit/b00723a9a55abafbca42a87a5862ab9a49309660))
+
 ## [11.86.5](https://github.com/terrylica/cc-skills/compare/v11.86.4...v11.86.5) (2026-03-08)
 
 
