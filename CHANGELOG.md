@@ -1,3 +1,65 @@
+# [11.89.0](https://github.com/terrylica/cc-skills/compare/v11.88.0...v11.89.0) (2026-03-08)
+
+
+### Bug Fixes
+
+* **dotfiles-tools:** silence chezmoi guard for out-of-project drift ([b07e0fb](https://github.com/terrylica/cc-skills/commit/b07e0fbe76a927bb28db555345f6565ce3fee80c))
+* **tts-telegram-sync:** Fix parseDecision multi-line truncation and iteration/runtime limits ([ef4bc04](https://github.com/terrylica/cc-skills/commit/ef4bc04c9f141bf812d54e6ac2c11747039c8597))
+
+
+### Features
+
+* **devops-tools:** Add mandatory Agent execution model to session-blind-spots ([7811f13](https://github.com/terrylica/cc-skills/commit/7811f133baa14f2baa5865e1d05d6a71ed7a3545))
+* **dotfiles-tools:** add 4 workflows — forget, templates, safe update, doctor ([9c5eb9a](https://github.com/terrylica/cc-skills/commit/9c5eb9a003fe88dbc16a8a93e62e2b5cc7648a47))
+* **gemini-deep-research:** migrate browser automation plugin from openclaw-zero-token ([6af5a1d](https://github.com/terrylica/cc-skills/commit/6af5a1d1a9dcde7d02da1a17a499dc8b7858b3e7))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-blind-spots](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-blind-spots/SKILL.md) - updated (+23/-1)
+
+</details>
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 change)</summary>
+
+- [chezmoi-workflows](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-workflows/SKILL.md) - updated (+113/-8)
+
+</details>
+
+<details>
+<summary><strong>gemini-deep-research</strong> (1 change)</summary>
+
+- [gemini-deep-research](https://github.com/terrylica/cc-skills/blob/main/plugins/gemini-deep-research/skills/research/SKILL.md) - new (+176)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+8/-7)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+28/-27)
+- [gemini-deep-research Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gemini-deep-research/CLAUDE.md) - new (+74)
+
 # [11.88.0](https://github.com/terrylica/cc-skills/compare/v11.87.1...v11.88.0) (2026-03-08)
 
 
