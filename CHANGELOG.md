@@ -1,3 +1,10 @@
+# [11.84.0](https://github.com/terrylica/cc-skills/compare/v11.83.1...v11.84.0) (2026-03-08)
+
+
+### Features
+
+* **tts-telegram-sync:** centralize TTS server queue and update MiniMax label ([fd1a23a](https://github.com/terrylica/cc-skills/commit/fd1a23a90b2c6cc5fc5d754467080f5a2a53dbce))
+
 ## [11.83.1](https://github.com/terrylica/cc-skills/compare/v11.83.0...v11.83.1) (2026-03-07)
 
 
