@@ -1,3 +1,10 @@
+# [11.88.0](https://github.com/terrylica/cc-skills/compare/v11.87.1...v11.88.0) (2026-03-08)
+
+
+### Features
+
+* **tts-telegram-sync:** Restructure SWEEP_PROMPT into 5-step pipeline ([4ecfcce](https://github.com/terrylica/cc-skills/commit/4ecfcce8f26712fd1498f09a21c487b38f7e1762))
+
 ## [11.87.1](https://github.com/terrylica/cc-skills/compare/v11.87.0...v11.87.1) (2026-03-08)
 
 
