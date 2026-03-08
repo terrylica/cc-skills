@@ -1,3 +1,70 @@
+## [11.84.1](https://github.com/terrylica/cc-skills/compare/v11.84.0...v11.84.1) (2026-03-08)
+
+
+### Bug Fixes
+
+* **tts-telegram-sync,gmail-commander:** update all log paths to centralized launchd-logs ([55741d6](https://github.com/terrylica/cc-skills/commit/55741d6ac4ff7893d1061f63862ef08aa1122a65))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gmail-commander</strong> (1 change)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/bot-process-control/SKILL.md) - updated (+9/-9)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (3 changes)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/SKILL.md) - updated (+10/-10)
+- [clean-component-removal](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/clean-component-removal/SKILL.md) - updated (+7/-6)
+- [diagnostic-issue-resolver](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/SKILL.md) - updated (+4/-3)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>tts-telegram-sync/bot-process-control</strong> (1 file)</summary>
+
+- [Operational Commands](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/bot-process-control/references/operational-commands.md) - updated (+6/-6)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/diagnostic-issue-resolver</strong> (1 file)</summary>
+
+- [Common Issues -- Expanded Diagnostic Procedures](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/references/common-issues.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/settings-and-tuning</strong> (1 file)</summary>
+
+- [Configuration Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/settings-and-tuning/references/config-reference.md) - updated (+1/-1)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Gmail Commander Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/CLAUDE.md) - updated (+10/-10)
+- [tts-telegram-sync Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/CLAUDE.md) - updated (+12/-11)
+
 # [11.84.0](https://github.com/terrylica/cc-skills/compare/v11.83.1...v11.84.0) (2026-03-08)
 
 
