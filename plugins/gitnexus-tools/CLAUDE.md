@@ -66,17 +66,23 @@ Add these to project CLAUDE.md files to guide when skills are invoked:
 gitnexus --version 2>/dev/null || mise use node@25.8.0
 ```
 
-All commands run from the repo root — gitnexus auto-detects the repo from cwd (there is no `--repo` flag).
+**Multi-repo workspaces**: If multiple repos are indexed, specify the target with `-r` or `--repo <name>`:
 
-| Command                                 | Purpose               |
-| --------------------------------------- | --------------------- |
-| `gitnexus list`                         | List indexed repos    |
-| `gitnexus query "<concept>" --limit 5`  | Find execution flows  |
-| `gitnexus context "<symbol>" --content` | 360° symbol view      |
-| `gitnexus impact "<symbol>" --depth 3`  | Blast radius          |
-| `gitnexus status`                       | Check index freshness |
-| `gitnexus analyze`                      | Re-index              |
-| `gitnexus cypher "<query>"`             | Raw Cypher query      |
+```bash
+gitnexus query "concept" --repo opendeviationbar-py
+```
+
+When only one repo is indexed, `--repo` is optional.
+
+| Command                                       | Purpose               |
+| --------------------------------------------- | --------------------- |
+| `gitnexus list`                               | List indexed repos    |
+| `gitnexus query "<concept>" [--repo <name>]`  | Find execution flows  |
+| `gitnexus context "<symbol>" [--repo <name>]` | 360° symbol view      |
+| `gitnexus impact "<symbol>" [--repo <name>]`  | Blast radius          |
+| `gitnexus status [--repo <name>]`             | Check index freshness |
+| `gitnexus analyze [--repo <name>]`            | Re-index              |
+| `gitnexus cypher "<query>" [--repo <name>]`   | Raw Cypher query      |
 
 Disambiguate symbols with `--uid` (from candidates list) or `--file` flags.
 

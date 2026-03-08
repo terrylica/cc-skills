@@ -28,16 +28,10 @@ The `gitnexus` binary is installed via npm/mise. The mise shim may fail if node 
 
 ```bash
 # Test if gitnexus is actually callable (not just a broken shim)
-gitnexus --version 2>/dev/null
+gitnexus --version 2>/dev/null || mise use node@25.8.0
 ```
 
-If that fails with "No version is set for shim" or similar, activate node first:
-
-```bash
-mise use node@25.8.0
-```
-
-Then verify again. All commands below run from the repo root (gitnexus auto-detects the repo from cwd — there is no `--repo` flag).
+All commands below run from the repo root. If multiple repos are indexed in the workspace, add `--repo <repo-name>` to specify the target. Otherwise `--repo` is optional.
 
 ### Step 1: Auto-Reindex If Stale
 
