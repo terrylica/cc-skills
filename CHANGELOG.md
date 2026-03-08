@@ -1,3 +1,39 @@
+## [11.90.1](https://github.com/terrylica/cc-skills/compare/v11.90.0...v11.90.1) (2026-03-08)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** Correct --repo flag documentation (optional not absent) ([ab3bd19](https://github.com/terrylica/cc-skills/commit/ab3bd19d971bfa6b79a45a8d33169dbce3ccfb6d))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+2/-8)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+2/-8)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+2/-8)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+2/-8)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+17/-11)
+
 # [11.90.0](https://github.com/terrylica/cc-skills/compare/v11.89.0...v11.90.0) (2026-03-08)
 
 
