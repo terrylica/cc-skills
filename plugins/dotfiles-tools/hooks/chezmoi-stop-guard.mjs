@@ -257,14 +257,9 @@ async function main() {
       return abs.startsWith(cwdResolved + "/") || abs === cwdResolved;
     });
     if (!relevant) {
-      // Drift exists but is outside this project — warn, don't block
-      console.log(
-        JSON.stringify({
-          systemMessage:
-            `[CHEZMOI-GUARD] Chezmoi drift detected (${modifiedFiles.length} file(s)) but outside current project (${cwd}). ` +
-            "Run `chezmoi re-add && chezmoi git -- add -A && chezmoi git -- commit -m 'sync' && chezmoi git -- push` when convenient.",
-        }),
-      );
+      // Drift exists but is outside this project — silently allow stop.
+      // Don't nag about unrelated drift; the user can sync chezmoi on their own schedule.
+      console.log("{}");
       process.exit(0);
     }
   }
