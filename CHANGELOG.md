@@ -1,3 +1,10 @@
+## [11.87.1](https://github.com/terrylica/cc-skills/compare/v11.87.0...v11.87.1) (2026-03-08)
+
+
+### Bug Fixes
+
+* **tts-telegram-sync:** Add yield-to-user detection and instruction sanitization to auto-continue ([4486c74](https://github.com/terrylica/cc-skills/commit/4486c740b0ee95e51828c577a320c5acd2efe21d))
+
 # [11.87.0](https://github.com/terrylica/cc-skills/compare/v11.86.5...v11.87.0) (2026-03-08)
 
 
