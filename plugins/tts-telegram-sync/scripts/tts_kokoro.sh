@@ -1,39 +1,40 @@
 #!/bin/bash
-# Kokoro TTS — clipboard to speech with auto language detection
-# Uses local Kokoro via MLX-Audio, falls back to macOS say
+# Kokoro TTS — clipboard to speech via centralized Kokoro HTTP server.
+# All TTS sources (BTT shortcut, Telegram bot) share one server queue.
+#
+# Flow: clipboard → preprocess → language detect → POST /v1/audio/speak
+# Fallback: macOS say (if server is down)
 #
 # Usage:
-#   bin/tts_kokoro.sh                   # local Kokoro, fallback to say
-#   TTS_MODE=local bin/tts_kokoro.sh    # force local only (no fallback)
-#   TTS_MODE=fallback bin/tts_kokoro.sh # force macOS say
+#   tts_kokoro.sh                       # speak clipboard via server
+#   TTS_MODE=fallback tts_kokoro.sh     # force macOS say
 #
 # Debug: tail -f /tmp/kokoro-tts.log
 
 set -euo pipefail
 
 # Ensure standard tools are in PATH (BTT runs with minimal environment)
-export PATH="/usr/bin:/usr/sbin:/bin:/sbin:/usr/local/bin:$PATH"
+export PATH="/usr/bin:/usr/sbin:/bin:/sbin:/usr/local/bin:/opt/homebrew/bin:$PATH"
 
-# Source shared library
+# Source shared library (for tts_log, detect_language, play_tts_signal)
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
 # shellcheck source=lib/tts-common.sh
 source "${SCRIPT_DIR}/lib/tts-common.sh"
 
 # --- Configuration ---
-KOKORO_VENV="${KOKORO_VENV:-${HOME}/.local/share/kokoro/.venv}"
-KOKORO_SCRIPT="${KOKORO_SCRIPT:-${HOME}/.local/share/kokoro/tts_generate.py}"
-KOKORO_PYTHON="${KOKORO_VENV}/bin/python"
-FALLBACK_SCRIPT="${HOME}/.local/bin/tts_read_clipboard_wrapper.sh"
+KOKORO_SERVER="${KOKORO_SERVER_URL:-http://127.0.0.1:8779}"
+KOKORO_PYTHON="${HOME}/.local/share/kokoro/.venv/bin/python"
 SPEED="${TTS_SPEED:-1.25}"
-TMP_WAV="/tmp/kokoro-tts-$$.wav"
 LOG="/tmp/kokoro-tts.log"
 
-cleanup() { rm -f "$TMP_WAV" "$TTS_LOCK"; }
-trap cleanup EXIT
-
-# --- Kill any existing TTS playback ---
-kill_existing_tts
-tts_log "Killed existing TTS playback, cleared lock, cleaned stale WAVs"
+# --- Forced fallback mode ---
+if [[ "${TTS_MODE:-auto}" == "fallback" ]]; then
+    tts_log "Mode: forced fallback to macOS say"
+    TEXT="$(pbpaste 2>/dev/null)"
+    [[ -z "$TEXT" ]] && exit 0
+    say "$TEXT"
+    exit 0
+fi
 
 # --- Read clipboard ---
 RAW_TEXT="$(pbpaste 2>/dev/null)"
@@ -59,78 +60,50 @@ if [[ -z "$TEXT" ]]; then
     exit 1
 fi
 
-# --- Signal that TTS is processing ---
+# --- Signal sound (fire-and-forget) ---
 play_tts_signal
 
 # --- Detect language ---
 detect_language "$TEXT"
 tts_log "Language: $LANG_CODE (voice: $VOICE)"
 
-# --- Fallback function ---
-fallback_to_say() {
-    tts_log "Falling back to macOS say: $1"
-    if [[ -x "$FALLBACK_SCRIPT" ]]; then
-        exec "$FALLBACK_SCRIPT"
-    else
-        tts_log "Fallback script not found: $FALLBACK_SCRIPT"
-        exit 1
-    fi
-}
+# --- Speak via centralized Kokoro server ---
+# Uses python3 (always available on macOS) for safe JSON encoding + HTTP POST
+tts_log "Sending to server: ${#TEXT} chars (voice=$VOICE, lang=$LANG_CODE, speed=$SPEED)"
 
-# --- Choose mode ---
-MODE="${TTS_MODE:-auto}"
-tts_log "Mode requested: $MODE"
+if printf '%s' "$TEXT" | python3 -c "
+import json, sys, urllib.request, urllib.error
+text = sys.stdin.read().strip()
+if not text:
+    sys.exit(0)
+server = '${KOKORO_SERVER}'
+voice = '${VOICE}'
+lang = '${LANG_CODE}'
+speed = ${SPEED}
 
-if [[ "$MODE" == "fallback" ]]; then
-    fallback_to_say "forced"
-fi
+# Interrupt current playback first
+try:
+    req = urllib.request.Request(f'{server}/v1/audio/stop', method='POST',
+                                 headers={'Content-Length': '0'})
+    urllib.request.urlopen(req, timeout=2)
+except Exception:
+    pass
 
-# --- Check local Kokoro availability ---
-if [[ ! -x "$KOKORO_PYTHON" ]] || [[ ! -f "$KOKORO_SCRIPT" ]]; then
-    if [[ "$MODE" == "local" ]]; then
-        tts_log "Local Kokoro not found and mode=local, failing"
-        exit 1
-    fi
-    fallback_to_say "local Kokoro not installed"
-fi
-
-tts_log "Using local Kokoro | Voice: $VOICE | Speed: $SPEED"
-
-# --- Acquire TTS lock with heartbeat ---
-acquire_tts_lock
-
-# --- Generate and play via local Kokoro (MLX-Audio) ---
-# Chunked streaming: Kokoro generates each chunk as a WAV and prints the path.
-# We play each WAV as soon as it's ready, so audio starts faster for long text.
-# The lock file is held for the entire duration so no other TTS slips in between.
-CHUNK_FILES=()
-trap cleanup_chunks EXIT
-
-PLAYED=0
-while IFS= read -r line; do
-    if [[ "$line" == DONE* ]]; then
-        gen_ms="${line#DONE }"
-        tts_log "All chunks done (${gen_ms}ms total generation)"
-        break
-    fi
-    # Each line is a WAV file path ready for playback
-    if [[ -s "$line" ]] && [[ "$(wc -c < "$line")" -gt 100 ]]; then
-        CHUNK_FILES+=("$line")
-        touch "$TTS_LOCK"
-        tts_log "Playing chunk: $line ($(wc -c < "$line") bytes)"
-        afplay "$line"
-        PLAYED=$((PLAYED + 1))
-    fi
-done < <("$KOKORO_PYTHON" "$KOKORO_SCRIPT" \
-    --text "$TEXT" \
-    --voice "$VOICE" \
-    --lang "$LANG_CODE" \
-    --speed "$SPEED" \
-    --output "$TMP_WAV" \
-    --chunk 2>>"$LOG")
-
-if [[ "$PLAYED" -eq 0 ]]; then
-    fallback_to_say "local Kokoro produced no audio"
+# Queue new text for synthesis + playback
+data = json.dumps({'input': text, 'voice': voice, 'language': lang, 'speed': speed}).encode()
+req = urllib.request.Request(f'{server}/v1/audio/speak', data=data,
+                              headers={'Content-Type': 'application/json'})
+try:
+    resp = urllib.request.urlopen(req, timeout=5)
+    result = json.loads(resp.read())
+    print(json.dumps(result))
+except urllib.error.URLError as e:
+    print(f'Server unavailable: {e}', file=sys.stderr)
+    sys.exit(1)
+" 2>>"$LOG"; then
+    tts_log "Queued on server successfully"
 else
-    tts_log "Done — played $PLAYED chunk(s)"
+    # Server unavailable — fallback to macOS say
+    tts_log "Server unavailable — falling back to macOS say"
+    say "$TEXT" &
 fi
