@@ -1224,6 +1224,89 @@ function formatDependencyGraph(graph, details) {
   return lines.join("\n");
 }
 
+/**
+ * Validate ~/.claude/settings.json for shadow hooks.
+ *
+ * A "shadow hook" is a non-cc-skills hook whose script basename matches
+ * a cc-skills hook. This causes double-firing (duplicate MiniMax calls,
+ * duplicate log entries, duplicate block/allow decisions).
+ *
+ * Example: ~/.claude/automation/.../auto-continue-wrapper.sh shadows
+ *          ~/.claude/plugins/marketplaces/cc-skills/.../auto-continue-wrapper.sh
+ *
+ * Returns { errors: [...], warnings: [...] }
+ */
+function validateSettingsHookShadows() {
+  const errors = [];
+  const warnings = [];
+  const settingsPath = join(process.env.HOME, ".claude", "settings.json");
+
+  if (!existsSync(settingsPath)) {
+    return { errors, warnings };
+  }
+
+  let settings;
+  try {
+    settings = JSON.parse(readFileSync(settingsPath, "utf8"));
+  } catch {
+    warnings.push("Could not parse ~/.claude/settings.json");
+    return { errors, warnings };
+  }
+
+  const hookTypes = ["PreToolUse", "PostToolUse", "Stop"];
+
+  for (const hookType of hookTypes) {
+    const entries = settings.hooks?.[hookType] ?? [];
+
+    // Extract command strings from each hook entry (handles nested .hooks[] structure)
+    const getCommands = (entry) => {
+      const cmds = [];
+      if (entry.command) cmds.push(entry.command);
+      if (Array.isArray(entry.hooks)) {
+        for (const h of entry.hooks) {
+          if (h.command) cmds.push(h.command);
+        }
+      }
+      return cmds;
+    };
+
+    // Extract script basename from a command string
+    const scriptBasename = (cmd) => {
+      // Take last path component, stripping any leading runner (bash, bun, env, etc.)
+      const parts = cmd.split(/\s+/);
+      // Find the part that looks like a file path
+      const pathPart = parts.find(p => p.includes("/")) || parts[parts.length - 1];
+      return pathPart.split("/").pop();
+    };
+
+    // Collect cc-skills basenames and non-cc-skills entries
+    const ccBasenames = new Map(); // basename → full command
+    const nonCcEntries = []; // { basename, command }
+
+    for (const entry of entries) {
+      for (const cmd of getCommands(entry)) {
+        const bn = scriptBasename(cmd);
+        if (cmd.includes("cc-skills")) {
+          ccBasenames.set(bn, cmd);
+        } else {
+          nonCcEntries.push({ basename: bn, command: cmd });
+        }
+      }
+    }
+
+    // Check for shadows
+    for (const { basename: bn, command } of nonCcEntries) {
+      if (ccBasenames.has(bn)) {
+        errors.push(
+          `Shadow hook in ${hookType}: '${command}' duplicates cc-skills hook '${ccBasenames.get(bn)}' (same basename '${bn}')`
+        );
+      }
+    }
+  }
+
+  return { errors, warnings };
+}
+
 // Main validation - wrapped in async IIFE for tinyglobby async functions
 (async () => {
 const registered = getRegisteredPlugins();
@@ -1305,6 +1388,9 @@ const { errors: skillsFrontmatterErrors, warnings: skillsFrontmatterWarnings } =
 const declaredDeps = getDeclaredDependencies();
 const { errors: declErrors, warnings: declWarnings } = validateDeclaredDependencies(declaredDeps, depGraph);
 
+// Settings.json shadow hook validation (prevents double-firing from duplicate hooks)
+const { errors: shadowErrors, warnings: shadowWarnings } = validateSettingsHookShadows();
+
 // Report circular dependencies
 if (cycles.length > 0) {
   console.warn(`\n🔄 Circular dependencies detected (${cycles.length}):`);
@@ -1385,6 +1471,21 @@ if (hookStructWarnings.length > 0) {
   hasWarnings = true;
 }
 
+// Report shadow hook issues (double-firing from non-cc-skills duplicates in settings.json)
+if (shadowErrors.length > 0) {
+  console.error(`\n❌ SHADOW HOOK ERRORS (${shadowErrors.length}):`);
+  console.error(`   Non-cc-skills hooks shadowing marketplace hooks cause double-firing.`);
+  console.error(`   Remove the non-cc-skills duplicate from ~/.claude/settings.json.`);
+  shadowErrors.forEach((e) => console.error(`   - ${e}`));
+  hasErrors = true;
+}
+
+if (shadowWarnings.length > 0) {
+  console.warn(`\n⚠️  Shadow hook warnings (${shadowWarnings.length}):`);
+  shadowWarnings.forEach((w) => console.warn(`   - ${w}`));
+  hasWarnings = true;
+}
+
 // Show declared dependencies summary
 if (declaredDeps.size > 0) {
   console.log(`\n📦 Declared Dependencies (marketplace.json 'requires'):`);
@@ -1407,6 +1508,7 @@ const allErrors = [
   ...hookErrors,
   ...hookStructErrors,
   ...skillsFrontmatterErrors,
+  ...shadowErrors,
 ];
 const allWarnings = [
   ...(orphaned.length > 0 ? [`${orphaned.length} orphaned entries`] : []),
@@ -1416,6 +1518,7 @@ const allWarnings = [
   ...hookWarnings,
   ...hookStructWarnings,
   ...skillsFrontmatterWarnings,
+  ...shadowWarnings,
   ...(cycles.length > 0 ? [`${cycles.length} circular dependencies`] : []),
 ];
 
