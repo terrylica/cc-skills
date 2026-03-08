@@ -102,14 +102,14 @@ grep -i 'error\|exception\|fatal' /private/tmp/telegram-bot.log | tail -20
 ### Structured Logs (NDJSON)
 
 ```bash
-# List recent log files
-ls -lt ~/.local/share/tts-telegram-sync/logs/bot-console/ | head -10
+# Launchd stdout (centralized)
+tail -100 ~/.local/state/launchd-logs/telegram-bot/stdout.log
 
-# Read most recent log file
-cat "$(ls -t ~/.local/share/tts-telegram-sync/logs/bot-console/*.ndjson 2>/dev/null | head -1)"
+# Launchd stderr
+tail -50 ~/.local/state/launchd-logs/telegram-bot/stderr.log
 
-# Parse with jq for errors
-cat "$(ls -t ~/.local/share/tts-telegram-sync/logs/bot-console/*.ndjson 2>/dev/null | head -1)" | jq 'select(.level == "error")'
+# NDJSON audit logs (app-managed, self-rotating 14d)
+cat "$(ls -t ~/.claude/automation/claude-telegram-sync/logs/audit/*.ndjson 2>/dev/null | head -1)" | jq 'select(.level == "error")'
 ```
 
 ## Emergency: Kill All Instances
