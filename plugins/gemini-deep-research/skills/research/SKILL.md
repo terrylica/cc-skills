@@ -36,24 +36,24 @@ Then log in manually with a Gemini Advanced account.
 
 ```bash
 # Health check — verify Chrome CDP + Gemini login
-npx tsx {{skill_dir}}/scripts/research.ts --health
+bun run {{skill_dir}}/scripts/research.ts --health
 
 # Basic research (runs preflight automatically)
-npx tsx {{skill_dir}}/scripts/research.ts "your research query"
+bun run {{skill_dir}}/scripts/research.ts "your research query"
 
 # Save to specific file
-npx tsx {{skill_dir}}/scripts/research.ts \
+bun run {{skill_dir}}/scripts/research.ts \
   --output /tmp/report.md \
   --timeout 45 \
   "comprehensive analysis of quantum computing error correction 2025-2026"
 
 # Auto-save to directory (creates {date}-{slug}.md)
-npx tsx {{skill_dir}}/scripts/research.ts \
+bun run {{skill_dir}}/scripts/research.ts \
   --output-dir ~/.claude/automation/gemini-deep-research/output \
   "your query"
 
 # Without auto-confirming plan (lets you review first)
-npx tsx {{skill_dir}}/scripts/research.ts --no-confirm "query"
+bun run {{skill_dir}}/scripts/research.ts --no-confirm "query"
 ```
 
 ### Programmatic (import)
@@ -115,20 +115,20 @@ When selectors break (Google updates Gemini UI), use the probe scripts:
 
 ```bash
 # Check Chrome connectivity
-npx tsx {{skill_dir}}/scripts/probes/dom-inspector.ts status
+bun run {{skill_dir}}/scripts/probes/dom-inspector.ts status
 
 # Test all selectors against live DOM
-npx tsx {{skill_dir}}/scripts/probes/dom-inspector.ts selectors
+bun run {{skill_dir}}/scripts/probes/dom-inspector.ts selectors
 
 # Full DOM inspection
-npx tsx {{skill_dir}}/scripts/probes/dom-inspector.ts probe
+bun run {{skill_dir}}/scripts/probes/dom-inspector.ts probe
 
 # Monitor active research execution
-npx tsx {{skill_dir}}/scripts/probes/research-monitor.ts confirm-and-monitor
+bun run {{skill_dir}}/scripts/probes/research-monitor.ts confirm-and-monitor
 
 # Check research completion + extract share link
-npx tsx {{skill_dir}}/scripts/probes/share-link.ts status
-npx tsx {{skill_dir}}/scripts/probes/share-link.ts extract
+bun run {{skill_dir}}/scripts/probes/share-link.ts status
+bun run {{skill_dir}}/scripts/probes/share-link.ts extract
 ```
 
 ## Selector Registry
