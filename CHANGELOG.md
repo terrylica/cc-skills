@@ -1,3 +1,51 @@
+# [11.90.0](https://github.com/terrylica/cc-skills/compare/v11.89.0...v11.90.0) (2026-03-08)
+
+
+### Bug Fixes
+
+* **gitnexus-tools:** Add pre-flight check and remove phantom --repo flag ([b25fc7f](https://github.com/terrylica/cc-skills/commit/b25fc7fb0f3ca3546633f8977d8be571d8c0802d))
+
+
+### Features
+
+* **pueue:** add companion CLI tools section (noti, ntfy, mprocs, task-spooler) ([4b2da6d](https://github.com/terrylica/cc-skills/commit/4b2da6d44ff54509ebd16d4bbdd8d47743693dbc))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+96/-1)
+
+</details>
+
+<details>
+<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
+
+- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+17/-11)
+- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+20/-15)
+- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+20/-15)
+- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+15/-9)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+13/-12)
+
 # [11.89.0](https://github.com/terrylica/cc-skills/compare/v11.88.0...v11.89.0) (2026-03-08)
 
 
