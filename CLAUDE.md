@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **23 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **25 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -9,8 +9,8 @@ Claude Code skills marketplace: **23 plugins** with skills for ADR-driven develo
 ```
 CLAUDE.md (this file)                  ◄── Hub: Navigation + Essentials
     │
-    ├── plugins/CLAUDE.md              ◄── Spoke: Plugin development (all 23 plugins listed)
-    │       ├── {plugin}/CLAUDE.md     ◄── Deep: Each of the 23 plugins has its own CLAUDE.md
+    ├── plugins/CLAUDE.md              ◄── Spoke: Plugin development (all 24 plugins listed)
+    │       ├── {plugin}/CLAUDE.md     ◄── Deep: Each of the 24 plugins has its own CLAUDE.md
     │       └── (see Navigation table below for key plugin docs)
     │
     └── docs/CLAUDE.md                 ◄── Spoke: Documentation standards
@@ -39,9 +39,9 @@ CLAUDE.md (this file)                  ◄── Hub: Navigation + Essentials
 | ADRs              | [docs/adr/](./docs/adr/)                                                                                                     |
 | Resume Context    | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
 
-### Plugin CLAUDE.md Files (23/23)
+### Plugin CLAUDE.md Files (25/25)
 
-All 23 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
+All 25 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
 Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hooks/CLAUDE.md) | [gh-tools](./plugins/gh-tools/CLAUDE.md) | [devops-tools](./plugins/devops-tools/CLAUDE.md) | [gmail-commander](./plugins/gmail-commander/CLAUDE.md) | [tts-telegram-sync](./plugins/tts-telegram-sync/CLAUDE.md) | [calcom-commander](./plugins/calcom-commander/CLAUDE.md)
 
@@ -73,13 +73,14 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 ```
 cc-skills/
 ├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT)
-├── plugins/                         ← 23 marketplace plugins (each has CLAUDE.md)
+├── plugins/                         ← 25 marketplace plugins (each has CLAUDE.md)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
 │   ├── ru/                          ← RU autonomous loop mode
 │   ├── mise/                        ← User-global mise workflow commands
+│   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
 │   ├── gmail-commander/             ← Gmail bot + CLI (1Password OAuth)
-│   └── ...                          ← 18 more plugins
+│   └── ...                          ← 19 more plugins
 ├── docs/
 │   ├── adr/                         ← Architecture Decision Records
 │   ├── design/                      ← Implementation specs (1:1 with ADRs)
