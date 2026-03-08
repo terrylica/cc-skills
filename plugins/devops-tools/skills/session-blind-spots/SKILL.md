@@ -1,6 +1,6 @@
 ---
 name: session-blind-spots
-description: Diverse-perspective consensus blind spot analysis of Claude Code sessions via MiniMax 2.5 highspeed. Runs 10-20 parallel reviews from orthogonal specialist lenses, then distills into confidence-ranked findings. Traces session chains for full history. TRIGGERS - blind spots, session review, what did I miss, session debrief, retrospective, missed issues, session analysis.
+description: Diverse-perspective consensus blind spot analysis of Claude Code sessions via MiniMax 2.5 highspeed. Runs 50 parallel reviews from orthogonal specialist lenses, then distills into confidence-ranked findings. Recursive parent tracing + sibling discovery for maximum lookback within budget. TRIGGERS - blind spots, session review, what did I miss, session debrief, retrospective, missed issues, session analysis.
 allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion
 ---
 
@@ -10,12 +10,14 @@ Send a Claude Code session transcript to MiniMax 2.5 highspeed for independent d
 
 ## How It Works
 
-1. **Session chain tracing** — Follows parent session references in JSONL to build full history
-2. **Rich extraction** — Turns with user/assistant text, tool calls, file paths touched, errors encountered
-3. **Noise stripping** — Removes system reminders, skill listings, base64 data, deferred tool blocks
-4. **Adaptive fidelity** — 5 progressive truncation levels to maximize signal within MiniMax's context budget
-5. **Diverse perspectives** — Fires N parallel MiniMax calls, each with a unique specialist reviewer lens
-6. **Consensus distillation** — Feeds all N results into a final MiniMax call that merges, deduplicates, and ranks by cross-perspective agreement
+1. **Recursive chain tracing** — Follows `parentSessionId` and continuation references recursively (up to 10 levels deep: parent → grandparent → …)
+2. **Sibling discovery** — Finds sessions in the same project directory modified within 24h of the primary session
+3. **Budget-aware inclusion** — When the full chain exceeds the 890K char budget, drops oldest ancestors first (not middle-trim), preserving the most recent and relevant context
+4. **Rich extraction** — Turns with user/assistant text, tool calls, file paths touched, errors encountered
+5. **Noise stripping** — Removes system reminders, skill listings, base64 data, deferred tool blocks
+6. **Adaptive fidelity** — 5 progressive truncation levels to maximize signal within MiniMax's context budget
+7. **Diverse perspectives** — Fires N parallel MiniMax calls, each with a unique specialist reviewer lens
+8. **Consensus distillation** — Feeds all N results into a final MiniMax call that merges, deduplicates, and ranks by cross-perspective agreement
 
 ## 50 Specialist Perspectives
 
@@ -127,14 +129,17 @@ ls -lt ~/.claude/projects/-Users-terryli-eon-cc-skills/*.jsonl | head -5
 
 ## Configuration
 
-| Setting            | Source                                                           | Default                   |
-| ------------------ | ---------------------------------------------------------------- | ------------------------- |
-| MiniMax API key    | `~/.claude/.secrets/ccterrybot-telegram` (`MINIMAX_API_KEY=...`) | Required                  |
-| Model              | Hardcoded in script                                              | `MiniMax-M2.5-highspeed`  |
-| Max output tokens  | Hardcoded in script                                              | 16384                     |
-| Max structured log | Hardcoded in script                                              | 890K chars (~222K tokens) |
-| Parallel shots     | `--shots N` flag                                                 | 50 (max: 50)              |
-| Session chaining   | `--no-chain` flag                                                | Enabled                   |
+| Setting            | Source                                                           | Default                       |
+| ------------------ | ---------------------------------------------------------------- | ----------------------------- |
+| MiniMax API key    | `~/.claude/.secrets/ccterrybot-telegram` (`MINIMAX_API_KEY=...`) | Required                      |
+| Model              | Hardcoded in script                                              | `MiniMax-M2.5-highspeed`      |
+| Max output tokens  | Hardcoded in script                                              | 16384                         |
+| Max structured log | Hardcoded in script                                              | 890K chars (~222K tokens)     |
+| Parallel shots     | `--shots N` flag                                                 | 50 (max: 50)                  |
+| Session chaining   | `--no-chain` flag                                                | Enabled                       |
+| Chain depth        | Hardcoded in script                                              | 10 levels (recursive parents) |
+| Sibling window     | Hardcoded in script                                              | 24 hours (same project dir)   |
+| Budget strategy    | Automatic                                                        | Drop oldest ancestors first   |
 
 ## Context Budget
 
@@ -179,6 +184,18 @@ Each finding follows this structure:
 ```
 
 Ends with "Priority Action Plan" — 3-5 actions ranked by cross-perspective agreement.
+
+## JSONL Parsing Hardening
+
+The parser handles several edge cases discovered through testing across 40+ real sessions (50KB–96MB):
+
+- **Self-referential poisoning prevention** — Only searches user-role text blocks for continuation markers, never raw JSON lines. Prevents false parent chain detection when session transcripts contain code with marker strings and unrelated UUIDs.
+- **Image block handling** — Replaces base64 image data (up to 1.9MB per image) with `[image: type, size]` placeholders. MiniMax can't process images, and base64 would waste context budget.
+- **Queue-operation extraction** — Captures queued user messages (typed while assistant was busy) as `[queued message]` turns. These contain real user intent not visible in regular user turns.
+- **Last-prompt extraction** — Captures `last-prompt` entries (final user message before session end) that may not appear as regular turns.
+- **Memory-efficient parsing** — Line-by-line iteration without splitting entire file into array (saves ~40% memory on 96MB files).
+- **Agent subagent filtering** — Excludes `agent-*` files from sibling discovery (they contain tool-level execution, not user-facing conversation).
+- **Empty session skipping** — Sessions under 1KB are excluded from sibling discovery (aborted/empty sessions contribute no turns).
 
 ## Limitations
 
