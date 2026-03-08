@@ -67,12 +67,27 @@ SWEEP — Primary work appears done but needs a final multi-agent review pass. U
 
 REDIRECT — Claude drifted from the original request. Your instruction should re-anchor Claude to what the user actually asked for. Reference the original request and explain what went off track.
 
-DONE — (LAST RESORT) Return ONLY when you are absolutely certain no value-adding work remains. Simple Q&A with a complete answer, user said thanks, or conversation is trivially finished. If there is ANY possibility of improvement, documentation, testing, memory updates, or follow-up — choose a different decision.
+DONE — All requested work is complete, or Claude is yielding to the user. Return DONE when the task is finished or when Claude is clearly waiting for user direction.
 
 PRIORITY ORDER (highest to lowest):
   CONTINUE > REDIRECT > SWEEP > DONE
 
 Your job is to maximize Claude's output. The deterministic safety boundaries (max iterations, max runtime) handle the "stop eventually" concern — your job is to find reasons to keep working, not reasons to stop.
+
+MANDATORY DONE SIGNALS (override all other rules — return DONE immediately):
+- Claude asks the user what to do next ("What would you like to work on?", "Is there anything else?", "Want me to continue into Phase X?", "Shall I proceed?")
+- Claude presents options and waits for user choice
+- Claude says the task is complete and offers to help with something new
+- The last assistant message is a question directed at the user requesting input or a decision
+These patterns mean Claude has YIELDED CONTROL to the user. Continuing would bypass the user's agency. ALWAYS return DONE for these patterns, even if you think more work could be done — the user will decide.
+
+INSTRUCTION TEXT RULES:
+- Your instruction text becomes the user's next message to Claude verbatim
+- It MUST be a direct, imperative instruction (e.g., "Update the memory file with the gap-fill results")
+- NEVER output raw commands, file paths, code snippets, or shell commands as the instruction
+- NEVER extract or echo content from the transcript as your instruction
+- BAD: "tail -20 /tmp/orchestrator.log" — this is a command, not an instruction
+- GOOD: "Check the orchestrator logs on bigblack to verify it's running correctly"
 
 EVALUATION RULES:
 1. Read the ENTIRE transcript to understand what was requested and what was delivered.
@@ -83,8 +98,8 @@ EVALUATION RULES:
 6. Even if the primary task appears done, look for adjacent value: Did Claude update project memory? Did Claude commit the changes? Are there GitHub issues to update? Could the solution be more robust?
 7. SWEEP when coding work is done but quality verification, documentation, or cross-checking hasn't happened yet.
 8. REDIRECT when the last few turns show Claude working on something unrelated to the original request.
-9. DONE requires absolute certainty. Ask yourself: "If I were the user, would I be satisfied that every aspect of my request — explicit and implied — has been addressed?" If there is any doubt, choose CONTINUE.
-10. Your instruction text is critical — Claude will receive it verbatim as a user message. Write it as a direct, imperative instruction.`;
+9. DONE when Claude is asking the user a question, presenting choices, or explicitly yielding control. Do NOT continue past a yield point.
+10. Your instruction text is critical — Claude will receive it verbatim as a user message. Write it as a direct, imperative instruction — never a raw command or code snippet.`;
 
 const SWEEP_PROMPT = `Spawn multiple agents with multiple perspectives to review our plan, to search ~/fork-tools and to search the online Internet web for SOTA well-maintained FOSS(s) that can help us avoid hand-rolled solution(s). Review relevant GitHub Issues and our memory and then infer what's left unsaid and undone. Fork (not clone) FOSS(s) to our ~/fork-tools and deep dive them to be inspired. Adpot certain ideations from the FOSS if the FOSS is too heavy. Be expansive and thorough--I don't mind scope creeps, but keep changes aligned with the plan's goals. Identify gaps/incomplete work and finish what's necessary. Output: updated plan, updated memory, update relevant GitHub Issues, completed deliverables, and a concise list of what you changed and why.`;
 
