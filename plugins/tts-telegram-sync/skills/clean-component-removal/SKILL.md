@@ -48,12 +48,13 @@ The removal sequence matters. Components must be torn down in this order to avoi
 
 These are preserved by default to allow easy reinstallation:
 
-| Resource         | Path                                                   | Why Preserved              |
-| ---------------- | ------------------------------------------------------ | -------------------------- |
-| Model cache      | `~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M` | ~400MB download, reusable  |
-| Bot source code  | `~/.claude/automation/claude-telegram-sync/`           | Git-tracked, not ephemeral |
-| mise.toml config | `~/.claude/automation/claude-telegram-sync/mise.toml`  | Configuration SSoT         |
-| Centralized logs | `~/.local/share/tts-telegram-sync/logs/`               | Audit trail                |
+| Resource         | Path                                                    | Why Preserved              |
+| ---------------- | ------------------------------------------------------- | -------------------------- |
+| Model cache      | `~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M`  | ~400MB download, reusable  |
+| Bot source code  | `~/.claude/automation/claude-telegram-sync/`            | Git-tracked, not ephemeral |
+| mise.toml config | `~/.claude/automation/claude-telegram-sync/mise.toml`   | Configuration SSoT         |
+| Launchd logs     | `~/.local/state/launchd-logs/telegram-bot/`             | Rotated by log-rotation    |
+| NDJSON audit     | `~/.claude/automation/claude-telegram-sync/logs/audit/` | Self-rotating 14d          |
 
 ---
 

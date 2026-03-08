@@ -11,22 +11,23 @@ This plugin manages the Telegram notification bot and iTerm2 tab focus integrati
 ## Conventions
 
 - **Runtime**: Bun for TypeScript, Python 3.13 for Kokoro, Bash for shell scripts
-- **Paths**: XDG-compliant (`~/.local/share/kokoro/` for engine, `~/.local/share/tts-telegram-sync/logs/` for logs)
+- **Paths**: XDG-compliant (`~/.local/share/kokoro/` for engine, `~/.local/state/launchd-logs/telegram-bot/` for launchd logs)
 - **Config SSoT**: `~/.claude/automation/claude-telegram-sync/mise.toml`
 - **Lock protocol**: `/tmp/kokoro-tts.lock` with 5s heartbeat, 30s stale threshold + pgrep defense
 - **Signal sound**: `Tink.aiff` via `TTS_SIGNAL_SOUND` env var (configurable, empty to disable)
 
 ## Key Paths
 
-| Resource         | Path                                         |
-| ---------------- | -------------------------------------------- |
-| Bot source       | `~/.claude/automation/claude-telegram-sync/` |
-| Kokoro venv      | `~/.local/share/kokoro/.venv`                |
-| Kokoro CLI       | `~/.local/share/kokoro/tts_generate.py`      |
-| Shell symlinks   | `~/.local/bin/tts_*.sh`                      |
-| Centralized logs | `~/.local/share/tts-telegram-sync/logs/`     |
-| Secrets          | `~/.claude/.secrets/ccterrybot-telegram`     |
-| Lock file        | `/tmp/kokoro-tts.lock`                       |
+| Resource       | Path                                                    |
+| -------------- | ------------------------------------------------------- |
+| Bot source     | `~/.claude/automation/claude-telegram-sync/`            |
+| Kokoro venv    | `~/.local/share/kokoro/.venv`                           |
+| Kokoro CLI     | `~/.local/share/kokoro/tts_generate.py`                 |
+| Shell symlinks | `~/.local/bin/tts_*.sh`                                 |
+| Launchd logs   | `~/.local/state/launchd-logs/telegram-bot/`             |
+| NDJSON audit   | `~/.claude/automation/claude-telegram-sync/logs/audit/` |
+| Secrets        | `~/.claude/.secrets/ccterrybot-telegram`                |
+| Lock file      | `/tmp/kokoro-tts.lock`                                  |
 
 ## Shared Shell Library
 
@@ -47,7 +48,7 @@ See [itp-hooks CLAUDE.md: TypeScript Services](../itp-hooks/CLAUDE.md#typescript
 ## Telemetry
 
 Bot emits NDJSON with core fields: `ts`, `level`, `event`, `component`, `pid` via `audit-log.ts`.
-Shell scripts use plain text via `tts_log`. Logs: `~/.local/share/tts-telegram-sync/logs/audit/` (NDJSON), `/tmp/kokoro-tts.log` (plain text).
+Shell scripts use plain text via `tts_log`. Logs: `~/.claude/automation/claude-telegram-sync/logs/audit/` (NDJSON, self-rotating 14d), `~/.local/state/launchd-logs/telegram-bot/` (launchd stdout/stderr, rotated by `com.example.log-rotation`).
 
 ## References
 

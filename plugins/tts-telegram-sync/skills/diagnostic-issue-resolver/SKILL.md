@@ -28,7 +28,8 @@ Diagnose and fix common TTS + Telegram bot issues through systematic symptom col
 
 - Access to `~/.claude/automation/claude-telegram-sync/` (bot source)
 - Access to `~/.local/share/kokoro/` (Kokoro engine)
-- Access to `~/.local/share/tts-telegram-sync/logs/` (centralized logs)
+- Access to `~/.local/state/launchd-logs/telegram-bot/` (launchd logs)
+- Access to `~/.claude/automation/claude-telegram-sync/logs/audit/` (NDJSON audit)
 
 ---
 
@@ -74,7 +75,7 @@ pgrep -la 'bun.*src/main.ts'
 ~/.local/share/kokoro/.venv/bin/python -c "from mlx_audio.tts.utils import load_model; print('MLX-Audio OK')"
 
 # Recent errors in audit log
-tail -20 ~/.local/share/tts-telegram-sync/logs/audit/*.ndjson 2>/dev/null | grep -i error
+tail -20 ~/.claude/automation/claude-telegram-sync/logs/audit/*.ndjson 2>/dev/null | grep -i error
 
 # Recent bot console output
 tail -50 /private/tmp/telegram-bot.log 2>/dev/null | grep -i -E '(error|fail|timeout)'
@@ -139,7 +140,7 @@ After applying the fix, verify the issue is resolved:
 This skill IS the troubleshooting skill. If the standard diagnostics do not identify the issue:
 
 1. Check the full bot console log: `cat /private/tmp/telegram-bot.log`
-2. Check all NDJSON audit logs: `ls -lt ~/.local/share/tts-telegram-sync/logs/audit/`
+2. Check all NDJSON audit logs: `ls -lt ~/.claude/automation/claude-telegram-sync/logs/audit/`
 3. Check system audio: `afplay /System/Library/Sounds/Tink.aiff` (if this fails, it is a macOS audio issue, not TTS)
 4. Run a manual Kokoro generation outside the bot to isolate the problem
 5. If all else fails, do a full teardown and reinstall using `clean-component-removal` then `full-stack-bootstrap`
