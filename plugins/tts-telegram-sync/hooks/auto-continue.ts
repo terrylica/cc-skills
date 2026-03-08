@@ -101,7 +101,25 @@ EVALUATION RULES:
 9. DONE when Claude is asking the user a question, presenting choices, or explicitly yielding control. Do NOT continue past a yield point.
 10. Your instruction text is critical — Claude will receive it verbatim as a user message. Write it as a direct, imperative instruction — never a raw command or code snippet.`;
 
-const SWEEP_PROMPT = `Spawn multiple agents with multiple perspectives to review our plan, to search ~/fork-tools and to search the online Internet web for SOTA well-maintained FOSS(s) that can help us avoid hand-rolled solution(s). Review relevant GitHub Issues and our memory and then infer what's left unsaid and undone. Fork (not clone) FOSS(s) to our ~/fork-tools and deep dive them to be inspired. Adpot certain ideations from the FOSS if the FOSS is too heavy. Be expansive and thorough--I don't mind scope creeps, but keep changes aligned with the plan's goals. Identify gaps/incomplete work and finish what's necessary. Output: updated plan, updated memory, update relevant GitHub Issues, completed deliverables, and a concise list of what you changed and why.`;
+const SWEEP_PROMPT = `Execute this 5-step sweep pipeline. Each step feeds context into the next — run them in order.
+
+## Step 1: Blind Spot Analysis (diagnostic foundation)
+Run /devops-tools:session-blind-spots to get a 50-perspective MiniMax consensus analysis of this session. This surfaces what we missed, overlooked, or got wrong — security gaps, untested changes, stale docs, silent failures, architectural issues. Save the ranked findings — every subsequent step should cross-reference them.
+
+## Step 2: Plan Audit + Gap Identification (uses Step 1)
+Review the plan file against what was actually delivered in this session. Cross-reference the blind spot findings from Step 1 to distinguish real gaps from noise. Read our project memory files and relevant GitHub Issues. For each plan item, classify as: ✅ done, ⚠️ partially done (specify what's missing), or ❌ not started. Also identify implicit deliverables the user likely expected but didn't explicitly list (e.g., commits, memory updates, issue hygiene).
+
+## Step 3: FOSS Discovery (uses Step 2 gaps)
+For each gap or hand-rolled solution identified in Step 2, search ~/fork-tools and the internet for SOTA well-maintained FOSS that could replace or improve it. Fork (not clone) promising projects to ~/fork-tools and deep-dive them. Adopt lightweight ideations from heavy FOSS rather than importing wholesale. Be expansive — I don't mind scope creeps, but keep changes aligned with the plan's goals.
+
+## Step 4: Execute Remaining Work (uses Steps 2 + 3)
+Fix gaps identified in Step 2 using FOSS insights from Step 3 where applicable. Complete partially-done deliverables. For gaps that can't be resolved now, document them clearly. Be thorough — finish what's necessary.
+
+## Step 5: Reconcile + Summarize (uses all above)
+- Update the plan file to reflect current state
+- Update project memory with session learnings
+- GitHub Issues: close completed issues with evidence, update in-progress issues, file new issues for deferred gaps from Step 2
+- Output: a concise list of what you changed and why, blind spot findings that were actionable, and any deferred items with their new issue numbers`;
 
 // --- Types ---
 
