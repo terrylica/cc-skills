@@ -60,22 +60,23 @@ Add these to project CLAUDE.md files to guide when skills are invoked:
 >
 > Run all commands from the repo root. The CLI auto-detects the repo from cwd.
 
-**Always resolve CLI and repo name first** (bare `gitnexus` may fail if the project's mise node version differs from where it was installed):
+**Pre-flight**: The `gitnexus` mise shim may fail if node isn't active in the current project. Always test callability first:
 
 ```bash
-REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
-GN=$(command -v gitnexus >/dev/null 2>&1 && echo "gitnexus" || echo "npx gitnexus")
+gitnexus --version 2>/dev/null || mise use node@25.8.0
 ```
 
-| Command                                                | Purpose               |
-| ------------------------------------------------------ | --------------------- |
-| `$GN list`                                             | List indexed repos    |
-| `$GN query "<concept>" --limit 5 --repo "$REPO_NAME"`  | Find execution flows  |
-| `$GN context "<symbol>" --content --repo "$REPO_NAME"` | 360° symbol view      |
-| `$GN impact "<symbol>" --depth 3 --repo "$REPO_NAME"`  | Blast radius          |
-| `$GN status --repo "$REPO_NAME"`                       | Check index freshness |
-| `$GN analyze --repo "$REPO_NAME"`                      | Re-index              |
-| `$GN cypher "<query>" --repo "$REPO_NAME"`             | Raw Cypher query      |
+All commands run from the repo root — gitnexus auto-detects the repo from cwd (there is no `--repo` flag).
+
+| Command                                 | Purpose               |
+| --------------------------------------- | --------------------- |
+| `gitnexus list`                         | List indexed repos    |
+| `gitnexus query "<concept>" --limit 5`  | Find execution flows  |
+| `gitnexus context "<symbol>" --content` | 360° symbol view      |
+| `gitnexus impact "<symbol>" --depth 3`  | Blast radius          |
+| `gitnexus status`                       | Check index freshness |
+| `gitnexus analyze`                      | Re-index              |
+| `gitnexus cypher "<query>"`             | Raw Cypher query      |
 
 Disambiguate symbols with `--uid` (from candidates list) or `--file` flags.
 
