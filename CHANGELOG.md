@@ -1,3 +1,29 @@
+## [11.86.3](https://github.com/terrylica/cc-skills/compare/v11.86.2...v11.86.3) (2026-03-08)
+
+
+### Bug Fixes
+
+* **devops-tools:** Add explicit instruction to never reduce --shots default ([80444f8](https://github.com/terrylica/cc-skills/commit/80444f8054c16499e88181f2d685b7e7607acd53))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-blind-spots](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-blind-spots/SKILL.md) - updated (+6/-9)
+
+</details>
+
 ## [11.86.2](https://github.com/terrylica/cc-skills/compare/v11.86.1...v11.86.2) (2026-03-08)
 
 
