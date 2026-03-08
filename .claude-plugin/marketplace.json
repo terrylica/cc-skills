@@ -101,7 +101,7 @@
     },
     {
       "name": "devops-tools",
-      "description": "DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery",
+      "description": "DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, MiniMax consensus analysis",
       "version": "11.84.1",
       "source": "./plugins/devops-tools",
       "category": "devops",
@@ -115,6 +115,9 @@
         "secrets",
         "mlflow",
         "session-recovery",
+        "session-blind-spots",
+        "consensus-analysis",
+        "minimax",
         "pushover",
         "watchexec",
         "notifications",
