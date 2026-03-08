@@ -3,10 +3,11 @@
  * Session Blind Spots — Diverse-perspective consensus analysis of Claude Code sessions.
  *
  * Key design principles:
- * 1. ADAPTIVE extraction: preserve max signal within MiniMax's ~920K char context ceiling
- * 2. DIVERSE perspectives: 20 distinct reviewer lenses (not copies of same prompt)
- * 3. Session chain tracing: follows parent sessions for full historical context
- * 4. Consensus distillation: N diverse reviews → one ranked synthesis
+ * 1. ADAPTIVE extraction: preserve max signal within MiniMax's ~951K char context ceiling
+ * 2. DIVERSE perspectives: 50 distinct reviewer lenses (not copies of same prompt)
+ * 3. Session chain tracing: recursive parents + sibling discovery for max lookback
+ * 4. Budget-aware inclusion: drop oldest ancestors first, not middle-trim everything
+ * 5. Consensus distillation: N diverse reviews → one ranked synthesis
  *
  * Usage:
  *   bun run session-blind-spots.ts <session-id-or-path> [--dry] [--verbose] [--shots N] [--no-chain]
@@ -109,48 +110,215 @@ function findSessionByUuid(uuid: string): string | null {
 }
 
 // ── Session Chain Tracing ──────────────────────────────────────────────────────
+//
+// Maximizes historical lookback within the MiniMax budget:
+//   1. Recursive parent tracing — follows parentSessionId and continuation
+//      references up to MAX_CHAIN_DEPTH levels deep (grandparent, great-grandparent…)
+//   2. Same-project sibling discovery — finds sessions in the same project dir
+//      modified within SIBLING_WINDOW_HOURS of the primary session
+//   3. Budget-aware assembly — sessions ordered chronologically (oldest first) for
+//      the MiniMax payload. When total exceeds budget, oldest ancestors are dropped
+//      first (not middle-trimmed), preserving the most recent context.
 
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
+const MAX_CHAIN_DEPTH = 10;
+const SIBLING_WINDOW_HOURS = 24;
 
-function traceSessionChain(primaryPath: string, verbose: boolean): string[] {
-  const chain: string[] = [primaryPath];
-  const visited = new Set<string>([primaryPath]);
-  const primaryUuid = primaryPath.match(/([0-9a-f-]{36})\.jsonl$/)?.[1] || "";
+/** Extract parent/continuation UUIDs from a session JSONL.
+ *
+ * Scans the FULL file because context compaction inserts "This session is
+ * being continued" markers deep in the JSONL (e.g. line 1310+), not just
+ * the first few lines.
+ *
+ * CRITICAL: Only searches user-role message TEXT blocks for continuation
+ * markers — never raw JSON lines. Raw line matching causes self-referential
+ * poisoning when the session contains tool calls that write/read code with
+ * continuation marker strings and arbitrary UUIDs as file paths.
+ */
+function extractParentUuids(path: string, ownUuid: string): Set<string> {
+  const raw = readFileSync(path, "utf-8");
+  const uuids = new Set<string>();
 
-  const raw = readFileSync(primaryPath, "utf-8");
-  const lines = raw.split("\n").filter(Boolean).slice(0, 50);
+  // Check parentSessionId in first JSON line
+  const firstNewline = raw.indexOf("\n");
+  const firstLine = firstNewline > 0 ? raw.slice(0, firstNewline) : raw;
+  try {
+    const firstObj = JSON.parse(firstLine);
+    if (firstObj.parentSessionId && firstObj.parentSessionId !== ownUuid) {
+      uuids.add(firstObj.parentSessionId);
+    }
+  } catch { /* ignore */ }
 
-  const referencedUuids = new Set<string>();
+  const CONTINUATION_MARKERS = [
+    "continued from",
+    "summary below",
+    "prior session",
+    "previous conversation",
+    "This session is being continued",
+  ];
 
-  for (const line of lines) {
-    if (line.includes("continued from") || line.includes("summary below") ||
-        line.includes("prior session") || line.includes("previous conversation")) {
-      const matches = line.match(UUID_RE) || [];
-      for (const uuid of matches) {
-        if (uuid !== primaryUuid) {
-          referencedUuids.add(uuid);
+  // Parse each line as JSON, then check ONLY user message text for markers.
+  // This prevents false positives from code/tool I/O that incidentally
+  // contains marker strings and unrelated UUIDs.
+  let pos = 0;
+  while (pos < raw.length) {
+    const nextNewline = raw.indexOf("\n", pos);
+    const lineEnd = nextNewline === -1 ? raw.length : nextNewline;
+    const line = raw.slice(pos, lineEnd);
+    pos = lineEnd + 1;
+
+    // Quick pre-filter: skip lines that can't possibly contain markers
+    let hasMarker = false;
+    for (const marker of CONTINUATION_MARKERS) {
+      if (line.includes(marker)) {
+        hasMarker = true;
+        break;
+      }
+    }
+    if (!hasMarker) continue;
+
+    // Parse JSON and extract only user text blocks
+    let obj: any;
+    try {
+      obj = JSON.parse(line);
+    } catch { continue; }
+
+    const msg = obj.message;
+    if (!msg || msg.role !== "user") continue;
+
+    // Extract text from content (string or text blocks only — not tool_use/tool_result)
+    const content = msg.content;
+    let textParts: string[] = [];
+    if (typeof content === "string") {
+      textParts.push(content);
+    } else if (Array.isArray(content)) {
+      for (const block of content) {
+        if (block?.type === "text" && typeof block.text === "string") {
+          textParts.push(block.text);
+        }
+      }
+    }
+
+    for (const text of textParts) {
+      let textHasMarker = false;
+      for (const marker of CONTINUATION_MARKERS) {
+        if (text.includes(marker)) {
+          textHasMarker = true;
+          break;
+        }
+      }
+      if (textHasMarker) {
+        const matches = text.match(UUID_RE) || [];
+        for (const uuid of matches) {
+          if (uuid !== ownUuid) uuids.add(uuid);
         }
       }
     }
   }
 
-  try {
-    const firstObj = JSON.parse(lines[0]);
-    if (firstObj.parentSessionId && firstObj.parentSessionId !== primaryUuid) {
-      referencedUuids.add(firstObj.parentSessionId);
-    }
-  } catch { /* ignore */ }
+  return uuids;
+}
 
-  for (const uuid of referencedUuids) {
+/** Recursively trace parent chain up to MAX_CHAIN_DEPTH. Returns paths oldest-first. */
+function traceParentsRecursive(
+  startPath: string,
+  visited: Set<string>,
+  verbose: boolean,
+  depth = 0,
+): string[] {
+  if (depth >= MAX_CHAIN_DEPTH) return [];
+
+  const ownUuid = startPath.match(/([0-9a-f-]{36})\.jsonl$/)?.[1] || "";
+  const parentUuids = extractParentUuids(startPath, ownUuid);
+  const ancestors: string[] = [];
+
+  for (const uuid of parentUuids) {
     const parentPath = findSessionByUuid(uuid);
-    if (parentPath && !visited.has(parentPath)) {
-      visited.add(parentPath);
-      chain.unshift(parentPath);
-      if (verbose) {
-        const size = statSync(parentPath).size;
-        console.error(`[chain] Found parent session: ${uuid} (${(size / 1048576).toFixed(1)}MB)`);
-      }
+    if (!parentPath || visited.has(parentPath)) continue;
+
+    visited.add(parentPath);
+
+    // Recurse deeper first (grandparent before parent)
+    const olderAncestors = traceParentsRecursive(parentPath, visited, verbose, depth + 1);
+    ancestors.push(...olderAncestors);
+    ancestors.push(parentPath);
+
+    if (verbose) {
+      const size = statSync(parentPath).size;
+      console.error(`[chain] Found ancestor (depth ${depth + 1}): ${uuid.slice(0, 8)}… (${(size / 1048576).toFixed(1)}MB)`);
     }
+  }
+
+  return ancestors;
+}
+
+/** Find sibling sessions in the same project dir within a time window.
+ *  Only searches the immediate project dir (not subagent subdirectories).
+ *  Subagent sessions (agent-* files in subagents/) are excluded — they
+ *  contain tool-level execution, not user-facing conversation.
+ */
+function findSiblings(
+  primaryPath: string,
+  visited: Set<string>,
+  verbose: boolean,
+): string[] {
+  // Use the project dir (not a subagents/ subdir)
+  const rawDir = primaryPath.replace(/\/[^/]+$/, "");
+  const dir = rawDir.replace(/\/subagents$/, "").replace(/\/[0-9a-f-]{36}\/subagents$/, "").replace(/\/[0-9a-f-]{36}$/, "");
+  const primaryMtime = statSync(primaryPath).mtimeMs;
+  const windowMs = SIBLING_WINDOW_HOURS * 3600 * 1000;
+
+  const siblings: { path: string; mtime: number }[] = [];
+
+  try {
+    for (const file of readdirSync(dir)) {
+      if (!file.endsWith(".jsonl")) continue;
+      // Skip agent subagent files that ended up in the project dir
+      if (file.startsWith("agent-")) continue;
+      const fullPath = join(dir, file);
+      if (visited.has(fullPath)) continue;
+
+      try {
+        const st = statSync(fullPath);
+        if (!st.isFile()) continue;
+        const timeDiff = Math.abs(st.mtimeMs - primaryMtime);
+        if (timeDiff <= windowMs && st.size > 1000) { // Skip tiny sessions (<1KB)
+          siblings.push({ path: fullPath, mtime: st.mtimeMs });
+        }
+      } catch { continue; }
+    }
+  } catch { return []; }
+
+  // Sort by mtime ascending (oldest first) for chronological order
+  siblings.sort((a, b) => a.mtime - b.mtime);
+
+  if (verbose && siblings.length > 0) {
+    console.error(`[chain] Found ${siblings.length} sibling(s) within ${SIBLING_WINDOW_HOURS}h window`);
+  }
+
+  return siblings.map((s) => s.path);
+}
+
+function traceSessionChain(primaryPath: string, verbose: boolean): string[] {
+  const visited = new Set<string>([primaryPath]);
+
+  // 1. Recursive parent chain (oldest first)
+  const ancestors = traceParentsRecursive(primaryPath, visited, verbose);
+
+  // 2. Sibling discovery (same project dir, within time window)
+  const siblings = findSiblings(primaryPath, visited, verbose);
+  for (const s of siblings) visited.add(s);
+
+  // 3. Assemble chronologically: ancestors → siblings → primary
+  // Siblings that are older than primary go before it; newer ones after (but primary is last for review focus)
+  const primaryMtime = statSync(primaryPath).mtimeMs;
+  const olderSiblings = siblings.filter((s) => statSync(s).mtimeMs < primaryMtime);
+  const newerSiblings = siblings.filter((s) => statSync(s).mtimeMs >= primaryMtime);
+
+  const chain = [...ancestors, ...olderSiblings, primaryPath, ...newerSiblings];
+
+  if (verbose && chain.length > 1) {
+    console.error(`[chain] Full chain: ${chain.length} sessions (${ancestors.length} ancestor(s), ${siblings.length} sibling(s))`);
   }
 
   return chain;
@@ -174,6 +342,9 @@ const STRIP_PATTERNS = [
   /<system-reminder>[\s\S]*?<\/system-reminder>/g,
   /<available-deferred-tools>[\s\S]*?<\/available-deferred-tools>/g,
   /data:[^;]+;base64,[A-Za-z0-9+/=]{100,}/g,
+  // Claude Code injects plan file contents as system reminders — already caught above
+  // Hook output noise
+  /<user-prompt-submit-hook>[\s\S]*?<\/user-prompt-submit-hook>/g,
 ];
 
 const SKILL_LISTING_RE = /^- [\w-]+:[\w-]+: .+$/gm;
@@ -262,6 +433,11 @@ function extractRawContent(content: unknown): {
           const err = extractError(block.tool_use_id || "tool", resultText);
           if (err) errors.push(err);
         }
+      } else if (block.type === "image") {
+        // Note the image without including the base64 data
+        const media = block.source?.media_type || "unknown";
+        const dataLen = block.source?.data?.length || 0;
+        text += `[image: ${media}, ${Math.round(dataLen / 1024)}KB]\n`;
       }
     }
   }
@@ -271,12 +447,22 @@ function extractRawContent(content: unknown): {
 
 function parseSessionRaw(path: string, sessionLabel: string, startTurn: number, verbose: boolean): RawTurn[] {
   const raw = readFileSync(path, "utf-8");
-  const lines = raw.split("\n").filter(Boolean);
   const turns: RawTurn[] = [];
   let skipped = 0;
   let turnNum = startTurn;
+  let lineCount = 0;
 
-  for (const line of lines) {
+  // Line-by-line iteration without creating a massive string array
+  // (a 96MB JSONL split into 28K strings wastes memory on array overhead)
+  let pos = 0;
+  while (pos < raw.length) {
+    const nextNewline = raw.indexOf("\n", pos);
+    const lineEnd = nextNewline === -1 ? raw.length : nextNewline;
+    const line = raw.slice(pos, lineEnd);
+    pos = lineEnd + 1;
+
+    if (!line) continue;
+    lineCount++;
     let obj: any;
     try {
       obj = JSON.parse(line);
@@ -287,6 +473,46 @@ function parseSessionRaw(path: string, sessionLabel: string, startTurn: number, 
 
     if (obj.type === "file-history-snapshot" || obj.type === "progress" || obj.type === "summary") {
       skipped++;
+      continue;
+    }
+
+    // Extract queued user messages — these capture user intent that may not
+    // appear in a regular user turn (typed while assistant was busy)
+    if (obj.type === "queue-operation" && obj.operation === "enqueue" && obj.content) {
+      const content = typeof obj.content === "string" ? obj.content : "";
+      // Skip task-notification noise
+      if (content && !content.startsWith("<task-notification>") && content.length > 10) {
+        turnNum++;
+        turns.push({
+          n: turnNum,
+          session: sessionLabel,
+          role: "user",
+          userText: `[queued message] ${stripNoise(content)}`,
+          toolCalls: [],
+          toolResults: [],
+          files: [],
+          errors: [],
+          timestamp: obj.timestamp,
+        });
+      } else {
+        skipped++;
+      }
+      continue;
+    }
+
+    // last-prompt captures the final user prompt before session ended
+    if (obj.type === "last-prompt" && obj.lastPrompt) {
+      turnNum++;
+      turns.push({
+        n: turnNum,
+        session: sessionLabel,
+        role: "user",
+        userText: `[last prompt before session end] ${obj.lastPrompt}`,
+        toolCalls: [],
+        toolResults: [],
+        files: [],
+        errors: [],
+      });
       continue;
     }
 
@@ -325,7 +551,7 @@ function parseSessionRaw(path: string, sessionLabel: string, startTurn: number, 
   }
 
   if (verbose) {
-    console.error(`[parse] ${sessionLabel}: ${lines.length} lines → ${turns.length} turns (${skipped} skipped)`);
+    console.error(`[parse] ${sessionLabel}: ${lineCount} lines → ${turns.length} turns (${skipped} skipped)`);
   }
 
   return turns;
@@ -1708,7 +1934,7 @@ async function main() {
     console.error("  session-id-or-path  UUID or full .jsonl path");
     console.error("  --dry               Parse and show structured log, skip MiniMax calls");
     console.error("  --verbose           Show adaptive fidelity levels and per-shot timing");
-    console.error("  --shots N           Number of diverse perspectives (default: 5, max: 20)");
+    console.error("  --shots N           Number of diverse perspectives (default: 50, max: 50)");
     console.error("  --no-chain          Skip session chain tracing (single session only)");
     console.error("");
     console.error("Perspectives (rotated across shots):");
@@ -1725,40 +1951,115 @@ async function main() {
   const fileSize = statSync(sessionPath).size;
   console.error(`[blind-spots] File: ${sessionPath} (${(fileSize / 1048576).toFixed(1)}MB)`);
 
-  // Trace session chain
+  // Trace session chain (recursive parents + siblings)
   let sessionChain: string[];
   if (noChain) {
     sessionChain = [sessionPath];
   } else {
     sessionChain = traceSessionChain(sessionPath, verbose);
     if (sessionChain.length > 1) {
-      console.error(`[blind-spots] Session chain: ${sessionChain.length} sessions (${sessionChain.length - 1} parent(s))`);
+      const pMtime = statSync(sessionPath).mtimeMs;
+      let ancestorCount = 0;
+      let siblingCount = 0;
+      for (const s of sessionChain) {
+        if (s === sessionPath) continue;
+        // Ancestors were traced via parent chain; siblings via time proximity in same dir
+        const sMtime = statSync(s).mtimeMs;
+        if (sMtime < pMtime) ancestorCount++; // older = could be ancestor or older sibling
+        else siblingCount++; // newer = sibling
+      }
+      console.error(`[blind-spots] Session chain: ${sessionChain.length} sessions (${ancestorCount} older, ${siblingCount} newer sibling(s))`);
     }
   }
 
-  // Parse all sessions
+  // Parse all sessions and build labels
   const allTurns: RawTurn[] = [];
   let turnOffset = 0;
   const chainLabels: string[] = [];
+  // Track per-session turn ranges for budget-aware dropping
+  const sessionTurnRanges: { path: string; label: string; startIdx: number; endIdx: number }[] = [];
 
   for (const spath of sessionChain) {
-    const sid = spath.match(/([0-9a-f-]{36})\.jsonl$/)?.[1] || "unknown";
-    const label = spath === sessionPath ? `${sid.slice(0, 8)}… (primary)` : `${sid.slice(0, 8)}… (parent)`;
+    // Handle both UUID filenames (abc123-...) and agent filenames (agent-abc123...)
+    const sid = spath.match(/([0-9a-f-]{36})\.jsonl$/)?.[1]
+             || spath.match(/(agent-[0-9a-f]{12,})\.jsonl$/)?.[1]
+             || spath.replace(/^.*\//, "").replace(/\.jsonl$/, "");
+    let label: string;
+    if (spath === sessionPath) {
+      label = `${sid.slice(0, 8)}… (primary)`;
+    } else {
+      const sMtime = statSync(spath).mtimeMs;
+      const pMtime = statSync(sessionPath).mtimeMs;
+      const relation = sMtime < pMtime ? "ancestor" : "sibling";
+      label = `${sid.slice(0, 8)}… (${relation})`;
+    }
     chainLabels.push(label);
 
+    const startIdx = allTurns.length;
     const turns = parseSessionRaw(spath, label, turnOffset, verbose);
     allTurns.push(...turns);
     turnOffset = allTurns.length;
+    sessionTurnRanges.push({ path: spath, label, startIdx, endIdx: allTurns.length });
   }
 
   console.error(`[blind-spots] Total: ${allTurns.length} turns across ${sessionChain.length} session(s)`);
 
+  // Budget-aware session inclusion: if full chain exceeds budget even at L4,
+  // progressively drop non-primary sessions until it fits without middle-trim.
+  //
+  // Drop order: oldest sessions first, but within the same age tier, drop
+  // sessions with fewer turns first (tiny/empty sessions waste budget on
+  // session headers without contributing content).
+  let turnsForPayload = allTurns;
+  let droppedSessions = 0;
+
+  if (sessionChain.length > 1) {
+    const testLog = buildStructuredLogAdaptive(allTurns, MAX_STRUCTURED_LOG_CHARS, false);
+    if (testLog.includes("middle trimmed")) {
+      // Middle-trim was triggered — try dropping sessions instead
+      const droppable = sessionTurnRanges
+        .filter((r) => r.path !== sessionPath)
+        .map((r) => ({ ...r, turnCount: r.endIdx - r.startIdx }))
+        // Sort: oldest first, then fewest turns first (drop least valuable first)
+        .sort((a, b) => {
+          const aMtime = statSync(a.path).mtimeMs;
+          const bMtime = statSync(b.path).mtimeMs;
+          // Primary sort: oldest first
+          if (Math.abs(aMtime - bMtime) > 3600_000) return aMtime - bMtime;
+          // Secondary sort: fewest turns first (drop empty sessions before rich ones)
+          return a.turnCount - b.turnCount;
+        });
+
+      for (let dropCount = 1; dropCount <= droppable.length; dropCount++) {
+        const toDrop = new Set(droppable.slice(0, dropCount).flatMap((r) =>
+          Array.from({ length: r.endIdx - r.startIdx }, (_, i) => r.startIdx + i)
+        ));
+        const reducedTurns = allTurns.filter((_, i) => !toDrop.has(i));
+        const reducedLog = buildStructuredLogAdaptive(reducedTurns, MAX_STRUCTURED_LOG_CHARS, false);
+
+        if (!reducedLog.includes("middle trimmed")) {
+          turnsForPayload = reducedTurns;
+          droppedSessions = dropCount;
+          if (verbose) {
+            const droppedLabels = droppable.slice(0, dropCount).map((r) => `${r.label} (${r.turnCount} turns)`);
+            console.error(`[budget] Dropped ${dropCount} session(s) to avoid middle-trim: ${droppedLabels.join(", ")}`);
+          }
+          break;
+        }
+      }
+
+      if (droppedSessions === 0 && verbose) {
+        console.error(`[budget] Middle-trim unavoidable — primary session alone exceeds budget`);
+      }
+    }
+  }
+
   const chainInfo = sessionChain.length > 1
-    ? `Session chain: ${chainLabels.join(" → ")}`
+    ? `Session chain: ${chainLabels.join(" → ")}${droppedSessions > 0 ? ` (${droppedSessions} oldest dropped for budget)` : ""}`
     : `Single session: ${chainLabels[0]}`;
 
-  const sessionSummary = buildSessionSummary(allTurns, chainInfo);
-  const structuredLog = buildStructuredLogAdaptive(allTurns, MAX_STRUCTURED_LOG_CHARS, verbose);
+  const sessionSummary = buildSessionSummary(turnsForPayload, chainInfo);
+  const structuredLog = buildStructuredLogAdaptive(turnsForPayload, MAX_STRUCTURED_LOG_CHARS, verbose);
   const totalInput = sessionSummary.length + structuredLog.length;
   const estimatedTokens = Math.round(totalInput / 4);
   console.error(`[blind-spots] Payload: ${structuredLog.length} chars log + ${sessionSummary.length} chars summary (~${estimatedTokens} tokens)`);
@@ -1779,7 +2080,7 @@ async function main() {
   console.log("=".repeat(70));
   console.log("  SESSION BLIND SPOT ANALYSIS — MiniMax 2.5 Highspeed");
   console.log(`  Session: ${input}`);
-  console.log(`  Chain: ${sessionChain.length} session(s) | Turns: ${allTurns.length} | Perspectives: ${shots}`);
+  console.log(`  Chain: ${sessionChain.length} session(s)${droppedSessions > 0 ? ` (${droppedSessions} dropped for budget)` : ""} | Turns: ${turnsForPayload.length} | Perspectives: ${shots}`);
   console.log("=".repeat(70));
   console.log("");
   console.log(analysis);
