@@ -1,6 +1,6 @@
 ---
 name: pueue-job-orchestration
-description: "Manage long-running jobs and batch processing with pueue queue orchestration and CLI telemetry. Use whenever the user wants to queue a job, run tasks on gpu-host or small-host, manage long-running processes, do batch processing, set up pueue callbacks or priorities, or needs GPU workstation job management. Also use for cache population tasks that run in the background. Do NOT use for simple foreground shell commands that complete quickly or for job scheduling via cron/launchd."
+description: "Manage long-running jobs and batch processing with pueue queue orchestration, CLI telemetry, and companion monitoring tools (noti, ntfy, mprocs, task-spooler). Use whenever the user wants to queue a job, run tasks on gpu-host or small-host, manage long-running processes, do batch processing, set up pueue callbacks or priorities, get notified when jobs finish (noti/ntfy), watch multiple processes (mprocs), or needs GPU workstation job management. Also use for cache population tasks that run in the background. Do NOT use for simple foreground shell commands that complete quickly or for job scheduling via cron/launchd."
 allowed-tools: Read, Bash, Write
 ---
 
@@ -252,6 +252,100 @@ fi
 
 ---
 
+## Companion CLI Tools (gpu-host)
+
+Four lightweight CLI tools complement pueue for monitoring and notifications. All installed on gpu-host at `/usr/local/bin/` (noti, mprocs) or via apt (ntfy, task-spooler).
+
+### noti — Wrap Any Command with Telegram Notification
+
+Best for one-off "notify me when this finishes" workflows. Native Telegram support.
+
+```bash
+# Wrap any command — sends Telegram when it finishes
+noti -g mise run kintsugi:catchup
+
+# With execution time in message
+noti -g -e python long_script.py
+
+# Custom title/message
+noti -g -t "Deploy done" -m "gpu-host updated" mise run deploy:gpu-host
+```
+
+**Config**: `~/.config/noti/noti.yaml` + env vars `NOTI_TELEGRAM_TOKEN`, `NOTI_TELEGRAM_CHAT_ID`, `NOTI_DEFAULT=telegram` in `~/.bashrc`.
+
+### ntfy — Push Notifications from Scripts/Callbacks
+
+Best for programmatic notifications from scripts, pueue callbacks, or curl one-liners.
+
+```bash
+# One-liner from any script
+ntfy pub --title "Backfill done" odb-alerts "BTCUSDT@500 complete"
+
+# With priority and tags
+ntfy pub --priority high --tags "warning" odb-alerts "Job failed"
+
+# curl variant (works anywhere, no binary needed)
+curl -d "Backup finished" ntfy.sh/my-topic
+
+# Subscribe to topic (poll mode)
+ntfy sub --poll odb-alerts
+```
+
+**Pueue callback integration** — add to `~/.config/pueue/pueue.yml`:
+
+```yaml
+callback: 'ntfy pub --title "pueue: {{label}}" --tags "{{status}}" odb-alerts "Task #{{id}} {{status}} ({{command}})"'
+```
+
+### mprocs — Multi-Process TUI
+
+Best for interactive SSH sessions watching multiple processes side-by-side.
+
+```bash
+# Watch multiple pueue jobs in split panes
+mprocs "pueue follow 3" "pueue follow 7" "pueue follow 8"
+
+# Monitor services
+mprocs "journalctl -fu opendeviationbar-sidecar" "journalctl -fu opendeviationbar-kintsugi"
+```
+
+Requires interactive TTY (SSH directly, not via scripts).
+
+### task-spooler (tsp) — Simplest Job Queue
+
+Best for quick ad-hoc sequential/parallel tasks without pueue group setup.
+
+```bash
+# Queue tasks (default: 1 parallel)
+tsp python train.py
+tsp python validate.py
+
+# Set parallel slots
+tsp -S 3
+
+# List queue
+tsp -l
+
+# View job output
+tsp -c 0
+
+# Combine with noti
+tsp bash -c 'python train.py && noti -g -m "training done"'
+```
+
+### Tool Selection Guide
+
+```
+Need to...
+├── Get notified when a command finishes? → noti -g <command>
+├── Send notification from a script/callback? → ntfy pub topic "msg"
+├── Watch multiple logs/processes live? → mprocs "cmd1" "cmd2"
+├── Quick sequential queue (no groups needed)? → tsp <command>
+└── Persistent queue with groups, priorities? → pueue add <command>
+```
+
+---
+
 ## Deep-Dive References
 
 | Topic                                                                                                 | Reference                                                              |
@@ -288,6 +382,7 @@ For structured, repeatable workflows needing durability and dedup, consider [Tem
 
 - **Hook**: `itp-hooks/posttooluse-reminder.ts` - Reminds to use Pueue for detected long-running commands
 - **Reference**: [Pueue GitHub](https://github.com/Nukesor/pueue)
+- **Companion tools**: [noti](https://github.com/variadico/noti) (command wrapper → Telegram), [ntfy](https://github.com/binwiederhier/ntfy) (pub-sub notifications), [mprocs](https://github.com/pvolok/mprocs) (multi-process TUI), [task-spooler](https://vicerveza.homeunix.net/~viric/soft/ts/) (minimal job queue)
 - **SOTA Alternative**: [Temporal](https://temporal.io/) — durable workflow orchestration with built-in dedup, retry, visibility
 - **Issue**: [rangebar-py#77](https://github.com/terrylica/rangebar-py/issues/77) - Original implementation
 - **Issue**: [rangebar-py#88](https://github.com/terrylica/rangebar-py/issues/88) - Production deployment lessons
