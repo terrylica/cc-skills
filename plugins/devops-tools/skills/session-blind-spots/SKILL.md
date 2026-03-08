@@ -85,20 +85,20 @@ Same prompt N times is near-deterministic — different perspectives are orthogo
 - **Higher recall** — Security Auditor catches credentials; Verification Engineer catches untested changes
 - **Lower false positives** — Findings seen from 2+ perspectives are more credible
 - **Confidence ranking** — "Seen by 5/10 perspectives" is near-certain; "1/10" is speculative
-- **Cheap** — MiniMax is fast and inexpensive; 10 parallel perspectives complete in ~25s
+- **Cheap** — MiniMax is fast and inexpensive; 50 parallel perspectives complete in ~60s
 
 ## Usage
 
 ### Run Analysis
 
 ```bash
-# Default: 10 diverse perspectives → consensus distillation
+# Default: all 50 diverse perspectives → consensus distillation
 bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-blind-spots.ts \
   7873f9b4-b8f9-4746-b617-917b2e9f14a2
 
-# All 20 perspectives for maximum coverage
+# Quick scan with 5 perspectives (faster, less coverage)
 bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-blind-spots.ts \
-  7873f9b4-b8f9-4746-b617-917b2e9f14a2 --shots 20
+  7873f9b4-b8f9-4746-b617-917b2e9f14a2 --shots 5
 
 # Single perspective (no consensus, faster but less reliable)
 bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-blind-spots.ts \
