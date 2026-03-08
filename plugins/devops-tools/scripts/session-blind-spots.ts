@@ -1746,6 +1746,10 @@ ${REVIEW_PREAMBLE}`,
 
 // ── MiniMax API ────────────────────────────────────────────────────────────────
 
+const MAX_CONCURRENCY = 10;
+const MAX_RETRIES = 3;
+const RETRY_BASE_MS = 2000;
+
 async function callMiniMax(
   apiKey: string,
   system: string,
@@ -1753,34 +1757,78 @@ async function callMiniMax(
   maxTokens: number,
   timeoutMs: number = 180_000,
 ): Promise<string> {
-  const res = await fetch(MINIMAX_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MINIMAX_MODEL,
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: "user", content: userContent }],
-    }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(MINIMAX_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: MINIMAX_MODEL,
+          max_tokens: maxTokens,
+          system,
+          messages: [{ role: "user", content: userContent }],
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`MiniMax API ${res.status}: ${body.slice(0, 500)}`);
+      if (res.status === 429 || res.status >= 500) {
+        const body = await res.text().catch(() => "");
+        if (attempt < MAX_RETRIES) {
+          const delay = RETRY_BASE_MS * Math.pow(2, attempt) + Math.random() * 1000;
+          console.error(`[minimax] ${res.status} on attempt ${attempt + 1}, retrying in ${(delay / 1000).toFixed(1)}s...`);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        throw new Error(`MiniMax API ${res.status}: ${body.slice(0, 500)}`);
+      }
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`MiniMax API ${res.status}: ${body.slice(0, 500)}`);
+      }
+
+      const result: any = await res.json();
+
+      if (result.content && Array.isArray(result.content)) {
+        return result.content.map((b: any) => b.text || "").join("");
+      }
+
+      return JSON.stringify(result, null, 2);
+    } catch (err: any) {
+      if (attempt < MAX_RETRIES && (err.name === "TimeoutError" || err.message?.includes("fetch failed"))) {
+        const delay = RETRY_BASE_MS * Math.pow(2, attempt) + Math.random() * 1000;
+        console.error(`[minimax] ${err.name || "error"} on attempt ${attempt + 1}, retrying in ${(delay / 1000).toFixed(1)}s...`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Exhausted retries");
+}
+
+/** Run async tasks with bounded concurrency */
+async function runWithConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  limit: number,
+): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const i = nextIndex++;
+      results[i] = await tasks[i]();
+    }
   }
 
-  const result: any = await res.json();
-
-  if (result.content && Array.isArray(result.content)) {
-    return result.content.map((b: any) => b.text || "").join("");
-  }
-
-  return JSON.stringify(result, null, 2);
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
 }
 
 // ── Distillation Prompt ────────────────────────────────────────────────────────
@@ -1847,31 +1895,31 @@ Now write your review. Remember: ONLY findings from your specific perspective. D
     selectedPerspectives.push(PERSPECTIVES[i % PERSPECTIVES.length]);
   }
 
-  // Phase 1: Fire N parallel diverse review calls
+  // Phase 1: Fire N diverse review calls with bounded concurrency
   const perspectiveNames = selectedPerspectives.map((p) => p.name);
-  console.error(`[consensus] Firing ${shots} diverse perspective calls:`);
+  console.error(`[consensus] Firing ${shots} diverse perspective calls (${MAX_CONCURRENCY} concurrent):`);
   for (const name of perspectiveNames) {
     console.error(`  → ${name}`);
   }
 
   const startTime = Date.now();
 
-  const promises = selectedPerspectives.map((perspective, i) =>
+  type PerspectiveResult = { index: number; name: string; result: string; error: string | null };
+
+  const tasks = selectedPerspectives.map((perspective, i) => () =>
     callMiniMax(apiKey, perspective.prompt, userMessage, MAX_OUTPUT_TOKENS)
       .then((result) => {
-        if (verbose) {
-          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-          console.error(`[consensus] ${perspective.name} complete (${elapsed}s)`);
-        }
-        return { index: i, name: perspective.name, result, error: null as string | null };
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.error(`[consensus] ✓ ${perspective.name} (${elapsed}s)`);
+        return { index: i, name: perspective.name, result, error: null as string | null } as PerspectiveResult;
       })
       .catch((err) => {
-        console.error(`[consensus] ${perspective.name} failed: ${err.message}`);
-        return { index: i, name: perspective.name, result: "", error: err.message };
+        console.error(`[consensus] ✗ ${perspective.name}: ${err.message}`);
+        return { index: i, name: perspective.name, result: "", error: err.message } as PerspectiveResult;
       })
   );
 
-  const results = await Promise.all(promises);
+  const results = await runWithConcurrency(tasks, MAX_CONCURRENCY);
   const successful = results.filter((r) => !r.error);
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
