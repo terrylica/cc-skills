@@ -1,3 +1,29 @@
+# [11.85.0](https://github.com/terrylica/cc-skills/compare/v11.84.1...v11.85.0) (2026-03-08)
+
+
+### Features
+
+* **devops-tools:** Add session-blind-spots skill - MiniMax-powered consensus analysis ([69f5ccd](https://github.com/terrylica/cc-skills/commit/69f5ccdf61e8e49a5b8c12baeeb7416d7afe6fe8))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-blind-spots](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-blind-spots/SKILL.md) - new (+170)
+
+</details>
+
 ## [11.84.1](https://github.com/terrylica/cc-skills/compare/v11.84.0...v11.84.1) (2026-03-08)
 
 
