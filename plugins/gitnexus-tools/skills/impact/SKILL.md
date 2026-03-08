@@ -20,27 +20,33 @@ Analyze the blast radius of changing a symbol — who calls it, what processes i
 
 ## Workflow
 
-### Step 0: Resolve CLI and Repo Name
+### Step 0: Pre-flight — Ensure CLI Is Callable
 
-Resolve the CLI command (bare `gitnexus` may fail if the project's mise node version differs from where it was installed):
+The `gitnexus` binary is installed via npm/mise. The mise shim may fail if node isn't active in the current project. Run this pre-flight before any gitnexus command:
 
 ```bash
-REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
-GN=$(command -v gitnexus >/dev/null 2>&1 && echo "gitnexus" || echo "npx gitnexus")
+# Test if gitnexus is actually callable (not just a broken shim)
+gitnexus --version 2>/dev/null
 ```
 
-Use `$GN --repo "$REPO_NAME"` on all commands below.
+If that fails with "No version is set for shim" or similar, activate node first:
+
+```bash
+mise use node@25.8.0
+```
+
+Then verify again. All commands below run from the repo root (gitnexus auto-detects the repo from cwd — there is no `--repo` flag).
 
 ### Step 1: Auto-Reindex If Stale
 
 ```bash
-$GN status --repo "$REPO_NAME"
+gitnexus status
 ```
 
 If stale (indexed commit ≠ HEAD), **automatically reindex before proceeding** — do not ask the user:
 
 ```bash
-$GN analyze --repo "$REPO_NAME"
+gitnexus analyze
 ```
 
 Then re-check status to confirm index is current.
@@ -48,7 +54,7 @@ Then re-check status to confirm index is current.
 ### Step 2: Upstream Blast Radius
 
 ```bash
-$GN impact "<symbol>" --depth 3 --repo "$REPO_NAME"
+gitnexus impact "<symbol>" --depth 3
 ```
 
 This shows everything that depends on the symbol (callers, transitive callers up to depth 3).
@@ -56,15 +62,15 @@ This shows everything that depends on the symbol (callers, transitive callers up
 If multiple candidates are returned, disambiguate:
 
 ```bash
-$GN impact "<symbol>" --uid "<full-uid>" --depth 3 --repo "$REPO_NAME"
+gitnexus impact "<symbol>" --uid "<full-uid>" --depth 3
 # or
-$GN impact "<symbol>" --file "<file-path>" --depth 3 --repo "$REPO_NAME"
+gitnexus impact "<symbol>" --file "<file-path>" --depth 3
 ```
 
 ### Step 3: Downstream Dependencies (Optional)
 
 ```bash
-$GN impact "<symbol>" --direction downstream --depth 3 --repo "$REPO_NAME"
+gitnexus impact "<symbol>" --direction downstream --depth 3
 ```
 
 Shows what the symbol depends on — useful for understanding if dependencies might change.
@@ -72,7 +78,7 @@ Shows what the symbol depends on — useful for understanding if dependencies mi
 ### Step 4: Test Coverage
 
 ```bash
-$GN impact "<symbol>" --include-tests --repo "$REPO_NAME"
+gitnexus impact "<symbol>" --include-tests
 ```
 
 Shows which test files exercise this symbol.
@@ -103,9 +109,8 @@ Present:
 User: "What breaks if I change RangeBarProcessor?"
 
 ```bash
-REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
-$GN impact "RangeBarProcessor" --depth 3 --repo "$REPO_NAME"
-$GN impact "RangeBarProcessor" --include-tests --repo "$REPO_NAME"
+gitnexus impact "RangeBarProcessor" --depth 3
+gitnexus impact "RangeBarProcessor" --include-tests
 ```
 
 Output: "CRITICAL risk — 73 dependents across 12 processes. 8 test files cover it. Recommend backward-compatible changes only."
