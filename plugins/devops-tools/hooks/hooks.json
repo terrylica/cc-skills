@@ -1,0 +1,17 @@
+{
+  "description": "DevOps tool hooks - academic paper Firecrawl routing reminder",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-firecrawl-research-reminder.ts",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  }
+}
