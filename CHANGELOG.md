@@ -1,3 +1,29 @@
+## [11.86.2](https://github.com/terrylica/cc-skills/compare/v11.86.1...v11.86.2) (2026-03-08)
+
+
+### Bug Fixes
+
+* **devops-tools:** Update SKILL.md examples to reflect 50-shot default ([8089b1b](https://github.com/terrylica/cc-skills/commit/8089b1b17656b636ca4e5568878fbb140b5ded14))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-blind-spots](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-blind-spots/SKILL.md) - updated (+4/-4)
+
+</details>
+
 ## [11.86.1](https://github.com/terrylica/cc-skills/compare/v11.86.0...v11.86.1) (2026-03-08)
 
 
