@@ -180,6 +180,109 @@ chezmoi git -- log --oneline -3        # Recent commit history
 
 ---
 
+## 11. Forget (Untrack) a File
+
+Stop tracking a file without deleting it from home directory:
+
+```bash
+chezmoi managed | grep config.local     # 1. Confirm file is tracked
+chezmoi forget --force ~/.config/app/config.local.toml  # 2. Remove from source (--force skips TTY prompt)
+chezmoi git -- push                     # 3. Push removal to remote
+ls ~/.config/app/config.local.toml      # 4. Verify file still exists in home
+```
+
+**When to use**: Machine-specific configs, files with secrets that shouldn't be synced, files accidentally added.
+
+---
+
+## 12. Template Management
+
+Create OS/architecture-conditional configs using Go templates:
+
+### Convert existing file to template
+
+```bash
+chezmoi add --template ~/.config/app/config.toml  # 1. Add as template (creates .tmpl suffix in source)
+chezmoi edit ~/.config/app/config.toml             # 2. Edit template in $EDITOR (helix)
+chezmoi diff ~/.config/app/config.toml             # 3. Preview what would change
+chezmoi apply ~/.config/app/config.toml            # 4. Apply rendered template to home
+```
+
+### Common template patterns
+
+```
+# OS-conditional block
+{{ if eq .chezmoi.os "darwin" -}}
+export HOMEBREW_PREFIX="/opt/homebrew"
+{{ else if eq .chezmoi.os "linux" -}}
+export HOMEBREW_PREFIX="/home/linuxbrew/.linuxbrew"
+{{ end -}}
+
+# Architecture-conditional
+{{ if eq .chezmoi.arch "arm64" -}}
+ARCH="aarch64"
+{{ else -}}
+ARCH="x86_64"
+{{ end -}}
+
+# Custom data from chezmoi.toml [data] section
+git_name = "{{ .git.name }}"
+git_email = "{{ .git.email }}"
+
+# 1Password secret (requires op CLI)
+api_key = {{ onepasswordRead "op://Vault/Item/Field" }}
+```
+
+### Verify template renders correctly
+
+```bash
+chezmoi execute-template < "$(chezmoi source-path)/dot_config/app/config.toml.tmpl"
+chezmoi cat ~/.config/app/config.toml   # Show rendered output without applying
+```
+
+---
+
+## 13. Safe Update (Diff Before Apply)
+
+Pull from remote with review step — safer than blind `chezmoi update`:
+
+```bash
+chezmoi git -- pull                    # 1. Pull source changes only (no apply)
+chezmoi diff                           # 2. Review what WOULD change in home directory
+chezmoi apply --dry-run --verbose      # 3. Dry run — shows actions without executing
+chezmoi apply                          # 4. Apply after review
+chezmoi status                         # 5. Confirm clean state
+```
+
+**When to use**: When pulling changes made on another machine, or after a long gap between syncs. Avoids surprise overwrites of local edits.
+
+---
+
+## 14. Doctor (Diagnostic)
+
+Troubleshoot chezmoi setup and environment:
+
+```bash
+chezmoi doctor                         # Full diagnostic — checks all components
+```
+
+**Key fields to verify**:
+
+| Check        | Expected                                       | Meaning if failing                 |
+| ------------ | ---------------------------------------------- | ---------------------------------- |
+| config-file  | `found ~/.config/chezmoi/chezmoi.toml`         | Config missing or wrong path       |
+| source-dir   | `~/own/dotfiles is a git working tree (clean)` | Source dirty or not a git repo     |
+| git-command  | `found /opt/homebrew/bin/git`                  | Git not installed                  |
+| edit-command | `found /opt/homebrew/bin/hx`                   | Editor not configured              |
+| 1password    | `found /opt/homebrew/bin/op`                   | 1Password CLI needed for templates |
+| age/gpg      | `info` = optional                              | Only needed for encrypted files    |
+
+```bash
+chezmoi doctor | grep -v "^ok"         # Show only warnings and errors
+```
+
+---
+
 ## Reference
 
 - [Setup Guide](./references/setup.md) - Installation, multi-account GitHub, migration
@@ -193,11 +296,13 @@ chezmoi git -- log --oneline -3        # Recent commit history
 
 ## Troubleshooting
 
-| Issue              | Cause                      | Solution                                     |
-| ------------------ | -------------------------- | -------------------------------------------- |
-| chezmoi not found  | Not installed              | Install via `brew install chezmoi`           |
-| Source path empty  | Not initialized            | Run `chezmoi init`                           |
-| Git remote not set | Missing GitHub repo        | Run `chezmoi git -- remote add origin URL`   |
-| Apply fails        | Template error             | Check template syntax with `chezmoi diff`    |
-| Merge conflicts    | Diverged source and target | Use `chezmoi merge` to resolve               |
-| Secrets detected   | Plain text credentials     | Use chezmoi templates with 1Password/Doppler |
+| Issue              | Cause                      | Solution                                       |
+| ------------------ | -------------------------- | ---------------------------------------------- |
+| chezmoi not found  | Not installed              | Install via `brew install chezmoi`             |
+| Source path empty  | Not initialized            | Run `chezmoi init`                             |
+| Git remote not set | Missing GitHub repo        | Run `chezmoi git -- remote add origin URL`     |
+| Apply fails        | Template error             | Check template syntax with `chezmoi diff`      |
+| Merge conflicts    | Diverged source and target | Use `chezmoi merge` to resolve                 |
+| Secrets detected   | Plain text credentials     | Use chezmoi templates with 1Password/Doppler   |
+| forget needs TTY   | Interactive confirmation   | Use `chezmoi forget --force <path>`            |
+| Template not found | Missing `.tmpl` suffix     | Use `chezmoi add --template` to create `.tmpl` |
