@@ -1,3 +1,29 @@
+## [11.86.1](https://github.com/terrylica/cc-skills/compare/v11.86.0...v11.86.1) (2026-03-08)
+
+
+### Bug Fixes
+
+* **devops-tools:** Harden session-blind-spots JSONL parsing for maximum lookback ([ce372b4](https://github.com/terrylica/cc-skills/commit/ce372b471bcf37b7f9bf1ae1d6e672ae5aa940b9))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-blind-spots](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-blind-spots/SKILL.md) - updated (+32/-15)
+
+</details>
+
 # [11.86.0](https://github.com/terrylica/cc-skills/compare/v11.85.0...v11.86.0) (2026-03-08)
 
 
