@@ -1,7 +1,29 @@
 ---
 name: session-blind-spots
 description: Diverse-perspective consensus blind spot analysis of Claude Code sessions via MiniMax 2.5 highspeed. Runs 50 parallel reviews from orthogonal specialist lenses, then distills into confidence-ranked findings. Recursive parent tracing + sibling discovery for maximum lookback within budget. TRIGGERS - blind spots, session review, what did I miss, session debrief, retrospective, missed issues, session analysis.
-allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion
+allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion, Agent
+---
+
+## Execution Model — MANDATORY
+
+**You MUST use the Agent tool to execute this skill.** Do NOT run the analysis in the main conversation — spawn a `general-purpose` Agent instead. This keeps the main context clean (the script runs ~60s with 50 parallel MiniMax calls and produces large output).
+
+### How to invoke
+
+1. If the user didn't provide a session UUID, find the most recent session first (see "Find Recent Sessions" below), then ask the user which session to analyze.
+2. Spawn an Agent with the full instructions from this skill and the resolved session UUID. The agent prompt should include: the bun command to run, the `--shots` flag only if the user explicitly requested fewer, and instructions to present the output as-is.
+3. When the Agent returns, present a concise summary of findings to the user — CRITICAL and WARNING items first, then the Priority Action Plan.
+
+Example Agent invocation:
+
+```
+Agent(
+  description: "Session blind spot analysis",
+  prompt: "Run session blind spot analysis for session <UUID>. Execute: bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-blind-spots.ts <UUID> ... [full command with flags]. Present the output directly — do not summarize or filter. If the command fails, show the error and suggest troubleshooting steps.",
+  run_in_background: true
+)
+```
+
 ---
 
 # Session Blind Spots
