@@ -1,3 +1,10 @@
+## [11.86.4](https://github.com/terrylica/cc-skills/compare/v11.86.3...v11.86.4) (2026-03-08)
+
+
+### Bug Fixes
+
+* **devops-tools:** Add concurrency control and retry logic to MiniMax calls ([20f0de6](https://github.com/terrylica/cc-skills/commit/20f0de64e749f36f8c0161bfeeffe35f6f48fb72))
+
 ## [11.86.3](https://github.com/terrylica/cc-skills/compare/v11.86.2...v11.86.3) (2026-03-08)
 
 
