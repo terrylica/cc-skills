@@ -56,9 +56,9 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
         <true/>
     </dict>
     <key>StandardOutPath</key>
-    <string>{{HOME}}/own/<automation-repo>/logs/bot-stdout.log</string>
+    <string>{{HOME}}/.local/state/launchd-logs/gmail-commander-bot/stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>{{HOME}}/own/<automation-repo>/logs/bot-stderr.log</string>
+    <string>{{HOME}}/.local/state/launchd-logs/gmail-commander-bot/stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
@@ -86,9 +86,9 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
     <key>StartInterval</key>
     <integer>21600</integer>
     <key>StandardOutPath</key>
-    <string>{{HOME}}/own/<automation-repo>/logs/digest-stdout.log</string>
+    <string>{{HOME}}/.local/state/launchd-logs/gmail-commander-digest/stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>{{HOME}}/own/<automation-repo>/logs/digest-stderr.log</string>
+    <string>{{HOME}}/.local/state/launchd-logs/gmail-commander-digest/stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
@@ -129,17 +129,17 @@ rm -f /tmp/gmail-commander-bot.pid
 ### View Logs
 
 ```bash
-# Recent bot output
-tail -50 $PROJECT_DIR/logs/bot-stderr.log
+# Recent bot output (centralized launchd logs)
+tail -50 ~/.local/state/launchd-logs/gmail-commander-bot/stderr.log
 
 # Recent digest output
-tail -50 $PROJECT_DIR/logs/digest-stderr.log
+tail -50 ~/.local/state/launchd-logs/gmail-commander-digest/stderr.log
 
-# Audit log (NDJSON)
+# Audit log (NDJSON, app-managed)
 cat $PROJECT_DIR/logs/audit/$(date +%Y-%m-%d).ndjson | jq .
 
 # OAuth token refresher log
-tail -20 $PROJECT_DIR/logs/token-refresher.log
+tail -20 ~/.local/state/launchd-logs/gmail-oauth-refresher/stderr.log
 ```
 
 ## System Resources (Expected)

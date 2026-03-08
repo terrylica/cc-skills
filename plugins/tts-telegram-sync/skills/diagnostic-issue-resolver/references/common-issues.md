@@ -100,7 +100,7 @@ time ~/.local/share/kokoro/.venv/bin/python ~/.local/share/kokoro/tts_generate.p
 ```bash
 # Step 1: Check audit log for queue events
 grep -h 'tts.drop\|tts.enqueue\|tts.drain' \
-  ~/.local/share/tts-telegram-sync/logs/audit/*.ndjson 2>/dev/null | tail -20
+  ~/.claude/automation/claude-telegram-sync/logs/audit/*.ndjson 2>/dev/null | tail -20
 
 # Step 2: Check current queue config
 grep TTS_MAX_QUEUE_DEPTH ~/.claude/automation/claude-telegram-sync/mise.toml
@@ -179,7 +179,7 @@ ls -la /tmp/kokoro-tts.lock 2>/dev/null
 
 # Step 3: Check audit log for race conditions
 grep -h 'tts.play.start' \
-  ~/.local/share/tts-telegram-sync/logs/audit/*.ndjson 2>/dev/null | tail -10
+  ~/.claude/automation/claude-telegram-sync/logs/audit/*.ndjson 2>/dev/null | tail -10
 ```
 
 **Resolution Tree**:

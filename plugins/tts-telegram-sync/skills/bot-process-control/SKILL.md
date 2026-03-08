@@ -82,7 +82,7 @@ cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts >> /
 ```bash
 tail -50 /private/tmp/telegram-bot.log
 # Or structured logs:
-ls -lt ~/.local/share/tts-telegram-sync/logs/bot-console/ | head -5
+tail -50 ~/.local/state/launchd-logs/telegram-bot/stderr.log
 ```
 
 ### Phase 4: Verify
@@ -113,15 +113,15 @@ pgrep -la 'bun.*src/main.ts'
 
 ## Troubleshooting
 
-| Issue                              | Cause                                 | Solution                                                                                              |
-| ---------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Bot not running                    | Process crashed or was never started  | Check with `pgrep`, runner should auto-respawn; if runner also dead, `launchctl kickstart`            |
-| Multiple instances                 | Previous stop did not fully terminate | `pkill -f 'telegram-bot-runner'; pkill -f 'bun.*src/main.ts'`, then restart via launchd               |
-| Code changes not picked up         | Bot started without `--watch`         | Kill bun process — runner respawns with `--watch`; or recompile runner if it's outdated               |
-| `--watch` not reloading            | File outside watch scope changed      | `bun --watch` monitors the entry file's dependency tree; config-only changes (mise.toml) need a kill  |
-| Logs not writing                   | Log directory missing or permissions  | Verify `/private/tmp/` is writable; check `~/.local/share/tts-telegram-sync/logs/bot-console/` exists |
-| bun not found                      | mise shims not in PATH                | Runner sets PATH explicitly; recompile runner if shims path changed                                   |
-| Bot starts but crashes immediately | Missing env vars or secrets           | Check `~/.claude/.secrets/ccterrybot-telegram` exists; verify mise.toml env section                   |
+| Issue                              | Cause                                 | Solution                                                                                             |
+| ---------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Bot not running                    | Process crashed or was never started  | Check with `pgrep`, runner should auto-respawn; if runner also dead, `launchctl kickstart`           |
+| Multiple instances                 | Previous stop did not fully terminate | `pkill -f 'telegram-bot-runner'; pkill -f 'bun.*src/main.ts'`, then restart via launchd              |
+| Code changes not picked up         | Bot started without `--watch`         | Kill bun process — runner respawns with `--watch`; or recompile runner if it's outdated              |
+| `--watch` not reloading            | File outside watch scope changed      | `bun --watch` monitors the entry file's dependency tree; config-only changes (mise.toml) need a kill |
+| Logs not writing                   | Log directory missing or permissions  | Verify `~/.local/state/launchd-logs/telegram-bot/` exists and is writable                            |
+| bun not found                      | mise shims not in PATH                | Runner sets PATH explicitly; recompile runner if shims path changed                                  |
+| Bot starts but crashes immediately | Missing env vars or secrets           | Check `~/.claude/.secrets/ccterrybot-telegram` exists; verify mise.toml env section                  |
 
 ## Reference Documentation
 

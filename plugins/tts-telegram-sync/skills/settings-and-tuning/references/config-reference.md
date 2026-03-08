@@ -133,7 +133,7 @@ All settings live in the `[env]` section of `mise.toml`. The bot and shell scrip
 **Notes**:
 
 - Audit logs older than this are eligible for cleanup
-- Logs are stored in `~/.local/share/tts-telegram-sync/logs/audit/`
+- Logs are stored in `~/.claude/automation/claude-telegram-sync/logs/audit/`
 
 ## Model Configuration
 
