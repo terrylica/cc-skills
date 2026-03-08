@@ -1,3 +1,10 @@
+## [11.86.5](https://github.com/terrylica/cc-skills/compare/v11.86.4...v11.86.5) (2026-03-08)
+
+
+### Bug Fixes
+
+* **tts-telegram-sync:** Reset sweep_done on manual intervention in auto-continue hook ([9739cf1](https://github.com/terrylica/cc-skills/commit/9739cf1515c1a4f04914fcdfc1894e9a7d822f3b))
+
 ## [11.86.4](https://github.com/terrylica/cc-skills/compare/v11.86.3...v11.86.4) (2026-03-08)
 
 
