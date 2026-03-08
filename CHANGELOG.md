@@ -1,3 +1,29 @@
+# [11.86.0](https://github.com/terrylica/cc-skills/compare/v11.85.0...v11.86.0) (2026-03-08)
+
+
+### Features
+
+* **devops-tools:** Expand session-blind-spots to 50 orthogonal perspectives ([b90cf51](https://github.com/terrylica/cc-skills/commit/b90cf5125567cd68c75df81f697cc91b8ac4e01e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-blind-spots](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-blind-spots/SKILL.md) - updated (+56/-26)
+
+</details>
+
 # [11.85.0](https://github.com/terrylica/cc-skills/compare/v11.84.1...v11.85.0) (2026-03-08)
 
 
