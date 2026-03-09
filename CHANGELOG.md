@@ -1,3 +1,62 @@
+## [11.90.3](https://github.com/terrylica/cc-skills/compare/v11.90.2...v11.90.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **media-tools:** use standard Sibling pattern instead of Marketplace ([ea36dd6](https://github.com/terrylica/cc-skills/commit/ea36dd6777f67f26fb28e150be051ee0bf1cc7cd))
+* **tts:** Kokoro-only policy with infinite re-sweep prevention ([94e1c19](https://github.com/terrylica/cc-skills/commit/94e1c19b6f2154193b9345cfe5f730ceb11fbe4c)), closes [hi#load](https://github.com/hi/issues/load)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### General Documentation
+
+- [Cross-Link Validation Report](https://github.com/terrylica/cc-skills/blob/main/docs/cross-link-validation-report.md) - new (+109)
+
+## Other Documentation
+
+### Other
+
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_0_input.md) - deleted
+- [1d8a4502_crew-worker_0_output](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_0_output.md) - deleted
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_1_input.md) - deleted
+- [1d8a4502_crew-worker_1_output](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_1_output.md) - deleted
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_2_input.md) - deleted
+- [1d8a4502_crew-worker_2_output](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_2_output.md) - deleted
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_3_input.md) - deleted
+- [Task for crew-worker](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/1d8a4502_crew-worker_4_input.md) - deleted
+- [Task for crew-planner](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/bfb3ee55_crew-planner_0_input.md) - deleted
+- [bfb3ee55_crew-planner_0_output](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/artifacts/bfb3ee55_crew-planner_0_output.md) - deleted
+- [plan](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/plan.md) - deleted
+- [Planning Outline](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/planning-outline.md) - deleted
+- [Planning Progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/planning-progress.md) - deleted
+- [Task 1: Documentation Standards Audit](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-1.md) - deleted
+- [task-1.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-1.progress.md) - deleted
+- [Task 2: Cross-Platform Format Analysis](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-2.md) - deleted
+- [task-2.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-2.progress.md) - deleted
+- [Task 3: Toolchain & Automation Landscape](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-3.md) - deleted
+- [task-3.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-3.progress.md) - deleted
+- [Task 4: Version Consistency Strategy](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-4.md) - deleted
+- [task-4.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-4.progress.md) - deleted
+- [Task 5: Search & Discovery Architecture](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-5.md) - deleted
+- [task-5.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-5.progress.md) - deleted
+- [Task 6: Content Deduplication Analysis](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-6.md) - deleted
+- [task-6.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-6.progress.md) - deleted
+- [Task 7: Metadata & Linking Framework](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-7.md) - deleted
+- [task-7.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-7.progress.md) - deleted
+- [Task 8: Accessibility & Findability Review](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-8.md) - deleted
+- [task-8.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-8.progress.md) - deleted
+- [Task 9: Governance & Maintenance Model](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-9.md) - deleted
+- [task-9.progress](https://github.com/terrylica/cc-skills/blob/v11.90.2/.pi/messenger/crew/tasks/task-9.progress.md) - deleted
+- [media-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/media-tools/CLAUDE.md) - updated (+1/-1)
+
 ## [11.90.2](https://github.com/terrylica/cc-skills/compare/v11.90.1...v11.90.2) (2026-03-09)
 
 
