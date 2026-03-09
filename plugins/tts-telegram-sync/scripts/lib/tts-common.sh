@@ -46,11 +46,11 @@ release_tts_lock() {
 }
 
 # --- Kill Existing TTS ---
-# Stop any active afplay/say, clear lock, clean stale WAVs.
+# Stop any active afplay playback, clear lock, clean stale WAVs.
+# Note: macOS `say` is never used (Kokoro-only policy).
 
 kill_existing_tts() {
     pkill -x afplay 2>/dev/null || true
-    pkill -x say 2>/dev/null || true
     rm -f "$TTS_LOCK"
     find /tmp -maxdepth 1 -name "kokoro-tts-*.wav" -mmin +2 -delete 2>/dev/null || true
 }

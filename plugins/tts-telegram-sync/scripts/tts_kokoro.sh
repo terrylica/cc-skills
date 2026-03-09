@@ -3,7 +3,7 @@
 # All TTS sources (BTT shortcut, Telegram bot) share one server queue.
 #
 # Flow: clipboard → language detect → POST /v1/audio/speak (server preprocesses)
-# Fallback: macOS say (if server is down)
+# No fallback — always queue through Kokoro server (never use macOS say)
 #
 # Usage:
 #   tts_kokoro.sh                       # speak clipboard via server
@@ -26,12 +26,9 @@ KOKORO_SERVER="${KOKORO_SERVER_URL:-http://127.0.0.1:8779}"
 SPEED="${TTS_SPEED:-1.25}"
 LOG="/tmp/kokoro-tts.log"
 
-# --- Forced fallback mode ---
+# --- Forced fallback mode (disabled — Kokoro-only policy) ---
 if [[ "${TTS_MODE:-auto}" == "fallback" ]]; then
-    tts_log "Mode: forced fallback to macOS say"
-    TEXT="$(pbpaste 2>/dev/null)"
-    [[ -z "$TEXT" ]] && exit 0
-    say "$TEXT"
+    tts_log "Mode: fallback requested but Kokoro-only policy active — skipping"
     exit 0
 fi
 
@@ -90,7 +87,8 @@ except urllib.error.URLError as e:
 " 2>>"$LOG"; then
     tts_log "Queued on server successfully"
 else
-    # Server unavailable — fallback to macOS say
-    tts_log "Server unavailable — falling back to macOS say"
-    say "$TEXT" &
+    # Server unavailable — notify user, never fall back to macOS say
+    tts_log "ERROR: Kokoro server unavailable — run /kokoro-tts:health to diagnose"
+    osascript -e 'display notification "Kokoro server is down. Run /kokoro-tts:health" with title "TTS Error" sound name "Basso"' 2>/dev/null || true
+    exit 1
 fi

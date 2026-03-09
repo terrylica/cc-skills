@@ -694,15 +694,28 @@ async function main(): Promise<void> {
     // Manual intervention — reset auto-iteration streak.
     // Only uninterrupted auto-iterations count toward limits.
     // total_iterations is preserved for notification accuracy.
-    if (state.iteration > 0 || state.sweep_done) {
-      hookLog(`Manual intervention detected (iteration=${state.iteration}\u21920, sweep_done=${state.sweep_done}\u2192false), resetting streak (total=${state.total_iterations})`);
+    if (state.iteration > 0) {
+      hookLog(`Manual intervention detected (iteration=${state.iteration}\u21920), resetting streak (total=${state.total_iterations}, sweep_done=${state.sweep_done})`);
     }
     state.iteration = 0;
-    state.sweep_done = false;
+    // sweep_done is NOT reset here — sweep is a per-session-lifetime event.
+    // Resetting it caused infinite re-sweep loops where every manual-intervention
+    // gap (>5min) triggered a fresh sweep of an already-swept session.
     state.sweep_notified = false;
     state.started_at = new Date().toISOString();
     state.last_blocked_at = undefined;
     saveState(sessionId, state);
+  }
+
+  // Absolute cap on total iterations across all streaks.
+  // Prevents runaway sessions where manual-intervention resets keep
+  // the per-streak counter below MAX_ITERATIONS indefinitely.
+  const ABSOLUTE_MAX = MAX_ITERATIONS * 3;
+  if (state.total_iterations >= ABSOLUTE_MAX) {
+    hookLog(`Absolute iteration cap (${ABSOLUTE_MAX}) reached for ${sessionId} (total=${state.total_iterations})`);
+    allowStop();
+    await sendExitNotification(`Absolute iteration cap (${ABSOLUTE_MAX}) reached`, sessionId, cwd, state);
+    return;
   }
 
   // Check limits
