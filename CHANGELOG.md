@@ -1,3 +1,10 @@
+## [11.90.2](https://github.com/terrylica/cc-skills/compare/v11.90.1...v11.90.2) (2026-03-09)
+
+
+### Bug Fixes
+
+* **tts-telegram-sync:** Improve TTS pipeline robustness and performance ([963453e](https://github.com/terrylica/cc-skills/commit/963453e3bd6389611b6ef4ce307d0876fb7ada48))
+
 ## [11.90.1](https://github.com/terrylica/cc-skills/compare/v11.90.0...v11.90.1) (2026-03-08)
 
 
