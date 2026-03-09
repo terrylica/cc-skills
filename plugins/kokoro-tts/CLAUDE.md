@@ -44,14 +44,27 @@ Model cache: `~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16/`
 
 ## Dependencies
 
-| Package   | Purpose                                       |
-| --------- | --------------------------------------------- |
-| mlx-audio | MLX-Audio TTS engine (Kokoro-82M MLX backend) |
-| soundfile | WAV file I/O                                  |
-| numpy     | Audio array operations                        |
+| Package     | Purpose                                        |
+| ----------- | ---------------------------------------------- |
+| mlx-audio   | MLX-Audio TTS engine (Kokoro-82M MLX backend)  |
+| soundfile   | WAV file I/O                                   |
+| sounddevice | Write-based PortAudio playback (no GIL jitter) |
+| numpy       | Audio array operations                         |
+
+## Playback Architecture
+
+The HTTP server uses a **write-based `sounddevice.OutputStream`** for jitter-free audio. Key design decisions:
+
+- **No callback**: `stream.write()` blocks in C — GIL contention from MLX synthesis cannot affect audio timing
+- **Pipeline synthesis**: chunk N+1 synthesizes while chunk N plays
+- **Float32 end-to-end**: CoreAudio's native format, no WAV encode/decode in playback path
+- **launchd QoS**: `Nice: -10`, `ProcessType: Adaptive` (not Background)
+
+Full patterns and anti-patterns: `kokoro-tts:realtime-audio-architecture`
 
 ## Cross-References
 
 - `tts-telegram-sync` plugin depends on this for engine management
 - HTTP server API: [server-api.md](./skills/server/references/server-api.md)
 - Voice catalog: [voice-catalog.md](./skills/synthesize/references/voice-catalog.md)
+- Real-time audio patterns: [realtime-audio-architecture](./skills/realtime-audio-architecture/SKILL.md)
