@@ -41,10 +41,13 @@ stream.write(block)          model.synthesize(chunk)
 import sounddevice as sd
 import numpy as np
 
-# Open once at startup
+# Opened lazily per request — closed after each to follow device changes
 _stream: sd.OutputStream | None = None
 
 def open_audio_stream() -> sd.OutputStream:
+    # Refresh PortAudio to discover hot-plugged devices (Bluetooth, HDMI)
+    sd._terminate()
+    sd._initialize()
     stream = sd.OutputStream(
         samplerate=24000,   # Kokoro outputs 24kHz
         channels=1,
@@ -83,14 +86,15 @@ def stop_audio(stream: sd.OutputStream) -> None:
 
 1. Normal stop: `stream.abort()` → unblocks `write()` → `PortAudioError` in caller
 2. Caller catches `PortAudioError`, checks `_interrupted` flag
-3. Next playback request: `stream = open_audio_stream()` (reopen)
-4. Stream stays open between chunks within the same speak request
+3. Stream closed in `finally` block after each request
+4. Next request: `stream = open_audio_stream()` (fresh device scan + open)
+5. Stream stays open between chunks within the same speak request
 
 ## Compared to afplay Subprocess
 
 | Metric             | afplay subprocess            | Write-based stream       |
 | ------------------ | ---------------------------- | ------------------------ |
-| Audio device opens | Once per chunk               | Once at startup          |
+| Audio device opens | Once per chunk               | Once per request         |
 | File I/O           | WAV write + read per chunk   | None (numpy arrays)      |
 | Process spawns     | fork+exec per chunk          | None                     |
 | Inter-chunk gap    | 50-200ms (device re-acquire) | 0ms (continuous buffer)  |
