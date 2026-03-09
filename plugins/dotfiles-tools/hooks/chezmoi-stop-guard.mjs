@@ -246,22 +246,36 @@ async function main() {
   //   - Trailing slashes: stripped before prefix comparison
   //   - Double slashes: collapsed via replace
   //   - Deleted files: fallback to string normalization (no realpath)
-  //   - Missing CWD/HOME: falls through to blocking (safe default)
+  //   - Missing CWD: silently allow (can't determine scope → don't nag)
+  //   - CWD is $HOME: silently allow (all chezmoi files would match → false positive)
   // ============================================================================
   const cwd = input.cwd || "";
   const homePath = process.env.HOME || "";
-  if (cwd && homePath) {
-    const cwdResolved = resolveCanonical(cwd, homePath);
-    const relevant = modifiedFiles.some((f) => {
-      const abs = resolveCanonical(f, homePath);
-      return abs.startsWith(cwdResolved + "/") || abs === cwdResolved;
-    });
-    if (!relevant) {
-      // Drift exists but is outside this project — silently allow stop.
-      // Don't nag about unrelated drift; the user can sync chezmoi on their own schedule.
-      console.log("{}");
-      process.exit(0);
-    }
+
+  // If CWD is missing, we can't scope-check — silently allow rather than block
+  if (!cwd || !homePath) {
+    console.log("{}");
+    process.exit(0);
+  }
+
+  const cwdResolved = resolveCanonical(cwd, homePath);
+  const homeResolved = resolveCanonical(homePath, homePath);
+
+  // If CWD IS the home directory, all chezmoi files would match — that's too broad.
+  // Only block when working in a specific subdirectory that contains chezmoi-tracked files.
+  if (cwdResolved === homeResolved) {
+    console.log("{}");
+    process.exit(0);
+  }
+
+  const relevant = modifiedFiles.some((f) => {
+    const abs = resolveCanonical(f, homePath);
+    return abs.startsWith(cwdResolved + "/") || abs === cwdResolved;
+  });
+  if (!relevant) {
+    // Drift exists but is outside this project — silently allow stop.
+    console.log("{}");
+    process.exit(0);
   }
 
   // BLOCK stopping - force Claude to sync chezmoi
