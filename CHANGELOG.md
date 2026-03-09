@@ -1,3 +1,50 @@
+# [11.91.0](https://github.com/terrylica/cc-skills/compare/v11.90.3...v11.91.0) (2026-03-09)
+
+
+### Features
+
+* **kokoro-tts:** add realtime-audio-architecture skill ([1f1adf0](https://github.com/terrylica/cc-skills/commit/1f1adf041612514ae12360bc9a38330ff819f5a7))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>kokoro-tts</strong> (1 change)</summary>
+
+- [realtime-audio-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/realtime-audio-architecture/SKILL.md) - new (+229)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>kokoro-tts/realtime-audio-architecture</strong> (3 files)</summary>
+
+- [launchd QoS for Audio Processes](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/realtime-audio-architecture/references/launchd-qos.md) - new (+72)
+- [Pipeline Synthesis for Gapless TTS](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/realtime-audio-architecture/references/pipeline-synthesis.md) - new (+97)
+- [Write-Based sounddevice.OutputStream](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/realtime-audio-architecture/references/write-based-stream.md) - new (+98)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Design Specifications Guide](https://github.com/terrylica/cc-skills/blob/main/docs/design/CLAUDE.md) - new (+73)
+- [kokoro-tts Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/CLAUDE.md) - updated (+18/-5)
+- [PRD.md - Nested CLAUDE.md Link Farm Migration](https://github.com/terrylica/cc-skills/blob/main/PRD.md) - updated (+64/-101)
+
 ## [11.90.3](https://github.com/terrylica/cc-skills/compare/v11.90.2...v11.90.3) (2026-03-09)
 
 
