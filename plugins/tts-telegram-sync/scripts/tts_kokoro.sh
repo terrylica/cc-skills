@@ -2,7 +2,7 @@
 # Kokoro TTS — clipboard to speech via centralized Kokoro HTTP server.
 # All TTS sources (BTT shortcut, Telegram bot) share one server queue.
 #
-# Flow: clipboard → preprocess → language detect → POST /v1/audio/speak
+# Flow: clipboard → language detect → POST /v1/audio/speak (server preprocesses)
 # Fallback: macOS say (if server is down)
 #
 # Usage:
@@ -23,7 +23,6 @@ source "${SCRIPT_DIR}/lib/tts-common.sh"
 
 # --- Configuration ---
 KOKORO_SERVER="${KOKORO_SERVER_URL:-http://127.0.0.1:8779}"
-KOKORO_PYTHON="${HOME}/.local/share/kokoro/.venv/bin/python"
 SPEED="${TTS_SPEED:-1.25}"
 LOG="/tmp/kokoro-tts.log"
 
@@ -37,28 +36,12 @@ if [[ "${TTS_MODE:-auto}" == "fallback" ]]; then
 fi
 
 # --- Read clipboard ---
-RAW_TEXT="$(pbpaste 2>/dev/null)"
-if [[ -z "$RAW_TEXT" ]]; then
+TEXT="$(pbpaste 2>/dev/null)"
+if [[ -z "$TEXT" ]]; then
     tts_log "Clipboard is empty"
     exit 1
 fi
-tts_log "Clipboard: ${#RAW_TEXT} chars (raw)"
-
-# --- Preprocess: reflow hard-wrapped lines for natural TTS ---
-PREPROCESS_SCRIPT="${SCRIPT_DIR}/lib/tts_preprocess.py"
-if [[ -f "$PREPROCESS_SCRIPT" ]] && [[ -x "$KOKORO_PYTHON" ]]; then
-    TEXT="$(printf '%s' "$RAW_TEXT" | "$KOKORO_PYTHON" "$PREPROCESS_SCRIPT" 2>>"$LOG" || printf '%s' "$RAW_TEXT")"
-    if [[ "${#TEXT}" -ne "${#RAW_TEXT}" ]]; then
-        tts_log "Preprocessed: ${#RAW_TEXT} → ${#TEXT} chars"
-    fi
-else
-    TEXT="$RAW_TEXT"
-fi
-
-if [[ -z "$TEXT" ]]; then
-    tts_log "Text empty after preprocessing"
-    exit 1
-fi
+tts_log "Clipboard: ${#TEXT} chars"
 
 # --- Signal sound (fire-and-forget) ---
 play_tts_signal
@@ -68,7 +51,8 @@ detect_language "$TEXT"
 tts_log "Language: $LANG_CODE (voice: $VOICE)"
 
 # --- Speak via centralized Kokoro server ---
-# Uses python3 (always available on macOS) for safe JSON encoding + HTTP POST
+# Server handles preprocessing (sanitisation, markdown strip, reflow, chunking).
+# Uses python3 (always available on macOS) for safe JSON encoding + HTTP POST.
 tts_log "Sending to server: ${#TEXT} chars (voice=$VOICE, lang=$LANG_CODE, speed=$SPEED)"
 
 if printf '%s' "$TEXT" | python3 -c "
@@ -89,8 +73,11 @@ try:
 except Exception:
     pass
 
-# Queue new text for synthesis + playback
-data = json.dumps({'input': text, 'voice': voice, 'language': lang, 'speed': speed}).encode()
+# Queue new text — server preprocesses (markdown, reflow, sanitise)
+data = json.dumps({
+    'input': text, 'voice': voice, 'language': lang,
+    'speed': speed, 'preprocess': True,
+}).encode()
 req = urllib.request.Request(f'{server}/v1/audio/speak', data=data,
                               headers={'Content-Type': 'application/json'})
 try:
