@@ -1,3 +1,69 @@
+# [11.92.0](https://github.com/terrylica/cc-skills/compare/v11.91.0...v11.92.0) (2026-03-09)
+
+
+### Bug Fixes
+
+* **dotfiles-tools:** fix scope check fallthrough when cwd missing or is $HOME ([a9b699f](https://github.com/terrylica/cc-skills/commit/a9b699f0f5b710ec84856069912cc7ef7414fb8d))
+* **tts:** Telegram alert on failure, never fall back to say ([0911f6c](https://github.com/terrylica/cc-skills/commit/0911f6cef204eddeed1e53d7842e90086198b3cd))
+
+
+### Features
+
+* **kokoro-tts:** add audio device hot-switching pattern ([4bdc72e](https://github.com/terrylica/cc-skills/commit/4bdc72ebd04e7c0c41a5035154628aa2e2795015))
+* **mise:** update run-full-release skill with v13.2.0 production learnings ([0a4669d](https://github.com/terrylica/cc-skills/commit/0a4669de3b3bb360d99f0b11458624da0cf08445))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>kokoro-tts</strong> (1 change)</summary>
+
+- [realtime-audio-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/realtime-audio-architecture/SKILL.md) - updated (+88/-10)
+
+</details>
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - updated (+57/-162)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>kokoro-tts/realtime-audio-architecture</strong> (2 files)</summary>
+
+- [Audio Device Routing and Hot-Switching](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/realtime-audio-architecture/references/device-routing.md) - new (+117)
+- [Write-Based sounddevice.OutputStream](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/realtime-audio-architecture/references/write-based-stream.md) - updated (+8/-4)
+
+</details>
+
+<details>
+<summary><strong>mise/run-full-release</strong> (2 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/references/evolution-log.md) - updated (+28)
+- [Task Implementation Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/references/task-implementations.md) - new (+172)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [kokoro-tts Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/CLAUDE.md) - updated (+1)
+
 # [11.91.0](https://github.com/terrylica/cc-skills/compare/v11.90.3...v11.91.0) (2026-03-09)
 
 
