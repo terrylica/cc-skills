@@ -59,6 +59,7 @@ The HTTP server uses a **write-based `sounddevice.OutputStream`** for jitter-fre
 - **Pipeline synthesis**: chunk N+1 synthesizes while chunk N plays
 - **Float32 end-to-end**: CoreAudio's native format, no WAV encode/decode in playback path
 - **launchd QoS**: `Nice: -10`, `ProcessType: Adaptive` (not Background)
+- **Device hot-switching**: Stream opened lazily per request with PortAudio refresh (`sd._terminate()` + `sd._initialize()`) to discover Bluetooth/HDMI devices. Between-chunk checks detect default device changes among known devices. `KOKORO_AUDIO_DEVICE` env var for explicit override.
 
 Full patterns and anti-patterns: `kokoro-tts:realtime-audio-architecture`
 
