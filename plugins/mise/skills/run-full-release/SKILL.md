@@ -16,6 +16,20 @@ Run the current repo's mise release pipeline end-to-end with auto-scaffolding. *
 
 If no release tasks exist, audits the repo and scaffolds idiomatic release tasks first.
 
+## Step 0: Pre-Release Sync
+
+**ALWAYS pull from remote before starting any release work:**
+
+```bash
+git pull origin main
+```
+
+This prevents:
+
+- Diverged branches causing push failures after semantic-release creates tags
+- Missing commits from other contributors or CI bots (e.g., NanoClaw CLAUDE.md maintenance)
+- Force-push situations that destroy remote state
+
 ## Step 1: Detect Release Tasks
 
 ```bash
@@ -241,192 +255,69 @@ echo ""
 
 Run `mise run release:full` with the newly created tasks.
 
-## Publishing Task Implementation
+## Publishing & Postflight Task Implementations
 
-### `release:pypi` (Optional - Only if Python Package)
+Detailed implementations for `release:pypi`, `release:crates`, and `release:postflight` are in [./references/task-implementations.md](./references/task-implementations.md). Key points:
 
-**Triggers**: `pyproject.toml` exists AND (`scripts/publish-to-pypi.sh` exists OR `[tool.maturin]` present)
+- **`release:pypi`**: Triggers on `pyproject.toml` + `scripts/publish-to-pypi.sh` or `[tool.maturin]`. Credentials via `.mise.toml [env]`.
+- **`release:crates`**: Uses native `cargo publish --workspace` (Rust 1.90+). Never hardcode crate lists.
+- **`release:postflight`**: Resets lockfile drift, fails on uncommitted changes or unpushed commits.
 
-**Implementation**:
+## Known Issue - `@semantic-release/git` Untracked File Explosion
+
+**Bug**: `@semantic-release/git` v10.x runs `git ls-files -m -o` **without `--exclude-standard`**, listing ALL untracked files including gitignored ones (`.venv/`, `.hypothesis/`, `target/`, etc.). In repos with large `.venv/` or `node_modules/`, this produces ~100MB of stdout that crashes the plugin.
+
+**Root cause**: `node_modules/@semantic-release/git/lib/git.js` line 12:
+
+```js
+// BUG: Missing --exclude-standard
+return (await execa("git", ["ls-files", "-m", "-o"], execaOptions)).stdout;
+```
+
+**Upstream issues**: [#345](https://github.com/semantic-release/git/issues/345), [#347](https://github.com/semantic-release/git/issues/347), [#107](https://github.com/semantic-release/git/issues/107)
+
+**Fix**: Patch both local and global installations:
 
 ```bash
-#!/usr/bin/env bash
-#MISE description="Phase 2b: Publish to PyPI via uv publish (pure Python) or twine (maturin wheels)"
-set -euo pipefail
-
-if [[ -x "scripts/publish-to-pypi.sh" ]]; then
-    # Use custom script (handles maturin, 1Password tokens, service accounts, etc.)
-    ./scripts/publish-to-pypi.sh
-elif grep -q '\[tool\.maturin\]' pyproject.toml; then
-    # Maturin project: wheels built by release:build-all
-    echo "Publishing maturin wheels to PyPI..."
-    # Credentials sourced from .mise.toml [env] section
-    # Implementation depends on maturin/uv/twine setup
-    echo "ERROR: release:pypi requires scripts/publish-to-pypi.sh"
-    exit 1
-else
-    # Pure Python: use uv publish with UV_PUBLISH_TOKEN
-    echo "Publishing pure Python package to PyPI..."
-    UV_PUBLISH_TOKEN="${UV_PUBLISH_TOKEN:-}" uv publish || {
-        echo "⚠ uv publish failed - set UV_PUBLISH_TOKEN in .mise.toml [env]"
-        return 1
-    }
-fi
-```
-
-**Credentials (via `.mise.toml [env]`)**:
-
-```toml
-[env]
-# PyPI token (supports both uv and twine)
-UV_PUBLISH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/pypi-token') | trim }}"
-
-# For 1Password service account (alternative):
-# OP_SERVICE_ACCOUNT_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/op-service-account-token') | trim }}"
-```
-
-**Post-Publish Verification**:
-
-In `release:verify`, add:
-
-```bash
-# Check PyPI availability
-PACKAGE_NAME=$(grep '^name = ' pyproject.toml | sed 's/name = "\(.*\)"/\1/' | head -1)
-CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/' | head -1)
-
-echo "Checking PyPI for ${PACKAGE_NAME} v${CURRENT_VERSION}..."
-if curl -s "https://pypi.org/pypi/${PACKAGE_NAME}/${CURRENT_VERSION}/json" | grep -q "version"; then
-    echo "✓ Published to PyPI"
-else
-    echo "⚠ Still propagating to PyPI (check in 30 seconds)"
-fi
-```
-
-### `release:crates` (Optional - Only if Rust Workspace)
-
-**Triggers**: `Cargo.toml` exists AND `[workspace.package]` present AND `rust-version >= 1.90`
-
-**Use native `cargo publish --workspace`** (stabilized in Rust 1.90, Sept 2025). This single command:
-
-- Auto-discovers all publishable crates (skips `publish = false`)
-- Topologically sorts by dependency order
-- Pre-validates the entire workspace builds correctly before publishing any crate
-- Handles crates.io index propagation between dependent publishes
-
-**Never** hardcode crate lists, iterate `crates/*/` in filesystem order, or write bespoke topological sort scripts. All of these are superseded by native Cargo support.
-
-**Implementation**:
-
-```bash
-#!/usr/bin/env bash
-#MISE description="Phase 2c: Publish Rust crates to crates.io (native workspace publish)"
-set -euo pipefail
-
-# Requires CARGO_REGISTRY_TOKEN in .mise.toml [env]
-if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
-    echo "ERROR: CARGO_REGISTRY_TOKEN not set in .mise.toml [env]"
-    exit 1
-fi
-
-# Native workspace publish (Rust 1.90+):
-# - Auto-discovers publishable crates (skips publish=false)
-# - Topologically sorts by dependency order
-# - Pre-validates entire workspace builds before publishing any crate
-cargo publish --workspace
-
-echo "✓ Crates.io publishing complete"
-```
-
-**Preflight Gate** (add to `release:preflight`):
-
-```bash
-# Verify all publishable crates can package before starting the release
-cargo publish --workspace --dry-run
-```
-
-**Credentials (via `.mise.toml [env]`)**:
-
-```toml
-[env]
-# Crates.io token
-CARGO_REGISTRY_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/crates-io-token') | trim }}"
-```
-
-**Post-Publish Verification**:
-
-In `release:verify`, add:
-
-```bash
-# Verify all published crates are available on crates.io
-CRATES=$(cargo metadata --no-deps --format-version 1 | \
-  jq -r '.packages[] | select(.source == null) | select(.publish == null) | select(.name | endswith("-py") | not) | .name')
-for crate in $CRATES; do
-    echo "Checking crates.io for ${crate} v${CRATE_VERSION}..."
-    if curl -s "https://crates.io/api/v1/crates/${crate}/${CRATE_VERSION}" | grep -q "version"; then
-        echo "✓ ${crate} published"
-    else
-        echo "⚠ ${crate} still propagating (check in 30 seconds)"
-    fi
+# Find all installations
+find /opt/homebrew/lib/node_modules $(npm root -g 2>/dev/null) node_modules \
+  -path "*/@semantic-release/git/lib/git.js" 2>/dev/null | while read f; do
+  if ! grep -q 'exclude-standard' "$f"; then
+    sed -i '' "s/\['ls-files', '-m', '-o'\]/['ls-files', '-m', '-o', '--exclude-standard']/" "$f"
+    echo "Patched: $f"
+  fi
 done
 ```
 
-## Postflight Task Implementation
+**Note**: Patch is lost on `npm update` or `brew upgrade`. Re-apply after upgrades.
 
-### `release:postflight` (Mandatory — All Repos)
+## Partial Semantic-Release Recovery
 
-**Purpose**: Validates that the release process left the repository in a clean state. Catches lockfile drift, uncommitted changes, and unpushed commits that accumulate as technical debt if left unchecked.
+When semantic-release **partially succeeds** (bumps version files but fails before creating tag):
 
-**Implementation**:
+1. **Detect**: `Cargo.toml`/`package.json` has new version but `git tag -l vX.Y.Z` returns empty
+2. **Commit artifacts**: `git add Cargo.toml CHANGELOG.md && git commit -m "chore(release): vX.Y.Z"`
+3. **Push**: `git push origin main`
+4. **Create tag manually**: `git tag -a vX.Y.Z -m "vX.Y.Z\n\n<release notes>"`
+5. **Push tag**: `git push origin vX.Y.Z`
+6. **Create GitHub release**: `gh release create vX.Y.Z --title "vX.Y.Z" --notes "<notes>"`
+7. **Continue with publish**: `mise run release:crates` and/or `mise run release:pypi`
+
+**Critical**: Do NOT re-run `semantic-release --no-ci` after a partial failure — it will try to bump the version AGAIN, potentially skipping a version number. Always recover manually.
+
+## Post-Release Deploy Reminder
+
+After publishing, deploy to production hosts if applicable:
 
 ```bash
-#!/usr/bin/env bash
-#MISE description="Phase 5: Post-release git state validation"
-set -euo pipefail
+# Example: deploy to remote host
+mise run deploy:gpu-host   # or whatever deploy task exists
 
-ERRORS=0
-
-# 1. Reset lockfile drift (artifact from cargo build, uv run, npm install, etc.)
-LOCKFILE_DRIFT=$(git diff --name-only | grep -E '^(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb|yarn\.lock|pnpm-lock\.yaml)$' || true)
-if [[ -n "$LOCKFILE_DRIFT" ]]; then
-    echo "Lockfile drift detected — resetting (build artifact)"
-    echo "$LOCKFILE_DRIFT" | xargs git checkout --
-fi
-
-# 2. Check for uncommitted changes (after lockfile reset)
-DIRTY=$(git status --porcelain)
-if [[ -n "$DIRTY" ]]; then
-    echo "FAIL: Uncommitted changes detected:"
-    echo "$DIRTY" | head -20
-    ERRORS=$((ERRORS + 1))
-fi
-
-# 3. Check for unpushed commits
-UNPUSHED=$(git log --oneline @{u}..HEAD 2>/dev/null || echo "")
-if [[ -n "$UNPUSHED" ]]; then
-    echo "FAIL: Unpushed commits:"
-    echo "$UNPUSHED"
-    ERRORS=$((ERRORS + 1))
-fi
-
-if [[ $ERRORS -gt 0 ]]; then
-    echo "Postflight FAILED ($ERRORS issue(s))"
-    exit 1
-fi
-echo "✓ Postflight PASSED — clean landing"
+# Verify on remote
+ssh <host> "<deploy-dir>/.venv/bin/python3 -c 'import <pkg>; print(<pkg>.__version__)'"
 ```
 
-**Key design decisions**:
-
-- **Lockfile reset is automatic**: Lockfiles modified by `cargo build`, `uv run`, `npm install` during release phases are artifacts, not intentional changes. Auto-reset prevents them from blocking the postflight check.
-- **Uncommitted changes are fatal**: If the release process left behind uncommitted files, something went wrong. Fail loudly so the operator can investigate.
-- **Unpushed commits are fatal**: Tags and releases reference specific commits on the remote. If commits aren't pushed, the release is incomplete.
-- **Runs after verify**: Verify checks that artifacts exist (tags, releases, packages). Postflight checks that the local repo is clean. Together they ensure both the remote and local state are correct.
-
-**Repo-specific extensions**: Add custom checks after the 3 core checks. Examples:
-
-- Native app repos: Verify `.app` bundle is signed
-- Workspace repos: Verify all sub-crate versions match
-- Monorepos: Verify all changed packages were published
+Forgetting to deploy means production runs stale code while monitoring reports version drift.
 
 ## Error Recovery
 
@@ -441,6 +332,10 @@ echo "✓ Postflight PASSED — clean landing"
 | No releasable commits                  | Create a `feat:` or `fix:` commit first                                  |
 | Missing GH_TOKEN                       | Add to `.mise.toml` `[env]` section                                      |
 | semantic-release not configured        | Create `.releaserc.yml` (see cc-skills reference)                        |
+| **semantic-release Errors**            |                                                                          |
+| `@semantic-release/git` file explosion | Patch `git.js` (see Known Issue above)                                   |
+| Partial bump (no tag created)          | Manual recovery (see Partial Semantic-Release Recovery above)            |
+| `successCmd` failure (exit 1)          | Non-fatal if tag exists; check `git tag -l vX.Y.Z`                       |
 | **PyPI-Specific Errors**               |                                                                          |
 | `UV_PUBLISH_TOKEN` not set             | Add to `.mise.toml` [env]; store token in `~/.claude/.secrets/`          |
 | `scripts/publish-to-pypi.sh` not found | Create using template (see Publishing Task Implementation above)         |
