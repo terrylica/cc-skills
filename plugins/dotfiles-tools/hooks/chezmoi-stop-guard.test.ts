@@ -91,6 +91,27 @@ describe("chezmoi-stop-guard", () => {
       // Either {} (no drift) or {} (drift outside project) — both are silent allow
       expect(result.decision).toBeUndefined();
     });
+
+    it("should silently allow stop when cwd is missing", async () => {
+      // Missing CWD means we can't determine scope — don't nag
+      const result = await runHook({
+        permission_mode: "default",
+        stop_hook_active: false,
+      });
+      expect(result.decision).toBeUndefined();
+      expect(result.systemMessage).toBeUndefined();
+    });
+
+    it("should silently allow stop when cwd is home directory", async () => {
+      // CWD === $HOME would make ALL chezmoi files appear in-scope — false positive
+      const result = await runHook({
+        permission_mode: "default",
+        stop_hook_active: false,
+        cwd: process.env.HOME,
+      });
+      expect(result.decision).toBeUndefined();
+      expect(result.systemMessage).toBeUndefined();
+    });
   });
 
   describe("empty/malformed input", () => {
