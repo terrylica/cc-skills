@@ -35,6 +35,76 @@ Usage:
 
 import re
 import sys
+import unicodedata
+
+
+# ---------------------------------------------------------------------------
+# Web copy-paste sanitisation (run BEFORE all other processing)
+# ---------------------------------------------------------------------------
+# Zero-width / invisible characters that survive HTML → plain text copy
+_INVISIBLE_CHARS = re.compile(
+    '['
+    '\u00ad'          # Soft hyphen
+    '\u200b'          # Zero-width space
+    '\u200c'          # Zero-width non-joiner
+    '\u200d'          # Zero-width joiner
+    '\u200e\u200f'    # LTR / RTL marks
+    '\u2028\u2029'    # Line / paragraph separators
+    '\u202a-\u202e'   # Bidi embedding controls
+    '\u2060'          # Word joiner
+    '\u2066-\u2069'   # Bidi isolate controls
+    '\ufeff'          # BOM / zero-width no-break space
+    '\ufffc'          # Object replacement character (inline images)
+    ']'
+)
+
+# Whitespace variants → normal space
+_FANCY_SPACES = re.compile(
+    '['
+    '\u00a0'          # Non-breaking space
+    '\u2002'          # En space
+    '\u2003'          # Em space
+    '\u2007'          # Figure space
+    '\u2009'          # Thin space
+    '\u200a'          # Hair space
+    '\u202f'          # Narrow no-break space
+    '\u205f'          # Medium mathematical space
+    ']'
+)
+
+# Smart quotes & typographic ligatures → ASCII equivalents
+_SMART_QUOTES: list[tuple[str, str]] = [
+    ('\u201c', '"'), ('\u201d', '"'),   # " "  → "
+    ('\u2018', "'"), ('\u2019', "'"),   # ' '  → '
+    ('\u2013', '-'),                     # –    → -  (en-dash)
+    ('\ufb01', 'fi'), ('\ufb02', 'fl'), # fi/fl ligatures
+    ('\ufb03', 'ffi'), ('\ufb04', 'ffl'),
+]
+
+
+def _sanitize_clipboard(text: str) -> str:
+    """Strip invisible chars, normalise whitespace variants, fix smart quotes.
+
+    Must run BEFORE markdown/symbol substitutions so patterns match clean text.
+    """
+    # Normalise Unicode (NFC) — decomposed chars → composed
+    text = unicodedata.normalize('NFC', text)
+    # Strip invisible / zero-width chars
+    text = _INVISIBLE_CHARS.sub('', text)
+    # Normalise fancy spaces → regular space
+    text = _FANCY_SPACES.sub(' ', text)
+    # Smart quotes / ligatures → ASCII
+    for fancy, plain in _SMART_QUOTES:
+        text = text.replace(fancy, plain)
+    # Normalise line endings (CRLF / CR → LF)
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    # Strip control chars except \n and \t
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    # Strip surrogate codepoints (cause 'surrogates not allowed' in phonemizer)
+    text = re.sub('[\ud800-\udfff]', '', text)
+    # Strip excessive combining marks / Zalgo text — keep at most 3
+    text = re.sub('([\u0300-\u036f\u0489\u20d0-\u20ff\ufe20-\ufe2f]{3})[\u0300-\u036f\u0489\u20d0-\u20ff\ufe20-\ufe2f]+', r'\1', text)
+    return text
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +162,6 @@ _SUBSTITUTIONS: list[tuple[str | re.Pattern, str]] = [
 ]
 
 # Sentence-ending punctuation (for keep-break heuristic)
-_SENTENCE_END = re.compile(r'[.!?:]\s*$')
 # List-item start: -, *, •, 1., a. (must be at start of stripped line)
 _LIST_START = re.compile(r'^(\s{0,4}[-*•]|\s{0,4}\d{1,2}\.\s|\s{0,4}[a-z]\.\s)')
 # Leading indentation (code blocks, deeply nested structure)
@@ -112,8 +181,15 @@ def _apply_substitutions(text: str) -> str:
     return text
 
 
-def _should_join(current: str, nxt: str) -> bool:
-    """Return True if `nxt` should be joined onto `current` with a space."""
+def _should_join(prev_original_len: int, current: str, nxt: str) -> bool:
+    """Return True if `nxt` should be joined onto `current` with a space.
+
+    Args:
+        prev_original_len: length of the last original line that was appended
+            (NOT the accumulated result length — used for soft-wrap detection).
+        current: accumulated result so far.
+        nxt: the next line to consider joining.
+    """
     c = current.rstrip()
     n = nxt.strip()
 
@@ -128,6 +204,12 @@ def _should_join(current: str, nxt: str) -> bool:
     if n.startswith('#'):
         return False
 
+    # Current line ends with sentence-ending punctuation (.!?) AND next starts
+    # uppercase → real paragraph/sentence break.
+    # Exclude colon — "Note: The system" is not a sentence break.
+    if re.search(r'[.!?]\s*$', c) and n and n[0].isupper():
+        return False
+
     # Clear continuation: next starts with lowercase
     if n and n[0].islower():
         return True
@@ -137,16 +219,12 @@ def _should_join(current: str, nxt: str) -> bool:
         return True
 
     # Both lines are very short → intentional structure (e.g., step labels)
-    if len(c) < _SHORT_LINE and len(n) < _SHORT_LINE:
+    if prev_original_len < _SHORT_LINE and len(n) < _SHORT_LINE:
         return False
 
-    # Current line ends with sentence-ending punctuation AND next starts uppercase
-    # AND current line is not long → real paragraph/sentence break
-    if _SENTENCE_END.search(c) and n and n[0].isupper() and len(c) < _LONG_LINE:
-        return False
-
-    # Current line is "long" (near terminal wrap width) → likely soft-wrapped
-    if len(c) >= _LONG_LINE:
+    # Soft-wrap detection: if the previous original line was near terminal
+    # column width (62-200 chars), it was likely soft-wrapped
+    if _LONG_LINE <= prev_original_len <= 200:
         return True
 
     return False
@@ -158,13 +236,17 @@ def _reflow_block(lines: list[str]) -> str:
         return ''
 
     result = lines[0].rstrip()
+    last_orig_len = len(result)
     for i in range(1, len(lines)):
         nxt = lines[i]
-        if _should_join(result, nxt):
+        if _should_join(last_orig_len, result, nxt):
             # Avoid double-space if result already ends with space
             result = result.rstrip() + ' ' + nxt.strip()
+            # Don't update last_orig_len — the joined line extends the same
+            # original line, so soft-wrap detection should use the trigger line
         else:
             result = result + '\n' + nxt.rstrip()
+            last_orig_len = len(nxt.rstrip())
     return result
 
 
@@ -192,6 +274,9 @@ def _split_sentences(text: str) -> str:
 
 def preprocess(text: str, split_sentences: bool = False) -> str:
     """Full TTS preprocessing pipeline."""
+    # 0. Sanitise web copy-paste artifacts (invisible chars, smart quotes, etc.)
+    text = _sanitize_clipboard(text)
+
     # 1. Apply symbol / markdown substitutions
     text = _apply_substitutions(text)
 
