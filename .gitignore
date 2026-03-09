@@ -21,6 +21,9 @@ __pycache__/
 # Claude Code local session
 .claude/
 
+# Pi messenger (crew orchestration artifacts)
+.pi/
+
 # Lint/validation result caches
 .lint-relative-paths-results.txt
 .lychee-results.json
