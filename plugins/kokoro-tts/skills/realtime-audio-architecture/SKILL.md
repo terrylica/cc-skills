@@ -1,6 +1,6 @@
 ---
 name: realtime-audio-architecture
-description: "Real-time audio playback patterns for macOS Apple Silicon. TRIGGERS - audio jitter, tts choppy, sounddevice, afplay jitter, audio architecture, playback glitch, GIL contention audio, launchd audio priority."
+description: "Real-time audio playback patterns for macOS Apple Silicon. TRIGGERS - audio jitter, tts choppy, sounddevice, afplay jitter, audio architecture, playback glitch, GIL contention audio, launchd audio priority, wrong audio device, airpods, bluetooth audio, device switching."
 allowed-tools: Read, Bash, Glob, Grep, WebSearch
 ---
 
@@ -29,15 +29,22 @@ When building audio playback in Python on macOS, choose based on this hierarchy:
 import sounddevice as sd
 import numpy as np
 
-# Open ONCE at startup — reuse across all audio
-stream = sd.OutputStream(
-    samplerate=24000,
-    channels=1,
-    dtype="float32",
-    blocksize=2048,    # ~85ms blocks at 24kHz
-    latency="high",    # large internal buffer (not live, so latency is fine)
-)
-stream.start()
+def open_audio_stream() -> sd.OutputStream:
+    # Refresh PortAudio to discover hot-plugged devices (Bluetooth, HDMI)
+    sd._terminate()
+    sd._initialize()
+    stream = sd.OutputStream(
+        samplerate=24000,
+        channels=1,
+        dtype="float32",
+        blocksize=2048,    # ~85ms blocks at 24kHz
+        latency="high",    # large internal buffer (not live, so latency is fine)
+    )
+    stream.start()
+    return stream
+
+# Open per request — close after each to follow device changes
+stream = open_audio_stream()
 
 # Play audio — blocks in C code, no GIL contention
 audio = np.array([...], dtype=np.float32).reshape(-1, 1)
@@ -46,6 +53,8 @@ for i in range(0, len(audio), WRITE_BLOCK):
     if interrupted:
         break
     stream.write(audio[i:i + WRITE_BLOCK])
+
+stream.close()  # close after request so next open uses current default device
 ```
 
 **Why this works:**
@@ -54,6 +63,7 @@ for i in range(0, len(audio), WRITE_BLOCK):
 - PortAudio handles all buffering, timing, and device interaction internally
 - GIL held by CPU-intensive work (MLX inference, numpy ops) cannot affect audio timing
 - Writing in ~170ms blocks allows responsive interrupt checking
+- Stream opened per request (not at startup) to follow device changes
 
 **Stop mechanism:** `stream.abort()` immediately stops playback and unblocks `write()`. Reopen the stream for next playback.
 
@@ -137,6 +147,48 @@ Telegram bot  →  POST /v1/audio/speak  →  [server queue]  →  synthesize  �
 
 **Why:** Prevents audio conflicts. One lock protocol. One process to tune. Clients are thin HTTP POST callers.
 
+### Pattern 7: Audio Device Hot-Switching
+
+PortAudio caches the device list at `Pa_Initialize()` time. Bluetooth devices (AirPods) connecting later are invisible. Two-layer strategy:
+
+```python
+def _refresh_audio_devices():
+    """Re-init PortAudio to discover hot-plugged devices (~1ms)."""
+    sd._terminate()
+    sd._initialize()
+
+def open_audio_stream():
+    """Open stream with fresh device discovery."""
+    _refresh_audio_devices()  # ← discovers AirPods, new HDMI, etc.
+    stream = sd.OutputStream(samplerate=24000, channels=1, dtype="float32",
+                             blocksize=2048, latency="high")
+    stream.start()
+    return stream
+
+def maybe_reopen_stream(stream):
+    """Between-chunk check for device switching (cached devices only).
+
+    CRITICAL: Do NOT call _refresh_audio_devices() here — it invalidates
+    the active stream pointer (PaErrorCode -9988).
+    """
+    current_default = sd.query_devices(kind='output')['index']
+    if stream.device != current_default:
+        stream.close()
+        return open_audio_stream()
+    return stream
+```
+
+**Two layers:**
+
+| Layer            | When         | Handles                          | Mechanism                               |
+| ---------------- | ------------ | -------------------------------- | --------------------------------------- |
+| Between requests | Stream open  | Bluetooth hot-plug, HDMI connect | `_refresh_audio_devices()` + new stream |
+| Between chunks   | Mid-playback | Switching between known devices  | `sd.query_devices()` on cached list     |
+
+**CRITICAL:** Never call `sd._terminate()` while a stream is active — it invalidates all PortAudio stream pointers.
+
+**Reference:** [device-routing.md](./references/device-routing.md)
+
 ## Anti-Patterns (DON'T)
 
 ### Anti-Pattern 1: Callback-Based sd.OutputStream with Python Queue
@@ -209,6 +261,23 @@ fi
 
 **Instead:** Fail loudly with a notification. Let the user know the TTS server is down and how to fix it.
 
+### Anti-Pattern 5: Static Stream Opened at Startup
+
+```python
+# DON'T — stream binds to whatever device was default at process start
+stream = sd.OutputStream(samplerate=24000, channels=1, dtype="float32")
+stream.start()
+# ... reuse forever, never close/reopen
+```
+
+**Why it fails:**
+
+1. **Device lock-in:** Stream binds to the default device at open time. Switching system default later has no effect — audio keeps going to the old device.
+2. **launchd boot timing:** Server starts at login when MacBook Speakers may be default. External monitor / Bluetooth not yet connected.
+3. **PortAudio device cache:** `Pa_Initialize()` scans devices once. Bluetooth devices connecting later are invisible — stream open to them fails silently or crashes the playback worker.
+
+**Instead:** Open stream lazily per request, close after each. Call `sd._terminate()` + `sd._initialize()` before opening to refresh the device list.
+
 ## Quick Diagnostic
 
 If you hear jitter/choppiness:
@@ -222,8 +291,17 @@ If you hear jitter/choppiness:
 4. **Check launchd QoS:** `plutil -p ~/Library/LaunchAgents/com.terryli.kokoro-tts-server.plist | grep -E 'Nice|ProcessType'`
    - Should be Nice: -10, ProcessType: Adaptive
 
+If audio goes to wrong device:
+
+1. **Check stream device in logs:** `grep "Audio stream opened" ~/.local/state/launchd-logs/kokoro-tts-server/stdout.log | tail -3`
+   - Should show the expected device name
+2. **Check for PortAudio errors:** `grep "PaErrorCode\|PortAudio error" ~/.local/state/launchd-logs/kokoro-tts-server/stdout.log | tail -5`
+   - `PaErrorCode -9988` = stream pointer invalidated (device refresh while stream active)
+3. **Check system default:** `~/.local/share/kokoro/.venv/bin/python3 -c "import sounddevice as sd; print(sd.query_devices(kind='output'))"`
+
 ## References
 
 - [Write-based stream implementation](./references/write-based-stream.md)
 - [launchd QoS reference](./references/launchd-qos.md)
 - [Pipeline synthesis pattern](./references/pipeline-synthesis.md)
+- [Device routing and hot-switching](./references/device-routing.md)
