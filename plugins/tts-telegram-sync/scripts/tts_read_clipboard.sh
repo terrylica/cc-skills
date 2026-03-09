@@ -62,7 +62,7 @@ acquire_lock() {
             lock_age=$((now - mtime))
             if [[ $lock_age -gt $stale_threshold ]]; then
                 # Stale lock — but check if audio is actually playing
-                if ! pgrep -x afplay >/dev/null 2>&1 && ! pgrep -x say >/dev/null 2>&1; then
+                if ! pgrep -x afplay >/dev/null 2>&1; then
                     debug_log "Removing stale lock (${lock_age}s old, no audio playing)"
                     rm -f "$LOCK_FILE"
                     break
@@ -238,78 +238,26 @@ main() {
         USE_SUPERTONIC=true
         debug_log "Supertonic M3 available"
     else
-        debug_log "Supertonic not available, using macOS say"
+        debug_log "Supertonic not available — Kokoro-only policy, no macOS say fallback"
+        notify "TTS Error" "Supertonic not available. Use Kokoro server via tts_kokoro.sh"
+        exit 1
     fi
 
     # Strip markdown from full content
     clipboard_content=$(strip_markdown "$clipboard_content")
 
-    if [[ "$USE_SUPERTONIC" == "true" ]]; then
-        # Supertonic path: synthesize entire text in one call (handles chunking internally)
-        local TTS_SPEED
-        TTS_SPEED=$(wpm_to_supertonic_speed "$SPEECH_RATE")
-        export TTS_SPEED
-        debug_log "Using Supertonic M3 (speed: $TTS_SPEED)"
+    # Supertonic path: synthesize entire text in one call (handles chunking internally)
+    local TTS_SPEED
+    TTS_SPEED=$(wpm_to_supertonic_speed "$SPEECH_RATE")
+    export TTS_SPEED
+    debug_log "Using Supertonic M3 (speed: $TTS_SPEED)"
 
-        echo "Speaking via Supertonic M3 (speed: $TTS_SPEED)"
-        if ! printf '%s' "$clipboard_content" | uv run --quiet --python 3.13 --with supertonic python3 "$SUPERTONIC_SPEAK" 2>/dev/null; then
-            local exit_code=$?
-            debug_log "Supertonic failed (exit code: $exit_code), falling back to say"
-            echo "Supertonic failed, falling back to macOS say"
-            # Fall through to say
-            USE_SUPERTONIC=false
-        fi
-    fi
-
-    if [[ "$USE_SUPERTONIC" == "false" ]]; then
-        # macOS say fallback: process paragraph by paragraph
-        local paragraph_num=0
-        local total_paragraphs
-        total_paragraphs=$(echo "$clipboard_content" | wc -l | tr -d ' ')
-        debug_log "Total paragraphs: $total_paragraphs"
-
-        while IFS= read -r paragraph || [[ -n "$paragraph" ]]; do
-            debug_log "Read paragraph (length: ${#paragraph})"
-
-            # Skip empty paragraphs
-            if [[ -z "$paragraph" ]]; then
-                debug_log "Skipping empty paragraph"
-                continue
-            fi
-
-            paragraph_num=$((paragraph_num + 1))
-            debug_log "Processing paragraph $paragraph_num"
-
-            # Skip if empty text
-            if [[ -z "$paragraph" ]]; then
-                debug_log "Skipping empty cleaned text"
-                continue
-            fi
-
-            # Speak the paragraph
-            echo "Speaking paragraph $paragraph_num"
-            debug_log "Calling say command..."
-            debug_log "Text to speak (first 100 chars): ${paragraph:0:100}"
-
-            # Direct piping works fine once Unicode is properly normalized
-            if ! printf '%s' "$paragraph" | say -r "$SPEECH_RATE" 2>&1; then
-                exit_code=$?
-                debug_log "say command failed with exit code: $exit_code"
-                # Exit code 143 = SIGTERM (interrupted)
-                if [[ $exit_code -eq 143 ]]; then
-                    echo "Speech interrupted at paragraph $paragraph_num"
-                    debug_log "Speech interrupted"
-                    exit 0
-                fi
-            else
-                debug_log "say command completed successfully"
-            fi
-
-            # Add pause between paragraphs
-            if [[ $paragraph_num -lt $total_paragraphs ]] && (( $(echo "$PAUSE_DURATION > 0" | bc -l 2>/dev/null || echo 0) )); then
-                sleep "$PAUSE_DURATION"
-            fi
-        done <<< "$clipboard_content"
+    echo "Speaking via Supertonic M3 (speed: $TTS_SPEED)"
+    if ! printf '%s' "$clipboard_content" | uv run --quiet --python 3.13 --with supertonic python3 "$SUPERTONIC_SPEAK" 2>/dev/null; then
+        local exit_code=$?
+        debug_log "Supertonic failed (exit code: $exit_code) — no fallback (Kokoro-only policy)"
+        notify "TTS Error" "Supertonic synthesis failed (exit $exit_code)"
+        exit 1
     fi
 
     echo "TTS completed successfully"

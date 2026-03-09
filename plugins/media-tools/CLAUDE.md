@@ -2,7 +2,7 @@
 
 > YouTube audio download and iOS device media transfer workflows.
 
-**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [docs/CLAUDE.md](../../docs/CLAUDE.md)
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [plugins/CLAUDE.md](../../plugins/CLAUDE.md)
 
 **Skill**: [youtube-to-bookplayer](./skills/youtube-to-bookplayer/SKILL.md) — Download YouTube audio and push to BookPlayer on iPhone via USB.
 
