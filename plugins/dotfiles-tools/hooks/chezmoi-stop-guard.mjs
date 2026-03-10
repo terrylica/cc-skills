@@ -225,7 +225,55 @@ async function main() {
     process.exit(0);
   }
 
-  // Extract modified files for helpful message
+  // ============================================================================
+  // SCOPE CHECK: Only block when working in the chezmoi source directory.
+  //
+  // Chezmoi tracks HOME directory files (~/.config/*, ~/.zshrc, etc.).
+  // These are NEVER under a project CWD like ~/eon/some-project/.
+  // The old approach (checking if drift files are under CWD) was backwards
+  // and caused false positives across every project.
+  //
+  // Correct logic: only block when CWD is the chezmoi source repo itself
+  // (~/own/dotfiles). All other projects → silently allow.
+  // ============================================================================
+  const cwd = input.cwd || "";
+  const homePath = process.env.HOME || "";
+
+  let chezmoiSourceDir = "";
+  try {
+    const result = spawnSync("chezmoi", ["source-path"], {
+      encoding: "utf8",
+      timeout: 5000,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    chezmoiSourceDir = result.stdout?.trim() || "";
+  } catch {
+    // Can't determine source path — silently allow
+    console.log("{}");
+    process.exit(0);
+  }
+
+  if (!cwd || !chezmoiSourceDir) {
+    // Can't determine scope — silently allow
+    console.log("{}");
+    process.exit(0);
+  }
+
+  const cwdResolved = resolveCanonical(cwd, homePath);
+  const sourceResolved = resolveCanonical(chezmoiSourceDir, homePath);
+
+  // Only block if CWD is the chezmoi source dir or a subdirectory of it
+  const isInSourceRepo =
+    cwdResolved === sourceResolved ||
+    cwdResolved.startsWith(sourceResolved + "/");
+
+  if (!isInSourceRepo) {
+    // Working in a different project — chezmoi drift is pre-existing, not our concern
+    console.log("{}");
+    process.exit(0);
+  }
+
+  // Extract modified files for the block message
   const modifiedFiles = extractModifiedFiles(diffOutput);
   const fileList =
     modifiedFiles.length > 0
@@ -234,51 +282,7 @@ async function main() {
 
   const truncated = modifiedFiles.length > 5 ? `\n  ... and ${modifiedFiles.length - 5} more` : "";
 
-  // ============================================================================
-  // SCOPE CHECK: Only block if modified files are under the session's CWD.
-  // Pre-existing chezmoi drift from other directories should not block
-  // unrelated projects (e.g., editing ~/.claude/automation/* shouldn't block
-  // stop in ~/eon/cc-skills).
-  //
-  // Edge cases handled:
-  //   - Symlinks: realpathSync resolves ~/eon → /Volumes/data/eon
-  //   - Case-insensitive APFS: realpathSync returns canonical case
-  //   - Trailing slashes: stripped before prefix comparison
-  //   - Double slashes: collapsed via replace
-  //   - Deleted files: fallback to string normalization (no realpath)
-  //   - Missing CWD: silently allow (can't determine scope → don't nag)
-  //   - CWD is $HOME: silently allow (all chezmoi files would match → false positive)
-  // ============================================================================
-  const cwd = input.cwd || "";
-  const homePath = process.env.HOME || "";
-
-  // If CWD is missing, we can't scope-check — silently allow rather than block
-  if (!cwd || !homePath) {
-    console.log("{}");
-    process.exit(0);
-  }
-
-  const cwdResolved = resolveCanonical(cwd, homePath);
-  const homeResolved = resolveCanonical(homePath, homePath);
-
-  // If CWD IS the home directory, all chezmoi files would match — that's too broad.
-  // Only block when working in a specific subdirectory that contains chezmoi-tracked files.
-  if (cwdResolved === homeResolved) {
-    console.log("{}");
-    process.exit(0);
-  }
-
-  const relevant = modifiedFiles.some((f) => {
-    const abs = resolveCanonical(f, homePath);
-    return abs.startsWith(cwdResolved + "/") || abs === cwdResolved;
-  });
-  if (!relevant) {
-    // Drift exists but is outside this project — silently allow stop.
-    console.log("{}");
-    process.exit(0);
-  }
-
-  // BLOCK stopping - force Claude to sync chezmoi
+  // BLOCK stopping — we're in the chezmoi source repo with uncommitted drift
   const result = {
     decision: "block",
     reason: `[CHEZMOI-GUARD] Uncommitted dotfile changes detected. Sync before stopping:

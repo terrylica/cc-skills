@@ -4,8 +4,8 @@
  * Tests:
  * - Plan mode bypass (permission_mode === "plan")
  * - Loop prevention (stop_hook_active === true)
+ * - Source-dir scoping (only blocks in chezmoi source repo)
  * - Empty input handling
- * - Outside-project drift (silent allow)
  *
  * Pattern: Same subprocess spawning as itp-hooks tests.
  * Stop hooks output JSON to stdout; exit 0 = allow, decision:block = block.
@@ -50,20 +50,8 @@ describe("chezmoi-stop-guard", () => {
         permission_mode: "plan",
         stop_hook_active: false,
       });
-      // {} means allow stop — no decision:block, no systemMessage
       expect(result.decision).toBeUndefined();
       expect(result.systemMessage).toBeUndefined();
-    });
-
-    it("should not bypass in default mode", async () => {
-      const result = await runHook({
-        permission_mode: "default",
-        stop_hook_active: false,
-        cwd: "/tmp/nonexistent-project",
-      });
-      // Should not have decision:block for a nonexistent project
-      // (no chezmoi drift would be in-scope for /tmp/nonexistent-project)
-      expect(result.decision).toBeUndefined();
     });
   });
 
@@ -73,27 +61,34 @@ describe("chezmoi-stop-guard", () => {
         permission_mode: "default",
         stop_hook_active: true,
       });
-      // Loop prevention allows stop with informational systemMessage
       expect(result.decision).toBeUndefined();
       expect(result.systemMessage).toContain("CHEZMOI-GUARD");
       expect(result.systemMessage).toContain("stop_hook_active");
     });
   });
 
-  describe("scope check", () => {
-    it("should silently allow stop when drift is outside cwd", async () => {
-      // Use a CWD that definitely won't contain chezmoi drift
+  describe("source-dir scoping", () => {
+    it("should silently allow when cwd is a random project", async () => {
+      // Any project that isn't the chezmoi source dir should never be blocked
       const result = await runHook({
         permission_mode: "default",
         stop_hook_active: false,
-        cwd: "/tmp/definitely-not-a-chezmoi-project-12345",
+        cwd: "/Users/terryli/eon/opendeviationbar-py",
       });
-      // Either {} (no drift) or {} (drift outside project) — both are silent allow
+      expect(result.decision).toBeUndefined();
+      expect(result.systemMessage).toBeUndefined();
+    });
+
+    it("should silently allow when cwd is /tmp", async () => {
+      const result = await runHook({
+        permission_mode: "default",
+        stop_hook_active: false,
+        cwd: "/tmp/some-project",
+      });
       expect(result.decision).toBeUndefined();
     });
 
-    it("should silently allow stop when cwd is missing", async () => {
-      // Missing CWD means we can't determine scope — don't nag
+    it("should silently allow when cwd is missing", async () => {
       const result = await runHook({
         permission_mode: "default",
         stop_hook_active: false,
@@ -102,8 +97,7 @@ describe("chezmoi-stop-guard", () => {
       expect(result.systemMessage).toBeUndefined();
     });
 
-    it("should silently allow stop when cwd is home directory", async () => {
-      // CWD === $HOME would make ALL chezmoi files appear in-scope — false positive
+    it("should silently allow when cwd is home directory", async () => {
       const result = await runHook({
         permission_mode: "default",
         stop_hook_active: false,
@@ -112,12 +106,22 @@ describe("chezmoi-stop-guard", () => {
       expect(result.decision).toBeUndefined();
       expect(result.systemMessage).toBeUndefined();
     });
+
+    it("should silently allow when cwd is chezmoi source dir (no drift)", async () => {
+      // Even in the source dir, no drift = no block
+      // (chezmoi status is currently clean from earlier test cleanup)
+      const result = await runHook({
+        permission_mode: "default",
+        stop_hook_active: false,
+        cwd: "/Users/terryli/own/dotfiles",
+      });
+      expect(result.decision).toBeUndefined();
+    });
   });
 
   describe("empty/malformed input", () => {
     it("should handle empty input gracefully", async () => {
       const result = await runHook({});
-      // Should not crash — either allow or inform, never throw
       expect(result).toBeDefined();
       expect(result.decision).not.toBe("block");
     });
@@ -130,7 +134,6 @@ describe("chezmoi-stop-guard", () => {
         stop_hook_active: false,
         cwd: "/tmp/nonexistent-project",
       });
-      // acceptEdits is not plan mode — should run normally
       expect(result.decision).toBeUndefined();
     });
 
