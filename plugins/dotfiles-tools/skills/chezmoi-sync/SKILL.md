@@ -71,8 +71,5 @@ Report: "Skipped chezmoi sync. Run `/dotfiles-tools:chezmoi-sync` when ready."
 
 ## Notes
 
-- This skill replaces the automatic stop hook (`chezmoi-stop-guard.mjs`) which was removed from settings.json
-- The stop hook had persistent false-positive issues scoping drift to the correct project
-- On-demand invocation gives the user full control over when and how to sync
 - Always use `chezmoi forget --force` (not bare `forget`) to avoid TTY prompt issues
 - The chezmoi source dir is `~/own/dotfiles` (configured in `~/.config/chezmoi/chezmoi.toml`)
