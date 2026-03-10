@@ -2,10 +2,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-0-gray.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
-Custom Claude Code status line with git status, link validation, and path linting indicators.
+Custom Claude Code status line with git status indicators.
 
 ## Skills
 
@@ -20,8 +20,6 @@ Custom Claude Code status line with git status, link validation, and path lintin
 - **Git Status Indicators**: M (modified), D (deleted), S (staged), U (untracked)
 - **Remote Tracking**: ↑ (ahead), ↓ (behind)
 - **Repository State**: ≡ (stash count), ⚠ (merge conflicts)
-- **Link Validation**: L (broken links via lychee)
-- **Path Linting**: P (path violations via lint-relative-paths)
 - **GitHub URL**: Clickable link to current branch
 
 ## Installation
@@ -31,14 +29,8 @@ Custom Claude Code status line with git status, link validation, and path lintin
 # If not already installed:
 /plugin install cc-skills
 
-# Install dependencies (lychee for link validation)
-/statusline-tools:setup deps
-
 # Configure the status line
 /statusline-tools:setup install
-
-# Optional: Install the Stop hook (for link validation cache)
-/statusline-tools:hooks install
 ```
 
 ## Commands
@@ -49,15 +41,6 @@ Custom Claude Code status line with git status, link validation, and path lintin
 /statusline-tools:setup install    # Install status line to settings.json
 /statusline-tools:setup uninstall  # Remove status line from settings.json
 /statusline-tools:setup status     # Show current configuration
-/statusline-tools:setup deps       # Install lychee via mise
-```
-
-### /statusline-tools:hooks
-
-```bash
-/statusline-tools:hooks install    # Add Stop hook for link validation
-/statusline-tools:hooks uninstall  # Remove Stop hook
-/statusline-tools:hooks status     # Show hook configuration
 ```
 
 ### /statusline-tools:ignore
@@ -81,7 +64,7 @@ The status line outputs three lines:
 **Line 1**: Repository path, git indicators, local time
 
 ```
-repo-name/path | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 | L:0 P:0 | 25Jan07 14:32L
+repo-name/path | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 | 25Jan07 14:32L
 ```
 
 **Line 2**: GitHub URL (or warning), UTC time
@@ -108,8 +91,6 @@ https://github.com/user/repo/tree/branch | 25Jan07 14:32Z
 | ↓:n       | Commits behind remote     | Yellow            |
 | ≡:n       | Stash count               | Yellow            |
 | ⚠:n       | Merge conflicts           | Red               |
-| L:n       | Broken links (lychee)     | Red               |
-| P:n       | Path violations           | Red               |
 
 ### Color Scheme
 
@@ -117,105 +98,35 @@ https://github.com/user/repo/tree/branch | 25Jan07 14:32Z
 - **Magenta**: Feature branch name
 - **Gray**: Main/master branch, zero-value indicators
 - **Yellow**: Non-zero change indicators
-- **Red**: Conflicts, broken links, path violations
+- **Red**: Merge conflicts
 
 ## Dependencies
 
 ### System Dependencies
 
-| Tool   | Required | Installation                                |
-| ------ | -------- | ------------------------------------------- |
-| bash   | Yes      | Built-in                                    |
-| jq     | Yes      | `brew install jq`                           |
-| git    | Yes      | Built-in on macOS                           |
-| bun    | Yes      | `brew install oven-sh/bun/bun` or bun.sh    |
-| lychee | Optional | `mise install lychee` (for link validation) |
-
-### npm Dependencies (for lint-relative-paths)
-
-The `lint-relative-paths` script is implemented in TypeScript and requires npm packages:
-
-| Package          | Purpose                                       |
-| ---------------- | --------------------------------------------- |
-| simple-git       | Git operations (git ls-files, repo detection) |
-| remark-parse     | Markdown AST parsing                          |
-| unified          | AST processor                                 |
-| unist-util-visit | AST traversal for link extraction             |
-
-**Post-installation step**: After installing the plugin, run:
-
-```bash
-cd ~/.claude/plugins/cache/cc-skills/statusline-tools/<version>
-bun install --frozen-lockfile
-```
-
-This installs the npm dependencies needed for the TypeScript linter.
-
-## Hooks
-
-| Hook                  | Event | Purpose                                  |
-| --------------------- | ----- | ---------------------------------------- |
-| `lychee-stop-hook.sh` | Stop  | Validates links and paths at session end |
-
-### Stop Hook: Link Validation
-
-Runs at session end (when Claude stops responding) to:
-
-1. **Link Validation** - Run lychee on markdown files to find broken links
-2. **Path Linting** - Run lint-relative-paths to check path conventions
-3. **Cache Results** - Save to `.lychee-results.json` and `.lint-relative-paths-results.txt`
-
-Results are displayed in the status line (`L:n` for broken links, `P:n` for path violations).
-
-### Installing the Hook
-
-```bash
-/statusline-tools:hooks install    # Add Stop hook
-/statusline-tools:hooks status     # Check status
-
-# Restart Claude Code for hook to take effect
-```
+| Tool | Required | Installation                             |
+| ---- | -------- | ---------------------------------------- |
+| bash | Yes      | Built-in                                 |
+| jq   | Yes      | `brew install jq`                        |
+| git  | Yes      | Built-in on macOS                        |
+| bun  | Yes      | `brew install oven-sh/bun/bun` or bun.sh |
 
 ## How It Works
 
-1. **Status Line Script**: Reads Claude Code's status JSON from stdin, queries git for repository state, reads cached validation results, and outputs a formatted status line.
-
-2. **Stop Hook**: Runs at session end to validate markdown links (lychee) and check path formatting (lint-relative-paths). Results are cached in `.lychee-results.json` and `.lint-relative-paths-results.txt` at the git root.
-
-3. **lint-relative-paths**: TypeScript-based linter that enforces repository-relative path conventions in markdown files.
-
-### .gitignore Respect
-
-Both validators use `git ls-files` to scan only **tracked files**, automatically respecting `.gitignore`. This prevents false positives from:
-
-- Cloned repositories (`repos/`, `vendor/`)
-- Build artifacts (`target/`, `dist/`, `build/`)
-- Dependencies (`node_modules/`, `.venv/`)
-- Cache directories (`.cache/`, `coverage/`)
-
-**Fallback behavior**: If not in a git repository, the validators use directory walking with an expanded exclusion list.
+**Status Line Script**: Reads Claude Code's status JSON from stdin, queries git for repository state, and outputs a formatted status line.
 
 ## Files
 
 ```
 statusline-tools/
 ├── commands/
-│   ├── setup.md                  # /statusline-tools:setup command
-│   ├── hooks.md                  # /statusline-tools:hooks command
-│   └── ignore.md                 # /statusline-tools:ignore command
+│   └── setup.md                  # /statusline-tools:setup command
 ├── statusline/
 │   └── custom-statusline.sh      # Status line renderer
-├── hooks/
-│   └── lychee-stop-hook.sh       # Link validation Stop hook
 ├── scripts/
-│   ├── manage-statusline.sh      # Install/uninstall statusLine
-│   ├── manage-hooks.sh           # Install/uninstall Stop hook
-│   ├── manage-ignore.sh          # Manage global ignore patterns
-│   └── lint-relative-paths       # Bundled path linter
+│   └── manage-statusline.sh      # Install/uninstall statusLine
 └── tests/
-    ├── test_statusline.bats      # Status line tests
-    ├── test_stop_hook.bats       # Stop hook tests
-    └── test_lint_relative.bats   # Path linter tests
+    └── test_statusline.bats      # Status line tests
 ```
 
 ## Testing
@@ -233,18 +144,13 @@ bats tests/test_statusline.bats
 
 ## Troubleshooting
 
-| Issue                   | Cause                      | Solution                                                                     |
-| ----------------------- | -------------------------- | ---------------------------------------------------------------------------- |
-| Status line not showing | Not configured             | Run `/statusline-tools:setup install`                                        |
-| L:? indicator           | lychee not installed       | `mise install lychee`                                                        |
-| P:? indicator           | bun deps missing           | `cd ~/.claude/plugins/cache/cc-skills/statusline-tools/<ver> && bun install` |
-| False path violations   | Plugin uses relative paths | Add to ignore: `/statusline-tools:ignore add repo-name`                      |
-| Hook timeout            | Large repo                 | Increase timeout in hooks.json or exclude directories                        |
+| Issue                   | Cause          | Solution                              |
+| ----------------------- | -------------- | ------------------------------------- |
+| Status line not showing | Not configured | Run `/statusline-tools:setup install` |
 
 ## Credits
 
 - Original status line concept inspired by [sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatusline)
-- Link validation powered by [lychee](https://github.com/lycheeverse/lychee)
 
 ## License
 

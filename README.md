@@ -12,7 +12,7 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 | [plugin-dev](./plugins/plugin-dev/)                     | Plugin development: skill architecture, validation, silent failure auditing, TodoWrite templates        | development  |
 | [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release | productivity |
 | [gh-tools](./plugins/gh-tools/)                         | GitHub workflow automation with intelligent GFM link validation for PRs                                 | development  |
-| [link-tools](./plugins/link-tools/)                     | Comprehensive link validation: portability checks, lychee broken link detection, path policy linting    | quality      |
+| [link-tools](./plugins/link-tools/)                     | Link validation: portability checks, broken link detection, path policy linting                         | quality      |
 | [devops-tools](./plugins/devops-tools/)                 | Doppler credentials, Firecrawl self-hosted, ML pipelines, Telegram bot, MLflow, session recovery        | devops       |
 | [dotfiles-tools](./plugins/dotfiles-tools/)             | Chezmoi dotfile management via natural language workflows                                               | utilities    |
 | [doc-tools](./plugins/doc-tools/)                       | Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF                | documents    |
@@ -570,10 +570,10 @@ Features:
 
 ### link-tools
 
-**Comprehensive link validation: portability checks, lychee broken link detection, path policy linting.**
+**Link validation: portability checks, broken link detection, path policy linting.**
 
 - **link-validator** - Validates relative path usage for cross-installation compatibility
-- **link-validation** - Lychee broken link detection with path policy linting
+- **link-validation** - Broken link detection with path policy linting (on-demand)
 
 ### devops-tools
 
@@ -604,14 +604,12 @@ Six bundled skills: clickhouse-architect, code-clone-assistant, multi-agent-e2e-
 
 ### statusline-tools
 
-**Custom Claude Code status line with git status, link validation, and path linting indicators.**
+**Custom Claude Code status line with git status indicators.**
 
 - Git status indicators (modified, deleted, staged, untracked)
 - Remote tracking (ahead/behind commits)
-- Link validation (broken links via lychee)
-- Path linting (repository-relative path violations)
 
-**Commands**: `/statusline-tools:setup`, `/statusline-tools:hooks`
+**Commands**: `/statusline-tools:setup`
 
 ### Other Plugins
 

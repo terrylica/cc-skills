@@ -558,7 +558,7 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 |                         | Validation gates      | Ensure code compiles, lints pass, tests succeed              |
 |                         | Auto-commits          | Create git commits or PR drafts when work completes          |
 |                         | Team notifications    | Send completion notifications to channels                    |
-|                         | Link validation       | Lychee check on .md files; use `additionalContext` to inform |
+|                         | Link validation       | On-demand via `/link-tools:link-validation` skill            |
 |                         | Session summary       | Generate JSON summary: git status, duration, workflows       |
 |                         | Background validation | Full workspace link scan (async, non-blocking)               |
 | · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |

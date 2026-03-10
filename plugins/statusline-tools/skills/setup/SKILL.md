@@ -2,7 +2,7 @@
 name: setup
 description: "Configure statusline-tools status line and dependencies. TRIGGERS - statusline setup, install statusline, configure status bar, statusline deps."
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
-argument-hint: "[install|uninstall|status|deps]"
+argument-hint: "[install|uninstall|status]"
 model: haiku
 disable-model-invocation: true
 ---
@@ -18,13 +18,12 @@ Manage custom status line installation and dependencies.
 | `install`   | Install status line to settings.json        |
 | `uninstall` | Remove status line from settings.json       |
 | `status`    | Show current configuration and dependencies |
-| `deps`      | Install lychee via mise                     |
 
 ## Execution
 
 ### Skip Logic
 
-- If action provided (`install`, `uninstall`, `status`, `deps`) -> execute directly
+- If action provided (`install`, `uninstall`, `status`) -> execute directly
 - If no arguments -> check current status, then use AskUserQuestion flow
 
 ### Workflow
@@ -33,7 +32,6 @@ Manage custom status line installation and dependencies.
 2. **Action Selection**: Use AskUserQuestion to select action:
    - "Install status line" -> configure settings.json
    - "Uninstall status line" -> remove configuration
-   - "Install dependencies" -> install lychee via mise
    - "Just show status" -> display and exit
 3. **Execute**: Run the management script
 4. **Verify**: Confirm changes applied
@@ -47,7 +45,6 @@ Question: "What would you like to do with statusline-tools?"
 Options:
   - "Install" -> "Install the custom status line to settings.json"
   - "Uninstall" -> "Remove the status line configuration"
-  - "Install deps" -> "Install lychee for link validation via mise"
   - "Status" -> "Show current configuration and dependencies"
 ```
 
@@ -73,10 +70,9 @@ The statusLine is loaded at session start. Modifications to settings.json requir
 
 ## Troubleshooting
 
-| Issue                 | Cause                   | Solution                                 |
-| --------------------- | ----------------------- | ---------------------------------------- |
-| Status line not shown | Session not restarted   | Exit and restart Claude Code             |
-| lychee not found      | mise not installed      | Install mise from <https://mise.jdx.dev> |
-| Settings file missing | ~/.claude doesn't exist | Create with `mkdir -p ~/.claude`         |
-| Install fails         | Invalid settings.json   | Validate JSON with `jq . settings.json`  |
-| Script not found      | Plugin not installed    | Reinstall plugin from marketplace        |
+| Issue                 | Cause                   | Solution                                |
+| --------------------- | ----------------------- | --------------------------------------- |
+| Status line not shown | Session not restarted   | Exit and restart Claude Code            |
+| Settings file missing | ~/.claude doesn't exist | Create with `mkdir -p ~/.claude`        |
+| Install fails         | Invalid settings.json   | Validate JSON with `jq . settings.json` |
+| Script not found      | Plugin not installed    | Reinstall plugin from marketplace       |
