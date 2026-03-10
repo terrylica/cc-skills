@@ -10,41 +10,41 @@ This document catalogs all documentation-related tools, scripts, and automation 
 
 ### 1. Validation & Linting
 
-| Tool | Path | Purpose | Maturity |
-|------|------|---------|----------|
+| Tool                   | Path                           | Purpose                                                                                                     | Maturity                                                                                             |
+| ---------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `validate-plugins.mjs` | `scripts/validate-plugins.mjs` | Comprehensive plugin validation: marketplace.json entries, paths, hooks, dependencies, SKILL.md frontmatter | **High** - Production-ready with AJV schema validation, supports `--fix`, `--strict`, `--deps` flags |
-| `lychee` | External (via `lychee.toml`) | Link checking for all markdown files | **Medium** - Configured but manual execution required |
+| `lychee`               | External (via `lychee.toml`)   | Link checking for all markdown files                                                                        | **Medium** - On-demand via `/link-tools:link-validation`                                             |
 
 ### 2. Synchronization Scripts
 
-| Script | Path | Purpose | Maturity |
-|--------|------|---------|----------|
+| Script                         | Path                                   | Purpose                                                       | Maturity                                                       |
+| ------------------------------ | -------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- |
 | `sync-commands-to-settings.sh` | `scripts/sync-commands-to-settings.sh` | Syncs plugin skills to `~/.claude/commands/` with namespacing | **High** - Automated post-release, handles provenance tracking |
-| `sync-hooks-to-settings.sh` | `scripts/sync-hooks-to-settings.sh` | Merges plugin hooks.json into user settings | **High** - Post-release automation with deduplication |
-| `sync-enabled-plugins.sh` | `scripts/sync-enabled-plugins.sh` | Auto-enables new marketplace plugins in settings | **Medium** - Manual execution, could be automated |
+| `sync-hooks-to-settings.sh`    | `scripts/sync-hooks-to-settings.sh`    | Merges plugin hooks.json into user settings                   | **High** - Post-release automation with deduplication          |
+| `sync-enabled-plugins.sh`      | `scripts/sync-enabled-plugins.sh`      | Auto-enables new marketplace plugins in settings              | **Medium** - Manual execution, could be automated              |
 
 ### 3. Release & Versioning
 
-| Tool | Path | Purpose | Maturity |
-|------|------|---------|----------|
-| `semantic-release` | `.releaserc.yml` | Automated releases with changelog | **High** - Full CI/CD pipeline |
-| `sync-versions.mjs` | `scripts/sync-versions.mjs` | Centralized version synchronization | **High** - Called by semantic-release |
+| Tool                   | Path                           | Purpose                                   | Maturity                                |
+| ---------------------- | ------------------------------ | ----------------------------------------- | --------------------------------------- |
+| `semantic-release`     | `.releaserc.yml`               | Automated releases with changelog         | **High** - Full CI/CD pipeline          |
+| `sync-versions.mjs`    | `scripts/sync-versions.mjs`    | Centralized version synchronization       | **High** - Called by semantic-release   |
 | `release-preflight.sh` | `scripts/release-preflight.sh` | Prevents dirty working directory releases | **High** - Integrated in .releaserc.yml |
 
 ### 4. Automation Tasks
 
-| Task | Path | Purpose | Maturity |
-|------|------|---------|----------|
-| `release/verify` | `.mise/tasks/release/verify` | Pre-release verification | **High** |
-| `release/sync` | `.mise/tasks/release/sync` | Post-release sync | **High** |
-| `release/preflight` | `.mise/tasks/release/preflight` | Pre-flight checks | **High** |
-| `release/full` | `.mise/tasks/release/full` | Full release pipeline | **High** |
-| `release/dry` | `.mise/tasks/release/dry` | Dry-run release | **High** |
+| Task                | Path                            | Purpose                  | Maturity |
+| ------------------- | ------------------------------- | ------------------------ | -------- |
+| `release/verify`    | `.mise/tasks/release/verify`    | Pre-release verification | **High** |
+| `release/sync`      | `.mise/tasks/release/sync`      | Post-release sync        | **High** |
+| `release/preflight` | `.mise/tasks/release/preflight` | Pre-flight checks        | **High** |
+| `release/full`      | `.mise/tasks/release/full`      | Full release pipeline    | **High** |
+| `release/dry`       | `.mise/tasks/release/dry`       | Dry-run release          | **High** |
 
 ### 5. Documentation Generators
 
-| Generator | Path | Purpose | Maturity |
-|-----------|------|---------|----------|
+| Generator                | Path                                                                 | Purpose                                  | Maturity                                |
+| ------------------------ | -------------------------------------------------------------------- | ---------------------------------------- | --------------------------------------- |
 | `generate-doc-notes.mjs` | `plugins/itp/skills/semantic-release/scripts/generate-doc-notes.mjs` | ADR/Design Spec linking in release notes | **High** - Integrated in .releaserc.yml |
 
 ---
@@ -61,7 +61,7 @@ This document catalogs all documentation-related tools, scripts, and automation 
 
 ### Semi-Automated (Medium Maturity)
 
-1. **Link Checking**: lychee configured but manual execution
+1. **Link Checking**: lychee on-demand via `/link-tools:link-validation`
 2. **Plugin Enablement**: `sync-enabled-plugins.sh` - manual execution required
 
 ### Manual Processes (Gaps)
@@ -96,26 +96,26 @@ This document catalogs all documentation-related tools, scripts, and automation 
 
 ### Medium-Priority Opportunities
 
-4. **Lychee Integration**: Add lychee to pre-commit or CI pipeline
-5. **Automated Plugin Enablement**: Run `sync-enabled-plugins.sh` as part of post-release
+1. **Lychee Integration**: Available on-demand via `/link-tools:link-validation`
+2. **Automated Plugin Enablement**: Run `sync-enabled-plugins.sh` as part of post-release
 
 ### Low-Priority/Exploratory
 
-6. **Documentation Coverage Metrics**: Track % of plugins with complete CLAUDE.md, SKILL.md coverage
-7. **Auto-generated Indexes**: Consider generating plugin index from marketplace.json
+1. **Documentation Coverage Metrics**: Track % of plugins with complete CLAUDE.md, SKILL.md coverage
+2. **Auto-generated Indexes**: Consider generating plugin index from marketplace.json
 
 ---
 
 ## Maturity Assessment Summary
 
-| Category | Maturity | Notes |
-|----------|----------|-------|
-| Plugin Validation | 🟢 High | AJV schemas, comprehensive checks, CI integration |
-| Release Automation | 🟢 High | Full pipeline from commit to user installation |
-| Link Checking | 🟡 Medium | Configured but manual |
-| Documentation Linting | 🔴 Low | No markdown/CLAUDE.md validators |
-| Cross-Reference Validation | 🔴 Low | No internal link validation |
-| Plugin Enablement | 🟡 Medium | Manual script exists but not automated |
+| Category                   | Maturity  | Notes                                             |
+| -------------------------- | --------- | ------------------------------------------------- |
+| Plugin Validation          | 🟢 High   | AJV schemas, comprehensive checks, CI integration |
+| Release Automation         | 🟢 High   | Full pipeline from commit to user installation    |
+| Link Checking              | 🟡 Medium | On-demand via skill                               |
+| Documentation Linting      | 🔴 Low    | No markdown/CLAUDE.md validators                  |
+| Cross-Reference Validation | 🔴 Low    | No internal link validation                       |
+| Plugin Enablement          | 🟡 Medium | Manual script exists but not automated            |
 
 ---
 
@@ -123,18 +123,18 @@ This document catalogs all documentation-related tools, scripts, and automation 
 
 ### Immediate (Quick Wins)
 
-1. **Add lychee to CI**: Run link checking on every PR
+1. **Link checking**: Available on-demand via `/link-tools:link-validation`
 2. **Run sync-enabled-plugins.sh post-release**: Add to .releaserc.yml successCmd
 
 ### Short-Term
 
-3. **Add markdownlint to validate-plugins.mjs**: Check CLAUDE.md formatting
-4. **Extend validate-plugins.mjs**: Add CLAUDE.md structure validation
+1. **Add markdownlint to validate-plugins.mjs**: Check CLAUDE.md formatting
+2. **Extend validate-plugins.mjs**: Add CLAUDE.md structure validation
 
 ### Long-Term
 
-5. **Create SKILL.md schema**: Define required sections, validate all skills
-6. **Build documentation dashboard**: Track coverage metrics over time
+1. **Create SKILL.md schema**: Define required sections, validate all skills
+2. **Build documentation dashboard**: Track coverage metrics over time
 
 ---
 

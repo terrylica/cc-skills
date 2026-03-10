@@ -90,13 +90,10 @@
         "validation",
         "portability",
         "relative-paths",
-        "lychee",
         "broken-links",
         "path-linting",
-        "stop-hook",
         "ulid"
       ],
-      "hooks": "./plugins/link-tools/hooks/hooks.json",
       "strict": false
     },
     {
@@ -298,7 +295,7 @@
     },
     {
       "name": "statusline-tools",
-      "description": "Custom status line with git status, link validation (L), and path linting (P) indicators",
+      "description": "Custom status line with git status indicators",
       "version": "11.93.0",
       "source": "./plugins/statusline-tools",
       "category": "utilities",
@@ -309,12 +306,8 @@
       "keywords": [
         "statusline",
         "status-bar",
-        "git-status",
-        "lychee",
-        "link-validation",
-        "path-linting"
+        "git-status"
       ],
-      "hooks": "./plugins/statusline-tools/hooks/hooks.json",
       "strict": false
     },
     {

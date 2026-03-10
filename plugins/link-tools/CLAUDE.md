@@ -11,12 +11,6 @@
 | `link-validator`  | Validate markdown link portability (relative vs absolute paths) |
 | `link-validation` | Lychee broken link detection with path policy linting           |
 
-## Hooks
-
-| Hook                 | Event | Timeout | Purpose                                     |
-| -------------------- | ----- | ------- | ------------------------------------------- |
-| `stop-link-check.py` | Stop  | 60s     | Validates links at session end using lychee |
-
 ## Conventions
 
 - Merged from `link-validator` + `link-checker` plugins

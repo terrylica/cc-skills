@@ -1,6 +1,6 @@
 {
   "name": "itp-hooks",
-  "version": "11.92.0",
+  "version": "11.93.0",
   "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
   "author": {
     "name": "<user>ca",

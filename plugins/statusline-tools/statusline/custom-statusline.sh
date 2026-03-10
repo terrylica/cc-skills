@@ -13,7 +13,7 @@
 #   S = Staged (for commit)    U = Untracked (new files)
 #   ↑ = Commits ahead          ↓ = Commits behind
 #   ≡ = Stash count            ⚠ = Merge conflicts
-#   L = Broken links (lychee)  P = Path violations (lint-relative-paths)
+#   Pth = Path violations (lint-relative-paths)
 #
 # Session line format:
 #   ~/.claude/projects JSONL ID: <claude-code-uuid>
@@ -234,46 +234,6 @@ git_changes="${git_changes} $(colorize_stat ≡ "$stash_count")"
 # Conflict indicator (RED when non-zero)
 git_changes="${git_changes} $(colorize_stat ⚠ "$conflicts" "$RED")"
 
-# =============================================================================
-# Lychee Link Checker + lint-relative-paths (reads from cached results)
-# =============================================================================
-# The stop hook runs lychee AND lint-relative-paths in background and caches
-# results. Shown as separate indicators:
-#   L = Lychee (broken links)
-#   P = Path violations (relative path format issues)
-#
-# Priority (mirrors stop hook config resolution):
-#   1. Local first: $git_root/.lychee-results.json
-#   2. Fallback to global: ~/.claude/.lychee-results.json
-
-link_errors=0
-path_violations=0
-lychee_cache=""
-git_root=$(git rev-parse --show-toplevel 2>/dev/null)
-
-# Priority 1: Local repo results (preferred)
-if [[ -n "$git_root" && -f "$git_root/.lychee-results.json" ]]; then
-    lychee_cache="$git_root/.lychee-results.json"
-# Priority 2: Global results (fallback)
-elif [[ -f "$HOME/.claude/.lychee-results.json" ]]; then
-    lychee_cache="$HOME/.claude/.lychee-results.json"
-fi
-
-# Extract lychee error count from cached results
-if [[ -n "$lychee_cache" ]]; then
-    link_errors=$(jq -r '.errors // 0' "$lychee_cache" 2>/dev/null || echo 0)
-fi
-
-# Extract lint-relative-paths violations (same location as lychee cache)
-if [[ -n "$git_root" && -f "$git_root/.lint-relative-paths-results.txt" ]]; then
-    # Parse "Found N violation(s)" from results file
-    path_violations=$(grep -oE 'Found [0-9]+ violation' "$git_root/.lint-relative-paths-results.txt" 2>/dev/null | grep -oE '[0-9]+' || echo 0)
-fi
-
-# Add separator and link checker indicators (L=Links, P=Paths)
-# These are separate from git status, so use | delimiter
-link_status="$(colorize_stat L "$link_errors" "$RED") $(colorize_stat P "$path_violations" "$RED")"
-git_changes="${git_changes} | ${link_status}"
 
 # Get GitHub remote URL (convert SSH to HTTPS for browser link)
 get_github_url() {

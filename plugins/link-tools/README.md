@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-0-gray.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Comprehensive link validation for Claude Code: portability checks, lychee broken link detection, and path policy linting.
@@ -23,22 +23,6 @@ claude plugin marketplace add terrylica/cc-skills
 claude plugin install link-tools@cc-skills
 ```
 
-## Hooks
-
-| Hook                 | Event | Timeout | Description                                 |
-| -------------------- | ----- | ------- | ------------------------------------------- |
-| `stop-link-check.py` | Stop  | 60s     | Validates links at session end using lychee |
-
-### Stop Hook: Session-End Link Validation
-
-Runs automatically when Claude stops responding:
-
-1. Scans markdown files in the current repository
-2. Validates links with lychee (offline mode by default)
-3. Reports broken links and path policy violations
-
-Uses `uv run` for Python dependency management.
-
 **Trigger phrases:**
 
 - "check links", "validate portability", "fix broken links" → link-validator
@@ -50,7 +34,8 @@ Uses `uv run` for Python dependency management.
 # Validate link portability in a directory
 uv run plugins/link-tools/scripts/validate_links.py ./skills/
 
-# The Stop hook runs automatically at session end
+# Run link validation on demand via skill
+/link-tools:link-validation
 ```
 
 ## Features
