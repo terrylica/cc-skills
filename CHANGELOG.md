@@ -1,3 +1,45 @@
+# [11.93.0](https://github.com/terrylica/cc-skills/compare/v11.92.0...v11.93.0) (2026-03-10)
+
+
+### Bug Fixes
+
+* **dotfiles-tools:** replace backwards scope check with source-dir scoping ([38dccb1](https://github.com/terrylica/cc-skills/commit/38dccb135aa10f7802e0d57563a6df8d71fc7f26))
+
+
+### Features
+
+* **dotfiles-tools:** add interactive chezmoi-sync skill, remove stop hook ([f4e85a7](https://github.com/terrylica/cc-skills/commit/f4e85a721700cb32f4f190072572d2e211bcde64))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>dotfiles-tools</strong> (1 change)</summary>
+
+- [chezmoi-sync](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/skills/chezmoi-sync/SKILL.md) - new (+75)
+
+</details>
+
+
+### Plugin READMEs
+
+- [dotfiles-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/README.md) - updated (+12/-57)
+
+## Other Documentation
+
+### Other
+
+- [dotfiles-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/CLAUDE.md) - updated (+6/-6)
+
 # [11.92.0](https://github.com/terrylica/cc-skills/compare/v11.91.0...v11.92.0) (2026-03-09)
 
 
