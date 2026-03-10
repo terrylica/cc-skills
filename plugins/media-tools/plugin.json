@@ -1,0 +1,9 @@
+{
+  "name": "media-tools",
+  "version": "11.92.0",
+  "description": "YouTube audio download and iOS device media transfer workflows",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

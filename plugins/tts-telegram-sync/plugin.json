@@ -1,0 +1,9 @@
+{
+  "name": "tts-telegram-sync",
+  "version": "11.92.0",
+  "description": "Telegram bot + iTerm2 TTS integration: bot process control, voice audition, settings, hooks (requires kokoro-tts for engine)",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

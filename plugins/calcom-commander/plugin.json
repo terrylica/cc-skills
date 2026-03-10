@@ -1,0 +1,9 @@
+{
+  "name": "calcom-commander",
+  "version": "11.92.0",
+  "description": "Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "statusline-tools",
+  "version": "11.92.0",
+  "description": "Custom status line with git status, link validation (L), and path linting (P) indicators",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

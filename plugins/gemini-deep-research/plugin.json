@@ -1,0 +1,9 @@
+{
+  "name": "gemini-deep-research",
+  "version": "11.92.0",
+  "description": "Gemini Deep Research via browser automation: Playwright CDP, 8-step flow, 40k+ char research reports",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

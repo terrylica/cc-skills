@@ -1,0 +1,9 @@
+{
+  "name": "ru",
+  "version": "11.92.0",
+  "description": "RU - autonomous loop mode for any project. Commands: /ru:start, /ru:stop, /ru:status",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

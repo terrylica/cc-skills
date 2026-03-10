@@ -1,0 +1,9 @@
+{
+  "name": "doc-tools",
+  "version": "11.92.0",
+  "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

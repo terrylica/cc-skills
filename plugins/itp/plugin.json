@@ -1,0 +1,9 @@
+{
+  "name": "itp",
+  "version": "11.92.0",
+  "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

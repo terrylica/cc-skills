@@ -1,0 +1,9 @@
+{
+  "name": "dotfiles-tools",
+  "version": "11.92.0",
+  "description": "Chezmoi dotfile management via natural language workflows",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

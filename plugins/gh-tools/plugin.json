@@ -1,0 +1,9 @@
+{
+  "name": "gh-tools",
+  "version": "11.92.0",
+  "description": "GitHub workflow automation: GFM link validation, WebFetch enforcement, issue management, fork intelligence",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

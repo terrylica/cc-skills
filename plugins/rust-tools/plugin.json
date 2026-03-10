@@ -1,0 +1,9 @@
+{
+  "name": "rust-tools",
+  "version": "11.92.0",
+  "description": "SOTA Rust tooling - refactoring, profiling, benchmarking, testing, SIMD, dependency audit",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

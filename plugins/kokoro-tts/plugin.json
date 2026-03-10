@@ -1,0 +1,9 @@
+{
+  "name": "kokoro-tts",
+  "version": "11.92.0",
+  "description": "Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, health checks, diagnostics (Apple Silicon)",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

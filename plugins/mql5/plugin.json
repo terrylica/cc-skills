@@ -1,0 +1,9 @@
+{
+  "name": "mql5",
+  "version": "11.92.0",
+  "description": "MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

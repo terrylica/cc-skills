@@ -1,0 +1,9 @@
+{
+  "name": "gitnexus-tools",
+  "version": "11.92.0",
+  "description": "GitNexus knowledge graph: explore symbols, blast radius analysis, staleness detection hooks",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

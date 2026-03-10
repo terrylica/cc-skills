@@ -1,0 +1,9 @@
+{
+  "name": "productivity-tools",
+  "version": "11.92.0",
+  "description": "Slash command factory and calendar event management with tiered sound alarms",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

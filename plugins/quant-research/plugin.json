@@ -1,0 +1,9 @@
+{
+  "name": "quant-research",
+  "version": "11.92.0",
+  "description": "Quantitative research metrics: SOTA evaluation for range bars, Sharpe ratios with daily aggregation, ML prediction quality (IC, autocorrelation), crypto-specific considerations",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

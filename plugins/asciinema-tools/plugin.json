@@ -1,0 +1,9 @@
+{
+  "name": "asciinema-tools",
+  "version": "11.92.0",
+  "description": "Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

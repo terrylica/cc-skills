@@ -1,0 +1,9 @@
+{
+  "name": "quality-tools",
+  "version": "11.92.0",
+  "description": "Code quality and validation: clone detection, multi-agent E2E validation, performance profiling, schema testing",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
