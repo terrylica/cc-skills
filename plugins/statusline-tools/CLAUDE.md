@@ -1,6 +1,6 @@
 # statusline-tools Plugin
 
-> Custom status line with git status, link validation, and path linting indicators.
+> Custom status line with git status indicators.
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [itp-hooks CLAUDE.md](../itp-hooks/CLAUDE.md)
 
@@ -10,19 +10,11 @@
 | -------------- | ------------------------------------------------- |
 | `session-info` | Get current Claude Code session UUID and registry |
 
-## Hooks
-
-| Hook                  | Event | Purpose                                  |
-| --------------------- | ----- | ---------------------------------------- |
-| `lychee-stop-hook.sh` | Stop  | Validates links and paths at session end |
-
 ## Commands
 
-| Command                    | Purpose                                               |
-| -------------------------- | ----------------------------------------------------- |
-| `/statusline-tools:setup`  | Install/uninstall/check status line configuration     |
-| `/statusline-tools:hooks`  | Install/uninstall Stop hook for link validation       |
-| `/statusline-tools:ignore` | Manage global ignore patterns for lint-relative-paths |
+| Command                   | Purpose                                           |
+| ------------------------- | ------------------------------------------------- |
+| `/statusline-tools:setup` | Install/uninstall/check status line configuration |
 
 ## Status Line Indicators
 
@@ -32,5 +24,3 @@
 | ↑/↓       | Commits ahead/behind remote                |
 | ≡         | Stash count                                |
 | ⚠         | Merge conflicts                            |
-| L         | Broken links (lychee)                      |
-| P         | Path violations (lint-relative-paths)      |

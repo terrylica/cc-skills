@@ -1,6 +1,6 @@
 {
   "name": "doc-tools",
-  "version": "11.92.0",
+  "version": "11.93.0",
   "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation",
   "author": {
     "name": "<user>ca",

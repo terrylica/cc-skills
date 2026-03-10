@@ -1,6 +1,6 @@
 ---
 name: link-validation
-description: Universal link validation using lychee for Claude Code sessions. Runs at session end to detect broken links and path policy violations.
+description: Universal link validation using lychee for Claude Code sessions. Detect broken links and path policy violations on demand.
 allowed-tools: Bash, Read, Glob
 triggers:
   - link validation
@@ -20,12 +20,11 @@ Use this skill when:
 
 - Checking for broken links in markdown files
 - Validating link paths before committing documentation
-- Running automated link checks at session end
 - Detecting path policy violations (absolute paths, excessive traversal)
 
 ## What It Does
 
-At session end (Stop hook), this skill:
+When invoked, this skill:
 
 1. **Discovers** all markdown files in your workspace
 2. **Runs lychee** to check for broken links

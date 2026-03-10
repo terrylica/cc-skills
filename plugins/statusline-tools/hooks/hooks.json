@@ -1,16 +1,3 @@
 {
-  "description": "Status line link validation Stop hook",
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/lychee-stop-hook.sh",
-            "timeout": 30000
-          }
-        ]
-      }
-    ]
-  }
+  "hooks": {}
 }
