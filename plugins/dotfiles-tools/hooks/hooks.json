@@ -1,5 +1,5 @@
 {
-  "description": "Chezmoi sync: PostToolUse reminders + Stop hook enforcement",
+  "description": "Chezmoi sync: PostToolUse reminders for dotfile edits",
   "hooks": {
     "PostToolUse": [
       {
@@ -9,17 +9,6 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/chezmoi-sync-reminder.sh",
             "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/chezmoi-stop-guard.mjs",
-            "timeout": 15000
           }
         ]
       }
