@@ -1,3 +1,29 @@
+# [11.95.0](https://github.com/terrylica/cc-skills/compare/v11.94.0...v11.95.0) (2026-03-11)
+
+
+### Features
+
+* **code-hardcode-audit:** Add 3 complementary secret detection tools (bandit, trufflehog, whispers) ([f94cc74](https://github.com/terrylica/cc-skills/commit/f94cc74b951c2d5a587ae96e38f49660109f9b2b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [code-hardcode-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/code-hardcode-audit/SKILL.md) - updated (+26/-9)
+
+</details>
+
 # [11.94.0](https://github.com/terrylica/cc-skills/compare/v11.93.0...v11.94.0) (2026-03-11)
 
 
