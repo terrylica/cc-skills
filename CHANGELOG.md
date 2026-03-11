@@ -1,3 +1,78 @@
+# [11.94.0](https://github.com/terrylica/cc-skills/compare/v11.93.0...v11.94.0) (2026-03-11)
+
+
+### Features
+
+* **code-hardcode-audit:** Add ast-grep & env-coverage tools, preflight checks, semgrep rules ([f81fec5](https://github.com/terrylica/cc-skills/commit/f81fec55db99d951f1b1898938243a4ca26c25ab))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>itp</strong> (1 change)</summary>
+
+- [code-hardcode-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/code-hardcode-audit/SKILL.md) - updated (+41/-26)
+
+</details>
+
+<details>
+<summary><strong>link-tools</strong> (1 change)</summary>
+
+- [link-validation](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/skills/link-validation/SKILL.md) - updated (+2/-3)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (1 change)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/setup/SKILL.md) - updated (+8/-12)
+
+</details>
+
+
+### Plugin READMEs
+
+- [link-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/README.md) - updated (+3/-18)
+- [statusline-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/README.md) - updated (+17/-111)
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+1/-1)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+5/-7)
+
+### General Documentation
+
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (-1)
+- [Toolchain & Automation Landscape](https://github.com/terrylica/cc-skills/blob/main/docs/tool-inventory.md) - updated (+38/-38)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+1/-1)
+- [link-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/CLAUDE.md) - updated (-6)
+- [statusline-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/CLAUDE.md) - updated (+4/-14)
+
 # [11.93.0](https://github.com/terrylica/cc-skills/compare/v11.92.0...v11.93.0) (2026-03-10)
 
 
