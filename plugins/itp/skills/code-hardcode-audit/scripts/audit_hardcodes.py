@@ -2,7 +2,7 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""Orchestrator for code hardcode audit combining 6 tools.
+"""Orchestrator for code hardcode audit combining 9 tools.
 
 Usage:
     uv run --script audit_hardcodes.py -- <path> [options]
@@ -33,6 +33,9 @@ AUDIT_PARALLEL_WORKERS = int(os.environ.get("AUDIT_PARALLEL_WORKERS", "4"))
 AUDIT_JSCPD_TIMEOUT = int(os.environ.get("AUDIT_JSCPD_TIMEOUT", "300"))
 AUDIT_GITLEAKS_TIMEOUT = int(os.environ.get("AUDIT_GITLEAKS_TIMEOUT", "120"))
 AUDIT_ASTGREP_TIMEOUT = int(os.environ.get("AUDIT_ASTGREP_TIMEOUT", "60"))
+AUDIT_BANDIT_TIMEOUT = int(os.environ.get("AUDIT_BANDIT_TIMEOUT", "120"))
+AUDIT_TRUFFLEHOG_TIMEOUT = int(os.environ.get("AUDIT_TRUFFLEHOG_TIMEOUT", "300"))
+AUDIT_WHISPERS_TIMEOUT = int(os.environ.get("AUDIT_WHISPERS_TIMEOUT", "120"))
 
 
 @dataclass
@@ -389,6 +392,162 @@ def run_env_coverage(target: Path, excludes: list[str]) -> list[Finding]:
     return []
 
 
+def _gitignore_excludes(target: Path, regex_safe: bool = False) -> list[str]:
+    """Read .gitignore from target and return directory names to exclude.
+
+    Args:
+        regex_safe: If True, skip glob patterns with *, ?, [, { (for trufflehog regex mode).
+    """
+    excludes = []
+    gitignore = target / ".gitignore"
+    if gitignore.exists():
+        for line in gitignore.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or line.startswith("!"):
+                continue
+            clean = line.rstrip("/")
+            if regex_safe and any(c in clean for c in ("*", "?", "[", "{")):
+                continue
+            if clean:
+                excludes.append(clean)
+    # Always exclude .venv even if not in .gitignore
+    if ".venv" not in excludes:
+        excludes.append(".venv")
+    return excludes
+
+
+def run_bandit(target: Path, excludes: list[str]) -> list[Finding]:
+    """Run Bandit B105/B106/B107 for hardcoded credential detection."""
+    gi_excludes = _gitignore_excludes(target)
+    bandit_excludes = [str(target / e) for e in gi_excludes]
+    cmd = [
+        "bandit", "-r", str(target),
+        "-t", "B105,B106,B107",
+        "-f", "json",
+        "--exclude", ",".join(bandit_excludes),
+    ]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=AUDIT_BANDIT_TIMEOUT)
+        raw = result.stdout or ""
+        brace_index = raw.find("{")
+        if brace_index == -1:
+            return []
+
+        data = json.loads(raw[brace_index:])
+        findings = []
+        for i, item in enumerate(data.get("results", [])):
+            findings.append(Finding(
+                id=f"BANDIT-{i + 1:03d}",
+                tool="bandit",
+                rule=item.get("test_id", "B105"),
+                file=item.get("filename", ""),
+                line=item.get("line_number", 0),
+                column=item.get("col_offset", 0),
+                message=item.get("issue_text", ""),
+                severity="high",  # Credential findings are always high
+                suggested_fix="Move to environment variable or secret manager",
+            ))
+        return findings
+    except (json.JSONDecodeError, FileNotFoundError, subprocess.TimeoutExpired) as e:
+        print(f"bandit error: {e}", file=sys.stderr)
+        return []
+
+
+def run_trufflehog(target: Path, excludes: list[str]) -> list[Finding]:
+    """Run TruffleHog for entropy-based secret detection with .gitignore awareness."""
+    gi_excludes = _gitignore_excludes(target, regex_safe=True)
+    gi_excludes.append(".git")
+
+    # trufflehog --exclude-paths expects a file with patterns
+    exclude_file = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".txt", delete=False, prefix="trufflehog-exclude-"
+    )
+    try:
+        exclude_file.write("\n".join(gi_excludes) + "\n")
+        exclude_file.close()
+
+        cmd = [
+            "trufflehog", "filesystem", str(target),
+            "--json", "--no-update",
+            "--exclude-paths", exclude_file.name,
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=AUDIT_TRUFFLEHOG_TIMEOUT)
+
+        findings = []
+        if result.returncode == 0 and result.stdout.strip():
+            for line in result.stdout.strip().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                fs = obj.get("SourceMetadata", {}).get("Data", {}).get("Filesystem", {})
+                verified = obj.get("Verified", False)
+                findings.append(Finding(
+                    id=f"TRUFFLEHOG-{len(findings) + 1:03d}",
+                    tool="trufflehog",
+                    rule=obj.get("DetectorName", "unknown"),
+                    file=fs.get("file", ""),
+                    line=fs.get("line", 0),
+                    message=f"{obj.get('DetectorName', '')} ({'verified' if verified else 'unverified'}): {obj.get('Raw', '')[:30]}...",
+                    severity="high" if verified else "medium",
+                    suggested_fix="Remove secret and rotate credentials",
+                ))
+        return findings
+    except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+        print(f"trufflehog error: {e}", file=sys.stderr)
+        return []
+    finally:
+        Path(exclude_file.name).unlink(missing_ok=True)
+
+
+def run_whispers(target: Path, excludes: list[str]) -> list[Finding]:
+    """Run Whispers for config-file secret detection with .gitignore awareness."""
+    gi_excludes = _gitignore_excludes(target)
+    gi_excludes.append(".git")
+
+    # Build whispers config YAML
+    config_lines = ["exclude:", "  files:"]
+    for p in gi_excludes:
+        config_lines.append(f'    - "{p}/**"')
+    config_yaml = "\n".join(config_lines) + "\n"
+
+    cfg_file = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yml", delete=False, prefix="whispers-config-"
+    )
+    try:
+        cfg_file.write(config_yaml)
+        cfg_file.close()
+
+        cmd = ["whispers", str(target), "-j", "-c", cfg_file.name]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=AUDIT_WHISPERS_TIMEOUT)
+
+        findings = []
+        if result.stdout and result.stdout.strip():
+            data = json.loads(result.stdout)
+            for i, item in enumerate(data):
+                findings.append(Finding(
+                    id=f"WHISPERS-{i + 1:03d}",
+                    tool="whispers",
+                    rule=item.get("rule_id", "unknown"),
+                    file=item.get("file", ""),
+                    line=item.get("line", 0),
+                    message=f"{item.get('key', '')}: {item.get('message', '')}",
+                    severity={"Critical": "high", "High": "high", "Medium": "medium", "Low": "low"}.get(
+                        item.get("severity", "Low"), "low"
+                    ),
+                    suggested_fix="Move to environment variable or secret manager",
+                ))
+        return findings
+    except (json.JSONDecodeError, FileNotFoundError, subprocess.TimeoutExpired) as e:
+        print(f"whispers error: {e}", file=sys.stderr)
+        return []
+    finally:
+        Path(cfg_file.name).unlink(missing_ok=True)
+
+
 def run_preflight(target: Path) -> bool:
     """Run preflight check and return True if all tools available."""
     script = Path(__file__).parent / "preflight.py"
@@ -422,6 +581,9 @@ def run_audit(
         "gitleaks": run_gitleaks,
         "ast-grep": run_ast_grep,
         "env-coverage": run_env_coverage,
+        "bandit": run_bandit,
+        "trufflehog": run_trufflehog,
+        "whispers": run_whispers,
     }
 
     selected = tools if tools != ["all"] else list(tool_funcs.keys())
@@ -471,7 +633,7 @@ def filter_by_severity(result: AuditResult, severity: str) -> AuditResult:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Audit code for hardcoded values using 6 detection tools"
+        description="Audit code for hardcoded values using 9 detection tools"
     )
     parser.add_argument("path", type=Path, help="Path to audit")
     parser.add_argument(
@@ -482,7 +644,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--tools",
-        choices=["all", "ruff", "semgrep", "jscpd", "gitleaks", "ast-grep", "env-coverage"],
+        choices=["all", "ruff", "semgrep", "jscpd", "gitleaks", "ast-grep", "env-coverage",
+                 "bandit", "trufflehog", "whispers"],
         nargs="+",
         default=["all"],
         help="Tools to run",
