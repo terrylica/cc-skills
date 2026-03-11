@@ -117,7 +117,9 @@ def main() -> int:
         default="text",
         help="Output format (default: text)",
     )
-    args = parser.parse_args()
+    # uv run --script <file> -- <args> passes literal '--' to the script
+    argv = [a for a in sys.argv[1:] if a != "--"]
+    args = parser.parse_args(argv)
 
     if not args.path.exists():
         print(f"Error: Path does not exist: {args.path}", file=sys.stderr)

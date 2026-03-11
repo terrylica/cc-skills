@@ -21,34 +21,45 @@ Use this skill when the user mentions:
 ## Quick Start
 
 ```bash
+# Preflight — verify all tools installed and configured
+uv run --python 3.13 --script scripts/preflight.py -- .
+
+# Full audit (all 6 tools, preflight + both outputs)
+uv run --python 3.13 --script scripts/audit_hardcodes.py -- src/
+
 # SSoT pattern detection (ast-grep, fastest — 6ms/file)
 cd plugins/itp-hooks/hooks/ast-grep-ssot && ast-grep scan src/
 
-# Full audit (all tools, both outputs)
-uv run --script scripts/audit_hardcodes.py -- src/
+# AST-based hardcode detection (ast-grep with audit-specific rules)
+uv run --python 3.13 --script scripts/run_ast_grep.py -- src/
 
 # Python magic numbers only (fastest)
-uv run --script scripts/run_ruff_plr.py -- src/
+uv run --python 3.13 --script scripts/run_ruff_plr.py -- src/
 
-# Pattern-based detection (URLs, ports, paths)
-uv run --script scripts/run_semgrep.py -- src/
+# Pattern-based detection (URLs, ports, paths, sleep, circuit breaker)
+uv run --python 3.13 --script scripts/run_semgrep.py -- src/
+
+# Env-var coverage audit (BaseSettings cross-reference)
+uv run --python 3.13 --script scripts/audit_env_coverage.py -- src/
 
 # Copy-paste detection
-uv run --script scripts/run_jscpd.py -- src/
+uv run --python 3.13 --script scripts/run_jscpd.py -- src/
 
 # Secret scanning (API keys, tokens, passwords)
-uv run --script scripts/run_gitleaks.py -- src/
+uv run --python 3.13 --script scripts/run_gitleaks.py -- src/
 ```
 
 ## Tool Overview
 
-| Tool             | Detection Focus                   | Language Support | Speed  |
-| ---------------- | --------------------------------- | ---------------- | ------ |
-| **ast-grep**     | SSoT violations (config patterns) | Multi-language   | Fast   |
-| **Ruff PLR2004** | Magic value comparisons           | Python           | Fast   |
-| **Semgrep**      | URLs, ports, paths, credentials   | Multi-language   | Medium |
-| **jscpd**        | Duplicate code blocks             | Multi-language   | Slow   |
-| **gitleaks**     | Secrets, API keys, passwords      | Any (file-based) | Fast   |
+| Tool             | Detection Focus                                | Language Support | Speed   |
+| ---------------- | ---------------------------------------------- | ---------------- | ------- |
+| **Preflight**    | Tool availability + config validation          | N/A              | Instant |
+| **ast-grep**     | Hardcoded literals in args, sleep, URLs, paths | Multi-language   | Fast    |
+| **Ruff PLR2004** | Magic value comparisons                        | Python           | Fast    |
+| **Semgrep**      | URLs, ports, paths, credentials, retry config  | Multi-language   | Medium  |
+| **Env-coverage** | BaseSettings cross-reference, coverage gaps    | Python           | Fast    |
+| **jscpd**        | Duplicate code blocks                          | Multi-language   | Slow    |
+| **gitleaks**     | Secrets, API keys, passwords                   | Any (file-based) | Fast    |
 
 ## Output Formats
 
@@ -98,10 +109,11 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 
 ```
 --output {json,text,both}  Output format (default: both)
---tools {all,ast-grep,ruff,semgrep,jscpd,gitleaks}  Tools to run (default: all)
+--tools {all,ast-grep,ruff,semgrep,jscpd,gitleaks,env-coverage}  Tools to run
 --severity {all,high,medium,low}  Filter by severity (default: all)
 --exclude PATTERN  Glob pattern to exclude (repeatable)
---parallel  Run tools in parallel (default: true)
+--no-parallel  Disable parallel execution
+--skip-preflight  Skip tool availability check
 ```
 
 ## References
@@ -120,13 +132,16 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 
 ## Troubleshooting
 
-| Issue                    | Cause                       | Solution                                                     |
-| ------------------------ | --------------------------- | ------------------------------------------------------------ |
-| Ruff PLR2004 not found   | Ruff not installed or old   | `uv tool install ruff` or upgrade                            |
-| Semgrep timeout          | Large codebase scan         | Use `--exclude` to limit scope                               |
-| jscpd memory error       | Too many files              | Increase Node heap: `NODE_OPTIONS=--max-old-space-size=4096` |
-| gitleaks false positives | Test data flagged           | Add patterns to `.gitleaks.toml` allowlist                   |
-| No findings in output    | Wrong directory specified   | Verify path exists and contains source files                 |
-| JSON parse error         | Tool output malformed       | Run tool individually with `--output text`                   |
-| Missing tool in PATH     | Tool not installed globally | Install via mise, homebrew, or npm                           |
-| Severity filter empty    | No findings at that level   | Use `--severity all` to see all findings                     |
+| Issue                    | Cause                       | Solution                                                                 |
+| ------------------------ | --------------------------- | ------------------------------------------------------------------------ |
+| Ruff PLR2004 zero output | PLR2004 globally suppressed | Run preflight: `uv run --python 3.13 --script scripts/preflight.py -- .` |
+| Ruff PLR2004 not found   | Ruff not installed or old   | `uv tool install ruff` or upgrade                                        |
+| ast-grep not found       | Binary not installed        | `cargo install ast-grep` or `brew install ast-grep`                      |
+| Semgrep timeout          | Large codebase scan         | Use `--exclude` to limit scope                                           |
+| jscpd memory error       | Too many files              | Increase Node heap: `NODE_OPTIONS=--max-old-space-size=4096`             |
+| gitleaks false positives | Test data flagged           | Add patterns to `.gitleaks.toml` allowlist                               |
+| Env-coverage misses      | Not using BaseSettings      | Only detects pydantic BaseSettings; other config patterns skipped        |
+| No findings in output    | Wrong directory specified   | Verify path exists and contains source files                             |
+| JSON parse error         | Tool output malformed       | Run tool individually with `--output text`                               |
+| Missing tool in PATH     | Tool not installed globally | Run preflight first, then install missing tools                          |
+| Severity filter empty    | No findings at that level   | Use `--severity all` to see all findings                                 |
