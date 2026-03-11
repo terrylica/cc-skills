@@ -170,6 +170,33 @@ def check_ast_grep() -> ToolCheck:
     return check
 
 
+def check_bandit() -> ToolCheck:
+    """Check bandit installation."""
+    check = ToolCheck(name="bandit", installed=False, install_cmd="uv tool install bandit")
+    if shutil.which("bandit"):
+        check.installed = True
+        check.version = _get_version(["bandit", "--version"])
+    return check
+
+
+def check_trufflehog() -> ToolCheck:
+    """Check trufflehog installation."""
+    check = ToolCheck(name="trufflehog", installed=False, install_cmd="brew install trufflehog")
+    if shutil.which("trufflehog"):
+        check.installed = True
+        check.version = _get_version(["trufflehog", "--version"])
+    return check
+
+
+def check_whispers() -> ToolCheck:
+    """Check whispers installation."""
+    check = ToolCheck(name="whispers", installed=False, install_cmd="uv tool install whispers")
+    if shutil.which("whispers"):
+        check.installed = True
+        check.version = _get_version(["whispers", "--version"])
+    return check
+
+
 def run_preflight(target: Path, output_format: str = "text") -> int:
     """Run all preflight checks and report results."""
     checks = [
@@ -178,6 +205,9 @@ def run_preflight(target: Path, output_format: str = "text") -> int:
         check_jscpd(),
         check_gitleaks(),
         check_ast_grep(),
+        check_bandit(),
+        check_trufflehog(),
+        check_whispers(),
     ]
 
     has_missing = any(not c.installed for c in checks)
