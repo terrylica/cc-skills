@@ -2,17 +2,18 @@
 # requires-python = ">=3.12"
 # dependencies = []
 # ///
-"""Orchestrator for code hardcode audit combining Ruff, Semgrep, jscpd, and gitleaks.
+"""Orchestrator for code hardcode audit combining 6 tools.
 
 Usage:
     uv run --script audit_hardcodes.py -- <path> [options]
 
 Options:
     --output {json,text,both}  Output format (default: both)
-    --tools {all,ruff,semgrep,jscpd,gitleaks}  Tools to run (default: all)
+    --tools {all,ruff,semgrep,jscpd,gitleaks,ast-grep,env-coverage}  Tools to run
     --severity {all,high,medium,low}  Filter by severity (default: all)
     --exclude PATTERN  Glob pattern to exclude (repeatable)
     --no-parallel  Disable parallel execution
+    --skip-preflight  Skip tool availability check
 """
 
 import argparse
@@ -31,6 +32,7 @@ from typing import Any
 AUDIT_PARALLEL_WORKERS = int(os.environ.get("AUDIT_PARALLEL_WORKERS", "4"))
 AUDIT_JSCPD_TIMEOUT = int(os.environ.get("AUDIT_JSCPD_TIMEOUT", "300"))
 AUDIT_GITLEAKS_TIMEOUT = int(os.environ.get("AUDIT_GITLEAKS_TIMEOUT", "120"))
+AUDIT_ASTGREP_TIMEOUT = int(os.environ.get("AUDIT_ASTGREP_TIMEOUT", "60"))
 
 
 @dataclass
@@ -301,6 +303,109 @@ def run_gitleaks(target: Path, excludes: list[str]) -> list[Finding]:
         return []
 
 
+def run_ast_grep(target: Path, excludes: list[str]) -> list[Finding]:
+    """Run ast-grep with hardcode detection rules and return findings."""
+    import shutil
+
+    rules_dir = Path(__file__).parent.parent / "assets" / "ast-grep-hardcode"
+    if not rules_dir.exists():
+        print(f"ast-grep rules not found: {rules_dir}", file=sys.stderr)
+        return []
+
+    sg = None
+    for name in ("sg", "ast-grep"):
+        if shutil.which(name):
+            sg = name
+            break
+    if not sg:
+        print("ast-grep not found. Install with: cargo install ast-grep", file=sys.stderr)
+        return []
+
+    cmd = [sg, "scan", str(target.resolve()), "--json=stream"]
+
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True,
+            timeout=AUDIT_ASTGREP_TIMEOUT, cwd=str(rules_dir),
+        )
+        findings = []
+        severity_map = {"error": "high", "warning": "medium", "hint": "low", "info": "low"}
+        if result.stdout.strip():
+            for line in result.stdout.strip().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                findings.append(Finding(
+                    id=f"ASTGREP-{len(findings) + 1:03d}",
+                    tool="ast-grep",
+                    rule=item.get("ruleId", "unknown"),
+                    file=item.get("file", ""),
+                    line=item.get("range", {}).get("start", {}).get("line", 0),
+                    column=item.get("range", {}).get("start", {}).get("column", 0),
+                    end_line=item.get("range", {}).get("end", {}).get("line"),
+                    message=item.get("message", ""),
+                    severity=severity_map.get(item.get("severity", "warning"), "medium"),
+                    suggested_fix=item.get("note", ""),
+                ))
+        return findings
+    except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+        print(f"ast-grep error: {e}", file=sys.stderr)
+        return []
+
+
+def run_env_coverage(target: Path, excludes: list[str]) -> list[Finding]:
+    """Run env-coverage audit via subprocess and return findings."""
+    script = Path(__file__).parent / "audit_env_coverage.py"
+    if not script.exists():
+        print(f"env-coverage script not found: {script}", file=sys.stderr)
+        return []
+
+    cmd = ["uv", "run", "--python", "3.13", "--script", str(script), "--", str(target), "--output", "json"]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        if result.stdout.strip():
+            data = json.loads(result.stdout)
+            findings = []
+            for item in data.get("findings", []):
+                findings.append(Finding(
+                    id=item.get("id", f"ENVCOV-{len(findings) + 1:03d}"),
+                    tool="env-coverage",
+                    rule=item.get("rule", ""),
+                    file=item.get("file", ""),
+                    line=item.get("line", 0),
+                    column=item.get("column", 0),
+                    end_line=item.get("end_line"),
+                    message=item.get("message", ""),
+                    severity=item.get("severity", "medium"),
+                    suggested_fix=item.get("suggested_fix", ""),
+                ))
+            return findings
+    except (json.JSONDecodeError, FileNotFoundError, subprocess.TimeoutExpired) as e:
+        print(f"env-coverage error: {e}", file=sys.stderr)
+    return []
+
+
+def run_preflight(target: Path) -> bool:
+    """Run preflight check and return True if all tools available."""
+    script = Path(__file__).parent / "preflight.py"
+    if not script.exists():
+        return True  # Skip if preflight script not available
+
+    cmd = ["uv", "run", "--python", "3.13", "--script", str(script), "--", str(target), "--output", "text"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        print(result.stdout, end="")
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return True  # Don't block on preflight failures
+
+
 def run_audit(
     target: Path,
     tools: list[str],
@@ -315,6 +420,8 @@ def run_audit(
         "semgrep": run_semgrep,
         "jscpd": run_jscpd,
         "gitleaks": run_gitleaks,
+        "ast-grep": run_ast_grep,
+        "env-coverage": run_env_coverage,
     }
 
     selected = tools if tools != ["all"] else list(tool_funcs.keys())
@@ -364,7 +471,7 @@ def filter_by_severity(result: AuditResult, severity: str) -> AuditResult:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Audit code for hardcoded values using Ruff, Semgrep, jscpd, and gitleaks"
+        description="Audit code for hardcoded values using 6 detection tools"
     )
     parser.add_argument("path", type=Path, help="Path to audit")
     parser.add_argument(
@@ -375,7 +482,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--tools",
-        choices=["all", "ruff", "semgrep", "jscpd", "gitleaks"],
+        choices=["all", "ruff", "semgrep", "jscpd", "gitleaks", "ast-grep", "env-coverage"],
         nargs="+",
         default=["all"],
         help="Tools to run",
@@ -397,12 +504,23 @@ def main() -> int:
         action="store_true",
         help="Disable parallel execution",
     )
+    parser.add_argument(
+        "--skip-preflight",
+        action="store_true",
+        help="Skip tool availability preflight check",
+    )
 
-    args = parser.parse_args()
+    # uv run --script <file> -- <args> passes literal '--' to the script
+    argv = [a for a in sys.argv[1:] if a != "--"]
+    args = parser.parse_args(argv)
 
     if not args.path.exists():
         print(f"Error: Path does not exist: {args.path}", file=sys.stderr)
         return 1
+
+    if not args.skip_preflight:
+        run_preflight(args.path)
+        print()  # Separator between preflight and audit output
 
     result = run_audit(
         target=args.path,

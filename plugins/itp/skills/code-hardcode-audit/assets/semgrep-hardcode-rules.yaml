@@ -142,3 +142,71 @@ rules:
       category: hardcode
       subcategory: api_limit
       suggested_fix: "Create API_CHUNK_SIZE or similar constant"
+
+  # Rule 8: Hardcoded Sleep Durations
+  - id: hardcoded-sleep-duration
+    pattern-either:
+      - pattern: time.sleep($N)
+      - pattern: asyncio.sleep($N)
+      - pattern: await asyncio.sleep($N)
+    message: "Hardcoded sleep duration. Extract to a named SLEEP_* or DELAY_* constant."
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: hardcode
+      subcategory: sleep
+      suggested_fix: "Create SLEEP_* or DELAY_* constant backed by env var"
+
+  # Rule 9: Hardcoded Circuit Breaker Config
+  - id: hardcoded-circuit-breaker
+    pattern-either:
+      - pattern: CircuitBreaker(failure_threshold=$N, ...)
+      - pattern: CircuitBreaker(..., recovery_timeout=$N, ...)
+    message: "Hardcoded circuit breaker config. Extract to constants or BaseSettings."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: hardcode
+      subcategory: circuit_breaker
+      suggested_fix: "Create CB_FAILURE_THRESHOLD, CB_RECOVERY_TIMEOUT constants"
+
+  # Rule 10: Hardcoded Stamina Retry
+  - id: hardcoded-stamina-retry
+    pattern-either:
+      - pattern: stamina.retry(attempts=$N, ...)
+      - pattern: "@stamina.retry(attempts=$N, ...)"
+    message: "Hardcoded stamina retry attempts. Extract to configuration."
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: hardcode
+      subcategory: retry
+      suggested_fix: "Create RETRY_ATTEMPTS constant or add to BaseSettings"
+
+  # Rule 11: Hardcoded Lock/Redis Timeout
+  - id: hardcoded-lock-timeout
+    pattern-either:
+      - pattern: blocking_timeout=$N
+      - pattern: lock_timeout=$N
+      - pattern: "redis.lock($KEY, timeout=$N, ...)"
+      - pattern: "redis.lock($KEY, ..., blocking_timeout=$N, ...)"
+    message: "Hardcoded lock/Redis timeout. Extract to configuration."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: hardcode
+      subcategory: lock_timeout
+      suggested_fix: "Create LOCK_TIMEOUT constant or add to BaseSettings"
+
+  # Rule 12: Hardcoded Pydantic Field Default
+  - id: hardcoded-pydantic-field-default
+    pattern-either:
+      - pattern: "Field(default=$N, ...)"
+      - pattern: "Field($N, ...)"
+    message: "Hardcoded Pydantic Field default. Consider BaseSettings with env-var override."
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: hardcode
+      subcategory: pydantic_default
+      suggested_fix: "Use BaseSettings with env-var override or Field(default_factory=...)"
