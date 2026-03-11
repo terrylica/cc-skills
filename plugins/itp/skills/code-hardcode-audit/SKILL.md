@@ -15,8 +15,9 @@ Use this skill when the user mentions:
 - "duplicate constants", "DRY violations"
 - "code audit", "hardcode audit"
 - "PLR2004", "semgrep", "jscpd", "gitleaks", "ast-grep", "SSoT violations"
-- "secret scanning", "leaked secrets", "API keys"
-- "passwords in code", "credential leaks"
+- "secret scanning", "leaked secrets", "API keys", "bandit", "trufflehog", "whispers"
+- "passwords in code", "credential leaks", "entropy detection"
+- "config file secrets", "hardcoded credentials"
 
 ## Quick Start
 
@@ -24,13 +25,21 @@ Use this skill when the user mentions:
 # Preflight — verify all tools installed and configured
 uv run --python 3.13 --script scripts/preflight.py -- .
 
-# Full audit (all 6 tools, preflight + both outputs)
+# Full audit (all 9 tools, preflight + both outputs)
 uv run --python 3.13 --script scripts/audit_hardcodes.py -- src/
 
-# SSoT pattern detection (ast-grep, fastest — 6ms/file)
-cd plugins/itp-hooks/hooks/ast-grep-ssot && ast-grep scan src/
+# Individual tools (all respect .gitignore):
 
-# AST-based hardcode detection (ast-grep with audit-specific rules)
+# Python credential detection (passwords, tokens, API keys in variable names)
+uv run --python 3.13 --script scripts/run_bandit.py -- src/
+
+# Entropy-based secret detection (catches secrets regex can't)
+uv run --python 3.13 --script scripts/run_trufflehog.py -- src/
+
+# Config file secrets (YAML, JSON, Dockerfile, .env, .properties)
+uv run --python 3.13 --script scripts/run_whispers.py -- src/
+
+# AST-based hardcode detection (numeric args, URLs, paths, sleep)
 uv run --python 3.13 --script scripts/run_ast_grep.py -- src/
 
 # Python magic numbers only (fastest)
@@ -45,7 +54,7 @@ uv run --python 3.13 --script scripts/audit_env_coverage.py -- src/
 # Copy-paste detection
 uv run --python 3.13 --script scripts/run_jscpd.py -- src/
 
-# Secret scanning (API keys, tokens, passwords)
+# Regex-based secret scanning (API keys, tokens, passwords)
 uv run --python 3.13 --script scripts/run_gitleaks.py -- src/
 ```
 
@@ -54,12 +63,15 @@ uv run --python 3.13 --script scripts/run_gitleaks.py -- src/
 | Tool             | Detection Focus                                | Language Support | Speed   |
 | ---------------- | ---------------------------------------------- | ---------------- | ------- |
 | **Preflight**    | Tool availability + config validation          | N/A              | Instant |
+| **Bandit**       | Hardcoded passwords, tokens in Python (B105-7) | Python           | Fast    |
+| **TruffleHog**   | Entropy-based secret + API verification        | Any (file-based) | Medium  |
+| **Whispers**     | Config file secrets (YAML, JSON, Docker, .env) | Config files     | Medium  |
 | **ast-grep**     | Hardcoded literals in args, sleep, URLs, paths | Multi-language   | Fast    |
 | **Ruff PLR2004** | Magic value comparisons                        | Python           | Fast    |
 | **Semgrep**      | URLs, ports, paths, credentials, retry config  | Multi-language   | Medium  |
 | **Env-coverage** | BaseSettings cross-reference, coverage gaps    | Python           | Fast    |
 | **jscpd**        | Duplicate code blocks                          | Multi-language   | Slow    |
-| **gitleaks**     | Secrets, API keys, passwords                   | Any (file-based) | Fast    |
+| **gitleaks**     | Regex-based secrets, API keys, passwords       | Any (file-based) | Fast    |
 
 ## Output Formats
 
@@ -109,7 +121,7 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 
 ```
 --output {json,text,both}  Output format (default: both)
---tools {all,ast-grep,ruff,semgrep,jscpd,gitleaks,env-coverage}  Tools to run
+--tools {all,ast-grep,ruff,semgrep,jscpd,gitleaks,env-coverage,bandit,trufflehog,whispers}  Tools to run
 --severity {all,high,medium,low}  Filter by severity (default: all)
 --exclude PATTERN  Glob pattern to exclude (repeatable)
 --no-parallel  Disable parallel execution
@@ -144,4 +156,9 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 | No findings in output    | Wrong directory specified   | Verify path exists and contains source files                             |
 | JSON parse error         | Tool output malformed       | Run tool individually with `--output text`                               |
 | Missing tool in PATH     | Tool not installed globally | Run preflight first, then install missing tools                          |
+| Bandit false positives   | `password = ''` in init     | Filter B105 by confidence: `--confidence HIGH`                           |
+| TruffleHog timeout       | Scanning .venv/node_modules | All tools respect `.gitignore`; ensure large dirs are gitignored         |
+| TruffleHog regex error   | Glob patterns in .gitignore | Complex globs (`**/*.rs.bk`) are auto-skipped; only simple names used    |
+| Whispers slow scan       | Large directories           | Exclude via `.gitignore`; whispers config auto-generated from it         |
+| Whispers zero findings   | No config files in scope    | Whispers targets YAML/JSON/Docker/INI; use on project root, not src/     |
 | Severity filter empty    | No findings at that level   | Use `--severity all` to see all findings                                 |
