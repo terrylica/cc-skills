@@ -67,7 +67,34 @@ Why were things done this specific way. What alternatives were rejected and why.
 Non-obvious facts. Workarounds in place and why. Environment-specific behavior. Dependencies and ordering requirements. Anything that caused friction. What the next person MUST know to avoid repeating mistakes.
 
 ## NEXT STEPS (PRIORITY ORDER)
-Numbered list of concrete tasks, most important first. For each: what to do, what file/system to touch, what the expected outcome is. Include blockers.`;
+Numbered list of concrete tasks, most important first. For each: what to do, what file/system to touch, what the expected outcome is. Include blockers.
+
+--- SKELETON EXAMPLE (structure only — fabricated data, not from any real session) ---
+## WHAT WAS ACCOMPLISHED
+- Refactored \`src/auth/token.py:validate_token()\` to use \`hmac.compare_digest\` — eliminates timing side-channel.
+- Added \`scripts/migrate_tokens.sh\`: DB schema v2 migration, tested on staging.
+
+## CURRENT STATE
+- \`src/auth/token.py\` updated; 3 auth tests passing. DB migration script ready, not yet run on prod.
+- Service on port 8080 with \`DEBUG=false\`.
+
+## INCOMPLETE / BROKEN
+- \`test_token_expiry.py::test_refresh_flow\` skipped — Redis mock unavailable in CI.
+- \`scripts/deploy.sh\` exits non-zero on first run: missing \`PROD_DB_URL\` env var.
+
+## KEY DECISIONS & RATIONALE
+- \`hmac.compare_digest\` over manual loop: stdlib, constant-time, no reimplementation risk.
+- JWT kept (not opaque): client apps depend on payload fields \`exp\` and \`sub\`.
+
+## CRITICAL GOTCHAS & CONTEXT
+- \`migrate_tokens.sh\` requires \`db_admin\` role — app user lacks ALTER TABLE.
+- Redis mock does NOT support TTL < 1s; sleep-based expiry tests are flaky.
+
+## NEXT STEPS (PRIORITY ORDER)
+1. Run \`scripts/migrate_tokens.sh\` on prod (db_admin role required, ~5 min downtime).
+2. Add Redis container to CI to unblock \`test_refresh_flow\`.
+3. Update client SDKs: payload field \`exp\` renamed to \`expires_at\` in schema v2.
+--- END SKELETON EXAMPLE ---`;
 
 const GOAL2_ERRORS_SYSTEM = `You are an ERROR FORENSICS ANALYST. Your SOLE job: catalog every warning, error, deprecation notice, unexpected output, failed command, and anomaly in this session transcript.
 
@@ -120,7 +147,34 @@ What does NOT count:
 - Successful operations that produced expected output
 - Informational logs with no error implication
 
-Do NOT filter by severity. Do NOT limit to a "top 10". Do NOT omit "minor" items. COMPLETE INVENTORY ONLY.`;
+Do NOT filter by severity. Do NOT limit to a "top 10". Do NOT omit "minor" items. COMPLETE INVENTORY ONLY.
+
+--- SKELETON EXAMPLE (structure only — fabricated data) ---
+## Session: 2026-03-10
+
+### T12 [ERROR] TypeScript null assignment in token validator
+- **Trigger**: \`npx tsc --noEmit\`
+- **File/Path**: \`src/auth/token.ts:45\`
+- **Full Text**: \`TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'\`
+- **Resolution**: RESOLVED — added \`if (!token) return null\` guard before line 44
+- **Claude's Response**: ACKNOWLEDGED+FIXED
+
+### T28 [WARNING] Deprecated Buffer() constructor call
+- **Trigger**: \`npm test\`
+- **File/Path**: \`src/utils/encoding.ts:12\`
+- **Full Text**: \`DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() instead.\`
+- **Resolution**: UNRESOLVED
+- **Claude's Response**: SILENTLY IGNORED
+
+## Session: 2026-03-11
+
+### T5 [ERROR] DB migration fails — postgres socket not found
+- **Trigger**: \`bash scripts/migrate_tokens.sh\`
+- **File/Path**: \`scripts/migrate_tokens.sh\`
+- **Full Text**: \`psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory\`
+- **Resolution**: PARTIAL — postgres not running locally; deferred to staging run
+- **Claude's Response**: ACKNOWLEDGED+DEFERRED
+--- END SKELETON EXAMPLE ---`;
 
 const GOAL3_SUMMARY_SYSTEM = `You are a TECHNICAL HISTORIAN producing a dense chronological timeline of a Claude Code session period.
 
@@ -147,7 +201,24 @@ Aim for MAXIMUM COVERAGE. A 48-hour window with 1500 turns should produce 40-60 
 
 End with:
 ## Key Outcomes
-- <3-7 bullets: the most important results — what was built, what was decided, what remains broken, what was released>`;
+- <3-7 bullets: the most important results — what was built, what was decided, what remains broken, what was released>
+
+--- SKELETON EXAMPLE (structure only — fabricated data) ---
+## Phase: Auth refactor (T1 [2026-03-10] – T31 [2026-03-10])
+• T3 [2026-03-10] — identified timing side-channel in \`token.py:validate_token()\`; replaced with \`hmac.compare_digest\` [src/auth/token.py:45]
+• T12 [2026-03-10] — ⚠ \`tsc --noEmit\` TS2345: \`string | undefined\` not assignable; added null guard before line 44 [src/auth/token.ts:45]
+• T28 [2026-03-10] — deprecated \`Buffer()\` in encoding.ts; silently deferred [src/utils/encoding.ts:12]
+• T31 [2026-03-10] — 3 auth tests green; \`test_refresh_flow\` skipped (no Redis container in CI)
+
+## Phase: Migration prep (T1 [2026-03-11] – T9 [2026-03-11])
+• T5 [2026-03-11] — ⚠ \`migrate_tokens.sh\` failed locally: postgres socket not found; deferred to staging [scripts/migrate_tokens.sh]
+• T9 [2026-03-11] — confirmed script succeeds on staging with db_admin role
+
+## Key Outcomes
+- Timing side-channel patched in token validator (hmac.compare_digest)
+- DB migration script ready; not yet applied to prod
+- Redis container absent from CI blocks refresh flow test
+--- END SKELETON EXAMPLE ---`;
 
 // ── MiniMax API ────────────────────────────────────────────────────────────────
 
