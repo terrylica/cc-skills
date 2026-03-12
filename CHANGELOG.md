@@ -1,3 +1,42 @@
+# [12.1.0](https://github.com/terrylica/cc-skills/compare/v12.0.0...v12.1.0) (2026-03-12)
+
+
+### Bug Fixes
+
+* **session-debrief:** Restore callMiniMax + 3-round MiniMax prompt iteration ([ff54eed](https://github.com/terrylica/cc-skills/commit/ff54eed06b85e43492459990f53cace44ef34ae5))
+
+
+### Features
+
+* **cli-anything:** Add CLI-Anything reference skill plugin ([1472ce7](https://github.com/terrylica/cc-skills/commit/1472ce708d4a0508ca2def56ef0b1152ba1b9a65))
+* **session-debrief:** add few-shot skeleton examples and prompt-benchmark.ts ([02bfce6](https://github.com/terrylica/cc-skills/commit/02bfce6d18a57183d8ebae02721ca5a35fcc6450))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>cli-anything</strong> (1 change)</summary>
+
+- [cli-anything](https://github.com/terrylica/cc-skills/blob/main/plugins/cli-anything/skills/cli-anything/SKILL.md) - new (+335)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [cli-anything Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/cli-anything/CLAUDE.md) - new (+37)
+
 # [12.0.0](https://github.com/terrylica/cc-skills/compare/v11.95.0...v12.0.0) (2026-03-12)
 
 
