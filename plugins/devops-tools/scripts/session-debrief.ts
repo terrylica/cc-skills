@@ -24,6 +24,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
+import { spawnSync } from "child_process";
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 
@@ -547,6 +548,13 @@ interface RawTurn {
   files: string[];
   errors: string[];
   timestamp?: string;
+  // Enriched by Python preprocessor (claude-code-log)
+  thinkingLen?: number;     // total chars of extended thinking in this turn
+  thinkingSnippet?: string; // first 200 chars of thinking
+  tokenUsage?: string;      // "In: X | Out: Y | CC: Z | CR: W"
+  hookErrors?: string[];    // hook error strings from adjacent system messages
+  systemWarnings?: string[]; // system warning texts
+  isSubagent?: boolean;     // true when turn originates from a spawned Task agent
 }
 
 const STRIP_PATTERNS = [
@@ -820,6 +828,68 @@ function parseSessionRaw(path: string, sessionLabel: string, startTurn: number, 
   return turns;
 }
 
+// ── Python Preprocessor (Option C: claude-code-log) ───────────────────────────
+//
+// The Python preprocessor uses claude-code-log's load_transcript() to enrich
+// each turn with: subagent content (isSubagent), thinking blocks (thinkingLen/
+// thinkingSnippet), token usage (tokenUsage), and hook errors/warnings.
+// Falls back to parseSessionRaw() on any Python failure.
+
+const PREPROCESS_SCRIPT = join(import.meta.dir, "preprocess_session.py");
+
+function parseSessionViaPython(path: string, sessionLabel: string, startTurn: number, verbose: boolean): RawTurn[] {
+  if (!existsSync(PREPROCESS_SCRIPT)) {
+    if (verbose) console.error(`[parse] preprocess_session.py not found, falling back to TS parser`);
+    return parseSessionRaw(path, sessionLabel, startTurn, verbose);
+  }
+
+  const result = spawnSync("uv", ["run", "--python", "3.13", PREPROCESS_SCRIPT, path], {
+    encoding: "utf-8",
+    maxBuffer: 200 * 1024 * 1024,
+  });
+
+  if (result.error || result.status !== 0) {
+    if (verbose) {
+      const msg = result.error?.message || result.stderr?.slice(0, 300) || "unknown error";
+      console.error(`[parse] Python preprocessor failed (${msg}), falling back to TS parser`);
+    }
+    return parseSessionRaw(path, sessionLabel, startTurn, verbose);
+  }
+
+  const turns: RawTurn[] = [];
+  const lines = result.stdout.split("\n");
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    let obj: any;
+    try { obj = JSON.parse(line); } catch { continue; }
+
+    turns.push({
+      n: startTurn + obj.n,
+      session: sessionLabel,
+      role: obj.role as RawTurn["role"],
+      userText: stripNoise(obj.userText || ""),
+      toolCalls: obj.toolCalls || [],
+      toolResults: obj.toolResults || [],
+      files: obj.files || [],
+      errors: obj.errors || [],
+      timestamp: obj.timestamp ?? undefined,
+      thinkingLen: obj.thinkingLen || 0,
+      thinkingSnippet: obj.thinkingSnippet || "",
+      tokenUsage: obj.tokenUsage || "",
+      hookErrors: obj.hookErrors || [],
+      systemWarnings: obj.systemWarnings || [],
+      isSubagent: obj.isSubagent || false,
+    });
+  }
+
+  if (verbose) {
+    console.error(`[parse] ${sessionLabel}: Python → ${turns.length} turns (incl. subagents)`);
+  }
+
+  return turns;
+}
+
 // ── Adaptive Structured Log Builder ────────────────────────────────────────────
 //
 // Strategy: First build at full fidelity. If over budget, progressively reduce:
@@ -831,8 +901,11 @@ function parseSessionRaw(path: string, sessionLabel: string, startTurn: number, 
 
 function buildTurnText(turn: RawTurn, toolInputLimit: number, toolResultLimit: number, textLimit: number): string {
   const label = turn.role === "user" ? "USER" : "CLAUDE";
+  const subagentMark = turn.isSubagent ? " [SUBAGENT]" : "";
   const ts = turn.timestamp ? ` ${turn.timestamp.slice(11, 19)}` : "";
-  let section = `[T${turn.n}] ${label}${ts}\n`;
+  const tokenNote = turn.tokenUsage ? ` {${turn.tokenUsage}}` : "";
+  const thinkNote = turn.thinkingLen ? ` 💭(${turn.thinkingLen}ch)` : "";
+  let section = `[T${turn.n}] ${label}${subagentMark}${ts}${tokenNote}${thinkNote}\n`;
 
   const text = turn.role === "user"
     ? truncate(turn.userText, Math.max(textLimit, 4000)) // User text: never below 4000
@@ -865,6 +938,12 @@ function buildTurnText(turn: RawTurn, toolInputLimit: number, toolResultLimit: n
   }
   if (turn.errors.length > 0) {
     section += `→ ERRORS: ${turn.errors.join(" | ")}\n`;
+  }
+  if (turn.hookErrors && turn.hookErrors.length > 0) {
+    section += `→ HOOK ERRORS: ${turn.hookErrors.join(" | ")}\n`;
+  }
+  if (turn.systemWarnings && turn.systemWarnings.length > 0) {
+    section += `→ WARNINGS: ${turn.systemWarnings.join(" | ")}\n`;
   }
 
   return section;
@@ -1185,7 +1264,7 @@ async function main() {
       const sid = spath.replace(/^.*\//, "").replace(/\.jsonl$/, "").slice(0, 8);
       const mtime = new Date(statSync(spath).mtimeMs);
       const label = `${sid}… (${mtime.toLocaleDateString()})`;
-      const turns = parseSessionRaw(spath, label, turnOffset, verbose);
+      const turns = parseSessionViaPython(spath, label, turnOffset, verbose);
       allTurns.push(...turns);
       turnOffset = allTurns.length;
     }
