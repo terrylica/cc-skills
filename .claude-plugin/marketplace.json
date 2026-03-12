@@ -580,6 +580,32 @@
       "strict": false
     },
     {
+      "name": "cli-anything",
+      "description": "Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology.",
+      "version": "11.95.0",
+      "source": "./plugins/cli-anything",
+      "category": "development",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "cli",
+        "gui",
+        "harness",
+        "agent",
+        "cli-anything",
+        "gimp",
+        "blender",
+        "libreoffice",
+        "inkscape",
+        "click",
+        "repl",
+        "automation"
+      ],
+      "strict": false
+    },
+    {
       "name": "gemini-deep-research",
       "description": "Gemini Deep Research via browser automation: Playwright CDP, 8-step flow, 40k+ char research reports",
       "version": "11.95.0",
