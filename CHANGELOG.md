@@ -1,3 +1,40 @@
+# [12.0.0](https://github.com/terrylica/cc-skills/compare/v11.95.0...v12.0.0) (2026-03-12)
+
+
+### Bug Fixes
+
+* Remove cli-anything from marketplace.json (plugin directory not yet ready) ([005a5c0](https://github.com/terrylica/cc-skills/commit/005a5c062775d122958f859e29ae897de5c90b5f))
+
+
+### Features
+
+* **devops-tools:** Rename session-blind-spots skill to session-debrief ([182f74b](https://github.com/terrylica/cc-skills/commit/182f74b38d6a9a336810753250643c52cb767bbb))
+
+
+### BREAKING CHANGES
+
+* **devops-tools:** Legacy UUID mode removed entirely; only --goal/--since mode supported.
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [session blind spots](https://github.com/terrylica/cc-skills/blob/v11.95.0/plugins/devops-tools/skills/session-blind-spots/SKILL.md) - deleted
+- [session-debrief](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-debrief/SKILL.md) - new (+187)
+
+</details>
+
 # [11.95.0](https://github.com/terrylica/cc-skills/compare/v11.94.0...v11.95.0) (2026-03-11)
 
 
