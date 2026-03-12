@@ -1,3 +1,10 @@
+## [12.1.1](https://github.com/terrylica/cc-skills/compare/v12.1.0...v12.1.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* **session-debrief:** prevent MiniMax tool_call hallucination poisoning loop ([eac669d](https://github.com/terrylica/cc-skills/commit/eac669d6707b5d835fbf6b324c7ab9df58875457))
+
 # [12.1.0](https://github.com/terrylica/cc-skills/compare/v12.0.0...v12.1.0) (2026-03-12)
 
 
