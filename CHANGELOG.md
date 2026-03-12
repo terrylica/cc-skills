@@ -1,3 +1,10 @@
+## [12.1.2](https://github.com/terrylica/cc-skills/compare/v12.1.1...v12.1.2) (2026-03-12)
+
+
+### Bug Fixes
+
+* **session-debrief:** strip skill injection content and meta-tool calls from structured log ([2a6da4a](https://github.com/terrylica/cc-skills/commit/2a6da4a894072366bb46b2d56f29575003983f24))
+
 ## [12.1.1](https://github.com/terrylica/cc-skills/compare/v12.1.0...v12.1.1) (2026-03-12)
 
 
