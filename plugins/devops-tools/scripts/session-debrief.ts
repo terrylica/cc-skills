@@ -567,6 +567,17 @@ const STRIP_PATTERNS = [
   /<function_calls>[\s\S]*?<\/function_calls>/g,
   // Strip <usage> XML stats blocks that show up in tool results (noisy, not meaningful)
   /<usage>[\s\S]*?<\/usage>/g,
+  // Strip Claude Code skill/command injection XML tags that appear in user messages
+  // when a skill is invoked. These tags carry no analytical value.
+  /<command-message>[\s\S]*?<\/command-message>/g,
+  /<command-name>[\s\S]*?<\/command-name>/g,
+  /<command-args>[\s\S]*?<\/command-args>/g,
+  // Strip session-debrief skill AskUserQuestion prompt text when re-ingested.
+  // Two patterns: (1) assistant preamble introducing the questions, (2) skill body
+  // injection where the SKILL.md "Execution Model" block appears as a user message.
+  // MiniMax sees these and role-plays as the skill instead of analyzing.
+  /(?:I need to ask|Let me ask|Before (?:I )?(?:proceed|start|begin|run))[\s\S]*?(?:Which analysis mode|How far back should sessions|48 hours?\b)[\s\S]*?(?=\n\n\n|\n---|\n={3,}|$)/gi,
+  /(?:##\s+Execution Model|You MUST use AskUserQuestion|Use `AskUserQuestion` to present)[\s\S]*?(?=\n\n\n|$)/g,
 ];
 
 const SKILL_LISTING_RE = /^- [\w-]+:[\w-]+: .+$/gm;
@@ -613,6 +624,22 @@ function extractError(toolName: string, resultText: string): string | null {
   return null;
 }
 
+// Meta-tools whose invocations and results must be excluded from the structured log.
+// Including them causes MiniMax to role-play the skill (AskUserQuestion) or emit
+// Skill() invocations rather than producing analysis output.
+const META_TOOL_NAMES = new Set([
+  "AskUserQuestion",
+  "Skill",
+  "ExitPlanMode",
+  "EnterPlanMode",
+  "EnterWorktree",
+  "ExitWorktree",
+  "TaskCreate",
+  "TaskUpdate",
+  "TaskGet",
+  "TaskList",
+]);
+
 function extractRawContent(content: unknown): {
   text: string;
   toolCalls: string[];
@@ -626,6 +653,9 @@ function extractRawContent(content: unknown): {
   const errors: string[] = [];
   let text = "";
 
+  // Track meta-tool_use_ids so we can skip their tool_result blocks
+  const metaToolUseIds = new Set<string>();
+
   if (typeof content === "string") {
     text = content;
   } else if (Array.isArray(content)) {
@@ -635,6 +665,14 @@ function extractRawContent(content: unknown): {
       if (block.type === "text" && block.text) {
         text += block.text + "\n";
       } else if (block.type === "tool_use") {
+        // Skip meta-tool invocations — they encode Claude Code's internal
+        // navigation (skill selection, task tracking) not actual session work.
+        // Including them causes MiniMax to imitate the tool's behavior.
+        if (META_TOOL_NAMES.has(block.name)) {
+          if (block.id) metaToolUseIds.add(block.id);
+          continue;
+        }
+
         const inputStr = typeof block.input === "string"
           ? block.input
           : JSON.stringify(block.input);
@@ -643,6 +681,9 @@ function extractRawContent(content: unknown): {
         const fp = extractFilePath(block.input);
         if (fp) files.push(fp);
       } else if (block.type === "tool_result") {
+        // Skip results for meta-tools
+        if (metaToolUseIds.has(block.tool_use_id)) continue;
+
         const resultText = typeof block.content === "string"
           ? block.content
           : Array.isArray(block.content)
