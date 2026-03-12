@@ -38,74 +38,180 @@ const MAX_STRUCTURED_LOG_CHARS = 890_000;
 
 // ── Focused Goal System Prompts ────────────────────────────────────────────────
 
-const GOAL1_HANDOFF_SYSTEM = `You are preparing a comprehensive HANDOFF DOCUMENT for the next developer or AI assistant continuing this work — they have zero prior context.
+const GOAL1_HANDOFF_SYSTEM = `You are an automated documentation system that produces HANDOFF DOCUMENTS. You do not converse, ask questions, narrate your process, or show your reasoning. You ONLY output the document.
 
-Extract EVERYTHING of value from this session transcript so they can immediately understand and continue without asking questions.
+The document is for the next developer or AI assistant who has ZERO prior context. They must be able to continue work immediately without asking any questions.
+
+CRITICAL OUTPUT RULES — violations will make the document useless:
+1. Output ONLY the six sections below. No preamble, no meta-commentary, no "Let me analyze...", no "Here is the document:".
+2. NEVER reproduce raw transcript fragments, tool call JSON, or bash command output verbatim — extract meaning, not syntax.
+3. NEVER ask questions or suggest follow-up. The document ends after ## NEXT STEPS.
+4. If the transcript contains content about running this analysis tool itself, IGNORE that meta-content. Extract only the actual work performed on the project.
+5. If the transcript is confusing or self-referential, still produce all six sections — use "No data" only as a last resort for a section with truly nothing.
+
+---
 
 ## WHAT WAS ACCOMPLISHED
-List every completed task, feature, fix, refactor, and decision — be exhaustive. Include exact file names, function names, and commands. Do not skip minor items.
+Every completed task, feature, fix, refactor, and decision. Include exact file paths, function names, line numbers, and commands. Exhaustive — do not skip minor items. For each item: what was done, what file/system, what exact change.
 
 ## CURRENT STATE
-What is working right now? What files were modified? What services, configs, or environments changed? Exact versions, flags, and values that matter.
+What is working right now. Files modified and their exact changes. Services, configs, environments that changed. Exact versions, flags, ports, and values that matter for the next session.
 
 ## INCOMPLETE / BROKEN
-Anything started but unfinished. Errors not fully resolved. Tests not passing. Items explicitly deferred. TODOs that remain. Be specific about what was left in what state.
+Anything started but unfinished. Errors not fully resolved. Tests not passing. Explicitly deferred items. TODOs remaining. Be specific: what file, what state, what is missing.
 
 ## KEY DECISIONS & RATIONALE
-Why were things done the specific way they were? What alternatives were rejected and why? What constraints shaped the approach? Future sessions must not undo these unknowingly.
+Why were things done this specific way. What alternatives were rejected and why. What constraints shaped the approach. What the next person must NOT change without understanding these decisions.
 
 ## CRITICAL GOTCHAS & CONTEXT
-Non-obvious facts. Things that caused friction or confusion. Workarounds in place. Environment specifics. Dependencies between components. Anything the next person MUST know.
+Non-obvious facts. Workarounds in place and why. Environment-specific behavior. Dependencies and ordering requirements. Anything that caused friction. What the next person MUST know to avoid repeating mistakes.
 
 ## NEXT STEPS (PRIORITY ORDER)
-Concrete tasks to start the next session with. What is the most important thing to do first? What is blocked on what?
+Numbered list of concrete tasks, most important first. For each: what to do, what file/system to touch, what the expected outcome is. Include blockers.`;
 
-Rules:
-- Be EXHAUSTIVE — if in doubt, include it
-- Technical precision matters: exact paths, exact commands, exact error messages
-- Do NOT summarize away important details — the next person needs specifics
-- If content spans multiple time periods, note when things happened for chronological orientation`;
+const GOAL2_ERRORS_SYSTEM = `You are an ERROR FORENSICS ANALYST. Your SOLE job: catalog every warning, error, deprecation notice, unexpected output, failed command, and anomaly in this session transcript.
 
-const GOAL2_ERRORS_SYSTEM = `You are an ERROR FORENSICS ANALYST. Your SOLE job: catalog every warning, error, deprecation notice, unexpected output, failed command, and anomaly that appeared in this session transcript — especially ones that were NOT fully resolved.
+STRUCTURE — MANDATORY:
+Process one session at a time. For each session in the transcript, write a session header, then list ALL findings from that session in the order they appear in the transcript. Only after exhausting all findings from one session do you move to the next session.
 
-For each finding, use EXACTLY this format:
+Use this exact structure:
+
+## Session: YYYY-MM-DD
+
+### T<N> [ERROR|WARNING|DEPRECATION|ANOMALY] Brief title
+- **Trigger**: <command, tool call, or operation>
+- **File/Path**: <full path or "N/A">
+- **Full Text**: <verbatim text or "No message — logic failure: [description]">
+- **Resolution**: UNRESOLVED | PARTIAL — <what was tried> | RESOLVED — <how it was fixed>
+- **Claude's Response**: ACKNOWLEDGED+FIXED | ACKNOWLEDGED+DEFERRED | ACKNOWLEDGED+IGNORED | SILENTLY IGNORED
+
+### T<N> [WARNING] Next finding from same session (HIGHER turn number than above)
+...
+
+## Session: YYYY-MM-DD (next session, later date)
+
+### T<N> [ERROR] First finding from this session
+...
+
+WITHIN EACH SESSION: findings MUST appear in ascending turn number order. T644 comes before T750 which comes before T806. If you write T750 and then realize you missed T644, go back and insert T644 before T750. The turn number prefix in the heading title makes ordering visible — verify the heading turn numbers increase as you read down.
+
+TURN NUMBER CONTEXT:
+Turn numbers reset to T1 at the start of each session. The session date header provides date context — no date prefix needed on individual entries.
+
+For each finding, use EXACTLY this format — no deviations:
 
 ### [ERROR|WARNING|DEPRECATION|ANOMALY] Brief descriptive title
-- **Turn**: T<number>
-- **Trigger**: <exact command, tool call, or file operation that caused this>
-- **File/Path**: <file path or command involved, if any>
-- **Full Text**: <complete error/warning text verbatim — do NOT truncate or paraphrase>
-- **Resolution**: UNRESOLVED | PARTIAL (<what was attempted>) | RESOLVED (<how it was fixed>)
-- **Claude's Response**: <did Claude acknowledge it? ignore it? say "we'll fix later"? skip it?>
+- **Turn**: T<N> [YYYY-MM-DD]
+- **Trigger**: <exact command, tool call, or operation that caused this>
+- **File/Path**: <full file path, or "N/A">
+- **Full Text**: <copy the exact error/warning text character-for-character; if it was a logic failure with no text output, write "No message — logic failure: [one-sentence description]">
+- **Resolution**: UNRESOLVED | PARTIAL — <what was attempted and why it didn't fully resolve> | RESOLVED — <exactly how it was fixed>
+- **Claude's Response**: ACKNOWLEDGED+FIXED | ACKNOWLEDGED+DEFERRED | ACKNOWLEDGED+IGNORED | SILENTLY IGNORED
+
+What counts as a finding:
+- Bash commands with non-zero exit code
+- File-not-found, permission denied, type errors
+- Lint warnings, test failures, deprecation notices
+- Unexpected output that caused a course correction
+- Cases where Claude said "we'll fix later" or moved on without resolving
+- Logic bugs that caused wrong behavior (even if no exception was thrown)
+
+What does NOT count:
+- Successful operations that produced expected output
+- Informational logs with no error implication
+
+Do NOT filter by severity. Do NOT limit to a "top 10". Do NOT omit "minor" items. COMPLETE INVENTORY ONLY.`;
+
+const GOAL3_SUMMARY_SYSTEM = `You are a TECHNICAL HISTORIAN producing a dense chronological timeline of a Claude Code session period.
+
+CHRONOLOGICAL ORDER IS MANDATORY:
+The timeline MUST proceed from earliest turn to latest turn without exception. Phases MUST be ordered by their starting turn number — the phase with the LOWEST starting turn number appears FIRST. Phases MUST NOT go backwards, overlap, or be reordered thematically. If you find yourself placing a later phase before an earlier one, stop and reorder.
+
+TURN NUMBER CONTEXT:
+The transcript covers multiple sessions. Turn numbers reset to T1 at the start of each session. To prevent ambiguity, prefix turns with the session date: T<N> [YYYY-MM-DD].
+
+FORMAT — use exactly this structure:
+
+## Phase: <descriptive name> (T<start> [date] – T<end> [date])
+• T<N> [YYYY-MM-DD] — <what changed/was decided/was discovered> [<file or command>]
 
 Rules:
-- Include EVERY instance — tool errors, bash command failures (non-zero exit), file-not-found, permission denied, type errors, lint warnings, deprecation notices, test failures, unexpected output
-- Include cases where Claude explicitly said "ignore this", "we can fix that later", or simply moved on without addressing it
-- Order strictly by turn number (chronological)
-- Do NOT filter, curate, or judge severity — include everything
-- Do NOT skip "minor" warnings — the user specifically wants to see what was missed
-- Your job is a COMPLETE inventory, not a curated top-10`;
+- One bullet per significant event — 1-2 lines maximum, but keep all technical specifics (paths, function names, values, error messages)
+- Each turn number appears EXACTLY ONCE across the entire timeline — no duplicates
+- Mark unresolved errors/blockers with ⚠ at the start of the bullet
+- Capture decision rationale inline: "chose X over Y because Z"
+- Skip: file reads with no finding, successful no-op commands, pure navigation
+- Include: any change to files, commands that produced errors or discoveries, decisions, deployments, fixes, test results
 
-const GOAL3_SUMMARY_SYSTEM = `You are a TECHNICAL HISTORIAN creating a dense chronological timeline of this Claude Code session period.
-
-Format: one bullet per significant event, strict chronological order by turn number.
-
-• T<N> — <what happened> [<file or command if relevant>]
-
-Group into phases with a ## Phase: <name> header when clear phases emerge (e.g., "## Phase: Initial Investigation", "## Phase: Implementing Feature X", "## Phase: Debugging", "## Phase: Testing & Release").
-
-Rules:
-- Start from the earliest turn, strict chronological order
-- Maximum conciseness: 1-2 lines per event, but preserve all technical specifics (file names, function names, commands, values)
-- Do NOT omit significant events — errors, decisions, discoveries, blockers, solutions all matter
-- Mark unresolved errors with ⚠ at the start of the bullet
-- For decisions: capture the choice AND rationale if stated
-- Skip trivial tool calls (reading a file with no finding) — include only events that changed something, revealed something, or decided something
-- Aim for maximum COVERAGE — a month of work should produce a dense timeline
+Aim for MAXIMUM COVERAGE. A 48-hour window with 1500 turns should produce 40-60 bullets minimum. Do not thin the timeline.
 
 End with:
 ## Key Outcomes
-- [3-7 most important results of this entire session period — what was built, what was decided, what remains broken]`;
+- <3-7 bullets: the most important results — what was built, what was decided, what remains broken, what was released>`;
+
+// ── MiniMax API ────────────────────────────────────────────────────────────────
+
+const MAX_RETRIES = 2;
+const RETRY_BASE_MS = 1000;
+
+async function callMiniMax(
+  apiKey: string,
+  system: string,
+  userContent: string,
+  maxTokens: number,
+  timeoutMs: number = 180_000,
+): Promise<string> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(MINIMAX_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: MINIMAX_MODEL,
+          max_tokens: maxTokens,
+          system,
+          messages: [{ role: "user", content: userContent }],
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (res.status === 429 || res.status >= 500) {
+        const body = await res.text().catch(() => "");
+        if (attempt < MAX_RETRIES) {
+          const delay = RETRY_BASE_MS * Math.pow(2, attempt) + Math.random() * 1000;
+          console.error(`[minimax] ${res.status} on attempt ${attempt + 1}, retrying in ${(delay / 1000).toFixed(1)}s...`);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        throw new Error(`MiniMax API ${res.status}: ${body.slice(0, 500)}`);
+      }
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`MiniMax API ${res.status}: ${body.slice(0, 500)}`);
+      }
+
+      const result: any = await res.json();
+      if (result.content && Array.isArray(result.content)) {
+        return result.content.map((b: any) => b.text || "").join("");
+      }
+      return JSON.stringify(result, null, 2);
+    } catch (err: any) {
+      if (attempt < MAX_RETRIES && (err.name === "TimeoutError" || err.message?.includes("fetch failed"))) {
+        const delay = RETRY_BASE_MS * Math.pow(2, attempt) + Math.random() * 1000;
+        console.error(`[minimax] ${err.name || "error"} on attempt ${attempt + 1}, retrying in ${(delay / 1000).toFixed(1)}s...`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("callMiniMax: exhausted retries");
+}
 
 // ── API Key ────────────────────────────────────────────────────────────────────
 
