@@ -1,3 +1,10 @@
+# [12.2.0](https://github.com/terrylica/cc-skills/compare/v12.1.2...v12.2.0) (2026-03-12)
+
+
+### Features
+
+* **session-debrief:** add Python preprocessor using claude-code-log for enriched session parsing ([ad1b9dd](https://github.com/terrylica/cc-skills/commit/ad1b9ddd14e84cf17afb1047d82d138be2748401))
+
 ## [12.1.2](https://github.com/terrylica/cc-skills/compare/v12.1.1...v12.1.2) (2026-03-12)
 
 
