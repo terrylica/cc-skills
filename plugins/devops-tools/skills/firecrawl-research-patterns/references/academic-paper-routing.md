@@ -6,16 +6,16 @@ Decision tree for choosing the best retrieval method based on paper source. Opti
 
 ## Routing Table
 
-| Source                | Best Method                       | Why                                                                                         | Fallback                          | `waitFor` |
-| --------------------- | --------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------- | --------- |
-| arxiv.org             | Jina Reader (`r.jina.ai/html/ID`) | Free, fast, emits absolute figure URLs inline; port 3003 can't reach arxiv from small-host | Pandoc from LaTeX source for math | No        |
-| Semantic Scholar      | API (`api.semanticscholar.org`)   | Structured JSON, free, rate-limited                                                         | Firecrawl search for paper title  | No        |
-| ACL Anthology         | Firecrawl `/v1/scrape`            | Clean HTML, free access                                                                     | Direct PDF download               | No        |
-| NeurIPS/ICML/ICLR     | Firecrawl `/v1/scrape`            | JS-rendered proceedings pages                                                               | Firecrawl search by title         | 2000      |
-| IEEE Xplore           | Firecrawl `/v1/scrape`            | Heavy JS SPA                                                                                | Author's personal website         | 3000      |
-| ACM Digital Library   | Firecrawl `/v1/scrape`            | Heavy JS SPA                                                                                | Author's personal website         | 3000      |
-| Author blogs/websites | Jina Reader (`r.jina.ai`)         | Static HTML, fast, clean output                                                             | Firecrawl `/v1/scrape`            | No        |
-| Google Scholar        | Firecrawl `/v1/search`            | Needs JS rendering for results                                                              | Direct search query reformulation | No        |
+| Source                | Best Method                     | Why                                                                                      | Fallback                            | `waitFor` |
+| --------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------- | --------- |
+| arxiv.org             | Port 3003 (`/scrape?url=...`)   | **+17% more content** than Jina (99KB vs 85KB), 13 figures vs 12, identical to port 3002 | Jina Reader (when small-host down) | No        |
+| Semantic Scholar      | API (`api.semanticscholar.org`) | Structured JSON, free, rate-limited                                                      | Firecrawl search for paper title    | No        |
+| ACL Anthology         | Firecrawl `/v1/scrape`          | Clean HTML, free access                                                                  | Direct PDF download                 | No        |
+| NeurIPS/ICML/ICLR     | Firecrawl `/v1/scrape`          | JS-rendered proceedings pages                                                            | Firecrawl search by title           | 2000      |
+| IEEE Xplore           | Firecrawl `/v1/scrape`          | Heavy JS SPA                                                                             | Author's personal website           | 3000      |
+| ACM Digital Library   | Firecrawl `/v1/scrape`          | Heavy JS SPA                                                                             | Author's personal website           | 3000      |
+| Author blogs/websites | Jina Reader (`r.jina.ai`)       | Static HTML, fast, clean output                                                          | Firecrawl `/v1/scrape`              | No        |
+| Google Scholar        | Firecrawl `/v1/search`          | Needs JS rendering for results                                                           | Direct search query reformulation   | No        |
 
 ---
 
@@ -31,16 +31,25 @@ arxiv.org/html/2401.12345     → full HTML paper (preferred for LLM)
 arxiv.org/pdf/2401.12345      → PDF (less useful for text extraction)
 ```
 
-**Primary**: Direct `fetch()` on the HTML version:
+**Primary**: Port 3003 (Firecrawl wrapper) — empirically gets 17% more content than Jina:
 
-```typescript
-const arxivId = "2401.12345";
-const res = await fetch(`https://arxiv.org/html/${arxivId}`);
-const html = await res.text();
-// Convert HTML to markdown or pass to Firecrawl for conversion
+```bash
+curl "http://172.25.236.1:3003/scrape?url=https://arxiv.org/html/2401.12345&name=paper-slug"
+# Returns: {"url":"http://172.25.236.1:8080/paper-slug-TIMESTAMP.md","file":"..."}
 ```
 
-**Empirically validated (arXiv:2312.00752v2, Mamba paper)**: Jina Reader on arXiv HTML already emits absolute figure URLs inline — `![Image 1: ...](https://arxiv.org/html/2312.00752v2/x1.png)`. Use Jina as primary. Port 3003 from small-host cannot reach arxiv.org (network routing issue — timeout).
+**Fallback** (when small-host is down): Jina Reader:
+
+```bash
+curl -s "https://r.jina.ai/https://arxiv.org/html/2401.12345" -o paper.md
+```
+
+**Empirically validated (arXiv:2312.00752v2, Mamba paper, March 2026)**:
+
+- Port 3003: 99,104 bytes, 1,267 lines, 13 figures (absolute inline URLs ✅)
+- Jina Reader: 84,832 bytes, 596 lines, 12 figures (absolute inline URLs ✅)
+- Both emit absolute figure URLs — no URL reconstruction needed
+- The earlier session timeout was machine downtime, not a routing issue — port 3003 reaches arxiv.org fine when small-host is online
 
 **Math rendering gap**: Both Jina and Firecrawl output raw LaTeX without `$...$` delimiters — math is unreadable on GitHub. Use Pandoc from the arXiv LaTeX source tarball (`--to gfm+tex_math_dollars`) for human-readable math (see Section 6 of SKILL.md).
 

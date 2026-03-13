@@ -454,21 +454,25 @@ figure_urls:
 
 ### Port 3003 vs Jina Reader: Empirical Comparison (arXiv)
 
-**Validated on arXiv:2312.00752v2 (Mamba paper, March 2026):**
+**Validated on arXiv:2312.00752v2 (Mamba paper) — both scrapers running, same URL:**
 
-| Scraper                  | arXiv reachability from small-host               | Inline figure URLs             | Math rendering           |
-| ------------------------ | ------------------------------------------------- | ------------------------------ | ------------------------ |
-| Port 3003                | ❌ Timeout (small-host can't route to arxiv.org) | N/A                            | N/A                      |
-| Jina Reader              | ✅ Works                                          | ✅ **Already absolute inline** | ❌ Raw LaTeX, no `$...$` |
-| Pandoc from LaTeX source | ✅ Direct from arxiv.org                          | ✅ Via `\includegraphics`      | ✅ Proper `$...$`        |
+| Scraper                  | Bytes  | Lines | Words  | Figures (absolute inline) | Math `$...$` |
+| ------------------------ | ------ | ----- | ------ | ------------------------- | ------------ |
+| Port 3003 (Firecrawl)    | 99,104 | 1,267 | 13,182 | 13 ✅                     | ❌ raw LaTeX |
+| Port 3002 (direct API)   | 99,104 | 1,267 | 13,182 | 13 ✅ (identical to 3003) | ❌ raw LaTeX |
+| Jina Reader              | 84,832 | 596   | 10,761 | 12 ✅                     | ❌ raw LaTeX |
+| Pandoc from LaTeX source | —      | —     | —      | via `\includegraphics`    | ✅ proper    |
 
-**Correction**: Jina Reader on arXiv HTML **already emits absolute figure URLs** (`![Image 1: ...](https://arxiv.org/html/2312.00752v2/x1.png)`). The previous claim that "Jina uses relative paths" was incorrect for arXiv HTML papers. No URL reconstruction needed after Jina.
+**Verdict**: Firecrawl (port 3002/3003) gets **17% more bytes, 2.1× more lines, 22% more words, 1 extra figure** vs Jina. Port 3002 and 3003 produce identical markdown (3003 just wraps 3002 and saves to Caddy). **Both emit absolute inline figure URLs** — no URL reconstruction needed from either scraper.
+
+**Note on the earlier session timeout**: The March 2026 session failure was machine downtime (small-host was offline), not a routing issue. When small-host is up, port 3003 reaches arxiv.org fine.
 
 **Recommended arXiv workflow**:
 
-1. Jina Reader for text + figures (figures already inline and absolute)
-2. Probe loop to build `figure_urls` frontmatter catalog (even when Jina is the scraper)
-3. For human-readable math on GitHub: Pandoc from arXiv LaTeX source (see below)
+1. Port 3003 (preferred) — more complete content, figures inline, saves to Caddy
+2. Jina Reader (fallback when small-host is down) — 17% less content but still gets absolute figure URLs
+3. Probe loop to build `figure_urls` frontmatter catalog regardless of scraper used
+4. For human-readable math on GitHub: Pandoc from arXiv LaTeX source (see below)
 
 ### Math Rendering: Pandoc from arXiv LaTeX Source
 
