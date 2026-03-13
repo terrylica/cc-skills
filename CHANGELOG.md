@@ -1,3 +1,35 @@
+## [12.3.1](https://github.com/terrylica/cc-skills/compare/v12.3.0...v12.3.1) (2026-03-13)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [firecrawl-research-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/SKILL.md) - updated (+164/-15)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/firecrawl-research-patterns</strong> (2 files)</summary>
+
+- [Academic Paper Routing](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/academic-paper-routing.md) - updated (+32)
+- [Firecrawl Self-Hosted Operations](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-operations.md) - updated (+34/-12)
+
+</details>
+
 # [12.3.0](https://github.com/terrylica/cc-skills/compare/v12.2.0...v12.3.0) (2026-03-13)
 
 
