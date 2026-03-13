@@ -233,6 +233,41 @@ End with:
 - Redis container absent from CI blocks refresh flow test
 --- END SKELETON EXAMPLE ---`;
 
+// Merge system prompts — used when content is too large for a single MiniMax call
+// and multiple partial analyses need to be synthesized into one unified output.
+
+const GOAL1_MERGE_SYSTEM = ANTI_TOOL_CALL_PREAMBLE + `You are an automated documentation system. You receive multiple partial HANDOFF DOCUMENTS, each covering sequential portions of a session transcript. Merge them into ONE unified handoff document with exactly six sections.
+
+MERGING RULES:
+- WHAT WAS ACCOMPLISHED: Union of all items. Remove exact duplicates. Maintain chronological order.
+- CURRENT STATE: Use the LAST partial document's state — it reflects the final state. Remove items superseded by later parts.
+- INCOMPLETE / BROKEN: Union of all items. Remove items resolved in later parts.
+- KEY DECISIONS & RATIONALE: Union of all decisions. Remove exact duplicates.
+- CRITICAL GOTCHAS & CONTEXT: Union of all items. Remove exact duplicates.
+- NEXT STEPS: Use the last partial document's next steps. Merge any unique items from earlier parts that remain relevant.
+
+Output ONLY the merged document. No preamble, no commentary, no "Here is the merged result:".`;
+
+const GOAL2_MERGE_SYSTEM = ANTI_TOOL_CALL_PREAMBLE + `You are an ERROR FORENSICS ANALYST. You receive multiple partial error reports, each covering sequential portions of a session transcript. Merge them into ONE unified error inventory.
+
+MERGING RULES:
+- Maintain session-then-ascending-turn-number order from the partial reports.
+- Do NOT omit any finding. Do NOT add findings not present in the partials.
+- If the same finding appears in multiple partials, keep only the one with more detail.
+- Preserve all ## Session: YYYY-MM-DD headers and ### T<N> [TYPE] finding headers.
+
+Output ONLY the merged error inventory. No preamble, no commentary.`;
+
+const GOAL3_MERGE_SYSTEM = ANTI_TOOL_CALL_PREAMBLE + `You are a TECHNICAL HISTORIAN. You receive multiple partial chronological timeline summaries, each covering sequential turns of a session. Merge them into ONE continuous timeline.
+
+MERGING RULES:
+- Phases MUST remain in strictly ascending turn-number order across the full merged timeline.
+- Do NOT omit any bullet. Do NOT add new bullets not present in the partials.
+- If the same phase spans multiple parts, merge those phase sections into one continuous phase block.
+- The final ## Key Outcomes section should synthesize outcomes from all parts (deduplicated).
+
+Output ONLY the merged timeline. No preamble, no commentary.`;
+
 // ── MiniMax API ────────────────────────────────────────────────────────────────
 
 const MAX_RETRIES = 2;
@@ -1005,6 +1040,50 @@ function buildStructuredLogAdaptive(turns: RawTurn[], budget: number, verbose: b
     end;
 }
 
+// ── Turn-level chunking ────────────────────────────────────────────────────────
+
+/**
+ * Split turns into chunks where each chunk's L0 structured log fits under budget.
+ * Uses greedy bin-packing with an O(n) incremental size counter — safe on 3000+ turn payloads.
+ * A single turn that alone exceeds budget is placed in its own chunk (adaptive fidelity handles it).
+ */
+function splitTurnsIntoChunks(turns: RawTurn[], budget: number): RawTurn[][] {
+  const chunks: RawTurn[][] = [];
+  let current: RawTurn[] = [];
+  let currentSize = 0;
+  let currentSession = "";
+
+  for (const turn of turns) {
+    // Estimate L0 size of this turn: session separator + full-fidelity turn text
+    let turnSize = 0;
+    if (turn.session !== currentSession) {
+      turnSize += `\n══ SESSION: ${turn.session} ══\n`.length + 1; // +1 for join "\n"
+    }
+    turnSize += buildTurnText(turn, Infinity, Infinity, Infinity).length + 1;
+
+    if (currentSize + turnSize > budget && current.length > 0) {
+      chunks.push(current);
+      current = [turn];
+      currentSize = turnSize;
+      currentSession = turn.session;
+    } else {
+      current.push(turn);
+      currentSize += turnSize;
+      currentSession = turn.session;
+    }
+  }
+  if (current.length > 0) chunks.push(current);
+  return chunks;
+}
+
+/** Build the user message for a merge/synthesis pass from N partial analyses. */
+function buildMergeUserMessage(partials: string[]): string {
+  const body = partials
+    .map((p, i) => `=== PART ${i + 1} OF ${partials.length} ===\n${p}`)
+    .join("\n\n");
+  return `${body}\n\nNow produce the merged output:`;
+}
+
 // ── Summary stats ──────────────────────────────────────────────────────────────
 
 function buildSessionSummary(turns: RawTurn[], chainInfo: string): string {
@@ -1079,114 +1158,102 @@ ${structuredLog}
 Now produce your analysis. Be exhaustive and technically precise.`;
 }
 
-/** Goal 1: Handoff document — chunked across sessions to maximize coverage. */
+/** Run a goal with turn-level chunking + synthesis merge if content exceeds budget. */
+async function runGoalChunked(
+  apiKey: string,
+  turns: RawTurn[],
+  chainInfo: string,
+  verbose: boolean,
+  goalNum: number,
+  systemPrompt: string,
+  mergeSystemPrompt: string,
+  goalLabel: string,
+): Promise<void> {
+  const tag = `[goal${goalNum}]`;
+
+  // True L0 size (10x budget avoids false "middle trimmed" content matches)
+  const l0Size = buildStructuredLogAdaptive(turns, MAX_STRUCTURED_LOG_CHARS * 10, false).length;
+
+  if (l0Size <= MAX_STRUCTURED_LOG_CHARS) {
+    const structuredLog = buildStructuredLogAdaptive(turns, MAX_STRUCTURED_LOG_CHARS, verbose);
+    console.error(`${tag} Single call — ${structuredLog.length} chars, ${turns.length} turns`);
+    const sessionSummary = buildSessionSummary(turns, chainInfo);
+    const userMsg = buildGoalUserMessage(sessionSummary, structuredLog);
+    const result = await callMiniMax(apiKey, systemPrompt, userMsg, MAX_OUTPUT_TOKENS);
+    console.log(result);
+    return;
+  }
+
+  // Content too large — split at turn boundaries
+  const chunks = splitTurnsIntoChunks(turns, MAX_STRUCTURED_LOG_CHARS);
+  console.error(`${tag} Content exceeds budget — split into ${chunks.length} turn-level chunk(s)`);
+
+  const partials: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const chunkLog = buildStructuredLogAdaptive(chunk, MAX_STRUCTURED_LOG_CHARS, verbose);
+    const chunkSummary = buildSessionSummary(chunk, `${chainInfo} — part ${i + 1}/${chunks.length}`);
+    console.error(`${tag} Chunk ${i + 1}/${chunks.length}: ${chunkLog.length} chars, ${chunk.length} turns`);
+    const userMsg = buildGoalUserMessage(chunkSummary, chunkLog, i + 1, chunks.length);
+    partials.push(await callMiniMax(apiKey, systemPrompt, userMsg, MAX_OUTPUT_TOKENS));
+  }
+
+  if (partials.length === 1) {
+    console.log(partials[0]);
+    return;
+  }
+
+  // Merge pass — synthesize partial analyses into one unified output
+  const mergeInput = buildMergeUserMessage(partials);
+  const mergeInputSize = mergeInput.length;
+
+  if (mergeInputSize <= MAX_STRUCTURED_LOG_CHARS) {
+    console.error(`${tag} Merging ${partials.length} partial ${goalLabel}s (${mergeInputSize} chars)...`);
+    const merged = await callMiniMax(apiKey, mergeSystemPrompt, mergeInput, MAX_OUTPUT_TOKENS);
+    console.log(merged);
+  } else {
+    // Merge input itself exceeds budget — output parts separately as fallback
+    console.error(`${tag} Merge input too large (${mergeInputSize} chars) — outputting ${partials.length} parts separately`);
+    for (let i = 0; i < partials.length; i++) {
+      console.log(`\n${"═".repeat(70)}`);
+      console.log(`  ${goalLabel.toUpperCase()} PART ${i + 1} OF ${partials.length}`);
+      console.log(`${"═".repeat(70)}\n`);
+      console.log(partials[i]);
+    }
+  }
+}
+
+/** Goal 1: Handoff document — turn-level chunking + merge pass if oversized. */
 async function runGoal1Handoff(
   apiKey: string,
   turns: RawTurn[],
   chainInfo: string,
   verbose: boolean,
 ): Promise<void> {
-  // Compute true L0 size by using 10x budget (guarantees no trimming)
-  // Avoids string-matching on "middle trimmed" which can appear in session content.
-  const l0Log = buildStructuredLogAdaptive(turns, MAX_STRUCTURED_LOG_CHARS * 10, false);
-  const fitsInBudget = l0Log.length <= MAX_STRUCTURED_LOG_CHARS;
-
-  if (fitsInBudget) {
-    // Fits in one call — use the adaptive log for the real budget
-    const structuredLog = buildStructuredLogAdaptive(turns, MAX_STRUCTURED_LOG_CHARS, verbose);
-    console.error(`[goal1] Single call — ${structuredLog.length} chars, ${turns.length} turns`);
-    const sessionSummary = buildSessionSummary(turns, chainInfo);
-    const userMsg = buildGoalUserMessage(sessionSummary, structuredLog);
-    const result = await callMiniMax(apiKey, GOAL1_HANDOFF_SYSTEM, userMsg, MAX_OUTPUT_TOKENS);
-    console.log(result);
-    return;
-  }
-
-  // Content too large — chunk by session groupings
-  console.error(`[goal1] Content exceeds budget — chunking into session batches`);
-
-  // Group turns by session label (preserves session boundaries)
-  const sessionOrder: string[] = [];
-  const sessionGroups = new Map<string, RawTurn[]>();
-  for (const turn of turns) {
-    if (!sessionGroups.has(turn.session)) {
-      sessionGroups.set(turn.session, []);
-      sessionOrder.push(turn.session);
-    }
-    sessionGroups.get(turn.session)!.push(turn);
-  }
-
-  // Pack sessions into chunks where each chunk fits under budget at L0 fidelity
-  const chunks: RawTurn[][] = [];
-  let currentChunk: RawTurn[] = [];
-
-  for (const sessionLabel of sessionOrder) {
-    const sessionTurns = sessionGroups.get(sessionLabel)!;
-    const testChunk = [...currentChunk, ...sessionTurns];
-    // Use 10x budget to get true L0 size without false "middle trimmed" matches from content
-    const testSize = buildStructuredLogAdaptive(testChunk, MAX_STRUCTURED_LOG_CHARS * 10, false).length;
-    if (testSize > MAX_STRUCTURED_LOG_CHARS && currentChunk.length > 0) {
-      chunks.push([...currentChunk]);
-      currentChunk = [...sessionTurns];
-    } else {
-      currentChunk = testChunk;
-    }
-  }
-  if (currentChunk.length > 0) chunks.push(currentChunk);
-
-  console.error(`[goal1] Processing ${chunks.length} chunk(s) sequentially for maximum coverage`);
-  const chunkResults: string[] = [];
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    const chunkLog = buildStructuredLogAdaptive(chunk, MAX_STRUCTURED_LOG_CHARS, verbose);
-    const chunkSummary = buildSessionSummary(chunk, `${chainInfo} — part ${i + 1}/${chunks.length}`);
-    console.error(`[goal1] Chunk ${i + 1}/${chunks.length}: ${chunkLog.length} chars, ${chunk.length} turns`);
-    const userMsg = buildGoalUserMessage(chunkSummary, chunkLog, i + 1, chunks.length);
-    const result = await callMiniMax(apiKey, GOAL1_HANDOFF_SYSTEM, userMsg, MAX_OUTPUT_TOKENS);
-    chunkResults.push(result);
-  }
-
-  if (chunkResults.length === 1) {
-    console.log(chunkResults[0]);
-  } else {
-    for (let i = 0; i < chunkResults.length; i++) {
-      console.log(`\n${"═".repeat(70)}`);
-      console.log(`  HANDOFF PART ${i + 1} OF ${chunkResults.length}`);
-      console.log(`${"═".repeat(70)}\n`);
-      console.log(chunkResults[i]);
-    }
-  }
+  await runGoalChunked(apiKey, turns, chainInfo, verbose, 1,
+    GOAL1_HANDOFF_SYSTEM, GOAL1_MERGE_SYSTEM, "handoff");
 }
 
-/** Goal 2: Error & warning forensics — single pass, full detail. */
+/** Goal 2: Error & warning forensics — turn-level chunking + merge pass if oversized. */
 async function runGoal2Errors(
   apiKey: string,
   turns: RawTurn[],
   chainInfo: string,
   verbose: boolean,
 ): Promise<void> {
-  const structuredLog = buildStructuredLogAdaptive(turns, MAX_STRUCTURED_LOG_CHARS, verbose);
-  const sessionSummary = buildSessionSummary(turns, chainInfo);
-  console.error(`[goal2] Error forensics — ${structuredLog.length} chars, ${turns.length} turns`);
-  const userMsg = buildGoalUserMessage(sessionSummary, structuredLog);
-  const result = await callMiniMax(apiKey, GOAL2_ERRORS_SYSTEM, userMsg, MAX_OUTPUT_TOKENS);
-  console.log(result);
+  await runGoalChunked(apiKey, turns, chainInfo, verbose, 2,
+    GOAL2_ERRORS_SYSTEM, GOAL2_MERGE_SYSTEM, "error forensics");
 }
 
-/** Goal 3: Chronological technical summary — dense timeline. */
+/** Goal 3: Chronological technical summary — turn-level chunking + merge pass if oversized. */
 async function runGoal3Summary(
   apiKey: string,
   turns: RawTurn[],
   chainInfo: string,
   verbose: boolean,
 ): Promise<void> {
-  const structuredLog = buildStructuredLogAdaptive(turns, MAX_STRUCTURED_LOG_CHARS, verbose);
-  const sessionSummary = buildSessionSummary(turns, chainInfo);
-  console.error(`[goal3] Chronological summary — ${structuredLog.length} chars, ${turns.length} turns`);
-  const userMsg = buildGoalUserMessage(sessionSummary, structuredLog);
-  const result = await callMiniMax(apiKey, GOAL3_SUMMARY_SYSTEM, userMsg, MAX_OUTPUT_TOKENS);
-  console.log(result);
+  await runGoalChunked(apiKey, turns, chainInfo, verbose, 3,
+    GOAL3_SUMMARY_SYSTEM, GOAL3_MERGE_SYSTEM, "chronological summary");
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────
@@ -1273,9 +1340,17 @@ async function main() {
     console.error(`[session-debrief] Payload: ${allTurns.length} turns across ${allSessionPaths.length} sessions`);
 
     if (dryRun) {
-      const structuredLog = buildStructuredLogAdaptive(allTurns, MAX_STRUCTURED_LOG_CHARS, verbose);
+      const l0Size = buildStructuredLogAdaptive(allTurns, MAX_STRUCTURED_LOG_CHARS * 10, false).length;
       console.log(buildSessionSummary(allTurns, chainInfo));
+      console.log(`\nL0 size: ${l0Size} chars | Budget: ${MAX_STRUCTURED_LOG_CHARS} chars`);
+      if (l0Size > MAX_STRUCTURED_LOG_CHARS) {
+        const chunks = splitTurnsIntoChunks(allTurns, MAX_STRUCTURED_LOG_CHARS);
+        console.log(`Chunking: ${chunks.length} turn-level chunk(s) → ${chunks.map(c => c.length + " turns").join(", ")}`);
+      } else {
+        console.log(`Fits in single call (no chunking needed)`);
+      }
       console.log("\n---\n");
+      const structuredLog = buildStructuredLogAdaptive(allTurns, MAX_STRUCTURED_LOG_CHARS, verbose);
       console.log(structuredLog);
       return;
     }
