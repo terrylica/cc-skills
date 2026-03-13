@@ -456,12 +456,12 @@ figure_urls:
 
 **Validated on arXiv:2312.00752v2 (Mamba paper) — both scrapers running, same URL:**
 
-| Scraper                  | Bytes  | Lines | Words  | Figures (absolute inline) | Math `$...$` |
-| ------------------------ | ------ | ----- | ------ | ------------------------- | ------------ |
-| Port 3003 (Firecrawl)    | 99,104 | 1,267 | 13,182 | 13 ✅                     | ❌ raw LaTeX |
-| Port 3002 (direct API)   | 99,104 | 1,267 | 13,182 | 13 ✅ (identical to 3003) | ❌ raw LaTeX |
-| Jina Reader              | 84,832 | 596   | 10,761 | 12 ✅                     | ❌ raw LaTeX |
-| Pandoc from LaTeX source | —      | —     | —      | via `\includegraphics`    | ✅ proper    |
+| Scraper                  | Bytes  | Lines | Words  | Figures (absolute inline) | Math on GitHub                         |
+| ------------------------ | ------ | ----- | ------ | ------------------------- | -------------------------------------- |
+| Port 3003 (Firecrawl)    | 99,104 | 1,267 | 13,182 | 13 ✅                     | ❌ doubled Unicode+LaTeX, no `$...$`   |
+| Port 3002 (direct API)   | 99,104 | 1,267 | 13,182 | 13 ✅ (identical to 3003) | ❌ doubled Unicode+LaTeX, no `$...$`   |
+| Jina Reader              | 84,832 | 596   | 10,761 | 12 ✅                     | ❌ doubled Unicode+LaTeX, no `$...$`   |
+| Pandoc from LaTeX source | —      | —     | —      | via `\includegraphics`    | ✅ `$inline$` + ` ```math ``` ` blocks |
 
 **Verdict**: Firecrawl (port 3002/3003) gets **17% more bytes, 2.1× more lines, 22% more words, 1 extra figure** vs Jina. Port 3002 and 3003 produce identical markdown (3003 just wraps 3002 and saves to Caddy). **Both emit absolute inline figure URLs** — no URL reconstruction needed from either scraper.
 
@@ -474,9 +474,27 @@ figure_urls:
 3. Probe loop to build `figure_urls` frontmatter catalog regardless of scraper used
 4. For human-readable math on GitHub: Pandoc from arXiv LaTeX source (see below)
 
-### Math Rendering: Pandoc from arXiv LaTeX Source
+### Math Rendering: Empirically Validated Approaches
 
-Jina and Firecrawl extract raw LaTeX without `$...$` delimiters — math is unreadable on GitHub. Pandoc from the arXiv LaTeX source tarball produces proper GFM with GitHub-rendered math:
+**Validated on arXiv:2312.00752v2 (Mamba paper), March 2026.**
+
+#### Firecrawl/Jina Math Output: Unreadable on GitHub
+
+Both Firecrawl (port 3002/3003) and Jina Reader extract math by doubling content — each equation appears as a Unicode render followed immediately by raw LaTeX source, packed into markdown table cells with `\displaystyle` prefixes and `\\bm{}` escaping. Example from the empirical test:
+
+```
+|     | h′​(t)\\displaystyle h^{\\prime}(t) | \=𝑨​h​(t)+𝑩​x​(t)\\displaystyle=\\bm{A}h(t)+\\bm{B}x(t) |     | (1a) |
+```
+
+No `$...$` delimiters — **GitHub cannot render this as math**. The raw LaTeX portion is parseable by an LLM (equations are present), but the output is completely unreadable to humans on GitHub.
+
+**For LLM consumption**: Firecrawl's doubled content is sufficient — the LaTeX source is embedded and an LLM can extract it.
+
+**For human-readable GitHub rendering**: Use Pandoc from the arXiv LaTeX source tarball (see below).
+
+#### Pandoc from arXiv LaTeX Source (Human-Readable Math)
+
+Produces proper `$inline$` and ` ```math ``` ` display blocks that GitHub's MathJax/KaTeX renders natively:
 
 ```bash
 ARXIV_ID="2312.00752"
@@ -486,17 +504,52 @@ curl -L "https://arxiv.org/src/${ARXIV_ID}" -o "${ARXIV_ID}-src.tar.gz"
 mkdir -p "${ARXIV_ID}-src"
 tar xzf "${ARXIV_ID}-src.tar.gz" -C "${ARXIV_ID}-src/"
 
-# Find main .tex entry point (main.tex, ms.tex, arxiv.tex, etc.)
+# Find main .tex entry point and section files
 ls "${ARXIV_ID}-src/"*.tex
+ls "${ARXIV_ID}-src/src/"*.tex 2>/dev/null  # some papers put sections in src/
 
-# Convert to GFM with proper math delimiters (GitHub renders these natively)
+# Option A: Convert individual section files (safer — avoids macro parse errors)
+pandoc "${ARXIV_ID}-src/src/background.tex" \
+  --to gfm+tex_math_dollars \
+  --wrap=none \
+  -o "${ARXIV_ID}-background.md"
+
+# Option B: Convert full main.tex (may fail on custom macros like \iftoggle)
 pandoc "${ARXIV_ID}-src/main.tex" \
   --to gfm+tex_math_dollars \
   --wrap=none \
   -o "${ARXIV_ID}-pandoc.md"
 ```
 
-`gfm+tex_math_dollars` outputs `$inline$` and `$$display$$` blocks. Install: `brew install pandoc`. Works on any arXiv paper that publishes LaTeX source (most do).
+Install: `brew install pandoc`. Works on any arXiv paper that publishes LaTeX source (most do).
+
+**Pandoc output quality** (empirically validated):
+
+- Inline math: `$x(t) \in \R \mapsto y(t) \in \R$` ✅ GitHub renders
+- Display math: ` ```math\n\begin{align}\nh'(t) &= \A h(t) + \B x(t)\n\end{align}\n``` ` ✅ GitHub renders
+- Custom macros (`\A`, `\B`, `\R`, `\dt`, `\dA`, `\dB`): ⚠️ **undefined in KaTeX** — macros pass through as-is and may partially fail on GitHub without the preamble's `\newcommand` definitions
+
+**Handling custom macros**: Prepend the `\newcommand` block from `main.tex` preamble to the output:
+
+````bash
+# Extract custom macro definitions from preamble
+grep '\\newcommand\|\\renewcommand\|\\def ' "${ARXIV_ID}-src/main.tex" > macros.tex
+
+# Pandoc does not read preamble macros — include them explicitly in a math block at the top:
+echo '```math' > preamble-block.md
+cat macros.tex >> preamble-block.md
+echo '```' >> preamble-block.md
+
+cat preamble-block.md "${ARXIV_ID}-pandoc.md" > "${ARXIV_ID}-with-macros.md"
+````
+
+**Known Pandoc parse errors on arXiv LaTeX**:
+
+| Error trigger        | Cause                                          | Workaround                                |
+| -------------------- | ---------------------------------------------- | ----------------------------------------- |
+| `\iftoggle{arxiv}`   | Undefined toggle macro (etoolbox package)      | Convert section files instead of main.tex |
+| `\begin{figure*}`    | Two-column figure environment breaks structure | Use `head -N` to avoid broken `\end` tags |
+| `\bm{}`, `\mathbf{}` | Passes through — may not render in KaTeX       | Check paper's macro file for mappings     |
 
 ---
 
