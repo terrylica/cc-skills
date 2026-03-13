@@ -27,6 +27,7 @@ MAGENTA='\033[35m'
 YELLOW='\033[33m'
 RED='\033[91m'
 GREEN='\033[92m'
+CYAN='\033[96m'
 
 # Get path display with ~ substitution
 # Shows: ~/eon/cc-skills or ~/eon/cc-skills/plugins/itp-hooks
@@ -234,6 +235,16 @@ git_changes="${git_changes} $(colorize_stat ≡ "$stash_count")"
 # Conflict indicator (RED when non-zero)
 git_changes="${git_changes} $(colorize_stat ⚠ "$conflicts" "$RED")"
 
+# === Active Cron Jobs ===
+# Reads ~/.claude/state/active-crons.json written by cron-tracker.ts hook
+# Each entry includes: id, schedule, session_id, project_path, prompt_file
+# Displayed as dedicated bottom lines, one per scheduler.
+# OSC 8 hyperlink emitted directly (never accumulated in a variable — avoids
+# printf '%b' double-processing the backslash sequences).
+cron_state_file="$HOME/.claude/state/active-crons.json"
+cron_count=0
+[ -f "$cron_state_file" ] && cron_count=$(jq 'length' "$cron_state_file" 2>/dev/null || echo 0)
+
 
 # Get GitHub remote URL (convert SSH to HTTPS for browser link)
 get_github_url() {
@@ -296,7 +307,7 @@ if [ -n "$ITERM_SESSION_ID" ]; then
     iterm_session_uuid=$(echo "$ITERM_SESSION_ID" | cut -d':' -f2)
 fi
 
-# Output: line1, cast, repo, session, timestamps
+# Output: git stats, cast, repo, session, timestamps, then cron jobs (bottom)
 echo -e "$line1"
 
 if [ -n "$iterm_session_uuid" ]; then
@@ -312,3 +323,44 @@ elif [ -n "$session_id" ]; then
 fi
 
 echo -e "    ${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
+
+# Cron jobs: one line per scheduler, after datetime (bottom of statusline)
+# OSC 8 parts emitted with printf directly — never stored in variables to
+# avoid printf '%b' re-interpreting already-built escape sequences.
+if [ "$cron_count" -gt 0 ]; then
+    while IFS= read -r entry; do
+        job_id=$(echo "$entry"     | jq -r '.id')
+        job_sched=$(echo "$entry"  | jq -r '.schedule')
+        job_sess=$(echo "$entry"   | jq -r '.session_id // ""' | cut -c1-8)
+        job_proj=$(echo "$entry"   | jq -r '.project_path // ""')
+        job_prompt=$(echo "$entry" | jq -r '.prompt_file // ""')
+        # id(schedule) — clickable hyperlink to prompt file if available, cyan text
+        if [ -n "$job_prompt" ] && [ -f "$job_prompt" ]; then
+            printf '\033]8;;file://%s\033\\' "$job_prompt"
+            printf '\033[96m%s(%s)\033[0m' "$job_id" "$job_sched"
+            printf '\033]8;;\033\\'
+        else
+            printf '\033[96m%s(%s)\033[0m' "$job_id" "$job_sched"
+        fi
+        # Session short ID in gray
+        [ -n "$job_sess" ] && printf ' \033[90m[%s]\033[0m' "$job_sess"
+        # Project path in gray
+        [ -n "$job_proj" ] && printf ' \033[90m%s\033[0m' "$job_proj"
+        # Last 5 versioned history links — numbered 1=newest
+        history_dir="$HOME/.claude/state/cron-history/${job_id}"
+        if [ -d "$history_dir" ]; then
+            version_num=1
+            while IFS= read -r vfile; do
+                [ -f "$vfile" ] || continue
+                printf ' \033[90m'
+                printf '\033]8;;file://%s\033\\' "$vfile"
+                printf 'v%s' "$version_num"
+                printf '\033]8;;\033\\'
+                printf '\033[0m'
+                version_num=$((version_num + 1))
+                [ "$version_num" -gt 5 ] && break
+            done < <(ls -t "$history_dir"/*.md 2>/dev/null)
+        fi
+        printf '\n'
+    done < <(jq -c '.[]' "$cron_state_file" 2>/dev/null)
+fi
