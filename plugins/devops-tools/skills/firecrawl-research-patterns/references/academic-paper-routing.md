@@ -40,6 +40,38 @@ const html = await res.text();
 // Convert HTML to markdown or pass to Firecrawl for conversion
 ```
 
+**Important**: Use port 3003 (not Jina Reader) for arXiv papers that contain figures. Playwright resolves `<img src>` attributes to absolute URLs so you can extract and download them. Jina Reader is text-only and silently drops all figures.
+
+#### Downloading arXiv Figures
+
+arXiv HTML papers store figures with sequential names (`x1.png`, `x2.png`, …) at the paper's HTML base URL.
+
+```bash
+# Pattern: https://arxiv.org/html/{id}v{version}/x{N}.png
+# (version defaults to latest if omitted)
+ARXIV_ID="2401.12345"
+BASE="https://arxiv.org/html/${ARXIV_ID}/"
+mkdir -p "figures/${ARXIV_ID}"
+
+for i in $(seq 1 50); do
+  url="${BASE}x${i}.png"
+  out="figures/${ARXIV_ID}/x${i}.png"
+  http_code=$(curl -s -o "$out" -w "%{http_code}" "$url")
+  if [ "$http_code" = "404" ]; then
+    rm -f "$out"
+    break   # sequential naming — first 404 means no more figures
+  fi
+  echo "Downloaded x${i}.png (HTTP $http_code)"
+done
+```
+
+**Notes**:
+
+- Files are `x1.png`, `x2.png`, … (sequential, 1-indexed)
+- Stop at the first 404 — naming is contiguous with no gaps
+- Some papers use `.svg` or `.jpg`; try `.png` first, then probe alternatives
+- Version suffix: `https://arxiv.org/html/2401.12345v2/` for a specific version
+
 **Fallback**: If `/html/` is unavailable (older papers), use Firecrawl to scrape `/abs/`:
 
 ```typescript
