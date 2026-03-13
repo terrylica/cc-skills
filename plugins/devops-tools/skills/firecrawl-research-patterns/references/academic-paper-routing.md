@@ -51,7 +51,7 @@ curl -s "https://r.jina.ai/https://arxiv.org/html/2401.12345" -o paper.md
 - Both emit absolute figure URLs — no URL reconstruction needed
 - The earlier session timeout was machine downtime, not a routing issue — port 3003 reaches arxiv.org fine when small-host is online
 
-**Math rendering gap**: Both Jina and Firecrawl output raw LaTeX without `$...$` delimiters — math is unreadable on GitHub. Use Pandoc from the arXiv LaTeX source tarball (`--to gfm+tex_math_dollars`) for human-readable math (see Section 6 of SKILL.md).
+**Math rendering gap** (empirically validated): Both Jina and Firecrawl double all equations — each equation appears as Unicode render + raw LaTeX source in the same table cell with `\displaystyle` prefixes, no `$...$` delimiters. Unreadable on GitHub for humans; LaTeX is still parseable by LLMs. For human-readable GFM math, use Pandoc from the arXiv LaTeX source tarball (`--to gfm+tex_math_dollars`) — produces proper `$inline$` and ` ```math ``` ` blocks GitHub renders, but paper-specific custom macros (`\A`, `\B`, `\R`, etc.) need the preamble's `\newcommand` definitions prepended (see Section 6 of SKILL.md).
 
 #### arXiv Figure URL Pattern
 
