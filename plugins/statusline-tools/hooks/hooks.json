@@ -1,3 +1,16 @@
 {
-  "hooks": {}
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "CronCreate|CronDelete|CronList",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools/hooks/cron-tracker.ts",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  }
 }
