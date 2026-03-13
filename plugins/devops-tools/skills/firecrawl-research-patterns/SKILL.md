@@ -452,11 +452,47 @@ figure_urls:
 }
 ```
 
-### Port 3003 Advantage for Images
+### Port 3003 vs Jina Reader: Empirical Comparison (arXiv)
 
-Port 3003 (Firecrawl + Playwright) renders the full page, so image `src` attributes are resolved to absolute URLs before markdown conversion. The scraped markdown already contains `![Figure 1](https://arxiv.org/html/2312.00752v2/x1.png)` — inline, absolute, GitHub-renderable. No rewriting needed. Jina reader may emit relative paths (`./x1.png`) that break on GitHub; if using Jina, reconstruct absolute URLs from the known base and embed them back into the markdown.
+**Validated on arXiv:2312.00752v2 (Mamba paper, March 2026):**
 
-**Recommendation**: For image-rich papers, use port 3003 — you get inline absolute figure URLs in the scraped markdown with zero post-processing. If 3003 is unavailable, fall back to Jina + reconstruct `https://arxiv.org/html/{id}v{n}/x{N}.png` using the probe loop (Section 6) and insert the `![Fig N](url)` blocks manually.
+| Scraper                  | arXiv reachability from littleblack               | Inline figure URLs             | Math rendering           |
+| ------------------------ | ------------------------------------------------- | ------------------------------ | ------------------------ |
+| Port 3003                | ❌ Timeout (littleblack can't route to arxiv.org) | N/A                            | N/A                      |
+| Jina Reader              | ✅ Works                                          | ✅ **Already absolute inline** | ❌ Raw LaTeX, no `$...$` |
+| Pandoc from LaTeX source | ✅ Direct from arxiv.org                          | ✅ Via `\includegraphics`      | ✅ Proper `$...$`        |
+
+**Correction**: Jina Reader on arXiv HTML **already emits absolute figure URLs** (`![Image 1: ...](https://arxiv.org/html/2312.00752v2/x1.png)`). The previous claim that "Jina uses relative paths" was incorrect for arXiv HTML papers. No URL reconstruction needed after Jina.
+
+**Recommended arXiv workflow**:
+
+1. Jina Reader for text + figures (figures already inline and absolute)
+2. Probe loop to build `figure_urls` frontmatter catalog (even when Jina is the scraper)
+3. For human-readable math on GitHub: Pandoc from arXiv LaTeX source (see below)
+
+### Math Rendering: Pandoc from arXiv LaTeX Source
+
+Jina and Firecrawl extract raw LaTeX without `$...$` delimiters — math is unreadable on GitHub. Pandoc from the arXiv LaTeX source tarball produces proper GFM with GitHub-rendered math:
+
+```bash
+ARXIV_ID="2312.00752"
+
+# Download arXiv LaTeX source tarball
+curl -L "https://arxiv.org/src/${ARXIV_ID}" -o "${ARXIV_ID}-src.tar.gz"
+mkdir -p "${ARXIV_ID}-src"
+tar xzf "${ARXIV_ID}-src.tar.gz" -C "${ARXIV_ID}-src/"
+
+# Find main .tex entry point (main.tex, ms.tex, arxiv.tex, etc.)
+ls "${ARXIV_ID}-src/"*.tex
+
+# Convert to GFM with proper math delimiters (GitHub renders these natively)
+pandoc "${ARXIV_ID}-src/main.tex" \
+  --to gfm+tex_math_dollars \
+  --wrap=none \
+  -o "${ARXIV_ID}-pandoc.md"
+```
+
+`gfm+tex_math_dollars` outputs `$inline$` and `$$display$$` blocks. Install: `brew install pandoc`. Works on any arXiv paper that publishes LaTeX source (most do).
 
 ---
 

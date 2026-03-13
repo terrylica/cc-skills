@@ -6,16 +6,16 @@ Decision tree for choosing the best retrieval method based on paper source. Opti
 
 ## Routing Table
 
-| Source                | Best Method                     | Why                                 | Fallback                            | `waitFor` |
-| --------------------- | ------------------------------- | ----------------------------------- | ----------------------------------- | --------- |
-| arxiv.org             | Direct HTML (`/html/ID`)        | Free, structured, no JS             | Firecrawl `/v1/scrape` on `/abs/ID` | No        |
-| Semantic Scholar      | API (`api.semanticscholar.org`) | Structured JSON, free, rate-limited | Firecrawl search for paper title    | No        |
-| ACL Anthology         | Firecrawl `/v1/scrape`          | Clean HTML, free access             | Direct PDF download                 | No        |
-| NeurIPS/ICML/ICLR     | Firecrawl `/v1/scrape`          | JS-rendered proceedings pages       | Firecrawl search by title           | 2000      |
-| IEEE Xplore           | Firecrawl `/v1/scrape`          | Heavy JS SPA                        | Author's personal website           | 3000      |
-| ACM Digital Library   | Firecrawl `/v1/scrape`          | Heavy JS SPA                        | Author's personal website           | 3000      |
-| Author blogs/websites | Jina Reader (`r.jina.ai`)       | Static HTML, fast, clean output     | Firecrawl `/v1/scrape`              | No        |
-| Google Scholar        | Firecrawl `/v1/search`          | Needs JS rendering for results      | Direct search query reformulation   | No        |
+| Source                | Best Method                       | Why                                                                                         | Fallback                          | `waitFor` |
+| --------------------- | --------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------- | --------- |
+| arxiv.org             | Jina Reader (`r.jina.ai/html/ID`) | Free, fast, emits absolute figure URLs inline; port 3003 can't reach arxiv from littleblack | Pandoc from LaTeX source for math | No        |
+| Semantic Scholar      | API (`api.semanticscholar.org`)   | Structured JSON, free, rate-limited                                                         | Firecrawl search for paper title  | No        |
+| ACL Anthology         | Firecrawl `/v1/scrape`            | Clean HTML, free access                                                                     | Direct PDF download               | No        |
+| NeurIPS/ICML/ICLR     | Firecrawl `/v1/scrape`            | JS-rendered proceedings pages                                                               | Firecrawl search by title         | 2000      |
+| IEEE Xplore           | Firecrawl `/v1/scrape`            | Heavy JS SPA                                                                                | Author's personal website         | 3000      |
+| ACM Digital Library   | Firecrawl `/v1/scrape`            | Heavy JS SPA                                                                                | Author's personal website         | 3000      |
+| Author blogs/websites | Jina Reader (`r.jina.ai`)         | Static HTML, fast, clean output                                                             | Firecrawl `/v1/scrape`            | No        |
+| Google Scholar        | Firecrawl `/v1/search`            | Needs JS rendering for results                                                              | Direct search query reformulation | No        |
 
 ---
 
@@ -40,7 +40,9 @@ const html = await res.text();
 // Convert HTML to markdown or pass to Firecrawl for conversion
 ```
 
-**Important**: Use port 3003 (not Jina Reader) for arXiv papers that contain figures. Playwright resolves `<img src>` attributes to absolute URLs and embeds them inline in the scraped markdown — no post-processing needed. Jina Reader is text-only and silently drops all figures.
+**Empirically validated (arXiv:2312.00752v2, Mamba paper)**: Jina Reader on arXiv HTML already emits absolute figure URLs inline — `![Image 1: ...](https://arxiv.org/html/2312.00752v2/x1.png)`. Use Jina as primary. Port 3003 from littleblack cannot reach arxiv.org (network routing issue — timeout).
+
+**Math rendering gap**: Both Jina and Firecrawl output raw LaTeX without `$...$` delimiters — math is unreadable on GitHub. Use Pandoc from the arXiv LaTeX source tarball (`--to gfm+tex_math_dollars`) for human-readable math (see Section 6 of SKILL.md).
 
 #### arXiv Figure URL Pattern
 
