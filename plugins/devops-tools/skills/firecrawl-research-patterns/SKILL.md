@@ -62,19 +62,19 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 4. Update session report — amend or create new session report in docs/research/sessions/
 ```
 
-### Template E — Image-Rich Paper with Figure Download
+### Template E — Image-Rich Paper with Inline Figures
 
 Use when paper contains architecture diagrams, result plots, attention maps, or any critical visual content.
 
 ```
 1. Scrape text — use port 3003 (preferred, preserves absolute image URLs) or Jina fallback
 2. Detect figures — scan scraped markdown for ![alt](URL) patterns with .png/.jpg/.svg
-3. Extract figure URLs — for arxiv: base is https://arxiv.org/html/{id}v{n}/x{N}.png
-4. Download figures — curl each URL to corpus/figures/{slug}/
-5. Rewrite refs — update corpus markdown to use relative ./figures/{slug}/xN.png paths
-6. Update frontmatter — add figure_count, figures_dir, figures_downloaded_at
-7. Save corpus file — write updated markdown with local figure refs
-8. Update corpus-index.jsonl — include has_figures: true, figure_count
+3. Extract figure URLs — for arXiv: probe https://arxiv.org/html/{id}v{n}/x{N}.png until 404
+4. Keep URLs inline — DO NOT rewrite to local relative paths (breaks GitHub rendering)
+5. Ensure inline embedding — markdown body must have ![Figure N](absolute-url) for each figure
+6. Catalog in frontmatter — add figure_count and figure_urls list (all absolute URLs)
+7. Save corpus file — GFM markdown with inline absolute URLs renders on GitHub without hosting
+8. Update corpus-index.jsonl — include has_figures: true, figure_count, figure_urls
 ```
 
 ---
@@ -358,77 +358,79 @@ Capture figures when the paper contains any of:
 - Qualitative examples (generated outputs, visualizations)
 - Algorithm flowcharts or pseudocode figures
 
-### arXiv HTML Figure Download
+### arXiv HTML Figure URL Discovery
 
-arXiv HTML papers use sequential filenames (`x1.png`, `x2.png`, ...) at a predictable base URL:
+arXiv HTML papers store figures at sequential absolute URLs (`x1.png`, `x2.png`, ...). Probe to discover all figure URLs — do NOT download them locally:
 
 ```bash
 ARXIV_ID="2312.00752"
 ARXIV_VER="v2"
 BASE_URL="https://arxiv.org/html/${ARXIV_ID}${ARXIV_VER}"
-SLUG="mamba-2312-00752"
-FIGURES_DIR="docs/research/corpus/figures/${SLUG}"
-mkdir -p "$FIGURES_DIR"
+FIGURE_URLS=()
 
-# Download until 404 (arxiv sequential numbering)
+# Probe sequential URLs until 404 — collect absolute URLs only
 for i in $(seq 1 50); do
   url="${BASE_URL}/x${i}.png"
-  out="${FIGURES_DIR}/x${i}.png"
-  status=$(curl -s -o "$out" -w "%{http_code}" "$url")
+  status=$(curl -s -o /dev/null -w "%{http_code}" "$url")
   if [ "$status" != "200" ]; then
-    rm -f "$out"
-    echo "Stopped at x${i}.png (${status})"
+    echo "Stopped at x${i}.png (${status}) — found ${#FIGURE_URLS[@]} figures"
     break
   fi
-  echo "Downloaded x${i}.png"
+  FIGURE_URLS+=("$url")
+  echo "Found: $url"
 done
-echo "Figures saved: $(ls $FIGURES_DIR | wc -l)"
 ```
 
-### Generic Figure Extraction from Scraped Markdown
+The collected absolute URLs go directly into the markdown body and frontmatter — no local copies needed.
 
-When markdown contains absolute image URLs (Firecrawl port 3003 preserves these):
+### Inline Figure Embedding (GFM)
+
+Each figure must appear inline in the corpus markdown as an absolute URL so GitHub renders it in-place:
+
+```markdown
+## Key Figures
+
+![Figure 1 — Mamba SSM architecture](https://arxiv.org/html/2312.00752v2/x1.png)
+
+![Figure 2 — Selective scan mechanism](https://arxiv.org/html/2312.00752v2/x2.png)
+
+![Figure 3 — Performance vs sequence length](https://arxiv.org/html/2312.00752v2/x3.png)
+```
+
+> **Never rewrite to relative paths** like `./figures/x1.png` — relative paths break on GitHub unless images are committed to the same repo.
+
+### Extracting Existing Inline URLs from Scraped Markdown
+
+When port 3003 (Playwright) already embedded absolute URLs in the scraped markdown, extract them for the frontmatter catalog:
 
 ```bash
 CORPUS_FILE="docs/research/corpus/2026-03-13-mamba-ssm.md"
-SLUG="mamba-2312-00752"
-FIGURES_DIR="docs/research/corpus/figures/${SLUG}"
-mkdir -p "$FIGURES_DIR"
 
-# Extract all image URLs from markdown
-grep -oP '(?<=\()https://[^\)]+\.(png|jpg|svg|gif|webp)(?=\))' "$CORPUS_FILE" | sort -u | \
-  while read url; do
-    filename=$(basename "$url" | sed 's/[?#].*//')
-    status=$(curl -s -L -o "$FIGURES_DIR/$filename" -w "%{http_code}" "$url")
-    echo "${status}: $filename"
-  done
+# Extract all absolute image URLs already in the markdown
+grep -oE 'https://[^)]+\.(png|jpg|svg|gif|webp)' "$CORPUS_FILE" | sort -u
 ```
 
-### Rewrite Corpus File to Local Figure Refs
+These URLs are already inline — just copy them into the frontmatter `figure_urls` list.
 
-After downloading, update the corpus file so figures work offline:
+### Frontmatter for Image-Rich Papers
 
-```bash
-SLUG="mamba-2312-00752"
-ARXIV_ID="2312.00752"
-ARXIV_VER="v2"
-
-# Replace absolute arxiv figure URLs with relative local paths
-sed -i '' \
-  "s|https://arxiv.org/html/${ARXIV_ID}${ARXIV_VER}/\(x[0-9]*\.png\)|./figures/${SLUG}/\1|g" \
-  "$CORPUS_FILE"
-```
-
-### Frontmatter Additions for Image-Rich Papers
+The YAML frontmatter catalogs all figure source URLs for provenance. The markdown body embeds them inline:
 
 ```yaml
 ---
 source_url: https://arxiv.org/html/2312.00752v2
-# ... existing frontmatter ...
+scraped_at: "2026-03-13T00:00:00Z"
+scraper: firecrawl-port3003
+tags: [ssm, state-space-model, mamba, sequence-modeling]
+content_tokens_approx: 4200
 has_figures: true
 figure_count: 12
-figures_dir: corpus/figures/mamba-2312-00752
-figures_downloaded_at: "2026-03-13T01:30:00Z"
+figure_urls:
+  - https://arxiv.org/html/2312.00752v2/x1.png
+  - https://arxiv.org/html/2312.00752v2/x2.png
+  - https://arxiv.org/html/2312.00752v2/x3.png
+  - https://arxiv.org/html/2312.00752v2/x4.png
+  - https://arxiv.org/html/2312.00752v2/x5.png
 ---
 ```
 
@@ -440,34 +442,37 @@ figures_downloaded_at: "2026-03-13T01:30:00Z"
   "file": "corpus/2026-03-13-mamba-ssm.md",
   "scraped_at": "2026-03-13T00:00:00Z",
   "session": "2026-03-13-mamba-ssm",
-  "scraper": "jina-reader",
+  "scraper": "firecrawl-port3003",
   "has_figures": true,
   "figure_count": 12,
-  "figures_dir": "corpus/figures/mamba-2312-00752"
+  "figure_urls": [
+    "https://arxiv.org/html/2312.00752v2/x1.png",
+    "https://arxiv.org/html/2312.00752v2/x2.png"
+  ]
 }
 ```
 
 ### Port 3003 Advantage for Images
 
-Port 3003 (Firecrawl + Playwright) renders the full page, so image `src` attributes are resolved to absolute URLs before markdown conversion. The scraped markdown contains `![Figure 1](https://arxiv.org/html/2312.00752v2/x1.png)` — ready to extract and download. Jina reader may use relative paths (`./x1.png`) which break without the base URL context.
+Port 3003 (Firecrawl + Playwright) renders the full page, so image `src` attributes are resolved to absolute URLs before markdown conversion. The scraped markdown already contains `![Figure 1](https://arxiv.org/html/2312.00752v2/x1.png)` — inline, absolute, GitHub-renderable. No rewriting needed. Jina reader may emit relative paths (`./x1.png`) that break on GitHub; if using Jina, reconstruct absolute URLs from the known base and embed them back into the markdown.
 
-**Recommendation**: For image-rich papers, try port 3003 first even if Jina is available. If 3003 is unavailable, fall back to Jina + reconstruct absolute URLs from the known base (`https://arxiv.org/html/{id}v{n}/`).
+**Recommendation**: For image-rich papers, use port 3003 — you get inline absolute figure URLs in the scraped markdown with zero post-processing. If 3003 is unavailable, fall back to Jina + reconstruct `https://arxiv.org/html/{id}v{n}/x{N}.png` using the probe loop (Section 6) and insert the `![Fig N](url)` blocks manually.
 
 ---
 
 ## Anti-Patterns
 
-| #   | Anti-Pattern                                   | Why It Fails                                                                    | Correct Approach                                                                                                                              |
-| --- | ---------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Using `@mendable/firecrawl-js` SDK             | `jiti` dynamic imports break in Bun                                             | Direct `fetch()` calls                                                                                                                        |
-| 2   | Searching paywalled sites without `waitFor`    | JS SPAs return empty shell                                                      | Use `waitFor: 3000` for IEEE, ACM DL                                                                                                          |
-| 3   | Setting depth > 5                              | Exponential query explosion, diminishing returns                                | Cap at depth 5 (`clampDepth()`)                                                                                                               |
-| 4   | No timeout on `fetch()`                        | Hangs indefinitely on unreachable pages                                         | Always use `AbortController` with 15s timeout                                                                                                 |
-| 5   | Not trimming long page content                 | Exceeds LLM context window                                                      | `trimToTokenLimit(text, 25_000)` per page                                                                                                     |
-| 6   | Aborting on partial failure                    | Loses all completed work                                                        | Log failures, continue with remaining queries                                                                                                 |
-| 7   | Not checking Firecrawl health first            | Wastes time on queries that all fail                                            | `GET /v1/health` or test search before starting                                                                                               |
-| 8   | Saving only synthesis without raw originals    | Loses source material, prevents re-analysis                                     | Always persist raw Firecrawl markdown to corpus                                                                                               |
-| 9   | Not downloading figures from image-rich papers | Architecture diagrams, result plots go missing — text-only corpus is incomplete | Use port 3003 (Playwright resolves absolute image URLs); download arXiv figures via sequential naming (`x1.png`, `x2.png`, …) — see Section 6 |
+| #   | Anti-Pattern                                  | Why It Fails                                                                 | Correct Approach                                                                                                                                     |
+| --- | --------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Using `@mendable/firecrawl-js` SDK            | `jiti` dynamic imports break in Bun                                          | Direct `fetch()` calls                                                                                                                               |
+| 2   | Searching paywalled sites without `waitFor`   | JS SPAs return empty shell                                                   | Use `waitFor: 3000` for IEEE, ACM DL                                                                                                                 |
+| 3   | Setting depth > 5                             | Exponential query explosion, diminishing returns                             | Cap at depth 5 (`clampDepth()`)                                                                                                                      |
+| 4   | No timeout on `fetch()`                       | Hangs indefinitely on unreachable pages                                      | Always use `AbortController` with 15s timeout                                                                                                        |
+| 5   | Not trimming long page content                | Exceeds LLM context window                                                   | `trimToTokenLimit(text, 25_000)` per page                                                                                                            |
+| 6   | Aborting on partial failure                   | Loses all completed work                                                     | Log failures, continue with remaining queries                                                                                                        |
+| 7   | Not checking Firecrawl health first           | Wastes time on queries that all fail                                         | `GET /v1/health` or test search before starting                                                                                                      |
+| 8   | Saving only synthesis without raw originals   | Loses source material, prevents re-analysis                                  | Always persist raw Firecrawl markdown to corpus                                                                                                      |
+| 9   | Rewriting figure URLs to local relative paths | Relative paths like `./figures/x1.png` break on GitHub — images don't render | Keep absolute URLs inline in markdown body (`![Fig](https://arxiv.org/html/{id}/x1.png)`); catalog in frontmatter `figure_urls` list — see Section 6 |
 
 ---
 

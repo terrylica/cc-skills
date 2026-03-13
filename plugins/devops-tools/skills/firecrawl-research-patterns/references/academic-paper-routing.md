@@ -40,37 +40,51 @@ const html = await res.text();
 // Convert HTML to markdown or pass to Firecrawl for conversion
 ```
 
-**Important**: Use port 3003 (not Jina Reader) for arXiv papers that contain figures. Playwright resolves `<img src>` attributes to absolute URLs so you can extract and download them. Jina Reader is text-only and silently drops all figures.
+**Important**: Use port 3003 (not Jina Reader) for arXiv papers that contain figures. Playwright resolves `<img src>` attributes to absolute URLs and embeds them inline in the scraped markdown — no post-processing needed. Jina Reader is text-only and silently drops all figures.
 
-#### Downloading arXiv Figures
+#### arXiv Figure URL Pattern
 
-arXiv HTML papers store figures with sequential names (`x1.png`, `x2.png`, …) at the paper's HTML base URL.
+arXiv HTML papers store figures at sequential absolute URLs (`x1.png`, `x2.png`, …). The correct approach is to **keep these URLs inline in the markdown body** and **catalog them in the YAML frontmatter** — do NOT download to local paths (relative paths break on GitHub).
 
 ```bash
-# Pattern: https://arxiv.org/html/{id}v{version}/x{N}.png
-# (version defaults to latest if omitted)
+# Probe sequential URLs to discover figure_count — collect absolute URLs for frontmatter
 ARXIV_ID="2401.12345"
 BASE="https://arxiv.org/html/${ARXIV_ID}/"
-mkdir -p "figures/${ARXIV_ID}"
+FIGURE_URLS=()
 
 for i in $(seq 1 50); do
   url="${BASE}x${i}.png"
-  out="figures/${ARXIV_ID}/x${i}.png"
-  http_code=$(curl -s -o "$out" -w "%{http_code}" "$url")
+  http_code=$(curl -s -o /dev/null -w "%{http_code}" "$url")
   if [ "$http_code" = "404" ]; then
-    rm -f "$out"
-    break   # sequential naming — first 404 means no more figures
+    echo "Found ${#FIGURE_URLS[@]} figures (stopped at x${i}.png)"
+    break
   fi
-  echo "Downloaded x${i}.png (HTTP $http_code)"
+  FIGURE_URLS+=("$url")
 done
+
+# Embed inline in GFM corpus markdown (renders on GitHub without hosting):
+for i in "${!FIGURE_URLS[@]}"; do
+  echo "![Figure $((i+1))](${FIGURE_URLS[$i]})"
+done
+```
+
+**Frontmatter catalog** (YAML, inside the corpus `.md` file):
+
+```yaml
+has_figures: true
+figure_count: 12
+figure_urls:
+  - https://arxiv.org/html/2401.12345/x1.png
+  - https://arxiv.org/html/2401.12345/x2.png
+  - https://arxiv.org/html/2401.12345/x3.png
 ```
 
 **Notes**:
 
-- Files are `x1.png`, `x2.png`, … (sequential, 1-indexed)
-- Stop at the first 404 — naming is contiguous with no gaps
-- Some papers use `.svg` or `.jpg`; try `.png` first, then probe alternatives
+- Files are `x1.png`, `x2.png`, … (sequential, 1-indexed); first 404 means no more figures
+- Some papers use `.svg` or `.jpg`; probe `.png` first, then alternatives
 - Version suffix: `https://arxiv.org/html/2401.12345v2/` for a specific version
+- Port 3003 already embeds these as inline absolute URLs — just extract them with `grep -oE 'https://arxiv.org/html/[^)]+\.png'`
 
 **Fallback**: If `/html/` is unavailable (older papers), use Firecrawl to scrape `/abs/`:
 
