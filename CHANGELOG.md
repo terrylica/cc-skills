@@ -1,3 +1,12 @@
+# [12.3.0](https://github.com/terrylica/cc-skills/compare/v12.2.0...v12.3.0) (2026-03-13)
+
+
+### Features
+
+* **session-debrief:** add turn-level chunking + synthesis merge for oversized payloads ([67a5784](https://github.com/terrylica/cc-skills/commit/67a57844f75d3cf1561f47af84b77755a7b828da))
+* **statusline-tools:** add cron-tracker PostToolUse hook for global scheduler persistence ([41d8cde](https://github.com/terrylica/cc-skills/commit/41d8cde880488921348585a12d37bd43167d355e))
+* **statusline-tools:** display last 5 versioned cron prompts as numbered OSC 8 hyperlinks ([679aad9](https://github.com/terrylica/cc-skills/commit/679aad94769773ec273904f7dcd1a33176b2bba1))
+
 # [12.2.0](https://github.com/terrylica/cc-skills/compare/v12.1.2...v12.2.0) (2026-03-12)
 
 
