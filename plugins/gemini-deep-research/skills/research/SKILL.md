@@ -18,6 +18,7 @@ Run long-form research queries through Google's Gemini Deep Research via browser
 1. **Chrome with debug port**: Must be running with `--remote-debugging-port=9222`
 2. **Gemini Advanced subscription**: Logged into gemini.google.com in the debug Chrome
 3. **playwright-core**: `bun add -g playwright-core` (or project-local)
+4. **Runtime**: Use `npx tsx` (not `bun run`) — Bun's CDP connectOverCDP times out; Node.js connects in <1s
 
 ### Launch Chrome (if not running)
 
@@ -36,24 +37,24 @@ Then log in manually with a Gemini Advanced account.
 
 ```bash
 # Health check — verify Chrome CDP + Gemini login
-bun run {{skill_dir}}/scripts/research.ts --health
+npx tsx {{skill_dir}}/scripts/research.ts --health
 
 # Basic research (runs preflight automatically)
-bun run {{skill_dir}}/scripts/research.ts "your research query"
+npx tsx {{skill_dir}}/scripts/research.ts "your research query"
 
 # Save to specific file
-bun run {{skill_dir}}/scripts/research.ts \
+npx tsx {{skill_dir}}/scripts/research.ts \
   --output /tmp/report.md \
   --timeout 45 \
   "comprehensive analysis of quantum computing error correction 2025-2026"
 
 # Auto-save to directory (creates {date}-{slug}.md)
-bun run {{skill_dir}}/scripts/research.ts \
+npx tsx {{skill_dir}}/scripts/research.ts \
   --output-dir ~/.claude/automation/gemini-deep-research/output \
   "your query"
 
 # Without auto-confirming plan (lets you review first)
-bun run {{skill_dir}}/scripts/research.ts --no-confirm "query"
+npx tsx {{skill_dir}}/scripts/research.ts --no-confirm "query"
 ```
 
 ### Programmatic (import)
@@ -140,7 +141,7 @@ All CSS selectors live in `scripts/selectors.ts`. When Google updates the Gemini
 3. Update `selectors.ts` with new selectors
 4. Re-test with `dom-inspector.ts selectors`
 
-Selectors last verified: **2026-03-05**
+Selectors last verified: **2026-03-13** (Tools button: now `button.toolbox-drawer-button`, aria-label removed)
 
 ## Key Files
 
