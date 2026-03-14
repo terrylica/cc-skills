@@ -1,3 +1,10 @@
+# [12.6.0](https://github.com/terrylica/cc-skills/compare/v12.5.1...v12.6.0) (2026-03-14)
+
+
+### Features
+
+* **statusline-tools:** add escalating sound alerts to cron countdown ([f196867](https://github.com/terrylica/cc-skills/commit/f196867cfec9adffed97dbc9e0dad8eac5d59e36))
+
 ## [12.5.1](https://github.com/terrylica/cc-skills/compare/v12.5.0...v12.5.1) (2026-03-14)
 
 
