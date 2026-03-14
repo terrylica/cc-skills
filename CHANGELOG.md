@@ -1,3 +1,10 @@
+## [12.6.1](https://github.com/terrylica/cc-skills/compare/v12.6.0...v12.6.1) (2026-03-14)
+
+
+### Bug Fixes
+
+* **statusline-tools:** use background thread for sound playback in iTerm2 component ([97e7f2f](https://github.com/terrylica/cc-skills/commit/97e7f2f1f3a40d07403482657e9ceae0ec8fb2fe))
+
 # [12.6.0](https://github.com/terrylica/cc-skills/compare/v12.5.1...v12.6.0) (2026-03-14)
 
 
