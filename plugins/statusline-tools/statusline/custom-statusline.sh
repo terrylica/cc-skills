@@ -324,6 +324,41 @@ fi
 
 echo -e "    ${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
 
+# Calculate seconds until next cron execution for simple minute-based expressions.
+# Handles: */N (every N min), specific minutes (comma-sep), * (every min).
+# Requires hour/dom/month/dow to be wildcards — returns 1 otherwise.
+cron_countdown_secs() {
+    local expr="$1"
+    local min_field hour_field dom_field mon_field dow_field
+    read -r min_field hour_field dom_field mon_field dow_field <<< "$expr"
+    [[ "$hour_field" == "*" && "$dom_field" == "*" && "$mon_field" == "*" && "$dow_field" == "*" ]] || return 1
+    local now_min now_sec
+    now_min=$(date +%-M)
+    now_sec=$(date +%-S)
+    local elapsed=$(( now_min * 60 + now_sec ))
+    # */N pattern
+    if [[ "$min_field" =~ ^\*/([0-9]+)$ ]]; then
+        local n="${BASH_REMATCH[1]}"
+        local interval=$(( n * 60 ))
+        echo $(( interval - elapsed % interval ))
+        return 0
+    fi
+    # Specific minutes: comma-separated integers
+    if [[ "$min_field" =~ ^[0-9,]+$ ]]; then
+        local best="" t diff
+        for t in ${min_field//,/ }; do
+            diff=$(( (t - now_min) * 60 - now_sec ))
+            (( diff <= 0 )) && diff=$(( diff + 3600 ))
+            [[ -z "$best" || "$diff" -lt "$best" ]] && best=$diff
+        done
+        echo "$best"
+        return 0
+    fi
+    # * (every minute)
+    [[ "$min_field" == "*" ]] && { echo $(( 60 - now_sec )); return 0; }
+    return 1
+}
+
 # Cron jobs: one line per scheduler, after datetime (bottom of statusline)
 # OSC 8 parts emitted with printf directly — never stored in variables to
 # avoid printf '%b' re-interpreting already-built escape sequences.
@@ -341,6 +376,24 @@ if [ "$cron_count" -gt 0 ]; then
             printf '\033]8;;\033\\'
         else
             printf '\033[96m%s(%s)\033[0m' "$job_id" "$job_sched"
+        fi
+        # Countdown to next execution — traffic-light: green >5min, yellow 1-5min, red <1min
+        if countdown_secs=$(cron_countdown_secs "$job_sched" 2>/dev/null); then
+            cd_h=$(( countdown_secs / 3600 ))
+            cd_m=$(( (countdown_secs % 3600) / 60 ))
+            cd_s=$(( countdown_secs % 60 ))
+            if (( cd_h > 0 )); then
+                cd_str="${cd_h}h${cd_m}m${cd_s}s"
+            else
+                cd_str="${cd_m}m$(printf '%02d' $cd_s)s"
+            fi
+            if (( countdown_secs < 60 )); then
+                printf ' \033[91m→ in %s\033[0m' "$cd_str"
+            elif (( countdown_secs < 300 )); then
+                printf ' \033[33m→ in %s\033[0m' "$cd_str"
+            else
+                printf ' \033[92m→ in %s\033[0m' "$cd_str"
+            fi
         fi
         # Session short ID in gray
         [ -n "$job_sess" ] && printf ' \033[90m[%s]\033[0m' "$job_sess"
