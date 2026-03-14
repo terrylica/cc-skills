@@ -1,3 +1,10 @@
+# [12.4.0](https://github.com/terrylica/cc-skills/compare/v12.3.6...v12.4.0) (2026-03-14)
+
+
+### Features
+
+* **statusline-tools:** add countdown timer to cron job display ([da32601](https://github.com/terrylica/cc-skills/commit/da326010d3da62e8af650a4b3f67b47f32cffacc))
+
 ## [12.3.6](https://github.com/terrylica/cc-skills/compare/v12.3.5...v12.3.6) (2026-03-14)
 
 
