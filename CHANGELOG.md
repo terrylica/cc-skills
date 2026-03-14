@@ -1,3 +1,29 @@
+## [12.3.6](https://github.com/terrylica/cc-skills/compare/v12.3.5...v12.3.6) (2026-03-14)
+
+
+### Bug Fixes
+
+* **gemini-deep-research:** fix 5 automation bugs found during empirical session ([0c8febe](https://github.com/terrylica/cc-skills/commit/0c8febe12454dfbefc2dbe7a567db431e0d231f2))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gemini-deep-research</strong> (1 change)</summary>
+
+- [gemini-deep-research](https://github.com/terrylica/cc-skills/blob/main/plugins/gemini-deep-research/skills/research/SKILL.md) - updated (+7/-6)
+
+</details>
+
 ## [12.3.5](https://github.com/terrylica/cc-skills/compare/v12.3.4...v12.3.5) (2026-03-13)
 
 
