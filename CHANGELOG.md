@@ -1,3 +1,10 @@
+## [12.5.1](https://github.com/terrylica/cc-skills/compare/v12.5.0...v12.5.1) (2026-03-14)
+
+
+### Reverts
+
+* **statusline-tools:** remove countdown from CC statusline — now in iTerm2 component ([8c76aff](https://github.com/terrylica/cc-skills/commit/8c76affddd7723378d145feea9ae19e7ba906711))
+
 # [12.5.0](https://github.com/terrylica/cc-skills/compare/v12.4.0...v12.5.0) (2026-03-14)
 
 
