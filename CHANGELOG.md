@@ -1,3 +1,10 @@
+# [12.5.0](https://github.com/terrylica/cc-skills/compare/v12.4.0...v12.5.0) (2026-03-14)
+
+
+### Features
+
+* **statusline-tools:** add iTerm2 Python status bar component for real-time cron countdown ([f0b1edf](https://github.com/terrylica/cc-skills/commit/f0b1edfb85721025488e65bce849a9bcda20edf3))
+
 # [12.4.0](https://github.com/terrylica/cc-skills/compare/v12.3.6...v12.4.0) (2026-03-14)
 
 
