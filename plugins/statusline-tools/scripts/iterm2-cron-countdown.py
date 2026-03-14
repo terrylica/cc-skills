@@ -35,6 +35,7 @@ import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
+from threading import Thread
 
 import iterm2
 
@@ -118,16 +119,15 @@ def read_active_crons() -> list[dict]:
         return []
 
 
-async def play_sound(sound_file: str, count: int, gap: float) -> None:
-    """Play a sound file N times with a gap between each."""
-    loop = asyncio.get_event_loop()
-    for i in range(count):
-        if i > 0 and gap > 0:
-            await asyncio.sleep(gap)
-        await loop.run_in_executor(
-            None,
-            lambda f=sound_file: subprocess.run(["afplay", f], check=False),
-        )
+def play_sound_bg(sound_file: str, count: int, gap: float) -> None:
+    """Play a sound file N times with a gap, in a background thread (non-blocking)."""
+    def _play() -> None:
+        for i in range(count):
+            if i > 0 and gap > 0:
+                import time
+                time.sleep(gap)
+            subprocess.run(["afplay", sound_file], check=False)
+    Thread(target=_play, daemon=True).start()
 
 
 async def main(connection: iterm2.Connection) -> None:
@@ -179,7 +179,7 @@ async def main(connection: iterm2.Connection) -> None:
                 if secs <= threshold_secs and key not in alerted:
                     alerted.add(key)
                     sound_file, count, gap = SOUNDS[key]
-                    asyncio.create_task(play_sound(sound_file, count, gap))
+                    play_sound_bg(sound_file, count, gap)
                     break  # only one threshold fires per second
 
         return "  |  ".join(parts)
