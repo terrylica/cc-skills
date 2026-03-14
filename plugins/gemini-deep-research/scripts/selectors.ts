@@ -22,8 +22,12 @@ export const SELECTORS = {
   ],
 
   /** Step 1: Click "Tools" button to open the toolbox drawer.
-   *  Verified 2026-03-04: button with aria-label="Tools" in the input area. */
+   *  Verified 2026-03-04: button with aria-label="Tools" in the input area.
+   *  Updated 2026-03-13: aria-label removed from Tools button; now uses class toolbox-drawer-button
+   *  and visible text "Tools". Selector order: class-based first, text fallback. */
   TOOLS_BUTTON: [
+    'button.toolbox-drawer-button',
+    'button:has-text("Tools")',
     'button[aria-label="Tools"]',
     '.input-area button[aria-label="Tools"]',
   ],
