@@ -157,13 +157,21 @@ export class GeminiDeepResearchClient {
     const startTime = Date.now();
 
     try {
-      // Step 1: Navigate to fresh Gemini page
-      this.log("Navigating to Gemini...");
-      await this.page.goto("https://gemini.google.com/app", {
-        waitUntil: "domcontentloaded",
-        timeout: 30000,
-      });
-      await new Promise((r) => setTimeout(r, 3000));
+      // Step 1: Navigate to Gemini — skip if already on the page to avoid Angular re-init delay.
+      // Navigating to the same URL triggers a full reload; Angular components (incl. Tools button)
+      // may take 8+ seconds to re-appear, causing findElement to fail.
+      const currentUrl = this.page.url();
+      if (!currentUrl.includes("gemini.google.com")) {
+        this.log("Navigating to Gemini...");
+        await this.page.goto("https://gemini.google.com/app", {
+          waitUntil: "domcontentloaded",
+          timeout: 30000,
+        });
+        await new Promise((r) => setTimeout(r, 5000)); // longer wait for fresh page
+      } else {
+        this.log("Already on Gemini — skipping navigation");
+        await new Promise((r) => setTimeout(r, 1000)); // brief settle
+      }
 
       // Step 2: Activate Deep Research mode via Tools button
       this.log("Activating Deep Research mode...");
@@ -289,11 +297,32 @@ export class GeminiDeepResearchClient {
         this.log("Could not extract research plan text");
       }
 
-      // Step 6: Confirm/start research
+      // Step 6: Confirm/start research.
+      // The button may be disabled while Gemini streams the plan, or may stay disabled if research
+      // started automatically (Gemini sometimes skips confirmation). Poll for enabled, then click.
       if (this.autoConfirm) {
         if (confirmBtn) {
-          await confirmBtn.click();
-          this.log("Confirmed research plan — research starting...");
+          this.log("Waiting for confirm button to become enabled (up to 60s)...");
+          let buttonEnabled = false;
+          for (let i = 0; i < 60; i++) {
+            const disabled = await confirmBtn.isDisabled().catch(() => true);
+            if (!disabled) { buttonEnabled = true; break; }
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+          if (buttonEnabled) {
+            await confirmBtn.click();
+            this.log("Confirmed research plan — research starting...");
+          } else {
+            // Button stayed disabled — research likely auto-started. Check for research steps.
+            const hasSteps = await this.page!.evaluate(() =>
+              document.querySelectorAll('[class*="research-step"]').length > 0
+            ).catch(() => false);
+            if (hasSteps) {
+              this.log("Confirm button disabled but research steps detected — research auto-started");
+            } else {
+              this.log("Confirm button remained disabled — proceeding to poll anyway");
+            }
+          }
         } else {
           this.log("No confirm button found — research may have started automatically");
         }
@@ -394,8 +423,6 @@ export class GeminiDeepResearchClient {
     if (!this.page) return null;
 
     return this.page.evaluate((selectors: readonly string[]) => {
-      const clean = (t: string) => t.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
-
       // Strategy: find the LONGEST matching element (the report is always the largest)
       let longestText = "";
 
@@ -403,7 +430,10 @@ export class GeminiDeepResearchClient {
         try {
           const els = document.querySelectorAll(selector);
           for (const el of els) {
-            const text = clean((el as HTMLElement).innerText ?? "");
+            // Inline clean: strip zero-width chars, trim
+            const text = ((el as HTMLElement).innerText ?? "")
+              .replace(/[\u200B-\u200D\uFEFF]/g, "")
+              .trim();
             if (text.length > longestText.length) {
               longestText = text;
             }
