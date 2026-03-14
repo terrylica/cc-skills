@@ -13,6 +13,11 @@ Refreshes every 1 second via iTerm2 Python API.
 Format:  5f8a3ada(*/30 * * * *) → 14m32s
 Urgency: ⚠ prefix when < 1 min remaining, disappears when no active crons.
 
+Sound alerts (fire once per cron cycle, reset after execution):
+  5 min  → Ping  × 1  (heads-up)
+  1 min  → Glass × 2  (urgent)
+  30 sec → Basso × 3  (critical)
+
 Installation:
   ln -s /path/to/cc-skills/plugins/statusline-tools/scripts/iterm2-cron-countdown.py \
         ~/Library/Application\ Support/iTerm2/Scripts/AutoLaunch/cron-countdown.py
@@ -27,6 +32,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -34,6 +40,23 @@ import iterm2
 
 CRON_STATE_FILE = Path.home() / ".claude" / "state" / "active-crons.json"
 COMPONENT_ID = "com.example.cron-countdown"
+
+# Sound files for each urgency level
+SOUNDS = {
+    "5min":  ("/System/Library/Sounds/Ping.aiff",  1, 0.0),   # file, count, gap_secs
+    "1min":  ("/System/Library/Sounds/Glass.aiff", 2, 0.5),
+    "30sec": ("/System/Library/Sounds/Basso.aiff", 3, 0.3),
+}
+
+# Thresholds in seconds — must match SOUNDS keys
+THRESHOLDS = [
+    (300, "5min"),
+    (60,  "1min"),
+    (30,  "30sec"),
+]
+
+# Per-job alert state: job_id → set of threshold keys already fired this cycle
+_alerted: dict[str, set[str]] = {}
 
 
 def next_cron_secs(schedule: str) -> int | None:
@@ -95,6 +118,18 @@ def read_active_crons() -> list[dict]:
         return []
 
 
+async def play_sound(sound_file: str, count: int, gap: float) -> None:
+    """Play a sound file N times with a gap between each."""
+    loop = asyncio.get_event_loop()
+    for i in range(count):
+        if i > 0 and gap > 0:
+            await asyncio.sleep(gap)
+        await loop.run_in_executor(
+            None,
+            lambda f=sound_file: subprocess.run(["afplay", f], check=False),
+        )
+
+
 async def main(connection: iterm2.Connection) -> None:
     component = iterm2.StatusBarComponent(
         short_description="Cron Countdown",
@@ -109,19 +144,43 @@ async def main(connection: iterm2.Connection) -> None:
     async def cron_countdown(knobs):
         crons = read_active_crons()
         if not crons:
+            _alerted.clear()
             return ""
 
         parts = []
+        active_ids = {(job.get("id") or "")[:8] for job in crons}
+
+        # Drop state for crons that no longer exist
+        for stale in set(_alerted) - active_ids:
+            del _alerted[stale]
+
         for job in crons:
             job_id = (job.get("id") or "?")[:8]
             schedule = job.get("schedule", "")
             secs = next_cron_secs(schedule)
+
             if secs is None:
                 parts.append(f"{job_id}({schedule}) → ?")
-            else:
-                cd = format_countdown(secs)
-                prefix = "⚠ " if secs < 60 else ""
-                parts.append(f"{prefix}{job_id}({schedule}) → {cd}")
+                continue
+
+            cd = format_countdown(secs)
+            prefix = "⚠ " if secs < 60 else ""
+            parts.append(f"{prefix}{job_id}({schedule}) → {cd}")
+
+            # Reset alerts when countdown is well above the highest threshold
+            # (means the cron just fired and the cycle restarted)
+            if secs > THRESHOLDS[0][0] + 10:
+                _alerted.pop(job_id, None)
+
+            alerted = _alerted.setdefault(job_id, set())
+
+            # Check each threshold in descending order; fire only once per cycle
+            for threshold_secs, key in THRESHOLDS:
+                if secs <= threshold_secs and key not in alerted:
+                    alerted.add(key)
+                    sound_file, count, gap = SOUNDS[key]
+                    asyncio.create_task(play_sound(sound_file, count, gap))
+                    break  # only one threshold fires per second
 
         return "  |  ".join(parts)
 
