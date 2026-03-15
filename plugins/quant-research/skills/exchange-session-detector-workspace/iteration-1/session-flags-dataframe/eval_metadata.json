@@ -1,0 +1,32 @@
+{
+  "eval_id": 0,
+  "eval_name": "session-flags-dataframe",
+  "prompt": "I have a pandas DataFrame of BTCUSDT trades with a 'ts' column (UTC timestamps, minute-level) covering all of 2024. I need to add boolean columns showing which major exchange sessions were active at each timestamp — at least NYSE, LSE, and Tokyo. It needs to handle DST correctly (London shifts in March/October, NY in March/November) and exclude Tokyo's lunch break from 11:30-12:30 JST. Write me the code to do this efficiently — the DataFrame has about 500K rows so per-row .apply() would be too slow.",
+  "assertions": [
+    {
+      "id": "uses-exchange-calendars",
+      "text": "Uses exchange_calendars library (xcals) rather than hand-rolling hour-range checks",
+      "type": "content_check"
+    },
+    {
+      "id": "vectorized-lookup",
+      "text": "Uses vectorized approach (pre-computed sets + .isin(), or equivalent) rather than per-row .apply()",
+      "type": "content_check"
+    },
+    {
+      "id": "handles-tokyo-lunch",
+      "text": "Correctly handles Tokyo lunch break (11:30-12:30 JST) — either via is_open_on_minute() or explicit exclusion",
+      "type": "content_check"
+    },
+    {
+      "id": "dst-implicit",
+      "text": "DST is handled implicitly via IANA timezones (not manual UTC offset tables)",
+      "type": "content_check"
+    },
+    {
+      "id": "produces-runnable-code",
+      "text": "Output is a complete, runnable Python script (not pseudocode or partial snippets)",
+      "type": "content_check"
+    }
+  ]
+}

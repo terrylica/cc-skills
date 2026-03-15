@@ -8,10 +8,11 @@
 
 | Skill                         | Purpose                                                          |
 | ----------------------------- | ---------------------------------------------------------------- |
-| `rangebar-eval-metrics`       | SOTA metrics: Sharpe, PSR, DSR, risk, ML quality (IC)            |
+| `opendeviation-eval-metrics`  | SOTA metrics: Sharpe, PSR, DSR, risk, ML quality (IC)            |
 | `adaptive-wfo-epoch`          | Adaptive epoch selection for WFO                                 |
 | `backtesting-py-oracle`       | backtesting.py config for SQL oracle validation                  |
 | `evolutionary-metric-ranking` | Multi-objective evolutionary optimization for per-metric cutoffs |
+| `exchange-session-detector`   | DST-aware exchange session detection via exchange_calendars      |
 
 ## Conventions
 

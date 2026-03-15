@@ -1,0 +1,26 @@
+{
+  "eval_id": 1,
+  "run_type": "with_skill",
+  "expectations": [
+    {
+      "text": "Uses exchange_calendars regular_holidays API (not a manual list or holidays pip package)",
+      "passed": true,
+      "evidence": "Lines 91-94: calendar.regular_holidays.holidays() + adhoc_holidays. Primary mechanism is exchange_calendars."
+    },
+    {
+      "text": "References correct MIC codes: XNYS for NYSE and XLON for LSE",
+      "passed": true,
+      "evidence": "Lines 73-74: xcals.get_calendar('XNYS') and xcals.get_calendar('XLON')."
+    },
+    {
+      "text": "Shows the major_holiday = both NYSE AND LSE closed pattern",
+      "passed": true,
+      "evidence": "Lines 182-184: is_major_holiday = (is_us_holiday == 1) & (is_uk_holiday == 1)"
+    },
+    {
+      "text": "Holiday detection excludes weekends (only counts official exchange closures)",
+      "passed": true,
+      "evidence": "Lines 86-87 docstring: 'Weekend dates are excluded — these sets contain only dates that WOULD be trading days but are closed.' Lines 150-153: explicit note about weekend exclusion."
+    }
+  ]
+}

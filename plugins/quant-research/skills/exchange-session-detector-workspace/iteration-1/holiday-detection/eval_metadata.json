@@ -1,0 +1,27 @@
+{
+  "eval_id": 1,
+  "eval_name": "holiday-detection",
+  "prompt": "I'm building a feature engineering pipeline for crypto prediction and I need to detect US and UK holidays in my time-series data so I can add is_us_holiday and is_uk_holiday columns. I also want a is_major_holiday flag for days when BOTH NYSE and LSE are closed. Don't want to maintain a manual holiday list — need something that stays current. What's the best approach?",
+  "assertions": [
+    {
+      "id": "uses-exchange-calendars-holidays",
+      "text": "Uses exchange_calendars regular_holidays API (not a manual list or holidays pip package)",
+      "type": "content_check"
+    },
+    {
+      "id": "uses-mic-codes",
+      "text": "References correct MIC codes: XNYS for NYSE and XLON for LSE",
+      "type": "content_check"
+    },
+    {
+      "id": "major-holiday-logic",
+      "text": "Shows the major_holiday = both NYSE AND LSE closed pattern",
+      "type": "content_check"
+    },
+    {
+      "id": "excludes-weekends",
+      "text": "Holiday detection excludes weekends (only counts official exchange closures)",
+      "type": "content_check"
+    }
+  ]
+}

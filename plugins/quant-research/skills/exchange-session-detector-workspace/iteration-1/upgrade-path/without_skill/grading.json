@@ -1,0 +1,26 @@
+{
+  "eval_id": 2,
+  "run_type": "without_skill",
+  "expectations": [
+    {
+      "text": "Recommends exchange_calendars as the upgrade target (not pandas_market_calendars or manual implementation)",
+      "passed": true,
+      "evidence": "Phase 2 evaluates 5 libraries, recommends exchange_calendars: 'the de facto standard in the quant Python ecosystem'. However, Phase 1 proposes a zero-dependency interim step (SessionWindow dataclass) before introducing exchange_calendars — a different upgrade path."
+    },
+    {
+      "text": "Explains that ClickHouse toTimezone() handles DST but NOT holidays/lunch breaks — need Python-side computation",
+      "passed": true,
+      "evidence": "Phase 2.3: 'For the ClickHouse path, holidays cannot be expressed as a pure SQL function.' Proposes materialized holiday table (Option A) or Python-only recomputation (Option B)."
+    },
+    {
+      "text": "Provides concrete migration steps (install lib, replace dicts, replace checks, update tests)",
+      "passed": true,
+      "evidence": "Three detailed phases with full code: Phase 1 (sub-hour, no deps), Phase 2 (exchange_calendars + holiday table), Phase 3 (extended sessions). Each has rollout checklist, tests, and risk assessment."
+    },
+    {
+      "text": "References the existing ouroboros.py pattern and explains what it gets right vs what it misses",
+      "passed": true,
+      "evidence": "Current State Assessment section maps all 3 consumption points. 'What Works' (DST, weekends, hourly dedup) and 'What Does Not Work' tables with 6 gaps."
+    }
+  ]
+}
