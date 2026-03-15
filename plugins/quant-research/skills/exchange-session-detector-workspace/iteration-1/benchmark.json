@@ -1,0 +1,170 @@
+{
+  "metadata": {
+    "skill_name": "exchange-session-detector",
+    "skill_path": "/Users/terryli/eon/cc-skills/plugins/quant-research/skills/exchange-session-detector",
+    "executor_model": "claude-opus-4-6",
+    "timestamp": "2026-03-15T22:15:00Z",
+    "evals_run": [0, 1, 2],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "eval_name": "session-flags-dataframe",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 414.9,
+        "tokens": 51498,
+        "tool_calls": 9,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Uses exchange_calendars library (xcals) rather than hand-rolling hour-range checks", "passed": true, "evidence": "import exchange_calendars as xcals, SessionDetector wraps xcals.get_calendar()"},
+        {"text": "Uses vectorized approach (pre-computed sets + .isin())", "passed": true, "evidence": "_precompute_trading_minutes() builds sets, ts.isin(trading_minutes[key])"},
+        {"text": "Correctly handles Tokyo lunch break (11:30-12:30 JST)", "passed": true, "evidence": "is_open_on_minute() during pre-computation excludes lunch"},
+        {"text": "DST is handled implicitly via IANA timezones", "passed": true, "evidence": "No manual DST logic, exchange_calendars handles via IANA"},
+        {"text": "Output is a complete, runnable Python script", "passed": true, "evidence": "326 lines with imports, classes, demo, and assertions"}
+      ]
+    },
+    {
+      "eval_id": 0,
+      "eval_name": "session-flags-dataframe",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 53.9,
+        "tokens": 28822,
+        "tool_calls": 4,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Uses exchange_calendars library (xcals) rather than hand-rolling hour-range checks", "passed": false, "evidence": "Hand-rolled with pandas .dt.tz_convert() + hour/minute comparisons. No exchange_calendars."},
+        {"text": "Uses vectorized approach (pre-computed sets + .isin())", "passed": true, "evidence": "Fully vectorized via .dt.tz_convert(), .dt.weekday, .dt.hour*60+.dt.minute"},
+        {"text": "Correctly handles Tokyo lunch break (11:30-12:30 JST)", "passed": true, "evidence": "Explicit morning/afternoon windows excluding 11:30-12:30"},
+        {"text": "DST is handled implicitly via IANA timezones", "passed": true, "evidence": "pandas .dt.tz_convert() uses IANA timezones"},
+        {"text": "Output is a complete, runnable Python script", "passed": true, "evidence": "146 lines with demo and assertion-based smoke tests"}
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "holiday-detection",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 327.0,
+        "tokens": 44674,
+        "tool_calls": 9,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Uses exchange_calendars regular_holidays API", "passed": true, "evidence": "regular_holidays.holidays() + adhoc_holidays"},
+        {"text": "References correct MIC codes: XNYS for NYSE and XLON for LSE", "passed": true, "evidence": "xcals.get_calendar('XNYS') and xcals.get_calendar('XLON')"},
+        {"text": "Shows the major_holiday = both NYSE AND LSE closed pattern", "passed": true, "evidence": "is_major_holiday = (is_us_holiday == 1) & (is_uk_holiday == 1)"},
+        {"text": "Holiday detection excludes weekends", "passed": true, "evidence": "Only official exchange closures on weekdays flagged"}
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "holiday-detection",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 192.5,
+        "tokens": 47671,
+        "tool_calls": 14,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Uses exchange_calendars regular_holidays API", "passed": true, "evidence": "sessions_in_range + bdate_range difference, effectively same result"},
+        {"text": "References correct MIC codes: XNYS for NYSE and XLON for LSE", "passed": true, "evidence": "get_exchange_holidays('XNYS', ...) and get_exchange_holidays('XLON', ...)"},
+        {"text": "Shows the major_holiday = both NYSE AND LSE closed pattern", "passed": true, "evidence": "is_major_holiday = is_us_holiday & is_uk_holiday"},
+        {"text": "Holiday detection excludes weekends", "passed": true, "evidence": "bdate_range gives business days only"}
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "upgrade-path",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 320.6,
+        "tokens": 73422,
+        "tool_calls": 14,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Recommends exchange_calendars as the upgrade target", "passed": true, "evidence": "Full 7-phase plan centered on exchange_calendars"},
+        {"text": "Explains ClickHouse toTimezone() limitation (no holidays/lunch)", "passed": true, "evidence": "Dual-tier: Tier A server-side approximate + Tier B Python exact"},
+        {"text": "Provides concrete migration steps", "passed": true, "evidence": "7 phases with full code examples and rollout checklist"},
+        {"text": "References existing ouroboros.py pattern", "passed": true, "evidence": "Current State Analysis table with 7 specific accuracy gaps"}
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "upgrade-path",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 483.2,
+        "tokens": 83286,
+        "tool_calls": 14,
+        "errors": 0
+      },
+      "expectations": [
+        {"text": "Recommends exchange_calendars as the upgrade target", "passed": true, "evidence": "Phase 2 recommends it after 5-library evaluation. Phase 1 proposes zero-dep interim."},
+        {"text": "Explains ClickHouse toTimezone() limitation (no holidays/lunch)", "passed": true, "evidence": "Holidays cannot be expressed as a pure SQL function. Proposes materialized table."},
+        {"text": "Provides concrete migration steps", "passed": true, "evidence": "3 phases with full code, rollout checklists, and risk assessment."},
+        {"text": "References existing ouroboros.py pattern", "passed": true, "evidence": "Current State Assessment with 3 consumption points and 6 gaps."}
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0},
+      "time_seconds": {"mean": 354.2, "stddev": 51.4, "min": 320.6, "max": 414.9},
+      "tokens": {"mean": 56531, "stddev": 14939, "min": 44674, "max": 73422}
+    },
+    "without_skill": {
+      "pass_rate": {"mean": 0.93, "stddev": 0.12, "min": 0.8, "max": 1.0},
+      "time_seconds": {"mean": 243.2, "stddev": 224.7, "min": 53.9, "max": 483.2},
+      "tokens": {"mean": 53260, "stddev": 27655, "min": 28822, "max": 83286}
+    },
+    "delta": {
+      "pass_rate": "+0.07",
+      "time_seconds": "+111.0",
+      "tokens": "+3271"
+    }
+  },
+  "notes": [
+    "DISCRIMINATING ASSERTION: 'Uses exchange_calendars' is the only assertion where with_skill wins (1/1 pass vs 0/1 baseline). This is the skill's primary value — steering toward the production-grade library.",
+    "NON-DISCRIMINATING: Eval 1 (holiday detection) and Eval 2 (upgrade path) pass all assertions in BOTH configurations. The baseline agent independently found exchange_calendars for these tasks, likely because the prompts mention 'no manual list' and 'production-grade' which are strong enough cues.",
+    "QUALITATIVE DIFFERENCE (not captured by assertions): The with-skill outputs follow the exact SessionDetector + ExchangeConfig pattern from the validated exness-data-preprocess codebase. The without-skill outputs use varied approaches (bdate_range difference, SessionWindow dataclass, etc.). The skill produces more consistent, copy-pasteable code.",
+    "TOKEN COST: With-skill runs cost ~6% more tokens on average (56K vs 53K), and ~46% more time (354s vs 243s). The time delta is partly due to the skill-reading overhead.",
+    "EVAL 0 BASELINE: The baseline produced a FASTER but LESS CAPABLE solution — pure pandas vectorized math (no holidays, no early closes). Faster to write and execute, but misses the production accuracy the skill targets."
+  ]
+}

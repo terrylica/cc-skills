@@ -1,0 +1,31 @@
+{
+  "eval_id": 0,
+  "run_type": "without_skill",
+  "expectations": [
+    {
+      "text": "Uses exchange_calendars library (xcals) rather than hand-rolling hour-range checks",
+      "passed": false,
+      "evidence": "Hand-rolls hour-range checks with pandas .dt.tz_convert() + .dt.hour/.dt.minute comparisons. No exchange_calendars import. Lines 62-83 are pure pandas vectorized math."
+    },
+    {
+      "text": "Uses vectorized approach (pre-computed sets + .isin(), or equivalent) rather than per-row .apply()",
+      "passed": true,
+      "evidence": "Fully vectorized using .dt.tz_convert(), .dt.weekday, .dt.hour*60+.dt.minute. No .apply() or per-row Python calls. Lines 62-83."
+    },
+    {
+      "text": "Correctly handles Tokyo lunch break (11:30-12:30 JST) — either via is_open_on_minute() or explicit exclusion",
+      "passed": true,
+      "evidence": "Lines 79-83: Explicit morning (540-690) and afternoon (750-900) windows with tyo_morning | tyo_afternoon, excluding 690-750 (11:30-12:30 JST)."
+    },
+    {
+      "text": "DST is handled implicitly via IANA timezones (not manual UTC offset tables)",
+      "passed": true,
+      "evidence": "Uses .dt.tz_convert('America/New_York') etc. — pandas handles DST via IANA. No manual offset tables."
+    },
+    {
+      "text": "Output is a complete, runnable Python script (not pseudocode or partial snippets)",
+      "passed": true,
+      "evidence": "146 lines, complete with imports, function, __main__ demo, and assertion-based smoke tests. Fully runnable."
+    }
+  ]
+}

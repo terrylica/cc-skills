@@ -1,18 +1,20 @@
 ---
-name: rangebar-eval-metrics
-description: Range bar evaluation metrics for quant trading. TRIGGERS - range bar metrics, Sharpe ratio, WFO metrics, PSR DSR MinTRL.
+name: opendeviation-eval-metrics
+description: Use when evaluating open deviation bar signal quality, computing Sharpe ratios with non-IID bars, running PSR/DSR/MinTRL statistical tests, or assessing outcome predictability via the Beyond Hit Rate framework (entropy, CUSUM, runs test, Lempel-Ziv complexity, OPI score). Also use when someone reports only hit rate as evidence of signal quality — this skill provides the anti-pattern guidance and proper evaluation stack including temporal decay detection and regime break analysis.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
-# Range Bar Evaluation Metrics
+# Open Deviation Bar Evaluation Metrics
 
-Machine-readable reference + computation scripts for state-of-the-art metrics evaluating range bar (price-based sampling) data.
+Machine-readable reference + computation scripts for state-of-the-art metrics evaluating open deviation bar (ODB, brim-to-brim price-based sampling) data.
+
+**Cross-reference**: Project-level experiment catalogue at [signal-archaeology](https://github.com/terrylica/opendeviationbar-patterns) skill in `opendeviationbar-patterns` repo — contains 10 BHR-validated experiments with auditable SQL.
 
 ## When to Use This Skill
 
 Use this skill when:
 
-- Evaluating ML model performance on range bar data
+- Evaluating ML model performance on open deviation bar data
 - Computing Sharpe ratios with non-IID bar sequences
 - Running Walk-Forward Optimization metric analysis
 - Calculating PSR, DSR, or MinTRL statistical tests
@@ -38,9 +40,9 @@ python scripts/generate_report.py --results folds.jsonl --output report.md
 | **Diagnostic** (5)     | Final validation   | psr, dsr, autocorr_lag1, effective_n, binomial_pvalue                    | Aggregate only       |
 | **Extended Risk** (5)  | Deep risk analysis | var_95, cvar_95, omega_ratio, sortino_ratio, ulcer_index                 | Per-fold (optional)  |
 
-## Why Range Bars Need Special Treatment
+## Why Open Deviation Bars Need Special Treatment
 
-Range bars violate standard IID assumptions:
+Open deviation bars violate standard IID assumptions:
 
 1. **Variable duration**: Bars form based on price movement, not time
 2. **Autocorrelation**: High-volatility periods cluster bars → temporal correlation
@@ -62,6 +64,7 @@ Range bars violate standard IID assumptions:
 | JSON Schema for Metrics              | [metrics-schema.md](./references/metrics-schema.md)               |
 | Anti-Patterns (Transaction Costs)    | [anti-patterns.md](./references/anti-patterns.md)                 |
 | SOTA 2025-2026 (SHAP, BOCPD, etc.)   | [sota-2025-2026.md](./references/sota-2025-2026.md)               |
+| **Beyond Hit Rate (BHR) Framework**  | [beyond-hit-rate.md](./references/beyond-hit-rate.md)             |
 | Worked Examples (BTC, EUR/USD)       | [worked-examples.md](./references/worked-examples.md)             |
 | **Structured Logging (NDJSON)**      | [structured-logging.md](./references/structured-logging.md)       |
 
@@ -84,7 +87,7 @@ pip install -r requirements.txt
 
 ```python
 def weekly_sharpe(pnl: np.ndarray, timestamps: np.ndarray) -> float:
-    """Sharpe with daily aggregation for range bars."""
+    """Sharpe with daily aggregation for open deviation bars."""
     daily_pnl = _group_by_day(pnl, timestamps)  # Sum PnL per calendar day
     if len(daily_pnl) < 2 or np.std(daily_pnl) == 0:
         return 0.0
@@ -151,6 +154,28 @@ For comprehensive analysis, compute metrics with BOTH views:
 | Omega Ratio                  | Keating & Shadwick (2002)      |
 | Ulcer Index                  | Peter Martin (1987)            |
 
+## Beyond Hit Rate (BHR) Framework
+
+**Hit rate is a necessary but insufficient metric.** Always supplement with outcome predictability metrics. See [beyond-hit-rate.md](./references/beyond-hit-rate.md) for the full framework.
+
+### Minimum Viable Signal Evaluation
+
+Every signal MUST be evaluated with at least:
+
+1. One **sequence structure** test: entropy, LZC, or runs test on the W/L sequence
+2. One **temporal decay** test: CUSUM on equity curve or rolling hit rate
+3. One **regime awareness** test: per-session hit rate or HMM decomposition
+
+A signal that passes all three is robust. A signal with only high hit rate is noise.
+
+### Outcome Predictability Index (OPI)
+
+```
+OPI = 0.25 * (1 - LZC_norm) + 0.25 * |z_runs| + 0.25 * Var(HR_per_regime) + 0.25 * AUC_meta
+```
+
+Higher OPI = more predictable win/loss timing. A 45% HR signal with OPI=0.8 is more valuable than a 65% HR signal with OPI=0.1.
+
 ## Decision Framework
 
 ### Go Criteria (Research)
@@ -160,7 +185,8 @@ go_criteria:
   - positive_sharpe_rate > 0.55
   - mean_weekly_sharpe > 0
   - cv_fold_returns < 1.5
-  - mean_hit_rate > 0.50
+  - bhr_sequence_test_passes: true # At least one of: entropy, LZC, runs test significant
+  - bhr_cusum_verdict: "ALIVE" # No recent regime break
 ```
 
 ### Publication Criteria
@@ -170,6 +196,8 @@ publication_criteria:
   - binomial_pvalue < 0.05
   - psr > 0.85
   - dsr > 0.50 # If n_trials > 1
+  - bhr_lzc_shuffle_z < -2.0 # W/L sequence has genuine structure
+  - bhr_alpha_halflife > 200 # Edge persists for 200+ trades
 ```
 
 ## Scripts
@@ -209,7 +237,7 @@ if pred_std < 1e-6:
 ### Recommended BiLSTM Architecture
 
 ```python
-# BEFORE (causes collapse on range bars)
+# BEFORE (causes collapse on open deviation bars)
 HIDDEN_SIZE = 16
 DROPOUT = 0.5
 

@@ -1,0 +1,26 @@
+{
+  "eval_id": 1,
+  "run_type": "without_skill",
+  "expectations": [
+    {
+      "text": "Uses exchange_calendars regular_holidays API (not a manual list or holidays pip package)",
+      "passed": true,
+      "evidence": "Line 49: xcals.get_calendar(exchange). Lines 73-79: Uses sessions_in_range + bdate_range difference (effectively same as regular_holidays). Also uses holidays pip lib as complement (line 118), but primary signal is exchange_calendars."
+    },
+    {
+      "text": "References correct MIC codes: XNYS for NYSE and XLON for LSE",
+      "passed": true,
+      "evidence": "Lines 209-210: get_exchange_holidays('XNYS', ...) and get_exchange_holidays('XLON', ...)."
+    },
+    {
+      "text": "Shows the major_holiday = both NYSE AND LSE closed pattern",
+      "passed": true,
+      "evidence": "Line 217: df['is_major_holiday'] = df['is_us_holiday'] & df['is_uk_holiday']"
+    },
+    {
+      "text": "Holiday detection excludes weekends (only counts official exchange closures)",
+      "passed": true,
+      "evidence": "Line 78: Uses bdate_range (business days only). Line 79: .difference(sessions) gives only weekday non-trading days."
+    }
+  ]
+}

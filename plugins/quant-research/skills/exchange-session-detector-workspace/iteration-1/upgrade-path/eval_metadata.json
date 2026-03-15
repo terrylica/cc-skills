@@ -1,0 +1,27 @@
+{
+  "eval_id": 2,
+  "eval_name": "upgrade-path",
+  "prompt": "In our opendeviationbar-py project we have a simple session detection in ouroboros.py that uses zoneinfo with fixed hour ranges (e.g. tokyo start=9 end=15). It works but doesn't handle holidays, lunch breaks, or sub-hour precision (NYSE actually opens at 9:30 not 10:00). What's the upgrade path to make this production-grade? We also need it to work with our ClickHouse pipeline where we use toTimezone() for server-side session columns.",
+  "assertions": [
+    {
+      "id": "recommends-exchange-calendars",
+      "text": "Recommends exchange_calendars as the upgrade target (not pandas_market_calendars or manual implementation)",
+      "type": "content_check"
+    },
+    {
+      "id": "clickhouse-limitation",
+      "text": "Explains that ClickHouse toTimezone() handles DST but NOT holidays/lunch breaks — need Python-side computation",
+      "type": "content_check"
+    },
+    {
+      "id": "migration-steps",
+      "text": "Provides concrete migration steps (install lib, replace dicts, replace checks, update tests)",
+      "type": "content_check"
+    },
+    {
+      "id": "references-existing-code",
+      "text": "References the existing ouroboros.py pattern and explains what it gets right vs what it misses",
+      "type": "content_check"
+    }
+  ]
+}

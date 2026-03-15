@@ -1,0 +1,23 @@
+{
+  "skill_name": "exchange-session-detector",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I have a pandas DataFrame of BTCUSDT trades with a 'ts' column (UTC timestamps, minute-level) covering all of 2024. I need to add boolean columns showing which major exchange sessions were active at each timestamp — at least NYSE, LSE, and Tokyo. It needs to handle DST correctly (London shifts in March/October, NY in March/November) and exclude Tokyo's lunch break from 11:30-12:30 JST. Write me the code to do this efficiently — the DataFrame has about 500K rows so per-row .apply() would be too slow.",
+      "expected_output": "Code that uses exchange_calendars library with pre-computed trading minutes for vectorized .isin() lookup. Should show SessionDetector pattern or equivalent xcals usage with is_open_on_minute(). Should NOT use simple hour-range checks.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "I'm building a feature engineering pipeline for crypto prediction and I need to detect US and UK holidays in my time-series data so I can add is_us_holiday and is_uk_holiday columns. I also want a is_major_holiday flag for days when BOTH NYSE and LSE are closed. Don't want to maintain a manual holiday list — need something that stays current. What's the best approach?",
+      "expected_output": "Should recommend exchange_calendars library and show the regular_holidays.holidays() pattern for NYSE (XNYS) and LSE (XLON). Should show the major_holiday = both closed pattern. Should NOT suggest maintaining a manual list or scraping a website.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "In our opendeviationbar-py project we have a simple session detection in ouroboros.py that uses zoneinfo with fixed hour ranges (e.g. tokyo start=9 end=15). It works but doesn't handle holidays, lunch breaks, or sub-hour precision (NYSE actually opens at 9:30 not 10:00). What's the upgrade path to make this production-grade? We also need it to work with our ClickHouse pipeline where we use toTimezone() for server-side session columns.",
+      "expected_output": "Should outline the 4-step upgrade path: install exchange_calendars, replace fixed-hour dicts with ExchangeConfig registry, replace zoneinfo checks with SessionDetector, update tests. Should explain ClickHouse limitation (toTimezone handles DST but not holidays/lunch breaks — compute in Python and write back). Should reference the validated exness-data-preprocess implementation.",
+      "files": []
+    }
+  ]
+}
