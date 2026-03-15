@@ -1,3 +1,70 @@
+# [12.8.0](https://github.com/terrylica/cc-skills/compare/v12.7.0...v12.8.0) (2026-03-15)
+
+
+### Features
+
+* **quant-research:** add opendeviation-eval-metrics SOTA reference + exchange-session-detector skill ([307ccf5](https://github.com/terrylica/cc-skills/commit/307ccf505b607dbf1957ac2afd313d0a92812e23)), closes [hi#confidence](https://github.com/hi/issues/confidence)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quant-research</strong> (2 changes)</summary>
+
+- [exchange-session-detector](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/exchange-session-detector/SKILL.md) - new (+175)
+- [opendeviation-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/SKILL.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/SKILL.md`
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quant-research/exchange-session-detector</strong> (3 files)</summary>
+
+- [ClickHouse Session Detection SQL](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/exchange-session-detector/references/clickhouse-session-sql.md) - new (+95)
+- [Exchange Registry Pattern](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/exchange-session-detector/references/exchange-registry.md) - new (+123)
+- [SessionDetector Pattern](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/exchange-session-detector/references/session-detector-pattern.md) - new (+185)
+
+</details>
+
+<details>
+<summary><strong>quant-research/opendeviation-eval-metrics</strong> (13 files)</summary>
+
+- [Anti-Patterns in Range Bar Metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/anti-patterns.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/anti-patterns.md`
+- [Beyond Hit Rate: Outcome Predictability Framework](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/beyond-hit-rate.md) - new (+86)
+- [Crypto Market Considerations](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/crypto-markets.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/crypto-markets.md`
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/evolution-log.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/evolution-log.md`
+- [How to Use the Sharpe Ratio](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/how-to-use-the-sharpe-ratio-2026.md) - new (+812)
+- [Metrics JSON Schema](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/metrics-schema.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/metrics-schema.md`
+- [ML Prediction Quality Metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/ml-prediction-quality.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/ml-prediction-quality.md`
+- [Risk Metrics for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/risk-metrics.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/risk-metrics.md`
+- [Sharpe Ratio Formulas for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/sharpe-formulas.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/sharpe-formulas.md`
+- [State-of-the-Art Methods (2025-2026)](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/sota-2025-2026.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/sota-2025-2026.md`
+- [Structured Logging Contract for AWFES Experiments](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/structured-logging.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/structured-logging.md`
+- [Temporal Aggregation for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/temporal-aggregation.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/temporal-aggregation.md`
+- [Worked Examples](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/worked-examples.md) - renamed from `plugins/quant-research/skills/rangebar-eval-metrics/references/worked-examples.md`
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [quant-research Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/CLAUDE.md) - updated (+2/-1)
+- [Session Detection Upgrade Guide: opendeviationbar-py](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/exchange-session-detector-workspace/iteration-1/upgrade-path/with_skill/outputs/session-detection-upgrade-guide.md) - new (+902)
+- [Exchange Session Detection: Upgrade Plan](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/exchange-session-detector-workspace/iteration-1/upgrade-path/without_skill/outputs/exchange-session-upgrade-plan.md) - new (+628)
+
 # [12.7.0](https://github.com/terrylica/cc-skills/compare/v12.6.1...v12.7.0) (2026-03-15)
 
 
