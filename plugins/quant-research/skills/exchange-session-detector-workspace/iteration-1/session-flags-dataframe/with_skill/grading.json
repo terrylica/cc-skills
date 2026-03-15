@@ -1,0 +1,31 @@
+{
+  "eval_id": 0,
+  "run_type": "with_skill",
+  "expectations": [
+    {
+      "text": "Uses exchange_calendars library (xcals) rather than hand-rolling hour-range checks",
+      "passed": true,
+      "evidence": "Line 24: 'import exchange_calendars as xcals'. Full SessionDetector class wraps xcals.get_calendar() with MIC codes (XNYS, XLON, XTKS)."
+    },
+    {
+      "text": "Uses vectorized approach (pre-computed sets + .isin(), or equivalent) rather than per-row .apply()",
+      "passed": true,
+      "evidence": "Lines 102-144: _precompute_trading_minutes() builds Set[pd.Timestamp] per exchange. Line 218: 'df[col_name] = ts.isin(trading_minutes[key])' — vectorized .isin()."
+    },
+    {
+      "text": "Correctly handles Tokyo lunch break (11:30-12:30 JST) — either via is_open_on_minute() or explicit exclusion",
+      "passed": true,
+      "evidence": "Line 134: 'if calendar.is_open_on_minute(current)' during pre-computation. Lunch break excluded by exchange_calendars automatically. Verified in demo at line 316."
+    },
+    {
+      "text": "DST is handled implicitly via IANA timezones (not manual UTC offset tables)",
+      "passed": true,
+      "evidence": "No manual DST logic anywhere. Line 39: ExchangeConfig stores IANA timezone. exchange_calendars handles DST internally."
+    },
+    {
+      "text": "Output is a complete, runnable Python script (not pseudocode or partial snippets)",
+      "passed": true,
+      "evidence": "326 lines, includes imports, classes, convenience function, and __main__ demo with self-test assertions. Fully runnable."
+    }
+  ]
+}
