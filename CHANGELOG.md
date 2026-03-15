@@ -1,3 +1,29 @@
+# [12.7.0](https://github.com/terrylica/cc-skills/compare/v12.6.1...v12.7.0) (2026-03-15)
+
+
+### Features
+
+* **devops-tools:** add agentic-process-monitor skill ([1c7fa5b](https://github.com/terrylica/cc-skills/commit/1c7fa5bc56ac5b1c22c9f416c20f13ecbc3ec2b4))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [agentic-process-monitor](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/agentic-process-monitor/SKILL.md) - new (+170)
+
+</details>
+
 ## [12.6.1](https://github.com/terrylica/cc-skills/compare/v12.6.0...v12.6.1) (2026-03-14)
 
 
