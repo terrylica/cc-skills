@@ -4,6 +4,16 @@ Complete reference for LaTeX commands supported/unsupported on GitHub's GFM rend
 
 Last verified: 2026-03 (López de Prado 2026 paper conversion, 82 equations)
 
+## Official Open Bug Reports
+
+| Issue                                                                              | What it documents                                                 |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [Community #17143](https://github.com/orgs/community/discussions/17143)            | `\,` `\:` `\;` `\!` stripped by markdown pre-processor (open bug) |
+| [Community #121416](https://github.com/orgs/community/discussions/121416)          | `\\` double-backslash stripped in `$$` display blocks (open bug)  |
+| [Nico Schlömer analysis](https://nschloe.github.io/2022/05/20/math-on-github.html) | Comprehensive catalog of GitHub math rendering bugs               |
+
+**Gap**: No existing FOSS tool detects the pre-processor stripping issues. They all run AFTER the markdown layer. `validate-math.mjs` in this skill is the only validator that simulates this layer statically.
+
 ---
 
 ## Environments
