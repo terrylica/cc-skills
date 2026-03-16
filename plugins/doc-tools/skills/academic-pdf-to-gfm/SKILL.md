@@ -1,6 +1,6 @@
 ---
 name: academic-pdf-to-gfm
-description: Convert academic PDF papers to GitHub-renderable GFM markdown with inline figures and correctly formatted math equations. Use this skill when converting research papers, technical reports, or math-heavy PDFs for display on GitHub. Also use it when GFM math equations are broken or not rendering on GitHub, when someone asks about the $$-vs-```math decision, when equations look garbled on GitHub, when KaTeX validation is needed, or when investigating why LaTeX renders locally but not on GitHub. Covers PDF type detection (Word vs LaTeX vs scanned), tool selection (pymupdf4llm/pdftotext/marker-pdf), image extraction, GitHub math rendering rules ($$-vs-```math decision), KaTeX validation, and multi-agent adversarial equation verification.
+description: Convert academic PDF papers to GitHub-renderable GFM markdown with inline figures and correctly formatted math equations. Use this skill when converting research papers, technical reports, or math-heavy PDFs for display on GitHub or GitLab. Also use it when GFM math equations are broken or not rendering on GitHub, when someone asks about the $$-vs-```math decision, when equations look garbled on GitHub, when KaTeX validation is needed, or when investigating why LaTeX renders locally but not on GitHub. Also use when comparing GitHub vs GitLab math rendering, when asking about self-hosting GitLab for math documents, or when looking for a platform that requires less LaTeX workarounds. Covers PDF type detection (Word vs LaTeX vs scanned), tool selection (pymupdf4llm/pdftotext/marker-pdf), image extraction, GitHub math rendering rules ($$-vs-```math decision), GitLab native math support (no workarounds needed), KaTeX validation, and multi-agent adversarial equation verification.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
@@ -183,6 +183,57 @@ See [references/github-math-support-table.md](./references/github-math-support-t
 - Pearson vs excess kurtosis: most finance formulas need Pearson (γ₄ = 3 for Gaussian), not excess. **Always document the kurtosis convention in the formula comment.**
 - `\begin{pmatrix}` with `\\` → must use `` ```math ``` ``
 - `\begin{cases}` with multiple rows → must use `` ```math ``` ``
+
+---
+
+## GitLab: No Workarounds Needed
+
+**Empirically verified 2026-03-15** on GitLab CE 18.9.2. Confirmed by Comrak source code analysis.
+
+GitLab uses the **Comrak** Rust parser with `math_dollars: true`. When Comrak encounters `$$`, it calls `handle_dollars` which slices the raw input buffer directly and stores it as a `NodeMath` AST node — CommonMark's backslash handler is never invoked on math content. The raw LaTeX is passed to KaTeX via `<span data-math-style="display/inline">` unchanged.
+
+**Every GitHub workaround is unnecessary on GitLab:**
+
+| GitHub problem | GitHub fix required | GitLab |
+|----------------|---------------------|--------|
+| `\\` in `$$` stripped → broken multiline | Use ` ```math ``` ` | `$$` works with `\\` |
+| `\left\{` → `\left{` (delimiter error) | Use `\left\lbrace` | `\left\{` works |
+| `\{...\}` set notation → invisible braces | Use `\lbrace...\rbrace` | `\{...\}` works |
+| `\,` in `$$` → literal comma | Remove `\,` | `\,` works |
+| `\,` in inline `$` → literal comma | Remove `\,` | `\,` works |
+
+On GitLab you can write standard LaTeX without any platform-specific workarounds. If you're targeting GitLab (or hosting your own GitLab CE), skip all the `\lbrace`/`\rbrace` substitutions and ` ```math ``` ` conversions — plain `$$` with standard LaTeX is correct.
+
+### Self-hosting GitLab CE for Math-Heavy Documents
+
+GitLab CE is free and runs on a single machine. On a 61 GB workstation with slim config:
+- Memory footprint: ~3 GB (`puma['worker_processes'] = 2`, `sidekiq['concurrency'] = 5`, monitoring disabled)
+- Push mirroring to GitHub: free on CE (syncs within 5 min)
+- `glab` CLI: first-party, comparable to `gh`
+
+```yaml
+# docker-compose.yml — slim GitLab CE
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    restart: unless-stopped
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://YOUR_IP:8929'
+        puma['worker_processes'] = 2
+        sidekiq['concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+        alertmanager['enable'] = false
+        node_exporter['enable'] = false
+        redis_exporter['enable'] = false
+        postgres_exporter['enable'] = false
+        gitlab_exporter['enable'] = false
+    ports: ["8929:8929", "8922:22"]
+    volumes:
+      - /srv/gitlab/config:/etc/gitlab
+      - /srv/gitlab/logs:/var/log/gitlab
+      - /srv/gitlab/data:/var/opt/gitlab
+```
 
 ---
 
