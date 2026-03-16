@@ -90,6 +90,25 @@ console.log('── GFM Structural Checks ────────────�
 let gfmErrors = 0;
 let gfmWarnings = 0;
 
+// E0: Single-line $$ blocks containing \! \, \; \: (LaTeX spacing commands)
+//     GitHub's markdown pre-processor treats backslash+punctuation as escape sequences
+//     (CommonMark spec: \! → !, \, → ,, \; → ;) BEFORE the math renderer runs.
+//     \!\left( → !\left( triggers a KaTeX parse error which shows the raw $$...$$ as
+//     plain text — creating an orphaned $ that cascades and breaks ALL subsequent equations.
+//     Fix: remove \! and \, (cosmetic spacing only, no mathematical meaning)
+for (const m of src.matchAll(/(?m)^\$\$(.+)\$\$$/gm)) {
+  if (inCodeBlock(m.index, codeRanges)) continue;
+  const inner = m[1];
+  const badSeqs = (inner.match(/\\[!,;:]/g) || []);
+  if (badSeqs.length > 0) {
+    const ln = lineOf(m.index);
+    const uniq = [...new Set(badSeqs)].join(' ');
+    console.error(`  [E0 ERROR] Line ~${ln}: $$ block contains ${uniq} — pre-processor strips backslash → parse error + cascade`);
+    console.error(`    Fix: remove these spacing commands (cosmetic only). Use \`\`\`math\`\`\` if you need them.`);
+    gfmErrors++;
+  }
+}
+
 // E1: Standalone $$ blocks (own-line $$) containing \\
 //     GitHub's pre-processor strips \\ before the math renderer sees it
 //     Fix: convert to ```math blocks
@@ -178,6 +197,14 @@ if (autoFix) {
   console.log('\n── Auto-Fix ────────────────────────────────────────────────');
   let fixed = src;
   let fixCount = 0;
+
+  // Fix E0: Remove \! \, \; \: from single-line $$ blocks (pre-processor strips them)
+  fixed = fixed.replace(/(?m)^\$\$(.+)\$\$$/gm, (match, inner) => {
+    if (!/\\[!,;:]/.test(inner)) return match;
+    const cleaned = inner.replace(/\\!/g, '').replace(/\\,/g, '').replace(/\\;/g, ' ').replace(/\\:/g, ' ');
+    if (cleaned !== inner) fixCount++;
+    return '$$' + cleaned + '$$';
+  });
 
   // Fix E1: Convert standalone $$ blocks containing \\ to ```math blocks
   fixed = fixed.replace(/\n\$\$\n([\s\S]+?)\n\$\$\n/g, (match, inner) => {
