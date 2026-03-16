@@ -496,7 +496,9 @@ The **delta method** states that if $r_T \stackrel{a}{\sim} \mathcal{N}[\theta, 
 
 In particular, if $r_t \underset{iid}{\sim} \mathcal{N}[\mu, \sigma^2]$, we know that
 
-$$\begin{pmatrix}\hat{\mu} \\ \hat{\sigma}^2\end{pmatrix} \stackrel{a}{\sim} \mathcal{N}\!\left[\begin{pmatrix}\mu \\ \sigma^2\end{pmatrix}, \frac{1}{T}\begin{pmatrix}\sigma^2 & 0 \\ 0 & 2\sigma^4\end{pmatrix}\right] \tag{36}$$
+```math
+\begin{pmatrix}\hat{\mu} \\ \hat{\sigma}^2\end{pmatrix} \stackrel{a}{\sim} \mathcal{N}\!\left[\begin{pmatrix}\mu \\ \sigma^2\end{pmatrix}, \frac{1}{T}\begin{pmatrix}\sigma^2 & 0 \\ 0 & 2\sigma^4\end{pmatrix}\right] \tag{36}
+```
 
 and we apply the delta method to
 
@@ -504,13 +506,17 @@ $$f[a,b] = a/\sqrt{b}, \qquad \dot{f}[a,b] = \left(\frac{1}{\sqrt{b}},\; -\frac{
 
 yielding the asymptotic behavior of the ratio $\hat{\mu}/\hat{\sigma}$ under i.i.d. Normal returns:
 
-$$V\!\left[\frac{\hat{\mu}}{\hat{\sigma}}\right] = \frac{1}{T}\left(\frac{1}{\sigma},\; -\frac{\mu}{2\sigma^3}\right)\begin{pmatrix}\sigma^2 & 0 \\ 0 & 2\sigma^4\end{pmatrix}\begin{pmatrix}1/\sigma \\ -\mu/(2\sigma^3)\end{pmatrix} = \frac{1}{T}\!\left(1 + \frac{1}{2}\,\frac{\mu^2}{\sigma^2}\right) \tag{38}$$
+```math
+V\!\left[\frac{\hat{\mu}}{\hat{\sigma}}\right] = \frac{1}{T}\left(\frac{1}{\sigma},\; -\frac{\mu}{2\sigma^3}\right)\begin{pmatrix}\sigma^2 & 0 \\ 0 & 2\sigma^4\end{pmatrix}\begin{pmatrix}1/\sigma \\ -\mu/(2\sigma^3)\end{pmatrix} = \frac{1}{T}\!\left(1 + \frac{1}{2}\,\frac{\mu^2}{\sigma^2}\right) \tag{38}
+```
 
 $$\frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\!\left[\frac{\mu}{\sigma},\; \frac{1}{T}\!\left(1 + \frac{1}{2}\,\frac{\mu^2}{\sigma^2}\right)\right]$$
 
 This was the key contribution in Lo [2002]. To generalize, we drop the joint assumptions of returns independence and Normality (i.e., allow $\gamma_3 \neq 0$, $\gamma_4 \neq 3$, $\rho \neq 0$). We estimate $\theta = (\mu, \sigma^2)'$ using GMM from the following moments:
 
-$$\phi_t = \begin{pmatrix}r_t - \mu \\ (r_t - \mu)^2 - \sigma^2\end{pmatrix} \tag{39}$$
+```math
+\phi_t = \begin{pmatrix}r_t - \mu \\ (r_t - \mu)^2 - \sigma^2\end{pmatrix} \tag{39}
+```
 
 Under standard regularity conditions (stationarity, weak dependence, existence of moments), the GMM estimator $\hat{\theta}$ satisfies:
 
@@ -522,13 +528,19 @@ $$H = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T \frac{\partial\phi_t}{\
 
 The Jacobian can be computed as:
 
-$$H = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\frac{\partial\phi_t}{\partial\theta}\right] = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\begin{pmatrix}-1 & 0 \\ -2(r_t-\mu) & -1\end{pmatrix}\right] = -I \tag{42}$$
+```math
+H = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\frac{\partial\phi_t}{\partial\theta}\right] = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\begin{pmatrix}-1 & 0 \\ -2(r_t-\mu) & -1\end{pmatrix}\right] = -I \tag{42}
+```
 
 The variance can be computed (using $x_t = r_t - \mu$):
 
-$$\Sigma = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T \phi_t\phi_s'\right] = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}x_t x_s & x_t(x_s^2-\sigma^2) \\ (x_t^2-\sigma^2)x_s & (x_t^2-\sigma^2)(x_s^2-\sigma^2)\end{pmatrix}\right] \tag{43}$$
+```math
+\Sigma = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T \phi_t\phi_s'\right] = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}x_t x_s & x_t(x_s^2-\sigma^2) \\ (x_t^2-\sigma^2)x_s & (x_t^2-\sigma^2)(x_s^2-\sigma^2)\end{pmatrix}\right] \tag{43}
+```
 
-$$= \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}E[x_t x_s] & E[x_t x_s^2] \\ E[x_t^2 x_s] & E[x_t^2 x_s^2]-\sigma^4\end{pmatrix}$$
+```math
+= \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}E[x_t x_s] & E[x_t x_s^2] \\ E[x_t^2 x_s] & E[x_t^2 x_s^2]-\sigma^4\end{pmatrix}
+```
 
 This involves not only the auto-covariances $E[x_t x_s]$, but also the co-skewness $E[x_t x_s^2]$ and the co-kurtosis $E[x_t^2 x_s^2]$. At this point, we introduce the assumption that $\{x_t\}$ follows a stationary **AR(1) process**:
 
@@ -550,7 +562,9 @@ $$E[x_t x_{t+h}^2] = \rho^{2h}v_3 \tag{48}$$
 
 $$E[x_t^2 x_{t+h}] = \rho^h v_3 \tag{49}$$
 
-$$\begin{aligned}E[x_t^2 x_{t+h}^2] &= \rho^{2h}E[x_t^4] + E[x_t^2]E\!\left[(1+\rho^2+\cdots+\rho^{2(h-1)})\varepsilon_t^2\right] \\&= \rho^{2h}E[x_t^4] + \frac{1-\rho^{2h}}{1-\rho^2}E[x_t^2](1-\rho^2)E[x_t^2] \\&= \rho^{2h}v_4 + (1-\rho^{2h})\sigma^4 = \sigma^4 + \rho^{2h}(v_4-\sigma^4)\end{aligned} \tag{50}$$
+```math
+\begin{aligned}E[x_t^2 x_{t+h}^2] &= \rho^{2h}E[x_t^4] + E[x_t^2]E\!\left[(1+\rho^2+\cdots+\rho^{2(h-1)})\varepsilon_t^2\right] \\&= \rho^{2h}E[x_t^4] + \frac{1-\rho^{2h}}{1-\rho^2}E[x_t^2](1-\rho^2)E[x_t^2] \\&= \rho^{2h}v_4 + (1-\rho^{2h})\sigma^4 = \sigma^4 + \rho^{2h}(v_4-\sigma^4)\end{aligned} \tag{50}
+```
 
 In the course of the computations, we use the following result:
 
@@ -582,13 +596,17 @@ $$\Sigma_{1,2} = \lim_{T\to\infty}\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T E[x_t x_s^
 
 For an AR(1) process, the GMM estimators of the mean and variance are asymptotically Normal:
 
-$$\begin{pmatrix}\hat{\mu} \\ \hat{\sigma}^2\end{pmatrix} \stackrel{a}{\sim} \mathcal{N}\!\left[\begin{pmatrix}\mu \\ \sigma^2\end{pmatrix},\; \frac{1}{T}\begin{pmatrix}\dfrac{1+\rho}{1-\rho}\sigma^2 & \dfrac{1+\rho+\rho^2}{1-\rho^2}v_3 \\[8pt] \dfrac{1+\rho+\rho^2}{1-\rho^2}v_3 & \dfrac{1+\rho^2}{1-\rho^2}(v_4-\sigma^4)\end{pmatrix}\right] \tag{57}$$
+```math
+\begin{pmatrix}\hat{\mu} \\ \hat{\sigma}^2\end{pmatrix} \stackrel{a}{\sim} \mathcal{N}\!\left[\begin{pmatrix}\mu \\ \sigma^2\end{pmatrix},\; \frac{1}{T}\begin{pmatrix}\dfrac{1+\rho}{1-\rho}\sigma^2 & \dfrac{1+\rho+\rho^2}{1-\rho^2}v_3 \\[8pt] \dfrac{1+\rho+\rho^2}{1-\rho^2}v_3 & \dfrac{1+\rho^2}{1-\rho^2}(v_4-\sigma^4)\end{pmatrix}\right] \tag{57}
+```
 
 For compactness, the scaled variance $V[\widehat{SR}]T$ under AR(1) returns and first four moments is:
 
 _(This is the same expression as Eq (3) in the main body, restated here for derivation context.)_
 
-$$\begin{aligned}V[\widehat{SR}]\,T &= \left(\frac{1}{\sigma},\,-\frac{\mu}{2\sigma^3}\right)\begin{pmatrix}\!\left(1+\dfrac{2\rho}{1-\rho}\right)\sigma^2 & \left(1+\dfrac{\rho}{1-\rho}+\dfrac{\rho^2}{1-\rho^2}\right)v_3 \\[6pt] \left(1+\dfrac{\rho}{1-\rho}+\dfrac{\rho^2}{1-\rho^2}\right)v_3 & \left(1+\dfrac{2\rho^2}{1-\rho^2}\right)(v_4-\sigma^4)\end{pmatrix}\begin{pmatrix}1/\sigma \\ -\mu/(2\sigma^3)\end{pmatrix} \\[6pt] &= \left(1+\frac{2\rho}{1-\rho}\right) - \left(1+\frac{\rho}{1-\rho}+\frac{\rho^2}{1-\rho^2}\right)\gamma_3\,SR + \left(1+\frac{2\rho^2}{1-\rho^2}\right)\frac{\gamma_4-1}{4}\,SR^2 \\[4pt] &= \frac{1+\rho}{1-\rho} - \frac{1+\rho+\rho^2}{1-\rho^2}\,\gamma_3\,SR + \frac{1+\rho^2}{1-\rho^2}\,\frac{\gamma_4-1}{4}\,SR^2\end{aligned} \tag{58}$$
+```math
+\begin{aligned}V[\widehat{SR}]\,T &= \left(\frac{1}{\sigma},\,-\frac{\mu}{2\sigma^3}\right)\begin{pmatrix}\!\left(1+\dfrac{2\rho}{1-\rho}\right)\sigma^2 & \left(1+\dfrac{\rho}{1-\rho}+\dfrac{\rho^2}{1-\rho^2}\right)v_3 \\[6pt] \left(1+\dfrac{\rho}{1-\rho}+\dfrac{\rho^2}{1-\rho^2}\right)v_3 & \left(1+\dfrac{2\rho^2}{1-\rho^2}\right)(v_4-\sigma^4)\end{pmatrix}\begin{pmatrix}1/\sigma \\ -\mu/(2\sigma^3)\end{pmatrix} \\[6pt] &= \left(1+\frac{2\rho}{1-\rho}\right) - \left(1+\frac{\rho}{1-\rho}+\frac{\rho^2}{1-\rho^2}\right)\gamma_3\,SR + \left(1+\frac{2\rho^2}{1-\rho^2}\right)\frac{\gamma_4-1}{4}\,SR^2 \\[4pt] &= \frac{1+\rho}{1-\rho} - \frac{1+\rho+\rho^2}{1-\rho^2}\,\gamma_3\,SR + \frac{1+\rho^2}{1-\rho^2}\,\frac{\gamma_4-1}{4}\,SR^2\end{aligned} \tag{58}
+```
 
 This concludes the proof of equation (2).
 
@@ -598,7 +616,9 @@ This concludes the proof of equation (2).
 
 Lo [2002] did not provide a closed-form solution for the sampling variance of the Sharpe ratio under serially correlated returns. Setting $(v_3, v_4) = (0, 3\sigma^4)$ in equation (57) to reflect the Normal case:
 
-$$\begin{pmatrix}\hat{\mu} \\ \hat{\sigma}^2\end{pmatrix} \stackrel{a}{\sim} \mathcal{N}\!\left[\begin{pmatrix}\mu \\ \sigma^2\end{pmatrix},\; \frac{1}{T}\begin{pmatrix}\dfrac{1+\rho}{1-\rho}\sigma^2 & 0 \\[6pt] 0 & 2\,\dfrac{1+\rho^2}{1-\rho^2}\sigma^4\end{pmatrix}\right] \tag{59}$$
+```math
+\begin{pmatrix}\hat{\mu} \\ \hat{\sigma}^2\end{pmatrix} \stackrel{a}{\sim} \mathcal{N}\!\left[\begin{pmatrix}\mu \\ \sigma^2\end{pmatrix},\; \frac{1}{T}\begin{pmatrix}\dfrac{1+\rho}{1-\rho}\sigma^2 & 0 \\[6pt] 0 & 2\,\dfrac{1+\rho^2}{1-\rho^2}\sigma^4\end{pmatrix}\right] \tag{59}
+```
 
 Applying the functional delta method:
 
