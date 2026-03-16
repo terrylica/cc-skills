@@ -99,7 +99,7 @@ _Statistics from HFR main style indices, Jan 1990–Nov 2025 (T = 431 monthly ob
 
 Under these stylized facts, the **generalized sampling distribution** of the Sharpe ratio's plug-in estimator $\widehat{SR} = \hat{\mu}/\hat{\sigma}$ is, for sufficiently large $T$, approximately
 
-$$\widehat{SR} = \frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\!\left[SR,\; \frac{1}{T}\!\left(\frac{1+\rho}{1-\rho} - \frac{1+\rho+\rho^2}{1-\rho^2}\,\gamma_3\,SR + \frac{1+\rho^2}{1-\rho^2}\,\frac{\gamma_4-1}{4}\,SR^2\right)\right] \tag{2}$$
+$$\widehat{SR} = \frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\left[SR,  \frac{1}{T}\left(\frac{1+\rho}{1-\rho} - \frac{1+\rho+\rho^2}{1-\rho^2}\gamma_3SR + \frac{1+\rho^2}{1-\rho^2}\frac{\gamma_4-1}{4}SR^2\right)\right] \tag{2}$$
 
 where $\mathcal{N}$ denotes the Normal distribution, $\gamma_3$ is the skewness of excess returns, $\gamma_4$ is Pearson's kurtosis (with value 3 when returns are Normal), and $\rho$ is the first-order autocorrelation of excess returns, with $\rho \in (-1,1)$. (Appendix A.1 proves this.)
 
@@ -133,25 +133,25 @@ Under $H_0$, the test statistic is
 
 $$z^{\ast}[SR_0] = \frac{\widehat{SR}^{\ast} - SR_0}{\sigma[SR_0]} \stackrel{a}{\to} \mathcal{N}[0,1] \tag{4}$$
 
-$$\sigma[SR_0] = \sqrt{V[\widehat{SR}\,|\,SR = SR_0]} = \sqrt{\frac{1}{T}\!\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,SR_0^2\right)} \tag{5}$$
+$$\sigma[SR_0] = \sqrt{V[\widehat{SR}|SR = SR_0]} = \sqrt{\frac{1}{T}\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_0^2\right)} \tag{5}$$
 
 The equation for $\sigma[SR_0]$ results from evaluating the estimator under the least favorable case of the null hypothesis, $V[\widehat{SR}\,|\,SR = SR_0]$.
 
 The significance level $\alpha$ (false positive rate, type-I error) is the probability of rejecting $H_0$ when it is true:
 
-$$\alpha = P\!\left[\widehat{SR} \geq SR_c \,\middle|\, H_0\right] = 1 - Z\!\left[\frac{SR_c - SR_0}{\sigma[SR_0]}\right] \tag{6}$$
+$$\alpha = P\left[\widehat{SR} \geq SR_c \middle| H_0\right] = 1 - Z\left[\frac{SR_c - SR_0}{\sigma[SR_0]}\right] \tag{6}$$
 
 where $Z[\cdot]$ denotes the CDF of the standard Normal distribution. The critical value $SR_c$ is
 
 $$z_{1-\alpha} = Z^{-1}[1-\alpha] \tag{7}$$
 
-$$SR_c = SR_0 + \sigma[SR_0]\,z_{1-\alpha} \tag{8}$$
+$$SR_c = SR_0 + \sigma[SR_0]z_{1-\alpha} \tag{8}$$
 
 We reject $H_0$ with confidence $(1-\alpha)$ if $z^*[SR_0] \geq z_{1-\alpha} \Leftrightarrow \widehat{SR}^* \geq SR_c$.
 
 The **Probabilistic Sharpe Ratio (PSR)** is the probability of observing a Sharpe ratio below $\widehat{SR}^*$ conditional on $H_0$ being true:
 
-$$PSR = P\!\left[\widehat{SR} < \widehat{SR}^{\ast}\,\middle|\, H_0\right] = Z\!\left[z^{\ast}[SR_0]\right] = 1 - P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\,\middle|\, H_0\right] = 1 - p \tag{9}$$
+$$PSR = P\left[\widehat{SR} < \widehat{SR}^{\ast}\middle| H_0\right] = Z\left[z^{\ast}[SR_0]\right] = 1 - P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle| H_0\right] = 1 - p \tag{9}$$
 
 where $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$ is the test's _p_-value. PSR can also be interpreted as the maximum confidence with which the null hypothesis can be rejected after observing $\widehat{SR}^*$.
 
@@ -167,11 +167,11 @@ where $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$ is the test's _p_-value.
 
 The **minimum track record length (MinTRL)** is the minimum sample size $T$ such that the observed $\widehat{SR}^*$ (together with $\hat{\rho}, \hat{\gamma}_3, \hat{\gamma}_4$) allows the rejection of $H_0$ at significance level $\alpha$:
 
-$$MinTRL = \min_T\!\left\{P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\,\middle|\, H_0\right] \leq \alpha\right\} \tag{10}$$
+$$MinTRL = \min_T\left\{P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle| H_0\right] \leq \alpha\right\} \tag{10}$$
 
 with solution when $\widehat{SR}^* > SR_0$:
 
-$$MinTRL = \left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,SR_0^2\right)\!\left(\frac{z_{1-\alpha}}{\widehat{SR}^{\ast} - SR_0}\right)^{\!2} \tag{11}$$
+$$MinTRL = \left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_0^2\right)\left(\frac{z_{1-\alpha}}{\widehat{SR}^{\ast} - SR_0}\right)^{2} \tag{11}$$
 
 Equivalently, MinTRL is the minimum sample size $T$ such that PSR is not less than $(1-\alpha)$.
 
@@ -183,23 +183,23 @@ Equivalently, MinTRL is the minimum sample size $T$ such that PSR is not less th
 
 Following López de Prado [2020], let $SR_1$ be the expected value of the alternative hypothesis $H_1\colon SR > SR_0$. In practice, $SR_1$ can be set to the average Sharpe ratio observed among strategies that have yielded acceptable performance. The **false negative rate** ($\beta$, type-II error) is the probability of not rejecting $H_0$ given that $H_1$ is true:
 
-$$\beta = P\!\left[\widehat{SR} < SR_c\,\middle|\, H_1\right] = Z\!\left[\frac{SR_c - SR_1}{\sigma[SR_1]}\right] \tag{12}$$
+$$\beta = P\left[\widehat{SR} < SR_c\middle| H_1\right] = Z\left[\frac{SR_c - SR_1}{\sigma[SR_1]}\right] \tag{12}$$
 
 **Power** is defined as the probability of rejecting the null when it is false:
 
-$$P\!\left[\widehat{SR} \geq SR_c\,\middle|\, H_1\right] = 1 - \beta \tag{13}$$
+$$P\left[\widehat{SR} \geq SR_c\middle| H_1\right] = 1 - \beta \tag{13}$$
 
 Power is determined ex-ante by test parameters, not the observed $\widehat{SR}^*$. The choice of $\alpha$ determines $\beta$:
 
-$$SR_c = SR_0 + \sigma[SR_0]\,z_{1-\alpha} \tag{14}$$
+$$SR_c = SR_0 + \sigma[SR_0]z_{1-\alpha} \tag{14}$$
 
-$$1 - \beta = P\!\left[\widehat{SR} \geq SR_c\,\middle|\, H_1\right] = 1 - Z\!\left[\frac{SR_c - SR_1}{\sigma[SR_1]}\right] = 1 - Z\!\left[\frac{SR_0 + \sigma[SR_0]\,z_{1-\alpha} - SR_1}{\sigma[SR_1]}\right] \tag{15}$$
+$$1 - \beta = P\left[\widehat{SR} \geq SR_c\middle| H_1\right] = 1 - Z\left[\frac{SR_c - SR_1}{\sigma[SR_1]}\right] = 1 - Z\left[\frac{SR_0 + \sigma[SR_0]z_{1-\alpha} - SR_1}{\sigma[SR_1]}\right] \tag{15}$$
 
-$$\sigma[SR_1] = \sqrt{V[\widehat{SR}\,|\,SR = SR_1]} = \sqrt{\frac{1}{T}\!\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,SR_1 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,SR_1^2\right)} \tag{16}$$
+$$\sigma[SR_1] = \sqrt{V[\widehat{SR}|SR = SR_1]} = \sqrt{\frac{1}{T}\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_1 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_1^2\right)} \tag{16}$$
 
 In particular, for $SR_0 = 0$, the value of $\beta$ simplifies to
 
-$$\beta = Z\!\left[\frac{z_{1-\alpha}\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}}} - SR_1\sqrt{T}}{\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}} - \dfrac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,SR_1 + \dfrac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\dfrac{\hat{\gamma}_4-1}{4}\,SR_1^2}}\right] \tag{17}$$
+$$\beta = Z\left[\frac{z_{1-\alpha}\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}}} - SR_1\sqrt{T}}{\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}} - \dfrac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_1 + \dfrac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\dfrac{\hat{\gamma}_4-1}{4}SR_1^2}}\right] \tag{17}$$
 
 > **Example** (cont.): For $\alpha = 0.05$ and $SR_1 = 0.5$: $\beta = 0.411$. Incorrectly assuming i.i.d. Normal returns would yield $\beta = 0.224$, an underestimation of 45%.
 
@@ -234,19 +234,19 @@ $$\beta = Z\!\left[\frac{z_{1-\alpha}\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}}} -
 
 The Sharpe ratio's **planned Bayesian false discovery rate (pFDR)** is the probability that the null hypothesis is true given that it was rejected:
 
-$$pFDR = P\!\left[H_0\,\middle|\,\widehat{SR} \geq SR_c\right] \tag{18}$$
+$$pFDR = P\left[H_0\middle|\widehat{SR} \geq SR_c\right] \tag{18}$$
 
 Since precision is $P[H_1\,|\,\widehat{SR} \geq SR_c]$, precision equals one minus pFDR. pFDR is determined ex-ante, not by the observed $\widehat{SR}^*$. Via Bayes' theorem:
 
-$$P\!\left[H_0\,\middle|\,\widehat{SR} \geq SR_c\right] = \frac{P[\widehat{SR} \geq SR_c\,|\,H_0]\,P[H_0]}{P[\widehat{SR} \geq SR_c]} \tag{19}$$
+$$P\left[H_0\middle|\widehat{SR} \geq SR_c\right] = \frac{P[\widehat{SR} \geq SR_c|H_0]P[H_0]}{P[\widehat{SR} \geq SR_c]} \tag{19}$$
 
 From the law of total probability:
 
-$$P\!\left[\widehat{SR} \geq SR_c\right] = P\!\left[\widehat{SR} \geq SR_c\,\middle|\,H_0\right]P[H_0] + P\!\left[\widehat{SR} \geq SR_c\,\middle|\,H_1\right]P[H_1] = \alpha P[H_0] + (1-\beta)(1-P[H_0]) \tag{20}$$
+$$P\left[\widehat{SR} \geq SR_c\right] = P\left[\widehat{SR} \geq SR_c\middle|H_0\right]P[H_0] + P\left[\widehat{SR} \geq SR_c\middle|H_1\right]P[H_1] = \alpha P[H_0] + (1-\beta)(1-P[H_0]) \tag{20}$$
 
 resulting in
 
-$$P\!\left[H_0\,\middle|\,\widehat{SR} \geq SR_c\right] = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \frac{(1-\beta)\,P[H_1]}{\alpha P[H_0]}\right)^{-1} \tag{21}$$
+$$P\left[H_0\middle|\widehat{SR} \geq SR_c\right] = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \frac{(1-\beta)P[H_1]}{\alpha P[H_0]}\right)^{-1} \tag{21}$$
 
 In a Bayesian interpretation, $P[H_0]$ represents the prior probability that a randomly evaluated strategy is false. This can be elicited in a data-informed manner: (i) define $SR_1$ as the average Sharpe ratio of true strategies; (ii) sort all evaluated strategies by test statistic $z^*[SR_0]$; (iii) identify the subset whose average Sharpe ratio is closest to $SR_1$; (iv) elicit $P[H_1]$ as the proportion of strategies in that subset.
 
@@ -258,17 +258,17 @@ In a Bayesian interpretation, $P[H_0]$ represents the prior probability that a r
 
 The **observed Bayesian false discovery rate (oFDR)** is the probability that $H_0$ is true conditional on the estimated Sharpe ratio being at least as large as the realized value:
 
-$$oFDR = P\!\left[H_0\,\middle|\,\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{P[\widehat{SR} \geq \widehat{SR}^{\ast}\,|\,H_0]\,P[H_0]}{P[\widehat{SR} \geq \widehat{SR}^{\ast}]} \tag{22}$$
+$$oFDR = P\left[H_0\middle|\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{P[\widehat{SR} \geq \widehat{SR}^{\ast}|H_0]P[H_0]}{P[\widehat{SR} \geq \widehat{SR}^{\ast}]} \tag{22}$$
 
 oFDR is the Bayesian posterior probability associated with the prior $P[H_0]$, after incorporating the evidence summarized by the _p_-value $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$.
 
 From the law of total probability, where $z^*[SR_1] = (\widehat{SR}^* - SR_1)/\sigma[SR_1]$:
 
-$$P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\right] = P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\,\middle|\,H_0\right]P[H_0] + P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\,\middle|\,H_1\right]P[H_1] = p\,P[H_0] + \bigl(1 - Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0]) \tag{23}$$
+$$P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\right] = P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle|H_0\right]P[H_0] + P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle|H_1\right]P[H_1] = pP[H_0] + \bigl(1 - Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0]) \tag{23}$$
 
 resulting in
 
-$$P\!\left[H_0\,\middle|\,\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{p\,P[H_0]}{p\,P[H_0] + \bigl(1-Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0])} \tag{24}$$
+$$P\left[H_0\middle|\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{pP[H_0]}{pP[H_0] + \bigl(1-Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0])} \tag{24}$$
 
 > **Example** (cont.): For $SR_0 = 0$, $SR_1 = 0.5$, $P[H_1] = 0.1$: _p_-value $= 1 - PSR = 0.034$; $oFDR = 0.361$. An investment may have a statistically significant Sharpe ratio at the 3.4% _p_-value level and yet the observed false discovery rate is 36.1%, because true strategies are rare. Incorrectly assuming i.i.d. Normal returns yields $oFDR = 0.165$, an underestimation of 54%.
 
@@ -288,17 +288,17 @@ We assume the $K$ observed Sharpe ratios are independently drawn under $H_0$ fro
 
 **Exact Distribution of the Maximum**: For finite $K$, the maximum of Normal variables follows a skewed order-statistic distribution with CDF:
 
-$$P\!\left[\max_k\{\widehat{SR}_k\} < x\right] = \left(Z\!\left[\frac{x - SR_0}{\sqrt{V[\{\widehat{SR}_k^{\ast}\}]}}\right]\right)^K \tag{26}$$
+$$P\left[\max_k\{\widehat{SR}_k\} < x\right] = \left(Z\left[\frac{x - SR_0}{\sqrt{V[\{\widehat{SR}_k^{\ast}\}]}}\right]\right)^K \tag{26}$$
 
 The rejection threshold controlling FWER at $\alpha_K$ is:
 
-$$SR_c = SR_0 + Z^{-1}\!\left[(1-\alpha_K)^{1/K}\right]\sqrt{V[\{\widehat{SR}_k^{\ast}\}]} \tag{27}$$
+$$SR_c = SR_0 + Z^{-1}\left[(1-\alpha_K)^{1/K}\right]\sqrt{V[\{\widehat{SR}_k^{\ast}\}]} \tag{27}$$
 
 **Expected Value of the Maximum Sharpe Ratio (False Strategy Theorem)**:
 
 The False Strategy Theorem (Bailey and López de Prado [2014]) derives:
 
-$$E\!\left[\max_k\{\widehat{SR}_k^{\ast}\}\right] \approx SR_0 + \sqrt{V[\{\widehat{SR}_k^{\ast}\}]}\!\left((1-\gamma)Z^{-1}\!\left[1 - \frac{1}{K}\right] + \gamma Z^{-1}\!\left[1 - \frac{1}{Ke}\right]\right) \tag{28}$$
+$$E\left[\max_k\{\widehat{SR}_k^{\ast}\}\right] \approx SR_0 + \sqrt{V[\{\widehat{SR}_k^{\ast}\}]}\left((1-\gamma)Z^{-1}\left[1 - \frac{1}{K}\right] + \gamma Z^{-1}\left[1 - \frac{1}{Ke}\right]\right) \tag{28}$$
 
 > **Domain restriction**: This formula is undefined at K = 1 (Φ⁻¹(1 − 1/K) = Φ⁻¹(0) = −∞). The framework's intended split is: **PSR applies for K = 1** (single strategy, no multiple-testing correction); **DSR applies for K ≥ 2** (selection bias correction via FST). The Gumbel EVT approximation is asymptotic — convergence rate is O(1/log K) for Gaussian variables, so results are approximate for small K.
 
@@ -306,11 +306,11 @@ where $\gamma = 0.5772156649\ldots$ is the Euler–Mascheroni constant and $e$ i
 
 In a multiple testing search, the search-adjusted "least favorable case" null is:
 
-$$SR_{0,K} = E\!\left[\max_k\{\widehat{SR}_k^{\ast}\}\right] \tag{29}$$
+$$SR_{0,K} = E\left[\max_k\{\widehat{SR}_k^{\ast}\}\right] \tag{29}$$
 
 **Standard Deviation of the Maximum**: Under multiple trials, the standard deviation of the maximum Sharpe ratio across $K$ strategies requires re-scaling $\sqrt{V[\{\widehat{SR}_k^*\}]}$ by the standard deviation of the maximum of $K$ standard Normal variables:
 
-$$\sigma[SR_{0,K}] = \sqrt{V\!\left[\max_k\{\widehat{SR}_k^{\ast}\}\right]} = \sqrt{V[\{\widehat{SR}_k^{\ast}\}]}\,\sqrt{V\!\left[\max_k\{X_k\}\right]} \tag{30}$$
+$$\sigma[SR_{0,K}] = \sqrt{V\left[\max_k\{\widehat{SR}_k^{\ast}\}\right]} = \sqrt{V[\{\widehat{SR}_k^{\ast}\}]}\sqrt{V\left[\max_k\{X_k\}\right]} \tag{30}$$
 
 where $\{X_k\}_{k=1,\ldots,K}$ are $K$ i.i.d. standard Normal variables. The re-scaling factor $\sqrt{V[\max_k\{X_k\}]}$ is derived in Appendix A.4.
 
@@ -333,7 +333,7 @@ _Row label = tens digit of $K$; column label = units digit. E.g., $K = 15$: row 
 
 Appendix A.5 derives an approximation:
 
-$$\sqrt{V\!\left[\max_k\{X_k\}\right]} \approx \sqrt{\frac{\pi^2}{6} - \frac{\gamma^2}{1+\gamma}}\!\left(Z^{-1}\!\left[1 - \frac{1}{Ke}\right] - Z^{-1}\!\left[1 - \frac{1}{K}\right]\right) \tag{31}$$
+$$\sqrt{V\left[\max_k\{X_k\}\right]} \approx \sqrt{\frac{\pi^2}{6} - \frac{\gamma^2}{1+\gamma}}\left(Z^{-1}\left[1 - \frac{1}{Ke}\right] - Z^{-1}\left[1 - \frac{1}{K}\right]\right) \tag{31}$$
 
 ### Deflated Sharpe Ratio
 
@@ -368,11 +368,11 @@ _Diff = $P[\widehat{SR} \geq SR_c\,|\,H_0] - \alpha_K$. DSR adjustments work as 
 
 Classical FDR methods (Benjamini and Hochberg [1995]) are batch procedures. Investment committees typically evaluate strategies individually in sequence rather than as a batch. We introduce **sequential FDR (SFDR)**: the researcher wishes to select strategies while ensuring that the posterior probability that _each_ selected strategy is false does not exceed $q$. This is equivalent to solving for the rejection threshold $SR_c$ such that pFDR targets level $q$:
 
-$$P\!\left[H_0\,\middle|\,\widehat{SR} \geq SR_c\right] = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \frac{(1-\beta)P[H_1]}{\alpha P[H_0]}\right)^{-1} = q \tag{32}$$
+$$P\left[H_0\middle|\widehat{SR} \geq SR_c\right] = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \frac{(1-\beta)P[H_1]}{\alpha P[H_0]}\right)^{-1} = q \tag{32}$$
 
 Replacing $\alpha$ and $\beta$, we obtain the **equilibrium condition**:
 
-$$q = \left(1 + \frac{\left(1-Z\!\left[\dfrac{SR_c - SR_1}{\sigma[SR_1]}\right]\right)(1-P[H_0])}{\left(1-Z\!\left[\dfrac{SR_c - SR_0}{\sigma[SR_0]}\right]\right)P[H_0]}\right)^{-1} \tag{33}$$
+$$q = \left(1 + \frac{\left(1-Z\left[\dfrac{SR_c - SR_1}{\sigma[SR_1]}\right]\right)(1-P[H_0])}{\left(1-Z\left[\dfrac{SR_c - SR_0}{\sigma[SR_0]}\right]\right)P[H_0]}\right)^{-1} \tag{33}$$
 
 A root-finding algorithm applied to the above expression yields $SR_c$ satisfying $P[H_0\,|\,\widehat{SR} \geq SR_c] = q$. Note that under SFDR the researcher chooses _all_ strategies above $SR_c$, not only the one with the highest Sharpe ratio. Therefore $SR_0$ is not adjusted for the number of trials, and $K$ is not part of the equilibrium condition.
 
@@ -505,7 +505,7 @@ In particular, if $r_t \underset{iid}{\sim} \mathcal{N}[\mu, \sigma^2]$, we know
 
 and we apply the delta method to
 
-$$f[a,b] = a/\sqrt{b}, \qquad \dot{f}[a,b] = \left(\frac{1}{\sqrt{b}},\; -\frac{1}{2}\,\frac{a}{b^{3/2}}\right) \tag{37}$$
+$$f[a,b] = a/\sqrt{b}, \qquad \dot{f}[a,b] = \left(\frac{1}{\sqrt{b}},  -\frac{1}{2}\frac{a}{b^{3/2}}\right) \tag{37}$$
 
 yielding the asymptotic behavior of the ratio $\hat{\mu}/\hat{\sigma}$ under i.i.d. Normal returns:
 
@@ -513,7 +513,7 @@ yielding the asymptotic behavior of the ratio $\hat{\mu}/\hat{\sigma}$ under i.i
 V\!\left[\frac{\hat{\mu}}{\hat{\sigma}}\right] = \frac{1}{T}\left(\frac{1}{\sigma},\; -\frac{\mu}{2\sigma^3}\right)\begin{pmatrix}\sigma^2 & 0 \\ 0 & 2\sigma^4\end{pmatrix}\begin{pmatrix}1/\sigma \\ -\mu/(2\sigma^3)\end{pmatrix} = \frac{1}{T}\!\left(1 + \frac{1}{2}\,\frac{\mu^2}{\sigma^2}\right) \tag{38}
 ```
 
-$$\frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\!\left[\frac{\mu}{\sigma},\; \frac{1}{T}\!\left(1 + \frac{1}{2}\,\frac{\mu^2}{\sigma^2}\right)\right]$$
+$$\frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\left[\frac{\mu}{\sigma},  \frac{1}{T}\left(1 + \frac{1}{2}\frac{\mu^2}{\sigma^2}\right)\right]$$
 
 This was the key contribution in Lo [2002]. To generalize, we drop the joint assumptions of returns independence and Normality (i.e., allow $\gamma_3 \neq 0$, $\gamma_4 \neq 3$, $\rho \neq 0$). We estimate $\theta = (\mu, \sigma^2)'$ using GMM from the following moments:
 
@@ -523,11 +523,11 @@ This was the key contribution in Lo [2002]. To generalize, we drop the joint ass
 
 Under standard regularity conditions (stationarity, weak dependence, existence of moments), the GMM estimator $\hat{\theta}$ satisfies:
 
-$$\hat{\theta} \stackrel{a}{\sim} \mathcal{N}\!\left[\theta,\; \frac{1}{T}H^{-1}\Sigma(H^{-1})'\right] \tag{40}$$
+$$\hat{\theta} \stackrel{a}{\sim} \mathcal{N}\left[\theta,  \frac{1}{T}H^{-1}\Sigma(H^{-1})'\right] \tag{40}$$
 
 where
 
-$$H = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T \frac{\partial\phi_t}{\partial\theta}\right], \qquad \Sigma = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T \phi_t\phi_s'\right] \tag{41}$$
+$$H = \lim_{T\to\infty} E\left[\frac{1}{T}\sum_{t=1}^T \frac{\partial\phi_t}{\partial\theta}\right], \qquad \Sigma = \lim_{T\to\infty} E\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T \phi_t\phi_s'\right] \tag{41}$$
 
 The Jacobian can be computed as:
 
@@ -571,7 +571,7 @@ $$E[x_t^2 x_{t+h}] = \rho^h v_3 \tag{49}$$
 
 In the course of the computations, we use the following result:
 
-$$\lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T t\rho^t = \lim_{T\to\infty}\rho\!\left(\frac{1-\rho^T}{T(1-\rho)^2} - \frac{\rho^T}{1-\rho}\right) = 0 \tag{51}$$
+$$\lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T t\rho^t = \lim_{T\to\infty}\rho\left(\frac{1-\rho^T}{T(1-\rho)^2} - \frac{\rho^T}{1-\rho}\right) = 0 \tag{51}$$
 
 because, since $|\rho| < 1$, the series $\sum t\rho^t$ is absolutely convergent.
 
@@ -589,7 +589,7 @@ Decomposing along the diagonals:
 
 This gives:
 
-$$\Sigma_{1,1} = \lim_{T\to\infty}\frac{1}{T}\!\left(T\,\frac{1+\rho}{1-\rho} - \frac{2\rho(1-\rho^T)}{(1-\rho)^2}\right)\sigma^2 = \frac{1+\rho}{1-\rho}\,\sigma^2 \tag{54}$$
+$$\Sigma_{1,1} = \lim_{T\to\infty}\frac{1}{T}\left(T\frac{1+\rho}{1-\rho} - \frac{2\rho(1-\rho^T)}{(1-\rho)^2}\right)\sigma^2 = \frac{1+\rho}{1-\rho}\sigma^2 \tag{54}$$
 
 **Co-kurtosis component** ($\Sigma_{2,2}$, with $\rho^2$ instead of $\rho$):
 
@@ -597,7 +597,7 @@ $$\Sigma_{2,2} = \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T \rho^{2|t
 
 **Co-skewness component** ($\Sigma_{1,2}$):
 
-$$\Sigma_{1,2} = \lim_{T\to\infty}\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T E[x_t x_s^2] = \frac{1+\rho+\rho^2}{1-\rho^2}\,v_3 \tag{56}$$
+$$\Sigma_{1,2} = \lim_{T\to\infty}\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T E[x_t x_s^2] = \frac{1+\rho+\rho^2}{1-\rho^2}v_3 \tag{56}$$
 
 For an AR(1) process, the GMM estimators of the mean and variance are asymptotically Normal:
 
@@ -627,11 +627,11 @@ Lo [2002] did not provide a closed-form solution for the sampling variance of th
 
 Applying the functional delta method:
 
-$$\frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\!\left[\frac{\mu}{\sigma},\; \frac{1}{T}\!\left(\frac{1+\rho}{1-\rho} + \frac{1}{2}\,\frac{1+\rho^2}{1-\rho^2}\,\frac{\mu^2}{\sigma^2}\right)\right] \tag{60}$$
+$$\frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\left[\frac{\mu}{\sigma},  \frac{1}{T}\left(\frac{1+\rho}{1-\rho} + \frac{1}{2}\frac{1+\rho^2}{1-\rho^2}\frac{\mu^2}{\sigma^2}\right)\right] \tag{60}$$
 
 Comparing with Lo's equation (22) for "Time Aggregation": the solution to the sampling variance problem is **not** a simple sample size adjustment. The variance in the i.i.d. Normal case has two terms, 1 and $SR^2$, and they are adjusted differently:
 
-$$T_1^{eff} = \frac{1-\rho}{1+\rho}\,T, \qquad T_{SR^2}^{eff} = \frac{1-\rho^2}{1+\rho^2}\,T \tag{61}$$
+$$T_1^{eff} = \frac{1-\rho}{1+\rho}T, \qquad T_{SR^2}^{eff} = \frac{1-\rho^2}{1+\rho^2}T \tag{61}$$
 
 ---
 
@@ -657,15 +657,15 @@ The first two approaches give an estimate of the number of independent ideas tes
 
 Consider $K$ i.i.d. standard Normal variables $X_1, \ldots, X_K$. The CDF of the maximum $M = \max\{X_1, \ldots, X_K\}$ is:
 
-$$F[m] = P[M \leq m] = P\!\left[\bigcap_{k=1}^K (X_k \leq m)\right] = \prod_{k=1}^K P[(X_k \leq m)] = Z[m]^K \tag{62}$$
+$$F[m] = P[M \leq m] = P\left[\bigcap_{k=1}^K (X_k \leq m)\right] = \prod_{k=1}^K P[(X_k \leq m)] = Z[m]^K \tag{62}$$
 
 The density is:
 
-$$f[m] = K\phi[m]\,Z[m]^{K-1} \tag{63}$$
+$$f[m] = K\phi[m]Z[m]^{K-1} \tag{63}$$
 
 where $\phi[m]$ is the PDF of the standard Normal. The moments of this distribution are:
 
-$$E[M^r] = \int m^r f[m]\,dm = K\int m^r\phi[m]\,Z[m]^{K-1}\,dm = K\,E[X^r Z[X]^{K-1}] \tag{64}$$
+$$E[M^r] = \int m^r f[m]dm = K\int m^r\phi[m]Z[m]^{K-1}dm = KE[X^r Z[X]^{K-1}] \tag{64}$$
 
 where $X \sim \mathcal{N}[0,1]$. The variance of the maximum is:
 
@@ -679,9 +679,9 @@ These expectations $E[M^r]$ can be computed numerically using the Gauss-Hermite 
 
 Let $X_1, \ldots, X_K$ be i.i.d. Normal random variables with mean $\mu$ and variance $\sigma^2$, and define:
 
-$$M_K = \max_{1 \leq k \leq K}\{X_k\}, \qquad u_1 = \mu + \sigma Z^{-1}\!\left[1-\frac{1}{K}\right]$$
+$$M_K = \max_{1 \leq k \leq K}\{X_k\}, \qquad u_1 = \mu + \sigma Z^{-1}\left[1-\frac{1}{K}\right]$$
 
-$$u_2 = \mu + \sigma Z^{-1}\!\left[1-\frac{1}{Ke}\right], \qquad \Delta = u_2 - u_1 \tag{66}$$
+$$u_2 = \mu + \sigma Z^{-1}\left[1-\frac{1}{Ke}\right], \qquad \Delta = u_2 - u_1 \tag{66}$$
 
 where $Z^{-1}[\cdot]$ is the quantile function of the standard Normal. These definitions apply the quantiles used in the False Strategy Theorem ($1 - 1/K$ and $1 - 1/(Ke)$).
 
@@ -705,23 +705,23 @@ where $\gamma$ is the Euler–Mascheroni constant. Writing $M_K = u_1 + \Delta G
 
 Classical EVT treats the normalizers $(u_1, \Delta)$ as deterministic sequences. In empirical applications, however, $(u_1, \Delta)$ are typically unknown and must be inferred from finite samples. Denote by $(\hat{u}_1, \hat{\Delta})$ the corresponding sample-based estimators, defined from the same finite sample used to compute the maximum. This induces a dependence between $\hat{u}_1$ and $\hat{\Delta}$. Under the Gumbel normalization and to first order in the dispersion of $(\hat{u}_1, \hat{\Delta})$, we approximate:
 
-$$M_K \approx \hat{u}_1 + \hat{\Delta}\,G \tag{71}$$
+$$M_K \approx \hat{u}_1 + \hat{\Delta}G \tag{71}$$
 
 treating the limiting Gumbel variable $G$ as asymptotically independent of $(\hat{u}_1, \hat{\Delta})$. Under this approximation:
 
-$$V[\hat{u}_1 + \hat{\Delta}\,G] = V[\hat{u}_1] + 2E[G]\,\text{Cov}(\hat{u}_1, \hat{\Delta}) + E[G^2]V[\hat{\Delta}] + V[G]E[\hat{\Delta}]^2 \tag{72}$$
+$$V[\hat{u}_1 + \hat{\Delta}G] = V[\hat{u}_1] + 2E[G]\text{Cov}(\hat{u}_1, \hat{\Delta}) + E[G^2]V[\hat{\Delta}] + V[G]E[\hat{\Delta}]^2 \tag{72}$$
 
 Out of these four terms, only two scale like $\Delta^2$ and are therefore principal components: $V[G]E[\hat{\Delta}]^2$, and the cross term $2E[G]\text{Cov}(\hat{u}_1, \hat{\Delta})$. Using $E[\hat{\Delta}] \approx \Delta$:
 
-$$V[G]E[\hat{\Delta}]^2 \approx \frac{\pi^2}{6}\,\Delta^2 \tag{73}$$
+$$V[G]E[\hat{\Delta}]^2 \approx \frac{\pi^2}{6}\Delta^2 \tag{73}$$
 
 Regarding the cross term, when $u_1$ and $\Delta$ are jointly estimated from the paired quantiles $1-1/K$ and $1-1/(Ke)$, under the associated Gumbel normalization, we obtain our correction:
 
-$$\text{Cov}[\hat{u}_1, \hat{\Delta}] \approx -\frac{\gamma}{2(1+\gamma)}\,\Delta^2, \qquad 2E[G]\,\text{Cov}(\hat{u}_1, \hat{\Delta}) \approx -\frac{\gamma^2}{1+\gamma}\,\Delta^2 \tag{74}$$
+$$\text{Cov}[\hat{u}_1, \hat{\Delta}] \approx -\frac{\gamma}{2(1+\gamma)}\Delta^2, \qquad 2E[G]\text{Cov}(\hat{u}_1, \hat{\Delta}) \approx -\frac{\gamma^2}{1+\gamma}\Delta^2 \tag{74}$$
 
 The negative sign is consistent with $\hat{\Delta} = \hat{u}_2 - \hat{u}_1$. Putting these pieces together, the **refined variance approximation** is:
 
-$$V[M_K] \approx \Delta^2\!\left(\frac{\pi^2}{6} - \frac{\gamma^2}{1+\gamma}\right) \tag{75}$$
+$$V[M_K] \approx \Delta^2\left(\frac{\pi^2}{6} - \frac{\gamma^2}{1+\gamma}\right) \tag{75}$$
 
 > **Numerical verification**: This formula was independently verified against Gauss-Hermite numerical integration of the order-statistic density. It achieves ~3% accuracy near K ≈ 50 and provides a better approximation to the true Var[M_K] than the classical EVT formula (π²/6 · Δ²) across all tested K values. The derivation of the specific correction term −γ²/(1+γ) involves intermediate steps in Eqs (66)–(74) not expanded in the published text; the formula should be treated as a numerically-validated approximation.
 
@@ -735,21 +735,21 @@ Classical EVT gives the first-order approximation $V(M_K) \approx \frac{\pi^2}{6
 
 Consider a random variable $X$, where $X$ is drawn from $H_0\colon \mathcal{N}[\mu_0, \sigma_0^2]$ with probability $P[H_0]$, and from $H_1\colon \mathcal{N}[\mu_1, \sigma_1^2]$ with probability $P[H_1] = 1 - P[H_0]$. Given an observed value of $X$ that exceeds a $H_0$-rejection threshold $c$, we denote as false discovery rate the probability $P[H_0\,|\,X \geq c]$. For a target false discovery rate $q$:
 
-$$q = P[H_0\,|\,X \geq c] \tag{76}$$
+$$q = P[H_0|X \geq c] \tag{76}$$
 
 Denote:
 
-$$\alpha = P[X \geq c\,|\,H_0], \qquad \beta = P[X < c\,|\,H_1] \tag{77}$$
+$$\alpha = P[X \geq c|H_0], \qquad \beta = P[X < c|H_1] \tag{77}$$
 
 We can compute these probabilities as:
 
-$$\alpha = P[X \geq c\,|\,H_0] = P\!\left[\frac{X-\mu_0}{\sigma_0} \geq \frac{c-\mu_0}{\sigma_0}\right] = 1 - Z\!\left[\frac{c-\mu_0}{\sigma_0}\right] \tag{78}$$
+$$\alpha = P[X \geq c|H_0] = P\left[\frac{X-\mu_0}{\sigma_0} \geq \frac{c-\mu_0}{\sigma_0}\right] = 1 - Z\left[\frac{c-\mu_0}{\sigma_0}\right] \tag{78}$$
 
-$$\beta = P[X < c\,|\,H_1] = P\!\left[\frac{X-\mu_1}{\sigma_1} < \frac{c-\mu_1}{\sigma_1}\right] = Z\!\left[\frac{c-\mu_1}{\sigma_1}\right] \tag{79}$$
+$$\beta = P[X < c|H_1] = P\left[\frac{X-\mu_1}{\sigma_1} < \frac{c-\mu_1}{\sigma_1}\right] = Z\left[\frac{c-\mu_1}{\sigma_1}\right] \tag{79}$$
 
 Then, our target probability:
 
-$$q = P[H_0\,|\,X \geq c] = \frac{P[H_0 \cap (X \geq c)]}{P[X \geq c]} = \frac{P[X \geq c\,|\,H_0]P[H_0]}{P[X \geq c\,|\,H_0]P[H_0] + P[X \geq c\,|\,H_1]P[H_1]} \tag{80}$$
+$$q = P[H_0|X \geq c] = \frac{P[H_0 \cap (X \geq c)]}{P[X \geq c]} = \frac{P[X \geq c|H_0]P[H_0]}{P[X \geq c|H_0]P[H_0] + P[X \geq c|H_1]P[H_1]} \tag{80}$$
 
 Introducing the probabilities defined earlier:
 
@@ -757,7 +757,7 @@ $$q = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \fra
 
 For fixed parameters $(\mu_0, \sigma_0, \mu_1, \sigma_1, P[H_0])$, $q[c] = P[H_0\,|\,X \geq c]$ is monotone decreasing in $c$, hence the threshold $c$ that achieves a target $q$ (when it exists) is unique. Finally, we can compute $q$ as a function of $c$:
 
-$$q = \left(1 + \frac{\left(1-Z\!\left[\dfrac{c-\mu_1}{\sigma_1}\right]\right)(1-P[H_0])}{\left(1-Z\!\left[\dfrac{c-\mu_0}{\sigma_0}\right]\right)P[H_0]}\right)^{-1} \tag{82}$$
+$$q = \left(1 + \frac{\left(1-Z\left[\dfrac{c-\mu_1}{\sigma_1}\right]\right)(1-P[H_0])}{\left(1-Z\left[\dfrac{c-\mu_0}{\sigma_0}\right]\right)P[H_0]}\right)^{-1} \tag{82}$$
 
 and the value of $c$ is the solution to a root-finding algorithm applied on the above expression.
 
