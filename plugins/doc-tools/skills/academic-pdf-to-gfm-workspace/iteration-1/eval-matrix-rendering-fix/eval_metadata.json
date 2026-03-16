@@ -1,0 +1,23 @@
+{
+  "eval_id": 1,
+  "eval_name": "eval-matrix-rendering-fix",
+  "prompt": "I pushed a markdown file to GitHub and my matrix equation is showing as raw LaTeX instead of rendered math. Here's what I wrote:\n\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n$$\n\nWhat's wrong and how do I fix it?",
+  "assertions": [
+    {
+      "id": "identifies-backslash-root-cause",
+      "text": "Identifies the root cause as GitHub's Markdown pre-processor stripping \\\\ before the math renderer"
+    },
+    {
+      "id": "recommends-math-fenced-block",
+      "text": "Recommends converting to ```math fenced block syntax"
+    },
+    {
+      "id": "provides-corrected-code",
+      "text": "Provides a corrected code example using ```math...``` instead of $$...$$"
+    },
+    {
+      "id": "generalizes-rule",
+      "text": "Generalizes the rule to all equations containing \\\\ (not just matrices)"
+    }
+  ]
+}

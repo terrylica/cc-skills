@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies the PDF as Type A (Word-generated) based on the Unicode math copy-paste clue",
+      "passed": false,
+      "evidence": "Response does not identify PDF type. Treats marker-pdf as the universal solution."
+    },
+    {
+      "text": "Recommends pymupdf4llm as the prose extraction tool",
+      "passed": false,
+      "evidence": "Response recommends marker-pdf as primary tool, not pymupdf4llm."
+    },
+    {
+      "text": "Explicitly warns that marker-pdf will NOT work on this PDF type",
+      "passed": false,
+      "evidence": "Response ACTIVELY RECOMMENDS marker-pdf — the exact anti-pattern. No warning."
+    },
+    {
+      "text": "States that math equations must be manually transcribed from PDF screenshots",
+      "passed": false,
+      "evidence": "Response assumes marker-pdf will extract LaTeX automatically."
+    },
+    {
+      "text": "Mentions the $$ vs ```math distinction or multi-line rendering rule",
+      "passed": true,
+      "evidence": "Response mentions using $$ for display equations, though not the multi-line rule."
+    }
+  ],
+  "summary": {"passed": 1, "failed": 4, "total": 5, "pass_rate": 0.2}
+}

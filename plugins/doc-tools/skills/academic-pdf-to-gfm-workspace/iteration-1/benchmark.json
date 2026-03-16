@@ -1,0 +1,313 @@
+{
+  "metadata": {
+    "skill_name": "academic-pdf-to-gfm",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-03-16T00:38:54Z",
+    "evals_run": [
+      0,
+      1,
+      2
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 53.2,
+        "tokens": 26294,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Mentions KaTeX as the validation library",
+          "passed": true,
+          "evidence": "Response recommends KaTeX explicitly and provides the validate-math.mjs script."
+        },
+        {
+          "text": "Provides an install command (bun add -g katex or npm install -g katex)",
+          "passed": true,
+          "evidence": "Response provides 'bun add -g katex' as the install command."
+        },
+        {
+          "text": "Provides or references a Node.js/JavaScript script that validates all three block types",
+          "passed": true,
+          "evidence": "Response references the bundled validate-math.mjs script handling all three block types."
+        },
+        {
+          "text": "Mentions that the solution exits with code 1 on errors (CI-friendly)",
+          "passed": true,
+          "evidence": "Response explicitly states 'exits with code 1 if any errors (CI-friendly)'."
+        },
+        {
+          "text": "Notes the important caveat that KaTeX passing does NOT guarantee GitHub renders correctly",
+          "passed": true,
+          "evidence": "Response has a dedicated 'Critical caveat' section about GitHub pre-processor stripping \\\\ inside $$ blocks."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 33.3,
+        "tokens": 22884,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies the root cause as GitHub's Markdown pre-processor stripping \\\\ before the math renderer",
+          "passed": true,
+          "evidence": "Response explicitly names 'GitHub's Markdown pre-processor runs before the math renderer' and explains it collapses \\\\ to \\."
+        },
+        {
+          "text": "Recommends converting to ```math fenced block syntax",
+          "passed": true,
+          "evidence": "Response directly recommends replacing $$ with ```math fenced block as the canonical fix."
+        },
+        {
+          "text": "Provides a corrected code example using ```math...``` instead of $$...$$",
+          "passed": true,
+          "evidence": "Response provides the corrected matrix equation using ```math fenced block syntax."
+        },
+        {
+          "text": "Generalizes the rule to all equations containing \\\\ (not just matrices)",
+          "passed": true,
+          "evidence": "Response states the rule applies to 'any multi-line equation containing \\\\'."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 55.6,
+        "tokens": 24769,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies the PDF as Type A (Word-generated) based on the Unicode math copy-paste clue",
+          "passed": true,
+          "evidence": "Response explicitly identifies the Unicode math symbols (\u2211, \u03c0, \u03c3) as 'the definitive sign of a Type A Word-generated PDF' and leads with this diagnosis."
+        },
+        {
+          "text": "Recommends pymupdf4llm as the prose extraction tool",
+          "passed": true,
+          "evidence": "Response recommends pymupdf4llm with the uv run command."
+        },
+        {
+          "text": "Explicitly warns that marker-pdf will NOT work on this PDF type",
+          "passed": true,
+          "evidence": "Response explicitly states 'Never use marker-pdf for this PDF type' and explains it fails silently."
+        },
+        {
+          "text": "States that math equations must be manually transcribed from PDF screenshots",
+          "passed": true,
+          "evidence": "Response states 'there is no shortcut' and provides 3-step manual transcription process."
+        },
+        {
+          "text": "Mentions the $$ vs ```math distinction or multi-line rendering rule",
+          "passed": true,
+          "evidence": "Response covers the $$-vs-```math decision including the pre-processor stripping issue."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 49.5,
+        "tokens": 18143,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Mentions KaTeX as the validation library",
+          "passed": true,
+          "evidence": "Response recommends KaTeX as the core validation library."
+        },
+        {
+          "text": "Provides an install command (bun add -g katex or npm install -g katex)",
+          "passed": true,
+          "evidence": "Response provides npm install katex instructions."
+        },
+        {
+          "text": "Provides or references a Node.js/JavaScript script that validates all three block types",
+          "passed": true,
+          "evidence": "Response provides a complete self-contained Node.js script handling all three block types."
+        },
+        {
+          "text": "Mentions that the solution exits with code 1 on errors (CI-friendly)",
+          "passed": true,
+          "evidence": "Response mentions 'exits with code 1' and provides a GitHub Actions workflow example."
+        },
+        {
+          "text": "Notes the important caveat that KaTeX passing does NOT guarantee GitHub renders correctly",
+          "passed": false,
+          "evidence": "Response never mentions the GitHub pre-processor issue. Users will be confused when equations validate locally but fail on GitHub."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.25,
+        "passed": 1,
+        "failed": 3,
+        "total": 4,
+        "time_seconds": 32.5,
+        "tokens": 15733,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies the root cause as GitHub's Markdown pre-processor stripping \\\\ before the math renderer",
+          "passed": false,
+          "evidence": "Response says 'parser consumes backslashes' \u2014 partially correct but misses the pre-processor architecture. Primary fix recommended is \\\\\\\\ doubling which is WRONG."
+        },
+        {
+          "text": "Recommends converting to ```math fenced block syntax",
+          "passed": false,
+          "evidence": "Primary recommendation is \\\\\\\\ (quadruple backslash/doubling) \u2014 incorrect for GitHub GFM."
+        },
+        {
+          "text": "Provides a corrected code example using ```math...``` instead of $$...$$",
+          "passed": false,
+          "evidence": "Provides code with \\\\ doubling approach which does not render correctly in GitHub GFM."
+        },
+        {
+          "text": "Generalizes the rule to all equations containing \\\\ (not just matrices)",
+          "passed": true,
+          "evidence": "Response mentions this affects matrix/array environments generally."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.2,
+        "passed": 1,
+        "failed": 4,
+        "total": 5,
+        "time_seconds": 46.2,
+        "tokens": 17103,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies the PDF as Type A (Word-generated) based on the Unicode math copy-paste clue",
+          "passed": false,
+          "evidence": "Response does not identify PDF type. Treats marker-pdf as the universal solution."
+        },
+        {
+          "text": "Recommends pymupdf4llm as the prose extraction tool",
+          "passed": false,
+          "evidence": "Response recommends marker-pdf as primary tool, not pymupdf4llm."
+        },
+        {
+          "text": "Explicitly warns that marker-pdf will NOT work on this PDF type",
+          "passed": false,
+          "evidence": "Response ACTIVELY RECOMMENDS marker-pdf \u2014 the exact anti-pattern. No warning."
+        },
+        {
+          "text": "States that math equations must be manually transcribed from PDF screenshots",
+          "passed": false,
+          "evidence": "Response assumes marker-pdf will extract LaTeX automatically."
+        },
+        {
+          "text": "Mentions the $$ vs ```math distinction or multi-line rendering rule",
+          "passed": true,
+          "evidence": "Response mentions using $$ for display equations, though not the multi-line rule."
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 47.3667,
+        "stddev": 12.2411,
+        "min": 33.3,
+        "max": 55.6
+      },
+      "tokens": {
+        "mean": 24649.0,
+        "stddev": 1708.1642,
+        "min": 22884,
+        "max": 26294
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.4167,
+        "stddev": 0.3329,
+        "min": 0.2,
+        "max": 0.8
+      },
+      "time_seconds": {
+        "mean": 42.7333,
+        "stddev": 9.0146,
+        "min": 32.5,
+        "max": 49.5
+      },
+      "tokens": {
+        "mean": 16993.0,
+        "stddev": 1208.7597,
+        "min": 15733,
+        "max": 18143
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.58",
+      "time_seconds": "+4.6",
+      "tokens": "+7656"
+    }
+  },
+  "notes": []
+}
