@@ -12,6 +12,8 @@ ADR: 2025-12-08-clickhouse-cloud-management-skill
 
 ClickHouse Cloud user and permission management via SQL commands over HTTP interface. This skill covers database user creation, permission grants, and credential management for ClickHouse Cloud instances.
 
+**Schema documentation principle**: All ClickHouse table/column COMMENTs are the single source of truth (SSoT). When creating tables or columns, always include COMMENT clauses. See `quality-tools:clickhouse-architect` for the full COMMENT SSoT policy.
+
 ## When to Use This Skill
 
 Invoke this skill when:

@@ -31,7 +31,7 @@ Follow this sequence when designing or reviewing ClickHouse schemas:
 3. **Configure PARTITION BY** for data lifecycle management
 4. **Add performance accelerators** (projections, indexes)
 5. **Validate with audit queries** (see scripts/)
-6. **Document with COMMENT statements** (see [`references/schema-documentation.md`](./references/schema-documentation.md))
+6. **Document with COMMENT statements** — ClickHouse table and column COMMENTs are the **single source of truth (SSoT)** for what each column means, how it was computed, and what constraints apply. No external doc, skill, or wiki supersedes the COMMENT. See [`references/schema-documentation.md`](./references/schema-documentation.md)
 
 ### ORDER BY Key Selection
 
@@ -319,6 +319,42 @@ df = client.query_df("SELECT * FROM trades")  # Pandas integration
 - Risk of abandonment breaks production code
 
 **Exception**: Only consider `clickhouse-driver` if you have extreme performance requirements (exporting millions of rows) AND accept the maintenance risk.
+
+## ClickHouse COMMENT = Single Source of Truth
+
+**Every ClickHouse table and column MUST have a COMMENT that fully documents its meaning, computation method, and constraints.** The COMMENT is the SSoT — no external document, skill, or wiki supersedes it.
+
+### Why
+
+- ClickHouse COMMENTs have **no length limit**, support newlines, URLs, and unicode
+- **Zero performance impact** on queries (pure metadata, never in data path)
+- Visible via `DESCRIBE table`, `SHOW CREATE TABLE`, `system.columns`
+- Survives schema migrations (preserved through ALTER operations)
+
+### What to Include in COMMENTs
+
+- **Column purpose** in plain English
+- **Computation formula** (if derived/computed)
+- **Unit** (seconds, milliseconds, bps, ratio)
+- **Valid range** or enum values
+- **Anti-patterns** (what NOT to do with this column)
+- **GitHub issue link** for provenance
+- **Source script** that populates the column
+
+### Example
+
+```sql
+ALTER TABLE t COMMENT COLUMN session_label
+'STRICT session label. 8 values: sydney_only, tokyo_only, ...
+Only set when ENTIRE bar (open→close) falls within one session.
+cross_session = bar spans boundary. Use WHERE is_pure_session=1.
+GitHub: https://github.com/org/repo/issues/54
+Source: scripts/populate-sessions/populate_v3.py';
+```
+
+### Anti-Pattern
+
+**NEVER** create a ClickHouse column without a COMMENT. A column without documentation is a column that will be misused.
 
 ## Related Skills
 
