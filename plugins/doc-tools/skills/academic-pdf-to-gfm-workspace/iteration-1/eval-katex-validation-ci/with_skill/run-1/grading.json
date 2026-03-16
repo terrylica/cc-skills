@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Mentions KaTeX as the validation library",
+      "passed": true,
+      "evidence": "Response recommends KaTeX explicitly and provides the validate-math.mjs script."
+    },
+    {
+      "text": "Provides an install command (bun add -g katex or npm install -g katex)",
+      "passed": true,
+      "evidence": "Response provides 'bun add -g katex' as the install command."
+    },
+    {
+      "text": "Provides or references a Node.js/JavaScript script that validates all three block types",
+      "passed": true,
+      "evidence": "Response references the bundled validate-math.mjs script handling all three block types."
+    },
+    {
+      "text": "Mentions that the solution exits with code 1 on errors (CI-friendly)",
+      "passed": true,
+      "evidence": "Response explicitly states 'exits with code 1 if any errors (CI-friendly)'."
+    },
+    {
+      "text": "Notes the important caveat that KaTeX passing does NOT guarantee GitHub renders correctly",
+      "passed": true,
+      "evidence": "Response has a dedicated 'Critical caveat' section about GitHub pre-processor stripping \\\\ inside $$ blocks."
+    }
+  ],
+  "summary": {"passed": 5, "failed": 0, "total": 5, "pass_rate": 1.0}
+}

@@ -1,0 +1,27 @@
+{
+  "eval_id": 2,
+  "eval_name": "eval-katex-validation-ci",
+  "prompt": "I have a 200-line markdown file with about 50 math equations. Some are inline ($...$), some are display blocks ($$...$$), and a few are ```math fenced blocks. Before I push this to GitHub, how do I validate all the equations are syntactically correct? I want a CI-friendly solution.",
+  "assertions": [
+    {
+      "id": "mentions-katex",
+      "text": "Mentions KaTeX as the validation library"
+    },
+    {
+      "id": "provides-install-command",
+      "text": "Provides an install command (bun add -g katex or npm install -g katex)"
+    },
+    {
+      "id": "provides-validation-script",
+      "text": "Provides or references a Node.js/JavaScript script that validates all three block types"
+    },
+    {
+      "id": "ci-friendly-exit-code",
+      "text": "Mentions that the solution exits with code 1 on errors (CI-friendly)"
+    },
+    {
+      "id": "katex-github-gap-caveat",
+      "text": "Notes the important caveat that KaTeX passing does NOT guarantee GitHub renders correctly — multi-line blocks still need ```math not $$"
+    }
+  ]
+}

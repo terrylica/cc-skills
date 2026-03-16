@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies the PDF as Type A (Word-generated) based on the Unicode math copy-paste clue",
+      "passed": true,
+      "evidence": "Response explicitly identifies the Unicode math symbols (∑, π, σ) as 'the definitive sign of a Type A Word-generated PDF' and leads with this diagnosis."
+    },
+    {
+      "text": "Recommends pymupdf4llm as the prose extraction tool",
+      "passed": true,
+      "evidence": "Response recommends pymupdf4llm with the uv run command."
+    },
+    {
+      "text": "Explicitly warns that marker-pdf will NOT work on this PDF type",
+      "passed": true,
+      "evidence": "Response explicitly states 'Never use marker-pdf for this PDF type' and explains it fails silently."
+    },
+    {
+      "text": "States that math equations must be manually transcribed from PDF screenshots",
+      "passed": true,
+      "evidence": "Response states 'there is no shortcut' and provides 3-step manual transcription process."
+    },
+    {
+      "text": "Mentions the $$ vs ```math distinction or multi-line rendering rule",
+      "passed": true,
+      "evidence": "Response covers the $$-vs-```math decision including the pre-processor stripping issue."
+    }
+  ],
+  "summary": {"passed": 5, "failed": 0, "total": 5, "pass_rate": 1.0}
+}
