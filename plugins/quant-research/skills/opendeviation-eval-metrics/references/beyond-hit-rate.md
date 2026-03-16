@@ -14,6 +14,8 @@ Empirically validated on 866K ODB bars (BTCUSDT 250dbps, 2018-2026): **hit-rate 
 
 ## Metric Stack (Replaces Hit Rate)
 
+**Implementation**: `src/opendeviationbar_patterns/eval/bhr.py` (BHR metrics) + `eval/orthogonal.py` (orthogonal metrics). Call `bhr_report(outcomes)` for full diagnostic with auto-verdict, `orthogonal_report(returns, timestamps)` for complementary dimensions.
+
 ### Tier 1: CRITICAL — sequence structure tests
 
 | Metric                             | Formula                                      | Detects                          | Library                   |
@@ -73,6 +75,21 @@ OPI = 0 means outcomes are completely random. Higher = more predictable timing =
 
 The highest hit-rate signal is dead. The lowest is strongest. This is the canonical example of why hit rate fails.
 
+## Orthogonal Metrics (complement BHR)
+
+BHR operates on binary W/L only. These metrics bring in dimensions BHR cannot see:
+
+| Metric                                 | What BHR Misses                                                | Library           | Module               |
+| -------------------------------------- | -------------------------------------------------------------- | ----------------- | -------------------- |
+| **SQN** (R-Multiple)                   | Return MAGNITUDE stability                                     | NumPy             | `eval/orthogonal.py` |
+| **Burstiness + Memory** (Goh-Barabasi) | Inter-trade TIMING structure (bursty arrivals, regime gaps)    | `bursty_dynamics` | `eval/orthogonal.py` |
+| **CECP** (Complexity-Entropy Plane)    | Continuous-return complexity TYPE (noise vs structured)        | `ordpy`           | `eval/orthogonal.py` |
+| **MFDFA Spectrum Width**               | Multi-scale fragility (different scaling at different moments) | `MFDFA`           | Not yet implemented  |
+| **Brier/ECE**                          | Confidence CALIBRATION (feature-conditioned)                   | `sklearn`         | Not yet implemented  |
+| **Tail Dependence**                    | Market-conditional crash correlation                           | `copulas`         | Not yet implemented  |
+
+**Key empirical finding**: CECP confirms returns are NOISE (H≈1.0) — the edge is purely in W/L direction. Burstiness (0.35-0.68) and Memory (0.25-0.50) reveal all signals fire in REGIME BURSTS, not uniformly.
+
 ## Key References
 
 | Paper                                                 | Year | Contribution                           |
@@ -84,3 +101,7 @@ The highest hit-rate signal is dead. The lowest is strongest. This is the canoni
 | Lopez de Prado, AFML Ch.3+10 (Meta-labeling)          | 2018 | Outcome prediction                     |
 | Lopez de Prado, "Sharpe Ratio Inference" SSRN 5520741 | 2025 | SR under non-normal correlated returns |
 | arXiv:2511.16339, "Financial Information Theory"      | 2025 | NMI for signal quality                 |
+| Van Tharp, "Trade Your Way to Financial Freedom"      | 2006 | SQN (System Quality Number)            |
+| Goh & Barabasi, "Burstiness and Memory"               | 2008 | Inter-event timing decomposition       |
+| Rosso et al., "Distinguishing Noise from Chaos"       | 2007 | Complexity-Entropy Causality Plane     |
+| Kantelhardt et al., "Multifractal DFA"                | 2002 | MFDFA spectrum width                   |
