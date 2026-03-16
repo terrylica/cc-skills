@@ -204,6 +204,25 @@ GitLab uses the **Comrak** Rust parser with `math_dollars: true`. When Comrak en
 
 On GitLab you can write standard LaTeX without any platform-specific workarounds. If you're targeting GitLab (or hosting your own GitLab CE), skip all the `\lbrace`/`\rbrace` substitutions and ` ```math ``` ` conversions — plain `$$` with standard LaTeX is correct.
 
+### GitLab.com Has a Hard 50-Span Per-Page Limit
+
+**GitLab.com (SaaS) enforces a limit of 50 total math spans per page** (display + inline combined). After the 50th span, all subsequent equations silently fall back to raw LaTeX text. This limit exists to prevent DoS attacks and cannot be overridden on GitLab.com.
+
+| Document math density | gitlab.com | Self-hosted CE |
+|---|---|---|
+| ≤ 50 total spans | ✅ Renders fully | ✅ |
+| 51–100 spans | ⚠️ Partial render | ✅ |
+| 100+ spans (academic papers) | ❌ Most equations raw text | ✅ Disable with `math_rendering_limits_enabled: false` |
+
+**Validated on**: Sharpe ratio paper (341 spans) — breaks at span 51 on gitlab.com, renders fully on local CE.
+
+**The W6 check in `validate-math.mjs`** warns when a file exceeds the limit.
+
+**Summary: which platform to use**:
+- **GitHub.com**: No math span limit. Use `\lbrace`/`\rbrace` workarounds (handled by `--fix`).
+- **Self-hosted GitLab CE**: No limit (disable math_rendering_limits_enabled). No workarounds needed.
+- **GitLab.com**: Only suitable for documents with ≤ 50 math spans.
+
 ### Self-hosting GitLab CE for Math-Heavy Documents
 
 GitLab CE is free and runs on a single machine. On a 61 GB workstation with slim config:

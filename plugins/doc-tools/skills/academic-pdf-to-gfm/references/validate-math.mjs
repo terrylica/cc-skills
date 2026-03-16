@@ -206,6 +206,19 @@ for (const m of src.matchAll(/\\operatorname\{/g)) {
   gfmWarnings++;
 }
 
+// W6: GitLab.com hard limit — 50 total math spans per page
+//     After the 50th span (display + inline combined), rendering silently stops.
+//     Confirmed 2026-03-15 against GitLab CE 18.9.2 / gitlab.com (issue #368009).
+//     Self-hosted GitLab CE: disable with `math_rendering_limits_enabled: false`.
+//     GitHub: no such limit.
+const GITLAB_COM_LIMIT = 50;
+if (checked > GITLAB_COM_LIMIT) {
+  console.warn(`  [W6 WARN]  ${checked} total math spans — exceeds GitLab.com's ${GITLAB_COM_LIMIT}-span per-page limit`);
+  console.warn(`    Spans ${GITLAB_COM_LIMIT + 1}–${checked} will NOT render on gitlab.com (raw text fallback).`);
+  console.warn(`    OK for: self-hosted GitLab CE (disable limit), GitHub (no limit).`);
+  gfmWarnings++;
+}
+
 const gfmStatus = gfmErrors === 0 ? '✓' : '✗';
 console.log(`${gfmStatus} GFM structural: ${gfmErrors} error(s), ${gfmWarnings} warning(s)`);
 
@@ -293,7 +306,7 @@ if (autoFix) {
 // ═══════════════════════════════════════════════════════
 const totalErrors = katexErrors + gfmErrors;
 console.log('\n── Summary ─────────────────────────────────────────────────');
-console.log(`  Equations checked : ${checked}`);
+console.log(`  Equations checked : ${checked} (gitlab.com limit: ${GITLAB_COM_LIMIT})`);
 console.log(`  KaTeX errors      : ${katexErrors}`);
 console.log(`  GFM errors        : ${gfmErrors}`);
 console.log(`  GFM warnings      : ${gfmWarnings}`);
