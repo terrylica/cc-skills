@@ -210,14 +210,17 @@ The script is at [references/validate-math.mjs](./references/validate-math.mjs).
 **Layer 1 — KaTeX syntax**: parse errors in `$`, `$$`, ` ```math ``` ` blocks
 **Layer 2 — GFM structural** (issues KaTeX passes but GitHub breaks):
 
-| Code | Severity | Issue                                                                   | Auto-fix             |
-| ---- | -------- | ----------------------------------------------------------------------- | -------------------- |
-| E1   | Error    | `$$` block with `\\` — GitHub pre-processor strips backslashes          | ✅ → ` ```math ``` ` |
-| E2   | Error    | Consecutive `$$` blocks without blank line — orphaned delimiter cascade | ✅ add blank line    |
-| W1   | Warning  | Bare `^*` in `$$` block — markdown italic pairing eats the `*`          | ✅ → `^{\ast}`       |
-| W2   | Warning  | `\begin{align}` — not supported on GitHub                               | ✗ manual             |
-| W3   | Warning  | `\boxed{}` — can cause raw LaTeX passthrough                            | ✗ manual             |
-| W4   | Warning  | `\operatorname{}` — inconsistent GitHub support                         | ✗ manual             |
+| Code | Severity | Issue                                                                                           | Auto-fix               |
+| ---- | -------- | ----------------------------------------------------------------------------------------------- | ---------------------- |
+| E0   | Error    | `\!` `\,` `\;` in `$$` block — pre-processor strips backslash → `!\left(` parse error + cascade | ✅ remove spacing cmds |
+| E1   | Error    | `$$` block with `\\` — GitHub pre-processor strips backslashes                                  | ✅ → ` ```math ``` `   |
+| E2   | Error    | Consecutive `$$` blocks without blank line — orphaned delimiter cascade                         | ✅ add blank line      |
+| W1   | Warning  | Bare `^*` in `$$` block — markdown italic pairing eats the `*`                                  | ✅ → `^{\ast}`         |
+| W2   | Warning  | `\begin{align}` — not supported on GitHub                                                       | ✗ manual               |
+| W3   | Warning  | `\boxed{}` — can cause raw LaTeX passthrough                                                    | ✗ manual               |
+| W4   | Warning  | `\operatorname{}` — inconsistent GitHub support                                                 | ✗ manual               |
+
+**E0 is the most dangerous**: a single failing `$$` block exposes its `$$` delimiters as literal text, creating an orphaned `$` that shifts ALL subsequent inline `$...$` pairings. One broken equation takes down the entire document.
 
 Exits code 1 on errors (CI-friendly). Warnings do not block CI but should be reviewed.
 
@@ -270,18 +273,18 @@ For papers with 10+ equations, use this multi-agent pattern:
 
 ## Anti-Patterns
 
-| Anti-pattern                                         | Why it fails                                        | Fix                                                                  |
-| ---------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| `$$\begin{aligned}...\\...\end{aligned}$$`           | `\\` stripped by GH pre-processor                   | Use ` ```math ``` `                                                  |
-| Trusting `marker-pdf` on Word PDFs                   | Returns no output or zero math (Unicode bug)        | Read as screenshots, transcribe manually                             |
-| `\begin{align}` in display math                      | Not supported by GitHub                             | Replace with `\begin{aligned}`                                       |
-| `\operatorname{Cov}`                                 | Active GH bug — sometimes renders raw               | Use `\text{Cov}` or `\mathrm{Cov}`                                   |
-| KaTeX validation only, no ` ```math ``` ` conversion | KaTeX passes but GH pre-processor still breaks `\\` | Also convert ALL multi-line blocks                                   |
-| `\boxed{}` for highlighting                          | Can cause raw LaTeX passthrough on GitHub           | Use bold text or a blockquote callout                                |
-| Excess kurtosis in formulas expecting Pearson        | Silent ~50% underestimate in variance formulas      | Always document convention; use `scipy.stats.kurtosis(fisher=False)` |
-| Consecutive `$$` blocks without blank lines          | GitHub collapses them into one broken block         | Add blank line between each block                                    |
-| `$$formula$$` on one line (not own line)             | Treated as text, not display math                   | Put `$$` on its own line                                             |
-| Running validation AFTER pushing                     | Bugs visible in public PR                           | Validate locally before every push                                   |
+| Anti-pattern                                         | Why it fails                                                                          | Fix                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `\!\left(` or `\,` in `$$` blocks                    | GH pre-processor strips `\!`→`!` before KaTeX — `!\left(` crashes KaTeX, cascades all | Remove `\!` `\,` `\;` (spacing only) — or use ` ```math ``` `        |
+| `$$\begin{aligned}...\\...\end{aligned}$$`           | `\\` stripped by GH pre-processor                                                     | Use ` ```math ``` `                                                  |
+| Trusting `marker-pdf` on Word PDFs                   | Returns no output or zero math (Unicode bug)                                          | Read as screenshots, transcribe manually                             |
+| `\begin{align}` in display math                      | Not supported by GitHub                                                               | Replace with `\begin{aligned}`                                       |
+| `\operatorname{Cov}`                                 | Active GH bug — sometimes renders raw                                                 | Use `\text{Cov}` or `\mathrm{Cov}`                                   |
+| KaTeX validation only, no ` ```math ``` ` conversion | KaTeX passes but GH pre-processor still breaks `\\`                                   | Also convert ALL multi-line blocks                                   |
+| `\boxed{}` for highlighting                          | Can cause raw LaTeX passthrough on GitHub                                             | Use bold text or a blockquote callout                                |
+| Excess kurtosis in formulas expecting Pearson        | Silent ~50% underestimate in variance formulas                                        | Always document convention; use `scipy.stats.kurtosis(fisher=False)` |
+| Consecutive `$$` blocks without blank lines          | GitHub collapses them into one broken block                                           | Add blank line between each block                                    |
+| Running validation AFTER pushing                     | Bugs visible in public repo                                                           | Validate locally before every push (`--fix` auto-corrects E0/E1/E2)  |
 
 ---
 
