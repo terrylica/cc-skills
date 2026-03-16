@@ -67,7 +67,7 @@ This paper makes seven novel contributions:
 
 ## The Sharpe Ratio
 
-Consider a sample of $T$ excess returns $\{r_t\}_{t=1,\ldots,T}$ from a stationary process with finite population mean $\mu$ and variance $\sigma^2$. The true (unobserved) Sharpe ratio is
+Consider a sample of $T$ excess returns $\lbrace r_t\rbrace_{t=1,\ldots,T}$ from a stationary process with finite population mean $\mu$ and variance $\sigma^2$. The true (unobserved) Sharpe ratio is
 
 $$SR = \frac{\mu}{\sigma} \tag{1}$$
 
@@ -103,7 +103,7 @@ $$\widehat{SR} = \frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\l
 
 where $\mathcal{N}$ denotes the Normal distribution, $\gamma_3$ is the skewness of excess returns, $\gamma_4$ is Pearson's kurtosis (with value 3 when returns are Normal), and $\rho$ is the first-order autocorrelation of excess returns, with $\rho \in (-1,1)$. (Appendix A.1 proves this.)
 
-Replacing the parameters with their estimates at $SR = \widehat{SR}^*$, the **estimated variance** of the Sharpe ratio's estimator is
+Replacing the parameters with their estimates at $SR = \widehat{SR}^{\ast}$, the **estimated variance** of the Sharpe ratio's estimator is
 
 ```math
 \sigma^2[\widehat{SR}^{\ast}] = V[\widehat{SR}\,|\,SR = \widehat{SR}^{\ast}] = \frac{1}{T}\!\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,\widehat{SR}^{\ast} + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,\widehat{SR}^{\ast 2}\right) \tag{3}
@@ -111,7 +111,7 @@ Replacing the parameters with their estimates at $SR = \widehat{SR}^*$, the **es
 
 > **⚠ Kurtosis convention**: All γ₄ values throughout this paper use **Pearson (non-excess) kurtosis**, where the Gaussian baseline is γ₄ = 3 (not 0). When implementing with scipy: use `scipy.stats.kurtosis(x, fisher=False)`. Passing excess kurtosis silently underestimates the variance correction by ~50% for heavy-tailed return distributions.
 
-> **Numerical example**: A portfolio manager with a two-year track record of monthly returns where $(\hat{\mu}, \hat{\sigma}, \hat{\gamma}_3, \hat{\gamma}_4, \hat{\rho}, T) = (0.036\%, 0.079\%, -2.448, 10.164, 0.2, 24)$ has estimated Sharpe ratio $\widehat{SR}^* = 0.456$ and estimated standard deviation $\sigma[\widehat{SR}^*] = 0.379$. Assuming i.i.d. Normal returns would yield only $\sigma[\widehat{SR}^*] = 0.214$—a 43% underestimation—leading to a higher than expected rate of false positives.
+> **Numerical example**: A portfolio manager with a two-year track record of monthly returns where $(\hat{\mu}, \hat{\sigma}, \hat{\gamma}_3, \hat{\gamma}_4, \hat{\rho}, T) = (0.036\%, 0.079\%, -2.448, 10.164, 0.2, 24)$ has estimated Sharpe ratio $\widehat{SR}^{\ast} = 0.456$ and estimated standard deviation $\sigma[\widehat{SR}^{\ast}] = 0.379$. Assuming i.i.d. Normal returns would yield only $\sigma[\widehat{SR}^{\ast}] = 0.214$—a 43% underestimation—leading to a higher than expected rate of false positives.
 
 **Exhibit 2** (Monte Carlo, $T = 60$): The Non-Gaussian + autocorrelation curve (red) closely tracks the simulation benchmark (black) across all 20 scenarios. The i.i.d. Normal assumption (blue) leads to severe understatement of variance whenever serial dependence or higher-order moments are present. The actual variance can be four or more times larger than under the i.i.d. Normal assumption.
 
@@ -127,7 +127,7 @@ Replacing the parameters with their estimates at $SR = \widehat{SR}^*$, the **es
 
 ## Probabilistic Sharpe Ratio
 
-Following Bailey and López de Prado [2012], let $SR_0$ be the Sharpe ratio threshold that separates false strategies ($SR \leq SR_0$) from true strategies ($SR > SR_0$). We test whether a strategy with observed Sharpe ratio $\widehat{SR}^*$ is a true strategy by testing the one-sided null hypothesis $H_0\colon SR \leq SR_0$ against $H_1\colon SR > SR_0$.
+Following Bailey and López de Prado [2012], let $SR_0$ be the Sharpe ratio threshold that separates false strategies ($SR \leq SR_0$) from true strategies ($SR > SR_0$). We test whether a strategy with observed Sharpe ratio $\widehat{SR}^{\ast}$ is a true strategy by testing the one-sided null hypothesis $H_0\colon SR \leq SR_0$ against $H_1\colon SR > SR_0$.
 
 Under $H_0$, the test statistic is
 
@@ -135,7 +135,7 @@ $$z^{\ast}[SR_0] = \frac{\widehat{SR}^{\ast} - SR_0}{\sigma[SR_0]} \stackrel{a}{
 
 $$\sigma[SR_0] = \sqrt{V[\widehat{SR}|SR = SR_0]} = \sqrt{\frac{1}{T}\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_0^2\right)} \tag{5}$$
 
-The equation for $\sigma[SR_0]$ results from evaluating the estimator under the least favorable case of the null hypothesis, $V[\widehat{SR}\,|\,SR = SR_0]$.
+The equation for $\sigma[SR_0]$ results from evaluating the estimator under the least favorable case of the null hypothesis, $V[\widehat{SR}|SR = SR_0]$.
 
 The significance level $\alpha$ (false positive rate, type-I error) is the probability of rejecting $H_0$ when it is true:
 
@@ -147,17 +147,17 @@ $$z_{1-\alpha} = Z^{-1}[1-\alpha] \tag{7}$$
 
 $$SR_c = SR_0 + \sigma[SR_0]z_{1-\alpha} \tag{8}$$
 
-We reject $H_0$ with confidence $(1-\alpha)$ if $z^*[SR_0] \geq z_{1-\alpha} \Leftrightarrow \widehat{SR}^* \geq SR_c$.
+We reject $H_0$ with confidence $(1-\alpha)$ if $z^{\ast}[SR_0] \geq z_{1-\alpha} \Leftrightarrow \widehat{SR}^{\ast} \geq SR_c$.
 
-The **Probabilistic Sharpe Ratio (PSR)** is the probability of observing a Sharpe ratio below $\widehat{SR}^*$ conditional on $H_0$ being true:
+The **Probabilistic Sharpe Ratio (PSR)** is the probability of observing a Sharpe ratio below $\widehat{SR}^{\ast}$ conditional on $H_0$ being true:
 
 $$PSR = P\left[\widehat{SR} < \widehat{SR}^{\ast}\middle| H_0\right] = Z\left[z^{\ast}[SR_0]\right] = 1 - P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle| H_0\right] = 1 - p \tag{9}$$
 
-where $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$ is the test's _p_-value. PSR can also be interpreted as the maximum confidence with which the null hypothesis can be rejected after observing $\widehat{SR}^*$.
+where $p = P[\widehat{SR} \geq \widehat{SR}^{\ast}|H_0]$ is the test's _p_-value. PSR can also be interpreted as the maximum confidence with which the null hypothesis can be rejected after observing $\widehat{SR}^{\ast}$.
 
-> **Example** (cont.): Under $SR_0 = 0$: $PSR = Z[z^*[0]] = Z[\widehat{SR}^*/\sigma[\widehat{SR}^*]] = 0.966$. Under $SR_0 = 0.1$: $PSR = 0.900$.
+> **Example** (cont.): Under $SR_0 = 0$: $PSR = Z[z^{\ast}[0]] = Z[\widehat{SR}^{\ast}/\sigma[\widehat{SR}^{\ast}]] = 0.966$. Under $SR_0 = 0.1$: $PSR = 0.900$.
 
-**Note**: Under $SR_0 = 0$ and i.i.d. returns, $z^*[0]$ reduces to $\widehat{SR}^*\sqrt{T}$, which coincides with the non-central Student's t-distribution test. PSR and Student's t tests differ under non-i.i.d. returns and under i.i.d. non-Normal returns when $SR_0 \neq 0$.
+**Note**: Under $SR_0 = 0$ and i.i.d. returns, $z^{\ast}[0]$ reduces to $\widehat{SR}^{\ast}\sqrt{T}$, which coincides with the non-central Student's t-distribution test. PSR and Student's t tests differ under non-i.i.d. returns and under i.i.d. non-Normal returns when $SR_0 \neq 0$.
 
 **Key property of PSR**: It assigns lower values to investments exposed to downside, tail and drawdown-related risks. This follows from equation (5), which penalizes $SR_0 > 0$ strategies when they exhibit negative skewness (downside risk), positive excess kurtosis (tail risk), or positive serial correlation (volatility clustering and drawdowns).
 
@@ -165,17 +165,17 @@ where $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$ is the test's _p_-value.
 
 ## Minimum Track Record Length
 
-The **minimum track record length (MinTRL)** is the minimum sample size $T$ such that the observed $\widehat{SR}^*$ (together with $\hat{\rho}, \hat{\gamma}_3, \hat{\gamma}_4$) allows the rejection of $H_0$ at significance level $\alpha$:
+The **minimum track record length (MinTRL)** is the minimum sample size $T$ such that the observed $\widehat{SR}^{\ast}$ (together with $\hat{\rho}, \hat{\gamma}_3, \hat{\gamma}_4$) allows the rejection of $H_0$ at significance level $\alpha$:
 
-$$MinTRL = \min_T\left\{P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle| H_0\right] \leq \alpha\right\} \tag{10}$$
+$$MinTRL = \min_T\left\lbrace P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle| H_0\right] \leq \alpha\right\rbrace \tag{10}$$
 
-with solution when $\widehat{SR}^* > SR_0$:
+with solution when $\widehat{SR}^{\ast} > SR_0$:
 
 $$MinTRL = \left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_0^2\right)\left(\frac{z_{1-\alpha}}{\widehat{SR}^{\ast} - SR_0}\right)^{2} \tag{11}$$
 
 Equivalently, MinTRL is the minimum sample size $T$ such that PSR is not less than $(1-\alpha)$.
 
-> **Example** (cont.): For $\alpha = 0.05$ and $SR_0 = 0$: $MinTRL = 19.543$ months. For $SR_0 = 0.1$: $MinTRL = 39.369$ months (more than doubles). A longer sample is needed to reject an $SR_0$ closer to the observed $\widehat{SR}^*$. To validate: replace $T$ with MinTRL in the PSR equation and obtain $1-\alpha$.
+> **Example** (cont.): For $\alpha = 0.05$ and $SR_0 = 0$: $MinTRL = 19.543$ months. For $SR_0 = 0.1$: $MinTRL = 39.369$ months (more than doubles). A longer sample is needed to reject an $SR_0$ closer to the observed $\widehat{SR}^{\ast}$. To validate: replace $T$ with MinTRL in the PSR equation and obtain $1-\alpha$.
 
 ---
 
@@ -189,7 +189,7 @@ $$\beta = P\left[\widehat{SR} < SR_c\middle| H_1\right] = Z\left[\frac{SR_c - SR
 
 $$P\left[\widehat{SR} \geq SR_c\middle| H_1\right] = 1 - \beta \tag{13}$$
 
-Power is determined ex-ante by test parameters, not the observed $\widehat{SR}^*$. The choice of $\alpha$ determines $\beta$:
+Power is determined ex-ante by test parameters, not the observed $\widehat{SR}^{\ast}$. The choice of $\alpha$ determines $\beta$:
 
 $$SR_c = SR_0 + \sigma[SR_0]z_{1-\alpha} \tag{14}$$
 
@@ -236,7 +236,7 @@ The Sharpe ratio's **planned Bayesian false discovery rate (pFDR)** is the proba
 
 $$pFDR = P\left[H_0\middle|\widehat{SR} \geq SR_c\right] \tag{18}$$
 
-Since precision is $P[H_1\,|\,\widehat{SR} \geq SR_c]$, precision equals one minus pFDR. pFDR is determined ex-ante, not by the observed $\widehat{SR}^*$. Via Bayes' theorem:
+Since precision is $P[H_1|\widehat{SR} \geq SR_c]$, precision equals one minus pFDR. pFDR is determined ex-ante, not by the observed $\widehat{SR}^{\ast}$. Via Bayes' theorem:
 
 $$P\left[H_0\middle|\widehat{SR} \geq SR_c\right] = \frac{P[\widehat{SR} \geq SR_c|H_0]P[H_0]}{P[\widehat{SR} \geq SR_c]} \tag{19}$$
 
@@ -248,7 +248,7 @@ resulting in
 
 $$P\left[H_0\middle|\widehat{SR} \geq SR_c\right] = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \frac{(1-\beta)P[H_1]}{\alpha P[H_0]}\right)^{-1} \tag{21}$$
 
-In a Bayesian interpretation, $P[H_0]$ represents the prior probability that a randomly evaluated strategy is false. This can be elicited in a data-informed manner: (i) define $SR_1$ as the average Sharpe ratio of true strategies; (ii) sort all evaluated strategies by test statistic $z^*[SR_0]$; (iii) identify the subset whose average Sharpe ratio is closest to $SR_1$; (iv) elicit $P[H_1]$ as the proportion of strategies in that subset.
+In a Bayesian interpretation, $P[H_0]$ represents the prior probability that a randomly evaluated strategy is false. This can be elicited in a data-informed manner: (i) define $SR_1$ as the average Sharpe ratio of true strategies; (ii) sort all evaluated strategies by test statistic $z^{\ast}[SR_0]$; (iii) identify the subset whose average Sharpe ratio is closest to $SR_1$; (iv) elicit $P[H_1]$ as the proportion of strategies in that subset.
 
 > **Example** (cont.): For $P[H_1] = 0.1$, $\alpha = 0.05$, $\beta = 0.411$: $pFDR = 0.433$. A test with 58.9% power still has a 43.3% planned false discovery rate when true strategies are rare (10%). Incorrectly assuming i.i.d. Normal returns yields $pFDR = 0.367$, an underestimation of 15%.
 
@@ -260,9 +260,9 @@ The **observed Bayesian false discovery rate (oFDR)** is the probability that $H
 
 $$oFDR = P\left[H_0\middle|\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{P[\widehat{SR} \geq \widehat{SR}^{\ast}|H_0]P[H_0]}{P[\widehat{SR} \geq \widehat{SR}^{\ast}]} \tag{22}$$
 
-oFDR is the Bayesian posterior probability associated with the prior $P[H_0]$, after incorporating the evidence summarized by the _p_-value $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$.
+oFDR is the Bayesian posterior probability associated with the prior $P[H_0]$, after incorporating the evidence summarized by the _p_-value $p = P[\widehat{SR} \geq \widehat{SR}^{\ast}|H_0]$.
 
-From the law of total probability, where $z^*[SR_1] = (\widehat{SR}^* - SR_1)/\sigma[SR_1]$:
+From the law of total probability, where $z^{\ast}[SR_1] = (\widehat{SR}^{\ast} - SR_1)/\sigma[SR_1]$:
 
 $$P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\right] = P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle|H_0\right]P[H_0] + P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle|H_1\right]P[H_1] = pP[H_0] + \bigl(1 - Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0]) \tag{23}$$
 
@@ -276,7 +276,7 @@ $$P\left[H_0\middle|\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{pP[H_0]
 
 ## Multiple Testing Corrections
 
-Researchers rarely test a single Sharpe ratio. Consider $K$ observed Sharpe ratios $\{\widehat{SR}_k^*\}_{k=1,\ldots,K}$, independently drawn from the same distribution. We wish to test $H_0\colon SR_k \leq SR_0$ for all $k = 1, \ldots, K$. Setting $\alpha$ as the false positive probability in every single test $k$, for $K > 1$ and $0 < \alpha < 1$, the probability that there is at least one false positive is the **familywise error rate (FWER)**:
+Researchers rarely test a single Sharpe ratio. Consider $K$ observed Sharpe ratios $\lbrace\widehat{SR}_k^{\ast}\rbrace_{k=1,\ldots,K}$, independently drawn from the same distribution. We wish to test $H_0\colon SR_k \leq SR_0$ for all $k = 1, \ldots, K$. Setting $\alpha$ as the false positive probability in every single test $k$, for $K > 1$ and $0 < \alpha < 1$, the probability that there is at least one false positive is the **familywise error rate (FWER)**:
 
 $$\alpha_K = 1 - (1-\alpha)^K \tag{25}$$
 
@@ -284,21 +284,21 @@ Two questions arise: (a) what is the new rejection threshold $SR_c$ for the stra
 
 ### Case A: Search-Aware Control of the Familywise Error Rate
 
-We assume the $K$ observed Sharpe ratios are independently drawn under $H_0$ from a Normal distribution with mean $E[\{\widehat{SR}_k^*\}] = SR_0$ and variance $V[\{\widehat{SR}_k^*\}]$.
+We assume the $K$ observed Sharpe ratios are independently drawn under $H_0$ from a Normal distribution with mean $E[\lbrace\widehat{SR}_k^{\ast}\rbrace] = SR_0$ and variance $V[\lbrace\widehat{SR}_k^{\ast}\rbrace]$.
 
 **Exact Distribution of the Maximum**: For finite $K$, the maximum of Normal variables follows a skewed order-statistic distribution with CDF:
 
-$$P\left[\max_k\{\widehat{SR}_k\} < x\right] = \left(Z\left[\frac{x - SR_0}{\sqrt{V[\{\widehat{SR}_k^{\ast}\}]}}\right]\right)^K \tag{26}$$
+$$P\left[\max_k\lbrace\widehat{SR}_k\rbrace < x\right] = \left(Z\left[\frac{x - SR_0}{\sqrt{V[\lbrace\widehat{SR}_k^{\ast}\rbrace]}}\right]\right)^K \tag{26}$$
 
 The rejection threshold controlling FWER at $\alpha_K$ is:
 
-$$SR_c = SR_0 + Z^{-1}\left[(1-\alpha_K)^{1/K}\right]\sqrt{V[\{\widehat{SR}_k^{\ast}\}]} \tag{27}$$
+$$SR_c = SR_0 + Z^{-1}\left[(1-\alpha_K)^{1/K}\right]\sqrt{V[\lbrace\widehat{SR}_k^{\ast}\rbrace]} \tag{27}$$
 
 **Expected Value of the Maximum Sharpe Ratio (False Strategy Theorem)**:
 
 The False Strategy Theorem (Bailey and López de Prado [2014]) derives:
 
-$$E\left[\max_k\{\widehat{SR}_k^{\ast}\}\right] \approx SR_0 + \sqrt{V[\{\widehat{SR}_k^{\ast}\}]}\left((1-\gamma)Z^{-1}\left[1 - \frac{1}{K}\right] + \gamma Z^{-1}\left[1 - \frac{1}{Ke}\right]\right) \tag{28}$$
+$$E\left[\max_k\lbrace\widehat{SR}_k^{\ast}\rbrace\right] \approx SR_0 + \sqrt{V[\lbrace\widehat{SR}_k^{\ast}\rbrace]}\left((1-\gamma)Z^{-1}\left[1 - \frac{1}{K}\right] + \gamma Z^{-1}\left[1 - \frac{1}{Ke}\right]\right) \tag{28}$$
 
 > **Domain restriction**: This formula is undefined at K = 1 (Φ⁻¹(1 − 1/K) = Φ⁻¹(0) = −∞). The framework's intended split is: **PSR applies for K = 1** (single strategy, no multiple-testing correction); **DSR applies for K ≥ 2** (selection bias correction via FST). The Gumbel EVT approximation is asymptotic — convergence rate is O(1/log K) for Gaussian variables, so results are approximate for small K.
 
@@ -306,13 +306,13 @@ where $\gamma = 0.5772156649\ldots$ is the Euler–Mascheroni constant and $e$ i
 
 In a multiple testing search, the search-adjusted "least favorable case" null is:
 
-$$SR_{0,K} = E\left[\max_k\{\widehat{SR}_k^{\ast}\}\right] \tag{29}$$
+$$SR_{0,K} = E\left[\max_k\lbrace\widehat{SR}_k^{\ast}\rbrace\right] \tag{29}$$
 
-**Standard Deviation of the Maximum**: Under multiple trials, the standard deviation of the maximum Sharpe ratio across $K$ strategies requires re-scaling $\sqrt{V[\{\widehat{SR}_k^*\}]}$ by the standard deviation of the maximum of $K$ standard Normal variables:
+**Standard Deviation of the Maximum**: Under multiple trials, the standard deviation of the maximum Sharpe ratio across $K$ strategies requires re-scaling $\sqrt{V[\lbrace\widehat{SR}_k^{\ast}\rbrace]}$ by the standard deviation of the maximum of $K$ standard Normal variables:
 
-$$\sigma[SR_{0,K}] = \sqrt{V\left[\max_k\{\widehat{SR}_k^{\ast}\}\right]} = \sqrt{V[\{\widehat{SR}_k^{\ast}\}]}\sqrt{V\left[\max_k\{X_k\}\right]} \tag{30}$$
+$$\sigma[SR_{0,K}] = \sqrt{V\left[\max_k\lbrace\widehat{SR}_k^{\ast}\rbrace\right]} = \sqrt{V[\lbrace\widehat{SR}_k^{\ast}\rbrace]}\sqrt{V\left[\max_k\lbrace X_k\rbrace\right]} \tag{30}$$
 
-where $\{X_k\}_{k=1,\ldots,K}$ are $K$ i.i.d. standard Normal variables. The re-scaling factor $\sqrt{V[\max_k\{X_k\}]}$ is derived in Appendix A.4.
+where $\lbrace X_k\rbrace_{k=1,\ldots,K}$ are $K$ i.i.d. standard Normal variables. The re-scaling factor $\sqrt{V[\max_k\lbrace X_k\rbrace]}$ is derived in Appendix A.4.
 
 **Exhibit 4 – Standard deviation re-scaling factors, from $K = 1$ to $K = 100$**
 
@@ -333,7 +333,7 @@ _Row label = tens digit of $K$; column label = units digit. E.g., $K = 15$: row 
 
 Appendix A.5 derives an approximation:
 
-$$\sqrt{V\left[\max_k\{X_k\}\right]} \approx \sqrt{\frac{\pi^2}{6} - \frac{\gamma^2}{1+\gamma}}\left(Z^{-1}\left[1 - \frac{1}{Ke}\right] - Z^{-1}\left[1 - \frac{1}{K}\right]\right) \tag{31}$$
+$$\sqrt{V\left[\max_k\lbrace X_k\rbrace\right]} \approx \sqrt{\frac{\pi^2}{6} - \frac{\gamma^2}{1+\gamma}}\left(Z^{-1}\left[1 - \frac{1}{Ke}\right] - Z^{-1}\left[1 - \frac{1}{K}\right]\right) \tag{31}$$
 
 ### Deflated Sharpe Ratio
 
@@ -341,7 +341,7 @@ Applying the adjustments $SR_0 \to SR_{0,K}$ and $\sigma[SR_0] \to \sigma[SR_{0,
 
 > **Implementation note**: The `deflated_sharpe_ratio()` function in the companion repository (`zoonek/2025-sharpe-ratio`) is marked `@deprecated` and uses the per-SR sampling SE for both the SR₀ scale and denominator — which is incorrect per both this paper and Bailey & López de Prado (2014). Correct implementations should: (1) use the cross-sectional SD √(V[{SR̂_k*}]) as the SR₀ scale, and (2) apply the EVT rescaling factor √(V[max_k{X_k}]) to the denominator, as defined in Eq (31). Use the component functions `expected_maximum_sharpe_ratio()` + `probabilistic_sharpe_ratio()` with cross-sectional variance directly.
 
-> **Example** (cont.): For $K = 10$ and $V[\{\widehat{SR}_k^*\}] = 0.1$: the search-adjusted null is $SR_{0,K} = E[\max_k\{\widehat{SR}_k^*\}] = 0.498$, and $\sqrt{V[\{\widehat{SR}_k^*\}]} = 0.316$ is rescaled to $\sigma[SR_{0,K}] = 0.186$, yielding $DSR = 0.410$ (compared to the one-trial PSR of 0.966). After accounting for the multiple tests, the high observed Sharpe ratio turns out to be below what would be expected from zero skill (a coin toss).
+> **Example** (cont.): For $K = 10$ and $V[\lbrace\widehat{SR}_k^{\ast}\rbrace] = 0.1$: the search-adjusted null is $SR_{0,K} = E[\max_k\lbrace\widehat{SR}_k^{\ast}\rbrace] = 0.498$, and $\sqrt{V[\lbrace\widehat{SR}_k^{\ast}\rbrace]} = 0.316$ is rescaled to $\sigma[SR_{0,K}] = 0.186$, yielding $DSR = 0.410$ (compared to the one-trial PSR of 0.966). After accounting for the multiple tests, the high observed Sharpe ratio turns out to be below what would be expected from zero skill (a coin toss).
 
 **Exhibit 5(a)** – DSR control under different processes (monthly frequency, $T = 60$, $\alpha_K = 0.05$):
 
@@ -356,13 +356,13 @@ Applying the adjustments $SR_0 \to SR_{0,K}$ and $\sigma[SR_0] \to \sigma[SR_{0,
 | severe        | −2.3 | 16.1 | 0     | 0.352 | 0.086 |
 | severe        | −2.3 | 16.1 | 0.2   | 0.421 | 0.094 |
 
-_Diff = $P[\widehat{SR} \geq SR_c\,|\,H_0] - \alpha_K$. DSR adjustments work as designed; control effectiveness does not materially degrade with serial correlation._
+_Diff = $P[\widehat{SR} \geq SR_c|H_0] - \alpha_K$. DSR adjustments work as designed; control effectiveness does not materially degrade with serial correlation._
 
 **Exhibit 5(b)** – DSR control at daily frequency ($T = 1300$, $\alpha_K = 0.05$): Diff values substantially smaller across all scenarios.
 
 **Remark 1: Effective Number of Trials**. In practice, trials are often dependent. $K$ can be approximated as the effective number of independent trials, via clustering methods (López de Prado [2019]) or through the eigenvalues of the correlation matrix of trials' returns series (López de Prado [2018, 2020]). See Appendix A.3.
 
-**Remark 2: Cross-Sectional Variance**. The cross-sectional variance $V[\{\widehat{SR}_k^*\}]$ comprises two sources: (i) expected sampling variance $E[\{\sigma^2[SR_k]\}]$; and (ii) true heterogeneity across trials, $V[\{SR_k\}]$. A high $V[\{SR_k\}]$ is consistent with an extensive search outside a predefined theoretical framework, more likely to yield irreplicable results.
+**Remark 2: Cross-Sectional Variance**. The cross-sectional variance $V[\lbrace\widehat{SR}_k^{\ast}\rbrace]$ comprises two sources: (i) expected sampling variance $E[\lbrace\sigma^2[SR_k]\rbrace]$; and (ii) true heterogeneity across trials, $V[\lbrace SR_k\rbrace]$. A high $V[\lbrace SR_k\rbrace]$ is consistent with an extensive search outside a predefined theoretical framework, more likely to yield irreplicable results.
 
 ### Case B: Controlling for Sequential False Discovery Rate
 
@@ -374,9 +374,9 @@ Replacing $\alpha$ and $\beta$, we obtain the **equilibrium condition**:
 
 $$q = \left(1 + \frac{\left(1-Z\left[\dfrac{SR_c - SR_1}{\sigma[SR_1]}\right]\right)(1-P[H_0])}{\left(1-Z\left[\dfrac{SR_c - SR_0}{\sigma[SR_0]}\right]\right)P[H_0]}\right)^{-1} \tag{33}$$
 
-A root-finding algorithm applied to the above expression yields $SR_c$ satisfying $P[H_0\,|\,\widehat{SR} \geq SR_c] = q$. Note that under SFDR the researcher chooses _all_ strategies above $SR_c$, not only the one with the highest Sharpe ratio. Therefore $SR_0$ is not adjusted for the number of trials, and $K$ is not part of the equilibrium condition.
+A root-finding algorithm applied to the above expression yields $SR_c$ satisfying $P[H_0|\widehat{SR} \geq SR_c] = q$. Note that under SFDR the researcher chooses _all_ strategies above $SR_c$, not only the one with the highest Sharpe ratio. Therefore $SR_0$ is not adjusted for the number of trials, and $K$ is not part of the equilibrium condition.
 
-**Key property**: $SR_c$ can be negative as $P[H_1] \to 1-q$, since the probability that the strategy is false is below the tolerance for false discoveries regardless of how negative its $\widehat{SR}^*$ is. Relaxing the alternative hypothesis from $SR_1 = 0.5$ to $SR_1 = 0.2$ increases the rejection thresholds (harder to separate true from false). Higher serial correlation ($\rho = 0.2$ vs $\rho = 0$) also increases the thresholds, because it increases the estimator's variance.
+**Key property**: $SR_c$ can be negative as $P[H_1] \to 1-q$, since the probability that the strategy is false is below the tolerance for false discoveries regardless of how negative its $\widehat{SR}^{\ast}$ is. Relaxing the alternative hypothesis from $SR_1 = 0.5$ to $SR_1 = 0.2$ increases the rejection thresholds (harder to separate true from false). Higher serial correlation ($\rho = 0.2$ vs $\rho = 0$) also increases the thresholds, because it increases the estimator's variance.
 
 ![SFDR rejection threshold SR_c as a function of p[H1] for four parameter combinations (SR0=0, SR1=0.2/0.5, ρ=0/0.2): SR_c turns negative as p[H1] approaches 1−q, illustrating the SFDR equilibrium condition](./media/fig-p25-01.jpeg)
 
@@ -485,7 +485,7 @@ We are especially grateful to Andrew Lo (MIT) and Michael Wolf (University of Z�
 
 ### A.1. Distribution of the Sharpe Ratio Under Non-Normal and Serially Correlated Returns
 
-Consider a stationary, ergodic and weakly dependent series of $T$ excess returns $\{r_t\}_{t=1,\ldots,T}$, with a finite fourth moment. Define:
+Consider a stationary, ergodic and weakly dependent series of $T$ excess returns $\lbrace r_t\rbrace_{t=1,\ldots,T}$, with a finite fourth moment. Define:
 
 $$\mu = E[r_t],\quad x_t = r_t - \mu,\quad \sigma^2 = E[x_t^2],\quad v_3 = E[x_t^3],\quad v_4 = E[x_t^4]$$
 
@@ -545,11 +545,11 @@ The variance can be computed (using $x_t = r_t - \mu$):
 = \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}E[x_t x_s] & E[x_t x_s^2] \\ E[x_t^2 x_s] & E[x_t^2 x_s^2]-\sigma^4\end{pmatrix}
 ```
 
-This involves not only the auto-covariances $E[x_t x_s]$, but also the co-skewness $E[x_t x_s^2]$ and the co-kurtosis $E[x_t^2 x_s^2]$. At this point, we introduce the assumption that $\{x_t\}$ follows a stationary **AR(1) process**:
+This involves not only the auto-covariances $E[x_t x_s]$, but also the co-skewness $E[x_t x_s^2]$ and the co-kurtosis $E[x_t^2 x_s^2]$. At this point, we introduce the assumption that $\lbrace x_t\rbrace$ follows a stationary **AR(1) process**:
 
 $$x_t = \rho x_{t-1} + \varepsilon_t \tag{44}$$
 
-where $\{\varepsilon_t\}$ is i.i.d. with zero mean and $\rho \in (-1,1)$.
+where $\lbrace\varepsilon_t\rbrace$ is i.i.d. with zero mean and $\rho \in (-1,1)$.
 
 From the AR(1) assumption:
 
@@ -655,7 +655,7 @@ The first two approaches give an estimate of the number of independent ideas tes
 
 ### A.4. Variance of the Maximum
 
-Consider $K$ i.i.d. standard Normal variables $X_1, \ldots, X_K$. The CDF of the maximum $M = \max\{X_1, \ldots, X_K\}$ is:
+Consider $K$ i.i.d. standard Normal variables $X_1, \ldots, X_K$. The CDF of the maximum $M = \max\lbrace X_1, \ldots, X_K\rbrace$ is:
 
 $$F[m] = P[M \leq m] = P\left[\bigcap_{k=1}^K (X_k \leq m)\right] = \prod_{k=1}^K P[(X_k \leq m)] = Z[m]^K \tag{62}$$
 
@@ -679,7 +679,7 @@ These expectations $E[M^r]$ can be computed numerically using the Gauss-Hermite 
 
 Let $X_1, \ldots, X_K$ be i.i.d. Normal random variables with mean $\mu$ and variance $\sigma^2$, and define:
 
-$$M_K = \max_{1 \leq k \leq K}\{X_k\}, \qquad u_1 = \mu + \sigma Z^{-1}\left[1-\frac{1}{K}\right]$$
+$$M_K = \max_{1 \leq k \leq K}\lbrace X_k\rbrace, \qquad u_1 = \mu + \sigma Z^{-1}\left[1-\frac{1}{K}\right]$$
 
 $$u_2 = \mu + \sigma Z^{-1}\left[1-\frac{1}{Ke}\right], \qquad \Delta = u_2 - u_1 \tag{66}$$
 
@@ -733,7 +733,7 @@ Classical EVT gives the first-order approximation $V(M_K) \approx \frac{\pi^2}{6
 
 ### A.6. Rejection Threshold That Controls for SFDR
 
-Consider a random variable $X$, where $X$ is drawn from $H_0\colon \mathcal{N}[\mu_0, \sigma_0^2]$ with probability $P[H_0]$, and from $H_1\colon \mathcal{N}[\mu_1, \sigma_1^2]$ with probability $P[H_1] = 1 - P[H_0]$. Given an observed value of $X$ that exceeds a $H_0$-rejection threshold $c$, we denote as false discovery rate the probability $P[H_0\,|\,X \geq c]$. For a target false discovery rate $q$:
+Consider a random variable $X$, where $X$ is drawn from $H_0\colon \mathcal{N}[\mu_0, \sigma_0^2]$ with probability $P[H_0]$, and from $H_1\colon \mathcal{N}[\mu_1, \sigma_1^2]$ with probability $P[H_1] = 1 - P[H_0]$. Given an observed value of $X$ that exceeds a $H_0$-rejection threshold $c$, we denote as false discovery rate the probability $P[H_0|X \geq c]$. For a target false discovery rate $q$:
 
 $$q = P[H_0|X \geq c] \tag{76}$$
 
@@ -755,7 +755,7 @@ Introducing the probabilities defined earlier:
 
 $$q = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \frac{(1-\beta)(1-P[H_0])}{\alpha P[H_0]}\right)^{-1} \tag{81}$$
 
-For fixed parameters $(\mu_0, \sigma_0, \mu_1, \sigma_1, P[H_0])$, $q[c] = P[H_0\,|\,X \geq c]$ is monotone decreasing in $c$, hence the threshold $c$ that achieves a target $q$ (when it exists) is unique. Finally, we can compute $q$ as a function of $c$:
+For fixed parameters $(\mu_0, \sigma_0, \mu_1, \sigma_1, P[H_0])$, $q[c] = P[H_0|X \geq c]$ is monotone decreasing in $c$, hence the threshold $c$ that achieves a target $q$ (when it exists) is unique. Finally, we can compute $q$ as a function of $c$:
 
 $$q = \left(1 + \frac{\left(1-Z\left[\dfrac{c-\mu_1}{\sigma_1}\right]\right)(1-P[H_0])}{\left(1-Z\left[\dfrac{c-\mu_0}{\sigma_0}\right]\right)P[H_0]}\right)^{-1} \tag{82}$$
 
