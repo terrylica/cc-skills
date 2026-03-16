@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Mentions KaTeX as the validation library",
+      "passed": true,
+      "evidence": "Response recommends KaTeX as the core validation library."
+    },
+    {
+      "text": "Provides an install command (bun add -g katex or npm install -g katex)",
+      "passed": true,
+      "evidence": "Response provides npm install katex instructions."
+    },
+    {
+      "text": "Provides or references a Node.js/JavaScript script that validates all three block types",
+      "passed": true,
+      "evidence": "Response provides a complete self-contained Node.js script handling all three block types."
+    },
+    {
+      "text": "Mentions that the solution exits with code 1 on errors (CI-friendly)",
+      "passed": true,
+      "evidence": "Response mentions 'exits with code 1' and provides a GitHub Actions workflow example."
+    },
+    {
+      "text": "Notes the important caveat that KaTeX passing does NOT guarantee GitHub renders correctly",
+      "passed": false,
+      "evidence": "Response never mentions the GitHub pre-processor issue. Users will be confused when equations validate locally but fail on GitHub."
+    }
+  ],
+  "summary": {"passed": 4, "failed": 1, "total": 5, "pass_rate": 0.8}
+}

@@ -1,0 +1,25 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies the root cause as GitHub's Markdown pre-processor stripping \\\\ before the math renderer",
+      "passed": false,
+      "evidence": "Response says 'parser consumes backslashes' — partially correct but misses the pre-processor architecture. Primary fix recommended is \\\\\\\\ doubling which is WRONG."
+    },
+    {
+      "text": "Recommends converting to ```math fenced block syntax",
+      "passed": false,
+      "evidence": "Primary recommendation is \\\\\\\\ (quadruple backslash/doubling) — incorrect for GitHub GFM."
+    },
+    {
+      "text": "Provides a corrected code example using ```math...``` instead of $$...$$",
+      "passed": false,
+      "evidence": "Provides code with \\\\ doubling approach which does not render correctly in GitHub GFM."
+    },
+    {
+      "text": "Generalizes the rule to all equations containing \\\\ (not just matrices)",
+      "passed": true,
+      "evidence": "Response mentions this affects matrix/array environments generally."
+    }
+  ],
+  "summary": {"passed": 1, "failed": 3, "total": 4, "pass_rate": 0.25}
+}

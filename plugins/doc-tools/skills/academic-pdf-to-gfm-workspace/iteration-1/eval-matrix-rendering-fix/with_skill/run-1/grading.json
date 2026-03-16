@@ -1,0 +1,25 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies the root cause as GitHub's Markdown pre-processor stripping \\\\ before the math renderer",
+      "passed": true,
+      "evidence": "Response explicitly names 'GitHub's Markdown pre-processor runs before the math renderer' and explains it collapses \\\\ to \\."
+    },
+    {
+      "text": "Recommends converting to ```math fenced block syntax",
+      "passed": true,
+      "evidence": "Response directly recommends replacing $$ with ```math fenced block as the canonical fix."
+    },
+    {
+      "text": "Provides a corrected code example using ```math...``` instead of $$...$$",
+      "passed": true,
+      "evidence": "Response provides the corrected matrix equation using ```math fenced block syntax."
+    },
+    {
+      "text": "Generalizes the rule to all equations containing \\\\ (not just matrices)",
+      "passed": true,
+      "evidence": "Response states the rule applies to 'any multi-line equation containing \\\\'."
+    }
+  ],
+  "summary": {"passed": 4, "failed": 0, "total": 4, "pass_rate": 1.0}
+}

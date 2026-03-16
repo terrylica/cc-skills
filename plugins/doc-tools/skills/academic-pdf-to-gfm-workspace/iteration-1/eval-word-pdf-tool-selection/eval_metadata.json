@@ -1,0 +1,27 @@
+{
+  "eval_id": 0,
+  "eval_name": "eval-word-pdf-tool-selection",
+  "prompt": "I downloaded a 40-page SSRN working paper in PDF — it's a finance paper about portfolio optimization with about 25 equations. When I copy text from it, the math symbols come through as Unicode (∑, π, σ, etc.). I want to put it on GitHub as a markdown file. Which extraction tool should I use, and how do I handle the math formulas?",
+  "assertions": [
+    {
+      "id": "identifies-type-a",
+      "text": "Identifies the PDF as Type A (Word-generated) based on the Unicode math copy-paste clue"
+    },
+    {
+      "id": "recommends-pymupdf4llm",
+      "text": "Recommends pymupdf4llm as the prose extraction tool"
+    },
+    {
+      "id": "warns-against-marker-pdf",
+      "text": "Explicitly warns that marker-pdf will NOT work on this PDF type"
+    },
+    {
+      "id": "manual-transcription-required",
+      "text": "States that math equations must be manually transcribed from PDF screenshots (no automated LaTeX extraction)"
+    },
+    {
+      "id": "mentions-math-fenced-blocks",
+      "text": "Mentions the $$...$$  vs ```math... distinction or multi-line rendering rule"
+    }
+  ]
+}
