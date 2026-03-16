@@ -99,14 +99,22 @@ _Statistics from HFR main style indices, Jan 1990–Nov 2025 (T = 431 monthly ob
 
 Under these stylized facts, the **generalized sampling distribution** of the Sharpe ratio's plug-in estimator $\widehat{SR} = \hat{\mu}/\hat{\sigma}$ is, for sufficiently large $T$, approximately
 
-$$\widehat{SR} = \frac{\hat{\mu}}{\hat{\sigma}} \stackrel{a}{\sim} \mathcal{N}\left[SR,  \frac{1}{T}\left(\frac{1+\rho}{1-\rho} - \frac{1+\rho+\rho^2}{1-\rho^2}\gamma_3SR + \frac{1+\rho^2}{1-\rho^2}\frac{\gamma_4-1}{4}SR^2\right)\right] \tag{2}$$
+```math
+\begin{aligned}
+\widehat{SR} = \frac{\hat{\mu}}{\hat{\sigma}} &\stackrel{a}{\sim} \mathcal{N}\left[SR,\right. \\
+&\quad\left.\frac{1}{T}\left(\frac{1+\rho}{1-\rho} - \frac{1+\rho+\rho^2}{1-\rho^2}\gamma_3 SR + \frac{1+\rho^2}{1-\rho^2}\frac{\gamma_4-1}{4}SR^2\right)\right] \tag{2}
+\end{aligned}
+```
 
 where $\mathcal{N}$ denotes the Normal distribution, $\gamma_3$ is the skewness of excess returns, $\gamma_4$ is Pearson's kurtosis (with value 3 when returns are Normal), and $\rho$ is the first-order autocorrelation of excess returns, with $\rho \in (-1,1)$. (Appendix A.1 proves this.)
 
 Replacing the parameters with their estimates at $SR = \widehat{SR}^{\ast}$, the **estimated variance** of the Sharpe ratio's estimator is
 
 ```math
-\sigma^2[\widehat{SR}^{\ast}] = V[\widehat{SR}\,|\,SR = \widehat{SR}^{\ast}] = \frac{1}{T}\!\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,\widehat{SR}^{\ast} + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,\widehat{SR}^{\ast 2}\right) \tag{3}
+\begin{aligned}
+\sigma^2[\widehat{SR}^{\ast}] &= V\!\left[\widehat{SR}\mid SR = \widehat{SR}^{\ast}\right] \\
+&= \frac{1}{T}\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,\widehat{SR}^{\ast} + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,\widehat{SR}^{\ast 2}\right) \tag{3}
+\end{aligned}
 ```
 
 > **⚠ Kurtosis convention**: All γ₄ values throughout this paper use **Pearson (non-excess) kurtosis**, where the Gaussian baseline is γ₄ = 3 (not 0). When implementing with scipy: use `scipy.stats.kurtosis(x, fisher=False)`. Passing excess kurtosis silently underestimates the variance correction by ~50% for heavy-tailed return distributions.
@@ -133,7 +141,12 @@ Under $H_0$, the test statistic is
 
 $$z^{\ast}[SR_0] = \frac{\widehat{SR}^{\ast} - SR_0}{\sigma[SR_0]} \stackrel{a}{\to} \mathcal{N}[0,1] \tag{4}$$
 
-$$\sigma[SR_0] = \sqrt{V[\widehat{SR}|SR = SR_0]} = \sqrt{\frac{1}{T}\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_0^2\right)} \tag{5}$$
+```math
+\begin{aligned}
+\sigma[SR_0] &= \sqrt{V[\widehat{SR}\mid SR = SR_0]} \\
+&= \sqrt{\frac{1}{T}\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3 SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_0^2\right)} \tag{5}
+\end{aligned}
+```
 
 The equation for $\sigma[SR_0]$ results from evaluating the estimator under the least favorable case of the null hypothesis, $V[\widehat{SR}|SR = SR_0]$.
 
@@ -151,7 +164,12 @@ We reject $H_0$ with confidence $(1-\alpha)$ if $z^{\ast}[SR_0] \geq z_{1-\alpha
 
 The **Probabilistic Sharpe Ratio (PSR)** is the probability of observing a Sharpe ratio below $\widehat{SR}^{\ast}$ conditional on $H_0$ being true:
 
-$$PSR = P\left[\widehat{SR} < \widehat{SR}^{\ast}\middle| H_0\right] = Z\left[z^{\ast}[SR_0]\right] = 1 - P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle| H_0\right] = 1 - p \tag{9}$$
+```math
+\begin{aligned}
+PSR &= P\!\left[\widehat{SR} < \widehat{SR}^{\ast}\middle| H_0\right] = Z\!\left[z^{\ast}[SR_0]\right] \\
+&= 1 - P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle| H_0\right] = 1 - p \tag{9}
+\end{aligned}
+```
 
 where $p = P[\widehat{SR} \geq \widehat{SR}^{\ast}|H_0]$ is the test's _p_-value. PSR can also be interpreted as the maximum confidence with which the null hypothesis can be rejected after observing $\widehat{SR}^{\ast}$.
 
@@ -171,7 +189,12 @@ $$MinTRL = \min_T\left\lbrace P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middl
 
 with solution when $\widehat{SR}^{\ast} > SR_0$:
 
-$$MinTRL = \left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_0^2\right)\left(\frac{z_{1-\alpha}}{\widehat{SR}^{\ast} - SR_0}\right)^{2} \tag{11}$$
+```math
+\begin{aligned}
+MinTRL &= \left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3 SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_0^2\right) \\
+&\quad\times\left(\frac{z_{1-\alpha}}{\widehat{SR}^{\ast} - SR_0}\right)^{2} \tag{11}
+\end{aligned}
+```
 
 Equivalently, MinTRL is the minimum sample size $T$ such that PSR is not less than $(1-\alpha)$.
 
@@ -193,13 +216,25 @@ Power is determined ex-ante by test parameters, not the observed $\widehat{SR}^{
 
 $$SR_c = SR_0 + \sigma[SR_0]z_{1-\alpha} \tag{14}$$
 
-$$1 - \beta = P\left[\widehat{SR} \geq SR_c\middle| H_1\right] = 1 - Z\left[\frac{SR_c - SR_1}{\sigma[SR_1]}\right] = 1 - Z\left[\frac{SR_0 + \sigma[SR_0]z_{1-\alpha} - SR_1}{\sigma[SR_1]}\right] \tag{15}$$
+```math
+\begin{aligned}
+1 - \beta &= P\!\left[\widehat{SR} \geq SR_c\middle| H_1\right] = 1 - Z\!\left[\frac{SR_c - SR_1}{\sigma[SR_1]}\right] \\
+&= 1 - Z\!\left[\frac{SR_0 + \sigma[SR_0]z_{1-\alpha} - SR_1}{\sigma[SR_1]}\right] \tag{15}
+\end{aligned}
+```
 
-$$\sigma[SR_1] = \sqrt{V[\widehat{SR}|SR = SR_1]} = \sqrt{\frac{1}{T}\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_1 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_1^2\right)} \tag{16}$$
+```math
+\begin{aligned}
+\sigma[SR_1] &= \sqrt{V[\widehat{SR}\mid SR = SR_1]} \\
+&= \sqrt{\frac{1}{T}\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3 SR_1 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\frac{\hat{\gamma}_4-1}{4}SR_1^2\right)} \tag{16}
+\end{aligned}
+```
 
 In particular, for $SR_0 = 0$, the value of $\beta$ simplifies to
 
-$$\beta = Z\left[\frac{z_{1-\alpha}\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}}} - SR_1\sqrt{T}}{\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}} - \dfrac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3SR_1 + \dfrac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\dfrac{\hat{\gamma}_4-1}{4}SR_1^2}}\right] \tag{17}$$
+```math
+\beta = Z\!\left[\frac{z_{1-\alpha}\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}}} - SR_1\sqrt{T}}{\sqrt{\dfrac{1+\hat{\rho}}{1-\hat{\rho}} - \dfrac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\hat{\gamma}_3 SR_1 + \dfrac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\dfrac{\hat{\gamma}_4-1}{4}SR_1^2}}\right] \tag{17}
+```
 
 > **Example** (cont.): For $\alpha = 0.05$ and $SR_1 = 0.5$: $\beta = 0.411$. Incorrectly assuming i.i.d. Normal returns would yield $\beta = 0.224$, an underestimation of 45%.
 
@@ -242,11 +277,21 @@ $$P\left[H_0\middle|\widehat{SR} \geq SR_c\right] = \frac{P[\widehat{SR} \geq SR
 
 From the law of total probability:
 
-$$P\left[\widehat{SR} \geq SR_c\right] = P\left[\widehat{SR} \geq SR_c\middle|H_0\right]P[H_0] + P\left[\widehat{SR} \geq SR_c\middle|H_1\right]P[H_1] = \alpha P[H_0] + (1-\beta)(1-P[H_0]) \tag{20}$$
+```math
+\begin{aligned}
+P\!\left[\widehat{SR} \geq SR_c\right] &= P\!\left[\widehat{SR} \geq SR_c\middle|H_0\right]P[H_0] + P\!\left[\widehat{SR} \geq SR_c\middle|H_1\right]P[H_1] \\
+&= \alpha P[H_0] + (1-\beta)(1-P[H_0]) \tag{20}
+\end{aligned}
+```
 
 resulting in
 
-$$P\left[H_0\middle|\widehat{SR} \geq SR_c\right] = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \frac{(1-\beta)P[H_1]}{\alpha P[H_0]}\right)^{-1} \tag{21}$$
+```math
+\begin{aligned}
+P\!\left[H_0\middle|\widehat{SR} \geq SR_c\right] &= \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} \\
+&= \left(1 + \frac{(1-\beta)P[H_1]}{\alpha P[H_0]}\right)^{-1} \tag{21}
+\end{aligned}
+```
 
 In a Bayesian interpretation, $P[H_0]$ represents the prior probability that a randomly evaluated strategy is false. This can be elicited in a data-informed manner: (i) define $SR_1$ as the average Sharpe ratio of true strategies; (ii) sort all evaluated strategies by test statistic $z^{\ast}[SR_0]$; (iii) identify the subset whose average Sharpe ratio is closest to $SR_1$; (iv) elicit $P[H_1]$ as the proportion of strategies in that subset.
 
@@ -264,7 +309,12 @@ oFDR is the Bayesian posterior probability associated with the prior $P[H_0]$, a
 
 From the law of total probability, where $z^{\ast}[SR_1] = (\widehat{SR}^{\ast} - SR_1)/\sigma[SR_1]$:
 
-$$P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\right] = P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle|H_0\right]P[H_0] + P\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle|H_1\right]P[H_1] = pP[H_0] + \bigl(1 - Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0]) \tag{23}$$
+```math
+\begin{aligned}
+P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\right] &= P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle|H_0\right]P[H_0] + P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\middle|H_1\right]P[H_1] \\
+&= pP[H_0] + \bigl(1 - Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0]) \tag{23}
+\end{aligned}
+```
 
 resulting in
 
@@ -368,11 +418,18 @@ _Diff = $P[\widehat{SR} \geq SR_c|H_0] - \alpha_K$. DSR adjustments work as desi
 
 Classical FDR methods (Benjamini and Hochberg [1995]) are batch procedures. Investment committees typically evaluate strategies individually in sequence rather than as a batch. We introduce **sequential FDR (SFDR)**: the researcher wishes to select strategies while ensuring that the posterior probability that _each_ selected strategy is false does not exceed $q$. This is equivalent to solving for the rejection threshold $SR_c$ such that pFDR targets level $q$:
 
-$$P\left[H_0\middle|\widehat{SR} \geq SR_c\right] = \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} = \left(1 + \frac{(1-\beta)P[H_1]}{\alpha P[H_0]}\right)^{-1} = q \tag{32}$$
+```math
+\begin{aligned}
+P\!\left[H_0\middle|\widehat{SR} \geq SR_c\right] &= \frac{\alpha P[H_0]}{\alpha P[H_0] + (1-\beta)(1-P[H_0])} \\
+&= \left(1 + \frac{(1-\beta)P[H_1]}{\alpha P[H_0]}\right)^{-1} = q \tag{32}
+\end{aligned}
+```
 
 Replacing $\alpha$ and $\beta$, we obtain the **equilibrium condition**:
 
-$$q = \left(1 + \frac{\left(1-Z\left[\dfrac{SR_c - SR_1}{\sigma[SR_1]}\right]\right)(1-P[H_0])}{\left(1-Z\left[\dfrac{SR_c - SR_0}{\sigma[SR_0]}\right]\right)P[H_0]}\right)^{-1} \tag{33}$$
+```math
+q = \left(1 + \frac{\left(1-Z\!\left[\dfrac{SR_c - SR_1}{\sigma[SR_1]}\right]\right)(1-P[H_0])}{\left(1-Z\!\left[\dfrac{SR_c - SR_0}{\sigma[SR_0]}\right]\right)P[H_0]}\right)^{-1} \tag{33}
+```
 
 A root-finding algorithm applied to the above expression yields $SR_c$ satisfying $P[H_0|\widehat{SR} \geq SR_c] = q$. Note that under SFDR the researcher chooses _all_ strategies above $SR_c$, not only the one with the highest Sharpe ratio. Therefore $SR_0$ is not adjusted for the number of trials, and $K$ is not part of the equilibrium condition.
 
