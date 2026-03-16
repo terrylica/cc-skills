@@ -106,27 +106,29 @@ Last verified: 2026-03 (López de Prado 2026 paper conversion, 82 equations)
 
 ### Delimiters
 
-| Command                        | Status    |
-| ------------------------------ | --------- | --- | --- |
-| `\left(`, `\right)`            | ✅        |
-| `\left[`, `\right]`            | ✅        |
-| `\left\{`, `\right\}`          | ✅        |
-| `\left                         | `,`\right | `   | ✅  |
-| `\left\|`, `\right\|` (double) | ✅        |
+| Command                         | Status        | Notes                                                  |
+| ------------------------------- | ------------- | ------------------------------------------------------ |
+| `\left(`, `\right)`             | ✅            |                                                        |
+| `\left[`, `\right]`             | ✅            |                                                        |
+| `\left\{`, `\right\}`           | ⚠️ GFM-UNSAFE | CommonMark strips `\{`→`{`; use `\left\lbrace` instead |
+| `\left\lbrace`, `\right\rbrace` | ✅ GFM-safe   | Letter-based; immune to CommonMark pre-processor       |
+| `\left\|`, `\right\|` (double)  | ✅            |                                                        |
 
 ---
 
 ## Commands to Avoid
 
-| Command                | Problem                                                            | Replacement                           |
-| ---------------------- | ------------------------------------------------------------------ | ------------------------------------- |
-| `\boxed{}`             | ⚠️ Can cause raw LaTeX passthrough in some GitHub parsing contexts | Bold text `**formula**` or blockquote |
-| `\operatorname{}`      | ⚠️ Active GitHub bug — renders raw in some contexts                | `\text{}` or `\mathrm{}`              |
-| `\begin{align}`        | ❌ Not supported at all                                            | `\begin{aligned}`                     |
-| `\newcommand{}`        | ❌ Was briefly available, then removed by GitHub                   | Expand macros inline                  |
-| `\DeclareMathOperator` | ❌ Never supported                                                 | `\mathrm{}` per-use                   |
-| `\\[8pt]` spacing      | Vertical spacing modifiers stripped by pre-processor               | Remove or use ` ```math ``` `         |
-| `x^_y`                 | "Missing open brace for superscript"                               | `x^{*}_{y}` or brace the superscript  |
+| Command                | Problem                                                                                    | Replacement                           |
+| ---------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `\left\{`, `\right\}`  | ⚠️ CommonMark strips `\{`→`{` so `\left\{`→`\left{` = "Missing or unrecognized delimiter"  | `\left\lbrace`, `\right\rbrace`       |
+| `\{...\}` set notation | ⚠️ CommonMark strips `\{`→`{` making `\{x\}` render as invisible group (no visible braces) | `\lbrace...\rbrace`                   |
+| `\boxed{}`             | ⚠️ Can cause raw LaTeX passthrough in some GitHub parsing contexts                         | Bold text `**formula**` or blockquote |
+| `\operatorname{}`      | ⚠️ Active GitHub bug — renders raw in some contexts                                        | `\text{}` or `\mathrm{}`              |
+| `\begin{align}`        | ❌ Not supported at all                                                                    | `\begin{aligned}`                     |
+| `\newcommand{}`        | ❌ Was briefly available, then removed by GitHub                                           | Expand macros inline                  |
+| `\DeclareMathOperator` | ❌ Never supported                                                                         | `\mathrm{}` per-use                   |
+| `\\[8pt]` spacing      | Vertical spacing modifiers stripped by pre-processor                                       | Remove or use ` ```math ``` `         |
+| `x^_y`                 | "Missing open brace for superscript"                                                       | `x^{*}_{y}` or brace the superscript  |
 
 ---
 
