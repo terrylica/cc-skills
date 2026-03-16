@@ -90,22 +90,41 @@ console.log('── GFM Structural Checks ────────────�
 let gfmErrors = 0;
 let gfmWarnings = 0;
 
-// E0: Single-line $$ blocks containing \! \, \; \: (LaTeX spacing commands)
-//     GitHub's markdown pre-processor treats backslash+punctuation as escape sequences
-//     (CommonMark spec: \! → !, \, → ,, \; → ;) BEFORE the math renderer runs.
-//     \!\left( → !\left( triggers a KaTeX parse error which shows the raw $$...$$ as
-//     plain text — creating an orphaned $ that cascades and breaks ALL subsequent equations.
-//     Fix: remove \! and \, (cosmetic spacing only, no mathematical meaning)
-for (const m of src.matchAll(/(?m)^\$\$(.+)\$\$$/gm)) {
+// E0: $$ and $...$ blocks containing CommonMark escape sequences:
+//     \! \, \; \: (spacing) and \{ \} (delimiter escapes)
+//     GitHub's markdown pre-processor strips these BEFORE the math renderer runs:
+//       \, → ,  \! → !  \{ → {  \} → }
+//     \!\left( → !\left( triggers a KaTeX parse error → cascades all subsequent equations.
+//     \left\{ → \left{ triggers "Missing or unrecognized delimiter for \left" parse error.
+//     Fix: use \lbrace/\rbrace instead of \{/\}; remove \! \, \; (cosmetic spacing only).
+for (const m of src.matchAll(/^\$\$(.+)\$\$$/gm)) {
   if (inCodeBlock(m.index, codeRanges)) continue;
   const inner = m[1];
-  const badSeqs = (inner.match(/\\[!,;:]/g) || []);
+  const badSeqs = (inner.match(/\\[!,;:{}\|]/g) || []);
   if (badSeqs.length > 0) {
     const ln = lineOf(m.index);
     const uniq = [...new Set(badSeqs)].join(' ');
     console.error(`  [E0 ERROR] Line ~${ln}: $$ block contains ${uniq} — pre-processor strips backslash → parse error + cascade`);
-    console.error(`    Fix: remove these spacing commands (cosmetic only). Use \`\`\`math\`\`\` if you need them.`);
+    if (badSeqs.some(s => s === '\\{' || s === '\\}')) {
+      console.error(`    Fix \\{/\\}: replace \\left\\{ → \\left\\lbrace, \\right\\} → \\right\\rbrace, \\{ → \\lbrace, \\} → \\rbrace`);
+    } else {
+      console.error(`    Fix: remove spacing commands (cosmetic only). Use \`\`\`math\`\`\` if you need them.`);
+    }
     gfmErrors++;
+  }
+}
+
+// E0b: Inline $...$ blocks containing \{ \} or \, (CommonMark strips backslash)
+for (const m of src.matchAll(/\$([^\$\n]+?)\$/g)) {
+  if (inCodeBlock(m.index, codeRanges)) continue;
+  const inner = m[1];
+  const badSeqs = (inner.match(/\\[{},]/g) || []).filter(s => s !== '\\\\');
+  if (badSeqs.length > 0) {
+    const ln = lineOf(m.index);
+    const uniq = [...new Set(badSeqs)].join(' ');
+    console.warn(`  [W5 WARN]  Line ~${ln}: inline $...$ contains ${uniq} — pre-processor strips → invisible braces or commas`);
+    console.warn(`    Fix: replace \\{ → \\lbrace, \\} → \\rbrace, \\, → (remove)`);
+    gfmWarnings++;
   }
 }
 
@@ -198,12 +217,37 @@ if (autoFix) {
   let fixed = src;
   let fixCount = 0;
 
-  // Fix E0: Remove \! \, \; \: from single-line $$ blocks (pre-processor strips them)
-  fixed = fixed.replace(/(?m)^\$\$(.+)\$\$$/gm, (match, inner) => {
-    if (!/\\[!,;:]/.test(inner)) return match;
-    const cleaned = inner.replace(/\\!/g, '').replace(/\\,/g, '').replace(/\\;/g, ' ').replace(/\\:/g, ' ');
+  // Fix E0: Fix CommonMark escape sequences in single-line $$ blocks
+  //   - Remove spacing: \! \, \; \: (cosmetic only)
+  //   - Replace delimiters: \{ → \lbrace, \} → \rbrace (prevents \left{ parse error)
+  fixed = fixed.replace(/^\$\$(.+)\$\$$/gm, (match, inner) => {
+    if (!/\\[!,;:{}\|]/.test(inner)) return match;
+    let cleaned = inner;
+    // Fix \left\{ and \right\} first
+    cleaned = cleaned.replace(/\\left\\{/g, '\\left\\lbrace');
+    cleaned = cleaned.replace(/\\right\\}/g, '\\right\\rbrace');
+    // Fix remaining \{ and \} — add space if followed by letter
+    cleaned = cleaned.replace(/\\{(?=[a-zA-Z0-9])/g, '\\lbrace ');
+    cleaned = cleaned.replace(/\\{/g, '\\lbrace');
+    cleaned = cleaned.replace(/\\}/g, '\\rbrace');
+    // Remove spacing commands
+    cleaned = cleaned.replace(/\\!/g, '').replace(/\\,/g, '').replace(/\\;/g, ' ').replace(/\\:/g, ' ');
     if (cleaned !== inner) fixCount++;
     return '$$' + cleaned + '$$';
+  });
+
+  // Fix E0b: Fix \{ \} in inline $...$ blocks
+  fixed = fixed.replace(/\$([^\$\n]+?)\$/g, (match, inner) => {
+    if (!/\\[{}]/.test(inner)) return match;
+    let cleaned = inner;
+    cleaned = cleaned.replace(/\\left\\{/g, '\\left\\lbrace');
+    cleaned = cleaned.replace(/\\right\\}/g, '\\right\\rbrace');
+    cleaned = cleaned.replace(/\\{(?=[a-zA-Z0-9])/g, '\\lbrace ');
+    cleaned = cleaned.replace(/\\{/g, '\\lbrace');
+    cleaned = cleaned.replace(/\\}/g, '\\rbrace');
+    cleaned = cleaned.replace(/\\,/g, '');
+    if (cleaned !== inner) { fixCount++; return '$' + cleaned + '$'; }
+    return match;
   });
 
   // Fix E1: Convert standalone $$ blocks containing \\ to ```math blocks
