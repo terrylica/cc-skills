@@ -105,7 +105,9 @@ where $\mathcal{N}$ denotes the Normal distribution, $\gamma_3$ is the skewness 
 
 Replacing the parameters with their estimates at $SR = \widehat{SR}^*$, the **estimated variance** of the Sharpe ratio's estimator is
 
-$$\boxed{\sigma^2[\widehat{SR}^*] = V[\widehat{SR}\,|\,SR = \widehat{SR}^*] = \frac{1}{T}\!\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,\widehat{SR}^* + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,\widehat{SR}^{*2}\right)} \tag{3}$$
+```math
+\sigma^2[\widehat{SR}^{\ast}] = V[\widehat{SR}\,|\,SR = \widehat{SR}^{\ast}] = \frac{1}{T}\!\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,\widehat{SR}^{\ast} + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,\widehat{SR}^{\ast 2}\right) \tag{3}
+```
 
 > **⚠ Kurtosis convention**: All γ₄ values throughout this paper use **Pearson (non-excess) kurtosis**, where the Gaussian baseline is γ₄ = 3 (not 0). When implementing with scipy: use `scipy.stats.kurtosis(x, fisher=False)`. Passing excess kurtosis silently underestimates the variance correction by ~50% for heavy-tailed return distributions.
 
@@ -129,7 +131,7 @@ Following Bailey and López de Prado [2012], let $SR_0$ be the Sharpe ratio thre
 
 Under $H_0$, the test statistic is
 
-$$z^*[SR_0] = \frac{\widehat{SR}^* - SR_0}{\sigma[SR_0]} \stackrel{a}{\to} \mathcal{N}[0,1] \tag{4}$$
+$$z^{\ast}[SR_0] = \frac{\widehat{SR}^{\ast} - SR_0}{\sigma[SR_0]} \stackrel{a}{\to} \mathcal{N}[0,1] \tag{4}$$
 
 $$\sigma[SR_0] = \sqrt{V[\widehat{SR}\,|\,SR = SR_0]} = \sqrt{\frac{1}{T}\!\left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,SR_0^2\right)} \tag{5}$$
 
@@ -149,7 +151,7 @@ We reject $H_0$ with confidence $(1-\alpha)$ if $z^*[SR_0] \geq z_{1-\alpha} \Le
 
 The **Probabilistic Sharpe Ratio (PSR)** is the probability of observing a Sharpe ratio below $\widehat{SR}^*$ conditional on $H_0$ being true:
 
-$$PSR = P\!\left[\widehat{SR} < \widehat{SR}^*\,\middle|\, H_0\right] = Z\!\left[z^*[SR_0]\right] = 1 - P\!\left[\widehat{SR} \geq \widehat{SR}^*\,\middle|\, H_0\right] = 1 - p \tag{9}$$
+$$PSR = P\!\left[\widehat{SR} < \widehat{SR}^{\ast}\,\middle|\, H_0\right] = Z\!\left[z^{\ast}[SR_0]\right] = 1 - P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\,\middle|\, H_0\right] = 1 - p \tag{9}$$
 
 where $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$ is the test's _p_-value. PSR can also be interpreted as the maximum confidence with which the null hypothesis can be rejected after observing $\widehat{SR}^*$.
 
@@ -165,11 +167,11 @@ where $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$ is the test's _p_-value.
 
 The **minimum track record length (MinTRL)** is the minimum sample size $T$ such that the observed $\widehat{SR}^*$ (together with $\hat{\rho}, \hat{\gamma}_3, \hat{\gamma}_4$) allows the rejection of $H_0$ at significance level $\alpha$:
 
-$$MinTRL = \min_T\!\left\{P\!\left[\widehat{SR} \geq \widehat{SR}^*\,\middle|\, H_0\right] \leq \alpha\right\} \tag{10}$$
+$$MinTRL = \min_T\!\left\{P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\,\middle|\, H_0\right] \leq \alpha\right\} \tag{10}$$
 
 with solution when $\widehat{SR}^* > SR_0$:
 
-$$MinTRL = \left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,SR_0^2\right)\!\left(\frac{z_{1-\alpha}}{\widehat{SR}^* - SR_0}\right)^{\!2} \tag{11}$$
+$$MinTRL = \left(\frac{1+\hat{\rho}}{1-\hat{\rho}} - \frac{1+\hat{\rho}+\hat{\rho}^2}{1-\hat{\rho}^2}\,\hat{\gamma}_3\,SR_0 + \frac{1+\hat{\rho}^2}{1-\hat{\rho}^2}\,\frac{\hat{\gamma}_4-1}{4}\,SR_0^2\right)\!\left(\frac{z_{1-\alpha}}{\widehat{SR}^{\ast} - SR_0}\right)^{\!2} \tag{11}$$
 
 Equivalently, MinTRL is the minimum sample size $T$ such that PSR is not less than $(1-\alpha)$.
 
@@ -256,17 +258,17 @@ In a Bayesian interpretation, $P[H_0]$ represents the prior probability that a r
 
 The **observed Bayesian false discovery rate (oFDR)** is the probability that $H_0$ is true conditional on the estimated Sharpe ratio being at least as large as the realized value:
 
-$$oFDR = P\!\left[H_0\,\middle|\,\widehat{SR} \geq \widehat{SR}^*\right] = \frac{P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]\,P[H_0]}{P[\widehat{SR} \geq \widehat{SR}^*]} \tag{22}$$
+$$oFDR = P\!\left[H_0\,\middle|\,\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{P[\widehat{SR} \geq \widehat{SR}^{\ast}\,|\,H_0]\,P[H_0]}{P[\widehat{SR} \geq \widehat{SR}^{\ast}]} \tag{22}$$
 
 oFDR is the Bayesian posterior probability associated with the prior $P[H_0]$, after incorporating the evidence summarized by the _p_-value $p = P[\widehat{SR} \geq \widehat{SR}^*\,|\,H_0]$.
 
 From the law of total probability, where $z^*[SR_1] = (\widehat{SR}^* - SR_1)/\sigma[SR_1]$:
 
-$$P\!\left[\widehat{SR} \geq \widehat{SR}^*\right] = P\!\left[\widehat{SR} \geq \widehat{SR}^*\,\middle|\,H_0\right]P[H_0] + P\!\left[\widehat{SR} \geq \widehat{SR}^*\,\middle|\,H_1\right]P[H_1] = p\,P[H_0] + \bigl(1 - Z[z^*[SR_1]]\bigr)(1-P[H_0]) \tag{23}$$
+$$P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\right] = P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\,\middle|\,H_0\right]P[H_0] + P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\,\middle|\,H_1\right]P[H_1] = p\,P[H_0] + \bigl(1 - Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0]) \tag{23}$$
 
 resulting in
 
-$$P\!\left[H_0\,\middle|\,\widehat{SR} \geq \widehat{SR}^*\right] = \frac{p\,P[H_0]}{p\,P[H_0] + \bigl(1-Z[z^*[SR_1]]\bigr)(1-P[H_0])} \tag{24}$$
+$$P\!\left[H_0\,\middle|\,\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{p\,P[H_0]}{p\,P[H_0] + \bigl(1-Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0])} \tag{24}$$
 
 > **Example** (cont.): For $SR_0 = 0$, $SR_1 = 0.5$, $P[H_1] = 0.1$: _p_-value $= 1 - PSR = 0.034$; $oFDR = 0.361$. An investment may have a statistically significant Sharpe ratio at the 3.4% _p_-value level and yet the observed false discovery rate is 36.1%, because true strategies are rare. Incorrectly assuming i.i.d. Normal returns yields $oFDR = 0.165$, an underestimation of 54%.
 
@@ -286,17 +288,17 @@ We assume the $K$ observed Sharpe ratios are independently drawn under $H_0$ fro
 
 **Exact Distribution of the Maximum**: For finite $K$, the maximum of Normal variables follows a skewed order-statistic distribution with CDF:
 
-$$P\!\left[\max_k\{\widehat{SR}_k\} < x\right] = \left(Z\!\left[\frac{x - SR_0}{\sqrt{V[\{\widehat{SR}_k^*\}]}}\right]\right)^K \tag{26}$$
+$$P\!\left[\max_k\{\widehat{SR}_k\} < x\right] = \left(Z\!\left[\frac{x - SR_0}{\sqrt{V[\{\widehat{SR}_k^{\ast}\}]}}\right]\right)^K \tag{26}$$
 
 The rejection threshold controlling FWER at $\alpha_K$ is:
 
-$$SR_c = SR_0 + Z^{-1}\!\left[(1-\alpha_K)^{1/K}\right]\sqrt{V[\{\widehat{SR}_k^*\}]} \tag{27}$$
+$$SR_c = SR_0 + Z^{-1}\!\left[(1-\alpha_K)^{1/K}\right]\sqrt{V[\{\widehat{SR}_k^{\ast}\}]} \tag{27}$$
 
 **Expected Value of the Maximum Sharpe Ratio (False Strategy Theorem)**:
 
 The False Strategy Theorem (Bailey and López de Prado [2014]) derives:
 
-$$E\!\left[\max_k\{\widehat{SR}_k^*\}\right] \approx SR_0 + \sqrt{V[\{\widehat{SR}_k^*\}]}\!\left((1-\gamma)Z^{-1}\!\left[1 - \frac{1}{K}\right] + \gamma Z^{-1}\!\left[1 - \frac{1}{Ke}\right]\right) \tag{28}$$
+$$E\!\left[\max_k\{\widehat{SR}_k^{\ast}\}\right] \approx SR_0 + \sqrt{V[\{\widehat{SR}_k^{\ast}\}]}\!\left((1-\gamma)Z^{-1}\!\left[1 - \frac{1}{K}\right] + \gamma Z^{-1}\!\left[1 - \frac{1}{Ke}\right]\right) \tag{28}$$
 
 > **Domain restriction**: This formula is undefined at K = 1 (Φ⁻¹(1 − 1/K) = Φ⁻¹(0) = −∞). The framework's intended split is: **PSR applies for K = 1** (single strategy, no multiple-testing correction); **DSR applies for K ≥ 2** (selection bias correction via FST). The Gumbel EVT approximation is asymptotic — convergence rate is O(1/log K) for Gaussian variables, so results are approximate for small K.
 
@@ -304,11 +306,11 @@ where $\gamma = 0.5772156649\ldots$ is the Euler–Mascheroni constant and $e$ i
 
 In a multiple testing search, the search-adjusted "least favorable case" null is:
 
-$$SR_{0,K} = E\!\left[\max_k\{\widehat{SR}_k^*\}\right] \tag{29}$$
+$$SR_{0,K} = E\!\left[\max_k\{\widehat{SR}_k^{\ast}\}\right] \tag{29}$$
 
 **Standard Deviation of the Maximum**: Under multiple trials, the standard deviation of the maximum Sharpe ratio across $K$ strategies requires re-scaling $\sqrt{V[\{\widehat{SR}_k^*\}]}$ by the standard deviation of the maximum of $K$ standard Normal variables:
 
-$$\sigma[SR_{0,K}] = \sqrt{V\!\left[\max_k\{\widehat{SR}_k^*\}\right]} = \sqrt{V[\{\widehat{SR}_k^*\}]}\,\sqrt{V\!\left[\max_k\{X_k\}\right]} \tag{30}$$
+$$\sigma[SR_{0,K}] = \sqrt{V\!\left[\max_k\{\widehat{SR}_k^{\ast}\}\right]} = \sqrt{V[\{\widehat{SR}_k^{\ast}\}]}\,\sqrt{V\!\left[\max_k\{X_k\}\right]} \tag{30}$$
 
 where $\{X_k\}_{k=1,\ldots,K}$ are $K$ i.i.d. standard Normal variables. The re-scaling factor $\sqrt{V[\max_k\{X_k\}]}$ is derived in Appendix A.4.
 
@@ -486,6 +488,7 @@ We are especially grateful to Andrew Lo (MIT) and Michael Wolf (University of Z�
 Consider a stationary, ergodic and weakly dependent series of $T$ excess returns $\{r_t\}_{t=1,\ldots,T}$, with a finite fourth moment. Define:
 
 $$\mu = E[r_t],\quad x_t = r_t - \mu,\quad \sigma^2 = E[x_t^2],\quad v_3 = E[x_t^3],\quad v_4 = E[x_t^4]$$
+
 $$\gamma_3 = v_3/\sigma^3,\quad \gamma_4 = v_4/\sigma^4,\quad \rho = Cor[x_t, x_{t+1}],\quad SR = \mu/\sigma \tag{34}$$
 
 For notational convenience, write $r_T \stackrel{a}{\sim} \mathcal{N}[\theta, \frac{1}{T}\Sigma]$ to mean
@@ -578,9 +581,11 @@ $$\Sigma_{1,1} = \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T \rho^{|t-
 
 Decomposing along the diagonals:
 
-$$\sum_{t=1}^T\sum_{s=1}^T \rho^{|t-s|} = T + 2(T-1)\rho + 2(T-2)\rho^2 + \cdots + 2\rho^{T-1}$$
-$$= T + 2\sum_{t=1}^{T-1}(T-t)\rho^t = T + 2T\sum_{t=1}^{T-1}\rho^t - 2\sum_{t=1}^{T-1}t\rho^t$$
-$$= T + 2T\rho\,\frac{1-\rho^{T-1}}{1-\rho} - 2\sum_{t=1}^{T-1}t\rho^t = T\,\frac{1+\rho}{1-\rho} - \frac{2\rho(1-\rho^T)}{(1-\rho)^2} \tag{53}$$
+```math
+\sum_{t=1}^T\sum_{s=1}^T \rho^{|t-s|} = T + 2(T-1)\rho + 2(T-2)\rho^2 + \cdots + 2\rho^{T-1} \\
+= T + 2\sum_{t=1}^{T-1}(T-t)\rho^t = T + 2T\sum_{t=1}^{T-1}\rho^t - 2\sum_{t=1}^{T-1}t\rho^t \\
+= T + 2T\rho\,\frac{1-\rho^{T-1}}{1-\rho} - 2\sum_{t=1}^{T-1}t\rho^t = T\,\frac{1+\rho}{1-\rho} - \frac{2\rho(1-\rho^T)}{(1-\rho)^2} \tag{53}
+```
 
 This gives:
 
@@ -675,6 +680,7 @@ These expectations $E[M^r]$ can be computed numerically using the Gauss-Hermite 
 Let $X_1, \ldots, X_K$ be i.i.d. Normal random variables with mean $\mu$ and variance $\sigma^2$, and define:
 
 $$M_K = \max_{1 \leq k \leq K}\{X_k\}, \qquad u_1 = \mu + \sigma Z^{-1}\!\left[1-\frac{1}{K}\right]$$
+
 $$u_2 = \mu + \sigma Z^{-1}\!\left[1-\frac{1}{Ke}\right], \qquad \Delta = u_2 - u_1 \tag{66}$$
 
 where $Z^{-1}[\cdot]$ is the quantile function of the standard Normal. These definitions apply the quantiles used in the False Strategy Theorem ($1 - 1/K$ and $1 - 1/(Ke)$).
