@@ -1,0 +1,9 @@
+{
+  "name": "telegram-cli",
+  "version": "12.8.0",
+  "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, not as a bot",
+  "author": {
+    "name": "<user>ca",
+    "url": "https://github.com/terrylica"
+  }
+}
