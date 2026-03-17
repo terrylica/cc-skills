@@ -625,6 +625,26 @@
         "google"
       ],
       "strict": false
+    },
+    {
+      "name": "telegram-cli",
+      "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, list dialogs, 1Password credentials",
+      "version": "12.8.0",
+      "source": "./plugins/telegram-cli",
+      "category": "productivity",
+      "author": {
+        "name": "<user>ca",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "telegram",
+        "telethon",
+        "mtproto",
+        "messaging",
+        "user-account",
+        "1password"
+      ],
+      "strict": false
     }
   ]
 }
