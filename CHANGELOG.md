@@ -1,3 +1,100 @@
+# [12.9.0](https://github.com/terrylica/cc-skills/compare/v12.8.0...v12.9.0) (2026-03-17)
+
+
+### Bug Fixes
+
+* **quant-research:** fix all 53 $$-block equations broken by GH pre-processor ([297a5bd](https://github.com/terrylica/cc-skills/commit/297a5bda4e7df65e64c9f3339df74d8cc1e11da1))
+* **quant-research:** reformat 11 long equations to prevent ugly wrapping on GitHub ([a9ebab6](https://github.com/terrylica/cc-skills/commit/a9ebab670b6d3e79f706a26f02f56cc294cc18b0))
+* **quant-research:** resolve all GitHub GFM math rendering failures in Sharpe ratio doc ([da8da22](https://github.com/terrylica/cc-skills/commit/da8da222c47be43d8aff90c692a21a83289193e0))
+* **quant-research:** resolve GitHub GFM math rendering errors in Sharpe ratio doc ([c708660](https://github.com/terrylica/cc-skills/commit/c708660aa7f5414e16c9ffe323dfc4d110681cd2))
+
+
+### Features
+
+* **doc-tools:** add academic-pdf-to-gfm skill with two-layer GFM math validator ([f2e47d4](https://github.com/terrylica/cc-skills/commit/f2e47d460d98e4cec6e859bcfa467ea33c2e267e))
+* **doc-tools:** add E0 check to validator — detect \!\, in $$ blocks ([dd0dec7](https://github.com/terrylica/cc-skills/commit/dd0dec743eb18de10ea19afe0386d05c6827c5ad))
+* **doc-tools:** add W6 GitLab.com 50-math-span limit check to validator ([ba8b5a5](https://github.com/terrylica/cc-skills/commit/ba8b5a58ccde5385e47627500b7712f9e4be924e))
+* **quant-research:** add Numba reference implementation and fix GFM math rendering ([6ce3f99](https://github.com/terrylica/cc-skills/commit/6ce3f993c7e0685207b6ca1fb96da46e327c67d7))
+* **telegram-cli:** new plugin for MTProto user-account messaging via Telethon ([3df945e](https://github.com/terrylica/cc-skills/commit/3df945ecd0e672c9488121187fad68866dd2beb9)), closes [#26](https://github.com/terrylica/cc-skills/issues/26)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [clickhouse-cloud-management](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/clickhouse-cloud-management/SKILL.md) - updated (+2)
+- [clickhouse-pydantic-config](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/clickhouse-pydantic-config/SKILL.md) - updated (+2)
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [academic-pdf-to-gfm](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm/SKILL.md) - new (+381)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [clickhouse-architect](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/SKILL.md) - updated (+37/-1)
+
+</details>
+
+<details>
+<summary><strong>telegram-cli</strong> (3 changes)</summary>
+
+- [list-dialogs](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/list-dialogs/SKILL.md) - new (+42)
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/send-message/SKILL.md) - new (+56)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/setup/SKILL.md) - new (+69)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>doc-tools/academic-pdf-to-gfm</strong> (2 files)</summary>
+
+- [GitHub GFM Math Support Table](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm/references/github-math-support-table.md) - new (+195)
+- [PDF Type Detection Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm/references/pdf-type-detection.md) - new (+181)
+
+</details>
+
+<details>
+<summary><strong>quant-research/opendeviation-eval-metrics</strong> (2 files)</summary>
+
+- [Beyond Hit Rate: Outcome Predictability Framework](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/beyond-hit-rate.md) - updated (+21)
+- [How to Use the Sharpe Ratio](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/how-to-use-the-sharpe-ratio-2026.md) - updated (+184/-101)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+1)
+- [doc-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/CLAUDE.md) - updated (+12/-11)
+- [Skill Benchmark: academic-pdf-to-gfm](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm-workspace/iteration-1/benchmark.md) - new (+13)
+- [Validating Math Equations in GFM Markdown Before Pushing to GitHub](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm-workspace/iteration-1/eval-katex-validation-ci/with_skill/outputs/response.md) - new (+203)
+- [Validating LaTeX/KaTeX Equations in Markdown for CI](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm-workspace/iteration-1/eval-katex-validation-ci/without_skill/outputs/response.md) - new (+227)
+- [Why Your Matrix Equation Shows Raw LaTeX on GitHub](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm-workspace/iteration-1/eval-matrix-rendering-fix/with_skill/outputs/response.md) - new (+77)
+- [Why Your Matrix Equation Shows Raw LaTeX on GitHub](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm-workspace/iteration-1/eval-matrix-rendering-fix/without_skill/outputs/response.md) - new (+119)
+- [Converting Your Finance PDF to GitHub Markdown](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm-workspace/iteration-1/eval-word-pdf-tool-selection/with_skill/outputs/response.md) - new (+127)
+- [PDF to GitHub Markdown: Tool Selection and Math Handling](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/academic-pdf-to-gfm-workspace/iteration-1/eval-word-pdf-tool-selection/without_skill/outputs/response.md) - new (+141)
+- [Telegram CLI Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/CLAUDE.md) - new (+54)
+
 # [12.8.0](https://github.com/terrylica/cc-skills/compare/v12.7.0...v12.8.0) (2026-03-15)
 
 
