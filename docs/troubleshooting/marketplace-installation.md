@@ -10,7 +10,7 @@ Before troubleshooting, verify these requirements:
 
 | Requirement          | Check Command                                          | Expected Output |
 | -------------------- | ------------------------------------------------------ | --------------- |
-| Claude Code CLI      | `claude --version`                                     | Version 2.x.x+  |
+| Claude Code          | `claude --version`                                     | Version 2.x.x+  |
 | Git installed        | `git --version`                                        | git version 2.x |
 | Network connectivity | `curl -I https://github.com`                           | HTTP 200        |
 | HTTPS access to repo | `git ls-remote https://github.com/terrylica/cc-skills` | refs/heads/main |

@@ -258,4 +258,4 @@ MIT
 
 ---
 
-**Built for Claude Code CLI** | Designed for minimal friction, maximum reliability
+**Built for Claude Code** | Designed for minimal friction, maximum reliability

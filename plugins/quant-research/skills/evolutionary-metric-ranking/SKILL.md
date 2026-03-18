@@ -404,11 +404,12 @@ When implementing this methodology in a new domain:
 
 ### Related Skills
 
-| Skill                                                      | Relationship                                                  |
-| ---------------------------------------------------------- | ------------------------------------------------------------- |
-| [rangebar-eval-metrics](../rangebar-eval-metrics/SKILL.md) | Metric definitions (TAMRS, Omega, DSR, etc.) fed into ranking |
-| [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md)       | Walk-Forward metrics that could be ranked                     |
-| [backtesting-py-oracle](../backtesting-py-oracle/SKILL.md) | Validates trade outcomes used in metric computation           |
+| Skill                                                                            | Relationship                                                  |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [rangebar-eval-metrics](../rangebar-eval-metrics/SKILL.md)                       | Metric definitions (TAMRS, Omega, DSR, etc.) fed into ranking |
+| [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md)                             | Walk-Forward metrics that could be ranked                     |
+| [backtesting-py-oracle](../backtesting-py-oracle/SKILL.md)                       | Validates trade outcomes used in metric computation           |
+| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | DSR computation with non-IID corrections                      |
 
 ### Dependencies
 

@@ -36,7 +36,7 @@ import { visit } from "unist-util-visit";
 import type { Link, LinkReference } from "mdast";
 
 // ============================================================================
-// Error Handling - Explicit and verbose for Claude Code CLI
+// Error Handling - Explicit and verbose for Claude Code
 // ============================================================================
 
 function logError(context: string, error: unknown): void {

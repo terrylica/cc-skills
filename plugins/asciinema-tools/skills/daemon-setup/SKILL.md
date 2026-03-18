@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # /asciinema-tools:daemon-setup
 
-Interactive wizard to set up the asciinema chunker daemon. This daemon runs independently of Claude Code CLI, using dedicated credentials stored in macOS Keychain.
+Interactive wizard to set up the asciinema chunker daemon. This daemon runs independently of Claude Code, using dedicated credentials stored in macOS Keychain.
 
 ## Why a Daemon?
 

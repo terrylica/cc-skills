@@ -190,7 +190,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - AWS CLI (`brew install awscli`) - for session-chronicle S3 upload
 - 1Password CLI (`brew install 1password-cli`) - for session-chronicle and cloudflare-workers-publish credentials
 - wrangler (`npx wrangler` via Node.js) - for cloudflare-workers-publish
-- Claude Code CLI
+- Claude Code
 
 ## Troubleshooting
 

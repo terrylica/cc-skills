@@ -80,7 +80,7 @@ Chosen option: **Option 2 - Full redesign with launchd daemon** because:
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Claude Code CLI (UNCHANGED)                                │   │
+│  │  Claude Code (UNCHANGED)                                    │   │
 │  │  ─────────────────────────────────────────────────────────  │   │
 │  │  • Pure coding experience                                   │   │
 │  │  • Can switch gh accounts freely                            │   │
@@ -167,7 +167,7 @@ ssh -O exit -p 443 git@ssh.github.com 2>/dev/null || true
 - Recording works when user switches `gh auth` accounts
 - Backup continues if terminal closes (launchd KeepAlive)
 - Push failures are logged and trigger Pushover notification
-- Zero interference with Claude Code CLI
+- Zero interference with Claude Code
 - Single command for health status (`/asciinema-tools:daemon-status`)
 - Interactive setup wizard guides users through PAT creation
 
@@ -195,7 +195,7 @@ ssh -O exit -p 443 git@ssh.github.com 2>/dev/null || true
 - [x] health.json updated after each operation - `update_health()` called after push success/failure
 - [ ] `daemon-status` shows correct state
 - [ ] Bootstrap script simplified (no inline chunker)
-- [ ] Claude Code CLI unaffected by account switching
+- [ ] Claude Code unaffected by account switching
 
 ### Silent Failure Fixes (v9.4.2)
 

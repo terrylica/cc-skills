@@ -5,9 +5,9 @@ description: Create new skills, modify existing skills, and understand skill arc
 
 # Skill Architecture
 
-Comprehensive guide for creating effective Claude Code skills following Anthropic's official standards with emphasis on security, CLI-specific features, and progressive disclosure architecture.
+Comprehensive guide for creating effective Claude Code skills following Anthropic's official standards with emphasis on security and progressive disclosure architecture.
 
-> **Scope**: Claude Code CLI Agent Skills (`~/.claude/skills/`), not Claude.ai API skills
+> **Scope**: Claude Code Agent Skills (`~/.claude/skills/`), not Claude.ai API skills
 
 ## When to Use This Skill
 

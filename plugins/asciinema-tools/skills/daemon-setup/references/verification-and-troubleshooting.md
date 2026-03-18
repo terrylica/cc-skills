@@ -84,7 +84,7 @@ tail -20 ~/.asciinema/logs/chunker.log
 2. The daemon will automatically push chunks to GitHub
 3. You'll receive Pushover notifications if pushes fail
 
-The daemon is now completely independent of Claude Code CLI.
+The daemon is now completely independent of Claude Code.
 You can switch `gh auth` accounts freely without affecting backups.
 ```
 
