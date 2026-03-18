@@ -1,3 +1,193 @@
+# [12.10.0](https://github.com/terrylica/cc-skills/compare/v12.9.0...v12.10.0) (2026-03-18)
+
+
+### Features
+
+* **quant-research:** add sharpe-ratio-non-iid-corrections skill with 82-equation tracker ([bfd7395](https://github.com/terrylica/cc-skills/commit/bfd7395c2f90be1189b7a986e16f6b8a176b4493))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| accepted | [Ralph Dual Time Tracking (Runtime + Wall-Clock)](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-22-ralph-dual-time-tracking.md) | updated (+1/-1) |
+| accepted | [asciinema-tools Plugin Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-24-asciinema-tools-plugin.md) | updated (+1/-1) |
+| accepted | [asciinema-tools Daemon Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-26-asciinema-daemon-architecture.md) | updated (+3/-3) |
+| accepted | [SR&ED Dynamic Project Discovery via Claude Agent SDK](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-18-sred-dynamic-discovery.md) | updated (+1/-1) |
+
+### Design Specs
+
+- [SR&ED Project Discovery: Forked Haiku Session via Claude Agent SDK](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-01-18-sred-dynamic-discovery/spec.md) - updated (+3/-3)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>asciinema-tools</strong> (2 changes)</summary>
+
+- [bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/bootstrap/SKILL.md) - updated (+1/-1)
+- [daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander</strong> (1 change)</summary>
+
+- [calcom-access](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/calcom-access/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [macbook-desktop-mode](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/macbook-desktop-mode/SKILL.md) - new (+321)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (1 change)</summary>
+
+- [gmail-access](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/gmail-access/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>mql5</strong> (1 change)</summary>
+
+- [log-reader](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/log-reader/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 change)</summary>
+
+- [gdrive-access](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/gdrive-access/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (4 changes)</summary>
+
+- [adaptive-wfo-epoch](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/adaptive-wfo-epoch/SKILL.md) - updated (+7)
+- [evolutionary-metric-ranking](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/evolutionary-metric-ranking/SKILL.md) - updated (+6/-5)
+- [opendeviation-eval-metrics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/SKILL.md) - updated (+4/-3)
+- [sharpe-ratio-non-iid-corrections](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/sharpe-ratio-non-iid-corrections/SKILL.md) - new (+159)
+
+</details>
+
+<details>
+<summary><strong>telegram-cli</strong> (14 changes)</summary>
+
+- [cleanup-deleted](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/cleanup-deleted/SKILL.md) - new (+57)
+- [create-group](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/create-group/SKILL.md) - new (+46)
+- [delete-messages](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/delete-messages/SKILL.md) - new (+47)
+- [download-media](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/download-media/SKILL.md) - new (+47)
+- [find-user](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/find-user/SKILL.md) - new (+57)
+- [forward-message](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/forward-message/SKILL.md) - new (+39)
+- [list-dialogs](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/list-dialogs/SKILL.md) - updated (+22/-11)
+- [manage-members](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/manage-members/SKILL.md) - new (+63)
+- [mark-read](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/mark-read/SKILL.md) - new (+30)
+- [pin-message](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/pin-message/SKILL.md) - new (+38)
+- [search-messages](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/search-messages/SKILL.md) - new (+49)
+- [send-media](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/send-media/SKILL.md) - new (+58)
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/send-message/SKILL.md) - updated (+23/-22)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/skills/setup/SKILL.md) - updated (+44/-24)
+
+</details>
+
+
+### Plugin READMEs
+
+- [asciinema-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/README.md) - updated (+1/-1)
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+1/-1)
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/README.md) - updated (+1/-1)
+
+### Skill References
+
+<details>
+<summary><strong>asciinema-tools/asciinema-analyzer</strong> (1 file)</summary>
+
+- [Domain Keywords Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/asciinema-analyzer/references/domain-keywords.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools/daemon-setup</strong> (1 file)</summary>
+
+- [Verification and Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-setup/references/verification-and-troubleshooting.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/macbook-desktop-mode</strong> (1 file)</summary>
+
+- [macbook-desktop-mode Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/macbook-desktop-mode/references/evolution-log.md) - new (+16)
+
+</details>
+
+<details>
+<summary><strong>itp/mise-tasks</strong> (1 file)</summary>
+
+- [Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (2 files)</summary>
+
+- [Agent Skill Name](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/advanced-topics.md) - updated (+2/-2)
+- [My Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/validation-reference.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>quant-research/opendeviation-eval-metrics</strong> (1 file)</summary>
+
+- [Sharpe Ratio Formulas for Range Bars](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/opendeviation-eval-metrics/references/sharpe-formulas.md) - updated (+5)
+
+</details>
+
+<details>
+<summary><strong>quant-research/sharpe-ratio-non-iid-corrections</strong> (2 files)</summary>
+
+- [How to Use the Sharpe Ratio](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/sharpe-ratio-non-iid-corrections/references/how-to-use-the-sharpe-ratio-2026.md) - renamed from `plugins/quant-research/skills/opendeviation-eval-metrics/references/how-to-use-the-sharpe-ratio-2026.md`
+- [Sharpe Paper Equation → Implementation Tracker](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/sharpe-ratio-non-iid-corrections/references/sharpe-paper-tracker.md) - new (+119)
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+4/-4)
+
+## Other Documentation
+
+### Other
+
+- [Troubleshooting cc-skills Marketplace Installation](https://github.com/terrylica/cc-skills/blob/main/docs/troubleshooting/marketplace-installation.md) - updated (+1/-1)
+- [quant-research Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/CLAUDE.md) - updated (+8/-7)
+- [Telegram CLI Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/telegram-cli/CLAUDE.md) - updated (+111/-34)
+- [PRD.md - Nested CLAUDE.md Link Farm Migration](https://github.com/terrylica/cc-skills/blob/main/PRD.md) - updated (+11/-1)
+
 # [12.9.0](https://github.com/terrylica/cc-skills/compare/v12.8.0...v12.9.0) (2026-03-17)
 
 
