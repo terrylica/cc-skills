@@ -838,6 +838,42 @@ def _run_tests() -> None:
         assert abs(p_back - p_test) < 1e-12, f"norm round-trip FAIL at p={p_test}: got {p_back}"
     print(f"  norm_cdf/norm_ppf round-trip:  passed for p in [0.01, 0.05, 0.5, 0.95, 0.99]")
 
+    # ------------------------------------------------------------------
+    # Test 14: PSR with SR₀=0.1 (paper Example cont.)
+    # ------------------------------------------------------------------
+    p_sr01 = psr(SR, 0.1, T, G3, G4, RHO)
+    assert abs(p_sr01 - 0.900) < 0.005, f"psr(SR0=0.1) FAIL: {p_sr01:.4f}, expected ~0.900"
+    print(f"  psr(SR0=0.1):                  {p_sr01:.4f}  [expected ~0.900]")
+
+    # ------------------------------------------------------------------
+    # Test 15: MinTRL with SR₀=0.1 (paper Example cont.)
+    # ------------------------------------------------------------------
+    trl_01 = min_trl(SR, 0.1, G3, G4, RHO, 0.05)
+    assert abs(trl_01 - 39.369) < 1.0, f"min_trl(SR0=0.1) FAIL: {trl_01:.3f}, expected ~39.369"
+    print(f"  min_trl(SR0=0.1):              {trl_01:.3f} months  [expected ~39.369]")
+
+    # ------------------------------------------------------------------
+    # Test 16: Power β with SR₁=0.5, α=0.05 (paper Example cont.)
+    # ------------------------------------------------------------------
+    pow_sr1 = power(0.0, 0.5, T, G3, G4, RHO, 0.05)
+    beta_sr1 = 1.0 - pow_sr1
+    assert abs(beta_sr1 - 0.411) < 0.01, f"beta(SR1=0.5) FAIL: {beta_sr1:.4f}, expected ~0.411"
+    print(f"  beta(SR1=0.5):                 {beta_sr1:.4f}  [expected ~0.411]")
+
+    # ------------------------------------------------------------------
+    # Test 17: pFDR exact (paper Example cont.: P[H1]=0.1, α=0.05, β=0.411)
+    # ------------------------------------------------------------------
+    pfdr_exact = pfdr(0.1, 0.05, beta_sr1)
+    assert abs(pfdr_exact - 0.433) < 0.01, f"pfdr exact FAIL: {pfdr_exact:.4f}, expected ~0.433"
+    print(f"  pfdr(P[H1]=0.1, exact beta):   {pfdr_exact:.4f}  [expected ~0.433]")
+
+    # ------------------------------------------------------------------
+    # Test 18: oFDR exact (paper Example cont.: SR₁=0.5, P[H1]=0.1)
+    # ------------------------------------------------------------------
+    ofdr_val = ofdr(SR, 0.0, 0.5, T, G3, G4, RHO, 0.1)
+    assert abs(ofdr_val - 0.361) < 0.02, f"ofdr exact FAIL: {ofdr_val:.4f}, expected ~0.361"
+    print(f"  ofdr(SR1=0.5, P[H1]=0.1):     {ofdr_val:.4f}  [expected ~0.361]")
+
     print("\nAll tests passed.")
 
 

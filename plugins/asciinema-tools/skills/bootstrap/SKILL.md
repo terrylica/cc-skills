@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # /asciinema-tools:bootstrap
 
-Generate a bootstrap script that runs OUTSIDE Claude Code CLI to start a recording session.
+Generate a bootstrap script that runs OUTSIDE Claude Code to start a recording session.
 
 **Important**: Chunking is handled by the launchd daemon. Run `/asciinema-tools:daemon-setup` first if you haven't already.
 

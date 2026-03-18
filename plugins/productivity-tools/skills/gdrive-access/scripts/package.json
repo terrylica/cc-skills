@@ -1,7 +1,7 @@
 {
   "name": "gdrive-access",
   "version": "1.0.0",
-  "description": "Google Drive API client for Claude Code CLI",
+  "description": "Google Drive API client for Claude Code",
   "type": "module",
   "private": true,
   "main": "lib/index.ts",

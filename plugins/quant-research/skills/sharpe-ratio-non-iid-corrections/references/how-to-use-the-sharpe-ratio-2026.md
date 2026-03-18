@@ -6,6 +6,10 @@
 
 **Replication code**: <https://github.com/zoonek/2025-sharpe-ratio>
 
+> **Source PDF**: [lopez-de-prado-sharpe-2026.pdf](./lopez-de-prado-sharpe-2026.pdf) ·
+> **Numba JIT**: [sharpe_numba.py](./sharpe_numba.py) ·
+> **Equation Tracker**: [sharpe-paper-tracker.md](./sharpe-paper-tracker.md)
+
 ---
 
 ## Abstract
@@ -21,7 +25,7 @@ The Sharpe ratio is the dominant metric for evaluating investment skill, yet inf
 
 ## Key Takeaways
 
-- **Standard Sharpe ratio inference is biased** in finite samples and further distorted by serial correlation, non-Normality, and multiple testing. Without correction, reported values provide unwarranted confidence and lead to suboptimal investment decisions.
+- **Standard Sharpe ratio inference is biased** in finite samples and further distorted by serial correlation, non-Normality, and multiple testing. Without correction, their reported values provide unwarranted confidence and lead to suboptimal investment decisions.
 - **Corrected measures improve reliability**: Tools such as the Probabilistic Sharpe Ratio (PSR), Minimum Track Record Length (MinTRL), Observed Bayesian False Discovery Rate (oFDR), and Deflated Sharpe Ratio (DSR) provide statistically sound inference, accounting for non-Normal returns, serial correlation, short samples, and selection bias.
 - **Different corrections suit different contexts**: FWER-based methods (like DSR) are more appropriate for contexts where decisions have system-wide repercussions, while FDR-based methods (like SFDR) better fit contexts where decisions have local repercussions.
 
@@ -117,7 +121,9 @@ Replacing the parameters with their estimates at $SR = \widehat{SR}^{\ast}$, the
 \end{aligned}
 ```
 
-> **⚠ Kurtosis convention**: All γ₄ values throughout this paper use **Pearson (non-excess) kurtosis**, where the Gaussian baseline is γ₄ = 3 (not 0). When implementing with scipy: use `scipy.stats.kurtosis(x, fisher=False)`. Passing excess kurtosis silently underestimates the variance correction by ~50% for heavy-tailed return distributions.
+> **⚠ Kurtosis convention**: All γ₄ values throughout this paper use **Pearson (non-excess) kurtosis**, where the Gaussian baseline is γ₄ = 3 (not 0).
+>
+> _Transcriber's note_: When implementing with scipy, use `scipy.stats.kurtosis(x, fisher=False)`. Passing excess kurtosis silently underestimates the variance correction by ~50% for heavy-tailed return distributions.
 
 > **Numerical example**: A portfolio manager with a two-year track record of monthly returns where $(\hat{\mu}, \hat{\sigma}, \hat{\gamma}_3, \hat{\gamma}_4, \hat{\rho}, T) = (0.036\%, 0.079\%, -2.448, 10.164, 0.2, 24)$ has estimated Sharpe ratio $\widehat{SR}^{\ast} = 0.456$ and estimated standard deviation $\sigma[\widehat{SR}^{\ast}] = 0.379$. Assuming i.i.d. Normal returns would yield only $\sigma[\widehat{SR}^{\ast}] = 0.214$—a 43% underestimation—leading to a higher than expected rate of false positives.
 
@@ -307,7 +313,7 @@ $$oFDR = P\left[H_0\middle|\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{
 
 oFDR is the Bayesian posterior probability associated with the prior $P[H_0]$, after incorporating the evidence summarized by the _p_-value $p = P[\widehat{SR} \geq \widehat{SR}^{\ast}|H_0]$.
 
-From the law of total probability, where $z^{\ast}[SR_1] = (\widehat{SR}^{\ast} - SR_1)/\sigma[SR_1]$:
+From the law of total probability:
 
 ```math
 \begin{aligned}
@@ -316,7 +322,7 @@ P\!\left[\widehat{SR} \geq \widehat{SR}^{\ast}\right] &= P\!\left[\widehat{SR} \
 \end{aligned}
 ```
 
-resulting in
+where $z^{\ast}[SR_1] = \frac{\widehat{SR}^{\ast} - SR_1}{\sigma[SR_1]}$, resulting in
 
 $$P\left[H_0\middle|\widehat{SR} \geq \widehat{SR}^{\ast}\right] = \frac{pP[H_0]}{pP[H_0] + \bigl(1-Z[z^{\ast}[SR_1]]\bigr)(1-P[H_0])} \tag{24}$$
 
@@ -589,17 +595,28 @@ $$H = \lim_{T\to\infty} E\left[\frac{1}{T}\sum_{t=1}^T \frac{\partial\phi_t}{\pa
 The Jacobian can be computed as:
 
 ```math
-H = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\frac{\partial\phi_t}{\partial\theta}\right] = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\begin{pmatrix}-1 & 0 \\ -2(r_t-\mu) & -1\end{pmatrix}\right] = -I \tag{42}
+\begin{aligned}
+H &= \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\frac{\partial\phi_t}{\partial\theta}\right] = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\begin{pmatrix}-1 & 0 \\ -2(r_t-\mu) & -1\end{pmatrix}\right] \\
+&= \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\begin{pmatrix}-1 & 0 \\ -2E[r_t-\mu] & -1\end{pmatrix} = \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\begin{pmatrix}-1 & 0 \\ 0 & -1\end{pmatrix} \\
+&= -I \tag{42}
+\end{aligned}
 ```
 
 The variance can be computed (using $x_t = r_t - \mu$):
 
 ```math
-\Sigma = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T \phi_t\phi_s'\right] = \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}x_t x_s & x_t(x_s^2-\sigma^2) \\ (x_t^2-\sigma^2)x_s & (x_t^2-\sigma^2)(x_s^2-\sigma^2)\end{pmatrix}\right] \tag{43}
+\begin{aligned}
+\Sigma &= \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T \phi_t\phi_s'\right] \\
+&= \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}(r_t-\mu)(r_s-\mu) & (r_t-\mu)[(r_s-\mu)^2-\sigma^2] \\ [(r_t-\mu)^2-\sigma^2](r_s-\mu) & [(r_t-\mu)^2-\sigma^2][(r_s-\mu)^2-\sigma^2]\end{pmatrix}\right] \\
+&= \lim_{T\to\infty} E\!\left[\frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}x_t x_s & x_t(x_s^2-\sigma^2) \\ (x_t^2-\sigma^2)x_s & (x_t^2-\sigma^2)(x_s^2-\sigma^2)\end{pmatrix}\right] \tag{43}
+\end{aligned}
 ```
 
 ```math
-= \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}E[x_t x_s] & E[x_t x_s^2] \\ E[x_t^2 x_s] & E[x_t^2 x_s^2]-\sigma^4\end{pmatrix}
+\begin{aligned}
+&= \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}E[x_t x_s] & E[x_t x_s^2] - E[x_t]\sigma^2 \\ E[x_t^2 x_s] - E[x_s]\sigma^2 & E[x_t^2 x_s^2] - \sigma^2 E[x_t^2] - \sigma^2 E[x_s^2] + \sigma^4\end{pmatrix} \\
+&= \lim_{T\to\infty} \frac{1}{T}\sum_{t=1}^T\sum_{s=1}^T\begin{pmatrix}E[x_t x_s] & E[x_t x_s^2] \\ E[x_t^2 x_s] & E[x_t^2 x_s^2]-\sigma^4\end{pmatrix}
+\end{aligned}
 ```
 
 This involves not only the auto-covariances $E[x_t x_s]$, but also the co-skewness $E[x_t x_s^2]$ and the co-kurtosis $E[x_t^2 x_s^2]$. At this point, we introduce the assumption that $\lbrace x_t\rbrace$ follows a stationary **AR(1) process**:
@@ -610,7 +627,7 @@ where $\lbrace\varepsilon_t\rbrace$ is i.i.d. with zero mean and $\rho \in (-1,1
 
 From the AR(1) assumption:
 
-$$E[x_t^2] = \rho^2 E[x_{t-1}^2] + E[\varepsilon_t^2] = \rho^2 E[x_t^2] + E[\varepsilon_t^2] \tag{45}$$
+$$E[x_t^2] = E[(\rho x_{t-1} + \varepsilon_t)^2] = \rho^2 E[x_{t-1}^2] + E[\varepsilon_t^2] = \rho^2 E[x_t^2] + E[\varepsilon_t^2] \tag{45}$$
 
 $$E[\varepsilon_t^2] = (1-\rho^2)E[x_t^2] \tag{46}$$
 

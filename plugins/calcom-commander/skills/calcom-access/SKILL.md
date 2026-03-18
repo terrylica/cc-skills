@@ -6,7 +6,7 @@ allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 
 # Cal.com Access
 
-Manage Cal.com bookings and event types programmatically via Claude Code CLI.
+Manage Cal.com bookings and event types programmatically via Claude Code.
 
 ## MANDATORY PREFLIGHT (Execute Before Any Cal.com Operation)
 

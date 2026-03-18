@@ -124,7 +124,7 @@ DEV_SEARCH_EOF
 
 ## Claude Code
 
-Keywords specific to Claude Code CLI sessions.
+Keywords specific to Claude Code sessions.
 
 ### Tools
 

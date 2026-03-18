@@ -14,7 +14,7 @@
 /** Severity levels for validation results */
 export type Severity = "error" | "warning" | "info";
 
-/** Exit codes following Claude Code CLI convention */
+/** Exit codes following Claude Code convention */
 export enum ExitCode {
   /** All validations passed */
   Success = 0,
@@ -107,7 +107,7 @@ export interface SkillValidation {
 }
 
 // ============================================================================
-// AskUserQuestion Types (Claude Code CLI integration)
+// AskUserQuestion Types (Claude Code integration)
 // ============================================================================
 
 /** Single option for AskUserQuestion */
@@ -116,7 +116,7 @@ export interface AskUserOption {
   description: string;
 }
 
-/** AskUserQuestion format for Claude Code CLI */
+/** AskUserQuestion format for Claude Code */
 export interface AskUserQuestion {
   question: string;
   header: string;

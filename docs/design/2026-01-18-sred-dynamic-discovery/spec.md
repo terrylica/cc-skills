@@ -97,7 +97,7 @@ MAIN SESSION (Opus/Sonnet)
 
 ## Cost Analysis
 
-Uses Claude Code CLI subscription (no per-API-call charges).
+Uses Claude Code subscription (no per-API-call charges).
 Haiku model selected for speed within hook timeout budget.
 
 ## Safety Mechanisms
@@ -412,8 +412,8 @@ grep -A5 "sred-commit-guard" ~/.claude/settings.json
 
 ## Prerequisites
 
-**Claude Code CLI**: Must be installed and authenticated (no separate API key needed).
-Uses CLI subscription for Haiku sessions.
+**Claude Code**: Must be installed and authenticated (no separate API key needed).
+Uses Claude Code subscription for Haiku sessions.
 
 ## Success Criteria
 

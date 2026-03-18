@@ -11,7 +11,7 @@ date: 2025-12-22
 
 ## Context
 
-Ralph Wiggum's time tracking used **wall-clock time** (calendar time since `/ralph:start`). This caused premature session termination when users closed Claude Code CLI overnight:
+Ralph Wiggum's time tracking used **wall-clock time** (calendar time since `/ralph:start`). This caused premature session termination when users closed Claude Code overnight:
 
 | Scenario                        | Wall-Clock Behavior        | Expected Behavior                |
 | ------------------------------- | -------------------------- | -------------------------------- |

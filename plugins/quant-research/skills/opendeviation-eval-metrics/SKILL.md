@@ -70,9 +70,10 @@ Open deviation bars violate standard IID assumptions:
 
 ### Related Skills
 
-| Skill                                                | Relationship                                           |
-| ---------------------------------------------------- | ------------------------------------------------------ |
-| [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md) | Uses `weekly_sharpe`, `psr`, `dsr` for WFE calculation |
+| Skill                                                                            | Relationship                                                      |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | ρ-corrected PSR, DSR, MinTRL, pFDR, oFDR — full non-IID framework |
+| [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md)                             | Uses `weekly_sharpe`, `psr`, `dsr` for WFE calculation            |
 
 ### Dependencies
 

@@ -24,7 +24,7 @@
 # Use set -u for unbound variable checking, but no -e or pipefail
 set -u
 
-# Verbose error logging for Claude Code CLI
+# Verbose error logging for Claude Code
 log_error() {
     :
 }

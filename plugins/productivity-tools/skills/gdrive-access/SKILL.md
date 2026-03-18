@@ -6,7 +6,7 @@ allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 
 # Google Drive Access
 
-List, download, and sync files from Google Drive programmatically via Claude Code CLI.
+List, download, and sync files from Google Drive programmatically via Claude Code.
 
 ## MANDATORY PREFLIGHT (Execute Before Any Drive Operation)
 

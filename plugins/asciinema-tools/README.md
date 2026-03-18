@@ -84,7 +84,7 @@ Skills are model-invoked based on context. Commands can be invoked directly.
   - GitHub Actions auto-recompresses to brotli (~300:1)
 
 - **bootstrap command**: Pre-Claude session setup
-  - Runs OUTSIDE Claude Code CLI
+  - Runs OUTSIDE Claude Code
   - Sets up asciinema recording + idle-chunker
   - Streams everything to GitHub automatically
   - Cleanup on exit via trap

@@ -1,6 +1,6 @@
 # cc-skills
 
-Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI.
+Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code.
 
 [![Plugins](https://img.shields.io/badge/plugins-20-green.svg)](#plugins)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
@@ -33,9 +33,9 @@ Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Co
 
 ### Prerequisites
 
-| Requirement     | Check              | Install                                                                                 |
-| --------------- | ------------------ | --------------------------------------------------------------------------------------- |
-| Claude Code CLI | `claude --version` | [Getting Started Guide](https://docs.anthropic.com/en/docs/claude-code/getting-started) |
+| Requirement | Check              | Install                                                                                 |
+| ----------- | ------------------ | --------------------------------------------------------------------------------------- |
+| Claude Code | `claude --version` | [Getting Started Guide](https://docs.anthropic.com/en/docs/claude-code/getting-started) |
 
 ### Quick Start (Recommended)
 

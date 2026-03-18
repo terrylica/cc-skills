@@ -7,63 +7,83 @@ disable-model-invocation: true
 
 # Telegram CLI Setup
 
-One-time setup to authenticate your personal Telegram account via MTProto.
+One-time setup to authenticate personal Telegram accounts via MTProto.
 
 ## Prerequisites
 
 - 1Password CLI installed: `op --version`
 - Telegram API credentials stored in 1Password vault `Claude Automation`
-  - Item: `Telegram API - ExampleOpsAccount`
-  - Fields: `App ID` (text), `App API Hash` (concealed)
-  - Get credentials from: <https://my.telegram.org> → API development tools
+
+## Available Profiles
+
+| Profile       | 1Password Item                   | Item UUID                    | Phone    |
+| ------------- | -------------------------------- | ---------------------------- | -------- |
+| `eon`         | Telegram API - ExampleOpsAccount | `<1password-item-id>` | +1 (CA)  |
+| `personal` | Telegram API - personal (CN)  | `<1password-item-id>` | +86 (CN) |
 
 ## Setup Steps
 
 ### Step 1: Verify 1Password Access
 
 ```bash
+/usr/bin/env bash << 'VERIFY_EOF'
 op item get "<1password-item-id>" --vault "Claude Automation" --fields "App ID" 2>&1
+op item get "<1password-item-id>" --vault "Claude Automation" --fields "App ID" 2>&1
+VERIFY_EOF
 ```
 
-If this fails, ensure 1Password CLI is authenticated.
+### Step 2: Authenticate (INTERACTIVE - must run in terminal)
 
-### Step 2: First-Time Authentication (INTERACTIVE — must run in terminal)
-
-This step requires interactive terminal input. The user must run this command directly:
+Each profile requires a one-time interactive auth. The user must run directly:
 
 ```bash
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/telegram-cli}"
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" dialogs
+
+# Auth eon profile
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p eon whoami
+
+# Auth personal profile
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p personal whoami
 ```
 
 Prompts for:
 
-1. Phone number (e.g., `+16043008878`)
+1. Phone number
 2. Verification code (sent via Telegram)
 3. 2FA password (if enabled)
 
-Session saved to `~/.local/share/telethon/session.session`.
-
 ### Step 3: Verify
 
-After auth, the dialogs command should list all your chats without prompting.
+```bash
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/telegram-cli}"
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p eon whoami
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p personal whoami
+```
 
 ## Session Management
 
-| File                                      | Purpose                   |
-| ----------------------------------------- | ------------------------- |
-| `~/.local/share/telethon/session.session` | Persisted MTProto session |
+| File                                          | Purpose                           |
+| --------------------------------------------- | --------------------------------- |
+| `~/.local/share/telethon/eon.session`         | ExampleOpsAccount MTProto session |
+| `~/.local/share/telethon/personal.session` | personal MTProto session       |
 
-To re-authenticate (e.g., after revoking session in Telegram settings):
+To re-authenticate (e.g., after revoking session in Telegram > Settings > Devices):
 
 ```bash
-rm ~/.local/share/telethon/session.session
-# Then re-run the dialogs command above
+rm ~/.local/share/telethon/<profile>.session
+# Then re-run whoami for that profile
 ```
 
-## Credential Reference
+## Adding New Profiles
 
-| Source    | Item                               | Vault               |
-| --------- | ---------------------------------- | ------------------- |
-| 1Password | `Telegram API - ExampleOpsAccount` | `Claude Automation` |
-| Item UUID | `<1password-item-id>`       | —                   |
+Edit the `PROFILES` dict in `scripts/send.py`:
+
+```python
+PROFILES: dict[str, str] = {
+    "eon": "<1password-item-id>",
+    "personal": "<1password-item-id>",
+    "newprofile": "<1password-item-uuid>",
+}
+```
+
+Then store API credentials in 1Password vault `Claude Automation` with fields `App ID` and `App API Hash`.

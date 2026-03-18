@@ -15,7 +15,7 @@ Implement "Option 3" dual logging pattern:
 - **Print()** - MT5 log files (human-readable via Experts pane)
 - **CSV files** - Structured data (programmatic analysis)
 
-Claude Code CLI can autonomously read both outputs without user intervention.
+Claude Code can autonomously read both outputs without user intervention.
 
 ## When to Use This Skill
 

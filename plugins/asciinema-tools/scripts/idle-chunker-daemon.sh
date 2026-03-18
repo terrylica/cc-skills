@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # idle-chunker-daemon.sh - Background daemon for asciinema chunking
-# Runs via launchd, independent of Claude Code CLI
+# Runs via launchd, independent of Claude Code
 #
 # This daemon:
 # - Monitors ~/.asciinema/active/*.cast files

@@ -48,7 +48,7 @@
   - [GitHub Labels for SR&ED](#github-labels-for-sred)
 
 > **Role**: You are a Principal Software Architect specializing in AI-native monorepo design.
-> **Mission**: Construct a production-grade polyglot monorepo from scratch, optimized for agentic workflows with Claude Code CLI.
+> **Mission**: Construct a production-grade polyglot monorepo from scratch, optimized for agentic workflows with Claude Code.
 > **Constraint**: The human will not touch any code. You execute everything autonomously, verifying at each phase.
 
 ---
@@ -193,7 +193,7 @@ Create the root `CLAUDE.md` as the Link Farm hub with Progressive Disclosure:
 
 **Stack**: Python (uv) · Rust (cargo) · Bun · Pants (build) · Mise (runtimes)
 **Pattern**: Polyglot monorepo with independent semantic versioning
-**AI Interface**: Claude Code CLI via MCP servers
+**AI Interface**: Claude Code via MCP servers
 
 → Deep dive: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 

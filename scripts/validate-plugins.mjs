@@ -470,7 +470,7 @@ function detectHookType(filename, content, hooksJsonPath) {
 }
 
 /**
- * Validate hook output format for Claude Code CLI consumption
+ * Validate hook output format for Claude Code consumption
  *
  * Different hook types have DIFFERENT semantics:
  *
@@ -708,7 +708,7 @@ async function validateHookOutputFormat() {
         // Report invisible field issues
         if (fileIssues.length > 0) {
           warnings.push(
-            `${relPath}: Hook outputs fields invisible to Claude Code CLI`
+            `${relPath}: Hook outputs fields invisible to Claude Code`
           );
           fileIssues.forEach((issue) => {
             warnings.push(
@@ -1372,7 +1372,7 @@ const { graph: depGraph, details: depDetails } = await buildDependencyGraph();
 const cycles = detectCircularDependencies(depGraph);
 const { errors: depErrors, warnings: depWarnings } = validateSkillExistence(depDetails);
 
-// Hook output format validation (Claude Code CLI consumption) - async with tinyglobby
+// Hook output format validation (Claude Code consumption) - async with tinyglobby
 // ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
 const { errors: hookErrors, warnings: hookWarnings } = await validateHookOutputFormat();
 
@@ -1527,7 +1527,7 @@ if (SHOW_DEPS && declaredDeps.size > 0) {
   console.log(generateInstallInstructions(declaredDeps));
 }
 
-// Exit with appropriate code - LOUD and EXPLICIT for Claude Code CLI
+// Exit with appropriate code - LOUD and EXPLICIT for Claude Code
 console.log("\n" + "═".repeat(60));
 console.log("VALIDATION SUMMARY");
 console.log("═".repeat(60));

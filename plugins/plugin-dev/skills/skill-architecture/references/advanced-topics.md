@@ -103,9 +103,9 @@ For advanced examples, see examples.md.
 
 ---
 
-## Part 6: CLI vs API Differences
+## Part 6: Claude Code vs API Differences
 
-| Feature           | Claude Code CLI                       | Claude.ai API           |
+| Feature           | Claude Code                           | Claude.ai API           |
 | ----------------- | ------------------------------------- | ----------------------- |
 | File name         | `SKILL.md` (uppercase)                | `SKILL.md` (uppercase)  |
 | Location          | `~/.claude/skills/`                   | ZIP upload              |
