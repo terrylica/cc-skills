@@ -111,7 +111,7 @@ Each repository maintains its own orphan branch for recordings:
 
 ### Pre-Claude Bootstrap Workflow
 
-The `/asciinema-tools:bootstrap` command generates a script that runs OUTSIDE Claude Code CLI:
+The `/asciinema-tools:bootstrap` command generates a script that runs OUTSIDE Claude Code:
 
 ```
 1. ONE-TIME SETUP (in Claude Code):

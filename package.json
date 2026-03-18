@@ -2,7 +2,7 @@
   "name": "cc-skills",
   "version": "12.9.0",
   "private": true,
-  "description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code CLI",
+  "description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code",
   "scripts": {
     "release:preflight": "test -z \"$(git status --porcelain)\" || (echo '❌ Working directory not clean' && git status --short && exit 1)",
     "release": "npm run release:preflight && semantic-release --no-ci",

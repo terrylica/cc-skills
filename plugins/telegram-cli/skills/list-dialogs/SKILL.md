@@ -10,33 +10,44 @@ List all chats, groups, and channels visible to your personal Telegram account.
 
 ## Preflight
 
-1. Session must exist: `~/.local/share/telethon/session.session`
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
    - If missing, run `/telegram-cli:setup` first
-2. 1Password CLI available: `op --version`
 
 ## Usage
 
 ```bash
 /usr/bin/env bash << 'DIALOGS_EOF'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/telegram-cli}"
+
+# Default profile
 uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" dialogs
+
+# Specific profile
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p personal dialogs
+
+# Filter results
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" dialogs | grep -i "search term"
 DIALOGS_EOF
 ```
 
-## Output Format
+## Additional Commands
 
-Each line shows:
+### Read Messages
+
+```bash
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" read <chat_id> -n 10
+```
+
+### Account Info
+
+```bash
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" whoami
+```
+
+## Output Format
 
 ```
 Chat Name                                  (id: 1234567890)
 ```
 
 Use the `id` value with `send-message` skill to send to that chat.
-
-## Filtering Results
-
-Pipe output through grep to find specific chats:
-
-```bash
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" dialogs | grep -i "search term"
-```

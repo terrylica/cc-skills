@@ -170,7 +170,7 @@ This `agent-skill-builder` demonstrates its own principles:
 1. ✅ **Structured content**: Progressive disclosure with 10 parts
 1. ✅ **Security included**: Dedicated section on threats and best practices
 1. ✅ **Token efficient**: Core guidance here, could add reference.md for advanced topics
-1. ✅ **CLI-specific**: Clarifies this is for Claude Code CLI, not API
+1. ✅ **Scope-specific**: Clarifies this is for Claude Code, not API
 1. ✅ **Examples**: Multiple concrete patterns
 1. ✅ **Validation**: Includes checklist
 1. ✅ **Official terminology**: Uses "Agent Skills" (formal) and `skills/` (file paths)
@@ -181,7 +181,7 @@ This `agent-skill-builder` demonstrates its own principles:
 
 ## Summary
 
-**Creating effective Claude Code CLI Agent Skills requires:**
+**Creating effective Claude Code Agent Skills requires:**
 
 1. **Specific naming/descriptions** for autonomous discovery (WHAT + WHEN + triggers)
 1. **YAML frontmatter** with name, description, optional allowed-tools

@@ -1,7 +1,7 @@
 {
   "name": "gmail-access",
   "version": "1.0.0",
-  "description": "Gmail API client for Claude Code CLI",
+  "description": "Gmail API client for Claude Code",
   "type": "module",
   "private": true,
   "main": "lib/index.ts",

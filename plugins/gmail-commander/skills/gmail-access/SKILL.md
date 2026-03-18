@@ -6,7 +6,7 @@ allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 
 # Gmail Access
 
-Read and search Gmail programmatically via Claude Code CLI.
+Read and search Gmail programmatically via Claude Code.
 
 ## MANDATORY PREFLIGHT (Execute Before Any Gmail Operation)
 

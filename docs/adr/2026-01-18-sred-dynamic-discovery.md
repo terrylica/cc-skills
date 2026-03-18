@@ -199,7 +199,7 @@ graph { label: "⏭️ After: Dynamic Discovery"; flow: south; }
 
 - CRA compliance requires consistent SR&ED documentation in git history
 - No hardcoded project identifiers for universal applicability across repositories
-- Must work with Claude Code CLI subscription (no separate Anthropic API key)
+- Must work with Claude Code subscription (no separate Anthropic API key)
 - Hook timeout budget (~8 seconds) constrains model choice
 - Fail-closed ensures all SR&ED commits are properly tagged
 

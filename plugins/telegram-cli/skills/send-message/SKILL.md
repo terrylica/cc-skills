@@ -12,10 +12,9 @@ Send a message from your personal Telegram account (not a bot) via MTProto.
 
 Before sending, verify:
 
-1. Session exists at `~/.local/share/telethon/session.session`
+1. Session exists at `~/.local/share/telethon/<profile>.session`
    - If missing, run `/telegram-cli:setup` first
 2. 1Password CLI available: `op --version`
-3. Script exists at plugin path
 
 ## Usage
 
@@ -23,34 +22,36 @@ Before sending, verify:
 /usr/bin/env bash << 'SEND_EOF'
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/telegram-cli}"
 
-# By username
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" send @username "Hello from CLI"
+# Default profile (eon)
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" send @username "Hello"
 
-# By chat ID (integer)
+# By chat ID
 uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" send 2124832490 "Hello"
 
-# By phone number
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" send "+16043008878" "Hello"
+# Specific profile
+uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p personal send @username "Hello"
 SEND_EOF
 ```
 
+## Profiles
+
+| Profile         | Account            | User ID    |
+| --------------- | ------------------ | ---------- |
+| `eon` (default) | @ExampleOpsAccount | 90417581   |
+| `personal`   | @personal       | 2124832490 |
+
 ## Parameters
 
-| Parameter | Type       | Description                                                 |
-| --------- | ---------- | ----------------------------------------------------------- |
-| recipient | string/int | Username (@user), phone (+1234567890), or chat ID (integer) |
-| message   | string     | Message text to send                                        |
+| Parameter      | Type       | Description                                                 |
+| -------------- | ---------- | ----------------------------------------------------------- |
+| `-p/--profile` | string     | Account profile (default: eon)                              |
+| recipient      | string/int | Username (@user), phone (+1234567890), or chat ID (integer) |
+| message        | string     | Message text (cannot be empty)                              |
 
-## Finding Chat IDs
+## Error Handling
 
-Use the `list-dialogs` skill or run:
-
-```bash
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" dialogs
-```
-
-## Credential Resolution
-
-1. Checks `TELEGRAM_API_ID` + `TELEGRAM_API_HASH` env vars
-2. Falls back to 1Password: `op item get <TELETHON_OP_UUID> --vault "Claude Automation"`
-3. Session file at `~/.local/share/telethon/session.session` handles user auth
+| Error                     | Cause               | Fix                           |
+| ------------------------- | ------------------- | ----------------------------- |
+| `Unknown profile`         | Invalid `-p` value  | Use `eon` or `personal`    |
+| `Cannot find any entity`  | Bad username/ID     | Verify with `dialogs` command |
+| `message cannot be empty` | Empty string passed | Provide message text          |

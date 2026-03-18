@@ -253,6 +253,13 @@ See [references/look-ahead-bias-v3.md](./references/look-ahead-bias-v3.md) for t
 | **Range Bar Metrics**    | [range-bar-metrics.md](./references/range-bar-metrics.md)                         |
 | Troubleshooting          | [troubleshooting.md](./references/troubleshooting.md)                             |
 
+### Related Skills
+
+| Skill                                                                            | Relationship                                        |
+| -------------------------------------------------------------------------------- | --------------------------------------------------- |
+| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | Generalized Sharpe variance, DSR for WFE validation |
+| [opendeviation-eval-metrics](../opendeviation-eval-metrics/SKILL.md)             | Metric definitions consumed by WFE                  |
+
 ## Full Citations
 
 - Bailey, D. H., & López de Prado, M. (2014). The deflated Sharpe ratio: Correcting for selection bias, backtest overfitting and non-normality. _The Journal of Portfolio Management_, 40(5), 94-107.
