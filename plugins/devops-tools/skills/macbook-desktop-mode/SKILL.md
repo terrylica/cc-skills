@@ -319,3 +319,7 @@ tail -50 /path/to/logs/audio-device-monitor-stderr.log
 | Polling `system_profiler` for USB status | Expensive subprocess, 2-3 second latency                     | CoreAudio property listeners are instant           |
 | Using `NSWorkspace.didWakeNotification`  | Requires AppKit/NSApplication — won't work in launchd daemon | `IORegisterForSystemPower` callback                |
 | Resetting USB via IOKit when device gone | Can't reset a device that's already dropped from IO registry | uhubctl power-cycles the physical port             |
+
+## See Also
+
+- **`kokoro-tts:realtime-audio-architecture`** — Complementary skill covering audio _playback_ patterns (PortAudio, GIL contention, jitter elimination, device hot-switching). This skill handles the system/USB layer; that one handles the application/playback layer.

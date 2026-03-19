@@ -305,3 +305,7 @@ If audio goes to wrong device:
 - [launchd QoS reference](./references/launchd-qos.md)
 - [Pipeline synthesis pattern](./references/pipeline-synthesis.md)
 - [Device routing and hot-switching](./references/device-routing.md)
+
+## See Also
+
+- **`devops-tools:macbook-desktop-mode`** — Complementary skill covering USB device _resilience_ (sleep/wake recovery, uhubctl port cycling, battery longevity, pmset desktop configuration). This skill handles the application/playback layer; that one handles the system/USB layer.
