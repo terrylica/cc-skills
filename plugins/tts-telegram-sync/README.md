@@ -33,7 +33,7 @@ Full lifecycle management for Kokoro TTS, Telegram bot sync, and iTerm2 integrat
 | `full-stack-bootstrap`      | One-time bootstrap: Kokoro venv, model, BotFather, secrets, symlinks |
 | `settings-and-tuning`       | Configure TTS voices, speed, timeouts, queue depth, bot settings     |
 | `bot-process-control`       | Start/stop/restart the Telegram sync bot process                     |
-| `system-health-check`       | 10-subsystem health check (bot, TTS, locks, MLX, secrets)            |
+| `health`                    | 10-subsystem health check (bot, TTS, locks, MLX, secrets)            |
 | `component-version-upgrade` | Upgrade Kokoro, mlx-audio, bot deps, model                           |
 | `clean-component-removal`   | Orderly teardown: stop bot, remove venv, clean symlinks              |
 | `diagnostic-issue-resolver` | Diagnose lock, process, audio, queue issues                          |
