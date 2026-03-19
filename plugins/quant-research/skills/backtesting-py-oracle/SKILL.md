@@ -184,6 +184,120 @@ df = load_range_bars(
 
 ---
 
+## HTML Equity Plot: Y-Axis Auto-Fit on Zoom (BP-07 to BP-10)
+
+backtesting.py generates Bokeh HTML plots via `bt.plot()`. By default, the y-axis is fixed — zooming on the x-axis does NOT rescale the y-axis to fit visible data. This makes it impossible to inspect zoomed-in regions of equity curves that span 4+ orders of magnitude.
+
+**Reference implementation**: `scripts/gen800/plotting.py` in opendeviationbar-patterns.
+
+### BP-07: NEVER Use LogScale for Equity (CRITICAL)
+
+**Symptom**: Equity panel y-axis doesn't auto-fit on zoom. JS callbacks fail silently.
+
+**Root Cause**: Bokeh's `LogScale` breaks `CustomJS` y-range callbacks in multi-panel linked x_range layouts. The `js_on_change` callback fires but `y_range.start`/`y_range.end` assignments are ignored by the LogScale renderer.
+
+**Proven via POC**: LogScale + JS callback works in single-panel mode but fails when 5 panels share a linked x_range.
+
+**Fix**: Transform equity data to `log10()` in Python, display on **linear** scale with a `CustomJSTickFormatter` that shows `10^tick` as readable values:
+
+```python
+import numpy as np
+from bokeh.models import CustomJSTickFormatter, Range1d
+
+# Transform data
+raw = np.asarray(src.data["equity"], dtype=float)
+raw = np.where(raw > 0, raw, 1e-10)
+src.data["equity"] = np.log10(raw).tolist()
+
+# Custom tick formatter (shows 1%, 100%, 10K%, 1M%)
+child.yaxis[0].formatter = CustomJSTickFormatter(code="""
+    const v = Math.pow(10, tick);
+    if (v >= 1e6) return (v/1e6).toFixed(1) + 'M%';
+    if (v >= 1e3) return (v/1e3).toFixed(0) + 'K%';
+    if (v >= 1) return v.toFixed(0) + '%';
+    return v.toFixed(2) + '%';
+""")
+
+# MUST set initial y_range explicitly (backtesting.py leaves it as NaN)
+valid = eq[np.isfinite(eq)]
+pad = (valid.max() - valid.min()) * 0.05
+child.y_range = Range1d(start=valid.min() - pad, end=valid.max() + pad)
+```
+
+### BP-08: Panel-Aware Column Matching (CRITICAL)
+
+**Symptom**: Drawdown/P&L panels go blank when zooming. Shows millions of percent.
+
+**Root Cause**: Multiple panels share the same `ColumnDataSource` (backtesting.py optimization). The Equity panel's Line renderer and the Drawdown panel's Line renderer both reference a source containing `equity`, `drawdown`, `High`, `Low`, etc. A naive "find first y column" approach picks `equity` for the Drawdown panel.
+
+**Fix**: Match by `panel_label` FIRST, then by column name:
+
+```python
+panel_label = child.yaxis[0].axis_label or ""
+
+# Label-first matching (panels share data sources!)
+if "Drawdown" in panel_label and "drawdown" in d:
+    hi_col = lo_col = "drawdown"
+elif "Equity" in panel_label and "equity" in d:
+    hi_col = lo_col = "equity"
+elif "High" in d and "Low" in d:  # OHLC
+    hi_col, lo_col = "High", "Low"
+```
+
+### BP-09: JS Callback Pattern for Y-Axis Auto-Fit (PROVEN)
+
+Attach a `CustomJS` callback to `x_range.js_on_change` for each panel. The callback scans visible data and sets `y_range` directly:
+
+```python
+from bokeh.models import CustomJS
+
+cb = CustomJS(
+    args={"source": src, "yr": child.y_range,
+          "x_col": "index", "y_col": "equity"},
+    code="""
+    const xs = source.data[x_col];
+    const ys = source.data[y_col];
+    const x0 = cb_obj.start, x1 = cb_obj.end;
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < xs.length; i++) {
+        if (xs[i] >= x0 && xs[i] <= x1 && isFinite(ys[i])) {
+            if (ys[i] < lo) lo = ys[i];
+            if (ys[i] > hi) hi = ys[i];
+        }
+    }
+    if (isFinite(lo) && isFinite(hi) && lo < hi) {
+        const pad = (hi - lo) * 0.05 || 0.001;
+        yr.start = lo - pad;
+        yr.end = hi + pad;
+    }
+    """,
+)
+child.x_range.js_on_change("start", cb)
+child.x_range.js_on_change("end", cb)
+```
+
+### BP-10: DataRange1d(only_visible=True) Is Unreliable
+
+**Symptom**: `DataRange1d(only_visible=True)` works for simple cases but fails with:
+
+- LogScale panels (y-range computed in wrong space)
+- VBar renderers (candlesticks — bounds not tracked correctly)
+- Shared data sources across panels
+
+**Fix**: Always use the JS callback pattern (BP-09) instead of `DataRange1d(only_visible=True)`.
+
+### Panel Data Source Reference (backtesting.py internals)
+
+| Panel    | Label             | Renderer                             | Y Column         | Source                |
+| -------- | ----------------- | ------------------------------------ | ---------------- | --------------------- |
+| Equity   | `"Equity"`        | Patch (`equity_dd`), Line (`equity`) | `equity`         | Shared OHLC source    |
+| Drawdown | `"Drawdown"`      | Line (`drawdown`), Scatter (peak)    | `drawdown`       | Shared OHLC source    |
+| P/L      | `"Profit / Loss"` | Scatter (`returns`), MultiLine       | `y` or `returns` | Separate trade source |
+| OHLC     | `""` (no label)   | Segment, VBar                        | `High`/`Low`     | Shared OHLC source    |
+| Volume   | `"Volume"`        | VBar                                 | `Volume` (top)   | Shared OHLC source    |
+
+---
+
 ## Project Artifacts (rangebar-patterns repo)
 
 | Artifact                    | Path                                              |
