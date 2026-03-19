@@ -1,0 +1,9 @@
+{
+  "name": "agent-reach",
+  "version": "1.0.0",
+  "description": "Give your AI agent eyes to see the entire internet. Search and read 15+ platforms: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search, and any web page.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

@@ -437,7 +437,9 @@
       "version": "12.10.0",
       "source": "./plugins/tts-telegram-sync",
       "category": "devops",
-      "requires": ["kokoro-tts"],
+      "requires": [
+        "kokoro-tts"
+      ],
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
@@ -643,6 +645,36 @@
         "messaging",
         "user-account",
         "1password"
+      ],
+      "strict": false
+    },
+    {
+      "name": "agent-reach",
+      "description": "Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.",
+      "version": "12.10.0",
+      "source": "./plugins/agent-reach",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "agent-reach",
+        "web-search",
+        "twitter",
+        "reddit",
+        "youtube",
+        "bilibili",
+        "xiaohongshu",
+        "douyin",
+        "weibo",
+        "wechat",
+        "linkedin",
+        "v2ex",
+        "rss",
+        "exa",
+        "internet",
+        "scraping"
       ],
       "strict": false
     }
