@@ -1,3 +1,96 @@
+# [12.11.0](https://github.com/terrylica/cc-skills/compare/v12.10.0...v12.11.0) (2026-03-19)
+
+
+### Features
+
+* **plugins:** add agent-reach plugin + consolidate tts-telegram-sync skills ([5622c87](https://github.com/terrylica/cc-skills/commit/5622c879d63fbf9360623a5f2c100541b2a22bb4))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>agent-reach</strong> (1 change)</summary>
+
+- [agent-reach](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/SKILL.md) - new (+232)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [dual channel watchexec notifications](https://github.com/terrylica/cc-skills/blob/v12.10.0/plugins/devops-tools/skills/dual-channel-watchexec-notifications/SKILL.md) - deleted
+- [macbook-desktop-mode](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/macbook-desktop-mode/SKILL.md) - updated (+4)
+
+</details>
+
+<details>
+<summary><strong>kokoro-tts</strong> (1 change)</summary>
+
+- [realtime-audio-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/skills/realtime-audio-architecture/SKILL.md) - updated (+4)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [backtesting-py-oracle](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/backtesting-py-oracle/SKILL.md) - updated (+114)
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync</strong> (2 changes)</summary>
+
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/health/SKILL.md) - updated (+178/-36)
+- [system health check](https://github.com/terrylica/cc-skills/blob/v12.10.0/plugins/tts-telegram-sync/skills/system-health-check/SKILL.md) - deleted
+
+</details>
+
+
+### Plugin READMEs
+
+- [Agent Reach Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/README.md) - new (+23)
+- [TTS Telegram Sync](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/README.md) - updated (+1/-1)
+
+### Skill References
+
+<details>
+<summary><strong>agent-reach/agent-reach</strong> (1 file)</summary>
+
+- [Channel Setup Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/references/setup-channels.md) - new (+70)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/dual-channel-watchexec-notifications</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.10.0/plugins/devops-tools/skills/dual-channel-watchexec-notifications/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/health</strong> (2 files)</summary>
+
+- [health Evolution Log (formerly system-health-check)](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/health/references/evolution-log.md) - updated (+4/-25)
+- [Health Checks Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-telegram-sync/skills/health/references/health-checks.md) - renamed from `plugins/tts-telegram-sync/skills/system-health-check/references/health-checks.md`
+
+</details>
+
+<details>
+<summary><strong>tts-telegram-sync/system-health-check</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.10.0/plugins/tts-telegram-sync/skills/system-health-check/references/evolution-log.md) - deleted
+
+</details>
+
 # [12.10.0](https://github.com/terrylica/cc-skills/compare/v12.9.0...v12.10.0) (2026-03-18)
 
 
