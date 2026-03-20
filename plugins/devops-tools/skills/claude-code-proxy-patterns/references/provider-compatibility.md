@@ -6,7 +6,7 @@ Tested Anthropic-compatible providers for use with claude-code-proxy (2026-02-22
 
 ## Tested Providers
 
-### MiniMax M2.5-highspeed
+### MiniMax highspeed
 
 | Field              | Value                                          |
 | ------------------ | ---------------------------------------------- |
@@ -18,7 +18,7 @@ Tested Anthropic-compatible providers for use with claude-code-proxy (2026-02-22
 
 **Quirks**:
 
-1. **Model name in response**: Returns `"model": "MiniMax-M2.5"` instead of the requested model name. Cosmetic only; Claude Code handles this gracefully.
+1. **Model name in response**: Returns `"model": "MiniMax"` instead of the requested model name. Cosmetic only; Claude Code handles this gracefully.
 
 2. **Extra `thinking` block**: MiniMax includes a `thinking` content block with a `signature` field in responses. Claude Code ignores unknown content block types.
 
