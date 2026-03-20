@@ -1,3 +1,56 @@
+# [12.12.0](https://github.com/terrylica/cc-skills/compare/v12.11.0...v12.12.0) (2026-03-20)
+
+
+### Features
+
+* **quant-research:** add zigzag-pattern-classifier skill + make MiniMax model configurable ([9bf4829](https://github.com/terrylica/cc-skills/commit/9bf48291c92dad50525d0b964bbc5c2195c62bc8))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [claude-code-proxy-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) - updated (+3/-4)
+- [session-debrief](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-debrief/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [zigzag-pattern-classifier](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/SKILL.md) - new (+268)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/claude-code-proxy-patterns</strong> (1 file)</summary>
+
+- [Provider Compatibility Matrix](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/claude-code-proxy-patterns/references/provider-compatibility.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>quant-research/zigzag-pattern-classifier</strong> (3 files)</summary>
+
+- [Epsilon Tolerance Band: "Equal" Price Level Definition](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/references/epsilon-tolerance-detail.md) - new (+315)
+- [UP–DOWN–UP Variants: 9 Complete Classification](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/references/three-pivot-variants.md) - new (+393)
+- [UP–DOWN Variants: Granular Two-Pivot Classification with FD Binning](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/references/two-pivot-variants.md) - new (+316)
+
+</details>
+
 # [12.11.0](https://github.com/terrylica/cc-skills/compare/v12.10.0...v12.11.0) (2026-03-19)
 
 
