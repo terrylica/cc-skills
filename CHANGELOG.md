@@ -1,3 +1,37 @@
+## [12.12.1](https://github.com/terrylica/cc-skills/compare/v12.12.0...v12.12.1) (2026-03-20)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [zigzag-pattern-classifier](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/SKILL.md) - updated (+9/-5)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quant-research/zigzag-pattern-classifier</strong> (4 files)</summary>
+
+- [Binning Methodology: Freedman–Diaconis for FD-Binned Variants](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/references/binning-methodology.md) - new (+395)
+- [Data Pipeline: End-to-End ZigZag Classification System](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/references/data-pipeline.md) - new (+592)
+- [EURUSD Validation Scenarios: Three Market Conditions](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/references/eurusd-validation-scenarios.md) - new (+292)
+- [Notation & Definitions: Single Source of Truth](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/zigzag-pattern-classifier/references/notation-definitions.md) - new (+404)
+
+</details>
+
 # [12.12.0](https://github.com/terrylica/cc-skills/compare/v12.11.0...v12.12.0) (2026-03-20)
 
 
