@@ -49,7 +49,6 @@ Claude Code (OAuth/Max subscription)
     v
 +-----------+
 | MiniMax   |
-| M2.5      |
 | highspeed |
 +-----------+
 ```
@@ -171,9 +170,9 @@ The `/v1/messages/count_tokens` endpoint needs the same auth as `/v1/messages`. 
 
 Third-party providers that support the Anthropic `/v1/messages` API format.
 
-| Provider               | Base URL                           | Notes                                             |
-| ---------------------- | ---------------------------------- | ------------------------------------------------- |
-| MiniMax M2.5-highspeed | `https://api.minimax.io/anthropic` | Returns `base_resp` field, extra `thinking` block |
+| Provider          | Base URL                           | Notes                                             |
+| ----------------- | ---------------------------------- | ------------------------------------------------- |
+| MiniMax highspeed | `https://api.minimax.io/anthropic` | Returns `base_resp` field, extra `thinking` block |
 
 See [references/provider-compatibility.md](./references/provider-compatibility.md) for the full matrix.
 

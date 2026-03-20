@@ -156,7 +156,7 @@ bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-debrief.ts \
 | Setting             | Source                                                           | Default                   |
 | ------------------- | ---------------------------------------------------------------- | ------------------------- |
 | MiniMax API key     | `~/.claude/.secrets/ccterrybot-telegram` (`MINIMAX_API_KEY=...`) | Required                  |
-| Model               | Hardcoded                                                        | `MiniMax-M2.5-highspeed`  |
+| Model               | `MINIMAX_MODEL` env var (global mise config)                     | `MiniMax-M2.7-highspeed`  |
 | Max output tokens   | Hardcoded                                                        | 16384 per call            |
 | Context budget      | Hardcoded                                                        | 890K chars (~243K tokens) |
 | Default time window | `--since`                                                        | 48 hours                  |
