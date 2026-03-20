@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Session Debrief — Focused session analysis via MiniMax 2.5 highspeed.
+ * Session Debrief — Focused session analysis via MiniMax highspeed.
  *
  * Three expert modes (--goal 1|2|3):
  * 1. Handoff Document      — exhaustive context extraction for the next developer/session
@@ -29,10 +29,11 @@ import { spawnSync } from "child_process";
 // ── Config ─────────────────────────────────────────────────────────────────────
 
 const MINIMAX_API_URL = "https://api.minimax.io/anthropic/v1/messages";
-const MINIMAX_MODEL = "MiniMax-M2.5-highspeed";
+// MINIMAX_MODEL: single source of truth is ~/.config/mise/config.toml
+const MINIMAX_MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-M2.7-highspeed";
 const MAX_OUTPUT_TOKENS = 16384;
 
-// MiniMax M2.5 empirical context ceiling: ~951K content chars (260K tokens)
+// MiniMax empirical context ceiling: ~951K content chars (260K tokens)
 // Official docs claim 204,800 tokens but 260K works in practice.
 // Budget: 260K total - 16K output - 0.5K system/framing = ~243K tokens ≈ 890K chars
 const MAX_STRUCTURED_LOG_CHARS = 890_000;
@@ -40,7 +41,7 @@ const MAX_STRUCTURED_LOG_CHARS = 890_000;
 // ── Focused Goal System Prompts ────────────────────────────────────────────────
 
 // Shared preamble injected into every system prompt.
-// Prevents the "tool_call hallucination" failure mode where MiniMax M2.5 confuses
+// Prevents the "tool_call hallucination" failure mode where MiniMax confuses
 // XML patterns in the session transcript (e.g., <invoke>, <function_calls>,
 // <minimax:tool_call>) with instructions to invoke tools itself.
 const ANTI_TOOL_CALL_PREAMBLE = `CRITICAL CONSTRAINT — YOU HAVE NO TOOLS:

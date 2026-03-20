@@ -27,7 +27,8 @@ import { join } from "path";
 // ── Config ─────────────────────────────────────────────────────────────────────
 
 const MINIMAX_API_URL = "https://api.minimax.io/anthropic/v1/messages";
-const MINIMAX_MODEL = "MiniMax-M2.5-highspeed";
+// MINIMAX_MODEL: single source of truth is ~/.config/mise/config.toml
+const MINIMAX_MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-M2.7-highspeed";
 const CORPUS_BASE = join(homedir(), ".claude/benchmarks/session-debrief/corpus");
 
 // ── API Key ────────────────────────────────────────────────────────────────────
