@@ -261,8 +261,12 @@ The classification framework in this skill extends the crate's output with FD-bi
 
 For ASCII visualizations, worked examples, and implementation pseudocode, read these reference files as needed:
 
-| File                                     | Contents                                                                        |
-| ---------------------------------------- | ------------------------------------------------------------------------------- |
-| `references/two-pivot-variants.md`       | All 9 two-pivot ASCII diagrams, trading rules, flag examples                    |
-| `references/three-pivot-variants.md`     | All 9 three-pivot ASCII diagrams, 27-way extension, HL+LH granular sub-variants |
-| `references/epsilon-tolerance-detail.md` | Complete ε formula, worked calculation, sensitivity analysis, pseudocode        |
+| File                                        | Contents                                                                          |
+| ------------------------------------------- | --------------------------------------------------------------------------------- |
+| `references/notation-definitions.md`        | Single source of truth: all symbols, formulas, abbreviations, pattern classes     |
+| `references/two-pivot-variants.md`          | All 9 two-pivot ASCII diagrams, trading rules, flag examples                      |
+| `references/three-pivot-variants.md`        | All 9 three-pivot ASCII diagrams, 27-way extension, HL+LH granular sub-variants   |
+| `references/epsilon-tolerance-detail.md`    | Complete ε formula, worked calculation, sensitivity analysis, pseudocode          |
+| `references/binning-methodology.md`         | Freedman-Diaconis algorithm details, FD vs quantile comparison, worked example    |
+| `references/data-pipeline.md`               | 11-step end-to-end pipeline: raw quotes → OHLC → ATR → pivots → classify → output |
+| `references/eurusd-validation-scenarios.md` | 3 worked market scenarios (Normal, Volatile, Crash) validating ε and τ            |
