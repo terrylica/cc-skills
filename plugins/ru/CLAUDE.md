@@ -18,7 +18,7 @@ Autonomous improvement loop for any project. Short name for quick invocation. Ru
 | `/ru:wizard`    | Interactive wizard for forbidden/encouraged |
 | `/ru:forbid`    | Add item to forbidden list                  |
 | `/ru:encourage` | Add item to encouraged list                 |
-| `/ru:config`    | View or modify configuration                |
+| `/ru:settings`  | View or modify settings                     |
 | `/ru:audit-now` | Force immediate validation round            |
 | `/ru:hooks`     | Install/uninstall hooks                     |
 
