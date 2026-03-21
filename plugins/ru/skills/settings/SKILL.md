@@ -1,14 +1,14 @@
 ---
-name: config
-description: "View or modify loop configuration. TRIGGERS - ru config, loop settings, show config, ru configuration."
+name: settings
+description: "View or modify loop settings. TRIGGERS - ru settings, loop settings, show settings, ru configuration."
 allowed-tools: Bash
 argument-hint: "[show|reset|set <key>=<value>]"
 model: haiku
 ---
 
-# RU: Config
+# RU: Settings
 
-View or modify the loop configuration.
+View or modify the loop settings.
 
 ## Arguments
 
@@ -53,7 +53,7 @@ case "$ARGS" in
         VALUE=$(echo "$KEY_VALUE" | cut -d= -f2-)
 
         if [[ -z "$KEY" || -z "$VALUE" ]]; then
-            echo "Usage: /ru:config set <key>=<value>"
+            echo "Usage: /ru:settings set <key>=<value>"
             exit 1
         fi
 
@@ -72,7 +72,7 @@ case "$ARGS" in
         echo "Set $KEY = $VALUE"
         ;;
     *)
-        echo "Usage: /ru:config [show|reset|set <key>=<value>]"
+        echo "Usage: /ru:settings [show|reset|set <key>=<value>]"
         ;;
 esac
 RU_CONFIG_SCRIPT

@@ -556,7 +556,7 @@ Features:
 - Plan archive preservation
 - Runtime limit configuration
 
-**Commands**: `/ru:start`, `/ru:stop`, `/ru:status`, `/ru:config`, `/ru:hooks`
+**Commands**: `/ru:start`, `/ru:stop`, `/ru:status`, `/ru:settings`, `/ru:hooks`
 
 **Additional setup required**: See [plugins/ru/README.md](./plugins/ru/README.md)
 
