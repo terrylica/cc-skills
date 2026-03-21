@@ -1,3 +1,45 @@
+## [12.13.1](https://github.com/terrylica/cc-skills/compare/v12.13.0...v12.13.1) (2026-03-21)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>tlg</strong> (14 changes)</summary>
+
+- [cleanup-deleted](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/cleanup-deleted/SKILL.md) - renamed from `plugins/telegram-cli/skills/cleanup-deleted/SKILL.md`
+- [create-group](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/create-group/SKILL.md) - renamed from `plugins/telegram-cli/skills/create-group/SKILL.md`
+- [delete-messages](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/delete-messages/SKILL.md) - renamed from `plugins/telegram-cli/skills/delete-messages/SKILL.md`
+- [download-media](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/download-media/SKILL.md) - renamed from `plugins/telegram-cli/skills/download-media/SKILL.md`
+- [find-user](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/find-user/SKILL.md) - renamed from `plugins/telegram-cli/skills/find-user/SKILL.md`
+- [forward-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/forward-message/SKILL.md) - renamed from `plugins/telegram-cli/skills/forward-message/SKILL.md`
+- [list-dialogs](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/list-dialogs/SKILL.md) - renamed from `plugins/telegram-cli/skills/list-dialogs/SKILL.md`
+- [manage-members](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/manage-members/SKILL.md) - renamed from `plugins/telegram-cli/skills/manage-members/SKILL.md`
+- [mark-read](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/mark-read/SKILL.md) - renamed from `plugins/telegram-cli/skills/mark-read/SKILL.md`
+- [pin-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/pin-message/SKILL.md) - renamed from `plugins/telegram-cli/skills/pin-message/SKILL.md`
+- [search-messages](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/search-messages/SKILL.md) - renamed from `plugins/telegram-cli/skills/search-messages/SKILL.md`
+- [send-media](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-media/SKILL.md) - renamed from `plugins/telegram-cli/skills/send-media/SKILL.md`
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-message/SKILL.md) - renamed from `plugins/telegram-cli/skills/send-message/SKILL.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/setup/SKILL.md) - renamed from `plugins/telegram-cli/skills/setup/SKILL.md`
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+1/-1)
+- [Telegram CLI Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/CLAUDE.md) - renamed from `plugins/telegram-cli/CLAUDE.md`
+
 # [12.13.0](https://github.com/terrylica/cc-skills/compare/v12.12.2...v12.13.0) (2026-03-21)
 
 
