@@ -153,7 +153,7 @@ jq -r '.guidance.encouraged[]' "$CONFIG_FILE" 2>/dev/null | while read item; do
     echo "  ✓ ENCOURAGE: $item"
 done
 echo ""
-echo "To view: /ru:config show"
+echo "To view: /ru:settings show"
 echo "To modify: /ru:forbid or /ru:encourage"
 RU_CONFIGURE_SAVE
 ```
@@ -242,10 +242,10 @@ CLEAR_GUIDANCE
 
 ## Troubleshooting
 
-| Issue                | Cause                    | Solution                           |
-| -------------------- | ------------------------ | ---------------------------------- |
-| jq error             | Config file malformed    | Run `/ru:config reset` to recreate |
-| No options appearing | AskUserQuestion issue    | Check that multiSelect is set      |
-| Config not saved     | .claude dir missing      | Create with `mkdir -p .claude`     |
-| Conflicts not shown  | Same item different case | Use exact same text for items      |
-| Custom input empty   | Skipped text prompt      | Re-run wizard and enter items      |
+| Issue                | Cause                    | Solution                             |
+| -------------------- | ------------------------ | ------------------------------------ |
+| jq error             | Config file malformed    | Run `/ru:settings reset` to recreate |
+| No options appearing | AskUserQuestion issue    | Check that multiSelect is set        |
+| Config not saved     | .claude dir missing      | Create with `mkdir -p .claude`       |
+| Conflicts not shown  | Same item different case | Use exact same text for items        |
+| Custom input empty   | Skipped text prompt      | Re-run wizard and enter items        |

@@ -107,7 +107,7 @@ Run the bash script above to manage encouraged items.
 
 | Issue                  | Cause                    | Solution                             |
 | ---------------------- | ------------------------ | ------------------------------------ |
-| jq error on add        | Config file malformed    | Run `/ru:config reset` to recreate   |
+| jq error on add        | Config file malformed    | Run `/ru:settings reset` to recreate |
 | Item not appearing     | Typo or different casing | Use `--list` to verify exact text    |
 | Encouraged not applied | RU not running           | Start with `/ru:start`               |
 | Remove by phrase fails | No match found           | Use `--list` to see exact item names |
