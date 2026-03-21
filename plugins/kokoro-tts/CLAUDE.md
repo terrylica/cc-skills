@@ -2,7 +2,7 @@
 
 > Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, health checks, diagnostics.
 
-**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [tts-telegram-sync CLAUDE.md](../tts-telegram-sync/CLAUDE.md) | [plugins/CLAUDE.md](../CLAUDE.md)
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [tts-tg-sync CLAUDE.md](../tts-tg-sync/CLAUDE.md) | [plugins/CLAUDE.md](../CLAUDE.md)
 
 ## Overview
 
@@ -65,7 +65,7 @@ Full patterns and anti-patterns: `kokoro-tts:realtime-audio-architecture`
 
 ## Cross-References
 
-- `tts-telegram-sync` plugin depends on this for engine management
+- `tts-tg-sync` plugin depends on this for engine management
 - HTTP server API: [server-api.md](./skills/server/references/server-api.md)
 - Voice catalog: [voice-catalog.md](./skills/synthesize/references/voice-catalog.md)
 - Real-time audio patterns: [realtime-audio-architecture](./skills/realtime-audio-architecture/SKILL.md)

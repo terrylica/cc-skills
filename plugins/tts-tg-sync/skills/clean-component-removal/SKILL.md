@@ -83,7 +83,7 @@ pkill -f 'bun.*src/main.ts' || echo "Bot was not running"
 
 ```bash
 # Uses kokoro-install.sh --uninstall (removes venv, keeps model cache)
-~/eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --uninstall
+~/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --uninstall
 ```
 
 ### Phase 4: Remove Symlinks

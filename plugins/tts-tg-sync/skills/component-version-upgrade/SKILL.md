@@ -52,7 +52,7 @@ Ask the user which component to upgrade using AskUserQuestion. Present the four 
 
 ```bash
 # Run health check to establish baseline
-~/.local/share/kokoro/../../eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --health
+~/.local/share/kokoro/../../eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --health
 
 # Record current versions
 cat ~/.local/share/kokoro/version.json

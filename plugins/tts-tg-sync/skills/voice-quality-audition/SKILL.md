@@ -94,7 +94,7 @@ For a selective audition, edit the `VOICES` array in the script or pass voice ID
 Or directly from the plugin source:
 
 ```bash
-/path/to/plugins/tts-telegram-sync/scripts/tts_kokoro_audition.sh
+/path/to/plugins/tts-tg-sync/scripts/tts_kokoro_audition.sh
 ```
 
 The script acquires the TTS lock, plays each voice sequentially with a 1-second gap, then releases the lock on exit.

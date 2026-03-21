@@ -25,7 +25,7 @@ This analysis identifies duplicated content, orphaned documentation, and structu
 | `Hub + Sibling (itp-hooks)` | 5 | asciinema-tools, quality-tools, statusline-tools, doc-tools, ru |
 | `Hub + Sibling (itp)` | 3 | link-tools, rust-tools, git-town-workflow |
 | `Hub + Sibling (gh-tools)` | 3 | devops-tools, gitnexus-tools, dotfiles-tools |
-| `Hub + Sibling (gmail-commander)` | 2 | calcom-commander, tts-telegram-sync |
+| `Hub + Sibling (gmail-commander)` | 2 | calcom-commander, tts-tg-sync |
 | `Hub only` | 1 | kokoro-tts (missing Sibling) |
 
 **Finding**: All 23 plugin CLAUDE.md files follow the Hub+Sibling pattern with minor variations. The **kokoro-tts** plugin is missing the Sibling link entirely.
@@ -51,7 +51,7 @@ Multiple plugins include similar 1Password documentation:
 | Has Skills section | 19/23 plugins |
 | Missing Skills section | 7 plugins |
 
-Missing Skills: calcom-commander, git-town-workflow, gmail-commander, kokoro-tts, mise, ru, tts-telegram-sync
+Missing Skills: calcom-commander, git-town-workflow, gmail-commander, kokoro-tts, mise, ru, tts-tg-sync
 
 ### 1.4 Commands Section Inconsistency
 
@@ -147,7 +147,7 @@ Missing Skills: calcom-commander, git-town-workflow, gmail-commander, kokoro-tts
 ### 5.1 High Priority
 
 1. **Add Sibling link to kokoro-tts/CLAUDE.md**
-   - Missing: `| **Sibling**: [tts-telegram-sync CLAUDE.md](../tts-telegram-sync/CLAUDE.md)`
+   - Missing: `| **Sibling**: [tts-tg-sync CLAUDE.md](../tts-tg-sync/CLAUDE.md)`
 
 2. **Delete or integrate orphaned files**
    - `docs/tool-inventory.md` — integrate into docs/ or delete if unnecessary
@@ -172,7 +172,7 @@ Missing Skills: calcom-commander, git-town-workflow, gmail-commander, kokoro-tts
    - Create template for plugin CLAUDE.md files
 
 7. **Add Skills section to missing plugins**
-   - calcom-commander, git-town-workflow, gmail-commander, kokoro-tts, mise, ru, tts-telegram-sync
+   - calcom-commander, git-town-workflow, gmail-commander, kokoro-tts, mise, ru, tts-tg-sync
 
 ### 5.3 Low Priority
 
@@ -225,7 +225,7 @@ plugins/quant-research/CLAUDE.md
 plugins/ru/CLAUDE.md
 plugins/rust-tools/CLAUDE.md
 plugins/statusline-tools/CLAUDE.md
-plugins/tts-telegram-sync/CLAUDE.md
+plugins/tts-tg-sync/CLAUDE.md
 ```
 
 ### Root Documentation

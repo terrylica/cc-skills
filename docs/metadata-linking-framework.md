@@ -62,7 +62,7 @@ allowed-tools: <comma-separated tools>
 1. **No Unified Skill Index** - 164 skills, no single list
 2. **Weak Cross-Spoke Links** - docs/CLAUDE.md and plugins/CLAUDE.md rarely link
 3. **Category/Tag Browsing Absent** - `category` and `keywords` in marketplace.json not exposed
-4. **Plugin Dependencies Not Exposed** - e.g., tts-telegram-sync requires kokoro-tts
+4. **Plugin Dependencies Not Exposed** - e.g., tts-tg-sync requires kokoro-tts
 
 ---
 
@@ -122,7 +122,7 @@ Standardized categories derived from marketplace.json:
 |----------|-------------|---------|
 | `development` | Code development tools | plugin-dev, gh-tools, gitnexus-tools, rust-tools |
 | `productivity` | Workflow automation | itp, mise, gmail-commander, calcom-commander, productivity-tools |
-| `devops` | Infrastructure & deployment | devops-tools, dotfiles-tools, asciinema-tools, git-town-workflow, kokoro-tts, tts-telegram-sync |
+| `devops` | Infrastructure & deployment | devops-tools, dotfiles-tools, asciinema-tools, git-town-workflow, kokoro-tts, tts-tg-sync |
 | `trading` | Financial trading | mql5, quant-research |
 | `utilities` | General utilities | statusline-tools |
 | `enforcement` | Workflow enforcement | itp-hooks |

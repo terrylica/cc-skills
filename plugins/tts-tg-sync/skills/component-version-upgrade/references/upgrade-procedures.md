@@ -15,13 +15,13 @@ The primary upgrade path. Updates Python dependencies, re-downloads the model, a
 cat ~/.local/share/kokoro/version.json
 
 # 2. Run health check (baseline)
-~/.claude/eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --health
+~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --health
 
 # 3. Execute upgrade
-~/.claude/eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --upgrade
+~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --upgrade
 
 # 4. Verify
-~/.claude/eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --health
+~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --health
 cat ~/.local/share/kokoro/version.json
 ```
 
@@ -36,8 +36,8 @@ cat ~/.local/share/kokoro/version.json
 
 ```bash
 # If upgrade breaks TTS, do a clean reinstall:
-~/.claude/eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --uninstall
-~/.claude/eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --install
+~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --uninstall
+~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --install
 ```
 
 The model cache at `~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16` is preserved across uninstall, so reinstall reuses the cached model.
@@ -86,10 +86,10 @@ Updates the TTS generation script from the plugin bundle without touching the ve
 ```bash
 # 1. Compare current vs bundle
 diff ~/.local/share/kokoro/tts_generate.py \
-     ~/eon/cc-skills/plugins/tts-telegram-sync/scripts/tts_generate.py
+     ~/eon/cc-skills/plugins/tts-tg-sync/scripts/tts_generate.py
 
 # 2. Copy from bundle
-cp ~/eon/cc-skills/plugins/tts-telegram-sync/scripts/tts_generate.py \
+cp ~/eon/cc-skills/plugins/tts-tg-sync/scripts/tts_generate.py \
    ~/.local/share/kokoro/tts_generate.py
 
 # 3. Verify

@@ -105,7 +105,7 @@ After applying the fix, verify the issue is resolved:
   --output /tmp/kokoro-tts-diag-test.wav && afplay /tmp/kokoro-tts-diag-test.wav && echo "OK"
 
 # Full health check
-~/eon/cc-skills/plugins/tts-telegram-sync/scripts/kokoro-install.sh --health
+~/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --health
 ```
 
 ---

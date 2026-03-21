@@ -12,7 +12,7 @@ This review synthesizes findings from Tasks 1, 5, and 6 to assess documentation 
 **Key Findings:**
 - **87%** of plugins follow Hub+Sibling navigation pattern
 - **No unified skill index** - users must know plugin name to discover skills
-- **4 plugins missing Skills sections** (kokoro-tts, mise, ru, tts-telegram-sync)
+- **4 plugins missing Skills sections** (kokoro-tts, mise, ru, tts-tg-sync)
 - **1 orphaned plugin link** (kokoro-tts missing Sibling link)
 - **Duplicate content** across 5+ plugins (1Password patterns)
 
@@ -37,7 +37,7 @@ This review synthesizes findings from Tasks 1, 5, and 6 to assess documentation 
 
 **Accessibility Issues:**
 - **kokoro-tts**: Missing Sibling link entirely
-- **4 plugins**: Missing Skills sections (calcom-commander, git-town-workflow, gmail-commander, mise, ru, tts-telegram-sync)
+- **4 plugins**: Missing Skills sections (calcom-commander, git-town-workflow, gmail-commander, mise, ru, tts-tg-sync)
 - **Header format inconsistencies**: Some use `# plugin-name Plugin`, others use `# plugin-name`
 
 ### 2. Link Integrity
@@ -82,7 +82,7 @@ This review synthesizes findings from Tasks 1, 5, and 6 to assess documentation 
 | Issue | Fix | Priority |
 |-------|-----|----------|
 | kokoro-tts missing Sibling link | Add Sibling link to plugins/CLAUDE.md | Critical |
-| 4 plugins missing Skills sections | Add Skills sections to calcom-commander, git-town-workflow, gmail-commander, mise, ru, tts-telegram-sync | High |
+| 4 plugins missing Skills sections | Add Skills sections to calcom-commander, git-town-workflow, gmail-commander, mise, ru, tts-tg-sync | High |
 | Header format inconsistencies | Standardize to `# <plugin-name> Plugin` format | Medium |
 
 ### Phase 2: Improve Findability (Short-Term)

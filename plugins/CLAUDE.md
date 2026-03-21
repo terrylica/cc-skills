@@ -113,7 +113,7 @@ If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 | `rust-tools`           | SOTA Rust tooling: refactoring, profiling, benchmarking, testing, SIMD, dependency audit ([CLAUDE.md](./rust-tools/CLAUDE.md))   |
 | `statusline-tools`     | Custom status line with git status indicators ([CLAUDE.md](./statusline-tools/CLAUDE.md))                                        |
 | `tlg`                  | Telegram user-account messaging via MTProto (Telethon) ([CLAUDE.md](./tlg/CLAUDE.md))                                            |
-| `tts-telegram-sync`    | TTS and Telegram bot lifecycle: Kokoro engine, voice audition ([CLAUDE.md](./tts-telegram-sync/CLAUDE.md))                       |
+| `tts-tg-sync`    | TTS and Telegram bot lifecycle: Kokoro engine, voice audition ([CLAUDE.md](./tts-tg-sync/CLAUDE.md))                       |
 
 ## Toolchain
 

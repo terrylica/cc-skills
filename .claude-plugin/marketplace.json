@@ -432,10 +432,10 @@
       "strict": false
     },
     {
-      "name": "tts-telegram-sync",
+      "name": "tts-tg-sync",
       "description": "Telegram bot + iTerm2 TTS integration: bot process control, voice audition, settings, hooks (requires kokoro-tts for engine)",
       "version": "12.13.1",
-      "source": "./plugins/tts-telegram-sync",
+      "source": "./plugins/tts-tg-sync",
       "category": "devops",
       "requires": [
         "kokoro-tts"
@@ -456,7 +456,7 @@
         "session-sync",
         "health-check"
       ],
-      "hooks": "./plugins/tts-telegram-sync/hooks/hooks.json",
+      "hooks": "./plugins/tts-tg-sync/hooks/hooks.json",
       "strict": false
     },
     {

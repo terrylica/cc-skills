@@ -93,9 +93,9 @@ Plugin context variables (`CLAUDE_PLUGIN_ROOT`) are available when Claude Code l
 
 ---
 
-## 2026-02-13: Extract Advanced Patterns from tts-telegram-sync
+## 2026-02-13: Extract Advanced Patterns from tts-tg-sync
 
-**Trigger**: The tts-telegram-sync plugin (8 skills, 3 commands, hooks, shared library) demonstrated 10 advanced patterns not captured in skill-architecture. These were extracted as agnostic, universally applicable patterns.
+**Trigger**: The tts-tg-sync plugin (8 skills, 3 commands, hooks, shared library) demonstrated 10 advanced patterns not captured in skill-architecture. These were extracted as agnostic, universally applicable patterns.
 
 ### Changes Made
 
