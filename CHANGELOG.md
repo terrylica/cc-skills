@@ -1,3 +1,163 @@
+## [12.13.2](https://github.com/terrylica/cc-skills/compare/v12.13.1...v12.13.2) (2026-03-21)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>tts-tg-sync</strong> (10 changes)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/bot-process-control/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/bot-process-control/SKILL.md`
+- [clean-component-removal](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/clean-component-removal/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/clean-component-removal/SKILL.md`
+- [component-version-upgrade](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/component-version-upgrade/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/component-version-upgrade/SKILL.md`
+- [diagnostic-issue-resolver](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/diagnostic-issue-resolver/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/SKILL.md`
+- [full-stack-bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/full-stack-bootstrap/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/full-stack-bootstrap/SKILL.md`
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/health/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/health/SKILL.md`
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/hooks/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/hooks/SKILL.md`
+- [settings-and-tuning](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/settings-and-tuning/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/settings-and-tuning/SKILL.md`
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/setup/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/setup/SKILL.md`
+- [voice-quality-audition](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/voice-quality-audition/SKILL.md) - renamed from `plugins/tts-telegram-sync/skills/voice-quality-audition/SKILL.md`
+
+</details>
+
+
+### Plugin READMEs
+
+- [TTS Telegram Sync](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/README.md) - renamed from `plugins/tts-telegram-sync/README.md`
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - updated (+2/-2)
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/bot-process-control</strong> (3 files)</summary>
+
+- [bot-process-control Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/bot-process-control/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/bot-process-control/references/evolution-log.md`
+- [Operational Commands](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/bot-process-control/references/operational-commands.md) - renamed from `plugins/tts-telegram-sync/skills/bot-process-control/references/operational-commands.md`
+- [Process Tree](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/bot-process-control/references/process-tree.md) - renamed from `plugins/tts-telegram-sync/skills/bot-process-control/references/process-tree.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/clean-component-removal</strong> (1 file)</summary>
+
+- [clean-component-removal Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/clean-component-removal/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/clean-component-removal/references/evolution-log.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/component-version-upgrade</strong> (2 files)</summary>
+
+- [component-version-upgrade Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/component-version-upgrade/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/component-version-upgrade/references/evolution-log.md`
+- [Upgrade Procedures](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/component-version-upgrade/references/upgrade-procedures.md) - renamed from `plugins/tts-telegram-sync/skills/component-version-upgrade/references/upgrade-procedures.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/diagnostic-issue-resolver</strong> (3 files)</summary>
+
+- [Common Issues -- Expanded Diagnostic Procedures](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/diagnostic-issue-resolver/references/common-issues.md) - renamed from `plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/references/common-issues.md`
+- [diagnostic-issue-resolver Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/diagnostic-issue-resolver/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/references/evolution-log.md`
+- [Lock Debugging -- Two-Layer Lock Mechanism](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/diagnostic-issue-resolver/references/lock-debugging.md) - renamed from `plugins/tts-telegram-sync/skills/diagnostic-issue-resolver/references/lock-debugging.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/full-stack-bootstrap</strong> (4 files)</summary>
+
+- [BotFather Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/full-stack-bootstrap/references/botfather-guide.md) - renamed from `plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/botfather-guide.md`
+- [full-stack-bootstrap Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/full-stack-bootstrap/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/evolution-log.md`
+- [Kokoro TTS Engine Bootstrap Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/full-stack-bootstrap/references/kokoro-bootstrap.md) - renamed from `plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/kokoro-bootstrap.md`
+- [Upstream: MLX-Audio Kokoro](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/full-stack-bootstrap/references/upstream-fork.md) - renamed from `plugins/tts-telegram-sync/skills/full-stack-bootstrap/references/upstream-fork.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/health</strong> (2 files)</summary>
+
+- [health Evolution Log (formerly system-health-check)](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/health/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/health/references/evolution-log.md`
+- [Health Checks Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/health/references/health-checks.md) - renamed from `plugins/tts-telegram-sync/skills/health/references/health-checks.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/hooks/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/hooks/references/evolution-log.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/settings-and-tuning</strong> (3 files)</summary>
+
+- [Configuration Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/settings-and-tuning/references/config-reference.md) - renamed from `plugins/tts-telegram-sync/skills/settings-and-tuning/references/config-reference.md`
+- [settings-and-tuning Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/settings-and-tuning/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/settings-and-tuning/references/evolution-log.md`
+- [mise.toml Architecture Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/settings-and-tuning/references/mise-toml-reference.md) - renamed from `plugins/tts-telegram-sync/skills/settings-and-tuning/references/mise-toml-reference.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/setup/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/setup/references/evolution-log.md`
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync/voice-quality-audition</strong> (2 files)</summary>
+
+- [voice-quality-audition Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/voice-quality-audition/references/evolution-log.md) - renamed from `plugins/tts-telegram-sync/skills/voice-quality-audition/references/evolution-log.md`
+- [Voice Catalog](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/voice-quality-audition/references/voice-catalog.md) - renamed from `plugins/tts-telegram-sync/skills/voice-quality-audition/references/voice-catalog.md`
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+1/-1)
+
+### General Documentation
+
+- [Accessibility & Findability Review](https://github.com/terrylica/cc-skills/blob/main/docs/accessibility-findability-review.md) - updated (+3/-3)
+- [Cross-Link Validation Report](https://github.com/terrylica/cc-skills/blob/main/docs/cross-link-validation-report.md) - updated (+2/-2)
+- [Content Deduplication Analysis](https://github.com/terrylica/cc-skills/blob/main/docs/deduplication-analysis.md) - updated (+5/-5)
+- [Search & Discovery Architecture](https://github.com/terrylica/cc-skills/blob/main/docs/discovery-architecture.md) - updated (+3/-3)
+- [Governance & Maintenance Model](https://github.com/terrylica/cc-skills/blob/main/docs/governance-maintenance-model.md) - updated (+2/-2)
+- [Governance & Maintenance Model](https://github.com/terrylica/cc-skills/blob/main/docs/governance-model.md) - updated (+2/-2)
+- [Hooks Development Guide](https://github.com/terrylica/cc-skills/blob/main/docs/HOOKS.md) - updated (+1/-1)
+- [Metadata & Linking Framework](https://github.com/terrylica/cc-skills/blob/main/docs/metadata-linking-framework.md) - updated (+2/-2)
+- [Documentation Standards Compliance Matrix](https://github.com/terrylica/cc-skills/blob/main/docs/standards-compliance-matrix.md) - updated (+8/-8)
+
+## Other Documentation
+
+### Other
+
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+1/-1)
+- [kokoro-tts Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/CLAUDE.md) - updated (+2/-2)
+- [tts-tg-sync Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/CLAUDE.md) - renamed from `plugins/tts-telegram-sync/CLAUDE.md`
+
 ## [12.13.1](https://github.com/terrylica/cc-skills/compare/v12.13.0...v12.13.1) (2026-03-21)
 
 
