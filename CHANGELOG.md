@@ -1,3 +1,10 @@
+# [12.13.0](https://github.com/terrylica/cc-skills/compare/v12.12.2...v12.13.0) (2026-03-21)
+
+
+### Features
+
+* **statusline-tools:** add cron-countdown.py PID to ccstatus line ([5f5c392](https://github.com/terrylica/cc-skills/commit/5f5c39251ee3c0d3b46834054cb3a1cb6099f05d))
+
 ## [12.12.2](https://github.com/terrylica/cc-skills/compare/v12.12.1...v12.12.2) (2026-03-21)
 
 
