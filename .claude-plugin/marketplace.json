@@ -629,10 +629,10 @@
       "strict": false
     },
     {
-      "name": "telegram-cli",
+      "name": "tlg",
       "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, list dialogs, 1Password credentials",
       "version": "12.13.0",
-      "source": "./plugins/telegram-cli",
+      "source": "./plugins/tlg",
       "category": "productivity",
       "author": {
         "name": "<user>ca",
