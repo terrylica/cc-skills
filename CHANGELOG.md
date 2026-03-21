@@ -1,3 +1,55 @@
+## [12.12.2](https://github.com/terrylica/cc-skills/compare/v12.12.1...v12.12.2) (2026-03-21)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>ru</strong> (5 changes)</summary>
+
+- [audit-now](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/audit-now/SKILL.md) - updated (+1/-1)
+- [encourage](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/encourage/SKILL.md) - updated (+1/-1)
+- [forbid](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/forbid/SKILL.md) - updated (+1/-1)
+- [settings](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/settings/SKILL.md) - renamed from `plugins/ru/skills/config/SKILL.md`
+- [wizard](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/wizard/SKILL.md) - updated (+8/-8)
+
+</details>
+
+
+### Plugin READMEs
+
+- [RU](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/README.md) - updated (+1/-1)
+
+### Skill References
+
+<details>
+<summary><strong>ru/settings</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/settings/references/evolution-log.md) - renamed from `plugins/ru/skills/config/references/evolution-log.md`
+
+</details>
+
+
+## Repository Documentation
+
+### Root Documentation
+
+- [cc-skills](https://github.com/terrylica/cc-skills/blob/main/README.md) - updated (+1/-1)
+
+## Other Documentation
+
+### Other
+
+- [ru Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/CLAUDE.md) - updated (+1/-1)
+
 ## [12.12.1](https://github.com/terrylica/cc-skills/compare/v12.12.0...v12.12.1) (2026-03-20)
 
 
