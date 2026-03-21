@@ -245,6 +245,9 @@ cron_state_file="$HOME/.claude/state/active-crons.json"
 cron_count=0
 [ -f "$cron_state_file" ] && cron_count=$(jq 'length' "$cron_state_file" 2>/dev/null || echo 0)
 
+# cron-countdown.py PID (iTerm2 status bar component)
+cron_countdown_pid=$(pgrep -f 'cron-countdown\.py' 2>/dev/null | head -1)
+
 
 # Get GitHub remote URL (convert SSH to HTTPS for browser link)
 get_github_url() {
@@ -346,6 +349,8 @@ if [ "$cron_count" -gt 0 ]; then
         [ -n "$job_sess" ] && printf ' \033[90m[%s]\033[0m' "$job_sess"
         # Project path in gray
         [ -n "$job_proj" ] && printf ' \033[90m%s\033[0m' "$job_proj"
+        # cron-countdown.py PID (for easy kill if stale)
+        [ -n "$cron_countdown_pid" ] && printf ' \033[90mpid:%s\033[0m' "$cron_countdown_pid"
         # Last 5 versioned history links — numbered 1=newest
         history_dir="$HOME/.claude/state/cron-history/${job_id}"
         if [ -d "$history_dir" ]; then
