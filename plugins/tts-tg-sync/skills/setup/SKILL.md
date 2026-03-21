@@ -42,7 +42,7 @@ PREFLIGHT_EOF
 Run the Kokoro TTS engine installer:
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-telegram-sync}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-tg-sync}"
 bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --install
 ```
 
@@ -71,7 +71,7 @@ Use AskUserQuestion to ask if user has an existing bot token or needs to create 
 Create symlinks in `~/.local/bin/` for all TTS shell scripts:
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-telegram-sync}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-tg-sync}"
 mkdir -p ~/.local/bin
 for script in tts_kokoro.sh tts_kokoro_audition.sh tts_read_clipboard.sh tts_read_clipboard_wrapper.sh tts_speed_up.sh tts_speed_down.sh tts_speed_reset.sh; do
     ln -sf "$PLUGIN_DIR/scripts/$script" ~/.local/bin/"$script"
@@ -82,7 +82,7 @@ done
 
 ```bash
 # Test Kokoro health
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-telegram-sync}"
+PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-tg-sync}"
 bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --health
 
 # Test bot connectivity

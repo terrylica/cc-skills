@@ -1,6 +1,6 @@
 # mise.toml Architecture Reference
 
-How the tts-telegram-sync bot uses mise.toml for configuration, secret loading, and task orchestration.
+How the tts-tg-sync bot uses mise.toml for configuration, secret loading, and task orchestration.
 
 ## Hub/Spoke Structure
 

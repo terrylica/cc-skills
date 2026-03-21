@@ -10,20 +10,20 @@ Full lifecycle management for Kokoro TTS, Telegram bot sync, and iTerm2 integrat
 
 ```bash
 # From cc-skills marketplace
-/plugin install tts-telegram-sync@cc-skills
+/plugin install tts-tg-sync@cc-skills
 ```
 
 ## Quick Start
 
 ```bash
 # Bootstrap everything (Kokoro + Telegram bot + BotFather)
-/tts-telegram-sync:setup
+/tts-tg-sync:setup
 
 # Check system health
-/tts-telegram-sync:health
+/tts-tg-sync:health
 
 # Install hooks
-/tts-telegram-sync:hooks install
+/tts-tg-sync:hooks install
 ```
 
 ## Skills

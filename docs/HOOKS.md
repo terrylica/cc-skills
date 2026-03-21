@@ -209,7 +209,7 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 | `productivity-tools` | PreToolUse                    | Calendar event management           |
 | `gmail-commander`    | Stop                          | Bot lifecycle management            |
 | `calcom-commander`   | Stop                          | Bot lifecycle management            |
-| `tts-telegram-sync`  | Stop                          | TTS/bot process cleanup             |
+| `tts-tg-sync`  | Stop                          | TTS/bot process cleanup             |
 
 ## Related ADRs
 

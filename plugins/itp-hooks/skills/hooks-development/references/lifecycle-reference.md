@@ -731,7 +731,7 @@ Plugin hooks are declared in `hooks/hooks.json` and synced to `~/.claude/setting
 
 | Plugin            | Events Used                     | Reference                   |
 | ----------------- | ------------------------------- | --------------------------- |
-| tts-telegram-sync | Stop                            | Simple single-event example |
+| tts-tg-sync | Stop                            | Simple single-event example |
 | gh-tools          | PreToolUse + PostToolUse        | Multi-event with matchers   |
 | itp-hooks         | PreToolUse + PostToolUse + Stop | Full 3-event example        |
 
@@ -1026,7 +1026,7 @@ def hard_stop(reason: str):
 | **Trusting GitHub issues as features**   | Implement non-existent functionality                                                          | Issues are REQUESTS not implementations. Always verify against official Claude Code docs.                                                                                                                                                                                                                                                                              |
 | **`$CLAUDE_PLUGIN_ROOT` in hooks.json**  | Hook command resolves to empty path → "Module not found"                                      | `$CLAUDE_PLUGIN_ROOT` is only available inside Claude Code's plugin skill loading context, NOT as a shell env var. Hook commands in hooks.json are synced verbatim to settings.json and run as shell commands. **Always use `$HOME`-based absolute paths** in hook commands (e.g., `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/my-plugin/hooks/handler.ts`). |
 | **Empty TOML table sections**            | mise rejects file with parse error                                                            | TOML tables (e.g., `[hooks.enter]`) containing only comments and no key-value pairs cause parse errors. Either add at least one key or remove the section entirely. For mise hooks, `.mise.local.toml` auto-loads on directory entry without needing `[hooks.enter]`.                                                                                                  |
-| **Flat array hooks.json format**         | `.hooks` is array instead of object → sync script fails with "Cannot index array with string" | Use canonical object format: `"hooks": {"Stop": [{"hooks": [{"type": "command", ...}]}]}`. The `.hooks` key must be an **object** keyed by event type, not a flat array. See Plugin hooks.json Format section above and tts-telegram-sync as reference.                                                                                                                |
+| **Flat array hooks.json format**         | `.hooks` is array instead of object → sync script fails with "Cannot index array with string" | Use canonical object format: `"hooks": {"Stop": [{"hooks": [{"type": "command", ...}]}]}`. The `.hooks` key must be an **object** keyed by event type, not a flat array. See Plugin hooks.json Format section above and tts-tg-sync as reference.                                                                                                                |
 
 ```{=latex}
 \newpage

@@ -59,7 +59,7 @@ This audit examines all 23 plugin CLAUDE.md files against the documented standar
 | quant-research | ✓ `# quant-research Plugin` | ✓ | ✓ | - | - | ✓ | **Good** |
 | gmail-commander | ⚠ `# Gmail Commander Plugin` | ✓ | - | ✓ | - | ✓ | **Fair** |
 | kokoro-tts | ✓ `# kokoro-tts Plugin` | ⚠ Hub only | ✓ | - | - | ✓ | **Fair** |
-| tts-telegram-sync | ✓ `# tts-telegram-sync Plugin` | ✓ | - | - | - | ✓ | **Fair** |
+| tts-tg-sync | ✓ `# tts-tg-sync Plugin` | ✓ | - | - | - | ✓ | **Fair** |
 | calcom-commander | ⚠ `# Cal.com Commander Plugin` | ✓ | - | - | - | ✓ | **Fair** |
 | mise | ✓ `# mise Plugin` | ✓ | - | ✓ | - | ✓ | **Fair** |
 | gitnexus-tools | ✓ `# gitnexus-tools Plugin` | ✓ | ✓ | - | ✓ | ✓ | **Good** |
@@ -73,7 +73,7 @@ This audit examines all 23 plugin CLAUDE.md files against the documented standar
 
 | Issue | Plugins Affected |
 |-------|------------------|
-| Non-standard naming (spaces vs hyphens) | `gmail-commander` ("Gmail Commander"), `calcom-commander` ("Cal.com Commander"), `kokoro-tts` (missing "Plugin"), `tts-telegram-sync` (missing "Plugin") |
+| Non-standard naming (spaces vs hyphens) | `gmail-commander` ("Gmail Commander"), `calcom-commander` ("Cal.com Commander"), `kokoro-tts` (missing "Plugin"), `tts-tg-sync` (missing "Plugin") |
 | Capitalization inconsistencies | Some use Title Case, others use lowercase |
 
 **Recommendation:** Standardize to `# <plugin-name> Plugin` format using hyphens for compound names.
@@ -92,7 +92,7 @@ This audit examines all 23 plugin CLAUDE.md files against the documented standar
 |--------|-------|
 | git-town-workflow | Has Commands only |
 | gmail-commander | Has Commands, references skill via paragraph |
-| tts-telegram-sync | References skills implicitly |
+| tts-tg-sync | References skills implicitly |
 | calcom-commander | Has Architecture section instead |
 | mise | References skills in "Future Skills" |
 
@@ -142,14 +142,14 @@ This audit examines all 23 plugin CLAUDE.md files against the documented standar
 
 | Section | Plugins |
 |---------|---------|
-| Overview | itp-hooks, ru, kokoro-tts, tts-telegram-sync, gitnexus-tools |
-| Architecture | gmail-commander, calcom-commander, tts-telegram-sync, kokoro-tts |
+| Overview | itp-hooks, ru, kokoro-tts, tts-tg-sync, gitnexus-tools |
+| Architecture | gmail-commander, calcom-commander, tts-tg-sync, kokoro-tts |
 | Dependencies | itp |
 | Environment Variables | gmail-commander, calcom-commander |
 | Philosophy | git-town-workflow |
 | Tool Categories | rust-tools |
 | Analysis Pipeline | asciinema-tools |
-| Key Paths | kokoro-tts, tts-telegram-sync |
+| Key Paths | kokoro-tts, tts-tg-sync |
 | Self-Bootstrapping | mise |
 
 **Recommendation:** These sections are valuable but should follow consistent naming conventions.
@@ -207,7 +207,7 @@ This audit examines all 23 plugin CLAUDE.md files against the documented standar
 
 ### Medium Priority
 
-5. **Add missing Skills tables**: git-town-workflow, gmail-commander, tts-telegram-sync, calcom-commander, mise
+5. **Add missing Skills tables**: git-town-workflow, gmail-commander, tts-tg-sync, calcom-commander, mise
 6. **Document "No hooks" explicitly**: For plugins without hooks
 7. **Standardize "Commands" vs "Skills"**: Clarify when to use each
 
@@ -241,7 +241,7 @@ This audit examines all 23 plugin CLAUDE.md files against the documented standar
 | 16 | quant-research | ✓ | ✓ | |
 | 17 | gmail-commander | ✓ | ✓ | |
 | 18 | kokoro-tts | ✓ | ✓ | Missing Sibling links |
-| 19 | tts-telegram-sync | ✓ | ✓ | |
+| 19 | tts-tg-sync | ✓ | ✓ | |
 | 20 | calcom-commander | ✓ | ✓ | |
 | 21 | mise | ✓ | ✓ | |
 | 22 | gitnexus-tools | ✓ | ✓ | |
