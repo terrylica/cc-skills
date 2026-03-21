@@ -121,7 +121,7 @@ Comprehensive validation that checks:
 - **Example**: `itp:release` and `mise:release` are related but not linked
 
 ### Gap 6: Plugin Dependencies Not Exposed
-- **Problem**: `tts-telegram-sync` requires `kokoro-tts` but this isn't visible to users
+- **Problem**: `tts-tg-sync` requires `kokoro-tts` but this isn't visible to users
 - **Impact**: Users don't understand plugin relationships
 
 ---
@@ -201,7 +201,7 @@ Enhance root CLAUDE.md with category-based plugin listing:
 - itp, gmail-commander, calcom-commander, mise, productivity-tools
 
 ### DevOps (5)
-- devops-tools, asciinema-tools, git-town-workflow, kokoro-tts, tts-telegram-sync
+- devops-tools, asciinema-tools, git-town-workflow, kokoro-tts, tts-tg-sync
 
 ### Trading (2)
 - mql5, quant-research
@@ -215,7 +215,7 @@ Add dependency visualization to root CLAUDE.md:
 ## Plugin Dependencies
 
 ```
-tts-telegram-sync ──requires──► kokoro-tts
+tts-tg-sync ──requires──► kokoro-tts
 git-town-workflow ──requires──► git-town
 ```
 ```

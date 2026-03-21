@@ -1,6 +1,6 @@
 ---
 name: full-stack-bootstrap
-description: One-time bootstrap for Kokoro TTS engine, Telegram bot, and BotFather setup. TRIGGERS - setup tts, install kokoro, botfather, bootstrap tts-telegram-sync, configure telegram bot, full stack setup.
+description: One-time bootstrap for Kokoro TTS engine, Telegram bot, and BotFather setup. TRIGGERS - setup tts, install kokoro, botfather, bootstrap tts-tg-sync, configure telegram bot, full stack setup.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 disable-model-invocation: true
 ---
@@ -13,7 +13,7 @@ One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (ML
 
 ## When to Use This Skill
 
-- First-time setup of the tts-telegram-sync plugin
+- First-time setup of the tts-tg-sync plugin
 - Reinstalling after a clean OS install or hardware migration
 - Setting up a new machine with the full TTS + Telegram stack
 - Recovering from a broken installation (run `kokoro-install.sh --uninstall` first)

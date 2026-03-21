@@ -41,7 +41,7 @@ These links point to files that exist, but the anchor/header doesn't match:
 | `docs/CLAUDE.md` | `../CLAUDE.md#development-toolchain` | Header exists ("Development Toolchain") but anchor format differs |
 | `plugins/CLAUDE.md` | `../CLAUDE.md#development-toolchain` | Same as above |
 | `plugins/gmail-commander/CLAUDE.md` | `./skills/bot-process-control/SKILL.md#diagnosing-invalid_grant` | Header exists ("Diagnosing `invalid_grant`") but anchor uses underscore vs hyphen |
-| `plugins/tts-telegram-sync/CLAUDE.md` | `../itp-hooks/CLAUDE.md#typescript-services-swift-runner--bun---watch` | Header doesn't exist in target |
+| `plugins/tts-tg-sync/CLAUDE.md` | `../itp-hooks/CLAUDE.md#typescript-services-swift-runner--bun---watch` | Header doesn't exist in target |
 
 ---
 
@@ -81,7 +81,7 @@ Links to external URLs (not validated - assumed working):
 
 3. **Fix vale-terminology-enforcement anchor** - Verify the correct section name in `plugins/itp-hooks/CLAUDE.md` and update the link in `docs/CLAUDE.md`
 
-4. **Fix typescript-services-swift-runner--bun---watch anchor** - Verify the correct section name in `plugins/itp-hooks/CLAUDE.md` and update the link in `plugins/tts-telegram-sync/CLAUDE.md`
+4. **Fix typescript-services-swift-runner--bun---watch anchor** - Verify the correct section name in `plugins/itp-hooks/CLAUDE.md` and update the link in `plugins/tts-tg-sync/CLAUDE.md`
 
 ### Medium Priority
 

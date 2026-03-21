@@ -1,6 +1,6 @@
 ---
 name: hooks
-description: "Install/uninstall tts-telegram-sync Stop hook to ~/.claude/settings.json. TRIGGERS - tts hooks, install tts hook, tts stop hook."
+description: "Install/uninstall tts-tg-sync Stop hook to ~/.claude/settings.json. TRIGGERS - tts hooks, install tts hook, tts stop hook."
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku
@@ -37,7 +37,7 @@ The Stop hook runs when a Claude Code session ends, sending a notification to yo
 ### Interactive Flow (No Arguments)
 
 ```
-Question: "What would you like to do with the tts-telegram-sync Stop hook?"
+Question: "What would you like to do with the tts-tg-sync Stop hook?"
 Options:
   - "Install" → "Add Stop hook for Telegram notifications on session end"
   - "Uninstall" → "Remove the Stop hook from settings.json"

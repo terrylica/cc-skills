@@ -1,4 +1,4 @@
-# tts-telegram-sync Plugin
+# tts-tg-sync Plugin
 
 > Telegram bot + iTerm2 TTS integration lifecycle management. Depends on `kokoro-tts` for engine management.
 
