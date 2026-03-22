@@ -1,3 +1,47 @@
+# [12.14.0](https://github.com/terrylica/cc-skills/compare/v12.13.2...v12.14.0) (2026-03-22)
+
+
+### Bug Fixes
+
+* **gemini-deep-research:** update profile path from openclaw to local share ([7c43802](https://github.com/terrylica/cc-skills/commit/7c4380275bfaf7b6135a8ebed97d9a631dfe6323))
+
+
+### Features
+
+* **statusline:** add conditional UTC/local date display based on timezone drift ([6ef938e](https://github.com/terrylica/cc-skills/commit/6ef938e19ca03f163bbf866f03f6d6c801c3a904))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+## Repository Documentation
+
+### General Documentation
+
+- [Cross-Link Validation Report](https://github.com/terrylica/cc-skills/blob/main/docs/cross-link-validation-report.md) - updated (+37/-38)
+
+## Other Documentation
+
+### Other
+
+- [gemini-deep-research Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gemini-deep-research/CLAUDE.md) - updated (-3)
+
 ## [12.13.2](https://github.com/terrylica/cc-skills/compare/v12.13.1...v12.13.2) (2026-03-21)
 
 
