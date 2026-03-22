@@ -10,9 +10,6 @@
  *   6. Confirm/start research
  *   7. Poll for completion (mic button + text stability, 30min max)
  *   8. Extract report + share link + optional Firecrawl scrape
- *
- * Origin: openclaw-zero-token/src/providers/gemini-deep-research-client.ts
- * Adapted: Removed openclaw browser config dependency; connects directly to CDP.
  */
 
 import { chromium, type BrowserContext, type Page } from "playwright-core";

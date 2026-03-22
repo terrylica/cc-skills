@@ -27,7 +27,7 @@ git pull origin main
 This prevents:
 
 - Diverged branches causing push failures after semantic-release creates tags
-- Missing commits from other contributors or CI bots (e.g., NanoClaw CLAUDE.md maintenance)
+- Missing commits from other contributors or CI bots
 - Force-push situations that destroy remote state
 
 ## Step 1: Detect Release Tasks

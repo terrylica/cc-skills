@@ -4,8 +4,6 @@
  *
  * Thin wrapper around the gmail-cli binary (absorbed from gmail-tools).
  * Fetches emails via subprocess, returns typed objects.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { auditLog } from "./audit.js";

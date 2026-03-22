@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 Kokoro TTS HTTP server — OpenAI-compatible /v1/audio/speech endpoint.
-ADR: kokoro-tts-openai-server — replaces Supertonic at port 8779 for OpenClaw TTS.
+ADR: kokoro-tts-openai-server — OpenAI-compatible TTS at port 8779.
 GitHub Issue: https://github.com/terrylica/claude-config/issues/62
 
 Wraps MLX-Audio Kokoro-82M for on-device TTS on Apple Silicon (MLX Metal).
-Mirrors the OpenAI TTS API subset that OpenClaw uses.
+Mirrors the OpenAI TTS API subset.
 
 Environment variables:
   KOKORO_SERVER_PORT   — port to listen on (default: 8779)

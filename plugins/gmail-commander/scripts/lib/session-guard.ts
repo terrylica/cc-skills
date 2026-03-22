@@ -3,8 +3,6 @@
  *
  * Prevents multiple instances of a process from running simultaneously.
  * Uses a PID file with liveness checks.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "fs";

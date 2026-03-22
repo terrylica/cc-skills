@@ -4,8 +4,6 @@
  * All selectors for the Deep Research UI flow are centralized here.
  * When Google updates the Gemini UI, only this file needs updating.
  * Each entry is an array of fallback selectors tried in order.
- *
- * Origin: openclaw-zero-token/src/providers/gemini-deep-research-selectors.ts
  */
 
 export const SELECTORS = {

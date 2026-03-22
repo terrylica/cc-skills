@@ -4,8 +4,6 @@
  *
  * Generates podcast-style audio via Kokoro TTS on littleblack (ZeroTier),
  * converts WAV -> OGG/Opus via ffmpeg, sends as Telegram voice message.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { auditLog } from "./audit.js";

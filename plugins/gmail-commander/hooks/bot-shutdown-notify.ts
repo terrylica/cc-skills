@@ -9,8 +9,6 @@
  *
  * Project dir is resolved from GMAIL_COMMANDER_PROJECT_DIR env var,
  * defaulting to ~/own/amonic.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { existsSync, readFileSync } from "fs";

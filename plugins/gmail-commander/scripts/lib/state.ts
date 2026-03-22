@@ -4,8 +4,6 @@
  *
  * Tracks bot statistics and persists to disk as JSON.
  * Adapted from claude-telegram-sync/src/telegram/state.ts.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";

@@ -8,8 +8,6 @@
 
 Automates Google's Gemini Deep Research through Chrome DevTools Protocol (CDP). Connects to a persistent Chrome instance, drives the Gemini web UI through the full Deep Research workflow, and extracts the final markdown report.
 
-**Origin**: Migrated from `openclaw-zero-token/src/providers/gemini-deep-research-*.ts` and probe scripts.
-
 ## Architecture
 
 ```
@@ -70,5 +68,4 @@ plugins/gemini-deep-research/
 
 ## Cross-References
 
-- **Origin**: [openclaw-zero-token](https://github.com/terrylica/openclaw-zero-token) issues #1, #3
 - Firecrawl scraping: [devops-tools](../devops-tools/CLAUDE.md) (self-hosted Firecrawl patterns)

@@ -4,8 +4,6 @@
  *
  * Creates and configures Telegram bot with HTML formatting and rate limiting.
  * Pattern from claude-telegram-sync/src/telegram/bot.ts.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { Bot } from "grammy";

@@ -7,8 +7,6 @@
  * Includes mutex, circuit breaker, 2-min timeout, and streaming edit-in-place.
  *
  * Pattern from claude-telegram-sync/src/telegram/prompt-executor.ts.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { query, createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";

@@ -4,8 +4,6 @@
  *
  * HTML formatting, markdown conversion, and digest rendering for Telegram.
  * Merged from amonic/src/lib/telegram.ts + claude-telegram-sync/src/telegram/format.ts.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import type { Category, Urgency, TriageItem } from "./triage.js";

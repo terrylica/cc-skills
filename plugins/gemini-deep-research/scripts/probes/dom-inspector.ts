@@ -8,8 +8,6 @@
  *   probe      — Connect and dump DOM structure of Gemini page
  *   selectors  — Test all selector groups from our registry
  *   screenshot — Take a screenshot of the current page
- *
- * Origin: openclaw-zero-token/scripts/probe-gemini-dom.ts
  */
 
 import { chromium } from "playwright-core";

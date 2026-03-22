@@ -8,12 +8,12 @@
 
 ## Summary
 
-| Metric | Count | Percentage |
-|--------|-------|------------|
-| Total Links | 173 | 100% |
-| Valid Links | 148 | 85% |
-| Broken Links | 10 | 6% |
-| External Links | 15 | 9% |
+| Metric         | Count | Percentage |
+| -------------- | ----- | ---------- |
+| Total Links    | 173   | 100%       |
+| Valid Links    | 148   | 85%        |
+| Broken Links   | 10    | 6%         |
+| External Links | 14    | 8%         |
 
 ---
 
@@ -23,48 +23,47 @@
 
 These links point to files that don't exist in the repository:
 
-| Source File | Broken Link | Issue |
-|-------------|-------------|-------|
-| `CLAUDE.md` | `./references/guide.md` | Non-existent template/example file |
-| `CLAUDE.md` | `/docs/adr/file.md` | Example ADR path (placeholder) |
-| `plugins/CLAUDE.md` | `./references/guide.md` | Same as above |
-| `plugins/CLAUDE.md` | `/docs/adr/file.md` | Same as above |
+| Source File                      | Broken Link                                | Issue                                                           |
+| -------------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `CLAUDE.md`                      | `./references/guide.md`                    | Non-existent template/example file                              |
+| `CLAUDE.md`                      | `/docs/adr/file.md`                        | Example ADR path (placeholder)                                  |
+| `plugins/CLAUDE.md`              | `./references/guide.md`                    | Same as above                                                   |
+| `plugins/CLAUDE.md`              | `/docs/adr/file.md`                        | Same as above                                                   |
 | `plugins/devops-tools/CLAUDE.md` | `/docs/infrastructure/zerotier-network.md` | Local reference (exists in `~/.claude/docs` but not in project) |
 
 ### Anchors That Don't Match (5)
 
 These links point to files that exist, but the anchor/header doesn't match:
 
-| Source File | Link | Target Header Status |
-|-------------|------|---------------------|
-| `docs/CLAUDE.md` | `../plugins/itp-hooks/CLAUDE.md#vale-terminology-enforcement` | Header doesn't exist in target |
-| `docs/CLAUDE.md` | `../CLAUDE.md#development-toolchain` | Header exists ("Development Toolchain") but anchor format differs |
-| `plugins/CLAUDE.md` | `../CLAUDE.md#development-toolchain` | Same as above |
-| `plugins/gmail-commander/CLAUDE.md` | `./skills/bot-process-control/SKILL.md#diagnosing-invalid_grant` | Header exists ("Diagnosing `invalid_grant`") but anchor uses underscore vs hyphen |
-| `plugins/tts-tg-sync/CLAUDE.md` | `../itp-hooks/CLAUDE.md#typescript-services-swift-runner--bun---watch` | Header doesn't exist in target |
+| Source File                         | Link                                                                   | Target Header Status                                                              |
+| ----------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `docs/CLAUDE.md`                    | `../plugins/itp-hooks/CLAUDE.md#vale-terminology-enforcement`          | Header doesn't exist in target                                                    |
+| `docs/CLAUDE.md`                    | `../CLAUDE.md#development-toolchain`                                   | Header exists ("Development Toolchain") but anchor format differs                 |
+| `plugins/CLAUDE.md`                 | `../CLAUDE.md#development-toolchain`                                   | Same as above                                                                     |
+| `plugins/gmail-commander/CLAUDE.md` | `./skills/bot-process-control/SKILL.md#diagnosing-invalid_grant`       | Header exists ("Diagnosing `invalid_grant`") but anchor uses underscore vs hyphen |
+| `plugins/tts-tg-sync/CLAUDE.md`     | `../itp-hooks/CLAUDE.md#typescript-services-swift-runner--bun---watch` | Header doesn't exist in target                                                    |
 
 ---
 
-## External Links (15)
+## External Links (14)
 
 Links to external URLs (not validated - assumed working):
 
-| Source File | URL |
-|-------------|-----|
-| `CLAUDE.md` | https://example.com |
-| `docs/CLAUDE.md` | https://github.com/adr/madr |
-| `plugins/CLAUDE.md` | https://example.com |
-| `plugins/gemini-deep-research/CLAUDE.md` | https://github.com/terrylica/openclaw-zero-token |
-| `plugins/gh-tools/CLAUDE.md` | https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-11-21-github-actions-no-testing-linting.md |
-| `plugins/gitnexus-tools/CLAUDE.md` | https://www.npmjs.com/package/gitnexus |
-| `plugins/itp-hooks/CLAUDE.md` | https://code.claude.com/docs/en/hooks |
-| `plugins/itp-hooks/CLAUDE.md` | https://github.com/Nukesor/pueue |
-| `plugins/itp-hooks/CLAUDE.md` | https://github.com/terrylica/rangebar-py/issues/77 |
-| `plugins/itp-hooks/CLAUDE.md` | https://github.com/anthropics/claude-code/issues/11898 |
-| `plugins/itp-hooks/CLAUDE.md` | https://github.com/anthropics/claude-code/issues/12507 |
-| `plugins/itp-hooks/CLAUDE.md` | https://github.com/anthropics/claude-code/issues/13598 |
-| `plugins/itp-hooks/CLAUDE.md` | https://github.com/terrylica/cc-skills/issues/28 |
-| `plugins/kokoro-tts/CLAUDE.md` | https://github.com/Blaizzy/mlx-audio |
+| Source File                        | URL                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `CLAUDE.md`                        | <https://example.com>                                                                                       |
+| `docs/CLAUDE.md`                   | <https://github.com/adr/madr>                                                                               |
+| `plugins/CLAUDE.md`                | <https://example.com>                                                                                       |
+| `plugins/gh-tools/CLAUDE.md`       | <https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-11-21-github-actions-no-testing-linting.md> |
+| `plugins/gitnexus-tools/CLAUDE.md` | <https://www.npmjs.com/package/gitnexus>                                                                    |
+| `plugins/itp-hooks/CLAUDE.md`      | <https://code.claude.com/docs/en/hooks>                                                                     |
+| `plugins/itp-hooks/CLAUDE.md`      | <https://github.com/Nukesor/pueue>                                                                          |
+| `plugins/itp-hooks/CLAUDE.md`      | <https://github.com/terrylica/rangebar-py/issues/77>                                                        |
+| `plugins/itp-hooks/CLAUDE.md`      | <https://github.com/anthropics/claude-code/issues/11898>                                                    |
+| `plugins/itp-hooks/CLAUDE.md`      | <https://github.com/anthropics/claude-code/issues/12507>                                                    |
+| `plugins/itp-hooks/CLAUDE.md`      | <https://github.com/anthropics/claude-code/issues/13598>                                                    |
+| `plugins/itp-hooks/CLAUDE.md`      | <https://github.com/terrylica/cc-skills/issues/28>                                                          |
+| `plugins/kokoro-tts/CLAUDE.md`     | <https://github.com/Blaizzy/mlx-audio>                                                                      |
 
 ---
 
@@ -85,9 +84,9 @@ Links to external URLs (not validated - assumed working):
 
 ### Medium Priority
 
-5. **Standardize anchor format** - The `diagnosing-invalid_grant` link uses underscores while markdown processors typically convert spaces to hyphens. Consider updating to `diagnosing-invalid-grant`.
+1. **Standardize anchor format** - The `diagnosing-invalid_grant` link uses underscores while markdown processors typically convert spaces to hyphens. Consider updating to `diagnosing-invalid-grant`.
 
-6. **Consider anchor compatibility** - The `development-toolchain` anchors technically work in most markdown viewers despite the space-to-hyphen conversion. This is a low-priority fix.
+2. **Consider anchor compatibility** - The `development-toolchain` anchors technically work in most markdown viewers despite the space-to-hyphen conversion. This is a low-priority fix.
 
 ---
 

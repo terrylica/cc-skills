@@ -5,8 +5,6 @@
  * Commands:
  *   confirm-and-monitor  — Click confirm button + monitor execution (default)
  *   probe-share          — Probe share/export buttons on current page
- *
- * Origin: openclaw-zero-token/scripts/probe-research-execution.ts
  */
 
 import { chromium, type Page } from "playwright-core";
