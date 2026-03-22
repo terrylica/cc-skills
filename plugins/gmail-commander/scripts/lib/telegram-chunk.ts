@@ -6,9 +6,6 @@
  * Fence-aware: never breaks inside code blocks.
  *
  * Ported from claude-telegram-sync/src/telegram/format.ts + fences.ts.
- * SSoT: ~/fork-tools/openclaw/src/auto-reply/chunk.ts
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 // --- Fence Span Parser ---

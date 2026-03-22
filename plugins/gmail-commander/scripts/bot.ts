@@ -4,8 +4,6 @@
  *
  * Always-on daemon using grammY long polling.
  * Provides slash commands for email access and AI-powered free-text routing.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { createTelegramBot, loadBotCredentials } from "./lib/bot-factory.js";

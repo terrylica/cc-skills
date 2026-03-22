@@ -4,8 +4,6 @@
  *
  * Sends session summary to Telegram when Claude Code session ends.
  *
- * ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
- *
  * Hook input (stdin): JSON with session metadata
  * {
  *   "sessionId": "5a6aab44-acb2-49fa-bb0d-4d773e0b1a92",

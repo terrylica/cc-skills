@@ -3,8 +3,6 @@
  *
  * Writes structured events to daily log files.
  * Pattern reused from claude-telegram-sync/src/utils/audit-log.ts
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { appendFileSync, mkdirSync, readdirSync, unlinkSync } from "fs";
