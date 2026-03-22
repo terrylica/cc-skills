@@ -5,8 +5,6 @@
  * Runs every 6 hours via launchd. Fetches recent emails,
  * triages via Claude Agent SDK (Haiku), sends significant
  * findings to Telegram. Silent when nothing noteworthy.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
