@@ -114,15 +114,15 @@ PARTITION BY user_id
 
 ### Anti-Patterns Checklist (v24.4+)
 
-| Pattern                         | Severity | Modern Status      | Fix                                   |
-| ------------------------------- | -------- | ------------------ | ------------------------------------- |
-| Too many parts (>300/partition) | Critical | Still critical     | Reduce partition granularity          |
-| Small batch inserts (<1000)     | Critical | Still critical     | Batch to 10k-100k rows                |
-| High-cardinality first ORDER BY | Critical | Still critical     | Reorder: lowest cardinality first     |
-| No memory limits                | High     | Still critical     | Set `max_memory_usage`                |
-| Denormalization overuse         | High     | Still critical     | Use dictionaries + materialized views |
-| Large JOINs                     | Medium   | **180x improved**  | Still avoid for ultra-low-latency     |
-| Mutations (UPDATE/DELETE)       | Medium   | **1700x improved** | Use lightweight updates (v24.4+)      |
+| Pattern                         | Severity | Modern Status      | Fix                                                                          |
+| ------------------------------- | -------- | ------------------ | ---------------------------------------------------------------------------- |
+| Too many parts (>300/partition) | Critical | Still critical     | Reduce partition granularity                                                 |
+| Small batch inserts (<1000)     | Critical | Still critical     | Batch to 10k-100k rows                                                       |
+| High-cardinality first ORDER BY | Critical | Still critical     | Reorder: lowest cardinality first                                            |
+| No memory limits                | High     | Still critical     | Set `max_memory_usage`                                                       |
+| Denormalization overuse         | High     | Still critical     | Use dictionaries + materialized views                                        |
+| Large JOINs                     | Medium   | **180x improved**  | Still avoid for ultra-low-latency                                            |
+| Mutations (UPDATE/DELETE)       | Medium   | **1700x improved** | Use lightweight UPDATEs (v24.4+); NEVER use lightweight DELETE before INSERT |
 
 ### Table Engine Selection
 

@@ -324,9 +324,11 @@ def store_bars(df):
 
 ```sql
 -- Cleanup old versions (run periodically)
+-- Pass cutoff_ts as a Python-computed UTC timestamp literal, not now()
 ALTER TABLE cache.range_bars DELETE
 WHERE schema_version < %(min_version)s
-  AND computed_at < now() - INTERVAL 30 DAY;
+  AND computed_at < %(cutoff_ts)s
+SETTINGS mutations_sync = 1;
 ```
 
 ### 3. Version-Only Without Content Check

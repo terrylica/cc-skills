@@ -211,9 +211,17 @@ WHERE timestamp > now() - INTERVAL 1 DAY;
 -- Fast in v24.4+ (lightweight)
 ALTER TABLE trades UPDATE status = 'processed' WHERE trade_id = 123;
 
--- Still slow (traditional mutation)
-ALTER TABLE trades DELETE WHERE timestamp < now() - INTERVAL 90 DAY;
+-- Still slow (traditional mutation) — use a Python-computed literal instead of now()
+-- e.g. cutoff = datetime.utcnow() - timedelta(days=90), then pass as a parameter
+ALTER TABLE trades DELETE WHERE timestamp < %(cutoff)s
+SETTINGS mutations_sync = 1;
 ```
+
+> **WARNING**: Lightweight `DELETE FROM` sets a `_row_exists=0` mask that persists after
+> completion and re-applies to new parts during background merges. If you INSERT after
+> a lightweight DELETE, the mask will delete your new rows. Always use `ALTER TABLE ... DELETE`
+> (traditional mutation) when INSERTs will follow. Use `SETTINGS mutations_sync = 1` to
+> ensure the DELETE completes before proceeding.
 
 **Better Pattern**: Use TTL for deletions:
 
