@@ -5,8 +5,6 @@
  * Commands:
  *   status   — Check research completion state (default)
  *   extract  — Click Share button and extract link
- *
- * Origin: upstream-browser-tool/scripts/probe-share-link.ts
  */
 
 import { chromium } from "playwright-core";

@@ -3,8 +3,6 @@
  *
  * Parses Claude's structured triage response into typed items.
  * Three-category system: SYSTEM & SECURITY / WORK / PERSONAL & FAMILY.
- *
- * // ADR: ~/.claude/docs/adr/2026-02-03-telegram-cli-sync-openclaw-patterns.md
  */
 
 // --- Shared Constants ---
