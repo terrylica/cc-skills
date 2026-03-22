@@ -277,11 +277,36 @@ get_github_url() {
 
 github_url=$(get_github_url)
 
-# UTC and local timestamps with dates (updated every time statusline triggers)
-# Format: Tue 04 Mar 2026 23:36 UTC | Tue 04 Mar 2026 15:36 PST
-# Both full dates shown since UTC and local may be different days
-utc_time=$(date -u +"%a %d %b %Y %H:%M UTC")
-local_time=$(date +"%a %d %b %Y %H:%M %Z")
+# UTC and local timestamps with conditional date display
+# Same date:        Tue 04 Mar 2026 23:36 UTC | 15:36 PST
+# Different day:    Sun 22 Mar 2026 02:08 UTC | Sat 21 19:08 PDT
+# Different month:  Wed 01 Jan 2026 05:00 UTC | Tue 31 Dec 19:00 PST
+# Different year:   Thu 01 Jan 2026 05:00 UTC | Wed 31 Dec 2025 19:00 PST
+# Local date portion shown in yellow when it differs from UTC
+utc_date=$(date -u +"%a %d %b %Y")
+utc_hm=$(date -u +"%H:%M")
+utc_month=$(date -u +"%b")
+utc_year=$(date -u +"%Y")
+local_date=$(date +"%a %d %b %Y")
+local_hm=$(date +"%H:%M")
+local_tz=$(date +"%Z")
+local_month=$(date +"%b")
+local_year=$(date +"%Y")
+
+if [ "$utc_date" = "$local_date" ]; then
+    # Same date: show date once with UTC, local time-only
+    datetime_display="${BRIGHT_BLACK}${utc_date} ${utc_hm} UTC | ${local_hm} ${local_tz}${RESET}"
+else
+    # Different date: build minimal local date showing only what differs
+    # Always show day-of-week + day number; add month if different; add year if different
+    local_short=$(date +"%a %d")
+    if [ "$utc_year" != "$local_year" ]; then
+        local_short="$(date +"%a %d %b %Y")"
+    elif [ "$utc_month" != "$local_month" ]; then
+        local_short="$(date +"%a %d %b")"
+    fi
+    datetime_display="${BRIGHT_BLACK}${utc_date} ${utc_hm} UTC | ${YELLOW}${local_short}${BRIGHT_BLACK} ${local_hm} ${local_tz}${RESET}"
+fi
 
 # Status line layout:
 #   Line 1: git stats
@@ -325,7 +350,7 @@ elif [ -n "$session_id" ]; then
     echo -e "    ${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
 fi
 
-echo -e "    ${BRIGHT_BLACK}${utc_time} | ${local_time}${RESET}"
+echo -e "    ${datetime_display}"
 
 # Cron jobs: one line per scheduler, after datetime (bottom of statusline)
 # OSC 8 parts emitted with printf directly — never stored in variables to
