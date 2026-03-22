@@ -163,7 +163,7 @@ async function runHealthCheck(cdpUrl: string): Promise<boolean> {
       "\n  Launch Chrome with:\n" +
         '  /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\\n' +
         "    --remote-debugging-port=9222 \\\n" +
-        '    --user-data-dir="$HOME/.openclaw/gemini-profile" \\\n' +
+        '    --user-data-dir="$HOME/.local/share/gemini-profile" \\\n' +
         '    "https://gemini.google.com/app"',
     );
   }
