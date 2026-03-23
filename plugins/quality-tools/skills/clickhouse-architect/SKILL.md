@@ -114,15 +114,41 @@ PARTITION BY user_id
 
 ### Anti-Patterns Checklist (v24.4+)
 
-| Pattern                         | Severity | Modern Status      | Fix                                                                          |
-| ------------------------------- | -------- | ------------------ | ---------------------------------------------------------------------------- |
-| Too many parts (>300/partition) | Critical | Still critical     | Reduce partition granularity                                                 |
-| Small batch inserts (<1000)     | Critical | Still critical     | Batch to 10k-100k rows                                                       |
-| High-cardinality first ORDER BY | Critical | Still critical     | Reorder: lowest cardinality first                                            |
-| No memory limits                | High     | Still critical     | Set `max_memory_usage`                                                       |
-| Denormalization overuse         | High     | Still critical     | Use dictionaries + materialized views                                        |
-| Large JOINs                     | Medium   | **180x improved**  | Still avoid for ultra-low-latency                                            |
-| Mutations (UPDATE/DELETE)       | Medium   | **1700x improved** | Use lightweight UPDATEs (v24.4+); NEVER use lightweight DELETE before INSERT |
+| Pattern                         | Severity | Modern Status      | Fix                                                               |
+| ------------------------------- | -------- | ------------------ | ----------------------------------------------------------------- |
+| Too many parts (>300/partition) | Critical | Still critical     | Reduce partition granularity                                      |
+| Small batch inserts (<1000)     | Critical | Still critical     | Batch to 10k-100k rows                                            |
+| High-cardinality first ORDER BY | Critical | Still critical     | Reorder: lowest cardinality first                                 |
+| No memory limits                | High     | Still critical     | Set `max_memory_usage`                                            |
+| Denormalization overuse         | High     | Still critical     | Use dictionaries + materialized views                             |
+| Large JOINs                     | Medium   | **180x improved**  | Still avoid for ultra-low-latency                                 |
+| Mutations (UPDATE/DELETE)       | Medium   | **1700x improved** | Use lightweight UPDATEs (v24.4+); see DELETE Strategy Guide below |
+
+### DELETE Strategy Guide (v13.49.0+ Best Practices)
+
+Choose the right DELETE strategy based on scope. Ranked fastest to slowest:
+
+| Strategy                    | Syntax                                                    | Speed                        | Use When                                                        |
+| --------------------------- | --------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------- |
+| `DROP PARTITION`            | `ALTER TABLE t DROP PARTITION (key1, key2, keyN)`         | **Instant** (metadata-only)  | Purge entire partition ranges (months, corrupt data, test data) |
+| `DELETE IN PARTITION`       | `ALTER TABLE t DELETE IN PARTITION (...) WHERE condition` | **Fast** (scans 1 partition) | Targeted row removal within a known partition                   |
+| `ALTER TABLE DELETE`        | `ALTER TABLE t DELETE WHERE condition`                    | **Slow** (scans all parts)   | Fallback when partition is unknown                              |
+| `DELETE FROM` (lightweight) | `DELETE FROM t WHERE condition`                           | Variable                     | **ANTI-PATTERN for write pipelines** — see warning below        |
+
+**Anti-pattern: Lightweight `DELETE FROM` before INSERT**
+
+`DELETE FROM` sets `_row_exists=0` masks instead of physically removing rows. These ghost rows:
+
+- Persist until ClickHouse background merge (unpredictable timing)
+- Show up in queries without `FINAL` as phantom data
+- Cause false anomalies in monitoring/integrity checks
+- Were the root cause of months of phantom Stathera gaps in production (opendeviationbar #269)
+
+**Use `DELETE FROM` only for**: ad-hoc data correction where ghost rows don't matter (analytics cleanup, dev/test). **Never use in write pipelines** where INSERT follows DELETE.
+
+**All DELETE mutations should use**: `SETTINGS mutations_sync = 1` to block until completion (prevents INSERT-DELETE race conditions).
+
+**Partition-aware DELETE tip**: If your partition key includes the columns you're filtering on (e.g., `PARTITION BY (symbol, threshold, toYYYYMM(timestamp))`), use `DELETE IN PARTITION` to scope the scan to a single partition instead of scanning all parts.
 
 ### Table Engine Selection
 
