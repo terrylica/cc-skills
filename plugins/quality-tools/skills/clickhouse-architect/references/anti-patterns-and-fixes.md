@@ -142,22 +142,51 @@ SELECT
 FROM orders;
 ```
 
-### 6. Over-Partitioning
+### 6. Over-Partitioning (Nuanced)
 
-**Problem**: Too many partitions (>1000 total) degrades performance.
+**Problem**: Too many partitions degrades performance when parts haven't merged.
 
-**Bad Example**:
+**The real issue is parts, not partitions.** A table with 100K partitions but 1 merged part each is fine. A table with 10 partitions but 50K unmerged parts is broken. The `system.parts` count matters, not partition count.
+
+**When daily is correct**:
 
 ```sql
--- Creates 365+ partitions per year
-PARTITION BY toYYYYMMDD(timestamp)
+-- Daily is BETTER when mutations target single days (e.g., DELETE IN PARTITION
+-- for day-recompute). Monthly partitions force mutations to scan all days in
+-- the month, causing cross-day interference and phantom query invisibility.
+PARTITION BY (symbol, threshold, toYYYYMMDD(timestamp))
 ```
 
-**Fix**:
+**When monthly is correct**:
 
 ```sql
--- 12 partitions per year
+-- Monthly is BETTER for simple append-only tables with no DELETE operations
+-- and low-cardinality compound partition keys.
 PARTITION BY toYYYYMM(timestamp)
+```
+
+**Critical: Post-migration OPTIMIZE**:
+
+After any partition key change (requires table recreation + data copy), the new table has 1 part per INSERT batch — potentially 50K+ unmerged parts. **You MUST run `OPTIMIZE TABLE ... FINAL` and wait for completion before starting any services that run mutations.** Mutations scan all active parts — 50K parts means 300s+ timeouts on every DELETE.
+
+```sql
+-- After migration: force merge BEFORE restarting services
+OPTIMIZE TABLE db.table FINAL;  -- may take 10-30 min for large tables
+
+-- Verify parts are reasonable
+SELECT count() FROM system.parts WHERE database = 'db' AND table = 'table' AND active;
+-- Target: <10K for a table with ~20M rows
+```
+
+**Detection**:
+
+```sql
+SELECT database, table, count() AS active_parts
+FROM system.parts
+WHERE active = 1
+GROUP BY database, table
+HAVING active_parts > 10000
+ORDER BY active_parts DESC;
 ```
 
 ### 7. Missing Codecs
