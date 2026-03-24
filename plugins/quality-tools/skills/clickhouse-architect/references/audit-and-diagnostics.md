@@ -260,6 +260,67 @@ WHERE event IN (
 ORDER BY value DESC;
 ```
 
+## Production Health Checks
+
+Production-validated diagnostic queries for operational monitoring.
+
+### Parts Health Check
+
+More important than per-partition count: total active parts per table. Target: below 10K.
+
+```sql
+-- Check active parts per table (target: <10K)
+SELECT database, table, count() AS active_parts,
+       countDistinct(partition) AS partitions
+FROM system.parts WHERE active
+GROUP BY database, table
+HAVING active_parts > 3000
+ORDER BY active_parts DESC;
+```
+
+### Mutation Queue Check
+
+Stuck mutations cause timeout cascades. Should be 0 in steady state.
+
+```sql
+-- Pending mutations (should be 0 in steady state)
+SELECT count() AS pending,
+       min(create_time) AS oldest
+FROM system.mutations
+WHERE NOT is_done AND database NOT IN ('system');
+```
+
+### Background Merge Health
+
+```sql
+-- Are merges keeping up?
+SELECT count() AS active_merges FROM system.merges;
+-- If consistently >0 during writes, increase background_pool_size
+```
+
+### Insert Throughput Check
+
+Useful for comparing Arrow vs other insert formats and spotting latency regressions.
+
+```sql
+-- Last 20 inserts: check format and latency
+SELECT query_kind, formatReadableSize(written_bytes),
+       query_duration_ms, result_rows
+FROM system.query_log
+WHERE type = 'QueryFinish' AND query_kind = 'Insert'
+ORDER BY event_time DESC LIMIT 20;
+```
+
+### Post-Migration Checklist
+
+After any `PARTITION BY` change, follow this sequence strictly:
+
+1. `OPTIMIZE TABLE ... FINAL` (wait for completion)
+2. Verify parts count < 10K using the parts health check above
+3. Only then restart services that run mutations
+
+Skipping step 2 risks mutation timeouts if the merge backlog has not cleared.
+
 ## Automated Audit Script
 
 Run the comprehensive audit:
