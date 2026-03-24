@@ -1,15 +1,6 @@
 ---
-name: mql5:headless-mt5-remote
-description: >
-  Deploy and manage MetaTrader 5 on headless Linux (Ubuntu) via Wine with remote desktop
-  access from macOS. Covers the complete stack: Wine 10 installation, Xvfb virtual display,
-  XFCE desktop, x11vnc with TigerVNC viewer, SSH tunnel security, clipboard sync via SSH
-  side-channel, Spotlight app launcher, and systemd services. Includes all proven patterns,
-  anti-patterns (noMachine, KasmVNC, macOS Screen Sharing clipboard issues), and the exact
-  scripts that work in production. Use whenever setting up MT5 on Linux, troubleshooting
-  VNC/Wine issues, or configuring remote desktop for headless trading servers.
-  TRIGGERS: headless MT5, MT5 on Linux, Wine MT5, MT5 VNC, remote MT5, headless Wine,
-  MT5 Ubuntu, gpu-host MT5, VNC clipboard, x11vnc setup, Xvfb MT5, headless trading.
+name: headless-mt5-remote
+description: Deploy and manage MetaTrader 5 on headless Linux (Ubuntu) via Wine with remote desktop access from macOS. Covers Wine 10 installation, Xvfb virtual display, XFCE desktop, x11vnc with TigerVNC viewer, SSH tunnel security, clipboard sync via SSH side-channel, and Spotlight app launcher. Includes all proven patterns and anti-patterns (noMachine, KasmVNC, macOS Screen Sharing clipboard issues). Use whenever setting up MT5 on Linux, troubleshooting VNC or Wine issues, configuring remote desktop for headless trading servers, or when the user mentions headless MT5, MT5 on Linux, Wine MT5, MT5 VNC, remote MT5, MT5 Ubuntu, VNC clipboard, x11vnc setup, Xvfb MT5, or headless trading.
 ---
 
 # Headless MT5 Remote Desktop — Production Setup Guide
