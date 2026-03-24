@@ -50,6 +50,14 @@ See [itp-hooks CLAUDE.md: TypeScript Services](../itp-hooks/CLAUDE.md#typescript
 Bot emits NDJSON with core fields: `ts`, `level`, `event`, `component`, `pid` via `audit-log.ts`.
 Shell scripts use plain text via `tts_log`. Logs: `~/.claude/automation/claude-telegram-sync/logs/audit/` (NDJSON, self-rotating 14d), `~/.local/state/launchd-logs/telegram-bot/` (launchd stdout/stderr, rotated by `com.terryli.log-rotation`).
 
+## Terminology
+
+| Term            | Acronym | Definition                                                                                                                                          |
+| --------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Arc Summary** | ARS     | MiniMax-generated full-session narrative covering the complete arc of a Claude Code session, delivered via Telegram and/or TTS Outlets              |
+| **Tail Brief**  | TBR     | End-weighted session narrative: brief context of prior turns then detailed coverage of the final interaction, independently routable to each Outlet |
+| **Outlet**      | -       | An independently toggleable output destination (Telegram message or TTS audio) for any summary type                                                 |
+
 ## References
 
 - [Lock debugging](./skills/diagnostic-issue-resolver/references/lock-debugging.md)
