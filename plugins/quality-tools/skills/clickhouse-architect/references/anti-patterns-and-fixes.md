@@ -146,47 +146,87 @@ FROM orders;
 
 **Problem**: Too many partitions degrades performance when parts haven't merged.
 
-**The real issue is parts, not partitions.** A table with 100K partitions but 1 merged part each is fine. A table with 10 partitions but 50K unmerged parts is broken. The `system.parts` count matters, not partition count.
+**The real metric is PARTS COUNT, not partition count.** A table with 100K partitions but 1 merged part each is fine. A table with 10 partitions but 50K unmerged parts is broken. Always check `system.parts WHERE active = 1` — that is the number that determines mutation speed, query latency, and merge pressure.
 
-**When daily is correct**:
+#### Partition Key Design for Time-Series with Compound Keys
+
+For tables with ORDER BY like `(symbol, threshold, first_agg_trade_id)` where the last column is time-correlated (monotonic trade IDs, timestamps), **time should NOT be in the partition key**. The ORDER BY index already provides efficient time-range pruning within partitions — adding time to the partition key is redundant and harmful.
+
+**Best partition key**: The dimensions you use for **data lifecycle** (DELETE/DROP scope) — typically the non-time columns that define your mutation boundaries.
 
 ```sql
--- Daily is BETTER when mutations target single days (e.g., DELETE IN PARTITION
--- for day-recompute). Monthly partitions force mutations to scan all days in
--- the month, causing cross-day interference and phantom query invisibility.
-PARTITION BY (symbol, threshold, toYYYYMMDD(timestamp))
+-- CORRECT: Partition by dimensions used for DELETE/DROP scope.
+-- ORDER BY index handles time-range pruning automatically.
+PARTITION BY (symbol, threshold_decimal_bps)
+ORDER BY (symbol, threshold_decimal_bps, ouroboros_mode, first_agg_trade_id)
+
+-- WRONG: Time in partition key when ORDER BY already has a time-correlated column.
+-- Creates N × days partitions, each with unmerged parts from streaming inserts.
+PARTITION BY (symbol, threshold_decimal_bps, toYYYYMMDD(open_time_ms / 1000))
 ```
 
-**When monthly is correct**:
+**Why this matters — validated benchmark**:
+
+- Dimension-only partitions: **1,037 days/min** (heavy symbols), **3,800 days/min** (light symbols)
+- Daily time partitions: **200 days/min** — 5x slower on heavy, 18x slower on light
+- Root cause: daily partitions create O(symbols × thresholds × days) partitions, each accumulating unmerged parts from streaming inserts. Mutations must scan all active parts.
+
+#### When Time in Partition Key IS Correct
+
+Time belongs in the partition key **only** when:
+
+1. You need `DROP PARTITION` for bulk time-range cleanup (e.g., TTL replacement, purging old months)
+2. The table is append-only with no DELETE operations targeting specific rows
+3. ORDER BY does NOT already contain a time-correlated column
 
 ```sql
--- Monthly is BETTER for simple append-only tables with no DELETE operations
--- and low-cardinality compound partition keys.
+-- Append-only logs where you DROP entire months for retention
 PARTITION BY toYYYYMM(timestamp)
+ORDER BY (service, timestamp)
 ```
 
-**Critical: Post-migration OPTIMIZE**:
+#### Critical: Post-Migration OPTIMIZE
 
-After any partition key change (requires table recreation + data copy), the new table has 1 part per INSERT batch — potentially 50K+ unmerged parts. **You MUST run `OPTIMIZE TABLE ... FINAL` and wait for completion before starting any services that run mutations.** Mutations scan all active parts — 50K parts means 300s+ timeouts on every DELETE.
+After any partition key change (requires table recreation + data copy), the new table has 1 part per INSERT batch — potentially 50K+ unmerged parts. **You MUST run `OPTIMIZE TABLE ... FINAL` and wait for completion before starting any services that run mutations.** Mutations scan all active parts — 50K unmerged parts means 300s+ timeouts on every DELETE.
 
 ```sql
 -- After migration: force merge BEFORE restarting services
 OPTIMIZE TABLE db.table FINAL;  -- may take 10-30 min for large tables
 
--- Verify parts are reasonable
+-- Verify parts are merged
 SELECT count() FROM system.parts WHERE database = 'db' AND table = 'table' AND active;
--- Target: <10K for a table with ~20M rows
+-- Target: ~1 part per partition (or low single digits)
 ```
 
-**Detection**:
+#### Detection
 
 ```sql
-SELECT database, table, count() AS active_parts
+-- Check active parts count per table (THE metric that matters)
+SELECT
+    database,
+    table,
+    count() AS active_parts,
+    countDistinct(partition) AS partitions,
+    round(count() / countDistinct(partition), 1) AS avg_parts_per_partition
 FROM system.parts
 WHERE active = 1
 GROUP BY database, table
-HAVING active_parts > 10000
+HAVING active_parts > 1000
 ORDER BY active_parts DESC;
+
+-- Drill down: which partitions have the most unmerged parts?
+SELECT
+    database,
+    table,
+    partition,
+    count() AS parts_in_partition,
+    formatReadableSize(sum(bytes_on_disk)) AS size
+FROM system.parts
+WHERE active = 1 AND database = 'your_db' AND table = 'your_table'
+GROUP BY database, table, partition
+HAVING parts_in_partition > 10
+ORDER BY parts_in_partition DESC
+LIMIT 20;
 ```
 
 ### 7. Missing Codecs
@@ -260,22 +300,28 @@ TTL timestamp + INTERVAL 90 DAY DELETE
 
 ## Detection Query
 
-Run to identify anti-patterns:
+Run to identify anti-patterns (parts count is the primary health metric):
 
 ```sql
--- Check for all anti-patterns
+-- Anti-pattern detection: parts count, avg parts per partition, total size
 SELECT
-    database,
-    table,
-    -- Part count check
-    (SELECT count() FROM system.parts WHERE active AND database = t.database AND table = t.name) AS part_count,
-    -- Partition count
-    (SELECT count(DISTINCT partition) FROM system.parts WHERE active AND database = t.database AND table = t.name) AS partition_count,
-    -- Size analysis
-    formatReadableSize(total_bytes) AS total_size
-FROM system.tables t
-WHERE database NOT IN ('system', 'INFORMATION_SCHEMA')
-ORDER BY total_bytes DESC;
+    p.database,
+    p.table,
+    count() AS active_parts,
+    countDistinct(p.partition) AS partitions,
+    round(count() / countDistinct(p.partition), 1) AS avg_parts_per_partition,
+    formatReadableSize(sum(p.bytes_on_disk)) AS total_size,
+    -- Red flags
+    multiIf(
+        count() > 10000, 'CRITICAL: merge backlog or over-partitioned',
+        count() / countDistinct(p.partition) > 50, 'WARNING: high parts/partition ratio',
+        'OK'
+    ) AS status
+FROM system.parts p
+WHERE p.active = 1
+  AND p.database NOT IN ('system', 'INFORMATION_SCHEMA')
+GROUP BY p.database, p.table
+ORDER BY active_parts DESC;
 ```
 
 ## Related References
