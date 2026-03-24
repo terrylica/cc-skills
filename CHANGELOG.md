@@ -1,3 +1,30 @@
+# [12.16.0](https://github.com/terrylica/cc-skills/compare/v12.15.0...v12.16.0) (2026-03-24)
+
+
+### Bug Fixes
+
+* **mql5:** align headless-mt5-remote with skill-architecture standards ([98ca174](https://github.com/terrylica/cc-skills/commit/98ca17459380c23d3fc34f802c43d1aeeec03dfa))
+
+
+### Features
+
+* **mql5:** add headless-mt5-remote skill ([2c57939](https://github.com/terrylica/cc-skills/commit/2c57939fe4c785ee227c94f8f1dc4bd70768566e))
+* **mql5:** add mql5-ship skill — deploy EA+DLL from macOS to gpu-host ([f311028](https://github.com/terrylica/cc-skills/commit/f311028743fb8895a138c9058887627f96e28a7f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [tts-tg-sync Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/CLAUDE.md) - updated (+8)
+
 # [12.15.0](https://github.com/terrylica/cc-skills/compare/v12.14.0...v12.15.0) (2026-03-24)
 
 
