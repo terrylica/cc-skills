@@ -94,6 +94,38 @@ Use PARTITION BY for **data lifecycle management**, not query optimization.
 | 1-10B rows/month | Weekly                | `toMonday(timestamp)`   |
 | > 10B rows/month | Daily (with caution)  | `toYYYYMMDD(timestamp)` |
 
+### Compound Partition Keys for Financial Time-Series Data
+
+When your table has compound keys like `(symbol, threshold, timestamp)`, partition by **lifecycle dimensions only** — not time.
+
+**Key insight**: If your ORDER BY contains a time-monotonic column (trade IDs, sequence numbers), you do NOT need time in the partition key. The primary key index provides efficient time-range pruning within partitions.
+
+```sql
+-- CORRECT: partition by lifecycle dimensions only
+PARTITION BY (symbol, threshold)
+ORDER BY (symbol, threshold, mode, trade_id)  -- trade_id is time-monotonic
+
+-- WRONG: time in partition key
+PARTITION BY (symbol, threshold, toYYYYMMDD(timestamp))
+-- Creates 192K+ partitions, mutations scan all partition metadata
+```
+
+**Why this matters for mutations and writes**:
+
+| Strategy                                       | Partitions | Write Throughput | Mutation Speed |
+| ---------------------------------------------- | ---------- | ---------------- | -------------- |
+| `(symbol, threshold)` — lifecycle only         | ~64        | Baseline         | Fast           |
+| `(symbol, threshold, toYYYYMMDD(ts))` — + time | ~192K+     | 5-18x slower     | Slow           |
+
+Time-based partitioning fragments data across thousands of partitions. Every `ALTER TABLE DELETE` or `INSERT` must coordinate across all of them. With lifecycle-only partitions, mutations target exactly the partitions they need (e.g., `DELETE IN PARTITION (sym, thr) WHERE ...`), and the ORDER BY index handles time-range pruning.
+
+**When to use compound lifecycle partitions**:
+
+- Table has categorical dimensions (symbol, threshold, mode) that define independent data lineages
+- Mutations operate on specific (symbol, threshold) combinations
+- TTL or `DROP PARTITION` operates on (symbol, threshold) groups
+- Time-range queries are handled by a time-monotonic column in ORDER BY
+
 ### TTL Integration
 
 ```sql
