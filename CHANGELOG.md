@@ -1,3 +1,56 @@
+# [12.15.0](https://github.com/terrylica/cc-skills/compare/v12.14.0...v12.15.0) (2026-03-24)
+
+
+### Bug Fixes
+
+* **clickhouse-architect:** add mutations_sync + lightweight DELETE hazard warning ([#295](https://github.com/terrylica/cc-skills/issues/295) lessons) ([19f523a](https://github.com/terrylica/cc-skills/commit/19f523a8cb474d346337593ff16645b51621b24f))
+* **clickhouse-architect:** nuance daily vs monthly partitioning guidance ([31eb893](https://github.com/terrylica/cc-skills/commit/31eb893caa80189be3d818df95b713afc6b594c2)), closes [#6](https://github.com/terrylica/cc-skills/issues/6)
+
+
+### Features
+
+* **clickhouse-architect:** encode partition + write optimization best practices ([e2e20ea](https://github.com/terrylica/cc-skills/commit/e2e20eabcec3e77cde350952946ca89122dcabf8)), closes [#6](https://github.com/terrylica/cc-skills/issues/6)
+* **devops-tools:** add python-memory-safe-scripts skill ([7ff918d](https://github.com/terrylica/cc-skills/commit/7ff918d20b716554b3b8dd1f2c5eba6d36f31c72))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [python-memory-safe-scripts](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-memory-safe-scripts/SKILL.md) - new (+246)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [clickhouse-architect](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/SKILL.md) - updated (+35/-9)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quality-tools/clickhouse-architect</strong> (4 files)</summary>
+
+- [Anti-Patterns and Fixes](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/references/anti-patterns-and-fixes.md) - updated (+105/-22)
+- [Audit and Diagnostics](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/references/audit-and-diagnostics.md) - updated (+61)
+- [Cache Schema Evolution](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/references/cache-schema-evolution.md) - updated (+3/-1)
+- [Schema Design Workflow](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/clickhouse-architect/references/schema-design-workflow.md) - updated (+32)
+
+</details>
+
 # [12.14.0](https://github.com/terrylica/cc-skills/compare/v12.13.2...v12.14.0) (2026-03-22)
 
 
