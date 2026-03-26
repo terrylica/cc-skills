@@ -54,4 +54,16 @@ enum Config {
         }
         return 2048
     }()
+
+    // MARK: - Telegram Bot
+
+    /// Telegram bot token (nil if not configured -- bot will not start)
+    static let telegramBotToken: String? = ProcessInfo.processInfo.environment["TELEGRAM_BOT_TOKEN"]
+
+    /// Telegram chat ID for sending notifications (nil if not configured)
+    static let telegramChatId: Int64? = {
+        guard let str = ProcessInfo.processInfo.environment["TELEGRAM_CHAT_ID"],
+              let val = Int64(str) else { return nil }
+        return val
+    }()
 }
