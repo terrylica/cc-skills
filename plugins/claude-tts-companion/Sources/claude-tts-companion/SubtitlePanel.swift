@@ -8,6 +8,20 @@ import AppKit
 @MainActor
 final class SubtitlePanel: NSPanel {
 
+    // MARK: - Karaoke State
+
+    /// Words of the current utterance being highlighted.
+    private var words: [String] = []
+
+    /// Per-word timing intervals for karaoke advancement.
+    private var wordTimings: [TimeInterval] = []
+
+    /// Pending work items for scheduled word highlights and linger-then-hide.
+    private var scheduledWorkItems: [DispatchWorkItem] = []
+
+    /// Work item for the post-utterance linger/hide delay (cancelled on new utterance).
+    private var lingerWorkItem: DispatchWorkItem?
+
     // MARK: - Subviews
 
     /// Background container with rounded corners and translucent fill.
@@ -77,7 +91,119 @@ final class SubtitlePanel: NSPanel {
         orderFrontRegardless()
     }
 
+    /// Build and display an NSAttributedString with karaoke-style word coloring.
+    ///
+    /// - Words before `index`: silver-grey, regular weight (already spoken)
+    /// - Word at `index`: gold, bold weight (currently spoken)
+    /// - Words after `index`: white, regular weight (upcoming)
+    func highlightWord(at index: Int, in words: [String]) {
+        let result = NSMutableAttributedString()
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        paragraphStyle.lineBreakMode = .byWordWrapping
+
+        for (i, word) in words.enumerated() {
+            let color: NSColor
+            let font: NSFont
+            if i < index {
+                color = SubtitleStyle.pastWordColor
+                font = SubtitleStyle.regularFont
+            } else if i == index {
+                color = SubtitleStyle.currentWordColor
+                font = SubtitleStyle.currentWordFont
+            } else {
+                color = SubtitleStyle.futureWordColor
+                font = SubtitleStyle.regularFont
+            }
+
+            let attributes: [NSAttributedString.Key: Any] = [
+                .foregroundColor: color,
+                .font: font,
+                .paragraphStyle: paragraphStyle,
+            ]
+            if i > 0 {
+                result.append(NSAttributedString(string: " "))
+            }
+            result.append(NSAttributedString(string: word, attributes: attributes))
+        }
+
+        updateAttributedText(result)
+    }
+
+    /// Display an utterance with word-level karaoke highlighting driven by timing data.
+    ///
+    /// Each word highlights at its cumulative timing offset. After the last word,
+    /// the panel lingers for `SubtitleStyle.lingerDuration` seconds before hiding.
+    func showUtterance(_ text: String, wordTimings: [TimeInterval]) {
+        // Cancel any pending highlights or linger from a previous utterance
+        cancelScheduledHighlights()
+
+        let words = text.split(separator: " ").map(String.init)
+        self.words = words
+        self.wordTimings = wordTimings
+
+        // Show the full text immediately (all white/future)
+        show(text: text)
+
+        // Schedule word-by-word highlighting
+        var cumulativeTime: TimeInterval = 0
+        for i in 0..<words.count {
+            let timing = i < wordTimings.count ? wordTimings[i] : 0.2
+            let fireTime = cumulativeTime
+            let item = DispatchWorkItem { [weak self] in
+                self?.highlightWord(at: i, in: words)
+            }
+            scheduledWorkItems.append(item)
+            DispatchQueue.main.asyncAfter(deadline: .now() + fireTime, execute: item)
+            cumulativeTime += timing
+        }
+
+        // Schedule linger + hide after the last word
+        let lingerItem = DispatchWorkItem { [weak self] in
+            self?.hide()
+        }
+        self.lingerWorkItem = lingerItem
+        scheduledWorkItems.append(lingerItem)
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + cumulativeTime + SubtitleStyle.lingerDuration,
+            execute: lingerItem
+        )
+    }
+
+    /// Run a demo sequence of three sample sentences with 200ms per-word timing.
+    ///
+    /// Sentences are scheduled sequentially: each starts after the previous one
+    /// finishes highlighting + lingers + a short gap.
+    func demo() {
+        let sentences = [
+            "Welcome to claude TTS companion, your real-time subtitle overlay",
+            "This is a demo of the karaoke highlighting system",
+            "Words light up in gold as they are spoken aloud",
+        ]
+        var delay: TimeInterval = 0.5  // initial delay
+        for sentence in sentences {
+            let words = sentence.split(separator: " ").map(String.init)
+            let timings = Array(repeating: 0.2, count: words.count)  // 200ms per word
+            let sentenceDelay = delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + sentenceDelay) { [weak self] in
+                self?.showUtterance(sentence, wordTimings: timings)
+            }
+            // Next sentence starts after this one finishes + linger + gap
+            delay += Double(words.count) * 0.2 + SubtitleStyle.lingerDuration + 0.5
+        }
+    }
+
     // MARK: - Private Helpers
+
+    /// Cancel all pending word-highlight and linger work items.
+    private func cancelScheduledHighlights() {
+        for item in scheduledWorkItems {
+            item.cancel()
+        }
+        scheduledWorkItems.removeAll()
+        lingerWorkItem?.cancel()
+        lingerWorkItem = nil
+    }
 
     /// Configure all NSPanel window-behavior flags.
     private func configureWindowBehavior() {
