@@ -192,6 +192,35 @@
 | EXT-01      | Phase 10 | Pending  |
 | EXT-02      | Phase 10 | Pending  |
 | EXT-04      | Phase 10 | Pending  |
+| FMT-01      | Phase 11 | Pending  |
+| FMT-02      | Phase 11 | Pending  |
+| FMT-03      | Phase 11 | Pending  |
+| FMT-04      | Phase 11 | Pending  |
+| FMT-05      | Phase 11 | Pending  |
+| FMT-06      | Phase 11 | Pending  |
+| PROMPT-01   | Phase 12 | Pending  |
+| PROMPT-02   | Phase 12 | Pending  |
+| PROMPT-03   | Phase 12 | Pending  |
+| PROMPT-04   | Phase 12 | Pending  |
+| PROMPT-05   | Phase 12 | Pending  |
+| EVAL-01     | Phase 13 | Pending  |
+| EVAL-02     | Phase 13 | Pending  |
+| EVAL-03     | Phase 13 | Pending  |
+| EVAL-04     | Phase 13 | Pending  |
+| EVAL-05     | Phase 13 | Pending  |
+| EVAL-06     | Phase 13 | Pending  |
+| TTS-10      | Phase 14 | Pending  |
+| TTS-11      | Phase 14 | Pending  |
+| TTS-12      | Phase 14 | Pending  |
+| TTS-13      | Phase 14 | Pending  |
+| BTN-01      | Phase 15 | Pending  |
+| BTN-02      | Phase 15 | Pending  |
+| BTN-03      | Phase 15 | Pending  |
+| REL-01      | Phase 16 | Pending  |
+| REL-02      | Phase 16 | Pending  |
+| REL-03      | Phase 16 | Pending  |
+| REL-04      | Phase 16 | Pending  |
+| REL-05      | Phase 16 | Pending  |
 
 ## v4.6.0 Requirements — Legacy Pipeline Feature Parity
 
