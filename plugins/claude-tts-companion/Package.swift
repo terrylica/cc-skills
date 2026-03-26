@@ -12,6 +12,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/nerzh/swift-telegram-sdk", from: "4.5.0"),
         .package(url: "https://github.com/apple/swift-log", from: "1.6.0"),
+        .package(url: "https://github.com/swhitty/FlyingFox", from: "0.26.0"),
     ],
     targets: [
         .target(
@@ -27,6 +28,7 @@ let package = Package(
                 "CSherpaOnnx",
                 .product(name: "SwiftTelegramBot", package: "swift-telegram-sdk"),
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "FlyingFox", package: "FlyingFox"),
             ],
             linkerSettings: [
                 .unsafeFlags([
