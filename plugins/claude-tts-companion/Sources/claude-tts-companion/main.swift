@@ -29,11 +29,15 @@ let ttsEngine = TTSEngine()
 // Create settings store (persists to ~/.config/claude-tts-companion/settings.json)
 let settingsStore = SettingsStore()
 
+// Create caption history ring buffer (EXT-01: scrollable caption history + clipboard copy)
+let captionHistory = CaptionHistory()
+
 // Create HTTP control API server
 let httpServer = HTTPControlServer(
     settingsStore: settingsStore,
     subtitlePanel: subtitlePanel,
-    ttsEngine: ttsEngine
+    ttsEngine: ttsEngine,
+    captionHistory: captionHistory
 )
 
 // Start HTTP server in background task
@@ -54,6 +58,16 @@ let summaryEngine = SummaryEngine(client: miniMaxClient)
 
 // Create auto-continue evaluator (shares circuit breaker with summary engine)
 let autoContinue = AutoContinueEvaluator(client: miniMaxClient)
+
+// Create thinking watcher (EXT-04: summarizes extended thinking via MiniMax)
+let thinkingWatcher = ThinkingWatcher(client: miniMaxClient) { summary in
+    logger.info("Thinking summary: \(summary)")
+    // Display thinking summary on subtitle panel
+    DispatchQueue.main.async {
+        subtitlePanel.show(text: summary)
+        captionHistory.record(summary)
+    }
+}
 
 // Start Telegram bot if configured (graceful fallback if no token)
 nonisolated(unsafe) var telegramBot: TelegramBot? = nil
@@ -130,8 +144,9 @@ signal(SIGTERM, SIG_IGN)  // Let DispatchSource handle it
 sigSource.setEventHandler {
     logger.info("SIGTERM received, shutting down")
     subtitlePanel.hide()
-    // Stop file watcher
+    // Stop file watcher and thinking watcher
     notificationWatcher.stop()
+    thinkingWatcher.stop()
     // Stop Telegram bot
     if let bot = telegramBot {
         Task { await bot.stop() }
@@ -155,6 +170,8 @@ nonisolated(unsafe) var keepNotificationWatcher: NotificationWatcher? = notifica
 nonisolated(unsafe) var keepAutoContinue: AutoContinueEvaluator? = autoContinue
 nonisolated(unsafe) var keepHTTPServer: HTTPControlServer? = httpServer
 nonisolated(unsafe) var keepSettingsStore: SettingsStore? = settingsStore
+nonisolated(unsafe) var keepCaptionHistory: CaptionHistory? = captionHistory
+nonisolated(unsafe) var keepThinkingWatcher: ThinkingWatcher? = thinkingWatcher
 
 logger.info("Starting \(Config.appName)")
 
