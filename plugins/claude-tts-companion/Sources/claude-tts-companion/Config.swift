@@ -40,8 +40,8 @@ enum Config {
     static let miniMaxApiKey: String? = ProcessInfo.processInfo.environment["MINIMAX_API_KEY"]
     static let miniMaxAPIKey: String? = miniMaxApiKey
 
-    /// Max tokens for summary generation
-    static let summaryMaxTokens = 4096
+    /// Max tokens for summary generation (thinking model needs headroom: ~2k thinking + ~4k text)
+    static let summaryMaxTokens = 8192
 
     /// MiniMax API base URL (Anthropic-compatible endpoint)
     static let miniMaxBaseURL = "https://api.minimax.io/anthropic"
