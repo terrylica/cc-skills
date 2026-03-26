@@ -5,7 +5,7 @@
 	<key>Label</key>
 	<string>com.example.claude-tts-companion</string>
 	<key>Program</key>
-	<string>/usr/local/bin/claude-tts-companion</string>
+	<string>/Users/<you>/.local/bin/claude-tts-companion</string>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>
