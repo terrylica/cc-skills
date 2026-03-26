@@ -57,10 +57,10 @@
 
 ### File Watching
 
-- [ ] **WATCH-01**: Notification file watcher detects new .json files in the notification directory
-- [ ] **WATCH-02**: JSONL file tailer reads new bytes from growing transcript files via offset tracking
-- [ ] **WATCH-03**: DispatchSource watchers are stored as strong references (no silent ARC deallocation)
-- [ ] **WATCH-04**: File watcher latency is under 100ms from write to detection
+- [x] **WATCH-01**: Notification file watcher detects new .json files in the notification directory
+- [x] **WATCH-02**: JSONL file tailer reads new bytes from growing transcript files via offset tracking
+- [x] **WATCH-03**: DispatchSource watchers are stored as strong references (no silent ARC deallocation)
+- [x] **WATCH-04**: File watcher latency is under 100ms from write to detection
 
 ### Claude CLI Integration
 
@@ -165,10 +165,10 @@
 | CLI-01      | Phase 6  | Complete |
 | CLI-02      | Phase 6  | Complete |
 | CLI-03      | Phase 6  | Complete |
-| WATCH-01    | Phase 7  | Pending |
-| WATCH-02    | Phase 7  | Pending |
-| WATCH-03    | Phase 7  | Pending |
-| WATCH-04    | Phase 7  | Pending |
+| WATCH-01    | Phase 7  | Complete |
+| WATCH-02    | Phase 7  | Complete |
+| WATCH-03    | Phase 7  | Complete |
+| WATCH-04    | Phase 7  | Complete |
 | AUTO-01     | Phase 7  | Pending |
 | AUTO-02     | Phase 7  | Pending |
 | AUTO-03     | Phase 7  | Pending |
