@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.5.0
-milestone_name: milestone
-status: verifying
-stopped_at: "Completed 260326-fvh-PLAN.md (quick task: deploy claude-tts-companion)"
-last_updated: "2026-03-26T18:34:51.671Z"
+milestone: v4.6.0
+milestone_name: Legacy Pipeline Feature Parity
+status: ready_to_plan
+stopped_at: "Roadmap created for v4.6.0 milestone (phases 11-16)"
+last_updated: "2026-03-26T19:00:00.000Z"
 last_activity: 2026-03-26
 progress:
-  total_phases: 10
+  total_phases: 16
   completed_phases: 9
   total_plans: 20
   completed_plans: 19
@@ -18,51 +18,44 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-25)
+See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 08 — http-control-api
+**Current focus:** Phase 11 -- Notification Formatting (v4.6.0 milestone)
 
 ## Current Position
 
-Phase: 10
+Phase: 11 of 16 (Notification Formatting)
 Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-26
+Status: Ready to plan
+Last activity: 2026-03-26 -- Roadmap created for v4.6.0 milestone
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, v4.6.0 starting)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 19
+- Average duration: ~3 min
+- Total execution time: ~1 hour
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 | ----- | ----- | ----- | -------- |
-| -     | -     | -     | -        |
+| 01    | 2     | 6min  | 3min     |
+| 02    | 2     | 5min  | 2.5min   |
+| 03    | 1     | 6min  | 6min     |
+| 06    | 2     | 10min | 5min     |
+| 07    | 2     | 4min  | 2min     |
+| 08    | 1     | 2min  | 2min     |
+| 10    | 1     | 4min  | 4min     |
 
 **Recent Trend:**
 
-- Last 5 plans: -
-- Trend: -
-
-_Updated after each plan completion_
-| Phase 01 P01 | 3min | 2 tasks | 10 files |
-| Phase 01 P02 | 3min | 2 tasks | 4 files |
-| Phase 02 P01 | 3min | 2 tasks | 2 files |
-| Phase 02 P02 | 140s | 2 tasks | 2 files |
-| Phase 03 P01 | 6min | 2 tasks | 3 files |
-| Phase 06 P01 | 4min | 3 tasks | 3 files |
-| Phase 06 P02 | 6min | 2 tasks | 3 files |
-| Phase 07 P01 | 2min | 2 tasks | 2 files |
-| Phase 07 P02 | 2min | 2 tasks | 2 files |
-| Phase 08 P01 | 2min | 2 tasks | 4 files |
-| Phase 10 P02 | 4min | 3 tasks | 4 files |
+- Last 5 plans: 2min, 2min, 2min, 4min, 4min
+- Trend: Stable (~3min average)
 
 ## Accumulated Context
 
@@ -71,31 +64,11 @@ _Updated after each plan completion_
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
--
-
-- [Phase 01]: CSherpaOnnx as .target with vendored headers (not .systemLibrary) for portability
-- [Phase 01]: SHERPA_ONNX_PATH env var override pattern for path flexibility
-- [Phase 01]: SherpaOnnxGetVersionStr is correct C API name (not SherpaOnnxGetVersion)
-- [Phase 01]: SwiftTelegramBot is correct SPM product name (not SwiftTelegramSdk)
-- [Phase 01]: strip release binary: 32MB unstripped -> 18.3MB stripped
-- [Phase 02]: @MainActor on SubtitleStyle enum for Swift 6 strict concurrency (NSFont/NSColor not Sendable)
-- [Phase 02]: NSTextField(labelWithString:) with explicit wraps instead of wrappingLabelField: (SDK API change)
-- [Phase 02]: DispatchWorkItem array for scheduled highlights enables clean cancellation on new utterance
-- [Phase 03]: strdup/free pattern for C string lifetime in sherpa-onnx config (safer than nested withCString)
-- [Phase 03]: NSLock + serial DispatchQueue for TTSEngine thread safety (@unchecked Sendable)
-- [Phase 06]: NSLock + class-level stderrBuffer for Swift 6 Sendable compliance in Process termination handler
-- [Phase 06]: PromptStreamState class with NSLock for @Sendable callback state sharing
-- [Phase 06]: DispatchQueue.sync for executor pre-flight checks (NSLock forbidden in Swift 6 async contexts)
-- [Phase 07]: NSLock for thread safety in file watchers (consistent with TTSEngine, CircuitBreaker)
-- [Phase 07]: O_EVTONLY file descriptors for read-only notification without blocking writers
-- [Phase 07]: Partial line rewind in JSONLTailer to avoid yielding incomplete JSON
-- [Phase 07]: Shared MiniMaxClient between SummaryEngine and AutoContinueEvaluator for single circuit breaker
-- [Phase 07]: Default to DONE on evaluation error to prevent runaway auto-continue loops
+- [Phase 10]: Ring buffer capacity 100 for caption history
 - [Phase 08]: FlyingFox 0.26.2 for HTTP server (pure BSD sockets, zero SwiftNIO)
-- [Phase 08]: NSLock for SettingsStore thread safety (consistent with TTSEngine, CircuitBreaker)
-- [Phase 08]: Partial update structs with all-optional fields for PATCH-style POST endpoints
-- [Phase 10]: Ring buffer capacity 100 for caption history; ThinkingWatcher 500-char threshold; markSummarizingComplete() pattern for Swift 6 async safety
-- [Phase quick]: Install binary to ~/.local/bin instead of /usr/local/bin (avoids sudo requirement)
+- [Phase 07]: Shared MiniMaxClient between SummaryEngine and AutoContinueEvaluator
+- [Phase 07]: Default to DONE on evaluation error to prevent runaway auto-continue loops
+- [v4.6.0]: Port directly from legacy TypeScript -- don't reinvent
 
 ### Pending Todos
 
@@ -104,8 +77,7 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 3 (TTS): Word-to-phoneme alignment across diverse text is untested beyond Spike 16
-- Phase 4 (Bot): 4,500 lines of TypeScript need line-by-line feature parity audit
-- Phase 5 (Bot Core): Must use test bot token during dev to avoid long-polling conflict with production bot
+- v4.6.0: Reference source is ~/.claude/automation/claude-telegram-sync/ -- must audit line-by-line for feature parity
 
 ### Quick Tasks Completed
 
@@ -115,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T18:34:50.463Z
-Stopped at: Completed 260326-fvh-PLAN.md (quick task: deploy claude-tts-companion)
+Last session: 2026-03-26T19:00:00.000Z
+Stopped at: Roadmap created for v4.6.0 milestone (phases 11-16)
 Resume file: None

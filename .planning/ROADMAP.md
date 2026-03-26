@@ -1,5 +1,10 @@
 # Roadmap: claude-tts-companion
 
+## Milestones
+
+- 🚧 **v4.5.0 MVP** - Phases 1-10 (in progress)
+- 📋 **v4.6.0 Legacy Pipeline Feature Parity** - Phases 11-16 (planned)
+
 ## Overview
 
 Replace three separate processes (TypeScript Telegram bot + Python TTS server + Swift subtitle prototype) with a single Swift binary running as a macOS LaunchAgent. The build follows dependency order: foundation first (everything depends on Package.swift), then the two core value props (subtitle overlay, TTS engine), then the bot ecosystem (summaries, core bot, advanced commands), then the event-driven subsystems (file watching, HTTP API), and finally the control surface and deployment (SwiftBar, launchd cutover). Ten phases, each delivering a coherent, testable capability.
@@ -13,8 +18,11 @@ Replace three separate processes (TypeScript Telegram bot + Python TTS server + 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Build System** - Package.swift compiles with all dependencies, bridging header works, binary runs
-- [ ] **Phase 2: Subtitle Overlay** - Floating karaoke subtitle panel visible on screen with all visual properties
+<details>
+<summary>v4.5.0 MVP (Phases 1-10)</summary>
+
+- [x] **Phase 1: Foundation & Build System** - Package.swift compiles with all dependencies, bridging header works, binary runs
+- [x] **Phase 2: Subtitle Overlay** - Floating karaoke subtitle panel visible on screen with all visual properties
 - [ ] **Phase 3: TTS Engine** - Kokoro int8 synthesis produces audio with word-level timestamps
 - [ ] **Phase 4: AI Summaries** - MiniMax API generates session narratives with circuit breaker protection
 - [ ] **Phase 5: Telegram Bot Core** - Bot connects, handles basic commands, sends session notifications
@@ -24,7 +32,21 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 9: SwiftBar Integration** - Menu bar plugin controls all subsystems via HTTP API
 - [x] **Phase 10: Deployment & Extras** - Launchd service, rollback, caption history, clipboard, thinking watcher (completed 2026-03-26)
 
+</details>
+
+### v4.6.0 Legacy Pipeline Feature Parity (Phases 11-16)
+
+- [ ] **Phase 11: Notification Formatting** - Rich HTML session notifications with fence-aware chunking and file reference wrapping
+- [ ] **Phase 12: AI Summary Prompts** - Exact legacy prompts ported for Arc Summary, Tail Brief, and single-exchange summarizer
+- [ ] **Phase 13: Auto-Continue Evaluation** - Full legacy evaluation logic with state tracking, rich notifications, and sweep fallback
+- [ ] **Phase 14: TTS Dispatch & Feature Gates** - Wire TTS to Tail Brief output with language detection and per-outlet feature gates
+- [ ] **Phase 15: Telegram Inline Buttons** - Interactive buttons on notifications for Focus Tab, Follow Up, and Transcript
+- [ ] **Phase 16: Integration & Reliability** - Deduplication, rate limiting, circuit breaker, stop hook, and tool breakdown
+
 ## Phase Details
+
+<details>
+<summary>v4.5.0 MVP Phase Details (Phases 1-10)</summary>
 
 ### Phase 1: Foundation & Build System
 
@@ -41,8 +63,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 
-- [x] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [x] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [x] 01-01-PLAN.md -- SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [x] 01-02-PLAN.md -- App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 2: Subtitle Overlay
 
@@ -60,8 +82,8 @@ Plans:
 
 Plans:
 
-- [x] 02-01-PLAN.md — SubtitleStyle constants + SubtitlePanel NSPanel with all window behaviors
-- [x] 02-02-PLAN.md — Karaoke highlighting engine + demo mode + main.swift wiring + visual checkpoint
+- [x] 02-01-PLAN.md -- SubtitleStyle constants + SubtitlePanel NSPanel with all window behaviors
+- [x] 02-02-PLAN.md -- Karaoke highlighting engine + demo mode + main.swift wiring + visual checkpoint
       **UI hint**: yes
 
 ### Phase 3: TTS Engine
@@ -80,8 +102,8 @@ Plans:
 
 Plans:
 
-- [x] 03-01-PLAN.md — Patch sherpa-onnx for duration tensor + TTSEngine with synthesis/WAV/afplay
-- [ ] 03-02-PLAN.md — Word timestamp extraction + karaoke integration + main.swift wiring + verification
+- [x] 03-01-PLAN.md -- Patch sherpa-onnx for duration tensor + TTSEngine with synthesis/WAV/afplay
+- [ ] 03-02-PLAN.md -- Word timestamp extraction + karaoke integration + main.swift wiring + verification
       **UI hint**: yes
 
 ### Phase 4: AI Summaries
@@ -95,12 +117,7 @@ Plans:
 2. Tail Brief produces an end-weighted narrative (20% context, 80% final turn)
 3. Single-turn summary produces a "you prompted me X ago to..." narrative
 4. After 3 consecutive MiniMax failures, summaries disable for 5 minutes (circuit breaker)
-   **Plans**: 2 plans
-
-Plans:
-
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+   **Plans**: TBD
 
 ### Phase 5: Telegram Bot Core
 
@@ -113,12 +130,7 @@ Plans:
 2. Bot sends session-end notifications containing Arc Summary and Tail Brief
 3. Bot dispatches TTS for Tail Brief text with karaoke subtitle overlay
 4. Messages use HTML formatting with fence-aware chunking at 4096 char limit
-   **Plans**: 2 plans
-
-Plans:
-
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+   **Plans**: TBD
 
 ### Phase 6: Telegram Bot Commands
 
@@ -136,8 +148,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [x] 06-01-PLAN.md -- Model selection + session resume + CLI subprocess
+- [x] 06-02-PLAN.md -- NDJSON streaming + edit-in-place + transcript parsing
 
 ### Phase 7: File Watching & Auto-Continue
 
@@ -155,8 +167,8 @@ Plans:
 
 Plans:
 
-- [x] 07-01-PLAN.md — FileWatcher: NotificationWatcher + JSONLTailer with DispatchSource
-- [x] 07-02-PLAN.md — AutoContinueEvaluator + main.swift wiring
+- [x] 07-01-PLAN.md -- FileWatcher: NotificationWatcher + JSONLTailer with DispatchSource
+- [x] 07-02-PLAN.md -- AutoContinueEvaluator + main.swift wiring
 
 ### Phase 8: HTTP Control API
 
@@ -174,8 +186,8 @@ Plans:
 
 Plans:
 
-- [x] 08-01-PLAN.md — FlyingFox dependency + SettingsStore persistence + HTTPControlServer endpoints
-- [ ] 08-02-PLAN.md — Wire HTTP server into main.swift + build verification
+- [x] 08-01-PLAN.md -- FlyingFox dependency + SettingsStore persistence + HTTPControlServer endpoints
+- [ ] 08-02-PLAN.md -- Wire HTTP server into main.swift + build verification
 
 ### Phase 9: SwiftBar Integration
 
@@ -189,13 +201,8 @@ Plans:
 3. Menu actions call HTTP API endpoints with response under 200ms
 4. SwiftBar shows per-subsystem health status from /health endpoint
 5. User can switch subtitle display to external monitor via SwiftBar menu
-   **Plans**: 2 plans
-
-Plans:
-
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
-      **UI hint**: yes
+   **Plans**: TBD
+   **UI hint**: yes
 
 ### Phase 10: Deployment & Extras
 
@@ -213,23 +220,115 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [x] 10-01-PLAN.md -- Launchd plist + rollback script + service cutover
+- [x] 10-02-PLAN.md -- Caption history + clipboard copy + thinking watcher
+
+</details>
+
+### v4.6.0 Legacy Pipeline Feature Parity Phase Details
+
+### Phase 11: Notification Formatting
+
+**Goal**: Session notifications arrive in Telegram with rich HTML formatting identical to the legacy TypeScript pipeline
+**Depends on**: Phase 10 (existing bot infrastructure)
+**Requirements**: FMT-01, FMT-02, FMT-03, FMT-04, FMT-05, FMT-06
+**Success Criteria** (what must be TRUE):
+
+1. Session notification header displays project name, session ID (8-char), git branch, duration, and turn count in structured HTML
+2. Arc Summary message shows the last prompt (condensed if >800 chars) followed by AI narrative with transition words
+3. Tail Brief is sent as a separate silent Telegram message after Arc Summary
+4. Markdown bold, italic, code, pre, and links convert correctly to Telegram HTML entities
+5. Messages exceeding 4096 chars split at fence-aware boundaries with fence close/reopen across chunks, and file references (.md, .py, .go, .sh) are wrapped to prevent Telegram auto-linking
+   **Plans**: TBD
+
+### Phase 12: AI Summary Prompts
+
+**Goal**: MiniMax summarization uses the exact legacy prompts with correct transcript budgeting and noise filtering
+**Depends on**: Phase 11 (formatting pipeline delivers summaries)
+**Requirements**: PROMPT-01, PROMPT-02, PROMPT-03, PROMPT-04, PROMPT-05
+**Success Criteria** (what must be TRUE):
+
+1. Arc Summary prompt matches legacy verbatim, with turn-by-turn transcript respecting 2000/4000/1500 char budgets per section
+2. Tail Brief prompt matches legacy verbatim, with 20% context / 80% final turn weighting applied to transcript input
+3. Single-exchange summarizer produces "you prompted me X ago to..." output with ||| delimiter parsing for multi-segment responses
+4. Prompts exceeding 800 chars are condensed to under 150 words via MiniMax before display
+5. System-injected noise patterns (tool results, environment blocks) are stripped from transcripts before summarization
+   **Plans**: TBD
+
+### Phase 13: Auto-Continue Evaluation
+
+**Goal**: Stop hook evaluates session completion with full legacy logic including state tracking, rich notifications, and sweep fallback
+**Depends on**: Phase 12 (summary prompts feed evaluation context)
+**Requirements**: EVAL-01, EVAL-02, EVAL-03, EVAL-04, EVAL-05, EVAL-06
+**Success Criteria** (what must be TRUE):
+
+1. MiniMax evaluation returns CONTINUE/SWEEP/REDIRECT/DONE using the exact legacy system prompt with plan context
+2. Plan files are discovered from both the transcript and sibling JSONL files in the session directory
+3. Per-session state tracks iteration count, sweep status, and manual intervention detection across multiple stop-hook invocations
+4. Decision notification sent to Telegram includes icon, reason, progress bar, tool breakdown, and timing
+5. When plan checkboxes are all checked but no review section exists, evaluation deterministically returns SWEEP without calling MiniMax
+   **Plans**: TBD
+
+### Phase 14: TTS Dispatch & Feature Gates
+
+**Goal**: Tail Brief text is automatically spoken via Kokoro TTS with language-aware voice selection and per-outlet toggles
+**Depends on**: Phase 12 (Tail Brief generation), Phase 3 (TTS engine)
+**Requirements**: TTS-10, TTS-11, TTS-12, TTS-13
+**Success Criteria** (what must be TRUE):
+
+1. After Tail Brief generation, text is dispatched to Kokoro TTS and played with karaoke subtitle overlay
+2. TTS greeting prepends "Hi Terry, you were working in {project}:" before the Tail Brief text
+3. Text with >20% CJK characters switches voice from af_heart to zf_xiaobei
+4. Each notification outlet (Telegram summary, TTS brief, auto-continue) can be independently enabled/disabled via feature gates
+   **Plans**: TBD
+
+### Phase 15: Telegram Inline Buttons
+
+**Goal**: Notification messages include interactive inline buttons for quick actions
+**Depends on**: Phase 11 (notification messages to attach buttons to)
+**Requirements**: BTN-01, BTN-02, BTN-03
+**Success Criteria** (what must be TRUE):
+
+1. Arc Summary notification includes Focus Tab, Follow Up, and Transcript inline buttons below the message
+2. Pressing Focus Tab switches to the iTerm tab where the session ran
+3. When a new notification arrives for the same iTerm tab, buttons are removed from the older message (deduplication)
+   **Plans**: TBD
+   **UI hint**: yes
+
+### Phase 16: Integration & Reliability
+
+**Goal**: The notification pipeline handles edge cases, deduplicates, rate-limits, and fails gracefully matching legacy reliability
+**Depends on**: Phase 13 (auto-continue), Phase 14 (TTS dispatch), Phase 15 (buttons)
+**Requirements**: REL-01, REL-02, REL-03, REL-04, REL-05
+**Success Criteria** (what must be TRUE):
+
+1. Duplicate notifications are skipped when the transcript file has not grown since the last notification for that session
+2. Notification processing is rate-limited to at most one every 5 seconds
+3. Circuit breaker trips after 3 consecutive MiniMax failures, enters 5-minute cooldown, and uses fallback narrative during cooldown
+4. Stop hook writes notification JSON to the correct directory with all required fields (project, session ID, branch, transcript path, duration, turns)
+5. Tool breakdown computes top 6 tools by count, excluding subagent orchestration tools (Task, Bash spawning agents)
+   **Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16
 
 | Phase                            | Plans Complete | Status      | Completed  |
 | -------------------------------- | -------------- | ----------- | ---------- |
 | 1. Foundation & Build System     | 2/2            | Complete    | -          |
 | 2. Subtitle Overlay              | 2/2            | Complete    | -          |
-| 3. TTS Engine                    | 0/2            | Planning    | -          |
+| 3. TTS Engine                    | 1/2            | In progress | -          |
 | 4. AI Summaries                  | 0/0            | Not started | -          |
 | 5. Telegram Bot Core             | 0/0            | Not started | -          |
 | 6. Telegram Bot Commands         | 2/2            | Complete    | 2026-03-26 |
 | 7. File Watching & Auto-Continue | 2/2            | Complete    | 2026-03-26 |
-| 8. HTTP Control API              | 0/0            | Not started | -          |
+| 8. HTTP Control API              | 1/2            | In progress | -          |
 | 9. SwiftBar Integration          | 0/0            | Not started | -          |
-| 10. Deployment & Extras          | 1/2            | Complete    | 2026-03-26 |
+| 10. Deployment & Extras          | 2/2            | Complete    | 2026-03-26 |
+| 11. Notification Formatting      | 0/0            | Not started | -          |
+| 12. AI Summary Prompts           | 0/0            | Not started | -          |
+| 13. Auto-Continue Evaluation     | 0/0            | Not started | -          |
+| 14. TTS Dispatch & Feature Gates | 0/0            | Not started | -          |
+| 15. Telegram Inline Buttons      | 0/0            | Not started | -          |
+| 16. Integration & Reliability    | 0/0            | Not started | -          |
