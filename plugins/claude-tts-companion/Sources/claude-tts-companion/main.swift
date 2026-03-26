@@ -138,7 +138,7 @@ let notificationWatcher = NotificationWatcher { filePath in
         // Parse transcript for session notification (FMT-01, FMT-02, FMT-03)
         if let tp = transcriptPath {
             let entries = TranscriptParser.parse(filePath: tp)
-            let turns = entriesToTurns(entries)
+            let turns = TranscriptParser.entriesToTurns(entries)
 
             // Extract metadata for rich notification formatting
             let gitBranch = extractGitBranch(from: tp)
@@ -222,54 +222,6 @@ if telegramBot == nil {
 }
 
 // MARK: - Helpers
-
-/// Convert transcript entries into conversation turns for session notifications.
-func entriesToTurns(_ entries: [TranscriptEntry]) -> [ConversationTurn] {
-    var turns: [ConversationTurn] = []
-    var currentPrompt: (text: String, timestamp: Date?)? = nil
-    var toolNames: [String] = []
-    var toolResults: [String] = []
-
-    for entry in entries {
-        switch entry {
-        case .prompt(let text, let ts):
-            // If we had a pending prompt without a response, flush it
-            if let prompt = currentPrompt {
-                turns.append(ConversationTurn(
-                    prompt: prompt.text, response: "",
-                    timestamp: prompt.timestamp, toolSummary: nil, toolResults: nil
-                ))
-            }
-            currentPrompt = (text, ts)
-            toolNames = []
-            toolResults = []
-        case .response(let text, let ts):
-            if let prompt = currentPrompt {
-                let toolSummary = toolNames.isEmpty ? nil : toolNames.joined(separator: ", ")
-                let toolResultStr = toolResults.isEmpty ? nil : toolResults.joined(separator: "\n")
-                turns.append(ConversationTurn(
-                    prompt: prompt.text, response: text,
-                    timestamp: prompt.timestamp ?? ts, toolSummary: toolSummary, toolResults: toolResultStr
-                ))
-                currentPrompt = nil
-            }
-        case .toolUse(let name, _):
-            toolNames.append(name)
-        case .toolResult(let content, _):
-            if !content.isEmpty { toolResults.append(String(content.prefix(500))) }
-        case .unknown:
-            break
-        }
-    }
-    // Flush any trailing prompt
-    if let prompt = currentPrompt {
-        turns.append(ConversationTurn(
-            prompt: prompt.text, response: "",
-            timestamp: prompt.timestamp, toolSummary: nil, toolResults: nil
-        ))
-    }
-    return turns
-}
 
 /// Extract git branch from JSONL transcript (first event with gitBranch field).
 func extractGitBranch(from transcriptPath: String) -> String? {
