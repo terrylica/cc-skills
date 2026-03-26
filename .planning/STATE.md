@@ -84,12 +84,13 @@ None yet.
 
 ### Quick Tasks Completed
 
-| #          | Description                                            | Date       | Commit   | Directory                                                                   |
-| ---------- | ------------------------------------------------------ | ---------- | -------- | --------------------------------------------------------------------------- |
-| 260326-fvh | Deploy claude-tts-companion as unified launchd service | 2026-03-26 | f8196055 | [260326-fvh-deploy-tts-companion](./quick/260326-fvh-deploy-tts-companion/) |
+| #          | Description                                                       | Date       | Commit   | Directory                                                                                                           |
+| ---------- | ----------------------------------------------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| 260326-fvh | Deploy claude-tts-companion as unified launchd service            | 2026-03-26 | f8196055 | [260326-fvh-deploy-tts-companion](./quick/260326-fvh-deploy-tts-companion/)                                         |
+| 260326-n1n | Upgrade ty hook: --python-version 3.13, concise output, Stop hook | 2026-03-26 | af5afb8d | [260326-n1n-upgrade-ty-hook-python-version-concise-o](./quick/260326-n1n-upgrade-ty-hook-python-version-concise-o/) |
 
 ## Session Continuity
 
 Last session: 2026-03-26T23:42:28.914Z
-Stopped at: Completed 11-01-PLAN.md
+Stopped at: Completed quick task 260326-n1n
 Resume file: None
