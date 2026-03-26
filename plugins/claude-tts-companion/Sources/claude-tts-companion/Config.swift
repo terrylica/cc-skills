@@ -62,4 +62,17 @@ enum Config {
 
     /// Default model for /prompt commands when no flag is specified
     static let defaultModel = "sonnet"
+
+    /// Model ID strings for /prompt flag parsing
+    static let haikuModel = "haiku"
+    static let sonnetModel = "sonnet"
+    static let opusModel = "opus"
+
+    /// Default working directory for /prompt commands
+    static let promptDefaultCwd: String = {
+        return ProcessInfo.processInfo.environment["HOME"] ?? "/Users/terryli"
+    }()
+
+    /// Maximum execution time for a single /prompt command (seconds)
+    static let promptTimeoutSeconds: Int = 120
 }
