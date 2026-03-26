@@ -14,17 +14,17 @@
 
 ### Subtitle Overlay
 
-- [ ] **SUB-01**: User sees floating subtitle text overlaid on their macOS screen via NSPanel
-- [ ] **SUB-02**: Subtitle panel appears on MacBook built-in display by default
+- [x] **SUB-01**: User sees floating subtitle text overlaid on their macOS screen via NSPanel
+- [x] **SUB-02**: Subtitle panel appears on MacBook built-in display by default
 - [ ] **SUB-03**: Current word is highlighted in warm gold (bold) as audio plays (karaoke style)
 - [ ] **SUB-04**: Past words dim to silver-grey, future words are white
 - [ ] **SUB-05**: NSAttributedString updates complete in under 1ms per word (no frame drops)
-- [ ] **SUB-06**: Panel has dark semi-transparent background at 30% opacity with 10px corner radius
-- [ ] **SUB-07**: Long text word-wraps to 2 lines (no auto-shrink)
-- [ ] **SUB-08**: Panel is invisible to screen sharing and screen capture (sharingType = .none)
-- [ ] **SUB-09**: Panel does not steal focus from the active application (nonactivatingPanel)
-- [ ] **SUB-10**: Panel is click-through (ignoresMouseEvents = true)
-- [ ] **SUB-11**: Panel is visible on all Spaces and in fullscreen apps
+- [x] **SUB-06**: Panel has dark semi-transparent background at 30% opacity with 10px corner radius
+- [x] **SUB-07**: Long text word-wraps to 2 lines (no auto-shrink)
+- [x] **SUB-08**: Panel is invisible to screen sharing and screen capture (sharingType = .none)
+- [x] **SUB-09**: Panel does not steal focus from the active application (nonactivatingPanel)
+- [x] **SUB-10**: Panel is click-through (ignoresMouseEvents = true)
+- [x] **SUB-11**: Panel is visible on all Spaces and in fullscreen apps
 
 ### TTS Engine
 
@@ -131,17 +131,17 @@
 | BUILD-02    | Phase 1  | Complete |
 | BUILD-03    | Phase 1  | Complete |
 | BUILD-04    | Phase 1  | Complete |
-| SUB-01      | Phase 2  | Pending |
-| SUB-02      | Phase 2  | Pending |
+| SUB-01      | Phase 2  | Complete |
+| SUB-02      | Phase 2  | Complete |
 | SUB-03      | Phase 2  | Pending |
 | SUB-04      | Phase 2  | Pending |
 | SUB-05      | Phase 2  | Pending |
-| SUB-06      | Phase 2  | Pending |
-| SUB-07      | Phase 2  | Pending |
-| SUB-08      | Phase 2  | Pending |
-| SUB-09      | Phase 2  | Pending |
-| SUB-10      | Phase 2  | Pending |
-| SUB-11      | Phase 2  | Pending |
+| SUB-06      | Phase 2  | Complete |
+| SUB-07      | Phase 2  | Complete |
+| SUB-08      | Phase 2  | Complete |
+| SUB-09      | Phase 2  | Complete |
+| SUB-10      | Phase 2  | Complete |
+| SUB-11      | Phase 2  | Complete |
 | TTS-01      | Phase 3  | Pending |
 | TTS-02      | Phase 3  | Pending |
 | TTS-03      | Phase 3  | Pending |
