@@ -17,6 +17,9 @@ final class TelegramBot: @unchecked Sendable {
     private let ttsEngine: TTSEngine
     private let subtitlePanel: SubtitlePanel  // @MainActor -- access must dispatch to main
 
+    // Prompt execution (BOT-05, BOT-06)
+    private let promptExecutor = PromptExecutor()
+
     init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel) {
         self.botToken = botToken
         self.chatId = chatId
@@ -139,6 +142,7 @@ final class TelegramBot: @unchecked Sendable {
             TGBotCommand(command: "status", description: "View bot status"),
             TGBotCommand(command: "health", description: "Check connectivity"),
             TGBotCommand(command: "sessions", description: "List recent sessions"),
+            TGBotCommand(command: "prompt", description: "Send prompt to Claude CLI"),
             TGBotCommand(command: "done", description: "Detach from session"),
             TGBotCommand(command: "commands", description: "Show available commands"),
         ]
@@ -215,6 +219,54 @@ final class TelegramBot: @unchecked Sendable {
         }
     }
 
+    /// Send a message and return its message_id for later editing (edit-in-place pattern).
+    func sendMessageReturningId(_ text: String) async -> Int? {
+        guard let bot = bot else {
+            logger.warning("Cannot send message: bot not started")
+            return nil
+        }
+        do {
+            let params = TGSendMessageParams(
+                chatId: .chat(chatId),
+                text: text,
+                parseMode: .html,
+                linkPreviewOptions: TGLinkPreviewOptions(isDisabled: true)
+            )
+            let msg = try await bot.sendMessage(params: params)
+            return msg.messageId
+        } catch {
+            logger.error("Failed to send message for edit-in-place: \(error)")
+            return nil
+        }
+    }
+
+    /// Edit an existing message by ID. Retries with plain text on HTML parse error.
+    func editMessage(messageId: Int, text: String) async {
+        guard let bot = bot else { return }
+        do {
+            let params = TGEditMessageTextParams(
+                chatId: .chat(chatId),
+                messageId: messageId,
+                text: text,
+                parseMode: .html,
+                linkPreviewOptions: TGLinkPreviewOptions(isDisabled: true)
+            )
+            try await bot.editMessageText(params: params)
+        } catch {
+            // Retry with plain text on HTML parse error
+            do {
+                let plainParams = TGEditMessageTextParams(
+                    chatId: .chat(chatId),
+                    messageId: messageId,
+                    text: TelegramFormatter.stripHtmlTags(text)
+                )
+                try await bot.editMessageText(params: plainParams)
+            } catch {
+                logger.warning("Failed to edit message \(messageId): \(error)")
+            }
+        }
+    }
+
     // MARK: - Command Handlers
 
     /// Reply to a specific chat (used by command handlers to reply to the sender).
@@ -287,9 +339,53 @@ final class TelegramBot: @unchecked Sendable {
         await replyToChat(chatId, text: "<b>Sessions</b>\n\nSession listing will be available in Phase 7 (File Watching).")
     }
 
+    func handlePrompt(update: TGUpdate) async {
+        guard let chatId = update.message?.chat.id else { return }
+
+        // Extract text after "/prompt"
+        let rawText = update.message?.text ?? ""
+        let afterCommand: String
+        if rawText.hasPrefix("/prompt ") {
+            afterCommand = String(rawText.dropFirst(8))
+        } else if rawText == "/prompt" {
+            afterCommand = ""
+        } else {
+            afterCommand = rawText
+        }
+
+        let trimmed = afterCommand.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            await replyToChat(chatId, text: "<b>Usage:</b> /prompt [--haiku|--sonnet|--opus] your question")
+            return
+        }
+
+        let (model, promptText) = parsePromptFlags(trimmed)
+
+        if promptText.isEmpty {
+            await replyToChat(chatId, text: "<b>Usage:</b> /prompt [--haiku|--sonnet|--opus] your question")
+            return
+        }
+
+        // Execute via PromptExecutor with injected closures
+        await promptExecutor.execute(
+            prompt: promptText,
+            model: model,
+            cwd: Config.promptDefaultCwd,
+            resumeSessionId: nil,  // Session resume wiring in Phase 7
+            sendMessage: { [weak self] text in
+                return await self?.sendMessageReturningId(text)
+            },
+            editMessage: { [weak self] msgId, text in
+                await self?.editMessage(messageId: msgId, text: text)
+            }
+        )
+    }
+
     func handleDone(update: TGUpdate) async {
         guard let chatId = update.message?.chat.id else { return }
-        await replyToChat(chatId, text: "<b>Done</b>\n\nSession detach will be available in Phase 6 (Bot Commands).")
+        // Cancel any running prompt
+        promptExecutor.cancel()
+        await replyToChat(chatId, text: "<b>Done</b>\n\nSession detach: no active prompt session to detach.")
     }
 
     func handleCommands(update: TGUpdate) async {
@@ -302,6 +398,7 @@ final class TelegramBot: @unchecked Sendable {
         /status - View bot status
         /health - Check connectivity
         /sessions - List recent sessions
+        /prompt - Send prompt to Claude (--haiku, --sonnet, --opus)
         /done - Detach from session
         /commands - Show this list
         """
@@ -356,6 +453,11 @@ private final class BotDispatcher: TGDefaultDispatcher {
         await add(TGCommandHandler(commands: ["sessions"]) { [weak self] update in
             guard let self = self else { return }
             await self.telegramBot.handleSessions(update: update)
+        })
+
+        await add(TGCommandHandler(commands: ["prompt"]) { [weak self] update in
+            guard let self = self else { return }
+            await self.telegramBot.handlePrompt(update: update)
         })
 
         await add(TGCommandHandler(commands: ["done"]) { [weak self] update in
