@@ -49,10 +49,22 @@ private struct SubsystemStatus: Codable {
     let subtitle: String
 }
 
-/// HTTP control API server wrapping FlyingFox (API-01 through API-06).
+/// Response body for GET /captions.
+private struct CaptionsResponse: Codable {
+    let captions: [CaptionEntry]
+    let total: Int
+}
+
+/// Response body for POST /captions/copy.
+private struct CopyResponse: Codable {
+    let ok: Bool
+    let copied: Int
+}
+
+/// HTTP control API server wrapping FlyingFox (API-01 through API-08).
 ///
 /// Provides REST endpoints for health monitoring, settings management,
-/// and subtitle/TTS control. Binds to localhost only (loopback) for security.
+/// subtitle/TTS control, and caption history. Binds to localhost only (loopback) for security.
 final class HTTPControlServer: @unchecked Sendable {
 
     private let logger = Logger(label: "http-api")
@@ -60,12 +72,14 @@ final class HTTPControlServer: @unchecked Sendable {
     private let settingsStore: SettingsStore
     private let subtitlePanel: SubtitlePanel
     private let ttsEngine: TTSEngine
+    private let captionHistory: CaptionHistory
     private let startTime: Date
 
-    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, ttsEngine: TTSEngine) {
+    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, ttsEngine: TTSEngine, captionHistory: CaptionHistory) {
         self.settingsStore = settingsStore
         self.subtitlePanel = subtitlePanel
         self.ttsEngine = ttsEngine
+        self.captionHistory = captionHistory
         self.startTime = Date()
     }
 
@@ -142,6 +156,19 @@ final class HTTPControlServer: @unchecked Sendable {
         await server.appendRoute("POST /subtitle/hide") { [self] _ in
             await MainActor.run { subtitlePanel.hide() }
             return jsonResponse(OkResponse(ok: true))
+        }
+
+        // API-07: Get caption history
+        await server.appendRoute("GET /captions") { [self] _ in
+            let entries = captionHistory.getAll()
+            let response = CaptionsResponse(captions: entries, total: captionHistory.count)
+            return jsonResponse(response)
+        }
+
+        // API-08: Copy captions to clipboard
+        await server.appendRoute("POST /captions/copy") { [self] _ in
+            let copied = await MainActor.run { captionHistory.copyToClipboard() }
+            return jsonResponse(CopyResponse(ok: true, copied: copied))
         }
 
         logger.info("HTTP control API starting on localhost:\(Config.httpPort)")
