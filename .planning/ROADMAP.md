@@ -99,8 +99,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [x] 04-01-PLAN.md — MiniMax API client & circuit breaker (1/2 SUMMARY)
+- [ ] 04-02-PLAN.md — Summary prompt templates & orchestrator
 
 ### Phase 5: Telegram Bot Core
 
