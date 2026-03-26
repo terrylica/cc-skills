@@ -9,7 +9,15 @@
 
 ## TL;DR (简要总结)
 
-Agent Skills (SKILL.md 格式) 正在成为 AI 编程时代的**知识共享标准单元**。它不是传统文档 — 而是**可被 AI 理解、执行、并持续进化的结构化知识**。所有主流平台 (Claude Code, Codex, Gemini CLI, Cursor, JetBrains) 都在向这个方向收敛。把知识写成 Skills 而不是 Wiki/Confluence 页面,意味着知识不仅仅被人阅读 — 它会被 AI agent 自动发现、加载、并应用。
+Agent Skills (SKILL.md 格式) 正在成为 AI 编程时代的**知识共享标准单元**。它不是传统文档 — 而是**可被 AI 理解、执行、并持续进化的结构化知识**。本文论证五个核心论点:
+
+1. **粒度刚好** — 太小不值得建仓库，太大不适合放进 dotfile，Skills 填补了这个空白
+2. **跨平台收敛** — 同一个 SKILL.md 在 Claude Code, Codex, Gemini CLI, Cursor, JetBrains, Xcode 都能工作
+3. **精确的知识分类** — 不是所有知识都该编码为 Skills，只有模型扩展无法学会的 (部署顺序、平台特异性、反模式) 才值得
+4. **Token 经济学** — Progressive Disclosure 每个 skill 仅 ~100 tokens，比塞进 context 高效得多
+5. **自我进化** — Skills 可以通过 eval 驱动的反馈循环检测自身指令过时并自动修正，静态文档做不到
+
+此外，本文提出将 <private-repo> 升级为 **Plugin Marketplace**，让数据层 (论文管线) 和能力层 (可安装的 Skills) 在同一个仓库中共存，并允许从上游仓库 cherry-pick 已有 skills。
 
 ---
 
@@ -255,6 +263,18 @@ Skill 不会无故修改自己。它只在**执行失败且失败可归因于自
 | **修正方式** | 有人发现问题 → 记得更新 → 找到正确页面 → 手动编辑 | Agent 检测失败 → 归因分析 → 靶向修改 → eval 验证 → git commit |
 | **验证机制** | 无 — 文档可能已经过时但没人知道                   | 二元断言: pass 或 fail, 无灰色地带                            |
 | **回滚能力** | 手动 git revert (如果有人记得)                    | 自动: 验证失败 → 立即回滚到上一版本                           |
+
+#### 实践证据: 自我进化已在生产中运行
+
+这不是理论 — 团队成员的现有 skills 仓库已经在生产中实践了自我进化模式:
+
+- **153 个 `evolution-log.md` 文件**记录了 skills 的历史进化轨迹，每次修改都有经验性证据
+- **Template D ("Convert to Self-Evolving Skill")** 专门用于将静态 skill 转换为自我进化版本
+- **Post-Change Checklist** 强制要求每次修改后更新 evolution-log，确保修改有据可查
+- **6 个改进信号监控**: friction (操作摩擦)、edge cases (边界情况)、better patterns (更优模式)、confusion (混淆点)、tool evolution (工具更新)、repeated steps (重复步骤)
+- **Continuous Improvement 协议**: "Skills must actively evolve. When you notice friction, missing edge cases, better patterns, or repeated manual steps — update immediately."
+
+这 153 个 evolution-log 文件就是活生生的证据: Skills 不是一次性写完就不管的文档，它们是持续进化的知识载体。
 
 **关键结论**: 自定义的 inbox/papers 管线如果写成静态脚本，API 变化时没人会发现直到有人用了它。SKILL.md 配合 eval.json 可以在下一次执行时**自动发现并修复**问题。这是自定义方案做不到的。
 
