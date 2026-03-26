@@ -38,11 +38,19 @@ final class TelegramBot: @unchecked Sendable {
         await sendMessage(text, parseMode: .html)
     }
 
-    // MARK: - Session Notifications (BOT-03, BOT-04)
+    // MARK: - Session Notifications (BOT-03, BOT-04, FMT-01, FMT-02, FMT-03)
 
-    /// Send session-end notification with Arc Summary + Tail Brief, then dispatch TTS.
+    /// Send session-end notification with rich HTML header, Arc Summary as main message,
+    /// Tail Brief as separate silent message, then dispatch TTS.
     /// Called by file watcher (Phase 7) when a session ends.
-    func sendSessionNotification(turns: [ConversationTurn], cwd: String?) async {
+    func sendSessionNotification(
+        sessionId: String,
+        turns: [ConversationTurn],
+        cwd: String?,
+        gitBranch: String?,
+        startTime: Date?,
+        lastActivity: Date?
+    ) async {
         guard isWatching else {
             logger.info("Skipping notification -- bot not watching")
             return
@@ -55,33 +63,74 @@ final class TelegramBot: @unchecked Sendable {
         let arc = await arcResult
         let tail = await tailResult
 
-        // Build notification message (HTML formatted)
-        var message = "<b>Session Complete</b>"
-        if let cwd = cwd {
-            message += " — <code>\(TelegramFormatter.escapeHtml(cwd))</code>"
+        // Extract last user prompt from turns (FMT-02)
+        let lastPrompt = turns.last(where: { !$0.prompt.isEmpty })?.prompt
+
+        // Build SessionNotificationData for rich HTML rendering (FMT-01)
+        let notifData = SessionNotificationData(
+            sessionId: sessionId,
+            cwd: cwd ?? "unknown",
+            gitBranch: gitBranch,
+            startTime: startTime ?? turns.first?.timestamp,
+            lastActivity: lastActivity ?? Date(),
+            turnCount: turns.count,
+            lastUserPrompt: lastPrompt,
+            aiNarrative: arc.narrative != "Session completed." ? arc.narrative : nil,
+            promptSummary: arc.promptSummary
+        )
+
+        // Render rich HTML notification with metadata header
+        let message = TelegramFormatter.renderSessionNotification(notifData)
+
+        // If rendering produced nothing useful, send minimal fallback
+        if message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            await sendMessage("<b>Session Complete</b>\n\n<i>Summary generation failed or was skipped.</i>")
+        } else {
+            await sendMessage(message)
         }
 
-        // Arc Summary section
-        if !arc.narrative.isEmpty && arc.narrative != "Session completed." {
-            message += "\n\n<b>Arc Summary:</b>\n\(TelegramFormatter.escapeHtml(arc.narrative))"
-        }
-
-        // Tail Brief section
+        // Send Tail Brief as separate silent message (FMT-03)
         if !tail.narrative.isEmpty {
-            message += "\n\n<b>Tail Brief:</b>\n\(TelegramFormatter.escapeHtml(tail.narrative))"
+            let tbrMessage = "<b>Tail Brief</b>:\n\(TelegramFormatter.escapeHtml(tail.narrative))"
+            await sendSilentMessage(tbrMessage)
         }
-
-        // If both summaries failed, send minimal notification
-        if arc.narrative == "Session completed." && tail.narrative.isEmpty {
-            message += "\n\n<i>Summary generation failed or was skipped.</i>"
-        }
-
-        // Send notification
-        await sendMessage(message)
 
         // Dispatch TTS for Tail Brief with karaoke subtitles (BOT-04)
         if !tail.narrative.isEmpty {
             await dispatchTTS(text: tail.narrative, greeting: arc.ttsGreeting)
+        }
+    }
+
+    /// Send a silent HTML message (no push notification). Used for Tail Brief (FMT-03).
+    func sendSilentMessage(_ text: String) async {
+        guard let bot = bot else {
+            logger.warning("Cannot send silent message: bot not started")
+            return
+        }
+        let chunks = TelegramFormatter.chunkTelegramHtml(text)
+        for chunk in chunks {
+            do {
+                let params = TGSendMessageParams(
+                    chatId: .chat(chatId),
+                    text: chunk,
+                    parseMode: .html,
+                    linkPreviewOptions: TGLinkPreviewOptions(isDisabled: true),
+                    disableNotification: true
+                )
+                try await bot.sendMessage(params: params)
+            } catch {
+                logger.warning("Failed to send silent HTML, retrying plain: \(error)")
+                do {
+                    let plainParams = TGSendMessageParams(
+                        chatId: .chat(chatId),
+                        text: TelegramFormatter.stripHtmlTags(chunk),
+                        disableNotification: true
+                    )
+                    try await bot.sendMessage(params: plainParams)
+                } catch {
+                    logger.error("Failed to send silent plain text: \(error)")
+                }
+            }
         }
     }
 
