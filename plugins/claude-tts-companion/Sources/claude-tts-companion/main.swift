@@ -184,10 +184,27 @@ nonisolated(unsafe) var keepThinkingWatcher: ThinkingWatcher? = thinkingWatcher
 
 logger.info("Starting \(Config.appName)")
 
-// Show subtitle demo only when bot is disabled (no token = dev mode)
+// Show TTS demo only when bot is disabled (no token = dev mode)
 if telegramBot == nil {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-        subtitlePanel.demo()
+        let demoText = "Welcome to claude TTS companion, your real-time subtitle overlay with karaoke highlighting"
+        ttsEngine.synthesizeWithTimestamps(text: demoText) { result in
+            switch result {
+            case .success(let ttsResult):
+                logger.info("TTS demo: \(ttsResult.audioDuration)s audio, \(ttsResult.wordTimings.count) words")
+                DispatchQueue.main.async {
+                    subtitlePanel.showUtterance(ttsResult.text, wordTimings: ttsResult.wordTimings)
+                    captionHistory.record(ttsResult.text)
+                }
+                ttsEngine.play(wavPath: ttsResult.wavPath)
+            case .failure(let error):
+                logger.error("TTS demo failed: \(error)")
+                // Fallback to subtitle-only demo
+                DispatchQueue.main.async {
+                    subtitlePanel.demo()
+                }
+            }
+        }
     }
 }
 
