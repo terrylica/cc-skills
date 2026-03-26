@@ -8,8 +8,8 @@
 ### Build System
 
 - [ ] **BUILD-01**: User can compile the binary with `swift build -c release` (no Xcode required)
-- [ ] **BUILD-02**: Package.swift includes swift-telegram-sdk v4.5.0 and sherpa-onnx static lib linker settings
-- [ ] **BUILD-03**: Bridging header correctly imports sherpa-onnx C API and ONNX Runtime C API
+- [x] **BUILD-02**: Package.swift includes swift-telegram-sdk v4.5.0 and sherpa-onnx static lib linker settings
+- [x] **BUILD-03**: Bridging header correctly imports sherpa-onnx C API and ONNX Runtime C API
 - [ ] **BUILD-04**: Release binary is a single file under 30MB (excluding model files)
 
 ### Subtitle Overlay
@@ -128,8 +128,8 @@
 | Requirement | Phase    | Status  |
 | ----------- | -------- | ------- |
 | BUILD-01    | Phase 1  | Pending |
-| BUILD-02    | Phase 1  | Pending |
-| BUILD-03    | Phase 1  | Pending |
+| BUILD-02    | Phase 1  | Complete |
+| BUILD-03    | Phase 1  | Complete |
 | BUILD-04    | Phase 1  | Pending |
 | SUB-01      | Phase 2  | Pending |
 | SUB-02      | Phase 2  | Pending |
