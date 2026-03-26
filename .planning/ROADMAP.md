@@ -80,8 +80,9 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [ ] 03-01-PLAN.md — Patch sherpa-onnx for duration tensor + TTSEngine with synthesis/WAV/afplay
+- [ ] 03-02-PLAN.md — Word timestamp extraction + karaoke integration + main.swift wiring + verification
+      **UI hint**: yes
 
 ### Phase 4: AI Summaries
 
@@ -223,8 +224,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | Phase                            | Plans Complete | Status      | Completed |
 | -------------------------------- | -------------- | ----------- | --------- |
 | 1. Foundation & Build System     | 2/2            | Complete    | -         |
-| 2. Subtitle Overlay              | 0/2            | Planning    | -         |
-| 3. TTS Engine                    | 0/0            | Not started | -         |
+| 2. Subtitle Overlay              | 2/2            | Complete    | -         |
+| 3. TTS Engine                    | 0/2            | Planning    | -         |
 | 4. AI Summaries                  | 0/0            | Not started | -         |
 | 5. Telegram Bot Core             | 0/0            | Not started | -         |
 | 6. Telegram Bot Commands         | 0/0            | Not started | -         |
