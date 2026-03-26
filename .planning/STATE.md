@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-26T01:51:03.030Z"
+status: verifying
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-26T01:57:05.437Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 10
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 
 Phase: 01 (Foundation & Build System) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-26
 
 Progress: [░░░░░░░░░░] 0%
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 
 _Updated after each plan completion_
 | Phase 01 P01 | 3min | 2 tasks | 10 files |
+| Phase 01 P02 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 
 - [Phase 01]: CSherpaOnnx as .target with vendored headers (not .systemLibrary) for portability
 - [Phase 01]: SHERPA_ONNX_PATH env var override pattern for path flexibility
+- [Phase 01]: SherpaOnnxGetVersionStr is correct C API name (not SherpaOnnxGetVersion)
+- [Phase 01]: SwiftTelegramBot is correct SPM product name (not SwiftTelegramSdk)
+- [Phase 01]: strip release binary: 32MB unstripped -> 18.3MB stripped
 
 ### Pending Todos
 
@@ -78,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T01:51:03.027Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-03-26T01:57:05.435Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
