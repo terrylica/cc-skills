@@ -146,25 +146,66 @@ Skills 填补了"太小不值得建仓库，太大不适合放进 dotfile"的空
 
 这不是某一家公司的私有格式 — 这是整个行业正在收敛的标准。
 
-### 论点 3: 知识不被分享 = 不存在
+### 论点 3: 什么知识值得编码为 Skills — 精确分类
 
-> "From the agent's point of view, anything it can't access in-context while running effectively doesn't exist."
+不是所有知识都应该写成 SKILL.md。关键问题是: **哪些知识是 LLM 无论如何学不会的？**
+
+> "Unlike conventional software errors, LLM failures in the tail are stochastic and context-dependent. A model may retrieve a rare fact correctly in one context but hallucinate in another following minor prompt perturbations."
 >
-> — NxCode Harness Engineering Guide, 2026
+> — [Sanket Badhe, Deep Shah, Nehal Kathrotia, arXiv](https://arxiv.org/), February 2026
 
-如果你的知识只存在于 Wiki/Confluence/脑海中，对于 AI agent 来说它就**不存在**。只有编码为 Skills 放入仓库的知识，才会被 AI 自动发现和应用。
+> "Context Engineering has gone from a niche concern to the core discipline of AI Engineering in under a year... LLMs have a finite attention budget. Every token in the context window competes for attention. Context engineering means finding the smallest possible set of high-signal tokens that maximise the likelihood of desired outcomes."
+>
+> — [Towards AI, "State of Context Engineering in 2026"](https://towardsai.net/), March 2026
 
-### 论点 4: Skills 是 Harness 的最小构建单元
+#### 应该编码为 Skills 的知识 (模型扩展无法解决)
 
-```
-你的大脑中的知识
-    ↓ 编码为 SKILL.md
-Agent 可读的知识
-    ↓ 安装到仓库
-Agent 自动应用的知识
-    ↓ 团队共享
-组织级的 Agent Harness
-```
+| 知识类型                                          | 为什么 LLM 学不会                                           | Skills 中的体现                                         |
+| ------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------- |
+| **部署顺序依赖**                                  | 通过反复试错在 Claude Code 会话中发现的、未文档化的操作顺序 | SKILL.md 中精确的步骤序列 + "不要跳过步骤 X" 的负面约束 |
+| **平台特异性** (macOS launchd, systemd MemoryMax) | 训练数据中出现频率极低，模型会用通用 Linux 知识填充         | 精确的环境模板和平台特定参数                            |
+| **跨工具集成边界** (如 sherpa-onnx C API + Swift) | 两个冷门技术的交叉点，训练数据几乎为零                      | 经过验证的互操作代码和已知陷阱                          |
+| **时间敏感知识** (API 弃用、版本特定 bug)         | 变化速度快于模型训练周期                                    | 版本化的 Skills，随 API 变化更新                        |
+| **反模式 / "不要做什么"**                         | 训练数据偏向成功案例，模型缺乏失败经验                      | YAML frontmatter 中的负面触发器 ("Do NOT use for...")   |
+| **认证编排** (内部零信任流程、MFA 序列)           | 组织私有，按定义不在训练数据中                              | 精确的 CLI 命令序列 + token 轮换脚本                    |
+
+#### 不应该编码为 Skills 的知识 (反模式)
+
+| 反模式                                             | 为什么不应该编码                                               |
+| -------------------------------------------------- | -------------------------------------------------------------- |
+| **标准编程模式** (React 组件, pandas 管道)         | 训练数据中极高密度，写 Skill 反而干扰模型的内置最优解          |
+| **临时性 workaround** (因 DNS 临时宕机而硬编码 IP) | 短暂的本地异常，编码后变成危险的过时指令                       |
+| **过多 "不要做X" 约束**                            | 负面约束过载导致 prompt 瘫痪，模型无法在剩余空间中生成可行方案 |
+| **可由模型在新版本中自然改进的领域**               | 编码的假设会随模型升级而过时，成为技术债务                     |
+
+#### 会话经验主义 (Conversational Empiricism) — Skills 知识的诞生过程
+
+> "The simplest way to gain insights into how an agent is performing is to ask it directly during the session... Users can develop insights into 'undertriggering' or 'overtriggering' by running a checklist of natural language requests."
+>
+> — [A B Vijay Kumar, "Deep Dive SKILL.md (Part 1/2)"](https://abvijaykumar.medium.com/deep-dive-skill-md-part-1-2-09fc9a536996), Medium, March 16, 2026
+
+Skills 中最有价值的知识不是从文档复制来的 — 而是从反复的 AI 编程会话中**经验性地发现**的:
+
+| 阶段              | 工程师-Agent 交互                                           | 转化为 SKILL.md 的内容                            |
+| ----------------- | ----------------------------------------------------------- | ------------------------------------------------- |
+| **1. 探索性激发** | 布置新任务，预期初始失败，观察模型的默认假设和幻觉模式      | 定义核心问题 + 识别该 skill 需要防范的"幻觉区域"  |
+| **2. 交互式校准** | 用外部文档、错误日志、环境约束纠正模型输出                  | 形成 SKILL.md 正文: 经过验证的精确步骤序列        |
+| **3. 边界调优**   | 测试边缘情况，发现"触发不足"或"过度触发"                    | 调整 YAML frontmatter 的 description 和负面边界   |
+| **4. 自动提取**   | Meta-agent (skill-creator) 观察成功的会话并自动提取通用逻辑 | 生成完整的 SKILL.md 目录 + scripts/ + references/ |
+
+**关键洞察**: 如果一个工程师在 Claude Code 会话中花了 2 小时调试一个部署问题，最终发现了正确的操作序列 — 这个知识在会话结束后就**永久丢失**了。除非它被编码为 SKILL.md，否则下一个人会花同样的 2 小时重复发现同一个问题。
+
+### 论点 4: Token 经济学 — 为什么 Skills 比无限 Context 更高效
+
+> "Token economics favor skills. Anthropic's own engineering team discovered that one GitHub MCP server can expose ninety-plus tools, consuming over 50,000 tokens of JSON schemas before the model starts reasoning."
+>
+> — [Arcade Dev Blog, "What are Agent Skills and Tools?"](https://arcade.dev/), 2026
+
+即使未来模型拥有 1000 万 token 的 context 窗口，Skills 仍然比"把所有知识塞进 context"更优:
+
+- **一个 MCP server 就消耗 50,000 tokens** — 无限 context 不等于无限注意力
+- **Progressive Disclosure 每个 skill 仅 ~100 tokens** — 只在需要时加载完整内容
+- **注意力稀释是物理限制** — context 越长，中间信息被忽略的概率越高 ("Lost in the Middle")
 
 ---
 
@@ -412,3 +453,8 @@ claude plugin install quant-research@<private-repo>
 - [Dean Blank: Building Claude Code Plugins (GitConnected)](https://gitconnected.com/)
 - [Hajime Takeda: Skills Progressive Disclosure (Towards Data Science)](https://towardsdatascience.com/)
 - [Anthropic: Create and distribute a plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces)
+- [Gemini 3 Pro Deep Research: Skill-Worthy Knowledge Taxonomy](https://gemini.google.com/share/274d0b18ba66)
+- [ArXiv: Long-Tail Knowledge in LLMs — Taxonomy (Badhe et al., Feb 2026)](https://arxiv.org/)
+- [Towards AI: State of Context Engineering in 2026](https://towardsai.net/)
+- [A B Vijay Kumar: Deep Dive SKILL.md (Part 1/2)](https://abvijaykumar.medium.com/deep-dive-skill-md-part-1-2-09fc9a536996)
+- [Arcade Dev Blog: What are Agent Skills and Tools?](https://arcade.dev/)
