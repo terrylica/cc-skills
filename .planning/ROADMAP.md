@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: TTS Engine** - Kokoro int8 synthesis produces audio with word-level timestamps
 - [ ] **Phase 4: AI Summaries** - MiniMax API generates session narratives with circuit breaker protection
 - [ ] **Phase 5: Telegram Bot Core** - Bot connects, handles basic commands, sends session notifications
-- [ ] **Phase 6: Telegram Bot Commands** - Bot supports model selection, session resume, CLI subprocess integration
+- [x] **Phase 6: Telegram Bot Commands** - Bot supports model selection, session resume, CLI subprocess integration (completed 2026-03-26)
 - [ ] **Phase 7: File Watching & Auto-Continue** - Event-driven file monitoring and MiniMax-evaluated auto-continue
 - [ ] **Phase 8: HTTP Control API** - External control surface for settings, health, subtitle, and TTS
 - [ ] **Phase 9: SwiftBar Integration** - Menu bar plugin controls all subsystems via HTTP API
@@ -99,8 +99,8 @@ Plans:
 
 Plans:
 
-- [x] 04-01-PLAN.md — MiniMax API client & circuit breaker (1/2 SUMMARY)
-- [x] 04-02-PLAN.md — Summary prompt templates & orchestrator
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 5: Telegram Bot Core
 
@@ -117,8 +117,8 @@ Plans:
 
 Plans:
 
-- [x] 05-01-PLAN.md — TelegramFormatter (HTML + fence-aware chunking) + TelegramBot with 7 command handlers
-- [x] 05-02-PLAN.md — Session notification wiring (SummaryEngine + TTSEngine + SubtitlePanel) + main.swift integration
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 6: Telegram Bot Commands
 
@@ -136,8 +136,8 @@ Plans:
 
 Plans:
 
-- [ ] 06-01-PLAN.md — TranscriptParser (JSONL parsing) + ClaudeProcess (CLI subprocess with streaming NDJSON)
-- [ ] 06-02-PLAN.md — PromptExecutor (model flags, edit-in-place, resume) + TelegramBot /prompt wiring
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 7: File Watching & Auto-Continue
 
@@ -227,8 +227,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 2. Subtitle Overlay              | 2/2            | Complete    | -         |
 | 3. TTS Engine                    | 0/2            | Planning    | -         |
 | 4. AI Summaries                  | 0/0            | Not started | -         |
-| 5. Telegram Bot Core             | 0/2            | Planned     | -         |
-| 6. Telegram Bot Commands         | 0/2            | Planned     | -         |
+| 5. Telegram Bot Core             | 0/0            | Not started | -         |
+| 6. Telegram Bot Commands         | 1/1 | Complete   | 2026-03-26 |
 | 7. File Watching & Auto-Continue | 0/0            | Not started | -         |
 | 8. HTTP Control API              | 0/0            | Not started | -         |
 | 9. SwiftBar Integration          | 0/0            | Not started | -         |

@@ -29,41 +29,14 @@ enum Config {
     /// Launchd service label
     static let serviceLabel = "com.terryli.claude-tts-companion"
 
-    // MARK: - MiniMax AI Summary
+    // MARK: - Claude CLI
 
-    /// MiniMax API key for AI session summaries (nil if not configured)
-    static let miniMaxAPIKey: String? = ProcessInfo.processInfo.environment["MINIMAX_API_KEY"]
-
-    /// MiniMax API base URL (Anthropic-compatible endpoint)
-    static let miniMaxBaseURL: String = {
-        ProcessInfo.processInfo.environment["SUMMARY_BASE_URL"] ?? "https://api.minimax.chat"
+    /// Path to the `claude` CLI binary
+    static let claudeCLIPath: String = {
+        return ProcessInfo.processInfo.environment["CLAUDE_CLI_PATH"]
+            ?? "/usr/local/bin/claude"
     }()
 
-    /// MiniMax model identifier
-    static let miniMaxModel: String = {
-        ProcessInfo.processInfo.environment["SUMMARY_MODEL"]
-            ?? ProcessInfo.processInfo.environment["MINIMAX_MODEL"]
-            ?? "MiniMax-M1-80k"
-    }()
-
-    /// Maximum tokens for summary API responses
-    static let summaryMaxTokens: Int = {
-        if let str = ProcessInfo.processInfo.environment["SUMMARY_MAX_TOKENS"],
-           let val = Int(str) {
-            return val
-        }
-        return 2048
-    }()
-
-    // MARK: - Telegram Bot
-
-    /// Telegram bot token (nil if not configured -- bot will not start)
-    static let telegramBotToken: String? = ProcessInfo.processInfo.environment["TELEGRAM_BOT_TOKEN"]
-
-    /// Telegram chat ID for sending notifications (nil if not configured)
-    static let telegramChatId: Int64? = {
-        guard let str = ProcessInfo.processInfo.environment["TELEGRAM_CHAT_ID"],
-              let val = Int64(str) else { return nil }
-        return val
-    }()
+    /// Default model for /prompt commands when no flag is specified
+    static let defaultModel = "sonnet"
 }

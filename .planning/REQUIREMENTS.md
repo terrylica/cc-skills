@@ -39,21 +39,21 @@
 
 ### Telegram Bot
 
-- [x] **BOT-01**: Bot connects to Telegram via long polling using swift-telegram-sdk
-- [x] **BOT-02**: Bot responds to /start, /stop, /status, /health, /prompt, /sessions, /done, /commands
-- [x] **BOT-03**: Bot sends session notifications (Arc Summary + Tail Brief) when sessions end
-- [x] **BOT-04**: Bot dispatches TTS for Tail Brief text with subtitle overlay
-- [ ] **BOT-05**: Bot supports model selection (/prompt --haiku, --sonnet, --opus)
+- [ ] **BOT-01**: Bot connects to Telegram via long polling using swift-telegram-sdk
+- [ ] **BOT-02**: Bot responds to /start, /stop, /status, /health, /prompt, /sessions, /done, /commands
+- [ ] **BOT-03**: Bot sends session notifications (Arc Summary + Tail Brief) when sessions end
+- [ ] **BOT-04**: Bot dispatches TTS for Tail Brief text with subtitle overlay
+- [x] **BOT-05**: Bot supports model selection (/prompt --haiku, --sonnet, --opus)
 - [ ] **BOT-06**: Bot resumes existing Claude Code sessions via Agent SDK subprocess
-- [ ] **BOT-07**: Bot parses JSONL transcripts to extract prompts, responses, and tool counts
-- [x] **BOT-08**: Bot sends messages with HTML formatting, fence-aware chunking (4096 char limit)
+- [x] **BOT-07**: Bot parses JSONL transcripts to extract prompts, responses, and tool counts
+- [ ] **BOT-08**: Bot sends messages with HTML formatting, fence-aware chunking (4096 char limit)
 
 ### AI Summaries
 
-- [x] **SUM-01**: Arc Summary generates full-session narrative via MiniMax API
-- [x] **SUM-02**: Tail Brief generates end-weighted narrative (20% context, 80% final turn)
-- [x] **SUM-03**: Single-turn summary generates "you prompted me X ago to..." narrative
-- [x] **SUM-04**: Circuit breaker disables summaries after 3 consecutive API failures (5 min cooldown)
+- [ ] **SUM-01**: Arc Summary generates full-session narrative via MiniMax API
+- [ ] **SUM-02**: Tail Brief generates end-weighted narrative (20% context, 80% final turn)
+- [ ] **SUM-03**: Single-turn summary generates "you prompted me X ago to..." narrative
+- [ ] **SUM-04**: Circuit breaker disables summaries after 3 consecutive API failures (5 min cooldown)
 
 ### File Watching
 
@@ -64,9 +64,9 @@
 
 ### Claude CLI Integration
 
-- [ ] **CLI-01**: /prompt command spawns claude CLI as subprocess via Foundation Process + Pipe
-- [ ] **CLI-02**: Streaming NDJSON response is parsed and forwarded to Telegram as edit-in-place updates
-- [ ] **CLI-03**: CLAUDECODE env var is unset before spawning subprocess
+- [x] **CLI-01**: /prompt command spawns claude CLI as subprocess via Foundation Process + Pipe
+- [x] **CLI-02**: Streaming NDJSON response is parsed and forwarded to Telegram as edit-in-place updates
+- [x] **CLI-03**: CLAUDECODE env var is unset before spawning subprocess
 
 ### Auto-Continue
 
@@ -150,21 +150,21 @@
 | TTS-06      | Phase 3  | Pending |
 | TTS-07      | Phase 3  | Pending |
 | TTS-08      | Phase 3  | Complete |
-| SUM-01      | Phase 4  | Complete |
-| SUM-02      | Phase 4  | Complete |
-| SUM-03      | Phase 4  | Complete |
-| SUM-04      | Phase 4  | Complete |
-| BOT-01      | Phase 5  | Complete |
-| BOT-02      | Phase 5  | Complete |
-| BOT-03      | Phase 5  | Complete |
-| BOT-04      | Phase 5  | Complete |
-| BOT-08      | Phase 5  | Complete |
-| BOT-05      | Phase 6  | Pending |
+| SUM-01      | Phase 4  | Pending |
+| SUM-02      | Phase 4  | Pending |
+| SUM-03      | Phase 4  | Pending |
+| SUM-04      | Phase 4  | Pending |
+| BOT-01      | Phase 5  | Pending |
+| BOT-02      | Phase 5  | Pending |
+| BOT-03      | Phase 5  | Pending |
+| BOT-04      | Phase 5  | Pending |
+| BOT-08      | Phase 5  | Pending |
+| BOT-05      | Phase 6  | Complete |
 | BOT-06      | Phase 6  | Pending |
-| BOT-07      | Phase 6  | Pending |
-| CLI-01      | Phase 6  | Pending |
-| CLI-02      | Phase 6  | Pending |
-| CLI-03      | Phase 6  | Pending |
+| BOT-07      | Phase 6  | Complete |
+| CLI-01      | Phase 6  | Complete |
+| CLI-02      | Phase 6  | Complete |
+| CLI-03      | Phase 6  | Complete |
 | WATCH-01    | Phase 7  | Pending |
 | WATCH-02    | Phase 7  | Pending |
 | WATCH-03    | Phase 7  | Pending |
