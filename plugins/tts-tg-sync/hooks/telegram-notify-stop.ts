@@ -132,13 +132,11 @@ async function main() {
       process.exit(0);
     }
 
-    // Write notification file for bot to pick up
+    // Write notification file for claude-tts-companion to pick up.
+    // The unified service watches ~/.claude/notifications/ (Config.swift).
     const notificationDir = join(
       process.env.HOME || "~",
       ".claude",
-      "automation",
-      "claude-telegram-sync",
-      "state",
       "notifications"
     );
     mkdirSync(notificationDir, { recursive: true });
