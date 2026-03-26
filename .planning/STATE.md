@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-03-26T18:21:31.535Z"
+stopped_at: "Completed 260326-fvh-PLAN.md (quick task: deploy claude-tts-companion)"
+last_updated: "2026-03-26T18:34:51.671Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 10
@@ -95,6 +95,7 @@ Recent decisions affecting current work:
 - [Phase 08]: NSLock for SettingsStore thread safety (consistent with TTSEngine, CircuitBreaker)
 - [Phase 08]: Partial update structs with all-optional fields for PATCH-style POST endpoints
 - [Phase 10]: Ring buffer capacity 100 for caption history; ThinkingWatcher 500-char threshold; markSummarizingComplete() pattern for Swift 6 async safety
+- [Phase quick]: Install binary to ~/.local/bin instead of /usr/local/bin (avoids sudo requirement)
 
 ### Pending Todos
 
@@ -108,6 +109,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T18:20:12.268Z
-Stopped at: Completed 10-02-PLAN.md
+Last session: 2026-03-26T18:34:50.463Z
+Stopped at: Completed 260326-fvh-PLAN.md (quick task: deploy claude-tts-companion)
 Resume file: None
