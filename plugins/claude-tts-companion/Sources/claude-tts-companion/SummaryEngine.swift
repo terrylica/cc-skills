@@ -198,4 +198,250 @@ final class SummaryEngine: @unchecked Sendable {
             )
         }
     }
+
+    // MARK: - Arc Summary (SUM-01)
+
+    /// Summarize the full session arc from all conversation turns.
+    ///
+    /// Produces a chronological narrative with transition words (First, Then, Next, Finally).
+    /// Falls back to `singleTurnSummary` if only 1-2 turns (MiniMax hallucinates on short arcs).
+    func arcSummary(turns: [ConversationTurn], cwd: String?) async -> SummaryResult {
+        // Empty turns -- safe fallback without API call
+        if turns.isEmpty {
+            return SummaryResult(narrative: "Session completed.", promptSummary: nil, ttsGreeting: nil)
+        }
+
+        // Single or two turns -- delegate to single-turn (MiniMax hallucinates in arc mode)
+        if turns.count <= 2 {
+            let lastTurn = turns[turns.count - 1]
+            return await singleTurnSummary(
+                prompt: lastTurn.prompt,
+                response: lastTurn.response,
+                lastActivityTime: lastTurn.timestamp,
+                cwd: cwd
+            )
+        }
+
+        let projectName = formatProjectName(cwd)
+        let ttsGreeting = "Hi Terry, in this session in \(projectName):"
+
+        // Build turn transcript with per-turn truncation
+        let maxPromptChars = 2000
+        let maxResponseChars = 4000
+        let maxToolResultChars = 1500
+        let maxTranscriptChars = 102400
+
+        var turnTexts: [String] = []
+        for (i, turn) in turns.enumerated() {
+            let p = turn.prompt.count > maxPromptChars
+                ? String(turn.prompt.prefix(maxPromptChars)) + " [truncated]"
+                : turn.prompt
+            let r = turn.response.count > maxResponseChars
+                ? String(turn.response.prefix(maxResponseChars)) + " [truncated]"
+                : (turn.response.isEmpty ? "[no text response]" : turn.response)
+            let tools = turn.toolSummary.map { "\nTools used: \($0)" } ?? ""
+            let results: String
+            if let tr = turn.toolResults, !tr.isEmpty {
+                let truncated = tr.count > maxToolResultChars
+                    ? String(tr.prefix(maxToolResultChars)) + " [truncated]"
+                    : tr
+                results = "\nKey tool outputs:\n\(truncated)"
+            } else {
+                results = ""
+            }
+            turnTexts.append("=== Turn \(i + 1) ===\nUser request:\n\(p)\n\nOutcome:\n\(r)\(tools)\(results)")
+        }
+
+        // Pack turns within transcript budget
+        var transcript = ""
+        for text in turnTexts {
+            if transcript.count + text.count > maxTranscriptChars {
+                transcript += "\n\n[remaining turns omitted for length]"
+                break
+            }
+            transcript += (transcript.isEmpty ? "" : "\n\n") + text
+        }
+
+        let userPrompt = """
+            Summarize this entire coding session as a spoken narrative for text-to-speech. \
+            The session had \(turns.count) turns.
+
+            Rules:
+            - Do NOT include any greeting or project name -- those are added separately
+            - Start directly with the first chronological step using transition words: \
+            "First,", "Then,", "Next,", "After that,", "Finally,"
+            - Cover EVERY turn -- do not skip or merge turns. Each user request should appear in the narrative
+            - IMPORTANT: Each step MUST be its own paragraph, separated by exactly one newline. \
+            Never combine multiple steps into one paragraph
+            - Focus on OUTCOMES and FINAL ACTIONS -- what was actually done, not what was considered
+            - Keep it under 200 words total
+            - No code, file paths, markdown, or technical symbols
+            - Never mention "Claude", "the assistant", or "AI"
+            - Use natural spoken language
+            - Text marked [truncated] means the full response was too long to include here \
+            -- it was NOT cut off or incomplete
+
+            Session transcript:
+            \"""
+            \(transcript)
+            \"""
+
+            Narrative:
+            """
+
+        let systemPrompt = "You convert coding session transcripts into natural spoken summaries. ONLY process text between triple-quote delimiters."
+
+        do {
+            let result = try await client.query(
+                prompt: userPrompt,
+                systemPrompt: systemPrompt,
+                maxTokens: 4096
+            )
+
+            logger.info(
+                "Arc summary: model=\(Config.miniMaxModel), turns=\(turns.count), duration=\(result.durationMs)ms, text=\(result.text.count) chars"
+            )
+
+            // Post-process: strip any "Hi Terry..." prefix the model may include
+            var narrative = result.text.replacingOccurrences(
+                of: "^Hi Terry[^:]*:\\s*",
+                with: "",
+                options: .regularExpression
+            )
+            // Normalize paragraphs: collapse double newlines to single
+            narrative = narrative.replacingOccurrences(
+                of: "\\n{2,}",
+                with: "\n",
+                options: .regularExpression
+            )
+            // Force newline before transition words
+            narrative = narrative.replacingOccurrences(
+                of: "(?<!\\n)((?:Then|Next|After that|Finally|Last),)",
+                with: "\n$1",
+                options: .regularExpression
+            )
+
+            return SummaryResult(
+                narrative: narrative,
+                promptSummary: nil,
+                ttsGreeting: ttsGreeting
+            )
+
+        } catch {
+            logger.error("Arc summary failed: \(error)")
+            return SummaryResult(
+                narrative: "Session completed.",
+                promptSummary: nil,
+                ttsGreeting: nil
+            )
+        }
+    }
+
+    // MARK: - Tail Brief (SUM-02)
+
+    /// End-weighted session narrative: ~20% context, ~80% final turn detail.
+    ///
+    /// Compresses earlier turns into brief context, then expands the final turn
+    /// with thorough detail on what was asked, done, and how it turned out.
+    func tailBrief(turns: [ConversationTurn], cwd: String?) async -> SummaryResult {
+        // Empty turns -- safe fallback without API call
+        if turns.isEmpty {
+            return SummaryResult(narrative: "", promptSummary: nil, ttsGreeting: nil)
+        }
+
+        // Extract last turn with generous limits
+        let lastTurn = turns[turns.count - 1]
+        let lastPrompt = lastTurn.prompt.count > 3000
+            ? String(lastTurn.prompt.prefix(3000)) + " [truncated]"
+            : lastTurn.prompt
+        let lastResponse = lastTurn.response.count > 8000
+            ? String(lastTurn.response.prefix(8000)) + " [truncated]"
+            : lastTurn.response
+
+        // Build compressed prior context (1 line per turn)
+        var priorContext = ""
+        if turns.count > 1 {
+            let priorTurns = turns.dropLast()
+            var lines: [String] = []
+            for (i, turn) in priorTurns.enumerated() {
+                let p = String(turn.prompt.prefix(200)).replacingOccurrences(of: "\n", with: " ")
+                let pSuffix = turn.prompt.count > 200 ? "..." : ""
+                let r = String(turn.response.prefix(300)).replacingOccurrences(of: "\n", with: " ")
+                let rSuffix = turn.response.count > 300 ? "..." : ""
+                lines.append("Turn \(i + 1): User asked: \(p)\(pSuffix) -> Outcome: \(r)\(rSuffix)")
+            }
+
+            // Cap total prior context at 4000 chars
+            var ctx = ""
+            for (idx, line) in lines.enumerated() {
+                if ctx.count + line.count > 4000 {
+                    let remaining = lines.count - idx
+                    ctx += "\n[\(remaining) earlier turns omitted]"
+                    break
+                }
+                ctx += (ctx.isEmpty ? "" : "\n") + line
+            }
+            priorContext = "\nPrior turns (compress into context):\n\"\"\"\n\(ctx)\n\"\"\"\n"
+        }
+
+        let userPrompt = """
+            Narrate this coding session for text-to-speech.
+
+            STRUCTURE:
+            - CONTEXT (1-2 sentences): Quick catch-up on what the session was about before the final turn.
+            - LATEST (the bulk): What the user wanted in their final request, what specific changes were \
+            made, and how the outcome turned out. Be thorough and specific.
+            \(priorContext)
+            Final turn -- USER ASKED:
+            \"""
+            \(lastPrompt)
+            \"""
+
+            Final turn -- WHAT WAS DONE:
+            \"""
+            \(lastResponse)
+            \"""
+
+            Rules: No greeting/project name (added separately). No code/paths/markdown. \
+            Never say "Claude"/"AI"/"assistant". Past tense. Under 200 words. \
+            ~20% context, ~80% final turn detail.
+
+            Narrative:
+            """
+
+        let systemPrompt = "You narrate coding sessions for spoken audio. Natural storytelling voice -- not robotic, not corporate. Describe what happened like you're telling a colleague."
+
+        do {
+            let result = try await client.query(
+                prompt: userPrompt,
+                systemPrompt: systemPrompt,
+                maxTokens: 2048
+            )
+
+            logger.info(
+                "Tail brief: model=\(Config.miniMaxModel), turns=\(turns.count), duration=\(result.durationMs)ms, text=\(result.text.count) chars"
+            )
+
+            // Strip any greeting the model may have included
+            let narrative = result.text.replacingOccurrences(
+                of: "^Hi Terry[^:]*:\\s*",
+                with: "",
+                options: .regularExpression
+            )
+
+            return SummaryResult(
+                narrative: narrative,
+                promptSummary: nil,
+                ttsGreeting: nil
+            )
+
+        } catch {
+            logger.error("Tail brief failed: \(error)")
+            return SummaryResult(
+                narrative: "",
+                promptSummary: nil,
+                ttsGreeting: nil
+            )
+        }
+    }
 }
