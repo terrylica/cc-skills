@@ -213,7 +213,7 @@ Plans:
 
 Plans:
 
-- [ ] 10-01-PLAN.md — Launchd plist + install/rollback scripts + Config.swift model path
+- [x] 10-01-PLAN.md — Launchd plist + install/rollback scripts + Config.swift model path
 - [ ] 10-02-PLAN.md — Caption history + clipboard copy + thinking watcher
 
 ## Progress
@@ -232,4 +232,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. File Watching & Auto-Continue | 2/2            | Complete    | 2026-03-26 |
 | 8. HTTP Control API              | 0/0            | Not started | -          |
 | 9. SwiftBar Integration          | 2/2            | Complete    | 2026-03-26 |
-| 10. Deployment & Extras          | 0/2            | Planning    | -          |
+| 10. Deployment & Extras          | 1/2 | In Progress|  |

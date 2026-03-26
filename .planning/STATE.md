@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-26T18:04:29.565Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-26T18:14:11.308Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 10
   completed_phases: 8
-  total_plans: 18
-  completed_plans: 17
+  total_plans: 20
+  completed_plans: 18
   percent: 0
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 09 — swiftbar-integration
+**Current focus:** Phase 10 — deployment-extras
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
+Phase: 10 (deployment-extras) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
 Last activity: 2026-03-26
 
@@ -64,6 +64,7 @@ _Updated after each plan completion_
 | Phase 08 P01 | 2min | 2 tasks | 4 files |
 | Phase 08 P02 | 1min | 2 tasks | 2 files |
 | Phase 09 P01 | 2min | 2 tasks | 1 files |
+| Phase 10 P01 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,7 @@ Recent decisions affecting current work:
 - [Phase 08]: Partial update structs with all-optional fields for PATCH-style POST endpoints
 - [Phase 08]: Background Task for HTTP server startup with warning-only fallback on bind failure
 - [Phase 09]: File outside git repo -- verified in-place with syntax check and runtime execution
+- [Phase 10]: Nice -5 for moderate TTS priority; 1GB memory limit; bootout/bootstrap over legacy unload/load
 
 ### Pending Todos
 
@@ -110,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T17:59:43.617Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-26T18:14:11.306Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None

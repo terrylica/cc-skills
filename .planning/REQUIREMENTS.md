@@ -94,10 +94,10 @@
 
 ### Deployment
 
-- [ ] **DEP-01**: Single launchd plist (com.terryli.claude-tts-companion) manages the unified binary
-- [ ] **DEP-02**: Existing services (telegram-bot, kokoro-tts-server) are stopped but plists preserved
-- [ ] **DEP-03**: Rollback script can re-enable old services if unified binary fails
-- [ ] **DEP-04**: Kokoro int8 model is at ~/.local/share/kokoro/models/kokoro-int8-en-v0_19/
+- [x] **DEP-01**: Single launchd plist (com.terryli.claude-tts-companion) manages the unified binary
+- [x] **DEP-02**: Existing services (telegram-bot, kokoro-tts-server) are stopped but plists preserved
+- [x] **DEP-03**: Rollback script can re-enable old services if unified binary fails
+- [x] **DEP-04**: Kokoro int8 model is at ~/.local/share/kokoro/models/kokoro-int8-en-v0_19/
 
 ### Extras
 
@@ -185,10 +185,10 @@
 | BAR-04      | Phase 9  | Complete |
 | BAR-05      | Phase 9  | Complete |
 | EXT-03      | Phase 9  | Complete |
-| DEP-01      | Phase 10 | Pending |
-| DEP-02      | Phase 10 | Pending |
-| DEP-03      | Phase 10 | Pending |
-| DEP-04      | Phase 10 | Pending |
+| DEP-01      | Phase 10 | Complete |
+| DEP-02      | Phase 10 | Complete |
+| DEP-03      | Phase 10 | Complete |
+| DEP-04      | Phase 10 | Complete |
 | EXT-01      | Phase 10 | Pending |
 | EXT-02      | Phase 10 | Pending |
 | EXT-04      | Phase 10 | Pending |
