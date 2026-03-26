@@ -60,7 +60,7 @@ Plans:
 
 Plans:
 
-- [ ] 02-01-PLAN.md — SubtitleStyle constants + SubtitlePanel NSPanel with all window behaviors
+- [x] 02-01-PLAN.md — SubtitleStyle constants + SubtitlePanel NSPanel with all window behaviors
 - [ ] 02-02-PLAN.md — Karaoke highlighting engine + demo mode + main.swift wiring + visual checkpoint
       **UI hint**: yes
 
