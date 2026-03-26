@@ -53,7 +53,7 @@
 - [ ] **SUM-01**: Arc Summary generates full-session narrative via MiniMax API
 - [ ] **SUM-02**: Tail Brief generates end-weighted narrative (20% context, 80% final turn)
 - [ ] **SUM-03**: Single-turn summary generates "you prompted me X ago to..." narrative
-- [ ] **SUM-04**: Circuit breaker disables summaries after 3 consecutive API failures (5 min cooldown)
+- [x] **SUM-04**: Circuit breaker disables summaries after 3 consecutive API failures (5 min cooldown)
 
 ### File Watching
 
@@ -153,7 +153,7 @@
 | SUM-01      | Phase 4  | Pending |
 | SUM-02      | Phase 4  | Pending |
 | SUM-03      | Phase 4  | Pending |
-| SUM-04      | Phase 4  | Pending |
+| SUM-04      | Phase 4  | Complete |
 | BOT-01      | Phase 5  | Pending |
 | BOT-02      | Phase 5  | Pending |
 | BOT-03      | Phase 5  | Pending |

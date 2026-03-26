@@ -28,4 +28,30 @@ enum Config {
 
     /// Launchd service label
     static let serviceLabel = "com.example.claude-tts-companion"
+
+    // MARK: - MiniMax AI Summary
+
+    /// MiniMax API key for AI session summaries (nil if not configured)
+    static let miniMaxAPIKey: String? = ProcessInfo.processInfo.environment["MINIMAX_API_KEY"]
+
+    /// MiniMax API base URL (Anthropic-compatible endpoint)
+    static let miniMaxBaseURL: String = {
+        ProcessInfo.processInfo.environment["SUMMARY_BASE_URL"] ?? "https://api.minimax.chat"
+    }()
+
+    /// MiniMax model identifier
+    static let miniMaxModel: String = {
+        ProcessInfo.processInfo.environment["SUMMARY_MODEL"]
+            ?? ProcessInfo.processInfo.environment["MINIMAX_MODEL"]
+            ?? "MiniMax-M1-80k"
+    }()
+
+    /// Maximum tokens for summary API responses
+    static let summaryMaxTokens: Int = {
+        if let str = ProcessInfo.processInfo.environment["SUMMARY_MAX_TOKENS"],
+           let val = Int(str) {
+            return val
+        }
+        return 2048
+    }()
 }
