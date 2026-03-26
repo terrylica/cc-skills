@@ -26,14 +26,24 @@ subtitlePanel.positionOnScreen()
 // Create TTS engine (model loads lazily on first synthesis, TTS-03)
 let ttsEngine = TTSEngine()
 
+// Create summary engine for AI session narratives
+let summaryEngine = SummaryEngine()
+
 // Start Telegram bot if configured (graceful fallback if no token)
 nonisolated(unsafe) var telegramBot: TelegramBot? = nil
 if let token = Config.telegramBotToken, let chatId = Config.telegramChatId {
-    let bot = TelegramBot(botToken: token, chatId: chatId)
+    let bot = TelegramBot(
+        botToken: token,
+        chatId: chatId,
+        summaryEngine: summaryEngine,
+        ttsEngine: ttsEngine,
+        subtitlePanel: subtitlePanel
+    )
     telegramBot = bot
     Task {
         do {
             try await bot.start()
+            logger.info("Telegram bot started successfully")
         } catch {
             logger.warning("Telegram bot failed to start: \(error) -- continuing without bot")
         }
@@ -63,39 +73,17 @@ sigSource.setEventHandler {
 }
 sigSource.resume()
 
-// Store sigSource and ttsEngine globally to prevent ARC deallocation (Pitfall 3)
+// Store references globally to prevent ARC deallocation (Pitfall 3)
 nonisolated(unsafe) var keepAlive: (any DispatchSourceSignal)? = sigSource
 nonisolated(unsafe) var keepTTS: TTSEngine? = ttsEngine
+nonisolated(unsafe) var keepSummary: SummaryEngine? = summaryEngine
 
 logger.info("Starting \(Config.appName)")
 
-// TTS demo: synthesize and play with karaoke subtitles
-DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-    let demoText = "Welcome to claude TTS companion, your real-time karaoke subtitle overlay"
-    logger.info("Starting TTS demo synthesis")
-
-    ttsEngine.synthesizeWithTimestamps(text: demoText) { result in
-        switch result {
-        case .success(let ttsResult):
-            logger.info("Synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s audio, \(ttsResult.wordTimings.count) words")
-
-            // Show karaoke subtitles on main thread
-            DispatchQueue.main.async {
-                subtitlePanel.showUtterance(ttsResult.text, wordTimings: ttsResult.wordTimings)
-            }
-
-            // Play audio concurrently with subtitle display
-            ttsEngine.play(wavPath: ttsResult.wavPath) {
-                logger.info("TTS playback complete")
-            }
-
-        case .failure(let error):
-            logger.error("TTS synthesis failed: \(error)")
-            // Fall back to demo mode on failure
-            DispatchQueue.main.async {
-                subtitlePanel.demo()
-            }
-        }
+// Show subtitle demo only when bot is disabled (no token = dev mode)
+if telegramBot == nil {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        subtitlePanel.demo()
     }
 }
 
