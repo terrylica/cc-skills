@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: MVP
-status: verifying
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-26T23:47:40.514Z"
+status: executing
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-26T23:56:14.107Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 59
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 11 — notification-formatting
+**Current focus:** Phase 12 — ai-summary-prompts
 
 ## Current Position
 
-Phase: 12
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 12 (ai-summary-prompts) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-26
 
 Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, v4.6.0 starting)
@@ -59,6 +59,7 @@ Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, 
 
 | Phase 11 P01 | 3min | 1 tasks | 1 files |
 | Phase 11 P02 | 2min | 2 tasks | 2 files |
+| Phase 12 P01 | 3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ Recent decisions affecting current work:
 - [v4.6.0]: Port directly from legacy TypeScript -- don't reinvent
 - [Phase 11]: Used NSRegularExpression for HTML tag walker in wrapFileReferencesInHtml (Swift Regex requires macOS 13+)
 - [Phase 11]: Tail Brief sent as separate silent Telegram message (disableNotification: true) matching legacy TS
+- [Phase 12]: TranscriptParser owns its own stripSkillExpansion (matching legacy TS architecture)
 
 ### Pending Todos
 
@@ -93,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T23:46:45.263Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-26T23:56:14.104Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None

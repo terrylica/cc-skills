@@ -262,7 +262,7 @@ Plans:
 
 Plans:
 
-- [ ] 12-01-PLAN.md -- Noise filtering and improved turn extraction in TranscriptParser
+- [x] 12-01-PLAN.md -- Noise filtering and improved turn extraction in TranscriptParser
 - [ ] 12-02-PLAN.md -- Exact legacy prompt templates and prompt condensing in SummaryEngine
 
 ### Phase 13: Auto-Continue Evaluation
@@ -337,7 +337,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 9. SwiftBar Integration          | 0/0            | Not started | -          |
 | 10. Deployment & Extras          | 2/2            | Complete    | 2026-03-26 |
 | 11. Notification Formatting      | 2/2 | Complete    | 2026-03-26 |
-| 12. AI Summary Prompts           | 0/2            | Not started | -          |
+| 12. AI Summary Prompts           | 1/2 | In Progress|  |
 | 13. Auto-Continue Evaluation     | 0/0            | Not started | -          |
 | 14. TTS Dispatch & Feature Gates | 0/0            | Not started | -          |
 | 15. Telegram Inline Buttons      | 0/0            | Not started | -          |
