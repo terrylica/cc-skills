@@ -26,8 +26,14 @@ subtitlePanel.positionOnScreen()
 // Create TTS engine (model loads lazily on first synthesis, TTS-03)
 let ttsEngine = TTSEngine()
 
+// Create shared MiniMax client (single circuit breaker for summaries + auto-continue)
+let miniMaxClient = MiniMaxClient()
+
 // Create summary engine for AI session narratives
-let summaryEngine = SummaryEngine()
+let summaryEngine = SummaryEngine(client: miniMaxClient)
+
+// Create auto-continue evaluator (shares circuit breaker with summary engine)
+let autoContinue = AutoContinueEvaluator(client: miniMaxClient)
 
 // Start Telegram bot if configured (graceful fallback if no token)
 nonisolated(unsafe) var telegramBot: TelegramBot? = nil
@@ -52,12 +58,60 @@ if let token = Config.telegramBotToken, let chatIdStr = Config.telegramChatId, l
     logger.warning("TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set -- bot disabled")
 }
 
+// Create NotificationWatcher for session-end file detection (AUTO-01)
+let notificationWatcher = NotificationWatcher { filePath in
+    // Read the notification JSON file
+    guard let data = FileManager.default.contents(atPath: filePath),
+          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        logger.warning("Could not parse notification file: \(filePath)")
+        return
+    }
+
+    let sessionId = json["session_id"] as? String ?? "unknown"
+    let transcriptPath = json["transcript_path"] as? String
+    let cwd = json["cwd"] as? String
+
+    logger.info("Session notification: \(sessionId)")
+
+    Task {
+        // If we have a transcript, evaluate auto-continue
+        if let tp = transcriptPath {
+            let (decision, reason) = await autoContinue.evaluate(transcriptPath: tp)
+            logger.info("Auto-continue decision: \(decision.rawValue) -- \(reason)")
+
+            // Send decision notification to Telegram
+            let decisionLabel: String
+            switch decision {
+            case .continue: decisionLabel = "CONTINUE"
+            case .sweep: decisionLabel = "SWEEP"
+            case .redirect: decisionLabel = "REDIRECT"
+            case .done: decisionLabel = "DONE"
+            }
+            if let bot = telegramBot {
+                await bot.sendNotification("<b>[\(decisionLabel)]</b> \(reason)")
+            }
+        }
+
+        // Parse transcript for session notification
+        if let tp = transcriptPath {
+            let entries = TranscriptParser.parse(filePath: tp)
+            let turns = entriesToTurns(entries)
+            if let bot = telegramBot {
+                await bot.sendSessionNotification(turns: turns, cwd: cwd)
+            }
+        }
+    }
+}
+notificationWatcher.start()
+
 // Set up SIGTERM handler using DispatchSource (not signal(), per research)
 let sigSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 signal(SIGTERM, SIG_IGN)  // Let DispatchSource handle it
 sigSource.setEventHandler {
     logger.info("SIGTERM received, shutting down")
     subtitlePanel.hide()
+    // Stop file watcher
+    notificationWatcher.stop()
     // Stop Telegram bot
     if let bot = telegramBot {
         Task { await bot.stop() }
@@ -77,6 +131,8 @@ sigSource.resume()
 nonisolated(unsafe) var keepAlive: (any DispatchSourceSignal)? = sigSource
 nonisolated(unsafe) var keepTTS: TTSEngine? = ttsEngine
 nonisolated(unsafe) var keepSummary: SummaryEngine? = summaryEngine
+nonisolated(unsafe) var keepNotificationWatcher: NotificationWatcher? = notificationWatcher
+nonisolated(unsafe) var keepAutoContinue: AutoContinueEvaluator? = autoContinue
 
 logger.info("Starting \(Config.appName)")
 
@@ -85,6 +141,56 @@ if telegramBot == nil {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
         subtitlePanel.demo()
     }
+}
+
+// MARK: - Helpers
+
+/// Convert transcript entries into conversation turns for session notifications.
+func entriesToTurns(_ entries: [TranscriptEntry]) -> [ConversationTurn] {
+    var turns: [ConversationTurn] = []
+    var currentPrompt: (text: String, timestamp: Date?)? = nil
+    var toolNames: [String] = []
+    var toolResults: [String] = []
+
+    for entry in entries {
+        switch entry {
+        case .prompt(let text, let ts):
+            // If we had a pending prompt without a response, flush it
+            if let prompt = currentPrompt {
+                turns.append(ConversationTurn(
+                    prompt: prompt.text, response: "",
+                    timestamp: prompt.timestamp, toolSummary: nil, toolResults: nil
+                ))
+            }
+            currentPrompt = (text, ts)
+            toolNames = []
+            toolResults = []
+        case .response(let text, let ts):
+            if let prompt = currentPrompt {
+                let toolSummary = toolNames.isEmpty ? nil : toolNames.joined(separator: ", ")
+                let toolResultStr = toolResults.isEmpty ? nil : toolResults.joined(separator: "\n")
+                turns.append(ConversationTurn(
+                    prompt: prompt.text, response: text,
+                    timestamp: prompt.timestamp ?? ts, toolSummary: toolSummary, toolResults: toolResultStr
+                ))
+                currentPrompt = nil
+            }
+        case .toolUse(let name, _):
+            toolNames.append(name)
+        case .toolResult(let content, _):
+            if !content.isEmpty { toolResults.append(String(content.prefix(500))) }
+        case .unknown:
+            break
+        }
+    }
+    // Flush any trailing prompt
+    if let prompt = currentPrompt {
+        turns.append(ConversationTurn(
+            prompt: prompt.text, response: "",
+            timestamp: prompt.timestamp, toolSummary: nil, toolResults: nil
+        ))
+    }
+    return turns
 }
 
 // Enter run loop (blocks forever until SIGTERM)
