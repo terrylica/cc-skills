@@ -28,4 +28,15 @@ enum Config {
 
     /// Launchd service label
     static let serviceLabel = "com.terryli.claude-tts-companion"
+
+    // MARK: - Claude CLI
+
+    /// Path to the `claude` CLI binary
+    static let claudeCLIPath: String = {
+        return ProcessInfo.processInfo.environment["CLAUDE_CLI_PATH"]
+            ?? "/usr/local/bin/claude"
+    }()
+
+    /// Default model for /prompt commands when no flag is specified
+    static let defaultModel = "sonnet"
 }
