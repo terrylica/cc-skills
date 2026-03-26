@@ -75,4 +75,23 @@ enum Config {
 
     /// Maximum execution time for a single /prompt command (seconds)
     static let promptTimeoutSeconds: Int = 120
+
+    // MARK: - File Watching
+
+    /// Directory where Claude Code writes notification .json files
+    static let notificationDir: String = {
+        let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/<you>"
+        return ProcessInfo.processInfo.environment["CLAUDE_NOTIFICATION_DIR"]
+            ?? "\(home)/.claude/notifications"
+    }()
+
+    /// Base directory for Claude Code project sessions (contains {hash}/sessions/{id}/transcript.jsonl)
+    static let transcriptBaseDir: String = {
+        let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/<you>"
+        return ProcessInfo.processInfo.environment["CLAUDE_PROJECTS_DIR"]
+            ?? "\(home)/.claude/projects"
+    }()
+
+    /// Target latency for file watcher event detection (seconds)
+    static let fileWatcherLatencyTarget: TimeInterval = 0.1
 }
