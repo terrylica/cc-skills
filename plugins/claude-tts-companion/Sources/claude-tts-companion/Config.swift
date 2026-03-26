@@ -10,15 +10,15 @@ enum Config {
             ?? "\(home)/fork-tools/sherpa-onnx/build-swift-macos/install"
     }()
 
-    /// Path to Kokoro int8 TTS model directory (v1.0 multi-lang with af_heart voice)
+    /// Path to Kokoro TTS model directory (v1.0 multi-lang, full precision for quality)
     static let kokoroModelPath: String = {
         let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/<you>"
         return ProcessInfo.processInfo.environment["KOKORO_MODEL_PATH"]
-            ?? "\(home)/.local/share/kokoro/models/kokoro-int8-multi-lang-v1_0"
+            ?? "\(home)/.local/share/kokoro/models/kokoro-multi-lang-v1_0"
     }()
 
-    /// Filename of the Kokoro model
-    static let kokoroModelFile = "model.int8.onnx"
+    /// Filename of the Kokoro model (full precision — better quality than int8)
+    static let kokoroModelFile = "model.onnx"
 
     /// Default speaker ID: af_heart (speaker 3 in Kokoro v1.0)
     static let defaultSpeakerId: Int32 = 3
