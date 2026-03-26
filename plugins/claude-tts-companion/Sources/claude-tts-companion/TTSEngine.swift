@@ -12,6 +12,18 @@ struct SynthesisResult {
     let durations: [Float]?
 }
 
+/// Result of synthesis with word-level timing data for karaoke display.
+struct TTSResult {
+    /// Path to the generated WAV file
+    let wavPath: String
+    /// Original text that was synthesized
+    let text: String
+    /// Per-word durations for SubtitlePanel.showUtterance (zero-drift, sums to audioDuration)
+    let wordTimings: [TimeInterval]
+    /// Duration of the generated audio in seconds
+    let audioDuration: TimeInterval
+}
+
 /// Wraps sherpa-onnx Kokoro TTS for speech synthesis with word-level timestamps.
 ///
 /// - Model loads lazily on first `synthesize()` call (TTS-03)
@@ -157,10 +169,93 @@ final class TTSEngine: @unchecked Sendable {
         }
     }
 
+    /// Synthesize text and extract per-word timing data for karaoke highlighting.
+    ///
+    /// Combines `synthesize()` with `extractWordTimings()` into a single call that
+    /// returns everything needed to drive SubtitlePanel.showUtterance().
+    func synthesizeWithTimestamps(
+        text: String,
+        speakerId: Int32 = 0,
+        speed: Float = 1.0,
+        completion: @escaping (Result<TTSResult, Error>) -> Void
+    ) {
+        synthesize(text: text, speakerId: speakerId, speed: speed) { result in
+            switch result {
+            case .success(let synth):
+                let timings = TTSEngine.extractWordTimings(
+                    text: text,
+                    audioDuration: synth.audioDuration,
+                    rawDurations: synth.durations ?? []
+                )
+                let ttsResult = TTSResult(
+                    wavPath: synth.wavPath,
+                    text: text,
+                    wordTimings: timings,
+                    audioDuration: synth.audioDuration
+                )
+                completion(.success(ttsResult))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     /// Stop any currently playing audio.
     func stopPlayback() {
         playbackProcess?.terminate()
         playbackProcess = nil
+    }
+
+    // MARK: - Word Timing Extraction
+
+    /// Extract per-word onset timings from the total audio duration.
+    ///
+    /// Each word's duration is proportional to its character count relative to the
+    /// total character count. The sum of all word durations exactly equals
+    /// `audioDuration`, ensuring zero accumulated drift (TTS-07).
+    ///
+    /// Returns an array of TimeInterval where timings[i] is the DURATION of word i
+    /// (matching SubtitlePanel.showUtterance's expected format).
+    static func extractWordTimings(text: String, audioDuration: TimeInterval) -> [TimeInterval] {
+        let words = text.split(separator: " ").map(String.init)
+        guard !words.isEmpty else { return [] }
+
+        // Weight by character count (longer words take proportionally longer)
+        let charCounts = words.map { Double($0.count) }
+        let totalChars = charCounts.reduce(0, +)
+        guard totalChars > 0 else {
+            return Array(repeating: audioDuration / Double(words.count), count: words.count)
+        }
+
+        // Distribute audio duration proportionally
+        return charCounts.map { count in
+            (count / totalChars) * audioDuration
+        }
+    }
+
+    /// Extract per-word onset timings using the raw duration tensor when available.
+    ///
+    /// The duration tensor has one value per phoneme token. Since sherpa-onnx does not
+    /// expose token IDs through the C API, we cannot identify SPACE_TOKEN boundaries
+    /// directly. Falls back to character-weighted distribution anchored to actual
+    /// audio duration for zero drift.
+    ///
+    /// Future enhancement: parse phoneme boundaries once sherpa-onnx exposes token IDs.
+    static func extractWordTimings(
+        text: String,
+        audioDuration: TimeInterval,
+        rawDurations: [Float]
+    ) -> [TimeInterval] {
+        // If durations are empty, fall back to character-weighted
+        guard !rawDurations.isEmpty else {
+            return extractWordTimings(text: text, audioDuration: audioDuration)
+        }
+
+        // Use character-weighted distribution anchored to actual audioDuration.
+        // The raw durations validate that the model produced timing data, but
+        // without token ID exposure we cannot map phonemes to word boundaries.
+        // Total is anchored to audioDuration for zero accumulated drift.
+        return extractWordTimings(text: text, audioDuration: audioDuration)
     }
 
     // MARK: - Private
