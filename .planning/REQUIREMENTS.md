@@ -125,8 +125,8 @@
 
 ## Traceability
 
-| Requirement | Phase    | Status  |
-| ----------- | -------- | ------- |
+| Requirement | Phase    | Status   |
+| ----------- | -------- | -------- |
 | BUILD-01    | Phase 1  | Complete |
 | BUILD-02    | Phase 1  | Complete |
 | BUILD-03    | Phase 1  | Complete |
@@ -147,18 +147,18 @@
 | TTS-03      | Phase 3  | Complete |
 | TTS-04      | Phase 3  | Complete |
 | TTS-05      | Phase 3  | Complete |
-| TTS-06      | Phase 3  | Pending |
-| TTS-07      | Phase 3  | Pending |
+| TTS-06      | Phase 3  | Pending  |
+| TTS-07      | Phase 3  | Pending  |
 | TTS-08      | Phase 3  | Complete |
-| SUM-01      | Phase 4  | Pending |
-| SUM-02      | Phase 4  | Pending |
-| SUM-03      | Phase 4  | Pending |
-| SUM-04      | Phase 4  | Pending |
-| BOT-01      | Phase 5  | Pending |
-| BOT-02      | Phase 5  | Pending |
-| BOT-03      | Phase 5  | Pending |
-| BOT-04      | Phase 5  | Pending |
-| BOT-08      | Phase 5  | Pending |
+| SUM-01      | Phase 4  | Pending  |
+| SUM-02      | Phase 4  | Pending  |
+| SUM-03      | Phase 4  | Pending  |
+| SUM-04      | Phase 4  | Pending  |
+| BOT-01      | Phase 5  | Pending  |
+| BOT-02      | Phase 5  | Pending  |
+| BOT-03      | Phase 5  | Pending  |
+| BOT-04      | Phase 5  | Pending  |
+| BOT-08      | Phase 5  | Pending  |
 | BOT-05      | Phase 6  | Complete |
 | BOT-06      | Phase 6  | Complete |
 | BOT-07      | Phase 6  | Complete |
@@ -189,6 +189,55 @@
 | DEP-02      | Phase 10 | Complete |
 | DEP-03      | Phase 10 | Complete |
 | DEP-04      | Phase 10 | Complete |
-| EXT-01      | Phase 10 | Pending |
-| EXT-02      | Phase 10 | Pending |
-| EXT-04      | Phase 10 | Pending |
+| EXT-01      | Phase 10 | Pending  |
+| EXT-02      | Phase 10 | Pending  |
+| EXT-04      | Phase 10 | Pending  |
+
+## v4.6.0 Requirements — Legacy Pipeline Feature Parity
+
+### Notification Formatting
+
+- [ ] **FMT-01**: Session notification header shows project name, path, session ID (8-char), git branch, duration, turn count
+- [ ] **FMT-02**: Arc Summary message shows last prompt (condensed if >800 chars) and AI narrative with transition words
+- [ ] **FMT-03**: Tail Brief sent as separate silent Telegram message after Arc Summary
+- [ ] **FMT-04**: Markdown-to-Telegram-HTML conversion (bold, italic, code, pre, links)
+- [ ] **FMT-05**: Fence-aware HTML chunking at 4096 chars with fence close/reopen across chunks
+- [ ] **FMT-06**: File reference wrapping prevents Telegram auto-linking (.md, .py, .go, .sh etc.)
+
+### AI Summary Prompts
+
+- [ ] **PROMPT-01**: Arc Summary uses exact legacy prompt with turn-by-turn transcript (2000/4000/1500 char budgets)
+- [ ] **PROMPT-02**: Tail Brief uses exact legacy prompt with 20% context / 80% final turn weighting
+- [ ] **PROMPT-03**: Single-exchange summarizer produces "you prompted me X ago to..." with ||| delimiter parsing
+- [ ] **PROMPT-04**: Prompt condensing for display (>800 chars → MiniMax condensed to <150 words)
+- [ ] **PROMPT-05**: Noise pattern filtering strips system-injected content from transcripts before summarization
+
+### Auto-Continue Evaluation
+
+- [ ] **EVAL-01**: MiniMax evaluates CONTINUE/SWEEP/REDIRECT/DONE with exact legacy system prompt
+- [ ] **EVAL-02**: Plan file discovery from transcript and sibling JSONL files
+- [ ] **EVAL-03**: SWEEP mode injects 5-step review pipeline when primary work done
+- [ ] **EVAL-04**: State tracking per session (iteration count, sweep status, manual intervention detection)
+- [ ] **EVAL-05**: Rich decision notification to Telegram (icon, reason, progress bar, tool breakdown, timing)
+- [ ] **EVAL-06**: Deterministic sweep fallback when plan checkboxes all-checked but no review section
+
+### TTS Dispatch
+
+- [ ] **TTS-10**: Tail Brief text dispatched to Kokoro TTS after summary generation
+- [ ] **TTS-11**: TTS greeting prepended: "Hi Terry, you were working in {project}:"
+- [ ] **TTS-12**: CJK language detection (>20% CJK chars → Chinese voice zf_xiaobei)
+- [ ] **TTS-13**: Feature gates for each outlet (SUMMARIZER_TG_ENABLED, TBR_TTS_ENABLED, etc.)
+
+### Telegram Inline Buttons
+
+- [ ] **BTN-01**: Arc Summary includes Focus Tab, Follow Up, Transcript inline buttons
+- [ ] **BTN-02**: Focus Tab button switches to iTerm tab where session ran
+- [ ] **BTN-03**: Focus Tab deduplication (new notification removes buttons from older message for same tab)
+
+### Integration & Reliability
+
+- [ ] **REL-01**: Notification deduplication (skip re-notification if transcript hasn't grown)
+- [ ] **REL-02**: Rate limiting (5s between notification processing)
+- [ ] **REL-03**: Circuit breaker matches legacy: 3 failures → 5 min cooldown with fallback narrative
+- [ ] **REL-04**: Stop hook writes notification JSON to correct directory with all required fields
+- [ ] **REL-05**: Tool breakdown computation (top 6 tools by count, excludes subagent orchestration tools)

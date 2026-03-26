@@ -8,6 +8,21 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 
 **See what Claude says, anywhere** — real-time karaoke subtitles overlaid on your macOS screen, synced with TTS playback or displayed standalone when audio is off. One binary, one service, one control surface.
 
+## Current Milestone: v4.6.0 Legacy Pipeline Feature Parity
+
+**Goal:** Port the working Telegram + TTS notification pipeline from the legacy TypeScript system to claude-tts-companion with full feature parity.
+
+**Target features:**
+
+- Session-end notification with rich HTML formatting (repo, commit, branch, duration, turns, tool breakdown)
+- Arc Summary + Tail Brief generation via MiniMax with exact legacy prompts
+- Auto-continue evaluation (CONTINUE/SWEEP/REDIRECT/DONE) with Telegram delivery
+- TTS dispatch of Tail Brief via Kokoro af_heart with karaoke subtitles
+- Stop hook integration and inline Telegram buttons
+- Circuit breaker + error handling matching legacy reliability
+
+**Source:** `~/.claude/automation/claude-telegram-sync/` (port directly, don't reinvent)
+
 ## Requirements
 
 ### Validated
