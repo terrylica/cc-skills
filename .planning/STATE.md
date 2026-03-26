@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-26T17:11:40.656Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-03-26T17:22:27Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 10
   completed_phases: 3
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -21,11 +21,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 03 — tts-engine
+**Current focus:** Phase 06 — telegram-bot-commands
 
 ## Current Position
 
-Phase: 4
+Phase: 7
 Plan: Not started
 Status: Ready to execute
 Last activity: 2026-03-26
@@ -58,6 +58,7 @@ _Updated after each plan completion_
 | Phase 02 P02 | 140s | 2 tasks | 2 files |
 | Phase 03 P01 | 6min | 2 tasks | 3 files |
 | Phase 06 P01 | 4min | 3 tasks | 3 files |
+| Phase 06 P02 | 6min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 03]: strdup/free pattern for C string lifetime in sherpa-onnx config (safer than nested withCString)
 - [Phase 03]: NSLock + serial DispatchQueue for TTSEngine thread safety (@unchecked Sendable)
 - [Phase 06]: NSLock + class-level stderrBuffer for Swift 6 Sendable compliance in Process termination handler
+- [Phase 06]: PromptStreamState class with NSLock for @Sendable callback state sharing
+- [Phase 06]: DispatchQueue.sync for executor pre-flight checks (NSLock forbidden in Swift 6 async contexts)
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T17:11:40.654Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-03-26T17:22:27Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None

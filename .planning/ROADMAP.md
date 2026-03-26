@@ -221,15 +221,15 @@ Plans:
 **Execution Order:**
 Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
-| Phase                            | Plans Complete | Status      | Completed |
-| -------------------------------- | -------------- | ----------- | --------- |
-| 1. Foundation & Build System     | 2/2            | Complete    | -         |
-| 2. Subtitle Overlay              | 2/2            | Complete    | -         |
-| 3. TTS Engine                    | 0/2            | Planning    | -         |
-| 4. AI Summaries                  | 0/0            | Not started | -         |
-| 5. Telegram Bot Core             | 0/0            | Not started | -         |
-| 6. Telegram Bot Commands         | 1/1 | Complete   | 2026-03-26 |
-| 7. File Watching & Auto-Continue | 0/0            | Not started | -         |
-| 8. HTTP Control API              | 0/0            | Not started | -         |
-| 9. SwiftBar Integration          | 0/0            | Not started | -         |
-| 10. Deployment & Extras          | 0/0            | Not started | -         |
+| Phase                            | Plans Complete | Status      | Completed  |
+| -------------------------------- | -------------- | ----------- | ---------- |
+| 1. Foundation & Build System     | 2/2            | Complete    | -          |
+| 2. Subtitle Overlay              | 2/2            | Complete    | -          |
+| 3. TTS Engine                    | 0/2            | Planning    | -          |
+| 4. AI Summaries                  | 0/0            | Not started | -          |
+| 5. Telegram Bot Core             | 0/0            | Not started | -          |
+| 6. Telegram Bot Commands         | 2/2            | Complete    | 2026-03-26 |
+| 7. File Watching & Auto-Continue | 0/0            | Not started | -          |
+| 8. HTTP Control API              | 0/0            | Not started | -          |
+| 9. SwiftBar Integration          | 0/0            | Not started | -          |
+| 10. Deployment & Extras          | 0/0            | Not started | -          |

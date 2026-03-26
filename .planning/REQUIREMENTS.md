@@ -44,7 +44,7 @@
 - [ ] **BOT-03**: Bot sends session notifications (Arc Summary + Tail Brief) when sessions end
 - [ ] **BOT-04**: Bot dispatches TTS for Tail Brief text with subtitle overlay
 - [x] **BOT-05**: Bot supports model selection (/prompt --haiku, --sonnet, --opus)
-- [ ] **BOT-06**: Bot resumes existing Claude Code sessions via Agent SDK subprocess
+- [x] **BOT-06**: Bot resumes existing Claude Code sessions via Agent SDK subprocess
 - [x] **BOT-07**: Bot parses JSONL transcripts to extract prompts, responses, and tool counts
 - [ ] **BOT-08**: Bot sends messages with HTML formatting, fence-aware chunking (4096 char limit)
 
@@ -160,7 +160,7 @@
 | BOT-04      | Phase 5  | Pending |
 | BOT-08      | Phase 5  | Pending |
 | BOT-05      | Phase 6  | Complete |
-| BOT-06      | Phase 6  | Pending |
+| BOT-06      | Phase 6  | Complete |
 | BOT-07      | Phase 6  | Complete |
 | CLI-01      | Phase 6  | Complete |
 | CLI-02      | Phase 6  | Complete |
