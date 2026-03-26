@@ -70,9 +70,9 @@
 
 ### Auto-Continue
 
-- [ ] **AUTO-01**: Stop hook evaluates session completion via MiniMax (CONTINUE/SWEEP/REDIRECT/DONE)
-- [ ] **AUTO-02**: Plan file discovery scans transcript for .claude/plans/\*.md references
-- [ ] **AUTO-03**: SWEEP mode injects 5-step review pipeline
+- [x] **AUTO-01**: Stop hook evaluates session completion via MiniMax (CONTINUE/SWEEP/REDIRECT/DONE)
+- [x] **AUTO-02**: Plan file discovery scans transcript for .claude/plans/\*.md references
+- [x] **AUTO-03**: SWEEP mode injects 5-step review pipeline
 
 ### HTTP Control API
 
@@ -169,9 +169,9 @@
 | WATCH-02    | Phase 7  | Complete |
 | WATCH-03    | Phase 7  | Complete |
 | WATCH-04    | Phase 7  | Complete |
-| AUTO-01     | Phase 7  | Pending |
-| AUTO-02     | Phase 7  | Pending |
-| AUTO-03     | Phase 7  | Pending |
+| AUTO-01     | Phase 7  | Complete |
+| AUTO-02     | Phase 7  | Complete |
+| AUTO-03     | Phase 7  | Complete |
 | API-01      | Phase 8  | Pending |
 | API-02      | Phase 8  | Pending |
 | API-03      | Phase 8  | Pending |

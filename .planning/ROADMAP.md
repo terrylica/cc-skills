@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 4: AI Summaries** - MiniMax API generates session narratives with circuit breaker protection
 - [ ] **Phase 5: Telegram Bot Core** - Bot connects, handles basic commands, sends session notifications
 - [x] **Phase 6: Telegram Bot Commands** - Bot supports model selection, session resume, CLI subprocess integration (completed 2026-03-26)
-- [ ] **Phase 7: File Watching & Auto-Continue** - Event-driven file monitoring and MiniMax-evaluated auto-continue
+- [x] **Phase 7: File Watching & Auto-Continue** - Event-driven file monitoring and MiniMax-evaluated auto-continue (completed 2026-03-26)
 - [ ] **Phase 8: HTTP Control API** - External control surface for settings, health, subtitle, and TTS
 - [ ] **Phase 9: SwiftBar Integration** - Menu bar plugin controls all subsystems via HTTP API
 - [ ] **Phase 10: Deployment & Extras** - Launchd service, rollback, caption history, clipboard, thinking watcher
@@ -156,7 +156,7 @@ Plans:
 Plans:
 
 - [x] 07-01-PLAN.md — FileWatcher: NotificationWatcher + JSONLTailer with DispatchSource
-- [ ] 07-02-PLAN.md — AutoContinueEvaluator + main.swift wiring
+- [x] 07-02-PLAN.md — AutoContinueEvaluator + main.swift wiring
 
 ### Phase 8: HTTP Control API
 
@@ -229,7 +229,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 4. AI Summaries                  | 0/0            | Not started | -          |
 | 5. Telegram Bot Core             | 0/0            | Not started | -          |
 | 6. Telegram Bot Commands         | 2/2            | Complete    | 2026-03-26 |
-| 7. File Watching & Auto-Continue | 1/2 | In Progress|  |
+| 7. File Watching & Auto-Continue | 2/2 | Complete   | 2026-03-26 |
 | 8. HTTP Control API              | 0/0            | Not started | -          |
 | 9. SwiftBar Integration          | 0/0            | Not started | -          |
 | 10. Deployment & Extras          | 0/0            | Not started | -          |
