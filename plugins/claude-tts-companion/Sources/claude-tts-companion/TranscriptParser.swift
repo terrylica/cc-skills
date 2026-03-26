@@ -46,6 +46,189 @@ enum TranscriptParser {
 
     private static let logger = Logger(label: "transcript-parser")
 
+    // MARK: - Noise Filtering
+
+    /// System-injected content patterns -- never real user prompts.
+    /// Ported verbatim from legacy TypeScript transcript-parser.ts.
+    static let noisePatterns: [String] = [
+        "<command-name>",
+        "<local-command",
+        "<local-command-caveat>",
+        "<task-notification>",
+        "<system-reminder>",
+        "<bash-stdout>",
+        "<bash-stderr>",
+        "<bash-input>",
+        "<summary>",
+        "<task-id>",
+        "<status>",
+        "<output-file>",
+        "<teammate-message",
+        "This session is being continued from a previous conversation",
+        "Stop hook feedback",
+        "fd out from online",
+        "Implement the following plan",
+        "Tool loaded",
+        "[Request interrupted by user",
+    ]
+
+    /// Regex noise patterns (statusline pastes, interrupted requests).
+    private static let noiseRegexPatterns: [String] = [
+        "M:\\d+ D:\\d+ S:\\d+",        // statusline paste (e.g. "M:4 D:0 S:0 U:6")
+        "^\\[Request interrupted",      // interrupted requests (bracket form)
+    ]
+
+    /// Check if content is system-injected noise (not a real user prompt).
+    static func isSystemNoise(_ content: String) -> Bool {
+        for pattern in noisePatterns {
+            if content.contains(pattern) { return true }
+        }
+        for regexPattern in noiseRegexPatterns {
+            if let regex = try? NSRegularExpression(pattern: regexPattern),
+               regex.firstMatch(in: content, range: NSRange(content.startIndex..., in: content)) != nil {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Check if a prompt is a real user prompt (non-trivial, non-noise).
+    static func isRealPrompt(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.count > 10 && !isSystemNoise(text)
+    }
+
+    /// Strip skill-injected expansion content appended after the user's real prompt.
+    /// Skill expansions (e.g. /ru encourage) append instructions after \n\n,
+    /// typically starting with bold uppercase, markdown headers, or block formatting.
+    /// Ported from legacy TypeScript transcript-parser.ts lines 123-131.
+    static func stripSkillExpansion(_ text: String) -> String {
+        guard let range = text.range(of: "\n\n") else { return text }
+        let afterBreak = String(text[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+        let pattern = "^(\\*\\*[A-Z]|#{1,4}\\s|---\\s*\\n|>\\s|-\\s\\[|TRIGGERS\\b)"
+        if afterBreak.range(of: pattern, options: .regularExpression) != nil {
+            return String(text[..<range.lowerBound]).trimmingCharacters(in: .whitespaces)
+        }
+        return text
+    }
+
+    /// Get the last real user prompt from a list of prompt strings.
+    /// Walks backwards to find the first prompt where isRealPrompt is true.
+    /// Truncates to 1000 chars with "..." suffix if longer.
+    static func getLastUserPrompt(from prompts: [String]) -> String {
+        for prompt in prompts.reversed() {
+            if isRealPrompt(prompt) {
+                if prompt.count > 1000 {
+                    return String(prompt.prefix(1000)) + "..."
+                }
+                return prompt
+            }
+        }
+        return "(no prompts)"
+    }
+
+    // MARK: - Turn Extraction
+
+    /// Convert transcript entries into conversation turns for session notifications.
+    ///
+    /// Matches legacy TypeScript `extractSessionSummary` turn-building logic:
+    /// - Filters noise entries and short prompts
+    /// - Strips skill expansions from prompts
+    /// - Finds the LONGEST assistant response per turn (not the first)
+    /// - Aggregates tool counts as "Edit x3, Bash x2" format
+    /// - Collects substantial tool results (truncated, capped)
+    static func entriesToTurns(_ entries: [TranscriptEntry]) -> [ConversationTurn] {
+        var turns: [ConversationTurn] = []
+        var i = 0
+
+        while i < entries.count {
+            // Find next real user prompt
+            guard case .prompt(let promptText, let promptTs) = entries[i] else {
+                i += 1
+                continue
+            }
+
+            // Filter noise and trivial prompts
+            if isSystemNoise(promptText) || promptText.trimmingCharacters(in: .whitespacesAndNewlines).count <= 10 {
+                i += 1
+                continue
+            }
+
+            // Strip skill expansion from prompt
+            let cleanPrompt = stripSkillExpansion(promptText)
+
+            // Scan forward for responses, tools until next real prompt
+            var bestResponse = ""
+            var toolCounts: [String: Int] = [:]
+            var collectedToolResults: [String] = []
+            var totalToolResultChars = 0
+            i += 1
+
+            while i < entries.count {
+                switch entries[i] {
+                case .prompt(let nextText, _):
+                    // Check if this is a real prompt (starts new turn) or noise (skip)
+                    if !isSystemNoise(nextText) && nextText.trimmingCharacters(in: .whitespacesAndNewlines).count > 10 {
+                        // Real prompt -- end of current turn, don't advance i
+                        break
+                    }
+                    // Noise prompt -- skip it
+                    i += 1
+                    continue
+                case .response(let text, _):
+                    // Keep the LONGEST response (not the first)
+                    if text.count > bestResponse.count {
+                        bestResponse = text
+                    }
+                    i += 1
+                    continue
+                case .toolUse(let name, _):
+                    toolCounts[name, default: 0] += 1
+                    i += 1
+                    continue
+                case .toolResult(let content, _):
+                    // Capture substantial tool results (content > 50 chars), truncated to 300 each
+                    if content.count > 50 && totalToolResultChars < 3000 {
+                        let truncated = String(content.prefix(300))
+                        collectedToolResults.append(truncated)
+                        totalToolResultChars += truncated.count
+                    }
+                    i += 1
+                    continue
+                case .unknown:
+                    i += 1
+                    continue
+                }
+                // If we hit the break above (real prompt), stop scanning
+                break
+            }
+
+            // Skip empty turns (no response AND no tools)
+            if bestResponse.isEmpty && toolCounts.isEmpty {
+                continue
+            }
+
+            // Format tool summary as "Edit x3, Bash x2, Read x5"
+            let toolSummary: String? = toolCounts.isEmpty ? nil : toolCounts
+                .sorted(by: { $0.key < $1.key })
+                .map { name, count in count > 1 ? "\(name) x\(count)" : name }
+                .joined(separator: ", ")
+
+            let toolResultStr: String? = collectedToolResults.isEmpty ? nil :
+                collectedToolResults.joined(separator: "\n---\n")
+
+            turns.append(ConversationTurn(
+                prompt: cleanPrompt,
+                response: bestResponse,
+                timestamp: promptTs,
+                toolSummary: toolSummary,
+                toolResults: toolResultStr
+            ))
+        }
+
+        return turns
+    }
+
     /// Parse a JSONL transcript file at the given path.
     ///
     /// - Parameter path: Absolute path to the .jsonl file
