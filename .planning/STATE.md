@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-26T17:38:51.020Z"
+status: executing
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-26T17:46:30.051Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 10
   completed_phases: 6
-  total_plans: 14
-  completed_plans: 13
+  total_plans: 16
+  completed_plans: 14
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 07 — file-watching-auto-continue
+**Current focus:** Phase 08 — http-control-api
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 08 (http-control-api) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-26
 
 Progress: [░░░░░░░░░░] 0%
@@ -61,6 +61,7 @@ _Updated after each plan completion_
 | Phase 06 P02 | 6min | 2 tasks | 3 files |
 | Phase 07 P01 | 2min | 2 tasks | 2 files |
 | Phase 07 P02 | 2min | 2 tasks | 2 files |
+| Phase 08 P01 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,9 @@ Recent decisions affecting current work:
 - [Phase 07]: Partial line rewind in JSONLTailer to avoid yielding incomplete JSON
 - [Phase 07]: Shared MiniMaxClient between SummaryEngine and AutoContinueEvaluator for single circuit breaker
 - [Phase 07]: Default to DONE on evaluation error to prevent runaway auto-continue loops
+- [Phase 08]: FlyingFox 0.26.2 for HTTP server (pure BSD sockets, zero SwiftNIO)
+- [Phase 08]: NSLock for SettingsStore thread safety (consistent with TTSEngine, CircuitBreaker)
+- [Phase 08]: Partial update structs with all-optional fields for PATCH-style POST endpoints
 
 ### Pending Todos
 
@@ -102,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T17:37:55.348Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-03-26T17:46:30.049Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
