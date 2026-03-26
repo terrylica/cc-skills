@@ -40,6 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
    **Plans**: 2 plans
 
 Plans:
+
 - [x] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [x] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
@@ -58,9 +59,10 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
-- [x] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
-   **UI hint**: yes
+
+- [ ] 02-01-PLAN.md — SubtitleStyle constants + SubtitlePanel NSPanel with all window behaviors
+- [ ] 02-02-PLAN.md — Karaoke highlighting engine + demo mode + main.swift wiring + visual checkpoint
+      **UI hint**: yes
 
 ### Phase 3: TTS Engine
 
@@ -77,6 +79,7 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
+
 - [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
@@ -94,6 +97,7 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
+
 - [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
@@ -111,6 +115,7 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
+
 - [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
@@ -129,6 +134,7 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
+
 - [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
@@ -147,6 +153,7 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
+
 - [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
@@ -165,6 +172,7 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
+
 - [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
@@ -183,9 +191,10 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
+
 - [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
-   **UI hint**: yes
+      **UI hint**: yes
 
 ### Phase 10: Deployment & Extras
 
@@ -202,6 +211,7 @@ Plans:
    **Plans**: 2 plans
 
 Plans:
+
 - [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
@@ -212,8 +222,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase                            | Plans Complete | Status      | Completed |
 | -------------------------------- | -------------- | ----------- | --------- |
-| 1. Foundation & Build System     | 0/0            | Not started | -         |
-| 2. Subtitle Overlay              | 0/0            | Not started | -         |
+| 1. Foundation & Build System     | 2/2            | Complete    | -         |
+| 2. Subtitle Overlay              | 0/2            | Planning    | -         |
 | 3. TTS Engine                    | 0/0            | Not started | -         |
 | 4. AI Summaries                  | 0/0            | Not started | -         |
 | 5. Telegram Bot Core             | 0/0            | Not started | -         |
