@@ -35,25 +35,26 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### PostToolUse Hooks
 
-| Hook                               | Matcher                | Purpose                                                                      |
-| ---------------------------------- | ---------------------- | ---------------------------------------------------------------------------- |
-| `posttooluse-reminder.ts`          | Bash\|Write\|Edit      | Context-aware reminders (UV, Pueue, graph-easy, ADR sync)                    |
-| `code-correctness-guard.sh`        | Bash\|Write\|Edit      | Silent failure detection only (NO unused imports, NO style)                  |
-| `posttooluse-vale-claude-md.ts`    | Write\|Edit            | Vale terminology check on CLAUDE.md files                                    |
-| `posttooluse-glossary-sync.ts`     | Write\|Edit            | Auto-sync GLOSSARY.md to Vale vocabulary                                     |
-| `posttooluse-terminology-sync.ts`  | Write\|Edit            | Project CLAUDE.md to global GLOSSARY.md sync                                 |
-| `posttooluse-readme-pypi-links.ts` | Write\|Edit\|MultiEdit | Validates PyPI badge/link consistency in README files                        |
-| `posttooluse-ssot-principles.ts`   | Write\|Edit            | SSoT/DI principles with ast-grep detection (once per session)                |
-| `posttooluse-ty-type-check.ts`     | Write\|Edit            | ty type checker on .py files (4.7ms incremental, every edit)                 |
-| `posttooluse-tsgo-type-check.ts`   | Write\|Edit            | tsgo type checker on .ts/.tsx files (~170ms project check, every edit)       |
-| `posttooluse-oxlint-check.ts`      | Write\|Edit            | oxlint correctness+suspicious lint on JS/TS files (~50ms, every edit)        |
-| `posttooluse-biome-lint.ts`        | Write\|Edit            | biome complementary lint on JS/TS (useConst, noDoubleEquals, node: protocol) |
+| Hook                               | Matcher                | Purpose                                                                                   |
+| ---------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------- |
+| `posttooluse-reminder.ts`          | Bash\|Write\|Edit      | Context-aware reminders (UV, Pueue, graph-easy, ADR sync)                                 |
+| `code-correctness-guard.sh`        | Bash\|Write\|Edit      | Silent failure detection only (NO unused imports, NO style)                               |
+| `posttooluse-vale-claude-md.ts`    | Write\|Edit            | Vale terminology check on CLAUDE.md files                                                 |
+| `posttooluse-glossary-sync.ts`     | Write\|Edit            | Auto-sync GLOSSARY.md to Vale vocabulary                                                  |
+| `posttooluse-terminology-sync.ts`  | Write\|Edit            | Project CLAUDE.md to global GLOSSARY.md sync                                              |
+| `posttooluse-readme-pypi-links.ts` | Write\|Edit\|MultiEdit | Validates PyPI badge/link consistency in README files                                     |
+| `posttooluse-ssot-principles.ts`   | Write\|Edit            | SSoT/DI principles with ast-grep detection (once per session)                             |
+| `posttooluse-ty-type-check.ts`     | Write\|Edit            | ty type checker on .py/.pyi files with --python-version 3.13, concise output (every edit) |
+| `posttooluse-tsgo-type-check.ts`   | Write\|Edit            | tsgo type checker on .ts/.tsx files (~170ms project check, every edit)                    |
+| `posttooluse-oxlint-check.ts`      | Write\|Edit            | oxlint correctness+suspicious lint on JS/TS files (~50ms, every edit)                     |
+| `posttooluse-biome-lint.ts`        | Write\|Edit            | biome complementary lint on JS/TS (useConst, noDoubleEquals, node: protocol)              |
 
 ### Stop Hooks
 
-| Hook                         | Purpose                                                |
-| ---------------------------- | ------------------------------------------------------ |
-| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit |
+| Hook                         | Purpose                                                                                   |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit                                    |
+| `stop-ty-project-check.ts`   | Project-wide ty type check on exit (only if .py files were edited, --python-version 3.13) |
 
 ## SR&ED Commit Guard
 
@@ -544,6 +545,32 @@ The `code-correctness-guard.sh` hook checks **only for silent failure patterns**
 4. **IDE responsibility**: Unused imports are best handled by IDE auto-remove features
 5. **Low severity**: No runtime failures, security issues, or silent bugs
 6. **Pre-commit/CI is better**: Catch in git hooks or CI, not interactive sessions
+
+## ty Type Checker Configuration
+
+ty runs at two levels: **per-file** on every .py/.pyi edit (PostToolUse) and **project-wide** on session exit (Stop hook). Both always pass `--python-version 3.13` explicitly to override ty's default of Python 3.14.
+
+### Recommended ty.toml
+
+Projects using ty should also pin the version in `ty.toml` for consistency when running ty manually:
+
+```toml
+[environment]
+python-version = "3.13"
+
+[terminal]
+output-format = "concise"
+```
+
+The hooks pass `--python-version 3.13` explicitly regardless of `ty.toml`, but having the config ensures manual `ty check` runs also use 3.13.
+
+### Silent Failures Only
+
+The hooks never block on ty configuration errors (exit code 2) or internal bugs (exit code 101). These are treated as ty issues, not type errors, and the hook exits silently. Only actual type diagnostics trigger a block/context message.
+
+### Gate File Mechanism
+
+The PostToolUse hook writes a gate file to `/tmp/.claude-ty-edits/{sessionId}.edited` after each .py/.pyi edit. The Stop hook checks for these gate files to decide whether to run the project-wide check. Gate files are cleaned up after the Stop hook runs.
 
 ## LSP Configuration
 
