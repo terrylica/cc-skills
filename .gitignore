@@ -16,6 +16,7 @@ npm-debug.log*
 # Build artifacts
 dist/
 build/
+.build/
 __pycache__/
 
 # Claude Code local session
