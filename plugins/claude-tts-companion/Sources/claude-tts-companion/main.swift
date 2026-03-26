@@ -19,11 +19,16 @@ logger.info("sherpa-onnx C API version: \(version)")
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 
+// Create subtitle overlay panel
+let subtitlePanel = SubtitlePanel()
+subtitlePanel.positionOnScreen()
+
 // Set up SIGTERM handler using DispatchSource (not signal(), per research)
 let sigSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 signal(SIGTERM, SIG_IGN)  // Let DispatchSource handle it
 sigSource.setEventHandler {
     logger.info("SIGTERM received, shutting down")
+    subtitlePanel.hide()
     // Post dummy event to unblock RunLoop (Pitfall 4: NSApplication.stop requires event)
     let event = NSEvent.otherEvent(
         with: .applicationDefined, location: .zero,
@@ -39,6 +44,11 @@ sigSource.resume()
 nonisolated(unsafe) var keepAlive: (any DispatchSourceSignal)? = sigSource
 
 logger.info("Starting \(Config.appName)")
+
+// Launch demo mode (temporary — replaced by TTS-driven highlighting in Phase 3)
+DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+    subtitlePanel.demo()
+}
 
 // Enter run loop (blocks forever until SIGTERM)
 app.run()
