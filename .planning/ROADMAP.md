@@ -99,8 +99,8 @@ Plans:
 
 Plans:
 
-- [ ] 04-01-PLAN.md — MiniMaxClient + CircuitBreaker + SummaryEngine
-- [ ] 04-02-PLAN.md — Summary integration + main.swift wiring
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 5: Telegram Bot Core
 
@@ -117,8 +117,8 @@ Plans:
 
 Plans:
 
-- [ ] 05-01-PLAN.md — TelegramBot + TelegramFormatter + bot commands
-- [ ] 05-02-PLAN.md — Session notifications + TTS dispatch + main.swift wiring
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 6: Telegram Bot Commands
 
@@ -136,8 +136,8 @@ Plans:
 
 Plans:
 
-- [x] 06-01-PLAN.md — ClaudeProcess + PromptExecutor + TranscriptParser
-- [x] 06-02-PLAN.md — Bot command handlers + main.swift wiring
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 7: File Watching & Auto-Continue
 
@@ -175,7 +175,7 @@ Plans:
 Plans:
 
 - [x] 08-01-PLAN.md — FlyingFox dependency + SettingsStore persistence + HTTPControlServer endpoints
-- [x] 08-02-PLAN.md — Wire HTTP server into main.swift + build verification
+- [ ] 08-02-PLAN.md — Wire HTTP server into main.swift + build verification
 
 ### Phase 9: SwiftBar Integration
 
@@ -193,8 +193,8 @@ Plans:
 
 Plans:
 
-- [x] 09-01-PLAN.md — Rewrite claude-hq.10s.py v3.0.0 with HTTP API health/settings/subtitle/TTS menus
-- [ ] 09-02-PLAN.md — Rewrite nc-action.sh for HTTP API curl actions + visual checkpoint
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
       **UI hint**: yes
 
 ### Phase 10: Deployment & Extras
@@ -213,8 +213,8 @@ Plans:
 
 Plans:
 
-- [x] 10-01-PLAN.md — Launchd plist + install/rollback scripts + Config.swift model path
-- [ ] 10-02-PLAN.md — Caption history + clipboard copy + thinking watcher
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ## Progress
 
@@ -231,5 +231,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Telegram Bot Commands         | 2/2            | Complete    | 2026-03-26 |
 | 7. File Watching & Auto-Continue | 2/2            | Complete    | 2026-03-26 |
 | 8. HTTP Control API              | 0/0            | Not started | -          |
-| 9. SwiftBar Integration          | 2/2            | Complete    | 2026-03-26 |
-| 10. Deployment & Extras          | 1/2 | In Progress|  |
+| 9. SwiftBar Integration          | 0/0            | Not started | -          |
+| 10. Deployment & Extras          | 1/2            | Executing   | -          |
