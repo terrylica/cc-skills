@@ -210,58 +210,158 @@ Stripe 构建了高度定制的 "Minions" 系统，包含 400+ 自定义 MCP too
 
 ---
 
-## 第四部分: <private-repo> + Skills = 最佳组合
+## 第四部分: <private-repo> 作为 Plugin Marketplace — 数据 + Skills 的混合架构
 
-这不是「你的方案 vs 我的方案」— 而是两者互补。
+这不是「你的方案 vs 我的方案」— 而是把 <private-repo> **升级**为 Claude Code Plugin Marketplace，让数据层和工作流层在同一个仓库中共存，同时允许从 cc-skills 直接 cherry-pick 已有的 skills。
 
-### 架构分层
+### 为什么要 Marketplace 而不只是加几个 SKILL.md 文件
+
+> "Skills are built around progressive disclosure. Claude fetches information in three stages: Metadata (name + description): Always in Claude's context. About 100 tokens. Claude decides whether to load a Skill based on this alone. SKILL.md body: Loaded only when triggered. Bundled resources... Loaded on demand when needed. With this structure, you can install many Skills without blowing up the context window."
+>
+> — [Hajime Takeda, Towards Data Science](https://towardsdatascience.com/), March 16, 2026
+
+> "Keep skill.md as a router, not a monolith. If your skill.md is approaching 500 lines, it's time to refactor. Move detailed instructions into reference files and have skill.md route to them... Just as VS Code has an Extensions Marketplace, we're heading toward a Skills Marketplace."
+>
+> — Atal Upadhyay, March 16, 2026
+
+Plugin Marketplace 的核心优势: **每个 skill 只占用 ~100 tokens 的环境成本**，只在被触发时才加载完整指令。这意味着 <private-repo> 可以承载几十个 skills 而不浪费 Agent 的 context 窗口。
+
+### CLAUDE.md vs marketplace.json — 各司其职
+
+> "CLAUDE.md and Skills (Knowledge): Use these when you're tired of repeating yourself. CLAUDE.md is for rules that should always be active. It loads at the start of every session and stays in context the entire time. Skills are for instructions Claude should only reach for when the situation calls for it."
+>
+> — [Dean Blank, GitConnected](https://gitconnected.com/), March 4, 2026
+
+| 维度           | `CLAUDE.md` (始终加载)                      | `marketplace.json` (导出能力)                            |
+| -------------- | ------------------------------------------- | -------------------------------------------------------- |
+| **主要受众**   | 在仓库内操作的 Agent                        | 在其他仓库中安装能力的远程 Agent                         |
+| **加载机制**   | 始终加载到 system prompt (~500-1000 tokens) | Progressive disclosure: 元数据 ~100 tokens, 正文按需加载 |
+| **Token 成本** | 持续占用                                    | 接近零环境成本，仅在执行时产生动态成本                   |
+| **数据交互**   | 内部治理: "按标准 X 格式化新论文"           | 外部能力: "安装此 skill 来分析位于 URL Y 的论文"         |
+
+### 完整架构: 数据层 + Marketplace 层
 
 ```
-<private-repo>/                    ← Maywei 的数据层 (完整保留)
-├── inbox/                            ← 待审核研究论文
+<private-repo>/
+├── .claude-plugin/
+│   └── marketplace.json              ← 插件注册表 (SSoT)
+│
+├── plugins/                          ← 可安装的 Plugin 包
+│   ├── financial-analysis/           ← 金融分析 plugin
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json           ← 版本、标签、依赖
+│   │   ├── hooks/
+│   │   │   └── hooks.json            ← PreToolUse 安全钩子
+│   │   └── skills/
+│   │       ├── search-papers/
+│   │       │   └── SKILL.md          ← "搜索和总结 papers/ 中的论文"
+│   │       ├── review-inbox/
+│   │       │   └── SKILL.md          ← "审核论文，判断是否移入 papers/"
+│   │       └── generate-checklist/
+│   │           └── SKILL.md          ← "从论文生成投资决策清单"
+│   │
+│   └── quant-research/               ← 从 cc-skills cherry-pick 的 plugin
+│       ├── .claude-plugin/
+│       │   └── plugin.json
+│       └── skills/
+│           ├── sharpe-ratio/
+│           │   └── SKILL.md          ← cherry-picked from cc-skills
+│           └── exchange-sessions/
+│               └── SKILL.md          ← cherry-picked from cc-skills
+│
+├── inbox/                            ← Maywei 的数据层 (完整保留)
 │   └── 2026-03-19/
 │       ├── lstm-funding-rate.md       ← status: pending_review
 │       └── mev-liquidation.md         ← status: pending_review
-├── papers/                           ← 已审核论文
+├── papers/                           ← 已审核论文 (完整保留)
 │   └── 2026-03-15/
 │       └── deflated-sharpe.md         ← status: reviewed
-├── checklists/                       ← 可执行清单
-├── ingestion/
-│   └── import-from-discord.py        ← 导入脚本
+├── checklists/                       ← 可执行清单 (完整保留)
 │
-├── .claude/                          ← 新增: 工作流层
-│   └── skills/
-│       ├── search-papers/
-│       │   └── SKILL.md              ← "搜索和总结 papers/ 中的论文"
-│       ├── review-inbox/
-│       │   └── SKILL.md              ← "审核 inbox/ 论文，判断是否移入 papers/"
-│       ├── generate-checklist/
-│       │   └── SKILL.md              ← "从论文生成可执行的投资决策清单"
-│       └── discord-ingest/
-│           └── SKILL.md              ← "从 Discord 导入新论文到 inbox/"
-│
-├── CLAUDE.md                         ← 项目导航: "默认只搜索 papers/"
+├── CLAUDE.md                         ← 本地治理: "默认只搜索 papers/"
 └── index.json                        ← 内容索引 (已审核论文)
 ```
 
-### 为什么这个组合比单独任一方案都强
+### Cherry-Pick: 从 cc-skills 直接引入已有 Skills
 
-| 层级         | 负责人                      | 工具             | 职责                                 |
-| ------------ | --------------------------- | ---------------- | ------------------------------------ |
-| **数据层**   | Maywei 的 inbox/papers 管线 | Git + 自定义脚本 | 存储和管理研究论文                   |
-| **工作流层** | Agent Skills                | SKILL.md         | 编码「如何使用这些论文」的标准化操作 |
-| **导航层**   | CLAUDE.md                   | Markdown         | 告诉 Agent 先搜索什么、忽略什么      |
+> "A marketplace can source a plugin directly from an external Git repository... effectively allowing <private-repo> to 'cherry-pick' a specific commit hash, branch, or subdirectory from the cc-skills repository."
+>
+> — [Gemini 3 Pro Deep Research](https://gemini.google.com/share/6242730defcb), March 2026
 
-**数据层解决「有什么」，工作流层解决「怎么用」。**
+`marketplace.json` 支持 `git-subdir` 远程依赖，不需要复制代码:
 
-Maywei 的 inbox → papers 管线负责知识的**收集和审核**。但一旦论文进入 papers/，怎么搜索？怎么交叉引用？怎么让新同事快速上手？这些「怎么用」的知识，如果只存在于某个人的脑海中，那就是 Bus Factor = 1 的隐患。
+```json
+{
+  "name": "<private-repo>",
+  "description": "金融研究数据管线 + 分析型 Agent Skills",
+  "plugins": [
+    {
+      "name": "financial-analysis",
+      "description": "论文搜索、审核、清单生成",
+      "source": "./plugins/financial-analysis"
+    },
+    {
+      "name": "quant-research",
+      "description": "从 cc-skills cherry-pick 的量化研究工具",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/terrylica/cc-skills.git",
+        "sha": "fbcd4617",
+        "path": "plugins/quant-research"
+      },
+      "tags": ["sharpe-ratio", "exchange-sessions", "cherry-picked"]
+    }
+  ]
+}
+```
 
-把这些操作流程编码为 SKILL.md，意味着:
+团队成员只需要一条命令:
 
-1. 任何使用 Claude Code 的团队成员可以 `/search-papers` 一键搜索
-2. 新成员不需要问「论文库怎么用」— Agent 自动知道
-3. 工作流可以被版本控制、审核、迭代 — 跟代码一样
-4. 同一套 skills 在 Claude Code, Cursor, Gemini CLI 都能工作
+```bash
+claude plugin marketplace add example-org/<private-repo>
+claude plugin install financial-analysis@<private-repo>
+claude plugin install quant-research@<private-repo>
+```
+
+### Skills 分发方式对比
+
+> "Every plugin follows the same structure: `plugin-name/` containing `.claude-plugin/plugin.json` (Manifest), `.mcp.json` (Tool connections), `commands/` (Slash commands), and `skills/` (Domain knowledge)."
+>
+> — Anthropic Knowledge Work Plugins, 2026
+
+| 维度         | 全局 Skills (`~/.claude/skills/`) | 项目 Skills (`.claude/skills/`) | Marketplace Plugins                |
+| ------------ | --------------------------------- | ------------------------------- | ---------------------------------- |
+| **作用范围** | 单人全局可用                      | 仅限本仓库                      | 全局缓存，跨仓库按需加载           |
+| **分发方式** | 手动复制                          | git clone 整个仓库              | `claude plugin install` 版本化管理 |
+| **更新机制** | 手动，易漂移                      | 跟随 git pull                   | `claude plugin update` 自动检测    |
+| **主要场景** | 个人偏好                          | 单仓库工作流                    | **团队共享、跨仓库工具链**         |
+
+### 为什么 Marketplace 比单体 CLAUDE.md 更优
+
+| 维度         | 单体架构 (一个大 CLAUDE.md)     | Marketplace 架构 (可安装 Plugins)       |
+| ------------ | ------------------------------- | --------------------------------------- |
+| **初始加载** | 极重 — 所有指令同时占用 context | 极轻 — 每个 skill 仅 ~100 tokens 元数据 |
+| **可扩展性** | ~500 行后逻辑冲突崩溃           | 理论上无限 — 能力在被触发前完全休眠     |
+| **可移植性** | 锁定在本仓库                    | 跨组织边界一键安装                      |
+| **维护风险** | 改一条规则可能破坏无关行为      | 独立测试 + 每个工作流单独语义版本       |
+
+### 三层架构的分工
+
+| 层级       | 负责人                      | 工具                        | 职责                                            |
+| ---------- | --------------------------- | --------------------------- | ----------------------------------------------- |
+| **数据层** | Maywei 的 inbox/papers 管线 | Git + 自定义脚本            | 存储和管理研究论文                              |
+| **能力层** | Plugin Marketplace          | marketplace.json + SKILL.md | 可安装、可版本化、可 cherry-pick 的标准化工作流 |
+| **导航层** | CLAUDE.md                   | Markdown                    | 本地治理: 告诉 Agent 先搜索什么、忽略什么       |
+
+**数据层解决「有什么」，能力层解决「怎么用」，导航层解决「从哪开始」。**
+
+把 <private-repo> 升级为 Marketplace 意味着:
+
+1. 团队成员一条命令安装所有金融分析 skills: `claude plugin install financial-analysis@<private-repo>`
+2. 我可以从 cc-skills 的 190+ skills 中 cherry-pick 相关的量化研究工具，不需要复制代码
+3. 每个 plugin 有独立的 `plugin.json` 版本号，`claude plugin update` 自动检测更新
+4. `PreToolUse` 安全钩子确保 Agent 不会意外暴露敏感金融数据
+5. 同一套 marketplace 在 Claude Code, Cursor, Gemini CLI 都能工作
 
 ---
 
@@ -308,3 +408,7 @@ Maywei 的 inbox → papers 管线负责知识的**收集和审核**。但一旦
 - [SkillsMP: Agent Skills Marketplace (500K+ skills)](https://skillsmp.com/)
 - [Microsoft APM: Agent Package Manager](https://github.com/microsoft/apm)
 - [Gemini 3 Pro Deep Research: Custom vs Standard AI Harness](https://gemini.google.com/share/b1a1a64df744)
+- [Gemini 3 Pro Deep Research: Marketplace Skills Architecture](https://gemini.google.com/share/6242730defcb)
+- [Dean Blank: Building Claude Code Plugins (GitConnected)](https://gitconnected.com/)
+- [Hajime Takeda: Skills Progressive Disclosure (Towards Data Science)](https://towardsdatascience.com/)
+- [Anthropic: Create and distribute a plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces)
