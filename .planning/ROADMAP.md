@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: File Watching & Auto-Continue** - Event-driven file monitoring and MiniMax-evaluated auto-continue (completed 2026-03-26)
 - [ ] **Phase 8: HTTP Control API** - External control surface for settings, health, subtitle, and TTS
 - [ ] **Phase 9: SwiftBar Integration** - Menu bar plugin controls all subsystems via HTTP API
-- [ ] **Phase 10: Deployment & Extras** - Launchd service, rollback, caption history, clipboard, thinking watcher
+- [x] **Phase 10: Deployment & Extras** - Launchd service, rollback, caption history, clipboard, thinking watcher (completed 2026-03-26)
 
 ## Phase Details
 
@@ -232,4 +232,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. File Watching & Auto-Continue | 2/2            | Complete    | 2026-03-26 |
 | 8. HTTP Control API              | 0/0            | Not started | -          |
 | 9. SwiftBar Integration          | 0/0            | Not started | -          |
-| 10. Deployment & Extras          | 1/2            | Executing   | -          |
+| 10. Deployment & Extras          | 1/2            | Complete    | 2026-03-26 |
