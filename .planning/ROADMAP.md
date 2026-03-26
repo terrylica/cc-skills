@@ -99,8 +99,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [ ] 04-01-PLAN.md — MiniMax API client + circuit breaker + Config constants
+- [ ] 04-02-PLAN.md — SummaryEngine with Arc Summary, Tail Brief, and single-turn methods
 
 ### Phase 5: Telegram Bot Core
 
@@ -226,7 +226,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 1. Foundation & Build System     | 2/2            | Complete    | -         |
 | 2. Subtitle Overlay              | 2/2            | Complete    | -         |
 | 3. TTS Engine                    | 0/2            | Planning    | -         |
-| 4. AI Summaries                  | 0/0            | Not started | -         |
+| 4. AI Summaries                  | 0/2            | Planned     | -         |
 | 5. Telegram Bot Core             | 0/0            | Not started | -         |
 | 6. Telegram Bot Commands         | 0/0            | Not started | -         |
 | 7. File Watching & Auto-Continue | 0/0            | Not started | -         |
