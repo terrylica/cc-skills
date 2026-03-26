@@ -14,7 +14,7 @@ enum Config {
     static let kokoroModelPath: String = {
         let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/<you>"
         return ProcessInfo.processInfo.environment["KOKORO_MODEL_PATH"]
-            ?? "\(home)/tmp/subtitle-spikes-7aqa/03-textream/models-int8/kokoro-int8-multi-lang-v1_0"
+            ?? "\(home)/.local/share/kokoro/models/kokoro-int8-multi-lang-v1_0"
     }()
 
     /// Filename of the Kokoro model
