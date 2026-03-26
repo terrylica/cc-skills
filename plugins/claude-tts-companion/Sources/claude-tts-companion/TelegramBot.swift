@@ -9,7 +9,7 @@ final class TelegramBot: @unchecked Sendable {
     private var bot: TGBot?
     private let botToken: String
     private let chatId: Int64
-    private var isWatching: Bool = false
+    private var isWatching: Bool = true
     private let startTime: Date = Date()
 
     // Subsystem references for session notifications (BOT-03, BOT-04)
