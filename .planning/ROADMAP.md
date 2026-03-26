@@ -174,7 +174,7 @@ Plans:
 
 Plans:
 
-- [ ] 08-01-PLAN.md — FlyingFox dependency + SettingsStore persistence + HTTPControlServer endpoints
+- [x] 08-01-PLAN.md — FlyingFox dependency + SettingsStore persistence + HTTPControlServer endpoints
 - [ ] 08-02-PLAN.md — Wire HTTP server into main.swift + build verification
 
 

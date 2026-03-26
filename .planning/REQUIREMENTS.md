@@ -76,13 +76,13 @@
 
 ### HTTP Control API
 
-- [ ] **API-01**: GET /health returns subsystem status (bot, TTS, subtitle) with RSS and uptime
-- [ ] **API-02**: GET /settings returns all current settings as JSON
-- [ ] **API-03**: POST /settings/subtitle accepts fontSize, position, screen, opacity, karaoke toggle
-- [ ] **API-04**: POST /settings/tts accepts enabled, voice, speed toggles
-- [ ] **API-05**: POST /subtitle/show displays subtitle text with optional duration
-- [ ] **API-06**: POST /subtitle/hide dismisses current subtitle
-- [ ] **API-07**: Settings persist to disk and survive binary restart
+- [x] **API-01**: GET /health returns subsystem status (bot, TTS, subtitle) with RSS and uptime
+- [x] **API-02**: GET /settings returns all current settings as JSON
+- [x] **API-03**: POST /settings/subtitle accepts fontSize, position, screen, opacity, karaoke toggle
+- [x] **API-04**: POST /settings/tts accepts enabled, voice, speed toggles
+- [x] **API-05**: POST /subtitle/show displays subtitle text with optional duration
+- [x] **API-06**: POST /subtitle/hide dismisses current subtitle
+- [x] **API-07**: Settings persist to disk and survive binary restart
 
 ### SwiftBar Integration
 
@@ -172,13 +172,13 @@
 | AUTO-01     | Phase 7  | Complete |
 | AUTO-02     | Phase 7  | Complete |
 | AUTO-03     | Phase 7  | Complete |
-| API-01      | Phase 8  | Pending |
-| API-02      | Phase 8  | Pending |
-| API-03      | Phase 8  | Pending |
-| API-04      | Phase 8  | Pending |
-| API-05      | Phase 8  | Pending |
-| API-06      | Phase 8  | Pending |
-| API-07      | Phase 8  | Pending |
+| API-01      | Phase 8  | Complete |
+| API-02      | Phase 8  | Complete |
+| API-03      | Phase 8  | Complete |
+| API-04      | Phase 8  | Complete |
+| API-05      | Phase 8  | Complete |
+| API-06      | Phase 8  | Complete |
+| API-07      | Phase 8  | Complete |
 | BAR-01      | Phase 9  | Pending |
 | BAR-02      | Phase 9  | Pending |
 | BAR-03      | Phase 9  | Pending |
