@@ -107,6 +107,12 @@ None yet.
 - Phase 4 (Bot): 4,500 lines of TypeScript need line-by-line feature parity audit
 - Phase 5 (Bot Core): Must use test bot token during dev to avoid long-polling conflict with production bot
 
+### Quick Tasks Completed
+
+| #          | Description                                            | Date       | Commit   | Directory                                                                   |
+| ---------- | ------------------------------------------------------ | ---------- | -------- | --------------------------------------------------------------------------- |
+| 260326-fvh | Deploy claude-tts-companion as unified launchd service | 2026-03-26 | f8196055 | [260326-fvh-deploy-tts-companion](./quick/260326-fvh-deploy-tts-companion/) |
+
 ## Session Continuity
 
 Last session: 2026-03-26T18:34:50.463Z
