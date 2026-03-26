@@ -177,7 +177,6 @@ Plans:
 - [x] 08-01-PLAN.md — FlyingFox dependency + SettingsStore persistence + HTTPControlServer endpoints
 - [x] 08-02-PLAN.md — Wire HTTP server into main.swift + build verification
 
-
 ### Phase 9: SwiftBar Integration
 
 **Goal**: Menu bar plugin provides unified control surface for all subsystems via HTTP API
@@ -194,8 +193,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [ ] 09-01-PLAN.md — Rewrite claude-hq.10s.py v3.0.0 with HTTP API health/settings/subtitle/TTS menus
+- [ ] 09-02-PLAN.md — Rewrite nc-action.sh for HTTP API curl actions + visual checkpoint
       **UI hint**: yes
 
 ### Phase 10: Deployment & Extras
@@ -230,7 +229,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 4. AI Summaries                  | 0/0            | Not started | -          |
 | 5. Telegram Bot Core             | 0/0            | Not started | -          |
 | 6. Telegram Bot Commands         | 2/2            | Complete    | 2026-03-26 |
-| 7. File Watching & Auto-Continue | 2/2 | Complete   | 2026-03-26 |
+| 7. File Watching & Auto-Continue | 2/2            | Complete    | 2026-03-26 |
 | 8. HTTP Control API              | 0/0            | Not started | -          |
-| 9. SwiftBar Integration          | 0/0            | Not started | -          |
+| 9. SwiftBar Integration          | 0/2            | Planned     | -          |
 | 10. Deployment & Extras          | 0/0            | Not started | -          |
