@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: TTS Engine** - Kokoro int8 synthesis produces audio with word-level timestamps
 - [ ] **Phase 4: AI Summaries** - MiniMax API generates session narratives with circuit breaker protection
 - [ ] **Phase 5: Telegram Bot Core** - Bot connects, handles basic commands, sends session notifications
-- [ ] **Phase 6: Telegram Bot Commands** - Bot supports model selection, session resume, CLI subprocess integration
+- [x] **Phase 6: Telegram Bot Commands** - Bot supports model selection, session resume, CLI subprocess integration (completed 2026-03-26)
 - [ ] **Phase 7: File Watching & Auto-Continue** - Event-driven file monitoring and MiniMax-evaluated auto-continue
 - [ ] **Phase 8: HTTP Control API** - External control surface for settings, health, subtitle, and TTS
 - [ ] **Phase 9: SwiftBar Integration** - Menu bar plugin controls all subsystems via HTTP API
@@ -228,7 +228,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 3. TTS Engine                    | 0/2            | Planning    | -         |
 | 4. AI Summaries                  | 0/0            | Not started | -         |
 | 5. Telegram Bot Core             | 0/0            | Not started | -         |
-| 6. Telegram Bot Commands         | 0/0            | Not started | -         |
+| 6. Telegram Bot Commands         | 1/1 | Complete   | 2026-03-26 |
 | 7. File Watching & Auto-Continue | 0/0            | Not started | -         |
 | 8. HTTP Control API              | 0/0            | Not started | -         |
 | 9. SwiftBar Integration          | 0/0            | Not started | -         |
