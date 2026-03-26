@@ -10,17 +10,18 @@ enum Config {
             ?? "\(home)/fork-tools/sherpa-onnx/build-swift-macos/install"
     }()
 
-    /// Path to Kokoro int8 TTS model directory
-    /// Note: canonical path is ~/.local/share/kokoro/models/kokoro-int8-en-v0_19/
-    /// but current location differs. Model copy is a Phase 10 concern.
+    /// Path to Kokoro int8 TTS model directory (v1.0 multi-lang with af_heart voice)
     static let kokoroModelPath: String = {
         let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/<you>"
         return ProcessInfo.processInfo.environment["KOKORO_MODEL_PATH"]
-            ?? "\(home)/tmp/subtitle-spikes-7aqa/03-textream/models-int8/kokoro-int8-en-v0_19"
+            ?? "\(home)/tmp/subtitle-spikes-7aqa/03-textream/models-int8/kokoro-int8-multi-lang-v1_0"
     }()
 
-    /// Filename of the timestamped Kokoro model (has duration tensor output)
-    static let kokoroModelFile = "model-timestamped.int8.onnx"
+    /// Filename of the Kokoro model
+    static let kokoroModelFile = "model.int8.onnx"
+
+    /// Default speaker ID: af_heart (speaker 3 in Kokoro v1.0)
+    static let defaultSpeakerId: Int32 = 3
 
     /// Application name for logging and service identification
     static let appName = "claude-tts-companion"
