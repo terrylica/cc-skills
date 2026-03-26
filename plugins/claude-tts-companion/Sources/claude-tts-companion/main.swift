@@ -94,15 +94,24 @@ if let token = Config.telegramBotToken, let chatIdStr = Config.telegramChatId, l
 
 // Create NotificationWatcher for session-end file detection (AUTO-01)
 let notificationWatcher = NotificationWatcher { filePath in
-    // Read the notification JSON file
-    guard let data = FileManager.default.contents(atPath: filePath),
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+    // Brief delay — DispatchSource fires on file creation before write completes
+    Thread.sleep(forTimeInterval: 0.2)
+
+    // Read the notification JSON file (retry once after delay if empty)
+    var data = FileManager.default.contents(atPath: filePath)
+    if data == nil || data!.isEmpty {
+        Thread.sleep(forTimeInterval: 0.5)
+        data = FileManager.default.contents(atPath: filePath)
+    }
+    guard let fileData = data, !fileData.isEmpty,
+          let json = try? JSONSerialization.jsonObject(with: fileData) as? [String: Any] else {
         logger.warning("Could not parse notification file: \(filePath)")
         return
     }
 
-    let sessionId = json["session_id"] as? String ?? "unknown"
-    let transcriptPath = json["transcript_path"] as? String
+    // The stop hook (telegram-notify-stop.ts) writes camelCase keys
+    let sessionId = json["sessionId"] as? String ?? json["session_id"] as? String ?? "unknown"
+    let transcriptPath = json["transcriptPath"] as? String ?? json["transcript_path"] as? String
     let cwd = json["cwd"] as? String
 
     logger.info("Session notification: \(sessionId)")
