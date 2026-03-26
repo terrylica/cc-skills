@@ -74,7 +74,7 @@ final class TTSEngine: @unchecked Sendable {
     ///   - completion: Called with the synthesis result or error
     func synthesize(
         text: String,
-        speakerId: Int32 = 0,
+        speakerId: Int32 = Config.defaultSpeakerId,
         speed: Float = 1.0,
         completion: @escaping (Result<SynthesisResult, Error>) -> Void
     ) {
@@ -100,13 +100,6 @@ final class TTSEngine: @unchecked Sendable {
                 let sampleRate = result.pointee.sample_rate
                 let samples = result.pointee.samples
 
-                // Extract durations if available
-                var durations: [Float]?
-                let numDurations = result.pointee.num_durations
-                if numDurations > 0, let durPtr = result.pointee.durations {
-                    durations = Array(UnsafeBufferPointer(start: durPtr, count: Int(numDurations)))
-                }
-
                 // Write WAV file
                 let writeResult = SherpaOnnxWriteWave(samples, n, sampleRate, wavPath)
                 guard writeResult == 1 else {
@@ -124,14 +117,10 @@ final class TTSEngine: @unchecked Sendable {
                 let rtf = elapsed / audioDuration
                 logger.info("Synthesis complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
 
-                if let durs = durations {
-                    logger.debug("Duration tensor: \(durs.count) values")
-                }
-
                 completion(.success(SynthesisResult(
                     wavPath: wavPath,
                     audioDuration: audioDuration,
-                    durations: durations
+                    durations: nil
                 )))
             } catch {
                 logger.error("Synthesis failed: \(error)")
@@ -175,7 +164,7 @@ final class TTSEngine: @unchecked Sendable {
     /// returns everything needed to drive SubtitlePanel.showUtterance().
     func synthesizeWithTimestamps(
         text: String,
-        speakerId: Int32 = 0,
+        speakerId: Int32 = Config.defaultSpeakerId,
         speed: Float = 1.0,
         completion: @escaping (Result<TTSResult, Error>) -> Void
     ) {
@@ -277,6 +266,9 @@ final class TTSEngine: @unchecked Sendable {
         let voicesPath = strdup("\(Config.kokoroModelPath)/voices.bin")
         let tokensPath = strdup("\(Config.kokoroModelPath)/tokens.txt")
         let dataDir = strdup("\(Config.kokoroModelPath)/espeak-ng-data")
+        let lexiconPath = strdup("\(Config.kokoroModelPath)/lexicon-us-en.txt")
+        let langStr = strdup("en-us")
+        let dictDir = strdup("\(Config.kokoroModelPath)/dict")
         let provider = strdup("cpu")
 
         defer {
@@ -284,6 +276,9 @@ final class TTSEngine: @unchecked Sendable {
             free(voicesPath)
             free(tokensPath)
             free(dataDir)
+            free(lexiconPath)
+            free(langStr)
+            free(dictDir)
             free(provider)
         }
 
@@ -292,6 +287,9 @@ final class TTSEngine: @unchecked Sendable {
         config.model.kokoro.voices = UnsafePointer(voicesPath)
         config.model.kokoro.tokens = UnsafePointer(tokensPath)
         config.model.kokoro.data_dir = UnsafePointer(dataDir)
+        config.model.kokoro.lexicon = UnsafePointer(lexiconPath)
+        config.model.kokoro.lang = UnsafePointer(langStr)
+        config.model.kokoro.dict_dir = UnsafePointer(dictDir)
         config.model.kokoro.length_scale = 1.0
         config.model.num_threads = 4
         config.model.provider = UnsafePointer(provider)

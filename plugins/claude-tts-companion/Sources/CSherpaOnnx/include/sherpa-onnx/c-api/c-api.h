@@ -1172,8 +1172,6 @@ SHERPA_ONNX_API typedef struct SherpaOnnxGeneratedAudio {
   const float *samples;    // in the range [-1, 1]
   int32_t n;               // number of samples
   int32_t sample_rate;
-  const float *durations;  // per-token durations (NULL if model doesn't support)
-  int32_t num_durations;   // number of duration values
 } SherpaOnnxGeneratedAudio;
 
 // If the callback returns 0, then it stops generating
