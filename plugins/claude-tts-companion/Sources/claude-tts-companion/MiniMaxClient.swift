@@ -114,15 +114,28 @@ final class MiniMaxClient: @unchecked Sendable {
             throw SummaryError.decodingError("Response is not a JSON object")
         }
 
-        // Extract text from content blocks, filtering to type == "text"
+        // Extract text from content blocks
+        // MiniMax-M2.7-highspeed is a thinking model: returns thinking blocks then text blocks
         guard let content = dict["content"] as? [[String: Any]] else {
             circuitBreaker.recordFailure()
             throw SummaryError.decodingError("Missing 'content' array in response")
         }
 
-        let textBlocks = content
+        // Prefer type=="text" blocks (the actual response)
+        var textBlocks = content
             .filter { ($0["type"] as? String) == "text" }
             .compactMap { $0["text"] as? String }
+
+        // Fallback: if no text blocks, extract from thinking blocks
+        // (happens when max_tokens is consumed by thinking before text is produced)
+        if textBlocks.isEmpty {
+            textBlocks = content
+                .filter { ($0["type"] as? String) == "thinking" }
+                .compactMap { $0["thinking"] as? String }
+            if !textBlocks.isEmpty {
+                logger.warning("No text blocks in response — using thinking block content as fallback")
+            }
+        }
 
         let text = textBlocks.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
 
