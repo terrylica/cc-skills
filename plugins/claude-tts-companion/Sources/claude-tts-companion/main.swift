@@ -31,7 +31,7 @@ let summaryEngine = SummaryEngine()
 
 // Start Telegram bot if configured (graceful fallback if no token)
 nonisolated(unsafe) var telegramBot: TelegramBot? = nil
-if let token = Config.telegramBotToken, let chatId = Config.telegramChatId {
+if let token = Config.telegramBotToken, let chatIdStr = Config.telegramChatId, let chatId = Int64(chatIdStr) {
     let bot = TelegramBot(
         botToken: token,
         chatId: chatId,
