@@ -1,3 +1,58 @@
+# [12.17.0](https://github.com/terrylica/cc-skills/compare/v12.16.0...v12.17.0) (2026-03-26)
+
+
+### Features
+
+* **01-01:** create CSherpaOnnx C module target with vendored headers ([292e1d2](https://github.com/terrylica/cc-skills/commit/292e1d2d8dc70ef27a95b4b9e7a5f86701567311))
+* **01-01:** create Package.swift and Config.swift ([de58561](https://github.com/terrylica/cc-skills/commit/de58561176ae87c6874ead4d3a27cf6ea3ebddfb))
+* **01-02:** create main.swift entry point with NSApp accessory + SIGTERM + C interop ([5bc1bd4](https://github.com/terrylica/cc-skills/commit/5bc1bd4a80e264b1fc3487142c01d1453bbf4f33))
+* **02-01:** create SubtitlePanel.swift with floating overlay panel ([e16bdc9](https://github.com/terrylica/cc-skills/commit/e16bdc98d85210f4507998fc8bdee803af0b4922))
+* **02-01:** create SubtitleStyle.swift with visual constants ([e91d0a7](https://github.com/terrylica/cc-skills/commit/e91d0a71ed91d920494fdb4541f7193c5d8bacc4))
+* **02-02:** add karaoke highlighting engine and demo mode to SubtitlePanel ([bdeba49](https://github.com/terrylica/cc-skills/commit/bdeba49824018a2bfec2be552ab56015be0c63e0))
+* **02-02:** wire SubtitlePanel into main.swift with demo on startup ([9c50388](https://github.com/terrylica/cc-skills/commit/9c503883a37d26f890f986c8a03ad432402cabd0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+138)
+
+## Other Documentation
+
+### Other
+
+- [01-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/01-foundation-build-system/01-01-PLAN.md) - new (+261)
+- [Phase 01 Plan 01: Foundation Build System Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/01-foundation-build-system/01-01-SUMMARY.md) - new (+149)
+- [01-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/01-foundation-build-system/01-02-PLAN.md) - new (+263)
+- [Phase 01 Plan 02: Entry Point & Build Verification Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/01-foundation-build-system/01-02-SUMMARY.md) - new (+150)
+- [Phase 1: Foundation & Build System - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/01-foundation-build-system/01-CONTEXT.md) - new (+64)
+- [Phase 1: Foundation & Build System - Research](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/01-foundation-build-system/01-RESEARCH.md) - new (+457)
+- [Phase 01: Foundation & Build System Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/01-foundation-build-system/01-VERIFICATION.md) - new (+132)
+- [02-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/02-subtitle-overlay/02-01-PLAN.md) - new (+233)
+- [Phase 02 Plan 01: Subtitle Panel Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/02-subtitle-overlay/02-01-SUMMARY.md) - new (+129)
+- [02-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/02-subtitle-overlay/02-02-PLAN.md) - new (+274)
+- [Phase 02 Plan 02: Karaoke Demo Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/02-subtitle-overlay/02-02-SUMMARY.md) - new (+120)
+- [Phase 02: Subtitle Overlay — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/02-subtitle-overlay/02-CONTEXT.md) - new (+57)
+- [claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/PROJECT.md) - new (+113)
+- [Requirements: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/REQUIREMENTS.md) - new (+194)
+- [Architecture Patterns](https://github.com/terrylica/cc-skills/blob/main/.planning/research/ARCHITECTURE.md) - new (+361)
+- [Feature Landscape](https://github.com/terrylica/cc-skills/blob/main/.planning/research/FEATURES.md) - new (+118)
+- [Domain Pitfalls](https://github.com/terrylica/cc-skills/blob/main/.planning/research/PITFALLS.md) - new (+365)
+- [Technology Stack](https://github.com/terrylica/cc-skills/blob/main/.planning/research/STACK.md) - new (+199)
+- [Project Research Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/research/SUMMARY.md) - new (+196)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - new (+234)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - new (+92)
+- [为什么我们应该用 Agent Skills 来共享工程知识](https://github.com/terrylica/cc-skills/blob/main/docs/research/skills-as-knowledge-justification.md) - new (+355)
+- [claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/CLAUDE.md) - new (+39)
+
 # [12.16.0](https://github.com/terrylica/cc-skills/compare/v12.15.0...v12.16.0) (2026-03-24)
 
 
