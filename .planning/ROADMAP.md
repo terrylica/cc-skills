@@ -80,7 +80,7 @@ Plans:
 
 Plans:
 
-- [ ] 03-01-PLAN.md — Patch sherpa-onnx for duration tensor + TTSEngine with synthesis/WAV/afplay
+- [x] 03-01-PLAN.md — Patch sherpa-onnx for duration tensor + TTSEngine with synthesis/WAV/afplay
 - [ ] 03-02-PLAN.md — Word timestamp extraction + karaoke integration + main.swift wiring + verification
       **UI hint**: yes
 
