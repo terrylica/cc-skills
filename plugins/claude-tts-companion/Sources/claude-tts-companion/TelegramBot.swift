@@ -12,9 +12,17 @@ final class TelegramBot: @unchecked Sendable {
     private var isWatching: Bool = false
     private let startTime: Date = Date()
 
-    init(botToken: String, chatId: Int64) {
+    // Subsystem references for session notifications (BOT-03, BOT-04)
+    private let summaryEngine: SummaryEngine
+    private let ttsEngine: TTSEngine
+    private let subtitlePanel: SubtitlePanel  // @MainActor -- access must dispatch to main
+
+    init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel) {
         self.botToken = botToken
         self.chatId = chatId
+        self.summaryEngine = summaryEngine
+        self.ttsEngine = ttsEngine
+        self.subtitlePanel = subtitlePanel
     }
 
     // MARK: - Public API
@@ -25,6 +33,87 @@ final class TelegramBot: @unchecked Sendable {
     /// Send a notification message via Telegram (HTML parse mode).
     func sendNotification(_ text: String) async {
         await sendMessage(text, parseMode: .html)
+    }
+
+    // MARK: - Session Notifications (BOT-03, BOT-04)
+
+    /// Send session-end notification with Arc Summary + Tail Brief, then dispatch TTS.
+    /// Called by file watcher (Phase 7) when a session ends.
+    func sendSessionNotification(turns: [ConversationTurn], cwd: String?) async {
+        guard isWatching else {
+            logger.info("Skipping notification -- bot not watching")
+            return
+        }
+
+        // Generate both summaries concurrently
+        async let arcResult = summaryEngine.arcSummary(turns: turns, cwd: cwd)
+        async let tailResult = summaryEngine.tailBrief(turns: turns, cwd: cwd)
+
+        let arc = await arcResult
+        let tail = await tailResult
+
+        // Build notification message (HTML formatted)
+        var message = "<b>Session Complete</b>"
+        if let cwd = cwd {
+            message += " — <code>\(TelegramFormatter.escapeHtml(cwd))</code>"
+        }
+
+        // Arc Summary section
+        if !arc.narrative.isEmpty && arc.narrative != "Session completed." {
+            message += "\n\n<b>Arc Summary:</b>\n\(TelegramFormatter.escapeHtml(arc.narrative))"
+        }
+
+        // Tail Brief section
+        if !tail.narrative.isEmpty {
+            message += "\n\n<b>Tail Brief:</b>\n\(TelegramFormatter.escapeHtml(tail.narrative))"
+        }
+
+        // If both summaries failed, send minimal notification
+        if arc.narrative == "Session completed." && tail.narrative.isEmpty {
+            message += "\n\n<i>Summary generation failed or was skipped.</i>"
+        }
+
+        // Send notification
+        await sendMessage(message)
+
+        // Dispatch TTS for Tail Brief with karaoke subtitles (BOT-04)
+        if !tail.narrative.isEmpty {
+            await dispatchTTS(text: tail.narrative, greeting: arc.ttsGreeting)
+        }
+    }
+
+    /// Synthesize text and play with synchronized karaoke subtitles.
+    private func dispatchTTS(text: String, greeting: String?) async {
+        // Build full TTS text with optional greeting
+        let fullText: String
+        if let greeting = greeting, !greeting.isEmpty {
+            fullText = "\(greeting) \(text)"
+        } else {
+            fullText = text
+        }
+
+        logger.info("Dispatching TTS: \(fullText.count) chars")
+
+        ttsEngine.synthesizeWithTimestamps(text: fullText) { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .success(let ttsResult):
+                self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
+
+                // Show karaoke subtitles on main thread (SubtitlePanel is @MainActor)
+                DispatchQueue.main.async {
+                    self.subtitlePanel.showUtterance(ttsResult.text, wordTimings: ttsResult.wordTimings)
+                }
+
+                // Play audio concurrently with subtitle display
+                self.ttsEngine.play(wavPath: ttsResult.wavPath) {
+                    self.logger.info("TTS playback complete")
+                }
+
+            case .failure(let error):
+                self.logger.error("TTS dispatch failed: \(error)")
+            }
+        }
     }
 
     // MARK: - Boot Sequence
@@ -180,13 +269,15 @@ final class TelegramBot: @unchecked Sendable {
 
     func handleHealth(update: TGUpdate) async {
         guard let chatId = update.message?.chat.id else { return }
-        let summaryStatus = Config.miniMaxAPIKey != nil ? "Available" : "No API key"
+        let summaryStatus = Config.miniMaxAPIKey != nil ? "Available (\(Config.miniMaxModel))" : "No API key"
+        let ttsStatus = "Available (Kokoro int8)"
         let text = """
         <b>Health Check</b>
 
         <b>Telegram API:</b> Connected
-        <b>TTS Engine:</b> Available
+        <b>TTS Engine:</b> \(ttsStatus)
         <b>Summary Engine:</b> \(summaryStatus)
+        <b>Subtitle Panel:</b> Active
         """
         await replyToChat(chatId, text: text)
     }
