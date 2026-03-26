@@ -100,7 +100,7 @@ Plans:
 Plans:
 
 - [x] 04-01-PLAN.md — MiniMax API client & circuit breaker (1/2 SUMMARY)
-- [ ] 04-02-PLAN.md — Summary prompt templates & orchestrator
+- [x] 04-02-PLAN.md — Summary prompt templates & orchestrator
 
 ### Phase 5: Telegram Bot Core
 
