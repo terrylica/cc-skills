@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-26T16:40:51.605Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-26T16:54:32.987Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 10
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 7
+  total_plans: 10
+  completed_plans: 8
   percent: 0
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 04 — ai-summaries
+**Current focus:** Phase 05 — telegram-bot-core
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
+Phase: 05 (telegram-bot-core) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
 Last activity: 2026-03-26
 
@@ -58,6 +58,7 @@ _Updated after each plan completion_
 | Phase 02 P02 | 140s | 2 tasks | 2 files |
 | Phase 03 P01 | 6min | 2 tasks | 3 files |
 | Phase 04 P02 | 3min | 2 tasks | 1 files |
+| Phase 05 P01 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 03]: strdup/free pattern for C string lifetime in sherpa-onnx config (safer than nested withCString)
 - [Phase 03]: NSLock + serial DispatchQueue for TTSEngine thread safety (@unchecked Sendable)
 - [Phase 04]: Removed unused projectName in tailBrief (TS original has no greeting for TBR)
+- [Phase 05]: BotDispatcher subclass of TGDefaultDispatcher for handler registration
+- [Phase 05]: Graceful fallback: bot skips startup when TELEGRAM_BOT_TOKEN not set
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T16:39:42.166Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-26T16:54:32.985Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
