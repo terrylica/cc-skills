@@ -28,14 +28,14 @@
 
 ### TTS Engine
 
-- [ ] **TTS-01**: User hears synthesized speech from text via Kokoro int8 model through afplay
-- [ ] **TTS-02**: Synthesis runs on a dedicated serial DispatchQueue (does not block UI)
-- [ ] **TTS-03**: Model loads lazily on first synthesis request (not at startup)
-- [ ] **TTS-04**: Peak RSS during synthesis stays under 700MB with int8 model
-- [ ] **TTS-05**: Synthesis speed is at least 1.5x real-time (audio plays without gaps)
+- [x] **TTS-01**: User hears synthesized speech from text via Kokoro int8 model through afplay
+- [x] **TTS-02**: Synthesis runs on a dedicated serial DispatchQueue (does not block UI)
+- [x] **TTS-03**: Model loads lazily on first synthesis request (not at startup)
+- [x] **TTS-04**: Peak RSS during synthesis stays under 700MB with int8 model
+- [x] **TTS-05**: Synthesis speed is at least 1.5x real-time (audio plays without gaps)
 - [ ] **TTS-06**: Duration tensor is extracted from patched sherpa-onnx for word timestamps
 - [ ] **TTS-07**: Word timestamps have zero accumulated drift over the full audio duration
-- [ ] **TTS-08**: Audio output is 24kHz mono 16-bit WAV played via afplay subprocess
+- [x] **TTS-08**: Audio output is 24kHz mono 16-bit WAV played via afplay subprocess
 
 ### Telegram Bot
 
@@ -142,14 +142,14 @@
 | SUB-09      | Phase 2  | Complete |
 | SUB-10      | Phase 2  | Complete |
 | SUB-11      | Phase 2  | Complete |
-| TTS-01      | Phase 3  | Pending |
-| TTS-02      | Phase 3  | Pending |
-| TTS-03      | Phase 3  | Pending |
-| TTS-04      | Phase 3  | Pending |
-| TTS-05      | Phase 3  | Pending |
+| TTS-01      | Phase 3  | Complete |
+| TTS-02      | Phase 3  | Complete |
+| TTS-03      | Phase 3  | Complete |
+| TTS-04      | Phase 3  | Complete |
+| TTS-05      | Phase 3  | Complete |
 | TTS-06      | Phase 3  | Pending |
 | TTS-07      | Phase 3  | Pending |
-| TTS-08      | Phase 3  | Pending |
+| TTS-08      | Phase 3  | Complete |
 | SUM-01      | Phase 4  | Pending |
 | SUM-02      | Phase 4  | Pending |
 | SUM-03      | Phase 4  | Pending |
