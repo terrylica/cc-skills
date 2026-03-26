@@ -29,6 +29,29 @@ enum Config {
     /// Launchd service label
     static let serviceLabel = "com.terryli.claude-tts-companion"
 
+    // MARK: - MiniMax API
+
+    /// MiniMax API key from environment
+    static let miniMaxApiKey: String? = ProcessInfo.processInfo.environment["MINIMAX_API_KEY"]
+    static let miniMaxAPIKey: String? = miniMaxApiKey
+
+    /// Max tokens for summary generation
+    static let summaryMaxTokens = 4096
+
+    /// MiniMax API base URL
+    static let miniMaxBaseURL = "https://api.minimax.chat"
+
+    /// MiniMax model identifier
+    static let miniMaxModel = "MiniMax-Text-01"
+
+    // MARK: - Telegram Bot
+
+    /// Telegram bot token from environment
+    static let telegramBotToken: String? = ProcessInfo.processInfo.environment["TELEGRAM_BOT_TOKEN"]
+
+    /// Telegram chat ID for notifications
+    static let telegramChatId: String? = ProcessInfo.processInfo.environment["TELEGRAM_CHAT_ID"]
+
     // MARK: - Claude CLI
 
     /// Path to the `claude` CLI binary
