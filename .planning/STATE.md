@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.6.0
-milestone_name: Legacy Pipeline Feature Parity
-status: ready_to_plan
-stopped_at: "Roadmap created for v4.6.0 milestone (phases 11-16)"
-last_updated: "2026-03-26T19:00:00.000Z"
+milestone: v4.5.0
+milestone_name: MVP
+status: executing
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-26T23:42:28.916Z"
 last_activity: 2026-03-26
 progress:
-  total_phases: 16
-  completed_phases: 9
-  total_plans: 20
-  completed_plans: 19
-  percent: 0
+  total_phases: 6
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 1
+  percent: 59
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 11 -- Notification Formatting (v4.6.0 milestone)
+**Current focus:** Phase 11 — notification-formatting
 
 ## Current Position
 
-Phase: 11 of 16 (Notification Formatting)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-26 -- Roadmap created for v4.6.0 milestone
+Phase: 11 (notification-formatting) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-03-26
 
 Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, v4.6.0 starting)
 
@@ -57,6 +57,8 @@ Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, 
 - Last 5 plans: 2min, 2min, 2min, 4min, 4min
 - Trend: Stable (~3min average)
 
+| Phase 11 P01 | 3min | 1 tasks | 1 files |
+
 ## Accumulated Context
 
 ### Decisions
@@ -69,6 +71,7 @@ Recent decisions affecting current work:
 - [Phase 07]: Shared MiniMaxClient between SummaryEngine and AutoContinueEvaluator
 - [Phase 07]: Default to DONE on evaluation error to prevent runaway auto-continue loops
 - [v4.6.0]: Port directly from legacy TypeScript -- don't reinvent
+- [Phase 11]: Used NSRegularExpression for HTML tag walker in wrapFileReferencesInHtml (Swift Regex requires macOS 13+)
 
 ### Pending Todos
 
@@ -87,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T19:00:00.000Z
-Stopped at: Roadmap created for v4.6.0 milestone (phases 11-16)
+Last session: 2026-03-26T23:42:28.914Z
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
