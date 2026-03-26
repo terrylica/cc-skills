@@ -99,8 +99,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [ ] 04-01-PLAN.md — MiniMaxClient + CircuitBreaker + SummaryEngine
+- [ ] 04-02-PLAN.md — Summary integration + main.swift wiring
 
 ### Phase 5: Telegram Bot Core
 
@@ -117,8 +117,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [ ] 05-01-PLAN.md — TelegramBot + TelegramFormatter + bot commands
+- [ ] 05-02-PLAN.md — Session notifications + TTS dispatch + main.swift wiring
 
 ### Phase 6: Telegram Bot Commands
 
@@ -136,8 +136,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [x] 06-01-PLAN.md — ClaudeProcess + PromptExecutor + TranscriptParser
+- [x] 06-02-PLAN.md — Bot command handlers + main.swift wiring
 
 ### Phase 7: File Watching & Auto-Continue
 
@@ -213,8 +213,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [ ] 10-01-PLAN.md — Launchd plist + install/rollback scripts + Config.swift model path
+- [ ] 10-02-PLAN.md — Caption history + clipboard copy + thinking watcher
 
 ## Progress
 
@@ -232,4 +232,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. File Watching & Auto-Continue | 2/2            | Complete    | 2026-03-26 |
 | 8. HTTP Control API              | 0/0            | Not started | -          |
 | 9. SwiftBar Integration          | 2/2            | Complete    | 2026-03-26 |
-| 10. Deployment & Extras          | 0/0            | Not started | -          |
+| 10. Deployment & Extras          | 0/2            | Planning    | -          |
