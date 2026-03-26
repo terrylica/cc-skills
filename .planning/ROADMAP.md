@@ -174,8 +174,9 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [ ] 08-01-PLAN.md — FlyingFox dependency + SettingsStore persistence + HTTPControlServer endpoints
+- [ ] 08-02-PLAN.md — Wire HTTP server into main.swift + build verification
+
 
 ### Phase 9: SwiftBar Integration
 
