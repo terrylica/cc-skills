@@ -1,3 +1,116 @@
+# [12.18.0](https://github.com/terrylica/cc-skills/compare/v12.17.0...v12.18.0) (2026-03-26)
+
+
+### Bug Fixes
+
+* **03:** use Kokoro v1.0 af_heart voice + fix struct layout crash ([316bfe6](https://github.com/terrylica/cc-skills/commit/316bfe664026896bc831d17fab8b32e64fc2ec2e))
+* **06:** restore missing Config constants after merge conflict ([5338b5e](https://github.com/terrylica/cc-skills/commit/5338b5ec26abe9604109aa12302e20b4830b520c))
+* add read delay for notification file parsing race condition ([0981e3c](https://github.com/terrylica/cc-skills/commit/0981e3c8670cd5a28506f0492bf9694295f14cd9))
+* correct MiniMax API endpoint and model name ([2df6250](https://github.com/terrylica/cc-skills/commit/2df62502b0a13c172206f41f2daa0533bad4c092))
+* default isWatching=true so bot sends notifications without /start ([af765cb](https://github.com/terrylica/cc-skills/commit/af765cb5872d724fe40987b181adf6edbe0bb47e))
+* handle MiniMax thinking model response + increase token budget ([0fc98cf](https://github.com/terrylica/cc-skills/commit/0fc98cfef6304a882e8005152c1c4e8ebaa14781))
+* replace subtitle-only demo with TTS+karaoke demo in dev mode ([18ddbb5](https://github.com/terrylica/cc-skills/commit/18ddbb5d9bf666cc493c4ee3eae3ead4679aa91a))
+* switch to full precision Kokoro model for better voice quality ([c7b3a87](https://github.com/terrylica/cc-skills/commit/c7b3a87d9cad999df772c3bda1810024eef8f4c6))
+
+
+### Features
+
+* **03-01:** create TTSEngine.swift with sherpa-onnx C API wrapper ([c0ddd5b](https://github.com/terrylica/cc-skills/commit/c0ddd5b6e4fced7f717edba6477e8f98356b90ee))
+* **03-01:** patch sherpa-onnx for duration tensor + rebuild static libs ([ab057a2](https://github.com/terrylica/cc-skills/commit/ab057a2cd6b1026bb543590248ebe1e1509ffce3))
+* **03-02:** add word timestamp extraction and synthesizeWithTimestamps to TTSEngine ([febf289](https://github.com/terrylica/cc-skills/commit/febf289197cab48155a6e273c765e88753664b93))
+* **03-02:** wire TTSEngine into main.swift, replace demo with real TTS karaoke ([4874e7e](https://github.com/terrylica/cc-skills/commit/4874e7edd2c3b3a24264f998bd393d50e03dfba8))
+* **04-01:** add MiniMax config constants and CircuitBreaker ([ee1ce77](https://github.com/terrylica/cc-skills/commit/ee1ce7737163d0c10dd893673aa536647a6b77a7))
+* **04-01:** create MiniMaxClient with URLSession API calls ([58d71d0](https://github.com/terrylica/cc-skills/commit/58d71d0dae7e583cafc5974f9b4657b77ad49d30))
+* **04-02:** add arcSummary and tailBrief methods to SummaryEngine ([c47a25a](https://github.com/terrylica/cc-skills/commit/c47a25abafec94fb4533a98d36ad57261c2046e9))
+* **04-02:** create SummaryEngine with data types and single-turn summary ([51c0118](https://github.com/terrylica/cc-skills/commit/51c011859941666ac4014772441a96f7b2a8bced))
+* **05-01:** add TelegramBot actor with long polling and 7 command handlers ([533f8e4](https://github.com/terrylica/cc-skills/commit/533f8e49323669f4406c22793eb8efa77a6a8785))
+* **05-01:** add TelegramFormatter with HTML escaping, fence-aware chunking, and markdown-to-HTML conversion ([e413c6a](https://github.com/terrylica/cc-skills/commit/e413c6ad7176005e1ba551176fee6c063c59e683))
+* **05-02:** add session notification + TTS dispatch to TelegramBot ([1d23994](https://github.com/terrylica/cc-skills/commit/1d2399495ec058bb609d9822ec78804b27188b2a))
+* **05-02:** wire TelegramBot into main.swift with all subsystem refs ([4731ce4](https://github.com/terrylica/cc-skills/commit/4731ce4791de70a41cb8d39271f849c2370ff95d))
+* **06-01:** add Claude CLI subprocess with model selection and NDJSON parsing ([d7d047d](https://github.com/terrylica/cc-skills/commit/d7d047dd6557b7d28e8d5c12981431e77ebad0f8))
+* **06-01:** add JSONL transcript parser for Claude Code sessions ([492b38b](https://github.com/terrylica/cc-skills/commit/492b38bfb903aa9e422405b1a20eb385b355b5d3))
+* **06-02:** add PromptExecutor with model flags, streaming edit-in-place, circuit breaker ([1b74b2e](https://github.com/terrylica/cc-skills/commit/1b74b2eff0d436f43f7b297655b9853d9a8fb39b))
+* **06-02:** wire /prompt command into TelegramBot with edit-in-place and /done cancel ([d8ced0e](https://github.com/terrylica/cc-skills/commit/d8ced0e2699f753a4189313e2b6a38b7c26e60d8))
+* **07-01:** add file watching directory paths to Config.swift ([85a308a](https://github.com/terrylica/cc-skills/commit/85a308ac44a9855b0cbbea4c56a3d4b119028cd8))
+* **07-01:** create FileWatcher.swift with NotificationWatcher and JSONLTailer ([7e46c66](https://github.com/terrylica/cc-skills/commit/7e46c66f9d1eb9ef433bf06014cb9eeded2fdf70))
+* **07-02:** create AutoContinueEvaluator with MiniMax evaluation and plan discovery ([31e66ab](https://github.com/terrylica/cc-skills/commit/31e66ab2f6c161703daaa911c674b76ebc06d451))
+* **07-02:** wire NotificationWatcher and AutoContinueEvaluator into main.swift ([b4ffab2](https://github.com/terrylica/cc-skills/commit/b4ffab21f3061d4c4b818e151629ab2ec75c1cee))
+* **08-01:** add FlyingFox dependency and SettingsStore with disk persistence ([3eb18c9](https://github.com/terrylica/cc-skills/commit/3eb18c9a6ebcde35c159066bd4ace6b89847bbfc))
+* **08-01:** create HTTPControlServer with all 6 API endpoints ([f595867](https://github.com/terrylica/cc-skills/commit/f59586788c4d9ce14d0c90387b73fb2813b60997))
+* **08-02:** wire HTTPControlServer into main.swift lifecycle ([964081f](https://github.com/terrylica/cc-skills/commit/964081ffb7ef80a5efab3cec371434c26be0891f))
+* **10-01:** add install and rollback deployment scripts ([0430086](https://github.com/terrylica/cc-skills/commit/043008602244ab20f4868ba861b8e2dcce7983f7))
+* **10-01:** add launchd plist and update Config.swift model path ([cc713a5](https://github.com/terrylica/cc-skills/commit/cc713a5b69821ae442ec1a22ea73292b666548f0))
+* **10-02:** add CaptionHistory ring buffer for subtitle scrollback and clipboard copy ([ae9ff50](https://github.com/terrylica/cc-skills/commit/ae9ff50f569e6098b048ed741732627ab9791d7d))
+* **10-02:** add ThinkingWatcher for extended thinking JSONL monitoring and MiniMax summarization ([27cf09d](https://github.com/terrylica/cc-skills/commit/27cf09d0e8a5949b68b429122ed37ca768d71edc))
+* **10-02:** wire CaptionHistory and ThinkingWatcher into HTTP server and main.swift ([226d1f9](https://github.com/terrylica/cc-skills/commit/226d1f913e4def8ed18a44eeb056dee981be77ea))
+* **gh-tools:** add gh-issue-no-anchors hook to block anchor links in issues ([78b2c16](https://github.com/terrylica/cc-skills/commit/78b2c166508085156e51ddef74eade473338c010)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#issue-no-anchors](https://github.com/terrylica/cc-skills/issues/issue-no-anchors) [#anchor](https://github.com/terrylica/cc-skills/issues/anchor) [#123](https://github.com/terrylica/cc-skills/issues/123)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [minimax-tts-telegram-fallback](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/minimax-tts-telegram-fallback.md) - new (+79)
+- [Phase 2: Subtitle Overlay Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/02-subtitle-overlay/02-VERIFICATION.md) - new (+152)
+- [03-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/03-tts-engine/03-01-PLAN.md) - new (+403)
+- [Phase 03 Plan 01: TTS Engine Core Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/03-tts-engine/03-01-SUMMARY.md) - new (+117)
+- [03-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/03-tts-engine/03-02-PLAN.md) - new (+376)
+- [Phase 03: TTS Engine — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/03-tts-engine/03-CONTEXT.md) - new (+76)
+- [Phase 03: TTS Engine Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/03-tts-engine/03-VERIFICATION.md) - new (+163)
+- [04-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/04-ai-summaries/04-01-PLAN.md) - new (+248)
+- [Phase 04 Plan 01: MiniMax API Client & Circuit Breaker Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/04-ai-summaries/04-01-SUMMARY.md) - new (+122)
+- [04-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/04-ai-summaries/04-02-PLAN.md) - new (+346)
+- [Phase 04 Plan 02: Summary Prompt Templates Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/04-ai-summaries/04-02-SUMMARY.md) - new (+115)
+- [Phase 04: AI Summaries — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/04-ai-summaries/04-CONTEXT.md) - new (+72)
+- [05-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/05-telegram-bot-core/05-01-PLAN.md) - new (+355)
+- [Phase 05 Plan 01: Telegram Bot Core Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/05-telegram-bot-core/05-01-SUMMARY.md) - new (+130)
+- [05-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/05-telegram-bot-core/05-02-PLAN.md) - new (+394)
+- [Phase 05 Plan 02: Bot Notification Wiring Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/05-telegram-bot-core/05-02-SUMMARY.md) - new (+134)
+- [Phase 05: Telegram Bot Core — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/05-telegram-bot-core/05-CONTEXT.md) - new (+78)
+- [Phase 6 Plan 1: CLI Subprocess + JSONL Parser + Model Selection](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/06-telegram-bot-commands/06-01-PLAN.md) - new (+81)
+- [Phase 6 Plan 1: CLI Subprocess + JSONL Parser + Model Selection Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/06-telegram-bot-commands/06-01-SUMMARY.md) - new (+74)
+- [Must show "Build complete!" with no errors](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/06-telegram-bot-commands/06-02-PLAN.md) - new (+332)
+- [Phase 6 Plan 2: Prompt Executor + /prompt Command Wiring Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/06-telegram-bot-commands/06-02-SUMMARY.md) - new (+122)
+- [Phase 06: Telegram Bot Commands — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/06-telegram-bot-commands/06-CONTEXT.md) - new (+63)
+- [07-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/07-file-watching-auto-continue/07-01-PLAN.md) - new (+224)
+- [Phase 07 Plan 01: File Watching Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/07-file-watching-auto-continue/07-01-SUMMARY.md) - new (+108)
+- [07-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/07-file-watching-auto-continue/07-02-PLAN.md) - new (+391)
+- [Phase 07 Plan 02: Auto-Continue Evaluator Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/07-file-watching-auto-continue/07-02-SUMMARY.md) - new (+113)
+- [Phase 07: File Watching & Auto-Continue — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/07-file-watching-auto-continue/07-CONTEXT.md) - new (+66)
+- [08-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/08-http-control-api/08-01-PLAN.md) - new (+292)
+- [Phase 08 Plan 01: HTTP Control API Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/08-http-control-api/08-01-SUMMARY.md) - new (+115)
+- [08-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/08-http-control-api/08-02-PLAN.md) - new (+197)
+- [Phase 08 Plan 02: HTTP Control API Lifecycle Wiring Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/08-http-control-api/08-02-SUMMARY.md) - new (+119)
+- [Phase 08: HTTP Control API — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/08-http-control-api/08-CONTEXT.md) - new (+65)
+- [09-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/09-swiftbar-integration/09-01-PLAN.md) - new (+270)
+- [Phase 09 Plan 01: SwiftBar Plugin v3.0.0 Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/09-swiftbar-integration/09-01-SUMMARY.md) - new (+106)
+- [For karaokeEnabled toggle](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/09-swiftbar-integration/09-02-PLAN.md) - new (+193)
+- [Phase 09 Plan 02: SwiftBar Action Script v3.0.0 Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/09-swiftbar-integration/09-02-SUMMARY.md) - new (+115)
+- [Phase 09: SwiftBar Integration — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/09-swiftbar-integration/09-CONTEXT.md) - new (+59)
+- [10-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/10-deployment-extras/10-01-PLAN.md) - new (+239)
+- [Phase 10 Plan 01: Deployment Scripts Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/10-deployment-extras/10-01-SUMMARY.md) - new (+112)
+- [10-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/10-deployment-extras/10-02-PLAN.md) - new (+260)
+- [Phase 10 Plan 02: Caption History, Clipboard Copy, and Thinking Watcher Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/10-deployment-extras/10-02-SUMMARY.md) - new (+136)
+- [Phase 10: Deployment & Extras — Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/10-deployment-extras/10-CONTEXT.md) - new (+61)
+- [claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/PROJECT.md) - updated (+15)
+- [260326-fvh-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260326-fvh-deploy-tts-companion/260326-fvh-PLAN.md) - new (+129)
+- [Quick Task 260326-fvh: Deploy claude-tts-companion Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260326-fvh-deploy-tts-companion/260326-fvh-SUMMARY.md) - new (+124)
+- [Requirements: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/REQUIREMENTS.md) - updated (+166/-88)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - updated (+152/-52)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+42/-42)
+- [Architectural Convergence in AI Engineering: The Case for Standardized Agent Skills Over Bespoke Scaffolding](https://github.com/terrylica/cc-skills/blob/main/docs/research/gemini-custom-vs-standard-ai-harness.md) - new (+278)
+- [Structuring a Hybrid GitHub Repository as a Claude Code Plugin Marketplace: Architectural Analysis and Implementation Patterns](https://github.com/terrylica/cc-skills/blob/main/docs/research/gemini-marketplace-skills-architecture.md) - new (+316)
+- [The Autonomous Metacognitive Layer: Self-Evolving Agent Skills and the Protocol of Continuous Adaptation](https://github.com/terrylica/cc-skills/blob/main/docs/research/gemini-self-evolving-skills.md) - new (+320)
+- [Encoding Operational Empiricism: The Strategic Imperative for Agent Skills in Enterprise AI Software Engineering](https://github.com/terrylica/cc-skills/blob/main/docs/research/gemini-skill-worthy-knowledge-taxonomy.md) - new (+220)
+- [为什么我们应该用 Agent Skills 来共享工程知识](https://github.com/terrylica/cc-skills/blob/main/docs/research/skills-as-knowledge-justification.md) - updated (+368/-188)
+
 # [12.17.0](https://github.com/terrylica/cc-skills/compare/v12.16.0...v12.17.0) (2026-03-26)
 
 
