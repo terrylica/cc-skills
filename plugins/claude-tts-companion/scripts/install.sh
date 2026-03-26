@@ -6,7 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BINARY_NAME="claude-tts-companion"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 PLIST_NAME="com.example.claude-tts-companion.plist"
 PLIST_SRC="$REPO_DIR/launchd/$PLIST_NAME"
 PLIST_DEST="$HOME/Library/LaunchAgents"
