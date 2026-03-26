@@ -117,8 +117,8 @@ Plans:
 
 Plans:
 
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
-- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
+- [ ] 05-01-PLAN.md — TelegramFormatter (HTML + fence-aware chunking) + TelegramBot with 7 command handlers
+- [ ] 05-02-PLAN.md — Session notification wiring (SummaryEngine + TTSEngine + SubtitlePanel) + main.swift integration
 
 ### Phase 6: Telegram Bot Commands
 
@@ -227,7 +227,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 2. Subtitle Overlay              | 2/2            | Complete    | -         |
 | 3. TTS Engine                    | 0/2            | Planning    | -         |
 | 4. AI Summaries                  | 0/0            | Not started | -         |
-| 5. Telegram Bot Core             | 0/0            | Not started | -         |
+| 5. Telegram Bot Core             | 0/2            | Planned     | -         |
 | 6. Telegram Bot Commands         | 0/0            | Not started | -         |
 | 7. File Watching & Auto-Continue | 0/0            | Not started | -         |
 | 8. HTTP Control API              | 0/0            | Not started | -         |
