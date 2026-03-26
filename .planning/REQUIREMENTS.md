@@ -202,7 +202,7 @@
 | PROMPT-02   | Phase 12 | Pending  |
 | PROMPT-03   | Phase 12 | Pending  |
 | PROMPT-04   | Phase 12 | Pending  |
-| PROMPT-05   | Phase 12 | Pending  |
+| PROMPT-05   | Phase 12 | Complete |
 | EVAL-01     | Phase 13 | Pending  |
 | EVAL-02     | Phase 13 | Pending  |
 | EVAL-03     | Phase 13 | Pending  |
@@ -239,7 +239,7 @@
 - [ ] **PROMPT-02**: Tail Brief uses exact legacy prompt with 20% context / 80% final turn weighting
 - [ ] **PROMPT-03**: Single-exchange summarizer produces "you prompted me X ago to..." with ||| delimiter parsing
 - [ ] **PROMPT-04**: Prompt condensing for display (>800 chars → MiniMax condensed to <150 words)
-- [ ] **PROMPT-05**: Noise pattern filtering strips system-injected content from transcripts before summarization
+- [x] **PROMPT-05**: Noise pattern filtering strips system-injected content from transcripts before summarization
 
 ### Auto-Continue Evaluation
 
