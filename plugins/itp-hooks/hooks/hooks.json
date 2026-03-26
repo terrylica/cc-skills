@@ -285,7 +285,7 @@
             "description": "biome lint - complementary JS/TS checks (useConst, noDoubleEquals, node: protocol)"
           }
         ]
-      },
+      }
     ],
     "Stop": [
       {
@@ -300,6 +300,12 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook-error-summary.ts",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-ty-project-check.ts",
+            "timeout": 15000,
+            "description": "ty project-wide type check on session exit (only if .py files were edited)"
           }
         ]
       }
