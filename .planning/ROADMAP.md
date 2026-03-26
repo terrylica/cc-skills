@@ -239,7 +239,12 @@ Plans:
 3. Tail Brief is sent as a separate silent Telegram message after Arc Summary
 4. Markdown bold, italic, code, pre, and links convert correctly to Telegram HTML entities
 5. Messages exceeding 4096 chars split at fence-aware boundaries with fence close/reopen across chunks, and file references (.md, .py, .go, .sh) are wrapped to prevent Telegram auto-linking
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 11-01-PLAN.md -- TelegramFormatter upgrade: renderSessionNotification, meta-tag stripping, file ref wrapping, fence close/reopen chunking
+- [ ] 11-02-PLAN.md -- Wire formatting into TelegramBot + main.swift: rich header, separate silent Tail Brief, metadata extraction
 
 ### Phase 12: AI Summary Prompts
 
@@ -326,7 +331,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 8. HTTP Control API              | 1/2            | In progress | -          |
 | 9. SwiftBar Integration          | 0/0            | Not started | -          |
 | 10. Deployment & Extras          | 2/2            | Complete    | 2026-03-26 |
-| 11. Notification Formatting      | 0/0            | Not started | -          |
+| 11. Notification Formatting      | 0/2            | Planned     | -          |
 | 12. AI Summary Prompts           | 0/0            | Not started | -          |
 | 13. Auto-Continue Evaluation     | 0/0            | Not started | -          |
 | 14. TTS Dispatch & Feature Gates | 0/0            | Not started | -          |
