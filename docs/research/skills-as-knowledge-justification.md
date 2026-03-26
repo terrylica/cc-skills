@@ -207,6 +207,57 @@ Skills 中最有价值的知识不是从文档复制来的 — 而是从反复�
 - **Progressive Disclosure 每个 skill 仅 ~100 tokens** — 只在需要时加载完整内容
 - **注意力稀释是物理限制** — context 越长，中间信息被忽略的概率越高 ("Lost in the Middle")
 
+### 论点 5: Skills 不是静态文档 — 它们可以自我进化
+
+传统文档的致命弱点是**知识半衰期**:
+
+> "The knowledge half-life in AI has shrunk to months from years. And it's why one chief information officer (CIO) told me, 'The time it takes us to study a new technology now exceeds that technology's relevance window.'"
+>
+> — [Deloitte, Tech Trends 2026](https://www.deloitte.com/us/en/insights/topics/technology-management/tech-trends.html), 2026
+
+Wiki 页面、Confluence 文档、自定义 README — 写完那一刻就开始腐烂。但 SKILL.md 可以包含**自我进化协议**: 当执行失败时，skill 自动检测自身指令是否过时，并提出有针对性的修正。
+
+#### 自我修正的触发机制
+
+> "The Skill Evolver only acts when scores drop. It doesn't optimize what's already working — it fixes what's failing."
+>
+> — [Vadim, vadim.blog](https://vadim.blog/skill-evolver-research-to-practice), 2026
+
+Skill 不会无故修改自己。它只在**执行失败且失败可归因于自身指令**时才触发修正。这通过 `## Self-Evolution` 区域中的条件-动作规则实现:
+
+```markdown
+## Self-Evolution
+
+**触发条件:** 执行错误返回的 stack trace 指向本 SKILL.md 中标记为
+[Evolvable] 的指令行。
+
+**修正协议:**
+
+1. 隔离: 判断失败是环境问题还是指令过时
+2. 自我提问: 这个修改是否会导致其他维度的回退？
+3. 靶向编辑: 只修改 [Evolvable] 标记的行，不重写整个文件
+4. 验证: 用 eval.json 中的二元断言验证修改后的效果
+```
+
+#### Eval 驱动的验证循环
+
+> "A useful binary assertion has three properties: Unambiguous — it can be evaluated by a script or a secondary LLM judge with a clear yes/no answer. Directly tied to the skill — it measures the actual capability, not a proxy. Failure-informative — when it fails, the failure tells you something useful about what went wrong."
+>
+> — [MindStudio Team](https://www.mindstudio.ai/blog/karpathy-autoresearch-applied-to-claude-code-skills), March 14, 2026
+
+每个 skill 可以配备 `eval.json` 文件，定义二元 pass/fail 断言。修改后的 skill 必须通过所有断言才能被接受。失败则自动回滚。这是**机械性的**验证，不依赖模型的主观判断。
+
+#### 为什么这比静态文档更优
+
+| 维度         | 静态文档 (Wiki/README)                            | 自我进化的 SKILL.md                                           |
+| ------------ | ------------------------------------------------- | ------------------------------------------------------------- |
+| **知识保鲜** | 写完即腐烂，依赖人工定期审查                      | 执行失败自动触发更新                                          |
+| **修正方式** | 有人发现问题 → 记得更新 → 找到正确页面 → 手动编辑 | Agent 检测失败 → 归因分析 → 靶向修改 → eval 验证 → git commit |
+| **验证机制** | 无 — 文档可能已经过时但没人知道                   | 二元断言: pass 或 fail, 无灰色地带                            |
+| **回滚能力** | 手动 git revert (如果有人记得)                    | 自动: 验证失败 → 立即回滚到上一版本                           |
+
+**关键结论**: 自定义的 inbox/papers 管线如果写成静态脚本，API 变化时没人会发现直到有人用了它。SKILL.md 配合 eval.json 可以在下一次执行时**自动发现并修复**问题。这是自定义方案做不到的。
+
 ---
 
 ## 第三部分: 攻防兼备 — 反面论据与我们的回应
@@ -458,3 +509,7 @@ claude plugin install quant-research@<private-repo>
 - [Towards AI: State of Context Engineering in 2026](https://towardsai.net/)
 - [A B Vijay Kumar: Deep Dive SKILL.md (Part 1/2)](https://abvijaykumar.medium.com/deep-dive-skill-md-part-1-2-09fc9a536996)
 - [Arcade Dev Blog: What are Agent Skills and Tools?](https://arcade.dev/)
+- [Gemini 3 Pro Deep Research: Self-Evolving Agent Skills](https://gemini.google.com/share/0f22b47e028d)
+- [Vadim: Skill Evolver — Research to Practice](https://vadim.blog/skill-evolver-research-to-practice)
+- [MindStudio: AutoResearch Applied to Claude Code Skills](https://www.mindstudio.ai/blog/karpathy-autoresearch-applied-to-claude-code-skills)
+- [Deloitte: Tech Trends 2026 — Knowledge Half-Life](https://www.deloitte.com/us/en/insights/topics/technology-management/tech-trends.html)
