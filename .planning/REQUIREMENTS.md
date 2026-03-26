@@ -192,12 +192,12 @@
 | EXT-01      | Phase 10 | Pending  |
 | EXT-02      | Phase 10 | Pending  |
 | EXT-04      | Phase 10 | Pending  |
-| FMT-01      | Phase 11 | Pending  |
-| FMT-02      | Phase 11 | Pending  |
+| FMT-01      | Phase 11 | Complete |
+| FMT-02      | Phase 11 | Complete |
 | FMT-03      | Phase 11 | Pending  |
-| FMT-04      | Phase 11 | Pending  |
-| FMT-05      | Phase 11 | Pending  |
-| FMT-06      | Phase 11 | Pending  |
+| FMT-04      | Phase 11 | Complete |
+| FMT-05      | Phase 11 | Complete |
+| FMT-06      | Phase 11 | Complete |
 | PROMPT-01   | Phase 12 | Pending  |
 | PROMPT-02   | Phase 12 | Pending  |
 | PROMPT-03   | Phase 12 | Pending  |
@@ -226,12 +226,12 @@
 
 ### Notification Formatting
 
-- [ ] **FMT-01**: Session notification header shows project name, path, session ID (8-char), git branch, duration, turn count
-- [ ] **FMT-02**: Arc Summary message shows last prompt (condensed if >800 chars) and AI narrative with transition words
+- [x] **FMT-01**: Session notification header shows project name, path, session ID (8-char), git branch, duration, turn count
+- [x] **FMT-02**: Arc Summary message shows last prompt (condensed if >800 chars) and AI narrative with transition words
 - [ ] **FMT-03**: Tail Brief sent as separate silent Telegram message after Arc Summary
-- [ ] **FMT-04**: Markdown-to-Telegram-HTML conversion (bold, italic, code, pre, links)
-- [ ] **FMT-05**: Fence-aware HTML chunking at 4096 chars with fence close/reopen across chunks
-- [ ] **FMT-06**: File reference wrapping prevents Telegram auto-linking (.md, .py, .go, .sh etc.)
+- [x] **FMT-04**: Markdown-to-Telegram-HTML conversion (bold, italic, code, pre, links)
+- [x] **FMT-05**: Fence-aware HTML chunking at 4096 chars with fence close/reopen across chunks
+- [x] **FMT-06**: File reference wrapping prevents Telegram auto-linking (.md, .py, .go, .sh etc.)
 
 ### AI Summary Prompts
 
