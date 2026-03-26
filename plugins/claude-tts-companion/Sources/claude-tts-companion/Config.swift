@@ -29,6 +29,11 @@ enum Config {
     /// Launchd service label
     static let serviceLabel = "com.example.claude-tts-companion"
 
+    // MARK: - HTTP Control API
+
+    /// Port for the HTTP control API (localhost only)
+    static let httpPort: UInt16 = 8780
+
     // MARK: - MiniMax API
 
     /// MiniMax API key from environment
