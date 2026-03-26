@@ -40,7 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
    **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [x] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
 - [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 2: Subtitle Overlay
