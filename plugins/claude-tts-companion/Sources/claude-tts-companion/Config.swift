@@ -43,11 +43,11 @@ enum Config {
     /// Max tokens for summary generation
     static let summaryMaxTokens = 4096
 
-    /// MiniMax API base URL
-    static let miniMaxBaseURL = "https://api.minimax.chat"
+    /// MiniMax API base URL (Anthropic-compatible endpoint)
+    static let miniMaxBaseURL = "https://api.minimax.io/anthropic"
 
-    /// MiniMax model identifier
-    static let miniMaxModel = "MiniMax-Text-01"
+    /// MiniMax model identifier (SSoT: ~/.config/mise/config.toml MINIMAX_MODEL)
+    static let miniMaxModel = "MiniMax-M2.7-highspeed"
 
     // MARK: - Telegram Bot
 
