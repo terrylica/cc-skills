@@ -117,7 +117,7 @@ Plans:
 
 Plans:
 
-- [ ] 05-01-PLAN.md — TelegramFormatter (HTML + fence-aware chunking) + TelegramBot with 7 command handlers
+- [x] 05-01-PLAN.md — TelegramFormatter (HTML + fence-aware chunking) + TelegramBot with 7 command handlers
 - [ ] 05-02-PLAN.md — Session notification wiring (SummaryEngine + TTSEngine + SubtitlePanel) + main.swift integration
 
 ### Phase 6: Telegram Bot Commands

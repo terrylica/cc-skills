@@ -39,14 +39,14 @@
 
 ### Telegram Bot
 
-- [ ] **BOT-01**: Bot connects to Telegram via long polling using swift-telegram-sdk
-- [ ] **BOT-02**: Bot responds to /start, /stop, /status, /health, /prompt, /sessions, /done, /commands
+- [x] **BOT-01**: Bot connects to Telegram via long polling using swift-telegram-sdk
+- [x] **BOT-02**: Bot responds to /start, /stop, /status, /health, /prompt, /sessions, /done, /commands
 - [ ] **BOT-03**: Bot sends session notifications (Arc Summary + Tail Brief) when sessions end
 - [ ] **BOT-04**: Bot dispatches TTS for Tail Brief text with subtitle overlay
 - [ ] **BOT-05**: Bot supports model selection (/prompt --haiku, --sonnet, --opus)
 - [ ] **BOT-06**: Bot resumes existing Claude Code sessions via Agent SDK subprocess
 - [ ] **BOT-07**: Bot parses JSONL transcripts to extract prompts, responses, and tool counts
-- [ ] **BOT-08**: Bot sends messages with HTML formatting, fence-aware chunking (4096 char limit)
+- [x] **BOT-08**: Bot sends messages with HTML formatting, fence-aware chunking (4096 char limit)
 
 ### AI Summaries
 
@@ -154,11 +154,11 @@
 | SUM-02      | Phase 4  | Complete |
 | SUM-03      | Phase 4  | Complete |
 | SUM-04      | Phase 4  | Complete |
-| BOT-01      | Phase 5  | Pending |
-| BOT-02      | Phase 5  | Pending |
+| BOT-01      | Phase 5  | Complete |
+| BOT-02      | Phase 5  | Complete |
 | BOT-03      | Phase 5  | Pending |
 | BOT-04      | Phase 5  | Pending |
-| BOT-08      | Phase 5  | Pending |
+| BOT-08      | Phase 5  | Complete |
 | BOT-05      | Phase 6  | Pending |
 | BOT-06      | Phase 6  | Pending |
 | BOT-07      | Phase 6  | Pending |
