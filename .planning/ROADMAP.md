@@ -37,7 +37,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 2. Package.swift resolves swift-telegram-sdk v4.5.0 and links sherpa-onnx static libraries without conflicts
 3. Bridging header imports sherpa-onnx C API and ONNX Runtime C API; a trivial C function call succeeds
 4. Binary launches as NSApplication accessory app, logs to stdout, and exits cleanly on SIGTERM
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 2: Subtitle Overlay
 
@@ -51,7 +55,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. Panel is invisible to screen sharing, does not steal focus, is click-through, and appears on all Spaces
 4. Long text word-wraps to 2 lines without shrinking font size
 5. NSAttributedString updates complete in under 1ms per word transition
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
    **UI hint**: yes
 
 ### Phase 3: TTS Engine
@@ -66,7 +74,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. Word timestamps extracted from duration tensor drive karaoke highlighting with zero accumulated drift
 4. Model loads lazily on first request; peak RSS stays under 700MB during synthesis
 5. Synthesis speed is at least 1.5x real-time (no gaps during playback)
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 4: AI Summaries
 
@@ -79,7 +91,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 2. Tail Brief produces an end-weighted narrative (20% context, 80% final turn)
 3. Single-turn summary produces a "you prompted me X ago to..." narrative
 4. After 3 consecutive MiniMax failures, summaries disable for 5 minutes (circuit breaker)
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 5: Telegram Bot Core
 
@@ -92,7 +108,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 2. Bot sends session-end notifications containing Arc Summary and Tail Brief
 3. Bot dispatches TTS for Tail Brief text with karaoke subtitle overlay
 4. Messages use HTML formatting with fence-aware chunking at 4096 char limit
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 6: Telegram Bot Commands
 
@@ -106,7 +126,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. Streaming NDJSON response is parsed and forwarded to Telegram as edit-in-place updates
 4. Bot resumes existing sessions via Agent SDK subprocess
 5. JSONL transcript parsing extracts prompts, responses, and tool counts accurately
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 7: File Watching & Auto-Continue
 
@@ -120,7 +144,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. DispatchSource watchers persist as strong references (no silent ARC deallocation)
 4. Stop hook evaluates session completion via MiniMax and returns CONTINUE/SWEEP/REDIRECT/DONE
 5. SWEEP mode injects 5-step review pipeline; plan file discovery scans transcript for .claude/plans/\*.md
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 8: HTTP Control API
 
@@ -134,7 +162,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. POST /subtitle/show displays text on screen; POST /subtitle/hide dismisses it
 4. Settings persist to disk and survive binary restart
 5. All endpoints respond in under 200ms
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ### Phase 9: SwiftBar Integration
 
@@ -148,7 +180,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. Menu actions call HTTP API endpoints with response under 200ms
 4. SwiftBar shows per-subsystem health status from /health endpoint
 5. User can switch subtitle display to external monitor via SwiftBar menu
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
    **UI hint**: yes
 
 ### Phase 10: Deployment & Extras
@@ -163,7 +199,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. Rollback script re-enables old services and stops unified binary in under 30 seconds
 4. User can scroll through caption history and copy subtitle text to clipboard
 5. Thinking watcher summarizes Claude's extended thinking via MiniMax
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — SwiftPM scaffold: CSherpaOnnx module map + Package.swift + Config.swift
+- [ ] 01-02-PLAN.md — App entry point (main.swift) + plugin registration + build verification
 
 ## Progress
 
