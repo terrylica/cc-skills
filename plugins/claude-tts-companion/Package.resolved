@@ -1,0 +1,42 @@
+{
+  "originHash" : "579cfbe1fc8570f8a93505e252bd0bb8775e76dda5c63805d43998f5b9c2c05f",
+  "pins" : [
+    {
+      "identity" : "swift-custom-logger",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nerzh/swift-custom-logger",
+      "state" : {
+        "revision" : "5eea143e6674a7a263b96cdf51e4db8bad07820c",
+        "version" : "1.1.1"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log",
+      "state" : {
+        "revision" : "bbd81b6725ae874c69e9b8c8804d462356b55523",
+        "version" : "1.10.1"
+      }
+    },
+    {
+      "identity" : "swift-regular-expression",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nerzh/swift-regular-expression",
+      "state" : {
+        "revision" : "19c3e569a8e81da6f7f4ee3b73028c25737d3706",
+        "version" : "0.2.4"
+      }
+    },
+    {
+      "identity" : "swift-telegram-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nerzh/swift-telegram-sdk",
+      "state" : {
+        "revision" : "5c9999effd1d1c599982b82859bd6697e2fba659",
+        "version" : "4.5.0"
+      }
+    }
+  ],
+  "version" : 3
+}
