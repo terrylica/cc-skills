@@ -135,12 +135,25 @@ let notificationWatcher = NotificationWatcher { filePath in
             }
         }
 
-        // Parse transcript for session notification
+        // Parse transcript for session notification (FMT-01, FMT-02, FMT-03)
         if let tp = transcriptPath {
             let entries = TranscriptParser.parse(filePath: tp)
             let turns = entriesToTurns(entries)
+
+            // Extract metadata for rich notification formatting
+            let gitBranch = extractGitBranch(from: tp)
+            let entryStartTime = extractFirstTimestamp(entries)
+            let entryLastActivity = extractLastTimestamp(entries)
+
             if let bot = telegramBot {
-                await bot.sendSessionNotification(turns: turns, cwd: cwd)
+                await bot.sendSessionNotification(
+                    sessionId: sessionId,
+                    turns: turns,
+                    cwd: cwd,
+                    gitBranch: gitBranch,
+                    startTime: entryStartTime,
+                    lastActivity: entryLastActivity
+                )
             }
         }
     }
@@ -256,6 +269,49 @@ func entriesToTurns(_ entries: [TranscriptEntry]) -> [ConversationTurn] {
         ))
     }
     return turns
+}
+
+/// Extract git branch from JSONL transcript (first event with gitBranch field).
+func extractGitBranch(from transcriptPath: String) -> String? {
+    guard let data = FileManager.default.contents(atPath: transcriptPath),
+          let content = String(data: data, encoding: .utf8) else { return nil }
+    // Scan first 20 lines for gitBranch field (usually in early events)
+    let lines = content.components(separatedBy: .newlines)
+    for line in lines.prefix(20) {
+        guard let lineData = line.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+              let branch = json["gitBranch"] as? String ?? json["git_branch"] as? String else { continue }
+        if !branch.isEmpty { return branch }
+    }
+    return nil
+}
+
+/// Extract the first timestamp from parsed transcript entries.
+func extractFirstTimestamp(_ entries: [TranscriptEntry]) -> Date? {
+    for entry in entries {
+        switch entry {
+        case .prompt(_, let ts): if let ts = ts { return ts }
+        case .response(_, let ts): if let ts = ts { return ts }
+        case .toolUse(_, let ts): if let ts = ts { return ts }
+        case .toolResult(_, let ts): if let ts = ts { return ts }
+        case .unknown: continue
+        }
+    }
+    return nil
+}
+
+/// Extract the last timestamp from parsed transcript entries.
+func extractLastTimestamp(_ entries: [TranscriptEntry]) -> Date? {
+    for entry in entries.reversed() {
+        switch entry {
+        case .prompt(_, let ts): if let ts = ts { return ts }
+        case .response(_, let ts): if let ts = ts { return ts }
+        case .toolUse(_, let ts): if let ts = ts { return ts }
+        case .toolResult(_, let ts): if let ts = ts { return ts }
+        case .unknown: continue
+        }
+    }
+    return nil
 }
 
 // Enter run loop (blocks forever until SIGTERM)
