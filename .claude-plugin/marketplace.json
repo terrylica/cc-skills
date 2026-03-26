@@ -677,6 +677,28 @@
         "scraping"
       ],
       "strict": false
+    },
+    {
+      "name": "claude-tts-companion",
+      "description": "Unified Swift binary: Telegram bot + Kokoro TTS + karaoke subtitle overlay as one macOS launchd service",
+      "version": "12.16.0",
+      "source": "./plugins/claude-tts-companion",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "tts",
+        "telegram",
+        "subtitle",
+        "karaoke",
+        "sherpa-onnx",
+        "kokoro",
+        "swift",
+        "macos"
+      ],
+      "strict": false
     }
   ]
 }
