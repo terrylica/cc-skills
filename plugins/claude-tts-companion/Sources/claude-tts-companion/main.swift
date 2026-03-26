@@ -26,6 +26,26 @@ subtitlePanel.positionOnScreen()
 // Create TTS engine (model loads lazily on first synthesis, TTS-03)
 let ttsEngine = TTSEngine()
 
+// Create settings store (persists to ~/.config/claude-tts-companion/settings.json)
+let settingsStore = SettingsStore()
+
+// Create HTTP control API server
+let httpServer = HTTPControlServer(
+    settingsStore: settingsStore,
+    subtitlePanel: subtitlePanel,
+    ttsEngine: ttsEngine
+)
+
+// Start HTTP server in background task
+Task {
+    do {
+        logger.info("Starting HTTP control API on port \(Config.httpPort)")
+        try await httpServer.start()
+    } catch {
+        logger.warning("HTTP server failed to start: \(error) -- continuing without HTTP API")
+    }
+}
+
 // Create shared MiniMax client (single circuit breaker for summaries + auto-continue)
 let miniMaxClient = MiniMaxClient()
 
@@ -133,6 +153,8 @@ nonisolated(unsafe) var keepTTS: TTSEngine? = ttsEngine
 nonisolated(unsafe) var keepSummary: SummaryEngine? = summaryEngine
 nonisolated(unsafe) var keepNotificationWatcher: NotificationWatcher? = notificationWatcher
 nonisolated(unsafe) var keepAutoContinue: AutoContinueEvaluator? = autoContinue
+nonisolated(unsafe) var keepHTTPServer: HTTPControlServer? = httpServer
+nonisolated(unsafe) var keepSettingsStore: SettingsStore? = settingsStore
 
 logger.info("Starting \(Config.appName)")
 

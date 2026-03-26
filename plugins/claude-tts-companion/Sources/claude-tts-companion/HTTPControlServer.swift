@@ -145,7 +145,7 @@ final class HTTPControlServer: @unchecked Sendable {
         }
 
         logger.info("HTTP control API starting on localhost:\(Config.httpPort)")
-        try await server.start()
+        try await server.run()
     }
 
     // MARK: - Private Helpers
