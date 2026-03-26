@@ -119,17 +119,17 @@ final class SummaryEngine: @unchecked Sendable {
 
         let userPrompt = """
             Generate a two-part spoken summary for text-to-speech. Do NOT include any greeting or intro \
-            -- that is added separately.
+            \u{2014} that is added separately.
 
-            Part 1 -- PROMPT SUMMARY (under 30 words):
-            Summarize ONLY the "Most recent request" below -- ignore any earlier conversation history. \
+            Part 1 \u{2014} PROMPT SUMMARY (under 30 words):
+            Summarize ONLY the "Most recent request" below \u{2014} ignore any earlier conversation history. \
             This will be preceded by "you prompted me to", so start with an infinitive verb phrase \
             (e.g. "get precise timestamps", "lower the reading speed", "add forensic logging").
 
-            Part 2 -- RESPONSE SUMMARY (under 50 words):
+            Part 2 \u{2014} RESPONSE SUMMARY (under 50 words):
             Summarize what was accomplished. Focus on outcomes and key actions taken.
 
-            Output format -- produce EXACTLY this (no extra text):
+            Output format \u{2014} produce EXACTLY this (no extra text):
             [prompt summary] ||| [response summary]
 
             The ||| delimiter is mandatory. It separates the two parts.
@@ -137,7 +137,7 @@ final class SummaryEngine: @unchecked Sendable {
             Rules:
             - Never mention "Claude Code", "Claude", "Anthropic", or "the assistant".
             - Use natural spoken language. No code, file paths, markdown, or technical symbols.
-            - Do NOT start with "You asked" or "The user" -- just describe the request directly.
+            - Do NOT start with "You asked" or "The user" \u{2014} just describe the request directly.
 
             Most recent request:
             \"""
@@ -267,19 +267,19 @@ final class SummaryEngine: @unchecked Sendable {
             The session had \(turns.count) turns.
 
             Rules:
-            - Do NOT include any greeting or project name -- those are added separately
+            - Do NOT include any greeting or project name \u{2014} those are added separately
             - Start directly with the first chronological step using transition words: \
             "First,", "Then,", "Next,", "After that,", "Finally,"
-            - Cover EVERY turn -- do not skip or merge turns. Each user request should appear in the narrative
+            - Cover EVERY turn \u{2014} do not skip or merge turns. Each user request should appear in the narrative
             - IMPORTANT: Each step MUST be its own paragraph, separated by exactly one newline. \
             Never combine multiple steps into one paragraph
-            - Focus on OUTCOMES and FINAL ACTIONS -- what was actually done, not what was considered
+            - Focus on OUTCOMES and FINAL ACTIONS \u{2014} what was actually done, not what was considered
             - Keep it under 200 words total
             - No code, file paths, markdown, or technical symbols
             - Never mention "Claude", "the assistant", or "AI"
             - Use natural spoken language
             - Text marked [truncated] means the full response was too long to include here \
-            -- it was NOT cut off or incomplete
+            \u{2014} it was NOT cut off or incomplete. Summarize based on what is shown
 
             Session transcript:
             \"""
@@ -368,7 +368,7 @@ final class SummaryEngine: @unchecked Sendable {
                 let pSuffix = turn.prompt.count > 200 ? "..." : ""
                 let r = String(turn.response.prefix(300)).replacingOccurrences(of: "\n", with: " ")
                 let rSuffix = turn.response.count > 300 ? "..." : ""
-                lines.append("Turn \(i + 1): User asked: \(p)\(pSuffix) -> Outcome: \(r)\(rSuffix)")
+                lines.append("Turn \(i + 1): User asked: \(p)\(pSuffix) \u{2192} Outcome: \(r)\(rSuffix)")
             }
 
             // Cap total prior context at 4000 chars
@@ -392,12 +392,12 @@ final class SummaryEngine: @unchecked Sendable {
             - LATEST (the bulk): What the user wanted in their final request, what specific changes were \
             made, and how the outcome turned out. Be thorough and specific.
             \(priorContext)
-            Final turn -- USER ASKED:
+            Final turn \u{2014} USER ASKED:
             \"""
             \(lastPrompt)
             \"""
 
-            Final turn -- WHAT WAS DONE:
+            Final turn \u{2014} WHAT WAS DONE:
             \"""
             \(lastResponse)
             \"""
@@ -409,7 +409,7 @@ final class SummaryEngine: @unchecked Sendable {
             Narrative:
             """
 
-        let systemPrompt = "You narrate coding sessions for spoken audio. Natural storytelling voice -- not robotic, not corporate. Describe what happened like you're telling a colleague."
+        let systemPrompt = "You narrate coding sessions for spoken audio. Natural storytelling voice \u{2014} not robotic, not corporate. Describe what happened like you're telling a colleague."
 
         do {
             let result = try await client.query(
@@ -443,5 +443,50 @@ final class SummaryEngine: @unchecked Sendable {
                 ttsGreeting: nil
             )
         }
+    }
+
+    // MARK: - Prompt Display Condensing (SUM-04)
+
+    /// Condense a long user prompt for Telegram display (not TTS).
+    /// Returns original text if short enough or if MiniMax fails.
+    func summarizePromptForDisplay(
+        rawPrompt: String,
+        maxDisplayChars: Int = 800
+    ) async -> String {
+        if rawPrompt.count <= maxDisplayChars { return rawPrompt }
+
+        // Circuit breaker check — fall back to truncation
+        if client.circuitBreaker.isOpen {
+            return String(rawPrompt.prefix(maxDisplayChars)) + "..."
+        }
+
+        do {
+            let result = try await client.query(
+                prompt: """
+                    Condense this user request into under 150 words for display. \
+                    Preserve the key intent and any specific technical details. \
+                    No greeting, no filler. Write in second person ("You asked to...").
+
+                    User request:
+                    \"""
+                    \(String(rawPrompt.prefix(3000)))
+                    \"""
+
+                    Condensed:
+                    """,
+                systemPrompt: "You condense user requests into concise display summaries. Preserve intent and key details.",
+                maxTokens: 512
+            )
+
+            if !result.text.isEmpty {
+                logger.info("Prompt condensed: \(rawPrompt.count) -> \(result.text.count) chars")
+                return result.text
+            }
+        } catch {
+            logger.warning("Prompt condensing failed: \(error)")
+        }
+
+        // Fallback to truncation
+        return String(rawPrompt.prefix(maxDisplayChars)) + "..."
     }
 }
