@@ -25,7 +25,7 @@ let package = Package(
             name: "claude-tts-companion",
             dependencies: [
                 "CSherpaOnnx",
-                .product(name: "SwiftTelegramSdk", package: "swift-telegram-sdk"),
+                .product(name: "SwiftTelegramBot", package: "swift-telegram-sdk"),
                 .product(name: "Logging", package: "swift-log"),
             ],
             linkerSettings: [
