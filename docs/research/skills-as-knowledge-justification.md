@@ -178,7 +178,7 @@ Agent 自动应用的知识
 >
 > — [Liran Tal, Snyk](https://snyk.io/articles/skill-md-shell-access/), February 2026
 
-**为什么这不影响我们**: 我们不从公共市场下载不明来源的 skills。我们的 skills 全部在 `~/eon/cc-skills` 内部仓库中自己编写和审核，走的是 private marketplace 路径。Snyk 的警告适用于盲目安装第三方 skills 的场景 — 我们的场景是团队内部共享，等同于共享内部代码库，安全边界完全不同。
+**为什么这不影响我们**: 我们不从公共市场下载不明来源的 skills。团队的 skills 全部在内部仓库中自己编写和审核，走的是 private marketplace 路径。Snyk 的警告适用于盲目安装第三方 skills 的场景 — 我们的场景是团队内部共享，等同于共享内部代码库，安全边界完全不同。
 
 ### 风险 2: LLM 生成的 Context Files 反而降低效果 (ETH Zurich)
 
@@ -212,7 +212,7 @@ Stripe 构建了高度定制的 "Minions" 系统，包含 400+ 自定义 MCP too
 
 ## 第四部分: alpha-forge-brain 作为 Plugin Marketplace — 数据 + Skills 的混合架构
 
-这不是「你的方案 vs 我的方案」— 而是把 alpha-forge-brain **升级**为 Claude Code Plugin Marketplace，让数据层和工作流层在同一个仓库中共存，同时允许从 cc-skills 直接 cherry-pick 已有的 skills。
+核心思路: 把 alpha-forge-brain **升级**为 Claude Code Plugin Marketplace，让数据层和工作流层在同一个仓库中共存，同时允许从任何团队成员的上游 skills 仓库直接 cherry-pick 已有的 skills。
 
 ### 为什么要 Marketplace 而不只是加几个 SKILL.md 文件
 
@@ -260,14 +260,14 @@ alpha-forge-brain/
 │   │       └── generate-checklist/
 │   │           └── SKILL.md          ← "从论文生成投资决策清单"
 │   │
-│   └── quant-research/               ← 从 cc-skills cherry-pick 的 plugin
+│   └── quant-research/               ← 从上游 skills 仓库 cherry-pick 的 plugin
 │       ├── .claude-plugin/
 │       │   └── plugin.json
 │       └── skills/
 │           ├── sharpe-ratio/
-│           │   └── SKILL.md          ← cherry-picked from cc-skills
+│           │   └── SKILL.md          ← cherry-picked from upstream
 │           └── exchange-sessions/
-│               └── SKILL.md          ← cherry-picked from cc-skills
+│               └── SKILL.md          ← cherry-picked from upstream
 │
 ├── inbox/                            ← Maywei 的数据层 (完整保留)
 │   └── 2026-03-19/
@@ -282,9 +282,9 @@ alpha-forge-brain/
 └── index.json                        ← 内容索引 (已审核论文)
 ```
 
-### Cherry-Pick: 从 cc-skills 直接引入已有 Skills
+### Cherry-Pick: 从上游仓库直接引入已有 Skills
 
-> "A marketplace can source a plugin directly from an external Git repository... effectively allowing alpha-forge-brain to 'cherry-pick' a specific commit hash, branch, or subdirectory from the cc-skills repository."
+> "A marketplace can source a plugin directly from an external Git repository... effectively allowing a marketplace to 'cherry-pick' a specific commit hash, branch, or subdirectory from an upstream repository."
 >
 > — [Gemini 3 Pro Deep Research](https://gemini.google.com/share/6242730defcb), March 2026
 
@@ -302,11 +302,11 @@ alpha-forge-brain/
     },
     {
       "name": "quant-research",
-      "description": "从 cc-skills cherry-pick 的量化研究工具",
+      "description": "从上游仓库 cherry-pick 的量化研究工具",
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/terrylica/cc-skills.git",
-        "sha": "fbcd4617",
+        "url": "https://github.com/Eon-Labs/shared-skills.git",
+        "sha": "a1b2c3d4",
         "path": "plugins/quant-research"
       },
       "tags": ["sharpe-ratio", "exchange-sessions", "cherry-picked"]
@@ -358,7 +358,7 @@ claude plugin install quant-research@alpha-forge-brain
 把 alpha-forge-brain 升级为 Marketplace 意味着:
 
 1. 团队成员一条命令安装所有金融分析 skills: `claude plugin install financial-analysis@alpha-forge-brain`
-2. 我可以从 cc-skills 的 190+ skills 中 cherry-pick 相关的量化研究工具，不需要复制代码
+2. 团队成员可以从各自的 skills 仓库中 cherry-pick 相关工具到 alpha-forge-brain，不需要复制代码
 3. 每个 plugin 有独立的 `plugin.json` 版本号，`claude plugin update` 自动检测更新
 4. `PreToolUse` 安全钩子确保 Agent 不会意外暴露敏感金融数据
 5. 同一套 marketplace 在 Claude Code, Cursor, Gemini CLI 都能工作
