@@ -23,6 +23,9 @@ app.setActivationPolicy(.accessory)
 let subtitlePanel = SubtitlePanel()
 subtitlePanel.positionOnScreen()
 
+// Create TTS engine (model loads lazily on first synthesis, TTS-03)
+let ttsEngine = TTSEngine()
+
 // Set up SIGTERM handler using DispatchSource (not signal(), per research)
 let sigSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 signal(SIGTERM, SIG_IGN)  // Let DispatchSource handle it
@@ -40,14 +43,40 @@ sigSource.setEventHandler {
 }
 sigSource.resume()
 
-// Store sigSource globally to prevent ARC deallocation (Pitfall 3)
+// Store sigSource and ttsEngine globally to prevent ARC deallocation (Pitfall 3)
 nonisolated(unsafe) var keepAlive: (any DispatchSourceSignal)? = sigSource
+nonisolated(unsafe) var keepTTS: TTSEngine? = ttsEngine
 
 logger.info("Starting \(Config.appName)")
 
-// Launch demo mode (temporary — replaced by TTS-driven highlighting in Phase 3)
+// TTS demo: synthesize and play with karaoke subtitles
 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-    subtitlePanel.demo()
+    let demoText = "Welcome to claude TTS companion, your real-time karaoke subtitle overlay"
+    logger.info("Starting TTS demo synthesis")
+
+    ttsEngine.synthesizeWithTimestamps(text: demoText) { result in
+        switch result {
+        case .success(let ttsResult):
+            logger.info("Synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s audio, \(ttsResult.wordTimings.count) words")
+
+            // Show karaoke subtitles on main thread
+            DispatchQueue.main.async {
+                subtitlePanel.showUtterance(ttsResult.text, wordTimings: ttsResult.wordTimings)
+            }
+
+            // Play audio concurrently with subtitle display
+            ttsEngine.play(wavPath: ttsResult.wavPath) {
+                logger.info("TTS playback complete")
+            }
+
+        case .failure(let error):
+            logger.error("TTS synthesis failed: \(error)")
+            // Fall back to demo mode on failure
+            DispatchQueue.main.async {
+                subtitlePanel.demo()
+            }
+        }
+    }
 }
 
 // Enter run loop (blocks forever until SIGTERM)
