@@ -26,12 +26,32 @@ subtitlePanel.positionOnScreen()
 // Create TTS engine (model loads lazily on first synthesis, TTS-03)
 let ttsEngine = TTSEngine()
 
+// Start Telegram bot if configured (graceful fallback if no token)
+nonisolated(unsafe) var telegramBot: TelegramBot? = nil
+if let token = Config.telegramBotToken, let chatId = Config.telegramChatId {
+    let bot = TelegramBot(botToken: token, chatId: chatId)
+    telegramBot = bot
+    Task {
+        do {
+            try await bot.start()
+        } catch {
+            logger.warning("Telegram bot failed to start: \(error) -- continuing without bot")
+        }
+    }
+} else {
+    logger.warning("TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set -- bot disabled")
+}
+
 // Set up SIGTERM handler using DispatchSource (not signal(), per research)
 let sigSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 signal(SIGTERM, SIG_IGN)  // Let DispatchSource handle it
 sigSource.setEventHandler {
     logger.info("SIGTERM received, shutting down")
     subtitlePanel.hide()
+    // Stop Telegram bot
+    if let bot = telegramBot {
+        Task { await bot.stop() }
+    }
     // Post dummy event to unblock RunLoop (Pitfall 4: NSApplication.stop requires event)
     let event = NSEvent.otherEvent(
         with: .applicationDefined, location: .zero,
