@@ -19,6 +19,9 @@ enum Config {
             ?? "\(home)/tmp/subtitle-spikes-7aqa/03-textream/models-int8/kokoro-int8-en-v0_19"
     }()
 
+    /// Filename of the timestamped Kokoro model (has duration tensor output)
+    static let kokoroModelFile = "model-timestamped.int8.onnx"
+
     /// Application name for logging and service identification
     static let appName = "claude-tts-companion"
 
