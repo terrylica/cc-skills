@@ -193,7 +193,7 @@ Plans:
 
 Plans:
 
-- [ ] 09-01-PLAN.md — Rewrite claude-hq.10s.py v3.0.0 with HTTP API health/settings/subtitle/TTS menus
+- [x] 09-01-PLAN.md — Rewrite claude-hq.10s.py v3.0.0 with HTTP API health/settings/subtitle/TTS menus
 - [ ] 09-02-PLAN.md — Rewrite nc-action.sh for HTTP API curl actions + visual checkpoint
       **UI hint**: yes
 

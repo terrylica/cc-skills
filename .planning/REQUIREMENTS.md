@@ -86,11 +86,11 @@
 
 ### SwiftBar Integration
 
-- [ ] **BAR-01**: Updated claude-hq v3.0.0 plugin monitors single unified service (com.terryli.claude-tts-companion)
-- [ ] **BAR-02**: SwiftBar menu shows subtitle controls (font S/M/L, position, karaoke toggle)
-- [ ] **BAR-03**: SwiftBar menu shows TTS controls (enable/disable, test TTS)
-- [ ] **BAR-04**: SwiftBar actions call HTTP API endpoints (response under 200ms)
-- [ ] **BAR-05**: SwiftBar shows per-subsystem health status from /health endpoint
+- [x] **BAR-01**: Updated claude-hq v3.0.0 plugin monitors single unified service (com.terryli.claude-tts-companion)
+- [x] **BAR-02**: SwiftBar menu shows subtitle controls (font S/M/L, position, karaoke toggle)
+- [x] **BAR-03**: SwiftBar menu shows TTS controls (enable/disable, test TTS)
+- [x] **BAR-04**: SwiftBar actions call HTTP API endpoints (response under 200ms)
+- [x] **BAR-05**: SwiftBar shows per-subsystem health status from /health endpoint
 
 ### Deployment
 
@@ -103,7 +103,7 @@
 
 - [ ] **EXT-01**: User can view scrollable caption history (last N subtitle entries)
 - [ ] **EXT-02**: User can copy subtitle text to clipboard
-- [ ] **EXT-03**: User can switch subtitle display to external monitor via SwiftBar
+- [x] **EXT-03**: User can switch subtitle display to external monitor via SwiftBar
 - [ ] **EXT-04**: Thinking watcher summarizes Claude's thinking via MiniMax
 
 ## v2 Requirements
@@ -179,12 +179,12 @@
 | API-05      | Phase 8  | Complete |
 | API-06      | Phase 8  | Complete |
 | API-07      | Phase 8  | Complete |
-| BAR-01      | Phase 9  | Pending |
-| BAR-02      | Phase 9  | Pending |
-| BAR-03      | Phase 9  | Pending |
-| BAR-04      | Phase 9  | Pending |
-| BAR-05      | Phase 9  | Pending |
-| EXT-03      | Phase 9  | Pending |
+| BAR-01      | Phase 9  | Complete |
+| BAR-02      | Phase 9  | Complete |
+| BAR-03      | Phase 9  | Complete |
+| BAR-04      | Phase 9  | Complete |
+| BAR-05      | Phase 9  | Complete |
+| EXT-03      | Phase 9  | Complete |
 | DEP-01      | Phase 10 | Pending |
 | DEP-02      | Phase 10 | Pending |
 | DEP-03      | Phase 10 | Pending |
