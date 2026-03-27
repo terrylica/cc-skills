@@ -18,7 +18,14 @@ struct MiniMaxResult {
 final class MiniMaxClient: @unchecked Sendable {
 
     private let logger = Logger(label: "minimax-client")
-    private let session = URLSession.shared
+    /// URLSession with explicit request timeout to prevent stuck TCP connections
+    /// from blocking notification processing indefinitely (default 60s is too long).
+    private let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30  // 30s request timeout
+        config.timeoutIntervalForResource = 60  // 60s total resource timeout
+        return URLSession(configuration: config)
+    }()
 
     /// Circuit breaker for failure tracking (public for status queries)
     let circuitBreaker: CircuitBreaker
