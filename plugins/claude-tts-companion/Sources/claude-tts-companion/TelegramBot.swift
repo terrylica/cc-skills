@@ -203,6 +203,12 @@ final class TelegramBot: @unchecked Sendable {
             fullText = text
         }
 
+        // Cancel any in-progress playback before starting new synthesis.
+        // Without this, a second notification's audio queues behind the first
+        // on the serial queue, causing subtitles to show dispatch 2 while
+        // audio still plays dispatch 1.
+        ttsEngine.stopPlayback()
+
         // Detect language to select correct voice (TTS-10)
         let langResult = LanguageDetector.detect(text: fullText)
         logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), speakerId=\(langResult.speakerId)")
@@ -213,15 +219,20 @@ final class TelegramBot: @unchecked Sendable {
             case .success(let ttsResult):
                 self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
 
-                // Chunk text into pages and show paged karaoke subtitles (STREAM-02, STREAM-03)
+                // Chunk text into pages, schedule karaoke, THEN start audio.
+                // Sequencing matters: chunkIntoPages() does pixel-width measurement
+                // (100-500ms for long texts). If audio starts before scheduleStart is
+                // anchored in showPages(), subtitles lag behind the spoken words.
+                // By starting playback only after subtitle scheduling completes,
+                // scheduleStart and audio onset are within ~1ms of each other.
                 DispatchQueue.main.async {
                     let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text)
                     self.subtitlePanel.showPages(pages, wordTimings: ttsResult.wordTimings)
-                }
 
-                // Play audio concurrently with subtitle display
-                self.ttsEngine.play(wavPath: ttsResult.wavPath) {
-                    self.logger.info("TTS playback complete")
+                    // Start audio AFTER subtitle scheduling is anchored
+                    self.ttsEngine.play(wavPath: ttsResult.wavPath) {
+                        self.logger.info("TTS playback complete")
+                    }
                 }
 
             case .failure(let error):
