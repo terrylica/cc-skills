@@ -332,3 +332,43 @@
 - [x] **STREAM-01**: TTS text split into paragraphs/sentences, first chunk synthesized and played while remaining chunks synthesize in parallel
 - [x] **STREAM-02**: Subtitle panel displays one sentence at a time (not full summary), advancing as TTS progresses through sentences
 - [x] **STREAM-03**: Karaoke word highlighting works within each displayed sentence segment
+
+## v4.7.0 Traceability
+<!-- # SSoT-OK -->
+
+| Requirement | Phase    | Status  |
+| ----------- | -------- | ------- |
+| STREAM-01   | Phase 17 | Complete |
+| STREAM-02   | Phase 17 | Complete |
+| STREAM-03   | Phase 17 | Complete |
+| ARCH-01     | Phase 18 | Pending |
+| TEST-01     | Phase 18 | Pending |
+| ARCH-02     | Phase 19 | Pending |
+| ARCH-03     | Phase 19 | Pending |
+| ARCH-04     | Phase 19 | Pending |
+| ARCH-05     | Phase 19 | Pending |
+| ARCH-06     | Phase 19 | Pending |
+| CONC-01     | Phase 19 | Pending |
+| CONC-02     | Phase 19 | Pending |
+| CONC-03     | Phase 19 | Pending |
+| CONC-04     | Phase 19 | Pending |
+| TEST-02     | Phase 20 | Pending |
+| TEST-03     | Phase 20 | Pending |
+| TEST-04     | Phase 20 | Pending |
+| TEST-05     | Phase 20 | Pending |
+| HARD-01     | Phase 21 | Pending |
+| HARD-02     | Phase 21 | Pending |
+| HARD-03     | Phase 21 | Pending |
+| HARD-04     | Phase 21 | Pending |
+| BION-01     | Phase 22 | Pending |
+| BION-02     | Phase 22 | Pending |
+| BION-03     | Phase 22 | Pending |
+| BION-04     | Phase 22 | Pending |
+| CAPT-01     | Phase 23 | Pending |
+| CAPT-02     | Phase 23 | Pending |
+| CAPT-03     | Phase 23 | Pending |
+| CAPT-04     | Phase 23 | Pending |
+| CJK-01      | Phase 24 | Pending |
+| CJK-02      | Phase 24 | Pending |
+| CJK-03      | Phase 24 | Pending |
+| CJK-04      | Phase 24 | Pending |
