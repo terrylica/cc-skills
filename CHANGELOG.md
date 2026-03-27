@@ -1,3 +1,10 @@
+## [12.19.1](https://github.com/terrylica/cc-skills/compare/v12.19.0...v12.19.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* remove direct MLX API calls that caused dual-Metal-device crash ([fe49c3f](https://github.com/terrylica/cc-skills/commit/fe49c3f6085f2852a63b3326557e46016af3fd76))
+
 # [12.19.0](https://github.com/terrylica/cc-skills/compare/v12.18.0...v12.19.0) (2026-03-27)
 
 
