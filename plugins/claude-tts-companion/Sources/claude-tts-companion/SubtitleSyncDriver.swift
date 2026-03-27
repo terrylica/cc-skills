@@ -97,6 +97,11 @@ final class SubtitleSyncDriver {
     /// Called when all streaming playback finishes (after last chunk plays to completion)
     private var onStreamingComplete: (() -> Void)?
 
+    /// App Nap prevention token. macOS may apply App Nap to accessory apps with no
+    /// visible windows, which delays DispatchSourceTimer callbacks and degrades
+    /// the 60Hz karaoke poller. beginActivity() returns a token that prevents this.
+    private var appNapActivity: NSObjectProtocol?
+
     // MARK: - Init (Single-shot mode)
 
     /// Create a sync driver for the given audio player and subtitle pages.
@@ -246,6 +251,12 @@ final class SubtitleSyncDriver {
         nextStreamPlayer = nil
         nextPlaybackDelegate = nil
         prebufferedChunkIndex = -1
+
+        // End App Nap prevention
+        if let activity = appNapActivity {
+            ProcessInfo.processInfo.endActivity(activity)
+            appNapActivity = nil
+        }
 
         // If stopped externally (not via finishPlayback), ensure callback fires
         if !didFinish {
@@ -403,6 +414,16 @@ final class SubtitleSyncDriver {
     // MARK: - Timer
 
     private func startTimer() {
+        // Prevent App Nap from delaying our 60Hz timer. macOS can throttle timers
+        // for accessory apps that have no visible windows. beginActivity() tells
+        // the system we're doing user-initiated work (TTS playback + karaoke sync).
+        if appNapActivity == nil {
+            appNapActivity = ProcessInfo.processInfo.beginActivity(
+                options: .userInitiated,
+                reason: "TTS karaoke subtitle playback"
+            )
+        }
+
         let source = DispatchSource.makeTimerSource(queue: .main)
         source.schedule(deadline: .now(), repeating: .milliseconds(16), leeway: .milliseconds(2))
         source.setEventHandler { [weak self] in
