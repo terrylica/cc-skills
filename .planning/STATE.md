@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: MVP
-status: verifying
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-03-27T00:17:39.165Z"
+status: executing
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-27T00:25:28.725Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
   percent: 59
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 13 — auto-continue-evaluation
+**Current focus:** Phase 14 — tts-dispatch-feature-gates
 
 ## Current Position
 
-Phase: 14
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 14 (tts-dispatch-feature-gates) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-27
 
 Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, v4.6.0 starting)
@@ -63,6 +63,7 @@ Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, 
 | Phase 12 P02 | 3min | 1 tasks | 1 files |
 | Phase 13 P01 | 4min | 1 tasks | 2 files |
 | Phase 13 P02 | 2min | 2 tasks | 2 files |
+| Phase 14 P01 | 1min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,7 @@ Recent decisions affecting current work:
 - [Phase 12]: Use Swift unicode escapes for em dashes in prompt templates (explicit, grep-friendly)
 - [Phase 13]: Snake-case CodingKeys on AutoContinueState for backward compat with legacy TS state files
 - [Phase 13]: All auto-continue notifications sent as silent messages to avoid push spam
+- [Phase 14]: Unicode scalars (not Character) for CJK detection -- correct abstraction for code point ranges
 
 ### Pending Todos
 
@@ -101,6 +103,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T00:17:09.025Z
-Stopped at: Completed 13-02-PLAN.md
+Last session: 2026-03-27T00:25:28.722Z
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None
