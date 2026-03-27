@@ -273,6 +273,6 @@
 
 ### TTS Streaming & Subtitle Chunking
 
-- [ ] **STREAM-01**: TTS text split into paragraphs/sentences, first chunk synthesized and played while remaining chunks synthesize in parallel
-- [ ] **STREAM-02**: Subtitle panel displays one sentence at a time (not full summary), advancing as TTS progresses through sentences  
-- [ ] **STREAM-03**: Karaoke word highlighting works within each displayed sentence segment
+- [x] **STREAM-01**: TTS text split into paragraphs/sentences, first chunk synthesized and played while remaining chunks synthesize in parallel
+- [x] **STREAM-02**: Subtitle panel displays one sentence at a time (not full summary), advancing as TTS progresses through sentences  
+- [x] **STREAM-03**: Karaoke word highlighting works within each displayed sentence segment
