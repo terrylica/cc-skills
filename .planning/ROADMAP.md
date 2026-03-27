@@ -277,7 +277,12 @@ Plans:
 3. Per-session state tracks iteration count, sweep status, and manual intervention detection across multiple stop-hook invocations
 4. Decision notification sent to Telegram includes icon, reason, progress bar, tool breakdown, and timing
 5. When plan checkboxes are all checked but no review section exists, evaluation deterministically returns SWEEP without calling MiniMax
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 13-01-PLAN.md -- Full legacy evaluation logic with state tracking, exact prompts, sibling plan discovery
+- [ ] 13-02-PLAN.md -- Rich decision notifications and main.swift wiring
 
 ### Phase 14: TTS Dispatch & Feature Gates
 
@@ -338,7 +343,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 10. Deployment & Extras          | 2/2            | Complete    | 2026-03-26 |
 | 11. Notification Formatting      | 2/2 | Complete    | 2026-03-26 |
 | 12. AI Summary Prompts           | 2/2 | Complete    | 2026-03-27 |
-| 13. Auto-Continue Evaluation     | 0/0            | Not started | -          |
+| 13. Auto-Continue Evaluation     | 0/2            | In progress | -          |
 | 14. TTS Dispatch & Feature Gates | 0/0            | Not started | -          |
 | 15. Telegram Inline Buttons      | 0/0            | Not started | -          |
 | 16. Integration & Reliability    | 0/0            | Not started | -          |
