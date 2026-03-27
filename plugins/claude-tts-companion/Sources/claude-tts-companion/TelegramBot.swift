@@ -77,6 +77,18 @@ final class TelegramBot: @unchecked Sendable {
         // Extract last user prompt from turns (FMT-02)
         let lastPrompt = turns.last(where: { !$0.prompt.isEmpty })?.prompt
 
+        // Condense long prompts for Telegram display (PROMPT-04)
+        // arc.promptSummary is set for single-turn sessions via ||| parsing;
+        // for multi-turn sessions, use MiniMax to condense if >800 chars.
+        let condensedPrompt: String?
+        if let summary = arc.promptSummary {
+            condensedPrompt = summary
+        } else if let raw = lastPrompt, raw.count > 800 {
+            condensedPrompt = await summaryEngine.summarizePromptForDisplay(rawPrompt: raw)
+        } else {
+            condensedPrompt = nil
+        }
+
         // Build SessionNotificationData for rich HTML rendering (FMT-01)
         let notifData = SessionNotificationData(
             sessionId: sessionId,
@@ -87,7 +99,7 @@ final class TelegramBot: @unchecked Sendable {
             turnCount: turns.count,
             lastUserPrompt: lastPrompt,
             aiNarrative: arc.narrative != "Session completed." ? arc.narrative : nil,
-            promptSummary: arc.promptSummary
+            promptSummary: condensedPrompt
         )
 
         // Render rich HTML notification with metadata header
