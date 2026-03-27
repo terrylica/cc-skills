@@ -24,6 +24,11 @@ private struct ShowSubtitleRequest: Codable {
     let duration: Double?
 }
 
+/// Request body for POST /tts/test.
+private struct TTSTestRequest: Codable {
+    let text: String?
+}
+
 /// Simple success response.
 private struct OkResponse: Codable {
     let ok: Bool
@@ -75,6 +80,9 @@ final class HTTPControlServer: @unchecked Sendable {
     private let captionHistory: CaptionHistory
     private let startTime: Date
     private var telegramBot: TelegramBot?
+
+    /// Retained sync driver for TTS test playback (prevents dealloc during playback)
+    @MainActor private var activeSyncDriver: SubtitleSyncDriver?
 
     init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, ttsEngine: TTSEngine, captionHistory: CaptionHistory) {
         self.settingsStore = settingsStore
@@ -162,6 +170,50 @@ final class HTTPControlServer: @unchecked Sendable {
         await server.appendRoute("POST /subtitle/hide") { [self] _ in
             await MainActor.run { subtitlePanel.hide() }
             return jsonResponse(OkResponse(ok: true))
+        }
+
+        // API-09: TTS test — synthesize + play + karaoke subtitles
+        await server.appendRoute("POST /tts/test") { [self] request in
+            do {
+                let body = try await request.bodyData
+                let testReq = try JSONDecoder().decode(TTSTestRequest.self, from: body)
+                let text = testReq.text ?? "Claude TTS companion is working. Karaoke subtitles are synced with audio playback."
+                let settings = settingsStore.getSettings()
+                let voiceName = settings.tts.voice
+                let speed = Float(settings.tts.speed)
+
+                // Run full TTS pipeline: synthesize → play → karaoke sync
+                ttsEngine.synthesizeWithTimestamps(text: text, voiceName: voiceName, speed: speed) { [self] result in
+                    switch result {
+                    case .success(let ttsResult):
+                        DispatchQueue.main.async {
+                            let fontSizeName = self.subtitlePanel.currentFontSizeName
+                            let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text, fontSizeName: fontSizeName)
+                            guard let player = self.ttsEngine.play(wavPath: ttsResult.wavPath, completion: {
+                                self.logger.info("TTS test playback complete")
+                            }) else {
+                                self.logger.error("TTS test: AVAudioPlayer creation failed")
+                                return
+                            }
+                            let driver = SubtitleSyncDriver(
+                                player: player,
+                                pages: pages,
+                                wordTimings: ttsResult.wordTimings,
+                                nativeOnsets: ttsResult.wordOnsets,
+                                subtitlePanel: self.subtitlePanel
+                            )
+                            self.activeSyncDriver = driver
+                            driver.start()
+                        }
+                    case .failure(let error):
+                        self.logger.error("TTS test synthesis failed: \(error)")
+                    }
+                }
+
+                return jsonResponse(OkResponse(ok: true))
+            } catch {
+                return errorResponse("Invalid request body: \(error.localizedDescription)", status: .badRequest)
+            }
         }
 
         // API-07: Get caption history

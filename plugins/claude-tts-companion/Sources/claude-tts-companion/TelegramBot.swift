@@ -21,6 +21,9 @@ final class TelegramBot: @unchecked Sendable {
     private let promptExecutor = PromptExecutor()
     private var syncDriver: SubtitleSyncDriver?
 
+    // Streaming TTS guard: prevents new dispatch from interrupting in-progress streaming
+    private var isStreamingInProgress: Bool = false
+
     // Inline button state manager (BTN-01, BTN-02, BTN-03)
     let inlineButtonManager = InlineButtonManager()
 
@@ -199,6 +202,12 @@ final class TelegramBot: @unchecked Sendable {
     /// Uses streaming sentence-chunked synthesis when `Config.streamingTTS` is true,
     /// falling back to full-paragraph synthesis for future low-RTF models.
     private func dispatchTTS(text: String, greeting: String?) async {
+        // Guard: skip if a streaming synthesis pipeline is still playing (prevents early cutoff)
+        if isStreamingInProgress {
+            logger.warning("Skipping TTS dispatch — streaming synthesis in progress (\(text.count) chars dropped)")
+            return
+        }
+
         // Build full TTS text with optional greeting
         let fullText: String
         if let greeting = greeting, !greeting.isEmpty {
@@ -223,6 +232,9 @@ final class TelegramBot: @unchecked Sendable {
 
     /// Streaming TTS: synthesize sentence-by-sentence, play first chunk ASAP.
     private func dispatchStreamingTTS(text: String, voiceName: String) {
+        // Mark streaming as in-progress to prevent new dispatches from interrupting
+        isStreamingInProgress = true
+
         // Don't cancel current playback here -- synthesis takes time.
         // Cancel only when first chunk is ready to play.
         // Use NSLock-protected flag for thread safety (TTS queue -> main thread).
@@ -248,28 +260,47 @@ final class TelegramBot: @unchecked Sendable {
                         self.syncDriver?.stop()
                         self.syncDriver = nil
 
-                        // Create streaming sync driver
+                        // Create streaming sync driver with completion to clear in-progress flag
                         let driver = SubtitleSyncDriver(
                             subtitlePanel: self.subtitlePanel,
-                            ttsEngine: self.ttsEngine
+                            ttsEngine: self.ttsEngine,
+                            onStreamingComplete: { [weak self] in
+                                self?.isStreamingInProgress = false
+                                self?.logger.info("Streaming playback complete — new TTS dispatches unblocked")
+                            }
                         )
                         self.syncDriver = driver
                     }
 
-                    // Chunk pages using pixel-width measurement
-                    let pages = SubtitleChunker.chunkIntoPages(text: chunk.text)
+                    // Chunk pages using pixel-width measurement with the current dynamic font size
+                    let fontSizeName = self.subtitlePanel.currentFontSizeName
+                    let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
                     self.syncDriver?.addChunk(
                         wavPath: chunk.wavPath,
                         pages: pages,
-                        wordTimings: chunk.wordTimings
+                        wordTimings: chunk.wordTimings,
+                        nativeOnsets: chunk.wordOnsets
                     )
                 }
             },
             onAllComplete: { [weak self] in
                 guard let self = self else { return }
                 self.logger.info("All streaming TTS chunks synthesized")
+
+                firstChunkLock.lock()
+                let hadChunks = _firstChunkDispatched
+                firstChunkLock.unlock()
+
                 DispatchQueue.main.async {
-                    self.syncDriver?.markAllChunksDelivered()
+                    if hadChunks {
+                        // SyncDriver was created — it will clear isStreamingInProgress
+                        // when playback finishes via onStreamingComplete callback
+                        self.syncDriver?.markAllChunksDelivered()
+                    } else {
+                        // No chunks were ever produced (synthesis failed entirely)
+                        self.isStreamingInProgress = false
+                        self.logger.warning("Streaming complete with no chunks — clearing in-progress flag")
+                    }
                 }
             }
         )
@@ -291,7 +322,8 @@ final class TelegramBot: @unchecked Sendable {
                     self.syncDriver?.stop()
                     self.syncDriver = nil
 
-                    let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text)
+                    let fontSizeName = self.subtitlePanel.currentFontSizeName
+                    let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text, fontSizeName: fontSizeName)
                     guard let player = self.ttsEngine.play(wavPath: ttsResult.wavPath, completion: {
                         self.logger.info("TTS playback complete")
                     }) else {
@@ -302,6 +334,7 @@ final class TelegramBot: @unchecked Sendable {
                         player: player,
                         pages: pages,
                         wordTimings: ttsResult.wordTimings,
+                        nativeOnsets: ttsResult.wordOnsets,
                         subtitlePanel: self.subtitlePanel
                     )
                     self.syncDriver = driver

@@ -22,14 +22,18 @@ enum SubtitleChunker {
     /// Normalizes all whitespace (newlines, tabs, runs of spaces) to single spaces
     /// before splitting, since the subtitle panel renders plain horizontal text
     /// and embedded newlines would consume vertical lines the chunker can't account for.
-    static func chunkIntoPages(text: String) -> [SubtitlePage] {
+    ///
+    /// - Parameter fontSizeName: Settings font size ("small", "medium", "large").
+    ///   Defaults to "medium". MUST match the font size used by SubtitlePanel at
+    ///   render time, otherwise text may overflow the 2-line panel.
+    static func chunkIntoPages(text: String, fontSizeName: String = "medium") -> [SubtitlePage] {
         // Normalize: replace all whitespace runs (including \n, \r, \t) with single space
         let normalized = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
             .joined(separator: " ")
         let words = normalized.split(separator: " ").map(String.init)
         guard !words.isEmpty else { return [] }
         let width = availableLineWidth()
-        return chunkIntoPages(words: words, availableWidth: width)
+        return chunkIntoPages(words: words, availableWidth: width, fontSizeName: fontSizeName)
     }
 
     // MARK: - Width Measurement
@@ -45,10 +49,14 @@ enum SubtitleChunker {
     /// Uses bold font (not regular) because during karaoke display, one word is
     /// always bold — this ensures lines measured during chunking never overflow
     /// when displayed with karaoke highlighting.
-    static func measureWidth(_ text: String) -> CGFloat {
+    ///
+    /// - Parameter fontSizeName: Settings font size ("small", "medium", "large").
+    ///   Must match the font used at render time to prevent overflow.
+    static func measureWidth(_ text: String, fontSizeName: String = "medium") -> CGFloat {
+        let font = SubtitleStyle.dynamicCurrentWordFont(fontSizeName)
         let attrStr = NSAttributedString(
             string: text,
-            attributes: [.font: SubtitleStyle.currentWordFont]
+            attributes: [.font: font]
         )
         return ceil(attrStr.size().width)
     }
@@ -88,7 +96,8 @@ enum SubtitleChunker {
         words: [String],
         from startIndex: Int,
         maxWidth: CGFloat,
-        preferShorter: Bool
+        preferShorter: Bool,
+        fontSizeName: String = "medium"
     ) -> (words: [String], nextIndex: Int) {
         guard startIndex < words.count else {
             return ([], startIndex)
@@ -102,7 +111,7 @@ enum SubtitleChunker {
         while currentIndex < words.count {
             lineWords.append(words[currentIndex])
             let lineText = lineWords.joined(separator: " ")
-            let width = measureWidth(lineText)
+            let width = measureWidth(lineText, fontSizeName: fontSizeName)
 
             // Track high-priority break points
             let priority = breakPriority(words[currentIndex])
@@ -146,7 +155,7 @@ enum SubtitleChunker {
     // MARK: - Page Construction
 
     /// Build pages of up to 2 lines each from a word array.
-    private static func chunkIntoPages(words: [String], availableWidth: CGFloat) -> [SubtitlePage] {
+    private static func chunkIntoPages(words: [String], availableWidth: CGFloat, fontSizeName: String = "medium") -> [SubtitlePage] {
         var pages: [SubtitlePage] = []
         var wordIndex = 0
 
@@ -154,10 +163,10 @@ enum SubtitleChunker {
             let pageStart = wordIndex
 
             // Line 1: prefer shorter for bottom-heavy shape
-            let line1 = fillLine(words: words, from: wordIndex, maxWidth: availableWidth, preferShorter: true)
+            let line1 = fillLine(words: words, from: wordIndex, maxWidth: availableWidth, preferShorter: true, fontSizeName: fontSizeName)
 
             // Line 2: fill as much as possible
-            let line2 = fillLine(words: words, from: line1.nextIndex, maxWidth: availableWidth, preferShorter: false)
+            let line2 = fillLine(words: words, from: line1.nextIndex, maxWidth: availableWidth, preferShorter: false, fontSizeName: fontSizeName)
 
             let pageWords = line1.words + line2.words
             if !pageWords.isEmpty {
