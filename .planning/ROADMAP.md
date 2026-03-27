@@ -281,7 +281,7 @@ Plans:
 
 Plans:
 
-- [ ] 13-01-PLAN.md -- Full legacy evaluation logic with state tracking, exact prompts, sibling plan discovery
+- [x] 13-01-PLAN.md -- Full legacy evaluation logic with state tracking, exact prompts, sibling plan discovery
 - [ ] 13-02-PLAN.md -- Rich decision notifications and main.swift wiring
 
 ### Phase 14: TTS Dispatch & Feature Gates
@@ -343,7 +343,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 10. Deployment & Extras          | 2/2            | Complete    | 2026-03-26 |
 | 11. Notification Formatting      | 2/2 | Complete    | 2026-03-26 |
 | 12. AI Summary Prompts           | 2/2 | Complete    | 2026-03-27 |
-| 13. Auto-Continue Evaluation     | 0/2            | In progress | -          |
+| 13. Auto-Continue Evaluation     | 1/2 | In Progress|  |
 | 14. TTS Dispatch & Feature Gates | 0/0            | Not started | -          |
 | 15. Telegram Inline Buttons      | 0/0            | Not started | -          |
 | 16. Integration & Reliability    | 0/0            | Not started | -          |
