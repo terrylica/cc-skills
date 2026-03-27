@@ -332,7 +332,11 @@ Plans:
 3. Circuit breaker trips after 3 consecutive MiniMax failures, enters 5-minute cooldown, and uses fallback narrative during cooldown
 4. Stop hook writes notification JSON to the correct directory with all required fields (project, session ID, branch, transcript path, duration, turns)
 5. Tool breakdown computes top 6 tools by count, excluding subagent orchestration tools (Task, Bash spawning agents)
-   **Plans**: TBD
+   **Plans**: 1 plan
+
+Plans:
+
+- [ ] 16-01-PLAN.md -- NotificationProcessor with dedup + rate limiting + main.swift wiring + build verification
 
 ## Progress
 
@@ -355,5 +359,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 12. AI Summary Prompts           | 2/2            | Complete    | 2026-03-27 |
 | 13. Auto-Continue Evaluation     | 2/2            | Complete    | 2026-03-27 |
 | 14. TTS Dispatch & Feature Gates | 2/2            | Complete    | 2026-03-27 |
-| 15. Telegram Inline Buttons      | 2/2 | Complete    | 2026-03-27 |
-| 16. Integration & Reliability    | 0/0            | Not started | -          |
+| 15. Telegram Inline Buttons      | 2/2            | Complete    | 2026-03-27 |
+| 16. Integration & Reliability    | 0/1            | Not started | -          |
