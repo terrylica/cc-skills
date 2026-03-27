@@ -203,12 +203,12 @@
 | PROMPT-03   | Phase 12 | Complete |
 | PROMPT-04   | Phase 12 | Complete |
 | PROMPT-05   | Phase 12 | Complete |
-| EVAL-01     | Phase 13 | Pending  |
-| EVAL-02     | Phase 13 | Pending  |
-| EVAL-03     | Phase 13 | Pending  |
-| EVAL-04     | Phase 13 | Pending  |
+| EVAL-01     | Phase 13 | Complete |
+| EVAL-02     | Phase 13 | Complete |
+| EVAL-03     | Phase 13 | Complete |
+| EVAL-04     | Phase 13 | Complete |
 | EVAL-05     | Phase 13 | Pending  |
-| EVAL-06     | Phase 13 | Pending  |
+| EVAL-06     | Phase 13 | Complete |
 | TTS-10      | Phase 14 | Pending  |
 | TTS-11      | Phase 14 | Pending  |
 | TTS-12      | Phase 14 | Pending  |
@@ -243,12 +243,12 @@
 
 ### Auto-Continue Evaluation
 
-- [ ] **EVAL-01**: MiniMax evaluates CONTINUE/SWEEP/REDIRECT/DONE with exact legacy system prompt
-- [ ] **EVAL-02**: Plan file discovery from transcript and sibling JSONL files
-- [ ] **EVAL-03**: SWEEP mode injects 5-step review pipeline when primary work done
-- [ ] **EVAL-04**: State tracking per session (iteration count, sweep status, manual intervention detection)
+- [x] **EVAL-01**: MiniMax evaluates CONTINUE/SWEEP/REDIRECT/DONE with exact legacy system prompt
+- [x] **EVAL-02**: Plan file discovery from transcript and sibling JSONL files
+- [x] **EVAL-03**: SWEEP mode injects 5-step review pipeline when primary work done
+- [x] **EVAL-04**: State tracking per session (iteration count, sweep status, manual intervention detection)
 - [ ] **EVAL-05**: Rich decision notification to Telegram (icon, reason, progress bar, tool breakdown, timing)
-- [ ] **EVAL-06**: Deterministic sweep fallback when plan checkboxes all-checked but no review section
+- [x] **EVAL-06**: Deterministic sweep fallback when plan checkboxes all-checked but no review section
 
 ### TTS Dispatch
 
