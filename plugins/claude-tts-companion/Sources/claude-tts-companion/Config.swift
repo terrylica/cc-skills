@@ -107,4 +107,14 @@ enum Config {
 
     /// Target latency for file watcher event detection (seconds)
     static let fileWatcherLatencyTarget: TimeInterval = 0.1
+
+    // MARK: - Notification Processing
+
+    /// Dedup TTL: skip re-notifications for the same session within this window (seconds).
+    /// Matches legacy NOTIFICATION_DEDUP_TTL_MS of 900000ms (15 minutes).
+    static let notificationDedupTTL: TimeInterval = 900
+
+    /// Minimum interval between notification processing (seconds).
+    /// Matches legacy NOTIFICATION_MIN_INTERVAL_MS of 5000ms.
+    static let notificationMinInterval: TimeInterval = 5.0
 }
