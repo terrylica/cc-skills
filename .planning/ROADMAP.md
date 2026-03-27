@@ -312,8 +312,13 @@ Plans:
 1. Arc Summary notification includes Focus Tab, Follow Up, and Transcript inline buttons below the message
 2. Pressing Focus Tab switches to the iTerm tab where the session ran
 3. When a new notification arrives for the same iTerm tab, buttons are removed from the older message (deduplication)
-   **Plans**: TBD
+   **Plans**: 2 plans
    **UI hint**: yes
+
+Plans:
+
+- [ ] 15-01-PLAN.md -- InlineButtonManager + callback handlers + keyboard attachment
+- [ ] 15-02-PLAN.md -- Wire itermSessionId into notification flow + build verification + visual checkpoint
 
 ### Phase 16: Integration & Reliability
 
@@ -346,9 +351,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 8. HTTP Control API              | 1/2            | In progress | -          |
 | 9. SwiftBar Integration          | 0/0            | Not started | -          |
 | 10. Deployment & Extras          | 2/2            | Complete    | 2026-03-26 |
-| 11. Notification Formatting      | 2/2 | Complete    | 2026-03-26 |
-| 12. AI Summary Prompts           | 2/2 | Complete    | 2026-03-27 |
-| 13. Auto-Continue Evaluation     | 2/2 | Complete    | 2026-03-27 |
-| 14. TTS Dispatch & Feature Gates | 2/2 | Complete    | 2026-03-27 |
-| 15. Telegram Inline Buttons      | 0/0            | Not started | -          |
+| 11. Notification Formatting      | 2/2            | Complete    | 2026-03-26 |
+| 12. AI Summary Prompts           | 2/2            | Complete    | 2026-03-27 |
+| 13. Auto-Continue Evaluation     | 2/2            | Complete    | 2026-03-27 |
+| 14. TTS Dispatch & Feature Gates | 2/2            | Complete    | 2026-03-27 |
+| 15. Telegram Inline Buttons      | 0/2            | Not started | -          |
 | 16. Integration & Reliability    | 0/0            | Not started | -          |
