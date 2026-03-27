@@ -299,8 +299,14 @@ final class TTSEngine: @unchecked Sendable {
             let delegate = PlaybackDelegate(wavPath: wavPath, completion: completion, logger: logger)
             self.playbackDelegate = delegate  // prevent dealloc
             player.delegate = delegate
-            player.prepareToPlay()
-            player.play()
+            if !player.prepareToPlay() {
+                logger.warning("prepareToPlay() failed for WAV: \(wavPath) — attempting play() anyway")
+            }
+            if !player.play() {
+                logger.error("play() failed for WAV: \(wavPath)")
+                completion?()
+                return nil
+            }
             self.audioPlayer = player
             self.lastPlaybackTime = now
             logger.info("Playing WAV via AVAudioPlayer: \(wavPath) (duration: \(String(format: "%.2f", player.duration))s)")
@@ -621,7 +627,9 @@ final class TTSEngine: @unchecked Sendable {
             let player = try AVAudioPlayer(contentsOf: url)
             let delegate = PlaybackDelegate(wavPath: wavPath, completion: completion, logger: logger)
             player.delegate = delegate
-            player.prepareToPlay()
+            if !player.prepareToPlay() {
+                logger.warning("prepareToPlay() failed for pre-buffered WAV: \(wavPath)")
+            }
             logger.info("Pre-buffered AVAudioPlayer: \(wavPath) (duration: \(String(format: "%.2f", player.duration))s)")
             return (player: player, delegate: delegate)
         } catch {
