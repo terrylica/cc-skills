@@ -19,15 +19,15 @@ logger.info("sherpa-onnx C API version: \(version)")
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 
-// Create subtitle overlay panel
-let subtitlePanel = SubtitlePanel()
+// Create settings store (persists to ~/.config/claude-tts-companion/settings.json)
+let settingsStore = SettingsStore()
+
+// Create subtitle overlay panel (reads font size + position from settings on each display)
+let subtitlePanel = SubtitlePanel(settingsStore: settingsStore)
 subtitlePanel.positionOnScreen()
 
 // Create TTS engine (model loads lazily on first synthesis, TTS-03)
 let ttsEngine = TTSEngine()
-
-// Create settings store (persists to ~/.config/claude-tts-companion/settings.json)
-let settingsStore = SettingsStore()
 
 // Create caption history ring buffer (EXT-01: scrollable caption history + clipboard copy)
 let captionHistory = CaptionHistory()
