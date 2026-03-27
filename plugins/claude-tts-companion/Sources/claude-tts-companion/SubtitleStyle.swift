@@ -82,7 +82,7 @@ enum SubtitleStyle {
     static let topOffset: CGFloat = 80
 
     /// Panel width as a fraction of screen width (70%)
-    static let widthRatio: CGFloat = 0.7
+    static let widthRatio: CGFloat = 0.9
 
     /// Maximum number of text lines before clipping
     static let maxLines = 2
