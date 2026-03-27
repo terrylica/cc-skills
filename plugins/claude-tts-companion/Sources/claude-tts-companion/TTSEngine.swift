@@ -75,7 +75,7 @@ final class TTSEngine: @unchecked Sendable {
     func synthesize(
         text: String,
         speakerId: Int32 = Config.defaultSpeakerId,
-        speed: Float = 1.0,
+        speed: Float = 1.2,
         completion: @escaping (Result<SynthesisResult, Error>) -> Void
     ) {
         queue.async { [self] in
@@ -165,7 +165,7 @@ final class TTSEngine: @unchecked Sendable {
     func synthesizeWithTimestamps(
         text: String,
         speakerId: Int32 = Config.defaultSpeakerId,
-        speed: Float = 1.0,
+        speed: Float = 1.2,
         completion: @escaping (Result<TTSResult, Error>) -> Void
     ) {
         synthesize(text: text, speakerId: speakerId, speed: speed) { result in
