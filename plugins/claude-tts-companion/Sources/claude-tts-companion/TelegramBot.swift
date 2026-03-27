@@ -5,7 +5,7 @@ import SwiftTelegramBot
 /// Telegram bot using swift-telegram-sdk long polling.
 /// Wraps TGBot actor and provides command handlers + message sending.
 final class TelegramBot: @unchecked Sendable {
-    private let logger = Logger(label: "telegram-bot")
+    fileprivate let logger = Logger(label: "telegram-bot")
     private var bot: TGBot?
     private let botToken: String
     private let chatId: Int64
@@ -19,6 +19,9 @@ final class TelegramBot: @unchecked Sendable {
 
     // Prompt execution (BOT-05, BOT-06)
     private let promptExecutor = PromptExecutor()
+
+    // Inline button state manager (BTN-01, BTN-02, BTN-03)
+    let inlineButtonManager = InlineButtonManager()
 
     init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel) {
         self.botToken = botToken
@@ -49,7 +52,9 @@ final class TelegramBot: @unchecked Sendable {
         cwd: String?,
         gitBranch: String?,
         startTime: Date?,
-        lastActivity: Date?
+        lastActivity: Date?,
+        itermSessionId: String? = nil,
+        transcriptPath: String? = nil
     ) async {
         guard isWatching else {
             logger.info("Skipping notification -- bot not watching")
@@ -93,6 +98,31 @@ final class TelegramBot: @unchecked Sendable {
             // If rendering produced nothing useful, send minimal fallback
             if message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 await sendMessage("<b>Session Complete</b>\n\n<i>Summary generation failed or was skipped.</i>")
+            } else if let tp = transcriptPath {
+                // Attach inline keyboard when transcript is available (BTN-01)
+                let workspace = (cwd as NSString?)?.lastPathComponent ?? "unknown"
+                let notifId = inlineButtonManager.registerNotification(
+                    cwd: cwd ?? "unknown",
+                    workspace: workspace,
+                    transcriptPath: tp
+                )
+                let keyboard = inlineButtonManager.buildInlineKeyboard(
+                    itermSessionId: itermSessionId,
+                    notifId: notifId
+                )
+
+                // Focus Tab dedup: remove buttons from previous message for same tab (BTN-03)
+                if let sessId = itermSessionId,
+                   let prev = inlineButtonManager.previousFocusTabMessage(itermSessionId: sessId) {
+                    await removeInlineKeyboard(chatId: prev.chatId, messageId: prev.messageId)
+                }
+
+                if let msgId = await sendMessageWithKeyboard(message, keyboard: keyboard) {
+                    // Track for future dedup
+                    if let sessId = itermSessionId {
+                        inlineButtonManager.trackFocusTab(itermSessionId: sessId, chatId: chatId, messageId: msgId)
+                    }
+                }
             } else {
                 await sendMessage(message)
             }
@@ -193,7 +223,7 @@ final class TelegramBot: @unchecked Sendable {
     func start() async throws {
         let client = TGClientDefault()
         let tgBot = try await TGBot(
-            connectionType: .longpolling(limit: 100, timeout: 30, allowedUpdates: [.message]),
+            connectionType: .longpolling(limit: 100, timeout: 30, allowedUpdates: [.message, .callbackQuery]),
             tgClient: client,
             botId: botToken
         )
@@ -333,6 +363,120 @@ final class TelegramBot: @unchecked Sendable {
                 logger.warning("Failed to edit message \(messageId): \(error)")
             }
         }
+    }
+
+    // MARK: - Inline Keyboard (BTN-01, BTN-02, BTN-03)
+
+    /// Send an HTML message with an inline keyboard. Returns the message ID on success.
+    func sendMessageWithKeyboard(_ text: String, keyboard: TGInlineKeyboardMarkup, silent: Bool = false) async -> Int? {
+        guard let bot = bot else {
+            logger.warning("Cannot send message with keyboard: bot not started")
+            return nil
+        }
+        do {
+            let params = TGSendMessageParams(
+                chatId: .chat(chatId),
+                text: text,
+                parseMode: .html,
+                linkPreviewOptions: TGLinkPreviewOptions(isDisabled: true),
+                disableNotification: silent,
+                replyMarkup: .inlineKeyboardMarkup(keyboard)
+            )
+            let msg = try await bot.sendMessage(params: params)
+            return msg.messageId
+        } catch {
+            logger.warning("Failed to send HTML with keyboard, retrying plain without keyboard: \(error)")
+            // Fallback: plain text without keyboard (matching legacy pattern)
+            do {
+                let plainParams = TGSendMessageParams(
+                    chatId: .chat(chatId),
+                    text: TelegramFormatter.stripHtmlTags(text),
+                    disableNotification: silent
+                )
+                let msg = try await bot.sendMessage(params: plainParams)
+                return msg.messageId
+            } catch {
+                logger.error("Failed to send plain text fallback: \(error)")
+                return nil
+            }
+        }
+    }
+
+    /// Remove inline keyboard from a message (for Focus Tab dedup).
+    func removeInlineKeyboard(chatId: Int64, messageId: Int) async {
+        guard let bot = bot else { return }
+        do {
+            try await bot.editMessageReplyMarkup(params: TGEditMessageReplyMarkupParams(
+                chatId: .chat(chatId),
+                messageId: messageId,
+                replyMarkup: nil
+            ))
+        } catch {
+            // Silently ignore -- message may be too old or already edited
+            logger.debug("Could not remove keyboard from message \(messageId): \(error)")
+        }
+    }
+
+    /// Format a transcript view for the Transcript button callback.
+    /// Shows numbered user prompts with tool counts.
+    func formatTranscriptView(transcriptPath: String) -> String {
+        let entries = TranscriptParser.parse(filePath: transcriptPath)
+
+        // Count prompts and tools inline
+        var promptCount = 0
+        var toolUseCount = 0
+        for entry in entries {
+            switch entry {
+            case .prompt: promptCount += 1
+            case .toolUse: toolUseCount += 1
+            default: break
+            }
+        }
+
+        var lines: [String] = []
+        lines.append("<b>Transcript</b> (\(promptCount) prompts, \(toolUseCount) tools)\n")
+
+        // Walk entries and build per-turn summaries
+        var turnNumber = 0
+        var currentToolCount = 0
+        var lastResponseSnippet: String?
+
+        for entry in entries {
+            switch entry {
+            case .prompt(let text, _):
+                // Flush previous turn
+                if turnNumber > 0, let resp = lastResponseSnippet {
+                    let toolSuffix = currentToolCount > 0 ? " [\(currentToolCount) tools]" : ""
+                    lines.append("  \u{2192} \(TelegramFormatter.escapeHtml(String(resp.prefix(200))))\(toolSuffix)")
+                }
+                turnNumber += 1
+                currentToolCount = 0
+                lastResponseSnippet = nil
+                let snippet = String(text.prefix(200))
+                lines.append("\n<b>\(turnNumber).</b> \(TelegramFormatter.escapeHtml(snippet))")
+
+            case .response(let text, _):
+                lastResponseSnippet = text
+
+            case .toolUse(_, _):
+                currentToolCount += 1
+
+            default:
+                break
+            }
+        }
+
+        // Flush final turn
+        if turnNumber > 0, let resp = lastResponseSnippet {
+            let toolSuffix = currentToolCount > 0 ? " [\(currentToolCount) tools]" : ""
+            lines.append("  \u{2192} \(TelegramFormatter.escapeHtml(String(resp.prefix(500))))\(toolSuffix)")
+        }
+
+        if lines.count <= 1 {
+            return "<b>Transcript</b>\n\n<i>No turns found.</i>"
+        }
+
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Command Handlers
@@ -536,6 +680,182 @@ private final class BotDispatcher: TGDefaultDispatcher {
         await add(TGCommandHandler(commands: ["commands"]) { [weak self] update in
             guard let self = self else { return }
             await self.telegramBot.handleCommands(update: update)
+        })
+
+        // MARK: - Callback Query Handlers (BTN-01, BTN-02, BTN-03)
+
+        // Focus Tab: switch iTerm2 to the session's tab
+        await add(TGCallbackQueryHandler(name: "focusTab", pattern: "^iterm:") { [weak self] update in
+            guard let self = self else { return }
+            let bot = self.bot
+            guard let query = update.callbackQuery, let data = query.data else { return }
+
+            let uuid = String(data.dropFirst(6)) // drop "iterm:"
+            // Validate UUID-like format (hex chars and dashes, 8-36 chars)
+            let uuidChars = CharacterSet(charactersIn: "0123456789abcdefABCDEF-")
+            guard uuid.count >= 8, uuid.count <= 36,
+                  uuid.unicodeScalars.allSatisfy({ uuidChars.contains($0) }) else {
+                try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                    callbackQueryId: query.id, text: "Invalid session ID"))
+                return
+            }
+
+            // Run AppleScript to switch iTerm2 tab
+            let script = """
+            tell application "iTerm2"
+                activate
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        repeat with s in sessions of t
+                            if unique ID of s ends with "\(uuid)" then
+                                select t
+                                return "ok"
+                            end if
+                        end repeat
+                    end repeat
+                end repeat
+                return "not found"
+            end tell
+            """
+
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            process.arguments = ["-e", script]
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = Pipe()
+
+            var resultText = "Tab not found"
+            do {
+                try process.run()
+                process.waitUntilExit()
+                let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if output == "ok" {
+                    resultText = "Tab focused"
+                }
+            } catch {
+                self.telegramBot.logger.warning("AppleScript failed: \(error)")
+                resultText = "AppleScript error"
+            }
+
+            try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                callbackQueryId: query.id, text: resultText))
+        })
+
+        // Follow Up: show session CWD info for manual prompt
+        await add(TGCallbackQueryHandler(name: "followUp", pattern: "^fu:") { [weak self] update in
+            guard let self = self else { return }
+            let bot = self.bot
+            guard let query = update.callbackQuery, let data = query.data else { return }
+
+            guard let idStr = data.split(separator: ":").last, let id = Int(idStr) else {
+                try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                    callbackQueryId: query.id, text: "Invalid button data"))
+                return
+            }
+
+            guard let notif = self.telegramBot.inlineButtonManager.lookupNotification(id: id) else {
+                try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                    callbackQueryId: query.id, text: "Button expired."))
+                return
+            }
+
+            try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                callbackQueryId: query.id, text: "Following up"))
+
+            let message = """
+            <b>Follow Up</b>
+
+            <b>Workspace:</b> \(TelegramFormatter.escapeHtml(notif.workspace))
+            <b>CWD:</b> <code>\(TelegramFormatter.escapeHtml(notif.cwd))</code>
+
+            Use /prompt to send a follow-up message to Claude in this directory.
+            """
+            await self.telegramBot.sendSilentMessage(message)
+        })
+
+        // Transcript: show parsed transcript overview
+        await add(TGCallbackQueryHandler(name: "transcript", pattern: "^tx:") { [weak self] update in
+            guard let self = self else { return }
+            let bot = self.bot
+            guard let query = update.callbackQuery, let data = query.data else { return }
+
+            guard let idStr = data.split(separator: ":").last, let id = Int(idStr) else {
+                try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                    callbackQueryId: query.id, text: "Invalid button data"))
+                return
+            }
+
+            guard let notif = self.telegramBot.inlineButtonManager.lookupNotification(id: id) else {
+                try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                    callbackQueryId: query.id, text: "Button expired."))
+                return
+            }
+
+            try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                callbackQueryId: query.id, text: "Loading transcript..."))
+
+            let transcriptHtml = self.telegramBot.formatTranscriptView(transcriptPath: notif.transcriptPath)
+            let chunks = TelegramFormatter.chunkTelegramHtml(transcriptHtml)
+
+            if chunks.count <= 1 {
+                await self.telegramBot.sendSilentMessage(chunks.first ?? "<i>Empty transcript</i>")
+            } else {
+                // Store chunks for pagination
+                self.telegramBot.inlineButtonManager.storeTranscriptPages(notifId: id, chunks: chunks)
+                let pageKeyboard = self.telegramBot.inlineButtonManager.buildTranscriptPaginationKeyboard(
+                    notifId: id, currentPage: 0, totalPages: chunks.count)
+                _ = await self.telegramBot.sendMessageWithKeyboard(
+                    chunks[0], keyboard: pageKeyboard, silent: true)
+            }
+        })
+
+        // Transcript pagination: navigate pages
+        await add(TGCallbackQueryHandler(name: "transcriptPage", pattern: "^txp:") { [weak self] update in
+            guard let self = self else { return }
+            let bot = self.bot
+            guard let query = update.callbackQuery, let data = query.data else { return }
+
+            // Parse txp:{notifId}:{page}
+            let parts = data.split(separator: ":")
+            guard parts.count >= 3,
+                  let notifId = Int(parts[1]),
+                  let page = Int(parts[2]) else {
+                try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                    callbackQueryId: query.id, text: "Invalid page data"))
+                return
+            }
+
+            guard let chunks = self.telegramBot.inlineButtonManager.lookupTranscriptPages(notifId: notifId),
+                  page >= 0, page < chunks.count else {
+                try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                    callbackQueryId: query.id, text: "Page expired."))
+                return
+            }
+
+            // Edit the message with the requested page
+            let pageKeyboard = self.telegramBot.inlineButtonManager.buildTranscriptPaginationKeyboard(
+                notifId: notifId, currentPage: page, totalPages: chunks.count)
+
+            // Get chat and message ID from the callback query's message
+            if case .message(let msg) = query.message {
+                do {
+                    try await bot.editMessageText(params: TGEditMessageTextParams(
+                        chatId: .chat(msg.chat.id),
+                        messageId: msg.messageId,
+                        text: chunks[page],
+                        parseMode: .html,
+                        linkPreviewOptions: TGLinkPreviewOptions(isDisabled: true),
+                        replyMarkup: pageKeyboard
+                    ))
+                } catch {
+                    self.telegramBot.logger.warning("Failed to edit transcript page: \(error)")
+                }
+            }
+
+            try? await bot.answerCallbackQuery(params: TGAnswerCallbackQueryParams(
+                callbackQueryId: query.id))
         })
     }
 }
