@@ -56,6 +56,12 @@ final class TelegramBot: @unchecked Sendable {
             return
         }
 
+        // Early exit if all outlets are disabled (TTS-12)
+        guard !FeatureGates.allOutletsDisabled else {
+            logger.info("All notification outlets disabled -- skipping")
+            return
+        }
+
         // Generate both summaries concurrently
         async let arcResult = summaryEngine.arcSummary(turns: turns, cwd: cwd)
         async let tailResult = summaryEngine.tailBrief(turns: turns, cwd: cwd)
@@ -82,22 +88,33 @@ final class TelegramBot: @unchecked Sendable {
         // Render rich HTML notification with metadata header
         let message = TelegramFormatter.renderSessionNotification(notifData)
 
-        // If rendering produced nothing useful, send minimal fallback
-        if message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            await sendMessage("<b>Session Complete</b>\n\n<i>Summary generation failed or was skipped.</i>")
+        // Gate Arc Summary Telegram send (TTS-12)
+        if FeatureGates.summarizerTgEnabled {
+            // If rendering produced nothing useful, send minimal fallback
+            if message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                await sendMessage("<b>Session Complete</b>\n\n<i>Summary generation failed or was skipped.</i>")
+            } else {
+                await sendMessage(message)
+            }
         } else {
-            await sendMessage(message)
+            logger.info("Arc Summary TG outlet disabled")
         }
 
-        // Send Tail Brief as separate silent message (FMT-03)
-        if !tail.narrative.isEmpty {
-            let tbrMessage = "<b>Tail Brief</b>:\n\(TelegramFormatter.escapeHtml(tail.narrative))"
-            await sendSilentMessage(tbrMessage)
+        // Gate Tail Brief Telegram send (TTS-12)
+        if FeatureGates.tbrTgEnabled {
+            if !tail.narrative.isEmpty {
+                let tbrMessage = "<b>Tail Brief</b>:\n\(TelegramFormatter.escapeHtml(tail.narrative))"
+                await sendSilentMessage(tbrMessage)
+            }
         }
 
-        // Dispatch TTS for Tail Brief with karaoke subtitles (BOT-04)
-        if !tail.narrative.isEmpty {
-            await dispatchTTS(text: tail.narrative, greeting: arc.ttsGreeting)
+        // Gate TTS dispatch for Tail Brief with karaoke subtitles (TTS-11, TTS-12)
+        if FeatureGates.tbrTtsEnabled {
+            if !tail.narrative.isEmpty {
+                let projectName = summaryEngine.formatProjectName(cwd)
+                let ttsGreeting = "Hi Terry, you were working in \(projectName):"
+                await dispatchTTS(text: tail.narrative, greeting: ttsGreeting)
+            }
         }
     }
 
@@ -144,9 +161,11 @@ final class TelegramBot: @unchecked Sendable {
             fullText = text
         }
 
-        logger.info("Dispatching TTS: \(fullText.count) chars")
+        // Detect language to select correct voice (TTS-10)
+        let langResult = LanguageDetector.detect(text: fullText)
+        logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), speakerId=\(langResult.speakerId)")
 
-        ttsEngine.synthesizeWithTimestamps(text: fullText) { [weak self] result in
+        ttsEngine.synthesizeWithTimestamps(text: fullText, speakerId: langResult.speakerId) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let ttsResult):
