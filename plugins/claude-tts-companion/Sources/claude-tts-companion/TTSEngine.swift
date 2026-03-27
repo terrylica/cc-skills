@@ -121,8 +121,20 @@ final class TTSEngine: @unchecked Sendable {
 
     // MARK: - Lifecycle
 
+    /// Number of chunks between periodic Metal cache clears during streaming synthesis.
+    /// Every N chunks, Stream.gpu.synchronize() + Memory.clearCache() prevents Metal resource
+    /// accumulation that leads to the 499000 resource limit crash on long sessions.
+    private static let metalCacheClearInterval = 5
+
     init() {
         logger.info("TTSEngine created (kokoro-ios MLX, model will load lazily on first synthesis)")
+
+        // Set Metal GPU cache limit to 512MB to prevent unbounded buffer cache growth.
+        // This is a defense-in-depth measure: even if clearCache() is called too late,
+        // the hard cap prevents hitting the Metal 499000 resource limit.
+        Memory.cacheLimit = 512 * 1024 * 1024
+        logger.info("MLX GPU cache limit set to 512MB")
+
         // Pre-warm CoreAudio hardware so the first real play() doesn't stutter.
         // macOS powers down audio hardware after idle; re-init takes ~50-500ms
         // which causes choppy audio at the start of the first chunk.
@@ -329,9 +341,12 @@ final class TTSEngine: @unchecked Sendable {
         queue.async { [self] in
             do {
                 // Release cached Metal buffers from previous synthesis sessions.
-                // Without this, back-to-back streaming sessions accumulate metal resources
-                // until hitting the 499000 resource limit, crashing the process with:
+                // Stream.gpu.synchronize() ensures all in-flight Metal commands complete first,
+                // making their buffers eligible for release. Without this, back-to-back
+                // streaming sessions accumulate metal resources until hitting the
+                // 499000 resource limit, crashing the process with:
                 //   [metal::malloc] Resource limit (499000) exceeded
+                Stream.gpu.synchronize()
                 Memory.clearCache()
 
                 let tts = try ensureModelLoaded()
@@ -409,6 +424,15 @@ final class TTSEngine: @unchecked Sendable {
                         wordOnsets: onsets
                     )
                     onChunkReady(chunk)
+
+                    // Periodic Metal cache clear to prevent resource accumulation
+                    // on long sessions (>15 chunks). Without this, intermediate MLX
+                    // tensors accumulate and eventually hit the Metal 499000 limit.
+                    if (index + 1) % TTSEngine.metalCacheClearInterval == 0 {
+                        Stream.gpu.synchronize()
+                        Memory.clearCache()
+                        logger.info("Periodic Metal cache clear after chunk \(index + 1)")
+                    }
                 }
 
                 let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
