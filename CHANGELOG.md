@@ -1,3 +1,33 @@
+## [12.20.1](https://github.com/terrylica/cc-skills/compare/v12.20.0...v12.20.1) (2026-03-27)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [audio-choppy-at-start](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/audio-choppy-at-start.md) - updated (+10/-2)
+- [audio-choppy-silenced](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/audio-choppy-silenced.md) - updated (+10/-2)
+- [audio-inter-chunk-gaps](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/audio-inter-chunk-gaps.md) - updated (+10/-2)
+- [e2e-notification-pipeline-validation](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/e2e-notification-pipeline-validation.md) - updated (+10/-2)
+- [intermittent-sync-drift](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/intermittent-sync-drift.md) - updated (+10/-2)
+- [minimax-tts-telegram-fallback](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/minimax-tts-telegram-fallback.md) - updated (+10/-2)
+- [mlx-metal-resource-crash](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/mlx-metal-resource-crash.md) - updated (+11/-2)
+- [sentence-end-choppy-audio](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/sentence-end-choppy-audio.md) - updated (+10/-2)
+- [speech-lags-behind-subs-v2](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/speech-lags-behind-subs-v2.md) - updated (+10/-2)
+- [streaming-tts-early-cutoff](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/streaming-tts-early-cutoff.md) - updated (+10/-2)
+- [subtitle-audio-desync](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/subtitle-audio-desync.md) - updated (+10/-2)
+- [subtitle-highlight-bounceback](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/subtitle-highlight-bounceback.md) - updated (+10/-2)
+- [tts-cutoff-and-subs-without-speech](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/tts-cutoff-and-subs-without-speech.md) - updated (+10/-2)
+- [tts-speed-regression](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/tts-speed-regression.md) - updated (+10/-2)
+- [tts-subtitle-lag](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/tts-subtitle-lag.md) - updated (+10/-2)
+
 # [12.20.0](https://github.com/terrylica/cc-skills/compare/v12.19.1...v12.20.0) (2026-03-27)
 
 
