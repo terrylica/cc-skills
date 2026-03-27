@@ -205,7 +205,7 @@ final class TTSEngine: @unchecked Sendable {
     /// Returns an array of TimeInterval where timings[i] is the DURATION of word i
     /// (matching SubtitlePanel.showUtterance's expected format).
     static func extractWordTimings(text: String, audioDuration: TimeInterval) -> [TimeInterval] {
-        let words = text.split(separator: " ").map(String.init)
+        let words = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
         guard !words.isEmpty else { return [] }
 
         // Weight by character count (longer words take proportionally longer)
