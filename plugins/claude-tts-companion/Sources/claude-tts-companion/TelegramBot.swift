@@ -19,6 +19,7 @@ final class TelegramBot: @unchecked Sendable {
 
     // Prompt execution (BOT-05, BOT-06)
     private let promptExecutor = PromptExecutor()
+    private var syncDriver: SubtitleSyncDriver?
 
     // Inline button state manager (BTN-01, BTN-02, BTN-03)
     let inlineButtonManager = InlineButtonManager()
@@ -203,11 +204,12 @@ final class TelegramBot: @unchecked Sendable {
             fullText = text
         }
 
-        // Cancel any in-progress playback before starting new synthesis.
-        // Without this, a second notification's audio queues behind the first
-        // on the serial queue, causing subtitles to show dispatch 2 while
-        // audio still plays dispatch 1.
+        // Cancel any in-progress playback and subtitle sync before starting new.
         ttsEngine.stopPlayback()
+        await MainActor.run {
+            syncDriver?.stop()
+            syncDriver = nil
+        }
 
         // Detect language to select correct voice (TTS-10)
         let langResult = LanguageDetector.detect(text: fullText)
@@ -219,20 +221,25 @@ final class TelegramBot: @unchecked Sendable {
             case .success(let ttsResult):
                 self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
 
-                // Chunk text into pages, schedule karaoke, THEN start audio.
-                // Sequencing matters: chunkIntoPages() does pixel-width measurement
-                // (100-500ms for long texts). If audio starts before scheduleStart is
-                // anchored in showPages(), subtitles lag behind the spoken words.
-                // By starting playback only after subtitle scheduling completes,
-                // scheduleStart and audio onset are within ~1ms of each other.
+                // Start audio via AVAudioPlayer, then drive subtitles from
+                // player.currentTime via CADisplayLink — no pre-scheduled timers,
+                // no magic delay constants, self-correcting each frame.
                 DispatchQueue.main.async {
                     let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text)
-                    self.subtitlePanel.showPages(pages, wordTimings: ttsResult.wordTimings)
-
-                    // Start audio AFTER subtitle scheduling is anchored
-                    self.ttsEngine.play(wavPath: ttsResult.wavPath) {
+                    guard let player = self.ttsEngine.play(wavPath: ttsResult.wavPath, completion: {
                         self.logger.info("TTS playback complete")
+                    }) else {
+                        self.logger.error("AVAudioPlayer creation failed — skipping subtitles")
+                        return
                     }
+                    let driver = SubtitleSyncDriver(
+                        player: player,
+                        pages: pages,
+                        wordTimings: ttsResult.wordTimings,
+                        subtitlePanel: self.subtitlePanel
+                    )
+                    self.syncDriver = driver
+                    driver.start()
                 }
 
             case .failure(let error):
