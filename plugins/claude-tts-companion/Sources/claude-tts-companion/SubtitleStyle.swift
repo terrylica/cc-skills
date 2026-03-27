@@ -68,14 +68,6 @@ enum SubtitleStyle {
     /// Seconds to keep the last subtitle visible after the final word
     static let lingerDuration: TimeInterval = 2.0
 
-    /// Estimated delay between scheduling subtitles and audio reaching speakers.
-    ///
-    /// When `play()` is called, the WAV file is dispatched to a serial background
-    /// queue, afplay is fork/exec'd, and its audio buffer must fill before sound
-    /// is produced. This constant offsets the subtitle schedule start forward so
-    /// word highlights land in sync with actual audio output.
-    static let audioLaunchDelay: TimeInterval = 0.3
-
     /// Safety fallback: truncate text that overflows the 2-line display
     static let truncatesLastVisibleLine = true
 }

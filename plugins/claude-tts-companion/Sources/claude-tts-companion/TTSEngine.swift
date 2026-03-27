@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Logging
 import CSherpaOnnx
@@ -29,7 +30,7 @@ struct TTSResult {
 /// - Model loads lazily on first `synthesize()` call (TTS-03)
 /// - All synthesis runs on a dedicated serial DispatchQueue (TTS-02)
 /// - Audio written as 24kHz mono 16-bit WAV via SherpaOnnxWriteWave (TTS-08)
-/// - Playback via afplay subprocess (TTS-01)
+/// - Playback via AVAudioPlayer with prepareToPlay() pre-buffering (TTS-01)
 final class TTSEngine: @unchecked Sendable {
 
     private let logger = Logger(label: "tts-engine")
@@ -43,8 +44,11 @@ final class TTSEngine: @unchecked Sendable {
     /// Lock protecting lazy init of ttsInstance
     private let lock = NSLock()
 
-    /// Currently running afplay process (for cancellation)
-    private var playbackProcess: Process?
+    /// Currently playing AVAudioPlayer instance (for cancellation and currentTime polling)
+    private var audioPlayer: AVAudioPlayer?
+
+    /// Delegate that handles playback completion and WAV cleanup
+    private var playbackDelegate: PlaybackDelegate?
 
     /// Path to the last generated WAV (cleaned up before next synthesis)
     private var lastWavPath: String?
@@ -56,7 +60,7 @@ final class TTSEngine: @unchecked Sendable {
     }
 
     deinit {
-        playbackProcess?.terminate()
+        audioPlayer?.stop()
         if let tts = ttsInstance {
             SherpaOnnxDestroyOfflineTts(tts)
         }
@@ -126,34 +130,28 @@ final class TTSEngine: @unchecked Sendable {
         }
     }
 
-    /// Play a WAV file using afplay subprocess.
+    /// Play a WAV file using AVAudioPlayer with prepareToPlay() pre-buffering.
     ///
-    /// Runs on the serial queue so it doesn't block the main thread.
-    /// The completion handler is called when playback finishes.
-    func play(wavPath: String, completion: (() -> Void)? = nil) {
-        queue.async { [self] in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/afplay")
-            process.arguments = [wavPath]
-
-            playbackProcess = process
-
-            process.terminationHandler = { [weak self] _ in
-                self?.playbackProcess = nil
-                // Clean up WAV file after playback completes
-                try? FileManager.default.removeItem(atPath: wavPath)
-                completion?()
-            }
-
-            do {
-                try process.run()
-                logger.info("Playing WAV: \(wavPath)")
-                process.waitUntilExit()
-            } catch {
-                logger.error("afplay failed: \(error)")
-                playbackProcess = nil
-                completion?()
-            }
+    /// Returns the AVAudioPlayer instance so callers (SubtitleSyncDriver) can
+    /// poll `player.currentTime` for drift-free karaoke sync.
+    /// Must be called on the main thread (AVAudioPlayer delegate needs run loop).
+    @discardableResult
+    func play(wavPath: String, completion: (() -> Void)? = nil) -> AVAudioPlayer? {
+        let url = URL(fileURLWithPath: wavPath)
+        do {
+            let player = try AVAudioPlayer(contentsOf: url)
+            let delegate = PlaybackDelegate(wavPath: wavPath, completion: completion, logger: logger)
+            self.playbackDelegate = delegate  // prevent dealloc
+            player.delegate = delegate
+            player.prepareToPlay()
+            player.play()
+            self.audioPlayer = player
+            logger.info("Playing WAV via AVAudioPlayer: \(wavPath) (duration: \(String(format: "%.2f", player.duration))s)")
+            return player
+        } catch {
+            logger.error("AVAudioPlayer failed: \(error)")
+            completion?()
+            return nil
         }
     }
 
@@ -190,8 +188,9 @@ final class TTSEngine: @unchecked Sendable {
 
     /// Stop any currently playing audio.
     func stopPlayback() {
-        playbackProcess?.terminate()
-        playbackProcess = nil
+        audioPlayer?.stop()
+        audioPlayer = nil
+        playbackDelegate = nil
     }
 
     // MARK: - Word Timing Extraction
@@ -311,6 +310,33 @@ final class TTSEngine: @unchecked Sendable {
             try? FileManager.default.removeItem(atPath: path)
             lastWavPath = nil
         }
+    }
+}
+
+// MARK: - Playback Delegate
+
+/// Handles AVAudioPlayer completion: cleans up WAV file and calls completion closure.
+private final class PlaybackDelegate: NSObject, AVAudioPlayerDelegate, @unchecked Sendable {
+    private let wavPath: String
+    private let completion: (() -> Void)?
+    private let logger: Logger
+
+    init(wavPath: String, completion: (() -> Void)?, logger: Logger) {
+        self.wavPath = wavPath
+        self.completion = completion
+        self.logger = logger
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        logger.info("AVAudioPlayer finished (success: \(flag)), cleaning up WAV: \(wavPath)")
+        try? FileManager.default.removeItem(atPath: wavPath)
+        completion?()
+    }
+
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        logger.error("AVAudioPlayer decode error: \(error?.localizedDescription ?? "unknown")")
+        try? FileManager.default.removeItem(atPath: wavPath)
+        completion?()
     }
 }
 
