@@ -213,9 +213,9 @@
 | TTS-11      | Phase 14 | Complete |
 | TTS-12      | Phase 14 | Complete |
 | TTS-13      | Phase 14 | Complete |
-| BTN-01      | Phase 15 | Pending  |
-| BTN-02      | Phase 15 | Pending  |
-| BTN-03      | Phase 15 | Pending  |
+| BTN-01      | Phase 15 | Complete |
+| BTN-02      | Phase 15 | Complete |
+| BTN-03      | Phase 15 | Complete |
 | REL-01      | Phase 16 | Pending  |
 | REL-02      | Phase 16 | Pending  |
 | REL-03      | Phase 16 | Pending  |
@@ -259,9 +259,9 @@
 
 ### Telegram Inline Buttons
 
-- [ ] **BTN-01**: Arc Summary includes Focus Tab, Follow Up, Transcript inline buttons
-- [ ] **BTN-02**: Focus Tab button switches to iTerm tab where session ran
-- [ ] **BTN-03**: Focus Tab deduplication (new notification removes buttons from older message for same tab)
+- [x] **BTN-01**: Arc Summary includes Focus Tab, Follow Up, Transcript inline buttons
+- [x] **BTN-02**: Focus Tab button switches to iTerm tab where session ran
+- [x] **BTN-03**: Focus Tab deduplication (new notification removes buttons from older message for same tab)
 
 ### Integration & Reliability
 
