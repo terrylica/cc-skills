@@ -113,6 +113,7 @@ let notificationWatcher = NotificationWatcher { filePath in
     let sessionId = json["sessionId"] as? String ?? json["session_id"] as? String ?? "unknown"
     let transcriptPath = json["transcriptPath"] as? String ?? json["transcript_path"] as? String
     let cwd = json["cwd"] as? String
+    let itermSessionId = json["itermSessionId"] as? String ?? json["iterm_session_id"] as? String
 
     logger.info("Session notification: \(sessionId)")
 
@@ -176,7 +177,9 @@ let notificationWatcher = NotificationWatcher { filePath in
                     cwd: cwd,
                     gitBranch: gitBranch,
                     startTime: entryStartTime,
-                    lastActivity: entryLastActivity
+                    lastActivity: entryLastActivity,
+                    itermSessionId: itermSessionId,
+                    transcriptPath: tp
                 )
             }
         }
