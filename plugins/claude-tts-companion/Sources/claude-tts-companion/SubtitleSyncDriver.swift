@@ -108,17 +108,6 @@ final class SubtitleSyncDriver {
 
         let t = player.currentTime
 
-        // Detect external stop (player reset to 0 while not playing)
-        if !player.isPlaying && t == 0 && !didFinish {
-            // Could be pre-start or external interruption. If we've already started
-            // and player stopped, treat as finished.
-            if currentLocalWordIndex > 0 {
-                logger.info("SubtitleSyncDriver: player stopped externally at t=0")
-                finishPlayback()
-                return
-            }
-        }
-
         // Find global word index for current time via linear scan of onsets
         var globalIdx = 0
         for i in 0..<wordOnsets.count {
@@ -152,8 +141,10 @@ final class SubtitleSyncDriver {
             subtitlePanel.highlightWord(at: localIndex, in: pages[currentPageIndex].words)
         }
 
-        // Check if playback finished naturally
-        if !player.isPlaying && t > 0 {
+        // Check if playback finished naturally.
+        // AVAudioPlayer may reset currentTime to 0 after finishing,
+        // so also check for !isPlaying when we've advanced past word 0.
+        if !player.isPlaying {
             finishPlayback()
         }
     }
