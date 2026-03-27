@@ -131,6 +131,60 @@ final class TTSEngine: @unchecked Sendable {
     /// of crashing on first use.
     private(set) var isDisabledDueToMissingModel: Bool = false
 
+    // MARK: - TTS Circuit Breaker (P1)
+
+    /// Number of consecutive synthesis failures before disabling TTS temporarily.
+    private static let circuitBreakerThreshold = 3
+
+    /// Duration to keep TTS disabled after hitting the circuit breaker (seconds).
+    private static let circuitBreakerCooldown: TimeInterval = 300  // 5 minutes
+
+    /// Counter of consecutive synthesis failures (reset on success).
+    private var consecutiveFailures: Int = 0
+
+    /// Timestamp when TTS was disabled by the circuit breaker (nil = not tripped).
+    private var circuitBreakerTrippedAt: CFAbsoluteTime?
+
+    /// Lock protecting circuit breaker state (accessed from TTS queue and callers).
+    private let circuitBreakerLock = NSLock()
+
+    /// Check whether TTS is temporarily disabled by the circuit breaker.
+    /// If the cooldown has elapsed, automatically re-enable.
+    var isTTSCircuitBreakerOpen: Bool {
+        circuitBreakerLock.lock()
+        defer { circuitBreakerLock.unlock() }
+        guard let trippedAt = circuitBreakerTrippedAt else { return false }
+        if CFAbsoluteTimeGetCurrent() - trippedAt > TTSEngine.circuitBreakerCooldown {
+            // Cooldown elapsed -- re-enable
+            circuitBreakerTrippedAt = nil
+            consecutiveFailures = 0
+            logger.info("TTS circuit breaker reset after \(Int(TTSEngine.circuitBreakerCooldown))s cooldown")
+            return false
+        }
+        return true
+    }
+
+    /// Record a synthesis success (resets failure counter).
+    private func recordSynthesisSuccess() {
+        circuitBreakerLock.lock()
+        consecutiveFailures = 0
+        circuitBreakerLock.unlock()
+    }
+
+    /// Record a synthesis failure. If threshold exceeded, trip the circuit breaker.
+    private func recordSynthesisFailure() {
+        circuitBreakerLock.lock()
+        consecutiveFailures += 1
+        let failures = consecutiveFailures
+        if failures >= TTSEngine.circuitBreakerThreshold && circuitBreakerTrippedAt == nil {
+            circuitBreakerTrippedAt = CFAbsoluteTimeGetCurrent()
+            circuitBreakerLock.unlock()
+            logger.error("TTS circuit breaker OPEN after \(failures) consecutive failures — TTS disabled for \(Int(TTSEngine.circuitBreakerCooldown))s")
+        } else {
+            circuitBreakerLock.unlock()
+        }
+    }
+
     init() {
         logger.info("TTSEngine created (kokoro-ios MLX, model will load lazily on first synthesis)")
 
@@ -369,6 +423,11 @@ final class TTSEngine: @unchecked Sendable {
             onAllComplete()
             return
         }
+        guard !isTTSCircuitBreakerOpen else {
+            logger.warning("TTS circuit breaker open — skipping streaming synthesis (\(text.count) chars)")
+            onAllComplete()
+            return
+        }
         queue.async { [self] in
             do {
                 // Release cached Metal buffers from previous synthesis sessions.
@@ -402,8 +461,14 @@ final class TTSEngine: @unchecked Sendable {
                         (audio, tokenArray) = try tts.generateAudio(
                             voice: activeVoice, language: .enUS, text: processedSentence, speed: speed
                         )
+                        recordSynthesisSuccess()
                     } catch {
                         logger.error("Synthesis failed for chunk \(index + 1): \(error)")
+                        recordSynthesisFailure()
+                        if isTTSCircuitBreakerOpen {
+                            logger.error("TTS circuit breaker tripped mid-stream — aborting remaining chunks")
+                            break
+                        }
                         continue
                     }
 

@@ -230,6 +230,19 @@ final class TelegramBot: @unchecked Sendable {
         }
         logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), voice=\(langResult.voiceName), streaming=\(Config.streamingTTS)")
 
+        // If TTS is disabled (model missing or circuit breaker open), show subtitle-only fallback
+        if ttsEngine.isDisabledDueToMissingModel || ttsEngine.isTTSCircuitBreakerOpen {
+            logger.warning("TTS unavailable — showing subtitle-only fallback (\(fullText.count) chars)")
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.subtitlePanel.show(text: fullText)
+                DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration + 5.0) { [weak self] in
+                    self?.subtitlePanel.hide()
+                }
+            }
+            return
+        }
+
         if Config.streamingTTS {
             dispatchStreamingTTS(text: fullText, voiceName: langResult.voiceName)
         } else {
@@ -315,7 +328,12 @@ final class TelegramBot: @unchecked Sendable {
                     } else {
                         // No chunks were ever produced (synthesis failed entirely)
                         self.isStreamingInProgress = false
-                        self.logger.warning("Streaming complete with no chunks — clearing in-progress flag")
+                        self.logger.warning("Streaming complete with no chunks — showing subtitle-only fallback")
+                        // Graceful degradation: show the full text as a static subtitle
+                        self.subtitlePanel.show(text: text)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration + 5.0) { [weak self] in
+                            self?.subtitlePanel.hide()
+                        }
                     }
                 }
             }
@@ -359,6 +377,14 @@ final class TelegramBot: @unchecked Sendable {
 
             case .failure(let error):
                 self.logger.error("TTS dispatch failed: \(error)")
+                // Graceful degradation: show subtitle-only text when TTS fails
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.subtitlePanel.show(text: text)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration + 5.0) { [weak self] in
+                        self?.subtitlePanel.hide()
+                    }
+                }
             }
         }
     }
