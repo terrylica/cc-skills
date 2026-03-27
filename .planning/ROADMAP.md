@@ -1,9 +1,12 @@
 # Roadmap: claude-tts-companion
 
+<!-- # SSoT-OK -->
+
 ## Milestones
 
-- 🚧 **v4.5.0 MVP** - Phases 1-10 (in progress)
-- 📋 **v4.6.0 Legacy Pipeline Feature Parity** - Phases 11-16 (planned)
+- ✅ **v4.5.0 MVP** - Phases 1-10 (shipped)
+- ✅ **v4.6.0 Legacy Pipeline Feature Parity** - Phases 11-17 (shipped 2026-03-27)
+- 🚧 **v4.7.0 Architecture Hardening + Feature Expansion** - Phases 18-24 (in progress)
 
 ## Overview
 
@@ -34,14 +37,28 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v4.6.0 Legacy Pipeline Feature Parity (Phases 11-16)
+<details>
+<summary>v4.6.0 Legacy Pipeline Feature Parity (Phases 11-17)</summary>
 
-- [ ] **Phase 11: Notification Formatting** - Rich HTML session notifications with fence-aware chunking and file reference wrapping
-- [ ] **Phase 12: AI Summary Prompts** - Exact legacy prompts ported for Arc Summary, Tail Brief, and single-exchange summarizer
-- [ ] **Phase 13: Auto-Continue Evaluation** - Full legacy evaluation logic with state tracking, rich notifications, and sweep fallback
-- [ ] **Phase 14: TTS Dispatch & Feature Gates** - Wire TTS to Tail Brief output with language detection and per-outlet feature gates
-- [ ] **Phase 15: Telegram Inline Buttons** - Interactive buttons on notifications for Focus Tab, Follow Up, and Transcript
-- [ ] **Phase 16: Integration & Reliability** - Deduplication, rate limiting, circuit breaker, stop hook, and tool breakdown
+- [x] **Phase 11: Notification Formatting** - Rich HTML session notifications with fence-aware chunking and file reference wrapping
+- [x] **Phase 12: AI Summary Prompts** - Exact legacy prompts ported for Arc Summary, Tail Brief, and single-exchange summarizer
+- [x] **Phase 13: Auto-Continue Evaluation** - Full legacy evaluation logic with state tracking, rich notifications, and sweep fallback
+- [x] **Phase 14: TTS Dispatch & Feature Gates** - Wire TTS to Tail Brief output with language detection and per-outlet feature gates
+- [x] **Phase 15: Telegram Inline Buttons** - Interactive buttons on notifications for Focus Tab, Follow Up, and Transcript
+- [x] **Phase 16: Integration & Reliability** - Deduplication, rate limiting, circuit breaker, stop hook, and tool breakdown
+- [x] **Phase 17: TTS Streaming & Subtitle Chunking** - Paged karaoke subtitles with pixel-width chunking and streaming TTS
+
+</details>
+
+### v4.7.0 Architecture Hardening + Feature Expansion (Phases 18-24)
+
+- [ ] **Phase 18: CompanionCore Library & Test Infrastructure** - Extract library target from executable, enable `swift test` with initial unit tests
+- [ ] **Phase 19: TTSEngine Decomposition & Actor Migration** - Decompose god object into isolated components, replace NSLock with actors
+- [ ] **Phase 20: Unit & Integration Tests** - Full test coverage for decomposed components and streaming pipeline
+- [ ] **Phase 21: Pipeline Hardening** - Edge-case resilience for rapid-fire, hardware disconnect, memory pressure, and race conditions
+- [ ] **Phase 22: Bionic Reading Mode** - Bold-prefix word splitting in subtitles with HTTP API and SwiftBar toggles
+- [ ] **Phase 23: Caption History Panel** - Scrollable past-captions panel with timestamps and copy-to-clipboard
+- [ ] **Phase 24: Chinese TTS Fallback** - CJK text routed to sherpa-onnx engine with on-demand model loading
 
 ## Phase Details
 
@@ -225,7 +242,8 @@ Plans:
 
 </details>
 
-### v4.6.0 Legacy Pipeline Feature Parity Phase Details
+<details>
+<summary>v4.6.0 Legacy Pipeline Feature Parity Phase Details (Phases 11-17)</summary>
 
 ### Phase 11: Notification Formatting
 
@@ -338,31 +356,6 @@ Plans:
 
 - [x] 16-01-PLAN.md -- NotificationProcessor with dedup + rate limiting + main.swift wiring + build verification
 
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
-
-| Phase                                 | Plans Complete | Status      | Completed  |
-| ------------------------------------- | -------------- | ----------- | ---------- |
-| 1. Foundation & Build System          | 2/2            | Complete    | -          |
-| 2. Subtitle Overlay                   | 2/2            | Complete    | -          |
-| 3. TTS Engine                         | 1/2            | In progress | -          |
-| 4. AI Summaries                       | 0/0            | Not started | -          |
-| 5. Telegram Bot Core                  | 0/0            | Not started | -          |
-| 6. Telegram Bot Commands              | 2/2            | Complete    | 2026-03-26 |
-| 7. File Watching & Auto-Continue      | 2/2            | Complete    | 2026-03-26 |
-| 8. HTTP Control API                   | 1/2            | In progress | -          |
-| 9. SwiftBar Integration               | 0/0            | Not started | -          |
-| 10. Deployment & Extras               | 2/2            | Complete    | 2026-03-26 |
-| 11. Notification Formatting           | 2/2            | Complete    | 2026-03-27 |
-| 12. AI Summary Prompts                | 2/2            | Complete    | 2026-03-27 |
-| 13. Auto-Continue Evaluation          | 2/2            | Complete    | 2026-03-27 |
-| 14. TTS Dispatch & Feature Gates      | 2/2            | Complete    | 2026-03-27 |
-| 15. Telegram Inline Buttons           | 2/2            | Complete    | 2026-03-27 |
-| 16. Integration & Reliability         | 1/1            | Complete    | 2026-03-27 |
-| 17. TTS Streaming & Subtitle Chunking | 2/2 | Complete    | 2026-03-27 |
-
 ### Phase 17: TTS Streaming & Subtitle Chunking
 
 **Goal**: TTS audio starts playing within 5 seconds of session end; subtitles display one sentence at a time with karaoke word highlighting
@@ -380,3 +373,132 @@ Plans:
 
 - [x] 17-01-PLAN.md -- SubtitleChunker + SubtitlePanel paged karaoke refactor
 - [x] 17-02-PLAN.md -- Wire chunker into TelegramBot.dispatchTTS() + visual verification
+
+</details>
+
+### v4.7.0 Architecture Hardening + Feature Expansion Phase Details
+
+### Phase 18: CompanionCore Library & Test Infrastructure
+
+**Goal**: All business logic is testable via `swift test` through a library target extraction
+**Depends on**: Phase 17 (existing codebase from v4.6.0)
+**Requirements**: ARCH-01, TEST-01
+**Success Criteria** (what must be TRUE):
+
+1. `swift test` runs and passes with at least one unit test for a pure type (e.g., SubtitleChunker or LanguageDetector)
+2. `main.swift` is the only file in the executable target -- all business logic lives in CompanionCore library
+3. `@testable import CompanionCore` works in the test target without build errors
+   **Plans**: TBD
+
+### Phase 19: TTSEngine Decomposition & Actor Migration
+
+**Goal**: TTSEngine is a thin stateless facade delegating to actor-isolated components with compile-time concurrency safety
+**Depends on**: Phase 18
+**Requirements**: ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-06, CONC-01, CONC-02, CONC-03, CONC-04
+**Success Criteria** (what must be TRUE):
+
+1. PlaybackManager owns AVAudioPlayer lifecycle and pre-buffering as a @MainActor-isolated class
+2. WordTimingAligner and PronunciationProcessor are pure structs with no mutable state
+3. TTSEngine delegates all work to extracted components -- it holds no mutable state and no NSLock
+4. All callers (TelegramBot, HTTPControlServer, SubtitleSyncDriver) compile and work against the decomposed API without behavior changes
+5. `swift build` produces zero `@unchecked Sendable` warnings for any TTSEngine-related type
+   **Plans**: TBD
+
+### Phase 20: Unit & Integration Tests
+
+**Goal**: Decomposed components have test coverage that catches regressions before they reach production
+**Depends on**: Phase 19
+**Requirements**: TEST-02, TEST-03, TEST-04, TEST-05
+**Success Criteria** (what must be TRUE):
+
+1. SubtitleChunker tests verify page splitting, line breaks, and font size variants produce correct output
+2. WordTimingAligner tests verify MToken-to-word alignment, onset resolution, and hyphenated word handling
+3. PronunciationProcessor tests verify override dictionary matching and regex boundary behavior
+4. Integration test verifies a mock synthesis produces correctly sequenced chunks through the streaming pipeline
+   **Plans**: TBD
+
+### Phase 21: Pipeline Hardening
+
+**Goal**: The streaming pipeline handles edge cases gracefully without crashes, queue corruption, or resource exhaustion
+**Depends on**: Phase 20
+**Requirements**: HARD-01, HARD-02, HARD-03, HARD-04
+**Success Criteria** (what must be TRUE):
+
+1. Five notifications arriving within 10 seconds are processed without crash or audio queue corruption
+2. Disconnecting Bluetooth headphones mid-playback recovers gracefully (audio resumes on default output or subtitle-only fallback)
+3. Under simulated memory pressure during synthesis, the binary degrades to subtitle-only mode rather than crashing
+4. A TTS test request arriving simultaneously with a real notification does not produce interleaved or corrupted audio
+   **Plans**: TBD
+
+### Phase 22: Bionic Reading Mode
+
+**Goal**: Users can toggle a bold-prefix reading mode that makes subtitle text easier to scan at a glance
+**Depends on**: Phase 18
+**Requirements**: BION-01, BION-02, BION-03, BION-04
+**Success Criteria** (what must be TRUE):
+
+1. User can toggle bionic reading on/off from the SwiftBar settings menu
+2. User can toggle bionic reading on/off via HTTP API endpoint
+3. When enabled, each word in the subtitle renders with bold first ~40% of characters and regular-weight remainder
+4. Bionic rendering and karaoke highlighting are mutually exclusive -- enabling one disables the other
+   **Plans**: TBD
+   **UI hint**: yes
+
+### Phase 23: Caption History Panel
+
+**Goal**: Users can review and copy past subtitle captions from a scrollable panel
+**Depends on**: Phase 18
+**Requirements**: CAPT-01, CAPT-02, CAPT-03, CAPT-04
+**Success Criteria** (what must be TRUE):
+
+1. User can open a scrollable panel showing past captions with HH:MM timestamps
+2. Panel auto-scrolls to the latest caption, but manual scrolling up pauses auto-scroll until user returns to bottom
+3. User can click a caption to copy its text to the clipboard as plain text
+4. Panel is accessible via both a SwiftBar menu button and an HTTP API endpoint
+   **Plans**: TBD
+   **UI hint**: yes
+
+### Phase 24: Chinese TTS Fallback
+
+**Goal**: CJK text is automatically spoken via sherpa-onnx Chinese voice while English continues through the default engine
+**Depends on**: Phase 19
+**Requirements**: CJK-01, CJK-02, CJK-03, CJK-04
+**Success Criteria** (what must be TRUE):
+
+1. Text with >20% CJK characters is synthesized using the sherpa-onnx multilingual engine instead of kokoro-ios MLX
+2. English text continues to use the kokoro-ios MLX engine with no behavior change
+3. The sherpa-onnx Chinese model loads on first CJK request (not at startup) to avoid RSS bloat
+4. If the sherpa-onnx model file is missing or synthesis fails, the system logs a warning and falls back to subtitle-only display
+   **Plans**: TBD
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22 -> 23 -> 24
+
+| Phase                                           | Plans Complete | Status      | Completed  |
+| ----------------------------------------------- | -------------- | ----------- | ---------- |
+| 1. Foundation & Build System                    | 2/2            | Complete    | -          |
+| 2. Subtitle Overlay                             | 2/2            | Complete    | -          |
+| 3. TTS Engine                                   | 1/2            | In progress | -          |
+| 4. AI Summaries                                 | 0/0            | Not started | -          |
+| 5. Telegram Bot Core                            | 0/0            | Not started | -          |
+| 6. Telegram Bot Commands                        | 2/2            | Complete    | 2026-03-26 |
+| 7. File Watching & Auto-Continue                | 2/2            | Complete    | 2026-03-26 |
+| 8. HTTP Control API                             | 1/2            | In progress | -          |
+| 9. SwiftBar Integration                         | 0/0            | Not started | -          |
+| 10. Deployment & Extras                         | 2/2            | Complete    | 2026-03-26 |
+| 11. Notification Formatting                     | 2/2            | Complete    | 2026-03-27 |
+| 12. AI Summary Prompts                          | 2/2            | Complete    | 2026-03-27 |
+| 13. Auto-Continue Evaluation                    | 2/2            | Complete    | 2026-03-27 |
+| 14. TTS Dispatch & Feature Gates                | 2/2            | Complete    | 2026-03-27 |
+| 15. Telegram Inline Buttons                     | 2/2            | Complete    | 2026-03-27 |
+| 16. Integration & Reliability                   | 1/1            | Complete    | 2026-03-27 |
+| 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete    | 2026-03-27 |
+| 18. CompanionCore Library & Test Infrastructure | 0/0            | Not started | -          |
+| 19. TTSEngine Decomposition & Actor Migration   | 0/0            | Not started | -          |
+| 20. Unit & Integration Tests                    | 0/0            | Not started | -          |
+| 21. Pipeline Hardening                          | 0/0            | Not started | -          |
+| 22. Bionic Reading Mode                         | 0/0            | Not started | -          |
+| 23. Caption History Panel                       | 0/0            | Not started | -          |
+| 24. Chinese TTS Fallback                        | 0/0            | Not started | -          |
