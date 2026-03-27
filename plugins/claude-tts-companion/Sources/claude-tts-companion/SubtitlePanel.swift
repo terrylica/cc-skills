@@ -1,4 +1,5 @@
 import AppKit
+import Logging
 
 /// A floating, click-through, screen-sharing-invisible subtitle overlay panel.
 ///
@@ -7,6 +8,8 @@ import AppKit
 /// All UI operations must occur on the main thread.
 @MainActor
 final class SubtitlePanel: NSPanel {
+
+    private let logger = Logger(label: "subtitle-panel")
 
     // MARK: - Karaoke State
 
@@ -26,6 +29,11 @@ final class SubtitlePanel: NSPanel {
     private var lingerWorkItem: DispatchWorkItem?
 
     // MARK: - Subviews
+
+    /// Height constraint for the text field, updated in positionOnScreen() to
+    /// ensure 2 lines of bold text fit. Without this, Auto Layout collapses the
+    /// text field to its intrinsic single-line height.
+    private var textFieldHeightConstraint: NSLayoutConstraint?
 
     /// Background container with rounded corners and translucent fill.
     private let backgroundView: NSView = {
@@ -78,6 +86,7 @@ final class SubtitlePanel: NSPanel {
         textField.stringValue = text
         positionOnScreen()
         orderFrontRegardless()
+        logDiagnostics(label: "show(text:)", text: text)
     }
 
     /// Hide the subtitle panel.
@@ -90,6 +99,7 @@ final class SubtitlePanel: NSPanel {
         textField.attributedStringValue = text
         positionOnScreen()
         orderFrontRegardless()
+        logDiagnostics(label: "updateAttributedText", text: text.string)
     }
 
     /// Build and display an NSAttributedString with karaoke-style word coloring.
@@ -102,6 +112,14 @@ final class SubtitlePanel: NSPanel {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
         paragraphStyle.lineBreakMode = .byWordWrapping
+
+        // Space attributes must include the paragraph style — otherwise the
+        // unstyled space characters get the default paragraph style (which uses
+        // .byClipping), breaking word-wrap for the entire attributed string.
+        let spaceAttributes: [NSAttributedString.Key: Any] = [
+            .font: SubtitleStyle.regularFont,
+            .paragraphStyle: paragraphStyle,
+        ]
 
         for (i, word) in words.enumerated() {
             let color: NSColor
@@ -123,7 +141,7 @@ final class SubtitlePanel: NSPanel {
                 .paragraphStyle: paragraphStyle,
             ]
             if i > 0 {
-                result.append(NSAttributedString(string: " "))
+                result.append(NSAttributedString(string: " ", attributes: spaceAttributes))
             }
             result.append(NSAttributedString(string: word, attributes: attributes))
         }
@@ -269,8 +287,15 @@ final class SubtitlePanel: NSPanel {
             backgroundView.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
 
-        // Text field inside background with padding
+        // Text field inside background with padding.
+        //
+        // Uses a height constraint instead of bottom-pinning to prevent
+        // Auto Layout from collapsing the text field to single-line intrinsic
+        // height (which would shrink the entire window to 57px via the
+        // background → content view → window constraint chain).
         backgroundView.addSubview(textField)
+        let heightConstraint = textField.heightAnchor.constraint(equalToConstant: 0)
+        textFieldHeightConstraint = heightConstraint
         NSLayoutConstraint.activate([
             textField.leadingAnchor.constraint(
                 equalTo: backgroundView.leadingAnchor,
@@ -284,10 +309,7 @@ final class SubtitlePanel: NSPanel {
                 equalTo: backgroundView.topAnchor,
                 constant: SubtitleStyle.verticalPadding
             ),
-            textField.bottomAnchor.constraint(
-                equalTo: backgroundView.bottomAnchor,
-                constant: -SubtitleStyle.verticalPadding
-            ),
+            heightConstraint,
         ])
     }
 
@@ -300,7 +322,12 @@ final class SubtitlePanel: NSPanel {
 
         // Height sized for 2 lines of bold text (karaoke current word is bold)
         // plus inter-line spacing. Use ceil to avoid sub-pixel clipping.
-        let lineHeight = ceil(SubtitleStyle.currentWordFont.boundingRectForFont.height)
+        //
+        // NOTE: `boundingRectForFont.height` is the tight glyph bounding box
+        // (~14pt for 28pt font), NOT the typographic line height (~34pt).
+        // The correct line height is ascender - descender + leading.
+        let font = SubtitleStyle.currentWordFont
+        let lineHeight = ceil(font.ascender - font.descender + font.leading)
         let interLineSpacing: CGFloat = 4
         let panelHeight = lineHeight * CGFloat(SubtitleStyle.maxLines)
             + interLineSpacing
@@ -310,10 +337,91 @@ final class SubtitlePanel: NSPanel {
         let y = screen.frame.origin.y + SubtitleStyle.bottomOffset
 
         let frame = NSRect(x: x, y: y, width: panelWidth, height: panelHeight)
+
+        // Update the text field height constraint to match 2 lines.
+        // This drives Auto Layout to size the window correctly instead of
+        // collapsing to the text field's intrinsic single-line height.
+        let textFieldHeight = panelHeight - SubtitleStyle.verticalPadding * 2
+        textFieldHeightConstraint?.constant = textFieldHeight
+
         setFrame(frame, display: true)
 
         // Tell the text field the width at which to wrap (required for multi-line layout)
         let textWidth = panelWidth - SubtitleStyle.horizontalPadding * 2
         textField.preferredMaxLayoutWidth = textWidth
+    }
+
+    // MARK: - Diagnostic Logging
+
+    /// Log panel and text field dimensions for wrapping diagnostics.
+    ///
+    /// Since the panel has `sharingType = .none` (invisible to screenshots),
+    /// log-based telemetry is the only way to verify multi-line rendering.
+    private func logDiagnostics(label: String, text: String) {
+        let panelFrame = frame
+        let tfFrame = textField.frame
+        let prefMaxWidth = textField.preferredMaxLayoutWidth
+        let maxLines = textField.maximumNumberOfLines
+
+        // Measure the text width using the bold font (worst-case width)
+        let measuredWidth = SubtitleChunker.measureWidth(text)
+        let availableWidth = tfFrame.width
+
+        // Count rendered lines using NSLayoutManager for accurate line fragment enumeration
+        let renderedLines: Int
+        if !text.isEmpty {
+            let attrStr: NSAttributedString
+            if textField.attributedStringValue.length > 0 {
+                attrStr = textField.attributedStringValue
+            } else {
+                attrStr = NSAttributedString(
+                    string: text,
+                    attributes: [.font: SubtitleStyle.regularFont]
+                )
+            }
+            // Ensure the measurement uses word wrapping (matches the text field config)
+            let measuredAttr = NSMutableAttributedString(attributedString: attrStr)
+            if measuredAttr.length > 0 {
+                let ps = NSMutableParagraphStyle()
+                ps.lineBreakMode = .byWordWrapping
+                measuredAttr.addAttribute(
+                    .paragraphStyle, value: ps,
+                    range: NSRange(location: 0, length: measuredAttr.length)
+                )
+            }
+            let textStorage = NSTextStorage(attributedString: measuredAttr)
+            let layoutManager = NSLayoutManager()
+            let textContainer = NSTextContainer(
+                size: NSSize(width: availableWidth, height: .greatestFiniteMagnitude)
+            )
+            textContainer.lineFragmentPadding = 0
+            layoutManager.addTextContainer(textContainer)
+            textStorage.addLayoutManager(layoutManager)
+
+            // Force layout then count line fragments
+            layoutManager.ensureLayout(for: textContainer)
+            var lineCount = 0
+            var index = 0
+            let glyphRange = layoutManager.glyphRange(for: textContainer)
+            while index < NSMaxRange(glyphRange) {
+                var lineRange = NSRange()
+                layoutManager.lineFragmentRect(forGlyphAt: index, effectiveRange: &lineRange)
+                lineCount += 1
+                index = NSMaxRange(lineRange)
+            }
+            renderedLines = lineCount
+        } else {
+            renderedLines = 0
+        }
+
+        logger.info("""
+            [\(label)] panel=\(Int(panelFrame.width))x\(Int(panelFrame.height)) \
+            tf=\(Int(tfFrame.width))x\(Int(tfFrame.height)) \
+            prefMaxW=\(Int(prefMaxWidth)) maxLines=\(maxLines) \
+            measuredW=\(Int(measuredWidth)) availW=\(Int(availableWidth)) \
+            renderedLines=\(renderedLines) \
+            wraps=\(measuredWidth > availableWidth) \
+            text=\"\(text.prefix(80))\"
+            """)
     }
 }
