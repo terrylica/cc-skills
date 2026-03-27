@@ -204,12 +204,9 @@ final class TelegramBot: @unchecked Sendable {
             fullText = text
         }
 
-        // Cancel any in-progress playback and subtitle sync before starting new.
-        ttsEngine.stopPlayback()
-        await MainActor.run {
-            syncDriver?.stop()
-            syncDriver = nil
-        }
+        // Don't cancel current playback here — synthesis takes 1-2 minutes.
+        // Let the current audio+subtitles finish naturally. We cancel only
+        // when the NEW audio is ready to play (inside the success handler below).
 
         // Detect language to select correct voice (TTS-10)
         let langResult = LanguageDetector.detect(text: fullText)
@@ -221,10 +218,17 @@ final class TelegramBot: @unchecked Sendable {
             case .success(let ttsResult):
                 self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
 
+                // Cancel previous playback only when new audio is ready.
+                // This lets the current TTS finish naturally during the ~2min synthesis.
+                self.ttsEngine.stopPlayback()
+
                 // Start audio via AVAudioPlayer, then drive subtitles from
                 // player.currentTime via CADisplayLink — no pre-scheduled timers,
                 // no magic delay constants, self-correcting each frame.
                 DispatchQueue.main.async {
+                    self.syncDriver?.stop()
+                    self.syncDriver = nil
+
                     let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text)
                     guard let player = self.ttsEngine.play(wavPath: ttsResult.wavPath, completion: {
                         self.logger.info("TTS playback complete")
