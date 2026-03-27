@@ -80,6 +80,7 @@ if let token = Config.telegramBotToken, let chatIdStr = Config.telegramChatId, l
         subtitlePanel: subtitlePanel
     )
     telegramBot = bot
+    httpServer.setBot(bot)
     Task {
         do {
             try await bot.start()
