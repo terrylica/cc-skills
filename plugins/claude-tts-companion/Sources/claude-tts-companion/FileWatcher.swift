@@ -14,7 +14,8 @@ final class NotificationWatcher: @unchecked Sendable {
     private let logger = Logger(label: "notification-watcher")
     private let directoryPath: String
     private var source: DispatchSourceTimer?
-    private var knownFiles: Set<String>
+    /// Maps filename → last known modification date. Detects both new files AND overwrites.
+    private var knownFiles: [String: Date]
     private let lock = NSLock()
     private let callback: (String) -> Void
 
@@ -22,16 +23,22 @@ final class NotificationWatcher: @unchecked Sendable {
     ///
     /// - Parameters:
     ///   - directory: Path to watch (defaults to `Config.notificationDir`)
-    ///   - callback: Called with the full path of each newly detected .json file
+    ///   - callback: Called with the full path of each newly detected or modified .json file
     init(directory: String = Config.notificationDir, callback: @escaping (String) -> Void) {
         self.directoryPath = directory
         self.callback = callback
 
-        // Snapshot existing files so we only fire on NEW arrivals
-        var existing = Set<String>()
+        // Snapshot existing files WITH modification dates so we detect overwrites
+        var existing: [String: Date] = [:]
         if let contents = try? FileManager.default.contentsOfDirectory(atPath: directory) {
             for filename in contents where filename.hasSuffix(".json") {
-                existing.insert(filename)
+                let path = (directory as NSString).appendingPathComponent(filename)
+                if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+                   let mtime = attrs[.modificationDate] as? Date {
+                    existing[filename] = mtime
+                } else {
+                    existing[filename] = Date.distantPast
+                }
             }
         }
         self.knownFiles = existing
@@ -72,24 +79,43 @@ final class NotificationWatcher: @unchecked Sendable {
 
     // MARK: - Private
 
-    /// Scan directory for .json files not yet in knownFiles, fire callback for each new one.
+    /// Scan directory for new or modified .json files, fire callback for each.
     private func scanForNewFiles() {
         guard let contents = try? FileManager.default.contentsOfDirectory(atPath: directoryPath) else {
             return
         }
 
         let jsonFiles = contents.filter { $0.hasSuffix(".json") }
+        var changed: [String] = []
 
         lock.lock()
-        let newFiles = jsonFiles.filter { !knownFiles.contains($0) }
-        for filename in newFiles {
-            knownFiles.insert(filename)
+        for filename in jsonFiles {
+            let path = (directoryPath as NSString).appendingPathComponent(filename)
+            let mtime: Date
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+               let mt = attrs[.modificationDate] as? Date {
+                mtime = mt
+            } else {
+                continue
+            }
+
+            if let lastSeen = knownFiles[filename] {
+                // File exists — check if modified since last seen
+                if mtime > lastSeen {
+                    knownFiles[filename] = mtime
+                    changed.append(filename)
+                }
+            } else {
+                // New file
+                knownFiles[filename] = mtime
+                changed.append(filename)
+            }
         }
         lock.unlock()
 
-        for filename in newFiles {
+        for filename in changed {
             let fullPath = (directoryPath as NSString).appendingPathComponent(filename)
-            logger.debug("New notification file: \(filename)")
+            logger.debug("Notification file changed: \(filename)")
             callback(fullPath)
         }
     }
