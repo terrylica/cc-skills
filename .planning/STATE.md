@@ -1,36 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.5.0
-milestone_name: MVP
-status: verifying
-stopped_at: Completed 17-02-PLAN.md
-last_updated: "2026-03-27T05:09:18.956Z"
+milestone: v4.7.0
+milestone_name: Architecture Hardening + Feature Expansion
+status: planning
+stopped_at: Milestone initialized
+last_updated: "2026-03-27T00:00:00.000Z"
 last_activity: 2026-03-27
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 13
-  completed_plans: 13
-  percent: 59
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
+
+<!-- # SSoT-OK -->
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 17 — tts-streaming-subtitle-chunking
+**Current focus:** Defining requirements for v4.7.0
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-27
-
-Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, v4.6.0 starting)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-27 — Milestone v4.7.0 started
 
 ## Performance Metrics
 
