@@ -8,48 +8,57 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 
 **See what Claude says, anywhere** — real-time karaoke subtitles overlaid on your macOS screen, synced with TTS playback or displayed standalone when audio is off. One binary, one service, one control surface.
 
-## Current Milestone: v4.6.0 Legacy Pipeline Feature Parity
+<!-- SSoT-OK: planning document, not a package version --> <!-- # SSoT-OK -->
 
-**Goal:** Port the working Telegram + TTS notification pipeline from the legacy TypeScript system to claude-tts-companion with full feature parity.
+## Current Milestone: v4.7.0 Architecture Hardening + Feature Expansion
+
+**Goal:** Decompose TTSEngine into testable components, harden the streaming pipeline with actor concurrency and edge-case coverage, then expand with Chinese TTS fallback, bionic reading, caption history, and Focus/DND awareness.
 
 **Target features:**
 
-- Session-end notification with rich HTML formatting (repo, commit, branch, duration, turns, tool breakdown)
-- Arc Summary + Tail Brief generation via MiniMax with exact legacy prompts
-- Auto-continue evaluation (CONTINUE/SWEEP/REDIRECT/DONE) with Telegram delivery
-- TTS dispatch of Tail Brief via Kokoro af_heart with karaoke subtitles
-- Stop hook integration and inline Telegram buttons
-- Circuit breaker + error handling matching legacy reliability
-
-**Source:** `~/.claude/automation/claude-telegram-sync/` (port directly, don't reinvent)
+- TTSEngine decomposition into PlaybackManager, WordTimingAligner, PronunciationProcessor
+- Actor-based concurrency replacing @unchecked Sendable + NSLock
+- Streaming pipeline edge-case hardening (rapid-fire, hardware disconnect, memory pressure)
+- XCTest infrastructure with unit + integration tests
+- Chinese TTS fallback via sherpa-onnx for CJK text
+- Bionic reading mode (bold/regular word splitting)
+- Scrollable caption history panel
+- Focus/DND awareness (suppress audio in Focus mode)
 
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+<!-- # SSoT-OK -->
+
+- ✓ Unified Swift binary replacing telegram-bot-runner + bun bot + python TTS server — v4.5.0
+- ✓ Word-level karaoke subtitle overlay with gold highlighting — v4.5.0
+- ✓ Kokoro TTS synthesis (kokoro-ios MLX Metal GPU) — v4.5.0/v4.6.0
+- ✓ Subtitle timing from duration model timestamps — v4.5.0
+- ✓ Telegram bot via swift-telegram-sdk (long polling) — v4.5.0
+- ✓ AI session summaries via MiniMax API — v4.5.0
+- ✓ JSONL transcript parsing — v4.5.0
+- ✓ File watcher for notification files — v4.5.0
+- ✓ Auto-continue hook with MiniMax evaluation — v4.6.0
+- ✓ HTTP control API — v4.5.0
+- ✓ SwiftBar integration — v4.5.0
+- ✓ Screen sharing auto-hide — v4.5.0
+- ✓ Single launchd service — v4.5.0
+- ✓ Rich HTML session notifications with legacy formatting parity — v4.6.0
+- ✓ Inline Telegram buttons (Focus Tab/Follow Up/Transcript) — v4.6.0
+- ✓ Feature-gated CJK language detection — v4.6.0
+- ✓ Paged karaoke subtitles with pixel-width chunking — v4.6.0
 
 ### Active
 
-- [ ] Unified Swift binary replacing telegram-bot-runner + bun bot + python TTS server
-- [ ] Word-level karaoke subtitle overlay with gold highlighting (NSPanel, NSAttributedString)
-- [ ] Kokoro TTS synthesis via sherpa-onnx (int8 quantized, 561MB peak RSS)
-- [ ] Subtitle timing from duration model timestamps (zero-drift, zero-cost)
-- [ ] Telegram bot via swift-telegram-sdk (long polling, no Vapor)
-- [ ] AI session summaries via MiniMax API (URLSession)
-- [ ] JSONL transcript parsing (Foundation, line-by-line streaming at 67 MB/s)
-- [ ] Claude CLI subprocess integration (Process + Pipe, streaming NDJSON)
-- [ ] File watcher for notification files (DispatchSource + FSEvents)
-- [ ] JSONL file tailing for thinking watcher (offset-based, 0.34ms P95)
-- [ ] Auto-continue hook with MiniMax evaluation
-- [ ] HTTP control API (settings, health, subtitle, TTS endpoints)
-- [ ] SwiftBar integration (font size S/M/L, position top/center/bottom, screen selection)
-- [ ] Screen sharing auto-hide (NSWindow.sharingType = .none)
-- [ ] MacBook built-in display default, configurable to external
-- [ ] Scrollable caption history
-- [ ] Copy-to-clipboard for subtitle text
-- [ ] Single launchd service (com.example.claude-tts-companion)
-- [ ] Updated SwiftBar plugin (claude-hq v3.0.0) monitoring unified service
+- [ ] TTSEngine decomposition into PlaybackManager, WordTimingAligner, PronunciationProcessor
+- [ ] Actor-based concurrency replacing @unchecked Sendable + NSLock
+- [ ] Streaming pipeline edge-case hardening (rapid-fire, hardware disconnect, memory pressure)
+- [ ] XCTest infrastructure with unit + integration tests
+- [ ] Chinese TTS fallback via sherpa-onnx for CJK text
+- [ ] Bionic reading mode (bold/regular word splitting in subtitles)
+- [ ] Scrollable caption history panel with copy-to-clipboard
+- [ ] Focus/DND awareness (suppress audio in Focus mode)
 
 ### Out of Scope
 
@@ -125,4 +134,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-_Last updated: 2026-03-25 after initialization_
+_Last updated: 2026-03-27 after v4.7.0 milestone start_ <!-- # SSoT-OK -->
