@@ -67,4 +67,7 @@ enum SubtitleStyle {
 
     /// Seconds to keep the last subtitle visible after the final word
     static let lingerDuration: TimeInterval = 2.0
+
+    /// Safety fallback: truncate text that overflows the 2-line display
+    static let truncatesLastVisibleLine = true
 }
