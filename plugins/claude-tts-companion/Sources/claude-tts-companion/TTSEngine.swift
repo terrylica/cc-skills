@@ -34,6 +34,7 @@ struct TTSResult {
 /// - Audio written as 24kHz mono float32 WAV via AVAudioFile (TTS-08)
 /// - Playback via AVAudioPlayer with prepareToPlay() pre-buffering (TTS-01)
 /// - Word timestamps extracted natively from MToken.start_ts/end_ts (no C++ patches)
+/// - Text preprocessing fixes mispronounced words before phonemization (TTS-09)
 final class TTSEngine: @unchecked Sendable {
 
     private let logger = Logger(label: "tts-engine")
@@ -61,6 +62,49 @@ final class TTSEngine: @unchecked Sendable {
 
     /// Path to the last generated WAV (cleaned up before next synthesis)
     private var lastWavPath: String?
+
+    // MARK: - Pronunciation Overrides (TTS-09)
+
+    /// Words the Kokoro/Misaki phonemizer mispronounces, mapped to phonetically-correct
+    /// replacements. Keys are case-insensitive regex patterns; values are the replacement text.
+    /// The replacement must produce correct pronunciation when fed through the G2P pipeline.
+    ///
+    /// Example: "plugin" is phonemized as "plu-gin" instead of "plug-in".
+    /// Replacing with "plug-in" (hyphenated) guides the phonemizer to the correct syllable break.
+    private static let pronunciationOverrides: [(pattern: String, replacement: String)] = [
+        ("\\bplugin\\b", "plug-in"),
+        ("\\bplugins\\b", "plug-ins"),
+        ("\\bPlugins\\b", "Plug-ins"),
+        ("\\bPlugin\\b", "Plug-in"),
+    ]
+
+    /// Pre-compiled regex patterns for pronunciation overrides (compiled once, reused across calls).
+    private static let compiledOverrides: [(regex: NSRegularExpression, replacement: String)] = {
+        pronunciationOverrides.compactMap { entry in
+            guard let regex = try? NSRegularExpression(
+                pattern: entry.pattern,
+                options: []
+            ) else { return nil }
+            return (regex: regex, replacement: entry.replacement)
+        }
+    }()
+
+    /// Apply pronunciation overrides to text before passing to the TTS engine.
+    ///
+    /// This is a pre-phonemization text substitution: it replaces words that the
+    /// Misaki G2P phonemizer handles incorrectly with phonetically-equivalent alternatives
+    /// that produce correct pronunciation.
+    static func preprocessText(_ text: String) -> String {
+        var result = text
+        for override in compiledOverrides {
+            let range = NSRange(result.startIndex..., in: result)
+            result = override.regex.stringByReplacingMatches(
+                in: result, options: [], range: range,
+                withTemplate: override.replacement
+            )
+        }
+        return result
+    }
 
     // MARK: - Lifecycle
 
@@ -99,12 +143,14 @@ final class TTSEngine: @unchecked Sendable {
                 let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
                 lastWavPath = wavPath
 
+                // Apply pronunciation overrides before phonemization (TTS-09)
+                let processedText = TTSEngine.preprocessText(text)
                 logger.info("Synthesizing \(text.count) chars, voice=\(voiceName), speed=\(speed)")
                 let startTime = CFAbsoluteTimeGetCurrent()
 
                 // Generate audio via kokoro-ios MLX
                 let (audio, _) = try tts.generateAudio(
-                    voice: activeVoice, language: .enUS, text: text, speed: speed
+                    voice: activeVoice, language: .enUS, text: processedText, speed: speed
                 )
 
                 let audioDuration = Double(audio.count) / 24000.0
@@ -171,11 +217,13 @@ final class TTSEngine: @unchecked Sendable {
                 let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
                 lastWavPath = wavPath
 
+                // Apply pronunciation overrides before phonemization (TTS-09)
+                let processedText = TTSEngine.preprocessText(text)
                 logger.info("Synthesizing with timestamps: \(text.count) chars, voice=\(voiceName), speed=\(speed)")
                 let startTime = CFAbsoluteTimeGetCurrent()
 
                 let (audio, tokenArray) = try tts.generateAudio(
-                    voice: activeVoice, language: .enUS, text: text, speed: speed
+                    voice: activeVoice, language: .enUS, text: processedText, speed: speed
                 )
 
                 let audioDuration = Double(audio.count) / 24000.0
@@ -254,13 +302,15 @@ final class TTSEngine: @unchecked Sendable {
                 for (index, sentence) in sentences.enumerated() {
                     let wavPath = NSTemporaryDirectory() + "tts-stream-\(UUID().uuidString).wav"
 
+                    // Apply pronunciation overrides before phonemization (TTS-09)
+                    let processedSentence = TTSEngine.preprocessText(sentence)
                     logger.info("Synthesizing chunk \(index + 1)/\(totalChunks): \(sentence.count) chars")
                     let startTime = CFAbsoluteTimeGetCurrent()
 
                     let (audio, tokenArray): ([Float], [MToken]?)
                     do {
                         (audio, tokenArray) = try tts.generateAudio(
-                            voice: activeVoice, language: .enUS, text: sentence, speed: speed
+                            voice: activeVoice, language: .enUS, text: processedSentence, speed: speed
                         )
                     } catch {
                         logger.error("Synthesis failed for chunk \(index + 1): \(error)")
