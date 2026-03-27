@@ -1,7 +1,9 @@
 import AVFoundation
 import Foundation
+import KokoroSwift
 import Logging
-import CSherpaOnnx
+import MLX
+import MLXUtilsLibrary
 
 /// Result of a TTS synthesis operation.
 struct SynthesisResult {
@@ -9,7 +11,7 @@ struct SynthesisResult {
     let wavPath: String
     /// Duration of the generated audio in seconds
     let audioDuration: TimeInterval
-    /// Raw duration tensor values per token (nil if model doesn't support timestamps)
+    /// Raw duration tensor values per token (nil for kokoro-ios -- use MToken timestamps instead)
     let durations: [Float]?
 }
 
@@ -25,12 +27,13 @@ struct TTSResult {
     let audioDuration: TimeInterval
 }
 
-/// Wraps sherpa-onnx Kokoro TTS for speech synthesis with word-level timestamps.
+/// Wraps kokoro-ios MLX TTS for speech synthesis with word-level timestamps.
 ///
 /// - Model loads lazily on first `synthesize()` call (TTS-03)
 /// - All synthesis runs on a dedicated serial DispatchQueue (TTS-02)
-/// - Audio written as 24kHz mono 16-bit WAV via SherpaOnnxWriteWave (TTS-08)
+/// - Audio written as 24kHz mono float32 WAV via AVAudioFile (TTS-08)
 /// - Playback via AVAudioPlayer with prepareToPlay() pre-buffering (TTS-01)
+/// - Word timestamps extracted natively from MToken.start_ts/end_ts (no C++ patches)
 final class TTSEngine: @unchecked Sendable {
 
     private let logger = Logger(label: "tts-engine")
@@ -38,8 +41,14 @@ final class TTSEngine: @unchecked Sendable {
     /// Dedicated serial queue for all TTS work -- never blocks main thread (TTS-02)
     private let queue = DispatchQueue(label: "com.terryli.tts-engine", qos: .userInitiated)
 
-    /// Lazily-initialized sherpa-onnx TTS instance (TTS-03)
-    private var ttsInstance: OpaquePointer?
+    /// Lazily-initialized kokoro-ios TTS instance (TTS-03)
+    private var ttsInstance: KokoroTTS?
+
+    /// All voice embeddings loaded from voices.npz
+    private var voicesDict: [String: MLXArray]?
+
+    /// Currently active voice embedding
+    private var voice: MLXArray?
 
     /// Lock protecting lazy init of ttsInstance
     private let lock = NSLock()
@@ -56,14 +65,14 @@ final class TTSEngine: @unchecked Sendable {
     // MARK: - Lifecycle
 
     init() {
-        logger.info("TTSEngine created (model will load lazily on first synthesis)")
+        logger.info("TTSEngine created (kokoro-ios MLX, model will load lazily on first synthesis)")
     }
 
     deinit {
         audioPlayer?.stop()
-        if let tts = ttsInstance {
-            SherpaOnnxDestroyOfflineTts(tts)
-        }
+        ttsInstance = nil
+        voicesDict = nil
+        voice = nil
         cleanupLastWav()
     }
 
@@ -73,46 +82,35 @@ final class TTSEngine: @unchecked Sendable {
     ///
     /// - Parameters:
     ///   - text: The text to synthesize
-    ///   - speakerId: Speaker ID for multi-speaker models (default: 0)
-    ///   - speed: Speech speed multiplier (default: 1.0)
+    ///   - voiceName: Voice embedding name (default: Config.defaultVoiceName)
+    ///   - speed: Speech speed multiplier (default: 1.2)
     ///   - completion: Called with the synthesis result or error
     func synthesize(
         text: String,
-        speakerId: Int32 = Config.defaultSpeakerId,
+        voiceName: String = Config.defaultVoiceName,
         speed: Float = 1.2,
         completion: @escaping (Result<SynthesisResult, Error>) -> Void
     ) {
         queue.async { [self] in
             do {
                 let tts = try ensureModelLoaded()
+                let activeVoice = voiceForName(voiceName)
 
                 let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
                 lastWavPath = wavPath
 
-                logger.info("Synthesizing \(text.count) chars, speaker=\(speakerId), speed=\(speed)")
+                logger.info("Synthesizing \(text.count) chars, voice=\(voiceName), speed=\(speed)")
                 let startTime = CFAbsoluteTimeGetCurrent()
 
-                // Generate audio via sherpa-onnx C API
-                guard let result = SherpaOnnxOfflineTtsGenerate(tts, text, speakerId, speed) else {
-                    throw TTSError.synthesisReturnedNil
-                }
+                // Generate audio via kokoro-ios MLX
+                let (audio, _) = try tts.generateAudio(
+                    voice: activeVoice, language: .enUS, text: text, speed: speed
+                )
 
-                let n = result.pointee.n
-                let sampleRate = result.pointee.sample_rate
-                let samples = result.pointee.samples
+                let audioDuration = Double(audio.count) / 24000.0
 
-                // Write WAV file
-                let writeResult = SherpaOnnxWriteWave(samples, n, sampleRate, wavPath)
-                guard writeResult == 1 else {
-                    SherpaOnnxDestroyOfflineTtsGeneratedAudio(result)
-                    throw TTSError.wavWriteFailed(path: wavPath)
-                }
-
-                // Compute audio duration
-                let audioDuration = Double(n) / Double(sampleRate)
-
-                // Free the C struct
-                SherpaOnnxDestroyOfflineTtsGeneratedAudio(result)
+                // Write WAV file using AVAudioFile
+                try writeWav(samples: audio, to: wavPath)
 
                 let elapsed = CFAbsoluteTimeGetCurrent() - startTime
                 let rtf = elapsed / audioDuration
@@ -157,30 +155,55 @@ final class TTSEngine: @unchecked Sendable {
 
     /// Synthesize text and extract per-word timing data for karaoke highlighting.
     ///
-    /// Combines `synthesize()` with `extractWordTimings()` into a single call that
+    /// Combines `synthesize()` with native MToken timestamps into a single call that
     /// returns everything needed to drive SubtitlePanel.showUtterance().
     func synthesizeWithTimestamps(
         text: String,
-        speakerId: Int32 = Config.defaultSpeakerId,
+        voiceName: String = Config.defaultVoiceName,
         speed: Float = 1.2,
         completion: @escaping (Result<TTSResult, Error>) -> Void
     ) {
-        synthesize(text: text, speakerId: speakerId, speed: speed) { result in
-            switch result {
-            case .success(let synth):
-                let timings = TTSEngine.extractWordTimings(
-                    text: text,
-                    audioDuration: synth.audioDuration,
-                    rawDurations: synth.durations ?? []
+        queue.async { [self] in
+            do {
+                let tts = try ensureModelLoaded()
+                let activeVoice = voiceForName(voiceName)
+
+                let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
+                lastWavPath = wavPath
+
+                logger.info("Synthesizing with timestamps: \(text.count) chars, voice=\(voiceName), speed=\(speed)")
+                let startTime = CFAbsoluteTimeGetCurrent()
+
+                let (audio, tokenArray) = try tts.generateAudio(
+                    voice: activeVoice, language: .enUS, text: text, speed: speed
                 )
+
+                let audioDuration = Double(audio.count) / 24000.0
+                try writeWav(samples: audio, to: wavPath)
+
+                let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+                let rtf = elapsed / audioDuration
+                logger.info("Synthesis complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
+
+                // Extract native word timestamps from MToken array
+                let nativeTimings = TTSEngine.extractTimingsFromTokens(tokenArray)
+                let timings: [TimeInterval]
+                if nativeTimings.isEmpty {
+                    logger.warning("No native timestamps from kokoro-ios, falling back to character-weighted")
+                    timings = TTSEngine.extractWordTimings(text: text, audioDuration: audioDuration)
+                } else {
+                    timings = nativeTimings
+                }
+
                 let ttsResult = TTSResult(
-                    wavPath: synth.wavPath,
+                    wavPath: wavPath,
                     text: text,
                     wordTimings: timings,
-                    audioDuration: synth.audioDuration
+                    audioDuration: audioDuration
                 )
                 completion(.success(ttsResult))
-            case .failure(let error):
+            } catch {
+                logger.error("Synthesis with timestamps failed: \(error)")
                 completion(.failure(error))
             }
         }
@@ -206,13 +229,13 @@ final class TTSEngine: @unchecked Sendable {
     ///
     /// - Parameters:
     ///   - text: Full text to synthesize
-    ///   - speakerId: Speaker ID for multi-speaker models
+    ///   - voiceName: Voice embedding name
     ///   - speed: Speech speed multiplier
     ///   - onChunkReady: Called on the TTS queue for each completed sentence chunk
     ///   - onAllComplete: Called on the TTS queue when all chunks are synthesized
     func synthesizeStreaming(
         text: String,
-        speakerId: Int32 = Config.defaultSpeakerId,
+        voiceName: String = Config.defaultVoiceName,
         speed: Float = 1.2,
         onChunkReady: @escaping (ChunkResult) -> Void,
         onAllComplete: @escaping () -> Void
@@ -220,6 +243,7 @@ final class TTSEngine: @unchecked Sendable {
         queue.async { [self] in
             do {
                 let tts = try ensureModelLoaded()
+                let activeVoice = voiceForName(voiceName)
 
                 let sentences = TTSEngine.splitIntoSentences(text)
                 let totalChunks = sentences.count
@@ -233,30 +257,34 @@ final class TTSEngine: @unchecked Sendable {
                     logger.info("Synthesizing chunk \(index + 1)/\(totalChunks): \(sentence.count) chars")
                     let startTime = CFAbsoluteTimeGetCurrent()
 
-                    guard let result = SherpaOnnxOfflineTtsGenerate(tts, sentence, speakerId, speed) else {
-                        logger.error("Synthesis returned nil for chunk \(index + 1)")
+                    let (audio, tokenArray): ([Float], [MToken]?)
+                    do {
+                        (audio, tokenArray) = try tts.generateAudio(
+                            voice: activeVoice, language: .enUS, text: sentence, speed: speed
+                        )
+                    } catch {
+                        logger.error("Synthesis failed for chunk \(index + 1): \(error)")
                         continue
                     }
 
-                    let n = result.pointee.n
-                    let sampleRate = result.pointee.sample_rate
-                    let samples = result.pointee.samples
+                    let audioDuration = Double(audio.count) / 24000.0
 
-                    let writeResult = SherpaOnnxWriteWave(samples, n, sampleRate, wavPath)
-                    guard writeResult == 1 else {
-                        SherpaOnnxDestroyOfflineTtsGeneratedAudio(result)
-                        logger.error("WAV write failed for chunk \(index + 1)")
+                    do {
+                        try writeWav(samples: audio, to: wavPath)
+                    } catch {
+                        logger.error("WAV write failed for chunk \(index + 1): \(error)")
                         continue
                     }
-
-                    let audioDuration = Double(n) / Double(sampleRate)
-                    SherpaOnnxDestroyOfflineTtsGeneratedAudio(result)
 
                     let elapsed = CFAbsoluteTimeGetCurrent() - startTime
                     let rtf = elapsed / audioDuration
                     logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
 
-                    let timings = TTSEngine.extractWordTimings(text: sentence, audioDuration: audioDuration)
+                    // Extract native word timestamps, fallback to character-weighted
+                    let nativeTimings = TTSEngine.extractTimingsFromTokens(tokenArray)
+                    let timings = nativeTimings.isEmpty
+                        ? TTSEngine.extractWordTimings(text: sentence, audioDuration: audioDuration)
+                        : nativeTimings
 
                     let chunk = ChunkResult(
                         wavPath: wavPath,
@@ -348,7 +376,32 @@ final class TTSEngine: @unchecked Sendable {
 
     // MARK: - Word Timing Extraction
 
-    /// Extract per-word onset timings from the total audio duration.
+    /// Extract per-word durations from native MToken timestamps.
+    ///
+    /// Filters out punctuation-only tokens and maps each word's start_ts/end_ts
+    /// to a duration value. Returns empty array if no timestamps available (triggers fallback).
+    static func extractTimingsFromTokens(_ tokens: [MToken]?) -> [TimeInterval] {
+        guard let tokens = tokens, !tokens.isEmpty else { return [] }
+
+        let punctuation: Set<String> = [".", ",", "!", "?", ";", ":", "-", "\u{2014}", "\u{2013}"]
+
+        var durations: [TimeInterval] = []
+        for token in tokens {
+            guard let startTs = token.start_ts, let endTs = token.end_ts else { continue }
+            // Skip punctuation-only tokens
+            let text = token.text.trimmingCharacters(in: .whitespaces)
+            if punctuation.contains(text) { continue }
+            if text.isEmpty { continue }
+            let dur = endTs - startTs
+            if dur > 0 {
+                durations.append(dur)
+            }
+        }
+
+        return durations
+    }
+
+    /// Extract per-word onset timings from the total audio duration (character-weighted fallback).
     ///
     /// Each word's duration is proportional to its character count relative to the
     /// total character count. The sum of all word durations exactly equals
@@ -373,88 +426,96 @@ final class TTSEngine: @unchecked Sendable {
         }
     }
 
-    /// Extract per-word onset timings using the raw duration tensor when available.
-    ///
-    /// The duration tensor has one value per phoneme token. Since sherpa-onnx does not
-    /// expose token IDs through the C API, we cannot identify SPACE_TOKEN boundaries
-    /// directly. Falls back to character-weighted distribution anchored to actual
-    /// audio duration for zero drift.
-    ///
-    /// Future enhancement: parse phoneme boundaries once sherpa-onnx exposes token IDs.
-    static func extractWordTimings(
-        text: String,
-        audioDuration: TimeInterval,
-        rawDurations: [Float]
-    ) -> [TimeInterval] {
-        // If durations are empty, fall back to character-weighted
-        guard !rawDurations.isEmpty else {
-            return extractWordTimings(text: text, audioDuration: audioDuration)
-        }
-
-        // Use character-weighted distribution anchored to actual audioDuration.
-        // The raw durations validate that the model produced timing data, but
-        // without token ID exposure we cannot map phonemes to word boundaries.
-        // Total is anchored to audioDuration for zero accumulated drift.
-        return extractWordTimings(text: text, audioDuration: audioDuration)
-    }
-
     // MARK: - Private
 
     /// Ensure the TTS model is loaded, performing lazy initialization if needed (TTS-03).
-    private func ensureModelLoaded() throws -> OpaquePointer {
+    private func ensureModelLoaded() throws -> KokoroTTS {
         lock.lock()
         defer { lock.unlock() }
 
-        if let tts = ttsInstance {
+        if let tts = ttsInstance, voice != nil {
             return tts
         }
 
-        logger.info("Loading Kokoro TTS model from \(Config.kokoroModelPath)")
+        let modelURL = URL(fileURLWithPath: Config.kokoroMLXModelPath)
+        let voicesURL = URL(fileURLWithPath: Config.kokoroVoicesPath)
+
+        logger.info("Loading Kokoro MLX model from \(Config.kokoroMLXModelPath)")
         let startTime = CFAbsoluteTimeGetCurrent()
 
-        // Build config using strdup to keep C strings alive
-        let modelPath = strdup("\(Config.kokoroModelPath)/\(Config.kokoroModelFile)")
-        let voicesPath = strdup("\(Config.kokoroModelPath)/voices.bin")
-        let tokensPath = strdup("\(Config.kokoroModelPath)/tokens.txt")
-        let dataDir = strdup("\(Config.kokoroModelPath)/espeak-ng-data")
-        let lexiconPath = strdup("\(Config.kokoroModelPath)/lexicon-us-en.txt")
-        let langStr = strdup("en-us")
-        let dictDir = strdup("\(Config.kokoroModelPath)/dict")
-        let provider = strdup("cpu")
+        let tts = KokoroTTS(modelPath: modelURL)
 
-        defer {
-            free(modelPath)
-            free(voicesPath)
-            free(tokensPath)
-            free(dataDir)
-            free(lexiconPath)
-            free(langStr)
-            free(dictDir)
-            free(provider)
+        guard let voices = NpyzReader.read(fileFromPath: voicesURL) else {
+            throw TTSError.modelLoadFailed(path: Config.kokoroVoicesPath)
         }
 
-        var config = SherpaOnnxOfflineTtsConfig()
-        config.model.kokoro.model = UnsafePointer(modelPath)
-        config.model.kokoro.voices = UnsafePointer(voicesPath)
-        config.model.kokoro.tokens = UnsafePointer(tokensPath)
-        config.model.kokoro.data_dir = UnsafePointer(dataDir)
-        config.model.kokoro.lexicon = UnsafePointer(lexiconPath)
-        config.model.kokoro.lang = UnsafePointer(langStr)
-        config.model.kokoro.dict_dir = UnsafePointer(dictDir)
-        config.model.kokoro.length_scale = 1.0
-        config.model.num_threads = 4
-        config.model.provider = UnsafePointer(provider)
-        config.max_num_sentences = 1
+        let voiceCount = voices.count
+        self.voicesDict = voices
 
-        guard let tts = SherpaOnnxCreateOfflineTts(&config) else {
-            throw TTSError.modelLoadFailed(path: Config.kokoroModelPath)
+        // Extract default voice
+        // Try exact key first, then fuzzy match
+        let defaultVoice: MLXArray
+        if let v = voices[Config.defaultVoiceName] {
+            defaultVoice = v
+        } else if let key = voices.keys.first(where: { $0.contains(Config.defaultVoiceName) }),
+                  let v = voices[key] {
+            defaultVoice = v
+            logger.info("Matched voice key '\(key)' for '\(Config.defaultVoiceName)'")
+        } else {
+            throw TTSError.modelLoadFailed(path: "voice '\(Config.defaultVoiceName)' not found in voices.npz")
         }
+        self.voice = defaultVoice
 
         let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-        logger.info("Model loaded in \(String(format: "%.2f", elapsed))s")
+        logger.info("Kokoro MLX model loaded in \(String(format: "%.2f", elapsed))s (\(voiceCount) voices available)")
 
         ttsInstance = tts
         return tts
+    }
+
+    /// Look up a voice embedding by name, falling back to default.
+    private func voiceForName(_ name: String) -> MLXArray {
+        if let dict = voicesDict, let v = dict[name] {
+            return v
+        }
+        if let dict = voicesDict, let key = dict.keys.first(where: { $0.contains(name) }),
+           let v = dict[key] {
+            return v
+        }
+        // Fallback to default
+        if name != Config.defaultVoiceName {
+            logger.warning("Voice '\(name)' not found, using default '\(Config.defaultVoiceName)'")
+        }
+        return voice!
+    }
+
+    /// Write float32 audio samples to a WAV file using AVAudioFile.
+    private func writeWav(samples: [Float], sampleRate: Double = 24000.0, to path: String) throws {
+        let url = URL(fileURLWithPath: path)
+        guard let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: sampleRate,
+            channels: 1,
+            interleaved: false
+        ),
+        let buffer = AVAudioPCMBuffer(
+            pcmFormat: format,
+            frameCapacity: AVAudioFrameCount(samples.count)
+        ) else {
+            throw TTSError.wavWriteFailed(path: path)
+        }
+        buffer.frameLength = AVAudioFrameCount(samples.count)
+        let channelData = buffer.floatChannelData![0]
+        for i in 0..<samples.count {
+            channelData[i] = samples[i]
+        }
+        let audioFile = try AVAudioFile(
+            forWriting: url,
+            settings: format.settings,
+            commonFormat: format.commonFormat,
+            interleaved: format.isInterleaved
+        )
+        try audioFile.write(from: buffer)
     }
 
     /// Remove the last temporary WAV file.
@@ -505,7 +566,7 @@ enum TTSError: Error, CustomStringConvertible {
         case .modelLoadFailed(let path):
             return "Failed to load TTS model from \(path)"
         case .synthesisReturnedNil:
-            return "SherpaOnnxOfflineTtsGenerate returned nil"
+            return "KokoroTTS.generateAudio returned nil"
         case .wavWriteFailed(let path):
             return "Failed to write WAV to \(path)"
         }
