@@ -1,7 +1,6 @@
 import AppKit
 import Foundation
 import Logging
-import CSherpaOnnx
 
 // Unbuffer stdout/stderr for launchd (Pitfall 5)
 setbuf(stdout, nil)
@@ -11,9 +10,7 @@ setbuf(stderr, nil)
 LoggingSystem.bootstrap(StreamLogHandler.standardError)
 let logger = Logger(label: Config.appName)
 
-// Verify C interop works -- call a trivial sherpa-onnx function
-let version = String(cString: SherpaOnnxGetVersionStr())
-logger.info("sherpa-onnx C API version: \(version)")
+logger.info("TTS backend: kokoro-ios MLX (bf16)")
 
 // Set up NSApplication as accessory (no dock icon, no app switcher)
 let app = NSApplication.shared
