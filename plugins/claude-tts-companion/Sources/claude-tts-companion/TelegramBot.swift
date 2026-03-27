@@ -209,17 +209,20 @@ final class TelegramBot: @unchecked Sendable {
 
         // Detect language to select correct voice (TTS-10)
         let langResult = LanguageDetector.detect(text: fullText)
-        logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), speakerId=\(langResult.speakerId), streaming=\(Config.streamingTTS)")
+        if langResult.lang == "cmn" {
+            logger.warning("CJK text detected but kokoro-ios is English-only; using English voice '\(langResult.voiceName)'")
+        }
+        logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), voice=\(langResult.voiceName), streaming=\(Config.streamingTTS)")
 
         if Config.streamingTTS {
-            dispatchStreamingTTS(text: fullText, speakerId: langResult.speakerId)
+            dispatchStreamingTTS(text: fullText, voiceName: langResult.voiceName)
         } else {
-            dispatchFullTTS(text: fullText, speakerId: langResult.speakerId)
+            dispatchFullTTS(text: fullText, voiceName: langResult.voiceName)
         }
     }
 
     /// Streaming TTS: synthesize sentence-by-sentence, play first chunk ASAP.
-    private func dispatchStreamingTTS(text: String, speakerId: Int32) {
+    private func dispatchStreamingTTS(text: String, voiceName: String) {
         // Don't cancel current playback here -- synthesis takes time.
         // Cancel only when first chunk is ready to play.
         // Use NSLock-protected flag for thread safety (TTS queue -> main thread).
@@ -228,7 +231,7 @@ final class TelegramBot: @unchecked Sendable {
 
         ttsEngine.synthesizeStreaming(
             text: text,
-            speakerId: speakerId,
+            voiceName: voiceName,
             onChunkReady: { [weak self] chunk in
                 guard let self = self else { return }
                 self.logger.info("Streaming chunk \(chunk.chunkIndex + 1)/\(chunk.totalChunks) ready: \(String(format: "%.2f", chunk.audioDuration))s")
@@ -274,8 +277,8 @@ final class TelegramBot: @unchecked Sendable {
 
     /// Full-paragraph TTS: synthesize everything, then play (legacy path).
     /// Preserved for future TTS models with lower RTF where streaming is unnecessary.
-    private func dispatchFullTTS(text: String, speakerId: Int32) {
-        ttsEngine.synthesizeWithTimestamps(text: text, speakerId: speakerId) { [weak self] result in
+    private func dispatchFullTTS(text: String, voiceName: String) {
+        ttsEngine.synthesizeWithTimestamps(text: text, voiceName: voiceName) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let ttsResult):
@@ -628,7 +631,7 @@ final class TelegramBot: @unchecked Sendable {
     func handleHealth(update: TGUpdate) async {
         guard let chatId = update.message?.chat.id else { return }
         let summaryStatus = Config.miniMaxAPIKey != nil ? "Available (\(Config.miniMaxModel))" : "No API key"
-        let ttsStatus = "Available (Kokoro int8)"
+        let ttsStatus = "Available (Kokoro MLX bf16)"
         let text = """
         <b>Health Check</b>
 
