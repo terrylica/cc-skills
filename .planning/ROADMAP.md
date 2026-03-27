@@ -299,7 +299,7 @@ Plans:
 
 Plans:
 
-- [ ] 14-01-PLAN.md -- LanguageDetector + FeatureGates + Config constants
+- [x] 14-01-PLAN.md -- LanguageDetector + FeatureGates + Config constants
 - [ ] 14-02-PLAN.md -- Wire feature gates and language detection into TelegramBot
 
 ### Phase 15: Telegram Inline Buttons
@@ -349,6 +349,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 11. Notification Formatting      | 2/2 | Complete    | 2026-03-26 |
 | 12. AI Summary Prompts           | 2/2 | Complete    | 2026-03-27 |
 | 13. Auto-Continue Evaluation     | 2/2 | Complete    | 2026-03-27 |
-| 14. TTS Dispatch & Feature Gates | 0/2            | In progress | -          |
+| 14. TTS Dispatch & Feature Gates | 1/2 | In Progress|  |
 | 15. Telegram Inline Buttons      | 0/0            | Not started | -          |
 | 16. Integration & Reliability    | 0/0            | Not started | -          |
