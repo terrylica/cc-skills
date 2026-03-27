@@ -3,35 +3,43 @@ import Foundation
 /// Centralized configuration constants for claude-tts-companion.
 /// Paths use environment variable overrides with sensible defaults.
 enum Config {
-    /// Path to sherpa-onnx installation directory
-    static let sherpaOnnxPath: String = {
+    /// Path to Kokoro MLX model file (bf16 safetensors).
+    static let kokoroMLXModelPath: String = {
         let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/terryli"
-        return ProcessInfo.processInfo.environment["SHERPA_ONNX_PATH"]
-            ?? "\(home)/fork-tools/sherpa-onnx/build-swift-macos/install"
+        return ProcessInfo.processInfo.environment["KOKORO_MLX_MODEL_PATH"]
+            ?? "\(home)/.local/share/kokoro/models/mlx/kokoro-v1_0.safetensors"
     }()
 
-    /// Path to Kokoro TTS model directory (v1.0 multi-lang, full precision for quality)
-    static let kokoroModelPath: String = {
+    /// Path to Kokoro voice embeddings (NPZ format).
+    static let kokoroVoicesPath: String = {
         let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/terryli"
-        return ProcessInfo.processInfo.environment["KOKORO_MODEL_PATH"]
-            ?? "\(home)/.local/share/kokoro/models/kokoro-multi-lang-v1_0"
+        return ProcessInfo.processInfo.environment["KOKORO_VOICES_PATH"]
+            ?? "\(home)/.local/share/kokoro/models/mlx/voices.npz"
     }()
 
-    /// Filename of the Kokoro model.
-    /// Auto-detects: uses model.onnx (full precision) if available, falls back to model.int8.onnx (quantized).
-    static let kokoroModelFile: String = {
-        let modelDir = kokoroModelPath
-        let fullPrecision = "\(modelDir)/model.onnx"
-        if FileManager.default.fileExists(atPath: fullPrecision) {
-            return "model.onnx"
+    /// Path to mlx.metallib (Metal shader library, required at runtime).
+    /// Defaults to same directory as the running binary.
+    static let kokoroMLXMetallibPath: String = {
+        if let envPath = ProcessInfo.processInfo.environment["MLX_METALLIB_PATH"] {
+            return envPath
         }
-        return "model.int8.onnx"
+        // Default: next to binary
+        if let execURL = Bundle.main.executableURL {
+            return execURL.deletingLastPathComponent().appendingPathComponent("mlx.metallib").path
+        }
+        return "/usr/local/bin/mlx.metallib"
     }()
 
-    /// Default speaker ID: af_heart (speaker 3 in Kokoro v1.0)
+    /// Default voice name for English TTS (kokoro-ios voice embedding key).
+    static let defaultVoiceName: String = "af_heart"
+
+    /// Chinese voice name (kokoro-ios does not yet support Chinese; reserved for future use).
+    static let chineseVoiceName: String = "zf_xiaobei"
+
+    /// Default speaker ID (legacy sherpa-onnx, kept for API compatibility)
     static let defaultSpeakerId: Int32 = 3
 
-    /// Chinese speaker ID: zf_xiaobei (speaker 45 in Kokoro multi-lang v1.0)
+    /// Chinese speaker ID (legacy sherpa-onnx, kept for API compatibility)
     static let chineseSpeakerId: Int32 = 45
 
     /// CJK character ratio threshold (percentage) for language detection.
