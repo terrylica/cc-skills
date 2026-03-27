@@ -216,11 +216,11 @@
 | BTN-01      | Phase 15 | Complete |
 | BTN-02      | Phase 15 | Complete |
 | BTN-03      | Phase 15 | Complete |
-| REL-01      | Phase 16 | Pending  |
-| REL-02      | Phase 16 | Pending  |
-| REL-03      | Phase 16 | Pending  |
-| REL-04      | Phase 16 | Pending  |
-| REL-05      | Phase 16 | Pending  |
+| REL-01      | Phase 16 | Complete |
+| REL-02      | Phase 16 | Complete |
+| REL-03      | Phase 16 | Complete |
+| REL-04      | Phase 16 | Complete |
+| REL-05      | Phase 16 | Complete |
 
 ## v4.6.0 Requirements — Legacy Pipeline Feature Parity
 
@@ -265,8 +265,8 @@
 
 ### Integration & Reliability
 
-- [ ] **REL-01**: Notification deduplication (skip re-notification if transcript hasn't grown)
-- [ ] **REL-02**: Rate limiting (5s between notification processing)
-- [ ] **REL-03**: Circuit breaker matches legacy: 3 failures → 5 min cooldown with fallback narrative
-- [ ] **REL-04**: Stop hook writes notification JSON to correct directory with all required fields
-- [ ] **REL-05**: Tool breakdown computation (top 6 tools by count, excludes subagent orchestration tools)
+- [x] **REL-01**: Notification deduplication (skip re-notification if transcript hasn't grown)
+- [x] **REL-02**: Rate limiting (5s between notification processing)
+- [x] **REL-03**: Circuit breaker matches legacy: 3 failures → 5 min cooldown with fallback narrative
+- [x] **REL-04**: Stop hook writes notification JSON to correct directory with all required fields
+- [x] **REL-05**: Tool breakdown computation (top 6 tools by count, excludes subagent orchestration tools)
