@@ -1,3 +1,53 @@
+# [12.20.0](https://github.com/terrylica/cc-skills/compare/v12.19.1...v12.20.0) (2026-03-27)
+
+
+### Features
+
+* **quality-tools:** add refactoring-guide skill ([fc57c11](https://github.com/terrylica/cc-skills/commit/fc57c112c7273f02324891185b001f3a58c5c43f))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [refactoring-guide](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/refactoring-guide/SKILL.md) - new (+116)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quality-tools/refactoring-guide</strong> (7 files)</summary>
+
+- [Architectural Refactoring Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/refactoring-guide/references/architecture.md) - new (+142)
+- [Module Boundary Design](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/refactoring-guide/references/module-boundaries.md) - new (+118)
+- [Rust-Specific Modularization](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/refactoring-guide/references/rust-specific.md) - new (+160)
+- [Structural Coupling Analysis](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/refactoring-guide/references/structural-coupling.md) - new (+128)
+- [Swift/macOS-Specific Modularization](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/refactoring-guide/references/swift-macos-specific.md) - new (+131)
+- [Tactical Refactoring Moves](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/refactoring-guide/references/tactical-moves.md) - new (+202)
+- [Type-Level Design for Refactoring](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/refactoring-guide/references/type-design.md) - new (+115)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [mlx-metal-resource-crash](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/mlx-metal-resource-crash.md) - new (+78)
+- [Anti-Fragility Audit: claude-tts-companion TTS Pipeline](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-/ANTI-FRAGILITY-AUDIT.md) - new (+307)
+
 ## [12.19.1](https://github.com/terrylica/cc-skills/compare/v12.19.0...v12.19.1) (2026-03-27)
 
 
