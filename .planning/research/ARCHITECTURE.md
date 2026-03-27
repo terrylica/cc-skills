@@ -1,361 +1,517 @@
-# Architecture Patterns
+# Architecture Patterns <!-- # SSoT-OK -->
 
-**Domain:** macOS background service / unified Swift TTS companion
-**Researched:** 2026-03-25
+**Domain:** macOS TTS/subtitle companion app -- architecture hardening + feature expansion
+**Researched:** 2026-03-27
 
-## Recommended Architecture
-
-**Single-binary accessory app** using `NSApplication.setActivationPolicy(.accessory)` -- no dock icon, no app switcher entry. This is the standard macOS pattern for background utilities that occasionally present UI (subtitle overlay). The binary runs as a launchd LaunchAgent, auto-starting at login and restarting on crash.
-
-### Architecture Type: Event-Driven Coordinator
-
-The application follows a **hub-and-spoke concurrency model** where multiple independent subsystems (spokes) communicate through a central `@MainActor` state coordinator (hub). Each spoke runs on its own thread/queue and dispatches state updates to the main thread via GCD or Swift concurrency.
+## Current Architecture (As-Is)
 
 ```
-                    ┌─────────────────────────────┐
-                    │      Main Thread (Hub)       │
-                    │                              │
-                    │  NSApplication.run()         │
-                    │  ├── SubtitlePanel (NSPanel)  │
-                    │  └── AppState (@MainActor)   │
-                    └──────────┬──────────────────┘
-                               │
-              DispatchQueue.main.async / MainActor.run
-                               │
-         ┌─────────────────────┼──────────────────────┐
-         │                     │                       │
-    ┌────┴─────┐    ┌─────────┴────────┐    ┌────────┴────────┐
-    │Telegram  │    │   HTTP Server    │    │  File Watcher   │
-    │Bot       │    │  (BSD sockets)   │    │ (DispatchSource) │
-    │(Task.    │    │  DispatchQueue   │    │  .utility)       │
-    │detached) │    │  .global(.util)  │    │                  │
-    └────┬─────┘    └─────────┬────────┘    └────────┬────────┘
-         │                     │                       │
-         │              ┌──────┴──────┐                │
-         └─────────────►│  TTSEngine  │◄───────────────┘
-                        │ (serial DQ) │
-                        │ @unchecked  │
-                        │  Sendable   │
-                        └─────────────┘
+main.swift (imperative boot)
+    |
+    +-- NSApplication.shared (.accessory, no dock icon)
+    |       |
+    |       +-- SubtitlePanel (@MainActor, NSPanel)
+    |       +-- SettingsStore (@unchecked Sendable, NSLock)
+    |       +-- CaptionHistory (@unchecked Sendable, NSLock)
+    |
+    +-- TTSEngine (@unchecked Sendable, NSLock)
+    |       |-- kokoro-ios MLX synthesis (serial DispatchQueue)
+    |       |-- AVAudioPlayer playback (main thread)
+    |       |-- Word timing extraction (static, pure)
+    |       |-- Pronunciation preprocessing (static, pure)
+    |       |-- Circuit breaker (NSLock)
+    |       |-- Audio hardware warm-up
+    |       \-- WAV file I/O
+    |
+    +-- SubtitleSyncDriver (@MainActor)
+    |       |-- 60Hz DispatchSourceTimer
+    |       |-- Single-shot + streaming modes
+    |       \-- Pre-buffered chunk transitions
+    |
+    +-- TelegramBot (@unchecked Sendable, NSLock)
+    |       |-- swift-telegram-sdk long polling
+    |       |-- InlineButtonManager
+    |       |-- PromptExecutor
+    |       \-- TTS dispatch orchestration
+    |
+    +-- HTTPControlServer (@unchecked Sendable)
+    |       \-- FlyingFox async/await routes
+    |
+    +-- NotificationWatcher (DispatchSource)
+    |       \-- NotificationProcessor (dedup + rate limit)
+    |
+    +-- MiniMaxClient (@unchecked Sendable)
+    |       |-- SummaryEngine
+    |       |-- AutoContinueEvaluator
+    |       \-- ThinkingWatcher
+    |
+    \-- SIGTERM handler (DispatchSource)
 ```
 
-This architecture was **proven in Spike 10** with zero deadlocks and 82ms time-to-first-subtitle.
+### Threading Model (Current)
+
+| Thread/Queue                      | Components                                                | Synchronization              |
+| --------------------------------- | --------------------------------------------------------- | ---------------------------- |
+| Main thread (NSApp.run)           | SubtitlePanel, SubtitleSyncDriver, AVAudioPlayer delegate | @MainActor                   |
+| `com.example.tts-engine` (serial) | TTSEngine synthesis, WAV writing                          | DispatchQueue serialization  |
+| FlyingFox async context           | HTTPControlServer routes                                  | Swift Concurrency (Task)     |
+| swift-telegram-sdk polling        | TelegramBot update handlers                               | @unchecked Sendable + NSLock |
+| DispatchSource callbacks          | NotificationWatcher, FileWatcher                          | Callback-based               |
+
+### Current Pain Points
+
+1. **TTSEngine is a god object** -- 1058 lines combining synthesis, playback, timing extraction, pronunciation preprocessing, circuit breaker, WAV I/O, and audio hardware management
+2. **@unchecked Sendable everywhere** -- TTSEngine, TelegramBot, HTTPControlServer, CaptionHistory, SettingsStore all bypass compiler concurrency checking
+3. **No tests** -- executable target prevents `@testable import`; no library target exists
+4. **TelegramBot orchestrates TTS** -- `dispatchStreamingTTS()` creates SubtitleSyncDriver, manages streaming state, owns sync driver lifecycle -- coupling that belongs in a coordinator
+
+## Recommended Architecture (To-Be)
+
+### Package.swift Split: Library + Executable
+
+```
+Sources/
+  CompanionCore/              <-- Library target (all business logic)
+    WordTimingAligner.swift
+    PronunciationProcessor.swift
+    TTSCircuitBreaker.swift
+    SynthesisEngine.swift
+    PlaybackManager.swift
+    SubtitleChunker.swift
+    LanguageDetector.swift
+    TranscriptParser.swift
+    TelegramFormatter.swift
+    SubtitleStyle.swift
+    Config.swift
+    CaptionHistory.swift
+    NotificationProcessor.swift
+    BionicRenderer.swift        <-- NEW
+  claude-tts-companion/         <-- Executable target (thin shell)
+    main.swift
+    SubtitlePanel.swift
+    SubtitleSyncDriver.swift
+    TelegramBot.swift
+    HTTPControlServer.swift
+    CaptionHistoryPanel.swift   <-- NEW
+    FocusMonitor.swift          <-- NEW
+Tests/
+  CompanionCoreTests/
+    WordTimingAlignerTests.swift
+    PronunciationProcessorTests.swift
+    TTSCircuitBreakerTests.swift
+    LanguageDetectorTests.swift
+    TranscriptParserTests.swift
+    BionicRendererTests.swift
+    SubtitleChunkerTests.swift
+```
+
+### TTSEngine Decomposition
+
+Split TTSEngine into focused components with clear single responsibilities:
+
+```
+TTSEngine (facade, thin coordinator)
+    |
+    +-- SynthesisEngine (actor)
+    |       |-- kokoro-ios model loading + lazy init
+    |       |-- generateAudio() calls
+    |       |-- Sentence splitting
+    |       \-- Streaming sentence pipeline
+    |
+    +-- PlaybackManager (@MainActor)
+    |       |-- AVAudioPlayer lifecycle
+    |       |-- Audio hardware warm-up / re-warm
+    |       |-- preparePlayer() for pre-buffering
+    |       |-- stopPlayback()
+    |       \-- PlaybackDelegate ownership
+    |
+    +-- WordTimingAligner (struct, pure functions)
+    |       |-- extractTimingsFromTokens()
+    |       |-- alignOnsetsToWords()
+    |       |-- extractWordTimings() (character-weighted fallback)
+    |       |-- resolveWordTimings()
+    |       \-- stripPunctuation()
+    |
+    +-- PronunciationProcessor (struct, pure functions)
+    |       |-- compiledOverrides
+    |       \-- preprocessText()
+    |
+    \-- TTSCircuitBreaker (actor)
+            |-- recordSuccess() / recordFailure()
+            |-- isOpen computed property
+            \-- Auto-reset after cooldown
+```
+
+#### Decomposition Strategy: Extract-and-Delegate
+
+**Do NOT break callers.** The existing `TTSEngine` becomes a thin facade that delegates to the new components. All current call sites (`TelegramBot.dispatchTTS`, `HTTPControlServer`, `main.swift` demo) continue calling `TTSEngine.synthesizeStreaming()`, `TTSEngine.play()`, etc. -- same API, different internals.
+
+Steps:
+
+1. Extract `WordTimingAligner` and `PronunciationProcessor` first (pure functions, zero risk)
+2. Extract `PlaybackManager` next (owns AVAudioPlayer state, @MainActor)
+3. Extract `TTSCircuitBreaker` (isolated state)
+4. Extract `SynthesisEngine` last (most complex, owns model lifecycle)
+5. TTSEngine becomes a facade composing all four
 
 ### Component Boundaries
 
-| Component         | Responsibility                                                                                     | Thread/Queue                         | Communicates With                                                                       | Isolation                            |
-| ----------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------ |
-| **main.swift**    | Entry point: configures NSApp, launches all subsystems, calls `app.run()`                          | Main                                 | All components (setup only)                                                             | N/A                                  |
-| **AppState**      | Central state coordinator: tracks bot status, TTS queue depth, subtitle visibility, health metrics | Main (@MainActor)                    | All components read/write via MainActor dispatch                                        | `@MainActor` serialization           |
-| **SubtitlePanel** | NSPanel overlay: word-level karaoke highlighting, position/size/opacity control                    | Main (@MainActor)                    | AppState (reads config), TTSEngine (receives timestamps)                                | `@MainActor` (AppKit requirement)    |
-| **TelegramBot**   | Long-polling Telegram updates, command dispatch (/tts, /subtitle, /session, /ping)                 | `Task.detached`                      | AppState (status updates), TTSEngine (synthesis requests), SubtitlePanel (show/dismiss) | Swift async/await                    |
-| **HTTPServer**    | BSD socket server on port 8780: POST /subtitle, POST /tts, GET /health, POST /settings             | `DispatchQueue.global(.utility)`     | AppState (health reads), SubtitlePanel (show), TTSEngine (synthesis)                    | Blocking accept() loop               |
-| **TTSEngine**     | sherpa-onnx Kokoro synthesis: text to WAV, lazy model loading, word timestamps                     | Dedicated serial `DispatchQueue`     | AppState (queue depth), SubtitlePanel (word timestamps for karaoke)                     | `@unchecked Sendable` + serial queue |
-| **FileWatcher**   | Monitors `/tmp/claude-unified-watch/` for notification JSON files                                  | `DispatchSource` on `.utility` queue | AppState, SubtitlePanel, TTSEngine (triggers based on file content)                     | DispatchSource event handler         |
-| **Config**        | Static configuration: paths, ports, token loading                                                  | N/A (value type)                     | Read by all components at startup                                                       | Immutable after init                 |
-| **SignalHandler** | SIGTERM handling: graceful shutdown sequence                                                       | `DispatchSource` on `.main` queue    | All components (shutdown coordination)                                                  | GCD signal source                    |
+| Component                               | Responsibility                                                   | Communicates With                                                   |
+| --------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `SynthesisEngine` (actor)               | Model loading, audio generation, streaming pipeline              | TTSEngine (via async calls)                                         |
+| `PlaybackManager` (@MainActor)          | AVAudioPlayer lifecycle, hardware warm-up, pre-buffering         | TTSEngine, SubtitleSyncDriver                                       |
+| `WordTimingAligner` (struct)            | MToken-to-subtitle alignment, character-weighted fallback        | SynthesisEngine (called after generation)                           |
+| `PronunciationProcessor` (struct)       | Text preprocessing before phonemization                          | SynthesisEngine (called before generation)                          |
+| `TTSCircuitBreaker` (actor)             | Failure tracking, auto-reset cooldown                            | SynthesisEngine (checked before each synthesis)                     |
+| `CaptionHistoryPanel` (@MainActor, new) | Scrollable NSPanel with caption entries, copy button             | CaptionHistory (data), SubtitlePanel (display coordination)         |
+| `FocusMonitor` (new)                    | Reads DND/Focus state, publishes changes                         | PlaybackManager (suppress audio), SubtitlePanel (optional suppress) |
+| `BionicRenderer` (struct, new)          | Converts text to bold-prefix + regular-suffix attributed strings | SubtitlePanel (rendering), SubtitleChunker (width calculation)      |
 
-### Data Flow
+### Actor Migration Strategy
 
-**Primary flow: Telegram message to subtitle + audio**
+**Incremental, not big-bang.** Migrate one component at a time from `@unchecked Sendable + NSLock` to proper Swift Concurrency.
 
-```
-Telegram API ──(long poll)──► TelegramBot
-                                  │
-                    /tts "Hello world"
-                                  │
-                   ┌──────────────┴──────────────┐
-                   ▼                              ▼
-            MainActor.run {                 TTSEngine.synthesize()
-              appState.ttsQueueDepth += 1     │ (serial DispatchQueue)
-            }                                 │
-                                              ▼
-                                    sherpa-onnx generates:
-                                    1. WAV audio data
-                                    2. Word timestamps []
-                                              │
-                   ┌──────────────────────────┤
-                   ▼                          ▼
-            MainActor.run {            Process("afplay")
-              subtitlePanel.show(        .launch()
-                words: [...],            .waitUntilExit()
-                timestamps: [...]      }
-              )                              │
-              appState.ttsQueueDepth -= 1    │
-            }                                │
-                   │                         │
-                   ▼                         ▼
-            Karaoke highlighting       Audio playback
-            (6us per word update)      (real-time)
-                   │                         │
-                   └──────────┬──────────────┘
-                              ▼
-                       MainActor.run {
-                         subtitlePanel.dismiss()
-                       }
-```
+#### Step 1: Extract pure types (no concurrency change)
 
-**Secondary flow: HTTP control API**
+- `WordTimingAligner` -- struct with static functions, already pure
+- `PronunciationProcessor` -- struct with static functions, already pure
+- These are copy-paste extractions with `internal` visibility
 
-```
-SwiftBar plugin ──(curl)──► HTTPServer (port 8780)
-                                │
-                    ┌───────────┼───────────┐
-                    ▼           ▼           ▼
-              GET /health  POST /settings  POST /subtitle
-                    │           │           │
-                    ▼           ▼           ▼
-              DQ.main.sync  DQ.main.async  DQ.main.async
-              { health() }  { update() }   { show() }
-```
+#### Step 2: New components as actors from day one
 
-**Tertiary flow: File watcher notifications**
+- `TTSCircuitBreaker` as an `actor` -- replaces `circuitBreakerLock + NSLock` in TTSEngine
+- `SynthesisEngine` as an `actor` -- replaces `lock + NSLock` and `queue` serial DispatchQueue
 
-```
-Claude hook writes ──► /tmp/claude-unified-watch/*.json
-                              │
-                    DispatchSource fires
-                              │
-                    Parse JSON notification
-                              │
-                    Route to SubtitlePanel or TTSEngine
-```
+#### Step 3: Existing components migrate to @MainActor or actor
 
-## Patterns to Follow
+- `PlaybackManager` as `@MainActor` class -- playback already must run on main thread
+- `CaptionHistory` -- migrate from NSLock to actor (low risk, simple state)
+- `SettingsStore` -- migrate from NSLock to actor
 
-### Pattern 1: @MainActor State Coordinator
+#### Step 4: Remove @unchecked Sendable from TTSEngine
 
-**What:** All shared mutable state lives in a single `@MainActor` class. Background threads never mutate state directly -- they dispatch to main.
+- Once all mutable state is delegated to actor-isolated sub-components, TTSEngine becomes a simple coordinator with no mutable state of its own
+- Can become `Sendable` naturally (or remain a class with actor-isolated properties)
 
-**When:** Always. This is the only safe pattern when AppKit UI and multiple background subsystems share state.
-
-**Why:** Eliminates data races by design. No locks, no atomics, no manual synchronization. The main thread's RunLoop serializes all state mutations.
+**Key constraint:** TTSEngine's `queue.async { [self] in ... }` pattern (serial DispatchQueue for synthesis) maps directly to an actor's serial execution:
 
 ```swift
-@MainActor
-final class AppState {
-    var ttsQueueDepth: Int = 0
-    var lastBotUpdate: Date?
-    let subtitlePanel = SubtitlePanel()
+// Before: @unchecked Sendable + NSLock + serial DispatchQueue
+final class TTSEngine: @unchecked Sendable {
+    private let lock = NSLock()
+    private let queue = DispatchQueue(label: "com.example.tts-engine")
 
-    func healthJSON() -> String { /* reads all state safely */ }
+    func synthesize(..., completion: @escaping ...) {
+        queue.async { [self] in
+            lock.lock()
+            let tts = try ensureModelLoaded()
+            lock.unlock()
+            ...
+        }
+    }
 }
 
-// From any background thread:
-await MainActor.run { appState.ttsQueueDepth += 1 }
-// Or from GCD:
-DispatchQueue.main.async { appState.ttsQueueDepth += 1 }
+// After: actor (serial execution is implicit)
+actor SynthesisEngine {
+    private var ttsInstance: KokoroTTS?
+
+    func synthesize(...) async throws -> SynthesisResult {
+        let tts = try ensureModelLoaded()
+        ...
+    }
+}
 ```
 
-### Pattern 2: @unchecked Sendable + Serial DispatchQueue for CPU-Heavy Work
-
-**What:** Wrap CPU-bound work (TTS synthesis) in a non-isolated class with a private serial DispatchQueue, marked `@unchecked Sendable`.
-
-**When:** When work takes seconds (7s for 99-word synthesis) and would block an actor's cooperative executor.
-
-**Why:** Swift actors use cooperative thread pools. A 7-second synthesis would starve other actors. A dedicated serial DispatchQueue isolates the heavy work while `withCheckedContinuation` bridges back to async/await.
+**Callback-to-async migration:** Current callers use completion handlers. The facade bridges:
 
 ```swift
-final class TTSEngine: @unchecked Sendable {
-    private let queue = DispatchQueue(label: "tts-synthesis", qos: .userInitiated)
-
-    func synthesize(text: String) async -> URL? {
-        await withCheckedContinuation { cont in
-            queue.async {
-                let result = self.heavySynthesis(text)
-                cont.resume(returning: result)
-            }
+// TTSEngine facade bridges old callback API to new async actor
+func synthesize(text: String, completion: @escaping (Result<SynthesisResult, Error>) -> Void) {
+    Task {
+        do {
+            let result = try await synthesisEngine.synthesize(text: text)
+            completion(.success(result))
+        } catch {
+            completion(.failure(error))
         }
     }
 }
 ```
 
-### Pattern 3: Task.detached for Long-Running Network Loops
+This lets callers migrate to async/await incrementally without forcing all call sites to change at once.
 
-**What:** Use `Task.detached` (not `Task { }`) for the Telegram bot's infinite polling loop.
+### XCTest Infrastructure
 
-**When:** For long-running loops that must not inherit the caller's actor context (which would be `@MainActor` since launched from `main.swift`).
+#### The SwiftPM Executable Target Problem
 
-**Why:** A bare `Task { }` created on the main thread inherits `@MainActor` context, meaning the polling loop would run on the main thread and block UI. `Task.detached` explicitly opts out of actor inheritance.
+SwiftPM **cannot** `@testable import` executable targets. The solution is the standard "library extraction" pattern -- create a `CompanionCore` library target containing all business logic, with the executable target reduced to a thin boot shell.
+
+#### What goes in CompanionCore vs executable target
+
+**CompanionCore (library, testable):**
+
+- `WordTimingAligner` -- pure functions, highly testable
+- `PronunciationProcessor` -- pure functions, regex validation
+- `SubtitleChunker` -- pure functions, width calculation
+- `SynthesisEngine` -- actor (can be tested with async test methods)
+- `TTSCircuitBreaker` -- actor, state machine testing
+- `LanguageDetector` -- pure function
+- `TranscriptParser` -- pure function
+- `TelegramFormatter` -- pure function
+- `SubtitleStyle` -- constants
+- `Config` -- constants + environment reading
+- `CaptionHistory` -- ring buffer logic
+- `BionicRenderer` -- pure function (new)
+- `NotificationProcessor` -- dedup logic
+
+**Executable target (thin shell, not tested directly):**
+
+- `main.swift` -- boot sequence, wiring
+- `SubtitlePanel` -- AppKit UI (needs UI testing if at all)
+- `TelegramBot` -- external API integration
+- `HTTPControlServer` -- HTTP route wiring
+- `SubtitleSyncDriver` -- timer-based UI driver
+
+#### Test Categories
+
+| Category    | What                                     | How                                    |
+| ----------- | ---------------------------------------- | -------------------------------------- |
+| Unit        | WordTimingAligner alignment edge cases   | XCTest, pure function in/out           |
+| Unit        | PronunciationProcessor regex correctness | XCTest, string assertions              |
+| Unit        | SubtitleChunker page boundaries          | XCTest, mock font metrics              |
+| Unit        | TTSCircuitBreaker state transitions      | XCTest async, actor isolation          |
+| Unit        | LanguageDetector CJK thresholds          | XCTest, Unicode string inputs          |
+| Unit        | TranscriptParser JSONL edge cases        | XCTest, fixture files                  |
+| Unit        | BionicRenderer word splitting            | XCTest, attributed string verification |
+| Integration | SynthesisEngine model load + generate    | XCTest async, requires model files     |
+| Integration | Streaming pipeline chunk sequencing      | XCTest async, mock synthesis           |
+
+### Data Flow Changes
+
+#### Current: TTS Streaming Flow
+
+```
+TelegramBot.dispatchStreamingTTS()
+    |-- ttsEngine.synthesizeStreaming(onChunkReady:, onAllComplete:)
+    |       |-- [TTS queue] split sentences, synthesize each
+    |       |-- [TTS queue] onChunkReady(chunk) -> DispatchQueue.main
+    |       \-- [TTS queue] onAllComplete() -> DispatchQueue.main
+    |
+    |-- [Main] Create SubtitleSyncDriver
+    |-- [Main] driver.addChunk(pages, timings)
+    |-- [Main] driver starts 60Hz timer
+    \-- [Main] timer polls player.currentTime -> updates SubtitlePanel
+```
+
+#### Proposed: Actor-Based TTS Streaming Flow
+
+```
+TelegramBot.dispatchStreamingTTS()
+    |-- Task {
+    |       for await chunk in synthesisEngine.streamSentences(text) {
+    |           await MainActor.run {
+    |               syncDriver.addChunk(chunk)
+    |           }
+    |       }
+    |   }
+    |
+    |-- SynthesisEngine (actor, serial)
+    |       |-- split sentences
+    |       |-- for each: circuitBreaker.check() -> preprocessor.process() -> generate()
+    |       |-- yield ChunkResult via AsyncStream
+    |       \-- aligner.resolveTimings()
+    |
+    |-- [MainActor] SubtitleSyncDriver
+    |       |-- playbackManager.play(chunk.wavPath)
+    |       |-- 60Hz timer polls playbackManager.currentTime
+    |       \-- updates SubtitlePanel
+```
+
+The key change: replace callback-based `onChunkReady` / `onAllComplete` with `AsyncStream<ChunkResult>`. This eliminates the `NSLock`-protected `firstChunkDispatched` flag in TelegramBot and the `isStreamingInProgress` lock.
+
+### New Feature Components
+
+#### Chinese TTS Fallback (CJK)
+
+The `SynthesisEngine` actor should define a `Synthesizer` protocol:
 
 ```swift
-Task.detached {
-    try await startBot(token: token, state: state)
-    // This runs on a background cooperative thread, not main
+protocol Synthesizer {
+    func generate(text: String, voice: String, speed: Float) async throws -> (audio: [Float], tokens: [Any]?)
 }
 ```
 
-### Pattern 4: Lazy Model Loading
+`LanguageDetector` routes to `KokoroMLXSynthesizer` (English) or `SherpaOnnxSynthesizer` (Chinese). This enables plugging in sherpa-onnx for Chinese without modifying the existing kokoro-ios path.
 
-**What:** Defer sherpa-onnx model loading until first TTS request, not at startup.
+#### Bionic Reading Mode
 
-**When:** Always for the TTS engine. Model loading takes 0.56s and allocates 561MB.
+`BionicRenderer` is a pure struct that splits each word into bold prefix (40% of characters) + regular suffix. It composes with karaoke highlighting -- both are NSAttributedString transformations applied in sequence.
 
-**Why:** The binary should start in <100ms for launchd. Most sessions may never use TTS. Loading 561MB of model data at boot wastes memory for idle sessions.
+#### Caption History Panel
+
+`CaptionHistoryPanel` is a new @MainActor NSPanel with NSScrollView + NSTextView. Reads from CaptionHistory ring buffer. Copy button writes to NSPasteboard. Toggled via HTTP API (`POST /captions/panel/toggle`). Positioned above SubtitlePanel, non-activating.
+
+#### Focus/DND Awareness
+
+**No public macOS API exists for querying Focus mode.** The viable approach is file-based monitoring of `~/Library/DoNotDisturb/DB/Assertions.json`. Wrap in a `FocusDetecting` protocol so it can be swapped for a future public API.
 
 ```swift
-func ensureTTSEngine() -> TTSEngine {
-    if let engine = ttsEngine { return engine }
-    let engine = TTSEngine(modelDir: Config.kokoroModelDir)
-    ttsEngine = engine
-    return engine
+protocol FocusDetecting: Sendable {
+    var isFocusActive: Bool { get async }
+    func onFocusChanged(_ handler: @Sendable @escaping (Bool) -> Void)
 }
 ```
 
-### Pattern 5: BSD Socket HTTP Server (No Framework)
+**Caveat:** This file path is undocumented and may break across macOS versions. LOW confidence in long-term stability.
 
-**What:** Raw POSIX socket-based HTTP server for the control API, no SwiftNIO/Vapor/Hummingbird.
+## Patterns to Follow
 
-**When:** Low-traffic localhost-only HTTP serving (SwiftBar health checks, settings control).
+### Pattern 1: Facade Preserves API During Refactor
 
-**Why:** Adding SwiftNIO would pull in a large dependency tree and its own event loop that could conflict with NSApplication's RunLoop. BSD sockets are 50 lines of code, zero dependencies, and adequate for <10 req/s localhost traffic.
+**What:** TTSEngine keeps its existing public API but delegates internally to decomposed components.
+**When:** Decomposing a god object that has many callers.
+**Why:** Zero caller changes needed. Callers migrate to direct component access incrementally.
 
-### Pattern 6: DispatchSource for File System + Signal Monitoring
+### Pattern 2: AsyncStream for Streaming Pipelines
 
-**What:** Use `DispatchSource.makeFileSystemObjectSource` for file watching and `DispatchSource.makeSignalSource` for SIGTERM handling.
+**What:** Replace callback pairs (`onChunkReady` + `onAllComplete`) with `AsyncStream<ChunkResult>`.
+**When:** Converting callback-based streaming to structured concurrency.
+**Why:** Eliminates manual lock management, enables `for await` consumption, natural back-pressure.
 
-**When:** Any OS-level event monitoring (file changes, signals).
+### Pattern 3: Protocol-Based Synthesizer Selection
 
-**Why critical gotcha:** DispatchSource objects are reference-counted. If not stored in a global/long-lived variable, ARC silently deallocates them and event handling stops with no error. This was discovered in Spike 04.
+**What:** `Synthesizer` protocol enabling kokoro-ios (English) and sherpa-onnx (Chinese) backends.
+**When:** Adding language-specific TTS engines.
+**Why:** Open-closed principle. New languages don't modify existing synthesis code.
 
-```swift
-// MUST store globally -- ARC will deallocate otherwise
-nonisolated(unsafe) var fileWatcherSource: (any DispatchSourceFileSystemObject)?
+### Pattern 4: Synchronous State Mutation Within Actors
 
-func startFileWatcher(directory: String) {
-    let source = DispatchSource.makeFileSystemObjectSource(...)
-    source.resume()
-    fileWatcherSource = source  // prevents deallocation
-}
-```
+**What:** All state changes happen in synchronous methods. Async methods call synchronous helpers.
+**When:** Every actor method that mutates state.
+**Why:** Actor reentrancy means state can change across `await`. Synchronous blocks run atomically.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Custom Actor for CPU-Heavy Work
+### Anti-Pattern 1: Actor Reentrancy Surprise
 
-**What:** Using a Swift actor to wrap TTS synthesis.
+**What:** Assuming actor methods execute atomically across await points.
+**Why bad:** An actor can interleave work at any `await`. If `ensureModelLoaded()` has an await, another call could enter before it completes.
+**Instead:** Use synchronous initialization (current approach) or guard with a boolean + continuation pattern.
 
-**Why bad:** Actors share a cooperative thread pool. A 7-second synthesis blocks one of the limited cooperative threads, potentially starving other async work (bot polling, HTTP handling). The cooperative executor has no priority system -- all actors are equal.
+### Anti-Pattern 2: Main Actor Blocking from Actor
 
-**Instead:** Use `@unchecked Sendable` + dedicated serial `DispatchQueue` (Pattern 2).
+**What:** Calling `await MainActor.run { ... }` from inside an actor method that holds exclusive state.
+**Why bad:** If the main thread is blocked waiting on the actor, deadlock.
+**Instead:** Return results from actor methods, let the caller dispatch to MainActor.
 
-### Anti-Pattern 2: DispatchQueue.main.sync from Unknown Context
+### Anti-Pattern 3: Testing AppKit Components Directly
 
-**What:** Calling `DispatchQueue.main.sync` when the calling thread might already be main.
+**What:** Trying to unit-test SubtitlePanel, SubtitleSyncDriver via XCTest.
+**Why bad:** NSPanel requires a running NSApplication. Timer-based sync requires real-time progression.
+**Instead:** Test the data transformations (WordTimingAligner, SubtitleChunker) that feed these components.
 
-**Why bad:** Instant deadlock. `sync` blocks the calling thread waiting for main, but main IS the calling thread.
+### Anti-Pattern 4: Premature Protocol Abstraction
 
-**Instead:** Use `DispatchQueue.main.async` when the calling context is uncertain. Use `.sync` only from guaranteed background threads (e.g., the HTTP server's socket handler thread). The HTTP health endpoint uses `.sync` safely because `accept()` always runs on a background GCD thread.
+**What:** Creating protocols for every component "for testability."
+**Why bad:** Adds indirection without value when there's only one implementation.
+**Instead:** Use protocols only where there's a concrete second implementation (e.g., Synthesizer for kokoro-ios vs sherpa-onnx). Use `internal` access + `@testable import` for testing concrete types.
 
-### Anti-Pattern 3: SwiftUI for Background Service UI
+### Anti-Pattern 5: Calling C FFI from Actor-Isolated Context
 
-**What:** Using SwiftUI `App` protocol and `@main` for a background service with occasional overlay UI.
+**What:** Calling kokoro-ios / sherpa-onnx C functions directly from within an actor.
+**Why bad:** C functions block the cooperative thread pool thread.
+**Instead:** The kokoro-ios MLX synthesis is synchronous and CPU/GPU-bound. Keep it on a dedicated thread via `Task.detached` or a custom executor, not the cooperative pool.
 
-**Why bad:** SwiftUI's `App` lifecycle takes control of `NSApplication`, making it difficult to run background subsystems before the event loop starts. The `@main` attribute conflicts with custom entry points. SwiftUI windows are harder to configure as always-on-top transparent overlays than raw NSPanel.
+## Build Order (Dependency-Aware)
 
-**Instead:** Use `main.swift` with manual `NSApplication` setup. Launch all background work before `app.run()`. Use AppKit's NSPanel directly for the overlay.
+The build order respects these dependency chains:
 
-### Anti-Pattern 4: Vapor/Hummingbird for Internal HTTP
+- Testing depends on Decomposition -- can't test what isn't extracted
+- New Features depend on Decomposition -- Chinese TTS needs Synthesizer protocol
+- Edge-case hardening depends on Decomposition -- hardening applies to decomposed components
 
-**What:** Adding a web framework for the localhost control API.
-
-**Why bad:** Vapor pulls in SwiftNIO (event loop conflict with NSApplication RunLoop), adds 20+ transitive dependencies, increases binary size by 10MB+, and is massive overkill for 4 HTTP endpoints serving localhost.
-
-**Instead:** 50 lines of BSD socket code (Pattern 5).
-
-### Anti-Pattern 5: Multiple Processes Communicating via IPC
-
-**What:** Keeping separate binaries for bot, TTS, and subtitle, coordinating via XPC/pipes/sockets.
-
-**Why bad:** 3x process overhead (225MB vs 27MB idle RSS), complex lifecycle management, failure modes multiply, debugging requires correlating across processes.
-
-**Instead:** Single binary, in-process communication via `@MainActor` state coordinator.
-
-## Component Dependencies and Build Order
-
-The build order is dictated by which components depend on which.
+### Suggested Build Order
 
 ```
-Layer 0 (no deps):     Config
-Layer 1 (Foundation):  FileWatcher, SignalHandler, URLSessionTGClient
-Layer 2 (C libs):      TTSEngine (depends on sherpa-onnx static libs)
-Layer 3 (AppKit):      SubtitlePanel (depends on NSPanel, NSAttributedString)
-Layer 4 (state):       AppState (depends on SubtitlePanel, TTSEngine interface)
-Layer 5 (integration): TelegramBot (depends on AppState, TTSEngine, SubtitlePanel)
-                        HTTPServer (depends on AppState, SubtitlePanel, TTSEngine)
-Layer 6 (entry):       main.swift (depends on everything)
-```
-
-### Suggested Build Order (phases)
-
-1. **Foundation layer** -- Config, CSherpaOnnx module map, Package.swift with all dependencies resolving. Proves the build system works with sherpa-onnx static libs + swift-telegram-sdk coexisting.
-
-2. **Subtitle overlay** -- SubtitlePanel (NSPanel) with word-level karaoke. This is the core differentiator and the reason the binary needs NSApplication at all. Build and test independently with the HTTP /subtitle endpoint.
-
-3. **TTS engine** -- TTSEngine wrapping sherpa-onnx with lazy loading, async synthesis, and word timestamp extraction. Test independently with a CLI harness.
-
-4. **Telegram bot** -- TelegramBot with command handlers routing to TTSEngine and SubtitlePanel. Requires stopping the existing Bun bot (token conflict).
-
-5. **Integration** -- Wire everything through AppState. Add HTTP server endpoints, file watcher, signal handling, health reporting. This is where Spike 10's proven concurrency model gets replicated at full scale.
-
-6. **Deployment** -- launchd plist, SwiftBar plugin update (claude-hq v3.0.0), rollout (stop old services, start unified).
-
-### Why This Order
-
-- Subtitle first because it is the novel feature and validates that NSApplication.run() + background work coexistence works in the real codebase (not just spikes).
-- TTS before bot because the bot's /tts command depends on TTSEngine.
-- Bot after TTS because testing the bot requires the TTS engine and subtitle panel to be functional.
-- Integration last because it wires components that must each work independently first.
-
-## Source File Layout
-
-```
-claude-tts-companion/
-├── Package.swift                    <- SwiftPM manifest
-├── Sources/
-│   ├── main.swift                   <- Entry point (NSApp + component launch)
-│   ├── Config.swift                 <- Paths, ports, token loading
-│   ├── AppState.swift               <- @MainActor shared state
-│   ├── SubtitlePanel.swift          <- NSPanel karaoke overlay
-│   ├── KaraokeRenderer.swift        <- Word-level gold highlighting
-│   ├── TTSEngine.swift              <- sherpa-onnx synthesis wrapper
-│   ├── AudioPlayer.swift            <- afplay subprocess management
-│   ├── HTTPServer.swift             <- BSD socket control API
-│   ├── FileWatcher.swift            <- DispatchSource file monitor
-│   ├── TelegramBot.swift            <- Bot setup + command handlers
-│   ├── URLSessionTGClient.swift     <- TGClientPrtcl implementation
-│   ├── TranscriptParser.swift       <- JSONL streaming parser
-│   ├── MiniMaxClient.swift          <- AI summary API client
-│   ├── SherpaOnnx.swift             <- Swift wrapper (from upstream)
-│   └── CSherpaOnnx/
-│       ├── module.modulemap         <- C module map for sherpa-onnx headers
-│       └── shim.h                   <- Umbrella header
-├── com.example.claude-tts-companion.plist
-└── Makefile                         <- build, install, test targets
+Phase: TTSEngine Decomposition + Actor Migration + XCTest Infrastructure
+    |
+    |-- Step 1: Create CompanionCore library target in Package.swift
+    |           Move pure types: WordTimingAligner, PronunciationProcessor,
+    |           SubtitleChunker, LanguageDetector, TranscriptParser,
+    |           TelegramFormatter, SubtitleStyle, Config
+    |           Result: `swift test` runs, even with zero tests
+    |
+    |-- Step 2: Add test target, write unit tests for pure types
+    |           WordTimingAligner edge cases, PronunciationProcessor regex,
+    |           SubtitleChunker page boundaries, LanguageDetector thresholds
+    |           Result: Test suite validates existing behavior before refactoring
+    |
+    |-- Step 3: Extract TTSCircuitBreaker as actor (into CompanionCore)
+    |           Replace circuitBreakerLock + NSLock in TTSEngine
+    |           TTSEngine delegates to TTSCircuitBreaker actor
+    |           Write TTSCircuitBreaker state machine tests
+    |
+    |-- Step 4: Extract PlaybackManager as @MainActor class
+    |           Move AVAudioPlayer lifecycle, warm-up, preparePlayer
+    |           TTSEngine.play() delegates to PlaybackManager
+    |           No tests needed (AppKit-dependent)
+    |
+    |-- Step 5: Extract SynthesisEngine as actor
+    |           Move model loading, generateAudio, streaming pipeline
+    |           Define Synthesizer protocol (prep for Chinese TTS)
+    |           TTSEngine.synthesize*() delegates to SynthesisEngine
+    |           Write async integration tests (require model files)
+    |
+    |-- Step 6: Convert streaming to AsyncStream
+    |           Replace onChunkReady/onAllComplete callbacks
+    |           Remove NSLock-protected firstChunkDispatched flag
+    |           TelegramBot uses `for await chunk in ...`
+    |
+    |-- Step 7: Remove @unchecked Sendable from TTSEngine
+    |           All mutable state now in actor-isolated sub-components
+    |           TTSEngine is a stateless facade
+    |
+Phase: Streaming Pipeline Edge-Case Hardening
+    |
+    |-- Rapid-fire dispatch (new session while streaming)
+    |-- Hardware disconnect mid-playback
+    |-- Memory pressure during synthesis
+    |-- Tests for each edge case
+    |
+Phase: New Feature Components
+    |
+    |-- Step A: BionicRenderer (pure struct, add to CompanionCore)
+    |           Write tests, integrate with SubtitlePanel
+    |
+    |-- Step B: CaptionHistoryPanel (@MainActor NSPanel)
+    |           Reads from CaptionHistory, copy button, HTTP toggle
+    |
+    |-- Step C: FocusMonitor (file-based DND detection)
+    |           Wrap in protocol for future API replacement
+    |           Integrate with PlaybackManager (suppress audio)
+    |
+    |-- Step D: Chinese TTS via sherpa-onnx
+    |           Implement SherpaOnnxSynthesizer conforming to Synthesizer
+    |           SynthesisEngine routes based on LanguageDetector
+    |           Requires sherpa-onnx static libs + kokoro-multi-lang model
 ```
 
 ## Scalability Considerations
 
-This is a single-user desktop utility. "Scale" means handling edge cases gracefully, not horizontal scaling.
-
-| Concern            | Normal Operation         | Stress Case                     | Mitigation                                                                                |
-| ------------------ | ------------------------ | ------------------------------- | ----------------------------------------------------------------------------------------- |
-| TTS queue depth    | 1 request at a time      | Rapid /tts commands (5+ queued) | Serial DispatchQueue naturally queues. Report depth via /health. Reject above 10.         |
-| Memory (idle)      | 27 MB                    | N/A                             | No concern -- less than a single Chrome tab                                               |
-| Memory (synthesis) | 561 MB peak              | Multiple rapid syntheses        | Serial queue prevents concurrent model use. RSS stays at 561MB regardless of queue depth. |
-| Subtitle updates   | 6us per word             | 100+ word sentences             | 37x headroom. Word-wrap handles overflow. No performance concern.                         |
-| Telegram polling   | 1 long-poll connection   | Network dropout                 | swift-telegram-sdk retries with backoff automatically                                     |
-| HTTP requests      | <10/min (SwiftBar polls) | N/A                             | BSD socket with backlog of 5 is adequate                                                  |
-| Log file growth    | ~1KB/hour                | Extended uptime (months)        | launchd log rotation via `newsyslog` or manual truncation                                 |
+| Concern          | Current (1 user)                 | Future                      | Notes                                                             |
+| ---------------- | -------------------------------- | --------------------------- | ----------------------------------------------------------------- |
+| TTS model memory | 561MB peak (one model)           | ~1.1GB if two models loaded | Lazy-load Chinese model only when CJK detected; unload after idle |
+| Streaming chunks | ~5-10 sentences per notification | Same                        | Serial synthesis is fine for single-user                          |
+| Caption history  | 100-entry ring buffer            | Sufficient                  | Ring buffer prevents unbounded growth                             |
+| HTTP API         | ~1 req/sec from SwiftBar         | Same                        | FlyingFox handles this trivially                                  |
 
 ## Sources
 
-- [Spike 08: Integration Architecture](~/tmp/subtitle-spikes-7aqa/SPIKE-08-INTEGRATION-ARCH.md) -- PRIMARY source, contains full dependency analysis, Package.swift, concurrency model, launchd plist design (HIGH confidence)
-- [Spike 10: E2E Flow Report](~/tmp/subtitle-spikes-7aqa/10-e2e-flow/SPIKE-10-E2E-REPORT.md) -- Proves zero-deadlock concurrency model with measured timings (HIGH confidence)
-- [Spike Overview](~/tmp/subtitle-spikes-7aqa/SPIKE-OVERVIEW.md) -- 23 spikes summarized with RSS measurements (HIGH confidence)
-- [macOS menu bar app with AppKit](https://www.polpiella.dev/a-menu-bar-only-macos-app-using-appkit/) -- Standard accessory app pattern reference
-- [Understanding agent-based macOS apps](https://rderik.com/blog/understanding-a-few-concepts-of-macos-applications-by-building-an-agent-based-menu-bar-app/) -- LaunchAgent + NSApplication.accessory pattern
-- [NSApplication.setActivationPolicy](https://developer.apple.com/documentation/appkit/nsapplication/1428621-setactivationpolicy) -- Apple docs for activation policies
-- [MainActor dispatch patterns](https://www.avanderlee.com/swift/mainactor-dispatch-main-thread/) -- @MainActor as modern replacement for DispatchQueue.main
-- [Task execution and actor context](https://blog.jacobstechtavern.com/p/why-is-task-running-on-main-thread) -- Why Task.detached is needed to avoid main thread inheritance
-- [Peter Steinberger: Menu bar settings window challenges](https://steipete.me/posts/2025/showing-settings-from-macos-menu-bar-items) -- 2025 macOS accessory app quirks
+- [SwiftPM executable target testability limitation](https://github.com/swiftlang/swift-package-manager/issues/7596) -- HIGH confidence
+- [SwiftPM library extraction pattern for testing](https://forums.swift.org/t/executable-target-testability/52351) -- HIGH confidence
+- [SE-0337: Incremental Migration to Concurrency Checking](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md) -- HIGH confidence
+- [@unchecked Sendable with NSLock pattern](https://gist.github.com/dterekhov/a75ad354add68eb356fdb3b2366182a8) -- HIGH confidence
+- [macOS Focus/DND -- no public API](https://developer.apple.com/forums/thread/682143) -- HIGH confidence
+- [File-based DND detection workaround](https://gist.github.com/drewkerr/0f2b61ce34e2b9e3ce0ec6a92ab05c18) -- MEDIUM confidence (undocumented file path)
+- [sherpa-onnx Kokoro multi-language support](https://github.com/k2-fsa/sherpa-onnx/pull/1795) -- MEDIUM confidence
+- [Beware @unchecked Sendable pitfalls](https://jaredsinclair.com/2024/11/12/beware-unchecked.html) -- HIGH confidence
