@@ -1,3 +1,4 @@
+// FILE-SIZE-OK — dual-mode sync driver (single-shot + streaming) sharing 80%+ logic
 import AppKit
 import AVFoundation
 import Logging
@@ -102,6 +103,35 @@ final class SubtitleSyncDriver {
     /// the 60Hz karaoke poller. beginActivity() returns a token that prevents this.
     private var appNapActivity: NSObjectProtocol?
 
+    // MARK: - Onset Resolution
+
+    /// Resolve word onset times: use native onsets if count matches, otherwise derive from durations.
+    ///
+    /// Centralizes the onset computation shared by both init paths and addChunk().
+    /// Native onsets (from Kokoro duration model) include leading silence and inter-word gaps
+    /// that duration-based cumulation would lose.
+    private static func resolveOnsets(
+        nativeOnsets: [TimeInterval]?,
+        wordTimings: [TimeInterval],
+        totalWords: Int,
+        logger: Logger
+    ) -> [TimeInterval] {
+        if let nativeOnsets = nativeOnsets, nativeOnsets.count == totalWords {
+            return nativeOnsets
+        }
+        if let nativeOnsets = nativeOnsets, nativeOnsets.count != totalWords {
+            logger.warning("Onset count (\(nativeOnsets.count)) != word count (\(totalWords)) -- falling back to duration-derived onsets")
+        }
+        // Fallback: convert per-word durations to cumulative onset times (starts at 0)
+        var onsets: [TimeInterval] = []
+        var cumulative: TimeInterval = 0
+        for timing in wordTimings {
+            onsets.append(cumulative)
+            cumulative += timing
+        }
+        return onsets
+    }
+
     // MARK: - Init (Single-shot mode)
 
     /// Create a sync driver for the given audio player and subtitle pages.
@@ -119,26 +149,14 @@ final class SubtitleSyncDriver {
         self.totalWordCount = pages.reduce(0) { $0 + $1.wordCount }
         self.isStreamingMode = false
 
-        if let nativeOnsets = nativeOnsets, nativeOnsets.count == totalWordCount {
-            // Use ground-truth onset times from Kokoro duration model.
-            // These include leading silence and inter-word gaps that
-            // duration-based cumulation would lose.
-            self.wordOnsets = nativeOnsets
-            logger.info("SubtitleSyncDriver init (single-shot, native onsets): \(pages.count) pages, \(totalWordCount) words, firstOnset=\(String(format: "%.3f", nativeOnsets.first ?? 0))s, duration=\(String(format: "%.2f", player.duration))s")
-        } else {
-            if let nativeOnsets = nativeOnsets, nativeOnsets.count != totalWordCount {
-                logger.warning("Onset count (\(nativeOnsets.count)) != word count (\(totalWordCount)) -- falling back to duration-derived onsets")
-            }
-            // Fallback: convert per-word durations to cumulative onset times (starts at 0)
-            var onsets: [TimeInterval] = []
-            var cumulative: TimeInterval = 0
-            for timing in wordTimings {
-                onsets.append(cumulative)
-                cumulative += timing
-            }
-            self.wordOnsets = onsets
-            logger.info("SubtitleSyncDriver init (single-shot, duration-derived): \(pages.count) pages, \(totalWordCount) words, duration=\(String(format: "%.2f", player.duration))s")
-        }
+        self.wordOnsets = SubtitleSyncDriver.resolveOnsets(
+            nativeOnsets: nativeOnsets,
+            wordTimings: wordTimings,
+            totalWords: totalWordCount,
+            logger: logger
+        )
+        let mode = nativeOnsets != nil && nativeOnsets?.count == totalWordCount ? "native onsets" : "duration-derived"
+        logger.info("SubtitleSyncDriver init (single-shot, \(mode)): \(pages.count) pages, \(totalWordCount) words, duration=\(String(format: "%.2f", player.duration))s")
     }
 
     // MARK: - Init (Streaming mode)
@@ -191,23 +209,12 @@ final class SubtitleSyncDriver {
         }
 
         let totalWords = pages.reduce(0) { $0 + $1.wordCount }
-        let onsets: [TimeInterval]
-        if let nativeOnsets = nativeOnsets, nativeOnsets.count == totalWords {
-            // Use ground-truth onset times from Kokoro duration model
-            onsets = nativeOnsets
-        } else {
-            if let nativeOnsets = nativeOnsets, nativeOnsets.count != totalWords {
-                logger.warning("addChunk: onset count (\(nativeOnsets.count)) != word count (\(totalWords)) -- falling back to duration-derived onsets")
-            }
-            // Fallback: convert per-word durations to cumulative onset times (starts at 0)
-            var computed: [TimeInterval] = []
-            var cumulative: TimeInterval = 0
-            for timing in wordTimings {
-                computed.append(cumulative)
-                cumulative += timing
-            }
-            onsets = computed
-        }
+        let onsets = SubtitleSyncDriver.resolveOnsets(
+            nativeOnsets: nativeOnsets,
+            wordTimings: wordTimings,
+            totalWords: totalWords,
+            logger: logger
+        )
 
         let chunk = StreamChunk(
             wavPath: wavPath,
@@ -293,8 +300,15 @@ final class SubtitleSyncDriver {
 
     // MARK: - Streaming Playback
 
-    /// Start playing a specific stream chunk.
-    private func playStreamChunk(at index: Int) {
+    /// Activate a chunk: compute cumulative offset, configure pages/onsets for tick(), show first page.
+    ///
+    /// Shared setup for both playStreamChunk() and advanceToPrebuilt() -- both need
+    /// to prepare the tick() state (pages, wordOnsets, totalWordCount) and display the
+    /// first page before handing off to the mode-specific player wiring.
+    ///
+    /// - Returns: false if the chunk index is out of range (caller should handle waiting/finishing).
+    @discardableResult
+    private func activateChunk(at index: Int) -> Bool {
         guard index < streamChunks.count else {
             if allChunksDelivered {
                 finishPlayback()
@@ -305,7 +319,7 @@ final class SubtitleSyncDriver {
                     logger.info("Waiting for chunk \(index) to be synthesized...")
                 }
             }
-            return
+            return false
         }
 
         currentChunkIndex = index
@@ -331,12 +345,20 @@ final class SubtitleSyncDriver {
             currentLocalWordIndex = 0
         }
 
+        return true
+    }
+
+    /// Start playing a specific stream chunk.
+    private func playStreamChunk(at index: Int) {
+        guard activateChunk(at: index) else { return }
+
         // Create and start player
         guard let engine = ttsEngine else {
             logger.error("No TTSEngine reference for streaming playback")
             return
         }
 
+        let chunk = streamChunks[index]
         guard let newPlayer = engine.play(wavPath: chunk.wavPath, completion: { [weak self] in
             // Playback delegate fires on completion -- but we handle
             // chunk transitions via tick() polling instead
@@ -358,41 +380,7 @@ final class SubtitleSyncDriver {
 
     /// Fast-path chunk transition: use a pre-buffered player instead of creating one.
     private func advanceToPrebuilt(index: Int, player: AVAudioPlayer) {
-        guard index < streamChunks.count else {
-            if allChunksDelivered {
-                finishPlayback()
-            } else {
-                waitingForNextChunk = true
-                if lastWaitingLoggedChunk != index {
-                    lastWaitingLoggedChunk = index
-                    logger.info("Waiting for chunk \(index) to be synthesized...")
-                }
-            }
-            return
-        }
-
-        currentChunkIndex = index
-        let chunk = streamChunks[index]
-
-        // Calculate cumulative offset from all previous chunks
-        cumulativeOffset = 0
-        for i in 0..<index {
-            cumulativeOffset += streamChunks[i].wordTimings.reduce(0, +)
-        }
-
-        // Set up pages and onsets for the tick() logic
-        self.pages = chunk.pages
-        self.wordOnsets = chunk.wordOnsets
-        self.totalWordCount = chunk.totalWords
-        self.currentPageIndex = 0
-        self.currentLocalWordIndex = -1
-
-        // Show first page
-        if let firstPage = chunk.pages.first {
-            subtitlePanel.highlightWord(at: 0, in: firstPage.words)
-            currentPageIndex = 0
-            currentLocalWordIndex = 0
-        }
+        guard activateChunk(at: index) else { return }
 
         // Promote the pre-buffered player to active
         streamPlayer = player
@@ -478,39 +466,7 @@ final class SubtitleSyncDriver {
             return
         }
 
-        let t = player.currentTime
-
-        // Find global word index for current time via linear scan of onsets
-        var globalIdx = 0
-        for i in 0..<wordOnsets.count {
-            if t >= wordOnsets[i] {
-                globalIdx = i
-            } else {
-                break
-            }
-        }
-        globalIdx = min(globalIdx, max(totalWordCount - 1, 0))
-
-        // Convert global index to page + local index
-        var targetPageIndex = 0
-        var localIndex = globalIdx
-        for (pi, page) in pages.enumerated() {
-            if globalIdx >= page.startWordIndex && globalIdx < page.startWordIndex + page.wordCount {
-                targetPageIndex = pi
-                localIndex = globalIdx - page.startWordIndex
-                break
-            }
-        }
-
-        // Update UI only when something changed
-        if targetPageIndex != currentPageIndex {
-            currentPageIndex = targetPageIndex
-            currentLocalWordIndex = localIndex
-            subtitlePanel.highlightWord(at: localIndex, in: pages[targetPageIndex].words)
-        } else if localIndex != currentLocalWordIndex {
-            currentLocalWordIndex = localIndex
-            subtitlePanel.highlightWord(at: localIndex, in: pages[currentPageIndex].words)
-        }
+        updateHighlight(for: player.currentTime)
     }
 
     private func tickStreaming() {
@@ -535,12 +491,18 @@ final class SubtitleSyncDriver {
             return
         }
 
-        let t = currentPlayer.currentTime
+        updateHighlight(for: currentPlayer.currentTime)
+    }
 
-        // Find global word index for current time within this chunk
+    /// Map a playback timestamp to a word index, resolve the page, and update the subtitle panel.
+    ///
+    /// Shared by both tickSingleShot() and tickStreaming() -- the word-onset lookup,
+    /// page resolution, and UI-change-detection logic is identical for both modes.
+    private func updateHighlight(for currentTime: TimeInterval) {
+        // Find global word index for current time via linear scan of onsets
         var globalIdx = 0
         for i in 0..<wordOnsets.count {
-            if t >= wordOnsets[i] {
+            if currentTime >= wordOnsets[i] {
                 globalIdx = i
             } else {
                 break
