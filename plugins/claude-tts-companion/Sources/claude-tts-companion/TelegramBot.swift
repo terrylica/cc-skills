@@ -201,9 +201,10 @@ final class TelegramBot: @unchecked Sendable {
             case .success(let ttsResult):
                 self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
 
-                // Show karaoke subtitles on main thread (SubtitlePanel is @MainActor)
+                // Chunk text into pages and show paged karaoke subtitles (STREAM-02, STREAM-03)
                 DispatchQueue.main.async {
-                    self.subtitlePanel.showUtterance(ttsResult.text, wordTimings: ttsResult.wordTimings)
+                    let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text)
+                    self.subtitlePanel.showPages(pages, wordTimings: ttsResult.wordTimings)
                 }
 
                 // Play audio concurrently with subtitle display
