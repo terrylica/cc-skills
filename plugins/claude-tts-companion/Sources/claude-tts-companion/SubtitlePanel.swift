@@ -167,7 +167,10 @@ final class SubtitlePanel: NSPanel {
             logger.info("[showPages] page[\(pi)] startIdx=\(page.startWordIndex) wordCount=\(page.wordCount) first=\"\(preview)\" last=\"\(lastWords)\"")
         }
 
-        let scheduleStart = DispatchTime.now()
+        // Offset schedule start by the estimated audio launch delay so that
+        // word highlights fire ~when afplay actually produces sound, not when
+        // play() is called. See SubtitleStyle.audioLaunchDelay for rationale.
+        let scheduleStart = DispatchTime.now() + SubtitleStyle.audioLaunchDelay
         var cumulativeTime: TimeInterval = 0
 
         for (pageIndex, page) in pages.enumerated() {
