@@ -172,7 +172,7 @@ final class HTTPControlServer: @unchecked Sendable {
             return jsonResponse(OkResponse(ok: true))
         }
 
-        // API-09: TTS test — synthesize + play + karaoke subtitles
+        // API-09: TTS test — synthesize + play + karaoke subtitles (streaming)
         await server.appendRoute("POST /tts/test") { [self] request in
             do {
                 let body = try await request.bodyData
@@ -182,33 +182,79 @@ final class HTTPControlServer: @unchecked Sendable {
                 let voiceName = settings.tts.voice
                 let speed = Float(settings.tts.speed)
 
-                // Run full TTS pipeline: synthesize → play → karaoke sync
-                ttsEngine.synthesizeWithTimestamps(text: text, voiceName: voiceName, speed: speed) { [self] result in
-                    switch result {
-                    case .success(let ttsResult):
+                logger.info("TTS test: streaming synthesis for \(text.count) chars")
+
+                // Reset AudioStreamPlayer for a fresh session (cancels any queued buffers)
+                ttsEngine.audioStreamPlayer.reset()
+                ttsEngine.stopPlayback()
+
+                // Cancel any previous sync driver
+                await MainActor.run {
+                    self.activeSyncDriver?.stop()
+                    self.activeSyncDriver = nil
+                }
+
+                // Batch-then-play: collect all chunks, then play them all at once.
+                // Zero GPU work during playback — eliminates memory bus contention.
+                let chunksLock = NSLock()
+                var collectedChunks: [TTSEngine.ChunkResult] = []
+
+                ttsEngine.synthesizeStreaming(
+                    text: text,
+                    voiceName: voiceName,
+                    speed: speed,
+                    onChunkReady: { [self] chunk in
+                        self.logger.info("TTS test synthesized chunk \(chunk.chunkIndex + 1)/\(chunk.totalChunks): \(String(format: "%.2f", chunk.audioDuration))s (batch collecting)")
+
+                        chunksLock.lock()
+                        collectedChunks.append(chunk)
+                        chunksLock.unlock()
+                    },
+                    onAllComplete: { [self] in
+                        chunksLock.lock()
+                        let chunks = collectedChunks
+                        chunksLock.unlock()
+
+                        self.logger.info("TTS test: all \(chunks.count) chunks synthesized — starting batch playback")
+
                         DispatchQueue.main.async {
-                            let fontSizeName = self.subtitlePanel.currentFontSizeName
-                            let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text, fontSizeName: fontSizeName)
-                            guard let player = self.ttsEngine.play(wavPath: ttsResult.wavPath, completion: {
-                                self.logger.info("TTS test playback complete")
-                            }) else {
-                                self.logger.error("TTS test: AVAudioPlayer creation failed")
+                            guard !chunks.isEmpty else {
+                                self.logger.warning("TTS test: no chunks produced — showing subtitle-only fallback")
+                                self.subtitlePanel.show(text: text)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                                    self.subtitlePanel.hide()
+                                }
                                 return
                             }
+
+                            // Create sync driver for batch playback
                             let driver = SubtitleSyncDriver(
-                                player: player,
-                                pages: pages,
-                                wordTimings: ttsResult.wordTimings,
-                                nativeOnsets: ttsResult.wordOnsets,
-                                subtitlePanel: self.subtitlePanel
+                                subtitlePanel: self.subtitlePanel,
+                                ttsEngine: self.ttsEngine,
+                                onStreamingComplete: {
+                                    self.logger.info("TTS test batch playback complete")
+                                }
                             )
                             self.activeSyncDriver = driver
-                            driver.start()
+
+                            // Add all chunks
+                            for chunk in chunks {
+                                let fontSizeName = self.subtitlePanel.currentFontSizeName
+                                let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+                                driver.addChunk(
+                                    wavPath: chunk.wavPath,
+                                    samples: chunk.samples,
+                                    pages: pages,
+                                    wordTimings: chunk.wordTimings,
+                                    nativeOnsets: chunk.wordOnsets
+                                )
+                            }
+
+                            // Start batch playback
+                            driver.startBatchPlayback()
                         }
-                    case .failure(let error):
-                        self.logger.error("TTS test synthesis failed: \(error)")
                     }
-                }
+                )
 
                 return jsonResponse(OkResponse(ok: true))
             } catch {

@@ -266,10 +266,9 @@ final class TelegramBot: @unchecked Sendable {
         isStreamingInProgress = true
 
         // Cancel previous playback IMMEDIATELY when a new session dispatches.
-        // Previously this was deferred to the first-chunk-ready callback, leaving a
-        // ~4-18s window where the old SyncDriver's 60Hz timer polled a dead player
-        // (spamming "Waiting for chunk N" logs and showing stale subtitles).
-        ttsEngine.stopPlayback()
+        // Reset AudioStreamPlayer (cancels queued buffers, keeps engine warm).
+        ttsEngine.audioStreamPlayer.reset()
+        ttsEngine.stopPlayback()  // Also stop any legacy AVAudioPlayer
         // SyncDriver is @MainActor -- dispatch stop to main queue.
         // Use async (not sync) to avoid deadlock if we're already on main.
         // The synthesis queue starts work concurrently, but the first chunk takes
@@ -281,66 +280,70 @@ final class TelegramBot: @unchecked Sendable {
             driverToStop?.stop()
         }
 
-        // Use NSLock-protected flag for thread safety (TTS queue -> main thread).
-        let firstChunkLock = NSLock()
-        var _firstChunkDispatched = false
+        // Batch-then-play: collect all synthesized chunks, then play them all at once.
+        // MLX Metal GPU creates ~1.7GB IOAccelerator allocations per synthesis call that
+        // compete with audio playback on unified memory. By synthesizing everything first,
+        // the GPU is completely idle during playback — zero memory bus contention.
+
+        // Thread-safe chunk collection (TTS queue writes, main thread reads on completion)
+        let chunksLock = NSLock()
+        var collectedChunks: [TTSEngine.ChunkResult] = []
 
         ttsEngine.synthesizeStreaming(
             text: text,
             voiceName: voiceName,
             onChunkReady: { [weak self] chunk in
                 guard let self = self else { return }
-                self.logger.info("Streaming chunk \(chunk.chunkIndex + 1)/\(chunk.totalChunks) ready: \(String(format: "%.2f", chunk.audioDuration))s")
+                self.logger.info("Synthesized chunk \(chunk.chunkIndex + 1)/\(chunk.totalChunks): \(String(format: "%.2f", chunk.audioDuration))s (batch collecting)")
 
-                firstChunkLock.lock()
-                let isFirst = !_firstChunkDispatched
-                if isFirst { _firstChunkDispatched = true }
-                firstChunkLock.unlock()
-
-                DispatchQueue.main.async {
-                    if isFirst {
-                        // Create streaming sync driver with completion to clear in-progress flag
-                        let driver = SubtitleSyncDriver(
-                            subtitlePanel: self.subtitlePanel,
-                            ttsEngine: self.ttsEngine,
-                            onStreamingComplete: { [weak self] in
-                                self?.isStreamingInProgress = false
-                                self?.logger.info("Streaming playback complete — new TTS dispatches unblocked")
-                            }
-                        )
-                        self.syncDriver = driver
-                    }
-
-                    // Chunk pages using pixel-width measurement with the current dynamic font size
-                    let fontSizeName = self.subtitlePanel.currentFontSizeName
-                    let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
-                    self.syncDriver?.addChunk(
-                        wavPath: chunk.wavPath,
-                        pages: pages,
-                        wordTimings: chunk.wordTimings,
-                        nativeOnsets: chunk.wordOnsets
-                    )
-                }
+                chunksLock.lock()
+                collectedChunks.append(chunk)
+                chunksLock.unlock()
             },
             onAllComplete: { [weak self] in
                 guard let self = self else { return }
-                self.logger.info("All streaming TTS chunks synthesized")
 
-                firstChunkLock.lock()
-                let hadChunks = _firstChunkDispatched
-                firstChunkLock.unlock()
+                chunksLock.lock()
+                let chunks = collectedChunks
+                chunksLock.unlock()
+
+                self.logger.info("All \(chunks.count) chunks synthesized — starting batch playback")
 
                 DispatchQueue.main.async {
-                    if hadChunks {
-                        // SyncDriver was created — it will clear isStreamingInProgress
-                        // when playback finishes via onStreamingComplete callback
-                        self.syncDriver?.markAllChunksDelivered()
-                    } else {
+                    guard !chunks.isEmpty else {
                         // No chunks were ever produced (synthesis failed entirely)
                         self.isStreamingInProgress = false
                         self.logger.warning("Streaming complete with no chunks — showing subtitle-only fallback")
                         self.showSubtitleOnlyFallback(text: text)
+                        return
                     }
+
+                    // Create sync driver for batch playback
+                    let driver = SubtitleSyncDriver(
+                        subtitlePanel: self.subtitlePanel,
+                        ttsEngine: self.ttsEngine,
+                        onStreamingComplete: { [weak self] in
+                            self?.isStreamingInProgress = false
+                            self?.logger.info("Batch playback complete — new TTS dispatches unblocked")
+                        }
+                    )
+                    self.syncDriver = driver
+
+                    // Add all chunks to the driver
+                    for chunk in chunks {
+                        let fontSizeName = self.subtitlePanel.currentFontSizeName
+                        let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+                        driver.addChunk(
+                            wavPath: chunk.wavPath,
+                            samples: chunk.samples,
+                            pages: pages,
+                            wordTimings: chunk.wordTimings,
+                            nativeOnsets: chunk.wordOnsets
+                        )
+                    }
+
+                    // Start batch playback: schedules ALL buffers, then plays gaplessly
+                    driver.startBatchPlayback()
                 }
             }
         )

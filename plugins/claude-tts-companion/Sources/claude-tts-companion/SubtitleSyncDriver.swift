@@ -7,10 +7,11 @@ import Logging
 ///
 /// Supports two modes:
 /// 1. **Single-shot** (legacy): init with a single player + pages + wordTimings, call start()
-/// 2. **Streaming**: init with subtitlePanel only, call addChunk() as chunks arrive
+/// 2. **Streaming**: init with subtitlePanel only, call addChunk() as chunks arrive.
+///    Uses AVAudioEngine-based AudioStreamPlayer for gapless chunk playback.
 ///
-/// In streaming mode, the driver manages sequential AVAudioPlayers (one per chunk)
-/// with cumulative time offsets for seamless subtitle progression.
+/// In streaming mode, the driver feeds raw PCM samples to AudioStreamPlayer.scheduleBuffer()
+/// for seamless back-to-back playback on the real-time audio thread.
 @MainActor
 final class SubtitleSyncDriver {
 
@@ -53,10 +54,12 @@ final class SubtitleSyncDriver {
     /// Queued chunks waiting to be played
     private struct StreamChunk {
         let wavPath: String
+        let samples: [Float]?
         let pages: [SubtitlePage]
         let wordTimings: [TimeInterval]
         let wordOnsets: [TimeInterval]
         let totalWords: Int
+        let audioDuration: TimeInterval
     }
 
     /// All chunks received so far (played + pending)
@@ -65,23 +68,13 @@ final class SubtitleSyncDriver {
     /// Index of the chunk currently being played
     private var currentChunkIndex: Int = 0
 
-    /// The player for the currently playing chunk
-    private var streamPlayer: AVAudioPlayer?
-
-    /// Delegate retained to prevent dealloc during playback
-    private var streamPlaybackDelegate: AnyObject?
-
-    /// Pre-buffered player for the NEXT chunk (gapless transition)
-    private var nextStreamPlayer: AVAudioPlayer?
-
-    /// Delegate for the pre-buffered next player (must be retained)
-    private var nextPlaybackDelegate: AnyObject?
-
-    /// Index of the chunk that nextStreamPlayer is prepared for (-1 = none)
-    private var prebufferedChunkIndex: Int = -1
-
-    /// Cumulative audio duration of all chunks before the current one
+    /// Cumulative audio duration of all chunks before the current one.
+    /// Used to compute global playback time from AudioStreamPlayer.currentTime.
     private var cumulativeOffset: TimeInterval = 0
+
+    /// The time at which the current chunk started playing (from AudioStreamPlayer.currentTime).
+    /// Set when we schedule a chunk. currentTime within chunk = audioStreamPlayer.currentTime - chunkStartTime.
+    private var chunkStartTime: TimeInterval = 0
 
     /// Whether we are waiting for the next chunk to become available
     private var waitingForNextChunk: Bool = false
@@ -92,7 +85,7 @@ final class SubtitleSyncDriver {
     /// Whether all chunks have been delivered (onAllComplete called)
     private var allChunksDelivered: Bool = false
 
-    /// TTSEngine reference for creating players (streaming mode)
+    /// TTSEngine reference for AudioStreamPlayer access and WAV fallback
     private var ttsEngine: TTSEngine?
 
     /// Called when all streaming playback finishes (after last chunk plays to completion)
@@ -102,6 +95,18 @@ final class SubtitleSyncDriver {
     /// visible windows, which delays DispatchSourceTimer callbacks and degrades
     /// the 60Hz karaoke poller. beginActivity() returns a token that prevents this.
     private var appNapActivity: NSObjectProtocol?
+
+    /// Whether the current chunk's completion callback has fired (set by AudioStreamPlayer callback).
+    /// Checked by the 60Hz tick to know when to advance to the next chunk.
+    private var currentChunkComplete: Bool = false
+
+    // MARK: - Legacy streaming mode properties (AVAudioPlayer-based, for single-shot)
+
+    /// The player for the currently playing chunk (single-shot mode only)
+    private var streamPlayer: AVAudioPlayer?
+
+    /// Delegate retained to prevent dealloc during playback
+    private var streamPlaybackDelegate: AnyObject?
 
     // MARK: - Onset Resolution
 
@@ -161,11 +166,18 @@ final class SubtitleSyncDriver {
 
     // MARK: - Init (Streaming mode)
 
-    /// Create a sync driver for streaming mode. Call addChunk() as chunks arrive.
+    /// Create a sync driver for batch-then-play streaming mode.
+    ///
+    /// Uses AudioStreamPlayer (AVAudioEngine) for gapless chunk playback.
+    /// Call addChunk() for each synthesized chunk, then startBatchPlayback()
+    /// to schedule ALL buffers and begin gapless playback.
+    ///
+    /// **Batch-then-play pattern:** All synthesis completes before any playback starts.
+    /// This eliminates GPU/memory bus contention on Apple Silicon unified memory.
     ///
     /// - Parameters:
     ///   - subtitlePanel: The panel to update with karaoke highlights
-    ///   - ttsEngine: TTSEngine instance for creating AVAudioPlayers
+    ///   - ttsEngine: TTSEngine instance for AudioStreamPlayer access
     ///   - onStreamingComplete: Called when all chunks have finished playing (not just synthesized)
     init(subtitlePanel: SubtitlePanel, ttsEngine: TTSEngine, onStreamingComplete: (() -> Void)? = nil) {
         self.subtitlePanel = subtitlePanel
@@ -173,7 +185,7 @@ final class SubtitleSyncDriver {
         self.isStreamingMode = true
         self.onStreamingComplete = onStreamingComplete
 
-        logger.info("SubtitleSyncDriver init (streaming): awaiting first chunk")
+        logger.info("SubtitleSyncDriver init (streaming, batch-then-play): awaiting chunks")
     }
 
     // MARK: - Public API
@@ -186,8 +198,8 @@ final class SubtitleSyncDriver {
         }
         guard !pages.isEmpty else { return }
 
-        // Show first page with first word highlighted
-        subtitlePanel.highlightWord(at: 0, in: pages[0].words)
+        // Show first page with first word highlighted (full display pipeline)
+        subtitlePanel.highlightWord(at: 0, in: pages[0].words, isPageTransition: true)
         currentPageIndex = 0
         currentLocalWordIndex = 0
 
@@ -195,14 +207,18 @@ final class SubtitleSyncDriver {
         logger.info("SubtitleSyncDriver started (60Hz polling, single-shot)")
     }
 
-    /// Add a streaming chunk. On the first chunk, starts playback immediately.
+    /// Add a synthesized chunk to the batch. Does NOT start playback.
+    ///
+    /// Call this for each chunk as synthesis completes, then call startBatchPlayback()
+    /// after all chunks are added to schedule ALL buffers and begin gapless playback.
     ///
     /// - Parameters:
-    ///   - wavPath: Path to the WAV file for this chunk
+    ///   - wavPath: Path to the WAV file for this chunk (kept for fallback/cleanup)
+    ///   - samples: Raw float32 PCM samples at 24kHz (preferred, avoids WAV I/O)
     ///   - pages: Subtitle pages for this chunk
     ///   - wordTimings: Per-word durations from TTSEngine
     ///   - nativeOnsets: Native word onset times from MToken.start_ts (nil = derive from durations)
-    func addChunk(wavPath: String, pages: [SubtitlePage], wordTimings: [TimeInterval], nativeOnsets: [TimeInterval]? = nil) {
+    func addChunk(wavPath: String, samples: [Float]? = nil, pages: [SubtitlePage], wordTimings: [TimeInterval], nativeOnsets: [TimeInterval]? = nil) {
         guard isStreamingMode else {
             logger.warning("addChunk() called on single-shot driver")
             return
@@ -215,35 +231,109 @@ final class SubtitleSyncDriver {
             totalWords: totalWords,
             logger: logger
         )
+        // Compute audioDuration from actual sample count when available.
+        // TTSEngine appends trailing silence padding (100ms) to each chunk's PCM samples,
+        // but wordTimings only sum to the raw (unpadded) duration. Since AVAudioEngine
+        // plays the padded samples, cumulative offsets must use the padded duration to
+        // keep karaoke highlighting in sync across chunks.
+        let audioDuration: TimeInterval
+        if let samples = samples, !samples.isEmpty {
+            audioDuration = Double(samples.count) / 24000.0
+        } else {
+            audioDuration = wordTimings.reduce(0, +)
+        }
 
         let chunk = StreamChunk(
             wavPath: wavPath,
+            samples: samples,
             pages: pages,
             wordTimings: wordTimings,
             wordOnsets: onsets,
-            totalWords: totalWords
+            totalWords: totalWords,
+            audioDuration: audioDuration
         )
         streamChunks.append(chunk)
 
-        logger.info("addChunk[\(streamChunks.count - 1)]: \(pages.count) pages, \(totalWords) words, wav=\(wavPath)")
-
-        let newChunkIndex = streamChunks.count - 1
-
-        // If this is the first chunk, start playing immediately
-        if streamChunks.count == 1 {
-            playStreamChunk(at: 0)
-            startTimer()
-        } else if waitingForNextChunk {
-            // We were waiting for this chunk -- start it now
-            waitingForNextChunk = false
-            playStreamChunk(at: currentChunkIndex)
-        } else if newChunkIndex == currentChunkIndex + 1 && prebufferedChunkIndex != newChunkIndex {
-            // This is the chunk right after the currently playing one -- pre-buffer it now
-            prebufferNextChunk(after: currentChunkIndex)
-        }
+        logger.info("addChunk[\(streamChunks.count - 1)]: \(pages.count) pages, \(totalWords) words, wav=\(wavPath), hasSamples=\(samples != nil)")
     }
 
-    /// Signal that all chunks have been delivered.
+    /// Schedule ALL collected chunks on AudioStreamPlayer and begin gapless playback.
+    ///
+    /// **Batch-then-play pattern:** This method is called AFTER all synthesis is complete.
+    /// It schedules every chunk's PCM buffer on the AVAudioEngine player node before
+    /// starting the 60Hz karaoke timer. Since all GPU work is done, playback runs with
+    /// zero memory bus contention.
+    ///
+    /// Must be called on the main thread (@MainActor).
+    func startBatchPlayback() {
+        guard isStreamingMode else {
+            logger.warning("startBatchPlayback() called on single-shot driver")
+            return
+        }
+        guard !streamChunks.isEmpty else {
+            logger.warning("startBatchPlayback() called with no chunks")
+            finishPlayback()
+            return
+        }
+
+        allChunksDelivered = true
+
+        guard let engine = ttsEngine else {
+            logger.error("No TTSEngine reference for batch playback")
+            return
+        }
+
+        let asp = engine.audioStreamPlayer
+
+        // Schedule ALL buffers on AudioStreamPlayer before starting playback.
+        // AVAudioPlayerNode queues them internally for gapless back-to-back rendering.
+        for (index, chunk) in streamChunks.enumerated() {
+            let isLastChunk = (index == streamChunks.count - 1)
+
+            if let samples = chunk.samples {
+                asp.scheduleChunk(samples: samples) { [weak self] in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        // Clean up WAV file
+                        try? FileManager.default.removeItem(atPath: chunk.wavPath)
+
+                        if isLastChunk {
+                            // Last buffer finished playing — playback is complete
+                            self.currentChunkComplete = true
+                            self.logger.info("Last chunk \(index) playback complete — finishing")
+                        } else {
+                            self.logger.info("Chunk \(index) buffer played back")
+                        }
+                    }
+                }
+            } else {
+                // Fallback: schedule from WAV file
+                asp.scheduleFile(wavPath: chunk.wavPath) { [weak self] in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        if isLastChunk {
+                            self.currentChunkComplete = true
+                            self.logger.info("Last chunk \(index) playback complete (WAV) — finishing")
+                        }
+                    }
+                }
+            }
+        }
+
+        logger.info("Batch playback: scheduled \(streamChunks.count) buffers on AudioStreamPlayer")
+
+        // Activate the first chunk for karaoke tracking
+        activateChunk(at: 0)
+        chunkStartTime = 0  // First chunk starts at time 0
+
+        // Start the 60Hz karaoke timer
+        startTimer()
+
+        logger.info("Batch playback started: \(streamChunks.count) chunks, total duration \(String(format: "%.2f", streamChunks.reduce(0) { $0 + $1.audioDuration }))s")
+    }
+
+    /// Signal that all chunks have been delivered (legacy compatibility).
+    /// In batch-then-play mode, startBatchPlayback() handles this automatically.
     func markAllChunksDelivered() {
         allChunksDelivered = true
         logger.info("All streaming chunks delivered (\(streamChunks.count) total)")
@@ -254,26 +344,18 @@ final class SubtitleSyncDriver {
         timer?.cancel()
         timer = nil
 
-        // Clean up WAV files for current and pre-buffered players.
-        // AVAudioPlayer.stop() does NOT trigger the delegate callback
-        // (audioPlayerDidFinishPlaying), so the delegate's WAV cleanup
-        // never fires. Manually delete the files to prevent /tmp/ leak.
-        if let currentIndex = currentChunkIndexIfValid {
-            let wavPath = streamChunks[currentIndex].wavPath
-            try? FileManager.default.removeItem(atPath: wavPath)
-            logger.info("Cleaned up WAV for stopped stream chunk \(currentIndex): \(wavPath)")
-        }
-        streamPlayer?.stop()
+        // Reset AudioStreamPlayer for streaming mode (cancels queued buffers)
+        if isStreamingMode {
+            ttsEngine?.audioStreamPlayer.reset()
 
-        if prebufferedChunkIndex >= 0, prebufferedChunkIndex < streamChunks.count {
-            let wavPath = streamChunks[prebufferedChunkIndex].wavPath
-            try? FileManager.default.removeItem(atPath: wavPath)
-            logger.info("Cleaned up WAV for pre-buffered chunk \(prebufferedChunkIndex): \(wavPath)")
+            // Clean up WAV files for any unplayed chunks
+            for chunk in streamChunks {
+                try? FileManager.default.removeItem(atPath: chunk.wavPath)
+            }
         }
-        nextStreamPlayer?.stop()
-        nextStreamPlayer = nil
-        nextPlaybackDelegate = nil
-        prebufferedChunkIndex = -1
+
+        // Stop legacy single-shot player
+        streamPlayer?.stop()
 
         // End App Nap prevention
         if let activity = appNapActivity {
@@ -288,30 +370,25 @@ final class SubtitleSyncDriver {
         }
     }
 
-    /// Safe accessor for current chunk index (only valid if chunks exist).
-    private var currentChunkIndexIfValid: Int? {
-        guard currentChunkIndex >= 0, currentChunkIndex < streamChunks.count else { return nil }
-        return currentChunkIndex
-    }
-
     deinit {
         timer?.cancel()
     }
 
-    // MARK: - Streaming Playback
+    // MARK: - Streaming Playback (AVAudioEngine)
 
     /// Activate a chunk: compute cumulative offset, configure pages/onsets for tick(), show first page.
     ///
-    /// Shared setup for both playStreamChunk() and advanceToPrebuilt() -- both need
-    /// to prepare the tick() state (pages, wordOnsets, totalWordCount) and display the
-    /// first page before handing off to the mode-specific player wiring.
+    /// Shared setup for streaming chunks -- prepares the tick() state (pages, wordOnsets,
+    /// totalWordCount) and displays the first page.
     ///
     /// - Returns: false if the chunk index is out of range (caller should handle waiting/finishing).
     @discardableResult
     private func activateChunk(at index: Int) -> Bool {
         guard index < streamChunks.count else {
             if allChunksDelivered {
-                finishPlayback()
+                // Don't finish immediately -- wait for AudioStreamPlayer to drain
+                // The completion callback for the last buffer will trigger finishPlayback
+                return false
             } else {
                 waitingForNextChunk = true
                 if lastWaitingLoggedChunk != index {
@@ -328,7 +405,7 @@ final class SubtitleSyncDriver {
         // Calculate cumulative offset from all previous chunks
         cumulativeOffset = 0
         for i in 0..<index {
-            cumulativeOffset += streamChunks[i].wordTimings.reduce(0, +)
+            cumulativeOffset += streamChunks[i].audioDuration
         }
 
         // Set up pages and onsets for the tick() logic
@@ -337,88 +414,16 @@ final class SubtitleSyncDriver {
         self.totalWordCount = chunk.totalWords
         self.currentPageIndex = 0
         self.currentLocalWordIndex = -1
+        self.currentChunkComplete = false
 
-        // Show first page
+        // Show first page (full display pipeline for initial chunk display)
         if let firstPage = chunk.pages.first {
-            subtitlePanel.highlightWord(at: 0, in: firstPage.words)
+            subtitlePanel.highlightWord(at: 0, in: firstPage.words, isPageTransition: true)
             currentPageIndex = 0
             currentLocalWordIndex = 0
         }
 
         return true
-    }
-
-    /// Start playing a specific stream chunk.
-    private func playStreamChunk(at index: Int) {
-        guard activateChunk(at: index) else { return }
-
-        // Create and start player
-        guard let engine = ttsEngine else {
-            logger.error("No TTSEngine reference for streaming playback")
-            return
-        }
-
-        let chunk = streamChunks[index]
-        guard let newPlayer = engine.play(wavPath: chunk.wavPath, completion: { [weak self] in
-            // Playback delegate fires on completion -- but we handle
-            // chunk transitions via tick() polling instead
-        }) else {
-            logger.error("Failed to create player for chunk \(index)")
-            // Try next chunk
-            DispatchQueue.main.async { [weak self] in
-                self?.playStreamChunk(at: index + 1)
-            }
-            return
-        }
-
-        streamPlayer = newPlayer
-        logger.info("Playing stream chunk \(index)/\(streamChunks.count - 1), cumulativeOffset=\(String(format: "%.2f", cumulativeOffset))s")
-
-        // Pre-buffer the next chunk for gapless transition
-        prebufferNextChunk(after: index)
-    }
-
-    /// Fast-path chunk transition: use a pre-buffered player instead of creating one.
-    private func advanceToPrebuilt(index: Int, player: AVAudioPlayer) {
-        guard activateChunk(at: index) else { return }
-
-        // Promote the pre-buffered player to active
-        streamPlayer = player
-        streamPlaybackDelegate = nextPlaybackDelegate
-        nextStreamPlayer = nil
-        nextPlaybackDelegate = nil
-        prebufferedChunkIndex = -1
-
-        // Start playback (~0ms since prepareToPlay() was already called)
-        player.play()
-        logger.info("Playing stream chunk \(index)/\(streamChunks.count - 1) (PRE-BUFFERED), cumulativeOffset=\(String(format: "%.2f", cumulativeOffset))s")
-
-        // Pre-buffer the chunk after this one
-        prebufferNextChunk(after: index)
-    }
-
-    /// Pre-buffer the next chunk's AVAudioPlayer while the current one is still playing.
-    /// This eliminates the ~500ms-1s gap caused by synchronous player creation.
-    private func prebufferNextChunk(after index: Int) {
-        let nextIndex = index + 1
-        guard nextIndex < streamChunks.count else {
-            // Next chunk not yet available -- will be pre-buffered when addChunk() delivers it
-            return
-        }
-        guard prebufferedChunkIndex != nextIndex else {
-            // Already pre-buffered
-            return
-        }
-
-        let chunk = streamChunks[nextIndex]
-        guard let engine = ttsEngine else { return }
-
-        if let prepared = engine.preparePlayer(wavPath: chunk.wavPath, completion: { }) {
-            nextStreamPlayer = prepared.player
-            nextPlaybackDelegate = prepared.delegate
-            prebufferedChunkIndex = nextIndex
-            logger.info("Pre-buffered chunk \(nextIndex) for gapless transition")
-        }
     }
 
     // MARK: - Timer
@@ -470,28 +475,44 @@ final class SubtitleSyncDriver {
     }
 
     private func tickStreaming() {
-        guard let currentPlayer = streamPlayer else {
-            if waitingForNextChunk { return }
+        // Check if the last chunk's playback completed (set by completion callback)
+        if currentChunkComplete {
+            finishPlayback()
             return
         }
 
-        // Check playback ended BEFORE reading currentTime.
-        // AVAudioPlayer resets currentTime to 0 when it finishes,
-        // which would cause a spurious highlight of word 0 (bounceback).
-        if !currentPlayer.isPlaying {
-            // Advance to next chunk -- use pre-buffered player if available
-            let nextIndex = currentChunkIndex + 1
-            if prebufferedChunkIndex == nextIndex, let readyPlayer = nextStreamPlayer {
-                // Fast path: pre-buffered player is ready, just play() (~0ms vs ~500ms)
-                advanceToPrebuilt(index: nextIndex, player: readyPlayer)
-            } else {
-                // Slow path: no pre-buffered player, create on-demand (will have gap)
-                playStreamChunk(at: nextIndex)
+        guard let engine = ttsEngine else { return }
+        let asp = engine.audioStreamPlayer
+
+        // AudioStreamPlayer.currentTime is cumulative across ALL scheduled buffers.
+        // Determine which chunk we're in and compute local time within it.
+        let globalTime = asp.currentTime
+
+        // Find the active chunk based on cumulative time boundaries
+        var cumulative: TimeInterval = 0
+        var targetChunkIndex = currentChunkIndex
+        for (i, chunk) in streamChunks.enumerated() {
+            if globalTime < cumulative + chunk.audioDuration {
+                targetChunkIndex = i
+                break
             }
-            return
+            cumulative += chunk.audioDuration
+            // If we've passed all chunks, stay on the last one
+            if i == streamChunks.count - 1 {
+                targetChunkIndex = i
+                cumulative -= chunk.audioDuration  // back up to start of last chunk
+            }
         }
 
-        updateHighlight(for: currentPlayer.currentTime)
+        // If we've moved to a new chunk, activate it (updates pages/onsets for karaoke)
+        if targetChunkIndex != currentChunkIndex {
+            activateChunk(at: targetChunkIndex)
+            // Update chunkStartTime to the cumulative offset of the new chunk
+            chunkStartTime = cumulative
+        }
+
+        let chunkLocalTime = max(0, globalTime - chunkStartTime)
+        updateHighlight(for: chunkLocalTime)
     }
 
     /// Map a playback timestamp to a word index, resolve the page, and update the subtitle panel.
@@ -523,10 +544,12 @@ final class SubtitleSyncDriver {
 
         // Update UI only when something changed
         if targetPageIndex != currentPageIndex {
+            // Page transition: full display pipeline (positionOnScreen, orderFront, diagnostics)
             currentPageIndex = targetPageIndex
             currentLocalWordIndex = localIndex
-            subtitlePanel.highlightWord(at: localIndex, in: pages[targetPageIndex].words)
+            subtitlePanel.highlightWord(at: localIndex, in: pages[targetPageIndex].words, isPageTransition: true)
         } else if localIndex != currentLocalWordIndex {
+            // Per-word update: lightweight path (only set attributedStringValue)
             currentLocalWordIndex = localIndex
             subtitlePanel.highlightWord(at: localIndex, in: pages[currentPageIndex].words)
         }

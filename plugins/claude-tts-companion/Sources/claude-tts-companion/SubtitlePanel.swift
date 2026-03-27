@@ -132,7 +132,12 @@ final class SubtitlePanel: NSPanel {
     /// - Words before `index`: silver-grey, regular weight (already spoken)
     /// - Word at `index`: gold, bold weight (currently spoken)
     /// - Words after `index`: white, regular weight (upcoming)
-    func highlightWord(at index: Int, in words: [String]) {
+    ///
+    /// - Parameter isPageTransition: When `true`, runs the full display pipeline
+    ///   (positionOnScreen, orderFrontRegardless, logDiagnostics). When `false`
+    ///   (default, 60Hz hot path), only sets `textField.attributedStringValue` to
+    ///   minimize main-thread work and avoid starving AVAudioPlayer's run loop.
+    func highlightWord(at index: Int, in words: [String], isPageTransition: Bool = false) {
         let sizeName = currentFontSizeName
         let boldFont = SubtitleStyle.dynamicCurrentWordFont(sizeName)
         let regFont = SubtitleStyle.dynamicRegularFont(sizeName)
@@ -175,7 +180,14 @@ final class SubtitlePanel: NSPanel {
             result.append(NSAttributedString(string: word, attributes: attributes))
         }
 
-        updateAttributedText(result)
+        if isPageTransition {
+            updateAttributedText(result)
+        } else {
+            // Lightweight path: only update the text content, skip expensive
+            // positionOnScreen(), orderFrontRegardless(), and logDiagnostics().
+            // Position is already set from the page transition call.
+            textField.attributedStringValue = result
+        }
     }
 
     /// Display multiple pages of subtitle text with karaoke highlighting.
@@ -215,7 +227,7 @@ final class SubtitlePanel: NSPanel {
                 let genMatch = self.generation == myGeneration
                 self.logger.info("[showPages] page[\(capturedPageIndex)] showPageItem FIRED gen=\(myGeneration) current=\(self.generation) match=\(genMatch)")
                 guard genMatch else { return }
-                self.highlightWord(at: -1, in: pageWords)
+                self.highlightWord(at: -1, in: pageWords, isPageTransition: true)
             }
             scheduledWorkItems.append(showPageItem)
             DispatchQueue.main.asyncAfter(deadline: scheduleStart + pageStartTime, execute: showPageItem)
