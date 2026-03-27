@@ -361,3 +361,14 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 14. TTS Dispatch & Feature Gates | 2/2            | Complete    | 2026-03-27 |
 | 15. Telegram Inline Buttons      | 2/2            | Complete    | 2026-03-27 |
 | 16. Integration & Reliability    | 1/1 | Complete    | 2026-03-27 |
+
+### Phase 17: TTS Streaming & Subtitle Chunking
+
+**Goal**: TTS audio starts playing within 5 seconds of session end; subtitles display one sentence at a time with karaoke word highlighting
+**Depends on**: Phase 14
+**Requirements**: STREAM-01, STREAM-02, STREAM-03
+**Success Criteria** (what must be TRUE):
+
+1. First audio starts playing within 5 seconds of TTS dispatch (paragraph-level synthesis)
+2. Subtitle panel shows one sentence at a time, advancing as each sentence completes
+3. Karaoke gold word highlighting advances within each displayed sentence
