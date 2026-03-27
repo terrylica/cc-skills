@@ -328,6 +328,12 @@ final class TTSEngine: @unchecked Sendable {
     ) {
         queue.async { [self] in
             do {
+                // Release cached Metal buffers from previous synthesis sessions.
+                // Without this, back-to-back streaming sessions accumulate metal resources
+                // until hitting the 499000 resource limit, crashing the process with:
+                //   [metal::malloc] Resource limit (499000) exceeded
+                Memory.clearCache()
+
                 let tts = try ensureModelLoaded()
                 let activeVoice = voiceForName(voiceName)
 
