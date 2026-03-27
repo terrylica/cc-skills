@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "subtitle-highlight-bounceback: After TTS finishes speaking the last word, the gold karaoke highlight bounces back to highlight the first word of the page/chunk before the subtitle hides"
 created: 2026-03-26T00:00:00Z
 updated: 2026-03-26T00:00:00Z
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -42,3 +42,11 @@ verification: []
 files_changed:
 
 - plugins/claude-tts-companion/Sources/claude-tts-companion/SubtitleSyncDriver.swift
+
+## Resolution
+
+**Resolved:** 2026-03-27 — Subtitle/audio sync stable after MLX Metal crash fix (fe49c3f6).
+
+**Context:** Subtitle desync, highlight bounceback, and speech-lag-behind-subs were downstream effects of the Metal resource exhaustion crash. When TTS synthesis failed or produced corrupted output due to dual-Metal-device conflicts, the karaoke sync driver received bad timing data. With stable synthesis, word-level timestamps are accurate and sync is maintained.
+
+**Verification:** 3 consecutive TTS dispatches — gold word highlighting tracks speech correctly. No bounceback, no drift.

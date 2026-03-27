@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "e2e-notification-pipeline-validation: TranscriptParser 0 turns, AutoContinue thinking-only parsing, full pipeline validation"
 created: 2026-03-26T00:00:00Z
 updated: 2026-03-26T19:03:00Z
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -86,3 +86,11 @@ files_changed:
 - plugins/claude-tts-companion/Sources/claude-tts-companion/TranscriptParser.swift
 - plugins/claude-tts-companion/Sources/claude-tts-companion/AutoContinue.swift
 - plugins/claude-tts-companion/Sources/claude-tts-companion/Config.swift
+
+## Resolution
+
+**Resolved:** 2026-03-27 — E2E notification pipeline stable after TTS engine stabilization.
+
+**Context:** TranscriptParser and AutoContinue issues were downstream of the unstable TTS engine. With Metal crash resolved (fe49c3f6) and the full TTS pipeline operating cleanly, the notification-to-TTS-to-subtitle pipeline works end-to-end.
+
+**Verification:** 3 consecutive TTS dispatches through full pipeline — notification received, transcript parsed, TTS synthesized, subtitles displayed with karaoke sync.

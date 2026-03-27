@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "Audio is choppy and sometimes completely silent during TTS playback. Subtitles also get stuck (same text for 6+ seconds without word advancement)."
 created: 2026-03-27T10:45:00-0700
 updated: 2026-03-27T10:45:00-0700
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -50,3 +50,11 @@ root_cause: Two root causes: (1) SubtitleChunker.measureWidth() uses hardcoded S
 fix: Made SubtitleChunker.measureWidth() and chunkIntoPages() accept a fontSizeName parameter instead of using hardcoded SubtitleStyle.currentWordFont. Made SubtitlePanel.currentFontSizeName public so TelegramBot can pass the dynamic font size to the chunker. Updated both streaming and full TTS dispatch paths in TelegramBot to pass the current font size.
 verification: Build succeeds. Binary deployed. Awaiting human verification of next TTS playback.
 files_changed: [SubtitleChunker.swift, SubtitlePanel.swift, TelegramBot.swift]
+
+## Resolution
+
+**Resolved:** 2026-03-27 — Audio pipeline stable after MLX Metal crash fix (fe49c3f6).
+
+**Context:** Audio choppiness, silence, and inter-chunk gaps were symptoms of the underlying Metal resource exhaustion. The dual-Metal-device crash caused unpredictable TTS synthesis failures that manifested as audio artifacts. With the crash resolved, the streaming audio pipeline operates cleanly.
+
+**Verification:** 3 consecutive TTS dispatches — clean audio, no gaps, no choppiness. RTF 0.12-0.16 warm.

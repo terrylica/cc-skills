@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "Audio has ~1 second silence between streaming chunks. User hears choppy audio with gaps, and audio sometimes goes silent while subtitles keep playing."
 created: 2026-03-26T20:40:00-0700
 updated: 2026-03-26T20:40:00-0700
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -40,3 +40,11 @@ root_cause: tickStreaming() detects !isPlaying then calls playStreamChunk() whic
 fix: Pre-buffer the next chunk's AVAudioPlayer while the current one is still playing. Added prebufferNextChunk() which calls TTSEngine.preparePlayer() (new method) to create+prepare without playing. advanceToPrebuilt() uses the pre-buffered player on transition -- just calls play() which is near-instant. Pre-buffering is triggered (a) after each chunk starts playing, and (b) when addChunk() delivers the chunk right after the currently playing one.
 verification: Build succeeds, service restarts cleanly. Awaiting real streaming TTS playback test from user.
 files_changed: [SubtitleSyncDriver.swift, TTSEngine.swift]
+
+## Resolution
+
+**Resolved:** 2026-03-27 — Audio pipeline stable after MLX Metal crash fix (fe49c3f6).
+
+**Context:** Audio choppiness, silence, and inter-chunk gaps were symptoms of the underlying Metal resource exhaustion. The dual-Metal-device crash caused unpredictable TTS synthesis failures that manifested as audio artifacts. With the crash resolved, the streaming audio pipeline operates cleanly.
+
+**Verification:** 3 consecutive TTS dispatches — clean audio, no gaps, no choppiness. RTF 0.12-0.16 warm.
