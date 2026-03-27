@@ -117,25 +117,45 @@ let notificationWatcher = NotificationWatcher { filePath in
     logger.info("Session notification: \(sessionId)")
 
     Task {
-        // If we have a transcript, evaluate auto-continue
+        // If we have a transcript, evaluate auto-continue and send rich notification
         if let tp = transcriptPath {
-            let sid = sessionId ?? "unknown"
             let workDir = cwd ?? ""
-            let result = await autoContinue.evaluate(sessionId: sid, transcriptPath: tp, cwd: workDir)
-            let decision = result.decision
-            let reason = result.reason
-            logger.info("Auto-continue decision: \(decision.rawValue) -- \(reason)")
+            let result = await autoContinue.evaluate(sessionId: sessionId, transcriptPath: tp, cwd: workDir)
+            logger.info("Auto-continue decision: \(result.decision.rawValue) -- \(result.reason)")
 
-            // Send decision notification to Telegram
-            let decisionLabel: String
-            switch decision {
-            case .continue: decisionLabel = "CONTINUE"
-            case .sweep: decisionLabel = "SWEEP"
-            case .redirect: decisionLabel = "REDIRECT"
-            case .done: decisionLabel = "DONE"
-            }
+            // Send rich decision notification to Telegram (EVAL-05)
             if let bot = telegramBot {
-                await bot.sendNotification("<b>[\(decisionLabel)]</b> \(reason)")
+                // Check if this is an early exit (limits, errors, sweep_done) vs active decision
+                let isEarlyExit = !result.shouldBlock && (
+                    result.reason.contains("cap") ||
+                    result.reason.contains("Max iterations") ||
+                    result.reason.contains("Max runtime") ||
+                    result.reason.contains("failed") ||
+                    result.reason.contains("No turns")
+                )
+
+                if isEarlyExit {
+                    // Lightweight exit notification
+                    let exitMessage = autoContinue.formatExitMessage(
+                        reason: result.reason,
+                        sessionId: sessionId,
+                        cwd: workDir,
+                        state: result.state,
+                        maxIterations: AutoContinueEvaluator.MAX_ITERATIONS,
+                        maxRuntimeMin: Double(AutoContinueEvaluator.MAX_RUNTIME_MIN)
+                    )
+                    await bot.sendSilentMessage(exitMessage)
+                } else {
+                    // Full rich decision notification
+                    let message = autoContinue.formatDecisionMessage(
+                        result: result,
+                        sessionId: sessionId,
+                        cwd: workDir,
+                        maxIterations: AutoContinueEvaluator.MAX_ITERATIONS,
+                        maxRuntimeMin: Double(AutoContinueEvaluator.MAX_RUNTIME_MIN)
+                    )
+                    await bot.sendSilentMessage(message)
+                }
             }
         }
 
