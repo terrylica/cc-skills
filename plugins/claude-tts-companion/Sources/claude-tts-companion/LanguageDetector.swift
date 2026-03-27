@@ -4,8 +4,10 @@ import Foundation
 struct LanguageResult {
     /// Language code: "en-us" for English, "cmn" for Mandarin Chinese
     let lang: String
-    /// Kokoro speaker ID for this language
+    /// Kokoro speaker ID for this language (legacy, kept for compatibility)
     let speakerId: Int32
+    /// Voice embedding name for kokoro-ios
+    let voiceName: String
 }
 
 /// Detects whether text is predominantly CJK (Chinese/Japanese/Korean) based on
@@ -17,13 +19,20 @@ enum LanguageDetector {
     /// Extension A, Extension B) and returns Chinese voice settings when the
     /// CJK ratio exceeds `Config.cjkDetectionThreshold` (default 20%).
     ///
+    /// Note: kokoro-ios is English-only. Chinese text will use the English voice
+    /// with a warning logged by TTSEngine.
+    ///
     /// Empty strings return English defaults (matching legacy behavior).
     static func detect(text: String) -> LanguageResult {
         let scalars = text.unicodeScalars
         let totalCount = scalars.count
 
         guard totalCount > 0 else {
-            return LanguageResult(lang: "en-us", speakerId: Config.defaultSpeakerId)
+            return LanguageResult(
+                lang: "en-us",
+                speakerId: Config.defaultSpeakerId,
+                voiceName: Config.defaultVoiceName
+            )
         }
 
         var cjkCount = 0
@@ -40,9 +49,18 @@ enum LanguageDetector {
         let ratio = (Double(cjkCount) / Double(totalCount)) * 100.0
 
         if ratio >= Config.cjkDetectionThreshold {
-            return LanguageResult(lang: "cmn", speakerId: Config.chineseSpeakerId)
+            // kokoro-ios is English-only; use English voice for CJK text with warning
+            return LanguageResult(
+                lang: "cmn",
+                speakerId: Config.chineseSpeakerId,
+                voiceName: Config.defaultVoiceName  // Graceful degradation: English voice
+            )
         }
 
-        return LanguageResult(lang: "en-us", speakerId: Config.defaultSpeakerId)
+        return LanguageResult(
+            lang: "en-us",
+            speakerId: Config.defaultSpeakerId,
+            voiceName: Config.defaultVoiceName
+        )
     }
 }
