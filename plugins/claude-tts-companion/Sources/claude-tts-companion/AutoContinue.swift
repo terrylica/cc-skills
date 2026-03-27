@@ -502,6 +502,27 @@ final class AutoContinueEvaluator: @unchecked Sendable {
             }
         }
 
+        // Fallback pass: scan for decision keywords anywhere in text (case-insensitive).
+        // This handles thinking-block content where the model writes unstructured reasoning
+        // like "the decision should be DONE because..." rather than the pipe-delimited format.
+        // Priority order: CONTINUE > SWEEP > REDIRECT > DONE (prefer action over inaction).
+        let upper = trimmed.uppercased()
+        let fallbackCandidates: [(keyword: String, decision: ContinueDecision)] = [
+            ("CONTINUE", .continue),
+            ("SWEEP", .sweep),
+            ("REDIRECT", .redirect),
+            ("DONE", .done),
+        ]
+        for (keyword, decision) in fallbackCandidates {
+            // Match keyword at word boundary to avoid false positives
+            // (e.g. "continued" should not match "CONTINUE")
+            let pattern = "\\b\(keyword)\\b"
+            if upper.range(of: pattern, options: .regularExpression) != nil {
+                logger.info("Fallback decision match: \(keyword) found in unstructured response")
+                return (decision, "extracted from unstructured response (thinking block fallback)")
+            }
+        }
+
         logger.warning("No decision found in response, defaulting to DONE: \(String(trimmed.prefix(100)))")
         return (.done, "no decision line found")
     }

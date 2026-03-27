@@ -17,8 +17,16 @@ enum Config {
             ?? "\(home)/.local/share/kokoro/models/kokoro-multi-lang-v1_0"
     }()
 
-    /// Filename of the Kokoro model (full precision — better quality than int8)
-    static let kokoroModelFile = "model.onnx"
+    /// Filename of the Kokoro model.
+    /// Auto-detects: uses model.onnx (full precision) if available, falls back to model.int8.onnx (quantized).
+    static let kokoroModelFile: String = {
+        let modelDir = kokoroModelPath
+        let fullPrecision = "\(modelDir)/model.onnx"
+        if FileManager.default.fileExists(atPath: fullPrecision) {
+            return "model.onnx"
+        }
+        return "model.int8.onnx"
+    }()
 
     /// Default speaker ID: af_heart (speaker 3 in Kokoro v1.0)
     static let defaultSpeakerId: Int32 = 3
