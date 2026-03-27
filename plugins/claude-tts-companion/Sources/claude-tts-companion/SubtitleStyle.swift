@@ -23,10 +23,10 @@ enum SubtitleStyle {
 
     // MARK: - Fonts
 
-    /// Bold font for the current word
+    /// Bold font for the current word (default medium; use dynamicCurrentWordFont for settings-aware)
     static let currentWordFont = font(size: FontSize.medium.rawValue, weight: .bold)
 
-    /// Regular font for past and future words
+    /// Regular font for past and future words (default medium; use dynamicRegularFont for settings-aware)
     static let regularFont = font(size: FontSize.medium.rawValue, weight: .regular)
 
     /// Font size presets (SwiftBar configurable: S/M/L)
@@ -34,6 +34,25 @@ enum SubtitleStyle {
         case small = 22
         case medium = 28
         case large = 36
+    }
+
+    /// Resolve a settings string ("small", "medium", "large") to a FontSize enum value.
+    static func resolvedFontSize(_ name: String) -> FontSize {
+        switch name.lowercased() {
+        case "small": return .small
+        case "large": return .large
+        default: return .medium
+        }
+    }
+
+    /// Bold font for the current word, sized according to the settings string.
+    static func dynamicCurrentWordFont(_ sizeName: String) -> NSFont {
+        font(size: resolvedFontSize(sizeName).rawValue, weight: .bold)
+    }
+
+    /// Regular font for past/future words, sized according to the settings string.
+    static func dynamicRegularFont(_ sizeName: String) -> NSFont {
+        font(size: resolvedFontSize(sizeName).rawValue, weight: .regular)
     }
 
     /// Create a font using SF Pro Display if available, falling back to system font.
@@ -58,6 +77,9 @@ enum SubtitleStyle {
 
     /// Distance from the bottom edge of the screen
     static let bottomOffset: CGFloat = 80
+
+    /// Distance from the top edge of the screen (menu bar area)
+    static let topOffset: CGFloat = 80
 
     /// Panel width as a fraction of screen width (70%)
     static let widthRatio: CGFloat = 0.7
