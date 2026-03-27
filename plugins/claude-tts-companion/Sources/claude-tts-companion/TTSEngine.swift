@@ -67,6 +67,11 @@ final class TTSEngine: @unchecked Sendable {
     /// If audio has been idle longer than this, re-warm before playing (seconds)
     private static let audioIdleThreshold: CFAbsoluteTime = 30.0
 
+    /// Retained warm-up player to prevent ARC deallocation before playback completes.
+    /// Without this, the local player variable in warmUpAudioHardware() may be
+    /// deallocated before the 0.1s silent buffer finishes playing.
+    private var warmUpPlayer: AVAudioPlayer?
+
     /// Currently playing AVAudioPlayer instance (for cancellation and currentTime polling)
     private var audioPlayer: AVAudioPlayer?
 
@@ -883,9 +888,14 @@ final class TTSEngine: @unchecked Sendable {
             player.prepareToPlay()
             player.play()
 
-            // Clean up temp file after a short delay (player reads from file)
-            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.5) {
+            // Retain the player to prevent ARC deallocation before playback completes
+            self.warmUpPlayer = player
+
+            // Clean up temp file and release player after a short delay
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 try? FileManager.default.removeItem(atPath: wavPath)
+                // Release warm-up player on main to avoid potential race
+                DispatchQueue.main.async { self?.warmUpPlayer = nil }
             }
 
             audioHardwareWarmed = true
