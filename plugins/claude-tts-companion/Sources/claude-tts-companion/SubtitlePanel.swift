@@ -301,10 +301,12 @@ final class SubtitlePanel: NSPanel {
         let screenFrame = screen.visibleFrame
         let panelWidth = screenFrame.width * SubtitleStyle.widthRatio
 
-        // Height is driven by Auto Layout (text field intrinsic size + padding).
-        // Use a reasonable minimum that fits 2 lines at 28pt + vertical padding.
-        let lineHeight = SubtitleStyle.regularFont.boundingRectForFont.height
+        // Height sized for 2 lines of bold text (karaoke current word is bold)
+        // plus inter-line spacing. Use ceil to avoid sub-pixel clipping.
+        let lineHeight = ceil(SubtitleStyle.currentWordFont.boundingRectForFont.height)
+        let interLineSpacing: CGFloat = 4
         let panelHeight = lineHeight * CGFloat(SubtitleStyle.maxLines)
+            + interLineSpacing
             + SubtitleStyle.verticalPadding * 2
 
         let x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
