@@ -209,8 +209,8 @@
 | EVAL-04     | Phase 13 | Complete |
 | EVAL-05     | Phase 13 | Complete |
 | EVAL-06     | Phase 13 | Complete |
-| TTS-10      | Phase 14 | Pending  |
-| TTS-11      | Phase 14 | Pending  |
+| TTS-10      | Phase 14 | Complete |
+| TTS-11      | Phase 14 | Complete |
 | TTS-12      | Phase 14 | Complete |
 | TTS-13      | Phase 14 | Complete |
 | BTN-01      | Phase 15 | Pending  |
@@ -252,8 +252,8 @@
 
 ### TTS Dispatch
 
-- [ ] **TTS-10**: Tail Brief text dispatched to Kokoro TTS after summary generation
-- [ ] **TTS-11**: TTS greeting prepended: "Hi Terry, you were working in {project}:"
+- [x] **TTS-10**: Tail Brief text dispatched to Kokoro TTS after summary generation
+- [x] **TTS-11**: TTS greeting prepended: "Hi Terry, you were working in {project}:"
 - [x] **TTS-12**: CJK language detection (>20% CJK chars → Chinese voice zf_xiaobei)
 - [x] **TTS-13**: Feature gates for each outlet (SUMMARIZER_TG_ENABLED, TBR_TTS_ENABLED, etc.)
 
