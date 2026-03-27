@@ -235,8 +235,22 @@ final class TelegramBot: @unchecked Sendable {
         // Mark streaming as in-progress to prevent new dispatches from interrupting
         isStreamingInProgress = true
 
-        // Don't cancel current playback here -- synthesis takes time.
-        // Cancel only when first chunk is ready to play.
+        // Cancel previous playback IMMEDIATELY when a new session dispatches.
+        // Previously this was deferred to the first-chunk-ready callback, leaving a
+        // ~4-18s window where the old SyncDriver's 60Hz timer polled a dead player
+        // (spamming "Waiting for chunk N" logs and showing stale subtitles).
+        ttsEngine.stopPlayback()
+        // SyncDriver is @MainActor -- dispatch stop to main queue.
+        // Use async (not sync) to avoid deadlock if we're already on main.
+        // The synthesis queue starts work concurrently, but the first chunk takes
+        // ~2-18s to synthesize, so the main-queue stop completes well before
+        // the onChunkReady callback dispatches back to main.
+        let driverToStop = syncDriver
+        syncDriver = nil
+        DispatchQueue.main.async {
+            driverToStop?.stop()
+        }
+
         // Use NSLock-protected flag for thread safety (TTS queue -> main thread).
         let firstChunkLock = NSLock()
         var _firstChunkDispatched = false
@@ -255,11 +269,6 @@ final class TelegramBot: @unchecked Sendable {
 
                 DispatchQueue.main.async {
                     if isFirst {
-                        // Cancel previous playback only when first new chunk is ready
-                        self.ttsEngine.stopPlayback()
-                        self.syncDriver?.stop()
-                        self.syncDriver = nil
-
                         // Create streaming sync driver with completion to clear in-progress flag
                         let driver = SubtitleSyncDriver(
                             subtitlePanel: self.subtitlePanel,
