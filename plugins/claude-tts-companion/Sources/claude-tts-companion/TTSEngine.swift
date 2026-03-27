@@ -82,9 +82,6 @@ final class TTSEngine: @unchecked Sendable {
             do {
                 let tts = try ensureModelLoaded()
 
-                // Clean up previous temp file
-                cleanupLastWav()
-
                 let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
                 lastWavPath = wavPath
 
@@ -143,6 +140,8 @@ final class TTSEngine: @unchecked Sendable {
 
             process.terminationHandler = { [weak self] _ in
                 self?.playbackProcess = nil
+                // Clean up WAV file after playback completes
+                try? FileManager.default.removeItem(atPath: wavPath)
                 completion?()
             }
 
