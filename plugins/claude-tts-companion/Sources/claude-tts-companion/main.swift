@@ -59,6 +59,9 @@ let summaryEngine = SummaryEngine(client: miniMaxClient)
 // Create auto-continue evaluator (shares circuit breaker with summary engine)
 let autoContinue = AutoContinueEvaluator(client: miniMaxClient)
 
+// Create notification processor for dedup + rate limiting (REL-01, REL-02)
+let notificationProcessor = NotificationProcessor()
+
 // Create thinking watcher (EXT-04: summarizes extended thinking via MiniMax)
 let thinkingWatcher = ThinkingWatcher(client: miniMaxClient) { summary in
     logger.info("Thinking summary: \(summary)")
@@ -93,94 +96,110 @@ if let token = Config.telegramBotToken, let chatIdStr = Config.telegramChatId, l
 }
 
 // Create NotificationWatcher for session-end file detection (AUTO-01)
+// Wrapped with NotificationProcessor for dedup (REL-01) and rate limiting (REL-02)
 let notificationWatcher = NotificationWatcher { filePath in
-    // Brief delay — DispatchSource fires on file creation before write completes
-    Thread.sleep(forTimeInterval: 0.2)
+    notificationProcessor.processIfReady(filePath: filePath) { path in
+        // Brief delay — DispatchSource fires on file creation before write completes
+        Thread.sleep(forTimeInterval: 0.2)
 
-    // Read the notification JSON file (retry once after delay if empty)
-    var data = FileManager.default.contents(atPath: filePath)
-    if data == nil || data!.isEmpty {
-        Thread.sleep(forTimeInterval: 0.5)
-        data = FileManager.default.contents(atPath: filePath)
-    }
-    guard let fileData = data, !fileData.isEmpty,
-          let json = try? JSONSerialization.jsonObject(with: fileData) as? [String: Any] else {
-        logger.warning("Could not parse notification file: \(filePath)")
-        return
-    }
+        // Read the notification JSON file (retry once after delay if empty)
+        var data = FileManager.default.contents(atPath: path)
+        if data == nil || data!.isEmpty {
+            Thread.sleep(forTimeInterval: 0.5)
+            data = FileManager.default.contents(atPath: path)
+        }
+        guard let fileData = data, !fileData.isEmpty,
+              let json = try? JSONSerialization.jsonObject(with: fileData) as? [String: Any] else {
+            logger.warning("Could not parse notification file: \(path)")
+            return
+        }
 
-    // The stop hook (telegram-notify-stop.ts) writes camelCase keys
-    let sessionId = json["sessionId"] as? String ?? json["session_id"] as? String ?? "unknown"
-    let transcriptPath = json["transcriptPath"] as? String ?? json["transcript_path"] as? String
-    let cwd = json["cwd"] as? String
-    let itermSessionId = json["itermSessionId"] as? String ?? json["iterm_session_id"] as? String
+        // The stop hook (telegram-notify-stop.ts) writes camelCase keys
+        let sessionId = json["sessionId"] as? String ?? json["session_id"] as? String ?? "unknown"
+        let transcriptPath = json["transcriptPath"] as? String ?? json["transcript_path"] as? String
+        let cwd = json["cwd"] as? String
+        let itermSessionId = json["itermSessionId"] as? String ?? json["iterm_session_id"] as? String
 
-    logger.info("Session notification: \(sessionId)")
+        logger.info("Session notification: \(sessionId)")
 
-    Task {
-        // If we have a transcript, evaluate auto-continue and send rich notification
+        // Dedup check: skip if transcript unchanged within TTL (REL-01)
         if let tp = transcriptPath {
-            let workDir = cwd ?? ""
-            let result = await autoContinue.evaluate(sessionId: sessionId, transcriptPath: tp, cwd: workDir)
-            logger.info("Auto-continue decision: \(result.decision.rawValue) -- \(result.reason)")
-
-            // Send rich decision notification to Telegram (EVAL-05)
-            if let bot = telegramBot {
-                // Check if this is an early exit (limits, errors, sweep_done) vs active decision
-                let isEarlyExit = !result.shouldBlock && (
-                    result.reason.contains("cap") ||
-                    result.reason.contains("Max iterations") ||
-                    result.reason.contains("Max runtime") ||
-                    result.reason.contains("failed") ||
-                    result.reason.contains("No turns")
-                )
-
-                if isEarlyExit {
-                    // Lightweight exit notification
-                    let exitMessage = autoContinue.formatExitMessage(
-                        reason: result.reason,
-                        sessionId: sessionId,
-                        cwd: workDir,
-                        state: result.state,
-                        maxIterations: AutoContinueEvaluator.MAX_ITERATIONS,
-                        maxRuntimeMin: Double(AutoContinueEvaluator.MAX_RUNTIME_MIN)
-                    )
-                    await bot.sendSilentMessage(exitMessage)
-                } else {
-                    // Full rich decision notification
-                    let message = autoContinue.formatDecisionMessage(
-                        result: result,
-                        sessionId: sessionId,
-                        cwd: workDir,
-                        maxIterations: AutoContinueEvaluator.MAX_ITERATIONS,
-                        maxRuntimeMin: Double(AutoContinueEvaluator.MAX_RUNTIME_MIN)
-                    )
-                    await bot.sendSilentMessage(message)
-                }
+            if notificationProcessor.shouldSkipDedup(sessionId: sessionId, transcriptPath: tp) {
+                logger.info("Dedup: skipping re-notification for session \(sessionId.prefix(8))")
+                return
             }
         }
 
-        // Parse transcript for session notification (FMT-01, FMT-02, FMT-03)
-        if let tp = transcriptPath {
-            let entries = TranscriptParser.parse(filePath: tp)
-            let turns = TranscriptParser.entriesToTurns(entries)
+        Task {
+            // If we have a transcript, evaluate auto-continue and send rich notification
+            if let tp = transcriptPath {
+                let workDir = cwd ?? ""
+                let result = await autoContinue.evaluate(sessionId: sessionId, transcriptPath: tp, cwd: workDir)
+                logger.info("Auto-continue decision: \(result.decision.rawValue) -- \(result.reason)")
 
-            // Extract metadata for rich notification formatting
-            let gitBranch = extractGitBranch(from: tp)
-            let entryStartTime = extractFirstTimestamp(entries)
-            let entryLastActivity = extractLastTimestamp(entries)
+                // Send rich decision notification to Telegram (EVAL-05)
+                if let bot = telegramBot {
+                    // Check if this is an early exit (limits, errors, sweep_done) vs active decision
+                    let isEarlyExit = !result.shouldBlock && (
+                        result.reason.contains("cap") ||
+                        result.reason.contains("Max iterations") ||
+                        result.reason.contains("Max runtime") ||
+                        result.reason.contains("failed") ||
+                        result.reason.contains("No turns")
+                    )
 
-            if let bot = telegramBot {
-                await bot.sendSessionNotification(
-                    sessionId: sessionId,
-                    turns: turns,
-                    cwd: cwd,
-                    gitBranch: gitBranch,
-                    startTime: entryStartTime,
-                    lastActivity: entryLastActivity,
-                    itermSessionId: itermSessionId,
-                    transcriptPath: tp
-                )
+                    if isEarlyExit {
+                        // Lightweight exit notification
+                        let exitMessage = autoContinue.formatExitMessage(
+                            reason: result.reason,
+                            sessionId: sessionId,
+                            cwd: workDir,
+                            state: result.state,
+                            maxIterations: AutoContinueEvaluator.MAX_ITERATIONS,
+                            maxRuntimeMin: Double(AutoContinueEvaluator.MAX_RUNTIME_MIN)
+                        )
+                        await bot.sendSilentMessage(exitMessage)
+                    } else {
+                        // Full rich decision notification
+                        let message = autoContinue.formatDecisionMessage(
+                            result: result,
+                            sessionId: sessionId,
+                            cwd: workDir,
+                            maxIterations: AutoContinueEvaluator.MAX_ITERATIONS,
+                            maxRuntimeMin: Double(AutoContinueEvaluator.MAX_RUNTIME_MIN)
+                        )
+                        await bot.sendSilentMessage(message)
+                    }
+                }
+            }
+
+            // Parse transcript for session notification (FMT-01, FMT-02, FMT-03)
+            if let tp = transcriptPath {
+                let entries = TranscriptParser.parse(filePath: tp)
+                let turns = TranscriptParser.entriesToTurns(entries)
+
+                // Extract metadata for rich notification formatting
+                let gitBranch = extractGitBranch(from: tp)
+                let entryStartTime = extractFirstTimestamp(entries)
+                let entryLastActivity = extractLastTimestamp(entries)
+
+                if let bot = telegramBot {
+                    await bot.sendSessionNotification(
+                        sessionId: sessionId,
+                        turns: turns,
+                        cwd: cwd,
+                        gitBranch: gitBranch,
+                        startTime: entryStartTime,
+                        lastActivity: entryLastActivity,
+                        itermSessionId: itermSessionId,
+                        transcriptPath: tp
+                    )
+                }
+            }
+
+            // Record successful processing for future dedup (REL-01)
+            if let tp = transcriptPath {
+                notificationProcessor.recordProcessed(sessionId: sessionId, transcriptPath: tp)
             }
         }
     }
@@ -217,6 +236,7 @@ nonisolated(unsafe) var keepTTS: TTSEngine? = ttsEngine
 nonisolated(unsafe) var keepSummary: SummaryEngine? = summaryEngine
 nonisolated(unsafe) var keepNotificationWatcher: NotificationWatcher? = notificationWatcher
 nonisolated(unsafe) var keepAutoContinue: AutoContinueEvaluator? = autoContinue
+nonisolated(unsafe) var keepNotificationProcessor: NotificationProcessor? = notificationProcessor
 nonisolated(unsafe) var keepHTTPServer: HTTPControlServer? = httpServer
 nonisolated(unsafe) var keepSettingsStore: SettingsStore? = settingsStore
 nonisolated(unsafe) var keepCaptionHistory: CaptionHistory? = captionHistory
