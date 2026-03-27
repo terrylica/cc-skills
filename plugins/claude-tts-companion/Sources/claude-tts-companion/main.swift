@@ -119,7 +119,11 @@ let notificationWatcher = NotificationWatcher { filePath in
     Task {
         // If we have a transcript, evaluate auto-continue
         if let tp = transcriptPath {
-            let (decision, reason) = await autoContinue.evaluate(transcriptPath: tp)
+            let sid = sessionId ?? "unknown"
+            let workDir = cwd ?? ""
+            let result = await autoContinue.evaluate(sessionId: sid, transcriptPath: tp, cwd: workDir)
+            let decision = result.decision
+            let reason = result.reason
             logger.info("Auto-continue decision: \(decision.rawValue) -- \(reason)")
 
             // Send decision notification to Telegram
