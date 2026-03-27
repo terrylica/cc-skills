@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: MVP
 status: verifying
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-03-27T00:45:46.887Z"
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-03-27T00:54:07.425Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 10
-  completed_plans: 10
+  completed_phases: 6
+  total_plans: 11
+  completed_plans: 11
   percent: 59
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 15 — telegram-inline-buttons
+**Current focus:** Phase 16 — integration-reliability
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
+Phase: 16 (integration-reliability) — EXECUTING
+Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-03-27
 
@@ -67,6 +67,7 @@ Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, 
 | Phase 14 P02 | 2min | 2 tasks | 1 files |
 | Phase 15 P01 | 5min | 2 tasks | 3 files |
 | Phase 15 P02 | 1min | 2 tasks | 0 files |
+| Phase 16 P01 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,7 @@ Recent decisions affecting current work:
 - [Phase 15]: Inline counts computed inline rather than adding summarize() to TranscriptParser
 - [Phase 15]: Logger changed from private to fileprivate for BotDispatcher callback handler access
 - [Phase 15]: No new code changes needed for Plan 02 -- Plan 01 executor already wired main.swift itermSessionId + transcriptPath
+- [Phase 16]: Ported dedup/rate-limit from legacy TS; used NSLock for thread safety (consistent with codebase)
 
 ### Pending Todos
 
@@ -110,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T00:45:11.358Z
-Stopped at: Completed 15-02-PLAN.md
+Last session: 2026-03-27T00:54:07.423Z
+Stopped at: Completed 16-01-PLAN.md
 Resume file: None
