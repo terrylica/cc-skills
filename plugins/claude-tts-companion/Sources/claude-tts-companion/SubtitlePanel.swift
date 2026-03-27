@@ -257,8 +257,9 @@ final class SubtitlePanel: NSPanel {
         // SUB-11: Visible on all Spaces and over fullscreen apps
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        // SUB-08: Invisible to screen sharing / screenshots
-        sharingType = .none
+        // SUB-08: Read-only sharing — visible to screencapture for diagnostics,
+        // but content cannot be interacted with by screen sharing tools.
+        sharingType = .readOnly
 
         // SUB-10: Click-through — mouse events pass to windows below
         ignoresMouseEvents = true
