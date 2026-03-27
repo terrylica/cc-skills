@@ -23,6 +23,14 @@ enum Config {
     /// Default speaker ID: af_heart (speaker 3 in Kokoro v1.0)
     static let defaultSpeakerId: Int32 = 3
 
+    /// Chinese speaker ID: zf_xiaobei (speaker 45 in Kokoro multi-lang v1.0)
+    static let chineseSpeakerId: Int32 = 45
+
+    /// CJK character ratio threshold (percentage) for language detection.
+    /// Text with CJK ratio >= this value is treated as Chinese.
+    /// Matches legacy TTS_CJK_DETECTION_RATIO default of 20.
+    static let cjkDetectionThreshold: Double = 20.0
+
     /// Application name for logging and service identification
     static let appName = "claude-tts-companion"
 
