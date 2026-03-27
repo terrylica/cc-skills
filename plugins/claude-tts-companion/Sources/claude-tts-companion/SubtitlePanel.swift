@@ -16,6 +16,9 @@ final class SubtitlePanel: NSPanel {
     /// Per-word timing intervals for karaoke advancement.
     private var wordTimings: [TimeInterval] = []
 
+    /// Generation counter to invalidate stale work items on interruption.
+    private var generation: Int = 0
+
     /// Pending work items for scheduled word highlights and linger-then-hide.
     private var scheduledWorkItems: [DispatchWorkItem] = []
 
@@ -46,6 +49,7 @@ final class SubtitlePanel: NSPanel {
         field.alignment = .center
         field.maximumNumberOfLines = SubtitleStyle.maxLines
         field.cell?.isScrollable = false
+        field.cell?.truncatesLastVisibleLine = SubtitleStyle.truncatesLastVisibleLine
         field.translatesAutoresizingMaskIntoConstraints = false
         return field
     }()
@@ -130,37 +134,51 @@ final class SubtitlePanel: NSPanel {
         updateAttributedText(result)
     }
 
-    /// Display an utterance with word-level karaoke highlighting driven by timing data.
-    ///
-    /// Each word highlights at its cumulative timing offset. After the last word,
-    /// the panel lingers for `SubtitleStyle.lingerDuration` seconds before hiding.
-    func showUtterance(_ text: String, wordTimings: [TimeInterval]) {
-        // Cancel any pending highlights or linger from a previous utterance
+    /// Display multiple pages of subtitle text with karaoke highlighting.
+    /// Audio plays continuously as a single WAV; pages flip when karaoke
+    /// reaches the last word of each page.
+    func showPages(_ pages: [SubtitlePage], wordTimings: [TimeInterval]) {
         cancelScheduledHighlights()
+        guard !pages.isEmpty else { return }
 
-        let words = text.split(separator: " ").map(String.init)
-        self.words = words
-        self.wordTimings = wordTimings
+        generation += 1
+        let myGeneration = generation
 
-        // Show the full text immediately (all white/future)
-        show(text: text)
-
-        // Schedule word-by-word highlighting
         var cumulativeTime: TimeInterval = 0
-        for i in 0..<words.count {
-            let timing = i < wordTimings.count ? wordTimings[i] : 0.2
-            let fireTime = cumulativeTime
-            let item = DispatchWorkItem { [weak self] in
-                self?.highlightWord(at: i, in: words)
+
+        for (_, page) in pages.enumerated() {
+            let pageStartTime = cumulativeTime
+            let pageWords = page.words
+
+            // Schedule page display: show all words in future (white) color
+            let showPageItem = DispatchWorkItem { [weak self] in
+                guard let self = self, self.generation == myGeneration else { return }
+                self.highlightWord(at: -1, in: pageWords)
             }
-            scheduledWorkItems.append(item)
-            DispatchQueue.main.asyncAfter(deadline: .now() + fireTime, execute: item)
-            cumulativeTime += timing
+            scheduledWorkItems.append(showPageItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + pageStartTime, execute: showPageItem)
+
+            // Schedule per-word karaoke highlights within this page
+            for localIndex in 0..<page.wordCount {
+                let globalIndex = page.startWordIndex + localIndex
+                let timing = globalIndex < wordTimings.count ? wordTimings[globalIndex] : 0.2
+                let fireTime = cumulativeTime
+
+                let capturedLocalIndex = localIndex
+                let item = DispatchWorkItem { [weak self] in
+                    guard let self = self, self.generation == myGeneration else { return }
+                    self.highlightWord(at: capturedLocalIndex, in: pageWords)
+                }
+                scheduledWorkItems.append(item)
+                DispatchQueue.main.asyncAfter(deadline: .now() + fireTime, execute: item)
+                cumulativeTime += timing
+            }
         }
 
-        // Schedule linger + hide after the last word
+        // Linger on last page then hide
         let lingerItem = DispatchWorkItem { [weak self] in
-            self?.hide()
+            guard let self = self, self.generation == myGeneration else { return }
+            self.hide()
         }
         self.lingerWorkItem = lingerItem
         scheduledWorkItems.append(lingerItem)
@@ -168,6 +186,16 @@ final class SubtitlePanel: NSPanel {
             deadline: .now() + cumulativeTime + SubtitleStyle.lingerDuration,
             execute: lingerItem
         )
+    }
+
+    /// Display an utterance with word-level karaoke highlighting driven by timing data.
+    ///
+    /// Wraps showPages() with a single page for backward compatibility.
+    /// Used by demo() and simple text display.
+    func showUtterance(_ text: String, wordTimings: [TimeInterval]) {
+        let words = text.split(separator: " ").map(String.init)
+        let singlePage = SubtitlePage(words: words, startWordIndex: 0)
+        showPages([singlePage], wordTimings: wordTimings)
     }
 
     /// Run a demo sequence of three sample sentences with 200ms per-word timing.
@@ -197,6 +225,7 @@ final class SubtitlePanel: NSPanel {
 
     /// Cancel all pending word-highlight and linger work items.
     private func cancelScheduledHighlights() {
+        generation += 1
         for item in scheduledWorkItems {
             item.cancel()
         }
