@@ -857,6 +857,194 @@ final class AutoContinueEvaluator: @unchecked Sendable {
         )
     }
 
+    // MARK: - Rich Notification Formatting (EVAL-05)
+
+    /// Decision icon mapping matching legacy TypeScript format.
+    private static let decisionIcons: [ContinueDecision: String] = [
+        .continue: "\u{1F504}",   // 🔄
+        .sweep: "\u{1F9F9}",      // 🧹
+        .redirect: "\u{21A9}\u{FE0F}",  // ↩️
+        .done: "\u{2705}",        // ✅
+    ]
+
+    /// Format a rich decision notification for Telegram (EVAL-05).
+    ///
+    /// Ported from legacy TypeScript `formatDecisionMessage()` (auto-continue.ts lines 448-533).
+    /// Includes icon, separator, reason, plan info with progress bar, session stats, and timestamp.
+    func formatDecisionMessage(
+        result: EvaluationResult,
+        sessionId: String,
+        cwd: String,
+        maxIterations: Int,
+        maxRuntimeMin: Double
+    ) -> String {
+        let icon = Self.decisionIcons[result.decision] ?? "\u{2705}"
+        let decision = result.decision.rawValue
+        let separator = String(repeating: "\u{2501}", count: 24)
+
+        let planFile: String
+        if let pp = result.planPath {
+            planFile = TelegramFormatter.escapeHtml((pp as NSString).lastPathComponent)
+        } else {
+            planFile = "unknown"
+        }
+
+        let planTitle: String
+        if let pc = result.planContent, pc != "NO_PLAN" {
+            planTitle = TelegramFormatter.escapeHtml(Self.extractPlanTitle(pc))
+        } else {
+            planTitle = "No Plan"
+        }
+
+        let shortSession = TelegramFormatter.escapeHtml(String(sessionId.prefix(8)))
+        let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/<you>"
+        let shortCwd = TelegramFormatter.escapeHtml(cwd.replacingOccurrences(of: home, with: "~"))
+
+        let displayReason = String(result.reason.prefix(200))
+
+        // Checkbox progress (only if plan uses checkboxes)
+        let progressLine: String
+        if let pc = result.planContent, pc != "NO_PLAN" {
+            let (checked, total) = Self.checkboxCounts(pc)
+            if total > 0 {
+                progressLine = "\(Self.progressBar(done: checked, total: total)) <code>\(checked)/\(total) tasks</code>\n"
+            } else {
+                progressLine = ""
+            }
+        } else {
+            progressLine = ""
+        }
+
+        // Timestamp in America/Vancouver timezone, en-CA locale format
+        let timestamp = Self.formatVancouverTimestamp()
+
+        var lines: [String] = [
+            "<b>\(icon) Auto-Continue: \(decision)</b>",
+            separator,
+            "",
+            "<i>\(TelegramFormatter.escapeHtml(displayReason).isEmpty ? "No reason provided" : TelegramFormatter.escapeHtml(displayReason))</i>",
+        ]
+
+        if result.decision == .sweep {
+            lines.append("\u{26A1} <b>Action</b>: Sweep prompt injected for final review")
+        }
+
+        lines.append(contentsOf: [
+            "",
+            "<b>\u{1F4CB} Plan</b>: \(planTitle)",
+            "\(progressLine)<code>\(planFile)</code>",
+            "",
+            "<b>\u{1F4CA} Session</b>",
+            "\u{2022} Iteration: <code>\(result.state.totalIterations) / \(maxIterations)</code>",
+            "\u{2022} Runtime: <code>\(String(format: "%.1f", result.elapsedMin)) / \(String(format: "%.0f", maxRuntimeMin)) min</code>",
+            "\u{2022} <code>\(result.turnCount)T \(result.toolBreakdown.isEmpty ? "\(result.toolCalls)\u{2699}" : result.toolBreakdown)\(result.errors > 0 ? " \(result.errors)\u{2717}" : "")</code>",
+        ])
+
+        if let branch = result.gitBranch {
+            lines.append("\u{2022} Branch: <code>\(TelegramFormatter.escapeHtml(branch))</code>")
+        }
+
+        lines.append(contentsOf: [
+            "\u{2022} Project: <code>\(shortCwd)</code>",
+            "\u{2022} Claude session uuid jsonl ~/.claude/projects: <code>\(shortSession)</code>",
+        ])
+
+        lines.append(contentsOf: [
+            "",
+            separator,
+            "<i>\(timestamp)</i>",
+        ])
+
+        var message = lines.joined(separator: "\n")
+
+        // Truncation safety: strip progress bar first, then hard truncate
+        if message.count > TelegramFormatter.telegramMaxLength {
+            // Remove progress bar line
+            if let progressPattern = try? NSRegularExpression(pattern: "\u{2588}[\u{2588}\u{2591}]*\\s*<code>\\d+/\\d+ tasks</code>\\n") {
+                message = progressPattern.stringByReplacingMatches(
+                    in: message,
+                    range: NSRange(message.startIndex..., in: message),
+                    withTemplate: ""
+                )
+            }
+
+            if message.count > TelegramFormatter.telegramMaxLength {
+                // Hard truncate at last newline before 4080, clean up broken HTML
+                var cutPoint = 4080
+                if let lastNewline = message.prefix(4080).lastIndex(of: "\n") {
+                    let offset = message.distance(from: message.startIndex, to: lastNewline)
+                    if offset >= 2000 {
+                        cutPoint = offset
+                    }
+                }
+                message = String(message.prefix(cutPoint))
+                // Strip broken HTML entities at cut point
+                if let brokenEntity = message.range(of: "&[^;]*$", options: .regularExpression) {
+                    message.removeSubrange(brokenEntity)
+                }
+                // Strip broken HTML tags at cut point
+                if let brokenTag = message.range(of: "<[^>]*$", options: .regularExpression) {
+                    message.removeSubrange(brokenTag)
+                }
+                message += "\n\u{2026}"
+            }
+        }
+
+        return message
+    }
+
+    /// Format a lightweight exit notification for early stops (EVAL-05).
+    ///
+    /// Ported from legacy TypeScript `sendExitNotification()` (auto-continue.ts lines 578-636).
+    /// Used for limit reached, sweep complete, and error cases.
+    func formatExitMessage(
+        reason: String,
+        sessionId: String,
+        cwd: String,
+        state: AutoContinueState?,
+        maxIterations: Int,
+        maxRuntimeMin: Double
+    ) -> String {
+        let shortSession = TelegramFormatter.escapeHtml(String(sessionId.prefix(8)))
+        let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/<you>"
+        let shortCwd = TelegramFormatter.escapeHtml(cwd.replacingOccurrences(of: home, with: "~"))
+        let separator = String(repeating: "\u{2501}", count: 24)
+        let timestamp = Self.formatVancouverTimestamp()
+
+        var stateInfo = ""
+        var elapsedInfo = ""
+        if let st = state {
+            stateInfo = "\n\u{2022} Iteration: <code>\(st.totalIterations) / \(maxIterations)</code>"
+            let elapsed = (Date().timeIntervalSince1970 - isoToEpoch(st.startedAt)) / 60.0
+            elapsedInfo = "\n\u{2022} Runtime: <code>\(String(format: "%.1f", elapsed)) / \(String(format: "%.0f", maxRuntimeMin)) min</code>"
+        }
+
+        let lines: [String] = [
+            "<b>\u{23F9} Auto-Continue: STOP</b>",
+            separator,
+            "",
+            "<i>\(TelegramFormatter.escapeHtml(reason))</i>",
+            "",
+            "<b>\u{1F4CA} Session</b>\(stateInfo)\(elapsedInfo)",
+            "\u{2022} Project: <code>\(shortCwd)</code>",
+            "\u{2022} Claude session uuid jsonl ~/.claude/projects: <code>\(shortSession)</code>",
+            "",
+            separator,
+            "<i>\(timestamp)</i>",
+        ]
+
+        return lines.joined(separator: "\n")
+    }
+
+    /// Format a Vancouver timezone timestamp matching legacy en-CA locale format.
+    private static func formatVancouverTimestamp() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        formatter.locale = Locale(identifier: "en_CA")
+        formatter.timeZone = TimeZone(identifier: "America/Vancouver")
+        return formatter.string(from: Date())
+    }
+
     // MARK: - Helpers
 
     /// Convert an ISO 8601 string to epoch seconds.
