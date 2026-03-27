@@ -79,6 +79,10 @@ final class TTSEngine: @unchecked Sendable {
     /// Delegate that handles playback completion and WAV cleanup
     private var playbackDelegate: PlaybackDelegate?
 
+    /// Gapless streaming audio player using AVAudioEngine + AVAudioPlayerNode.
+    /// Shared across streaming sessions -- reset() between sessions, never deallocated.
+    let audioStreamPlayer = AudioStreamPlayer()
+
     /// Path to the last generated WAV (cleaned up before next synthesis)
     private var lastWavPath: String?
 
@@ -125,15 +129,19 @@ final class TTSEngine: @unchecked Sendable {
         return result
     }
 
-    // MARK: - Lifecycle
+    // MARK: - MLX Cache Management
 
-    // NOTE: metalCacheClearInterval removed. Calling Memory.clearCache() or
-    // Stream.gpu.synchronize() from the main binary initializes a SEPARATE C++ MLX
-    // Metal device singleton (static Device in device.cpp:799), distinct from the one
-    // inside libKokoroSwift.dylib. Multiple Metal device instances share the GPU's
-    // 499000 resource limit but maintain independent counters, causing immediate
-    // resource exhaustion on the first generateAudio() call.
+    // NOTE: MLX Metal buffer cache management is handled INSIDE libKokoroSwift.dylib
+    // (kokoro-ios v1.0.13+). Each generateAudio() call now clears its own cache, and
+    // the cache limit is set to 32 MB on KokoroTTS init.
+    //
+    // Calling Memory.clearCache() or Memory.cacheLimit from the main binary is FORBIDDEN
+    // -- it initializes a separate C++ Metal device singleton that competes for the GPU's
+    // 499000 resource limit, causing immediate crashes.
     // See .planning/debug/mlx-metal-resource-crash.md for full root cause analysis.
+    // See .planning/debug/profile-mlx-metal-memory.md for profiling data.
+
+    // MARK: - Lifecycle
 
     /// Whether TTS is disabled due to missing model files at startup.
     /// When true, all synthesis calls return immediately with an error instead
@@ -210,15 +218,20 @@ final class TTSEngine: @unchecked Sendable {
             logger.info("Model files validated: \(Config.kokoroMLXModelPath), \(Config.kokoroVoicesPath)")
         }
 
-        // NOTE: Memory.cacheLimit removed — calling any MLX Memory/Stream API from
-        // the main binary creates a separate C++ Metal device singleton that competes
-        // for the GPU's 499000 resource limit with libKokoroSwift.dylib's own instance,
-        // causing immediate resource exhaustion on first synthesis.
+        // NOTE: MLX Memory.clearCache() / Memory.cacheLimit calls are FORBIDDEN from
+        // the main binary -- they create a separate C++ Metal device singleton that
+        // competes for the GPU's 499000 resource limit. Cache management is handled
+        // inside libKokoroSwift.dylib (kokoro-ios v1.0.13+): generateAudio() clears
+        // the cache after each call, and KokoroTTS init sets a 32 MB cache limit.
 
         // Pre-warm CoreAudio hardware so the first real play() doesn't stutter.
         // macOS powers down audio hardware after idle; re-init takes ~50-500ms
         // which causes choppy audio at the start of the first chunk.
         warmUpAudioHardware()
+
+        // Start AVAudioEngine early so hardware stays warm for streaming playback.
+        // The engine persists across sessions -- reset() between sessions, never stopped.
+        audioStreamPlayer.start()
     }
 
     deinit {
@@ -399,13 +412,22 @@ final class TTSEngine: @unchecked Sendable {
         let totalChunks: Int
         /// Native word onset times from MToken.start_ts (nil when using character-weighted fallback)
         let wordOnsets: [TimeInterval]?
+        /// Raw float32 PCM samples at 24kHz for direct AVAudioEngine scheduling.
+        /// When present, SubtitleSyncDriver can skip WAV file I/O entirely.
+        let samples: [Float]?
     }
 
-    /// Synthesize text as streaming sentence chunks on the background queue.
+    /// Synthesize text as sentence chunks using batch-then-play pattern.
     ///
-    /// Splits `text` into sentences, synthesizes each sequentially, and calls
-    /// `onChunkReady` as each sentence finishes -- enabling playback to start
-    /// after the first sentence (~5s) rather than waiting for the full paragraph (~100s).
+    /// Splits `text` into sentences, synthesizes ALL sentences sequentially on the
+    /// background queue, then delivers them via callbacks. This completely separates
+    /// GPU synthesis from audio playback — zero GPU work during playback.
+    ///
+    /// **Batch-then-play pattern:** MLX Metal GPU synthesis creates ~1.7GB IOAccelerator
+    /// allocations per call that are never reclaimed within a session. When synthesis and
+    /// playback run simultaneously on Apple Silicon unified memory, the accumulated memory
+    /// pressure causes audio stutters. By synthesizing everything first, the GPU is
+    /// completely idle during playback.
     ///
     /// - Parameters:
     ///   - text: Full text to synthesize
@@ -447,22 +469,76 @@ final class TTSEngine: @unchecked Sendable {
                 let pipelineStart = CFAbsoluteTimeGetCurrent()
 
                 for (index, sentence) in sentences.enumerated() {
-                    let wavPath = NSTemporaryDirectory() + "tts-stream-\(UUID().uuidString).wav"
+                    // Wrap each chunk in autoreleasepool to drain ObjC objects (Metal
+                    // command buffers, MLXArray intermediates, etc.) between synthesis
+                    // calls. Without this, all 5 chunks' Metal objects accumulate in
+                    // the DispatchQueue's single autorelease pool, causing GPU memory
+                    // pressure that stutters the last chunk(s).
+                    // NOTE: This is safe — autoreleasepool is a pure ObjC/Swift runtime
+                    // mechanism, NOT an MLX API call (which would create a duplicate
+                    // Metal device singleton — see mlx-metal-resource-crash.md).
+                    let chunkResult: ChunkResult? = autoreleasepool {
+                        let wavPath = NSTemporaryDirectory() + "tts-stream-\(UUID().uuidString).wav"
 
-                    // Apply pronunciation overrides before phonemization (TTS-09)
-                    let processedSentence = TTSEngine.preprocessText(sentence)
-                    logger.info("Synthesizing chunk \(index + 1)/\(totalChunks): \(sentence.count) chars")
-                    let startTime = CFAbsoluteTimeGetCurrent()
+                        // Apply pronunciation overrides before phonemization (TTS-09)
+                        let processedSentence = TTSEngine.preprocessText(sentence)
+                        logger.info("Synthesizing chunk \(index + 1)/\(totalChunks): \(sentence.count) chars")
+                        let startTime = CFAbsoluteTimeGetCurrent()
 
-                    let (audio, tokenArray): ([Float], [MToken]?)
-                    do {
-                        (audio, tokenArray) = try tts.generateAudio(
-                            voice: activeVoice, language: .enUS, text: processedSentence, speed: speed
+                        let audio: [Float]
+                        let tokenArray: [MToken]?
+                        do {
+                            (audio, tokenArray) = try tts.generateAudio(
+                                voice: activeVoice, language: .enUS, text: processedSentence, speed: speed
+                            )
+                            recordSynthesisSuccess()
+                        } catch {
+                            logger.error("Synthesis failed for chunk \(index + 1): \(error)")
+                            recordSynthesisFailure()
+                            return nil
+                        }
+
+                        let audioDuration = Double(audio.count) / 24000.0
+
+                        // Append trailing silence to prevent choppy audio at sentence boundaries.
+                        // TTS models produce trailing energy (formant decay) that gets truncated
+                        // at the last sample. Padding with 100ms of silence lets the waveform
+                        // decay naturally and masks the poll-based chunk transition gap.
+                        let paddedAudio = audio + [Float](repeating: 0.0, count: TTSEngine.trailingSilenceSamples)
+
+                        do {
+                            try writeWav(samples: paddedAudio, to: wavPath)
+                        } catch {
+                            logger.error("WAV write failed for chunk \(index + 1): \(error)")
+                            return nil
+                        }
+
+                        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+                        let rtf = elapsed / audioDuration
+                        logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
+
+                        // Align MToken timestamps to subtitle words (with character-weighted fallback)
+                        let resolved = TTSEngine.resolveWordTimings(
+                            tokenArray: tokenArray,
+                            text: sentence,
+                            audioDuration: audioDuration,
+                            logger: logger
                         )
-                        recordSynthesisSuccess()
-                    } catch {
-                        logger.error("Synthesis failed for chunk \(index + 1): \(error)")
-                        recordSynthesisFailure()
+
+                        return ChunkResult(
+                            wavPath: wavPath,
+                            text: sentence,
+                            wordTimings: resolved.durations,
+                            audioDuration: audioDuration,
+                            chunkIndex: index,
+                            totalChunks: totalChunks,
+                            wordOnsets: resolved.onsets,
+                            samples: paddedAudio
+                        )
+                    }
+
+                    // Handle synthesis failure or circuit breaker
+                    guard let chunk = chunkResult else {
                         if isTTSCircuitBreakerOpen {
                             logger.error("TTS circuit breaker tripped mid-stream — aborting remaining chunks")
                             break
@@ -470,46 +546,7 @@ final class TTSEngine: @unchecked Sendable {
                         continue
                     }
 
-                    let audioDuration = Double(audio.count) / 24000.0
-
-                    // Append trailing silence to prevent choppy audio at sentence boundaries.
-                    // TTS models produce trailing energy (formant decay) that gets truncated
-                    // at the last sample. Padding with 100ms of silence lets the waveform
-                    // decay naturally and masks the poll-based chunk transition gap.
-                    let paddedAudio = audio + [Float](repeating: 0.0, count: TTSEngine.trailingSilenceSamples)
-
-                    do {
-                        try writeWav(samples: paddedAudio, to: wavPath)
-                    } catch {
-                        logger.error("WAV write failed for chunk \(index + 1): \(error)")
-                        continue
-                    }
-
-                    let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                    let rtf = elapsed / audioDuration
-                    logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
-
-                    // Align MToken timestamps to subtitle words (with character-weighted fallback)
-                    let resolved = TTSEngine.resolveWordTimings(
-                        tokenArray: tokenArray,
-                        text: sentence,
-                        audioDuration: audioDuration,
-                        logger: logger
-                    )
-
-                    let chunk = ChunkResult(
-                        wavPath: wavPath,
-                        text: sentence,
-                        wordTimings: resolved.durations,
-                        audioDuration: audioDuration,
-                        chunkIndex: index,
-                        totalChunks: totalChunks,
-                        wordOnsets: resolved.onsets
-                    )
                     onChunkReady(chunk)
-
-                    // NOTE: Periodic Metal cache clear removed — see note at top of
-                    // synthesizeStreaming() for why direct MLX calls are forbidden.
                 }
 
                 let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
@@ -951,6 +988,9 @@ final class TTSEngine: @unchecked Sendable {
 
         let elapsed = CFAbsoluteTimeGetCurrent() - startTime
         logger.info("Kokoro MLX model loaded in \(String(format: "%.2f", elapsed))s (\(voiceCount) voices available)")
+
+        // NOTE: Cache limit (32 MB) and clearCache() are set inside KokoroTTS
+        // (kokoro-ios v1.0.13+). No MLX API calls from the main binary.
 
         ttsInstance = tts
         return tts
