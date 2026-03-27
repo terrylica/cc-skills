@@ -45,6 +45,16 @@ enum Config {
     /// Launchd service label
     static let serviceLabel = "com.terryli.claude-tts-companion"
 
+    // MARK: - TTS Pipeline
+
+    /// Whether to use streaming sentence-chunked TTS synthesis (default: true).
+    /// When true, text is split into sentences and synthesized incrementally --
+    /// first audio plays in ~5s instead of ~100s for long paragraphs.
+    /// Set STREAMING_TTS=false to use full-paragraph synthesis (for future low-RTF models).
+    static let streamingTTS: Bool = {
+        return ProcessInfo.processInfo.environment["STREAMING_TTS"] != "false"
+    }()
+
     // MARK: - HTTP Control API
 
     /// Port for the HTTP control API (localhost only)

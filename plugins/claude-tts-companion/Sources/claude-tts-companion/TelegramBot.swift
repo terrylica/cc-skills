@@ -195,6 +195,9 @@ final class TelegramBot: @unchecked Sendable {
     }
 
     /// Synthesize text and play with synchronized karaoke subtitles.
+    ///
+    /// Uses streaming sentence-chunked synthesis when `Config.streamingTTS` is true,
+    /// falling back to full-paragraph synthesis for future low-RTF models.
     private func dispatchTTS(text: String, greeting: String?) async {
         // Build full TTS text with optional greeting
         let fullText: String
@@ -204,27 +207,83 @@ final class TelegramBot: @unchecked Sendable {
             fullText = text
         }
 
-        // Don't cancel current playback here — synthesis takes 1-2 minutes.
-        // Let the current audio+subtitles finish naturally. We cancel only
-        // when the NEW audio is ready to play (inside the success handler below).
-
         // Detect language to select correct voice (TTS-10)
         let langResult = LanguageDetector.detect(text: fullText)
-        logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), speakerId=\(langResult.speakerId)")
+        logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), speakerId=\(langResult.speakerId), streaming=\(Config.streamingTTS)")
 
-        ttsEngine.synthesizeWithTimestamps(text: fullText, speakerId: langResult.speakerId) { [weak self] result in
+        if Config.streamingTTS {
+            dispatchStreamingTTS(text: fullText, speakerId: langResult.speakerId)
+        } else {
+            dispatchFullTTS(text: fullText, speakerId: langResult.speakerId)
+        }
+    }
+
+    /// Streaming TTS: synthesize sentence-by-sentence, play first chunk ASAP.
+    private func dispatchStreamingTTS(text: String, speakerId: Int32) {
+        // Don't cancel current playback here -- synthesis takes time.
+        // Cancel only when first chunk is ready to play.
+        // Use NSLock-protected flag for thread safety (TTS queue -> main thread).
+        let firstChunkLock = NSLock()
+        var _firstChunkDispatched = false
+
+        ttsEngine.synthesizeStreaming(
+            text: text,
+            speakerId: speakerId,
+            onChunkReady: { [weak self] chunk in
+                guard let self = self else { return }
+                self.logger.info("Streaming chunk \(chunk.chunkIndex + 1)/\(chunk.totalChunks) ready: \(String(format: "%.2f", chunk.audioDuration))s")
+
+                firstChunkLock.lock()
+                let isFirst = !_firstChunkDispatched
+                if isFirst { _firstChunkDispatched = true }
+                firstChunkLock.unlock()
+
+                DispatchQueue.main.async {
+                    if isFirst {
+                        // Cancel previous playback only when first new chunk is ready
+                        self.ttsEngine.stopPlayback()
+                        self.syncDriver?.stop()
+                        self.syncDriver = nil
+
+                        // Create streaming sync driver
+                        let driver = SubtitleSyncDriver(
+                            subtitlePanel: self.subtitlePanel,
+                            ttsEngine: self.ttsEngine
+                        )
+                        self.syncDriver = driver
+                    }
+
+                    // Chunk pages using pixel-width measurement
+                    let pages = SubtitleChunker.chunkIntoPages(text: chunk.text)
+                    self.syncDriver?.addChunk(
+                        wavPath: chunk.wavPath,
+                        pages: pages,
+                        wordTimings: chunk.wordTimings
+                    )
+                }
+            },
+            onAllComplete: { [weak self] in
+                guard let self = self else { return }
+                self.logger.info("All streaming TTS chunks synthesized")
+                DispatchQueue.main.async {
+                    self.syncDriver?.markAllChunksDelivered()
+                }
+            }
+        )
+    }
+
+    /// Full-paragraph TTS: synthesize everything, then play (legacy path).
+    /// Preserved for future TTS models with lower RTF where streaming is unnecessary.
+    private func dispatchFullTTS(text: String, speakerId: Int32) {
+        ttsEngine.synthesizeWithTimestamps(text: text, speakerId: speakerId) { [weak self] result in
             guard let self = self else { return }
             switch result {
             case .success(let ttsResult):
                 self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
 
-                // Cancel previous playback only when new audio is ready.
-                // This lets the current TTS finish naturally during the ~2min synthesis.
+                // Cancel previous playback only when new audio is ready
                 self.ttsEngine.stopPlayback()
 
-                // Start audio via AVAudioPlayer, then drive subtitles from
-                // player.currentTime via CADisplayLink — no pre-scheduled timers,
-                // no magic delay constants, self-correcting each frame.
                 DispatchQueue.main.async {
                     self.syncDriver?.stop()
                     self.syncDriver = nil

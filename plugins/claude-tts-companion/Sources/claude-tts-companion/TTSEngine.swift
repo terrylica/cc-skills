@@ -186,6 +186,159 @@ final class TTSEngine: @unchecked Sendable {
         }
     }
 
+    // MARK: - Streaming Sentence-Chunked Synthesis
+
+    /// Result for a single sentence chunk in the streaming pipeline.
+    struct ChunkResult {
+        let wavPath: String
+        let text: String
+        let wordTimings: [TimeInterval]
+        let audioDuration: TimeInterval
+        let chunkIndex: Int
+        let totalChunks: Int
+    }
+
+    /// Synthesize text as streaming sentence chunks on the background queue.
+    ///
+    /// Splits `text` into sentences, synthesizes each sequentially, and calls
+    /// `onChunkReady` as each sentence finishes -- enabling playback to start
+    /// after the first sentence (~5s) rather than waiting for the full paragraph (~100s).
+    ///
+    /// - Parameters:
+    ///   - text: Full text to synthesize
+    ///   - speakerId: Speaker ID for multi-speaker models
+    ///   - speed: Speech speed multiplier
+    ///   - onChunkReady: Called on the TTS queue for each completed sentence chunk
+    ///   - onAllComplete: Called on the TTS queue when all chunks are synthesized
+    func synthesizeStreaming(
+        text: String,
+        speakerId: Int32 = Config.defaultSpeakerId,
+        speed: Float = 1.2,
+        onChunkReady: @escaping (ChunkResult) -> Void,
+        onAllComplete: @escaping () -> Void
+    ) {
+        queue.async { [self] in
+            do {
+                let tts = try ensureModelLoaded()
+
+                let sentences = TTSEngine.splitIntoSentences(text)
+                let totalChunks = sentences.count
+                logger.info("Streaming TTS: \(text.count) chars split into \(totalChunks) sentences")
+
+                let pipelineStart = CFAbsoluteTimeGetCurrent()
+
+                for (index, sentence) in sentences.enumerated() {
+                    let wavPath = NSTemporaryDirectory() + "tts-stream-\(UUID().uuidString).wav"
+
+                    logger.info("Synthesizing chunk \(index + 1)/\(totalChunks): \(sentence.count) chars")
+                    let startTime = CFAbsoluteTimeGetCurrent()
+
+                    guard let result = SherpaOnnxOfflineTtsGenerate(tts, sentence, speakerId, speed) else {
+                        logger.error("Synthesis returned nil for chunk \(index + 1)")
+                        continue
+                    }
+
+                    let n = result.pointee.n
+                    let sampleRate = result.pointee.sample_rate
+                    let samples = result.pointee.samples
+
+                    let writeResult = SherpaOnnxWriteWave(samples, n, sampleRate, wavPath)
+                    guard writeResult == 1 else {
+                        SherpaOnnxDestroyOfflineTtsGeneratedAudio(result)
+                        logger.error("WAV write failed for chunk \(index + 1)")
+                        continue
+                    }
+
+                    let audioDuration = Double(n) / Double(sampleRate)
+                    SherpaOnnxDestroyOfflineTtsGeneratedAudio(result)
+
+                    let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+                    let rtf = elapsed / audioDuration
+                    logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
+
+                    let timings = TTSEngine.extractWordTimings(text: sentence, audioDuration: audioDuration)
+
+                    let chunk = ChunkResult(
+                        wavPath: wavPath,
+                        text: sentence,
+                        wordTimings: timings,
+                        audioDuration: audioDuration,
+                        chunkIndex: index,
+                        totalChunks: totalChunks
+                    )
+                    onChunkReady(chunk)
+                }
+
+                let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
+                logger.info("Streaming TTS pipeline complete: \(totalChunks) chunks in \(String(format: "%.2f", totalElapsed))s")
+                onAllComplete()
+            } catch {
+                logger.error("Streaming synthesis failed: \(error)")
+                onAllComplete()
+            }
+        }
+    }
+
+    /// Split text into sentences on `.`, `!`, `?` boundaries.
+    ///
+    /// Preserves the delimiter with the preceding sentence. Handles common
+    /// abbreviations (Mr., Dr., etc.) and decimal numbers to avoid false splits.
+    static func splitIntoSentences(_ text: String) -> [String] {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        // Simple regex-based sentence splitting: split after .!? followed by whitespace
+        // but avoid splitting on common abbreviations and decimal numbers
+        var sentences: [String] = []
+        var current = ""
+
+        let chars = Array(trimmed)
+        var i = 0
+        while i < chars.count {
+            current.append(chars[i])
+
+            if chars[i] == "." || chars[i] == "!" || chars[i] == "?" {
+                // Check if this is a real sentence boundary:
+                // - Must be followed by whitespace or end of text
+                // - Must not be a decimal number (digit.digit)
+                let isEnd = (i + 1 >= chars.count)
+                let followedBySpace = !isEnd && (i + 1 < chars.count) && chars[i + 1].isWhitespace
+
+                // Check for decimal numbers: digit before . and digit after .
+                let isDecimal = chars[i] == "."
+                    && i > 0 && chars[i - 1].isNumber
+                    && !isEnd && (i + 1 < chars.count) && chars[i + 1].isNumber
+
+                // Check for common abbreviations (single capital letter followed by .)
+                let isAbbrev = chars[i] == "."
+                    && i > 0 && chars[i - 1].isUppercase
+                    && (i < 2 || chars[i - 2].isWhitespace || i - 1 == 0)
+
+                if (isEnd || followedBySpace) && !isDecimal && !isAbbrev {
+                    let trimmedSentence = current.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmedSentence.isEmpty {
+                        sentences.append(trimmedSentence)
+                    }
+                    current = ""
+                }
+            }
+            i += 1
+        }
+
+        // Append any remaining text as the final sentence
+        let remaining = current.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !remaining.isEmpty {
+            if sentences.isEmpty {
+                sentences.append(remaining)
+            } else {
+                // Merge short trailing fragments with the last sentence
+                sentences[sentences.count - 1] += " " + remaining
+            }
+        }
+
+        return sentences
+    }
+
     /// Stop any currently playing audio.
     func stopPlayback() {
         audioPlayer?.stop()
