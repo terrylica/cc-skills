@@ -37,9 +37,7 @@ final class SubtitlePanel: NSPanel {
 
     /// The label that displays subtitle text (plain or attributed).
     private let textField: NSTextField = {
-        let field = NSTextField(labelWithString: "")
-        field.lineBreakMode = .byWordWrapping
-        field.cell?.wraps = true
+        let field = NSTextField(wrappingLabelWithString: "")
         field.isEditable = false
         field.isSelectable = false
         field.isBezeled = false
@@ -48,7 +46,6 @@ final class SubtitlePanel: NSPanel {
         field.font = SubtitleStyle.regularFont
         field.alignment = .center
         field.maximumNumberOfLines = SubtitleStyle.maxLines
-        field.cell?.isScrollable = false
         field.cell?.truncatesLastVisibleLine = SubtitleStyle.truncatesLastVisibleLine
         field.translatesAutoresizingMaskIntoConstraints = false
         return field
@@ -314,5 +311,9 @@ final class SubtitlePanel: NSPanel {
 
         let frame = NSRect(x: x, y: y, width: panelWidth, height: panelHeight)
         setFrame(frame, display: true)
+
+        // Tell the text field the width at which to wrap (required for multi-line layout)
+        let textWidth = panelWidth - SubtitleStyle.horizontalPadding * 2
+        textField.preferredMaxLayoutWidth = textWidth
     }
 }
