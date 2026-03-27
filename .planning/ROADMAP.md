@@ -341,26 +341,27 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16
+Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 
-| Phase                            | Plans Complete | Status      | Completed  |
-| -------------------------------- | -------------- | ----------- | ---------- |
-| 1. Foundation & Build System     | 2/2            | Complete    | -          |
-| 2. Subtitle Overlay              | 2/2            | Complete    | -          |
-| 3. TTS Engine                    | 1/2            | In progress | -          |
-| 4. AI Summaries                  | 0/0            | Not started | -          |
-| 5. Telegram Bot Core             | 0/0            | Not started | -          |
-| 6. Telegram Bot Commands         | 2/2            | Complete    | 2026-03-26 |
-| 7. File Watching & Auto-Continue | 2/2            | Complete    | 2026-03-26 |
-| 8. HTTP Control API              | 1/2            | In progress | -          |
-| 9. SwiftBar Integration          | 0/0            | Not started | -          |
-| 10. Deployment & Extras          | 2/2            | Complete    | 2026-03-26 |
-| 11. Notification Formatting      | 2/2            | Complete    | 2026-03-26 |
-| 12. AI Summary Prompts           | 2/2            | Complete    | 2026-03-27 |
-| 13. Auto-Continue Evaluation     | 2/2            | Complete    | 2026-03-27 |
-| 14. TTS Dispatch & Feature Gates | 2/2            | Complete    | 2026-03-27 |
-| 15. Telegram Inline Buttons      | 2/2            | Complete    | 2026-03-27 |
-| 16. Integration & Reliability    | 1/1 | Complete    | 2026-03-27 |
+| Phase                                 | Plans Complete | Status      | Completed  |
+| ------------------------------------- | -------------- | ----------- | ---------- |
+| 1. Foundation & Build System          | 2/2            | Complete    | -          |
+| 2. Subtitle Overlay                   | 2/2            | Complete    | -          |
+| 3. TTS Engine                         | 1/2            | In progress | -          |
+| 4. AI Summaries                       | 0/0            | Not started | -          |
+| 5. Telegram Bot Core                  | 0/0            | Not started | -          |
+| 6. Telegram Bot Commands              | 2/2            | Complete    | 2026-03-26 |
+| 7. File Watching & Auto-Continue      | 2/2            | Complete    | 2026-03-26 |
+| 8. HTTP Control API                   | 1/2            | In progress | -          |
+| 9. SwiftBar Integration               | 0/0            | Not started | -          |
+| 10. Deployment & Extras               | 2/2            | Complete    | 2026-03-26 |
+| 11. Notification Formatting           | 2/2            | Complete    | 2026-03-26 |
+| 12. AI Summary Prompts                | 2/2            | Complete    | 2026-03-27 |
+| 13. Auto-Continue Evaluation          | 2/2            | Complete    | 2026-03-27 |
+| 14. TTS Dispatch & Feature Gates      | 2/2            | Complete    | 2026-03-27 |
+| 15. Telegram Inline Buttons           | 2/2            | Complete    | 2026-03-27 |
+| 16. Integration & Reliability         | 1/1            | Complete    | 2026-03-27 |
+| 17. TTS Streaming & Subtitle Chunking | 0/2            | Planned     | -          |
 
 ### Phase 17: TTS Streaming & Subtitle Chunking
 
@@ -372,3 +373,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 1. First audio starts playing within 5 seconds of TTS dispatch (paragraph-level synthesis)
 2. Subtitle panel shows one sentence at a time, advancing as each sentence completes
 3. Karaoke gold word highlighting advances within each displayed sentence
+   **Plans**: 2 plans
+   **UI hint**: yes
+
+Plans:
+
+- [ ] 17-01-PLAN.md -- SubtitleChunker + SubtitlePanel paged karaoke refactor
+- [ ] 17-02-PLAN.md -- Wire chunker into TelegramBot.dispatchTTS() + visual verification
