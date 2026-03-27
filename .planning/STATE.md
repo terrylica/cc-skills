@@ -114,9 +114,10 @@ None yet.
 | ---------- | ----------------------------------------------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | 260326-fvh | Deploy claude-tts-companion as unified launchd service            | 2026-03-26 | f8196055 | [260326-fvh-deploy-tts-companion](./quick/260326-fvh-deploy-tts-companion/)                                         |
 | 260326-n1n | Upgrade ty hook: --python-version 3.13, concise output, Stop hook | 2026-03-26 | af5afb8d | [260326-n1n-upgrade-ty-hook-python-version-concise-o](./quick/260326-n1n-upgrade-ty-hook-python-version-concise-o/) |
+| 260327-d2e | Replace sherpa-onnx with kokoro-ios MLX Metal GPU TTS             | 2026-03-27 | cfa3d898 | [260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-](./quick/260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-/) |
 
 ## Session Continuity
 
-Last session: 2026-03-27T04:12:54.140Z
-Stopped at: Completed 17-02-PLAN.md
+Last session: 2026-03-27T16:28:25Z
+Stopped at: Completed 260327-d2e-PLAN.md
 Resume file: None
