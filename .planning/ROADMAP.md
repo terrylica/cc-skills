@@ -295,7 +295,12 @@ Plans:
 2. TTS greeting prepends "Hi Terry, you were working in {project}:" before the Tail Brief text
 3. Text with >20% CJK characters switches voice from af_heart to zf_xiaobei
 4. Each notification outlet (Telegram summary, TTS brief, auto-continue) can be independently enabled/disabled via feature gates
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 14-01-PLAN.md -- LanguageDetector + FeatureGates + Config constants
+- [ ] 14-02-PLAN.md -- Wire feature gates and language detection into TelegramBot
 
 ### Phase 15: Telegram Inline Buttons
 
@@ -344,6 +349,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 11. Notification Formatting      | 2/2 | Complete    | 2026-03-26 |
 | 12. AI Summary Prompts           | 2/2 | Complete    | 2026-03-27 |
 | 13. Auto-Continue Evaluation     | 2/2 | Complete    | 2026-03-27 |
-| 14. TTS Dispatch & Feature Gates | 0/0            | Not started | -          |
+| 14. TTS Dispatch & Feature Gates | 0/2            | In progress | -          |
 | 15. Telegram Inline Buttons      | 0/0            | Not started | -          |
 | 16. Integration & Reliability    | 0/0            | Not started | -          |
