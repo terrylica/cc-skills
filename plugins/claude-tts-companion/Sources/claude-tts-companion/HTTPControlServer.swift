@@ -74,6 +74,7 @@ final class HTTPControlServer: @unchecked Sendable {
     private let ttsEngine: TTSEngine
     private let captionHistory: CaptionHistory
     private let startTime: Date
+    private var telegramBot: TelegramBot?
 
     init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, ttsEngine: TTSEngine, captionHistory: CaptionHistory) {
         self.settingsStore = settingsStore
@@ -84,6 +85,11 @@ final class HTTPControlServer: @unchecked Sendable {
     }
 
     /// Start the HTTP server on the configured port (blocks until server stops).
+    /// Set the TelegramBot reference for health status reporting.
+    func setBot(_ bot: TelegramBot) {
+        self.telegramBot = bot
+    }
+
     func start() async throws {
         let server = HTTPServer(address: .loopback(port: Config.httpPort))
 
@@ -187,7 +193,7 @@ final class HTTPControlServer: @unchecked Sendable {
             uptime_seconds: uptimeSeconds,
             rss_mb: rssMB,
             subsystems: SubsystemStatus(
-                bot: "unknown",
+                bot: telegramBot?.watching == true ? "watching" : (telegramBot != nil ? "stopped" : "unknown"),
                 tts: "ready",
                 subtitle: "ready"
             )
