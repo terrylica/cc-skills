@@ -361,7 +361,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 14. TTS Dispatch & Feature Gates      | 2/2            | Complete    | 2026-03-27 |
 | 15. Telegram Inline Buttons           | 2/2            | Complete    | 2026-03-27 |
 | 16. Integration & Reliability         | 1/1            | Complete    | 2026-03-27 |
-| 17. TTS Streaming & Subtitle Chunking | 1/2 | In Progress|  |
+| 17. TTS Streaming & Subtitle Chunking | 2/2 | Complete   | 2026-03-27 |
 
 ### Phase 17: TTS Streaming & Subtitle Chunking
 
@@ -379,4 +379,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 Plans:
 
 - [x] 17-01-PLAN.md -- SubtitleChunker + SubtitlePanel paged karaoke refactor
-- [ ] 17-02-PLAN.md -- Wire chunker into TelegramBot.dispatchTTS() + visual verification
+- [x] 17-02-PLAN.md -- Wire chunker into TelegramBot.dispatchTTS() + visual verification
