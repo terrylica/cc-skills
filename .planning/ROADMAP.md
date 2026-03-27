@@ -55,6 +55,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 18: CompanionCore Library & Test Infrastructure** - Extract library target from executable, enable `swift test` with initial unit tests
 - [ ] **Phase 19: TTSEngine Decomposition & Actor Migration** - Decompose god object into isolated components, replace NSLock with actors
 - [ ] **Phase 20: Unit & Integration Tests** - Full test coverage for decomposed components and streaming pipeline
+- [ ] **Phase 20.1: MLX Metal Memory Lifecycle** - Aggressive cache clearing, synthesis-count auto-restart, IOAccelerator leak mitigation (INSERTED)
 - [ ] **Phase 21: Pipeline Hardening** - Edge-case resilience for rapid-fire, hardware disconnect, memory pressure, and race conditions
 - [ ] **Phase 22: Bionic Reading Mode** - Bold-prefix word splitting in subtitles with HTTP API and SwiftBar toggles
 - [ ] **Phase 23: Caption History Panel** - Scrollable past-captions panel with timestamps and copy-to-clipboard
@@ -417,6 +418,25 @@ Plans:
 4. Integration test verifies a mock synthesis produces correctly sequenced chunks through the streaming pipeline
    **Plans**: TBD
 
+
+### Phase 20.1: MLX Metal Memory Lifecycle
+
+**Goal**: MLX Metal GPU memory is bounded and reclaimed between TTS sessions, preventing IOAccelerator leak from exhausting system RAM
+**Depends on**: Phase 18 (CompanionCore for testability)
+**Requirements**: LEAK-01, LEAK-02, LEAK-03
+**Success Criteria** (what must be TRUE):
+
+1. kokoro-ios fork sets `Memory.cacheLimit` to <=20MB and calls `Memory.clearCache()` after each `generateAudio()` call
+2. Service exits cleanly after N synthesis sessions; launchd auto-restarts within 2 seconds
+3. IOAccelerator (graphics) memory stays under 4GB across 10 consecutive TTS sessions without manual restart
+4. No regression in audio quality -- batch-then-play pattern preserved, gapless playback confirmed
+   **Plans**: 1 plan
+
+Plans:
+
+- [ ] 20.1-01-PLAN.md -- kokoro-ios cache reduction + synthesis counter + graceful restart + launchd tuning
+
+**Context**: MLX-Swift creates ~1.7-6GB of unreclaimable IOAccelerator (Metal driver) allocations per synthesis call. Confirmed intentional by design (ml-explore/mlx issue #1086). The static MetalAllocator pools buffers and only frees on process exit. `Memory.clearCache()` manages MLX internal buffer pool but not Metal driver allocations. Process restart is the only 100% reclamation mechanism.
 ### Phase 21: Pipeline Hardening
 
 **Goal**: The streaming pipeline handles edge cases gracefully without crashes, queue corruption, or resource exhaustion
@@ -474,7 +494,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 22 -> 23 -> 24
+Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24
 
 | Phase                                           | Plans Complete | Status      | Completed  |
 | ----------------------------------------------- | -------------- | ----------- | ---------- |
@@ -498,6 +518,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 18. CompanionCore Library & Test Infrastructure | 0/0            | Not started | -          |
 | 19. TTSEngine Decomposition & Actor Migration   | 0/0            | Not started | -          |
 | 20. Unit & Integration Tests                    | 0/0            | Not started | -          |
+| 20.1. MLX Metal Memory Lifecycle                | 0/1            | Not started | -          |
 | 21. Pipeline Hardening                          | 0/0            | Not started | -          |
 | 22. Bionic Reading Mode                         | 0/0            | Not started | -          |
 | 23. Caption History Panel                       | 0/0            | Not started | -          |
