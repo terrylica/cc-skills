@@ -126,8 +126,26 @@ final class TTSEngine: @unchecked Sendable {
     /// accumulation that leads to the 499000 resource limit crash on long sessions.
     private static let metalCacheClearInterval = 5
 
+    /// Whether TTS is disabled due to missing model files at startup.
+    /// When true, all synthesis calls return immediately with an error instead
+    /// of crashing on first use.
+    private(set) var isDisabledDueToMissingModel: Bool = false
+
     init() {
         logger.info("TTSEngine created (kokoro-ios MLX, model will load lazily on first synthesis)")
+
+        // Validate model files exist at boot to fail fast with a clear error
+        // instead of crashing on first synthesis (P0: startup model validation).
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: Config.kokoroMLXModelPath) {
+            logger.critical("Kokoro MLX model not found at \(Config.kokoroMLXModelPath) — TTS disabled")
+            isDisabledDueToMissingModel = true
+        } else if !fm.fileExists(atPath: Config.kokoroVoicesPath) {
+            logger.critical("Kokoro voices not found at \(Config.kokoroVoicesPath) — TTS disabled")
+            isDisabledDueToMissingModel = true
+        } else {
+            logger.info("Model files validated: \(Config.kokoroMLXModelPath), \(Config.kokoroVoicesPath)")
+        }
 
         // Set Metal GPU cache limit to 512MB to prevent unbounded buffer cache growth.
         // This is a defense-in-depth measure: even if clearCache() is called too late,
@@ -164,6 +182,10 @@ final class TTSEngine: @unchecked Sendable {
         speed: Float = 1.2,
         completion: @escaping (Result<SynthesisResult, Error>) -> Void
     ) {
+        guard !isDisabledDueToMissingModel else {
+            completion(.failure(TTSError.modelLoadFailed(path: "TTS disabled — model files missing at startup")))
+            return
+        }
         queue.async { [self] in
             do {
                 let tts = try ensureModelLoaded()
@@ -246,6 +268,10 @@ final class TTSEngine: @unchecked Sendable {
         speed: Float = 1.2,
         completion: @escaping (Result<TTSResult, Error>) -> Void
     ) {
+        guard !isDisabledDueToMissingModel else {
+            completion(.failure(TTSError.modelLoadFailed(path: "TTS disabled — model files missing at startup")))
+            return
+        }
         queue.async { [self] in
             do {
                 let tts = try ensureModelLoaded()
@@ -338,6 +364,11 @@ final class TTSEngine: @unchecked Sendable {
         onChunkReady: @escaping (ChunkResult) -> Void,
         onAllComplete: @escaping () -> Void
     ) {
+        guard !isDisabledDueToMissingModel else {
+            logger.error("TTS disabled — model files missing at startup, skipping streaming synthesis")
+            onAllComplete()
+            return
+        }
         queue.async { [self] in
             do {
                 // Release cached Metal buffers from previous synthesis sessions.
