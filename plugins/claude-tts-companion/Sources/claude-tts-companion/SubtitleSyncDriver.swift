@@ -85,6 +85,9 @@ final class SubtitleSyncDriver {
     /// Whether we are waiting for the next chunk to become available
     private var waitingForNextChunk: Bool = false
 
+    /// The chunk index we last logged "Waiting for" (prevents 60Hz log spam)
+    private var lastWaitingLoggedChunk: Int = -1
+
     /// Whether all chunks have been delivered (onAllComplete called)
     private var allChunksDelivered: Bool = false
 
@@ -264,7 +267,10 @@ final class SubtitleSyncDriver {
                 finishPlayback()
             } else {
                 waitingForNextChunk = true
-                logger.info("Waiting for chunk \(index) to be synthesized...")
+                if lastWaitingLoggedChunk != index {
+                    lastWaitingLoggedChunk = index
+                    logger.info("Waiting for chunk \(index) to be synthesized...")
+                }
             }
             return
         }
@@ -324,7 +330,10 @@ final class SubtitleSyncDriver {
                 finishPlayback()
             } else {
                 waitingForNextChunk = true
-                logger.info("Waiting for chunk \(index) to be synthesized...")
+                if lastWaitingLoggedChunk != index {
+                    lastWaitingLoggedChunk = index
+                    logger.info("Waiting for chunk \(index) to be synthesized...")
+                }
             }
             return
         }
