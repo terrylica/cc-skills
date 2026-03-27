@@ -318,7 +318,7 @@ Plans:
 Plans:
 
 - [x] 15-01-PLAN.md -- InlineButtonManager + callback handlers + keyboard attachment
-- [ ] 15-02-PLAN.md -- Wire itermSessionId into notification flow + build verification + visual checkpoint
+- [x] 15-02-PLAN.md -- Wire itermSessionId into notification flow + build verification + visual checkpoint
 
 ### Phase 16: Integration & Reliability
 
@@ -355,5 +355,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 12. AI Summary Prompts           | 2/2            | Complete    | 2026-03-27 |
 | 13. Auto-Continue Evaluation     | 2/2            | Complete    | 2026-03-27 |
 | 14. TTS Dispatch & Feature Gates | 2/2            | Complete    | 2026-03-27 |
-| 15. Telegram Inline Buttons      | 1/2 | In Progress|  |
+| 15. Telegram Inline Buttons      | 2/2 | Complete   | 2026-03-27 |
 | 16. Integration & Reliability    | 0/0            | Not started | -          |
