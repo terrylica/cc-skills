@@ -114,6 +114,9 @@ None yet.
 | ---------- | ----------------------------------------------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | 260326-fvh | Deploy claude-tts-companion as unified launchd service            | 2026-03-26 | f8196055 | [260326-fvh-deploy-tts-companion](./quick/260326-fvh-deploy-tts-companion/)                                         |
 | 260326-n1n | Upgrade ty hook: --python-version 3.13, concise output, Stop hook | 2026-03-26 | af5afb8d | [260326-n1n-upgrade-ty-hook-python-version-concise-o](./quick/260326-n1n-upgrade-ty-hook-python-version-concise-o/) |
+| 260327-0rt | AVAudioPlayer + CADisplayLink subtitle sync (replace afplay)      | 2026-03-27 | 7ec4d6a0 | [260327-0rt-replace-afplay-with-avaudioplayer-plus-c](./quick/260327-0rt-replace-afplay-with-avaudioplayer-plus-c/) |
+| 260327-c6s | Research: MLX Metal GPU for Kokoro TTS                            | 2026-03-27 | —        | [260327-c6s-replace-sherpa-onnx-with-mlx-metal-gpu-f](./quick/260327-c6s-replace-sherpa-onnx-with-mlx-metal-gpu-f/) |
+| 260327-d2e | Replace sherpa-onnx with kokoro-ios MLX Metal TTS engine          | 2026-03-27 | f9a4475a | [260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-](./quick/260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-/) |
 | 260327-d2e | Replace sherpa-onnx with kokoro-ios MLX Metal GPU TTS             | 2026-03-27 | cfa3d898 | [260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-](./quick/260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-/) |
 
 ## Session Continuity
