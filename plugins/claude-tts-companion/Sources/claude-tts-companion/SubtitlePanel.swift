@@ -59,9 +59,15 @@ final class SubtitlePanel: NSPanel {
         return field
     }()
 
+    // MARK: - Settings
+
+    /// Settings store for dynamic font size and position (read on each display).
+    private var settingsStore: SettingsStore?
+
     // MARK: - Initialization
 
-    init() {
+    init(settingsStore: SettingsStore? = nil) {
+        self.settingsStore = settingsStore
         // Use a placeholder frame; positionOnScreen() sets the real one.
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 80),
@@ -74,6 +80,21 @@ final class SubtitlePanel: NSPanel {
         positionOnScreen()
     }
 
+    /// Inject the settings store after initialization (for backward compatibility).
+    func setSettingsStore(_ store: SettingsStore) {
+        self.settingsStore = store
+    }
+
+    /// Read the current font size setting name from the settings store.
+    private var currentFontSizeName: String {
+        settingsStore?.getSettings().subtitle.fontSize ?? "medium"
+    }
+
+    /// Read the current position setting from the settings store.
+    private var currentPosition: String {
+        settingsStore?.getSettings().subtitle.position ?? "bottom"
+    }
+
     // MARK: - Focus Prevention (SUB-09)
 
     override var canBecomeKey: Bool { false }
@@ -83,6 +104,8 @@ final class SubtitlePanel: NSPanel {
 
     /// Show plain text in the subtitle panel (white, regular weight).
     func show(text: String) {
+        let font = SubtitleStyle.dynamicRegularFont(currentFontSizeName)
+        textField.font = font
         textField.stringValue = text
         positionOnScreen()
         orderFrontRegardless()
@@ -108,6 +131,10 @@ final class SubtitlePanel: NSPanel {
     /// - Word at `index`: gold, bold weight (currently spoken)
     /// - Words after `index`: white, regular weight (upcoming)
     func highlightWord(at index: Int, in words: [String]) {
+        let sizeName = currentFontSizeName
+        let boldFont = SubtitleStyle.dynamicCurrentWordFont(sizeName)
+        let regFont = SubtitleStyle.dynamicRegularFont(sizeName)
+
         let result = NSMutableAttributedString()
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
@@ -117,7 +144,7 @@ final class SubtitlePanel: NSPanel {
         // unstyled space characters get the default paragraph style (which uses
         // .byClipping), breaking word-wrap for the entire attributed string.
         let spaceAttributes: [NSAttributedString.Key: Any] = [
-            .font: SubtitleStyle.regularFont,
+            .font: regFont,
             .paragraphStyle: paragraphStyle,
         ]
 
@@ -126,13 +153,13 @@ final class SubtitlePanel: NSPanel {
             let font: NSFont
             if i < index {
                 color = SubtitleStyle.pastWordColor
-                font = SubtitleStyle.regularFont
+                font = regFont
             } else if i == index {
                 color = SubtitleStyle.currentWordColor
-                font = SubtitleStyle.currentWordFont
+                font = boldFont
             } else {
                 color = SubtitleStyle.futureWordColor
-                font = SubtitleStyle.regularFont
+                font = regFont
             }
 
             let attributes: [NSAttributedString.Key: Any] = [
@@ -347,20 +374,21 @@ final class SubtitlePanel: NSPanel {
         ])
     }
 
-    /// Position the panel at bottom center of the main screen (SUB-02).
+    /// Position the panel on the main screen based on current settings (SUB-02).
+    ///
+    /// Reads font size and position from SettingsStore on every call, so
+    /// changes made via the HTTP API take effect on the next subtitle display.
     func positionOnScreen() {
         guard let screen = NSScreen.main else { return }
 
         let screenFrame = screen.visibleFrame
         let panelWidth = screenFrame.width * SubtitleStyle.widthRatio
 
+        // Use the dynamic font size from settings (small/medium/large)
+        let font = SubtitleStyle.dynamicCurrentWordFont(currentFontSizeName)
+
         // Height sized for 2 lines of bold text (karaoke current word is bold)
         // plus inter-line spacing. Use ceil to avoid sub-pixel clipping.
-        //
-        // NOTE: `boundingRectForFont.height` is the tight glyph bounding box
-        // (~14pt for 28pt font), NOT the typographic line height (~34pt).
-        // The correct line height is ascender - descender + leading.
-        let font = SubtitleStyle.currentWordFont
         let lineHeight = ceil(font.ascender - font.descender + font.leading)
         let interLineSpacing: CGFloat = 4
         let panelHeight = lineHeight * CGFloat(SubtitleStyle.maxLines)
@@ -368,7 +396,15 @@ final class SubtitlePanel: NSPanel {
             + SubtitleStyle.verticalPadding * 2
 
         let x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
-        let y = screen.frame.origin.y + SubtitleStyle.bottomOffset
+
+        // Position: "top" places panel near the top of the visible frame;
+        // "bottom" (default) places it near the bottom.
+        let y: CGFloat
+        if currentPosition == "top" {
+            y = screenFrame.origin.y + screenFrame.height - panelHeight - SubtitleStyle.topOffset
+        } else {
+            y = screen.frame.origin.y + SubtitleStyle.bottomOffset
+        }
 
         let frame = NSRect(x: x, y: y, width: panelWidth, height: panelHeight)
 
