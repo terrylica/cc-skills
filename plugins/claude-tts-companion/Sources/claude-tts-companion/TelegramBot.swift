@@ -21,8 +21,15 @@ final class TelegramBot: @unchecked Sendable {
     private let promptExecutor = PromptExecutor()
     private var syncDriver: SubtitleSyncDriver?
 
-    // Streaming TTS guard: prevents new dispatch from interrupting in-progress streaming
-    private var isStreamingInProgress: Bool = false
+    // Streaming TTS guard: prevents new dispatch from interrupting in-progress streaming.
+    // Protected by NSLock for thread safety -- accessed from both notification handler
+    // thread (check) and main thread (clear via onStreamingComplete).
+    private let streamingLock = NSLock()
+    private var _isStreamingInProgress: Bool = false
+    private var isStreamingInProgress: Bool {
+        get { streamingLock.lock(); defer { streamingLock.unlock() }; return _isStreamingInProgress }
+        set { streamingLock.lock(); defer { streamingLock.unlock() }; _isStreamingInProgress = newValue }
+    }
 
     // Inline button state manager (BTN-01, BTN-02, BTN-03)
     let inlineButtonManager = InlineButtonManager()
