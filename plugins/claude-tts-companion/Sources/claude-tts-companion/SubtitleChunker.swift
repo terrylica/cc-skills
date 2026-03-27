@@ -33,11 +33,15 @@ enum SubtitleChunker {
         return screenWidth * SubtitleStyle.widthRatio - (SubtitleStyle.horizontalPadding * 2)
     }
 
-    /// Measure the rendered width of a string using the regular subtitle font.
+    /// Measure the rendered width of a string using the bold subtitle font.
+    ///
+    /// Uses bold font (not regular) because during karaoke display, one word is
+    /// always bold — this ensures lines measured during chunking never overflow
+    /// when displayed with karaoke highlighting.
     static func measureWidth(_ text: String) -> CGFloat {
         let attrStr = NSAttributedString(
             string: text,
-            attributes: [.font: SubtitleStyle.regularFont]
+            attributes: [.font: SubtitleStyle.currentWordFont]
         )
         return ceil(attrStr.size().width)
     }
