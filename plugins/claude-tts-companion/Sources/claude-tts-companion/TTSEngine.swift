@@ -25,6 +25,10 @@ struct TTSResult {
     let wordTimings: [TimeInterval]
     /// Duration of the generated audio in seconds
     let audioDuration: TimeInterval
+    /// Native word onset times from MToken.start_ts (nil when using character-weighted fallback).
+    /// When present, these are the ground-truth onset times from the Kokoro duration model
+    /// and should be used directly by SubtitleSyncDriver instead of cumulating wordTimings.
+    let wordOnsets: [TimeInterval]?
 }
 
 /// Wraps kokoro-ios MLX TTS for speech synthesis with word-level timestamps.
@@ -53,6 +57,15 @@ final class TTSEngine: @unchecked Sendable {
 
     /// Lock protecting lazy init of ttsInstance
     private let lock = NSLock()
+
+    /// Whether the CoreAudio hardware has been warmed up by playing silence
+    private var audioHardwareWarmed = false
+
+    /// Timestamp of last successful audio playback start (for re-warm after idle)
+    private var lastPlaybackTime: CFAbsoluteTime = 0
+
+    /// If audio has been idle longer than this, re-warm before playing (seconds)
+    private static let audioIdleThreshold: CFAbsoluteTime = 30.0
 
     /// Currently playing AVAudioPlayer instance (for cancellation and currentTime polling)
     private var audioPlayer: AVAudioPlayer?
@@ -110,6 +123,10 @@ final class TTSEngine: @unchecked Sendable {
 
     init() {
         logger.info("TTSEngine created (kokoro-ios MLX, model will load lazily on first synthesis)")
+        // Pre-warm CoreAudio hardware so the first real play() doesn't stutter.
+        // macOS powers down audio hardware after idle; re-init takes ~50-500ms
+        // which causes choppy audio at the start of the first chunk.
+        warmUpAudioHardware()
     }
 
     deinit {
@@ -181,6 +198,13 @@ final class TTSEngine: @unchecked Sendable {
     /// Must be called on the main thread (AVAudioPlayer delegate needs run loop).
     @discardableResult
     func play(wavPath: String, completion: (() -> Void)? = nil) -> AVAudioPlayer? {
+        // Re-warm CoreAudio if idle too long (hardware powers down after ~30s idle)
+        let now = CFAbsoluteTimeGetCurrent()
+        if now - lastPlaybackTime > TTSEngine.audioIdleThreshold {
+            logger.info("Audio idle >\(Int(TTSEngine.audioIdleThreshold))s, re-warming CoreAudio hardware")
+            warmUpAudioHardware()
+        }
+
         let url = URL(fileURLWithPath: wavPath)
         do {
             let player = try AVAudioPlayer(contentsOf: url)
@@ -190,6 +214,7 @@ final class TTSEngine: @unchecked Sendable {
             player.prepareToPlay()
             player.play()
             self.audioPlayer = player
+            self.lastPlaybackTime = now
             logger.info("Playing WAV via AVAudioPlayer: \(wavPath) (duration: \(String(format: "%.2f", player.duration))s)")
             return player
         } catch {
@@ -233,21 +258,32 @@ final class TTSEngine: @unchecked Sendable {
                 let rtf = elapsed / audioDuration
                 logger.info("Synthesis complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
 
-                // Extract native word timestamps from MToken array
+                // Extract native word timestamps from MToken array and align to subtitle words.
+                // MTokens are linguistic tokens (NLTokenizer) which may not match whitespace-split
+                // words used by SubtitleChunker. alignOnsetsToWords() resolves the mismatch.
                 let nativeTimings = TTSEngine.extractTimingsFromTokens(tokenArray)
+                let subtitleWords = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
                 let timings: [TimeInterval]
-                if nativeTimings.isEmpty {
+                let onsets: [TimeInterval]?
+                if let native = nativeTimings,
+                   let aligned = TTSEngine.alignOnsetsToWords(native: native, subtitleWords: subtitleWords, audioDuration: audioDuration) {
+                    timings = aligned.durations
+                    onsets = aligned.onsets
+                    if native.texts.count != subtitleWords.count {
+                        logger.info("Aligned \(native.texts.count) MToken words to \(subtitleWords.count) subtitle words")
+                    }
+                } else {
                     logger.warning("No native timestamps from kokoro-ios, falling back to character-weighted")
                     timings = TTSEngine.extractWordTimings(text: text, audioDuration: audioDuration)
-                } else {
-                    timings = nativeTimings
+                    onsets = nil
                 }
 
                 let ttsResult = TTSResult(
                     wavPath: wavPath,
                     text: text,
                     wordTimings: timings,
-                    audioDuration: audioDuration
+                    audioDuration: audioDuration,
+                    wordOnsets: onsets
                 )
                 completion(.success(ttsResult))
             } catch {
@@ -267,6 +303,8 @@ final class TTSEngine: @unchecked Sendable {
         let audioDuration: TimeInterval
         let chunkIndex: Int
         let totalChunks: Int
+        /// Native word onset times from MToken.start_ts (nil when using character-weighted fallback)
+        let wordOnsets: [TimeInterval]?
     }
 
     /// Synthesize text as streaming sentence chunks on the background queue.
@@ -319,8 +357,14 @@ final class TTSEngine: @unchecked Sendable {
 
                     let audioDuration = Double(audio.count) / 24000.0
 
+                    // Append trailing silence to prevent choppy audio at sentence boundaries.
+                    // TTS models produce trailing energy (formant decay) that gets truncated
+                    // at the last sample. Padding with 100ms of silence lets the waveform
+                    // decay naturally and masks the poll-based chunk transition gap.
+                    let paddedAudio = audio + [Float](repeating: 0.0, count: TTSEngine.trailingSilenceSamples)
+
                     do {
-                        try writeWav(samples: audio, to: wavPath)
+                        try writeWav(samples: paddedAudio, to: wavPath)
                     } catch {
                         logger.error("WAV write failed for chunk \(index + 1): \(error)")
                         continue
@@ -330,11 +374,24 @@ final class TTSEngine: @unchecked Sendable {
                     let rtf = elapsed / audioDuration
                     logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
 
-                    // Extract native word timestamps, fallback to character-weighted
-                    let nativeTimings = TTSEngine.extractTimingsFromTokens(tokenArray)
-                    let timings = nativeTimings.isEmpty
-                        ? TTSEngine.extractWordTimings(text: sentence, audioDuration: audioDuration)
-                        : nativeTimings
+                    // Extract native word timestamps and align to subtitle words.
+                    // MTokens (NLTokenizer) may differ from whitespace-split subtitle words,
+                    // so alignOnsetsToWords() maps MToken onsets onto the subtitle word positions.
+                    let nativeResult = TTSEngine.extractTimingsFromTokens(tokenArray)
+                    let subtitleWords = sentence.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
+                    let timings: [TimeInterval]
+                    let onsets: [TimeInterval]?
+                    if let native = nativeResult,
+                       let aligned = TTSEngine.alignOnsetsToWords(native: native, subtitleWords: subtitleWords, audioDuration: audioDuration) {
+                        timings = aligned.durations
+                        onsets = aligned.onsets
+                        if native.texts.count != subtitleWords.count {
+                            logger.info("Chunk \(index + 1): aligned \(native.texts.count) MToken words to \(subtitleWords.count) subtitle words")
+                        }
+                    } else {
+                        timings = TTSEngine.extractWordTimings(text: sentence, audioDuration: audioDuration)
+                        onsets = nil
+                    }
 
                     let chunk = ChunkResult(
                         wavPath: wavPath,
@@ -342,7 +399,8 @@ final class TTSEngine: @unchecked Sendable {
                         wordTimings: timings,
                         audioDuration: audioDuration,
                         chunkIndex: index,
-                        totalChunks: totalChunks
+                        totalChunks: totalChunks,
+                        wordOnsets: onsets
                     )
                     onChunkReady(chunk)
                 }
@@ -356,6 +414,12 @@ final class TTSEngine: @unchecked Sendable {
             }
         }
     }
+
+    /// Number of silence samples appended to each streaming chunk WAV.
+    /// At 24kHz, 2400 samples = 100ms of trailing silence.
+    /// This prevents choppy audio at sentence boundaries by giving the waveform
+    /// room to decay naturally and masking the ~16ms poll-based chunk transition gap.
+    private static let trailingSilenceSamples = 2400  // 100ms at 24kHz
 
     /// Split text into sentences on `.`, `!`, `?` boundaries.
     ///
@@ -417,6 +481,29 @@ final class TTSEngine: @unchecked Sendable {
         return sentences
     }
 
+    /// Create and prepare an AVAudioPlayer for a WAV file WITHOUT starting playback.
+    ///
+    /// Used by SubtitleSyncDriver to pre-buffer the next chunk while the current one
+    /// is still playing, eliminating ~500ms-1s gaps between streaming chunks.
+    /// The caller is responsible for calling play() when ready.
+    ///
+    /// - Returns: A tuple of (player, delegate) or nil if creation fails.
+    ///   The caller MUST retain the delegate to prevent deallocation during playback.
+    func preparePlayer(wavPath: String, completion: (() -> Void)? = nil) -> (player: AVAudioPlayer, delegate: PlaybackDelegate)? {
+        let url = URL(fileURLWithPath: wavPath)
+        do {
+            let player = try AVAudioPlayer(contentsOf: url)
+            let delegate = PlaybackDelegate(wavPath: wavPath, completion: completion, logger: logger)
+            player.delegate = delegate
+            player.prepareToPlay()
+            logger.info("Pre-buffered AVAudioPlayer: \(wavPath) (duration: \(String(format: "%.2f", player.duration))s)")
+            return (player: player, delegate: delegate)
+        } catch {
+            logger.error("preparePlayer failed: \(error)")
+            return nil
+        }
+    }
+
     /// Stop any currently playing audio.
     func stopPlayback() {
         audioPlayer?.stop()
@@ -426,16 +513,34 @@ final class TTSEngine: @unchecked Sendable {
 
     // MARK: - Word Timing Extraction
 
-    /// Extract per-word durations from native MToken timestamps.
+    /// Extracted native timing data from MToken array.
+    struct NativeTimings {
+        /// Per-word durations (end_ts - start_ts), used as fallback/display
+        let durations: [TimeInterval]
+        /// Per-word onset times (start_ts values), the ground-truth from the Kokoro duration model.
+        /// These account for leading silence and inter-word gaps that duration-only extraction loses.
+        let onsets: [TimeInterval]
+        /// Per-word text from MTokens (linguistic tokens, may differ from whitespace-split words).
+        /// Used by alignOnsetsToWords() to map MToken onsets onto subtitle word positions.
+        let texts: [String]
+    }
+
+    /// Extract per-word durations AND onset times from native MToken timestamps.
     ///
-    /// Filters out punctuation-only tokens and maps each word's start_ts/end_ts
-    /// to a duration value. Returns empty array if no timestamps available (triggers fallback).
-    static func extractTimingsFromTokens(_ tokens: [MToken]?) -> [TimeInterval] {
-        guard let tokens = tokens, !tokens.isEmpty else { return [] }
+    /// Returns both durations (end_ts - start_ts) and onset times (start_ts) for each word.
+    /// Onset times are the ground truth from the Kokoro duration model and include leading
+    /// silence and inter-word pauses. Using onsets directly in SubtitleSyncDriver avoids
+    /// the ~275ms+ drift caused by cumulating durations from zero.
+    ///
+    /// Filters out punctuation-only tokens. Returns nil if no timestamps available.
+    static func extractTimingsFromTokens(_ tokens: [MToken]?) -> NativeTimings? {
+        guard let tokens = tokens, !tokens.isEmpty else { return nil }
 
         let punctuation: Set<String> = [".", ",", "!", "?", ";", ":", "-", "\u{2014}", "\u{2013}"]
 
         var durations: [TimeInterval] = []
+        var onsets: [TimeInterval] = []
+        var texts: [String] = []
         for token in tokens {
             guard let startTs = token.start_ts, let endTs = token.end_ts else { continue }
             // Skip punctuation-only tokens
@@ -444,11 +549,132 @@ final class TTSEngine: @unchecked Sendable {
             if text.isEmpty { continue }
             let dur = endTs - startTs
             if dur > 0 {
+                onsets.append(startTs)
                 durations.append(dur)
+                texts.append(text)
             }
         }
 
-        return durations
+        guard !durations.isEmpty else { return nil }
+        return NativeTimings(durations: durations, onsets: onsets, texts: texts)
+    }
+
+    /// Align MToken-derived onset times to whitespace-split subtitle words.
+    ///
+    /// MTokens come from NLTokenizer (linguistic tokenization) while subtitles split by
+    /// whitespace. These can differ: contractions may split differently, preprocessing
+    /// may change word count ("plugin" -> "plug-in"), and hyphens/dashes may cause splits.
+    ///
+    /// This function walks both arrays using character-offset tracking to map each subtitle
+    /// word to the MToken whose text overlaps it, producing one onset per subtitle word.
+    ///
+    /// Returns aligned (durations, onsets) arrays with count == subtitleWords.count,
+    /// or nil if alignment fails badly (falls back to character-weighted).
+    static func alignOnsetsToWords(
+        native: NativeTimings,
+        subtitleWords: [String],
+        audioDuration: TimeInterval
+    ) -> (durations: [TimeInterval], onsets: [TimeInterval])? {
+        // Fast path: counts match -- assume 1:1 alignment (common case)
+        if native.texts.count == subtitleWords.count {
+            return (native.durations, native.onsets)
+        }
+
+        // Build character-position mapping.
+        // Walk both sequences, consuming characters to find which MToken(s) cover each subtitle word.
+        var alignedOnsets: [TimeInterval] = []
+        var alignedDurations: [TimeInterval] = []
+
+        // Build flat character streams (lowercase, stripped of leading/trailing punctuation)
+        let tokenChars = native.texts.map { stripPunctuation($0).lowercased() }
+        let subChars = subtitleWords.map { stripPunctuation($0).lowercased() }
+
+        var ti = 0  // token index
+        var tCharPos = 0  // character position within current token
+
+        for si in 0..<subChars.count {
+            let subWord = subChars[si]
+            guard !subWord.isEmpty else {
+                // Empty after stripping -- interpolate from neighbors
+                if let lastOnset = alignedOnsets.last {
+                    let lastDur = alignedDurations.last ?? 0.2
+                    alignedOnsets.append(lastOnset + lastDur)
+                    alignedDurations.append(0.1)
+                } else {
+                    alignedOnsets.append(0)
+                    alignedDurations.append(0.1)
+                }
+                continue
+            }
+
+            // Assign onset from the token that covers the START of this subtitle word
+            if ti < native.texts.count {
+                alignedOnsets.append(native.onsets[ti])
+
+                // Consume characters from tokens to cover this subtitle word
+                var remaining = subWord.count
+                var lastTokenUsed = ti
+
+                while remaining > 0 && ti < native.texts.count {
+                    let tokenRemaining = tokenChars[ti].count - tCharPos
+                    if tokenRemaining <= remaining {
+                        remaining -= tokenRemaining
+                        lastTokenUsed = ti
+                        ti += 1
+                        tCharPos = 0
+                    } else {
+                        tCharPos += remaining
+                        lastTokenUsed = ti
+                        remaining = 0
+                    }
+                }
+
+                // Duration: from onset of first token to end of last token used
+                let startOnset = alignedOnsets.last!
+                if lastTokenUsed < native.texts.count {
+                    let endTime = native.onsets[lastTokenUsed] + native.durations[lastTokenUsed]
+                    alignedDurations.append(endTime - startOnset)
+                } else {
+                    alignedDurations.append(native.durations.last ?? 0.2)
+                }
+            } else {
+                // Ran out of tokens -- extrapolate from last known position
+                let lastOnset = alignedOnsets.last ?? 0
+                let lastDur = alignedDurations.last ?? 0.2
+                alignedOnsets.append(lastOnset + lastDur)
+                // Distribute remaining time evenly
+                let remainingWords = subChars.count - si
+                let remainingTime = max(0, audioDuration - (lastOnset + lastDur))
+                alignedDurations.append(remainingTime / Double(remainingWords))
+            }
+        }
+
+        guard alignedOnsets.count == subtitleWords.count else { return nil }
+        return (alignedDurations, alignedOnsets)
+    }
+
+    /// Strip leading/trailing punctuation AND internal hyphens for character-count alignment.
+    ///
+    /// NLTokenizer splits hyphenated compounds ("mid-decay") into separate tokens ("mid", "decay"),
+    /// but SubtitleChunker keeps them as one whitespace-split word. Without removing the hyphen,
+    /// "mid-decay" = 9 chars vs "mid" (3) + "decay" (5) = 8 chars, causing the character
+    /// consumption loop in alignOnsetsToWords() to overshoot. Removing internal hyphens gives
+    /// "middecay" = 8 chars, matching the MToken sum exactly.
+    private static func stripPunctuation(_ word: String) -> String {
+        let punct = CharacterSet.punctuationCharacters.union(.symbols)
+        var result = word
+        while let first = result.unicodeScalars.first, punct.contains(first) {
+            result = String(result.dropFirst())
+        }
+        while let last = result.unicodeScalars.last, punct.contains(last) {
+            result = String(result.dropLast())
+        }
+        // Remove internal hyphens/dashes so "mid-decay" -> "middecay" matches
+        // NLTokenizer's "mid" + "decay" = "middecay" in character counting
+        result = result.replacingOccurrences(of: "-", with: "")
+        result = result.replacingOccurrences(of: "\u{2013}", with: "")  // en-dash
+        result = result.replacingOccurrences(of: "\u{2014}", with: "")  // em-dash
+        return result
     }
 
     /// Extract per-word onset timings from the total audio duration (character-weighted fallback).
@@ -477,6 +703,64 @@ final class TTSEngine: @unchecked Sendable {
     }
 
     // MARK: - Private
+
+    /// Pre-warm CoreAudio hardware by playing a brief silent buffer.
+    ///
+    /// macOS powers down the audio output subsystem after idle periods. The first
+    /// AVAudioPlayer.play() after idle triggers a synchronous hardware re-init that
+    /// takes ~50-500ms, causing audible stutter/choppiness at the start of playback.
+    ///
+    /// Playing a tiny silent WAV (~0.1s at 24kHz) forces CoreAudio to initialize the
+    /// output chain, so subsequent real audio plays without stutter.
+    private func warmUpAudioHardware() {
+        let sampleRate: Double = 24000.0
+        let silentSamples = Int(sampleRate * 0.1)  // 0.1s of silence
+
+        guard let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: sampleRate,
+            channels: 1,
+            interleaved: false
+        ),
+        let buffer = AVAudioPCMBuffer(
+            pcmFormat: format,
+            frameCapacity: AVAudioFrameCount(silentSamples)
+        ) else {
+            logger.warning("Failed to create silent buffer for audio warm-up")
+            return
+        }
+
+        buffer.frameLength = AVAudioFrameCount(silentSamples)
+        // Buffer is already zero-filled (silence)
+
+        let wavPath = NSTemporaryDirectory() + "tts-warmup-\(UUID().uuidString).wav"
+        do {
+            let url = URL(fileURLWithPath: wavPath)
+            let audioFile = try AVAudioFile(
+                forWriting: url,
+                settings: format.settings,
+                commonFormat: format.commonFormat,
+                interleaved: format.isInterleaved
+            )
+            try audioFile.write(from: buffer)
+
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.volume = 0.0  // Completely silent
+            player.prepareToPlay()
+            player.play()
+
+            // Clean up temp file after a short delay (player reads from file)
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.5) {
+                try? FileManager.default.removeItem(atPath: wavPath)
+            }
+
+            audioHardwareWarmed = true
+            logger.info("CoreAudio hardware pre-warmed with 0.1s silent buffer")
+        } catch {
+            logger.warning("Audio warm-up failed: \(error) -- first playback may stutter")
+            try? FileManager.default.removeItem(atPath: wavPath)
+        }
+    }
 
     /// Ensure the TTS model is loaded, performing lazy initialization if needed (TTS-03).
     private func ensureModelLoaded() throws -> KokoroTTS {
@@ -580,7 +864,7 @@ final class TTSEngine: @unchecked Sendable {
 // MARK: - Playback Delegate
 
 /// Handles AVAudioPlayer completion: cleans up WAV file and calls completion closure.
-private final class PlaybackDelegate: NSObject, AVAudioPlayerDelegate, @unchecked Sendable {
+final class PlaybackDelegate: NSObject, AVAudioPlayerDelegate, @unchecked Sendable {
     private let wavPath: String
     private let completion: (() -> Void)?
     private let logger: Logger

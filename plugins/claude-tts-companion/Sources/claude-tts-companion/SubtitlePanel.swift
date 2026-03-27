@@ -86,7 +86,9 @@ final class SubtitlePanel: NSPanel {
     }
 
     /// Read the current font size setting name from the settings store.
-    private var currentFontSizeName: String {
+    /// Public so that callers (e.g., TelegramBot) can pass it to SubtitleChunker
+    /// for consistent font-width measurement.
+    var currentFontSizeName: String {
         settingsStore?.getSettings().subtitle.fontSize ?? "medium"
     }
 
@@ -434,7 +436,7 @@ final class SubtitlePanel: NSPanel {
         let maxLines = textField.maximumNumberOfLines
 
         // Measure the text width using the bold font (worst-case width)
-        let measuredWidth = SubtitleChunker.measureWidth(text)
+        let measuredWidth = SubtitleChunker.measureWidth(text, fontSizeName: currentFontSizeName)
         let availableWidth = tfFrame.width
 
         // Count rendered lines using NSLayoutManager for accurate line fragment enumeration
