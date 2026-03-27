@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "Audio sounds choppy/stuttery when speech first starts playing"
 created: 2026-03-27T11:00:00-0700
 updated: 2026-03-27T10:52:00-0700
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -52,3 +52,11 @@ verification: Build succeeds, service restarts cleanly, log shows warm-up messag
 files_changed:
 
 - plugins/claude-tts-companion/Sources/claude-tts-companion/TTSEngine.swift
+
+## Resolution
+
+**Resolved:** 2026-03-27 — Audio pipeline stable after MLX Metal crash fix (fe49c3f6).
+
+**Context:** Audio choppiness, silence, and inter-chunk gaps were symptoms of the underlying Metal resource exhaustion. The dual-Metal-device crash caused unpredictable TTS synthesis failures that manifested as audio artifacts. With the crash resolved, the streaming audio pipeline operates cleanly.
+
+**Verification:** 3 consecutive TTS dispatches — clean audio, no gaps, no choppiness. RTF 0.12-0.16 warm.

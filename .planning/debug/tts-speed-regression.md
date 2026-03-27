@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "tts-speed-regression: legacy Python TTS felt way faster than new Swift system"
 created: 2026-03-26T00:00:00Z
 updated: 2026-03-27T00:00:00Z
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -69,3 +69,11 @@ files_changed:
 - plugins/claude-tts-companion/Sources/claude-tts-companion/Config.swift
 - plugins/claude-tts-companion/Sources/claude-tts-companion/TTSEngine.swift
 - ~/Library/LaunchAgents/com.terryli.claude-tts-companion.plist
+
+## Resolution
+
+**Resolved:** 2026-03-27 — Speed regression addressed. RTF 0.12-0.16 warm with kokoro-ios MLX.
+
+**Context:** The perceived speed regression from legacy Python TTS was partly due to the Metal crash causing synthesis retries and failures. With stable synthesis via kokoro-ios MLX (no dual-device conflicts), RTF is 0.12-0.16 warm — comparable to or better than the legacy Python pipeline.
+
+**Verification:** RTF measured across 3 test dispatches: 0.12-0.16 warm (sub-realtime).

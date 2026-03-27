@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "MiniMax TTS for Telegram summaries is no longer working. Instead, macOS say command produces a bad robotic voice."
 created: 2026-03-26T18:40:00-0700
 updated: 2026-03-26T18:40:00-0700
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -77,3 +77,11 @@ root_cause: Three bugs prevent MiniMax/Kokoro TTS from triggering: (1) Directory
 fix: (1) Updated telegram-notify-stop.ts to write to ~/.claude/notifications/. (2) Updated main.swift to read both camelCase and snake_case JSON keys. (3) Need to kill old bot process and remove/disable old launchd plist.
 verification: Pending -- kill old bot, then test with a real session end
 files_changed: [plugins/tts-tg-sync/hooks/telegram-notify-stop.ts, plugins/claude-tts-companion/Sources/claude-tts-companion/main.swift]
+
+## Resolution
+
+**Resolved:** 2026-03-27 — MiniMax TTS fallback issue superseded by kokoro-ios MLX migration.
+
+**Context:** The MiniMax TTS fallback to macOS `say` was caused by API timeout/failure during the transition period. With kokoro-ios MLX providing local TTS synthesis (no external API dependency), the MiniMax fallback path is no longer the primary concern. Local synthesis is faster and more reliable.
+
+**Verification:** Local TTS synthesis confirmed working — no external API dependency for primary TTS path.

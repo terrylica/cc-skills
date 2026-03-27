@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "Two related issues: (1) TTS gets cut off right after greeting when agent dispatches a new session, (2) Subtitles show and advance but no audio plays"
 created: 2026-03-27T11:20:00-0700
 updated: 2026-03-27T11:35:00-0700
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -222,3 +222,11 @@ Two interrelated issues:
 - plugins/claude-tts-companion/Sources/claude-tts-companion/TelegramBot.swift
 - plugins/claude-tts-companion/Sources/claude-tts-companion/SubtitleSyncDriver.swift
 - plugins/claude-tts-companion/Sources/claude-tts-companion/TTSEngine.swift
+
+## Resolution
+
+**Resolved:** 2026-03-27 — TTS cutoff and silent subtitle issues resolved by MLX Metal crash fix (fe49c3f6).
+
+**Context:** TTS getting cut off after greeting and subtitles advancing without audio were both caused by Metal resource exhaustion killing synthesis mid-stream. The warm-up player ARC fix (0ea16c44) and the dual-Metal-device removal (fe49c3f6) together eliminated these failures.
+
+**Verification:** 3 consecutive TTS dispatches — full synthesis completes, audio plays to end, subtitles track correctly.

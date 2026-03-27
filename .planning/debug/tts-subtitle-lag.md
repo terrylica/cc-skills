@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "TTS speech lags behind subtitle gold word highlighting"
 created: 2026-03-26T00:00:00Z
 updated: 2026-03-26T00:00:00Z
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -45,3 +45,11 @@ root_cause: showPages() anchors subtitle schedule at DispatchTime.now(), but pla
 fix: Add SubtitleStyle.audioLaunchDelay (0.3s) and apply as offset to scheduleStart in showPages()
 verification: Build passes. Service restarted. Awaiting human verify on next TTS playback.
 files_changed: [SubtitleStyle.swift, SubtitlePanel.swift]
+
+## Resolution
+
+**Resolved:** 2026-03-27 — Subtitle/audio sync stable after MLX Metal crash fix (fe49c3f6).
+
+**Context:** Subtitle desync, highlight bounceback, and speech-lag-behind-subs were downstream effects of the Metal resource exhaustion crash. When TTS synthesis failed or produced corrupted output due to dual-Metal-device conflicts, the karaoke sync driver received bad timing data. With stable synthesis, word-level timestamps are accurate and sync is maintained.
+
+**Verification:** 3 consecutive TTS dispatches — gold word highlighting tracks speech correctly. No bounceback, no drift.

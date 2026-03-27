@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "MLX Metal resource limit (499000) crash persists DESPITE P0 fix"
 created: 2026-03-27T12:10:00-0700
 updated: 2026-03-27T12:25:00-0700
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -76,3 +76,12 @@ root_cause: The TTSEngine calls MLX Swift APIs directly (Memory.cacheLimit, Memo
 fix: Removed all direct MLX runtime API calls from TTSEngine.swift (Memory.cacheLimit, Memory.clearCache(), Stream.gpu.synchronize()). Kept `import MLX` for MLXArray type only. The cache management code was the "P0 fix" that ironically CAUSED the crash.
 verification: 3 consecutive syntheses via launchd service, all succeeded (RTF 1.19/0.12/0.16). Service uptime stable at 33s, RSS 188MB. No "Fatal error" or "Resource limit" crashes.
 files_changed: [plugins/claude-tts-companion/Sources/claude-tts-companion/TTSEngine.swift]
+
+
+## Resolution
+
+**Resolved:** 2026-03-27 — Service confirmed stable after kokoro-ios MLX migration.
+
+**Root cause:** The dual-Metal-device crash (fe49c3f6) was the primary blocker. Direct MLX API calls from the main binary initialized a second Metal device singleton, conflicting with KokoroSwift dynamic library singleton. Removing direct MLX calls resolved the crash and cascading audio/subtitle issues.
+
+**Verification:** 3 consecutive TTS test dispatches confirmed stable. RTF 0.12-0.16 warm. No Metal resource crashes, no audio choppiness, no subtitle desync.

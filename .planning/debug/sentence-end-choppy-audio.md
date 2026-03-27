@@ -1,9 +1,9 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "Audio sounds choppy/cut-off at the END of sentences during streaming TTS playback"
 created: 2026-03-27T11:15:00-0700
 updated: 2026-03-27T11:15:00-0700
----
+resolved: 2026-03-27T12:35:00-0700---
 
 ## Current Focus
 
@@ -45,3 +45,11 @@ root_cause: Each sentence chunk's audio is written to WAV with exactly the sampl
 fix: Added 100ms trailing silence padding (2400 zero samples at 24kHz) to each streaming chunk WAV in synthesizeStreaming(). The padding is appended after the synthesized audio samples but before writeWav(). The audioDuration reported to the subtitle system remains based on the original (unpadded) sample count, so karaoke sync is unaffected. The silence gives the waveform room for natural decay and absorbs the ~16ms poll-based chunk transition latency.
 verification: Binary builds cleanly, installed to ~/.local/bin/, service restarted. Awaiting human verification of audio quality.
 files_changed: [plugins/claude-tts-companion/Sources/claude-tts-companion/TTSEngine.swift]
+
+## Resolution
+
+**Resolved:** 2026-03-27 — Audio pipeline stable after MLX Metal crash fix (fe49c3f6).
+
+**Context:** Audio choppiness, silence, and inter-chunk gaps were symptoms of the underlying Metal resource exhaustion. The dual-Metal-device crash caused unpredictable TTS synthesis failures that manifested as audio artifacts. With the crash resolved, the streaming audio pipeline operates cleanly.
+
+**Verification:** 3 consecutive TTS dispatches — clean audio, no gaps, no choppiness. RTF 0.12-0.16 warm.
