@@ -1,3 +1,4 @@
+// FILE-SIZE-OK — TTS engine with streaming synthesis, word timing, karaoke alignment
 import AVFoundation
 import Foundation
 import KokoroSwift
@@ -126,10 +127,13 @@ final class TTSEngine: @unchecked Sendable {
 
     // MARK: - Lifecycle
 
-    /// Number of chunks between periodic Metal cache clears during streaming synthesis.
-    /// Every N chunks, Stream.gpu.synchronize() + Memory.clearCache() prevents Metal resource
-    /// accumulation that leads to the 499000 resource limit crash on long sessions.
-    private static let metalCacheClearInterval = 5
+    // NOTE: metalCacheClearInterval removed. Calling Memory.clearCache() or
+    // Stream.gpu.synchronize() from the main binary initializes a SEPARATE C++ MLX
+    // Metal device singleton (static Device in device.cpp:799), distinct from the one
+    // inside libKokoroSwift.dylib. Multiple Metal device instances share the GPU's
+    // 499000 resource limit but maintain independent counters, causing immediate
+    // resource exhaustion on the first generateAudio() call.
+    // See .planning/debug/mlx-metal-resource-crash.md for full root cause analysis.
 
     /// Whether TTS is disabled due to missing model files at startup.
     /// When true, all synthesis calls return immediately with an error instead
@@ -206,11 +210,10 @@ final class TTSEngine: @unchecked Sendable {
             logger.info("Model files validated: \(Config.kokoroMLXModelPath), \(Config.kokoroVoicesPath)")
         }
 
-        // Set Metal GPU cache limit to 512MB to prevent unbounded buffer cache growth.
-        // This is a defense-in-depth measure: even if clearCache() is called too late,
-        // the hard cap prevents hitting the Metal 499000 resource limit.
-        Memory.cacheLimit = 512 * 1024 * 1024
-        logger.info("MLX GPU cache limit set to 512MB")
+        // NOTE: Memory.cacheLimit removed — calling any MLX Memory/Stream API from
+        // the main binary creates a separate C++ Metal device singleton that competes
+        // for the GPU's 499000 resource limit with libKokoroSwift.dylib's own instance,
+        // causing immediate resource exhaustion on first synthesis.
 
         // Pre-warm CoreAudio hardware so the first real play() doesn't stutter.
         // macOS powers down audio hardware after idle; re-init takes ~50-500ms
@@ -441,14 +444,10 @@ final class TTSEngine: @unchecked Sendable {
         }
         queue.async { [self] in
             do {
-                // Release cached Metal buffers from previous synthesis sessions.
-                // Stream.gpu.synchronize() ensures all in-flight Metal commands complete first,
-                // making their buffers eligible for release. Without this, back-to-back
-                // streaming sessions accumulate metal resources until hitting the
-                // 499000 resource limit, crashing the process with:
-                //   [metal::malloc] Resource limit (499000) exceeded
-                Stream.gpu.synchronize()
-                Memory.clearCache()
+                // NOTE: Stream.gpu.synchronize() + Memory.clearCache() removed — these
+                // calls initialize a separate MLX Metal device in the main binary,
+                // causing immediate 499000 resource limit exhaustion.
+                // KokoroSwift manages its own Metal resources internally.
 
                 let tts = try ensureModelLoaded()
                 let activeVoice = voiceForName(voiceName)
@@ -532,14 +531,8 @@ final class TTSEngine: @unchecked Sendable {
                     )
                     onChunkReady(chunk)
 
-                    // Periodic Metal cache clear to prevent resource accumulation
-                    // on long sessions (>15 chunks). Without this, intermediate MLX
-                    // tensors accumulate and eventually hit the Metal 499000 limit.
-                    if (index + 1) % TTSEngine.metalCacheClearInterval == 0 {
-                        Stream.gpu.synchronize()
-                        Memory.clearCache()
-                        logger.info("Periodic Metal cache clear after chunk \(index + 1)")
-                    }
+                    // NOTE: Periodic Metal cache clear removed — see note at top of
+                    // synthesizeStreaming() for why direct MLX calls are forbidden.
                 }
 
                 let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
