@@ -106,14 +106,69 @@
 - [x] **EXT-03**: User can switch subtitle display to external monitor via SwiftBar
 - [ ] **EXT-04**: Thinking watcher summarizes Claude's thinking via MiniMax
 
-## v2 Requirements
+<!-- # SSoT-OK -->
+
+## v4.7.0 Requirements — Architecture Hardening + Feature Expansion
+
+### Architecture
+
+- [ ] **ARCH-01**: CompanionCore library target extracts all business logic from executable, leaving main.swift as thin shell
+- [ ] **ARCH-02**: TTSEngine decomposed into PlaybackManager (AVAudioPlayer lifecycle, pre-buffering)
+- [ ] **ARCH-03**: TTSEngine decomposed into WordTimingAligner (MToken-to-word alignment, onset resolution)
+- [ ] **ARCH-04**: TTSEngine decomposed into PronunciationProcessor (overrides dictionary, regex preprocessing)
+- [ ] **ARCH-05**: TTSEngine becomes thin orchestrator delegating to extracted components
+- [ ] **ARCH-06**: All callers updated to use decomposed TTSEngine API (TelegramBot, HTTPControlServer, SubtitleSyncDriver)
+
+### Concurrency
+
+- [ ] **CONC-01**: TTSEngine migrated from @unchecked Sendable + NSLock to Swift actor
+- [ ] **CONC-02**: All actor-isolated state mutations happen in synchronous methods (no reentrancy across await)
+- [ ] **CONC-03**: Blocking TTS synthesis runs off cooperative thread pool (DispatchQueue bridge or Task.detached)
+- [ ] **CONC-04**: Formal Sendable conformance across pipeline components
+
+### Hardening
+
+- [ ] **HARD-01**: Rapid-fire notification handling (5 notifications in 10s without crash or queue corruption)
+- [ ] **HARD-02**: Audio hardware disconnect recovery (Bluetooth headphones mid-playback)
+- [ ] **HARD-03**: Memory pressure graceful degradation during synthesis
+- [ ] **HARD-04**: Concurrent TTS test + real notification race condition eliminated
+
+### Testing
+
+- [ ] **TEST-01**: XCTest target for CompanionCore library with SwiftPM `swift test`
+- [ ] **TEST-02**: Unit tests for SubtitleChunker (page splitting, line breaks, font sizes)
+- [ ] **TEST-03**: Unit tests for WordTimingAligner (MToken alignment, onset resolution, hyphen handling)
+- [ ] **TEST-04**: Unit tests for PronunciationProcessor (override matching, regex boundaries)
+- [ ] **TEST-05**: Integration tests for streaming pipeline (mock synthesis, verify chunk sequencing)
+
+### Bionic Reading
+
+- [ ] **BION-01**: User can toggle bionic reading mode via SwiftBar settings menu
+- [ ] **BION-02**: User can toggle bionic reading mode via HTTP API
+- [ ] **BION-03**: Subtitle text renders with bold first 40% of each word when bionic mode enabled
+- [ ] **BION-04**: Bionic rendering composes correctly with karaoke gold highlighting
+
+### Caption History
+
+- [ ] **CAPT-01**: User can open scrollable caption history panel showing past captions with timestamps
+- [ ] **CAPT-02**: Caption history auto-scrolls to latest, with manual scroll override
+- [ ] **CAPT-03**: User can copy individual caption text to clipboard
+- [ ] **CAPT-04**: Caption history accessible via SwiftBar button and HTTP API
+
+### Chinese TTS
+
+- [ ] **CJK-01**: CJK text detected via existing LanguageDetector routes to sherpa-onnx engine
+- [ ] **CJK-02**: English text continues to use kokoro-ios MLX engine (default)
+- [ ] **CJK-03**: sherpa-onnx multilang model loads on-demand (not at startup) to avoid RSS bloat
+- [ ] **CJK-04**: Graceful fallback if sherpa-onnx model missing or synthesis fails
+
+## Future Requirements
 
 ### Deferred
 
-- Bionic reading mode (bold first letters for ADHD users) — interesting but unvalidated need
-- Multi-language TTS — English-only for v1
+- Focus mode / DND integration — no public macOS API, highest risk (deferred from v4.7.0)
 - GUI preferences window — SwiftBar + HTTP API is sufficient
-- Focus mode / DND integration — no public macOS API
+- Per-Focus-profile behavior (Work = silent, Personal = audio)
 
 ## Out of Scope
 
@@ -122,6 +177,7 @@
 - Sidecar iPad display — desktop-native only
 - Rewriting SwiftBar in Swift — 244 lines Python, working fine
 - Xcode project — SwiftPM only
+- CJK karaoke word timing — tokenization is a separate problem, defer to future
 
 ## Traceability
 
@@ -274,5 +330,5 @@
 ### TTS Streaming & Subtitle Chunking
 
 - [x] **STREAM-01**: TTS text split into paragraphs/sentences, first chunk synthesized and played while remaining chunks synthesize in parallel
-- [x] **STREAM-02**: Subtitle panel displays one sentence at a time (not full summary), advancing as TTS progresses through sentences  
+- [x] **STREAM-02**: Subtitle panel displays one sentence at a time (not full summary), advancing as TTS progresses through sentences
 - [x] **STREAM-03**: Karaoke word highlighting works within each displayed sentence segment
