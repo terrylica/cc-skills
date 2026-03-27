@@ -13,7 +13,7 @@ final class NotificationWatcher: @unchecked Sendable {
 
     private let logger = Logger(label: "notification-watcher")
     private let directoryPath: String
-    private var source: DispatchSourceFileSystemObject?
+    private var source: DispatchSourceTimer?
     private var knownFiles: Set<String>
     private let lock = NSLock()
     private let callback: (String) -> Void
@@ -39,8 +39,8 @@ final class NotificationWatcher: @unchecked Sendable {
 
     /// Begin watching the directory for new .json files.
     ///
-    /// Creates the directory if it doesn't exist, opens an `O_EVTONLY` file descriptor,
-    /// and sets up a DispatchSource to fire on `.write` events.
+    /// Uses a 2-second polling timer — more reliable than DispatchSource on macOS
+    /// which can miss events due to coalescing or fd issues.
     func start() {
         // Ensure directory exists
         try? FileManager.default.createDirectory(
@@ -49,34 +49,21 @@ final class NotificationWatcher: @unchecked Sendable {
             attributes: nil
         )
 
-        let fd = open(directoryPath, O_EVTONLY)
-        guard fd != -1 else {
-            logger.error("Failed to open directory for watching: \(directoryPath)")
-            return
-        }
-
-        let src = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
-            eventMask: .write,
-            queue: .global(qos: .userInitiated)
-        )
-
-        src.setEventHandler { [weak self] in
+        // Poll every 2 seconds for new files (reliable, low overhead)
+        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
+        timer.schedule(deadline: .now() + 2, repeating: 2.0)
+        timer.setEventHandler { [weak self] in
             self?.scanForNewFiles()
         }
 
-        src.setCancelHandler {
-            close(fd)
-        }
-
         // Strong reference prevents ARC deallocation (WATCH-03)
-        self.source = src
-        src.resume()
+        self.source = timer
+        timer.resume()
 
         logger.info("Watching \(directoryPath) for new .json files")
     }
 
-    /// Stop watching and release the file descriptor.
+    /// Stop watching.
     func stop() {
         source?.cancel()
         source = nil
