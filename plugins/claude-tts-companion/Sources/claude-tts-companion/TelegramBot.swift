@@ -1,3 +1,4 @@
+// FILE-SIZE-OK — bot commands, session notifications, TTS dispatch, inline buttons tightly coupled
 import Foundation
 import Logging
 import SwiftTelegramBot
@@ -204,6 +205,21 @@ final class TelegramBot: @unchecked Sendable {
         }
     }
 
+    /// Show text as a static subtitle with auto-hide after linger + 5s.
+    ///
+    /// Used as graceful degradation when TTS is unavailable (model missing,
+    /// circuit breaker open, synthesis failure, or no chunks produced).
+    /// Safe to call from any thread -- dispatches to main internally.
+    private func showSubtitleOnlyFallback(text: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.subtitlePanel.show(text: text)
+            DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration + 5.0) { [weak self] in
+                self?.subtitlePanel.hide()
+            }
+        }
+    }
+
     /// Synthesize text and play with synchronized karaoke subtitles.
     ///
     /// Uses streaming sentence-chunked synthesis when `Config.streamingTTS` is true,
@@ -233,13 +249,7 @@ final class TelegramBot: @unchecked Sendable {
         // If TTS is disabled (model missing or circuit breaker open), show subtitle-only fallback
         if ttsEngine.isDisabledDueToMissingModel || ttsEngine.isTTSCircuitBreakerOpen {
             logger.warning("TTS unavailable — showing subtitle-only fallback (\(fullText.count) chars)")
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.subtitlePanel.show(text: fullText)
-                DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration + 5.0) { [weak self] in
-                    self?.subtitlePanel.hide()
-                }
-            }
+            showSubtitleOnlyFallback(text: fullText)
             return
         }
 
@@ -329,11 +339,7 @@ final class TelegramBot: @unchecked Sendable {
                         // No chunks were ever produced (synthesis failed entirely)
                         self.isStreamingInProgress = false
                         self.logger.warning("Streaming complete with no chunks — showing subtitle-only fallback")
-                        // Graceful degradation: show the full text as a static subtitle
-                        self.subtitlePanel.show(text: text)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration + 5.0) { [weak self] in
-                            self?.subtitlePanel.hide()
-                        }
+                        self.showSubtitleOnlyFallback(text: text)
                     }
                 }
             }
@@ -378,13 +384,7 @@ final class TelegramBot: @unchecked Sendable {
             case .failure(let error):
                 self.logger.error("TTS dispatch failed: \(error)")
                 // Graceful degradation: show subtitle-only text when TTS fails
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.subtitlePanel.show(text: text)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration + 5.0) { [weak self] in
-                        self?.subtitlePanel.hide()
-                    }
-                }
+                self.showSubtitleOnlyFallback(text: text)
             }
         }
     }
