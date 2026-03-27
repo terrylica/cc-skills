@@ -364,32 +364,20 @@ final class TTSEngine: @unchecked Sendable {
                 let rtf = elapsed / audioDuration
                 logger.info("Synthesis complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
 
-                // Extract native word timestamps from MToken array and align to subtitle words.
-                // MTokens are linguistic tokens (NLTokenizer) which may not match whitespace-split
-                // words used by SubtitleChunker. alignOnsetsToWords() resolves the mismatch.
-                let nativeTimings = TTSEngine.extractTimingsFromTokens(tokenArray)
-                let subtitleWords = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
-                let timings: [TimeInterval]
-                let onsets: [TimeInterval]?
-                if let native = nativeTimings,
-                   let aligned = TTSEngine.alignOnsetsToWords(native: native, subtitleWords: subtitleWords, audioDuration: audioDuration) {
-                    timings = aligned.durations
-                    onsets = aligned.onsets
-                    if native.texts.count != subtitleWords.count {
-                        logger.info("Aligned \(native.texts.count) MToken words to \(subtitleWords.count) subtitle words")
-                    }
-                } else {
-                    logger.warning("No native timestamps from kokoro-ios, falling back to character-weighted")
-                    timings = TTSEngine.extractWordTimings(text: text, audioDuration: audioDuration)
-                    onsets = nil
-                }
+                // Align MToken timestamps to subtitle words (with character-weighted fallback)
+                let resolved = TTSEngine.resolveWordTimings(
+                    tokenArray: tokenArray,
+                    text: text,
+                    audioDuration: audioDuration,
+                    logger: logger
+                )
 
                 let ttsResult = TTSResult(
                     wavPath: wavPath,
                     text: text,
-                    wordTimings: timings,
+                    wordTimings: resolved.durations,
                     audioDuration: audioDuration,
-                    wordOnsets: onsets
+                    wordOnsets: resolved.onsets
                 )
                 completion(.success(ttsResult))
             } catch {
@@ -501,33 +489,22 @@ final class TTSEngine: @unchecked Sendable {
                     let rtf = elapsed / audioDuration
                     logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
 
-                    // Extract native word timestamps and align to subtitle words.
-                    // MTokens (NLTokenizer) may differ from whitespace-split subtitle words,
-                    // so alignOnsetsToWords() maps MToken onsets onto the subtitle word positions.
-                    let nativeResult = TTSEngine.extractTimingsFromTokens(tokenArray)
-                    let subtitleWords = sentence.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
-                    let timings: [TimeInterval]
-                    let onsets: [TimeInterval]?
-                    if let native = nativeResult,
-                       let aligned = TTSEngine.alignOnsetsToWords(native: native, subtitleWords: subtitleWords, audioDuration: audioDuration) {
-                        timings = aligned.durations
-                        onsets = aligned.onsets
-                        if native.texts.count != subtitleWords.count {
-                            logger.info("Chunk \(index + 1): aligned \(native.texts.count) MToken words to \(subtitleWords.count) subtitle words")
-                        }
-                    } else {
-                        timings = TTSEngine.extractWordTimings(text: sentence, audioDuration: audioDuration)
-                        onsets = nil
-                    }
+                    // Align MToken timestamps to subtitle words (with character-weighted fallback)
+                    let resolved = TTSEngine.resolveWordTimings(
+                        tokenArray: tokenArray,
+                        text: sentence,
+                        audioDuration: audioDuration,
+                        logger: logger
+                    )
 
                     let chunk = ChunkResult(
                         wavPath: wavPath,
                         text: sentence,
-                        wordTimings: timings,
+                        wordTimings: resolved.durations,
                         audioDuration: audioDuration,
                         chunkIndex: index,
                         totalChunks: totalChunks,
-                        wordOnsets: onsets
+                        wordOnsets: resolved.onsets
                     )
                     onChunkReady(chunk)
 
@@ -831,6 +808,41 @@ final class TTSEngine: @unchecked Sendable {
         // Distribute audio duration proportionally
         return charCounts.map { count in
             (count / totalChars) * audioDuration
+        }
+    }
+
+    /// Resolved word timings and optional onset times from MToken alignment or character-weighted fallback.
+    struct ResolvedTimings {
+        let durations: [TimeInterval]
+        let onsets: [TimeInterval]?
+    }
+
+    /// Align MToken-derived timing data to whitespace-split subtitle words, with character-weighted fallback.
+    ///
+    /// Centralizes the pattern shared by synthesizeWithTimestamps() and synthesizeStreaming():
+    /// extract native timings from tokens, align to subtitle words, fall back to character-weighted
+    /// if native timestamps are unavailable.
+    static func resolveWordTimings(
+        tokenArray: [MToken]?,
+        text: String,
+        audioDuration: TimeInterval,
+        logger: Logger
+    ) -> ResolvedTimings {
+        let nativeTimings = extractTimingsFromTokens(tokenArray)
+        let subtitleWords = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
+
+        if let native = nativeTimings,
+           let aligned = alignOnsetsToWords(native: native, subtitleWords: subtitleWords, audioDuration: audioDuration) {
+            if native.texts.count != subtitleWords.count {
+                logger.info("Aligned \(native.texts.count) MToken words to \(subtitleWords.count) subtitle words")
+            }
+            return ResolvedTimings(durations: aligned.durations, onsets: aligned.onsets)
+        } else {
+            logger.warning("No native timestamps from kokoro-ios, falling back to character-weighted")
+            return ResolvedTimings(
+                durations: extractWordTimings(text: text, audioDuration: audioDuration),
+                onsets: nil
+            )
         }
     }
 
