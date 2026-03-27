@@ -246,7 +246,23 @@ final class SubtitleSyncDriver {
     func stop() {
         timer?.cancel()
         timer = nil
+
+        // Clean up WAV files for current and pre-buffered players.
+        // AVAudioPlayer.stop() does NOT trigger the delegate callback
+        // (audioPlayerDidFinishPlaying), so the delegate's WAV cleanup
+        // never fires. Manually delete the files to prevent /tmp/ leak.
+        if let currentIndex = currentChunkIndexIfValid {
+            let wavPath = streamChunks[currentIndex].wavPath
+            try? FileManager.default.removeItem(atPath: wavPath)
+            logger.info("Cleaned up WAV for stopped stream chunk \(currentIndex): \(wavPath)")
+        }
         streamPlayer?.stop()
+
+        if prebufferedChunkIndex >= 0, prebufferedChunkIndex < streamChunks.count {
+            let wavPath = streamChunks[prebufferedChunkIndex].wavPath
+            try? FileManager.default.removeItem(atPath: wavPath)
+            logger.info("Cleaned up WAV for pre-buffered chunk \(prebufferedChunkIndex): \(wavPath)")
+        }
         nextStreamPlayer?.stop()
         nextStreamPlayer = nil
         nextPlaybackDelegate = nil
@@ -263,6 +279,12 @@ final class SubtitleSyncDriver {
             onStreamingComplete?()
             onStreamingComplete = nil
         }
+    }
+
+    /// Safe accessor for current chunk index (only valid if chunks exist).
+    private var currentChunkIndexIfValid: Int? {
+        guard currentChunkIndex >= 0, currentChunkIndex < streamChunks.count else { return nil }
+        return currentChunkIndex
     }
 
     deinit {
