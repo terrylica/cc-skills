@@ -18,8 +18,15 @@ enum SubtitleChunker {
     // MARK: - Public API
 
     /// Split text into pages of up to 2 lines each, using pixel-width measurement.
+    ///
+    /// Normalizes all whitespace (newlines, tabs, runs of spaces) to single spaces
+    /// before splitting, since the subtitle panel renders plain horizontal text
+    /// and embedded newlines would consume vertical lines the chunker can't account for.
     static func chunkIntoPages(text: String) -> [SubtitlePage] {
-        let words = text.split(separator: " ").map(String.init)
+        // Normalize: replace all whitespace runs (including \n, \r, \t) with single space
+        let normalized = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+        let words = normalized.split(separator: " ").map(String.init)
         guard !words.isEmpty else { return [] }
         let width = availableLineWidth()
         return chunkIntoPages(words: words, availableWidth: width)

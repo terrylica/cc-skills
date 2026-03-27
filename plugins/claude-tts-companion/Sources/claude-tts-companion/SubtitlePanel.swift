@@ -159,19 +159,36 @@ final class SubtitlePanel: NSPanel {
         generation += 1
         let myGeneration = generation
 
+        // Diagnostic: log page structure
+        logger.info("[showPages] gen=\(myGeneration) totalPages=\(pages.count) totalWordTimings=\(wordTimings.count)")
+        for (pi, page) in pages.enumerated() {
+            let preview = page.words.prefix(5).joined(separator: " ")
+            let lastWords = page.words.suffix(3).joined(separator: " ")
+            logger.info("[showPages] page[\(pi)] startIdx=\(page.startWordIndex) wordCount=\(page.wordCount) first=\"\(preview)\" last=\"\(lastWords)\"")
+        }
+
+        let scheduleStart = DispatchTime.now()
         var cumulativeTime: TimeInterval = 0
 
-        for (_, page) in pages.enumerated() {
+        for (pageIndex, page) in pages.enumerated() {
             let pageStartTime = cumulativeTime
             let pageWords = page.words
+            let capturedPageIndex = pageIndex
 
             // Schedule page display: show all words in future (white) color
             let showPageItem = DispatchWorkItem { [weak self] in
-                guard let self = self, self.generation == myGeneration else { return }
+                guard let self = self else {
+                    Logger(label: "subtitle-panel").info("[showPages] page[\(capturedPageIndex)] showPageItem: self=nil, skipping")
+                    return
+                }
+                let genMatch = self.generation == myGeneration
+                self.logger.info("[showPages] page[\(capturedPageIndex)] showPageItem FIRED gen=\(myGeneration) current=\(self.generation) match=\(genMatch)")
+                guard genMatch else { return }
                 self.highlightWord(at: -1, in: pageWords)
             }
             scheduledWorkItems.append(showPageItem)
-            DispatchQueue.main.asyncAfter(deadline: .now() + pageStartTime, execute: showPageItem)
+            DispatchQueue.main.asyncAfter(deadline: scheduleStart + pageStartTime, execute: showPageItem)
+            logger.info("[showPages] page[\(capturedPageIndex)] showPageItem scheduled at +\(String(format: "%.3f", pageStartTime))s")
 
             // Schedule per-word karaoke highlights within this page
             for localIndex in 0..<page.wordCount {
@@ -180,27 +197,41 @@ final class SubtitlePanel: NSPanel {
                 let fireTime = cumulativeTime
 
                 let capturedLocalIndex = localIndex
+                let capturedFireTime = fireTime
                 let item = DispatchWorkItem { [weak self] in
-                    guard let self = self, self.generation == myGeneration else { return }
+                    guard let self = self else { return }
+                    let genMatch = self.generation == myGeneration
+                    if capturedLocalIndex == 0 || capturedLocalIndex == pageWords.count - 1 {
+                        self.logger.info("[showPages] page[\(capturedPageIndex)] word[\(capturedLocalIndex)/\(pageWords.count)] FIRED at +\(String(format: "%.3f", capturedFireTime))s gen=\(myGeneration) current=\(self.generation) match=\(genMatch) word=\"\(pageWords[capturedLocalIndex])\"")
+                    }
+                    guard genMatch else { return }
                     self.highlightWord(at: capturedLocalIndex, in: pageWords)
                 }
                 scheduledWorkItems.append(item)
-                DispatchQueue.main.asyncAfter(deadline: .now() + fireTime, execute: item)
+                DispatchQueue.main.asyncAfter(deadline: scheduleStart + fireTime, execute: item)
                 cumulativeTime += timing
             }
+
+            logger.info("[showPages] page[\(capturedPageIndex)] words scheduled: cumulativeTime=\(String(format: "%.3f", cumulativeTime))s")
         }
 
         // Linger on last page then hide
+        let lingerFireTime = cumulativeTime + SubtitleStyle.lingerDuration
         let lingerItem = DispatchWorkItem { [weak self] in
-            guard let self = self, self.generation == myGeneration else { return }
+            guard let self = self else { return }
+            let genMatch = self.generation == myGeneration
+            self.logger.info("[showPages] lingerHide FIRED gen=\(myGeneration) current=\(self.generation) match=\(genMatch)")
+            guard genMatch else { return }
             self.hide()
         }
         self.lingerWorkItem = lingerItem
         scheduledWorkItems.append(lingerItem)
         DispatchQueue.main.asyncAfter(
-            deadline: .now() + cumulativeTime + SubtitleStyle.lingerDuration,
+            deadline: scheduleStart + lingerFireTime,
             execute: lingerItem
         )
+
+        logger.info("[showPages] scheduling complete: \(scheduledWorkItems.count) items, totalDuration=\(String(format: "%.3f", cumulativeTime))s, lingerAt=\(String(format: "%.3f", lingerFireTime))s")
     }
 
     /// Display an utterance with word-level karaoke highlighting driven by timing data.
@@ -208,7 +239,7 @@ final class SubtitlePanel: NSPanel {
     /// Wraps showPages() with a single page for backward compatibility.
     /// Used by demo() and simple text display.
     func showUtterance(_ text: String, wordTimings: [TimeInterval]) {
-        let words = text.split(separator: " ").map(String.init)
+        let words = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
         let singlePage = SubtitlePage(words: words, startWordIndex: 0)
         showPages([singlePage], wordTimings: wordTimings)
     }
