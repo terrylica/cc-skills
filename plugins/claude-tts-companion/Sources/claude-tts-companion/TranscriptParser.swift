@@ -6,14 +6,17 @@ import Logging
 /// Claude Code writes session transcripts as newline-delimited JSON where each
 /// line has a `type` field indicating what kind of event occurred. This parser
 /// extracts the fields needed for Telegram bot notifications and session summaries.
+///
+/// Real JSONL format uses `type: "user"` and `type: "assistant"` at the top level.
+/// Tool use/result are content blocks WITHIN those entries, not separate top-level types.
 enum TranscriptEntry: Sendable {
-    /// A user prompt (type: "human")
+    /// A user prompt (type: "user" with text content)
     case prompt(text: String, timestamp: Date?)
-    /// An assistant response (type: "assistant")
+    /// An assistant response (type: "assistant" with text content blocks)
     case response(text: String, timestamp: Date?)
-    /// A tool use event (type: "tool_use")
+    /// A tool use event (content block within type: "assistant")
     case toolUse(name: String, timestamp: Date?)
-    /// A tool result (type: "tool_result")
+    /// A tool result (content block within type: "user")
     case toolResult(content: String, timestamp: Date?)
     /// An unknown or unsupported entry type
     case unknown(type: String)
@@ -38,10 +41,17 @@ struct TranscriptSummary: Sendable {
 /// Parses Claude Code JSONL transcript files into typed entries.
 ///
 /// JSONL transcripts are written by Claude Code at:
-///   `~/.claude/projects/{hash}/sessions/{id}/transcript.jsonl`
+///   `~/.claude/projects/{hash}/{sessionId}.jsonl`
 ///
 /// Each line is a JSON object with at minimum a `type` field. The parser
 /// handles malformed lines gracefully by logging and skipping them (BOT-07).
+///
+/// Claude Code JSONL format:
+/// - `type: "user"` with `message.content` as string (prompt) or array of content blocks
+///   (may contain `tool_result` blocks from tool calls, or `text` blocks for prompts)
+/// - `type: "assistant"` with `message.content` as array of content blocks
+///   (may contain `text`, `tool_use`, and `thinking` blocks)
+/// - `type: "progress"`, `"system"`, `"file-history-snapshot"` etc. (ignored)
 enum TranscriptParser {
 
     private static let logger = Logger(label: "transcript-parser")
@@ -265,8 +275,8 @@ enum TranscriptParser {
                     continue
                 }
 
-                let entry = parseEntry(json: json)
-                entries.append(entry)
+                let parsed = parseEntry(json: json)
+                entries.append(contentsOf: parsed)
             } catch {
                 logger.debug("Line \(lineNumber + 1): JSON parse error: \(error.localizedDescription)")
             }
@@ -319,74 +329,157 @@ enum TranscriptParser {
 
     // MARK: - Private
 
-    /// Parse a single JSON object into a TranscriptEntry.
-    private static func parseEntry(json: [String: Any]) -> TranscriptEntry {
+    /// Parse a single JSON object into one or more TranscriptEntries.
+    ///
+    /// Claude Code JSONL format:
+    /// - `type: "user"` entries contain `message.content` which is either:
+    ///   - A string (user typed text -- produces `.prompt`)
+    ///   - An array of content blocks which may contain:
+    ///     - `{type: "text", text: "..."}` blocks (user typed text -- produces `.prompt`)
+    ///     - `{type: "tool_result", ...}` blocks (tool outputs -- produces `.toolResult`)
+    ///     - Mix of both (produces `.toolResult` for each, plus `.prompt` if text exists)
+    /// - `type: "assistant"` entries contain `message.content` as an array with:
+    ///   - `{type: "text", text: "..."}` blocks (response text -- produces `.response`)
+    ///   - `{type: "tool_use", name: "...", ...}` blocks (tool calls -- produces `.toolUse`)
+    ///   - `{type: "thinking", ...}` blocks (ignored)
+    private static func parseEntry(json: [String: Any]) -> [TranscriptEntry] {
         let type = json["type"] as? String ?? "unknown"
         let timestamp = parseTimestamp(json["timestamp"])
 
         switch type {
-        case "human":
-            let text = extractText(from: json)
-            return .prompt(text: text, timestamp: timestamp)
+        case "user":
+            return parseUserEntry(json: json, timestamp: timestamp)
 
         case "assistant":
-            let text = extractText(from: json)
-            return .response(text: text, timestamp: timestamp)
-
-        case "tool_use":
-            let name = json["name"] as? String ?? "unknown_tool"
-            return .toolUse(name: name, timestamp: timestamp)
-
-        case "tool_result":
-            let content = extractText(from: json)
-            return .toolResult(content: content, timestamp: timestamp)
+            return parseAssistantEntry(json: json, timestamp: timestamp)
 
         default:
-            return .unknown(type: type)
+            // Skip progress, system, file-history-snapshot, etc.
+            return []
         }
     }
 
-    /// Extract text content from a transcript JSON entry.
+    /// Parse a `type: "user"` JSONL entry.
     ///
-    /// Claude Code transcript entries store text in various formats:
-    /// - `message.content` as a string
-    /// - `message.content` as an array of content blocks with `text` fields
-    /// - `content` directly as a string
-    private static func extractText(from json: [String: Any]) -> String {
-        // Try message.content path first
-        if let message = json["message"] as? [String: Any] {
-            if let content = message["content"] as? String {
-                return content
-            }
-            if let blocks = message["content"] as? [[String: Any]] {
-                let texts = blocks.compactMap { block -> String? in
-                    if block["type"] as? String == "text" {
-                        return block["text"] as? String
-                    }
-                    return nil
+    /// User entries have `message.content` as either:
+    /// - A plain string (direct user prompt)
+    /// - An array of content blocks (may contain text + tool_result blocks)
+    ///
+    /// When content is an array with ONLY tool_result blocks, emit only `.toolResult` entries.
+    /// When content is an array with text blocks, emit `.prompt` from the text.
+    /// When content is an array with both, emit both (tool results first, then prompt).
+    private static func parseUserEntry(json: [String: Any], timestamp: Date?) -> [TranscriptEntry] {
+        guard let message = json["message"] as? [String: Any] else {
+            return []
+        }
+
+        // Case 1: message.content is a plain string
+        if let content = message["content"] as? String {
+            return [.prompt(text: content, timestamp: timestamp)]
+        }
+
+        // Case 2: message.content is an array of content blocks
+        guard let blocks = message["content"] as? [[String: Any]] else {
+            return []
+        }
+
+        var entries: [TranscriptEntry] = []
+
+        // Collect text from text blocks
+        var textParts: [String] = []
+
+        for block in blocks {
+            let blockType = block["type"] as? String ?? ""
+
+            switch blockType {
+            case "text":
+                if let text = block["text"] as? String {
+                    textParts.append(text)
                 }
-                if !texts.isEmpty {
-                    return texts.joined(separator: "\n")
+
+            case "tool_result":
+                // Extract tool result content (can be string or array of content blocks)
+                let resultText = extractToolResultContent(block)
+                if !resultText.isEmpty {
+                    entries.append(.toolResult(content: resultText, timestamp: timestamp))
                 }
+
+            default:
+                break
             }
         }
 
-        // Try direct content field
-        if let content = json["content"] as? String {
+        // If there are text parts, emit a prompt entry
+        let combinedText = textParts.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !combinedText.isEmpty {
+            entries.append(.prompt(text: combinedText, timestamp: timestamp))
+        }
+
+        return entries
+    }
+
+    /// Parse a `type: "assistant"` JSONL entry.
+    ///
+    /// Assistant entries have `message.content` as an array of content blocks.
+    /// Each block can be `text` (response), `tool_use` (tool call), or `thinking` (ignored).
+    /// Produces `.response` from text blocks and `.toolUse` from tool_use blocks.
+    private static func parseAssistantEntry(json: [String: Any], timestamp: Date?) -> [TranscriptEntry] {
+        guard let message = json["message"] as? [String: Any],
+              let blocks = message["content"] as? [[String: Any]] else {
+            return []
+        }
+
+        var entries: [TranscriptEntry] = []
+
+        // Collect all text blocks into a single response
+        var textParts: [String] = []
+
+        for block in blocks {
+            let blockType = block["type"] as? String ?? ""
+
+            switch blockType {
+            case "text":
+                if let text = block["text"] as? String {
+                    textParts.append(text)
+                }
+
+            case "tool_use":
+                let name = block["name"] as? String ?? "unknown_tool"
+                entries.append(.toolUse(name: name, timestamp: timestamp))
+
+            default:
+                // Skip thinking blocks and other types
+                break
+            }
+        }
+
+        // If there are text parts, emit a response entry
+        let combinedText = textParts.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !combinedText.isEmpty {
+            entries.append(.response(text: combinedText, timestamp: timestamp))
+        }
+
+        return entries
+    }
+
+    /// Extract text content from a tool_result content block.
+    ///
+    /// Tool result content can be:
+    /// - A string directly in `block["content"]`
+    /// - An array of content blocks in `block["content"]`, each with `type: "text"` and `text`
+    private static func extractToolResultContent(_ block: [String: Any]) -> String {
+        if let content = block["content"] as? String {
             return content
         }
-
-        // Try content as array of blocks
-        if let blocks = json["content"] as? [[String: Any]] {
-            let texts = blocks.compactMap { block -> String? in
-                if block["type"] as? String == "text" {
-                    return block["text"] as? String
+        if let contentBlocks = block["content"] as? [[String: Any]] {
+            let texts = contentBlocks.compactMap { b -> String? in
+                if b["type"] as? String == "text" {
+                    return b["text"] as? String
                 }
                 return nil
             }
             return texts.joined(separator: "\n")
         }
-
         return ""
     }
 
