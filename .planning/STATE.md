@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.5.0
 milestone_name: MVP
-status: verifying
-stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-03-27T00:28:21.842Z"
+status: executing
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-03-27T00:43:04.043Z"
 last_activity: 2026-03-27
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 59
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 14 — tts-dispatch-feature-gates
+**Current focus:** Phase 15 — telegram-inline-buttons
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 15 (telegram-inline-buttons) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-27
 
 Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, v4.6.0 starting)
@@ -65,6 +65,7 @@ Progress: [██████░░░░] 59% (v4.5.0 phases largely complete, 
 | Phase 13 P02 | 2min | 2 tasks | 2 files |
 | Phase 14 P01 | 1min | 1 tasks | 3 files |
 | Phase 14 P02 | 2min | 2 tasks | 1 files |
+| Phase 15 P01 | 5min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase 13]: All auto-continue notifications sent as silent messages to avoid push spam
 - [Phase 14]: Unicode scalars (not Character) for CJK detection -- correct abstraction for code point ranges
 - [Phase 14]: TTS greeting computed inline using formatProjectName, not from SummaryEngine.ttsGreeting
+- [Phase 15]: Inline counts computed inline rather than adding summarize() to TranscriptParser
+- [Phase 15]: Logger changed from private to fileprivate for BotDispatcher callback handler access
 
 ### Pending Todos
 
@@ -105,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T00:27:47.450Z
-Stopped at: Completed 14-02-PLAN.md
+Last session: 2026-03-27T00:43:04.041Z
+Stopped at: Completed 15-01-PLAN.md
 Resume file: None
