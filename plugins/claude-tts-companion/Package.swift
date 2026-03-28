@@ -15,8 +15,14 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "CSherpaOnnx",
+            path: "Sources/CSherpaOnnx",
+            publicHeadersPath: "include"
+        ),
+        .target(
             name: "CompanionCore",
             dependencies: [
+                "CSherpaOnnx",
                 .product(name: "SwiftTelegramBot", package: "swift-telegram-sdk"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "FlyingFox", package: "FlyingFox"),
@@ -28,6 +34,24 @@ let package = Package(
                 .linkedFramework("AppKit"),
                 .linkedFramework("Foundation"),
                 .linkedFramework("AVFoundation"),
+                .unsafeFlags([
+                    "-L/Users/<you>/fork-tools/sherpa-onnx/build-swift-macos/install/lib",
+                ]),
+                .linkedLibrary("sherpa-onnx-c-api"),
+                .linkedLibrary("sherpa-onnx-core"),
+                .linkedLibrary("sherpa-onnx"),
+                .linkedLibrary("onnxruntime"),
+                .linkedLibrary("espeak-ng"),
+                .linkedLibrary("piper_phonemize"),
+                .linkedLibrary("ssentencepiece_core"),
+                .linkedLibrary("ucd"),
+                .linkedLibrary("kaldi-decoder-core"),
+                .linkedLibrary("kaldi-native-fbank-core"),
+                .linkedLibrary("sherpa-onnx-kaldifst-core"),
+                .linkedLibrary("sherpa-onnx-fst"),
+                .linkedLibrary("sherpa-onnx-fstfar"),
+                .linkedLibrary("kissfft-float"),
+                .linkedLibrary("c++"),
             ]
         ),
         .executableTarget(
