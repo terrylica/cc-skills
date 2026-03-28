@@ -6,7 +6,7 @@ public struct LanguageResult {
     let lang: String
     /// Kokoro speaker ID for this language (legacy, kept for compatibility)
     let speakerId: Int32
-    /// Voice embedding name for kokoro-ios
+    /// Voice embedding name for Kokoro TTS
     let voiceName: String
 }
 
@@ -20,7 +20,7 @@ public enum LanguageDetector {
     /// CJK ratio exceeds `Config.cjkDetectionThreshold` (default 20%).
     ///
     /// Note: Chinese text routes to sherpa-onnx engine via TTSEngine.synthesizeStreamingAutoRoute.
-    /// kokoro-ios (MLX) handles English only.
+    /// Python MLX server handles English TTS.
     ///
     /// Empty strings return English defaults (matching legacy behavior).
     static func detect(text: String) -> LanguageResult {
@@ -53,7 +53,7 @@ public enum LanguageDetector {
             return LanguageResult(
                 lang: "cmn",
                 speakerId: Config.chineseSpeakerId,
-                voiceName: Config.chineseVoiceName  // Routes to sherpa-onnx, not kokoro-ios
+                voiceName: Config.chineseVoiceName  // Routes to sherpa-onnx for CJK
             )
         }
 
