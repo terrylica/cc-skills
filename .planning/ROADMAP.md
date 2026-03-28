@@ -520,7 +520,7 @@ Plans:
 Plans:
 
 - [x] 23-01-PLAN.md -- CaptionHistoryPanel NSPanel + HTTP API endpoints + CompanionApp wiring
-- [ ] 23-02-PLAN.md -- SwiftBar Caption History button + visual verification checkpoint
+- [x] 23-02-PLAN.md -- SwiftBar Caption History button + visual verification checkpoint
       **UI hint**: yes
 ### Phase 24: Chinese TTS Fallback
 
@@ -570,5 +570,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete    | 2026-03-28 |
 | 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
 | 22. Bionic Reading Mode                         | 2/2 | Complete    | 2026-03-28 |
-| 23. Caption History Panel                       | 1/2 | In Progress|  |
+| 23. Caption History Panel                       | 2/2 | Complete   | 2026-03-28 |
 | 24. Chinese TTS Fallback                        | 0/0            | Not started | -          |
