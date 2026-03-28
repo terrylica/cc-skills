@@ -137,8 +137,8 @@
 
 - [x] **TEST-01**: XCTest target for CompanionCore library with SwiftPM `swift test`
 - [x] **TEST-02**: Unit tests for SubtitleChunker (page splitting, line breaks, font sizes)
-- [ ] **TEST-03**: Unit tests for WordTimingAligner (MToken alignment, onset resolution, hyphen handling)
-- [ ] **TEST-04**: Unit tests for PronunciationProcessor (override matching, regex boundaries)
+- [x] **TEST-03**: Unit tests for WordTimingAligner (MToken alignment, onset resolution, hyphen handling)
+- [x] **TEST-04**: Unit tests for PronunciationProcessor (override matching, regex boundaries)
 - [x] **TEST-05**: Integration tests for streaming pipeline (mock synthesis, verify chunk sequencing)
 
 ### Bionic Reading
@@ -360,8 +360,8 @@
 | CONC-03     | Phase 19   | Complete |
 | CONC-04     | Phase 19   | Complete |
 | TEST-02     | Phase 20   | Complete |
-| TEST-03     | Phase 20   | Pending  |
-| TEST-04     | Phase 20   | Pending  |
+| TEST-03     | Phase 20   | Complete |
+| TEST-04     | Phase 20   | Complete |
 | TEST-05     | Phase 20   | Complete |
 | LEAK-01     | Phase 20.1 | Complete |
 | LEAK-02     | Phase 20.1 | Complete |
