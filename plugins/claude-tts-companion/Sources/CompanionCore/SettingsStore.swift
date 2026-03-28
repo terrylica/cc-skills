@@ -2,7 +2,7 @@ import Foundation
 import Logging
 
 /// Subtitle display settings, persisted to disk (API-03, API-07).
-struct SubtitleSettings: Codable, Sendable {
+public struct SubtitleSettings: Codable, Sendable {
     var fontSize: String
     var position: String
     var opacity: Double
@@ -19,7 +19,7 @@ struct SubtitleSettings: Codable, Sendable {
 }
 
 /// TTS engine settings, persisted to disk (API-04, API-07).
-struct TTSSettings: Codable, Sendable {
+public struct TTSSettings: Codable, Sendable {
     var enabled: Bool
     var voice: String
     var speed: Double
@@ -32,7 +32,7 @@ struct TTSSettings: Codable, Sendable {
 }
 
 /// Top-level settings container holding all subsystem configurations.
-struct AppSettings: Codable, Sendable {
+public struct AppSettings: Codable, Sendable {
     var subtitle: SubtitleSettings
     var tts: TTSSettings
 
@@ -47,7 +47,7 @@ struct AppSettings: Codable, Sendable {
 /// Settings are stored at `~/.config/claude-tts-companion/settings.json`.
 /// All reads and writes are protected by NSLock, consistent with the
 /// thread-safety patterns used elsewhere in this codebase (TTSEngine, CircuitBreaker).
-final class SettingsStore: @unchecked Sendable {
+public final class SettingsStore: @unchecked Sendable {
 
     private let logger = Logger(label: "settings-store")
 

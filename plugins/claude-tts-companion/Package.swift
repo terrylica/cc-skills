@@ -13,8 +13,8 @@ let package = Package(
         .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.30.2"),
     ],
     targets: [
-        .executableTarget(
-            name: "claude-tts-companion",
+        .target(
+            name: "CompanionCore",
             dependencies: [
                 .product(name: "SwiftTelegramBot", package: "swift-telegram-sdk"),
                 .product(name: "Logging", package: "swift-log"),
@@ -26,7 +26,19 @@ let package = Package(
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("Foundation"),
+                .linkedFramework("AVFoundation"),
             ]
+        ),
+        .executableTarget(
+            name: "claude-tts-companion",
+            dependencies: ["CompanionCore"],
+            linkerSettings: [
+                .linkedFramework("AppKit"),
+            ]
+        ),
+        .testTarget(
+            name: "CompanionCoreTests",
+            dependencies: ["CompanionCore"]
         ),
     ]
 )

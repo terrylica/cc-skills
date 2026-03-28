@@ -5,7 +5,7 @@ import Foundation
 ///
 /// Default behavior: all gates enabled unless explicitly set to "false".
 /// This matches the legacy `!== "false"` semantics.
-enum FeatureGates {
+public enum FeatureGates {
     /// Whether Telegram summarizer messages are enabled.
     /// Env: `SUMMARIZER_TG_ENABLED` (default: true)
     static var summarizerTgEnabled: Bool {

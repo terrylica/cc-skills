@@ -7,7 +7,7 @@ import Logging
 /// up to 2 lines of word-wrapped text with karaoke-style highlighting.
 /// All UI operations must occur on the main thread.
 @MainActor
-final class SubtitlePanel: NSPanel {
+public final class SubtitlePanel: NSPanel {
 
     private let logger = Logger(label: "subtitle-panel")
 

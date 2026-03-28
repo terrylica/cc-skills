@@ -3,7 +3,7 @@ import Foundation
 import Logging
 
 /// Partial update struct for subtitle settings (all fields optional for PATCH semantics).
-struct SubtitleSettingsUpdate: Codable, Sendable {
+public struct SubtitleSettingsUpdate: Codable, Sendable {
     var fontSize: String?
     var position: String?
     var opacity: Double?
@@ -12,7 +12,7 @@ struct SubtitleSettingsUpdate: Codable, Sendable {
 }
 
 /// Partial update struct for TTS settings (all fields optional for PATCH semantics).
-struct TTSSettingsUpdate: Codable, Sendable {
+public struct TTSSettingsUpdate: Codable, Sendable {
     var enabled: Bool?
     var voice: String?
     var speed: Double?
@@ -75,7 +75,7 @@ private struct CopyResponse: Codable {
 ///
 /// Provides REST endpoints for health monitoring, settings management,
 /// subtitle/TTS control, and caption history. Binds to localhost only (loopback) for security.
-final class HTTPControlServer: @unchecked Sendable {
+public final class HTTPControlServer: @unchecked Sendable {
 
     private let logger = Logger(label: "http-api")
 
