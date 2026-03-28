@@ -15,6 +15,7 @@ public final class CompanionApp: @unchecked Sendable {
     private let settingsStore: SettingsStore
     private let subtitlePanel: SubtitlePanel
     private let playbackManager: PlaybackManager
+    private let sherpaOnnxEngine: SherpaOnnxEngine
     private let ttsEngine: TTSEngine
     private let captionHistory: CaptionHistory
     private let captionHistoryPanel: CaptionHistoryPanel
@@ -34,7 +35,8 @@ public final class CompanionApp: @unchecked Sendable {
         subtitlePanel = SubtitlePanel(settingsStore: settingsStore)
         // PlaybackManager created BEFORE TTSEngine (owns audio hardware lifecycle)
         playbackManager = PlaybackManager()
-        ttsEngine = TTSEngine(playbackManager: playbackManager)
+        sherpaOnnxEngine = SherpaOnnxEngine()
+        ttsEngine = TTSEngine(playbackManager: playbackManager, sherpaOnnxEngine: sherpaOnnxEngine)
         captionHistory = CaptionHistory()
         captionHistoryPanel = CaptionHistoryPanel(captionHistory: captionHistory)
         pipelineCoordinator = TTSPipelineCoordinator(playbackManager: playbackManager, subtitlePanel: subtitlePanel)

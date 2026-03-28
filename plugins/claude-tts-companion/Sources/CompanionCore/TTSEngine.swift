@@ -62,6 +62,10 @@ public actor TTSEngine {
     /// Received at init (D-04).
     let playbackManager: PlaybackManager
 
+    /// sherpa-onnx engine for CJK text synthesis (CJK-01).
+    /// Injected at init; handles on-demand model loading with idle unload.
+    let sherpaOnnxEngine: SherpaOnnxEngine
+
     /// Path to the last generated WAV (cleaned up before next synthesis)
     private var lastWavPath: String?
 
@@ -123,9 +127,10 @@ public actor TTSEngine {
         circuitBreaker.isOpen
     }
 
-    init(playbackManager: PlaybackManager) {
+    init(playbackManager: PlaybackManager, sherpaOnnxEngine: SherpaOnnxEngine) {
         self.playbackManager = playbackManager
-        logger.info("TTSEngine created (kokoro-ios MLX, model will load lazily on first synthesis)")
+        self.sherpaOnnxEngine = sherpaOnnxEngine
+        logger.info("TTSEngine created (kokoro-ios MLX + sherpa-onnx CJK, models load lazily)")
 
         // Validate model files exist at boot to fail fast with a clear error
         // instead of crashing on first synthesis (P0: startup model validation).
@@ -407,6 +412,70 @@ public actor TTSEngine {
         logger.info("Streaming synthesis done: \(synthesizedChunks.count) chunks, total synthesisCount=\(synthesisCount)")
 
         return synthesizedChunks
+    }
+
+    // MARK: - CJK Synthesis (sherpa-onnx)
+
+    /// Synthesize CJK text via sherpa-onnx engine.
+    /// Returns a single ChunkResult with the full text (no sentence splitting for CJK).
+    /// Returns nil if synthesis fails (CJK-04 graceful fallback).
+    func synthesizeCJK(text: String, speed: Float = 1.0) async -> ChunkResult? {
+        guard let result = sherpaOnnxEngine.synthesize(text: text, speed: speed) else {
+            logger.warning("CJK synthesis failed -- falling back to subtitle-only")
+            return nil
+        }
+
+        let wavPath = NSTemporaryDirectory() + "tts-cjk-\(UUID().uuidString).wav"
+        let audioDuration = Double(result.samples.count) / Double(result.sampleRate)
+
+        // Add trailing silence (same as English streaming path)
+        let paddedSamples = result.samples + [Float](repeating: 0.0, count: Self.trailingSilenceSamples)
+
+        do {
+            try Self.writeWav(samples: paddedSamples, sampleRate: Double(result.sampleRate), to: wavPath)
+        } catch {
+            logger.error("CJK WAV write failed: \(error)")
+            return nil
+        }
+
+        // CJK karaoke timing is out of scope -- use uniform word timing as fallback.
+        // Split text into characters for subtitle display (each char = one "word").
+        let words = text.map { String($0) }.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        let perWordDuration = words.isEmpty ? audioDuration : audioDuration / Double(words.count)
+        let wordTimings = Array(repeating: perWordDuration, count: words.count)
+
+        synthesisCount += 1
+        logger.info("CJK synthesis complete: \(String(format: "%.2f", audioDuration))s audio, count=\(synthesisCount)")
+
+        return ChunkResult(
+            wavPath: wavPath,
+            text: text,
+            wordTimings: wordTimings,
+            audioDuration: audioDuration,
+            chunkIndex: 0,
+            totalChunks: 1,
+            wordOnsets: nil,
+            samples: paddedSamples
+        )
+    }
+
+    /// Synthesize text, automatically routing CJK to sherpa-onnx and English to kokoro-ios MLX.
+    /// Returns empty array if synthesis fails entirely.
+    func synthesizeStreamingAutoRoute(text: String, speed: Float = 1.2) async -> [ChunkResult] {
+        let langResult = LanguageDetector.detect(text: text)
+
+        if langResult.lang == "cmn" {
+            logger.info("CJK text detected (\(text.count) chars) -- routing to sherpa-onnx")
+            if let chunk = await synthesizeCJK(text: text, speed: 1.0) {
+                return [chunk]
+            }
+            // Fallback: subtitle-only (CJK-04)
+            logger.warning("CJK synthesis failed -- returning empty for subtitle-only fallback")
+            return []
+        }
+
+        // English path: use existing kokoro-ios MLX streaming (CJK-02)
+        return await synthesizeStreaming(text: text, voiceName: langResult.voiceName, speed: speed)
     }
 
     // MARK: - Private
