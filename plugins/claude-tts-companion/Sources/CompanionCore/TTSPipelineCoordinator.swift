@@ -8,6 +8,8 @@ import Logging
 /// audio or silent drops. This coordinator is the single owner of:
 /// 1. AudioStreamPlayer reset/schedule lifecycle
 /// 2. SubtitleSyncDriver creation and teardown
+/// 3. Memory pressure monitoring and subtitle-only degradation
+/// 4. Audio route change recovery wiring
 ///
 /// @MainActor because SubtitleSyncDriver and PlaybackManager are both @MainActor.
 @MainActor
@@ -28,10 +30,90 @@ public final class TTSPipelineCoordinator {
     /// Whether the pipeline is busy (callers check to decide subtitle-only fallback).
     var isBusy: Bool { isActive }
 
+    // MARK: - Memory Pressure
+
+    /// Dispatch source monitoring system memory pressure events.
+    private var memoryPressureSource: DispatchSourceMemoryPressure?
+
+    /// Set to true under .warning or .critical memory pressure.
+    /// Auto-clears after 60 seconds of no new pressure events.
+    private var isMemoryConstrained: Bool = false
+
+    /// Pending auto-recovery work item (cancelled on each new pressure event).
+    private var memoryRecoveryWorkItem: DispatchWorkItem?
+
+    /// Whether callers should skip TTS synthesis and show subtitle-only.
+    /// True when system is under memory pressure (.warning or .critical).
+    var shouldUseSubtitleOnly: Bool { isMemoryConstrained }
+
     init(playbackManager: PlaybackManager, subtitlePanel: SubtitlePanel) {
         self.playbackManager = playbackManager
         self.subtitlePanel = subtitlePanel
         logger.info("TTSPipelineCoordinator created")
+    }
+
+    // MARK: - Monitoring
+
+    /// Start memory pressure monitoring and wire audio route change callback.
+    ///
+    /// Called from CompanionApp.start() after subsystems are created.
+    func startMonitoring() {
+        // Memory pressure monitoring via DispatchSource
+        let source = DispatchSource.makeMemoryPressureSource(
+            eventMask: [.warning, .critical],
+            queue: .main
+        )
+        source.setEventHandler { [weak self] in
+            guard let self = self else { return }
+            let event = source.data
+            if event.contains(.critical) {
+                self.isMemoryConstrained = true
+                self.cancelCurrentPipeline()
+                self.logger.critical("Memory pressure CRITICAL -- cancelled active TTS pipeline, subtitle-only mode active")
+            } else if event.contains(.warning) {
+                self.isMemoryConstrained = true
+                self.logger.warning("Memory pressure WARNING -- new TTS requests will use subtitle-only mode")
+            }
+            // Auto-recover after 60s of no new pressure events
+            self.memoryRecoveryWorkItem?.cancel()
+            let recovery = DispatchWorkItem { [weak self] in
+                self?.isMemoryConstrained = false
+                self?.logger.info("Memory pressure cleared (60s auto-recovery)")
+            }
+            self.memoryRecoveryWorkItem = recovery
+            DispatchQueue.main.asyncAfter(deadline: .now() + 60, execute: recovery)
+        }
+        source.resume()
+        memoryPressureSource = source
+
+        // Wire audio route change callback from AudioStreamPlayer
+        playbackManager.audioStreamPlayer.onRouteChange = { [weak self] in
+            self?.handleAudioRouteChange()
+        }
+
+        logger.info("TTSPipelineCoordinator monitoring started (memory pressure + audio route)")
+    }
+
+    /// Stop monitoring and clean up dispatch sources.
+    ///
+    /// Called from CompanionApp.shutdown().
+    func stopMonitoring() {
+        memoryPressureSource?.cancel()
+        memoryPressureSource = nil
+        memoryRecoveryWorkItem?.cancel()
+        memoryRecoveryWorkItem = nil
+        playbackManager.audioStreamPlayer.onRouteChange = nil
+        logger.info("TTSPipelineCoordinator monitoring stopped")
+    }
+
+    /// Handle audio route change (Bluetooth disconnect, USB DAC removal).
+    ///
+    /// The AudioStreamPlayer already restarted the engine on the new device.
+    /// We cancel the current pipeline so the in-progress audio stops cleanly.
+    /// The next TTS request will work on the new audio device automatically.
+    private func handleAudioRouteChange() {
+        logger.warning("Audio route changed -- cancelling current pipeline for graceful recovery")
+        cancelCurrentPipeline()
     }
 
     // MARK: - Pipeline Lifecycle

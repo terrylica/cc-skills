@@ -188,6 +188,23 @@ public final class HTTPControlServer: @unchecked Sendable {
                 let voiceName = settings.tts.voice
                 let speed = Float(settings.tts.speed)
 
+                // Check memory pressure before synthesis (HARD-02, HARD-03)
+                let memoryConstrained = await MainActor.run { self.pipelineCoordinator.shouldUseSubtitleOnly }
+                if memoryConstrained {
+                    self.logger.warning("TTS test: memory pressure -- subtitle-only mode")
+                    await MainActor.run {
+                        self.subtitlePanel.show(text: text)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                            self.subtitlePanel.hide()
+                        }
+                    }
+                    return HTTPResponse(
+                        statusCode: .ok,
+                        headers: [.contentType: "application/json"],
+                        body: try! JSONEncoder().encode(["status": "subtitle_only", "reason": "memory_pressure"])
+                    )
+                }
+
                 logger.info("TTS test: streaming synthesis for \(text.count) chars")
 
                 // Batch-then-play: collect all chunks, then play them all at once.
