@@ -82,10 +82,11 @@ public final class HTTPControlServer: @unchecked Sendable {
     private let captionHistory: CaptionHistory
     private let captionHistoryPanel: CaptionHistoryPanel
     private let pipelineCoordinator: TTSPipelineCoordinator
+    private let ttsQueue: TTSQueue
     private let startTime: Date
     private var telegramBot: TelegramBot?
 
-    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, playbackManager: PlaybackManager, ttsEngine: TTSEngine, captionHistory: CaptionHistory, captionHistoryPanel: CaptionHistoryPanel, pipelineCoordinator: TTSPipelineCoordinator) {
+    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, playbackManager: PlaybackManager, ttsEngine: TTSEngine, captionHistory: CaptionHistory, captionHistoryPanel: CaptionHistoryPanel, pipelineCoordinator: TTSPipelineCoordinator, ttsQueue: TTSQueue) {
         self.settingsStore = settingsStore
         self.subtitlePanel = subtitlePanel
         self.playbackManager = playbackManager
@@ -93,6 +94,7 @@ public final class HTTPControlServer: @unchecked Sendable {
         self.captionHistory = captionHistory
         self.captionHistoryPanel = captionHistoryPanel
         self.pipelineCoordinator = pipelineCoordinator
+        self.ttsQueue = ttsQueue
         self.startTime = Date()
     }
 
@@ -191,60 +193,34 @@ public final class HTTPControlServer: @unchecked Sendable {
         await server.appendRoute("POST /tts/speak") { [self] request in
             do {
                 let body = try await request.bodyData
-                let testReq = try JSONDecoder().decode(TTSSpeakRequest.self, from: body)
-                let text = testReq.text ?? "Claude TTS companion is working. Karaoke subtitles are synced with audio playback."
-                let settings = settingsStore.getSettings()
-                let voiceName = settings.tts.voice
-                let speed = Float(settings.tts.speed)
+                let speakReq = try JSONDecoder().decode(TTSSpeakRequest.self, from: body)
+                let text = speakReq.text ?? "Claude TTS companion is working. Karaoke subtitles are synced with audio playback."
 
-                // Check memory pressure before synthesis (HARD-02, HARD-03)
-                let memoryConstrained = await MainActor.run { self.pipelineCoordinator.shouldUseSubtitleOnly }
-                if memoryConstrained {
-                    self.logger.warning("TTS test: memory pressure -- subtitle-only mode")
-                    await MainActor.run {
-                        self.subtitlePanel.show(text: text)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                            self.subtitlePanel.hide()
-                        }
+                // Read priority header: X-TTS-Priority: user-initiated | automated (default)
+                let priorityHeader = request.headers[HTTPHeader("X-TTS-Priority")]
+                let priority: TTSPriority = (priorityHeader == "user-initiated") ? .userInitiated : .automated
+
+                if priority == .userInitiated {
+                    // User-initiated (BTT): preempt everything, await playback completion
+                    logger.info("TTS speak: user-initiated priority, \(text.count) chars")
+                    await ttsQueue.enqueueAndAwait(text: text)
+                    return jsonResponse(OkResponse(ok: true))
+                } else {
+                    // Automated: enqueue, return immediately with status
+                    let result = await ttsQueue.enqueue(text: text, greeting: nil, priority: .automated)
+                    switch result {
+                    case .queued(let pos):
+                        logger.info("TTS speak: queued at position \(pos), \(text.count) chars")
+                        return jsonResponse(OkResponse(ok: true))
+                    case .rejected(let reason):
+                        logger.warning("TTS speak: rejected — \(reason)")
+                        return HTTPResponse(
+                            statusCode: .serviceUnavailable,
+                            headers: [.contentType: "application/json"],
+                            body: try! JSONEncoder().encode(["error": reason])
+                        )
                     }
-                    return HTTPResponse(
-                        statusCode: .ok,
-                        headers: [.contentType: "application/json"],
-                        body: try! JSONEncoder().encode(["status": "subtitle_only", "reason": "memory_pressure"])
-                    )
                 }
-
-                logger.info("TTS test: streaming synthesis for \(text.count) chars")
-
-                // Batch-then-play: collect all chunks, then play them all at once.
-                // Zero GPU work during playback -- eliminates memory bus contention.
-                let chunks = await ttsEngine.synthesizeStreaming(
-                    text: text,
-                    voiceName: voiceName,
-                    speed: speed
-                )
-
-                self.logger.info("TTS test: all \(chunks.count) chunks synthesized -- starting batch playback")
-
-                await MainActor.run {
-                    guard !chunks.isEmpty else {
-                        self.logger.warning("TTS test: no chunks produced -- showing subtitle-only fallback")
-                        self.subtitlePanel.show(text: text)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                            self.subtitlePanel.hide()
-                        }
-                        return
-                    }
-
-                    self.pipelineCoordinator.startBatchPipeline(
-                        chunks: chunks,
-                        onComplete: {
-                            self.logger.info("TTS test batch playback complete")
-                        }
-                    )
-                }
-
-                return jsonResponse(OkResponse(ok: true))
             } catch {
                 return errorResponse("Invalid request body: \(error.localizedDescription)", status: .badRequest)
             }
