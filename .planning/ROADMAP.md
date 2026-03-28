@@ -235,7 +235,7 @@ Plans:
 
 - [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
 - [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
-   **UI hint**: yes
+      **UI hint**: yes
 
 ### Phase 10: Deployment & Extras
 
@@ -466,6 +466,7 @@ Plans:
 - [x] 20.1-01-PLAN.md -- kokoro-ios cache reduction + synthesis counter + graceful restart + launchd tuning
 
 **Context**: MLX-Swift creates ~1.7-6GB of unreclaimable IOAccelerator (Metal driver) allocations per synthesis call. Confirmed intentional by design (ml-explore/mlx issue #1086). The static MetalAllocator pools buffers and only frees on process exit. `Memory.clearCache()` manages MLX internal buffer pool but not Metal driver allocations. Process restart is the only 100% reclamation mechanism.
+
 ### Phase 21: Pipeline Hardening
 
 **Goal**: The streaming pipeline handles edge cases gracefully without crashes, queue corruption, or resource exhaustion
@@ -481,8 +482,8 @@ Plans:
 
 Plans:
 
-- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
-- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
+- [x] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [x] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
 
 ### Phase 22: Bionic Reading Mode
 
@@ -499,9 +500,9 @@ Plans:
 
 Plans:
 
-- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
-- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
-   **UI hint**: yes
+- [ ] 22-01-PLAN.md -- DisplayMode enum + BionicRenderer + SettingsStore + HTTP API + SubtitlePanel integration + tests
+- [ ] 22-02-PLAN.md -- SwiftBar Bionic Reading toggle + visual verification checkpoint
+      **UI hint**: yes
 
 ### Phase 23: Caption History Panel
 
@@ -520,7 +521,7 @@ Plans:
 
 - [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
 - [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
-   **UI hint**: yes
+      **UI hint**: yes
 
 ### Phase 24: Chinese TTS Fallback
 
@@ -564,11 +565,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 15. Telegram Inline Buttons                     | 2/2            | Complete    | 2026-03-27 |
 | 16. Integration & Reliability                   | 1/1            | Complete    | 2026-03-27 |
 | 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete    | 2026-03-27 |
-| 18. CompanionCore Library & Test Infrastructure | 2/2 | Complete    | 2026-03-28 |
-| 19. TTSEngine Decomposition & Actor Migration   | 2/2 | Complete    | 2026-03-28 |
-| 20. Unit & Integration Tests                    | 2/2 | Complete    | 2026-03-28 |
-| 20.1. MLX Metal Memory Lifecycle                | 1/1 | Complete   | 2026-03-28 |
-| 21. Pipeline Hardening                          | 2/2 | Complete    | 2026-03-28 |
-| 22. Bionic Reading Mode                         | 0/0            | Not started | -          |
+| 18. CompanionCore Library & Test Infrastructure | 2/2            | Complete    | 2026-03-28 |
+| 19. TTSEngine Decomposition & Actor Migration   | 2/2            | Complete    | 2026-03-28 |
+| 20. Unit & Integration Tests                    | 2/2            | Complete    | 2026-03-28 |
+| 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete    | 2026-03-28 |
+| 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
+| 22. Bionic Reading Mode                         | 0/2            | Not started | -          |
 | 23. Caption History Panel                       | 0/0            | Not started | -          |
 | 24. Chinese TTS Fallback                        | 0/0            | Not started | -          |
