@@ -519,10 +519,9 @@ Plans:
 
 Plans:
 
-- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
-- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
+- [ ] 23-01-PLAN.md -- CaptionHistoryPanel NSPanel + HTTP API endpoints + CompanionApp wiring
+- [ ] 23-02-PLAN.md -- SwiftBar Caption History button + visual verification checkpoint
       **UI hint**: yes
-
 ### Phase 24: Chinese TTS Fallback
 
 **Goal**: CJK text is automatically spoken via sherpa-onnx Chinese voice while English continues through the default engine
