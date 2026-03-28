@@ -6,8 +6,8 @@
  * and reminds Claude to use /devops-tools:firecrawl-research-patterns instead.
  * Firecrawl handles JS-rendered pages, PDF extraction, and proper routing.
  *
- * This is a soft block (decision: "block" with exit 0) — Claude sees the
- * reminder but the operation proceeds normally.
+ * This is a soft reminder (permissionDecision: "allow" with reason) — Claude sees
+ * the reminder but the operation proceeds normally.
  */
 
 import { readFileSync } from "fs";
