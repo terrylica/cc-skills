@@ -64,8 +64,8 @@ const EXCLUDED_PATHS = [
   /MIGRATION/i, // Migration guides
   /\/archive\//i, // Archived docs
   /\/milestones\//i, // Milestone tracking
-  /\/planning\//i, // Planning documents
-  /\/plans\//i, // Claude Code plan files (~/.claude/plans/)
+  /\/\.?planning\//i, // Planning documents (.planning/ and planning/)
+  /\/\.?plans\//i, // Claude Code plan files (~/.claude/plans/ and .plans/)
   /\/reports\//i, // Generated reports
   /\/outputs?\//i, // Output directories (output/ or outputs/)
   /\/adr\//i, // Architecture Decision Records
