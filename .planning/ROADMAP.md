@@ -6,7 +6,8 @@
 
 - ✅ **v4.5.0 MVP** - Phases 1-10 (shipped)
 - ✅ **v4.6.0 Legacy Pipeline Feature Parity** - Phases 11-17 (shipped 2026-03-27)
-- 🚧 **v4.7.0 Architecture Hardening + Feature Expansion** - Phases 18-24 (in progress)
+- ✅ **v4.7.0 Architecture Hardening + Feature Expansion** - Phases 18-24 (shipped 2026-03-28)
+- 🚧 **v4.8.0 Python MLX TTS Consolidation** - Phases 25-28 (in progress)
 
 ## Overview
 
@@ -50,16 +51,26 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v4.7.0 Architecture Hardening + Feature Expansion (Phases 18-24)
+<details>
+<summary>v4.7.0 Architecture Hardening + Feature Expansion (Phases 18-24)</summary>
 
-- [ ] **Phase 18: CompanionCore Library & Test Infrastructure** - Extract library target from executable, enable `swift test` with initial unit tests
-- [ ] **Phase 19: TTSEngine Decomposition & Actor Migration** - Decompose god object into isolated components, replace NSLock with actors
-- [ ] **Phase 20: Unit & Integration Tests** - Full test coverage for decomposed components and streaming pipeline
-- [ ] **Phase 20.1: MLX Metal Memory Lifecycle** - Aggressive cache clearing, synthesis-count auto-restart, IOAccelerator leak mitigation (INSERTED)
-- [ ] **Phase 21: Pipeline Hardening** - Edge-case resilience for rapid-fire, hardware disconnect, memory pressure, and race conditions
-- [ ] **Phase 22: Bionic Reading Mode** - Bold-prefix word splitting in subtitles with HTTP API and SwiftBar toggles
-- [ ] **Phase 23: Caption History Panel** - Scrollable past-captions panel with timestamps and copy-to-clipboard
-- [ ] **Phase 24: Chinese TTS Fallback** - CJK text routed to sherpa-onnx engine with on-demand model loading
+- [x] **Phase 18: CompanionCore Library & Test Infrastructure** - Extract library target from executable, enable `swift test` with initial unit tests
+- [x] **Phase 19: TTSEngine Decomposition & Actor Migration** - Decompose god object into isolated components, replace NSLock with actors
+- [x] **Phase 20: Unit & Integration Tests** - Full test coverage for decomposed components and streaming pipeline
+- [x] **Phase 20.1: MLX Metal Memory Lifecycle** - Aggressive cache clearing, synthesis-count auto-restart, IOAccelerator leak mitigation (INSERTED)
+- [x] **Phase 21: Pipeline Hardening** - Edge-case resilience for rapid-fire, hardware disconnect, memory pressure, and race conditions
+- [x] **Phase 22: Bionic Reading Mode** - Bold-prefix word splitting in subtitles with HTTP API and SwiftBar toggles
+- [x] **Phase 23: Caption History Panel** - Scrollable past-captions panel with timestamps and copy-to-clipboard
+- [x] **Phase 24: Chinese TTS Fallback** - CJK text routed to sherpa-onnx engine with on-demand model loading
+
+</details>
+
+### v4.8.0 Python MLX TTS Consolidation (Phases 25-28)
+
+- [ ] **Phase 25: Python TTS Server Timestamp Endpoint** - Python MLX server exposes word-level timestamp API that Swift consumes via HTTP
+- [ ] **Phase 26: Swift TTSEngine Python Integration** - TTSEngine delegates to Python server with native word onsets, replacing character-weighted fallback
+- [ ] **Phase 27: MLX Dependency Removal** - kokoro-ios, mlx-swift, MLXUtilsLibrary stripped from Package.swift and all imports
+- [ ] **Phase 28: Memory Lifecycle Cleanup** - Synthesis-count restart and IOAccelerator mitigation code removed (no MLX in Swift process)
 
 ## Phase Details
 
@@ -392,7 +403,8 @@ Plans:
 
 </details>
 
-### v4.7.0 Architecture Hardening + Feature Expansion Phase Details
+<details>
+<summary>v4.7.0 Architecture Hardening + Feature Expansion Phase Details (Phases 18-24)</summary>
 
 ### Phase 18: CompanionCore Library & Test Infrastructure
 
@@ -522,6 +534,7 @@ Plans:
 - [x] 23-01-PLAN.md -- CaptionHistoryPanel NSPanel + HTTP API endpoints + CompanionApp wiring
 - [x] 23-02-PLAN.md -- SwiftBar Caption History button + visual verification checkpoint
       **UI hint**: yes
+
 ### Phase 24: Chinese TTS Fallback
 
 **Goal**: CJK text is automatically spoken via sherpa-onnx Chinese voice while English continues through the default engine
@@ -539,10 +552,73 @@ Plans:
 
 - [x] 24-01-PLAN.md -- CSherpaOnnx C module + SherpaOnnxEngine with on-demand model loading
 - [x] 24-02-PLAN.md -- Wire CJK routing into TTSEngine + TelegramBot dispatch + build verification
+
+</details>
+
+### v4.8.0 Python MLX TTS Consolidation Phase Details
+
+### Phase 25: Python TTS Server Timestamp Endpoint
+
+**Goal**: Python MLX server exposes a word-level timestamp API so Swift can receive native per-word onset/duration data over HTTP instead of computing character-weighted fallbacks
+
+**Why Python MLX**: mlx-swift IOAccelerator leak is by design (+2.3GB/call, ml-explore/mlx #1086). Python MLX leaks only +4MB/call. sherpa-onnx Kokoro `durations` field is NULL (no word timestamps without C++ patching). FluidAudio CoreML has no word-level timestamp API (opaque compiled graphs). No Rust/candle Kokoro implementation exists. Evidence: `benchmark-python-mlx-baseline.md`, `benchmark-sherpa-onnx.md`, `benchmark-fluidaudio.md`, `tts-runtime-alternatives-research.md`.
+
+**Why word timestamps are non-negotiable**: Karaoke subtitle highlighting requires per-word onset/duration data. Character-weighted fallback produces visible drift on multi-syllable words. Native duration model output (MToken.start_ts/end_ts) gives zero-drift timing.
+
+**Depends on**: Phase 24 (existing codebase from v4.7.0)
+**Requirements**: PTS-01, PTS-02, PTS-03
+**Success Criteria** (what must be TRUE):
+
+1. `curl localhost:PORT/v1/audio/speech-with-timestamps -d '{"input":"Hello world"}'` returns JSON containing base64 WAV bytes and per-word onset/duration arrays
+2. Word timestamps come from mlx-audio MToken.start_ts/end_ts (duration model native output), not character-weighted approximation
+3. Python server runs as a launchd service that starts automatically before claude-tts-companion via service dependency ordering
+   **Plans**: TBD
+
+### Phase 26: Swift TTSEngine Python Integration
+
+**Goal**: TTSEngine delegates all English TTS to the Python server and feeds native word onsets into SubtitleSyncDriver, eliminating character-weighted fallback timing
+
+**Depends on**: Phase 25 (Python server must be running and returning timestamps)
+**Requirements**: SWI-01, SWI-02, SWI-03
+**Success Criteria** (what must be TRUE):
+
+1. TTSEngine sends text to Python server via HTTP, parses the JSON response, and passes native word onsets to SubtitleSyncDriver
+2. Karaoke subtitle gold highlighting advances using Python-derived word onsets with zero accumulated drift across a 60-second passage
+3. `tts_kokoro.sh` CLI script synthesizes and plays audio end-to-end via the Swift companion -> Python server chain
+   **Plans**: TBD
+   **UI hint**: yes
+
+### Phase 27: MLX Dependency Removal
+
+**Goal**: kokoro-ios, mlx-swift, and MLXUtilsLibrary are completely removed from Package.swift, producing a smaller binary with no MLX-related symbols
+
+**Depends on**: Phase 26 (Swift no longer imports MLX for English TTS)
+**Requirements**: DEP-01, DEP-02, DEP-03, DEP-04, DEP-05
+**Success Criteria** (what must be TRUE):
+
+1. Package.swift has zero references to kokoro-ios, mlx-swift, or MLXUtilsLibrary
+2. `grep -r 'import MLX\|import KokoroSwift\|import MLXUtilsLibrary' Sources/` returns zero matches
+3. `swift build -c release` succeeds with zero errors and no MLX-related symbols in the binary
+4. Stripped release binary is under 20 MB (down from ~25+ MB with MLX dependencies)
+   **Plans**: TBD
+
+### Phase 28: Memory Lifecycle Cleanup
+
+**Goal**: All IOAccelerator leak mitigation code is removed because there is no MLX running in the Swift process -- the companion stays under 100 MB RSS indefinitely
+
+**Depends on**: Phase 27 (MLX dependencies must be gone first)
+**Requirements**: MEM-01, MEM-02, MEM-03
+**Success Criteria** (what must be TRUE):
+
+1. Synthesis-count restart logic is removed from TTSEngine (no `exit(42)`, no counter, no `checkMemoryLifecycleRestart`)
+2. MemoryLifecycle.swift is either deleted or reduced to a no-op stub (no IOAccelerator mitigation code remains)
+3. Swift companion RSS stays under 100 MB across 50+ consecutive TTS calls (all synthesis happens in Python process, not Swift)
+   **Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24
+Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28
 
 | Phase                                           | Plans Complete | Status      | Completed  |
 | ----------------------------------------------- | -------------- | ----------- | ---------- |
@@ -568,6 +644,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 20. Unit & Integration Tests                    | 2/2            | Complete    | 2026-03-28 |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete    | 2026-03-28 |
 | 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
-| 22. Bionic Reading Mode                         | 2/2 | Complete    | 2026-03-28 |
-| 23. Caption History Panel                       | 2/2 | Complete    | 2026-03-28 |
-| 24. Chinese TTS Fallback                        | 2/2 | Complete    | 2026-03-28 |
+| 22. Bionic Reading Mode                         | 2/2            | Complete    | 2026-03-28 |
+| 23. Caption History Panel                       | 2/2            | Complete    | 2026-03-28 |
+| 24. Chinese TTS Fallback                        | 2/2            | Complete    | 2026-03-28 |
+| 25. Python TTS Server Timestamp Endpoint        | 0/0            | Not started | -          |
+| 26. Swift TTSEngine Python Integration          | 0/0            | Not started | -          |
+| 27. MLX Dependency Removal                      | 0/0            | Not started | -          |
+| 28. Memory Lifecycle Cleanup                    | 0/0            | Not started | -          |
