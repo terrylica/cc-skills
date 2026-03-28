@@ -22,7 +22,6 @@ public final class TelegramBot: @unchecked Sendable {
 
     // Prompt execution (BOT-05, BOT-06)
     private let promptExecutor = PromptExecutor()
-    private var syncDriver: SubtitleSyncDriver?
 
     // Streaming TTS guard: prevents new dispatch from interrupting in-progress streaming.
     // Protected by NSLock for thread safety -- accessed from both notification handler
@@ -229,18 +228,20 @@ public final class TelegramBot: @unchecked Sendable {
     /// Uses streaming sentence-chunked synthesis when `Config.streamingTTS` is true,
     /// falling back to full-paragraph synthesis for future low-RTF models.
     private func dispatchTTS(text: String, greeting: String?) async {
-        // Guard: skip if a streaming synthesis pipeline is still playing (prevents early cutoff)
-        if isStreamingInProgress {
-            logger.warning("Skipping TTS dispatch — streaming synthesis in progress (\(text.count) chars dropped)")
-            return
-        }
-
         // Build full TTS text with optional greeting
         let fullText: String
         if let greeting = greeting, !greeting.isEmpty {
             fullText = "\(greeting) \(text)"
         } else {
             fullText = text
+        }
+
+        // Guard: if a streaming synthesis pipeline is still playing, show subtitle-only
+        // fallback instead of silently dropping the notification (HARD-04)
+        if isStreamingInProgress {
+            logger.warning("TTS busy — showing subtitle-only fallback (\(fullText.count) chars)")
+            showSubtitleOnlyFallback(text: fullText)
+            return
         }
 
         // Detect language to select correct voice (TTS-10)
@@ -266,21 +267,10 @@ public final class TelegramBot: @unchecked Sendable {
         }
     }
 
-    /// Streaming TTS: synthesize sentence-by-sentence, play first chunk ASAP.
+    /// Streaming TTS: synthesize sentence-by-sentence, play via coordinator.
     private func dispatchStreamingTTS(text: String, voiceName: String) {
         // Mark streaming as in-progress to prevent new dispatches from interrupting
         isStreamingInProgress = true
-
-        // Cancel previous playback IMMEDIATELY when a new session dispatches.
-        // Reset AudioStreamPlayer (cancels queued buffers, keeps engine warm).
-        // PlaybackManager is @MainActor -- dispatch to main queue.
-        let driverToStop = syncDriver
-        syncDriver = nil
-        DispatchQueue.main.async { [self] in
-            playbackManager.audioStreamPlayer.reset()
-            playbackManager.stopPlayback()
-            driverToStop?.stop()
-        }
 
         // Batch-then-play: collect all synthesized chunks, then play them all at once.
         // MLX Metal GPU creates ~1.7GB IOAccelerator allocations per synthesis call that
@@ -300,44 +290,27 @@ public final class TelegramBot: @unchecked Sendable {
             await MainActor.run {
                 guard !chunks.isEmpty else {
                     self.isStreamingInProgress = false
+                    self.pipelineCoordinator.cancelCurrentPipeline()
                     self.logger.warning("Streaming complete with no chunks -- showing subtitle-only fallback")
                     self.showSubtitleOnlyFallback(text: text)
                     return
                 }
 
-                // Create sync driver for batch playback
-                let driver = SubtitleSyncDriver(
-                    subtitlePanel: self.subtitlePanel,
-                    audioStreamPlayer: self.playbackManager.audioStreamPlayer,
-                    onStreamingComplete: { [weak self] in
+                self.pipelineCoordinator.startBatchPipeline(
+                    chunks: chunks,
+                    onComplete: { [weak self] in
                         self?.isStreamingInProgress = false
                         self?.logger.info("Batch playback complete -- new TTS dispatches unblocked")
                         Task { await checkMemoryLifecycleRestart() }
                     }
                 )
-                self.syncDriver = driver
-
-                // Add all chunks to the driver
-                for chunk in chunks {
-                    let fontSizeName = self.subtitlePanel.currentFontSizeName
-                    let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
-                    driver.addChunk(
-                        wavPath: chunk.wavPath,
-                        samples: chunk.samples,
-                        pages: pages,
-                        wordTimings: chunk.wordTimings,
-                        nativeOnsets: chunk.wordOnsets
-                    )
-                }
-
-                // Start batch playback: schedules ALL buffers, then plays gaplessly
-                driver.startBatchPlayback()
             }
         }
     }
 
     /// Full-paragraph TTS: synthesize everything, then play (legacy path).
     /// Preserved for future TTS models with lower RTF where streaming is unnecessary.
+    /// Uses AVAudioPlayer (not AudioStreamPlayer), so only needs coordinator for cancellation.
     private func dispatchFullTTS(text: String, voiceName: String) {
         Task { [weak self] in
             guard let self = self else { return }
@@ -346,10 +319,8 @@ public final class TelegramBot: @unchecked Sendable {
                 self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
 
                 await MainActor.run {
-                    // Cancel previous playback only when new audio is ready
-                    self.playbackManager.stopPlayback()
-                    self.syncDriver?.stop()
-                    self.syncDriver = nil
+                    // Cancel any in-progress streaming pipeline before starting AVAudioPlayer playback
+                    self.pipelineCoordinator.cancelCurrentPipeline()
 
                     let fontSizeName = self.subtitlePanel.currentFontSizeName
                     let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text, fontSizeName: fontSizeName)
@@ -366,7 +337,6 @@ public final class TelegramBot: @unchecked Sendable {
                         nativeOnsets: ttsResult.wordOnsets,
                         subtitlePanel: self.subtitlePanel
                     )
-                    self.syncDriver = driver
                     driver.start()
                 }
             } catch {
