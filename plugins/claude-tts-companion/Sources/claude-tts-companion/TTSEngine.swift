@@ -148,6 +148,38 @@ final class TTSEngine: @unchecked Sendable {
     /// of crashing on first use.
     private(set) var isDisabledDueToMissingModel: Bool = false
 
+    // MARK: - Memory Lifecycle (MLX IOAccelerator Leak Mitigation)
+
+    /// Total number of generateAudio() calls since process start.
+    /// Used by the memory lifecycle system to trigger planned restart
+    /// before IOAccelerator allocations exhaust system RAM.
+    private(set) var synthesisCount: Int = 0
+
+    /// Maximum generateAudio() calls before triggering graceful exit for memory reclaim.
+    /// IOAccelerator grows ~1.7GB per call and is only reclaimable via process exit.
+    /// At 10 calls, worst case is ~17GB before restart — safely under 32GB system RAM.
+    static let maxSynthesisBeforeRestart = 10
+
+    /// Whether the synthesis count has reached the restart threshold.
+    /// Callers should trigger graceful exit after current playback completes.
+    var shouldRestartForMemory: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return synthesisCount >= Self.maxSynthesisBeforeRestart
+    }
+
+    /// Returns synthesis count and optional MLX memory snapshot for diagnostics.
+    func memoryDiagnostics() -> (synthesisCount: Int, mlxActive: Int?, mlxCache: Int?, mlxPeak: Int?) {
+        lock.lock()
+        let count = synthesisCount
+        lock.unlock()
+        if let tts = ttsInstance {
+            let snap = tts.memorySnapshot()
+            return (count, snap.active, snap.cache, snap.peak)
+        }
+        return (count, nil, nil, nil)
+    }
+
     // MARK: - TTS Circuit Breaker (P1)
 
     /// Number of consecutive synthesis failures before disabling TTS temporarily.
@@ -278,6 +310,9 @@ final class TTSEngine: @unchecked Sendable {
                 let (audio, _) = try tts.generateAudio(
                     voice: activeVoice, language: .enUS, text: processedText, speed: speed
                 )
+                lock.lock()
+                synthesisCount += 1
+                lock.unlock()
 
                 let audioDuration = Double(audio.count) / 24000.0
 
@@ -369,6 +404,9 @@ final class TTSEngine: @unchecked Sendable {
                 let (audio, tokenArray) = try tts.generateAudio(
                     voice: activeVoice, language: .enUS, text: processedText, speed: speed
                 )
+                lock.lock()
+                synthesisCount += 1
+                lock.unlock()
 
                 let audioDuration = Double(audio.count) / 24000.0
                 try writeWav(samples: audio, to: wavPath)
@@ -491,6 +529,9 @@ final class TTSEngine: @unchecked Sendable {
                             (audio, tokenArray) = try tts.generateAudio(
                                 voice: activeVoice, language: .enUS, text: processedSentence, speed: speed
                             )
+                            lock.lock()
+                            synthesisCount += 1
+                            lock.unlock()
                             recordSynthesisSuccess()
                         } catch {
                             logger.error("Synthesis failed for chunk \(index + 1): \(error)")
