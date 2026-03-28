@@ -44,6 +44,13 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     private var scheduledBufferCount: Int = 0
     private let bufferCountLock = NSLock()
 
+    /// Observer token for AVAudioEngine configuration change notifications.
+    private var configChangeObserver: NSObjectProtocol?
+
+    /// Called when audio route changes (e.g., Bluetooth disconnect). Fires on main queue.
+    /// TTSPipelineCoordinator uses this to cancel current pipeline and optionally restart.
+    var onRouteChange: (() -> Void)?
+
     /// Whether the player node is currently playing audio.
     var isPlaying: Bool {
         playerNode.isPlaying
@@ -79,10 +86,23 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         engine.attach(playerNode)
         engine.connect(playerNode, to: engine.mainMixerNode, format: format)
 
+        // Observe audio configuration changes (Bluetooth disconnect, USB DAC removal, etc.)
+        // When hardware route changes, macOS invalidates the AVAudioEngine configuration.
+        configChangeObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleConfigurationChange()
+        }
+
         logger.info("AudioStreamPlayer created (24kHz mono float32, AVAudioEngine)")
     }
 
     deinit {
+        if let observer = configChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
         stop()
     }
 
@@ -147,6 +167,41 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         }
 
         logger.info("AudioStreamPlayer reset for new session")
+    }
+
+    // MARK: - Route Change Recovery
+
+    /// Handle AVAudioEngine configuration change (hardware route change).
+    ///
+    /// When Bluetooth headphones disconnect mid-playback, macOS invalidates the
+    /// engine configuration. This method stops the player node (cancels queued buffers),
+    /// attempts to restart the engine on the new default output device, and notifies
+    /// the coordinator via `onRouteChange` callback.
+    private func handleConfigurationChange() {
+        logger.warning("Audio configuration changed (hardware route change)")
+
+        engineLock.lock()
+
+        // Stop player node -- cancels all queued buffers
+        playerNode.stop()
+        bufferCountLock.lock()
+        scheduledBufferCount = 0
+        bufferCountLock.unlock()
+
+        // Try to restart engine on new default output device
+        do {
+            try engine.start()
+            isRunning = true
+            logger.info("AVAudioEngine restarted on new audio device")
+        } catch {
+            isRunning = false
+            logger.error("Failed to restart AVAudioEngine after route change: \(error)")
+        }
+
+        engineLock.unlock()
+
+        // Notify coordinator to cancel current pipeline (subtitle-only fallback if needed)
+        onRouteChange?()
     }
 
     // MARK: - Buffer Scheduling
