@@ -143,7 +143,7 @@
 
 ### Bionic Reading
 
-- [ ] **BION-01**: User can toggle bionic reading mode via SwiftBar settings menu
+- [x] **BION-01**: User can toggle bionic reading mode via SwiftBar settings menu
 - [x] **BION-02**: User can toggle bionic reading mode via HTTP API
 - [x] **BION-03**: Subtitle text renders with bold first 40% of each word when bionic mode enabled
 - [x] **BION-04**: Bionic rendering composes correctly with karaoke gold highlighting
@@ -370,7 +370,7 @@
 | HARD-02     | Phase 21   | Complete |
 | HARD-03     | Phase 21   | Complete |
 | HARD-04     | Phase 21   | Complete |
-| BION-01     | Phase 22   | Pending  |
+| BION-01     | Phase 22   | Complete |
 | BION-02     | Phase 22   | Complete |
 | BION-03     | Phase 22   | Complete |
 | BION-04     | Phase 22   | Complete |
