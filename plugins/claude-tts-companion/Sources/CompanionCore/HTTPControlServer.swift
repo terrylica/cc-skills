@@ -25,8 +25,8 @@ private struct ShowSubtitleRequest: Codable {
     let duration: Double?
 }
 
-/// Request body for POST /tts/test.
-private struct TTSTestRequest: Codable {
+/// Request body for POST /tts/speak.
+private struct TTSSpeakRequest: Codable {
     let text: String?
 }
 
@@ -45,11 +45,6 @@ private struct HealthResponse: Codable {
     let status: String
     let uptime_seconds: Int
     let rss_mb: Double
-    let tts_synthesis_count: Int
-    let tts_restart_threshold: Int
-    let mlx_memory_active_mb: Int?
-    let mlx_memory_cache_mb: Int?
-    let mlx_memory_peak_mb: Int?
     let subsystems: SubsystemStatus
 }
 
@@ -112,7 +107,7 @@ public final class HTTPControlServer: @unchecked Sendable {
 
         // API-01: Health endpoint
         await server.appendRoute("GET /health") { [self] _ in
-            return await healthResponse()
+            return healthResponse()
         }
 
         // API-02: Get all settings
@@ -191,11 +186,12 @@ public final class HTTPControlServer: @unchecked Sendable {
             return jsonResponse(OkResponse(ok: true))
         }
 
-        // API-09: TTS test — synthesize + play + karaoke subtitles (streaming)
-        await server.appendRoute("POST /tts/test") { [self] request in
+        // API-09: TTS speak — synthesize + play + karaoke subtitles (streaming)
+        // Primary endpoint for external callers (tts_kokoro.sh, SwiftBar, etc.)
+        await server.appendRoute("POST /tts/speak") { [self] request in
             do {
                 let body = try await request.bodyData
-                let testReq = try JSONDecoder().decode(TTSTestRequest.self, from: body)
+                let testReq = try JSONDecoder().decode(TTSSpeakRequest.self, from: body)
                 let text = testReq.text ?? "Claude TTS companion is working. Karaoke subtitles are synced with audio playback."
                 let settings = settingsStore.getSettings()
                 let voiceName = settings.tts.voice
@@ -244,7 +240,6 @@ public final class HTTPControlServer: @unchecked Sendable {
                         chunks: chunks,
                         onComplete: {
                             self.logger.info("TTS test batch playback complete")
-                            Task { await checkMemoryLifecycleRestart() }
                         }
                     )
                 }
@@ -287,20 +282,14 @@ public final class HTTPControlServer: @unchecked Sendable {
     // MARK: - Private Helpers
 
     /// Build the health response with uptime and RSS (API-01).
-    private func healthResponse() async -> HTTPResponse {
+    private func healthResponse() -> HTTPResponse {
         let uptimeSeconds = Int(Date().timeIntervalSince(startTime))
         let rssMB = currentRSSMB()
-        let diag = await ttsEngine.memoryDiagnostics()
 
         let health = HealthResponse(
             status: "ok",
             uptime_seconds: uptimeSeconds,
             rss_mb: rssMB,
-            tts_synthesis_count: diag.synthesisCount,
-            tts_restart_threshold: TTSEngine.maxSynthesisBeforeRestart,
-            mlx_memory_active_mb: diag.mlxActive.map { $0 / (1024 * 1024) },
-            mlx_memory_cache_mb: diag.mlxCache.map { $0 / (1024 * 1024) },
-            mlx_memory_peak_mb: diag.mlxPeak.map { $0 / (1024 * 1024) },
             subsystems: SubsystemStatus(
                 bot: telegramBot?.watching == true ? "watching" : (telegramBot != nil ? "stopped" : "unknown"),
                 tts: "ready",
