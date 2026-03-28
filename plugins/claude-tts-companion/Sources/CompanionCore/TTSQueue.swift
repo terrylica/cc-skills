@@ -39,6 +39,7 @@ public actor TTSQueue {
     private let ttsEngine: TTSEngine
     private let pipelineCoordinator: TTSPipelineCoordinator
     private let subtitlePanel: SubtitlePanel
+    private let captionHistory: CaptionHistory
 
     // Queue state
     private struct WorkItem {
@@ -55,10 +56,11 @@ public actor TTSQueue {
 
     static let maxAutomatedQueueDepth = 3
 
-    public init(ttsEngine: TTSEngine, pipelineCoordinator: TTSPipelineCoordinator, subtitlePanel: SubtitlePanel) {
+    public init(ttsEngine: TTSEngine, pipelineCoordinator: TTSPipelineCoordinator, subtitlePanel: SubtitlePanel, captionHistory: CaptionHistory) {
         self.ttsEngine = ttsEngine
         self.pipelineCoordinator = pipelineCoordinator
         self.subtitlePanel = subtitlePanel
+        self.captionHistory = captionHistory
     }
 
     // MARK: - Public API
@@ -218,6 +220,9 @@ public actor TTSQueue {
             showSubtitleFallback(item)
             return
         }
+
+        // Record to caption history for scrollback
+        captionHistory.record(fullText)
 
         // Start playback and await completion
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
