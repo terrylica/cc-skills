@@ -139,7 +139,7 @@ Plans:
 
 Plans:
 
-- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [x] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
 - [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
 
 ### Phase 5: Telegram Bot Core
@@ -568,7 +568,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 19. TTSEngine Decomposition & Actor Migration   | 2/2 | Complete    | 2026-03-28 |
 | 20. Unit & Integration Tests                    | 2/2 | Complete    | 2026-03-28 |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1 | Complete   | 2026-03-28 |
-| 21. Pipeline Hardening                          | 0/2            | Not started | -          |
+| 21. Pipeline Hardening                          | 1/2 | In Progress|  |
 | 22. Bionic Reading Mode                         | 0/0            | Not started | -          |
 | 23. Caption History Panel                       | 0/0            | Not started | -          |
 | 24. Chinese TTS Fallback                        | 0/0            | Not started | -          |
