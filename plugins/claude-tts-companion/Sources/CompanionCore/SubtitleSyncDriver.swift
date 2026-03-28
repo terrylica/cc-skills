@@ -65,6 +65,9 @@ public final class SubtitleSyncDriver {
     /// All chunks received so far (played + pending)
     private var streamChunks: [StreamChunk] = []
 
+    /// WAV paths already cleaned up (prevents double-delete when chunks share a path)
+    private var deletedWavPaths: Set<String> = []
+
     /// Index of the chunk currently being played
     private var currentChunkIndex: Int = 0
 
@@ -215,7 +218,7 @@ public final class SubtitleSyncDriver {
     ///
     /// - Parameters:
     ///   - wavPath: Path to the WAV file for this chunk (kept for fallback/cleanup)
-    ///   - samples: Raw float32 PCM samples at 24kHz (preferred, avoids WAV I/O)
+    ///   - samples: Float32 PCM samples at 48kHz (upsampled from 24kHz, preferred over WAV I/O)
     ///   - pages: Subtitle pages for this chunk
     ///   - wordTimings: Per-word durations from TTSEngine
     ///   - nativeOnsets: Native word onset times from Python MLX server (nil = derive from durations)
@@ -233,13 +236,10 @@ public final class SubtitleSyncDriver {
             logger: logger
         )
         // Compute audioDuration from actual sample count when available.
-        // TTSEngine appends trailing silence padding (100ms) to each chunk's PCM samples,
-        // but wordTimings only sum to the raw (unpadded) duration. Since AVAudioEngine
-        // plays the padded samples, cumulative offsets must use the padded duration to
-        // keep karaoke highlighting in sync across chunks.
+        // Audio is upsampled to 48kHz before scheduling on AudioStreamPlayer.
         let audioDuration: TimeInterval
         if let samples = samples, !samples.isEmpty {
-            audioDuration = Double(samples.count) / 24000.0
+            audioDuration = Double(samples.count) / 48000.0
         } else {
             audioDuration = wordTimings.reduce(0, +)
         }
@@ -288,13 +288,18 @@ public final class SubtitleSyncDriver {
         // AVAudioPlayerNode queues them internally for gapless back-to-back rendering.
         for (index, chunk) in streamChunks.enumerated() {
             let isLastChunk = (index == streamChunks.count - 1)
+            let pageText = chunk.pages.first?.words.joined(separator: " ").prefix(50) ?? "(no pages)"
+            logger.info("[TELEMETRY] Scheduling chunk \(index)/\(streamChunks.count - 1): \"\(pageText)\", samples=\(chunk.samples?.count ?? 0), duration=\(String(format: "%.3f", chunk.audioDuration))s, wordOnsets=\(chunk.wordOnsets.count), totalWords=\(chunk.totalWords)")
 
             if let samples = chunk.samples {
                 asp.scheduleChunk(samples: samples) { [weak self] in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
-                        // Clean up WAV file
-                        try? FileManager.default.removeItem(atPath: chunk.wavPath)
+                        // Clean up WAV file (skip if already deleted by another chunk sharing the path)
+                        if !self.deletedWavPaths.contains(chunk.wavPath) {
+                            try? FileManager.default.removeItem(atPath: chunk.wavPath)
+                            self.deletedWavPaths.insert(chunk.wavPath)
+                        }
 
                         if isLastChunk {
                             // Last buffer finished playing — playback is complete
@@ -347,9 +352,12 @@ public final class SubtitleSyncDriver {
         if isStreamingMode {
             audioStreamPlayer?.reset()
 
-            // Clean up WAV files for any unplayed chunks
+            // Clean up WAV files (deduplicate shared paths)
             for chunk in streamChunks {
-                try? FileManager.default.removeItem(atPath: chunk.wavPath)
+                if !deletedWavPaths.contains(chunk.wavPath) {
+                    try? FileManager.default.removeItem(atPath: chunk.wavPath)
+                    deletedWavPaths.insert(chunk.wavPath)
+                }
             }
         }
 
