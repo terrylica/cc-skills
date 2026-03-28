@@ -19,8 +19,8 @@ public enum LanguageDetector {
     /// Extension A, Extension B) and returns Chinese voice settings when the
     /// CJK ratio exceeds `Config.cjkDetectionThreshold` (default 20%).
     ///
-    /// Note: kokoro-ios is English-only. Chinese text will use the English voice
-    /// with a warning logged by TTSEngine.
+    /// Note: Chinese text routes to sherpa-onnx engine via TTSEngine.synthesizeStreamingAutoRoute.
+    /// kokoro-ios (MLX) handles English only.
     ///
     /// Empty strings return English defaults (matching legacy behavior).
     static func detect(text: String) -> LanguageResult {
@@ -49,11 +49,11 @@ public enum LanguageDetector {
         let ratio = (Double(cjkCount) / Double(totalCount)) * 100.0
 
         if ratio >= Config.cjkDetectionThreshold {
-            // kokoro-ios is English-only; use English voice for CJK text with warning
+            // CJK text routes to sherpa-onnx engine (CJK-01)
             return LanguageResult(
                 lang: "cmn",
                 speakerId: Config.chineseSpeakerId,
-                voiceName: Config.defaultVoiceName  // Graceful degradation: English voice
+                voiceName: Config.chineseVoiceName  // Routes to sherpa-onnx, not kokoro-ios
             )
         }
 
