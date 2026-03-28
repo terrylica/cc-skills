@@ -412,7 +412,7 @@ Plans:
 
 Plans:
 
-- [ ] 19-01-PLAN.md -- Extract pure structs (WordTimingAligner, PronunciationProcessor, SentenceSplitter) + PlaybackDelegate + TTSError
+- [x] 19-01-PLAN.md -- Extract pure structs (WordTimingAligner, PronunciationProcessor, SentenceSplitter) + PlaybackDelegate + TTSError
 - [ ] 19-02-PLAN.md -- PlaybackManager @MainActor extraction + TTSEngine actor migration + caller updates
 
 ### Phase 20: Unit & Integration Tests
@@ -526,7 +526,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 16. Integration & Reliability                   | 1/1            | Complete    | 2026-03-27 |
 | 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete    | 2026-03-27 |
 | 18. CompanionCore Library & Test Infrastructure | 2/2 | Complete    | 2026-03-28 |
-| 19. TTSEngine Decomposition & Actor Migration   | 0/2            | Not started | -          |
+| 19. TTSEngine Decomposition & Actor Migration   | 1/2 | In Progress|  |
 | 20. Unit & Integration Tests                    | 0/0            | Not started | -          |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1 | Complete   | 2026-03-28 |
 | 21. Pipeline Hardening                          | 0/0            | Not started | -          |

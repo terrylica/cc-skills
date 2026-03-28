@@ -114,8 +114,8 @@
 
 - [x] **ARCH-01**: CompanionCore library target extracts all business logic from executable, leaving main.swift as thin shell
 - [ ] **ARCH-02**: TTSEngine decomposed into PlaybackManager (AVAudioPlayer lifecycle, pre-buffering)
-- [ ] **ARCH-03**: TTSEngine decomposed into WordTimingAligner (MToken-to-word alignment, onset resolution)
-- [ ] **ARCH-04**: TTSEngine decomposed into PronunciationProcessor (overrides dictionary, regex preprocessing)
+- [x] **ARCH-03**: TTSEngine decomposed into WordTimingAligner (MToken-to-word alignment, onset resolution)
+- [x] **ARCH-04**: TTSEngine decomposed into PronunciationProcessor (overrides dictionary, regex preprocessing)
 - [ ] **ARCH-05**: TTSEngine becomes thin orchestrator delegating to extracted components
 - [ ] **ARCH-06**: All callers updated to use decomposed TTSEngine API (TelegramBot, HTTPControlServer, SubtitleSyncDriver)
 
@@ -351,8 +351,8 @@
 | ARCH-01     | Phase 18   | Complete |
 | TEST-01     | Phase 18   | Complete |
 | ARCH-02     | Phase 19   | Pending  |
-| ARCH-03     | Phase 19   | Pending  |
-| ARCH-04     | Phase 19   | Pending  |
+| ARCH-03     | Phase 19   | Complete |
+| ARCH-04     | Phase 19   | Complete |
 | ARCH-05     | Phase 19   | Pending  |
 | ARCH-06     | Phase 19   | Pending  |
 | CONC-01     | Phase 19   | Pending  |
