@@ -55,9 +55,12 @@ public enum SubtitleStyle {
         font(size: resolvedFontSize(sizeName).rawValue, weight: .regular)
     }
 
-    /// Create a font using SF Pro Display if available, falling back to system font.
+    /// Font family for subtitles — matches iTerm2/Ghostty terminal font.
+    private static let fontFamily = "JetBrainsMonoNL Nerd Font Mono"
+
+    /// Create a font using the configured font family, falling back to system font.
     static func font(size: CGFloat, weight: NSFont.Weight) -> NSFont {
-        NSFont(name: "SF Pro Display", size: size).map {
+        NSFont(name: fontFamily, size: size).map {
             NSFontManager.shared.convert(
                 $0, toHaveTrait: weight == .bold ? .boldFontMask : .unboldFontMask
             )
