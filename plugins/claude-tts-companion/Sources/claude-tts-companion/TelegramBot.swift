@@ -325,6 +325,8 @@ final class TelegramBot: @unchecked Sendable {
                         onStreamingComplete: { [weak self] in
                             self?.isStreamingInProgress = false
                             self?.logger.info("Batch playback complete — new TTS dispatches unblocked")
+                            // Check synthesis count for memory lifecycle restart
+                            checkMemoryLifecycleRestart()
                         }
                     )
                     self.syncDriver = driver
