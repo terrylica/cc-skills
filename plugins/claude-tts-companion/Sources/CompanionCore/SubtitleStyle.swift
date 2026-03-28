@@ -87,12 +87,12 @@ public enum SubtitleStyle {
     /// Panel width as a fraction of screen width (70%)
     static let widthRatio: CGFloat = 0.9
 
-    /// Maximum number of text lines before clipping
-    static let maxLines = 2
+    /// Maximum number of text lines (0 = unlimited, auto-sizes to content)
+    static let maxLines = 0
 
     /// Seconds to keep the last subtitle visible after the final word
     static let lingerDuration: TimeInterval = 2.0
 
-    /// Safety fallback: truncate text that overflows the 2-line display
-    static let truncatesLastVisibleLine = true
+    /// Whether to truncate text that overflows the display
+    static let truncatesLastVisibleLine = false
 }
