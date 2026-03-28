@@ -394,7 +394,7 @@ Plans:
 Plans:
 
 - [x] 18-01-PLAN.md -- CompanionCore library extraction + CompanionApp coordinator + thin main.swift
-- [ ] 18-02-PLAN.md -- Unit tests for LanguageDetector, SubtitleChunker, TelegramFormatter, TranscriptParser, CircuitBreaker
+- [x] 18-02-PLAN.md -- Unit tests for LanguageDetector, SubtitleChunker, TelegramFormatter, TranscriptParser, CircuitBreaker
 
 ### Phase 19: TTSEngine Decomposition & Actor Migration
 
@@ -520,7 +520,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 15. Telegram Inline Buttons                     | 2/2            | Complete    | 2026-03-27 |
 | 16. Integration & Reliability                   | 1/1            | Complete    | 2026-03-27 |
 | 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete    | 2026-03-27 |
-| 18. CompanionCore Library & Test Infrastructure | 1/2 | In Progress|  |
+| 18. CompanionCore Library & Test Infrastructure | 2/2 | Complete   | 2026-03-28 |
 | 19. TTSEngine Decomposition & Actor Migration   | 0/0            | Not started | -          |
 | 20. Unit & Integration Tests                    | 0/0            | Not started | -          |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1 | Complete   | 2026-03-28 |

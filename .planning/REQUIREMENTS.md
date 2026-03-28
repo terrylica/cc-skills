@@ -135,7 +135,7 @@
 
 ### Testing
 
-- [ ] **TEST-01**: XCTest target for CompanionCore library with SwiftPM `swift test`
+- [x] **TEST-01**: XCTest target for CompanionCore library with SwiftPM `swift test`
 - [ ] **TEST-02**: Unit tests for SubtitleChunker (page splitting, line breaks, font sizes)
 - [ ] **TEST-03**: Unit tests for WordTimingAligner (MToken alignment, onset resolution, hyphen handling)
 - [ ] **TEST-04**: Unit tests for PronunciationProcessor (override matching, regex boundaries)
@@ -349,7 +349,7 @@
 | STREAM-02   | Phase 17   | Complete |
 | STREAM-03   | Phase 17   | Complete |
 | ARCH-01     | Phase 18   | Complete |
-| TEST-01     | Phase 18   | Pending  |
+| TEST-01     | Phase 18   | Complete |
 | ARCH-02     | Phase 19   | Pending  |
 | ARCH-03     | Phase 19   | Pending  |
 | ARCH-04     | Phase 19   | Pending  |
