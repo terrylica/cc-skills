@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.8.0
 milestone_name: Python MLX TTS Consolidation
-status: roadmapped
-stopped_at: Roadmap created for Phases 25-28
-last_updated: "2026-03-28T06:00:00.000Z"
+status: verifying
+stopped_at: Completed 25-01-PLAN.md
+last_updated: "2026-03-28T07:33:10.985Z"
 last_activity: 2026-03-28
 progress:
-  total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 25
+  completed_phases: 24
+  total_plans: 48
+  completed_plans: 47
   percent: 0
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** v4.8.0 -- Python MLX TTS Consolidation (roadmapped, ready to plan Phase 25)
+**Current focus:** Phase 25 — python-tts-server-timestamp-endpoint
 
 ## Current Position
 
-Phase: 25 of 28 (Python TTS Server Timestamp Endpoint)
-Plan: Not yet planned
-Status: Ready to plan
-Last activity: 2026-03-28 -- Roadmap created for v4.8.0 (Phases 25-28)
+Phase: 25 (python-tts-server-timestamp-endpoint) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -60,6 +60,8 @@ Progress: [░░░░░░░░░░] 0%
 - Last 5 plans: 3min, 1min, 3min, 3min, 5min
 - Trend: Stable (~3min average)
 
+| Phase 25 P01 | 5min | 2 tasks | 2 files |
+
 ## Accumulated Context
 
 ### Decisions
@@ -73,6 +75,8 @@ Recent decisions affecting current work:
 - [v4.8.0]: Python MLX over Rust/candle -- no Kokoro implementation exists
 - [v4.8.0]: Word timing non-negotiable -- karaoke highlighting requires per-word onset/duration
 - [Phase 20.1]: exit(42) as restart signal for IOAccelerator memory reclaim via launchd KeepAlive (to be removed in Phase 28)
+- [Phase 25]: Access KokoroPipeline directly instead of model.generate() because GenerationResult discards MToken timestamp data
+- [Phase 25]: Audio array squeeze(0) needed because pipeline returns (1,N) shape vs generate() which does audio[0] internally
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T06:00:00.000Z
-Stopped at: Roadmap created for v4.8.0 Phases 25-28
+Last session: 2026-03-28T07:33:10.983Z
+Stopped at: Completed 25-01-PLAN.md
 Resume file: None
