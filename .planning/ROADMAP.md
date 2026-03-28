@@ -537,9 +537,8 @@ Plans:
 
 Plans:
 
-- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
-- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
-
+- [ ] 24-01-PLAN.md -- CSherpaOnnx C module + SherpaOnnxEngine with on-demand model loading
+- [ ] 24-02-PLAN.md -- Wire CJK routing into TTSEngine + TelegramBot dispatch + build verification
 ## Progress
 
 **Execution Order:**
@@ -571,4 +570,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
 | 22. Bionic Reading Mode                         | 2/2 | Complete    | 2026-03-28 |
 | 23. Caption History Panel                       | 2/2 | Complete    | 2026-03-28 |
-| 24. Chinese TTS Fallback                        | 0/0            | Not started | -          |
+| 24. Chinese TTS Fallback                        | 0/2            | Not started | -          |
