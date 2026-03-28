@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 18 — companioncore-library-test-infrastructure
+**Current focus:** Phase 19 — ttsengine-decomposition-actor-migration
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-28
+Phase: 19 (ttsengine-decomposition-actor-migration) — EXECUTING
+Plan: 1 of 2 -- COMPLETE
+Status: Plan 19-01 complete, ready for Plan 19-02
+Last activity: 2026-03-28 -- Plan 19-01 executed (pure type extraction)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 20.1 P01 | 6min | 2 tasks | 7 files |
 | Phase 18 P01 | 8min | 2 tasks | 33 files |
 | Phase 18 P02 | 6min | 2 tasks | 6 files |
+| Phase 19 P01 | 10min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [v4.7.0]: Blocking TTS synthesis stays on dedicated DispatchQueue bridged via withCheckedThrowingContinuation
 - [v4.7.0]: Bionic and karaoke are mutually exclusive display modes (single DisplayMode enum)
 - [v4.7.0]: Chinese model uses load-on-demand with 30-second idle cooldown
+- [Phase 19]: PlaybackDelegate uses @MainActor with nonisolated(unsafe) let and nonisolated init for Swift 6 compatibility
+- [Phase 19]: MToken type is in MLXUtilsLibrary (not KokoroSwift) -- extracted types import accordingly
 - [Phase 20.1]: exit(42) as restart signal for IOAccelerator memory reclaim via launchd KeepAlive
 - [Phase 20.1]: Max 10 synthesis calls before process restart (~17GB worst case fits 32GB RAM)
 - [Phase 18]: CompanionApp @MainActor init/start/shutdown for SubtitlePanel compatibility
@@ -109,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T01:25:05.933Z
-Stopped at: Phase 19 context gathered
-Resume file: .planning/phases/19-ttsengine-decomposition-actor-migration/19-CONTEXT.md
+Last session: 2026-03-28T01:47:14Z
+Stopped at: Completed 19-01-PLAN.md
+Resume file: .planning/phases/19-ttsengine-decomposition-actor-migration/19-01-SUMMARY.md
