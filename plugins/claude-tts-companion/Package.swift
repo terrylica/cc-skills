@@ -11,6 +11,7 @@ let package = Package(
         .package(url: "https://github.com/terrylica/kokoro-ios.git", exact: "1.0.14"),
         .package(url: "https://github.com/mlalma/MLXUtilsLibrary.git", exact: "0.0.6"),
         .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.30.2"),
+        .package(url: "https://github.com/swiftlang/swift-testing", from: "0.12.0"),
     ],
     targets: [
         .target(
@@ -38,7 +39,10 @@ let package = Package(
         ),
         .testTarget(
             name: "CompanionCoreTests",
-            dependencies: ["CompanionCore"]
+            dependencies: [
+                "CompanionCore",
+                .product(name: "Testing", package: "swift-testing"),
+            ]
         ),
     ]
 )
