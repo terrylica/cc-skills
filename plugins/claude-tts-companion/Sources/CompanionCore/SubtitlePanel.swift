@@ -52,7 +52,7 @@ public final class SubtitlePanel: NSPanel {
         field.drawsBackground = false
         field.textColor = SubtitleStyle.futureWordColor
         field.font = SubtitleStyle.regularFont
-        field.alignment = .center
+        field.alignment = .left
         field.maximumNumberOfLines = SubtitleStyle.maxLines
         field.cell?.truncatesLastVisibleLine = SubtitleStyle.truncatesLastVisibleLine
         field.translatesAutoresizingMaskIntoConstraints = false
@@ -173,7 +173,7 @@ public final class SubtitlePanel: NSPanel {
         if mode == .plain {
             let regFont = SubtitleStyle.dynamicRegularFont(sizeName)
             let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.alignment = .center
+            paragraphStyle.alignment = .left
             paragraphStyle.lineBreakMode = .byWordWrapping
             let result = NSMutableAttributedString()
             for (i, word) in words.enumerated() {
@@ -202,7 +202,7 @@ public final class SubtitlePanel: NSPanel {
 
         let result = NSMutableAttributedString()
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .center
+        paragraphStyle.alignment = .left
         paragraphStyle.lineBreakMode = .byWordWrapping
 
         // Space attributes must include the paragraph style — otherwise the
@@ -459,22 +459,22 @@ public final class SubtitlePanel: NSPanel {
         // Use the dynamic font size from settings (small/medium/large)
         let font = SubtitleStyle.dynamicCurrentWordFont(currentFontSizeName)
 
-        // Auto-size height: measure actual text content, minimum 2 lines.
+        // Auto-size height: use NSTextFieldCell.cellSize(forBounds:) for accurate
+        // measurement with attributed strings (mixed fonts, word wrap).
         let lineHeight = ceil(font.ascender - font.descender + font.leading)
-        let interLineSpacing: CGFloat = 4
         let textWidth = panelWidth - SubtitleStyle.horizontalPadding * 2
-        let attrText = textField.attributedStringValue
+        textField.preferredMaxLayoutWidth = textWidth
+
         let measuredHeight: CGFloat
-        if attrText.length == 0 {
-            measuredHeight = lineHeight * 2
+        if let cell = textField.cell, textField.attributedStringValue.length > 0 {
+            let cellSize = cell.cellSize(forBounds: NSRect(x: 0, y: 0, width: textWidth, height: CGFloat.greatestFiniteMagnitude))
+            measuredHeight = max(lineHeight * 2, ceil(cellSize.height))
         } else {
-            let boundingRect = attrText.boundingRect(
-                with: NSSize(width: textWidth, height: .greatestFiniteMagnitude),
-                options: [.usesLineFragmentOrigin, .usesFontLeading]
-            )
-            measuredHeight = max(lineHeight * 2, ceil(boundingRect.height))
+            measuredHeight = lineHeight * 2
         }
-        let panelHeight = measuredHeight + interLineSpacing + SubtitleStyle.verticalPadding * 2
+        // Cap at 60% of screen height
+        let maxHeight = screenFrame.height * 0.6
+        let panelHeight = min(measuredHeight + SubtitleStyle.verticalPadding * 2, maxHeight)
 
         let x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
 
