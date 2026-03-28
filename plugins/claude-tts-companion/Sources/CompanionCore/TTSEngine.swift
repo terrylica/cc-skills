@@ -39,7 +39,6 @@ public struct TTSResult: Sendable {
 /// - Native word onsets from Kokoro duration model drive zero-drift karaoke highlighting
 /// - CJK synthesis still uses sherpa-onnx directly (no change)
 /// - Circuit breaker protects against Python server failures
-/// - Synthesis counter tracks calls for diagnostics (no restart needed -- Python server manages its own memory)
 public actor TTSEngine {
 
     private let logger = Logger(label: "tts-engine")
@@ -64,31 +63,6 @@ public actor TTSEngine {
     /// When true, synthesis may still be attempted (server could come up later),
     /// but a warning is logged.
     private(set) var pythonServerWarning: Bool = false
-
-    // MARK: - Synthesis Counter (Diagnostics)
-
-    /// Total number of synthesis calls since process start.
-    /// Used for diagnostics; no restart threshold needed since the Python server
-    /// manages its own MLX memory lifecycle independently.
-    private(set) var synthesisCount: Int = 0
-
-    /// Maximum synthesis calls before triggering graceful exit for memory reclaim.
-    /// With Python server delegation, IOAccelerator leaks happen in the Python process,
-    /// not this process. Threshold raised significantly -- this binary stays lean.
-    /// Static let on actor is nonisolated (accessible without await).
-    static let maxSynthesisBeforeRestart = 500
-
-    /// Whether the synthesis count has reached the restart threshold.
-    /// With Python server delegation, this threshold is essentially unreachable
-    /// since the companion binary no longer accumulates GPU memory.
-    var shouldRestartForMemory: Bool {
-        return synthesisCount >= Self.maxSynthesisBeforeRestart
-    }
-
-    /// Returns synthesis count for diagnostics (no MLX memory snapshot -- handled by Python server).
-    func memoryDiagnostics() -> (synthesisCount: Int, mlxActive: Int?, mlxCache: Int?, mlxPeak: Int?) {
-        return (synthesisCount, nil, nil, nil)
-    }
 
     // MARK: - TTS Circuit Breaker (P1)
 
@@ -163,8 +137,7 @@ public actor TTSEngine {
         // Write WAV bytes to temp file
         try tsResult.wavData.write(to: URL(fileURLWithPath: wavPath))
 
-        synthesisCount += 1
-        logger.info("Synthesis complete: \(String(format: "%.2f", tsResult.audioDuration))s audio, count=\(synthesisCount)")
+        logger.info("Synthesis complete: \(String(format: "%.2f", tsResult.audioDuration))s audio")
 
         return SynthesisResult(
             wavPath: wavPath,
@@ -193,8 +166,7 @@ public actor TTSEngine {
         // Write WAV bytes to temp file
         try tsResult.wavData.write(to: URL(fileURLWithPath: wavPath))
 
-        synthesisCount += 1
-        logger.info("Synthesis with timestamps complete: \(String(format: "%.2f", tsResult.audioDuration))s audio, \(tsResult.wordOnsets.count) word onsets, count=\(synthesisCount)")
+        logger.info("Synthesis with timestamps complete: \(String(format: "%.2f", tsResult.audioDuration))s audio, \(tsResult.wordOnsets.count) word onsets")
 
         // Native per-word durations from Kokoro duration model (not character-weighted)
         // Keep wordTimings populated as fallback for SubtitleSyncDriver onset count mismatches
@@ -305,10 +277,6 @@ public actor TTSEngine {
         let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
         logger.info("Streaming TTS pipeline complete: \(totalChunks) chunks in \(String(format: "%.2f", totalElapsed))s")
 
-        // Update synthesis count
-        synthesisCount += chunks.count
-        logger.info("Streaming synthesis done: \(chunks.count) chunks, total synthesisCount=\(synthesisCount)")
-
         return chunks
     }
 
@@ -341,8 +309,7 @@ public actor TTSEngine {
         let perWordDuration = words.isEmpty ? audioDuration : audioDuration / Double(words.count)
         let wordTimings = Array(repeating: perWordDuration, count: words.count)
 
-        synthesisCount += 1
-        logger.info("CJK synthesis complete: \(String(format: "%.2f", audioDuration))s audio, count=\(synthesisCount)")
+        logger.info("CJK synthesis complete: \(String(format: "%.2f", audioDuration))s audio")
 
         return ChunkResult(
             wavPath: wavPath,
