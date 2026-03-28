@@ -29,9 +29,9 @@
 
 ### Swift Integration
 
-- [ ] **SWI-01**: TTSEngine parses word timestamps from Python server JSON response and passes native onsets to SubtitleSyncDriver
-- [ ] **SWI-02**: Karaoke subtitle highlighting uses Python-derived word onsets with zero accumulated drift
-- [ ] **SWI-03**: `tts_kokoro.sh` CLI script works end-to-end via Swift companion → Python server chain
+- [x] **SWI-01**: TTSEngine parses word timestamps from Python server JSON response and passes native onsets to SubtitleSyncDriver
+- [x] **SWI-02**: Karaoke subtitle highlighting uses Python-derived word onsets with zero accumulated drift
+- [x] **SWI-03**: `tts_kokoro.sh` CLI script works end-to-end via Swift companion → Python server chain
 
 ### Dependency Cleanup
 
@@ -68,9 +68,9 @@
 | PTS-01      | 25    | Complete |
 | PTS-02      | 25    | Complete |
 | PTS-03      | 25    | Complete |
-| SWI-01      | 26    | Pending |
-| SWI-02      | 26    | Pending |
-| SWI-03      | 26    | Pending |
+| SWI-01      | 26    | Complete |
+| SWI-02      | 26    | Complete |
+| SWI-03      | 26    | Complete |
 | DEP-01      | 27    | Pending |
 | DEP-02      | 27    | Pending |
 | DEP-03      | 27    | Pending |

@@ -594,7 +594,7 @@ Plans:
 
 Plans:
 
-- [ ] 26-01-PLAN.md -- Switch TTSEngine to /v1/audio/speech-with-timestamps + native word onset passthrough
+- [x] 26-01-PLAN.md -- Switch TTSEngine to /v1/audio/speech-with-timestamps + native word onset passthrough
 
 ### Phase 27: MLX Dependency Removal
 
@@ -656,6 +656,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 23. Caption History Panel                       | 2/2            | Complete    | 2026-03-28 |
 | 24. Chinese TTS Fallback                        | 2/2            | Complete    | 2026-03-28 |
 | 25. Python TTS Server Timestamp Endpoint        | 1/1 | Complete    | 2026-03-28 |
-| 26. Swift TTSEngine Python Integration          | 0/1            | Not started | -          |
+| 26. Swift TTSEngine Python Integration          | 1/1 | Complete   | 2026-03-28 |
 | 27. MLX Dependency Removal                      | 0/0            | Not started | -          |
 | 28. Memory Lifecycle Cleanup                    | 0/0            | Not started | -          |
