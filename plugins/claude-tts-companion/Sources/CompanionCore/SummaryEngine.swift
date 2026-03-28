@@ -136,7 +136,8 @@ public final class SummaryEngine: @unchecked Sendable {
 
             Rules:
             - Never mention "Claude Code", "Claude", "Anthropic", or "the assistant".
-            - Use natural spoken language. No code, file paths, markdown, or technical symbols.
+            - Use natural spoken language. No code, file paths, or technical symbols.
+            - NEVER use markdown formatting: no **bold**, *italic*, `backticks`, ##headings, or [links](url).
             - Do NOT start with "You asked" or "The user" \u{2014} just describe the request directly.
 
             Most recent request:
@@ -402,14 +403,15 @@ public final class SummaryEngine: @unchecked Sendable {
             \(lastResponse)
             \"""
 
-            Rules: No greeting/project name (added separately). No code/paths/markdown. \
+            Rules: No greeting/project name (added separately). No code/paths. \
+            NEVER use markdown: no **bold**, *italic*, `backticks`, or any formatting. Plain text only. \
             Never say "Claude"/"AI"/"assistant". Past tense. Under 200 words. \
             ~20% context, ~80% final turn detail.
 
             Narrative:
             """
 
-        let systemPrompt = "You narrate coding sessions for spoken audio. Natural storytelling voice \u{2014} not robotic, not corporate. Describe what happened like you're telling a colleague."
+        let systemPrompt = "You narrate coding sessions for spoken audio. Natural storytelling voice \u{2014} not robotic, not corporate. Describe what happened like you're telling a colleague. Output plain text only \u{2014} never use markdown formatting (no **bold**, *italic*, `backticks`, or any formatting symbols)."
 
         do {
             let result = try await client.query(
