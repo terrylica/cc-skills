@@ -150,10 +150,10 @@
 
 ### Caption History
 
-- [ ] **CAPT-01**: User can open scrollable caption history panel showing past captions with timestamps
-- [ ] **CAPT-02**: Caption history auto-scrolls to latest, with manual scroll override
-- [ ] **CAPT-03**: User can copy individual caption text to clipboard
-- [ ] **CAPT-04**: Caption history accessible via SwiftBar button and HTTP API
+- [x] **CAPT-01**: User can open scrollable caption history panel showing past captions with timestamps
+- [x] **CAPT-02**: Caption history auto-scrolls to latest, with manual scroll override
+- [x] **CAPT-03**: User can copy individual caption text to clipboard
+- [x] **CAPT-04**: Caption history accessible via SwiftBar button and HTTP API
 
 ### Chinese TTS
 
@@ -374,10 +374,10 @@
 | BION-02     | Phase 22   | Complete |
 | BION-03     | Phase 22   | Complete |
 | BION-04     | Phase 22   | Complete |
-| CAPT-01     | Phase 23   | Pending  |
-| CAPT-02     | Phase 23   | Pending  |
-| CAPT-03     | Phase 23   | Pending  |
-| CAPT-04     | Phase 23   | Pending  |
+| CAPT-01     | Phase 23   | Complete |
+| CAPT-02     | Phase 23   | Complete |
+| CAPT-03     | Phase 23   | Complete |
+| CAPT-04     | Phase 23   | Complete |
 | CJK-01      | Phase 24   | Pending  |
 | CJK-02      | Phase 24   | Pending  |
 | CJK-03      | Phase 24   | Pending  |

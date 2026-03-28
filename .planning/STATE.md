@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v4.7.0
 milestone_name: Architecture Hardening + Feature Expansion
-status: verifying
-stopped_at: Completed 22-02-PLAN.md
-last_updated: "2026-03-28T03:16:33.604Z"
+status: executing
+stopped_at: Completed 23-01-PLAN.md
+last_updated: "2026-03-28T03:26:27.099Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 17
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 22 — bionic-reading-mode
+**Current focus:** Phase 23 — caption-history-panel
 
 ## Current Position
 
-Phase: 22
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 23 (caption-history-panel) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -70,6 +70,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 21-pipeline-hardening P02 | 3min | 2 tasks | 5 files |
 | Phase 22-bionic-reading-mode P01 | 4min | 2 tasks | 6 files |
 | Phase 22-bionic-reading-mode P02 | 2min | 2 tasks | 2 files |
+| Phase 23-caption-history-panel P01 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,8 @@ Recent decisions affecting current work:
 - [Phase 21-pipeline-hardening]: AudioStreamPlayer restarts engine in-place on route change; coordinator only cancels pipeline (separation of concerns)
 - [Phase 22-bionic-reading-mode]: DisplayMode stored as String in SubtitleSettings with backward-compatible Codable decoder
 - [Phase 22-bionic-reading-mode]: SwiftBar files are local-only deployment artifacts, not repo-tracked
+- [Phase 23]: NSTableView with manual dataSource/delegate for caption history panel (simplicity over DiffableDataSource)
+- [Phase 23]: MainActor.assumeIsolated for nonisolated NSTableViewDataSource/Delegate in Swift 6
 
 ### Pending Todos
 
@@ -128,6 +131,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T03:12:44.553Z
-Stopped at: Completed 22-02-PLAN.md
+Last session: 2026-03-28T03:26:27.096Z
+Stopped at: Completed 23-01-PLAN.md
 Resume file: None
