@@ -60,12 +60,13 @@ const ESCAPE_HATCH = /#\s*SSoT-OK/;
 
 // Paths where historical versions are OK
 const EXCLUDED_PATHS = [
+  /\/\.[^/]+\//i, // Any dot-prefixed directory (.planning/, .claude/, .github/, etc.)
   /CHANGELOG/i, // All changelogs
   /MIGRATION/i, // Migration guides
   /\/archive\//i, // Archived docs
   /\/milestones\//i, // Milestone tracking
-  /\/\.?planning\//i, // Planning documents (.planning/ and planning/)
-  /\/\.?plans\//i, // Claude Code plan files (~/.claude/plans/ and .plans/)
+  /\/planning\//i, // Planning documents
+  /\/plans\//i, // Claude Code plan files
   /\/reports\//i, // Generated reports
   /\/outputs?\//i, // Output directories (output/ or outputs/)
   /\/adr\//i, // Architecture Decision Records
@@ -147,7 +148,7 @@ async function main() {
   // Strip content inside fenced code blocks with xml/html/plist language tags
   // These contain boilerplate like <?xml version="1.0"?> that aren't version pins
   const strippedContent = content.replace(
-    /```(?:xml|html|plist)\b[^]*?```/gi,
+    /```(?:xml|html|plist)\b[\s\S]*?```/gi,
     ""
   );
 
