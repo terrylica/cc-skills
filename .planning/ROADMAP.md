@@ -570,4 +570,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
 | 22. Bionic Reading Mode                         | 2/2 | Complete    | 2026-03-28 |
 | 23. Caption History Panel                       | 2/2 | Complete    | 2026-03-28 |
-| 24. Chinese TTS Fallback                        | 2/2 | Complete   | 2026-03-28 |
+| 24. Chinese TTS Fallback                        | 2/2 | Complete    | 2026-03-28 |
