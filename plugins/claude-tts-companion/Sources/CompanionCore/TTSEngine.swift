@@ -1,12 +1,11 @@
-// FILE-SIZE-OK -- actor facade with synthesis methods, model lifecycle, circuit breaker (core TTS logic)
-// TTS engine: streaming synthesis, model lifecycle, circuit breaker
+// FILE-SIZE-OK -- actor with HTTP client, streaming, CJK routing, WAV utilities (cohesive unit)
+// TTS engine: delegates MLX synthesis to Python Kokoro server (localhost:8779)
 // Actor-isolated -- all mutable state protected by Swift actor model (no NSLock).
+// The Python server handles MLX model lifecycle, memory management, and GPU work.
+// This actor handles: HTTP client, WAV file management, word timing, circuit breaker.
 import AVFoundation
 import Foundation
-import KokoroSwift
 import Logging
-@preconcurrency import MLX
-@preconcurrency import MLXUtilsLibrary
 
 /// Result of a TTS synthesis operation.
 public struct SynthesisResult: Sendable {
@@ -14,7 +13,7 @@ public struct SynthesisResult: Sendable {
     let wavPath: String
     /// Duration of the generated audio in seconds
     let audioDuration: TimeInterval
-    /// Raw duration tensor values per token (nil for kokoro-ios -- use MToken timestamps instead)
+    /// Raw duration tensor values per token (always nil for Python server delegation)
     let durations: [Float]?
 }
 
@@ -28,35 +27,24 @@ public struct TTSResult: Sendable {
     let wordTimings: [TimeInterval]
     /// Duration of the generated audio in seconds
     let audioDuration: TimeInterval
-    /// Native word onset times from MToken.start_ts (nil when using character-weighted fallback).
-    /// When present, these are the ground-truth onset times from the Kokoro duration model
-    /// and should be used directly by SubtitleSyncDriver instead of cumulating wordTimings.
+    /// Native word onset times (always nil when using Python server -- no MToken data available).
     let wordOnsets: [TimeInterval]?
 }
 
-/// Wraps kokoro-ios MLX TTS for speech synthesis with word-level timestamps.
+/// Delegates TTS synthesis to the Python Kokoro server (localhost:8779).
 ///
-/// - Model loads lazily on first `synthesize()` call (TTS-03)
-/// - All synthesis runs on a dedicated serial DispatchQueue (TTS-02)
-/// - Audio written as 24kHz mono float32 WAV via AVAudioFile (TTS-08)
-/// - Word timestamps extracted natively from MToken.start_ts/end_ts (no C++ patches)
-/// - Text preprocessing fixes mispronounced words before phonemization (TTS-09)
-/// - Actor isolation replaces NSLock for thread safety (CONC-01/02/03/04)
+/// - All MLX GPU work happens in the Python server process (separate launchd service)
+/// - This actor sends HTTP requests and receives WAV bytes
+/// - Word timestamps use character-weighted fallback (Python server doesn't return MToken data)
+/// - CJK synthesis still uses sherpa-onnx directly (no change)
+/// - Circuit breaker protects against Python server failures
+/// - Synthesis counter tracks calls for diagnostics (no restart needed -- Python server manages its own memory)
 public actor TTSEngine {
 
     private let logger = Logger(label: "tts-engine")
 
-    /// Dedicated serial queue for all TTS work -- never blocks main thread (TTS-02)
-    private let synthesisQueue = DispatchQueue(label: "com.example.tts-engine", qos: .userInitiated)
-
-    /// Lazily-initialized kokoro-ios TTS instance (TTS-03)
-    private var ttsInstance: KokoroTTS?
-
-    /// All voice embeddings loaded from voices.npz
-    private var voicesDict: [String: MLXArray]?
-
-    /// Currently active voice embedding
-    private var voice: MLXArray?
+    /// URLSession configured for Python TTS server requests.
+    private let urlSession: URLSession
 
     /// PlaybackManager reference for delegating play/stop/prepare operations.
     /// Received at init (D-04).
@@ -69,56 +57,42 @@ public actor TTSEngine {
     /// Path to the last generated WAV (cleaned up before next synthesis)
     private var lastWavPath: String?
 
-    // MARK: - MLX Cache Management
-
-    // NOTE: MLX Metal buffer cache management is handled INSIDE libKokoroSwift.dylib
-    // (kokoro-ios v1.0.13+). Each generateAudio() call now clears its own cache, and
-    // the cache limit is set to 32 MB on KokoroTTS init.
-    //
-    // Calling Memory.clearCache() or Memory.cacheLimit from the main binary is FORBIDDEN
-    // -- it initializes a separate C++ Metal device singleton that competes for the GPU's
-    // 499000 resource limit, causing immediate crashes.
-
     // MARK: - Lifecycle
 
-    /// Whether TTS is disabled due to missing model files at startup.
-    /// When true, all synthesis calls return immediately with an error instead
-    /// of crashing on first use.
-    private(set) var isDisabledDueToMissingModel: Bool = false
+    /// Whether TTS is disabled due to Python server being unreachable at startup.
+    /// When true, synthesis may still be attempted (server could come up later),
+    /// but a warning is logged.
+    private(set) var pythonServerWarning: Bool = false
 
-    // MARK: - Memory Lifecycle (MLX IOAccelerator Leak Mitigation)
+    // MARK: - Synthesis Counter (Diagnostics)
 
-    /// Total number of generateAudio() calls since process start.
-    /// Used by the memory lifecycle system to trigger planned restart
-    /// before IOAccelerator allocations exhaust system RAM.
+    /// Total number of synthesis calls since process start.
+    /// Used for diagnostics; no restart threshold needed since the Python server
+    /// manages its own MLX memory lifecycle independently.
     private(set) var synthesisCount: Int = 0
 
-    /// Maximum generateAudio() calls before triggering graceful exit for memory reclaim.
-    /// IOAccelerator grows ~1.7GB per call and is only reclaimable via process exit.
-    /// At 10 calls, worst case is ~17GB before restart -- safely under 32GB system RAM.
+    /// Maximum synthesis calls before triggering graceful exit for memory reclaim.
+    /// With Python server delegation, IOAccelerator leaks happen in the Python process,
+    /// not this process. Threshold raised significantly -- this binary stays lean.
     /// Static let on actor is nonisolated (accessible without await).
-    static let maxSynthesisBeforeRestart = 10
+    static let maxSynthesisBeforeRestart = 500
 
     /// Whether the synthesis count has reached the restart threshold.
-    /// Callers should trigger graceful exit after current playback completes.
+    /// With Python server delegation, this threshold is essentially unreachable
+    /// since the companion binary no longer accumulates GPU memory.
     var shouldRestartForMemory: Bool {
         return synthesisCount >= Self.maxSynthesisBeforeRestart
     }
 
-    /// Returns synthesis count and optional MLX memory snapshot for diagnostics.
+    /// Returns synthesis count for diagnostics (no MLX memory snapshot -- handled by Python server).
     func memoryDiagnostics() -> (synthesisCount: Int, mlxActive: Int?, mlxCache: Int?, mlxPeak: Int?) {
-        let count = synthesisCount
-        if let tts = ttsInstance {
-            let snap = tts.memorySnapshot()
-            return (count, snap.active, snap.cache, snap.peak)
-        }
-        return (count, nil, nil, nil)
+        return (synthesisCount, nil, nil, nil)
     }
 
     // MARK: - TTS Circuit Breaker (P1)
 
     /// Circuit breaker tracking consecutive synthesis failures.
-    /// Delegates to the existing CircuitBreaker class (replaces inline NSLock-based implementation).
+    /// Delegates to the existing CircuitBreaker class.
     private let circuitBreaker = CircuitBreaker(maxFailures: 3, cooldownSeconds: 300)
 
     /// Check whether TTS is temporarily disabled by the circuit breaker.
@@ -130,144 +104,108 @@ public actor TTSEngine {
     init(playbackManager: PlaybackManager, sherpaOnnxEngine: SherpaOnnxEngine) {
         self.playbackManager = playbackManager
         self.sherpaOnnxEngine = sherpaOnnxEngine
-        logger.info("TTSEngine created (kokoro-ios MLX + sherpa-onnx CJK, models load lazily)")
 
-        // Validate model files exist at boot to fail fast with a clear error
-        // instead of crashing on first synthesis (P0: startup model validation).
-        let fm = FileManager.default
-        if !fm.fileExists(atPath: Config.kokoroMLXModelPath) {
-            logger.critical("Kokoro MLX model not found at \(Config.kokoroMLXModelPath) -- TTS disabled")
-            isDisabledDueToMissingModel = true
-        } else if !fm.fileExists(atPath: Config.kokoroVoicesPath) {
-            logger.critical("Kokoro voices not found at \(Config.kokoroVoicesPath) -- TTS disabled")
-            isDisabledDueToMissingModel = true
-        } else {
-            logger.info("Model files validated: \(Config.kokoroMLXModelPath), \(Config.kokoroVoicesPath)")
-        }
+        // Configure URLSession with appropriate timeouts for synthesis requests
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = Config.pythonTTSRequestTimeout
+        config.timeoutIntervalForResource = Config.pythonTTSRequestTimeout
+        self.urlSession = URLSession(configuration: config)
 
-        // NOTE: MLX Memory.clearCache() / Memory.cacheLimit calls are FORBIDDEN from
-        // the main binary -- they create a separate C++ Metal device singleton that
-        // competes for the GPU's 499000 resource limit. Cache management is handled
-        // inside libKokoroSwift.dylib (kokoro-ios v1.0.13+).
+        logger.info("TTSEngine created (Python server delegation at \(Config.pythonTTSServerURL) + sherpa-onnx CJK)")
     }
 
-    // NOTE: No deinit needed -- ARC handles ttsInstance/voicesDict/voice cleanup.
-    // WAV cleanup happens in cleanupLastWav() during normal synthesis flow.
-    // Actor deinit is nonisolated and cannot access actor-isolated non-Sendable properties.
+    /// Check if the Python TTS server is reachable. Called during startup.
+    /// Non-blocking -- logs warning if unreachable but does not disable TTS
+    /// (server may come up later).
+    func checkPythonServerHealth() async {
+        let healthURL = URL(string: "\(Config.pythonTTSServerURL)/health")!
+        var request = URLRequest(url: healthURL)
+        request.timeoutInterval = Config.pythonTTSHealthCheckTimeout
+
+        do {
+            let (data, response) = try await urlSession.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                logger.warning("Python TTS server health check failed -- server may not be ready")
+                pythonServerWarning = true
+                return
+            }
+            // Parse health response for logging
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let status = json["status"] as? String {
+                logger.info("Python TTS server healthy: status=\(status)")
+            } else {
+                logger.info("Python TTS server reachable (health endpoint returned 200)")
+            }
+            pythonServerWarning = false
+        } catch {
+            logger.warning("Python TTS server unreachable at \(Config.pythonTTSServerURL): \(error.localizedDescription)")
+            pythonServerWarning = true
+        }
+    }
 
     // MARK: - Public API
 
-    /// Synthesize text to a WAV file on the background queue.
-    ///
-    /// Uses withCheckedThrowingContinuation to bridge the blocking DispatchQueue
-    /// work to Swift async/await (CONC-03).
+    /// Synthesize text to a WAV file by delegating to the Python Kokoro server.
     func synthesize(
         text: String,
         voiceName: String = Config.defaultVoiceName,
         speed: Float = 1.2
     ) async throws -> SynthesisResult {
-        guard !isDisabledDueToMissingModel else {
-            throw TTSError.modelLoadFailed(path: "TTS disabled -- model files missing at startup")
-        }
-
-        // Prepare state before entering DispatchQueue (actor-isolated)
-        let tts = try ensureModelLoaded()
-        let activeVoice = voiceForName(voiceName)
         let processedText = PronunciationProcessor.preprocessText(text)
         let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
         lastWavPath = wavPath
 
-        // Bridge blocking GPU work to async via DispatchQueue + continuation (CONC-03)
-        let result: SynthesisResult = try await withCheckedThrowingContinuation { continuation in
-            synthesisQueue.async {
-                do {
-                    let startTime = CFAbsoluteTimeGetCurrent()
+        let wavData = try await callPythonServer(text: processedText, voice: voiceName, speed: speed)
 
-                    let (audio, _) = try tts.generateAudio(
-                        voice: activeVoice, language: .enUS, text: processedText, speed: speed
-                    )
+        // Write WAV bytes to temp file
+        try wavData.write(to: URL(fileURLWithPath: wavPath))
 
-                    let audioDuration = Double(audio.count) / 24000.0
+        // Parse audio duration from WAV data (24kHz mono float32 = 4 bytes per sample)
+        let audioDuration = Self.wavDuration(data: wavData)
 
-                    // Write WAV file using AVAudioFile
-                    try Self.writeWav(samples: audio, to: wavPath)
-
-                    continuation.resume(returning: SynthesisResult(
-                        wavPath: wavPath,
-                        audioDuration: audioDuration,
-                        durations: nil
-                    ))
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-
-        // Back in actor isolation: update state
         synthesisCount += 1
-        logger.info("Synthesis complete: \(String(format: "%.2f", result.audioDuration))s audio, count=\(synthesisCount)")
+        logger.info("Synthesis complete: \(String(format: "%.2f", audioDuration))s audio, count=\(synthesisCount)")
 
-        return result
+        return SynthesisResult(
+            wavPath: wavPath,
+            audioDuration: audioDuration,
+            durations: nil
+        )
     }
 
     /// Synthesize text and extract per-word timing data for karaoke highlighting.
     ///
-    /// Combines `synthesize()` with native MToken timestamps into a single call that
-    /// returns everything needed to drive SubtitlePanel.showUtterance().
+    /// Uses character-weighted fallback for word timings since the Python server
+    /// does not return MToken timestamp data.
     func synthesizeWithTimestamps(
         text: String,
         voiceName: String = Config.defaultVoiceName,
         speed: Float = 1.2
     ) async throws -> TTSResult {
-        guard !isDisabledDueToMissingModel else {
-            throw TTSError.modelLoadFailed(path: "TTS disabled -- model files missing at startup")
-        }
-
-        // Prepare state before entering DispatchQueue (actor-isolated)
-        let tts = try ensureModelLoaded()
-        let activeVoice = voiceForName(voiceName)
         let processedText = PronunciationProcessor.preprocessText(text)
         let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
         lastWavPath = wavPath
 
-        // Bridge blocking GPU work to async via DispatchQueue + continuation (CONC-03)
-        let (_, tokenArray, audioDuration): ([Float], [MToken]?, TimeInterval) = try await withCheckedThrowingContinuation { continuation in
-            synthesisQueue.async {
-                do {
-                    let startTime = CFAbsoluteTimeGetCurrent()
+        let wavData = try await callPythonServer(text: processedText, voice: voiceName, speed: speed)
 
-                    let (audio, tokenArray) = try tts.generateAudio(
-                        voice: activeVoice, language: .enUS, text: processedText, speed: speed
-                    )
+        // Write WAV bytes to temp file
+        try wavData.write(to: URL(fileURLWithPath: wavPath))
 
-                    let audioDuration = Double(audio.count) / 24000.0
-                    try Self.writeWav(samples: audio, to: wavPath)
+        let audioDuration = Self.wavDuration(data: wavData)
 
-                    continuation.resume(returning: (audio, tokenArray, audioDuration))
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-
-        // Back in actor isolation: update state and compute timings
         synthesisCount += 1
         logger.info("Synthesis with timestamps complete: \(String(format: "%.2f", audioDuration))s audio, count=\(synthesisCount)")
 
-        // Align MToken timestamps to subtitle words (with character-weighted fallback)
-        let resolved = WordTimingAligner.resolveWordTimings(
-            tokenArray: tokenArray,
-            text: text,
-            audioDuration: audioDuration,
-            logger: logger
-        )
+        // Character-weighted fallback (no MToken data from Python server)
+        let wordTimings = WordTimingAligner.extractWordTimings(text: text, audioDuration: audioDuration)
 
         return TTSResult(
             wavPath: wavPath,
             text: text,
-            wordTimings: resolved.durations,
+            wordTimings: wordTimings,
             audioDuration: audioDuration,
-            wordOnsets: resolved.onsets
+            wordOnsets: nil
         )
     }
 
@@ -281,10 +219,10 @@ public actor TTSEngine {
         let audioDuration: TimeInterval
         let chunkIndex: Int
         let totalChunks: Int
-        /// Native word onset times from MToken.start_ts (nil when using character-weighted fallback)
+        /// Native word onset times (always nil for Python server delegation)
         let wordOnsets: [TimeInterval]?
         /// Raw float32 PCM samples at 24kHz for direct AVAudioEngine scheduling.
-        /// When present, SubtitleSyncDriver can skip WAV file I/O entirely.
+        /// Extracted from WAV response for callers that skip file I/O.
         let samples: [Float]?
     }
 
@@ -294,124 +232,86 @@ public actor TTSEngine {
 
     /// Synthesize text as sentence chunks using batch-then-play pattern.
     ///
-    /// Splits `text` into sentences, synthesizes ALL sentences sequentially on the
-    /// background queue, then returns all chunks. This completely separates
-    /// GPU synthesis from audio playback -- zero GPU work during playback.
+    /// Splits `text` into sentences, synthesizes ALL sentences sequentially via
+    /// the Python server, then returns all chunks. This completely separates
+    /// synthesis from audio playback.
     ///
-    /// Returns an empty array if TTS is disabled, circuit breaker is open, or all chunks fail.
+    /// Returns an empty array if circuit breaker is open or all chunks fail.
     func synthesizeStreaming(
         text: String,
         voiceName: String = Config.defaultVoiceName,
         speed: Float = 1.2
     ) async -> [ChunkResult] {
-        guard !isDisabledDueToMissingModel else {
-            logger.error("TTS disabled -- model files missing at startup, skipping streaming synthesis")
-            return []
-        }
         guard !isTTSCircuitBreakerOpen else {
             logger.warning("TTS circuit breaker open -- skipping streaming synthesis (\(text.count) chars)")
             return []
         }
 
-        // Prepare state before entering DispatchQueue (actor-isolated)
-        let tts: KokoroTTS
-        do {
-            tts = try ensureModelLoaded()
-        } catch {
-            logger.error("Streaming synthesis failed: \(error)")
-            return []
-        }
-        let activeVoice = voiceForName(voiceName)
         let sentences = SentenceSplitter.splitIntoSentences(text)
         let totalChunks = sentences.count
         logger.info("Streaming TTS: \(text.count) chars split into \(totalChunks) sentences")
 
-        // Capture actor-isolated values before entering DispatchQueue
-        let cbRef = circuitBreaker
-        let loggerCopy = logger
+        var chunks: [ChunkResult] = []
+        let pipelineStart = CFAbsoluteTimeGetCurrent()
 
-        // Bridge ALL synthesis work to the DispatchQueue via continuation
-        let synthesizedChunks: [ChunkResult] = await withCheckedContinuation { continuation in
-            synthesisQueue.async {
-                var chunks: [ChunkResult] = []
-                let pipelineStart = CFAbsoluteTimeGetCurrent()
+        for (index, sentence) in sentences.enumerated() {
+            let processedSentence = PronunciationProcessor.preprocessText(sentence)
+            let wavPath = NSTemporaryDirectory() + "tts-stream-\(UUID().uuidString).wav"
 
-                for (index, sentence) in sentences.enumerated() {
-                    let chunkResult: ChunkResult? = autoreleasepool {
-                        let wavPath = NSTemporaryDirectory() + "tts-stream-\(UUID().uuidString).wav"
-                        let processedSentence = PronunciationProcessor.preprocessText(sentence)
-                        loggerCopy.info("Synthesizing chunk \(index + 1)/\(totalChunks): \(sentence.count) chars")
-                        let startTime = CFAbsoluteTimeGetCurrent()
+            logger.info("Synthesizing chunk \(index + 1)/\(totalChunks): \(sentence.count) chars")
+            let startTime = CFAbsoluteTimeGetCurrent()
 
-                        let audio: [Float]
-                        let tokenArray: [MToken]?
-                        do {
-                            (audio, tokenArray) = try tts.generateAudio(
-                                voice: activeVoice, language: .enUS, text: processedSentence, speed: speed
-                            )
-                            cbRef.recordSuccess()
-                        } catch {
-                            loggerCopy.error("Synthesis failed for chunk \(index + 1): \(error)")
-                            cbRef.recordFailure()
-                            return nil
-                        }
+            do {
+                let wavData = try await callPythonServer(text: processedSentence, voice: voiceName, speed: speed)
 
-                        let audioDuration = Double(audio.count) / 24000.0
+                let audioDuration = Self.wavDuration(data: wavData)
 
-                        let paddedAudio = audio + [Float](repeating: 0.0, count: Self.trailingSilenceSamples)
+                // Extract float32 samples from WAV and add trailing silence
+                var samples = Self.extractSamplesFromWav(data: wavData)
+                samples.append(contentsOf: [Float](repeating: 0.0, count: Self.trailingSilenceSamples))
 
-                        do {
-                            try Self.writeWav(samples: paddedAudio, to: wavPath)
-                        } catch {
-                            loggerCopy.error("WAV write failed for chunk \(index + 1): \(error)")
-                            return nil
-                        }
+                // Write padded WAV (with silence) to disk
+                try Self.writeWav(samples: samples, to: wavPath)
 
-                        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                        let rtf = elapsed / audioDuration
-                        loggerCopy.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
+                circuitBreaker.recordSuccess()
 
-                        let resolved = WordTimingAligner.resolveWordTimings(
-                            tokenArray: tokenArray,
-                            text: sentence,
-                            audioDuration: audioDuration,
-                            logger: loggerCopy
-                        )
+                let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+                let rtf = elapsed / audioDuration
+                logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
 
-                        return ChunkResult(
-                            wavPath: wavPath,
-                            text: sentence,
-                            wordTimings: resolved.durations,
-                            audioDuration: audioDuration,
-                            chunkIndex: index,
-                            totalChunks: totalChunks,
-                            wordOnsets: resolved.onsets,
-                            samples: paddedAudio
-                        )
-                    }
+                // Character-weighted timing (no MToken data from Python server)
+                let wordTimings = WordTimingAligner.extractWordTimings(text: sentence, audioDuration: audioDuration)
 
-                    guard let chunk = chunkResult else {
-                        if cbRef.isOpen {
-                            loggerCopy.error("TTS circuit breaker tripped mid-stream -- aborting remaining chunks")
-                            break
-                        }
-                        continue
-                    }
+                chunks.append(ChunkResult(
+                    wavPath: wavPath,
+                    text: sentence,
+                    wordTimings: wordTimings,
+                    audioDuration: audioDuration,
+                    chunkIndex: index,
+                    totalChunks: totalChunks,
+                    wordOnsets: nil,
+                    samples: samples
+                ))
+            } catch {
+                logger.error("Synthesis failed for chunk \(index + 1): \(error)")
+                circuitBreaker.recordFailure()
 
-                    chunks.append(chunk)
+                if circuitBreaker.isOpen {
+                    logger.error("TTS circuit breaker tripped mid-stream -- aborting remaining chunks")
+                    break
                 }
-
-                let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
-                loggerCopy.info("Streaming TTS pipeline complete: \(totalChunks) chunks in \(String(format: "%.2f", totalElapsed))s")
-                continuation.resume(returning: chunks)
+                continue
             }
         }
 
-        // Back in actor isolation: update synthesis count
-        synthesisCount += synthesizedChunks.count
-        logger.info("Streaming synthesis done: \(synthesizedChunks.count) chunks, total synthesisCount=\(synthesisCount)")
+        let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
+        logger.info("Streaming TTS pipeline complete: \(totalChunks) chunks in \(String(format: "%.2f", totalElapsed))s")
 
-        return synthesizedChunks
+        // Update synthesis count
+        synthesisCount += chunks.count
+        logger.info("Streaming synthesis done: \(chunks.count) chunks, total synthesisCount=\(synthesisCount)")
+
+        return chunks
     }
 
     // MARK: - CJK Synthesis (sherpa-onnx)
@@ -439,7 +339,6 @@ public actor TTSEngine {
         }
 
         // CJK karaoke timing is out of scope -- use uniform word timing as fallback.
-        // Split text into characters for subtitle display (each char = one "word").
         let words = text.map { String($0) }.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         let perWordDuration = words.isEmpty ? audioDuration : audioDuration / Double(words.count)
         let wordTimings = Array(repeating: perWordDuration, count: words.count)
@@ -459,7 +358,7 @@ public actor TTSEngine {
         )
     }
 
-    /// Synthesize text, automatically routing CJK to sherpa-onnx and English to kokoro-ios MLX.
+    /// Synthesize text, automatically routing CJK to sherpa-onnx and English to Python Kokoro server.
     /// Returns empty array if synthesis fails entirely.
     func synthesizeStreamingAutoRoute(text: String, speed: Float = 1.2) async -> [ChunkResult] {
         let langResult = LanguageDetector.detect(text: text)
@@ -469,76 +368,120 @@ public actor TTSEngine {
             if let chunk = await synthesizeCJK(text: text, speed: 1.0) {
                 return [chunk]
             }
-            // Fallback: subtitle-only (CJK-04)
             logger.warning("CJK synthesis failed -- returning empty for subtitle-only fallback")
             return []
         }
 
-        // English path: use existing kokoro-ios MLX streaming (CJK-02)
+        // English path: delegate to Python Kokoro server
         return await synthesizeStreaming(text: text, voiceName: langResult.voiceName, speed: speed)
     }
 
-    // MARK: - Private
+    // MARK: - Python Server HTTP Client
 
-    /// Ensure the TTS model is loaded, performing lazy initialization if needed (TTS-03).
-    /// Actor-isolated -- no lock needed.
-    private func ensureModelLoaded() throws -> KokoroTTS {
-        if let tts = ttsInstance, voice != nil {
-            return tts
+    /// Call the Python Kokoro TTS server to synthesize text.
+    /// Returns raw WAV bytes on success.
+    private func callPythonServer(text: String, voice: String, speed: Float) async throws -> Data {
+        let url = URL(string: "\(Config.pythonTTSServerURL)/v1/audio/speech")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "input": text,
+            "voice": voice,
+            "language": "en-us",
+            "speed": speed,
+            "response_format": "wav"
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await urlSession.data(for: request)
+        } catch {
+            throw TTSError.pythonServerUnavailable(url: Config.pythonTTSServerURL)
         }
 
-        let modelURL = URL(fileURLWithPath: Config.kokoroMLXModelPath)
-        let voicesURL = URL(fileURLWithPath: Config.kokoroVoicesPath)
-
-        logger.info("Loading Kokoro MLX model from \(Config.kokoroMLXModelPath)")
-        let startTime = CFAbsoluteTimeGetCurrent()
-
-        let tts = KokoroTTS(modelPath: modelURL)
-
-        guard let voices = NpyzReader.read(fileFromPath: voicesURL) else {
-            throw TTSError.modelLoadFailed(path: Config.kokoroVoicesPath)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TTSError.pythonServerUnavailable(url: Config.pythonTTSServerURL)
         }
 
-        let voiceCount = voices.count
-        self.voicesDict = voices
-
-        // Extract default voice
-        let defaultVoice: MLXArray
-        if let v = voices[Config.defaultVoiceName] {
-            defaultVoice = v
-        } else if let key = voices.keys.first(where: { $0.contains(Config.defaultVoiceName) }),
-                  let v = voices[key] {
-            defaultVoice = v
-            logger.info("Matched voice key '\(key)' for '\(Config.defaultVoiceName)'")
-        } else {
-            throw TTSError.modelLoadFailed(path: "voice '\(Config.defaultVoiceName)' not found in voices.npz")
+        guard httpResponse.statusCode == 200 else {
+            let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TTSError.pythonServerError(statusCode: httpResponse.statusCode, message: message)
         }
-        self.voice = defaultVoice
 
-        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-        logger.info("Kokoro MLX model loaded in \(String(format: "%.2f", elapsed))s (\(voiceCount) voices available)")
+        guard !data.isEmpty else {
+            throw TTSError.synthesisReturnedNil
+        }
 
-        ttsInstance = tts
-        return tts
+        return data
     }
 
-    /// Look up a voice embedding by name, falling back to default.
-    private func voiceForName(_ name: String) -> MLXArray {
-        if let dict = voicesDict, let v = dict[name] {
-            return v
+    // MARK: - WAV Utilities
+
+    /// Parse audio duration from WAV data by reading the header.
+    /// Assumes standard WAV format (RIFF header).
+    private static func wavDuration(data: Data) -> TimeInterval {
+        // WAV header: bytes 24-27 = sample rate (uint32 LE), bytes 40-43 = data chunk size (uint32 LE)
+        // For standard PCM WAV: duration = dataSize / (sampleRate * channels * bitsPerSample/8)
+        guard data.count > 44 else { return 0 }
+
+        let sampleRate: UInt32 = data.withUnsafeBytes { ptr in
+            ptr.load(fromByteOffset: 24, as: UInt32.self)
         }
-        if let dict = voicesDict, let key = dict.keys.first(where: { $0.contains(name) }),
-           let v = dict[key] {
-            return v
+        let bitsPerSample: UInt16 = data.withUnsafeBytes { ptr in
+            ptr.load(fromByteOffset: 34, as: UInt16.self)
         }
-        if name != Config.defaultVoiceName {
-            logger.warning("Voice '\(name)' not found, using default '\(Config.defaultVoiceName)'")
+        let numChannels: UInt16 = data.withUnsafeBytes { ptr in
+            ptr.load(fromByteOffset: 22, as: UInt16.self)
         }
-        return voice!
+
+        // Find data chunk size (may not be at offset 40 if there are extra chunks)
+        // Simple approach: total size minus 44-byte header
+        let dataSize = data.count - 44
+
+        guard sampleRate > 0, bitsPerSample > 0, numChannels > 0 else { return 0 }
+        let bytesPerSample = Int(bitsPerSample) / 8
+        let totalSamples = dataSize / (bytesPerSample * Int(numChannels))
+        return Double(totalSamples) / Double(sampleRate)
+    }
+
+    /// Extract PCM samples from WAV data as float32 array.
+    /// The Python server (soundfile) writes int16 PCM WAV by default.
+    /// Reads bitsPerSample from the WAV header to handle both int16 and float32.
+    private static func extractSamplesFromWav(data: Data) -> [Float] {
+        guard data.count > 44 else { return [] }
+
+        let bitsPerSample: UInt16 = data.withUnsafeBytes { ptr in
+            ptr.load(fromByteOffset: 34, as: UInt16.self)
+        }
+
+        let pcmData = data.subdata(in: 44..<data.count)
+
+        if bitsPerSample == 16 {
+            // Int16 PCM -> Float32 conversion (normalize to -1.0...1.0)
+            let sampleCount = pcmData.count / MemoryLayout<Int16>.size
+            return pcmData.withUnsafeBytes { ptr in
+                let int16Ptr = ptr.bindMemory(to: Int16.self)
+                return (0..<sampleCount).map { Float(int16Ptr[$0]) / 32768.0 }
+            }
+        } else if bitsPerSample == 32 {
+            // Float32 PCM (direct copy)
+            let sampleCount = pcmData.count / MemoryLayout<Float>.size
+            return pcmData.withUnsafeBytes { ptr in
+                let floatPtr = ptr.bindMemory(to: Float.self)
+                return Array(floatPtr.prefix(sampleCount))
+            }
+        } else {
+            // Unsupported format -- return empty
+            return []
+        }
     }
 
     /// Write float32 audio samples to a WAV file using AVAudioFile.
-    /// Static to be callable from non-isolated DispatchQueue context.
+    /// Static to be callable from non-isolated context.
     private static func writeWav(samples: [Float], sampleRate: Double = 24000.0, to path: String) throws {
         let url = URL(fileURLWithPath: path)
         guard let format = AVAudioFormat(

@@ -56,9 +56,14 @@ public final class CompanionApp: @unchecked Sendable {
     }
 
     @MainActor public func start() {
-        logger.info("TTS backend: kokoro-ios MLX (bf16)")
+        logger.info("TTS backend: Python Kokoro server (\(Config.pythonTTSServerURL)) + sherpa-onnx CJK")
 
-        // Register memory lifecycle handler so HTTPControlServer/TelegramBot can trigger restart
+        // Check Python TTS server health (non-blocking, logs warning if unavailable)
+        Task {
+            await ttsEngine.checkPythonServerHealth()
+        }
+
+        // Register memory lifecycle handler (threshold raised since Python server manages its own memory)
         MemoryLifecycle.register(ttsEngine: ttsEngine) { [weak self] reason in
             self?.plannedRestart(reason: reason)
         }
