@@ -10,6 +10,7 @@ public struct SubtitleSettingsUpdate: Codable, Sendable {
     var karaokeEnabled: Bool?
     var screen: String?
     var displayMode: String?
+    var subtitleScope: String?
 }
 
 /// Partial update struct for TTS settings (all fields optional for PATCH semantics).
@@ -139,6 +140,7 @@ public final class HTTPControlServer: @unchecked Sendable {
                             s.karaokeEnabled = true
                         }
                     }
+                    if let v = update.subtitleScope { s.subtitleScope = v }
                 }
                 let settings = settingsStore.getSettings()
                 return jsonResponse(settings)
