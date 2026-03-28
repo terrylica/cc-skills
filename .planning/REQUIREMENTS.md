@@ -158,7 +158,7 @@
 ### Chinese TTS
 
 - [x] **CJK-01**: CJK text detected via existing LanguageDetector routes to sherpa-onnx engine
-- [ ] **CJK-02**: English text continues to use kokoro-ios MLX engine (default)
+- [x] **CJK-02**: English text continues to use kokoro-ios MLX engine (default)
 - [x] **CJK-03**: sherpa-onnx multilang model loads on-demand (not at startup) to avoid RSS bloat
 - [x] **CJK-04**: Graceful fallback if sherpa-onnx model missing or synthesis fails
 
@@ -379,6 +379,6 @@
 | CAPT-03     | Phase 23   | Complete |
 | CAPT-04     | Phase 23   | Complete |
 | CJK-01      | Phase 24   | Complete |
-| CJK-02      | Phase 24   | Pending  |
+| CJK-02      | Phase 24   | Complete |
 | CJK-03      | Phase 24   | Complete |
 | CJK-04      | Phase 24   | Complete |
