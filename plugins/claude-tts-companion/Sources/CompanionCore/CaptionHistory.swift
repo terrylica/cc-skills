@@ -3,7 +3,7 @@ import Foundation
 import Logging
 
 /// A timestamped caption entry in the history ring buffer.
-struct CaptionEntry: Codable, Sendable {
+public struct CaptionEntry: Codable, Sendable {
     /// The subtitle text that was displayed
     let text: String
     /// When the caption was shown (ISO 8601)
@@ -21,7 +21,7 @@ struct CaptionEntry: Codable, Sendable {
 /// Used by:
 /// - SubtitlePanel (via `record`) to log every displayed caption
 /// - HTTPControlServer (via `getAll` / `copyToClipboard`) for API access
-final class CaptionHistory: @unchecked Sendable {
+public final class CaptionHistory: @unchecked Sendable {
 
     private let logger = Logger(label: "caption-history")
     private let lock = NSLock()

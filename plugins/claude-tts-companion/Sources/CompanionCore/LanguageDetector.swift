@@ -1,7 +1,7 @@
 import Foundation
 
 /// Result of language detection on a text string.
-struct LanguageResult {
+public struct LanguageResult {
     /// Language code: "en-us" for English, "cmn" for Mandarin Chinese
     let lang: String
     /// Kokoro speaker ID for this language (legacy, kept for compatibility)
@@ -12,7 +12,7 @@ struct LanguageResult {
 
 /// Detects whether text is predominantly CJK (Chinese/Japanese/Korean) based on
 /// Unicode scalar ratio. Port of legacy TypeScript `detectLanguage()` from kokoro-client.ts.
-enum LanguageDetector {
+public enum LanguageDetector {
     /// Detect the dominant language of the given text.
     ///
     /// Counts CJK Unicode scalars across three ranges (CJK Unified Ideographs,

@@ -13,7 +13,7 @@ import Logging
 /// In streaming mode, the driver feeds raw PCM samples to AudioStreamPlayer.scheduleBuffer()
 /// for seamless back-to-back playback on the real-time audio thread.
 @MainActor
-final class SubtitleSyncDriver {
+public final class SubtitleSyncDriver {
 
     private let logger = Logger(label: "subtitle-sync")
 

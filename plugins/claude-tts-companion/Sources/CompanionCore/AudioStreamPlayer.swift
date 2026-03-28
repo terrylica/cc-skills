@@ -21,7 +21,7 @@ typealias ChunkCompletionHandler = () -> Void
 /// 2. Real-time audio thread with proper QoS (won't be preempted by GPU work)
 /// 3. scheduleBuffer() with .dataPlayedBack callback for gapless transitions
 /// 4. Float32 PCM directly to AVAudioPCMBuffer (no WAV file I/O needed)
-final class AudioStreamPlayer: @unchecked Sendable {
+public final class AudioStreamPlayer: @unchecked Sendable {
 
     private let logger = Logger(label: "audio-stream-player")
 
