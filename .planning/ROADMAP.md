@@ -135,7 +135,12 @@ Plans:
 2. Tail Brief produces an end-weighted narrative (20% context, 80% final turn)
 3. Single-turn summary produces a "you prompted me X ago to..." narrative
 4. After 3 consecutive MiniMax failures, summaries disable for 5 minutes (circuit breaker)
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
 
 ### Phase 5: Telegram Bot Core
 
@@ -148,7 +153,12 @@ Plans:
 2. Bot sends session-end notifications containing Arc Summary and Tail Brief
 3. Bot dispatches TTS for Tail Brief text with karaoke subtitle overlay
 4. Messages use HTML formatting with fence-aware chunking at 4096 char limit
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
 
 ### Phase 6: Telegram Bot Commands
 
@@ -219,7 +229,12 @@ Plans:
 3. Menu actions call HTTP API endpoints with response under 200ms
 4. SwiftBar shows per-subsystem health status from /health endpoint
 5. User can switch subtitle display to external monitor via SwiftBar menu
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
    **UI hint**: yes
 
 ### Phase 10: Deployment & Extras
@@ -462,7 +477,12 @@ Plans:
 2. Disconnecting Bluetooth headphones mid-playback recovers gracefully (audio resumes on default output or subtitle-only fallback)
 3. Under simulated memory pressure during synthesis, the binary degrades to subtitle-only mode rather than crashing
 4. A TTS test request arriving simultaneously with a real notification does not produce interleaved or corrupted audio
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
 
 ### Phase 22: Bionic Reading Mode
 
@@ -475,7 +495,12 @@ Plans:
 2. User can toggle bionic reading on/off via HTTP API endpoint
 3. When enabled, each word in the subtitle renders with bold first ~40% of characters and regular-weight remainder
 4. Bionic rendering and karaoke highlighting are mutually exclusive -- enabling one disables the other
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
    **UI hint**: yes
 
 ### Phase 23: Caption History Panel
@@ -489,7 +514,12 @@ Plans:
 2. Panel auto-scrolls to the latest caption, but manual scrolling up pauses auto-scroll until user returns to bottom
 3. User can click a caption to copy its text to the clipboard as plain text
 4. Panel is accessible via both a SwiftBar menu button and an HTTP API endpoint
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
    **UI hint**: yes
 
 ### Phase 24: Chinese TTS Fallback
@@ -503,7 +533,12 @@ Plans:
 2. English text continues to use the kokoro-ios MLX engine with no behavior change
 3. The sherpa-onnx Chinese model loads on first CJK request (not at startup) to avoid RSS bloat
 4. If the sherpa-onnx model file is missing or synthesis fails, the system logs a warning and falls back to subtitle-only display
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
 
 ## Progress
 
@@ -533,7 +568,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 19. TTSEngine Decomposition & Actor Migration   | 2/2 | Complete    | 2026-03-28 |
 | 20. Unit & Integration Tests                    | 2/2 | Complete    | 2026-03-28 |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1 | Complete   | 2026-03-28 |
-| 21. Pipeline Hardening                          | 0/0            | Not started | -          |
+| 21. Pipeline Hardening                          | 0/2            | Not started | -          |
 | 22. Bionic Reading Mode                         | 0/0            | Not started | -          |
 | 23. Caption History Panel                       | 0/0            | Not started | -          |
 | 24. Chinese TTS Fallback                        | 0/0            | Not started | -          |
