@@ -35,6 +35,9 @@ public final class CaptionHistory: @unchecked Sendable {
     /// Maximum number of entries to retain
     let capacity: Int
 
+    /// Called on the main thread after each `record()` so listeners (e.g. CaptionHistoryPanel) can refresh.
+    public var onChange: (() -> Void)?
+
     /// Create a caption history with the given capacity.
     ///
     /// - Parameter capacity: Maximum number of captions to retain (default 100)
@@ -61,9 +64,15 @@ public final class CaptionHistory: @unchecked Sendable {
         buffer[head] = entry
         head = (head + 1) % capacity
         totalCount += 1
+        let callback = onChange
         lock.unlock()
 
         logger.debug("Recorded caption #\(entry.index): \(trimmed.prefix(50))...")
+
+        // Notify listener on main thread so UI can refresh
+        if let callback = callback {
+            DispatchQueue.main.async { callback() }
+        }
     }
 
     /// Get all stored captions in chronological order.
