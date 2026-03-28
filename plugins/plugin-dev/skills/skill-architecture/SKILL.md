@@ -49,13 +49,48 @@ After modifying THIS skill (skill-architecture):
 
 ---
 
+## Post-Execution Reflection (Compulsory)
+
+Every skill that performs stepwise execution **MUST** include a Post-Execution Reflection section. This is not advisory — it is a structural requirement, like YAML frontmatter or a Post-Change Checklist. The reflection triggers at the end of every skill invocation and instructs Claude to retrospectively examine the execution and rectify the skill's own artifacts.
+
+**Why this exists**: Agent skills executing stepwise are prone to errors — instructions that don't survive real-world conditions, scripts that fail on edge cases, references that mislead. Without a compulsory reflection loop, these errors repeat silently across sessions. The skill never learns from its own failures.
+
+### What the reflection section must do
+
+At the end of every skill execution, the skill's Post-Execution Reflection section reminds Claude to:
+
+1. **Review execution for errors** — What failed? What required manual workarounds? What steps were skipped or reordered?
+2. **Identify patterns and anti-patterns** — What worked unexpectedly well (candidate pattern)? What caused recurring friction (candidate anti-pattern)? These are empirical — discovered through trial, not speculation.
+3. **Rectify the skill** — Update SKILL.md instructions, fix scripts, correct references, add missing edge cases. The rectification is immediate, not deferred.
+4. **Log in evolution-log.md** — Record what changed, what triggered the change, and the empirical evidence (the actual error or friction observed).
+
+### Template for the section
+
+Add this to any skill's SKILL.md (adapt the specifics):
+
+```markdown
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
+1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
+2. **What worked better than expected?** — Promote it to recommended practice. Document why.
+3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
+4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
+```
+
+See [Post-Execution Reflection Reference](./references/post-execution-reflection.md) for the full pattern, validation requirements, and examples.
+
+---
+
 ## Continuous Improvement
 
 Skills must actively evolve. When you notice friction, missing edge cases, better patterns, or repeated manual steps -- **update immediately**: pause, fix SKILL.md or resources, log in evolution-log.md, resume.
 
 **Do NOT update immediately**: major structural changes (discuss first), speculative improvements without evidence.
-
-After completing any skill-assisted task, ask: _"Did anything feel suboptimal? What would help next time?"_ If yes, update now.
 
 ---
 
@@ -187,7 +222,7 @@ skill-name/
 ├── SKILL.md                      # Required: YAML frontmatter + instructions
 ├── scripts/                      # Optional: Executable code (Python/Bash)
 ├── references/                   # Optional: Documentation loaded as needed
-│   └── evolution-log.md          # Recommended: Change history (self-evolving)
+│   └── evolution-log.md          # Required for self-evolving: Change history
 └── assets/                       # Optional: Files used in output
 ```
 
@@ -309,7 +344,9 @@ For detailed information, see:
 - [Creation Workflow](./references/creation-workflow.md) - Step-by-step process with examples
 - [Scripts Reference](./references/scripts-reference.md) - Marketplace script usage
 - [Security Practices](./references/security-practices.md) - Threats and defenses (CVE references)
-- [Phased Execution](./references/phased-execution.md) - Preflight/Execute/Verify patterns and variants
+- [Phased Execution](./references/phased-execution.md) - Preflight/Execute/Verify/Reflect/Rectify patterns and variants
+- [Post-Execution Reflection](./references/post-execution-reflection.md) - Compulsory self-rectification pattern for stepwise skills
+- [Theory: Self-Evolving Skills](./references/theory-self-evolution.md) - Research synthesis from Gemini DR #70 (6 threads)
 - [Invocation Control](./references/invocation-control.md) - Skill invocation modes, permission rules, legacy commands migration
 - [Interactive Patterns](./references/interactive-patterns.md) - AskUserQuestion integration patterns
 - [Token Efficiency](./references/token-efficiency.md) - Context optimization
