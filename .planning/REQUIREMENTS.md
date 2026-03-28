@@ -112,7 +112,7 @@
 
 ### Architecture
 
-- [ ] **ARCH-01**: CompanionCore library target extracts all business logic from executable, leaving main.swift as thin shell
+- [x] **ARCH-01**: CompanionCore library target extracts all business logic from executable, leaving main.swift as thin shell
 - [ ] **ARCH-02**: TTSEngine decomposed into PlaybackManager (AVAudioPlayer lifecycle, pre-buffering)
 - [ ] **ARCH-03**: TTSEngine decomposed into WordTimingAligner (MToken-to-word alignment, onset resolution)
 - [ ] **ARCH-04**: TTSEngine decomposed into PronunciationProcessor (overrides dictionary, regex preprocessing)
@@ -348,7 +348,7 @@
 | STREAM-01   | Phase 17   | Complete |
 | STREAM-02   | Phase 17   | Complete |
 | STREAM-03   | Phase 17   | Complete |
-| ARCH-01     | Phase 18   | Pending  |
+| ARCH-01     | Phase 18   | Complete |
 | TEST-01     | Phase 18   | Pending  |
 | ARCH-02     | Phase 19   | Pending  |
 | ARCH-03     | Phase 19   | Pending  |

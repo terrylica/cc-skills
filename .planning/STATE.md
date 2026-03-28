@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v4.7.0
 milestone_name: Architecture Hardening + Feature Expansion
-status: verifying
-stopped_at: Phase 18 context gathered
-last_updated: "2026-03-28T00:33:42.462Z"
+status: executing
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-03-28T01:08:34.433Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 17
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 20.1 — mlx-metal-memory-lifecycle
+**Current focus:** Phase 18 — companioncore-library-test-infrastructure
 
 ## Current Position
 
-Phase: 20.1 (mlx-metal-memory-lifecycle) — EXECUTING
-Plan: 1 of 1
-Status: Phase complete — ready for verification
+Phase: 18 (companioncore-library-test-infrastructure) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: Stable (~2.5min average)
 
 | Phase 20.1 P01 | 6min | 2 tasks | 7 files |
+| Phase 18 P01 | 8min | 2 tasks | 33 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [v4.7.0]: Chinese model uses load-on-demand with 30-second idle cooldown
 - [Phase 20.1]: exit(42) as restart signal for IOAccelerator memory reclaim via launchd KeepAlive
 - [Phase 20.1]: Max 10 synthesis calls before process restart (~17GB worst case fits 32GB RAM)
+- [Phase 18]: CompanionApp @MainActor init/start/shutdown for SubtitlePanel compatibility
+- [Phase 18]: MemoryLifecycle module-level callback registration pattern for cross-module restart
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T00:33:42.459Z
-Stopped at: Phase 18 context gathered
-Resume file: .planning/phases/18-companioncore-library-test-infrastructure/18-CONTEXT.md
+Last session: 2026-03-28T01:08:34.430Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: None
