@@ -54,8 +54,6 @@ public actor TTSEngine {
     /// Injected at init; handles on-demand model loading with idle unload.
     let sherpaOnnxEngine: SherpaOnnxEngine
 
-    /// Path to the last generated WAV (cleaned up before next synthesis)
-    private var lastWavPath: String?
 
     // MARK: - Lifecycle
 
@@ -129,7 +127,6 @@ public actor TTSEngine {
     ) async throws -> SynthesisResult {
         let processedText = PronunciationProcessor.preprocessText(text)
         let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
-        lastWavPath = wavPath
 
         // Use timestamp endpoint -- discard word timing for this path (only need WAV + duration)
         let tsResult = try await callPythonServerWithTimestamps(text: processedText, voice: voiceName, speed: speed)
@@ -159,7 +156,6 @@ public actor TTSEngine {
     ) async throws -> TTSResult {
         let processedText = PronunciationProcessor.preprocessText(text)
         let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
-        lastWavPath = wavPath
 
         let tsResult = try await callPythonServerWithTimestamps(text: processedText, voice: voiceName, speed: speed)
 
@@ -198,17 +194,16 @@ public actor TTSEngine {
         let samples: [Float]?
     }
 
-    /// Number of silence samples appended to each streaming chunk WAV.
-    /// At 24kHz, 2400 samples = 100ms of trailing silence.
-    private static let trailingSilenceSamples = 2400  // 100ms at 24kHz
-
-    /// Synthesize text as sentence chunks using batch-then-play pattern.
+    /// Synthesize text as a single paragraph via the Python server.
     ///
-    /// Splits `text` into sentences, synthesizes ALL sentences sequentially via
-    /// the Python server, then returns all chunks. This completely separates
-    /// synthesis from audio playback.
+    /// Sends the full text in one call (preserves paragraph-level prosody context),
+    /// then splits the returned audio into sentence-level chunks for subtitle display.
+    /// The Python server's mlx-audio handles internal chunking at the 510-token limit.
     ///
-    /// Returns an empty array if circuit breaker is open or all chunks fail.
+    /// Audio is upsampled from 24kHz to 48kHz to match CoreAudio hardware rate,
+    /// eliminating internal sample rate converter artifacts at buffer boundaries.
+    ///
+    /// Returns an empty array if circuit breaker is open or synthesis fails.
     func synthesizeStreaming(
         text: String,
         voiceName: String = Config.defaultVoiceName,
@@ -216,74 +211,148 @@ public actor TTSEngine {
         cancellationCheck: (() -> Bool)? = nil
     ) async -> [ChunkResult] {
         guard !isTTSCircuitBreakerOpen else {
-            logger.warning("TTS circuit breaker open -- skipping streaming synthesis (\(text.count) chars)")
+            logger.warning("TTS circuit breaker open -- skipping synthesis (\(text.count) chars)")
             return []
         }
 
-        let sentences = SentenceSplitter.splitIntoSentences(text)
-        let totalChunks = sentences.count
-        logger.info("Streaming TTS: \(text.count) chars split into \(totalChunks) sentences")
+        // Check cancellation before starting
+        if Task.isCancelled || (cancellationCheck?() == true) {
+            logger.info("Synthesis cancelled before starting")
+            return []
+        }
 
-        var chunks: [ChunkResult] = []
+        let processedText = PronunciationProcessor.preprocessText(text)
+        logger.info("Synthesizing full paragraph: \(text.count) chars (single server call)")
+
         let pipelineStart = CFAbsoluteTimeGetCurrent()
 
-        for (index, sentence) in sentences.enumerated() {
-            // Cooperative cancellation: check between sentences
+        do {
+            let tsResult = try await callPythonServerWithTimestamps(text: processedText, voice: voiceName, speed: speed)
+
+            // Extract float32 samples from WAV (no trailing silence — gapless scheduling)
+            let rawSamples = Self.extractSamplesFromWav(data: tsResult.wavData)
+
+            // Upsample 24kHz → 48kHz (2x integer ratio) to match CoreAudio hardware rate.
+            // Eliminates internal sample rate converter artifacts at buffer boundaries.
+            let samples = Self.upsample2x(rawSamples)
+
+            circuitBreaker.recordSuccess()
+
+            let elapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
+            let rtf = elapsed / tsResult.audioDuration
+            logger.info("Synthesis complete: \(String(format: "%.2f", tsResult.audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
+
+            // Check cancellation after synthesis
             if Task.isCancelled || (cancellationCheck?() == true) {
-                logger.info("Synthesis cancelled after \(index)/\(totalChunks) chunks")
-                break
+                logger.info("Synthesis cancelled after server call")
+                return []
             }
-            let processedSentence = PronunciationProcessor.preprocessText(sentence)
-            let wavPath = NSTemporaryDirectory() + "tts-stream-\(UUID().uuidString).wav"
 
-            logger.info("Synthesizing chunk \(index + 1)/\(totalChunks): \(sentence.count) chars")
-            let startTime = CFAbsoluteTimeGetCurrent()
+            // Split into sentence-level chunks for subtitle display.
+            // Use word onset times from Kokoro's duration model to find exact sentence boundaries.
+            let sentences = SentenceSplitter.splitIntoSentences(text)
+            let totalChunks = sentences.count
+            var chunks: [ChunkResult] = []
 
-            do {
-                let tsResult = try await callPythonServerWithTimestamps(text: processedSentence, voice: voiceName, speed: speed)
+            let wavPath = NSTemporaryDirectory() + "tts-full-\(UUID().uuidString).wav"
+            try Self.writeWav(samples: samples, sampleRate: 48000.0, to: wavPath)
 
-                // Extract float32 samples from WAV and add trailing silence
-                var samples = Self.extractSamplesFromWav(data: tsResult.wavData)
-                samples.append(contentsOf: [Float](repeating: 0.0, count: Self.trailingSilenceSamples))
+            // Telemetry: log all word timings from Kokoro for debugging
+            let allWordOnsets = tsResult.wordOnsets
+            let allWordDurations = tsResult.wordDurations
+            let allWordTexts = tsResult.wordTexts
+            logger.info("[TELEMETRY] Server returned \(allWordTexts.count) words, \(allWordOnsets.count) onsets, audioDuration=\(String(format: "%.3f", tsResult.audioDuration))s")
+            logger.info("[TELEMETRY] Sentences: \(sentences.count) → \(sentences.map { "\"\($0.prefix(40))\"" }.joined(separator: ", "))")
+            if allWordTexts.count <= 50 {
+                logger.info("[TELEMETRY] Words: \(allWordTexts.joined(separator: " | "))")
+                logger.info("[TELEMETRY] Onsets: \(allWordOnsets.map { String(format: "%.3f", $0) }.joined(separator: ", "))")
+            }
+            logger.info("[TELEMETRY] Raw samples: \(rawSamples.count) (24kHz), upsampled: \(samples.count) (48kHz)")
 
-                // Write padded WAV (with silence) to disk
-                try Self.writeWav(samples: samples, to: wavPath)
+            // Map Kokoro words to sentences by accumulating word text until we've covered
+            // each sentence's content. This handles punctuation and tokenization differences.
+            var wordIndex = 0
 
-                circuitBreaker.recordSuccess()
+            for (sentenceIdx, sentence) in sentences.enumerated() {
+                let firstWordIdx = wordIndex
 
-                let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                let rtf = elapsed / tsResult.audioDuration
-                logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", tsResult.audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf))), \(tsResult.wordOnsets.count) word onsets")
+                if sentenceIdx == sentences.count - 1 {
+                    // Last sentence: consume all remaining words
+                    wordIndex = allWordTexts.count
+                } else {
+                    // Walk through words, accumulating characters until we've covered this sentence.
+                    // Compare lowercased stripped text to handle punctuation/whitespace differences.
+                    let sentenceClean = sentence.lowercased().filter { $0.isLetter || $0.isNumber }
+                    var accumulated = ""
+                    while wordIndex < allWordTexts.count {
+                        accumulated += allWordTexts[wordIndex].lowercased().filter { $0.isLetter || $0.isNumber }
+                        wordIndex += 1
+                        if accumulated.count >= sentenceClean.count {
+                            break
+                        }
+                    }
+                }
 
-                // Native per-word durations from Kokoro duration model (not character-weighted)
-                let wordTimings = tsResult.wordDurations
+                let lastWordIdx = max(firstWordIdx, wordIndex - 1)
+
+                // Compute chunk time boundaries from word onsets
+                let chunkStartTime: TimeInterval
+                let chunkEndTime: TimeInterval
+
+                if firstWordIdx < allWordOnsets.count {
+                    chunkStartTime = allWordOnsets[firstWordIdx]
+                } else {
+                    chunkStartTime = tsResult.audioDuration
+                }
+
+                if sentenceIdx == sentences.count - 1 {
+                    chunkEndTime = tsResult.audioDuration
+                } else if lastWordIdx < allWordOnsets.count {
+                    chunkEndTime = allWordOnsets[lastWordIdx] + allWordDurations[lastWordIdx]
+                } else {
+                    chunkEndTime = tsResult.audioDuration
+                }
+
+                // Convert times to sample offsets (at 48kHz upsampled rate)
+                let startSample = min(Int(chunkStartTime * 48000.0), samples.count)
+                let endSample = min(Int(chunkEndTime * 48000.0), samples.count)
+                let chunkSamples = startSample < endSample ? Array(samples[startSample..<endSample]) : []
+                let chunkDuration = chunkEndTime - chunkStartTime
+
+                // Extract per-word onsets relative to this chunk's start
+                var chunkWordOnsets: [TimeInterval] = []
+                var chunkWordDurations: [TimeInterval] = []
+                let safeLastWordIdx = min(lastWordIdx, allWordOnsets.count - 1)
+                if firstWordIdx <= safeLastWordIdx {
+                    for wi in firstWordIdx...safeLastWordIdx {
+                        chunkWordOnsets.append(allWordOnsets[wi] - chunkStartTime)
+                        chunkWordDurations.append(allWordDurations[wi])
+                    }
+                }
+
+                logger.info("[TELEMETRY] Chunk \(sentenceIdx): words[\(firstWordIdx)..\(lastWordIdx)], time=\(String(format: "%.3f", chunkStartTime))-\(String(format: "%.3f", chunkEndTime))s (\(String(format: "%.3f", chunkDuration))s), samples=\(chunkSamples.count), text=\"\(sentence.prefix(50))\"")
 
                 chunks.append(ChunkResult(
                     wavPath: wavPath,
                     text: sentence,
-                    wordTimings: wordTimings,
-                    audioDuration: tsResult.audioDuration,
-                    chunkIndex: index,
+                    wordTimings: chunkWordDurations,
+                    audioDuration: chunkDuration,
+                    chunkIndex: sentenceIdx,
                     totalChunks: totalChunks,
-                    wordOnsets: tsResult.wordOnsets,
-                    samples: samples
+                    wordOnsets: chunkWordOnsets,
+                    samples: chunkSamples
                 ))
-            } catch {
-                logger.error("Synthesis failed for chunk \(index + 1): \(error)")
-                circuitBreaker.recordFailure()
-
-                if circuitBreaker.isOpen {
-                    logger.error("TTS circuit breaker tripped mid-stream -- aborting remaining chunks")
-                    break
-                }
-                continue
             }
+
+            let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
+            logger.info("Pipeline complete: \(totalChunks) subtitle chunks in \(String(format: "%.2f", totalElapsed))s")
+
+            return chunks
+        } catch {
+            logger.error("Synthesis failed: \(error)")
+            circuitBreaker.recordFailure()
+            return []
         }
-
-        let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
-        logger.info("Streaming TTS pipeline complete: \(totalChunks) chunks in \(String(format: "%.2f", totalElapsed))s")
-
-        return chunks
     }
 
     // MARK: - CJK Synthesis (sherpa-onnx)
@@ -300,11 +369,11 @@ public actor TTSEngine {
         let wavPath = NSTemporaryDirectory() + "tts-cjk-\(UUID().uuidString).wav"
         let audioDuration = Double(result.samples.count) / Double(result.sampleRate)
 
-        // Add trailing silence (same as English streaming path)
-        let paddedSamples = result.samples + [Float](repeating: 0.0, count: Self.trailingSilenceSamples)
+        // Upsample CJK audio to 48kHz to match AudioStreamPlayer format
+        let upsampledSamples = Self.upsample2x(result.samples)
 
         do {
-            try Self.writeWav(samples: paddedSamples, sampleRate: Double(result.sampleRate), to: wavPath)
+            try Self.writeWav(samples: upsampledSamples, sampleRate: 48000.0, to: wavPath)
         } catch {
             logger.error("CJK WAV write failed: \(error)")
             return nil
@@ -325,7 +394,7 @@ public actor TTSEngine {
             chunkIndex: 0,
             totalChunks: 1,
             wordOnsets: nil,
-            samples: paddedSamples
+            samples: upsampledSamples
         )
     }
 
@@ -369,6 +438,7 @@ public actor TTSEngine {
         let wavData: Data
         let wordOnsets: [TimeInterval]
         let wordDurations: [TimeInterval]
+        let wordTexts: [String]
         let audioDuration: TimeInterval
     }
 
@@ -422,11 +492,13 @@ public actor TTSEngine {
 
         let wordOnsets = tsResponse.words.map { TimeInterval($0.onset) }
         let wordDurations = tsResponse.words.map { TimeInterval($0.duration) }
+        let wordTexts = tsResponse.words.map { $0.text }
 
         return TimestampResult(
             wavData: wavData,
             wordOnsets: wordOnsets,
             wordDurations: wordDurations,
+            wordTexts: wordTexts,
             audioDuration: TimeInterval(tsResponse.audio_duration)
         )
     }
@@ -471,6 +543,24 @@ public actor TTSEngine {
         }
 
         return data
+    }
+
+    // MARK: - Audio Processing
+
+    /// Upsample float32 audio by 2x (24kHz → 48kHz) using linear interpolation.
+    /// 48kHz is CoreAudio's native hardware rate — avoids internal sample rate converter
+    /// artifacts at buffer boundaries.
+    private static func upsample2x(_ input: [Float]) -> [Float] {
+        guard input.count > 1 else { return input }
+        var output = [Float](repeating: 0, count: input.count * 2)
+        for i in 0..<input.count - 1 {
+            output[i * 2] = input[i]
+            output[i * 2 + 1] = (input[i] + input[i + 1]) * 0.5
+        }
+        // Last sample
+        output[(input.count - 1) * 2] = input[input.count - 1]
+        output[(input.count - 1) * 2 + 1] = input[input.count - 1]
+        return output
     }
 
     // MARK: - WAV Utilities
@@ -536,7 +626,7 @@ public actor TTSEngine {
 
     /// Write float32 audio samples to a WAV file using AVAudioFile.
     /// Static to be callable from non-isolated context.
-    private static func writeWav(samples: [Float], sampleRate: Double = 24000.0, to path: String) throws {
+    private static func writeWav(samples: [Float], sampleRate: Double = 48000.0, to path: String) throws {
         let url = URL(fileURLWithPath: path)
         guard let format = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
@@ -562,13 +652,5 @@ public actor TTSEngine {
             interleaved: format.isInterleaved
         )
         try audioFile.write(from: buffer)
-    }
-
-    /// Remove the last temporary WAV file.
-    private func cleanupLastWav() {
-        if let path = lastWavPath {
-            try? FileManager.default.removeItem(atPath: path)
-            lastWavPath = nil
-        }
     }
 }
