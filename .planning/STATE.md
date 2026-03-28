@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v4.7.0
 milestone_name: Architecture Hardening + Feature Expansion
-status: executing
-stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-03-28T03:09:10.712Z"
+status: verifying
+stopped_at: Completed 22-02-PLAN.md
+last_updated: "2026-03-28T03:12:44.556Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 17
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 
 Phase: 22 (bionic-reading-mode) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -69,6 +69,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 21-pipeline-hardening P01 | 4min | 2 tasks | 4 files |
 | Phase 21-pipeline-hardening P02 | 3min | 2 tasks | 5 files |
 | Phase 22-bionic-reading-mode P01 | 4min | 2 tasks | 6 files |
+| Phase 22-bionic-reading-mode P02 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,7 @@ Recent decisions affecting current work:
 - [Phase 21-pipeline-hardening]: 60-second auto-recovery timer for memory pressure (DispatchWorkItem cancelled on each new event)
 - [Phase 21-pipeline-hardening]: AudioStreamPlayer restarts engine in-place on route change; coordinator only cancels pipeline (separation of concerns)
 - [Phase 22-bionic-reading-mode]: DisplayMode stored as String in SubtitleSettings with backward-compatible Codable decoder
+- [Phase 22-bionic-reading-mode]: SwiftBar files are local-only deployment artifacts, not repo-tracked
 
 ### Pending Todos
 
@@ -126,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T03:09:10.709Z
-Stopped at: Completed 22-01-PLAN.md
+Last session: 2026-03-28T03:12:44.553Z
+Stopped at: Completed 22-02-PLAN.md
 Resume file: None
