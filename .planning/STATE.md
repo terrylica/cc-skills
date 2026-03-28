@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.8.0
 milestone_name: Python MLX TTS Consolidation
 status: verifying
-stopped_at: Completed 26-01-PLAN.md
-last_updated: "2026-03-28T07:54:30.534Z"
+stopped_at: Completed 27-01-PLAN.md
+last_updated: "2026-03-28T08:11:34.701Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 25
@@ -23,12 +23,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 26 — swift-ttsengine-python-integration
+**Current focus:** Phase 27 — mlx-dependency-removal
 
 ## Current Position
 
-Phase: 26
-Plan: Not started
+Phase: 27 (mlx-dependency-removal) — EXECUTING
+Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-03-28
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase 25 P01 | 5min | 2 tasks | 2 files |
 | Phase 26 P01 | 2min | 2 tasks | 1 files |
+| Phase 27 P01 | 4min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,7 @@ Recent decisions affecting current work:
 - [Phase 26]: Keep callPythonServer() as fallback for CJK path and emergency scenarios
 - [Phase 26]: Use Codable structs for Python timestamp JSON parsing (type-safe vs manual JSONSerialization)
 - [Phase 26]: Pass native wordDurations as wordTimings fallback for SubtitleSyncDriver onset count mismatches
+- [Phase 27]: Remove kokoro-ios, mlx-swift, MLXUtilsLibrary -- IOAccelerator leak by design, TTS delegated to Python MLX server
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T07:47:06.435Z
-Stopped at: Completed 26-01-PLAN.md
+Last session: 2026-03-28T08:11:34.698Z
+Stopped at: Completed 27-01-PLAN.md
 Resume file: None
