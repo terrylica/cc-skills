@@ -10,6 +10,18 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 
 <!-- SSoT-OK: planning document, not a package version --> <!-- # SSoT-OK -->
 
+## Current Milestone: v4.9.0 SwiftBar UI & Telegram Bot Activation
+
+**Goal:** Wire SwiftBar UI to all touch points of the new Python TTS + Telegram system. Activate the Telegram bot. Verify full E2E flow.
+
+**Target features:**
+
+- SwiftBar shows Python TTS server health alongside Swift companion
+- Telegram bot activated with proper credentials in launchd env
+- Voice/Speed settings propagate SwiftBar → Swift → Python server
+- Full E2E: session end → notification → AI summary → TTS → karaoke → Telegram
+- Bot status shows "connected" or "disabled" (not "unknown")
+
 ## Current State
 
 **Latest milestone:** v4.8.0 Python MLX TTS Consolidation (shipped 2026-03-28)
@@ -58,7 +70,11 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 
 ### Active
 
-(No active requirements — start next milestone with `/gsd:new-milestone`)
+- [ ] SwiftBar shows Python TTS server health status
+- [ ] Telegram bot activated with credentials in launchd env
+- [ ] Voice/Speed settings propagate to Python server
+- [ ] Full E2E session → TTS → karaoke → Telegram flow
+- [ ] Bot subsystem status shows "connected" or "disabled"
 
 ### Out of Scope
 
@@ -134,4 +150,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-_Last updated: 2026-03-28 after v4.8.0 milestone completion_ <!-- # SSoT-OK -->
+_Last updated: 2026-03-28 after v4.9.0 milestone start_ <!-- # SSoT-OK -->
