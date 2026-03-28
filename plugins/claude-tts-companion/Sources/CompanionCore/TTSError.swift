@@ -7,6 +7,8 @@ public enum TTSError: Error, CustomStringConvertible {
     case synthesisReturnedNil
     case wavWriteFailed(path: String)
     case circuitBreakerOpen
+    case pythonServerUnavailable(url: String)
+    case pythonServerError(statusCode: Int, message: String)
 
     public var description: String {
         switch self {
@@ -18,6 +20,10 @@ public enum TTSError: Error, CustomStringConvertible {
             return "Failed to write WAV to \(path)"
         case .circuitBreakerOpen:
             return "TTS circuit breaker is open — synthesis temporarily disabled"
+        case .pythonServerUnavailable(let url):
+            return "Python TTS server unavailable at \(url)"
+        case .pythonServerError(let statusCode, let message):
+            return "Python TTS server error (\(statusCode)): \(message)"
         }
     }
 }

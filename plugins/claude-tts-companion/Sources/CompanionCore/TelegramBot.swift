@@ -258,11 +258,10 @@ public final class TelegramBot: @unchecked Sendable {
         }
         logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), voice=\(langResult.voiceName), streaming=\(Config.streamingTTS)")
 
-        // If TTS is disabled (model missing or circuit breaker open), show subtitle-only fallback
-        let isModelMissing = await ttsEngine.isDisabledDueToMissingModel
+        // If circuit breaker is open, show subtitle-only fallback
         let isCBOpen = await ttsEngine.isTTSCircuitBreakerOpen
-        if isModelMissing || isCBOpen {
-            logger.warning("TTS unavailable -- showing subtitle-only fallback (\(fullText.count) chars)")
+        if isCBOpen {
+            logger.warning("TTS circuit breaker open -- showing subtitle-only fallback (\(fullText.count) chars)")
             showSubtitleOnlyFallback(text: fullText)
             return
         }

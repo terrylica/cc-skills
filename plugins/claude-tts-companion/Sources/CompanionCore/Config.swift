@@ -63,6 +63,22 @@ public enum Config {
         return ProcessInfo.processInfo.environment["STREAMING_TTS"] != "false"
     }()
 
+    // MARK: - Python TTS Server (Kokoro MLX via HTTP)
+
+    /// Base URL for the Python Kokoro TTS server (localhost only).
+    /// The server runs as a separate launchd service and handles MLX synthesis.
+    static let pythonTTSServerURL: String = {
+        return ProcessInfo.processInfo.environment["KOKORO_TTS_SERVER_URL"]
+            ?? "http://127.0.0.1:8779"
+    }()
+
+    /// Timeout for individual synthesis HTTP requests to the Python TTS server (seconds).
+    /// Long texts can take 10-30s to synthesize; 120s provides generous headroom.
+    static let pythonTTSRequestTimeout: TimeInterval = 120
+
+    /// Timeout for Python TTS server health check on startup (seconds).
+    static let pythonTTSHealthCheckTimeout: TimeInterval = 5
+
     // MARK: - HTTP Control API
 
     /// Port for the HTTP control API (localhost only)
