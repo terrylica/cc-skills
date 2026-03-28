@@ -10,34 +10,13 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 
 <!-- SSoT-OK: planning document, not a package version --> <!-- # SSoT-OK -->
 
-## Current Milestone: v4.8.0 Python MLX TTS Consolidation
-
-**Goal:** Permanently wire Python MLX server as the TTS backend with word-level timestamps, eliminate all mlx-swift/kokoro-ios dependencies from the Swift binary.
-
-**Target features:**
-
-- Python MLX server `/v1/audio/speech-with-timestamps` endpoint returning WAV + per-word timing JSON
-- Swift TTSEngine fully delegating to Python server with native word onset data
-- Remove kokoro-ios, mlx-swift, MLXUtilsLibrary from Package.swift
-- Python TTS launchd service as a dependency of claude-tts-companion
-- Remove synthesis-count restart (no MLX in Swift process = no IOAccelerator leak)
-
-**Key decisions (archived for posterity):**
-
-| Decision                          | Rationale                                                                                                                     | Evidence                             |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Python MLX over Swift MLX         | mlx-swift IOAccelerator leak is by design (ml-explore/mlx #1086). Python MLX = +4MB/call, Swift = +2.3GB/call. No fix coming. | vmmap measurements 2026-03-28        |
-| Python MLX over sherpa-onnx ONNX  | sherpa-onnx Kokoro `durations` field is NULL — no word timestamps without C++ patching                                        | benchmark-sherpa-onnx.md             |
-| Python MLX over FluidAudio CoreML | No word-level timestamp API. CoreML compiled graphs are opaque — cannot extract duration model output                         | benchmark-fluidaudio.md              |
-| Python MLX over Rust/candle       | No Kokoro implementation exists. burn-mlx uses MLX underneath = same leak                                                     | tts-runtime-alternatives-research.md |
-| Word-level timing non-negotiable  | Karaoke subtitle highlighting requires per-word onset/duration data                                                           | User requirement                     |
-
 ## Current State
 
-**Latest milestone:** v4.7.0 Architecture Hardening + Feature Expansion (shipped 2026-03-28)
-**Codebase:** 38 Swift source files (10,618 LOC) + 10 test files (923 LOC) in CompanionCore library
-**Tests:** 59+ Swift Testing unit/integration tests via `swift test`
-**Architecture:** TTSEngine actor (delegates to Python MLX server) + PlaybackManager @MainActor + TTSPipelineCoordinator + 5 pure Sendable structs
+**Latest milestone:** v4.8.0 Python MLX TTS Consolidation (shipped 2026-03-28)
+**Codebase:** Swift companion (51 MB RSS, no MLX deps) + Python MLX Kokoro server (550 MB, port 8779)
+**Tests:** 82 Swift Testing unit/integration tests via `swift test`
+**Architecture:** TTSEngine actor (HTTP delegation to Python MLX) + PlaybackManager @MainActor + TTSPipelineCoordinator
+**TTS pipeline:** Swift companion (port 8780) → Python MLX server (port 8779) → native MToken word timestamps → karaoke subtitles
 
 ## Requirements
 
@@ -72,13 +51,14 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 - ✓ Scrollable caption history panel with copy-to-clipboard — v4.7.0
 - ✓ MLX Metal memory lifecycle with graceful restart — v4.7.0
 
+- ✓ Python MLX server word-level timestamp endpoint — v4.8.0
+- ✓ Swift TTSEngine native word onset integration — v4.8.0
+- ✓ kokoro-ios, mlx-swift, MLXUtilsLibrary removed — v4.8.0
+- ✓ MLX memory lifecycle restart removed (no longer needed) — v4.8.0
+
 ### Active
 
-- [ ] Python MLX server word-level timestamp endpoint
-- [ ] Swift TTSEngine native word onset integration (replace character-weighted fallback)
-- [ ] Remove kokoro-ios, mlx-swift, MLXUtilsLibrary dependencies
-- [ ] Python TTS launchd service dependency management
-- [ ] Remove MLX memory lifecycle restart (no longer needed)
+(No active requirements — start next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -154,4 +134,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-_Last updated: 2026-03-28 after v4.8.0 milestone start_ <!-- # SSoT-OK -->
+_Last updated: 2026-03-28 after v4.8.0 milestone completion_ <!-- # SSoT-OK -->
