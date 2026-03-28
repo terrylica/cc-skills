@@ -129,8 +129,8 @@
 ### Hardening
 
 - [x] **HARD-01**: Rapid-fire notification handling (5 notifications in 10s without crash or queue corruption)
-- [ ] **HARD-02**: Audio hardware disconnect recovery (Bluetooth headphones mid-playback)
-- [ ] **HARD-03**: Memory pressure graceful degradation during synthesis
+- [x] **HARD-02**: Audio hardware disconnect recovery (Bluetooth headphones mid-playback)
+- [x] **HARD-03**: Memory pressure graceful degradation during synthesis
 - [x] **HARD-04**: Concurrent TTS test + real notification race condition eliminated
 
 ### Testing
@@ -367,8 +367,8 @@
 | LEAK-02     | Phase 20.1 | Complete |
 | LEAK-03     | Phase 20.1 | Complete |
 | HARD-01     | Phase 21   | Complete |
-| HARD-02     | Phase 21   | Pending  |
-| HARD-03     | Phase 21   | Pending  |
+| HARD-02     | Phase 21   | Complete |
+| HARD-03     | Phase 21   | Complete |
 | HARD-04     | Phase 21   | Complete |
 | BION-01     | Phase 22   | Pending  |
 | BION-02     | Phase 22   | Pending  |
