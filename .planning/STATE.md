@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v4.7.0
 milestone_name: Architecture Hardening + Feature Expansion
-status: executing
-stopped_at: Completed 19-02-PLAN.md
-last_updated: "2026-03-28T02:08:09.123Z"
+status: verifying
+stopped_at: Completed 20-01-PLAN.md
+last_updated: "2026-03-28T02:27:24.317Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 17
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 19 — ttsengine-decomposition-actor-migration
+**Current focus:** Phase 20 — unit-integration-tests
 
 ## Current Position
 
-Phase: 19
-Plan: Not started
-Status: Ready to execute
+Phase: 20 (unit-integration-tests) — EXECUTING
+Plan: 2 of 2
+Status: Phase complete — ready for verification
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -64,6 +64,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 18 P02 | 6min | 2 tasks | 6 files |
 | Phase 19 P01 | 10min | 2 tasks | 7 files |
 | Phase 19 P02 | 11min | 2 tasks | 7 files |
+| Phase 20-unit-integration-tests P02 | 3min | 2 tasks | 2 files |
+| Phase 20 P01 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -87,6 +89,8 @@ Recent decisions affecting current work:
 - [Phase 18]: swift-testing package dependency for test infrastructure (CommandLineTools lacks built-in Testing module)
 - [Phase 19]: synthesizeStreaming changed from callback-based to return-based API for Swift 6 actor compatibility
 - [Phase 19]: writeWav made static on TTSEngine actor for non-isolated DispatchQueue access
+- [Phase 20-unit-integration-tests]: Closure syntax for whereSeparator in tests (Swift 6 key path type inference limitation)
+- [Phase 20]: SentenceSplitter abbreviation detection only covers single-uppercase-letter patterns -- tests document actual behavior
 
 ### Pending Todos
 
@@ -115,6 +119,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T02:02:39.940Z
-Stopped at: Completed 19-02-PLAN.md
+Last session: 2026-03-28T02:27:24.314Z
+Stopped at: Completed 20-01-PLAN.md
 Resume file: None
