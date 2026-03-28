@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.7.0
-milestone_name: Architecture Hardening + Feature Expansion
-status: verifying
-stopped_at: Completed 24-02-PLAN.md
-last_updated: "2026-03-28T04:35:44.446Z"
+milestone: v4.8.0
+milestone_name: Python MLX TTS Consolidation
+status: planning
+stopped_at: Defining requirements
+last_updated: "2026-03-28T05:00:00.000Z"
 last_activity: 2026-03-28
 progress:
-  total_phases: 17
-  completed_phases: 16
-  total_plans: 33
-  completed_plans: 32
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -20,17 +20,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-27)
+See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 24 — chinese-tts-fallback
+**Current focus:** v4.8.0 — Python MLX TTS Consolidation (defining requirements)
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-28
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-28 — Milestone v4.8.0 started
 
 Progress: [░░░░░░░░░░] 0%
 
