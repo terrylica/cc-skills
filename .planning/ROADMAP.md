@@ -7,7 +7,8 @@
 - ✅ **v4.5.0 MVP** - Phases 1-10 (shipped)
 - ✅ **v4.6.0 Legacy Pipeline Feature Parity** - Phases 11-17 (shipped 2026-03-27)
 - ✅ **v4.7.0 Architecture Hardening + Feature Expansion** - Phases 18-24 (shipped 2026-03-28)
-- 🚧 **v4.8.0 Python MLX TTS Consolidation** - Phases 25-28 (in progress)
+- ✅ **v4.8.0 Python MLX TTS Consolidation** - Phases 25-28 (shipped 2026-03-28)
+- 🚧 **v4.9.0 SwiftBar UI & Telegram Bot Activation** - Phases 29-31 (in progress)
 
 ## Overview
 
@@ -34,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: File Watching & Auto-Continue** - Event-driven file monitoring and MiniMax-evaluated auto-continue (completed 2026-03-26)
 - [ ] **Phase 8: HTTP Control API** - External control surface for settings, health, subtitle, and TTS
 - [ ] **Phase 9: SwiftBar Integration** - Menu bar plugin controls all subsystems via HTTP API
-- [x] **Phase 10: Deployment & Extras** - Launchd service, rollback, caption history, clipboard, thinking watcher (completed 2026-03-26)
+- [x] **Phase 10: Deployment & Extras** - Launchd plist, rollback, caption history, clipboard, thinking watcher (completed 2026-03-26)
 
 </details>
 
@@ -65,12 +66,21 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v4.8.0 Python MLX TTS Consolidation (Phases 25-28)
+<details>
+<summary>v4.8.0 Python MLX TTS Consolidation (Phases 25-28)</summary>
 
-- [ ] **Phase 25: Python TTS Server Timestamp Endpoint** - Python MLX server exposes word-level timestamp API that Swift consumes via HTTP
-- [ ] **Phase 26: Swift TTSEngine Python Integration** - TTSEngine delegates to Python server with native word onsets, replacing character-weighted fallback
-- [ ] **Phase 27: MLX Dependency Removal** - kokoro-ios, mlx-swift, MLXUtilsLibrary stripped from Package.swift and all imports
-- [ ] **Phase 28: Memory Lifecycle Cleanup** - Synthesis-count restart and IOAccelerator mitigation code removed (no MLX in Swift process)
+- [x] **Phase 25: Python TTS Server Timestamp Endpoint** - Python MLX server exposes word-level timestamp API that Swift consumes via HTTP
+- [x] **Phase 26: Swift TTSEngine Python Integration** - TTSEngine delegates to Python server with native word onsets, replacing character-weighted fallback
+- [x] **Phase 27: MLX Dependency Removal** - kokoro-ios, mlx-swift, MLXUtilsLibrary stripped from Package.swift and all imports
+- [x] **Phase 28: Memory Lifecycle Cleanup** - Synthesis-count restart and IOAccelerator mitigation code removed (no MLX in Swift process)
+
+</details>
+
+### v4.9.0 SwiftBar UI & Telegram Bot Activation (Phases 29-31)
+
+- [ ] **Phase 29: Telegram Bot Activation** - Bot credentials in launchd env, long polling connection, session notifications flowing
+- [ ] **Phase 30: SwiftBar UI Updates** - Python TTS health, voice/speed propagation, bot status display
+- [ ] **Phase 31: E2E Integration Verification** - Full chain verified: session end through TTS karaoke through Telegram delivery
 
 ## Phase Details
 
@@ -555,7 +565,8 @@ Plans:
 
 </details>
 
-### v4.8.0 Python MLX TTS Consolidation Phase Details
+<details>
+<summary>v4.8.0 Python MLX TTS Consolidation Phase Details (Phases 25-28)</summary>
 
 ### Phase 25: Python TTS Server Timestamp Endpoint
 
@@ -576,7 +587,7 @@ Plans:
 
 Plans:
 
-- [x] 25-01-PLAN.md — synthesize_with_timestamps + /v1/audio/speech-with-timestamps endpoint + launchd verification
+- [x] 25-01-PLAN.md -- synthesize_with_timestamps + /v1/audio/speech-with-timestamps endpoint + launchd verification
 
 ### Phase 26: Swift TTSEngine Python Integration
 
@@ -612,7 +623,7 @@ Plans:
 
 Plans:
 
-- [x] 27-01-PLAN.md — Remove MLX packages from Package.swift, strip dead MToken code, update tests, verify binary size
+- [x] 27-01-PLAN.md -- Remove MLX packages from Package.swift, strip dead MToken code, update tests, verify binary size
 
 ### Phase 28: Memory Lifecycle Cleanup
 
@@ -629,12 +640,56 @@ Plans:
 
 Plans:
 
-- [x] 28-01-PLAN.md — Delete MemoryLifecycle.swift, strip restart logic from TTSEngine/CompanionApp/TelegramBot/HTTPControlServer
+- [x] 28-01-PLAN.md -- Delete MemoryLifecycle.swift, strip restart logic from TTSEngine/CompanionApp/TelegramBot/HTTPControlServer
+
+</details>
+
+### v4.9.0 SwiftBar UI & Telegram Bot Activation Phase Details
+
+### Phase 29: Telegram Bot Activation
+
+**Goal**: The Telegram bot connects to Telegram via long polling and delivers session notifications with rich HTML formatting
+
+**Depends on**: Phase 28 (v4.8.0 codebase with Python TTS delegation)
+**Requirements**: BOT-10, BOT-11, BOT-12
+**Success Criteria** (what must be TRUE):
+
+1. TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are present in the claude-tts-companion launchd plist EnvironmentVariables, sourced from ~/.claude/.secrets/ccterrybot-telegram
+2. Bot connects via long polling within 5 seconds of launchd service start and responds to /status command
+3. Session-end notifications deliver Arc Summary + Tail Brief to Telegram with rich HTML formatting (header, code blocks, links)
+   **Plans**: TBD
+
+### Phase 30: SwiftBar UI Updates
+
+**Goal**: SwiftBar menu bar plugin shows accurate status for all subsystems including Python TTS server and Telegram bot, with voice/speed settings propagating end-to-end
+
+**Depends on**: Phase 29 (bot must be active for status display)
+**Requirements**: BAR-10, BAR-11, BAR-12
+**Success Criteria** (what must be TRUE):
+
+1. SwiftBar Service section shows Python TTS server health with green/red dot, PID, and RSS alongside existing Swift companion status
+2. Changing Voice or Speed in the SwiftBar menu propagates through Swift companion HTTP API to the Python TTS server and takes effect on the next synthesis
+3. Bot subsystem row in SwiftBar shows "connected" (green dot) when bot is polling or "disabled" (grey dot) when token is missing -- never "unknown"
+   **Plans**: TBD
+   **UI hint**: yes
+
+### Phase 31: E2E Integration Verification
+
+**Goal**: The full session-end-to-Telegram pipeline works end-to-end with TTS karaoke and no regressions in the CLI path
+
+**Depends on**: Phase 29, Phase 30
+**Requirements**: E2E-01, E2E-02, E2E-03
+**Success Criteria** (what must be TRUE):
+
+1. A Claude session ending triggers the full chain: notification file detected -> AI summary generated -> TTS synthesized via Python server -> karaoke subtitles displayed -> Telegram message delivered with Arc Summary + Tail Brief
+2. During E2E flow, TTS audio plays with word-level karaoke highlighting driven by Python MToken onsets (gold word advance matches speech)
+3. `tts_kokoro.sh "test sentence"` synthesizes and plays audio end-to-end without errors (regression check against v4.8.0 behavior)
+   **Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28
+Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29 -> 30 -> 31
 
 | Phase                                           | Plans Complete | Status      | Completed  |
 | ----------------------------------------------- | -------------- | ----------- | ---------- |
@@ -660,11 +715,13 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 20. Unit & Integration Tests                    | 2/2            | Complete    | 2026-03-28 |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete    | 2026-03-28 |
 | 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
-| 22. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
 | 22. Bionic Reading Mode                         | 2/2            | Complete    | 2026-03-28 |
 | 23. Caption History Panel                       | 2/2            | Complete    | 2026-03-28 |
 | 24. Chinese TTS Fallback                        | 2/2            | Complete    | 2026-03-28 |
 | 25. Python TTS Server Timestamp Endpoint        | 1/1            | Complete    | 2026-03-28 |
 | 26. Swift TTSEngine Python Integration          | 1/1            | Complete    | 2026-03-28 |
-| 27. MLX Dependency Removal                      | 1/1 | Complete    | 2026-03-28 |
-| 28. Memory Lifecycle Cleanup                    | 1/1 | Complete    | 2026-03-28 |
+| 27. MLX Dependency Removal                      | 1/1            | Complete    | 2026-03-28 |
+| 28. Memory Lifecycle Cleanup                    | 1/1            | Complete    | 2026-03-28 |
+| 29. Telegram Bot Activation                     | 0/0            | Not started | -          |
+| 30. SwiftBar UI Updates                         | 0/0            | Not started | -          |
+| 31. E2E Integration Verification                | 0/0            | Not started | -          |
