@@ -31,13 +31,43 @@ public struct PronunciationProcessor: Sendable {
         }
     }()
 
-    /// Apply pronunciation overrides to text before passing to the TTS engine.
-    ///
-    /// This is a pre-phonemization text substitution: it replaces words that the
-    /// Misaki G2P phonemizer handles incorrectly with phonetically-equivalent alternatives
-    /// that produce correct pronunciation.
-    public static func preprocessText(_ text: String) -> String {
+    // MARK: - Markdown Stripping
+
+    /// Patterns to strip markdown formatting before TTS synthesis.
+    /// Kokoro's phonemizer mishandles asterisks, producing garbled output.
+    private static let markdownPatterns: [(regex: NSRegularExpression, replacement: String)] = {
+        let patterns: [(String, String)] = [
+            (#"\*\*(.+?)\*\*"#, "$1"),     // **bold** → bold
+            (#"\*(.+?)\*"#, "$1"),          // *italic* → italic
+            (#"__(.+?)__"#, "$1"),          // __underline__ → underline
+            (#"`(.+?)`"#, "$1"),            // `code` → code
+            (#"^\s*#{1,6}\s+"#, ""),        // ## Heading → Heading
+            (#"\[([^\]]+)\]\([^\)]+\)"#, "$1"),  // [text](url) → text
+            (#"^[\s]*[-*+]\s+"#, ""),       // - list item → list item
+            (#"^[\s]*\d+\.\s+"#, ""),       // 1. numbered → numbered
+        ]
+        return patterns.compactMap { (pattern, replacement) in
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else { return nil }
+            return (regex: regex, replacement: replacement)
+        }
+    }()
+
+    /// Strip markdown formatting that Kokoro's phonemizer mishandles.
+    private static func stripMarkdown(_ text: String) -> String {
         var result = text
+        for pattern in markdownPatterns {
+            let range = NSRange(result.startIndex..., in: result)
+            result = pattern.regex.stringByReplacingMatches(
+                in: result, options: [], range: range,
+                withTemplate: pattern.replacement
+            )
+        }
+        return result
+    }
+
+    /// Apply markdown stripping and pronunciation overrides before passing to TTS.
+    public static func preprocessText(_ text: String) -> String {
+        var result = stripMarkdown(text)
         for override in compiledOverrides {
             let range = NSRange(result.startIndex..., in: result)
             result = override.regex.stringByReplacingMatches(
@@ -46,5 +76,20 @@ public struct PronunciationProcessor: Sendable {
             )
         }
         return result
+    }
+
+    /// Split text into words matching Kokoro's tokenization.
+    ///
+    /// Kokoro's word timestamp output strips pure-punctuation and symbol tokens
+    /// (em-dash, ellipsis, standalone brackets, emoji, etc.) while keeping
+    /// punctuation attached to words (e.g. "hello," stays as one token).
+    /// This splitter mirrors that behavior so word count matches onset count.
+    public static func splitWordsMatchingKokoro(_ text: String) -> [String] {
+        text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
+            .map(String.init)
+            .filter { word in
+                // Keep the word if it contains at least one letter or digit
+                word.contains(where: { $0.isLetter || $0.isNumber })
+            }
     }
 }
