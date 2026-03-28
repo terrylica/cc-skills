@@ -1,3 +1,216 @@
+# [12.21.0](https://github.com/terrylica/cc-skills/compare/v12.20.1...v12.21.0) (2026-03-28)
+
+
+### Bug Fixes
+
+* **hooks:** migrate gh-issue-no-anchors from deprecated decision:block to permissionDecision:deny ([3e721ef](https://github.com/terrylica/cc-skills/commit/3e721ef3ddd085d4bdaf41bb98ede8e425a914ba)), closes [#issue-no-anchors](https://github.com/terrylica/cc-skills/issues/issue-no-anchors)
+* **hooks:** version-guard excludes all dot-prefixed directories ([504d61b](https://github.com/terrylica/cc-skills/commit/504d61be441afc6c614ec214c83a77a8a7dc6a85))
+* **hooks:** version-guard now excludes .planning/ directories ([0857b0a](https://github.com/terrylica/cc-skills/commit/0857b0a0b6743012e4a922a3725332e78d0c0f57))
+* replace AVAudioPlayer with AVAudioEngine batch-then-play for stutter-free TTS ([06374bc](https://github.com/terrylica/cc-skills/commit/06374bc9ae000fe1d1057edf270e8fa2348c9f3a))
+
+
+### Features
+
+* **18-01:** create CompanionApp coordinator and slim main.swift to 42 lines ([44455a9](https://github.com/terrylica/cc-skills/commit/44455a917afcfd29ea8cac8aabdfcfea8a785fae))
+* **19-02:** create PlaybackManager @MainActor class and migrate TTSEngine to actor ([e9cf6ef](https://github.com/terrylica/cc-skills/commit/e9cf6ef0e2aadf9cad0b56707546f516914bfc7b))
+* **19-02:** update all callers for actor TTSEngine and PlaybackManager ([f50cbc5](https://github.com/terrylica/cc-skills/commit/f50cbc530818a8a5799ecafd0242097ce24340b2))
+* **20.1-01:** add synthesis counter + graceful restart + launchd tuning ([8e243f8](https://github.com/terrylica/cc-skills/commit/8e243f84c9720078976830dfdfb0d8b973d6e9af))
+* **21-01:** add TTSPipelineCoordinator for exclusive pipeline access ([d457d1a](https://github.com/terrylica/cc-skills/commit/d457d1a0e82d670ec0a98c06980e8e314e0095b9))
+* **21-01:** migrate TelegramBot and HTTPControlServer to TTSPipelineCoordinator ([7267b8f](https://github.com/terrylica/cc-skills/commit/7267b8f86999a73a1715c68aa9744143f03cdf89))
+* **21-02:** add AVAudioEngine route change recovery to AudioStreamPlayer ([ac47c35](https://github.com/terrylica/cc-skills/commit/ac47c354558893ae7b16b94b3e20095554ba2193))
+* **21-02:** add memory pressure monitoring and subtitle-only degradation ([920abab](https://github.com/terrylica/cc-skills/commit/920abab8adb81802ab329d0f1751f2201baa6fad))
+* **22-01:** add DisplayMode enum, BionicRenderer, settings + HTTP API integration ([51fbba3](https://github.com/terrylica/cc-skills/commit/51fbba3ff18d23e446a7610c3d1dd5ef67dc6a00))
+* **22-01:** integrate bionic rendering into SubtitlePanel ([46d513f](https://github.com/terrylica/cc-skills/commit/46d513f3bf97ddaa36dd6b59176291846522773d))
+* **23-01:** add CaptionHistoryPanel with scrollable table, timestamps, and click-to-copy ([5b1c92a](https://github.com/terrylica/cc-skills/commit/5b1c92a514f512159ba4b1a3b9e691361520febc))
+* **23-01:** add HTTP panel endpoints and CompanionApp wiring ([99141d3](https://github.com/terrylica/cc-skills/commit/99141d3d4ba5e1c8c5aaf870e9051e0b63796cce))
+* **24-01:** add CSherpaOnnx C module target with vendored header and linker settings ([3503580](https://github.com/terrylica/cc-skills/commit/3503580d31eb2b59bc038f2e29c68520ac121bf3))
+* **24-01:** add SherpaOnnxEngine with on-demand loading and 30s idle unload ([f1c9d08](https://github.com/terrylica/cc-skills/commit/f1c9d0891513d72a6b9dc050f9dcfcd0bbe7cee3))
+* **24-02:** update TelegramBot to use CJK auto-routing dispatch ([ba0a1b4](https://github.com/terrylica/cc-skills/commit/ba0a1b4c0b46ba12f06370ebb6ce194239bb7819))
+* **24-02:** wire SherpaOnnxEngine into TTSEngine with CJK auto-routing ([a813529](https://github.com/terrylica/cc-skills/commit/a8135295794c936cc8e6d540754191fb61450e7e))
+* **skill-architecture:** add compulsory Post-Execution Reflection to 24 skills ([ce6f563](https://github.com/terrylica/cc-skills/commit/ce6f563dd239678e82e19733790cb0b6bfe27b7f)), closes [#70](https://github.com/terrylica/cc-skills/issues/70)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>asciinema-tools</strong> (2 changes)</summary>
+
+- [bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/bootstrap/SKILL.md) - updated (+14)
+- [daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-setup/SKILL.md) - updated (+15)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander</strong> (1 change)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/setup/SKILL.md) - updated (+15)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [cloudflare-workers-publish](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/cloudflare-workers-publish/SKILL.md) - updated (+13)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow</strong> (3 changes)</summary>
+
+- [contribute](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/contribute/SKILL.md) - updated (+14)
+- [fork](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/fork/SKILL.md) - updated (+14)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/setup/SKILL.md) - updated (+14)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (1 change)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/setup/SKILL.md) - updated (+15)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (2 changes)</summary>
+
+- [go](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/go/SKILL.md) - updated (+14)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/setup/SKILL.md) - updated (+14)
+
+</details>
+
+<details>
+<summary><strong>media-tools</strong> (1 change)</summary>
+
+- [youtube-to-bookplayer](https://github.com/terrylica/cc-skills/blob/main/plugins/media-tools/skills/youtube-to-bookplayer/SKILL.md) - updated (+13)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev</strong> (3 changes)</summary>
+
+- [create](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/create/SKILL.md) - updated (+14)
+- [plugin-validator](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/plugin-validator/SKILL.md) - updated (+14)
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+41/-4)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [pre-ship-review](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/pre-ship-review/SKILL.md) - updated (+14)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [evolutionary-metric-ranking](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/evolutionary-metric-ranking/SKILL.md) - updated (+13)
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync</strong> (8 changes)</summary>
+
+- [bot-process-control](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/bot-process-control/SKILL.md) - updated (+13)
+- [clean-component-removal](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/clean-component-removal/SKILL.md) - updated (+14)
+- [component-version-upgrade](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/component-version-upgrade/SKILL.md) - updated (+14)
+- [diagnostic-issue-resolver](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/diagnostic-issue-resolver/SKILL.md) - updated (+14)
+- [full-stack-bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/full-stack-bootstrap/SKILL.md) - updated (+14)
+- [health](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/health/SKILL.md) - updated (+14)
+- [settings-and-tuning](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/settings-and-tuning/SKILL.md) - updated (+14)
+- [voice-quality-audition](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/voice-quality-audition/SKILL.md) - updated (+14)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (5 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - updated (+23)
+- [Phased Execution Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/phased-execution.md) - updated (+43/-9)
+- [Post-Execution Reflection](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/post-execution-reflection.md) - new (+186)
+- [Task Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/task-templates.md) - updated (+16/-13)
+- [Theory: Self-Evolving Agent Skills](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/theory-self-evolution.md) - new (+122)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [profile-mlx-metal-memory](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/profile-mlx-metal-memory.md) - new (+94)
+- [tts-periodic-audio-stutters](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/tts-periodic-audio-stutters.md) - new (+85)
+- [18-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-01-PLAN.md) - new (+420)
+- [Phase 18 Plan 01: CompanionCore Library Extraction Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-01-SUMMARY.md) - new (+158)
+- [18-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-02-PLAN.md) - new (+339)
+- [Phase 18 Plan 02: Unit Tests for Five Pure Types Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-02-SUMMARY.md) - new (+131)
+- [Phase 18: CompanionCore Library & Test Infrastructure - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-CONTEXT.md) - new (+136)
+- [Phase 18: CompanionCore Library & Test Infrastructure - Discussion Log](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-DISCUSSION-LOG.md) - new (+60)
+- [Phase 18: CompanionCore Library & Test Infrastructure - Research](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-RESEARCH.md) - new (+547)
+- [Phase 18 — Validation Strategy](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-VALIDATION.md) - new (+76)
+- [Phase 18: CompanionCore Library & Test Infrastructure Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/18-companioncore-library-test-infrastructure/18-VERIFICATION.md) - new (+117)
+- [19-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/19-ttsengine-decomposition-actor-migration/19-01-PLAN.md) - new (+219)
+- [Phase 19 Plan 01: TTSEngine Pure Type Extraction Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/19-ttsengine-decomposition-actor-migration/19-01-SUMMARY.md) - new (+144)
+- [19-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/19-ttsengine-decomposition-actor-migration/19-02-PLAN.md) - new (+401)
+- [Phase 19 Plan 02: PlaybackManager Extraction and TTSEngine Actor Migration Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/19-ttsengine-decomposition-actor-migration/19-02-SUMMARY.md) - new (+166)
+- [Phase 19: TTSEngine Decomposition & Actor Migration - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/19-ttsengine-decomposition-actor-migration/19-CONTEXT.md) - new (+127)
+- [Phase 19: TTSEngine Decomposition & Actor Migration - Research](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/19-ttsengine-decomposition-actor-migration/19-RESEARCH.md) - new (+504)
+- [Phase 19: TTSEngine Decomposition & Actor Migration Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/19-ttsengine-decomposition-actor-migration/19-VERIFICATION.md) - new (+140)
+- [20-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20-unit-integration-tests/20-01-PLAN.md) - new (+276)
+- [Phase 20 Plan 01: Pure-Struct Unit Tests Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20-unit-integration-tests/20-01-SUMMARY.md) - new (+131)
+- [20-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20-unit-integration-tests/20-02-PLAN.md) - new (+267)
+- [Phase 20 Plan 02: SubtitleChunker + Streaming Pipeline Tests Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20-unit-integration-tests/20-02-SUMMARY.md) - new (+125)
+- [Phase 20: Unit & Integration Tests - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20-unit-integration-tests/20-CONTEXT.md) - new (+87)
+- [Phase 20: Unit & Integration Tests Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20-unit-integration-tests/20-VERIFICATION.md) - new (+102)
+- [20.1-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20.1-mlx-metal-memory-lifecycle/20.1-01-PLAN.md) - new (+350)
+- [Phase 20.1 Plan 01: MLX Metal Memory Lifecycle Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20.1-mlx-metal-memory-lifecycle/20.1-01-SUMMARY.md) - new (+134)
+- [21-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/21-pipeline-hardening/21-01-PLAN.md) - new (+236)
+- [Phase 21 Plan 01: TTS Pipeline Coordinator Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/21-pipeline-hardening/21-01-SUMMARY.md) - new (+104)
+- [21-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/21-pipeline-hardening/21-02-PLAN.md) - new (+266)
+- [Phase 21 Plan 02: Hardware Event Hardening Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/21-pipeline-hardening/21-02-SUMMARY.md) - new (+117)
+- [Phase 21: Pipeline Hardening - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/21-pipeline-hardening/21-CONTEXT.md) - new (+89)
+- [Phase 21: Pipeline Hardening Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/21-pipeline-hardening/21-VERIFICATION.md) - new (+113)
+- [22-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/22-bionic-reading-mode/22-01-PLAN.md) - new (+270)
+- [Phase 22 Plan 01: Bionic Reading Mode Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/22-bionic-reading-mode/22-01-SUMMARY.md) - new (+129)
+- [22-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/22-bionic-reading-mode/22-02-PLAN.md) - new (+158)
+- [Phase 22 Plan 02: SwiftBar Bionic Reading Toggle Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/22-bionic-reading-mode/22-02-SUMMARY.md) - new (+108)
+- [Phase 22: Bionic Reading Mode - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/22-bionic-reading-mode/22-CONTEXT.md) - new (+89)
+- [Phase 22: Bionic Reading Mode Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/22-bionic-reading-mode/22-VERIFICATION.md) - new (+147)
+- [23-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/23-caption-history-panel/23-01-PLAN.md) - new (+301)
+- [Phase 23 Plan 01: Caption History Panel Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/23-caption-history-panel/23-01-SUMMARY.md) - new (+106)
+- [23-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/23-caption-history-panel/23-02-PLAN.md) - new (+167)
+- [Phase 23 Plan 02: SwiftBar Caption History Button Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/23-caption-history-panel/23-02-SUMMARY.md) - new (+102)
+- [Phase 23: Caption History Panel - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/23-caption-history-panel/23-CONTEXT.md) - new (+83)
+- [Phase 23: Caption History Panel Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/23-caption-history-panel/23-VERIFICATION.md) - new (+132)
+- [24-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/24-chinese-tts-fallback/24-01-PLAN.md) - new (+510)
+- [Phase 24 Plan 01: CSherpaOnnx Module + SherpaOnnxEngine Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/24-chinese-tts-fallback/24-01-SUMMARY.md) - new (+121)
+- [24-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/24-chinese-tts-fallback/24-02-PLAN.md) - new (+308)
+- [Phase 24 Plan 02: CJK TTS Routing Integration Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/24-chinese-tts-fallback/24-02-SUMMARY.md) - new (+114)
+- [Phase 24: Chinese TTS Fallback - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/24-chinese-tts-fallback/24-CONTEXT.md) - new (+84)
+- [Phase 24: Chinese TTS Fallback Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/24-chinese-tts-fallback/24-VERIFICATION.md) - new (+148)
+- [claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/PROJECT.md) - updated (+40/-31)
+- [Requirements: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/REQUIREMENTS.md) - updated (+111/-5)
+- [Architecture Patterns <!-- # SSoT-OK -->](https://github.com/terrylica/cc-skills/blob/main/.planning/research/ARCHITECTURE.md) - updated (+414/-258)
+- [Feature Landscape <!-- # SSoT-OK -->](https://github.com/terrylica/cc-skills/blob/main/.planning/research/FEATURES.md) - updated (+116/-95)
+- [Domain Pitfalls <!-- # SSoT-OK -->](https://github.com/terrylica/cc-skills/blob/main/.planning/research/PITFALLS.md) - updated (+252/-195)
+- [Technology Stack — v4.7.0 Additions <!-- # SSoT-OK -->](https://github.com/terrylica/cc-skills/blob/main/.planning/research/STACK.md) - updated (+163/-151)
+- [Project Research Summary <!-- # SSoT-OK -->](https://github.com/terrylica/cc-skills/blob/main/.planning/research/SUMMARY.md) - updated (+135/-115)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - updated (+230/-39)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+80/-64)
+- [v4.7.0-MILESTONE-AUDIT](https://github.com/terrylica/cc-skills/blob/main/.planning/v4.7.0-MILESTONE-AUDIT.md) - new (+118)
+
 ## [12.20.1](https://github.com/terrylica/cc-skills/compare/v12.20.0...v12.20.1) (2026-03-27)
 
 
