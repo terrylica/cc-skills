@@ -97,6 +97,11 @@ public final class SubtitlePanel: NSPanel {
         settingsStore?.getSettings().subtitle.position ?? "bottom"
     }
 
+    /// Read the current subtitle scope ("paragraph" or "sentence") from settings.
+    var currentSubtitleScope: String {
+        settingsStore?.getSettings().subtitle.subtitleScope ?? "paragraph"
+    }
+
     /// Read the current display mode from the settings store.
     private var currentDisplayMode: DisplayMode {
         DisplayMode.from(string: settingsStore?.getSettings().subtitle.displayMode ?? "karaoke")

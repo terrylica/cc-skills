@@ -9,6 +9,8 @@ public struct SubtitleSettings: Codable, Sendable {
     var karaokeEnabled: Bool
     var screen: String
     var displayMode: String
+    /// "paragraph" (default) shows full text on subtitle; "sentence" shows one sentence at a time
+    var subtitleScope: String
 
     static let `default` = SubtitleSettings(
         fontSize: "medium",
@@ -16,11 +18,11 @@ public struct SubtitleSettings: Codable, Sendable {
         opacity: 0.3,
         karaokeEnabled: true,
         screen: "builtin",
-        displayMode: "karaoke"
+        displayMode: "karaoke",
+        subtitleScope: "paragraph"
     )
 
-    /// Custom decoder: defaults displayMode to "karaoke" for backward compatibility
-    /// with settings files written before bionic mode was added.
+    /// Custom decoder with backward-compatible defaults for new fields.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         fontSize = try container.decode(String.self, forKey: .fontSize)
@@ -29,15 +31,17 @@ public struct SubtitleSettings: Codable, Sendable {
         karaokeEnabled = try container.decode(Bool.self, forKey: .karaokeEnabled)
         screen = try container.decode(String.self, forKey: .screen)
         displayMode = try container.decodeIfPresent(String.self, forKey: .displayMode) ?? "karaoke"
+        subtitleScope = try container.decodeIfPresent(String.self, forKey: .subtitleScope) ?? "paragraph"
     }
 
-    init(fontSize: String, position: String, opacity: Double, karaokeEnabled: Bool, screen: String, displayMode: String) {
+    init(fontSize: String, position: String, opacity: Double, karaokeEnabled: Bool, screen: String, displayMode: String, subtitleScope: String = "paragraph") {
         self.fontSize = fontSize
         self.position = position
         self.opacity = opacity
         self.karaokeEnabled = karaokeEnabled
         self.screen = screen
         self.displayMode = displayMode
+        self.subtitleScope = subtitleScope
     }
 }
 
