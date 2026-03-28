@@ -23,9 +23,9 @@
 
 ### Python TTS Server
 
-- [ ] **PTS-01**: Python MLX server exposes `/v1/audio/speech-with-timestamps` endpoint returning JSON with base64 WAV bytes and per-word onset/duration arrays
-- [ ] **PTS-02**: Word timestamps derived from mlx-audio MToken.start_ts/end_ts (native duration model output, not character-weighted fallback)
-- [ ] **PTS-03**: Python server launchd plist starts automatically before claude-tts-companion (service dependency ordering)
+- [x] **PTS-01**: Python MLX server exposes `/v1/audio/speech-with-timestamps` endpoint returning JSON with base64 WAV bytes and per-word onset/duration arrays
+- [x] **PTS-02**: Word timestamps derived from mlx-audio MToken.start_ts/end_ts (native duration model output, not character-weighted fallback)
+- [x] **PTS-03**: Python server launchd plist starts automatically before claude-tts-companion (service dependency ordering)
 
 ### Swift Integration
 
@@ -65,9 +65,9 @@
 
 | Requirement | Phase | Status  |
 | ----------- | ----- | ------- |
-| PTS-01      | 25    | Pending |
-| PTS-02      | 25    | Pending |
-| PTS-03      | 25    | Pending |
+| PTS-01      | 25    | Complete |
+| PTS-02      | 25    | Complete |
+| PTS-03      | 25    | Complete |
 | SWI-01      | 26    | Pending |
 | SWI-02      | 26    | Pending |
 | SWI-03      | 26    | Pending |
