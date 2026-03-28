@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4.7.0
 milestone_name: Architecture Hardening + Feature Expansion
 status: executing
-stopped_at: Phase 19 context gathered
-last_updated: "2026-03-28T01:35:47.972Z"
-last_activity: 2026-03-28 -- Phase 19 execution started
+stopped_at: Completed 19-02-PLAN.md
+last_updated: "2026-03-28T02:02:39.943Z"
+last_activity: 2026-03-28
 progress:
   total_phases: 17
   completed_phases: 16
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 19 (ttsengine-decomposition-actor-migration) — EXECUTING
-Plan: 1 of 2 -- COMPLETE
-Status: Plan 19-01 complete, executing Plan 19-02
-Last activity: 2026-03-28 -- Plan 19-02 execution started
+Plan: 2 of 2 -- COMPLETE
+Status: Ready to execute
+Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 18 P01 | 8min | 2 tasks | 33 files |
 | Phase 18 P02 | 6min | 2 tasks | 6 files |
 | Phase 19 P01 | 10min | 2 tasks | 7 files |
+| Phase 19 P02 | 11min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase 18]: CompanionApp @MainActor init/start/shutdown for SubtitlePanel compatibility
 - [Phase 18]: MemoryLifecycle module-level callback registration pattern for cross-module restart
 - [Phase 18]: swift-testing package dependency for test infrastructure (CommandLineTools lacks built-in Testing module)
+- [Phase 19]: synthesizeStreaming changed from callback-based to return-based API for Swift 6 actor compatibility
+- [Phase 19]: writeWav made static on TTSEngine actor for non-isolated DispatchQueue access
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T01:47:14Z
-Stopped at: Completed 19-01-PLAN.md
-Resume file: .planning/phases/19-ttsengine-decomposition-actor-migration/19-01-SUMMARY.md
+Last session: 2026-03-28T02:02:39.940Z
+Stopped at: Completed 19-02-PLAN.md
+Resume file: None
