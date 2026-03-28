@@ -97,6 +97,11 @@ public final class SubtitlePanel: NSPanel {
         settingsStore?.getSettings().subtitle.position ?? "bottom"
     }
 
+    /// Read the current display mode from the settings store.
+    private var currentDisplayMode: DisplayMode {
+        DisplayMode.from(string: settingsStore?.getSettings().subtitle.displayMode ?? "karaoke")
+    }
+
     // MARK: - Focus Prevention (SUB-09)
 
     public override var canBecomeKey: Bool { false }
@@ -105,10 +110,17 @@ public final class SubtitlePanel: NSPanel {
     // MARK: - Public API
 
     /// Show plain text in the subtitle panel (white, regular weight).
+    /// When displayMode is `.bionic`, renders with bold-prefix formatting instead.
     func show(text: String) {
-        let font = SubtitleStyle.dynamicRegularFont(currentFontSizeName)
-        textField.font = font
-        textField.stringValue = text
+        if currentDisplayMode == .bionic {
+            let words = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
+            let attributed = BionicRenderer.render(words: words, fontSizeName: currentFontSizeName)
+            textField.attributedStringValue = attributed
+        } else {
+            let font = SubtitleStyle.dynamicRegularFont(currentFontSizeName)
+            textField.font = font
+            textField.stringValue = text
+        }
         positionOnScreen()
         orderFrontRegardless()
         logDiagnostics(label: "show(text:)", text: text)
@@ -139,6 +151,47 @@ public final class SubtitlePanel: NSPanel {
     ///   minimize main-thread work and avoid starving AVAudioPlayer's run loop.
     func highlightWord(at index: Int, in words: [String], isPageTransition: Bool = false) {
         let sizeName = currentFontSizeName
+        let mode = currentDisplayMode
+
+        // Bionic mode: bold-prefix rendering, no karaoke gold/grey coloring (BION-04)
+        if mode == .bionic {
+            let attributed = BionicRenderer.render(words: words, fontSizeName: sizeName)
+            if isPageTransition {
+                updateAttributedText(attributed)
+            } else {
+                textField.attributedStringValue = attributed
+            }
+            return
+        }
+
+        // Plain mode: all white, regular weight, no highlighting
+        if mode == .plain {
+            let regFont = SubtitleStyle.dynamicRegularFont(sizeName)
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .center
+            paragraphStyle.lineBreakMode = .byWordWrapping
+            let result = NSMutableAttributedString()
+            for (i, word) in words.enumerated() {
+                if i > 0 {
+                    result.append(NSAttributedString(string: " ", attributes: [
+                        .font: regFont, .foregroundColor: SubtitleStyle.futureWordColor,
+                        .paragraphStyle: paragraphStyle,
+                    ]))
+                }
+                result.append(NSAttributedString(string: word, attributes: [
+                    .font: regFont, .foregroundColor: SubtitleStyle.futureWordColor,
+                    .paragraphStyle: paragraphStyle,
+                ]))
+            }
+            if isPageTransition {
+                updateAttributedText(result)
+            } else {
+                textField.attributedStringValue = result
+            }
+            return
+        }
+
+        // Karaoke mode (default): gold/grey/white word coloring
         let boldFont = SubtitleStyle.dynamicCurrentWordFont(sizeName)
         let regFont = SubtitleStyle.dynamicRegularFont(sizeName)
 
