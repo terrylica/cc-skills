@@ -565,8 +565,13 @@ public final class SubtitleSyncDriver {
         onStreamingComplete?()
         onStreamingComplete = nil
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration) { [weak self] in
-            self?.subtitlePanel.hide()
+        // Capture subtitlePanel directly — not [weak self] — because the driver
+        // may be deallocated by TTSPipelineCoordinator before the linger timer fires.
+        // If self is nil when the timer runs, hide() never executes and the subtitle
+        // stays on screen permanently.
+        let panel = subtitlePanel
+        DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration) {
+            panel.hide()
         }
     }
 }
