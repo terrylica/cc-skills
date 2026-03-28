@@ -536,10 +536,9 @@ function checkImplementationCode(
 
       // No traceability found - emit reminder
       return `[CODE TRACEABILITY] You modified implementation file: ${fileBasename}. Consider:
-- Does this change relate to an existing ADR? Add: // ADR: docs/adr/YYYY-MM-DD-slug.md
 - Does this change relate to a GitHub Issue? Add: // Issue #123 or // GitHub Issue: https://github.com/owner/repo/issues/123
 
-This reminder is skipped if the code already contains ADR/Issue references.`;
+This reminder is skipped if the code already contains Issue references.`;
     } catch {
       // File read error - skip
     }
