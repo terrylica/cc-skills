@@ -2,7 +2,7 @@ import Foundation
 import Logging
 
 /// A single conversation turn (user prompt + assistant response).
-struct ConversationTurn {
+public struct ConversationTurn {
     let prompt: String
     let response: String
     let timestamp: Date?
@@ -13,7 +13,7 @@ struct ConversationTurn {
 }
 
 /// Result of a summary generation.
-struct SummaryResult {
+public struct SummaryResult {
     /// The narrative text (for both TTS and Telegram display)
     let narrative: String
     /// Extracted prompt summary (single-turn only)
@@ -31,7 +31,7 @@ struct SummaryResult {
 ///
 /// All methods share the same `MiniMaxClient` and circuit breaker.
 /// Empty/short inputs return safe fallbacks without calling the API.
-final class SummaryEngine: @unchecked Sendable {
+public final class SummaryEngine: @unchecked Sendable {
 
     private let client: MiniMaxClient
     private let logger = Logger(label: "summary-engine")

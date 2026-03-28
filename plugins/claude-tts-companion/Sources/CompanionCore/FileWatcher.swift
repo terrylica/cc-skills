@@ -9,7 +9,7 @@ import Logging
 ///
 /// The DispatchSource is stored as a strong instance property to prevent ARC deallocation (WATCH-03).
 /// Event delivery latency is typically <50ms on macOS, within the 100ms target (WATCH-04).
-final class NotificationWatcher: @unchecked Sendable {
+public final class NotificationWatcher: @unchecked Sendable {
 
     private let logger = Logger(label: "notification-watcher")
     private let directoryPath: String
@@ -130,7 +130,7 @@ final class NotificationWatcher: @unchecked Sendable {
 ///
 /// The DispatchSource is stored as a strong instance property to prevent ARC deallocation (WATCH-03).
 /// Event delivery latency is typically <50ms on macOS, within the 100ms target (WATCH-04).
-final class JSONLTailer: @unchecked Sendable {
+public final class JSONLTailer: @unchecked Sendable {
 
     private let logger = Logger(label: "jsonl-tailer")
     private let filePath: String

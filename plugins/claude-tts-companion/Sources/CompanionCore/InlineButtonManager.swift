@@ -8,7 +8,7 @@ import SwiftTelegramBot
 /// notification arrives for the same iTerm tab).
 ///
 /// Not Sendable -- accessed only from TelegramBot which is @unchecked Sendable.
-final class InlineButtonManager {
+public final class InlineButtonManager {
 
     // MARK: - Types
 

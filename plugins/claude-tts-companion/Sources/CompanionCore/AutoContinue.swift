@@ -5,7 +5,7 @@ import Logging
 ///
 /// The auto-continue evaluator uses MiniMax to analyze session content and determine
 /// what action should follow (EVAL-01).
-enum ContinueDecision: String, Sendable {
+public enum ContinueDecision: String, Sendable {
     /// Session has more work to do -- resume with the same task
     case `continue` = "CONTINUE"
     /// Run 5-step review pipeline on completed work
@@ -20,7 +20,7 @@ enum ContinueDecision: String, Sendable {
 ///
 /// State files stored at `~/.claude/hooks/state/auto-continue-{sessionId}.json`.
 /// Tracks iteration counts, sweep lifecycle, and manual intervention detection.
-struct AutoContinueState: Codable {
+public struct AutoContinueState: Codable {
     /// Per-streak counter (resets on manual intervention)
     var iteration: Int
     /// Lifetime counter -- never resets
@@ -64,7 +64,7 @@ struct AutoContinueState: Codable {
 }
 
 /// Result of the full auto-continue evaluation pipeline.
-struct EvaluationResult {
+public struct EvaluationResult {
     let decision: ContinueDecision
     let reason: String
     /// true = blockStop, false = allowStop
@@ -88,7 +88,7 @@ struct EvaluationResult {
 /// Full legacy evaluation engine ported from TypeScript auto-continue.ts.
 /// Includes per-session state tracking, sibling JSONL plan discovery,
 /// transcript budget building, deterministic sweep fallback, and multi-line decision parsing.
-final class AutoContinueEvaluator: @unchecked Sendable {
+public final class AutoContinueEvaluator: @unchecked Sendable {
 
     private let logger = Logger(label: "auto-continue")
     private let client: MiniMaxClient

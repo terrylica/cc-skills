@@ -2,7 +2,7 @@ import Foundation
 import Logging
 
 /// Result of a MiniMax API query.
-struct MiniMaxResult {
+public struct MiniMaxResult {
     /// The text content extracted from the response
     let text: String
     /// Time taken for the API call in milliseconds
@@ -15,7 +15,7 @@ struct MiniMaxResult {
 ///
 /// Integrates with `CircuitBreaker` to stop sending requests after repeated failures.
 /// Uses async/await URLSession API -- no completion handlers.
-final class MiniMaxClient: @unchecked Sendable {
+public final class MiniMaxClient: @unchecked Sendable {
 
     private let logger = Logger(label: "minimax-client")
     /// URLSession with explicit request timeout to prevent stuck TCP connections

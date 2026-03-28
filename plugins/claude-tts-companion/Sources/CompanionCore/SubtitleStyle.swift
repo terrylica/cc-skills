@@ -5,7 +5,7 @@ import AppKit
 /// @MainActor because NSFont/NSColor are not Sendable and all
 /// consumers (SubtitlePanel) run on the main thread.
 @MainActor
-enum SubtitleStyle {
+public enum SubtitleStyle {
 
     // MARK: - Colors
 

@@ -9,7 +9,7 @@ import Logging
 ///
 /// Real JSONL format uses `type: "user"` and `type: "assistant"` at the top level.
 /// Tool use/result are content blocks WITHIN those entries, not separate top-level types.
-enum TranscriptEntry: Sendable {
+public enum TranscriptEntry: Sendable {
     /// A user prompt (type: "user" with text content)
     case prompt(text: String, timestamp: Date?)
     /// An assistant response (type: "assistant" with text content blocks)
@@ -23,7 +23,7 @@ enum TranscriptEntry: Sendable {
 }
 
 /// Summary statistics extracted from a parsed JSONL transcript.
-struct TranscriptSummary: Sendable {
+public struct TranscriptSummary: Sendable {
     /// Total number of user prompts
     let promptCount: Int
     /// Total number of assistant responses
@@ -52,7 +52,7 @@ struct TranscriptSummary: Sendable {
 /// - `type: "assistant"` with `message.content` as array of content blocks
 ///   (may contain `text`, `tool_use`, and `thinking` blocks)
 /// - `type: "progress"`, `"system"`, `"file-history-snapshot"` etc. (ignored)
-enum TranscriptParser {
+public enum TranscriptParser {
 
     private static let logger = Logger(label: "transcript-parser")
 

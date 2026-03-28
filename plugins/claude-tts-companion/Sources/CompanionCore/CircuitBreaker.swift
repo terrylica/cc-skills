@@ -5,7 +5,7 @@ import Logging
 ///
 /// Thread-safe via NSLock (matching TTSEngine pattern).
 /// Opens after `maxFailures` consecutive failures, auto-resets after `cooldownSeconds`.
-final class CircuitBreaker: @unchecked Sendable {
+public final class CircuitBreaker: @unchecked Sendable {
 
     private let logger = Logger(label: "circuit-breaker")
     private let lock = NSLock()
@@ -82,7 +82,7 @@ final class CircuitBreaker: @unchecked Sendable {
 // MARK: - Summary Errors
 
 /// Errors related to AI summary generation via MiniMax API.
-enum SummaryError: Error, CustomStringConvertible {
+public enum SummaryError: Error, CustomStringConvertible {
     /// Circuit breaker is open -- too many consecutive failures
     case circuitBreakerOpen
     /// MINIMAX_API_KEY environment variable not configured

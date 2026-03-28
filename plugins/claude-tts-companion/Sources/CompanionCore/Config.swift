@@ -2,7 +2,7 @@ import Foundation
 
 /// Centralized configuration constants for claude-tts-companion.
 /// Paths use environment variable overrides with sensible defaults.
-enum Config {
+public enum Config {
     /// Path to Kokoro MLX model file (bf16 safetensors).
     static let kokoroMLXModelPath: String = {
         let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/terryli"

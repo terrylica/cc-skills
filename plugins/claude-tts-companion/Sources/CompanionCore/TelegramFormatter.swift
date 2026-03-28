@@ -1,7 +1,7 @@
 import Foundation
 
 /// Data required to render a session-end Telegram notification.
-struct SessionNotificationData {
+public struct SessionNotificationData {
     let sessionId: String
     let cwd: String
     let gitBranch: String?
@@ -15,7 +15,7 @@ struct SessionNotificationData {
 
 /// Pure-function utilities for Telegram HTML formatting and fence-aware message chunking.
 /// Ported from the TypeScript format.ts, fences.ts, and formatter.ts in claude-telegram-sync.
-enum TelegramFormatter {
+public enum TelegramFormatter {
 
     /// Maximum message length for Telegram Bot API.
     static let telegramMaxLength = 4096

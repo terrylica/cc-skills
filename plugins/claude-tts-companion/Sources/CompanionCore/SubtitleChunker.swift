@@ -1,7 +1,7 @@
 import AppKit
 
 /// A single page of subtitle text, containing words and their position in the full word array.
-struct SubtitlePage {
+public struct SubtitlePage {
     let words: [String]
     let startWordIndex: Int
     var wordCount: Int { words.count }
@@ -13,7 +13,7 @@ struct SubtitlePage {
 /// text width measurement, and applies clause/phrase-priority line breaking with
 /// a bottom-heavy preference (shorter first line, longer second line).
 @MainActor
-enum SubtitleChunker {
+public enum SubtitleChunker {
 
     // MARK: - Public API
 

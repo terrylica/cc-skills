@@ -128,7 +128,7 @@ private final class PromptStreamState: @unchecked Sendable {
 ///
 /// All mutable executor state is accessed only via the serial `stateQueue` to avoid
 /// NSLock-in-async-context errors from Swift 6 strict concurrency.
-final class PromptExecutor: @unchecked Sendable {
+public final class PromptExecutor: @unchecked Sendable {
     private let logger = Logger(label: "prompt-executor")
 
     /// Serial queue protecting executor-level mutable state (mutex, rate limit, circuit breaker).

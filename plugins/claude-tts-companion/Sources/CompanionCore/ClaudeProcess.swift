@@ -4,7 +4,7 @@ import Logging
 /// Model selection for Claude CLI invocations (BOT-05).
 ///
 /// Maps to `--model` flag values for the `claude` CLI tool.
-enum ClaudeModel: String, Sendable, CaseIterable {
+public enum ClaudeModel: String, Sendable, CaseIterable {
     case haiku = "haiku"
     case sonnet = "sonnet"
     case opus = "opus"
@@ -30,7 +30,7 @@ enum ClaudeModel: String, Sendable, CaseIterable {
 ///
 /// The Claude CLI streams responses as newline-delimited JSON objects.
 /// Each line has a `type` field indicating the event kind.
-enum ClaudeOutputChunk: Sendable {
+public enum ClaudeOutputChunk: Sendable {
     /// An assistant text response fragment
     case text(String)
     /// A tool use event (tool name + input summary)
@@ -52,7 +52,7 @@ enum ClaudeOutputChunk: Sendable {
 /// - Unsets `CLAUDECODE` env var to avoid recursive invocation (CLI-03)
 /// - Streams NDJSON output line-by-line and parses into ClaudeOutputChunk (CLI-02)
 /// - Supports model selection via --model flag (BOT-05)
-final class ClaudeProcess: @unchecked Sendable {
+public final class ClaudeProcess: @unchecked Sendable {
 
     private let logger = Logger(label: "claude-process")
 

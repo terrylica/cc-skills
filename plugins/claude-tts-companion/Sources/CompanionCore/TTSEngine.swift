@@ -7,7 +7,7 @@ import MLX
 import MLXUtilsLibrary
 
 /// Result of a TTS synthesis operation.
-struct SynthesisResult {
+public struct SynthesisResult {
     /// Path to the generated WAV file
     let wavPath: String
     /// Duration of the generated audio in seconds
@@ -17,7 +17,7 @@ struct SynthesisResult {
 }
 
 /// Result of synthesis with word-level timing data for karaoke display.
-struct TTSResult {
+public struct TTSResult {
     /// Path to the generated WAV file
     let wavPath: String
     /// Original text that was synthesized
@@ -40,7 +40,7 @@ struct TTSResult {
 /// - Playback via AVAudioPlayer with prepareToPlay() pre-buffering (TTS-01)
 /// - Word timestamps extracted natively from MToken.start_ts/end_ts (no C++ patches)
 /// - Text preprocessing fixes mispronounced words before phonemization (TTS-09)
-final class TTSEngine: @unchecked Sendable {
+public final class TTSEngine: @unchecked Sendable {
 
     private let logger = Logger(label: "tts-engine")
 
@@ -1094,7 +1094,7 @@ final class TTSEngine: @unchecked Sendable {
 // MARK: - Playback Delegate
 
 /// Handles AVAudioPlayer completion: cleans up WAV file and calls completion closure.
-final class PlaybackDelegate: NSObject, AVAudioPlayerDelegate, @unchecked Sendable {
+public final class PlaybackDelegate: NSObject, AVAudioPlayerDelegate, @unchecked Sendable {
     private let wavPath: String
     private let completion: (() -> Void)?
     private let logger: Logger
@@ -1120,7 +1120,7 @@ final class PlaybackDelegate: NSObject, AVAudioPlayerDelegate, @unchecked Sendab
 
 // MARK: - Errors
 
-enum TTSError: Error, CustomStringConvertible {
+public enum TTSError: Error, CustomStringConvertible {
     case modelLoadFailed(path: String)
     case synthesisReturnedNil
     case wavWriteFailed(path: String)
