@@ -185,16 +185,29 @@ public final class TTSPipelineCoordinator {
                     nativeOnsets: chunk.wordOnsets
                 )
             }
+        } else if chunks.count == 1 {
+            // Single chunk (full-paragraph synthesis) — use directly
+            let chunk = chunks[0]
+            let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+            driver.addChunk(
+                wavPath: chunk.wavPath,
+                samples: chunk.samples,
+                pages: pages,
+                wordTimings: chunk.wordTimings,
+                nativeOnsets: chunk.wordOnsets
+            )
         } else {
-            // Paragraph scope: merge all chunks into one continuous subtitle stream
+            // Multiple chunks in paragraph mode: merge into one subtitle stream.
+            // Word onsets are chunk-relative, so re-accumulate to absolute time.
             let fullText = chunks.map { $0.text }.joined(separator: " ")
-            let allSamples = chunks.flatMap { $0.samples ?? [] }
-            let allWordTimings = chunks.flatMap { $0.wordTimings }
-
-            // Merge word onsets across chunks (adjust for cumulative offset)
+            var allSamples: [Float] = []
+            var allWordTimings: [TimeInterval] = []
             var allWordOnsets: [TimeInterval] = []
             var cumulativeTime: TimeInterval = 0
+
             for chunk in chunks {
+                allSamples.append(contentsOf: chunk.samples ?? [])
+                allWordTimings.append(contentsOf: chunk.wordTimings)
                 if let onsets = chunk.wordOnsets {
                     for onset in onsets {
                         allWordOnsets.append(onset + cumulativeTime)
