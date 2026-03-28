@@ -167,16 +167,49 @@ public final class TTSPipelineCoordinator {
         )
         activeSyncDriver = driver
 
-        // Add all chunks to the driver
-        for chunk in chunks {
-            let fontSizeName = subtitlePanel.currentFontSizeName
-            let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+        // Add chunks to the driver.
+        // "paragraph" scope: combine all text into one subtitle stream.
+        // "sentence" scope: each chunk gets its own subtitle pages.
+        let fontSizeName = subtitlePanel.currentFontSizeName
+        let scope = subtitlePanel.currentSubtitleScope
+
+        if scope == "sentence" {
+            // Legacy per-sentence subtitles
+            for chunk in chunks {
+                let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+                driver.addChunk(
+                    wavPath: chunk.wavPath,
+                    samples: chunk.samples,
+                    pages: pages,
+                    wordTimings: chunk.wordTimings,
+                    nativeOnsets: chunk.wordOnsets
+                )
+            }
+        } else {
+            // Paragraph scope: merge all chunks into one continuous subtitle stream
+            let fullText = chunks.map { $0.text }.joined(separator: " ")
+            let allSamples = chunks.flatMap { $0.samples ?? [] }
+            let allWordTimings = chunks.flatMap { $0.wordTimings }
+
+            // Merge word onsets across chunks (adjust for cumulative offset)
+            var allWordOnsets: [TimeInterval] = []
+            var cumulativeTime: TimeInterval = 0
+            for chunk in chunks {
+                if let onsets = chunk.wordOnsets {
+                    for onset in onsets {
+                        allWordOnsets.append(onset + cumulativeTime)
+                    }
+                }
+                cumulativeTime += chunk.audioDuration
+            }
+
+            let pages = SubtitleChunker.chunkIntoPages(text: fullText, fontSizeName: fontSizeName)
             driver.addChunk(
-                wavPath: chunk.wavPath,
-                samples: chunk.samples,
+                wavPath: chunks.first?.wavPath ?? "",
+                samples: allSamples.isEmpty ? nil : allSamples,
                 pages: pages,
-                wordTimings: chunk.wordTimings,
-                nativeOnsets: chunk.wordOnsets
+                wordTimings: allWordTimings,
+                nativeOnsets: allWordOnsets.isEmpty ? nil : allWordOnsets
             )
         }
 
