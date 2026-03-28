@@ -1,5 +1,5 @@
 {
-  "originHash" : "cdf413dd1474401f20cc2fb4af046bcd1718b90f97789cf503d55565c4732d8d",
+  "originHash" : "26d11221340c3faa2695c2deee2a6b14a2295961e4b1a8bafc4e8f8c9112e12f",
   "pins" : [
     {
       "identity" : "flyingfox",
@@ -83,12 +83,30 @@
       }
     },
     {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax.git",
+      "state" : {
+        "revision" : "0687f71944021d616d34d922343dcef086855920",
+        "version" : "600.0.1"
+      }
+    },
+    {
       "identity" : "swift-telegram-sdk",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/nerzh/swift-telegram-sdk",
       "state" : {
         "revision" : "5c9999effd1d1c599982b82859bd6697e2fba659",
         "version" : "4.5.0"
+      }
+    },
+    {
+      "identity" : "swift-testing",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-testing",
+      "state" : {
+        "revision" : "399f76dcd91e4c688ca2301fa24a8cc6d9927211",
+        "version" : "0.99.0"
       }
     },
     {
