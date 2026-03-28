@@ -204,6 +204,40 @@ let notificationWatcher = NotificationWatcher { filePath in
 }
 notificationWatcher.start()
 
+// MARK: - Memory Lifecycle: Planned Restart
+
+/// Triggers a graceful process exit for IOAccelerator memory reclaim.
+/// Uses exit code 42 (non-zero) so launchd KeepAlive restarts the service.
+/// exit(0) would NOT trigger restart because KeepAlive.SuccessfulExit = false.
+///
+/// Must be called on the main thread (accesses MainActor-isolated subtitlePanel).
+func plannedRestart(reason: String) {
+    logger.warning("Planned restart: \(reason)")
+    DispatchQueue.main.async {
+        subtitlePanel.hide()
+        notificationWatcher.stop()
+        thinkingWatcher.stop()
+        if let bot = telegramBot {
+            Task { await bot.stop() }
+        }
+        // Give async cleanup 1 second to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            logger.info("Exiting with code 42 for launchd restart")
+            exit(42)
+        }
+    }
+}
+
+/// Check synthesis count and trigger planned restart if threshold reached.
+/// Called after playback completes (not during synthesis) so the user hears
+/// the complete audio before the service restarts.
+func checkMemoryLifecycleRestart() {
+    if ttsEngine.shouldRestartForMemory {
+        let diag = ttsEngine.memoryDiagnostics()
+        plannedRestart(reason: "Synthesis count \(diag.synthesisCount) reached threshold \(TTSEngine.maxSynthesisBeforeRestart)")
+    }
+}
+
 // Set up SIGTERM handler using DispatchSource (not signal(), per research)
 let sigSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 signal(SIGTERM, SIG_IGN)  // Let DispatchSource handle it

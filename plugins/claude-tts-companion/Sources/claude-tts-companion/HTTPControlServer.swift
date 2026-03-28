@@ -44,6 +44,11 @@ private struct HealthResponse: Codable {
     let status: String
     let uptime_seconds: Int
     let rss_mb: Double
+    let tts_synthesis_count: Int
+    let tts_restart_threshold: Int
+    let mlx_memory_active_mb: Int?
+    let mlx_memory_cache_mb: Int?
+    let mlx_memory_peak_mb: Int?
     let subsystems: SubsystemStatus
 }
 
@@ -233,6 +238,8 @@ final class HTTPControlServer: @unchecked Sendable {
                                 ttsEngine: self.ttsEngine,
                                 onStreamingComplete: {
                                     self.logger.info("TTS test batch playback complete")
+                                    // Check synthesis count for memory lifecycle restart
+                                    checkMemoryLifecycleRestart()
                                 }
                             )
                             self.activeSyncDriver = driver
@@ -285,11 +292,17 @@ final class HTTPControlServer: @unchecked Sendable {
     private func healthResponse() -> HTTPResponse {
         let uptimeSeconds = Int(Date().timeIntervalSince(startTime))
         let rssMB = currentRSSMB()
+        let diag = ttsEngine.memoryDiagnostics()
 
         let health = HealthResponse(
             status: "ok",
             uptime_seconds: uptimeSeconds,
             rss_mb: rssMB,
+            tts_synthesis_count: diag.synthesisCount,
+            tts_restart_threshold: TTSEngine.maxSynthesisBeforeRestart,
+            mlx_memory_active_mb: diag.mlxActive.map { $0 / (1024 * 1024) },
+            mlx_memory_cache_mb: diag.mlxCache.map { $0 / (1024 * 1024) },
+            mlx_memory_peak_mb: diag.mlxPeak.map { $0 / (1024 * 1024) },
             subsystems: SubsystemStatus(
                 bot: telegramBot?.watching == true ? "watching" : (telegramBot != nil ? "stopped" : "unknown"),
                 tts: "ready",
