@@ -146,7 +146,7 @@ public final class SubtitleSyncDriver {
     ///   - player: The AVAudioPlayer currently playing the TTS audio
     ///   - pages: Chunked subtitle pages from SubtitleChunker
     ///   - wordTimings: Per-word DURATIONS (not onsets) from TTSEngine
-    ///   - nativeOnsets: Native word onset times from MToken.start_ts (nil = derive from durations)
+    ///   - nativeOnsets: Native word onset times from Python MLX server (nil = derive from durations)
     ///   - subtitlePanel: The panel to update with karaoke highlights
     init(player: AVAudioPlayer, pages: [SubtitlePage], wordTimings: [TimeInterval], nativeOnsets: [TimeInterval]? = nil, subtitlePanel: SubtitlePanel) {
         self.subtitlePanel = subtitlePanel
@@ -218,7 +218,7 @@ public final class SubtitleSyncDriver {
     ///   - samples: Raw float32 PCM samples at 24kHz (preferred, avoids WAV I/O)
     ///   - pages: Subtitle pages for this chunk
     ///   - wordTimings: Per-word durations from TTSEngine
-    ///   - nativeOnsets: Native word onset times from MToken.start_ts (nil = derive from durations)
+    ///   - nativeOnsets: Native word onset times from Python MLX server (nil = derive from durations)
     func addChunk(wavPath: String, samples: [Float]? = nil, pages: [SubtitlePage], wordTimings: [TimeInterval], nativeOnsets: [TimeInterval]? = nil) {
         guard isStreamingMode else {
             logger.warning("addChunk() called on single-shot driver")
