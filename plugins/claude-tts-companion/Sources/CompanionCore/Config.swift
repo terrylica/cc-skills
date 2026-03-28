@@ -143,4 +143,21 @@ public enum Config {
     /// Minimum interval between notification processing (seconds).
     /// Matches legacy NOTIFICATION_MIN_INTERVAL_MS of 5000ms.
     static let notificationMinInterval: TimeInterval = 5.0
+
+    // MARK: - sherpa-onnx Chinese TTS
+
+    /// Path to sherpa-onnx kokoro-int8-multi-lang model directory.
+    /// Contains model.int8.onnx, tokens.txt, voices.bin, dict/, espeak-ng-data/, lexicon files, FST files.
+    static let sherpaOnnxModelDir: String = {
+        let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/terryli"
+        return ProcessInfo.processInfo.environment["KOKORO_MODEL_PATH"]
+            ?? "\(home)/.local/share/kokoro/models/kokoro-int8-multi-lang-v1_0"
+    }()
+
+    /// Idle timeout before unloading sherpa-onnx model to reclaim RSS (seconds).
+    /// Per milestone decision: 30-second idle cooldown for load-on-demand.
+    static let sherpaOnnxIdleTimeoutSeconds: TimeInterval = 30
+
+    /// Number of CPU threads for sherpa-onnx inference.
+    static let sherpaOnnxNumThreads: Int32 = 2
 }
