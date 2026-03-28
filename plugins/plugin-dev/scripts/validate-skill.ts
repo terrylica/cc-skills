@@ -566,6 +566,129 @@ function detectBashPattern(block: string): string {
 }
 
 // ============================================================================
+// Self-Evolution Validation
+// ============================================================================
+
+/**
+ * Canonical reflection principles — the 5 steps every skill must have.
+ * Checked by substring match so minor whitespace differences don't false-positive.
+ */
+const REFLECTION_PRINCIPLES = [
+  "**Locate yourself.**",
+  "**What failed?**",
+  "**What worked better than expected?**",
+  "**What drifted?**",
+  "**Log it.**",
+] as const;
+
+/**
+ * Check if a skill with stepwise execution includes Post-Execution Reflection.
+ *
+ * Detection heuristics for stepwise skills:
+ *   - [Execute] labels in task templates
+ *   - Phase-numbered sections (## Phase 0, ## Phase 1, etc.)
+ *
+ * Stepwise skills MUST have:
+ *   1. A "Post-Execution Reflection" section header
+ *   2. The canonical 5-principle template (no bespoke variants)
+ *   3. A references/evolution-log.md file
+ *
+ * Reference: post-execution-reflection.md → "Validation Requirements"
+ */
+function validateSelfEvolution(skillPath: string, content: string): ValidationResult[] {
+  const results: ValidationResult[] = [];
+
+  // Detect stepwise execution: [Execute] labels OR phase-numbered sections
+  const hasExecuteLabels = /\[Execute\]/i.test(content);
+  const hasPhaseNumbers = /^##+ Phase \d/m.test(content);
+  const isStepwise = hasExecuteLabels || hasPhaseNumbers;
+
+  if (!isStepwise) {
+    logDebug("No [Execute] labels or Phase sections found — self-evolution check skipped");
+    return results;
+  }
+
+  // Check 1: Post-Execution Reflection section header
+  const hasReflectionSection = /^##\s+Post-Execution Reflection/m.test(content);
+
+  if (!hasReflectionSection) {
+    results.push({
+      check: "post_execution_reflection",
+      passed: false,
+      message: "Stepwise skill missing 'Post-Execution Reflection' section",
+      severity: "warning",
+      fixSuggestion:
+        "Add a '## Post-Execution Reflection' section to SKILL.md. " +
+        "See skill-architecture references/post-execution-reflection.md for the canonical template.",
+    });
+  } else {
+    results.push({
+      check: "post_execution_reflection",
+      passed: true,
+      message: "Post-Execution Reflection section present",
+      severity: "info",
+    });
+
+    // Check 2: Canonical template — all 5 principles must be present
+    const missingPrinciples = REFLECTION_PRINCIPLES.filter(
+      (principle) => !content.includes(principle)
+    );
+
+    if (missingPrinciples.length > 0) {
+      results.push({
+        check: "reflection_canonical_template",
+        passed: false,
+        message: `Post-Execution Reflection uses non-canonical template — missing: ${missingPrinciples.join(", ")}`,
+        severity: "warning",
+        fixSuggestion:
+          "Replace with the canonical 5-principle template (steps 0-4). " +
+          "No bespoke variants — see post-execution-reflection.md.",
+      });
+    } else {
+      results.push({
+        check: "reflection_canonical_template",
+        passed: true,
+        message: "Post-Execution Reflection uses canonical 5-principle template",
+        severity: "info",
+      });
+    }
+  }
+
+  // Check 3: evolution-log.md existence
+  const hasEvolutionLog = existsSync(join(skillPath, "references", "evolution-log.md"));
+
+  if (hasReflectionSection && !hasEvolutionLog) {
+    results.push({
+      check: "evolution_log_exists",
+      passed: false,
+      message: "Post-Execution Reflection references evolution-log.md but file not found",
+      severity: "warning",
+      fixSuggestion:
+        "Create references/evolution-log.md (reverse chronological change history). " +
+        "See skill-architecture Template D for the format.",
+    });
+  } else if (isStepwise && !hasEvolutionLog) {
+    results.push({
+      check: "evolution_log_exists",
+      passed: false,
+      message: "Stepwise skill missing references/evolution-log.md for tracking empirical changes",
+      severity: "warning",
+      fixSuggestion:
+        "Create references/evolution-log.md to track changes discovered through execution.",
+    });
+  } else if (hasEvolutionLog) {
+    results.push({
+      check: "evolution_log_exists",
+      passed: true,
+      message: "evolution-log.md present",
+      severity: "info",
+    });
+  }
+
+  return results;
+}
+
+// ============================================================================
 // Main Validation
 // ============================================================================
 
@@ -603,6 +726,7 @@ async function validateSkill(skillPath: string, projectLocal: boolean = false, s
     ...validateFrontmatter(parsed.frontmatter, parsed.frontmatterError)
   );
   validation.results.push(...validateStructure(skillPath, content));
+  validation.results.push(...validateSelfEvolution(skillPath, content));
 
   const linkResults = await validateLinks(skillPath, projectLocal);
   validation.results.push(...linkResults.results);

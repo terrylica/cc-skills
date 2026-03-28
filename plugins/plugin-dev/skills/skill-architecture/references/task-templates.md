@@ -16,11 +16,12 @@
 5. Write SKILL.md with YAML frontmatter (name, description with triggers)
 6. Add task templates section to SKILL.md
 7. Add Post-Change Checklist section to SKILL.md
-8. Validate with quick_validate.py
-9. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
-10. Test skill on real example
-11. Register skill in project CLAUDE.md
-12. Verify against Skill Quality Checklist below
+8. Add Post-Execution Reflection section to SKILL.md (compulsory — see reference)
+9. Validate with quick_validate.py
+10. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
+11. Test skill on real example
+12. Register skill in project CLAUDE.md
+13. Verify against Skill Quality Checklist below
 ```
 
 ## Template B: Update Existing Skill
@@ -56,13 +57,14 @@
 1. Read current SKILL.md structure
 2. Add Task Templates section (scenario-specific)
 3. Add Post-Change Checklist section
-4. Create references/evolution-log.md (reverse chronological - newest on top)
-5. Create references/config-reference.md (if skill manages external config)
-6. Update description with self-evolution triggers
-7. Validate with quick_validate.py
-8. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
-9. Test self-documentation on sample change
-10. Verify against Skill Quality Checklist below
+4. Add Post-Execution Reflection section (compulsory — see post-execution-reflection.md)
+5. Create references/evolution-log.md (reverse chronological - newest on top)
+6. Create references/config-reference.md (if skill manages external config)
+7. Update description with self-evolution triggers
+8. Validate with quick_validate.py
+9. Validate links (relative paths only): bun run plugins/plugin-dev/scripts/validate-links.ts <skill-path>
+10. Test self-documentation on sample change
+11. Verify against Skill Quality Checklist below
 ```
 
 ## Template E: Troubleshoot Skill Not Triggering
@@ -109,6 +111,7 @@ After ANY skill work, verify:
 - [ ] If skill requires external tools (git, docker, jq), add `compatibility` field
 - [ ] Task templates cover all common scenarios
 - [ ] Post-Change Checklist included for self-maintenance
+- [ ] Post-Execution Reflection section included (compulsory for stepwise skills)
 - [ ] Final template step references this checklist
 - [ ] Project CLAUDE.md updated if new/renamed skill
 - [ ] Validated with quick_validate.py
@@ -116,7 +119,7 @@ After ANY skill work, verify:
 - [ ] No broken internal links (validate-links.ts passes)
 - [ ] Tested activation **both ways**: manual `/name` AND organic trigger keywords
 - [ ] Run `/context` to verify skill is loaded (not excluded by description budget)
-- [ ] Phased execution: task templates use `[Preflight]`/`[Execute]`/`[Verify]` labels where applicable
+- [ ] Phased execution: task templates use `[Preflight]`/`[Execute]`/`[Verify]`/`[Reflect]`/`[Rectify]` labels where applicable
 - [ ] Interactive: AskUserQuestion used for destructive actions and multi-option workflows
 - [ ] No unsafe path patterns (see [Path Patterns](./path-patterns.md)):
   - No hardcoded `/Users/<user>` or `/home/<user>` (use `$HOME`)
