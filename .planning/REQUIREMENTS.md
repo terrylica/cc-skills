@@ -162,6 +162,12 @@
 - [ ] **CJK-03**: sherpa-onnx multilang model loads on-demand (not at startup) to avoid RSS bloat
 - [ ] **CJK-04**: Graceful fallback if sherpa-onnx model missing or synthesis fails
 
+### MLX Memory Lifecycle (INSERTED)
+
+- [x] **LEAK-01**: kokoro-ios fork sets Memory.cacheLimit to ≤20MB and calls Memory.clearCache() after each generateAudio() call
+- [x] **LEAK-02**: Service exits cleanly after N synthesis sessions with launchd auto-restart completing within 2 seconds
+- [x] **LEAK-03**: IOAccelerator (graphics) memory stays under 4GB across 10 consecutive TTS sessions without manual restart
+
 ## Future Requirements
 
 ### Deferred
@@ -334,41 +340,45 @@
 - [x] **STREAM-03**: Karaoke word highlighting works within each displayed sentence segment
 
 ## v4.7.0 Traceability
+
 <!-- # SSoT-OK -->
 
-| Requirement | Phase    | Status  |
-| ----------- | -------- | ------- |
-| STREAM-01   | Phase 17 | Complete |
-| STREAM-02   | Phase 17 | Complete |
-| STREAM-03   | Phase 17 | Complete |
-| ARCH-01     | Phase 18 | Pending |
-| TEST-01     | Phase 18 | Pending |
-| ARCH-02     | Phase 19 | Pending |
-| ARCH-03     | Phase 19 | Pending |
-| ARCH-04     | Phase 19 | Pending |
-| ARCH-05     | Phase 19 | Pending |
-| ARCH-06     | Phase 19 | Pending |
-| CONC-01     | Phase 19 | Pending |
-| CONC-02     | Phase 19 | Pending |
-| CONC-03     | Phase 19 | Pending |
-| CONC-04     | Phase 19 | Pending |
-| TEST-02     | Phase 20 | Pending |
-| TEST-03     | Phase 20 | Pending |
-| TEST-04     | Phase 20 | Pending |
-| TEST-05     | Phase 20 | Pending |
-| HARD-01     | Phase 21 | Pending |
-| HARD-02     | Phase 21 | Pending |
-| HARD-03     | Phase 21 | Pending |
-| HARD-04     | Phase 21 | Pending |
-| BION-01     | Phase 22 | Pending |
-| BION-02     | Phase 22 | Pending |
-| BION-03     | Phase 22 | Pending |
-| BION-04     | Phase 22 | Pending |
-| CAPT-01     | Phase 23 | Pending |
-| CAPT-02     | Phase 23 | Pending |
-| CAPT-03     | Phase 23 | Pending |
-| CAPT-04     | Phase 23 | Pending |
-| CJK-01      | Phase 24 | Pending |
-| CJK-02      | Phase 24 | Pending |
-| CJK-03      | Phase 24 | Pending |
-| CJK-04      | Phase 24 | Pending |
+| Requirement | Phase      | Status   |
+| ----------- | ---------- | -------- |
+| STREAM-01   | Phase 17   | Complete |
+| STREAM-02   | Phase 17   | Complete |
+| STREAM-03   | Phase 17   | Complete |
+| ARCH-01     | Phase 18   | Pending  |
+| TEST-01     | Phase 18   | Pending  |
+| ARCH-02     | Phase 19   | Pending  |
+| ARCH-03     | Phase 19   | Pending  |
+| ARCH-04     | Phase 19   | Pending  |
+| ARCH-05     | Phase 19   | Pending  |
+| ARCH-06     | Phase 19   | Pending  |
+| CONC-01     | Phase 19   | Pending  |
+| CONC-02     | Phase 19   | Pending  |
+| CONC-03     | Phase 19   | Pending  |
+| CONC-04     | Phase 19   | Pending  |
+| TEST-02     | Phase 20   | Pending  |
+| TEST-03     | Phase 20   | Pending  |
+| TEST-04     | Phase 20   | Pending  |
+| TEST-05     | Phase 20   | Pending  |
+| LEAK-01     | Phase 20.1 | Complete |
+| LEAK-02     | Phase 20.1 | Complete |
+| LEAK-03     | Phase 20.1 | Complete |
+| HARD-01     | Phase 21   | Pending  |
+| HARD-02     | Phase 21   | Pending  |
+| HARD-03     | Phase 21   | Pending  |
+| HARD-04     | Phase 21   | Pending  |
+| BION-01     | Phase 22   | Pending  |
+| BION-02     | Phase 22   | Pending  |
+| BION-03     | Phase 22   | Pending  |
+| BION-04     | Phase 22   | Pending  |
+| CAPT-01     | Phase 23   | Pending  |
+| CAPT-02     | Phase 23   | Pending  |
+| CAPT-03     | Phase 23   | Pending  |
+| CAPT-04     | Phase 23   | Pending  |
+| CJK-01      | Phase 24   | Pending  |
+| CJK-02      | Phase 24   | Pending  |
+| CJK-03      | Phase 24   | Pending  |
+| CJK-04      | Phase 24   | Pending  |

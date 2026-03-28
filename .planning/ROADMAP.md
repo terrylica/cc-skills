@@ -434,7 +434,7 @@ Plans:
 
 Plans:
 
-- [ ] 20.1-01-PLAN.md -- kokoro-ios cache reduction + synthesis counter + graceful restart + launchd tuning
+- [x] 20.1-01-PLAN.md -- kokoro-ios cache reduction + synthesis counter + graceful restart + launchd tuning
 
 **Context**: MLX-Swift creates ~1.7-6GB of unreclaimable IOAccelerator (Metal driver) allocations per synthesis call. Confirmed intentional by design (ml-explore/mlx issue #1086). The static MetalAllocator pools buffers and only frees on process exit. `Memory.clearCache()` manages MLX internal buffer pool but not Metal driver allocations. Process restart is the only 100% reclamation mechanism.
 ### Phase 21: Pipeline Hardening
@@ -518,7 +518,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 18. CompanionCore Library & Test Infrastructure | 0/0            | Not started | -          |
 | 19. TTSEngine Decomposition & Actor Migration   | 0/0            | Not started | -          |
 | 20. Unit & Integration Tests                    | 0/0            | Not started | -          |
-| 20.1. MLX Metal Memory Lifecycle                | 0/1            | Not started | -          |
+| 20.1. MLX Metal Memory Lifecycle                | 1/1 | Complete   | 2026-03-28 |
 | 21. Pipeline Hardening                          | 0/0            | Not started | -          |
 | 22. Bionic Reading Mode                         | 0/0            | Not started | -          |
 | 23. Caption History Panel                       | 0/0            | Not started | -          |
