@@ -84,18 +84,17 @@ public final class HTTPControlServer: @unchecked Sendable {
     private let playbackManager: PlaybackManager
     private let ttsEngine: TTSEngine
     private let captionHistory: CaptionHistory
+    private let pipelineCoordinator: TTSPipelineCoordinator
     private let startTime: Date
     private var telegramBot: TelegramBot?
 
-    /// Retained sync driver for TTS test playback (prevents dealloc during playback)
-    @MainActor private var activeSyncDriver: SubtitleSyncDriver?
-
-    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, playbackManager: PlaybackManager, ttsEngine: TTSEngine, captionHistory: CaptionHistory) {
+    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, playbackManager: PlaybackManager, ttsEngine: TTSEngine, captionHistory: CaptionHistory, pipelineCoordinator: TTSPipelineCoordinator) {
         self.settingsStore = settingsStore
         self.subtitlePanel = subtitlePanel
         self.playbackManager = playbackManager
         self.ttsEngine = ttsEngine
         self.captionHistory = captionHistory
+        self.pipelineCoordinator = pipelineCoordinator
         self.startTime = Date()
     }
 
@@ -191,14 +190,6 @@ public final class HTTPControlServer: @unchecked Sendable {
 
                 logger.info("TTS test: streaming synthesis for \(text.count) chars")
 
-                // Reset AudioStreamPlayer for a fresh session (cancels any queued buffers)
-                await MainActor.run {
-                    self.playbackManager.audioStreamPlayer.reset()
-                    self.playbackManager.stopPlayback()
-                    self.activeSyncDriver?.stop()
-                    self.activeSyncDriver = nil
-                }
-
                 // Batch-then-play: collect all chunks, then play them all at once.
                 // Zero GPU work during playback -- eliminates memory bus contention.
                 let chunks = await ttsEngine.synthesizeStreaming(
@@ -219,32 +210,13 @@ public final class HTTPControlServer: @unchecked Sendable {
                         return
                     }
 
-                    // Create sync driver for batch playback
-                    let driver = SubtitleSyncDriver(
-                        subtitlePanel: self.subtitlePanel,
-                        audioStreamPlayer: self.playbackManager.audioStreamPlayer,
-                        onStreamingComplete: {
+                    self.pipelineCoordinator.startBatchPipeline(
+                        chunks: chunks,
+                        onComplete: {
                             self.logger.info("TTS test batch playback complete")
                             Task { await checkMemoryLifecycleRestart() }
                         }
                     )
-                    self.activeSyncDriver = driver
-
-                    // Add all chunks
-                    for chunk in chunks {
-                        let fontSizeName = self.subtitlePanel.currentFontSizeName
-                        let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
-                        driver.addChunk(
-                            wavPath: chunk.wavPath,
-                            samples: chunk.samples,
-                            pages: pages,
-                            wordTimings: chunk.wordTimings,
-                            nativeOnsets: chunk.wordOnsets
-                        )
-                    }
-
-                    // Start batch playback
-                    driver.startBatchPlayback()
                 }
 
                 return jsonResponse(OkResponse(ok: true))

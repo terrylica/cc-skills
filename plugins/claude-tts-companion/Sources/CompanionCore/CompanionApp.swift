@@ -17,6 +17,7 @@ public final class CompanionApp: @unchecked Sendable {
     private let playbackManager: PlaybackManager
     private let ttsEngine: TTSEngine
     private let captionHistory: CaptionHistory
+    private let pipelineCoordinator: TTSPipelineCoordinator
     private let httpServer: HTTPControlServer
     private let miniMaxClient: MiniMaxClient
     private let summaryEngine: SummaryEngine
@@ -34,12 +35,14 @@ public final class CompanionApp: @unchecked Sendable {
         playbackManager = PlaybackManager()
         ttsEngine = TTSEngine(playbackManager: playbackManager)
         captionHistory = CaptionHistory()
+        pipelineCoordinator = TTSPipelineCoordinator(playbackManager: playbackManager, subtitlePanel: subtitlePanel)
         httpServer = HTTPControlServer(
             settingsStore: settingsStore,
             subtitlePanel: subtitlePanel,
             playbackManager: playbackManager,
             ttsEngine: ttsEngine,
-            captionHistory: captionHistory
+            captionHistory: captionHistory,
+            pipelineCoordinator: pipelineCoordinator
         )
         miniMaxClient = MiniMaxClient()
         summaryEngine = SummaryEngine(client: miniMaxClient)
@@ -86,7 +89,8 @@ public final class CompanionApp: @unchecked Sendable {
                 summaryEngine: summaryEngine,
                 playbackManager: playbackManager,
                 ttsEngine: ttsEngine,
-                subtitlePanel: subtitlePanel
+                subtitlePanel: subtitlePanel,
+                pipelineCoordinator: pipelineCoordinator
             )
             telegramBot = bot
             httpServer.setBot(bot)
