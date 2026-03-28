@@ -51,19 +51,49 @@ Confirm the operation succeeded by checking expected outcomes.
 [Verify] No errors in log output
 ```
 
+### Phase 3: Reflect & Rectify
+
+After execution completes, retrospectively examine the skill's own performance and rectify its artifacts. This phase is **compulsory** for all skills that perform stepwise execution — errors discovered empirically must feed back into the skill itself.
+
+**Why this phase exists**: Skills execute in unpredictable environments. Instructions that work in testing fail in production. Scripts break on edge cases. References become stale. Without a structural reflection phase, these failures repeat silently across sessions. The skill never learns.
+
+**What to reflect on**:
+
+- Steps that failed or required manual workarounds → fix the instructions
+- Steps that were skipped as unnecessary → consider removing or making conditional
+- Unexpected successes (a better approach emerged) → promote to recommended pattern
+- Recurring friction points → document as anti-patterns with the specific error observed
+- Script output that was wrong or misleading → fix the script, not just the instructions
+- References that were outdated or incorrect → update or remove
+
+```
+[Reflect] Review execution: any steps failed or needed manual intervention?
+[Reflect] Identify empirical patterns: what worked better than prescribed?
+[Reflect] Identify empirical anti-patterns: what caused repeated friction?
+[Rectify] Update SKILL.md instructions with findings
+[Rectify] Fix scripts/references that produced incorrect results
+[Rectify] Log changes in evolution-log.md with evidence
+```
+
+**Key principle**: Rectification is immediate. Do not defer known fixes. If a step failed because the instruction was wrong, fix the instruction now — not in a future maintenance pass.
+
+See [Post-Execution Reflection Reference](./post-execution-reflection.md) for the full pattern.
+
 ---
 
 ## TodoWrite Phase Labels
 
 Use bracketed phase labels in TodoWrite templates for clarity and traceability:
 
-| Label         | Purpose                   | Example                                      |
-| ------------- | ------------------------- | -------------------------------------------- |
-| `[Preflight]` | Prerequisite verification | `[Preflight] Verify Python 3.13 installed`   |
-| `[Execute]`   | Core operation steps      | `[Execute] Install package dependencies`     |
-| `[Verify]`    | Outcome confirmation      | `[Verify] Service responds on port 8080`     |
-| `[Cleanup]`   | Post-operation tidying    | `[Cleanup] Remove temporary build artifacts` |
-| `[Ask]`       | User input required       | `[Ask] Select configuration profile`         |
+| Label         | Purpose                     | Example                                             |
+| ------------- | --------------------------- | --------------------------------------------------- |
+| `[Preflight]` | Prerequisite verification   | `[Preflight] Verify Python 3.13 installed`          |
+| `[Execute]`   | Core operation steps        | `[Execute] Install package dependencies`            |
+| `[Verify]`    | Outcome confirmation        | `[Verify] Service responds on port 8080`            |
+| `[Reflect]`   | Post-execution skill review | `[Reflect] Review execution for errors/friction`    |
+| `[Rectify]`   | Skill self-correction       | `[Rectify] Update SKILL.md with empirical findings` |
+| `[Cleanup]`   | Post-operation tidying      | `[Cleanup] Remove temporary build artifacts`        |
+| `[Ask]`       | User input required         | `[Ask] Select configuration profile`                |
 
 **Template example**:
 
@@ -76,7 +106,9 @@ Use bracketed phase labels in TodoWrite templates for clarity and traceability:
 6. [Execute] Apply configuration
 7. [Verify] Service starts successfully
 8. [Verify] Health check passes
-9. [Cleanup] Remove old version artifacts
+9. [Reflect] Review execution: any steps failed or needed workarounds?
+10. [Rectify] Update skill instructions/scripts with empirical findings
+11. [Cleanup] Remove old version artifacts
 ```
 
 ---
@@ -204,7 +236,9 @@ Phased execution often combines with [Interactive Patterns](./interactive-patter
 2. [Ask] What would you like to do? (intent branching)
 3. [Execute] Perform selected action
 4. [Verify] Confirm result
-5. [Ask] Satisfied with the outcome? (feedback)
+5. [Reflect] Review: any errors, new patterns, or anti-patterns discovered?
+6. [Rectify] Update skill artifacts if findings warrant changes
+7. [Ask] Satisfied with the outcome? (feedback)
 ```
 
 See [Interactive Patterns](./interactive-patterns.md) for detailed AskUserQuestion patterns.

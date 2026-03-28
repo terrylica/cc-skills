@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-03-27: Add Compulsory Post-Execution Reflection
+
+**Trigger**: User identified that agent skills executing stepwise are prone to errors that repeat silently across sessions because skills never learn from their own execution failures. The existing "Continuous Improvement" section was advisory, not structural — skills could (and did) skip reflection entirely.
+
+### Changes Made
+
+1. **New section in SKILL.md: "Post-Execution Reflection (Compulsory)"** — Mandatory architectural requirement (not advisory) with template, rationale, and link to reference
+2. **New reference: `post-execution-reflection.md`** — Canonical pattern document with minimal and extended templates, phased execution integration, validation requirements, empirical examples, and anti-patterns for reflection itself
+3. **Updated `phased-execution.md`**: Added Phase 3 (Reflect & Rectify) to core pattern, new `[Reflect]` and `[Rectify]` phase labels, updated all template examples
+4. **Updated `task-templates.md`**: Template A step 8 now requires Post-Execution Reflection section; Template D step 4 adds it; Skill Quality Checklist gains two new items (reflection section present, phase labels include Reflect/Rectify)
+5. **SKILL.md Reference Documentation**: Added post-execution-reflection.md link, updated phased-execution description
+
+### Key Insight
+
+> The difference between "advisory" and "structural" is whether the pattern survives a busy session. Advisory improvements get skipped under time pressure. Structural requirements — like YAML frontmatter or Post-Change Checklists — persist because the skill itself enforces them. Post-execution reflection must be structural to close the feedback loop.
+
+### Related
+
+- Memory: `project_skill_architecture_self_rectification.md` (planned upgrade, partially fulfilled)
+- Gemini Deep Research issues: #67-#70
+
+---
+
 ## 2026-03-06: Align with Anthropic skill-creator (9-Agent Deep Dive)
 
 **Trigger**: 9-agent investigation comparing our skill-architecture against Anthropic's official [skill-creator](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md) (forked to `~/fork-tools/skills`). Found 3 CRITICAL, 3 HIGH, 3 MEDIUM gaps.
