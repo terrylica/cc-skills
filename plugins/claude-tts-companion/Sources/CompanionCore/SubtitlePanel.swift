@@ -393,13 +393,32 @@ public final class SubtitlePanel: NSPanel {
         // but content cannot be interacted with by screen sharing tools.
         sharingType = .readOnly
 
-        // SUB-10: Click-through — mouse events pass to windows below
+        // SUB-10: Click-through by default — mouse events pass to windows below.
+        // Hold Option (⌥) to temporarily make draggable for repositioning.
         ignoresMouseEvents = true
+        isMovableByWindowBackground = true
 
         // Transparent chrome
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
+
+        // Monitor Option key to toggle drag mode
+        NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            guard let self = self else { return event }
+            let optionDown = event.modifierFlags.contains(.option)
+            if optionDown != !self.ignoresMouseEvents {
+                self.ignoresMouseEvents = !optionDown
+                if optionDown {
+                    self.hasShadow = true  // Visual cue: shadow appears when draggable
+                    self.backgroundView.layer?.backgroundColor = NSColor(red: 0, green: 0, blue: 0, alpha: 0.6).cgColor
+                } else {
+                    self.hasShadow = false
+                    self.backgroundView.layer?.backgroundColor = SubtitleStyle.backgroundColor.cgColor
+                }
+            }
+            return event
+        }
     }
 
     /// Build the view hierarchy: background view + centered text field.
