@@ -430,8 +430,8 @@ Plans:
 
 Plans:
 
-- [ ] 20-01-PLAN.md -- Unit tests for WordTimingAligner, PronunciationProcessor, SentenceSplitter
-- [ ] 20-02-PLAN.md -- Expanded SubtitleChunker tests + streaming pipeline integration test
+- [x] 20-01-PLAN.md -- Unit tests for WordTimingAligner, PronunciationProcessor, SentenceSplitter
+- [x] 20-02-PLAN.md -- Expanded SubtitleChunker tests + streaming pipeline integration test
 
 ### Phase 20.1: MLX Metal Memory Lifecycle
 
@@ -531,7 +531,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete    | 2026-03-27 |
 | 18. CompanionCore Library & Test Infrastructure | 2/2 | Complete    | 2026-03-28 |
 | 19. TTSEngine Decomposition & Actor Migration   | 2/2 | Complete    | 2026-03-28 |
-| 20. Unit & Integration Tests                    | 0/2            | Not started | -          |
+| 20. Unit & Integration Tests                    | 2/2 | Complete   | 2026-03-28 |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1 | Complete   | 2026-03-28 |
 | 21. Pipeline Hardening                          | 0/0            | Not started | -          |
 | 22. Bionic Reading Mode                         | 0/0            | Not started | -          |
