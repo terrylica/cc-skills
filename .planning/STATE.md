@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.9.0
 milestone_name: SwiftBar UI & Telegram Bot Activation
 status: executing
-stopped_at: Roadmap created for v4.9.0 milestone
-last_updated: "2026-03-28T19:05:06.805Z"
+stopped_at: Completed 30-01-PLAN (SwiftBar UI Updates)
+last_updated: "2026-03-28T19:09:18.574Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 29
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 29 — telegram-bot-activation
+**Current focus:** Phase 31 — e2e-integration-verification
 
 ## Current Position
 
-Phase: 29
-Plan: Not started
-Status: Executing Phase 29
+Phase: 30
+Plan: Complete
+Status: Phase 30 complete, ready for Phase 31
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -56,6 +56,8 @@ Progress: [░░░░░░░░░░] 0%
 - Last 5 plans: 3min, 1min, 3min, 5min, 2min
 - Trend: Stable (~3min average)
 
+| Phase 30 P01 | 2min | 3 tasks | 1 files |
+
 ## Accumulated Context
 
 ### Decisions
@@ -66,6 +68,8 @@ Recent decisions affecting current work:
 - [v4.8.0]: Python MLX over Swift MLX -- IOAccelerator leak +2.3GB/call by design (ml-explore/mlx #1086)
 - [v4.8.0]: Word timing non-negotiable -- karaoke highlighting requires per-word onset/duration
 - [Phase 28]: healthResponse() made non-async -- no actor access needed after removing memoryDiagnostics
+- [Phase 30]: Python TTS PID/RSS via pgrep+ps (server /health lacks process metrics)
+- [Phase 30]: Bot 'unknown' mapped to 'disabled' (white dot) -- intentional config state, not error
 
 ### Pending Todos
 
@@ -79,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28
-Stopped at: Roadmap created for v4.9.0 milestone
+Last session: 2026-03-28T19:09:18.571Z
+Stopped at: Completed 30-01-PLAN (SwiftBar UI Updates)
 Resume file: None

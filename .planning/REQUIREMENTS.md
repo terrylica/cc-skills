@@ -10,9 +10,9 @@
 
 ### SwiftBar UI
 
-- [ ] **BAR-10**: SwiftBar shows Python TTS server health (green/red dot + PID + RSS) alongside Swift companion in Service section
-- [ ] **BAR-11**: Voice and Speed settings propagate from SwiftBar through Swift companion to Python server
-- [ ] **BAR-12**: Bot subsystem status shows "connected" (green) or "disabled" (grey) — never "unknown"
+- [x] **BAR-10**: SwiftBar shows Python TTS server health (green/red dot + PID + RSS) alongside Swift companion in Service section
+- [x] **BAR-11**: Voice and Speed settings propagate from SwiftBar through Swift companion to Python server
+- [x] **BAR-12**: Bot subsystem status shows "connected" (green) or "disabled" (grey) — never "unknown"
 
 ### Telegram Bot Activation
 
@@ -44,9 +44,9 @@
 | BOT-10      | Phase 29 | Pending |
 | BOT-11      | Phase 29 | Pending |
 | BOT-12      | Phase 29 | Pending |
-| BAR-10      | Phase 30 | Pending |
-| BAR-11      | Phase 30 | Pending |
-| BAR-12      | Phase 30 | Pending |
+| BAR-10      | Phase 30 | Complete |
+| BAR-11      | Phase 30 | Complete |
+| BAR-12      | Phase 30 | Complete |
 | E2E-01      | Phase 31 | Pending |
 | E2E-02      | Phase 31 | Pending |
 | E2E-03      | Phase 31 | Pending |
