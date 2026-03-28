@@ -1,5 +1,5 @@
 {
-  "originHash" : "7f59fa784b8387bbfb9bf55cb5f63a5dd768707183240dfe7eabcf2e8b609ead",
+  "originHash" : "cdf413dd1474401f20cc2fb4af046bcd1718b90f97789cf503d55565c4732d8d",
   "pins" : [
     {
       "identity" : "flyingfox",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/terrylica/kokoro-ios.git",
       "state" : {
-        "revision" : "e29da8faac6599b05e1cc22de2a367a886781c1b",
-        "version" : "1.0.13"
+        "revision" : "c1ed546b43e2a6e7ecc676bf4c243c51907b0541",
+        "version" : "1.0.14"
       }
     },
     {
