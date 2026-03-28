@@ -212,7 +212,8 @@ public actor TTSEngine {
     func synthesizeStreaming(
         text: String,
         voiceName: String = Config.defaultVoiceName,
-        speed: Float = 1.2
+        speed: Float = 1.2,
+        cancellationCheck: (() -> Bool)? = nil
     ) async -> [ChunkResult] {
         guard !isTTSCircuitBreakerOpen else {
             logger.warning("TTS circuit breaker open -- skipping streaming synthesis (\(text.count) chars)")
@@ -227,6 +228,11 @@ public actor TTSEngine {
         let pipelineStart = CFAbsoluteTimeGetCurrent()
 
         for (index, sentence) in sentences.enumerated() {
+            // Cooperative cancellation: check between sentences
+            if Task.isCancelled || (cancellationCheck?() == true) {
+                logger.info("Synthesis cancelled after \(index)/\(totalChunks) chunks")
+                break
+            }
             let processedSentence = PronunciationProcessor.preprocessText(sentence)
             let wavPath = NSTemporaryDirectory() + "tts-stream-\(UUID().uuidString).wav"
 
@@ -325,7 +331,7 @@ public actor TTSEngine {
 
     /// Synthesize text, automatically routing CJK to sherpa-onnx and English to Python Kokoro server.
     /// Returns empty array if synthesis fails entirely.
-    func synthesizeStreamingAutoRoute(text: String, speed: Float = 1.2) async -> [ChunkResult] {
+    func synthesizeStreamingAutoRoute(text: String, speed: Float = 1.2, cancellationCheck: (() -> Bool)? = nil) async -> [ChunkResult] {
         let langResult = LanguageDetector.detect(text: text)
 
         if langResult.lang == "cmn" {
@@ -338,7 +344,7 @@ public actor TTSEngine {
         }
 
         // English path: delegate to Python Kokoro server
-        return await synthesizeStreaming(text: text, voiceName: langResult.voiceName, speed: speed)
+        return await synthesizeStreaming(text: text, voiceName: langResult.voiceName, speed: speed, cancellationCheck: cancellationCheck)
     }
 
     // MARK: - Python Server HTTP Client
