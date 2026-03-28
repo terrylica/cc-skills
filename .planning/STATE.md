@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.8.0
-milestone_name: Python MLX TTS Consolidation
-status: verifying
-stopped_at: Completed 28-01-PLAN.md
-last_updated: "2026-03-28T08:34:46.352Z"
+milestone: v4.9.0
+milestone_name: SwiftBar UI & Telegram Bot Activation
+status: planning
+stopped_at: Defining requirements
+last_updated: "2026-03-28T09:00:00.000Z"
 last_activity: 2026-03-28
 progress:
-  total_phases: 25
-  completed_phases: 24
-  total_plans: 48
-  completed_plans: 47
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
