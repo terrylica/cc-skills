@@ -464,11 +464,12 @@ public final class SubtitlePanel: NSPanel {
 
         let x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
 
-        // Position: "top" places panel near the top of the visible frame;
-        // "bottom" (default) places it near the bottom.
+        // Position: "top", "middle", or "bottom" (default).
         let y: CGFloat
         if currentPosition == "top" {
             y = screenFrame.origin.y + screenFrame.height - panelHeight - SubtitleStyle.topOffset
+        } else if currentPosition == "middle" {
+            y = screenFrame.origin.y + (screenFrame.height - panelHeight) / 2
         } else {
             y = screen.frame.origin.y + SubtitleStyle.bottomOffset
         }
