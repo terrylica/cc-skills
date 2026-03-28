@@ -9,6 +9,7 @@ public struct SubtitleSettingsUpdate: Codable, Sendable {
     var opacity: Double?
     var karaokeEnabled: Bool?
     var screen: String?
+    var displayMode: String?
 }
 
 /// Partial update struct for TTS settings (all fields optional for PATCH semantics).
@@ -129,6 +130,16 @@ public final class HTTPControlServer: @unchecked Sendable {
                     if let v = update.opacity { s.opacity = v }
                     if let v = update.karaokeEnabled { s.karaokeEnabled = v }
                     if let v = update.screen { s.screen = v }
+                    if let v = update.displayMode {
+                        s.displayMode = v
+                        // Mutual exclusion: bionic/plain disable karaoke, karaoke enables it (D-03)
+                        switch DisplayMode.from(string: v) {
+                        case .bionic, .plain:
+                            s.karaokeEnabled = false
+                        case .karaoke:
+                            s.karaokeEnabled = true
+                        }
+                    }
                 }
                 let settings = settingsStore.getSettings()
                 return jsonResponse(settings)
