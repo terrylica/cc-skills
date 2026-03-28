@@ -15,6 +15,7 @@ public final class TelegramBot: @unchecked Sendable {
 
     // Subsystem references for session notifications (BOT-03, BOT-04)
     private let summaryEngine: SummaryEngine
+    private let playbackManager: PlaybackManager
     private let ttsEngine: TTSEngine
     private let subtitlePanel: SubtitlePanel  // @MainActor -- access must dispatch to main
 
@@ -35,10 +36,11 @@ public final class TelegramBot: @unchecked Sendable {
     // Inline button state manager (BTN-01, BTN-02, BTN-03)
     let inlineButtonManager = InlineButtonManager()
 
-    init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel) {
+    init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, playbackManager: PlaybackManager, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel) {
         self.botToken = botToken
         self.chatId = chatId
         self.summaryEngine = summaryEngine
+        self.playbackManager = playbackManager
         self.ttsEngine = ttsEngine
         self.subtitlePanel = subtitlePanel
     }
@@ -247,8 +249,10 @@ public final class TelegramBot: @unchecked Sendable {
         logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), voice=\(langResult.voiceName), streaming=\(Config.streamingTTS)")
 
         // If TTS is disabled (model missing or circuit breaker open), show subtitle-only fallback
-        if ttsEngine.isDisabledDueToMissingModel || ttsEngine.isTTSCircuitBreakerOpen {
-            logger.warning("TTS unavailable — showing subtitle-only fallback (\(fullText.count) chars)")
+        let isModelMissing = await ttsEngine.isDisabledDueToMissingModel
+        let isCBOpen = await ttsEngine.isTTSCircuitBreakerOpen
+        if isModelMissing || isCBOpen {
+            logger.warning("TTS unavailable -- showing subtitle-only fallback (\(fullText.count) chars)")
             showSubtitleOnlyFallback(text: fullText)
             return
         }
@@ -267,112 +271,90 @@ public final class TelegramBot: @unchecked Sendable {
 
         // Cancel previous playback IMMEDIATELY when a new session dispatches.
         // Reset AudioStreamPlayer (cancels queued buffers, keeps engine warm).
-        ttsEngine.audioStreamPlayer.reset()
-        ttsEngine.stopPlayback()  // Also stop any legacy AVAudioPlayer
-        // SyncDriver is @MainActor -- dispatch stop to main queue.
-        // Use async (not sync) to avoid deadlock if we're already on main.
-        // The synthesis queue starts work concurrently, but the first chunk takes
-        // ~2-18s to synthesize, so the main-queue stop completes well before
-        // the onChunkReady callback dispatches back to main.
+        // PlaybackManager is @MainActor -- dispatch to main queue.
         let driverToStop = syncDriver
         syncDriver = nil
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [self] in
+            playbackManager.audioStreamPlayer.reset()
+            playbackManager.stopPlayback()
             driverToStop?.stop()
         }
 
         // Batch-then-play: collect all synthesized chunks, then play them all at once.
         // MLX Metal GPU creates ~1.7GB IOAccelerator allocations per synthesis call that
         // compete with audio playback on unified memory. By synthesizing everything first,
-        // the GPU is completely idle during playback — zero memory bus contention.
+        // the GPU is completely idle during playback -- zero memory bus contention.
 
-        // Thread-safe chunk collection (TTS queue writes, main thread reads on completion)
-        let chunksLock = NSLock()
-        var collectedChunks: [TTSEngine.ChunkResult] = []
+        Task { [weak self] in
+            guard let self = self else { return }
 
-        ttsEngine.synthesizeStreaming(
-            text: text,
-            voiceName: voiceName,
-            onChunkReady: { [weak self] chunk in
-                guard let self = self else { return }
-                self.logger.info("Synthesized chunk \(chunk.chunkIndex + 1)/\(chunk.totalChunks): \(String(format: "%.2f", chunk.audioDuration))s (batch collecting)")
+            let chunks = await self.ttsEngine.synthesizeStreaming(
+                text: text,
+                voiceName: voiceName
+            )
 
-                chunksLock.lock()
-                collectedChunks.append(chunk)
-                chunksLock.unlock()
-            },
-            onAllComplete: { [weak self] in
-                guard let self = self else { return }
+            self.logger.info("All \(chunks.count) chunks synthesized -- starting batch playback")
 
-                chunksLock.lock()
-                let chunks = collectedChunks
-                chunksLock.unlock()
-
-                self.logger.info("All \(chunks.count) chunks synthesized — starting batch playback")
-
-                DispatchQueue.main.async {
-                    guard !chunks.isEmpty else {
-                        // No chunks were ever produced (synthesis failed entirely)
-                        self.isStreamingInProgress = false
-                        self.logger.warning("Streaming complete with no chunks — showing subtitle-only fallback")
-                        self.showSubtitleOnlyFallback(text: text)
-                        return
-                    }
-
-                    // Create sync driver for batch playback
-                    let driver = SubtitleSyncDriver(
-                        subtitlePanel: self.subtitlePanel,
-                        ttsEngine: self.ttsEngine,
-                        onStreamingComplete: { [weak self] in
-                            self?.isStreamingInProgress = false
-                            self?.logger.info("Batch playback complete — new TTS dispatches unblocked")
-                            // Check synthesis count for memory lifecycle restart
-                            checkMemoryLifecycleRestart()
-                        }
-                    )
-                    self.syncDriver = driver
-
-                    // Add all chunks to the driver
-                    for chunk in chunks {
-                        let fontSizeName = self.subtitlePanel.currentFontSizeName
-                        let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
-                        driver.addChunk(
-                            wavPath: chunk.wavPath,
-                            samples: chunk.samples,
-                            pages: pages,
-                            wordTimings: chunk.wordTimings,
-                            nativeOnsets: chunk.wordOnsets
-                        )
-                    }
-
-                    // Start batch playback: schedules ALL buffers, then plays gaplessly
-                    driver.startBatchPlayback()
+            await MainActor.run {
+                guard !chunks.isEmpty else {
+                    self.isStreamingInProgress = false
+                    self.logger.warning("Streaming complete with no chunks -- showing subtitle-only fallback")
+                    self.showSubtitleOnlyFallback(text: text)
+                    return
                 }
+
+                // Create sync driver for batch playback
+                let driver = SubtitleSyncDriver(
+                    subtitlePanel: self.subtitlePanel,
+                    audioStreamPlayer: self.playbackManager.audioStreamPlayer,
+                    onStreamingComplete: { [weak self] in
+                        self?.isStreamingInProgress = false
+                        self?.logger.info("Batch playback complete -- new TTS dispatches unblocked")
+                        Task { await checkMemoryLifecycleRestart() }
+                    }
+                )
+                self.syncDriver = driver
+
+                // Add all chunks to the driver
+                for chunk in chunks {
+                    let fontSizeName = self.subtitlePanel.currentFontSizeName
+                    let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+                    driver.addChunk(
+                        wavPath: chunk.wavPath,
+                        samples: chunk.samples,
+                        pages: pages,
+                        wordTimings: chunk.wordTimings,
+                        nativeOnsets: chunk.wordOnsets
+                    )
+                }
+
+                // Start batch playback: schedules ALL buffers, then plays gaplessly
+                driver.startBatchPlayback()
             }
-        )
+        }
     }
 
     /// Full-paragraph TTS: synthesize everything, then play (legacy path).
     /// Preserved for future TTS models with lower RTF where streaming is unnecessary.
     private func dispatchFullTTS(text: String, voiceName: String) {
-        ttsEngine.synthesizeWithTimestamps(text: text, voiceName: voiceName) { [weak self] result in
+        Task { [weak self] in
             guard let self = self else { return }
-            switch result {
-            case .success(let ttsResult):
+            do {
+                let ttsResult = try await self.ttsEngine.synthesizeWithTimestamps(text: text, voiceName: voiceName)
                 self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
 
-                // Cancel previous playback only when new audio is ready
-                self.ttsEngine.stopPlayback()
-
-                DispatchQueue.main.async {
+                await MainActor.run {
+                    // Cancel previous playback only when new audio is ready
+                    self.playbackManager.stopPlayback()
                     self.syncDriver?.stop()
                     self.syncDriver = nil
 
                     let fontSizeName = self.subtitlePanel.currentFontSizeName
                     let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text, fontSizeName: fontSizeName)
-                    guard let player = self.ttsEngine.play(wavPath: ttsResult.wavPath, completion: {
+                    guard let player = self.playbackManager.play(wavPath: ttsResult.wavPath, completion: {
                         self.logger.info("TTS playback complete")
                     }) else {
-                        self.logger.error("AVAudioPlayer creation failed — skipping subtitles")
+                        self.logger.error("AVAudioPlayer creation failed -- skipping subtitles")
                         return
                     }
                     let driver = SubtitleSyncDriver(
@@ -385,10 +367,8 @@ public final class TelegramBot: @unchecked Sendable {
                     self.syncDriver = driver
                     driver.start()
                 }
-
-            case .failure(let error):
+            } catch {
                 self.logger.error("TTS dispatch failed: \(error)")
-                // Graceful degradation: show subtitle-only text when TTS fails
                 self.showSubtitleOnlyFallback(text: text)
             }
         }
