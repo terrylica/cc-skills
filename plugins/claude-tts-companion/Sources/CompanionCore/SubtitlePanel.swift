@@ -459,13 +459,22 @@ public final class SubtitlePanel: NSPanel {
         // Use the dynamic font size from settings (small/medium/large)
         let font = SubtitleStyle.dynamicCurrentWordFont(currentFontSizeName)
 
-        // Height sized for 2 lines of bold text (karaoke current word is bold)
-        // plus inter-line spacing. Use ceil to avoid sub-pixel clipping.
+        // Auto-size height: measure actual text content, minimum 2 lines.
         let lineHeight = ceil(font.ascender - font.descender + font.leading)
         let interLineSpacing: CGFloat = 4
-        let panelHeight = lineHeight * CGFloat(SubtitleStyle.maxLines)
-            + interLineSpacing
-            + SubtitleStyle.verticalPadding * 2
+        let textWidth = panelWidth - SubtitleStyle.horizontalPadding * 2
+        let attrText = textField.attributedStringValue
+        let measuredHeight: CGFloat
+        if attrText.length == 0 {
+            measuredHeight = lineHeight * 2
+        } else {
+            let boundingRect = attrText.boundingRect(
+                with: NSSize(width: textWidth, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading]
+            )
+            measuredHeight = max(lineHeight * 2, ceil(boundingRect.height))
+        }
+        let panelHeight = measuredHeight + interLineSpacing + SubtitleStyle.verticalPadding * 2
 
         let x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
 
@@ -490,7 +499,6 @@ public final class SubtitlePanel: NSPanel {
         setFrame(frame, display: true)
 
         // Tell the text field the width at which to wrap (required for multi-line layout)
-        let textWidth = panelWidth - SubtitleStyle.horizontalPadding * 2
         textField.preferredMaxLayoutWidth = textWidth
     }
 

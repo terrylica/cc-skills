@@ -54,7 +54,7 @@ public final class CaptionHistoryPanel: NSPanel, NSTableViewDataSource, NSTableV
         // Build table view
         let tv = NSTableView()
         tv.headerView = nil  // No header row -- columns are self-explanatory
-        tv.rowHeight = 24
+        tv.usesAutomaticRowHeights = true  // Auto-size rows for word-wrapped text
         tv.intercellSpacing = NSSize(width: 8, height: 4)
         tv.usesAlternatingRowBackgroundColors = false
         tv.selectionHighlightStyle = .regular
@@ -186,9 +186,10 @@ public final class CaptionHistoryPanel: NSPanel, NSTableViewDataSource, NSTableV
                 cell.isSelectable = false
                 cell.isBezeled = false
                 cell.drawsBackground = false
-                cell.maximumNumberOfLines = 1
-                cell.cell?.truncatesLastVisibleLine = true
-                cell.lineBreakMode = .byTruncatingTail
+                cell.maximumNumberOfLines = 0  // Unlimited lines — word wrap
+                cell.cell?.truncatesLastVisibleLine = false
+                cell.lineBreakMode = .byWordWrapping
+                cell.preferredMaxLayoutWidth = 300
             }
 
             if tableColumn?.identifier == CaptionHistoryPanel.timeColumnID {

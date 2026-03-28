@@ -269,80 +269,20 @@ public actor TTSEngine {
             }
             logger.info("[TELEMETRY] Raw samples: \(rawSamples.count) (24kHz), upsampled: \(samples.count) (48kHz)")
 
-            // Map Kokoro words to sentences by accumulating word text until we've covered
-            // each sentence's content. This handles punctuation and tokenization differences.
-            var wordIndex = 0
+            // Return the full audio as a single chunk with absolute word onsets.
+            // The pipeline coordinator handles subtitle display (paragraph vs sentence scope).
+            let audioDuration = Double(samples.count) / 48000.0
 
-            for (sentenceIdx, sentence) in sentences.enumerated() {
-                let firstWordIdx = wordIndex
-
-                if sentenceIdx == sentences.count - 1 {
-                    // Last sentence: consume all remaining words
-                    wordIndex = allWordTexts.count
-                } else {
-                    // Walk through words, accumulating characters until we've covered this sentence.
-                    // Compare lowercased stripped text to handle punctuation/whitespace differences.
-                    let sentenceClean = sentence.lowercased().filter { $0.isLetter || $0.isNumber }
-                    var accumulated = ""
-                    while wordIndex < allWordTexts.count {
-                        accumulated += allWordTexts[wordIndex].lowercased().filter { $0.isLetter || $0.isNumber }
-                        wordIndex += 1
-                        if accumulated.count >= sentenceClean.count {
-                            break
-                        }
-                    }
-                }
-
-                let lastWordIdx = max(firstWordIdx, wordIndex - 1)
-
-                // Compute chunk time boundaries from word onsets
-                let chunkStartTime: TimeInterval
-                let chunkEndTime: TimeInterval
-
-                if firstWordIdx < allWordOnsets.count {
-                    chunkStartTime = allWordOnsets[firstWordIdx]
-                } else {
-                    chunkStartTime = tsResult.audioDuration
-                }
-
-                if sentenceIdx == sentences.count - 1 {
-                    chunkEndTime = tsResult.audioDuration
-                } else if lastWordIdx < allWordOnsets.count {
-                    chunkEndTime = allWordOnsets[lastWordIdx] + allWordDurations[lastWordIdx]
-                } else {
-                    chunkEndTime = tsResult.audioDuration
-                }
-
-                // Convert times to sample offsets (at 48kHz upsampled rate)
-                let startSample = min(Int(chunkStartTime * 48000.0), samples.count)
-                let endSample = min(Int(chunkEndTime * 48000.0), samples.count)
-                let chunkSamples = startSample < endSample ? Array(samples[startSample..<endSample]) : []
-                let chunkDuration = chunkEndTime - chunkStartTime
-
-                // Extract per-word onsets relative to this chunk's start
-                var chunkWordOnsets: [TimeInterval] = []
-                var chunkWordDurations: [TimeInterval] = []
-                let safeLastWordIdx = min(lastWordIdx, allWordOnsets.count - 1)
-                if firstWordIdx <= safeLastWordIdx {
-                    for wi in firstWordIdx...safeLastWordIdx {
-                        chunkWordOnsets.append(allWordOnsets[wi] - chunkStartTime)
-                        chunkWordDurations.append(allWordDurations[wi])
-                    }
-                }
-
-                logger.info("[TELEMETRY] Chunk \(sentenceIdx): words[\(firstWordIdx)..\(lastWordIdx)], time=\(String(format: "%.3f", chunkStartTime))-\(String(format: "%.3f", chunkEndTime))s (\(String(format: "%.3f", chunkDuration))s), samples=\(chunkSamples.count), text=\"\(sentence.prefix(50))\"")
-
-                chunks.append(ChunkResult(
-                    wavPath: wavPath,
-                    text: sentence,
-                    wordTimings: chunkWordDurations,
-                    audioDuration: chunkDuration,
-                    chunkIndex: sentenceIdx,
-                    totalChunks: totalChunks,
-                    wordOnsets: chunkWordOnsets,
-                    samples: chunkSamples
-                ))
-            }
+            chunks.append(ChunkResult(
+                wavPath: wavPath,
+                text: text,
+                wordTimings: allWordDurations,
+                audioDuration: audioDuration,
+                chunkIndex: 0,
+                totalChunks: 1,
+                wordOnsets: allWordOnsets,
+                samples: samples
+            ))
 
             let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
             logger.info("Pipeline complete: \(totalChunks) subtitle chunks in \(String(format: "%.2f", totalElapsed))s")
