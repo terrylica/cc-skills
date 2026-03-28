@@ -19,24 +19,15 @@ public final class TelegramBot: @unchecked Sendable {
     private let ttsEngine: TTSEngine
     private let subtitlePanel: SubtitlePanel  // @MainActor -- access must dispatch to main
     private let pipelineCoordinator: TTSPipelineCoordinator
+    private let ttsQueue: TTSQueue
 
     // Prompt execution (BOT-05, BOT-06)
     private let promptExecutor = PromptExecutor()
 
-    // Streaming TTS guard: prevents new dispatch from interrupting in-progress streaming.
-    // Protected by NSLock for thread safety -- accessed from both notification handler
-    // thread (check) and main thread (clear via onStreamingComplete).
-    private let streamingLock = NSLock()
-    private var _isStreamingInProgress: Bool = false
-    private var isStreamingInProgress: Bool {
-        get { streamingLock.lock(); defer { streamingLock.unlock() }; return _isStreamingInProgress }
-        set { streamingLock.lock(); defer { streamingLock.unlock() }; _isStreamingInProgress = newValue }
-    }
-
     // Inline button state manager (BTN-01, BTN-02, BTN-03)
     let inlineButtonManager = InlineButtonManager()
 
-    init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, playbackManager: PlaybackManager, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel, pipelineCoordinator: TTSPipelineCoordinator) {
+    init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, playbackManager: PlaybackManager, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel, pipelineCoordinator: TTSPipelineCoordinator, ttsQueue: TTSQueue) {
         self.botToken = botToken
         self.chatId = chatId
         self.summaryEngine = summaryEngine
@@ -44,6 +35,7 @@ public final class TelegramBot: @unchecked Sendable {
         self.ttsEngine = ttsEngine
         self.subtitlePanel = subtitlePanel
         self.pipelineCoordinator = pipelineCoordinator
+        self.ttsQueue = ttsQueue
     }
 
     // MARK: - Public API
@@ -223,152 +215,18 @@ public final class TelegramBot: @unchecked Sendable {
         }
     }
 
-    /// Synthesize text and play with synchronized karaoke subtitles.
-    ///
-    /// Uses streaming sentence-chunked synthesis when `Config.streamingTTS` is true,
-    /// falling back to full-paragraph synthesis for future low-RTF models.
+    /// Enqueue text for TTS synthesis via the priority queue.
+    /// Memory pressure and circuit breaker are checked by TTSQueue.executeWorkItem().
+    /// Rejected requests (user request active) fall back to subtitle-only.
     private func dispatchTTS(text: String, greeting: String?) async {
-        // Build full TTS text with optional greeting
-        let fullText: String
-        if let greeting = greeting, !greeting.isEmpty {
-            fullText = "\(greeting) \(text)"
-        } else {
-            fullText = text
-        }
-
-        // Guard: memory pressure -- degrade to subtitle-only (HARD-02, HARD-03)
-        if await MainActor.run(body: { pipelineCoordinator.shouldUseSubtitleOnly }) {
-            logger.warning("Memory pressure -- subtitle-only mode (\(fullText.count) chars)")
+        let result = await ttsQueue.enqueue(text: text, greeting: greeting, priority: .automated)
+        switch result {
+        case .queued(let pos):
+            logger.info("TTS queued at position \(pos): \(text.count) chars")
+        case .rejected(let reason):
+            logger.warning("TTS rejected (\(reason)) — subtitle-only fallback (\(text.count) chars)")
+            let fullText = greeting.map { "\($0) \(text)" } ?? text
             showSubtitleOnlyFallback(text: fullText)
-            return
-        }
-
-        // Guard: if a streaming synthesis pipeline is still playing, show subtitle-only
-        // fallback instead of silently dropping the notification (HARD-04)
-        if isStreamingInProgress {
-            logger.warning("TTS busy — showing subtitle-only fallback (\(fullText.count) chars)")
-            showSubtitleOnlyFallback(text: fullText)
-            return
-        }
-
-        // Detect language for logging (TTS-10); actual routing handled by synthesizeStreamingAutoRoute
-        let langResult = LanguageDetector.detect(text: fullText)
-        if langResult.lang == "cmn" {
-            logger.info("CJK text detected -- will route to sherpa-onnx engine")
-        }
-        logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), voice=\(langResult.voiceName), streaming=\(Config.streamingTTS)")
-
-        // If circuit breaker is open, show subtitle-only fallback
-        let isCBOpen = await ttsEngine.isTTSCircuitBreakerOpen
-        if isCBOpen {
-            logger.warning("TTS circuit breaker open -- showing subtitle-only fallback (\(fullText.count) chars)")
-            showSubtitleOnlyFallback(text: fullText)
-            return
-        }
-
-        if Config.streamingTTS {
-            dispatchStreamingTTS(text: fullText)
-        } else {
-            dispatchFullTTS(text: fullText, voiceName: langResult.voiceName)
-        }
-    }
-
-    /// Streaming TTS: synthesize sentence-by-sentence, play via coordinator.
-    /// Uses synthesizeStreamingAutoRoute for automatic CJK/English routing.
-    private func dispatchStreamingTTS(text: String) {
-        // Mark streaming as in-progress to prevent new dispatches from interrupting
-        isStreamingInProgress = true
-
-        // Batch-then-play: collect all synthesized chunks, then play them all at once.
-        // MLX Metal GPU creates ~1.7GB IOAccelerator allocations per synthesis call that
-        // compete with audio playback on unified memory. By synthesizing everything first,
-        // the GPU is completely idle during playback -- zero memory bus contention.
-
-        Task { [weak self] in
-            guard let self = self else { return }
-
-            let chunks = await self.ttsEngine.synthesizeStreamingAutoRoute(
-                text: text
-            )
-
-            self.logger.info("All \(chunks.count) chunks synthesized -- starting batch playback")
-
-            await MainActor.run {
-                guard !chunks.isEmpty else {
-                    self.isStreamingInProgress = false
-                    self.pipelineCoordinator.cancelCurrentPipeline()
-                    self.logger.warning("Streaming complete with no chunks -- showing subtitle-only fallback")
-                    self.showSubtitleOnlyFallback(text: text)
-                    return
-                }
-
-                self.pipelineCoordinator.startBatchPipeline(
-                    chunks: chunks,
-                    onComplete: { [weak self] in
-                        self?.isStreamingInProgress = false
-                        self?.logger.info("Batch playback complete -- new TTS dispatches unblocked")
-                    }
-                )
-            }
-        }
-    }
-
-    /// Full-paragraph TTS: synthesize everything, then play (legacy path).
-    /// Preserved for future TTS models with lower RTF where streaming is unnecessary.
-    /// Uses AVAudioPlayer (not AudioStreamPlayer), so only needs coordinator for cancellation.
-    /// CJK text routes to sherpa-onnx via synthesizeCJK; English uses Python MLX server.
-    private func dispatchFullTTS(text: String, voiceName: String) {
-        Task { [weak self] in
-            guard let self = self else { return }
-
-            // CJK routing for full TTS path
-            let langResult = LanguageDetector.detect(text: text)
-            if langResult.lang == "cmn" {
-                if let chunk = await self.ttsEngine.synthesizeCJK(text: text) {
-                    await MainActor.run {
-                        self.pipelineCoordinator.cancelCurrentPipeline()
-                        self.pipelineCoordinator.startBatchPipeline(
-                            chunks: [chunk],
-                            onComplete: {
-                                self.logger.info("CJK full TTS playback complete")
-                            }
-                        )
-                    }
-                } else {
-                    self.showSubtitleOnlyFallback(text: text)
-                }
-                return
-            }
-
-            do {
-                let ttsResult = try await self.ttsEngine.synthesizeWithTimestamps(text: text, voiceName: voiceName)
-                self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
-
-                await MainActor.run {
-                    // Cancel any in-progress streaming pipeline before starting AVAudioPlayer playback
-                    self.pipelineCoordinator.cancelCurrentPipeline()
-
-                    let fontSizeName = self.subtitlePanel.currentFontSizeName
-                    let pages = SubtitleChunker.chunkIntoPages(text: ttsResult.text, fontSizeName: fontSizeName)
-                    guard let player = self.playbackManager.play(wavPath: ttsResult.wavPath, completion: {
-                        self.logger.info("TTS playback complete")
-                    }) else {
-                        self.logger.error("AVAudioPlayer creation failed -- skipping subtitles")
-                        return
-                    }
-                    let driver = SubtitleSyncDriver(
-                        player: player,
-                        pages: pages,
-                        wordTimings: ttsResult.wordTimings,
-                        nativeOnsets: ttsResult.wordOnsets,
-                        subtitlePanel: self.subtitlePanel
-                    )
-                    driver.start()
-                }
-            } catch {
-                self.logger.error("TTS dispatch failed: \(error)")
-                self.showSubtitleOnlyFallback(text: text)
-            }
         }
     }
 

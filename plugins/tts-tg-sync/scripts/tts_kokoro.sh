@@ -49,6 +49,7 @@ fi
 RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 \
     -X POST "${TTS_SERVICE}/tts/speak" \
     -H "Content-Type: application/json" \
+    -H "X-TTS-Priority: user-initiated" \
     -d "$(printf '%s' "$TEXT" | python3 -c 'import json,sys; print(json.dumps({"text": sys.stdin.read()}))')" \
     2>>"$LOG")
 
