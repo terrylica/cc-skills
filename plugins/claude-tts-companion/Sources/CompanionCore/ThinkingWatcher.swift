@@ -8,7 +8,7 @@ import Logging
 /// it via MiniMax API for TTS playback or subtitle display.
 ///
 /// Thread safety: NSLock guards mutable state (consistent with TTSEngine, CircuitBreaker patterns).
-final class ThinkingWatcher: @unchecked Sendable {
+public final class ThinkingWatcher: @unchecked Sendable {
 
     private let logger = Logger(label: "thinking-watcher")
     private let lock = NSLock()

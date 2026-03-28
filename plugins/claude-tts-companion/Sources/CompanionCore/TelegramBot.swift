@@ -5,7 +5,7 @@ import SwiftTelegramBot
 
 /// Telegram bot using swift-telegram-sdk long polling.
 /// Wraps TGBot actor and provides command handlers + message sending.
-final class TelegramBot: @unchecked Sendable {
+public final class TelegramBot: @unchecked Sendable {
     fileprivate let logger = Logger(label: "telegram-bot")
     private var bot: TGBot?
     private let botToken: String

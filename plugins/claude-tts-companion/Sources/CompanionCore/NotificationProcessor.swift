@@ -6,7 +6,7 @@ import Logging
 /// Ported from legacy TypeScript notification-watcher.ts dedup/rate-limit logic.
 /// - REL-01: Dedup skips re-notifications when transcript file has not grown since last notification
 /// - REL-02: Rate limiting enforces 5-second minimum between notification processing
-final class NotificationProcessor: @unchecked Sendable {
+public final class NotificationProcessor: @unchecked Sendable {
 
     // MARK: - Types
 
