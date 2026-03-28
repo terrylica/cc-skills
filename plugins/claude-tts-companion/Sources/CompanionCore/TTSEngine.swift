@@ -27,15 +27,16 @@ public struct TTSResult: Sendable {
     let wordTimings: [TimeInterval]
     /// Duration of the generated audio in seconds
     let audioDuration: TimeInterval
-    /// Native word onset times (always nil when using Python server -- no MToken data available).
+    /// Native word onset times from Python server's Kokoro duration model.
+    /// Populated for English synthesis; nil for CJK (sherpa-onnx path).
     let wordOnsets: [TimeInterval]?
 }
 
 /// Delegates TTS synthesis to the Python Kokoro server (localhost:8779).
 ///
 /// - All MLX GPU work happens in the Python server process (separate launchd service)
-/// - This actor sends HTTP requests and receives WAV bytes
-/// - Word timestamps use character-weighted fallback (Python server doesn't return MToken data)
+/// - This actor sends HTTP requests via /v1/audio/speech-with-timestamps (JSON: WAV + word timing)
+/// - Native word onsets from Kokoro duration model drive zero-drift karaoke highlighting
 /// - CJK synthesis still uses sherpa-onnx directly (no change)
 /// - Circuit breaker protects against Python server failures
 /// - Synthesis counter tracks calls for diagnostics (no restart needed -- Python server manages its own memory)
@@ -156,28 +157,28 @@ public actor TTSEngine {
         let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
         lastWavPath = wavPath
 
-        let wavData = try await callPythonServer(text: processedText, voice: voiceName, speed: speed)
+        // Use timestamp endpoint -- discard word timing for this path (only need WAV + duration)
+        let tsResult = try await callPythonServerWithTimestamps(text: processedText, voice: voiceName, speed: speed)
 
         // Write WAV bytes to temp file
-        try wavData.write(to: URL(fileURLWithPath: wavPath))
-
-        // Parse audio duration from WAV data (24kHz mono float32 = 4 bytes per sample)
-        let audioDuration = Self.wavDuration(data: wavData)
+        try tsResult.wavData.write(to: URL(fileURLWithPath: wavPath))
 
         synthesisCount += 1
-        logger.info("Synthesis complete: \(String(format: "%.2f", audioDuration))s audio, count=\(synthesisCount)")
+        logger.info("Synthesis complete: \(String(format: "%.2f", tsResult.audioDuration))s audio, count=\(synthesisCount)")
 
         return SynthesisResult(
             wavPath: wavPath,
-            audioDuration: audioDuration,
+            audioDuration: tsResult.audioDuration,
             durations: nil
         )
     }
 
     /// Synthesize text and extract per-word timing data for karaoke highlighting.
     ///
-    /// Uses character-weighted fallback for word timings since the Python server
-    /// does not return MToken timestamp data.
+    /// Uses native word onsets from the Python server's /v1/audio/speech-with-timestamps
+    /// endpoint. The Kokoro duration model provides zero-drift per-word timing data,
+    /// replacing the character-weighted approximation that caused visible drift on
+    /// multi-syllable words.
     func synthesizeWithTimestamps(
         text: String,
         voiceName: String = Config.defaultVoiceName,
@@ -187,25 +188,24 @@ public actor TTSEngine {
         let wavPath = NSTemporaryDirectory() + "tts-\(UUID().uuidString).wav"
         lastWavPath = wavPath
 
-        let wavData = try await callPythonServer(text: processedText, voice: voiceName, speed: speed)
+        let tsResult = try await callPythonServerWithTimestamps(text: processedText, voice: voiceName, speed: speed)
 
         // Write WAV bytes to temp file
-        try wavData.write(to: URL(fileURLWithPath: wavPath))
-
-        let audioDuration = Self.wavDuration(data: wavData)
+        try tsResult.wavData.write(to: URL(fileURLWithPath: wavPath))
 
         synthesisCount += 1
-        logger.info("Synthesis with timestamps complete: \(String(format: "%.2f", audioDuration))s audio, count=\(synthesisCount)")
+        logger.info("Synthesis with timestamps complete: \(String(format: "%.2f", tsResult.audioDuration))s audio, \(tsResult.wordOnsets.count) word onsets, count=\(synthesisCount)")
 
-        // Character-weighted fallback (no MToken data from Python server)
-        let wordTimings = WordTimingAligner.extractWordTimings(text: text, audioDuration: audioDuration)
+        // Native per-word durations from Kokoro duration model (not character-weighted)
+        // Keep wordTimings populated as fallback for SubtitleSyncDriver onset count mismatches
+        let wordTimings = tsResult.wordDurations
 
         return TTSResult(
             wavPath: wavPath,
             text: text,
             wordTimings: wordTimings,
-            audioDuration: audioDuration,
-            wordOnsets: nil
+            audioDuration: tsResult.audioDuration,
+            wordOnsets: tsResult.wordOnsets
         )
     }
 
@@ -219,7 +219,7 @@ public actor TTSEngine {
         let audioDuration: TimeInterval
         let chunkIndex: Int
         let totalChunks: Int
-        /// Native word onset times (always nil for Python server delegation)
+        /// Native word onset times from Python server's Kokoro duration model (nil for CJK path)
         let wordOnsets: [TimeInterval]?
         /// Raw float32 PCM samples at 24kHz for direct AVAudioEngine scheduling.
         /// Extracted from WAV response for callers that skip file I/O.
@@ -262,12 +262,10 @@ public actor TTSEngine {
             let startTime = CFAbsoluteTimeGetCurrent()
 
             do {
-                let wavData = try await callPythonServer(text: processedSentence, voice: voiceName, speed: speed)
-
-                let audioDuration = Self.wavDuration(data: wavData)
+                let tsResult = try await callPythonServerWithTimestamps(text: processedSentence, voice: voiceName, speed: speed)
 
                 // Extract float32 samples from WAV and add trailing silence
-                var samples = Self.extractSamplesFromWav(data: wavData)
+                var samples = Self.extractSamplesFromWav(data: tsResult.wavData)
                 samples.append(contentsOf: [Float](repeating: 0.0, count: Self.trailingSilenceSamples))
 
                 // Write padded WAV (with silence) to disk
@@ -276,20 +274,20 @@ public actor TTSEngine {
                 circuitBreaker.recordSuccess()
 
                 let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                let rtf = elapsed / audioDuration
-                logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
+                let rtf = elapsed / tsResult.audioDuration
+                logger.info("Chunk \(index + 1)/\(totalChunks) complete: \(String(format: "%.2f", tsResult.audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf))), \(tsResult.wordOnsets.count) word onsets")
 
-                // Character-weighted timing (no MToken data from Python server)
-                let wordTimings = WordTimingAligner.extractWordTimings(text: sentence, audioDuration: audioDuration)
+                // Native per-word durations from Kokoro duration model (not character-weighted)
+                let wordTimings = tsResult.wordDurations
 
                 chunks.append(ChunkResult(
                     wavPath: wavPath,
                     text: sentence,
                     wordTimings: wordTimings,
-                    audioDuration: audioDuration,
+                    audioDuration: tsResult.audioDuration,
                     chunkIndex: index,
                     totalChunks: totalChunks,
-                    wordOnsets: nil,
+                    wordOnsets: tsResult.wordOnsets,
                     samples: samples
                 ))
             } catch {
@@ -378,8 +376,91 @@ public actor TTSEngine {
 
     // MARK: - Python Server HTTP Client
 
+    /// JSON response from Python server's /v1/audio/speech-with-timestamps endpoint.
+    private struct PythonTimestampWord: Codable {
+        let text: String
+        let onset: Double
+        let duration: Double
+    }
+
+    /// Full response from the timestamp endpoint: base64 WAV + per-word timing array.
+    private struct PythonTimestampResponse: Codable {
+        let audio_b64: String
+        let words: [PythonTimestampWord]
+        let audio_duration: Double
+        let sample_rate: Int
+    }
+
+    /// Result of calling the Python server with timestamps.
+    private struct TimestampResult {
+        let wavData: Data
+        let wordOnsets: [TimeInterval]
+        let wordDurations: [TimeInterval]
+        let audioDuration: TimeInterval
+    }
+
+    /// Call the Python Kokoro TTS server's timestamp endpoint for synthesis with native word timing.
+    ///
+    /// Uses /v1/audio/speech-with-timestamps which returns JSON containing base64-encoded WAV
+    /// and per-word onset/duration data from the Kokoro duration model. This gives zero-drift
+    /// karaoke timing vs the character-weighted approximation.
+    private func callPythonServerWithTimestamps(text: String, voice: String, speed: Float) async throws -> TimestampResult {
+        let url = URL(string: "\(Config.pythonTTSServerURL)/v1/audio/speech-with-timestamps")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "input": text,
+            "voice": voice,
+            "language": "en-us",
+            "speed": speed,
+            "response_format": "wav"
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await urlSession.data(for: request)
+        } catch {
+            throw TTSError.pythonServerUnavailable(url: Config.pythonTTSServerURL)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TTSError.pythonServerUnavailable(url: Config.pythonTTSServerURL)
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TTSError.pythonServerError(statusCode: httpResponse.statusCode, message: message)
+        }
+
+        guard !data.isEmpty else {
+            throw TTSError.synthesisReturnedNil
+        }
+
+        // Parse JSON response with base64 audio + word timing array
+        let tsResponse = try JSONDecoder().decode(PythonTimestampResponse.self, from: data)
+
+        guard let wavData = Data(base64Encoded: tsResponse.audio_b64) else {
+            throw TTSError.synthesisReturnedNil
+        }
+
+        let wordOnsets = tsResponse.words.map { TimeInterval($0.onset) }
+        let wordDurations = tsResponse.words.map { TimeInterval($0.duration) }
+
+        return TimestampResult(
+            wavData: wavData,
+            wordOnsets: wordOnsets,
+            wordDurations: wordDurations,
+            audioDuration: TimeInterval(tsResponse.audio_duration)
+        )
+    }
+
     /// Call the Python Kokoro TTS server to synthesize text.
     /// Returns raw WAV bytes on success.
+    /// Kept as fallback -- main paths now use callPythonServerWithTimestamps().
     private func callPythonServer(text: String, voice: String, speed: Float) async throws -> Data {
         let url = URL(string: "\(Config.pythonTTSServerURL)/v1/audio/speech")!
         var request = URLRequest(url: url)
