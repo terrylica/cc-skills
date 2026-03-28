@@ -85,16 +85,18 @@ public final class HTTPControlServer: @unchecked Sendable {
     private let playbackManager: PlaybackManager
     private let ttsEngine: TTSEngine
     private let captionHistory: CaptionHistory
+    private let captionHistoryPanel: CaptionHistoryPanel
     private let pipelineCoordinator: TTSPipelineCoordinator
     private let startTime: Date
     private var telegramBot: TelegramBot?
 
-    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, playbackManager: PlaybackManager, ttsEngine: TTSEngine, captionHistory: CaptionHistory, pipelineCoordinator: TTSPipelineCoordinator) {
+    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, playbackManager: PlaybackManager, ttsEngine: TTSEngine, captionHistory: CaptionHistory, captionHistoryPanel: CaptionHistoryPanel, pipelineCoordinator: TTSPipelineCoordinator) {
         self.settingsStore = settingsStore
         self.subtitlePanel = subtitlePanel
         self.playbackManager = playbackManager
         self.ttsEngine = ttsEngine
         self.captionHistory = captionHistory
+        self.captionHistoryPanel = captionHistoryPanel
         self.pipelineCoordinator = pipelineCoordinator
         self.startTime = Date()
     }
@@ -264,6 +266,18 @@ public final class HTTPControlServer: @unchecked Sendable {
         await server.appendRoute("POST /captions/copy") { [self] _ in
             let copied = await MainActor.run { captionHistory.copyToClipboard() }
             return jsonResponse(CopyResponse(ok: true, copied: copied))
+        }
+
+        // CAPT-04: Show caption history panel
+        await server.appendRoute("POST /captions/panel/show") { [self] _ in
+            await MainActor.run { captionHistoryPanel.show() }
+            return jsonResponse(OkResponse(ok: true))
+        }
+
+        // CAPT-04: Hide caption history panel
+        await server.appendRoute("POST /captions/panel/hide") { [self] _ in
+            await MainActor.run { captionHistoryPanel.hide() }
+            return jsonResponse(OkResponse(ok: true))
         }
 
         logger.info("HTTP control API starting on localhost:\(Config.httpPort)")
