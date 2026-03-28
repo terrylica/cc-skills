@@ -113,18 +113,18 @@
 ### Architecture
 
 - [x] **ARCH-01**: CompanionCore library target extracts all business logic from executable, leaving main.swift as thin shell
-- [ ] **ARCH-02**: TTSEngine decomposed into PlaybackManager (AVAudioPlayer lifecycle, pre-buffering)
+- [x] **ARCH-02**: TTSEngine decomposed into PlaybackManager (AVAudioPlayer lifecycle, pre-buffering)
 - [x] **ARCH-03**: TTSEngine decomposed into WordTimingAligner (MToken-to-word alignment, onset resolution)
 - [x] **ARCH-04**: TTSEngine decomposed into PronunciationProcessor (overrides dictionary, regex preprocessing)
-- [ ] **ARCH-05**: TTSEngine becomes thin orchestrator delegating to extracted components
-- [ ] **ARCH-06**: All callers updated to use decomposed TTSEngine API (TelegramBot, HTTPControlServer, SubtitleSyncDriver)
+- [x] **ARCH-05**: TTSEngine becomes thin orchestrator delegating to extracted components
+- [x] **ARCH-06**: All callers updated to use decomposed TTSEngine API (TelegramBot, HTTPControlServer, SubtitleSyncDriver)
 
 ### Concurrency
 
-- [ ] **CONC-01**: TTSEngine migrated from @unchecked Sendable + NSLock to Swift actor
-- [ ] **CONC-02**: All actor-isolated state mutations happen in synchronous methods (no reentrancy across await)
-- [ ] **CONC-03**: Blocking TTS synthesis runs off cooperative thread pool (DispatchQueue bridge or Task.detached)
-- [ ] **CONC-04**: Formal Sendable conformance across pipeline components
+- [x] **CONC-01**: TTSEngine migrated from @unchecked Sendable + NSLock to Swift actor
+- [x] **CONC-02**: All actor-isolated state mutations happen in synchronous methods (no reentrancy across await)
+- [x] **CONC-03**: Blocking TTS synthesis runs off cooperative thread pool (DispatchQueue bridge or Task.detached)
+- [x] **CONC-04**: Formal Sendable conformance across pipeline components
 
 ### Hardening
 
@@ -350,15 +350,15 @@
 | STREAM-03   | Phase 17   | Complete |
 | ARCH-01     | Phase 18   | Complete |
 | TEST-01     | Phase 18   | Complete |
-| ARCH-02     | Phase 19   | Pending  |
+| ARCH-02     | Phase 19   | Complete |
 | ARCH-03     | Phase 19   | Complete |
 | ARCH-04     | Phase 19   | Complete |
-| ARCH-05     | Phase 19   | Pending  |
-| ARCH-06     | Phase 19   | Pending  |
-| CONC-01     | Phase 19   | Pending  |
-| CONC-02     | Phase 19   | Pending  |
-| CONC-03     | Phase 19   | Pending  |
-| CONC-04     | Phase 19   | Pending  |
+| ARCH-05     | Phase 19   | Complete |
+| ARCH-06     | Phase 19   | Complete |
+| CONC-01     | Phase 19   | Complete |
+| CONC-02     | Phase 19   | Complete |
+| CONC-03     | Phase 19   | Complete |
+| CONC-04     | Phase 19   | Complete |
 | TEST-02     | Phase 20   | Pending  |
 | TEST-03     | Phase 20   | Pending  |
 | TEST-04     | Phase 20   | Pending  |
