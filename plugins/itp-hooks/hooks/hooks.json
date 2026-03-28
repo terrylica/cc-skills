@@ -134,6 +134,17 @@
         ]
       },
       {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-large-file-read-guard.ts",
+            "timeout": 5000,
+            "description": "Warns Claude when reading files >2000 lines without offset/limit"
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
