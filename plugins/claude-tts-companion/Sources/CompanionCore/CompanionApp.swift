@@ -17,6 +17,7 @@ public final class CompanionApp: @unchecked Sendable {
     private let playbackManager: PlaybackManager
     private let ttsEngine: TTSEngine
     private let captionHistory: CaptionHistory
+    private let captionHistoryPanel: CaptionHistoryPanel
     private let pipelineCoordinator: TTSPipelineCoordinator
     private let httpServer: HTTPControlServer
     private let miniMaxClient: MiniMaxClient
@@ -35,6 +36,7 @@ public final class CompanionApp: @unchecked Sendable {
         playbackManager = PlaybackManager()
         ttsEngine = TTSEngine(playbackManager: playbackManager)
         captionHistory = CaptionHistory()
+        captionHistoryPanel = CaptionHistoryPanel(captionHistory: captionHistory)
         pipelineCoordinator = TTSPipelineCoordinator(playbackManager: playbackManager, subtitlePanel: subtitlePanel)
         httpServer = HTTPControlServer(
             settingsStore: settingsStore,
@@ -42,6 +44,7 @@ public final class CompanionApp: @unchecked Sendable {
             playbackManager: playbackManager,
             ttsEngine: ttsEngine,
             captionHistory: captionHistory,
+            captionHistoryPanel: captionHistoryPanel,
             pipelineCoordinator: pipelineCoordinator
         )
         miniMaxClient = MiniMaxClient()
@@ -60,6 +63,11 @@ public final class CompanionApp: @unchecked Sendable {
 
         // Start hardware event monitoring (memory pressure + audio route changes)
         pipelineCoordinator.startMonitoring()
+
+        // Wire caption history onChange for live panel refresh
+        captionHistory.onChange = { [weak self] in
+            self?.captionHistoryPanel.refresh()
+        }
 
         // Position subtitle panel
         subtitlePanel.positionOnScreen()
@@ -128,6 +136,7 @@ public final class CompanionApp: @unchecked Sendable {
         logger.info("Shutting down")
         pipelineCoordinator.stopMonitoring()
         subtitlePanel.hide()
+        captionHistoryPanel.hide()
         notificationWatcher?.stop()
         thinkingWatcher?.stop()
         if let bot = telegramBot {
