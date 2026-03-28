@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.7.0
 milestone_name: Architecture Hardening + Feature Expansion
-status: ready_to_plan
-stopped_at: Roadmap created with phases 18-24
-last_updated: "2026-03-27T00:00:00.000Z"
-last_activity: 2026-03-27
+status: verifying
+stopped_at: Completed 20.1-01-PLAN.md
+last_updated: "2026-03-28T00:07:16.948Z"
+last_activity: 2026-03-28
 progress:
-  total_phases: 7
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 17
+  completed_phases: 16
+  total_plans: 33
+  completed_plans: 32
   percent: 0
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 18 - CompanionCore Library & Test Infrastructure
+**Current focus:** Phase 20.1 — mlx-metal-memory-lifecycle
 
 ## Current Position
 
-Phase: 18 of 24 (CompanionCore Library & Test Infrastructure)
-Plan: Ready to plan
-Status: Ready to plan Phase 18
-Last activity: 2026-03-27 — Roadmap created for v4.7.0 (phases 18-24)
+Phase: 20.1 (mlx-metal-memory-lifecycle) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -59,6 +59,8 @@ Progress: [░░░░░░░░░░] 0%
 - Last 5 plans: 2min, 5min, 1min, 2min, 1min
 - Trend: Stable (~2.5min average)
 
+| Phase 20.1 P01 | 6min | 2 tasks | 7 files |
+
 ## Accumulated Context
 
 ### Decisions
@@ -72,6 +74,8 @@ Recent decisions affecting current work:
 - [v4.7.0]: Blocking TTS synthesis stays on dedicated DispatchQueue bridged via withCheckedThrowingContinuation
 - [v4.7.0]: Bionic and karaoke are mutually exclusive display modes (single DisplayMode enum)
 - [v4.7.0]: Chinese model uses load-on-demand with 30-second idle cooldown
+- [Phase 20.1]: exit(42) as restart signal for IOAccelerator memory reclaim via launchd KeepAlive
+- [Phase 20.1]: Max 10 synthesis calls before process restart (~17GB worst case fits 32GB RAM)
 
 ### Pending Todos
 
@@ -94,8 +98,12 @@ None yet.
 | 260327-d2e | Replace sherpa-onnx with kokoro-ios MLX Metal TTS engine          | 2026-03-27 | f9a4475a | [260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-](./quick/260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-/) |
 | 260327-d2e | Replace sherpa-onnx with kokoro-ios MLX Metal GPU TTS             | 2026-03-27 | cfa3d898 | [260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-](./quick/260327-d2e-replace-sherpa-onnx-with-kokoro-ios-mlx-/) |
 
+### Roadmap Evolution
+
+- Phase 20.1 inserted after Phase 20: MLX Metal Memory Lifecycle (URGENT) — MLX-Swift creates ~1.7-6GB unreclaimable IOAccelerator allocations per synthesis call; service disabled until fix is implemented
+
 ## Session Continuity
 
-Last session: 2026-03-27
-Stopped at: v4.7.0 roadmap created (phases 18-24)
+Last session: 2026-03-28T00:07:16.945Z
+Stopped at: Completed 20.1-01-PLAN.md
 Resume file: None
