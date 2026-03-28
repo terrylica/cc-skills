@@ -30,10 +30,10 @@ public enum Config {
         return "/usr/local/bin/mlx.metallib"
     }()
 
-    /// Default voice name for English TTS (kokoro-ios voice embedding key).
+    /// Default voice name for English TTS (Kokoro voice embedding key).
     static let defaultVoiceName: String = "af_heart"
 
-    /// Chinese voice name (kokoro-ios does not yet support Chinese; reserved for future use).
+    /// Chinese voice name (Kokoro does not yet support Chinese; reserved for future use).
     static let chineseVoiceName: String = "zf_xiaobei"
 
     /// Default speaker ID (legacy sherpa-onnx, kept for API compatibility)
