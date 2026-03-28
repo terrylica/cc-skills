@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v4.7.0
 milestone_name: Architecture Hardening + Feature Expansion
-status: verifying
-stopped_at: Completed 23-02-PLAN.md
-last_updated: "2026-03-28T03:31:20.340Z"
+status: executing
+stopped_at: Completed 24-01-PLAN.md
+last_updated: "2026-03-28T03:42:12.624Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 17
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 23 — caption-history-panel
+**Current focus:** Phase 24 — chinese-tts-fallback
 
 ## Current Position
 
-Phase: 23
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 24 (chinese-tts-fallback) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-28
 
 Progress: [░░░░░░░░░░] 0%
@@ -72,6 +72,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 22-bionic-reading-mode P02 | 2min | 2 tasks | 2 files |
 | Phase 23-caption-history-panel P01 | 3min | 2 tasks | 4 files |
 | Phase 23-caption-history-panel P02 | 1min | 2 tasks | 2 files |
+| Phase 24 P01 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,7 @@ Recent decisions affecting current work:
 - [Phase 23]: NSTableView with manual dataSource/delegate for caption history panel (simplicity over DiffableDataSource)
 - [Phase 23]: MainActor.assumeIsolated for nonisolated NSTableViewDataSource/Delegate in Swift 6
 - [Phase 23-caption-history-panel]: SwiftBar button always calls /show (no toggle state tracking needed -- user closes panel via title bar X)
+- [Phase 24]: NSLock + @unchecked Sendable for SherpaOnnxEngine (C library wrapper, not async-compatible)
 
 ### Pending Todos
 
@@ -133,6 +135,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T03:28:45.344Z
-Stopped at: Completed 23-02-PLAN.md
+Last session: 2026-03-28T03:42:12.621Z
+Stopped at: Completed 24-01-PLAN.md
 Resume file: None

@@ -157,10 +157,10 @@
 
 ### Chinese TTS
 
-- [ ] **CJK-01**: CJK text detected via existing LanguageDetector routes to sherpa-onnx engine
+- [x] **CJK-01**: CJK text detected via existing LanguageDetector routes to sherpa-onnx engine
 - [ ] **CJK-02**: English text continues to use kokoro-ios MLX engine (default)
-- [ ] **CJK-03**: sherpa-onnx multilang model loads on-demand (not at startup) to avoid RSS bloat
-- [ ] **CJK-04**: Graceful fallback if sherpa-onnx model missing or synthesis fails
+- [x] **CJK-03**: sherpa-onnx multilang model loads on-demand (not at startup) to avoid RSS bloat
+- [x] **CJK-04**: Graceful fallback if sherpa-onnx model missing or synthesis fails
 
 ### MLX Memory Lifecycle (INSERTED)
 
@@ -378,7 +378,7 @@
 | CAPT-02     | Phase 23   | Complete |
 | CAPT-03     | Phase 23   | Complete |
 | CAPT-04     | Phase 23   | Complete |
-| CJK-01      | Phase 24   | Pending  |
+| CJK-01      | Phase 24   | Complete |
 | CJK-02      | Phase 24   | Pending  |
-| CJK-03      | Phase 24   | Pending  |
-| CJK-04      | Phase 24   | Pending  |
+| CJK-03      | Phase 24   | Complete |
+| CJK-04      | Phase 24   | Complete |
