@@ -10,20 +10,12 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 
 <!-- SSoT-OK: planning document, not a package version --> <!-- # SSoT-OK -->
 
-## Current Milestone: v4.7.0 Architecture Hardening + Feature Expansion
+## Current State
 
-**Goal:** Decompose TTSEngine into testable components, harden the streaming pipeline with actor concurrency and edge-case coverage, then expand with Chinese TTS fallback, bionic reading, caption history, and Focus/DND awareness.
-
-**Target features:**
-
-- TTSEngine decomposition into PlaybackManager, WordTimingAligner, PronunciationProcessor
-- Actor-based concurrency replacing @unchecked Sendable + NSLock
-- Streaming pipeline edge-case hardening (rapid-fire, hardware disconnect, memory pressure)
-- XCTest infrastructure with unit + integration tests
-- Chinese TTS fallback via sherpa-onnx for CJK text
-- Bionic reading mode (bold/regular word splitting)
-- Scrollable caption history panel
-- Focus/DND awareness (suppress audio in Focus mode)
+**Latest milestone:** v4.7.0 Architecture Hardening + Feature Expansion (shipped 2026-03-28)
+**Codebase:** 38 Swift source files (10,618 LOC) + 10 test files (923 LOC) in CompanionCore library
+**Tests:** 59+ Swift Testing unit/integration tests via `swift test`
+**Architecture:** TTSEngine actor + PlaybackManager @MainActor + TTSPipelineCoordinator + 5 pure Sendable structs
 
 ## Requirements
 
@@ -49,23 +41,25 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 - ✓ Feature-gated CJK language detection — v4.6.0
 - ✓ Paged karaoke subtitles with pixel-width chunking — v4.6.0
 
+- ✓ TTSEngine decomposition into PlaybackManager, WordTimingAligner, PronunciationProcessor — v4.7.0
+- ✓ Actor-based concurrency replacing @unchecked Sendable + NSLock — v4.7.0
+- ✓ Streaming pipeline edge-case hardening (rapid-fire, hardware disconnect, memory pressure) — v4.7.0
+- ✓ Swift Testing infrastructure with 59+ unit + integration tests — v4.7.0
+- ✓ Chinese TTS fallback via sherpa-onnx for CJK text — v4.7.0
+- ✓ Bionic reading mode (bold/regular word splitting in subtitles) — v4.7.0
+- ✓ Scrollable caption history panel with copy-to-clipboard — v4.7.0
+- ✓ MLX Metal memory lifecycle with graceful restart — v4.7.0
+
 ### Active
 
-- [ ] TTSEngine decomposition into PlaybackManager, WordTimingAligner, PronunciationProcessor
-- [ ] Actor-based concurrency replacing @unchecked Sendable + NSLock
-- [ ] Streaming pipeline edge-case hardening (rapid-fire, hardware disconnect, memory pressure)
-- [ ] XCTest infrastructure with unit + integration tests
-- [ ] Chinese TTS fallback via sherpa-onnx for CJK text
-- [ ] Bionic reading mode (bold/regular word splitting in subtitles)
-- [ ] Scrollable caption history panel with copy-to-clipboard
-- [ ] Focus/DND awareness (suppress audio in Focus mode)
+(No active requirements — start next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
 - CoreML/FluidAudio path — evaluated in Spike 05, sherpa-onnx wins for this use case
-- Bionic reading mode — interesting but deferred (Spike 17 research)
 - Focus mode / DND integration — no public macOS API (Spike 21)
 - Rewriting SwiftBar plugin in Swift — 244 lines of Python, not worth porting (Spike 06)
+- CJK karaoke word timing — tokenization is a separate problem
 
 ## Context
 
@@ -134,4 +128,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-_Last updated: 2026-03-27 after v4.7.0 milestone start_ <!-- # SSoT-OK -->
+_Last updated: 2026-03-28 after v4.7.0 milestone completion_ <!-- # SSoT-OK -->
