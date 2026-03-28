@@ -174,7 +174,7 @@ public final class TTSPipelineCoordinator {
         let scope = subtitlePanel.currentSubtitleScope
 
         if scope == "sentence" {
-            // Legacy per-sentence subtitles
+            // Legacy per-sentence subtitles (paginated to 2-line pages)
             for chunk in chunks {
                 let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
                 driver.addChunk(
@@ -186,9 +186,10 @@ public final class TTSPipelineCoordinator {
                 )
             }
         } else if chunks.count == 1 {
-            // Single chunk (full-paragraph synthesis) — use directly
+            // Paragraph scope: single page with ALL words (panel auto-sizes)
             let chunk = chunks[0]
-            let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+            let words = chunk.text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
+            let pages = [SubtitlePage(words: words, startWordIndex: 0)]
             driver.addChunk(
                 wavPath: chunk.wavPath,
                 samples: chunk.samples,
@@ -216,7 +217,8 @@ public final class TTSPipelineCoordinator {
                 cumulativeTime += chunk.audioDuration
             }
 
-            let pages = SubtitleChunker.chunkIntoPages(text: fullText, fontSizeName: fontSizeName)
+            let allWords = fullText.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
+            let pages = [SubtitlePage(words: allWords, startWordIndex: 0)]
             driver.addChunk(
                 wavPath: chunks.first?.wavPath ?? "",
                 samples: allSamples.isEmpty ? nil : allSamples,
