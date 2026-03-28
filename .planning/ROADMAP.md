@@ -520,7 +520,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 15. Telegram Inline Buttons                     | 2/2            | Complete    | 2026-03-27 |
 | 16. Integration & Reliability                   | 1/1            | Complete    | 2026-03-27 |
 | 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete    | 2026-03-27 |
-| 18. CompanionCore Library & Test Infrastructure | 2/2 | Complete   | 2026-03-28 |
+| 18. CompanionCore Library & Test Infrastructure | 2/2 | Complete    | 2026-03-28 |
 | 19. TTSEngine Decomposition & Actor Migration   | 0/0            | Not started | -          |
 | 20. Unit & Integration Tests                    | 0/0            | Not started | -          |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1 | Complete   | 2026-03-28 |
