@@ -71,14 +71,17 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     // MARK: - Lifecycle
 
     init() {
-        // Create the standard format: 24kHz mono float32 (matches Kokoro output)
+        // Create the standard format: 48kHz mono float32.
+        // Audio from Kokoro (24kHz) is upsampled 2x before scheduling to match
+        // CoreAudio's native hardware rate, eliminating internal sample rate converter
+        // artifacts at buffer boundaries.
         guard let fmt = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
-            sampleRate: 24000.0,
+            sampleRate: 48000.0,
             channels: 1,
             interleaved: false
         ) else {
-            fatalError("Failed to create AVAudioFormat for 24kHz mono float32")
+            fatalError("Failed to create AVAudioFormat for 48kHz mono float32")
         }
         self.format = fmt
 
@@ -96,7 +99,7 @@ public final class AudioStreamPlayer: @unchecked Sendable {
             self?.handleConfigurationChange()
         }
 
-        logger.info("AudioStreamPlayer created (24kHz mono float32, AVAudioEngine)")
+        logger.info("AudioStreamPlayer created (48kHz mono float32, AVAudioEngine)")
     }
 
     deinit {
@@ -170,9 +173,9 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         // Pre-start player node with a tiny silent lead-in (~10ms).
         // This primes the CoreAudio render pipeline so the first real buffer
         // doesn't get a blip from the player node cold-starting mid-schedule.
-        if let silentBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 240) {
-            silentBuffer.frameLength = 240  // 10ms at 24kHz
-            memset(silentBuffer.floatChannelData![0], 0, 240 * MemoryLayout<Float>.size)
+        if let silentBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 480) {
+            silentBuffer.frameLength = 480  // 10ms at 48kHz
+            memset(silentBuffer.floatChannelData![0], 0, 480 * MemoryLayout<Float>.size)
             playerNode.play()
             playerNode.scheduleBuffer(silentBuffer)
         }
@@ -220,7 +223,7 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     /// Schedule a chunk of float32 PCM samples for gapless playback.
     ///
     /// - Parameters:
-    ///   - samples: Raw float32 PCM audio at 24kHz mono
+    ///   - samples: Float32 PCM audio at 48kHz mono (upsampled from Kokoro's 24kHz)
     ///   - onComplete: Called when this buffer finishes playing (`.dataPlayedBack`).
     ///     Fires on an internal AVAudioEngine thread -- dispatch to main if needed.
     func scheduleChunk(samples: [Float], onComplete: ChunkCompletionHandler? = nil) {
@@ -264,7 +267,7 @@ public final class AudioStreamPlayer: @unchecked Sendable {
             playerNode.play()
         }
 
-        let duration = Double(samples.count) / 24000.0
+        let duration = Double(samples.count) / 48000.0
         logger.info("Scheduled buffer: \(samples.count) samples (\(String(format: "%.2f", duration))s)")
     }
 
