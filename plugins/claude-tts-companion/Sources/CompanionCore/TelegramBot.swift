@@ -317,7 +317,7 @@ public final class TelegramBot: @unchecked Sendable {
     /// Full-paragraph TTS: synthesize everything, then play (legacy path).
     /// Preserved for future TTS models with lower RTF where streaming is unnecessary.
     /// Uses AVAudioPlayer (not AudioStreamPlayer), so only needs coordinator for cancellation.
-    /// CJK text routes to sherpa-onnx via synthesizeCJK; English uses kokoro-ios MLX.
+    /// CJK text routes to sherpa-onnx via synthesizeCJK; English uses Python MLX server.
     private func dispatchFullTTS(text: String, voiceName: String) {
         Task { [weak self] in
             guard let self = self else { return }
