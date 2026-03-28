@@ -251,10 +251,10 @@ public final class TelegramBot: @unchecked Sendable {
             return
         }
 
-        // Detect language to select correct voice (TTS-10)
+        // Detect language for logging (TTS-10); actual routing handled by synthesizeStreamingAutoRoute
         let langResult = LanguageDetector.detect(text: fullText)
         if langResult.lang == "cmn" {
-            logger.warning("CJK text detected but kokoro-ios is English-only; using English voice '\(langResult.voiceName)'")
+            logger.info("CJK text detected -- will route to sherpa-onnx engine")
         }
         logger.info("Dispatching TTS: \(fullText.count) chars, lang=\(langResult.lang), voice=\(langResult.voiceName), streaming=\(Config.streamingTTS)")
 
@@ -268,14 +268,15 @@ public final class TelegramBot: @unchecked Sendable {
         }
 
         if Config.streamingTTS {
-            dispatchStreamingTTS(text: fullText, voiceName: langResult.voiceName)
+            dispatchStreamingTTS(text: fullText)
         } else {
             dispatchFullTTS(text: fullText, voiceName: langResult.voiceName)
         }
     }
 
     /// Streaming TTS: synthesize sentence-by-sentence, play via coordinator.
-    private func dispatchStreamingTTS(text: String, voiceName: String) {
+    /// Uses synthesizeStreamingAutoRoute for automatic CJK/English routing.
+    private func dispatchStreamingTTS(text: String) {
         // Mark streaming as in-progress to prevent new dispatches from interrupting
         isStreamingInProgress = true
 
@@ -287,9 +288,8 @@ public final class TelegramBot: @unchecked Sendable {
         Task { [weak self] in
             guard let self = self else { return }
 
-            let chunks = await self.ttsEngine.synthesizeStreaming(
-                text: text,
-                voiceName: voiceName
+            let chunks = await self.ttsEngine.synthesizeStreamingAutoRoute(
+                text: text
             )
 
             self.logger.info("All \(chunks.count) chunks synthesized -- starting batch playback")
@@ -318,9 +318,30 @@ public final class TelegramBot: @unchecked Sendable {
     /// Full-paragraph TTS: synthesize everything, then play (legacy path).
     /// Preserved for future TTS models with lower RTF where streaming is unnecessary.
     /// Uses AVAudioPlayer (not AudioStreamPlayer), so only needs coordinator for cancellation.
+    /// CJK text routes to sherpa-onnx via synthesizeCJK; English uses kokoro-ios MLX.
     private func dispatchFullTTS(text: String, voiceName: String) {
         Task { [weak self] in
             guard let self = self else { return }
+
+            // CJK routing for full TTS path
+            let langResult = LanguageDetector.detect(text: text)
+            if langResult.lang == "cmn" {
+                if let chunk = await self.ttsEngine.synthesizeCJK(text: text) {
+                    await MainActor.run {
+                        self.pipelineCoordinator.cancelCurrentPipeline()
+                        self.pipelineCoordinator.startBatchPipeline(
+                            chunks: [chunk],
+                            onComplete: {
+                                self.logger.info("CJK full TTS playback complete")
+                            }
+                        )
+                    }
+                } else {
+                    self.showSubtitleOnlyFallback(text: text)
+                }
+                return
+            }
+
             do {
                 let ttsResult = try await self.ttsEngine.synthesizeWithTimestamps(text: text, voiceName: voiceName)
                 self.logger.info("TTS synthesis complete: \(String(format: "%.2f", ttsResult.audioDuration))s")
