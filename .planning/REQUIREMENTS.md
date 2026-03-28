@@ -35,11 +35,11 @@
 
 ### Dependency Cleanup
 
-- [ ] **DEP-01**: kokoro-ios removed from Package.swift (no KokoroSwift import anywhere in CompanionCore)
-- [ ] **DEP-02**: mlx-swift removed from Package.swift (no MLX import anywhere in CompanionCore)
-- [ ] **DEP-03**: MLXUtilsLibrary removed from Package.swift
-- [ ] **DEP-04**: `swift build` succeeds with zero MLX-related symbols or frameworks linked
-- [ ] **DEP-05**: Binary size under 20 MB (down from current ~25+ MB with MLX dependencies)
+- [x] **DEP-01**: kokoro-ios removed from Package.swift (no KokoroSwift import anywhere in CompanionCore)
+- [x] **DEP-02**: mlx-swift removed from Package.swift (no MLX import anywhere in CompanionCore)
+- [x] **DEP-03**: MLXUtilsLibrary removed from Package.swift
+- [x] **DEP-04**: `swift build` succeeds with zero MLX-related symbols or frameworks linked
+- [x] **DEP-05**: Binary size under 20 MB (down from current ~25+ MB with MLX dependencies)
 
 ### Memory Lifecycle Cleanup
 
@@ -71,11 +71,11 @@
 | SWI-01      | 26    | Complete |
 | SWI-02      | 26    | Complete |
 | SWI-03      | 26    | Complete |
-| DEP-01      | 27    | Pending |
-| DEP-02      | 27    | Pending |
-| DEP-03      | 27    | Pending |
-| DEP-04      | 27    | Pending |
-| DEP-05      | 27    | Pending |
+| DEP-01      | 27    | Complete |
+| DEP-02      | 27    | Complete |
+| DEP-03      | 27    | Complete |
+| DEP-04      | 27    | Complete |
+| DEP-05      | 27    | Complete |
 | MEM-01      | 28    | Pending |
 | MEM-02      | 28    | Pending |
 | MEM-03      | 28    | Pending |
