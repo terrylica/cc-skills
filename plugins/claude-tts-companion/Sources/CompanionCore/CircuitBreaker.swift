@@ -94,7 +94,7 @@ public enum SummaryError: Error, CustomStringConvertible {
     /// Failed to parse the MiniMax API response JSON
     case decodingError(String)
 
-    var description: String {
+    public var description: String {
         switch self {
         case .circuitBreakerOpen:
             return "Summary API disabled: circuit breaker open (cooldown active)"

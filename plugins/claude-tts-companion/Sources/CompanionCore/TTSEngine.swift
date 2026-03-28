@@ -7,7 +7,7 @@ import MLX
 import MLXUtilsLibrary
 
 /// Result of a TTS synthesis operation.
-public struct SynthesisResult {
+public struct SynthesisResult: Sendable {
     /// Path to the generated WAV file
     let wavPath: String
     /// Duration of the generated audio in seconds
@@ -17,7 +17,7 @@ public struct SynthesisResult {
 }
 
 /// Result of synthesis with word-level timing data for karaoke display.
-public struct TTSResult {
+public struct TTSResult: Sendable {
     /// Path to the generated WAV file
     let wavPath: String
     /// Original text that was synthesized
@@ -1105,13 +1105,13 @@ public final class PlaybackDelegate: NSObject, AVAudioPlayerDelegate, @unchecked
         self.logger = logger
     }
 
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         logger.info("AVAudioPlayer finished (success: \(flag)), cleaning up WAV: \(wavPath)")
         try? FileManager.default.removeItem(atPath: wavPath)
         completion?()
     }
 
-    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+    public func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
         logger.error("AVAudioPlayer decode error: \(error?.localizedDescription ?? "unknown")")
         try? FileManager.default.removeItem(atPath: wavPath)
         completion?()
@@ -1125,7 +1125,7 @@ public enum TTSError: Error, CustomStringConvertible {
     case synthesisReturnedNil
     case wavWriteFailed(path: String)
 
-    var description: String {
+    public var description: String {
         switch self {
         case .modelLoadFailed(let path):
             return "Failed to load TTS model from \(path)"
