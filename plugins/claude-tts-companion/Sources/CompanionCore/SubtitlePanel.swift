@@ -99,8 +99,8 @@ public final class SubtitlePanel: NSPanel {
 
     // MARK: - Focus Prevention (SUB-09)
 
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
+    public override var canBecomeKey: Bool { false }
+    public override var canBecomeMain: Bool { false }
 
     // MARK: - Public API
 

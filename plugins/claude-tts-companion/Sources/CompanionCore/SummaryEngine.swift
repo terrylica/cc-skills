@@ -2,7 +2,7 @@ import Foundation
 import Logging
 
 /// A single conversation turn (user prompt + assistant response).
-public struct ConversationTurn {
+public struct ConversationTurn: Sendable {
     let prompt: String
     let response: String
     let timestamp: Date?
@@ -13,7 +13,7 @@ public struct ConversationTurn {
 }
 
 /// Result of a summary generation.
-public struct SummaryResult {
+public struct SummaryResult: Sendable {
     /// The narrative text (for both TTS and Telegram display)
     let narrative: String
     /// Extracted prompt summary (single-turn only)
