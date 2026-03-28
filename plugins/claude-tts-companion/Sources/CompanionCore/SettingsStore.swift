@@ -8,14 +8,37 @@ public struct SubtitleSettings: Codable, Sendable {
     var opacity: Double
     var karaokeEnabled: Bool
     var screen: String
+    var displayMode: String
 
     static let `default` = SubtitleSettings(
         fontSize: "medium",
         position: "bottom",
         opacity: 0.3,
         karaokeEnabled: true,
-        screen: "builtin"
+        screen: "builtin",
+        displayMode: "karaoke"
     )
+
+    /// Custom decoder: defaults displayMode to "karaoke" for backward compatibility
+    /// with settings files written before bionic mode was added.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        fontSize = try container.decode(String.self, forKey: .fontSize)
+        position = try container.decode(String.self, forKey: .position)
+        opacity = try container.decode(Double.self, forKey: .opacity)
+        karaokeEnabled = try container.decode(Bool.self, forKey: .karaokeEnabled)
+        screen = try container.decode(String.self, forKey: .screen)
+        displayMode = try container.decodeIfPresent(String.self, forKey: .displayMode) ?? "karaoke"
+    }
+
+    init(fontSize: String, position: String, opacity: Double, karaokeEnabled: Bool, screen: String, displayMode: String) {
+        self.fontSize = fontSize
+        self.position = position
+        self.opacity = opacity
+        self.karaokeEnabled = karaokeEnabled
+        self.screen = screen
+        self.displayMode = displayMode
+    }
 }
 
 /// TTS engine settings, persisted to disk (API-04, API-07).
