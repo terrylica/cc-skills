@@ -26,10 +26,12 @@ public enum MemoryLifecycle {
 /// Check synthesis count and trigger planned restart if threshold reached.
 /// Called after playback completes (not during synthesis) so the user hears
 /// the complete audio before the service restarts.
-func checkMemoryLifecycleRestart() {
+///
+/// Async because TTSEngine is an actor -- property access requires await.
+func checkMemoryLifecycleRestart() async {
     guard let engine = MemoryLifecycle.ttsEngine else { return }
-    if engine.shouldRestartForMemory {
-        let diag = engine.memoryDiagnostics()
+    if await engine.shouldRestartForMemory {
+        let diag = await engine.memoryDiagnostics()
         let reason = "Synthesis count \(diag.synthesisCount) reached threshold \(TTSEngine.maxSynthesisBeforeRestart)"
         if let handler = MemoryLifecycle.restartHandler {
             handler(reason)

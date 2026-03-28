@@ -81,6 +81,7 @@ public final class HTTPControlServer: @unchecked Sendable {
 
     private let settingsStore: SettingsStore
     private let subtitlePanel: SubtitlePanel
+    private let playbackManager: PlaybackManager
     private let ttsEngine: TTSEngine
     private let captionHistory: CaptionHistory
     private let startTime: Date
@@ -89,9 +90,10 @@ public final class HTTPControlServer: @unchecked Sendable {
     /// Retained sync driver for TTS test playback (prevents dealloc during playback)
     @MainActor private var activeSyncDriver: SubtitleSyncDriver?
 
-    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, ttsEngine: TTSEngine, captionHistory: CaptionHistory) {
+    init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, playbackManager: PlaybackManager, ttsEngine: TTSEngine, captionHistory: CaptionHistory) {
         self.settingsStore = settingsStore
         self.subtitlePanel = subtitlePanel
+        self.playbackManager = playbackManager
         self.ttsEngine = ttsEngine
         self.captionHistory = captionHistory
         self.startTime = Date()
@@ -108,7 +110,7 @@ public final class HTTPControlServer: @unchecked Sendable {
 
         // API-01: Health endpoint
         await server.appendRoute("GET /health") { [self] _ in
-            return healthResponse()
+            return await healthResponse()
         }
 
         // API-02: Get all settings
@@ -190,78 +192,60 @@ public final class HTTPControlServer: @unchecked Sendable {
                 logger.info("TTS test: streaming synthesis for \(text.count) chars")
 
                 // Reset AudioStreamPlayer for a fresh session (cancels any queued buffers)
-                ttsEngine.audioStreamPlayer.reset()
-                ttsEngine.stopPlayback()
-
-                // Cancel any previous sync driver
                 await MainActor.run {
+                    self.playbackManager.audioStreamPlayer.reset()
+                    self.playbackManager.stopPlayback()
                     self.activeSyncDriver?.stop()
                     self.activeSyncDriver = nil
                 }
 
                 // Batch-then-play: collect all chunks, then play them all at once.
-                // Zero GPU work during playback — eliminates memory bus contention.
-                let chunksLock = NSLock()
-                var collectedChunks: [TTSEngine.ChunkResult] = []
-
-                ttsEngine.synthesizeStreaming(
+                // Zero GPU work during playback -- eliminates memory bus contention.
+                let chunks = await ttsEngine.synthesizeStreaming(
                     text: text,
                     voiceName: voiceName,
-                    speed: speed,
-                    onChunkReady: { [self] chunk in
-                        self.logger.info("TTS test synthesized chunk \(chunk.chunkIndex + 1)/\(chunk.totalChunks): \(String(format: "%.2f", chunk.audioDuration))s (batch collecting)")
-
-                        chunksLock.lock()
-                        collectedChunks.append(chunk)
-                        chunksLock.unlock()
-                    },
-                    onAllComplete: { [self] in
-                        chunksLock.lock()
-                        let chunks = collectedChunks
-                        chunksLock.unlock()
-
-                        self.logger.info("TTS test: all \(chunks.count) chunks synthesized — starting batch playback")
-
-                        DispatchQueue.main.async {
-                            guard !chunks.isEmpty else {
-                                self.logger.warning("TTS test: no chunks produced — showing subtitle-only fallback")
-                                self.subtitlePanel.show(text: text)
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                                    self.subtitlePanel.hide()
-                                }
-                                return
-                            }
-
-                            // Create sync driver for batch playback
-                            let driver = SubtitleSyncDriver(
-                                subtitlePanel: self.subtitlePanel,
-                                ttsEngine: self.ttsEngine,
-                                onStreamingComplete: {
-                                    self.logger.info("TTS test batch playback complete")
-                                    // Check synthesis count for memory lifecycle restart
-                                    checkMemoryLifecycleRestart()
-                                }
-                            )
-                            self.activeSyncDriver = driver
-
-                            // Add all chunks
-                            for chunk in chunks {
-                                let fontSizeName = self.subtitlePanel.currentFontSizeName
-                                let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
-                                driver.addChunk(
-                                    wavPath: chunk.wavPath,
-                                    samples: chunk.samples,
-                                    pages: pages,
-                                    wordTimings: chunk.wordTimings,
-                                    nativeOnsets: chunk.wordOnsets
-                                )
-                            }
-
-                            // Start batch playback
-                            driver.startBatchPlayback()
-                        }
-                    }
+                    speed: speed
                 )
+
+                self.logger.info("TTS test: all \(chunks.count) chunks synthesized -- starting batch playback")
+
+                await MainActor.run {
+                    guard !chunks.isEmpty else {
+                        self.logger.warning("TTS test: no chunks produced -- showing subtitle-only fallback")
+                        self.subtitlePanel.show(text: text)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                            self.subtitlePanel.hide()
+                        }
+                        return
+                    }
+
+                    // Create sync driver for batch playback
+                    let driver = SubtitleSyncDriver(
+                        subtitlePanel: self.subtitlePanel,
+                        audioStreamPlayer: self.playbackManager.audioStreamPlayer,
+                        onStreamingComplete: {
+                            self.logger.info("TTS test batch playback complete")
+                            Task { await checkMemoryLifecycleRestart() }
+                        }
+                    )
+                    self.activeSyncDriver = driver
+
+                    // Add all chunks
+                    for chunk in chunks {
+                        let fontSizeName = self.subtitlePanel.currentFontSizeName
+                        let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+                        driver.addChunk(
+                            wavPath: chunk.wavPath,
+                            samples: chunk.samples,
+                            pages: pages,
+                            wordTimings: chunk.wordTimings,
+                            nativeOnsets: chunk.wordOnsets
+                        )
+                    }
+
+                    // Start batch playback
+                    driver.startBatchPlayback()
+                }
 
                 return jsonResponse(OkResponse(ok: true))
             } catch {
@@ -289,10 +273,10 @@ public final class HTTPControlServer: @unchecked Sendable {
     // MARK: - Private Helpers
 
     /// Build the health response with uptime and RSS (API-01).
-    private func healthResponse() -> HTTPResponse {
+    private func healthResponse() async -> HTTPResponse {
         let uptimeSeconds = Int(Date().timeIntervalSince(startTime))
         let rssMB = currentRSSMB()
-        let diag = ttsEngine.memoryDiagnostics()
+        let diag = await ttsEngine.memoryDiagnostics()
 
         let health = HealthResponse(
             status: "ok",
