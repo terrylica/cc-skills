@@ -501,7 +501,7 @@ Plans:
 Plans:
 
 - [x] 22-01-PLAN.md -- DisplayMode enum + BionicRenderer + SettingsStore + HTTP API + SubtitlePanel integration + tests
-- [ ] 22-02-PLAN.md -- SwiftBar Bionic Reading toggle + visual verification checkpoint
+- [x] 22-02-PLAN.md -- SwiftBar Bionic Reading toggle + visual verification checkpoint
       **UI hint**: yes
 
 ### Phase 23: Caption History Panel
@@ -570,6 +570,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 20. Unit & Integration Tests                    | 2/2            | Complete    | 2026-03-28 |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete    | 2026-03-28 |
 | 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
-| 22. Bionic Reading Mode                         | 1/2 | In Progress|  |
+| 22. Bionic Reading Mode                         | 2/2 | Complete   | 2026-03-28 |
 | 23. Caption History Panel                       | 0/0            | Not started | -          |
 | 24. Chinese TTS Fallback                        | 0/0            | Not started | -          |
