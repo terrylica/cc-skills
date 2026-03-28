@@ -43,9 +43,9 @@
 
 ### Memory Lifecycle Cleanup
 
-- [ ] **MEM-01**: Synthesis-count restart removed from TTSEngine (no IOAccelerator leak in Swift process)
-- [ ] **MEM-02**: MemoryLifecycle.swift removed or simplified (checkMemoryLifecycleRestart no longer needed)
-- [ ] **MEM-03**: Swift companion RSS stays under 100 MB across 50+ consecutive TTS calls
+- [x] **MEM-01**: Synthesis-count restart removed from TTSEngine (no IOAccelerator leak in Swift process)
+- [x] **MEM-02**: MemoryLifecycle.swift removed or simplified (checkMemoryLifecycleRestart no longer needed)
+- [x] **MEM-03**: Swift companion RSS stays under 100 MB across 50+ consecutive TTS calls
 
 ## Future Requirements
 
@@ -76,6 +76,6 @@
 | DEP-03      | 27    | Complete |
 | DEP-04      | 27    | Complete |
 | DEP-05      | 27    | Complete |
-| MEM-01      | 28    | Pending |
-| MEM-02      | 28    | Pending |
-| MEM-03      | 28    | Pending |
+| MEM-01      | 28    | Complete |
+| MEM-02      | 28    | Complete |
+| MEM-03      | 28    | Complete |
