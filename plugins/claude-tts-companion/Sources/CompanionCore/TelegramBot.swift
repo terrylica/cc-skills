@@ -236,6 +236,13 @@ public final class TelegramBot: @unchecked Sendable {
             fullText = text
         }
 
+        // Guard: memory pressure -- degrade to subtitle-only (HARD-02, HARD-03)
+        if await MainActor.run(body: { pipelineCoordinator.shouldUseSubtitleOnly }) {
+            logger.warning("Memory pressure -- subtitle-only mode (\(fullText.count) chars)")
+            showSubtitleOnlyFallback(text: fullText)
+            return
+        }
+
         // Guard: if a streaming synthesis pipeline is still playing, show subtitle-only
         // fallback instead of silently dropping the notification (HARD-04)
         if isStreamingInProgress {

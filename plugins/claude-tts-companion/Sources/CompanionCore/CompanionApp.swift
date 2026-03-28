@@ -58,6 +58,9 @@ public final class CompanionApp: @unchecked Sendable {
             self?.plannedRestart(reason: reason)
         }
 
+        // Start hardware event monitoring (memory pressure + audio route changes)
+        pipelineCoordinator.startMonitoring()
+
         // Position subtitle panel
         subtitlePanel.positionOnScreen()
 
@@ -123,6 +126,7 @@ public final class CompanionApp: @unchecked Sendable {
 
     @MainActor public func shutdown() {
         logger.info("Shutting down")
+        pipelineCoordinator.stopMonitoring()
         subtitlePanel.hide()
         notificationWatcher?.stop()
         thinkingWatcher?.stop()
