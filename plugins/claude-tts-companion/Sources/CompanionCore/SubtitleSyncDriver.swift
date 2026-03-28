@@ -85,8 +85,9 @@ public final class SubtitleSyncDriver {
     /// Whether all chunks have been delivered (onAllComplete called)
     private var allChunksDelivered: Bool = false
 
-    /// TTSEngine reference for AudioStreamPlayer access and WAV fallback
-    private var ttsEngine: TTSEngine?
+    /// AudioStreamPlayer reference for gapless streaming playback.
+    /// Received directly (decoupled from TTSEngine -- SubtitleSyncDriver only needs playback, not synthesis).
+    private var audioStreamPlayer: AudioStreamPlayer?
 
     /// Called when all streaming playback finishes (after last chunk plays to completion)
     private var onStreamingComplete: (() -> Void)?
@@ -177,11 +178,11 @@ public final class SubtitleSyncDriver {
     ///
     /// - Parameters:
     ///   - subtitlePanel: The panel to update with karaoke highlights
-    ///   - ttsEngine: TTSEngine instance for AudioStreamPlayer access
+    ///   - audioStreamPlayer: AudioStreamPlayer instance for gapless playback
     ///   - onStreamingComplete: Called when all chunks have finished playing (not just synthesized)
-    init(subtitlePanel: SubtitlePanel, ttsEngine: TTSEngine, onStreamingComplete: (() -> Void)? = nil) {
+    init(subtitlePanel: SubtitlePanel, audioStreamPlayer: AudioStreamPlayer, onStreamingComplete: (() -> Void)? = nil) {
         self.subtitlePanel = subtitlePanel
-        self.ttsEngine = ttsEngine
+        self.audioStreamPlayer = audioStreamPlayer
         self.isStreamingMode = true
         self.onStreamingComplete = onStreamingComplete
 
@@ -278,12 +279,10 @@ public final class SubtitleSyncDriver {
 
         allChunksDelivered = true
 
-        guard let engine = ttsEngine else {
-            logger.error("No TTSEngine reference for batch playback")
+        guard let asp = audioStreamPlayer else {
+            logger.error("No AudioStreamPlayer reference for batch playback")
             return
         }
-
-        let asp = engine.audioStreamPlayer
 
         // Schedule ALL buffers on AudioStreamPlayer before starting playback.
         // AVAudioPlayerNode queues them internally for gapless back-to-back rendering.
@@ -346,7 +345,7 @@ public final class SubtitleSyncDriver {
 
         // Reset AudioStreamPlayer for streaming mode (cancels queued buffers)
         if isStreamingMode {
-            ttsEngine?.audioStreamPlayer.reset()
+            audioStreamPlayer?.reset()
 
             // Clean up WAV files for any unplayed chunks
             for chunk in streamChunks {
@@ -481,8 +480,7 @@ public final class SubtitleSyncDriver {
             return
         }
 
-        guard let engine = ttsEngine else { return }
-        let asp = engine.audioStreamPlayer
+        guard let asp = audioStreamPlayer else { return }
 
         // AudioStreamPlayer.currentTime is cumulative across ALL scheduled buffers.
         // Determine which chunk we're in and compute local time within it.

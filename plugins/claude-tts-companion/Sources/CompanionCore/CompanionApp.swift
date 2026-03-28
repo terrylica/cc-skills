@@ -14,6 +14,7 @@ public final class CompanionApp: @unchecked Sendable {
     // All subsystems as properties
     private let settingsStore: SettingsStore
     private let subtitlePanel: SubtitlePanel
+    private let playbackManager: PlaybackManager
     private let ttsEngine: TTSEngine
     private let captionHistory: CaptionHistory
     private let httpServer: HTTPControlServer
@@ -29,11 +30,14 @@ public final class CompanionApp: @unchecked Sendable {
         // Create subsystems (same order as original main.swift)
         settingsStore = SettingsStore()
         subtitlePanel = SubtitlePanel(settingsStore: settingsStore)
-        ttsEngine = TTSEngine()
+        // PlaybackManager created BEFORE TTSEngine (owns audio hardware lifecycle)
+        playbackManager = PlaybackManager()
+        ttsEngine = TTSEngine(playbackManager: playbackManager)
         captionHistory = CaptionHistory()
         httpServer = HTTPControlServer(
             settingsStore: settingsStore,
             subtitlePanel: subtitlePanel,
+            playbackManager: playbackManager,
             ttsEngine: ttsEngine,
             captionHistory: captionHistory
         )
@@ -80,6 +84,7 @@ public final class CompanionApp: @unchecked Sendable {
                 botToken: token,
                 chatId: chatId,
                 summaryEngine: summaryEngine,
+                playbackManager: playbackManager,
                 ttsEngine: ttsEngine,
                 subtitlePanel: subtitlePanel
             )
@@ -269,9 +274,10 @@ private extension CompanionApp {
     /// Check synthesis count and trigger planned restart if threshold reached.
     /// Called after playback completes (not during synthesis) so the user hears
     /// the complete audio before the service restarts.
-    func checkMemoryLifecycleRestart() {
-        if ttsEngine.shouldRestartForMemory {
-            let diag = ttsEngine.memoryDiagnostics()
+    /// Async because TTSEngine is an actor.
+    func checkMemoryLifecycleRestart() async {
+        if await ttsEngine.shouldRestartForMemory {
+            let diag = await ttsEngine.memoryDiagnostics()
             plannedRestart(reason: "Synthesis count \(diag.synthesisCount) reached threshold \(TTSEngine.maxSynthesisBeforeRestart)")
         }
     }
@@ -326,24 +332,18 @@ private extension CompanionApp {
 
     /// Show a TTS demo subtitle when running in dev mode (no Telegram bot).
     func showDemoTTS() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000)  // 0.5s delay
             let demoText = "Welcome to claude TTS companion, your real-time subtitle overlay with karaoke highlighting"
-            ttsEngine.synthesizeWithTimestamps(text: demoText) { [self] result in
-                switch result {
-                case .success(let ttsResult):
-                    logger.info("TTS demo: \(ttsResult.audioDuration)s audio, \(ttsResult.wordTimings.count) words")
-                    DispatchQueue.main.async { [self] in
-                        subtitlePanel.showUtterance(ttsResult.text, wordTimings: ttsResult.wordTimings)
-                        captionHistory.record(ttsResult.text)
-                    }
-                    ttsEngine.play(wavPath: ttsResult.wavPath)
-                case .failure(let error):
-                    logger.error("TTS demo failed: \(error)")
-                    // Fallback to subtitle-only demo
-                    DispatchQueue.main.async { [self] in
-                        subtitlePanel.demo()
-                    }
-                }
+            do {
+                let ttsResult = try await ttsEngine.synthesizeWithTimestamps(text: demoText)
+                logger.info("TTS demo: \(ttsResult.audioDuration)s audio, \(ttsResult.wordTimings.count) words")
+                subtitlePanel.showUtterance(ttsResult.text, wordTimings: ttsResult.wordTimings)
+                captionHistory.record(ttsResult.text)
+                playbackManager.play(wavPath: ttsResult.wavPath)
+            } catch {
+                logger.error("TTS demo failed: \(error)")
+                subtitlePanel.demo()
             }
         }
     }

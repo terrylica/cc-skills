@@ -5,8 +5,8 @@ import AVFoundation
 import Foundation
 import KokoroSwift
 import Logging
-import MLX
-import MLXUtilsLibrary
+@preconcurrency import MLX
+@preconcurrency import MLXUtilsLibrary
 
 /// Result of a TTS synthesis operation.
 public struct SynthesisResult: Sendable {
@@ -146,12 +146,9 @@ public actor TTSEngine {
         // inside libKokoroSwift.dylib (kokoro-ios v1.0.13+).
     }
 
-    deinit {
-        ttsInstance = nil
-        voicesDict = nil
-        voice = nil
-        cleanupLastWav()
-    }
+    // NOTE: No deinit needed -- ARC handles ttsInstance/voicesDict/voice cleanup.
+    // WAV cleanup happens in cleanupLastWav() during normal synthesis flow.
+    // Actor deinit is nonisolated and cannot access actor-isolated non-Sendable properties.
 
     // MARK: - Public API
 
@@ -189,10 +186,6 @@ public actor TTSEngine {
 
                     // Write WAV file using AVAudioFile
                     try Self.writeWav(samples: audio, to: wavPath)
-
-                    let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                    let rtf = elapsed / audioDuration
-                    // Cannot use logger here (actor-isolated), but the info is in the result
 
                     continuation.resume(returning: SynthesisResult(
                         wavPath: wavPath,
@@ -233,7 +226,7 @@ public actor TTSEngine {
         lastWavPath = wavPath
 
         // Bridge blocking GPU work to async via DispatchQueue + continuation (CONC-03)
-        let (audio, tokenArray, audioDuration): ([Float], [MToken]?, TimeInterval) = try await withCheckedThrowingContinuation { continuation in
+        let (_, tokenArray, audioDuration): ([Float], [MToken]?, TimeInterval) = try await withCheckedThrowingContinuation { continuation in
             synthesisQueue.async {
                 do {
                     let startTime = CFAbsoluteTimeGetCurrent()
@@ -244,9 +237,6 @@ public actor TTSEngine {
 
                     let audioDuration = Double(audio.count) / 24000.0
                     try Self.writeWav(samples: audio, to: wavPath)
-
-                    let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                    _ = elapsed / audioDuration  // RTF computed but logged from actor context
 
                     continuation.resume(returning: (audio, tokenArray, audioDuration))
                 } catch {
@@ -300,26 +290,22 @@ public actor TTSEngine {
     /// Synthesize text as sentence chunks using batch-then-play pattern.
     ///
     /// Splits `text` into sentences, synthesizes ALL sentences sequentially on the
-    /// background queue, then delivers them via callbacks. This completely separates
+    /// background queue, then returns all chunks. This completely separates
     /// GPU synthesis from audio playback -- zero GPU work during playback.
     ///
-    /// Callbacks are marked @Sendable @escaping since they cross actor boundaries.
+    /// Returns an empty array if TTS is disabled, circuit breaker is open, or all chunks fail.
     func synthesizeStreaming(
         text: String,
         voiceName: String = Config.defaultVoiceName,
-        speed: Float = 1.2,
-        onChunkReady: @Sendable @escaping (ChunkResult) -> Void,
-        onAllComplete: @Sendable @escaping () -> Void
-    ) async {
+        speed: Float = 1.2
+    ) async -> [ChunkResult] {
         guard !isDisabledDueToMissingModel else {
             logger.error("TTS disabled -- model files missing at startup, skipping streaming synthesis")
-            onAllComplete()
-            return
+            return []
         }
         guard !isTTSCircuitBreakerOpen else {
             logger.warning("TTS circuit breaker open -- skipping streaming synthesis (\(text.count) chars)")
-            onAllComplete()
-            return
+            return []
         }
 
         // Prepare state before entering DispatchQueue (actor-isolated)
@@ -328,8 +314,7 @@ public actor TTSEngine {
             tts = try ensureModelLoaded()
         } catch {
             logger.error("Streaming synthesis failed: \(error)")
-            onAllComplete()
-            return
+            return []
         }
         let activeVoice = voiceForName(voiceName)
         let sentences = SentenceSplitter.splitIntoSentences(text)
@@ -421,11 +406,7 @@ public actor TTSEngine {
         synthesisCount += synthesizedChunks.count
         logger.info("Streaming synthesis done: \(synthesizedChunks.count) chunks, total synthesisCount=\(synthesisCount)")
 
-        // Deliver chunks to callbacks
-        for chunk in synthesizedChunks {
-            onChunkReady(chunk)
-        }
-        onAllComplete()
+        return synthesizedChunks
     }
 
     // MARK: - Private
