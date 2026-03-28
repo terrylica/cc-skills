@@ -49,7 +49,7 @@ GitHub Issues do not generate clickable heading anchors in Chrome.
 Remove all [text](#anchor) links and use plain text references instead.
 Example: "see Hardware Assumptions section below" (no link).`;
 
-  console.log(JSON.stringify({ decision: "block", reason }));
+  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } }));
   process.exit(0);
 }
 
@@ -67,7 +67,7 @@ Found in body file: ${fileMatch[0]}
 GitHub Issues do not generate clickable heading anchors in Chrome.
 Remove all [text](#anchor) links and use plain text references instead.`;
 
-      console.log(JSON.stringify({ decision: "block", reason }));
+      console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } }));
       process.exit(0);
     }
   } catch {
