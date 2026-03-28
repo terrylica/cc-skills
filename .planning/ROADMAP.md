@@ -608,7 +608,11 @@ Plans:
 2. `grep -r 'import MLX\|import KokoroSwift\|import MLXUtilsLibrary' Sources/` returns zero matches
 3. `swift build -c release` succeeds with zero errors and no MLX-related symbols in the binary
 4. Stripped release binary is under 20 MB (down from ~25+ MB with MLX dependencies)
-   **Plans**: TBD
+   **Plans**: 1 plan
+
+Plans:
+
+- [ ] 27-01-PLAN.md — Remove MLX packages from Package.swift, strip dead MToken code, update tests, verify binary size
 
 ### Phase 28: Memory Lifecycle Cleanup
 
@@ -621,7 +625,11 @@ Plans:
 1. Synthesis-count restart logic is removed from TTSEngine (no `exit(42)`, no counter, no `checkMemoryLifecycleRestart`)
 2. MemoryLifecycle.swift is either deleted or reduced to a no-op stub (no IOAccelerator mitigation code remains)
 3. Swift companion RSS stays under 100 MB across 50+ consecutive TTS calls (all synthesis happens in Python process, not Swift)
-   **Plans**: TBD
+   **Plans**: 1 plan
+
+Plans:
+
+- [ ] 28-01-PLAN.md — Delete MemoryLifecycle.swift, strip restart logic from TTSEngine/CompanionApp/TelegramBot/HTTPControlServer
 
 ## Progress
 
@@ -652,10 +660,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 20. Unit & Integration Tests                    | 2/2            | Complete    | 2026-03-28 |
 | 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete    | 2026-03-28 |
 | 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
+| 22. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
 | 22. Bionic Reading Mode                         | 2/2            | Complete    | 2026-03-28 |
 | 23. Caption History Panel                       | 2/2            | Complete    | 2026-03-28 |
 | 24. Chinese TTS Fallback                        | 2/2            | Complete    | 2026-03-28 |
-| 25. Python TTS Server Timestamp Endpoint        | 1/1 | Complete    | 2026-03-28 |
-| 26. Swift TTSEngine Python Integration          | 1/1 | Complete    | 2026-03-28 |
-| 27. MLX Dependency Removal                      | 0/0            | Not started | -          |
-| 28. Memory Lifecycle Cleanup                    | 0/0            | Not started | -          |
+| 25. Python TTS Server Timestamp Endpoint        | 1/1            | Complete    | 2026-03-28 |
+| 26. Swift TTSEngine Python Integration          | 1/1            | Complete    | 2026-03-28 |
+| 27. MLX Dependency Removal                      | 0/1            | Not started | -          |
+| 28. Memory Lifecycle Cleanup                    | 0/1            | Not started | -          |
