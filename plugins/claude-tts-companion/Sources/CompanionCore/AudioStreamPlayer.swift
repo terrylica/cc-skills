@@ -147,6 +147,7 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     /// Reset for a new streaming session: stop the player node (cancels queued
     /// buffers) then restart it so new buffers can be scheduled immediately.
     /// The engine stays running (hardware stays warm).
+    /// Pre-starts the player node with a tiny silent lead-in to eliminate first-buffer blips.
     func reset() {
         engineLock.lock()
         defer { engineLock.unlock() }
@@ -166,7 +167,17 @@ public final class AudioStreamPlayer: @unchecked Sendable {
             }
         }
 
-        logger.info("AudioStreamPlayer reset for new session")
+        // Pre-start player node with a tiny silent lead-in (~10ms).
+        // This primes the CoreAudio render pipeline so the first real buffer
+        // doesn't get a blip from the player node cold-starting mid-schedule.
+        if let silentBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 240) {
+            silentBuffer.frameLength = 240  // 10ms at 24kHz
+            memset(silentBuffer.floatChannelData![0], 0, 240 * MemoryLayout<Float>.size)
+            playerNode.play()
+            playerNode.scheduleBuffer(silentBuffer)
+        }
+
+        logger.info("AudioStreamPlayer reset for new session (player pre-started)")
     }
 
     // MARK: - Route Change Recovery
