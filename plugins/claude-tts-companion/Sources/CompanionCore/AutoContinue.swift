@@ -1,3 +1,4 @@
+// FILE-SIZE-OK — evaluation engine, state management, formatting tightly coupled
 import Foundation
 import Logging
 
@@ -519,7 +520,9 @@ public final class AutoContinueEvaluator: @unchecked Sendable {
             let pattern = "\\b\(keyword)\\b"
             if upper.range(of: pattern, options: .regularExpression) != nil {
                 logger.info("Fallback decision match: \(keyword) found in unstructured response")
-                return (decision, "extracted from unstructured response (thinking block fallback)")
+                // Extract a meaningful reason snippet from surrounding context
+                let reason = extractFallbackReason(from: trimmed, keyword: keyword)
+                return (decision, reason)
             }
         }
 
@@ -535,6 +538,42 @@ public final class AutoContinueEvaluator: @unchecked Sendable {
         if u.hasPrefix("REDIR") { return .redirect }
         if u.hasPrefix("DONE") { return .done }
         return nil
+    }
+
+    /// Extract a meaningful reason snippet when the fallback keyword scan fires.
+    ///
+    /// Instead of the opaque "extracted from unstructured response (thinking block fallback)",
+    /// grab the sentence or clause containing the keyword to give the user actual context.
+    /// Falls back to a cleaned first line of the response if extraction fails.
+    private func extractFallbackReason(from text: String, keyword: String) -> String {
+        let maxReasonLen = 200
+
+        // Try to find the sentence containing the keyword (case-insensitive)
+        let pattern = "[^.!?\\n]*\\b\(keyword)\\b[^.!?\\n]*[.!?]?"
+        if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let range = Range(match.range, in: text) {
+            let sentence = String(text[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if sentence.count > 10 && sentence.count <= maxReasonLen {
+                return sentence
+            }
+            if sentence.count > maxReasonLen {
+                return String(sentence.prefix(maxReasonLen)) + "..."
+            }
+        }
+
+        // Fallback: use the first non-empty line, trimmed
+        let firstLine = text.components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty } ?? ""
+        if !firstLine.isEmpty {
+            let cleaned = firstLine.count > maxReasonLen
+                ? String(firstLine.prefix(maxReasonLen)) + "..."
+                : firstLine
+            return cleaned
+        }
+
+        return "(no details available)"
     }
 
     // MARK: - Deterministic Sweep Detection (EVAL-06)
@@ -891,7 +930,7 @@ public final class AutoContinueEvaluator: @unchecked Sendable {
     /// Format a rich decision notification for Telegram (EVAL-05).
     ///
     /// Ported from legacy TypeScript `formatDecisionMessage()` (auto-continue.ts lines 448-533).
-    /// Includes icon, separator, reason, plan info with progress bar, session stats, and timestamp.
+    /// Includes icon, reason, plan info with progress bar, compact session stats, and timestamp.
     func formatDecisionMessage(
         result: EvaluationResult,
         sessionId: String,
@@ -901,14 +940,6 @@ public final class AutoContinueEvaluator: @unchecked Sendable {
     ) -> String {
         let icon = Self.decisionIcons[result.decision] ?? "\u{2705}"
         let decision = result.decision.rawValue
-        let separator = String(repeating: "\u{2501}", count: 24)
-
-        let planFile: String
-        if let pp = result.planPath {
-            planFile = TelegramFormatter.escapeHtml((pp as NSString).lastPathComponent)
-        } else {
-            planFile = "unknown"
-        }
 
         let planTitle: String
         if let pc = result.planContent, pc != "NO_PLAN" {
@@ -939,42 +970,42 @@ public final class AutoContinueEvaluator: @unchecked Sendable {
         // Timestamp in America/Vancouver timezone, en-CA locale format
         let timestamp = Self.formatVancouverTimestamp()
 
+        let escapedReason = TelegramFormatter.escapeHtml(displayReason)
+
         var lines: [String] = [
-            "<b>\(icon) Auto-Continue: \(decision)</b>",
-            separator,
-            "",
-            "<i>\(TelegramFormatter.escapeHtml(displayReason).isEmpty ? "No reason provided" : TelegramFormatter.escapeHtml(displayReason))</i>",
+            "<b>\(icon) Auto-Continue: \(decision)</b>  <code>\(shortSession)</code>",
+            "<i>\(escapedReason.isEmpty ? "No reason provided" : escapedReason)</i>",
         ]
 
         if result.decision == .sweep {
-            lines.append("\u{26A1} <b>Action</b>: Sweep prompt injected for final review")
+            lines.append("\u{26A1} Sweep prompt injected")
         }
 
-        lines.append(contentsOf: [
-            "",
-            "<b>\u{1F4CB} Plan</b>: \(planTitle)",
-            "\(progressLine)<code>\(planFile)</code>",
-            "",
-            "<b>\u{1F4CA} Session</b>",
-            "\u{2022} Iteration: <code>\(result.state.totalIterations) / \(maxIterations)</code>",
-            "\u{2022} Runtime: <code>\(String(format: "%.1f", result.elapsedMin)) / \(String(format: "%.0f", maxRuntimeMin)) min</code>",
-            "\u{2022} <code>\(result.turnCount)T \(result.toolBreakdown.isEmpty ? "\(result.toolCalls)\u{2699}" : result.toolBreakdown)\(result.errors > 0 ? " \(result.errors)\u{2717}" : "")</code>",
-        ])
+        // Plan section: only show when a real plan exists
+        let hasPlan = planTitle != "No Plan"
+        if hasPlan {
+            lines.append("")
+            lines.append("<b>\u{1F4CB} Plan</b>: \(planTitle)")
+            if !progressLine.isEmpty {
+                lines.append(progressLine.trimmingCharacters(in: .newlines))
+            }
+        }
 
+        // Compact stats line: iteration | runtime | turns+tools | project
+        let iterStr = "\(result.state.totalIterations)/\(maxIterations)"
+        let runtimeStr = "\(String(format: "%.0f", result.elapsedMin))m"
+        let toolStr = result.toolBreakdown.isEmpty ? "\(result.toolCalls)\u{2699}" : result.toolBreakdown
+        let turnsToolsStr = "\(result.turnCount)T \(toolStr)\(result.errors > 0 ? " \(result.errors)\u{2717}" : "")"
+
+        var statsLine = "\u{2022} #\(iterStr) \u{2022} \(runtimeStr) \u{2022} \(turnsToolsStr)"
         if let branch = result.gitBranch {
-            lines.append("\u{2022} Branch: <code>\(TelegramFormatter.escapeHtml(branch))</code>")
+            statsLine += " \u{2022} <code>\(TelegramFormatter.escapeHtml(branch))</code>"
         }
 
-        lines.append(contentsOf: [
-            "\u{2022} Project: <code>\(shortCwd)</code>",
-            "\u{2022} Claude session uuid jsonl ~/.claude/projects: <code>\(shortSession)</code>",
-        ])
-
-        lines.append(contentsOf: [
-            "",
-            separator,
-            "<i>\(timestamp)</i>",
-        ])
+        lines.append("")
+        lines.append(statsLine)
+        lines.append("\u{2022} <code>\(shortCwd)</code>")
+        lines.append("<i>\(timestamp)</i>")
 
         var message = lines.joined(separator: "\n")
 
@@ -1029,28 +1060,18 @@ public final class AutoContinueEvaluator: @unchecked Sendable {
         let shortSession = TelegramFormatter.escapeHtml(String(sessionId.prefix(8)))
         let home = ProcessInfo.processInfo.environment["HOME"] ?? "/Users/terryli"
         let shortCwd = TelegramFormatter.escapeHtml(cwd.replacingOccurrences(of: home, with: "~"))
-        let separator = String(repeating: "\u{2501}", count: 24)
         let timestamp = Self.formatVancouverTimestamp()
 
-        var stateInfo = ""
-        var elapsedInfo = ""
+        var statsStr = ""
         if let st = state {
-            stateInfo = "\n\u{2022} Iteration: <code>\(st.totalIterations) / \(maxIterations)</code>"
             let elapsed = (Date().timeIntervalSince1970 - isoToEpoch(st.startedAt)) / 60.0
-            elapsedInfo = "\n\u{2022} Runtime: <code>\(String(format: "%.1f", elapsed)) / \(String(format: "%.0f", maxRuntimeMin)) min</code>"
+            statsStr = " \u{2022} #\(st.totalIterations)/\(maxIterations) \u{2022} \(String(format: "%.0f", elapsed))m"
         }
 
         let lines: [String] = [
-            "<b>\u{23F9} Auto-Continue: STOP</b>",
-            separator,
-            "",
+            "<b>\u{23F9} Auto-Continue: STOP</b>  <code>\(shortSession)</code>",
             "<i>\(TelegramFormatter.escapeHtml(reason))</i>",
-            "",
-            "<b>\u{1F4CA} Session</b>\(stateInfo)\(elapsedInfo)",
-            "\u{2022} Project: <code>\(shortCwd)</code>",
-            "\u{2022} Claude session uuid jsonl ~/.claude/projects: <code>\(shortSession)</code>",
-            "",
-            separator,
+            "\u{2022} <code>\(shortCwd)</code>\(statsStr)",
             "<i>\(timestamp)</i>",
         ]
 
