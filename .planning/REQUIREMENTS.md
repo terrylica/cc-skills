@@ -39,14 +39,14 @@
 
 ## Traceability
 
-| Requirement | Phase | Status  |
-| ----------- | ----- | ------- |
-| BAR-10      | TBD   | Pending |
-| BAR-11      | TBD   | Pending |
-| BAR-12      | TBD   | Pending |
-| BOT-10      | TBD   | Pending |
-| BOT-11      | TBD   | Pending |
-| BOT-12      | TBD   | Pending |
-| E2E-01      | TBD   | Pending |
-| E2E-02      | TBD   | Pending |
-| E2E-03      | TBD   | Pending |
+| Requirement | Phase    | Status  |
+| ----------- | -------- | ------- |
+| BOT-10      | Phase 29 | Pending |
+| BOT-11      | Phase 29 | Pending |
+| BOT-12      | Phase 29 | Pending |
+| BAR-10      | Phase 30 | Pending |
+| BAR-11      | Phase 30 | Pending |
+| BAR-12      | Phase 30 | Pending |
+| E2E-01      | Phase 31 | Pending |
+| E2E-02      | Phase 31 | Pending |
+| E2E-03      | Phase 31 | Pending |
