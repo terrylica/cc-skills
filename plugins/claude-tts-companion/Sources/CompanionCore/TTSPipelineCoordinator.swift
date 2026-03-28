@@ -188,7 +188,7 @@ public final class TTSPipelineCoordinator {
         } else if chunks.count == 1 {
             // Paragraph scope: single page with ALL words (panel auto-sizes)
             let chunk = chunks[0]
-            let words = chunk.text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
+            let words = PronunciationProcessor.splitWordsMatchingKokoro(chunk.text)
             let pages = [SubtitlePage(words: words, startWordIndex: 0)]
             driver.addChunk(
                 wavPath: chunk.wavPath,
@@ -217,7 +217,7 @@ public final class TTSPipelineCoordinator {
                 cumulativeTime += chunk.audioDuration
             }
 
-            let allWords = fullText.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace).map(String.init)
+            let allWords = PronunciationProcessor.splitWordsMatchingKokoro(fullText)
             let pages = [SubtitlePage(words: allWords, startWordIndex: 0)]
             driver.addChunk(
                 wavPath: chunks.first?.wavPath ?? "",
