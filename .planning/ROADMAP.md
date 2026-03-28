@@ -389,7 +389,12 @@ Plans:
 1. `swift test` runs and passes with at least one unit test for a pure type (e.g., SubtitleChunker or LanguageDetector)
 2. `main.swift` is the only file in the executable target -- all business logic lives in CompanionCore library
 3. `@testable import CompanionCore` works in the test target without build errors
-   **Plans**: TBD
+   **Plans**: 2 plans
+
+Plans:
+
+- [ ] 18-01-PLAN.md -- CompanionCore library extraction + CompanionApp coordinator + thin main.swift
+- [ ] 18-02-PLAN.md -- Unit tests for LanguageDetector, SubtitleChunker, TelegramFormatter, TranscriptParser, CircuitBreaker
 
 ### Phase 19: TTSEngine Decomposition & Actor Migration
 
