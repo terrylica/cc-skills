@@ -572,7 +572,11 @@ Plans:
 1. `curl localhost:PORT/v1/audio/speech-with-timestamps -d '{"input":"Hello world"}'` returns JSON containing base64 WAV bytes and per-word onset/duration arrays
 2. Word timestamps come from mlx-audio MToken.start_ts/end_ts (duration model native output), not character-weighted approximation
 3. Python server runs as a launchd service that starts automatically before claude-tts-companion via service dependency ordering
-   **Plans**: TBD
+   **Plans**: 1 plan
+
+Plans:
+
+- [ ] 25-01-PLAN.md — synthesize_with_timestamps + /v1/audio/speech-with-timestamps endpoint + launchd verification
 
 ### Phase 26: Swift TTSEngine Python Integration
 
@@ -647,7 +651,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 22. Bionic Reading Mode                         | 2/2            | Complete    | 2026-03-28 |
 | 23. Caption History Panel                       | 2/2            | Complete    | 2026-03-28 |
 | 24. Chinese TTS Fallback                        | 2/2            | Complete    | 2026-03-28 |
-| 25. Python TTS Server Timestamp Endpoint        | 0/0            | Not started | -          |
+| 25. Python TTS Server Timestamp Endpoint        | 0/1            | In progress | -          |
 | 26. Swift TTSEngine Python Integration          | 0/0            | Not started | -          |
 | 27. MLX Dependency Removal                      | 0/0            | Not started | -          |
 | 28. Memory Lifecycle Cleanup                    | 0/0            | Not started | -          |
