@@ -18,6 +18,7 @@ public final class TelegramBot: @unchecked Sendable {
     private let playbackManager: PlaybackManager
     private let ttsEngine: TTSEngine
     private let subtitlePanel: SubtitlePanel  // @MainActor -- access must dispatch to main
+    private let pipelineCoordinator: TTSPipelineCoordinator
 
     // Prompt execution (BOT-05, BOT-06)
     private let promptExecutor = PromptExecutor()
@@ -36,13 +37,14 @@ public final class TelegramBot: @unchecked Sendable {
     // Inline button state manager (BTN-01, BTN-02, BTN-03)
     let inlineButtonManager = InlineButtonManager()
 
-    init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, playbackManager: PlaybackManager, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel) {
+    init(botToken: String, chatId: Int64, summaryEngine: SummaryEngine, playbackManager: PlaybackManager, ttsEngine: TTSEngine, subtitlePanel: SubtitlePanel, pipelineCoordinator: TTSPipelineCoordinator) {
         self.botToken = botToken
         self.chatId = chatId
         self.summaryEngine = summaryEngine
         self.playbackManager = playbackManager
         self.ttsEngine = ttsEngine
         self.subtitlePanel = subtitlePanel
+        self.pipelineCoordinator = pipelineCoordinator
     }
 
     // MARK: - Public API
