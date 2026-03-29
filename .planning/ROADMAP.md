@@ -76,11 +76,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v4.9.0 SwiftBar UI & Telegram Bot Activation (Phases 29-31)
+### v4.9.0 SwiftBar UI & Telegram Bot Activation (Phases 29-32)
 
 - [ ] **Phase 29: Telegram Bot Activation** - Bot credentials in launchd env, long polling connection, session notifications flowing
 - [ ] **Phase 30: SwiftBar UI Updates** - Python TTS health, voice/speed propagation, bot status display
 - [ ] **Phase 31: E2E Integration Verification** - Full chain verified: session end through TTS karaoke through Telegram delivery
+- [ ] **Phase 32: Audio Device Resilience** - CoreAudio HAL listener + health check + engine rebuild for AVAudioEngine stale aggregate device on output switch
 
 ## Phase Details
 
@@ -686,10 +687,23 @@ Plans:
 3. `tts_kokoro.sh "test sentence"` synthesizes and plays audio end-to-end without errors (regression check against v4.8.0 behavior)
    **Plans**: TBD
 
+### Phase 32: Audio Device Resilience
+
+**Goal**: AVAudioEngine recovers automatically when the system default audio output changes (Bluetooth connect/disconnect, HDMI, speaker switch) — CoreAudio HAL listener + periodic health check + engine rebuild with debounce
+
+**Depends on**: Phase 31
+**Requirements**: AUDIO-01, AUDIO-02, AUDIO-03, AUDIO-04, AUDIO-05, AUDIO-06
+**Plans**: 2 plans
+
+Plans:
+
+- [ ] 32-01-PLAN.md -- Config constants + CoreAudio HAL listener + full engine teardown/rebuild + debounce/cooldown
+- [ ] 32-02-PLAN.md -- Periodic health check timer + manual device switch verification checkpoint
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29 -> 30 -> 31
+Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29 -> 30 -> 31 -> 32
 
 | Phase                                           | Plans Complete | Status      | Completed  |
 | ----------------------------------------------- | -------------- | ----------- | ---------- |
@@ -725,3 +739,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 29. Telegram Bot Activation                     | 0/0            | Complete    | 2026-03-28 |
 | 30. SwiftBar UI Updates                         | 1/1            | Complete    | 2026-03-28 |
 | 31. E2E Integration Verification                | 0/0            | Complete    | 2026-03-28 |
+| 32. Audio Device Resilience                     | 0/0            | Not started | -          |
