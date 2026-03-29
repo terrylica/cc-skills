@@ -92,4 +92,23 @@ public struct PronunciationProcessor: Sendable {
                 word.contains(where: { $0.isLetter || $0.isNumber })
             }
     }
+
+    /// Split text into display words, preserving paragraph breaks as "\n" markers.
+    /// These markers are NOT sent to Kokoro (they don't count as words for onset matching)
+    /// but are used by the subtitle renderer to insert line breaks.
+    public static func splitWordsForDisplay(_ text: String) -> [String] {
+        var result: [String] = []
+        // Split on double-newline (paragraph break) first
+        let paragraphs = text.components(separatedBy: "\n\n")
+        for (i, paragraph) in paragraphs.enumerated() {
+            let words = paragraph.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
+                .map(String.init)
+            result.append(contentsOf: words)
+            // Add paragraph break marker between paragraphs (not after last)
+            if i < paragraphs.count - 1 && !words.isEmpty {
+                result.append("\n")
+            }
+        }
+        return result
+    }
 }
