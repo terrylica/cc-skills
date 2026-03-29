@@ -192,6 +192,11 @@ public actor TTSEngine {
         /// Raw float32 PCM samples at 24kHz for direct AVAudioEngine scheduling.
         /// Extracted from WAV response for callers that skip file I/O.
         let samples: [Float]?
+        /// Word texts from Kokoro's MToken tokenization (nil for CJK path).
+        /// Using these as display words guarantees 1:1 alignment with wordOnsets,
+        /// avoiding the mismatch between Misaki/spaCy linguistic tokens and
+        /// whitespace-split words from splitWordsMatchingKokoro().
+        let wordTexts: [String]?
     }
 
     /// Synthesize text as a single paragraph via the Python server.
@@ -283,7 +288,8 @@ public actor TTSEngine {
                 chunkIndex: 0,
                 totalChunks: 1,
                 wordOnsets: allWordOnsets,
-                samples: samples
+                samples: samples,
+                wordTexts: allWordTexts
             ))
 
             let totalElapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
@@ -336,7 +342,8 @@ public actor TTSEngine {
             chunkIndex: 0,
             totalChunks: 1,
             wordOnsets: nil,
-            samples: upsampledSamples
+            samples: upsampledSamples,
+            wordTexts: nil
         )
     }
 

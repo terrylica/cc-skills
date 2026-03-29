@@ -48,8 +48,12 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     /// The player node that receives scheduled buffers.
     private let playerNode = AVAudioPlayerNode()
 
-    /// Standard format for all TTS audio: 24kHz mono float32.
+    /// Standard format for all TTS audio: 48kHz mono float32.
     private let format: AVAudioFormat
+
+    /// Duration of the silent lead-in buffer scheduled in reset().
+    /// Callers polling currentTime must subtract this to get content-relative time.
+    static let leadInDuration: TimeInterval = 480.0 / 48000.0  // 10ms
 
     /// Whether the engine is currently running.
     private(set) var isRunning: Bool = false

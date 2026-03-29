@@ -188,7 +188,22 @@ public final class TTSPipelineCoordinator {
         } else if chunks.count == 1 {
             // Paragraph scope: single page with ALL words (panel auto-sizes).
             let chunk = chunks[0]
-            let words = PronunciationProcessor.splitWordsMatchingKokoro(chunk.text)
+            // Use Kokoro's word texts for 1:1 onset alignment, but re-attach
+            // punctuation from the original text for display. Kokoro's Misaki/spaCy
+            // tokens strip trailing punctuation (e.g., "running" not "running.").
+            let words: [String]
+            if let kokoroWords = chunk.wordTexts, !kokoroWords.isEmpty {
+                words = PronunciationProcessor.reattachPunctuation(
+                    originalText: chunk.text, kokoroTokens: kokoroWords
+                )
+                logger.info("Using Kokoro-aligned words with punctuation for subtitle display (\(words.count) words)")
+                if words.count <= 30 {
+                    logger.info("[PUNCT-FIX] Display words: \(words.joined(separator: " | "))")
+                }
+            } else {
+                words = PronunciationProcessor.splitWordsMatchingKokoro(chunk.text)
+                logger.info("Fallback to splitWordsMatchingKokoro for subtitle display (\(words.count) words)")
+            }
             let breaks = PronunciationProcessor.paragraphBreakIndices(chunk.text)
             let pages = [SubtitlePage(words: words, startWordIndex: 0, paragraphBreaksAfter: breaks)]
             driver.addChunk(
@@ -201,10 +216,10 @@ public final class TTSPipelineCoordinator {
         } else {
             // Multiple chunks in paragraph mode: merge into one subtitle stream.
             // Word onsets are chunk-relative, so re-accumulate to absolute time.
-            let fullText = chunks.map { $0.text }.joined(separator: " ")
             var allSamples: [Float] = []
             var allWordTimings: [TimeInterval] = []
             var allWordOnsets: [TimeInterval] = []
+            var allWordTexts: [String] = []
             var cumulativeTime: TimeInterval = 0
 
             for chunk in chunks {
@@ -215,10 +230,25 @@ public final class TTSPipelineCoordinator {
                         allWordOnsets.append(onset + cumulativeTime)
                     }
                 }
+                if let texts = chunk.wordTexts {
+                    allWordTexts.append(contentsOf: texts)
+                }
                 cumulativeTime += chunk.audioDuration
             }
 
-            let allWords = PronunciationProcessor.splitWordsMatchingKokoro(fullText)
+            // Use Kokoro's word texts for onset alignment, re-attach punctuation for display.
+            let allWords: [String]
+            if !allWordTexts.isEmpty {
+                let fullText = chunks.map { $0.text }.joined(separator: " ")
+                allWords = PronunciationProcessor.reattachPunctuation(
+                    originalText: fullText, kokoroTokens: allWordTexts
+                )
+                logger.info("Using merged Kokoro-aligned words with punctuation for subtitle display (\(allWords.count) words)")
+            } else {
+                let fullText = chunks.map { $0.text }.joined(separator: " ")
+                allWords = PronunciationProcessor.splitWordsMatchingKokoro(fullText)
+                logger.info("Fallback to splitWordsMatchingKokoro for multi-chunk subtitle display (\(allWords.count) words)")
+            }
             let pages = [SubtitlePage(words: allWords, startWordIndex: 0)]
             driver.addChunk(
                 wavPath: chunks.first?.wavPath ?? "",
