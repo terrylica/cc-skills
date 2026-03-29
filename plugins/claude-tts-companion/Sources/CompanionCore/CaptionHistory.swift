@@ -10,6 +10,12 @@ public struct CaptionEntry: Codable, Sendable {
     let timestamp: String
     /// Monotonic index for ordering
     let index: Int
+    /// Unique ID for this entry (for debugging sync issues)
+    let uuid: String
+    /// Sync telemetry: word count, onset count, audio duration
+    let wordCount: Int?
+    let onsetCount: Int?
+    let audioDuration: Double?
 }
 
 /// Thread-safe ring buffer that stores recent subtitle captions for scrollback and clipboard copy.
@@ -46,10 +52,8 @@ public final class CaptionHistory: @unchecked Sendable {
         self.buffer = Array(repeating: nil, count: capacity)
     }
 
-    /// Record a new caption in the history.
-    ///
-    /// - Parameter text: The subtitle text to record
-    func record(_ text: String) {
+    /// Record a new caption with optional sync telemetry.
+    func record(_ text: String, wordCount: Int? = nil, onsetCount: Int? = nil, audioDuration: Double? = nil) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
@@ -57,7 +61,11 @@ public final class CaptionHistory: @unchecked Sendable {
         let entry = CaptionEntry(
             text: trimmed,
             timestamp: formatter.string(from: Date()),
-            index: totalCount
+            index: totalCount,
+            uuid: UUID().uuidString,
+            wordCount: wordCount,
+            onsetCount: onsetCount,
+            audioDuration: audioDuration
         )
 
         lock.lock()

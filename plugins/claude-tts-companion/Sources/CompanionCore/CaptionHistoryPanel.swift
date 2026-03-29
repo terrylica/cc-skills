@@ -183,25 +183,39 @@ public final class CaptionHistoryPanel: NSPanel, NSTableViewDataSource, NSTableV
                 cell = NSTextField(wrappingLabelWithString: "")
                 cell.identifier = cellID
                 cell.isEditable = false
-                cell.isSelectable = false
+                cell.isSelectable = true
                 cell.isBezeled = false
                 cell.drawsBackground = false
-                cell.maximumNumberOfLines = 0  // Unlimited lines — word wrap
-                cell.cell?.truncatesLastVisibleLine = false
-                cell.lineBreakMode = .byWordWrapping
-                cell.preferredMaxLayoutWidth = 300
             }
+            // Set wrapping properties every time (not just on creation) to ensure
+            // reused cells don't retain stale settings from a different column.
+            cell.maximumNumberOfLines = 0
+            cell.cell?.truncatesLastVisibleLine = false
+            cell.lineBreakMode = .byWordWrapping
+            cell.cell?.wraps = true
+            cell.preferredMaxLayoutWidth = tableView.tableColumns.last?.width ?? 300
 
             if tableColumn?.identifier == CaptionHistoryPanel.timeColumnID {
                 cell.stringValue = formatTime(entry.timestamp)
                 cell.textColor = NSColor.secondaryLabelColor
                 cell.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
                 cell.alignment = .right
+                cell.maximumNumberOfLines = 1
+                cell.lineBreakMode = .byClipping
             } else {
                 cell.stringValue = entry.text
                 cell.textColor = NSColor.labelColor
                 cell.font = NSFont.systemFont(ofSize: 13)
                 cell.alignment = .left
+                // Tooltip: UUID + sync telemetry for debugging
+                var tip = "UUID: \(entry.uuid)"
+                if let wc = entry.wordCount { tip += "\nWords: \(wc)" }
+                if let oc = entry.onsetCount { tip += " | Onsets: \(oc)" }
+                if let dur = entry.audioDuration { tip += " | Duration: \(String(format: "%.1f", dur))s" }
+                if let wc = entry.wordCount, let oc = entry.onsetCount, wc != oc {
+                    tip += "\n⚠️ MISMATCH: words≠onsets (sync may drift)"
+                }
+                cell.toolTip = tip
             }
 
             return cell
