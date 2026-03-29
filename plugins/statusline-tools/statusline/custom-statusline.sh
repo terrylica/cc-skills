@@ -357,17 +357,40 @@ echo -e "    ${datetime_display}"
 # avoid printf '%b' re-interpreting already-built escape sequences.
 #
 # Defense-in-depth: render-time liveness GC (Layer 1 of 3)
-# Cross-checks each entry against system crontab. Entries whose job ID
-# no longer appears in `crontab -l` are stale (cron was deleted or session
-# died without CronDelete). Prune them atomically before rendering.
-# Pattern: Kubernetes readiness probe adapted for local JSON registry.
+# Two-signal liveness check: crontab (durable crons) OR session JSONL
+# freshness (session-only crons). Claude Code's CronCreate with
+# durable=false creates in-process crons that never appear in crontab,
+# so crontab alone causes 100% false-positive pruning.
 # See also: Layer 2 (stop-cron-gc.ts), Layer 3 (TTL in cron-tracker.ts).
 if [ "$cron_count" -gt 0 ]; then
     crontab_snapshot=$(crontab -l 2>/dev/null || true)
+    now_epoch=$(date +%s)
+    session_stale_threshold=7200  # 2 hours in seconds
     stale_ids=""
     while IFS= read -r entry; do
         gc_id=$(echo "$entry" | jq -r '.id')
-        if [ -n "$gc_id" ] && ! echo "$crontab_snapshot" | grep -qF "$gc_id"; then
+        [ -z "$gc_id" ] && continue
+        # Signal 1: durable cron in system crontab → live
+        if echo "$crontab_snapshot" | grep -qF "$gc_id"; then
+            continue
+        fi
+        # Signal 2: session JSONL mtime freshness → live if recent
+        gc_session=$(echo "$entry" | jq -r '.session_id // ""')
+        gc_project=$(echo "$entry" | jq -r '.project_path // ""')
+        is_stale=1
+        if [ -n "$gc_session" ] && [ -n "$gc_project" ]; then
+            full_path="${gc_project/#\~/$HOME}"
+            encoded_dir="${full_path//\//-}"
+            jsonl_file="$HOME/.claude/projects/${encoded_dir}/${gc_session}.jsonl"
+            if [ -f "$jsonl_file" ]; then
+                jsonl_mtime=$(stat -f %m "$jsonl_file" 2>/dev/null || echo 0)
+                age=$((now_epoch - jsonl_mtime))
+                if [ "$age" -lt "$session_stale_threshold" ]; then
+                    is_stale=0  # session is alive
+                fi
+            fi
+        fi
+        if [ "$is_stale" -eq 1 ]; then
             stale_ids="${stale_ids:+$stale_ids|}$gc_id"
         fi
     done < <(jq -c '.[]' "$cron_state_file" 2>/dev/null)
