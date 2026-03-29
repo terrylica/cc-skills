@@ -405,6 +405,16 @@ $EMPTY_CATCH"
     # === INLINE IGNORE AUDIT (all supported file types, full-file scan) ===
     # Warns about existing inline ignore comments that should be in config files.
     # This is informational only — the PreToolUse guard blocks NEW additions.
+    # Skip test files — they legitimately contain ignore patterns as test fixtures.
+    SKIP_INLINE_AUDIT=false
+    case "$(basename "$FILE_PATH")" in
+        test_*|*_test.*|*.test.*|*_spec.*|*.spec.*) SKIP_INLINE_AUDIT=true ;;
+    esac
+    case "$FILE_PATH" in
+        */__tests__/*|*/tests/*|*/test/*|*/fixtures/*) SKIP_INLINE_AUDIT=true ;;
+    esac
+
+    if [[ "$SKIP_INLINE_AUDIT" != "true" ]]; then
     INLINE_IGNORE_FIX_GUIDANCE="INLINE IGNORE POLICY:
 Inline ignore comments should be in config files, not source code.
 
@@ -421,7 +431,7 @@ Escape hatch: Add INLINE-IGNORE-OK on the same line if truly unavoidable."
 
     case "$FILE_PATH" in
         *.py|*.pyi)
-            INLINE_IGNORES=$(grep -nE '# noqa\b|# type:\s*ignore\b|# ty:\s*ignore\b' "$FILE_PATH" 2>/dev/null | grep -v 'INLINE-IGNORE-OK' || true)
+            INLINE_IGNORES=$(grep -nE '# (ruff: )?noqa\b|# type:\s*ignore\b|# ty:\s*ignore\b' "$FILE_PATH" 2>/dev/null | grep -v 'INLINE-IGNORE-OK' || true)
             ;;
         *.js|*.ts|*.mjs|*.tsx|*.jsx)
             INLINE_IGNORES=$(grep -nE '//\s*eslint-disable(-next)?-line\b|/\*\s*eslint-disable\b|//\s*biome-ignore\b|//\s*oxlint-ignore\b' "$FILE_PATH" 2>/dev/null | grep -v 'INLINE-IGNORE-OK' || true)
@@ -445,6 +455,7 @@ Escape hatch: Add INLINE-IGNORE-OK on the same line if truly unavoidable."
             "$IGNORE_SUMMARY" \
             "$INLINE_IGNORE_FIX_GUIDANCE"
     fi
+    fi # SKIP_INLINE_AUDIT
 fi
 
 # Always exit 0 - we're non-blocking, visibility comes from JSON format
