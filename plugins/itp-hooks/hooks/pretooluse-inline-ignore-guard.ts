@@ -6,8 +6,8 @@
  * Policy: suppressions belong in config files, not scattered in source.
  *
  * Detected patterns:
- *   Python: # noqa, # noqa: XXX, # type: ignore, # type: ignore[xxx], # ty: ignore[xxx]
- *   JS/TS:  // eslint-disable-next-line, // eslint-disable-line, // biome-ignore, // oxlint-ignore
+ *   Python: noqa, type-ignore, ty-ignore, ruff-noqa (INLINE-IGNORE-OK)
+ *   JS/TS:  eslint-disable, biome-ignore, oxlint-ignore (INLINE-IGNORE-OK)
  *
  * Hierarchy enforced:
  *   1. Fix the error (preferred)
@@ -40,6 +40,7 @@ const ESCAPE_HATCH = /INLINE-IGNORE-OK/;
 // Python inline ignore patterns
 const PYTHON_IGNORE_PATTERNS: RegExp[] = [
   /# noqa\b/,
+  /# ruff:\s*noqa\b/,
   /# type:\s*ignore\b/,
   /# ty:\s*ignore\b/,
 ];
