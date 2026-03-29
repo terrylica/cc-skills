@@ -203,7 +203,7 @@ public final class SubtitleSyncDriver {
         guard !pages.isEmpty else { return }
 
         // Show first page with first word highlighted (full display pipeline)
-        subtitlePanel.highlightWord(at: 0, in: pages[0].words, isPageTransition: true)
+        subtitlePanel.highlightWord(at: 0, in: pages[0].words, isPageTransition: true, paragraphBreaksAfter: pages[0].paragraphBreaksAfter)
         currentPageIndex = 0
         currentLocalWordIndex = 0
 
@@ -425,7 +425,7 @@ public final class SubtitleSyncDriver {
 
         // Show first page (full display pipeline for initial chunk display)
         if let firstPage = chunk.pages.first {
-            subtitlePanel.highlightWord(at: 0, in: firstPage.words, isPageTransition: true)
+            subtitlePanel.highlightWord(at: 0, in: firstPage.words, isPageTransition: true, paragraphBreaksAfter: firstPage.paragraphBreaksAfter)
             currentPageIndex = 0
             currentLocalWordIndex = 0
         }
@@ -553,11 +553,11 @@ public final class SubtitleSyncDriver {
             // Page transition: full display pipeline (positionOnScreen, orderFront, diagnostics)
             currentPageIndex = targetPageIndex
             currentLocalWordIndex = localIndex
-            subtitlePanel.highlightWord(at: localIndex, in: pages[targetPageIndex].words, isPageTransition: true)
+            subtitlePanel.highlightWord(at: localIndex, in: pages[targetPageIndex].words, isPageTransition: true, paragraphBreaksAfter: pages[targetPageIndex].paragraphBreaksAfter)
         } else if localIndex != currentLocalWordIndex {
             // Per-word update: lightweight path (only set attributedStringValue)
             currentLocalWordIndex = localIndex
-            subtitlePanel.highlightWord(at: localIndex, in: pages[currentPageIndex].words)
+            subtitlePanel.highlightWord(at: localIndex, in: pages[currentPageIndex].words, paragraphBreaksAfter: pages[currentPageIndex].paragraphBreaksAfter)
         }
     }
 

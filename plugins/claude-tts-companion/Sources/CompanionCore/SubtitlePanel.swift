@@ -154,7 +154,7 @@ public final class SubtitlePanel: NSPanel {
     ///   (positionOnScreen, orderFrontRegardless, logDiagnostics). When `false`
     ///   (default, 60Hz hot path), only sets `textField.attributedStringValue` to
     ///   minimize main-thread work and avoid starving AVAudioPlayer's run loop.
-    func highlightWord(at index: Int, in words: [String], isPageTransition: Bool = false) {
+    func highlightWord(at index: Int, in words: [String], isPageTransition: Bool = false, paragraphBreaksAfter: Set<Int> = []) {
         let sizeName = currentFontSizeName
         let mode = currentDisplayMode
 
@@ -233,16 +233,13 @@ public final class SubtitlePanel: NSPanel {
                 .paragraphStyle: paragraphStyle,
             ]
             if i > 0 {
-                // "\n" marker = paragraph break; otherwise normal space
-                let separator = (words[i - 1] == "\n" || word == "\n") ? "" : " "
-                result.append(NSAttributedString(string: separator, attributes: spaceAttributes))
-            }
-            if word == "\n" {
-                // Render paragraph break as double newline
-                result.append(NSAttributedString(string: "\n\n", attributes: spaceAttributes))
-                continue
+                result.append(NSAttributedString(string: " ", attributes: spaceAttributes))
             }
             result.append(NSAttributedString(string: word, attributes: attributes))
+            // Insert paragraph break after this word if marked
+            if paragraphBreaksAfter.contains(i) {
+                result.append(NSAttributedString(string: "\n\n", attributes: spaceAttributes))
+            }
         }
 
         if isPageTransition {
