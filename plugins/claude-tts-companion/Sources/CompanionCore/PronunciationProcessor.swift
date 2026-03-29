@@ -93,6 +93,62 @@ public struct PronunciationProcessor: Sendable {
             }
     }
 
+    /// Re-attach punctuation from the original text to Kokoro's linguistic tokens.
+    ///
+    /// Kokoro's Misaki/spaCy tokenizer produces word tokens stripped of trailing
+    /// punctuation (e.g., "running" instead of "running.", "over" instead of "over,").
+    /// These tokens are needed for 1:1 onset alignment, but displayed subtitles should
+    /// show the original punctuation.
+    ///
+    /// Algorithm: split original text on whitespace (preserving punctuation), then
+    /// greedily match each Kokoro token to the next original word that contains it.
+    /// The original word (with punctuation) becomes the display word.
+    ///
+    /// Returns display words with punctuation, guaranteed same count as kokoroTokens.
+    /// Falls back to kokoroTokens if matching fails.
+    public static func reattachPunctuation(originalText: String, kokoroTokens: [String]) -> [String] {
+        // Split original text same way as splitWordsMatchingKokoro
+        let originalWords = splitWordsMatchingKokoro(originalText)
+
+        // If counts match, the original words already have punctuation — use them directly
+        if originalWords.count == kokoroTokens.count {
+            return originalWords
+        }
+
+        // Counts don't match (rare edge case where Kokoro merges/splits differently).
+        // Try greedy matching: for each Kokoro token, find the next original word containing it.
+        var displayWords: [String] = []
+        var origIdx = 0
+
+        for token in kokoroTokens {
+            let tokenLower = token.lowercased()
+            var matched = false
+
+            // Search forward in original words for a match
+            var searchIdx = origIdx
+            while searchIdx < originalWords.count {
+                let origLower = originalWords[searchIdx].lowercased()
+                // Check if original word contains the token (handles trailing punctuation)
+                // e.g., origLower="running." contains tokenLower="running"
+                if origLower.hasPrefix(tokenLower) || origLower == tokenLower ||
+                   origLower.contains(tokenLower) {
+                    displayWords.append(originalWords[searchIdx])
+                    origIdx = searchIdx + 1
+                    matched = true
+                    break
+                }
+                searchIdx += 1
+            }
+
+            if !matched {
+                // No match found — use the token as-is (no punctuation, but keeps count correct)
+                displayWords.append(token)
+            }
+        }
+
+        return displayWords
+    }
+
     /// Compute which word indices are followed by a paragraph break (\n\n) in the original text.
     /// Returns a set of local word indices (0-based). Used by subtitle renderer to insert line breaks.
     /// Word count matches splitWordsMatchingKokoro (paragraph breaks don't add words).

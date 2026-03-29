@@ -328,7 +328,7 @@ public final class SubtitleSyncDriver {
 
         // Activate the first chunk for karaoke tracking
         activateChunk(at: 0)
-        chunkStartTime = 0  // First chunk starts at time 0
+        chunkStartTime = 0  // First chunk starts at content time 0
 
         // Start the 60Hz karaoke timer
         startTimer()
@@ -490,9 +490,10 @@ public final class SubtitleSyncDriver {
 
         guard let asp = audioStreamPlayer else { return }
 
-        // AudioStreamPlayer.currentTime is cumulative across ALL scheduled buffers.
-        // Determine which chunk we're in and compute local time within it.
-        let globalTime = asp.currentTime
+        // AudioStreamPlayer.currentTime is cumulative across ALL scheduled buffers,
+        // including the silent lead-in buffer from reset(). Subtract the lead-in
+        // duration so time 0 aligns with the start of real audio content.
+        let globalTime = max(0, asp.currentTime - AudioStreamPlayer.leadInDuration)
 
         // Find the active chunk based on cumulative time boundaries
         var cumulative: TimeInterval = 0
