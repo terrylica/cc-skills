@@ -1,3 +1,29 @@
+## [12.23.1](https://github.com/terrylica/cc-skills/compare/v12.23.0...v12.23.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* **itp-hooks:** catch ruff: noqa, skip test files in audit ([c508925](https://github.com/terrylica/cc-skills/commit/c508925411e5b45eeabc535a9ffe262ee85afcd3))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Phase 32 Plan 02: Health Check Timer Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-02-SUMMARY.md) - new (+103)
+- [Phase 32: Audio Device Resilience Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-VERIFICATION.md) - new (+147)
+- [Requirements: claude-tts-companion v4.9.0](https://github.com/terrylica/cc-skills/blob/main/.planning/REQUIREMENTS.md) - updated (+4/-4)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - updated (+2/-2)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+10/-8)
+- [Milestone v4.9.0 Audit Report](https://github.com/terrylica/cc-skills/blob/main/.planning/v4.9.0-MILESTONE-AUDIT.md) - new (+143)
+
 # [12.23.0](https://github.com/terrylica/cc-skills/compare/v12.22.0...v12.23.0) (2026-03-29)
 
 
