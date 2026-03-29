@@ -181,8 +181,29 @@ private extension CompanionApp {
             let transcriptPath = json["transcriptPath"] as? String ?? json["transcript_path"] as? String
             let cwd = json["cwd"] as? String
             let itermSessionId = json["itermSessionId"] as? String ?? json["iterm_session_id"] as? String
+            let source = json["source"] as? String
+            let notificationType = json["notificationType"] as? String
+            let message = json["message"] as? String
 
-            self.logger.info("Session notification: \(sessionId)")
+            self.logger.info("Session notification: \(sessionId) source=\(source ?? "stop-hook") type=\(notificationType ?? "none")")
+
+            // Notification-hook sourced: Claude Code is waiting for input (plan mode, permission, etc.)
+            // These are lightweight — just TTS the notification message, no full transcript processing.
+            if source == "notification-hook", let msg = message, !msg.isEmpty {
+                self.logger.info("Notification-hook: type=\(notificationType ?? "unknown"), message=\(msg.prefix(80))")
+                let projectName = self.summaryEngine.formatProjectName(cwd)
+                let ttsText = "Attention in \(projectName). \(msg)"
+                Task {
+                    if let bot = self.telegramBot {
+                        // Send lightweight Telegram message
+                        let telegramMsg = "🔔 <b>\(projectName)</b>\n\(msg)"
+                        await bot.sendSilentMessage(telegramMsg)
+                    }
+                    // Queue TTS for the notification
+                    let _ = await self.ttsQueue.enqueue(text: ttsText, greeting: nil, priority: .automated)
+                }
+                return
+            }
 
             // Dedup check: skip if transcript unchanged within TTL (REL-01)
             if let tp = transcriptPath {
