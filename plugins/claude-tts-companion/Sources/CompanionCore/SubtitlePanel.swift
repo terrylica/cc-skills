@@ -420,11 +420,13 @@ public final class SubtitlePanel: NSPanel {
     private func configureContentView() {
         guard let content = contentView else { return }
 
-        // Background with rounded corners and translucent fill
+        // Background with rounded corners, solid fill, and white border
         content.addSubview(backgroundView)
         backgroundView.layer?.backgroundColor = SubtitleStyle.backgroundColor.cgColor
         backgroundView.layer?.cornerRadius = SubtitleStyle.cornerRadius
         backgroundView.layer?.masksToBounds = true
+        backgroundView.layer?.borderColor = NSColor.white.cgColor
+        backgroundView.layer?.borderWidth = 2.0
 
         // Pin background to fill the content view
         NSLayoutConstraint.activate([
