@@ -48,20 +48,20 @@
 
 ## Traceability
 
-| Requirement | Phase    | Status   |
-| ----------- | -------- | -------- |
-| BOT-10      | Phase 29 | Pending  |
-| BOT-11      | Phase 29 | Pending  |
-| BOT-12      | Phase 29 | Pending  |
-| BAR-10      | Phase 30 | Complete |
-| BAR-11      | Phase 30 | Complete |
-| BAR-12      | Phase 30 | Complete |
-| E2E-01      | Phase 31 | Pending  |
-| E2E-02      | Phase 31 | Pending  |
-| E2E-03      | Phase 31 | Pending  |
-| AUDIO-01    | Phase 32 | Complete |
-| AUDIO-02    | Phase 32 | Complete |
-| AUDIO-03    | Phase 32 | Complete |
-| AUDIO-04    | Phase 32 | Complete |
-| AUDIO-05    | Phase 32 | Complete |
-| AUDIO-06    | Phase 32 | Complete |
+| Requirement | Phase                         | Status   |
+| ----------- | ----------------------------- | -------- |
+| BOT-10      | Phase 33 (gap closure for 29) | Pending  |
+| BOT-11      | Phase 33 (gap closure for 29) | Pending  |
+| BOT-12      | Phase 33 (gap closure for 29) | Pending  |
+| BAR-10      | Phase 30                      | Complete |
+| BAR-11      | Phase 30                      | Complete |
+| BAR-12      | Phase 30                      | Complete |
+| E2E-01      | Phase 34 (gap closure for 31) | Pending  |
+| E2E-02      | Phase 34 (gap closure for 31) | Pending  |
+| E2E-03      | Phase 34 (gap closure for 31) | Pending  |
+| AUDIO-01    | Phase 32                      | Complete |
+| AUDIO-02    | Phase 32                      | Complete |
+| AUDIO-03    | Phase 32                      | Complete |
+| AUDIO-04    | Phase 32                      | Complete |
+| AUDIO-05    | Phase 32                      | Complete |
+| AUDIO-06    | Phase 32                      | Complete |
