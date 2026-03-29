@@ -83,6 +83,11 @@ describe("Python inline ignores — DENY", () => {
     expect(output?.hookSpecificOutput?.permissionDecision).toBe("deny");
   });
 
+  test("denies # ruff: noqa file-level comment in .py Write", async () => {
+    const { output } = await runHook(writeInput("/tmp/test.py", "# ruff: noqa: F821\nimport missing\n"));
+    expect(output?.hookSpecificOutput?.permissionDecision).toBe("deny");
+  });
+
   test("denies net-new # noqa in Edit", async () => {
     const { output } = await runHook(editInput(
       "/tmp/test.py",
