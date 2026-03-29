@@ -355,6 +355,37 @@ echo -e "    ${datetime_display}"
 # Cron jobs: one line per scheduler, after datetime (bottom of statusline)
 # OSC 8 parts emitted with printf directly — never stored in variables to
 # avoid printf '%b' re-interpreting already-built escape sequences.
+#
+# Defense-in-depth: render-time liveness GC (Layer 1 of 3)
+# Cross-checks each entry against system crontab. Entries whose job ID
+# no longer appears in `crontab -l` are stale (cron was deleted or session
+# died without CronDelete). Prune them atomically before rendering.
+# Pattern: Kubernetes readiness probe adapted for local JSON registry.
+# See also: Layer 2 (stop-cron-gc.ts), Layer 3 (TTL in cron-tracker.ts).
+if [ "$cron_count" -gt 0 ]; then
+    crontab_snapshot=$(crontab -l 2>/dev/null || true)
+    stale_ids=""
+    while IFS= read -r entry; do
+        gc_id=$(echo "$entry" | jq -r '.id')
+        if [ -n "$gc_id" ] && ! echo "$crontab_snapshot" | grep -qF "$gc_id"; then
+            stale_ids="${stale_ids:+$stale_ids|}$gc_id"
+        fi
+    done < <(jq -c '.[]' "$cron_state_file" 2>/dev/null)
+
+    if [ -n "$stale_ids" ]; then
+        # Atomic prune: remove stale entries, write via temp file + rename
+        jq --arg ids "$stale_ids" '
+            [ .[] | select(.id | test($ids) | not) ]
+        ' "$cron_state_file" > "${cron_state_file}.tmp" 2>/dev/null \
+            && mv "${cron_state_file}.tmp" "$cron_state_file" 2>/dev/null
+        cron_count=$(jq 'length' "$cron_state_file" 2>/dev/null || echo 0)
+        # Log GC event for observability
+        gc_log="$HOME/.claude/logs/cron-tracker.jsonl"
+        [ -d "$HOME/.claude/logs" ] && printf '{"ts":"%s","level":"info","component":"statusline-gc","event":"render_time_gc","pruned_ids":"%s"}\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$stale_ids" >> "$gc_log" 2>/dev/null
+    fi
+fi
+
 if [ "$cron_count" -gt 0 ]; then
     while IFS= read -r entry; do
         job_id=$(echo "$entry"     | jq -r '.id')
