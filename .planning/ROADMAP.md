@@ -145,7 +145,7 @@ Plans:
 Plans:
 
 - [x] 03-01-PLAN.md -- Patch sherpa-onnx for duration tensor + TTSEngine with synthesis/WAV/afplay
-- [ ] 03-02-PLAN.md -- Word timestamp extraction + karaoke integration + main.swift wiring + verification
+- [x] 03-02-PLAN.md -- Word timestamp extraction + karaoke integration + main.swift wiring + verification
       **UI hint**: yes
 
 ### Phase 4: AI Summaries
@@ -182,7 +182,7 @@ Plans:
 Plans:
 
 - [x] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
-- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
+- [x] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
 
 ### Phase 6: Telegram Bot Commands
 
@@ -239,7 +239,7 @@ Plans:
 Plans:
 
 - [x] 08-01-PLAN.md -- FlyingFox dependency + SettingsStore persistence + HTTPControlServer endpoints
-- [ ] 08-02-PLAN.md -- Wire HTTP server into main.swift + build verification
+- [x] 08-02-PLAN.md -- Wire HTTP server into main.swift + build verification
 
 ### Phase 9: SwiftBar Integration
 
@@ -257,8 +257,8 @@ Plans:
 
 Plans:
 
-- [ ] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
-- [ ] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
+- [x] 21-01-PLAN.md -- TTSPipelineCoordinator: exclusive pipeline access, rapid-fire subtitle-only fallback, concurrent TTS test race elimination
+- [x] 21-02-PLAN.md -- Audio route change recovery (AVAudioEngine config change) + memory pressure subtitle-only degradation
       **UI hint**: yes
 
 ### Phase 10: Deployment & Extras
