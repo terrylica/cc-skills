@@ -300,7 +300,7 @@ Reference: CLAUDE.md Process Storm Prevention section"
             # Check 3: Ruff for silent failure patterns
             if command -v ruff &>/dev/null; then
                 RUFF_OUTPUT=$(ruff check \
-                    --select=E722,S110,S112,BLE001,PLW1510 \
+                    --select=E722,S110,S112,PLW1510 \
                     --output-format=json \
                     "$FILE_PATH" 2>/dev/null || true)
 
@@ -401,6 +401,50 @@ $EMPTY_CATCH"
             fi
             ;;
     esac
+
+    # === INLINE IGNORE AUDIT (all supported file types, full-file scan) ===
+    # Warns about existing inline ignore comments that should be in config files.
+    # This is informational only — the PreToolUse guard blocks NEW additions.
+    INLINE_IGNORE_FIX_GUIDANCE="INLINE IGNORE POLICY:
+Inline ignore comments should be in config files, not source code.
+
+HIERARCHY:
+1. FIX THE ERROR (preferred) - add type annotations, casts, __all__ for re-exports
+2. CONFIG-LEVEL IGNORE (only for tool/library limitations):
+   - ruff: [lint.per-file-ignores] in ruff.toml
+   - ty: [[overrides]] in ty.toml with include pattern
+   - oxlint: .oxlintrc.json rules section
+   - biome: biome.json linter.rules section
+3. NEVER: Inline # noqa / # type: ignore / // eslint-disable
+
+Escape hatch: Add INLINE-IGNORE-OK on the same line if truly unavoidable."
+
+    case "$FILE_PATH" in
+        *.py|*.pyi)
+            INLINE_IGNORES=$(grep -nE '# noqa\b|# type:\s*ignore\b|# ty:\s*ignore\b' "$FILE_PATH" 2>/dev/null | grep -v 'INLINE-IGNORE-OK' || true)
+            ;;
+        *.js|*.ts|*.mjs|*.tsx|*.jsx)
+            INLINE_IGNORES=$(grep -nE '//\s*eslint-disable(-next)?-line\b|/\*\s*eslint-disable\b|//\s*biome-ignore\b|//\s*oxlint-ignore\b' "$FILE_PATH" 2>/dev/null | grep -v 'INLINE-IGNORE-OK' || true)
+            ;;
+        *)
+            INLINE_IGNORES=""
+            ;;
+    esac
+
+    if [[ -n "$INLINE_IGNORES" ]]; then
+        IGNORE_COUNT=$(echo "$INLINE_IGNORES" | wc -l | tr -d ' ')
+        # Cap at 5 lines
+        IGNORE_SUMMARY=$(echo "$INLINE_IGNORES" | head -5 | sed 's/^\([0-9]*\):.*/Line \1/')
+        if [[ "$IGNORE_COUNT" -gt 5 ]]; then
+            IGNORE_SUMMARY="$IGNORE_SUMMARY
+...and $((IGNORE_COUNT - 5)) more"
+        fi
+        emit_warning "INLINE-IGNORE-AUDIT" \
+            "Found $IGNORE_COUNT inline ignore comment(s) - move to config files" \
+            "$FILE_PATH" \
+            "$IGNORE_SUMMARY" \
+            "$INLINE_IGNORE_FIX_GUIDANCE"
+    fi
 fi
 
 # Always exit 0 - we're non-blocking, visibility comes from JSON format

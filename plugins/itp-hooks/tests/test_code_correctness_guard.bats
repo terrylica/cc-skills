@@ -5,7 +5,7 @@
 #
 # Tests cover:
 # - Bash tool failure detection (non-zero exit codes)
-# - Python silent failure patterns (E722, S110, S112, BLE001, PLW1510)
+# - Python silent failure patterns (E722, S110, S112, PLW1510)
 # - Python shell variable detection ($HOME in Python strings)
 # - Shell script issues (SC2155, SC2164, SC2181, SC2086)
 # - JS/TS issues (empty catch, floating promises)
@@ -246,6 +246,73 @@ setup() {
     INPUT='{"tool_name":"Write","tool_input":{"file_path":""}}'
     run bash -c "echo '$INPUT' | $HOOK"
     [ "$status" -eq 0 ]
+}
+
+# =============================================================================
+# INLINE IGNORE AUDIT (PostToolUse warning)
+# =============================================================================
+
+@test "Inline ignore: detects # noqa in Python file" {
+    TMPFILE=$(mktemp /tmp/test_XXXXXX.py)
+    echo 'import os  # noqa: F401' > "$TMPFILE"
+    INPUT="{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$TMPFILE\",\"content\":\"import os  # noqa: F401\"}}"
+    run bash -c "echo '$INPUT' | $HOOK"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"INLINE-IGNORE-AUDIT"* ]]
+    rm -f "$TMPFILE"
+}
+
+@test "Inline ignore: detects # type: ignore in Python file" {
+    TMPFILE=$(mktemp /tmp/test_XXXXXX.py)
+    echo 'x = foo()  # type: ignore' > "$TMPFILE"
+    INPUT="{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$TMPFILE\",\"content\":\"x = foo()  # type: ignore\"}}"
+    run bash -c "echo '$INPUT' | $HOOK"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"INLINE-IGNORE-AUDIT"* ]]
+    rm -f "$TMPFILE"
+}
+
+@test "Inline ignore: detects // eslint-disable in TS file" {
+    TMPFILE=$(mktemp /tmp/test_XXXXXX.ts)
+    echo '// eslint-disable-next-line no-unused-vars' > "$TMPFILE"
+    echo 'const x = 1;' >> "$TMPFILE"
+    INPUT="{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$TMPFILE\",\"content\":\"// eslint-disable-next-line\\nconst x = 1;\"}}"
+    run bash -c "echo '$INPUT' | $HOOK"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"INLINE-IGNORE-AUDIT"* ]]
+    rm -f "$TMPFILE"
+}
+
+@test "Inline ignore: clean Python file shows no warning" {
+    TMPFILE=$(mktemp /tmp/test_XXXXXX.py)
+    echo 'import os' > "$TMPFILE"
+    echo 'print(os.getcwd())' >> "$TMPFILE"
+    INPUT="{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$TMPFILE\",\"content\":\"import os\\nprint(os.getcwd())\"}}"
+    run bash -c "echo '$INPUT' | $HOOK"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"INLINE-IGNORE-AUDIT"* ]]
+    rm -f "$TMPFILE"
+}
+
+@test "Inline ignore: respects INLINE-IGNORE-OK escape hatch" {
+    TMPFILE=$(mktemp /tmp/test_XXXXXX.py)
+    echo 'import pysbd  # type: ignore[import]  # INLINE-IGNORE-OK' > "$TMPFILE"
+    INPUT="{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$TMPFILE\",\"content\":\"import pysbd  # type: ignore[import]  # INLINE-IGNORE-OK\"}}"
+    run bash -c "echo '$INPUT' | $HOOK"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"INLINE-IGNORE-AUDIT"* ]]
+    rm -f "$TMPFILE"
+}
+
+@test "Inline ignore: includes config-level guidance" {
+    TMPFILE=$(mktemp /tmp/test_XXXXXX.py)
+    echo 'x = 1  # noqa' > "$TMPFILE"
+    INPUT="{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$TMPFILE\",\"content\":\"x = 1  # noqa\"}}"
+    run bash -c "echo '$INPUT' | $HOOK"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"ruff"* ]]
+    [[ "$output" == *"config"* ]]
+    rm -f "$TMPFILE"
 }
 
 # =============================================================================
