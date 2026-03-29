@@ -1,3 +1,28 @@
+## [12.24.1](https://github.com/terrylica/cc-skills/compare/v12.24.0...v12.24.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* **statusline-tools:** implement anti-fragile 3-layer defense-in-depth cron registry GC ([0a070fd](https://github.com/terrylica/cc-skills/commit/0a070fd65f89f63ac2aa831665d88361b04eb135))
+* subtitle sync drift + punctuation restoration ([cb6a335](https://github.com/terrylica/cc-skills/commit/cb6a335081bc131a6c2f7635a2de12eb117e8976)), closes [terrylica/cc-skills#73](https://github.com/terrylica/cc-skills/issues/73)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [speech-subtitle-sync-drift-v2](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/speech-subtitle-sync-drift-v2.md) - new (+82)
+- [subtitle-punctuation-stripped](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/subtitle-punctuation-stripped.md) - new (+82)
+- [Plan 03-02 Summary: Word Timestamps + TTS Karaoke](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/03-tts-engine/03-02-SUMMARY.md) - new (+43)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - updated (+19/-19)
+
 # [12.24.0](https://github.com/terrylica/cc-skills/compare/v12.23.1...v12.24.0) (2026-03-29)
 
 
