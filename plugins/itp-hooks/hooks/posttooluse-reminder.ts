@@ -388,13 +388,12 @@ function checkPyprojectPathEscape(
   const pathPattern =
     /([a-zA-Z0-9_-]+)\s*=\s*\{[^}]*path\s*=\s*["']([^"']+)["']/g;
 
-  let match;
-  while ((match = pathPattern.exec(fileContent)) !== null) {
-    const pathValue = match[2];
+  for (const m of fileContent.matchAll(pathPattern)) {
+    const pathValue = m[2];
     // Count levels up
     const upLevels = (pathValue.match(/\.\.\//g) || []).length;
     if (upLevels >= 3) {
-      escapingPaths.push(`${match[1]} = { path = "${pathValue}" }`);
+      escapingPaths.push(`${m[1]} = { path = "${pathValue}" }`);
     }
   }
 
@@ -452,6 +451,113 @@ function checkFileSizeReminder(filePath: string): string | null {
 
   const fileName = filePath.split("/").pop();
   return `[FILE-SIZE-REMINDER] ${fileName} is ${lineCount} lines (warn: ${WARN}, block: ${BLOCK}). Consider splitting into smaller files. Add \`# FILE-SIZE-OK\` to suppress.`;
+}
+
+/**
+ * Check if a Python file looks like a long-running service/daemon but is missing setproctitle.
+ * Without setproctitle, all Python services appear as generic "python" in ps/top/Activity Monitor.
+ *
+ * Detects: while True loops, asyncio.run/event loops, signal handlers, FastAPI/Flask/uvicorn,
+ *          launchd/systemd paths, if __name__ == "__main__" with server patterns.
+ *
+ * Skips: files that already import setproctitle, test files, non-.py files.
+ */
+function checkSetproctitle(filePath: string, content?: string): string | null {
+  // Only Python files
+  if (!filePath.endsWith(".py")) return null;
+
+  // Skip test files
+  const fileName = filePath.split("/").pop() || "";
+  if (/^test_|_test\.py$|_spec\.py$/.test(fileName)) return null;
+  if (filePath.includes("__tests__/") || filePath.includes("/tests/")) return null;
+
+  // Get file content
+  let fileContent = content;
+  if (!fileContent && existsSync(filePath)) {
+    try {
+      fileContent = readFileSync(filePath, "utf-8");
+    } catch {
+      return null;
+    }
+  }
+  if (!fileContent) return null;
+
+  // Already has setproctitle — nothing to do
+  if (/setproctitle/.test(fileContent)) return null;
+
+  // Escape hatch
+  if (fileContent.includes("# SETPROCTITLE-OK")) return null;
+
+  // --- Detect service/daemon patterns ---
+  const SERVICE_PATTERNS: [RegExp, string][] = [
+    [/while\s+True\s*:/, "while True loop (daemon main loop)"],
+    [/while\s+running\s*:/, "while running loop (daemon main loop)"],
+    [/while\s+self\._?running\s*:/, "while self.running loop (daemon main loop)"],
+    [/asyncio\.(run|get_event_loop|new_event_loop)\s*\(/, "asyncio event loop"],
+    [/\.run_forever\s*\(/, "event loop run_forever()"],
+    [/\.run_until_complete\s*\(/, "event loop run_until_complete()"],
+    [/signal\.signal\s*\(\s*signal\.SIG(TERM|INT|HUP)/, "signal handler (daemon lifecycle)"],
+    [/uvicorn\.run\s*\(/, "uvicorn server"],
+    [/app\.run\s*\(.*(?:host|port)/, "Flask/FastAPI server"],
+    [/serve_forever\s*\(/, "serve_forever() (SocketServer)"],
+    [/Celery\s*\(|@app\.task/, "Celery worker"],
+    [/schedule\.(every|run_pending)/, "schedule-based daemon"],
+    [/APScheduler|BackgroundScheduler|AsyncIOScheduler/, "APScheduler daemon"],
+    [/multiprocessing\.(Process|Pool)\s*\(/, "multiprocessing worker"],
+    [/threading\.Thread\(.*daemon\s*=\s*True/, "daemon thread"],
+    [/Observer\(\)[\s\S]{0,200}\.start\(\)/, "watchdog file observer"],
+    [/add_argument\(\s*["']--daemon["']/, "CLI --daemon flag (daemon entry point)"],
+  ];
+
+  // Also check if file lives in a service/daemon directory
+  const SERVICE_PATHS = [
+    /\.claude\/automation\//,
+    /LaunchAgents\//,
+    /LaunchDaemons\//,
+    /systemd\//,
+    /\.service/,
+    /daemons?\//i,
+    /workers?\//i,
+  ];
+
+  const inServicePath = SERVICE_PATHS.some((p) => p.test(filePath));
+
+  const matchedPatterns: string[] = [];
+  for (const [pattern, label] of SERVICE_PATTERNS) {
+    if (pattern.test(fileContent)) {
+      matchedPatterns.push(label);
+    }
+  }
+
+  // Need at least one service pattern, or be in a service directory with a main guard
+  const hasMainGuard = /if\s+__name__\s*==\s*["']__main__["']/.test(fileContent);
+
+  if (matchedPatterns.length === 0 && !(inServicePath && hasMainGuard)) {
+    return null;
+  }
+
+  const detectedStr = matchedPatterns.length > 0
+    ? `Detected: ${matchedPatterns.join(", ")}`
+    : `File is in a service directory: ${filePath}`;
+
+  return `[SETPROCTITLE-REMINDER] Python service/daemon missing setproctitle
+${detectedStr}
+
+Without setproctitle, this process appears as generic "python" in ps/top/htop/Activity Monitor,
+making it impossible to identify among other Python processes.
+
+FIX — add near the top of the file (before main loop):
+  import setproctitle
+  setproctitle.setproctitle("${fileName.replace(/\.py$/, "")}")
+
+INSTALL: uv add setproctitle
+
+NAMING CONVENTIONS:
+  Static:  setproctitle.setproctitle("gmail-token-refresher")
+  Dynamic: setproctitle.setproctitle("tts-engine: synthesizing")
+  Worker:  setproctitle.setproctitle("cache-worker-1")
+
+Add \`# SETPROCTITLE-OK\` to suppress if this is not a long-running service.`;
 }
 
 /**
@@ -619,6 +725,11 @@ async function main(): Promise<void> {
     // Check Design Spec modified (uses pattern-normalized path)
     if (!reminder) {
       reminder = checkSpecModified(patternPath);
+    }
+
+    // Check Python service/daemon files for setproctitle (before generic traceability)
+    if (!reminder) {
+      reminder = checkSetproctitle(rawFilePath, content);
     }
 
     // Check implementation code (uses raw path for file reading)
