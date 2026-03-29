@@ -1,3 +1,10 @@
+## [12.24.3](https://github.com/terrylica/cc-skills/compare/v12.24.2...v12.24.3) (2026-03-29)
+
+
+### Bug Fixes
+
+* **statusline-tools:** remove dying-session detection from Stop hook GC ([83115f7](https://github.com/terrylica/cc-skills/commit/83115f7e57a09042095e88485fd361a60a25624a))
+
 ## [12.24.2](https://github.com/terrylica/cc-skills/compare/v12.24.1...v12.24.2) (2026-03-29)
 
 
