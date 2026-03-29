@@ -4,11 +4,28 @@
 // that stays warm between chunks. scheduleBuffer() enables gapless transitions
 // without hardware cold-start latency.
 import AVFoundation
+import CoreAudio
 import Foundation
 import Logging
 
 /// Callback fired when a scheduled buffer finishes playing (for subtitle sync + back-pressure).
 typealias ChunkCompletionHandler = () -> Void
+
+/// CoreAudio HAL property listener callback (C function pointer).
+/// Fires on an internal CoreAudio thread -- dispatches to main queue for thread safety.
+private func defaultOutputDeviceChanged(
+    _ objectID: AudioObjectID,
+    _ numberAddresses: UInt32,
+    _ addresses: UnsafePointer<AudioObjectPropertyAddress>,
+    _ clientData: UnsafeMutableRawPointer?
+) -> OSStatus {
+    guard let clientData = clientData else { return noErr }
+    let player = Unmanaged<AudioStreamPlayer>.fromOpaque(clientData).takeUnretainedValue()
+    DispatchQueue.main.async {
+        player.triggerRebuild(source: .halListener)
+    }
+    return noErr
+}
 
 /// Persistent audio engine for gapless streaming TTS playback.
 ///
@@ -46,6 +63,23 @@ public final class AudioStreamPlayer: @unchecked Sendable {
 
     /// Observer token for AVAudioEngine configuration change notifications.
     private var configChangeObserver: NSObjectProtocol?
+
+    /// Whether the CoreAudio HAL property listener is registered.
+    private var halListenerRegistered: Bool = false
+
+    /// Cached output device ID (set on engine start/rebuild, compared in health check).
+    private(set) var cachedOutputDeviceID: AudioDeviceID = AudioDeviceID(kAudioDeviceUnknown)
+
+    /// Timestamp of the last successful engine rebuild (for cooldown enforcement).
+    private var lastRebuildTime: CFAbsoluteTime = 0
+
+    /// Pending debounced rebuild work item (cancelled on each new trigger).
+    private var rebuildWorkItem: DispatchWorkItem?
+
+    /// Source that triggered an engine rebuild.
+    enum RebuildSource: String {
+        case halListener, configNotification, healthCheck
+    }
 
     /// Called when audio route changes (e.g., Bluetooth disconnect). Fires on main queue.
     /// TTSPipelineCoordinator uses this to cancel current pipeline and optionally restart.
@@ -99,10 +133,18 @@ public final class AudioStreamPlayer: @unchecked Sendable {
             self?.handleConfigurationChange()
         }
 
-        logger.info("AudioStreamPlayer created (48kHz mono float32, AVAudioEngine)")
+        // Register CoreAudio HAL listener for default output device changes
+        setupHALListener()
+
+        // Cache the initial output device ID
+        cachedOutputDeviceID = getSystemDefaultOutputDeviceID()
+        let initialDeviceName = getDeviceName(deviceID: cachedOutputDeviceID)
+        logger.info("AudioStreamPlayer created (48kHz mono float32, AVAudioEngine, device: \(initialDeviceName) [\(cachedOutputDeviceID)])")
     }
 
     deinit {
+        removeHALListener()
+        rebuildWorkItem?.cancel()
         if let observer = configChangeObserver {
             NotificationCenter.default.removeObserver(observer)
         }
@@ -124,7 +166,9 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         do {
             try engine.start()
             isRunning = true
-            logger.info("AVAudioEngine started")
+            cachedOutputDeviceID = getSystemDefaultOutputDeviceID()
+            let deviceName = getDeviceName(deviceID: cachedOutputDeviceID)
+            logger.info("AVAudioEngine started on \(deviceName) [\(cachedOutputDeviceID)]")
         } catch {
             logger.error("Failed to start AVAudioEngine: \(error)")
         }
@@ -188,34 +232,168 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     /// Handle AVAudioEngine configuration change (hardware route change).
     ///
     /// When Bluetooth headphones disconnect mid-playback, macOS invalidates the
-    /// engine configuration. This method stops the player node (cancels queued buffers),
-    /// attempts to restart the engine on the new default output device, and notifies
-    /// the coordinator via `onRouteChange` callback.
+    /// engine configuration. Feeds into the unified debounced rebuild path so that
+    /// rapid config changes (e.g., Bluetooth reconnect) are collapsed into a single rebuild.
     private func handleConfigurationChange() {
         logger.warning("Audio configuration changed (hardware route change)")
+        triggerRebuild(source: .configNotification)
+    }
 
+    // MARK: - Device Change Detection
+
+    /// Register CoreAudio HAL property listener for default output device changes.
+    /// Uses the C function pointer variant (NOT the block variant which has a known Apple removal bug).
+    private func setupHALListener() {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        let status = AudioObjectAddPropertyListener(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            defaultOutputDeviceChanged,
+            selfPtr
+        )
+        if status == noErr {
+            halListenerRegistered = true
+            logger.info("CoreAudio HAL listener registered for default output device changes")
+        } else {
+            logger.error("Failed to register CoreAudio HAL listener: \(status)")
+        }
+    }
+
+    /// Remove CoreAudio HAL property listener.
+    private func removeHALListener() {
+        guard halListenerRegistered else { return }
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        let status = AudioObjectRemovePropertyListener(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            defaultOutputDeviceChanged,
+            selfPtr
+        )
+        halListenerRegistered = false
+        if status != noErr {
+            logger.warning("Failed to remove CoreAudio HAL listener: \(status)")
+        }
+    }
+
+    /// Query the system default output device ID via CoreAudio HAL.
+    func getSystemDefaultOutputDeviceID() -> AudioDeviceID {
+        var deviceID = AudioDeviceID(kAudioDeviceUnknown)
+        var propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address, 0, nil,
+            &propertySize, &deviceID
+        )
+        return deviceID
+    }
+
+    /// Get the human-readable name for an audio device.
+    func getDeviceName(deviceID: AudioDeviceID) -> String {
+        var name: CFString = "" as CFString
+        var propertySize = UInt32(MemoryLayout<CFString>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceNameCFString,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let status = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &propertySize, &name)
+        if status != noErr {
+            return "Unknown"
+        }
+        return name as String
+    }
+
+    /// Debounced entry point for engine rebuild. Cancels any pending rebuild and schedules
+    /// a new one after the debounce window. Enforces cooldown between rebuilds.
+    func triggerRebuild(source: RebuildSource) {
+        logger.info("Rebuild triggered by \(source.rawValue)")
+
+        // Cancel pending debounce
+        rebuildWorkItem?.cancel()
+
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+
+            // Cooldown check
+            let now = CFAbsoluteTimeGetCurrent()
+            if now - self.lastRebuildTime < Config.audioRebuildCooldownSeconds {
+                let remaining = Config.audioRebuildCooldownSeconds - (now - self.lastRebuildTime)
+                self.logger.info("Rebuild skipped (cooldown active, \(String(format: "%.1f", remaining))s remaining)")
+                return
+            }
+
+            self.rebuildEngine()
+
+            // Notify coordinator after rebuild completes
+            self.onRouteChange?()
+        }
+        rebuildWorkItem = work
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + .milliseconds(Int(Config.audioRebuildDebounceMs)),
+            execute: work
+        )
+    }
+
+    /// Full engine teardown and rebuild: stop -> detach -> reset -> re-attach -> connect -> prepare -> start.
+    /// Preserves the 48kHz mono float32 format by using the stored `format` (NOT engine.outputNode.outputFormat).
+    private func rebuildEngine() {
         engineLock.lock()
+        defer { engineLock.unlock() }
 
-        // Stop player node -- cancels all queued buffers
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let oldDeviceID = cachedOutputDeviceID
+        let newDeviceID = getSystemDefaultOutputDeviceID()
+        let newDeviceName = getDeviceName(deviceID: newDeviceID)
+
+        logger.warning("Rebuilding audio engine: device \(oldDeviceID) -> \(newDeviceID) (\(newDeviceName))")
+
+        // 1. Stop everything
         playerNode.stop()
         bufferCountLock.lock()
         scheduledBufferCount = 0
         bufferCountLock.unlock()
 
-        // Try to restart engine on new default output device
+        if isRunning {
+            engine.stop()
+            isRunning = false
+        }
+
+        // 2. Teardown graph
+        engine.detach(playerNode)
+        engine.reset()
+
+        // 3. Rebuild graph (preserves 48kHz mono float32 format)
+        engine.attach(playerNode)
+        engine.connect(playerNode, to: engine.mainMixerNode, format: format)
+        engine.prepare()
+
+        // 4. Start
         do {
             try engine.start()
             isRunning = true
-            logger.info("AVAudioEngine restarted on new audio device")
+            cachedOutputDeviceID = getSystemDefaultOutputDeviceID()
+            lastRebuildTime = CFAbsoluteTimeGetCurrent()
+            let duration = lastRebuildTime - startTime
+            logger.info("Audio engine rebuilt successfully on \(newDeviceName) (took \(String(format: "%.1f", duration * 1000))ms)")
         } catch {
             isRunning = false
-            logger.error("Failed to restart AVAudioEngine after route change: \(error)")
+            logger.error("Failed to rebuild audio engine: \(error)")
         }
-
-        engineLock.unlock()
-
-        // Notify coordinator to cancel current pipeline (subtitle-only fallback if needed)
-        onRouteChange?()
     }
 
     // MARK: - Buffer Scheduling
