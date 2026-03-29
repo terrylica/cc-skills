@@ -233,7 +233,14 @@ public final class SubtitlePanel: NSPanel {
                 .paragraphStyle: paragraphStyle,
             ]
             if i > 0 {
-                result.append(NSAttributedString(string: " ", attributes: spaceAttributes))
+                // "\n" marker = paragraph break; otherwise normal space
+                let separator = (words[i - 1] == "\n" || word == "\n") ? "" : " "
+                result.append(NSAttributedString(string: separator, attributes: spaceAttributes))
+            }
+            if word == "\n" {
+                // Render paragraph break as double newline
+                result.append(NSAttributedString(string: "\n\n", attributes: spaceAttributes))
+                continue
             }
             result.append(NSAttributedString(string: word, attributes: attributes))
         }
