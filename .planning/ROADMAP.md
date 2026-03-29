@@ -697,7 +697,7 @@ Plans:
 
 Plans:
 
-- [ ] 32-01-PLAN.md -- Config constants + CoreAudio HAL listener + full engine teardown/rebuild + debounce/cooldown
+- [x] 32-01-PLAN.md -- Config constants + CoreAudio HAL listener + full engine teardown/rebuild + debounce/cooldown
 - [ ] 32-02-PLAN.md -- Periodic health check timer + manual device switch verification checkpoint
 
 ## Progress
@@ -739,4 +739,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 29. Telegram Bot Activation                     | 0/0            | Complete    | 2026-03-28 |
 | 30. SwiftBar UI Updates                         | 1/1            | Complete    | 2026-03-28 |
 | 31. E2E Integration Verification                | 0/0            | Complete    | 2026-03-28 |
-| 32. Audio Device Resilience                     | 0/0            | Not started | -          |
+| 32. Audio Device Resilience                     | 1/2 | In Progress|  |

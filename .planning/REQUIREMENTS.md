@@ -28,10 +28,10 @@
 
 ### Audio Device Resilience
 
-- [ ] **AUDIO-01**: CoreAudio HAL listener fires immediately when default output device changes (Bluetooth, HDMI, speaker switch)
-- [ ] **AUDIO-02**: Full AVAudioEngine teardown + rebuild (detach/reset/re-attach/connect/prepare/start) on device change
-- [ ] **AUDIO-03**: 200ms debounce + 5s cooldown prevents rebuild storms during rapid device flapping
-- [ ] **AUDIO-04**: AVAudioEngineConfigurationChange notification feeds into same debounced rebuild path as HAL listener
+- [x] **AUDIO-01**: CoreAudio HAL listener fires immediately when default output device changes (Bluetooth, HDMI, speaker switch)
+- [x] **AUDIO-02**: Full AVAudioEngine teardown + rebuild (detach/reset/re-attach/connect/prepare/start) on device change
+- [x] **AUDIO-03**: 200ms debounce + 5s cooldown prevents rebuild storms during rapid device flapping
+- [x] **AUDIO-04**: AVAudioEngineConfigurationChange notification feeds into same debounced rebuild path as HAL listener
 - [ ] **AUDIO-05**: 30-second periodic health check detects device mismatch when HAL/notification both miss a change
 - [ ] **AUDIO-06**: Device ID + name logged on every engine start, rebuild, and health check mismatch
 
@@ -59,9 +59,9 @@
 | E2E-01      | Phase 31 | Pending  |
 | E2E-02      | Phase 31 | Pending  |
 | E2E-03      | Phase 31 | Pending  |
-| AUDIO-01    | Phase 32 | Pending  |
-| AUDIO-02    | Phase 32 | Pending  |
-| AUDIO-03    | Phase 32 | Pending  |
-| AUDIO-04    | Phase 32 | Pending  |
+| AUDIO-01    | Phase 32 | Complete |
+| AUDIO-02    | Phase 32 | Complete |
+| AUDIO-03    | Phase 32 | Complete |
+| AUDIO-04    | Phase 32 | Complete |
 | AUDIO-05    | Phase 32 | Pending  |
 | AUDIO-06    | Phase 32 | Pending  |
