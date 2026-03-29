@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v4.9.0
 milestone_name: SwiftBar UI & Telegram Bot Activation
-status: executing
-stopped_at: Completed 32-01-PLAN.md
-last_updated: "2026-03-29T07:29:31.709Z"
+status: verifying
+stopped_at: Completed 32-02-PLAN.md
+last_updated: "2026-03-29T07:36:28.299Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 29
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 Phase: 32 (audio-device-resilience) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase 30 P01 | 2min | 3 tasks | 1 files |
 | Phase 32 P01 | 2min | 2 tasks | 2 files |
+| Phase 32 P02 | 2min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,7 @@ Recent decisions affecting current work:
 - [Phase 30]: Bot 'unknown' mapped to 'disabled' (white dot) -- intentional config state, not error
 - [Phase 32]: C function pointer HAL listener over block variant (Apple removal bug)
 - [Phase 32]: Cached device ID approach over AudioUnit query for health check comparison
+- [Phase 32]: Health check skips during active playback (audio working if playing)
 
 ### Roadmap Evolution
 
@@ -90,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T07:29:31.706Z
-Stopped at: Completed 32-01-PLAN.md
+Last session: 2026-03-29T07:36:28.296Z
+Stopped at: Completed 32-02-PLAN.md
 Resume file: None

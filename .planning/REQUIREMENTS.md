@@ -32,8 +32,8 @@
 - [x] **AUDIO-02**: Full AVAudioEngine teardown + rebuild (detach/reset/re-attach/connect/prepare/start) on device change
 - [x] **AUDIO-03**: 200ms debounce + 5s cooldown prevents rebuild storms during rapid device flapping
 - [x] **AUDIO-04**: AVAudioEngineConfigurationChange notification feeds into same debounced rebuild path as HAL listener
-- [ ] **AUDIO-05**: 30-second periodic health check detects device mismatch when HAL/notification both miss a change
-- [ ] **AUDIO-06**: Device ID + name logged on every engine start, rebuild, and health check mismatch
+- [x] **AUDIO-05**: 30-second periodic health check detects device mismatch when HAL/notification both miss a change
+- [x] **AUDIO-06**: Device ID + name logged on every engine start, rebuild, and health check mismatch
 
 ## Future Requirements
 
@@ -63,5 +63,5 @@
 | AUDIO-02    | Phase 32 | Complete |
 | AUDIO-03    | Phase 32 | Complete |
 | AUDIO-04    | Phase 32 | Complete |
-| AUDIO-05    | Phase 32 | Pending  |
-| AUDIO-06    | Phase 32 | Pending  |
+| AUDIO-05    | Phase 32 | Complete |
+| AUDIO-06    | Phase 32 | Complete |
