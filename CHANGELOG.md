@@ -1,3 +1,127 @@
+# [12.22.0](https://github.com/terrylica/cc-skills/compare/v12.21.0...v12.22.0) (2026-03-29)
+
+
+### Bug Fixes
+
+* align word tokenization with Kokoro + strip markdown before TTS ([6c38fff](https://github.com/terrylica/cc-skills/commit/6c38fffb3898a0905a484c897f6b1ddfb2086862)), closes [#headings](https://github.com/terrylica/cc-skills/issues/headings)
+* auto-size subtitle panel to paragraph + word-wrap caption history ([380ed20](https://github.com/terrylica/cc-skills/commit/380ed20050581d003f3f979ecfe8d4c8532f6d63))
+* capture subtitlePanel directly in linger timer to prevent stuck subtitles ([4e4d87f](https://github.com/terrylica/cc-skills/commit/4e4d87ff79d66eb18308f8fed3068809fad60db2))
+* eliminate first-buffer audio blip by pre-starting player node on reset ([172e39c](https://github.com/terrylica/cc-skills/commit/172e39cba1cfaf2e4b675687e74992d11fae452c))
+* full-paragraph synthesis + 48kHz upsample + audit cleanup ([7d79f63](https://github.com/terrylica/cc-skills/commit/7d79f63934e6eb9dbcf27ce3094e969c40347b75))
+* **hooks:** remove ADR reference from code traceability reminder ([6be008c](https://github.com/terrylica/cc-skills/commit/6be008ce69482d14605ff7203b38ca03b43c4aa3))
+* left-align subtitles + auto-size panel height + single-page paragraph ([00ff059](https://github.com/terrylica/cc-skills/commit/00ff05923f1aaaf1ceb1d8079b2cb567e6b3e79f))
+* Python TTS server auto-restarts after 10s idle to reclaim Metal GPU memory ([5d1c8a6](https://github.com/terrylica/cc-skills/commit/5d1c8a62bdd413d242fd77919435a8079c806c04)), closes [#1086](https://github.com/terrylica/cc-skills/issues/1086)
+* record TTS text to caption history via TTSQueue ([46632d7](https://github.com/terrylica/cc-skills/commit/46632d739b875cee0a72f39551abe26eb1c0f093))
+
+
+### Features
+
+* **14-01:** create fxview-parquet-consumer cc-skill ([cfc200d](https://github.com/terrylica/cc-skills/commit/cfc200d0cad348abd76042f48995a3439e8297ea))
+* **14-01:** create tick-collection-ops cc-skill ([bed18af](https://github.com/terrylica/cc-skills/commit/bed18af999cac21d81ce706d924dc5e34ade0213))
+* **26-01:** switch TTSEngine to /v1/audio/speech-with-timestamps for native word onsets ([8b6a7b7](https://github.com/terrylica/cc-skills/commit/8b6a7b7bff7e0b25e53978b0ae803583de270907))
+* **29:** activate Telegram bot with credentials from secrets file ([cfdf364](https://github.com/terrylica/cc-skills/commit/cfdf3649b8206a9ada65ca5c01543f6ab5db3731))
+* **30:** SwiftBar shows Python TTS health + proper bot status ([6f65cf3](https://github.com/terrylica/cc-skills/commit/6f65cf3ea25f065569f2024aafedf565098550ce))
+* add middle screen position option for subtitle overlay ([cf15d3c](https://github.com/terrylica/cc-skills/commit/cf15d3c7700d6b3f64d46b129a05b66eadb4fd67))
+* add priority-aware TTS queue with preemption for concurrent requests ([4b19f47](https://github.com/terrylica/cc-skills/commit/4b19f4713911ab888eb25584b7fecc326c852091))
+* hold Option key to drag subtitle panel to any position ([6d93c78](https://github.com/terrylica/cc-skills/commit/6d93c78dfa95dcca6f727aec15af29099acff2f7))
+* **itp-hooks:** add setproctitle reminder for Python service/daemon files ([c5c42cc](https://github.com/terrylica/cc-skills/commit/c5c42ccc8488780c9bbb93e756423bfbdfb22a03))
+* Notification hook support for plan mode TTS alerts ([a53a4ba](https://github.com/terrylica/cc-skills/commit/a53a4babe8b55b4f6a182d6c9af0f5c8d502af5b))
+* paragraph subtitle scope (default) with sentence-by-sentence option ([4d6136a](https://github.com/terrylica/cc-skills/commit/4d6136a4fde2bf78e925c20ff990778586d37a5d))
+* subtitle panel always draggable — click and drag to reposition ([b634f7d](https://github.com/terrylica/cc-skills/commit/b634f7deb46c99110a498dfe0c545ad2ef735657))
+* **tts:** delegate MLX synthesis to Python Kokoro server (localhost:8779) ([010cfe2](https://github.com/terrylica/cc-skills/commit/010cfe29a267a4da8be840d73edd601c4e6a74fe))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - updated (+21/-320)
+
+</details>
+
+<details>
+<summary><strong>mql5</strong> (2 changes)</summary>
+
+- [fxview-parquet-consumer](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/fxview-parquet-consumer/SKILL.md) - new (+143)
+- [tick-collection-ops](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/skills/tick-collection-ops/SKILL.md) - new (+181)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+85/-36)
+
+</details>
+
+<details>
+<summary><strong>mise/run-full-release</strong> (1 file)</summary>
+
+- [Scaffolding & Recovery](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/references/scaffolding-and-recovery.md) - new (+176)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [spike-mlx-metal-memory](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/spike-mlx-metal-memory.md) - new (+96)
+- [telegram-notification-formatting](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/telegram-notification-formatting.md) - new (+129)
+- [tts-test-streaming](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/tts-test-streaming.md) - new (+46)
+- [Milestones](https://github.com/terrylica/cc-skills/blob/main/.planning/MILESTONES.md) - updated (+157)
+- [v4.7.0-MILESTONE-AUDIT](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.7.0-MILESTONE-AUDIT.md) - renamed from `.planning/v4.7.0-MILESTONE-AUDIT.md`
+- [Requirements Archive: v4.7.0 Architecture Hardening + Feature Expansion](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.7.0-REQUIREMENTS.md) - new (+393)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.7.0-ROADMAP.md) - new (+573)
+- [v4.8.0-MILESTONE-AUDIT](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.8.0-MILESTONE-AUDIT.md) - new (+87)
+- [Requirements Archive: v4.8.0 Python MLX TTS Consolidation](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.8.0-REQUIREMENTS.md) - new (+90)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.8.0-ROADMAP.md) - new (+670)
+- [v4.9.0-MILESTONE-AUDIT](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.9.0-MILESTONE-AUDIT.md) - new (+60)
+- [Requirements Archive: v4.9.0 SwiftBar UI & Telegram Bot Activation](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.9.0-REQUIREMENTS.md) - new (+61)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.9.0-ROADMAP.md) - new (+727)
+- [Phase 20.1: MLX Metal Memory Lifecycle - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/20.1-mlx-metal-memory-lifecycle/20.1-CONTEXT.md) - new (+124)
+- [25-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/25-python-tts-server-timestamp-endpoint/25-01-PLAN.md) - new (+288)
+- [Phase 25 Plan 01: Python TTS Server Timestamp Endpoint Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/25-python-tts-server-timestamp-endpoint/25-01-SUMMARY.md) - new (+119)
+- [Phase 25: Python TTS Server Timestamp Endpoint - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/25-python-tts-server-timestamp-endpoint/25-CONTEXT.md) - new (+95)
+- [Phase 25: Python TTS Server Timestamp Endpoint Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/25-python-tts-server-timestamp-endpoint/25-VERIFICATION.md) - new (+96)
+- [26-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/26-swift-ttsengine-python-integration/26-01-PLAN.md) - new (+224)
+- [Phase 26 Plan 01: Swift TTSEngine Python Integration Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/26-swift-ttsengine-python-integration/26-01-SUMMARY.md) - new (+107)
+- [Phase 26: Swift TTSEngine Python Integration - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/26-swift-ttsengine-python-integration/26-CONTEXT.md) - new (+88)
+- [Phase 26: Swift TTSEngine Python Integration Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/26-swift-ttsengine-python-integration/26-VERIFICATION.md) - new (+112)
+- [27-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/27-mlx-dependency-removal/27-01-PLAN.md) - new (+216)
+- [Phase 27 Plan 01: MLX Dependency Removal Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/27-mlx-dependency-removal/27-01-SUMMARY.md) - new (+132)
+- [Phase 27: MLX Dependency Removal - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/27-mlx-dependency-removal/27-CONTEXT.md) - new (+74)
+- [28-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/28-memory-lifecycle-cleanup/28-01-PLAN.md) - new (+239)
+- [Phase 28 Plan 01: Memory Lifecycle Cleanup Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/28-memory-lifecycle-cleanup/28-01-SUMMARY.md) - new (+109)
+- [Phase 28: Memory Lifecycle Cleanup - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/28-memory-lifecycle-cleanup/28-CONTEXT.md) - new (+78)
+- [Phase 29: Telegram Bot Activation - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/29-telegram-bot-activation/29-CONTEXT.md) - new (+69)
+- [Phase 30: SwiftBar UI Updates Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/30-swiftbar-ui-updates/30-01-SUMMARY.md) - new (+98)
+- [Phase 30: SwiftBar UI Updates - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/30-swiftbar-ui-updates/30-CONTEXT.md) - new (+65)
+- [claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/PROJECT.md) - updated (+36/-20)
+- [Requirements: claude-tts-companion v4.9.0](https://github.com/terrylica/cc-skills/blob/main/.planning/REQUIREMENTS.md) - updated (+33/-365)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - updated (+170/-16)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+34/-88)
+- [Benchmark: FluidAudio CoreML Kokoro TTS](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/debug/benchmark-fluidaudio.md) - new (+168)
+- [Benchmark: Python MLX Kokoro TTS (Baseline)](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/debug/benchmark-python-mlx-baseline.md) - new (+48)
+- [Benchmark: sherpa-onnx Kokoro TTS](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/debug/benchmark-sherpa-onnx.md) - new (+105)
+- [MLX Python Memory Leak Research: IOAccelerator / Metal GPU Memory](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/debug/mlx-python-memory-leak-research.md) - new (+419)
+- [tts-periodic-audio-stutters](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/debug/tts-periodic-audio-stutters.md) - new (+107)
+- [TTS Runtime Alternatives Research](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/debug/tts-runtime-alternatives-research.md) - new (+310)
+- [Python TTS Server Delegation Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/quick/python-tts-delegation-SUMMARY.md) - new (+64)
+
 # [12.21.0](https://github.com/terrylica/cc-skills/compare/v12.20.1...v12.21.0) (2026-03-28)
 
 
