@@ -82,6 +82,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 30: SwiftBar UI Updates** - Python TTS health, voice/speed propagation, bot status display
 - [ ] **Phase 31: E2E Integration Verification** - Full chain verified: session end through TTS karaoke through Telegram delivery
 - [ ] **Phase 32: Audio Device Resilience** - CoreAudio HAL listener + health check + engine rebuild for AVAudioEngine stale aggregate device on output switch
+- [ ] **Phase 33: Telegram Bot Verification** - Verify BOT-10/11/12 implementation and produce VERIFICATION.md (gap closure)
+- [ ] **Phase 34: E2E Pipeline Verification** - Verify E2E-01/02/03 implementation and produce VERIFICATION.md (gap closure)
 
 ## Phase Details
 
@@ -700,10 +702,26 @@ Plans:
 - [x] 32-01-PLAN.md -- Config constants + CoreAudio HAL listener + full engine teardown/rebuild + debounce/cooldown
 - [x] 32-02-PLAN.md -- Periodic health check timer + manual device switch verification checkpoint
 
+### Phase 33: Telegram Bot Verification
+
+**Goal**: Verify that Telegram bot implementation satisfies BOT-10, BOT-11, BOT-12 — produce missing VERIFICATION.md artifacts (gap closure for Phase 29 which was completed outside GSD)
+
+**Depends on**: Phase 32
+**Requirements**: BOT-10, BOT-11, BOT-12
+**Plans**: TBD
+
+### Phase 34: E2E Pipeline Verification
+
+**Goal**: Verify that the full session-end-to-Telegram pipeline works end-to-end satisfying E2E-01, E2E-02, E2E-03 — produce missing VERIFICATION.md artifacts (gap closure for Phase 31 which was completed outside GSD)
+
+**Depends on**: Phase 33
+**Requirements**: E2E-01, E2E-02, E2E-03
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29 -> 30 -> 31 -> 32
+Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33 -> 34
 
 | Phase                                           | Plans Complete | Status      | Completed  |
 | ----------------------------------------------- | -------------- | ----------- | ---------- |
@@ -739,4 +757,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 29. Telegram Bot Activation                     | 0/0            | Complete    | 2026-03-28 |
 | 30. SwiftBar UI Updates                         | 1/1            | Complete    | 2026-03-28 |
 | 31. E2E Integration Verification                | 0/0            | Complete    | 2026-03-28 |
-| 32. Audio Device Resilience                     | 2/2 | Complete    | 2026-03-29 |
+| 32. Audio Device Resilience                     | 2/2            | Complete    | 2026-03-29 |
+| 33. Telegram Bot Verification                   | 0/0            | Not started | -          |
+| 34. E2E Pipeline Verification                   | 0/0            | Not started | -          |
