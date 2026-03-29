@@ -1,3 +1,59 @@
+# [12.23.0](https://github.com/terrylica/cc-skills/compare/v12.22.0...v12.23.0) (2026-03-29)
+
+
+### Bug Fixes
+
+* caption history text wrapping + layout + capacity 1000 ([e94d022](https://github.com/terrylica/cc-skills/commit/e94d0224bd5bb04a0fec2827a10382c1a27d06c5))
+* **itp-hooks:** remove BLE001 rule and align README table ([bbaecd3](https://github.com/terrylica/cc-skills/commit/bbaecd3982afc9a1f4d51ffa67cf75edd99ccfe1))
+* replace NSTableView with NSTextView for caption history word wrap ([58d017c](https://github.com/terrylica/cc-skills/commit/58d017c0265220e04a381cc2aaa6e003a51c5df6))
+* single newline between paragraphs (no empty lines) in both subtitle and caption history ([0e59555](https://github.com/terrylica/cc-skills/commit/0e5955537bcdb9735a3c64dd8663f9d1f87c183f))
+* use preprocessed text in ChunkResult to prevent word-count drift ([c81d6d1](https://github.com/terrylica/cc-skills/commit/c81d6d19240c781f6cba99e1c28f9b278c5417f3))
+
+
+### Features
+
+* **32-01:** add audio resilience constants to Config.swift ([af9c0e7](https://github.com/terrylica/cc-skills/commit/af9c0e750368f330ddccd5107e5f7f15488498eb))
+* **32-01:** add CoreAudio HAL listener + full engine rebuild + debounce ([4becbd3](https://github.com/terrylica/cc-skills/commit/4becbd357f79306d911260650ad1fe31e5402993))
+* **32-02:** add periodic health check timer to AudioStreamPlayer ([ad9c319](https://github.com/terrylica/cc-skills/commit/ad9c319f4d318ab93313b1d716dc200e3de2b0d9))
+* animated rainbow gradient border + top-left position memory ([e95a7ed](https://github.com/terrylica/cc-skills/commit/e95a7ede9e38b24327e073424d355ddaac590733))
+* caption history UUID + sync telemetry + word wrap fix ([4d956cc](https://github.com/terrylica/cc-skills/commit/4d956ccde83c681d1d072390ba4d7b5ee1f96bd5))
+* **itp-hooks:** add PostToolUse inline ignore audit + docs ([2827ef6](https://github.com/terrylica/cc-skills/commit/2827ef62c265bf7bcd64632d7fdf8efeba1622cb))
+* **itp-hooks:** add PreToolUse inline ignore guard ([260958a](https://github.com/terrylica/cc-skills/commit/260958a9ea5e1b1d2b0edfd989d61c81312b58d9))
+* paragraph breaks in subtitle without affecting word-onset sync ([b84f1c1](https://github.com/terrylica/cc-skills/commit/b84f1c17b55c20f3c487f02c03cd9d0373f84750))
+* preserve paragraph breaks in subtitle display ([50deb46](https://github.com/terrylica/cc-skills/commit/50deb46ca16646491765ecc52d05cc79956b0122))
+* solid black subtitle background + persist drag position ([0348b58](https://github.com/terrylica/cc-skills/commit/0348b58aaea900250b05fdbf4f76b74a08844943))
+* subtle UUID label + right-click copies subtitle in triple backticks ([58a309e](https://github.com/terrylica/cc-skills/commit/58a309e9fa3f004371df61aad6bf64abef589d25))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ITP Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/README.md) - updated (+7/-7)
+
+## Other Documentation
+
+### Other
+
+- [32-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-01-PLAN.md) - new (+288)
+- [Phase 32 Plan 01: Audio Device Resilience Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-01-SUMMARY.md) - new (+116)
+- [32-02-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-02-PLAN.md) - new (+239)
+- [Phase 32: Audio Device Resilience - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-CONTEXT.md) - new (+147)
+- [Phase 32: Audio Device Resilience - Discussion Log](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-DISCUSSION-LOG.md) - new (+55)
+- [Phase 32: Audio Device Resilience - Research](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-RESEARCH.md) - new (+477)
+- [Phase 32 — Validation Strategy](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/32-audio-device-resilience/32-VALIDATION.md) - new (+75)
+- [Requirements: claude-tts-companion v4.9.0](https://github.com/terrylica/cc-skills/blob/main/.planning/REQUIREMENTS.md) - updated (+26/-11)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - updated (+17/-2)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+17/-10)
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+39/-1)
+
 # [12.22.0](https://github.com/terrylica/cc-skills/compare/v12.21.0...v12.22.0) (2026-03-29)
 
 
