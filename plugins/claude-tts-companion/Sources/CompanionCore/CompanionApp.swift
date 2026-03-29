@@ -124,7 +124,7 @@ public final class CompanionApp: @unchecked Sendable {
         }
 
         // Create notification watcher with full processing pipeline (AUTO-01)
-        notificationWatcher = NotificationWatcher { [weak self] filePath in
+        notificationWatcher = NotificationWatcher(directoryPath: Config.notificationDir) { [weak self] filePath in
             guard let self = self else { return }
             self.handleNotification(filePath: filePath)
         }
