@@ -328,6 +328,12 @@
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-ty-project-check.ts",
             "timeout": 15000,
             "description": "ty project-wide type check on session exit (only if .py files were edited)"
+          },
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-markdown-lint.ts",
+            "timeout": 15000,
+            "description": "markdownlint + prettier on .md files at session exit (only if .md files were edited)"
           }
         ]
       }
