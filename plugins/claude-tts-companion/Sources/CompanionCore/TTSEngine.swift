@@ -273,9 +273,11 @@ public actor TTSEngine {
             // The pipeline coordinator handles subtitle display (paragraph vs sentence scope).
             let audioDuration = Double(samples.count) / 48000.0
 
+            // Use preprocessed text (markdown-stripped) so word splitting matches Kokoro's tokenization.
+            // The original text may contain em-dashes, symbols, etc. that Kokoro strips.
             chunks.append(ChunkResult(
                 wavPath: wavPath,
-                text: text,
+                text: processedText,
                 wordTimings: allWordDurations,
                 audioDuration: audioDuration,
                 chunkIndex: 0,
