@@ -35,13 +35,17 @@ public final class SubtitlePanel: NSPanel {
     /// text field to its intrinsic single-line height.
     private var textFieldHeightConstraint: NSLayoutConstraint?
 
-    /// Background container with rounded corners and translucent fill.
+    /// Background container with rounded corners and solid fill.
     private let backgroundView: NSView = {
         let view = NSView()
         view.wantsLayer = true
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+
+    /// Animated rainbow gradient border layer.
+    private var rainbowBorderLayer: CAGradientLayer?
+    private var rainbowMaskLayer: CAShapeLayer?
 
     /// The label that displays subtitle text (plain or attributed).
     private let textField: NSTextField = {
@@ -408,11 +412,14 @@ public final class SubtitlePanel: NSPanel {
         hasShadow = false
     }
 
-    /// Save position after user drags the panel.
+    /// Save position after user drags the panel (top-left corner relative to screen).
     public override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
+        // Save top-left: macOS origin is bottom-left, so topY = origin.y + height
+        let screenHeight = NSScreen.main?.frame.height ?? 0
+        let topLeftY = screenHeight - (frame.origin.y + frame.height)
         UserDefaults.standard.set(frame.origin.x, forKey: "subtitlePanelX")
-        UserDefaults.standard.set(frame.origin.y, forKey: "subtitlePanelY")
+        UserDefaults.standard.set(topLeftY, forKey: "subtitlePanelTopY")
         UserDefaults.standard.set(true, forKey: "subtitlePanelPositionSaved")
     }
 
@@ -420,13 +427,58 @@ public final class SubtitlePanel: NSPanel {
     private func configureContentView() {
         guard let content = contentView else { return }
 
-        // Background with rounded corners, solid fill, and white border
+        // Background with rounded corners, solid fill, and animated rainbow border
         content.addSubview(backgroundView)
         backgroundView.layer?.backgroundColor = SubtitleStyle.backgroundColor.cgColor
         backgroundView.layer?.cornerRadius = SubtitleStyle.cornerRadius
-        backgroundView.layer?.masksToBounds = true
-        backgroundView.layer?.borderColor = NSColor.white.cgColor
-        backgroundView.layer?.borderWidth = 2.0
+        backgroundView.layer?.masksToBounds = false
+        backgroundView.layer?.borderWidth = 3.0
+        backgroundView.layer?.borderColor = NSColor.systemPurple.cgColor
+
+        // Animated rainbow gradient border using a sublayer
+        let gradientBorder = CAGradientLayer()
+        gradientBorder.colors = [
+            NSColor.systemRed.cgColor,
+            NSColor.systemOrange.cgColor,
+            NSColor.systemYellow.cgColor,
+            NSColor.systemGreen.cgColor,
+            NSColor.systemCyan.cgColor,
+            NSColor.systemBlue.cgColor,
+            NSColor.systemPurple.cgColor,
+            NSColor.systemPink.cgColor,
+            NSColor.systemRed.cgColor,
+        ]
+        gradientBorder.startPoint = CGPoint(x: 0, y: 0)
+        gradientBorder.endPoint = CGPoint(x: 1, y: 1)
+        gradientBorder.cornerRadius = SubtitleStyle.cornerRadius
+
+        let mask = CAShapeLayer()
+        mask.lineWidth = 3.0
+        mask.fillColor = nil
+        mask.strokeColor = NSColor.white.cgColor
+        gradientBorder.mask = mask
+
+        backgroundView.layer?.addSublayer(gradientBorder)
+        self.rainbowBorderLayer = gradientBorder
+        self.rainbowMaskLayer = mask
+
+        // Animate the gradient rotation
+        let animation = CABasicAnimation(keyPath: "colors")
+        animation.toValue = [
+            NSColor.systemPurple.cgColor,
+            NSColor.systemPink.cgColor,
+            NSColor.systemRed.cgColor,
+            NSColor.systemOrange.cgColor,
+            NSColor.systemYellow.cgColor,
+            NSColor.systemGreen.cgColor,
+            NSColor.systemCyan.cgColor,
+            NSColor.systemBlue.cgColor,
+            NSColor.systemPurple.cgColor,
+        ]
+        animation.duration = 3.0
+        animation.autoreverses = true
+        animation.repeatCount = .infinity
+        gradientBorder.add(animation, forKey: "rainbowShift")
 
         // Pin background to fill the content view
         NSLayoutConstraint.activate([
@@ -492,16 +544,17 @@ public final class SubtitlePanel: NSPanel {
         let maxHeight = screenFrame.height * 0.6
         let panelHeight = min(measuredHeight + SubtitleStyle.verticalPadding * 2, maxHeight)
 
-        // Restore last user-dragged position if available, otherwise use configured position.
+        // Restore last user-dragged position (top-left corner), otherwise use configured position.
         let savedX = UserDefaults.standard.double(forKey: "subtitlePanelX")
-        let savedY = UserDefaults.standard.double(forKey: "subtitlePanelY")
+        let savedTopY = UserDefaults.standard.double(forKey: "subtitlePanelTopY")
         let hasSavedPosition = UserDefaults.standard.bool(forKey: "subtitlePanelPositionSaved")
 
         let x: CGFloat
         let y: CGFloat
         if hasSavedPosition {
+            let screenHeight = NSScreen.main?.frame.height ?? screenFrame.height
             x = savedX
-            y = savedY
+            y = screenHeight - savedTopY - panelHeight  // Convert top-left back to bottom-left origin
         } else {
             x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
             if currentPosition == "top" {
@@ -525,6 +578,15 @@ public final class SubtitlePanel: NSPanel {
 
         // Tell the text field the width at which to wrap (required for multi-line layout)
         textField.preferredMaxLayoutWidth = textWidth
+
+        // Update rainbow border gradient to match new panel bounds
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        let bgBounds = backgroundView.bounds
+        rainbowBorderLayer?.frame = bgBounds
+        let path = CGPath(roundedRect: bgBounds, cornerWidth: SubtitleStyle.cornerRadius, cornerHeight: SubtitleStyle.cornerRadius, transform: nil)
+        rainbowMaskLayer?.path = path
+        CATransaction.commit()
     }
 
     // MARK: - Diagnostic Logging
