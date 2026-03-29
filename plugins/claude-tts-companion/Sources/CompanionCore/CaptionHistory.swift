@@ -46,8 +46,8 @@ public final class CaptionHistory: @unchecked Sendable {
 
     /// Create a caption history with the given capacity.
     ///
-    /// - Parameter capacity: Maximum number of captions to retain (default 100)
-    init(capacity: Int = 100) {
+    /// - Parameter capacity: Maximum number of captions to retain (default 1000)
+    init(capacity: Int = 1000) {
         self.capacity = capacity
         self.buffer = Array(repeating: nil, count: capacity)
     }

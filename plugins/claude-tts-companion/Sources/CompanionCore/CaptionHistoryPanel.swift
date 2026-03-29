@@ -25,16 +25,25 @@ public final class CaptionHistoryPanel: NSPanel {
         self.captionHistory = captionHistory
 
         // Build text view (read-only, word-wrapping, dark background)
-        let tv = NSTextView()
+        let panelWidth: CGFloat = 500
+        let tv = NSTextView(frame: NSRect(x: 0, y: 0, width: panelWidth - 20, height: 0))
         tv.isEditable = false
         tv.isSelectable = true
         tv.isRichText = true
+        tv.drawsBackground = true
         tv.backgroundColor = NSColor(white: 0.1, alpha: 0.95)
+        tv.textColor = NSColor.labelColor
         tv.textContainerInset = NSSize(width: 8, height: 8)
         tv.isVerticallyResizable = true
         tv.isHorizontallyResizable = false
-        tv.textContainer?.widthTracksTextView = true
-        tv.textContainer?.lineBreakMode = .byWordWrapping
+        tv.autoresizingMask = [.width]
+        tv.minSize = NSSize(width: 0, height: 0)
+        tv.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        if let tc = tv.textContainer {
+            tc.widthTracksTextView = true
+            tc.containerSize = NSSize(width: panelWidth - 36, height: CGFloat.greatestFiniteMagnitude)
+            tc.lineBreakMode = .byWordWrapping
+        }
         self.textView = tv
 
         // Build scroll view
@@ -49,7 +58,6 @@ public final class CaptionHistoryPanel: NSPanel {
         self.scrollView = sv
 
         let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 800, height: 600)
-        let panelWidth: CGFloat = 500
         let panelHeight: CGFloat = 500
         let x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
         let y = screenFrame.origin.y + (screenFrame.height - panelHeight) / 2
@@ -119,14 +127,18 @@ public final class CaptionHistoryPanel: NSPanel {
         let timeColor = NSColor.secondaryLabelColor
         let textColor = NSColor.labelColor
 
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineBreakMode = .byWordWrapping
-        paragraphStyle.paragraphSpacing = 8
+        let bodyStyle = NSMutableParagraphStyle()
+        bodyStyle.lineBreakMode = .byWordWrapping
+        bodyStyle.paragraphSpacing = 0  // No extra space within an entry
 
-        for entry in entries {
+        let entryGapStyle = NSMutableParagraphStyle()
+        entryGapStyle.lineBreakMode = .byWordWrapping
+        entryGapStyle.paragraphSpacingBefore = 12  // Space before each new entry
+
+        for (idx, entry) in entries.enumerated() {
             let time = formatTime(entry.timestamp)
 
-            // Sync telemetry as suffix
+            // Sync telemetry suffix
             var syncInfo = ""
             if let wc = entry.wordCount, let oc = entry.onsetCount {
                 let match = wc == oc ? "✓" : "⚠️"
@@ -137,25 +149,26 @@ public final class CaptionHistoryPanel: NSPanel {
                 syncInfo += " \(entry.uuid.prefix(8))]"
             }
 
-            // Time prefix
+            // First line of entry gets gap before it (except first entry)
+            let firstLineStyle = idx == 0 ? bodyStyle : entryGapStyle
+
+            // Time + text on same line, wrapping naturally
             let timeStr = NSAttributedString(string: "\(time)  ", attributes: [
                 .font: timeFont,
                 .foregroundColor: timeColor,
-                .paragraphStyle: paragraphStyle,
+                .paragraphStyle: firstLineStyle,
             ])
 
-            // Caption text
             let textStr = NSAttributedString(string: entry.text, attributes: [
                 .font: textFont,
                 .foregroundColor: textColor,
-                .paragraphStyle: paragraphStyle,
+                .paragraphStyle: bodyStyle,
             ])
 
-            // Telemetry suffix
             let infoStr = NSAttributedString(string: "\(syncInfo)\n", attributes: [
                 .font: NSFont.monospacedSystemFont(ofSize: 10, weight: .regular),
                 .foregroundColor: NSColor.tertiaryLabelColor,
-                .paragraphStyle: paragraphStyle,
+                .paragraphStyle: bodyStyle,
             ])
 
             result.append(timeStr)
