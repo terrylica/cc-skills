@@ -176,4 +176,18 @@ public enum Config {
 
     /// Number of CPU threads for sherpa-onnx inference.
     static let sherpaOnnxNumThreads: Int32 = 2
+
+    // MARK: - Audio Device Resilience
+
+    /// Interval between audio health checks (seconds). Compares engine output
+    /// device against system default to catch missed device changes.
+    static let audioHealthCheckInterval: TimeInterval = 30
+
+    /// Debounce window for audio engine rebuild triggers (milliseconds).
+    /// Prevents format mismatch races during Bluetooth reconnect flapping.
+    static let audioRebuildDebounceMs: Double = 200
+
+    /// Minimum time between audio engine rebuilds (seconds).
+    /// Prevents rebuild storms from rapid device cycling.
+    static let audioRebuildCooldownSeconds: TimeInterval = 5
 }
