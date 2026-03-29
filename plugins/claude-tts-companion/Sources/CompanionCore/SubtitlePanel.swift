@@ -398,7 +398,7 @@ public final class SubtitlePanel: NSPanel {
         sharingType = .readOnly
 
         // Draggable — user can reposition by clicking and dragging anywhere on the panel.
-        // Position resets to configured location (top/middle/bottom) on next TTS playback.
+        // Last drag position is persisted and restored on next show.
         ignoresMouseEvents = false
         isMovableByWindowBackground = true
 
@@ -406,6 +406,14 @@ public final class SubtitlePanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
+    }
+
+    /// Save position after user drags the panel.
+    public override func mouseUp(with event: NSEvent) {
+        super.mouseUp(with: event)
+        UserDefaults.standard.set(frame.origin.x, forKey: "subtitlePanelX")
+        UserDefaults.standard.set(frame.origin.y, forKey: "subtitlePanelY")
+        UserDefaults.standard.set(true, forKey: "subtitlePanelPositionSaved")
     }
 
     /// Build the view hierarchy: background view + centered text field.
@@ -482,16 +490,25 @@ public final class SubtitlePanel: NSPanel {
         let maxHeight = screenFrame.height * 0.6
         let panelHeight = min(measuredHeight + SubtitleStyle.verticalPadding * 2, maxHeight)
 
-        let x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
+        // Restore last user-dragged position if available, otherwise use configured position.
+        let savedX = UserDefaults.standard.double(forKey: "subtitlePanelX")
+        let savedY = UserDefaults.standard.double(forKey: "subtitlePanelY")
+        let hasSavedPosition = UserDefaults.standard.bool(forKey: "subtitlePanelPositionSaved")
 
-        // Position: "top", "middle", or "bottom" (default).
+        let x: CGFloat
         let y: CGFloat
-        if currentPosition == "top" {
-            y = screenFrame.origin.y + screenFrame.height - panelHeight - SubtitleStyle.topOffset
-        } else if currentPosition == "middle" {
-            y = screenFrame.origin.y + (screenFrame.height - panelHeight) / 2
+        if hasSavedPosition {
+            x = savedX
+            y = savedY
         } else {
-            y = screen.frame.origin.y + SubtitleStyle.bottomOffset
+            x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
+            if currentPosition == "top" {
+                y = screenFrame.origin.y + screenFrame.height - panelHeight - SubtitleStyle.topOffset
+            } else if currentPosition == "middle" {
+                y = screenFrame.origin.y + (screenFrame.height - panelHeight) / 2
+            } else {
+                y = screen.frame.origin.y + SubtitleStyle.bottomOffset
+            }
         }
 
         let frame = NSRect(x: x, y: y, width: panelWidth, height: panelHeight)
