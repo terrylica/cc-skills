@@ -16,9 +16,9 @@
 
 ### Telegram Bot Activation
 
-- [ ] **BOT-10**: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID set in claude-tts-companion launchd plist (from ~/.claude/.secrets/ccterrybot-telegram)
-- [ ] **BOT-11**: Bot connects via long polling and responds to /status within 5 seconds of service start
-- [ ] **BOT-12**: Session-end notifications send Arc Summary + Tail Brief to Telegram with rich HTML formatting
+- [x] **BOT-10**: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID set in claude-tts-companion launchd plist (from ~/.claude/.secrets/ccterrybot-telegram)
+- [x] **BOT-11**: Bot connects via long polling and responds to /status within 5 seconds of service start
+- [x] **BOT-12**: Session-end notifications send Arc Summary + Tail Brief to Telegram with rich HTML formatting
 
 ### End-to-End Integration
 
@@ -50,9 +50,9 @@
 
 | Requirement | Phase                         | Status   |
 | ----------- | ----------------------------- | -------- |
-| BOT-10      | Phase 33 (gap closure for 29) | Pending  |
-| BOT-11      | Phase 33 (gap closure for 29) | Pending  |
-| BOT-12      | Phase 33 (gap closure for 29) | Pending  |
+| BOT-10      | Phase 33 (gap closure for 29) | Complete |
+| BOT-11      | Phase 33 (gap closure for 29) | Complete |
+| BOT-12      | Phase 33 (gap closure for 29) | Complete |
 | BAR-10      | Phase 30                      | Complete |
 | BAR-11      | Phase 30                      | Complete |
 | BAR-12      | Phase 30                      | Complete |
