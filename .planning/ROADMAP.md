@@ -76,14 +76,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v4.9.0 SwiftBar UI & Telegram Bot Activation (Phases 29-32)
+### v4.9.0 SwiftBar UI & Telegram Bot Activation (Phases 29-34)
 
-- [ ] **Phase 29: Telegram Bot Activation** - Bot credentials in launchd env, long polling connection, session notifications flowing
-- [ ] **Phase 30: SwiftBar UI Updates** - Python TTS health, voice/speed propagation, bot status display
-- [ ] **Phase 31: E2E Integration Verification** - Full chain verified: session end through TTS karaoke through Telegram delivery
-- [ ] **Phase 32: Audio Device Resilience** - CoreAudio HAL listener + health check + engine rebuild for AVAudioEngine stale aggregate device on output switch
-- [ ] **Phase 33: Telegram Bot Verification** - Verify BOT-10/11/12 implementation and produce VERIFICATION.md (gap closure)
-- [ ] **Phase 34: E2E Pipeline Verification** - Verify E2E-01/02/03 implementation and produce VERIFICATION.md (gap closure)
+- [x] **Phase 29: Telegram Bot Activation** - Bot credentials in launchd env, long polling connection, session notifications flowing
+- [x] **Phase 30: SwiftBar UI Updates** - Python TTS health, voice/speed propagation, bot status display
+- [x] **Phase 31: E2E Integration Verification** - Full chain verified: session end through TTS karaoke through Telegram delivery
+- [x] **Phase 32: Audio Device Resilience** - CoreAudio HAL listener + health check + engine rebuild for AVAudioEngine stale aggregate device on output switch
+- [x] **Phase 33: Telegram Bot Verification** - Verify BOT-10/11/12 implementation and produce VERIFICATION.md (gap closure)
+- [x] **Phase 34: E2E Pipeline Verification** - Verify E2E-01/02/03 implementation and produce VERIFICATION.md (gap closure)
 
 ## Phase Details
 
@@ -766,5 +766,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 1
 | 30. SwiftBar UI Updates                         | 1/1            | Complete    | 2026-03-28 |
 | 31. E2E Integration Verification                | 0/0            | Complete    | 2026-03-28 |
 | 32. Audio Device Resilience                     | 2/2            | Complete    | 2026-03-29 |
-| 33. Telegram Bot Verification                   | 1/1 | Complete    | 2026-03-29 |
-| 34. E2E Pipeline Verification                   | 1/1 | Complete    | 2026-03-29 |
+| 33. Telegram Bot Verification                   | 1/1            | Complete    | 2026-03-29 |
+| 34. E2E Pipeline Verification                   | 1/1            | Complete    | 2026-03-29 |
