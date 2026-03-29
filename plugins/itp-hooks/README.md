@@ -64,13 +64,13 @@ Then install hooks to your settings:
 
 Detects code correctness issues that cause runtime failures:
 
-| Category              | Language  | Tool       | Rules Checked                                                        |
-| --------------------- | --------- | ---------- | -------------------------------------------------------------------- |
-| Silent failures       | Python    | Ruff       | E722 (bare except), S110/S112 (pass/continue), BLE001 (blind except) |
-| Silent failures       | Shell     | ShellCheck | SC2155 (masked return), SC2164 (cd fail), SC2310/SC2312 (set -e)     |
-| Silent failures       | JS/TS     | Oxlint     | no-empty, no-floating-promises, require-await                        |
-| Silent failures       | Bash tool | Exit code  | Non-zero exit with stderr                                            |
-| Cross-language syntax | Python    | grep       | Shell variables in Python strings (`Path("$HOME/...")`)              |
+| Category              | Language  | Tool       | Rules Checked                                                       |
+| --------------------- | --------- | ---------- | ------------------------------------------------------------------- |
+| Silent failures       | Python    | Ruff       | E722 (bare except), S110/S112 (pass/continue), PLW1510 (subprocess) |
+| Silent failures       | Shell     | ShellCheck | SC2155 (masked return), SC2164 (cd fail), SC2310/SC2312 (set -e)    |
+| Silent failures       | JS/TS     | Oxlint     | no-empty, no-floating-promises, require-await                       |
+| Silent failures       | Bash tool | Exit code  | Non-zero exit with stderr                                           |
+| Cross-language syntax | Python    | grep       | Shell variables in Python strings (`Path("$HOME/...")`)             |
 
 Uses `"decision": "block"` JSON format for Claude visibility (per ADR 2025-12-17) while remaining non-blocking (exit 0).
 

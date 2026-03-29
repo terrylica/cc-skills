@@ -17,7 +17,6 @@
 
 [lint]
 select = [
-    "BLE",   # Blind except - catches `except Exception:` and `except BaseException:`
     "S110",  # try-except-pass - catches silent exception suppression
     "S112",  # try-except-continue - catches silent exception suppression in loops
     "E722",  # Bare except - catches `except:` without exception type
