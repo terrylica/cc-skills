@@ -708,7 +708,11 @@ Plans:
 
 **Depends on**: Phase 32
 **Requirements**: BOT-10, BOT-11, BOT-12
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+
+- [ ] 33-01-PLAN.md -- Inspect codebase for BOT-10/11/12 evidence and produce VERIFICATION.md
 
 ### Phase 34: E2E Pipeline Verification
 
