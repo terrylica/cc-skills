@@ -221,8 +221,11 @@ public actor TTSQueue {
             return
         }
 
-        // Record to caption history for scrollback
-        captionHistory.record(fullText)
+        // Record to caption history with sync telemetry
+        let totalWords = chunks.reduce(0) { $0 + ($1.wordTimings.count) }
+        let totalOnsets = chunks.reduce(0) { $0 + ($1.wordOnsets?.count ?? 0) }
+        let totalDuration = chunks.reduce(0.0) { $0 + $1.audioDuration }
+        captionHistory.record(fullText, wordCount: totalWords, onsetCount: totalOnsets, audioDuration: totalDuration)
 
         // Start playback and await completion
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
