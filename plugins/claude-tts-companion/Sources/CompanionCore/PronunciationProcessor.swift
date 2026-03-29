@@ -93,22 +93,22 @@ public struct PronunciationProcessor: Sendable {
             }
     }
 
-    /// Split text into display words, preserving paragraph breaks as "\n" markers.
-    /// These markers are NOT sent to Kokoro (they don't count as words for onset matching)
-    /// but are used by the subtitle renderer to insert line breaks.
-    public static func splitWordsForDisplay(_ text: String) -> [String] {
-        var result: [String] = []
-        // Split on double-newline (paragraph break) first
+    /// Compute which word indices are followed by a paragraph break (\n\n) in the original text.
+    /// Returns a set of local word indices (0-based). Used by subtitle renderer to insert line breaks.
+    /// Word count matches splitWordsMatchingKokoro (paragraph breaks don't add words).
+    public static func paragraphBreakIndices(_ text: String) -> Set<Int> {
+        var breaks: Set<Int> = []
         let paragraphs = text.components(separatedBy: "\n\n")
+        var wordIndex = 0
         for (i, paragraph) in paragraphs.enumerated() {
             let words = paragraph.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
-                .map(String.init)
-            result.append(contentsOf: words)
-            // Add paragraph break marker between paragraphs (not after last)
+                .filter { $0.contains(where: { $0.isLetter || $0.isNumber }) }
+            wordIndex += words.count
+            // Mark the last word of this paragraph as having a break after it
             if i < paragraphs.count - 1 && !words.isEmpty {
-                result.append("\n")
+                breaks.insert(wordIndex - 1)
             }
         }
-        return result
+        return breaks
     }
 }

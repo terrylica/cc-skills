@@ -4,7 +4,15 @@ import AppKit
 public struct SubtitlePage {
     let words: [String]
     let startWordIndex: Int
+    /// Word indices (local to this page) after which a paragraph break should be rendered.
+    var paragraphBreaksAfter: Set<Int>
     var wordCount: Int { words.count }
+
+    init(words: [String], startWordIndex: Int, paragraphBreaksAfter: Set<Int> = []) {
+        self.words = words
+        self.startWordIndex = startWordIndex
+        self.paragraphBreaksAfter = paragraphBreaksAfter
+    }
 }
 
 /// Splits subtitle text into 2-line pages using pixel-width measurement.
