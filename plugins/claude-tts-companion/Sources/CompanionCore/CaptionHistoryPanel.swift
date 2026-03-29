@@ -24,31 +24,25 @@ public final class CaptionHistoryPanel: NSPanel {
     init(captionHistory: CaptionHistory) {
         self.captionHistory = captionHistory
 
-        // Build text view (read-only, word-wrapping, dark background)
-        let panelWidth: CGFloat = 500
-        let tv = NSTextView(frame: NSRect(x: 0, y: 0, width: panelWidth - 20, height: 0))
+        // Build text view using NSScrollView.init convenience which wires
+        // the text view, text container, and layout manager correctly for scrolling.
+        let sv = NSScrollView()
+        let tv = NSTextView()
+        sv.documentView = tv
         tv.isEditable = false
         tv.isSelectable = true
         tv.isRichText = true
         tv.drawsBackground = true
         tv.backgroundColor = NSColor(white: 0.1, alpha: 0.95)
         tv.textColor = NSColor.labelColor
-        tv.textContainerInset = NSSize(width: 8, height: 8)
+        tv.textContainerInset = NSSize(width: 12, height: 12)
+        tv.autoresizingMask = [.width, .height]
         tv.isVerticallyResizable = true
         tv.isHorizontallyResizable = false
-        tv.autoresizingMask = [.width]
-        tv.minSize = NSSize(width: 0, height: 0)
         tv.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        if let tc = tv.textContainer {
-            tc.widthTracksTextView = true
-            tc.containerSize = NSSize(width: panelWidth - 36, height: CGFloat.greatestFiniteMagnitude)
-            tc.lineBreakMode = .byWordWrapping
-        }
+        tv.textContainer?.widthTracksTextView = true
         self.textView = tv
 
-        // Build scroll view
-        let sv = NSScrollView()
-        sv.documentView = tv
         sv.hasVerticalScroller = true
         sv.hasHorizontalScroller = false
         sv.autohidesScrollers = true
@@ -58,6 +52,7 @@ public final class CaptionHistoryPanel: NSPanel {
         self.scrollView = sv
 
         let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 800, height: 600)
+        let panelWidth: CGFloat = 600
         let panelHeight: CGFloat = 500
         let x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
         let y = screenFrame.origin.y + (screenFrame.height - panelHeight) / 2
@@ -152,6 +147,10 @@ public final class CaptionHistoryPanel: NSPanel {
             // First line of entry gets gap before it (except first entry)
             let firstLineStyle = idx == 0 ? bodyStyle : entryGapStyle
 
+            // Collapse double-newlines to single newlines (paragraph break without empty line)
+            let cleanText = entry.text.replacingOccurrences(of: "\n\n", with: "\n")
+                .replacingOccurrences(of: "\n \n", with: "\n")
+
             // Time + text on same line, wrapping naturally
             let timeStr = NSAttributedString(string: "\(time)  ", attributes: [
                 .font: timeFont,
@@ -159,7 +158,7 @@ public final class CaptionHistoryPanel: NSPanel {
                 .paragraphStyle: firstLineStyle,
             ])
 
-            let textStr = NSAttributedString(string: entry.text, attributes: [
+            let textStr = NSAttributedString(string: cleanText, attributes: [
                 .font: textFont,
                 .foregroundColor: textColor,
                 .paragraphStyle: bodyStyle,
