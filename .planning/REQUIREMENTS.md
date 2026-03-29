@@ -22,9 +22,9 @@
 
 ### End-to-End Integration
 
-- [ ] **E2E-01**: Full chain: session ends -> notification -> summary -> TTS via Python -> karaoke subtitles -> Telegram message
-- [ ] **E2E-02**: TTS audio plays with native word-level karaoke (Python MToken onsets) during E2E flow
-- [ ] **E2E-03**: tts_kokoro.sh CLI works end-to-end (regression check)
+- [x] **E2E-01**: Full chain: session ends -> notification -> summary -> TTS via Python -> karaoke subtitles -> Telegram message
+- [x] **E2E-02**: TTS audio plays with native word-level karaoke (Python MToken onsets) during E2E flow
+- [x] **E2E-03**: tts_kokoro.sh CLI works end-to-end (regression check)
 
 ### Audio Device Resilience
 
@@ -56,9 +56,9 @@
 | BAR-10      | Phase 30                      | Complete |
 | BAR-11      | Phase 30                      | Complete |
 | BAR-12      | Phase 30                      | Complete |
-| E2E-01      | Phase 34 (gap closure for 31) | Pending  |
-| E2E-02      | Phase 34 (gap closure for 31) | Pending  |
-| E2E-03      | Phase 34 (gap closure for 31) | Pending  |
+| E2E-01      | Phase 34 (gap closure for 31) | Complete |
+| E2E-02      | Phase 34 (gap closure for 31) | Complete |
+| E2E-03      | Phase 34 (gap closure for 31) | Complete |
 | AUDIO-01    | Phase 32                      | Complete |
 | AUDIO-02    | Phase 32                      | Complete |
 | AUDIO-03    | Phase 32                      | Complete |
