@@ -19,7 +19,7 @@ public enum SubtitleStyle {
     static let futureWordColor = NSColor.white
 
     /// Black at 30% opacity — panel background
-    static let backgroundColor = NSColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 0.3)
+    static let backgroundColor = NSColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0)
 
     // MARK: - Fonts
 
