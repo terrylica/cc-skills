@@ -1,3 +1,10 @@
+## [12.24.2](https://github.com/terrylica/cc-skills/compare/v12.24.1...v12.24.2) (2026-03-29)
+
+
+### Bug Fixes
+
+* **statusline-tools:** use session JSONL mtime as liveness signal for non-durable crons ([6c5984b](https://github.com/terrylica/cc-skills/commit/6c5984bdb793be4dbb9dfcdfebdf9719d97bb982))
+
 ## [12.24.1](https://github.com/terrylica/cc-skills/compare/v12.24.0...v12.24.1) (2026-03-29)
 
 
