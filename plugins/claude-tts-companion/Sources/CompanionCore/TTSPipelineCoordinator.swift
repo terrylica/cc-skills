@@ -187,10 +187,10 @@ public final class TTSPipelineCoordinator {
             }
         } else if chunks.count == 1 {
             // Paragraph scope: single page with ALL words (panel auto-sizes).
-            // Uses splitWordsForDisplay to preserve paragraph breaks as "\n" markers.
             let chunk = chunks[0]
-            let words = PronunciationProcessor.splitWordsForDisplay(chunk.text)
-            let pages = [SubtitlePage(words: words, startWordIndex: 0)]
+            let words = PronunciationProcessor.splitWordsMatchingKokoro(chunk.text)
+            let breaks = PronunciationProcessor.paragraphBreakIndices(chunk.text)
+            let pages = [SubtitlePage(words: words, startWordIndex: 0, paragraphBreaksAfter: breaks)]
             driver.addChunk(
                 wavPath: chunk.wavPath,
                 samples: chunk.samples,
@@ -218,7 +218,7 @@ public final class TTSPipelineCoordinator {
                 cumulativeTime += chunk.audioDuration
             }
 
-            let allWords = PronunciationProcessor.splitWordsForDisplay(fullText)
+            let allWords = PronunciationProcessor.splitWordsMatchingKokoro(fullText)
             let pages = [SubtitlePage(words: allWords, startWordIndex: 0)]
             driver.addChunk(
                 wavPath: chunks.first?.wavPath ?? "",
