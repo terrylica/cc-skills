@@ -76,6 +76,9 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     /// Pending debounced rebuild work item (cancelled on each new trigger).
     private var rebuildWorkItem: DispatchWorkItem?
 
+    /// Periodic health check timer comparing engine device vs system default.
+    private var healthCheckTimer: DispatchSourceTimer?
+
     /// Source that triggered an engine rebuild.
     enum RebuildSource: String {
         case halListener, configNotification, healthCheck
@@ -136,6 +139,9 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         // Register CoreAudio HAL listener for default output device changes
         setupHALListener()
 
+        // Start periodic health check (safety net for missed device changes)
+        startHealthCheck()
+
         // Cache the initial output device ID
         cachedOutputDeviceID = getSystemDefaultOutputDeviceID()
         let initialDeviceName = getDeviceName(deviceID: cachedOutputDeviceID)
@@ -143,6 +149,7 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     }
 
     deinit {
+        stopHealthCheck()
         removeHALListener()
         rebuildWorkItem?.cancel()
         if let observer = configChangeObserver {
@@ -282,6 +289,48 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         halListenerRegistered = false
         if status != noErr {
             logger.warning("Failed to remove CoreAudio HAL listener: \(status)")
+        }
+    }
+
+    // MARK: - Health Check (Layer 3)
+
+    /// Start periodic health check comparing engine device vs system default.
+    /// Safety net: catches stale device if HAL listener and config notification both miss a change.
+    func startHealthCheck() {
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(
+            deadline: .now() + Config.audioHealthCheckInterval,
+            repeating: Config.audioHealthCheckInterval
+        )
+        timer.setEventHandler { [weak self] in
+            self?.performHealthCheck()
+        }
+        timer.resume()
+        healthCheckTimer = timer
+        logger.info("Audio health check started (interval: \(Int(Config.audioHealthCheckInterval))s)")
+    }
+
+    /// Stop the periodic health check timer.
+    func stopHealthCheck() {
+        healthCheckTimer?.cancel()
+        healthCheckTimer = nil
+        logger.info("Audio health check stopped")
+    }
+
+    /// Compare engine's cached device against system default. Trigger rebuild on mismatch.
+    /// Skips during active playback -- audio is clearly working if playing.
+    private func performHealthCheck() {
+        // Skip during active playback -- audio is working if playing
+        guard !playerNode.isPlaying else { return }
+
+        let systemDevice = getSystemDefaultOutputDeviceID()
+        let engineDevice = cachedOutputDeviceID
+
+        if systemDevice != engineDevice && systemDevice != AudioDeviceID(kAudioDeviceUnknown) {
+            let systemName = getDeviceName(deviceID: systemDevice)
+            let engineName = getDeviceName(deviceID: engineDevice)
+            logger.warning("Health check: device mismatch (engine=\(engineDevice) '\(engineName)', system=\(systemDevice) '\(systemName)')")
+            triggerRebuild(source: .healthCheck)
         }
     }
 
