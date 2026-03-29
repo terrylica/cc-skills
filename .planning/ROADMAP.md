@@ -28,13 +28,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Build System** - Package.swift compiles with all dependencies, bridging header works, binary runs
 - [x] **Phase 2: Subtitle Overlay** - Floating karaoke subtitle panel visible on screen with all visual properties
-- [ ] **Phase 3: TTS Engine** - Kokoro int8 synthesis produces audio with word-level timestamps
-- [ ] **Phase 4: AI Summaries** - MiniMax API generates session narratives with circuit breaker protection
-- [ ] **Phase 5: Telegram Bot Core** - Bot connects, handles basic commands, sends session notifications
+- [x] **Phase 3: TTS Engine** - Kokoro int8 synthesis produces audio with word-level timestamps
+- [x] **Phase 4: AI Summaries** - MiniMax API generates session narratives with circuit breaker protection
+- [x] **Phase 5: Telegram Bot Core** - Bot connects, handles basic commands, sends session notifications
 - [x] **Phase 6: Telegram Bot Commands** - Bot supports model selection, session resume, CLI subprocess integration (completed 2026-03-26)
 - [x] **Phase 7: File Watching & Auto-Continue** - Event-driven file monitoring and MiniMax-evaluated auto-continue (completed 2026-03-26)
-- [ ] **Phase 8: HTTP Control API** - External control surface for settings, health, subtitle, and TTS
-- [ ] **Phase 9: SwiftBar Integration** - Menu bar plugin controls all subsystems via HTTP API
+- [x] **Phase 8: HTTP Control API** - External control surface for settings, health, subtitle, and TTS
+- [x] **Phase 9: SwiftBar Integration** - Menu bar plugin controls all subsystems via HTTP API
 - [x] **Phase 10: Deployment & Extras** - Launchd plist, rollback, caption history, clipboard, thinking watcher (completed 2026-03-26)
 
 </details>
