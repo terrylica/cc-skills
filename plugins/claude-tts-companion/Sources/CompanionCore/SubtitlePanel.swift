@@ -1,38 +1,20 @@
 import AppKit
 import Logging
 
-/// A floating, click-through, screen-sharing-invisible subtitle overlay panel.
-///
-/// Positioned at the bottom center of the main display, this panel shows
-/// up to 2 lines of word-wrapped text with karaoke-style highlighting.
+/// Floating subtitle overlay with karaoke word highlighting.
 /// All UI operations must occur on the main thread.
 @MainActor
 public final class SubtitlePanel: NSPanel {
 
-    private let logger = Logger(label: "subtitle-panel")
+    let logger = Logger(label: "subtitle-panel")
 
     // MARK: - Karaoke State
 
-    /// Words of the current utterance being highlighted.
     private var words: [String] = []
-
-    /// Per-word timing intervals for karaoke advancement.
     private var wordTimings: [TimeInterval] = []
-
-    /// Generation counter to invalidate stale work items on interruption.
     private var generation: Int = 0
-
-    /// Pending work items for scheduled word highlights and linger-then-hide.
     private var scheduledWorkItems: [DispatchWorkItem] = []
-
-    /// Work item for the post-utterance linger/hide delay (cancelled on new utterance).
     private var lingerWorkItem: DispatchWorkItem?
-
-    // MARK: - Subviews
-
-    /// Height constraint for the text field, updated in positionOnScreen() to
-    /// ensure 2 lines of bold text fit. Without this, Auto Layout collapses the
-    /// text field to its intrinsic single-line height.
     private var textFieldHeightConstraint: NSLayoutConstraint?
 
     /// Background container with rounded corners and solid fill.
@@ -43,12 +25,11 @@ public final class SubtitlePanel: NSPanel {
         return view
     }()
 
-    /// Animated rainbow gradient border layer.
-    private var rainbowBorderLayer: CAGradientLayer?
-    private var rainbowMaskLayer: CAShapeLayer?
+    /// Animated rainbow gradient border.
+    private let border = SubtitleBorder()
 
     /// The label that displays subtitle text (plain or attributed).
-    private let textField: NSTextField = {
+    let textField: NSTextField = {
         let field = NSTextField(wrappingLabelWithString: "")
         field.isEditable = false
         field.isSelectable = false
@@ -412,15 +393,10 @@ public final class SubtitlePanel: NSPanel {
         hasShadow = false
     }
 
-    /// Save position after user drags the panel (top-left corner relative to screen).
+    /// Save position after user drags the panel.
     public override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
-        // Save top-left: macOS origin is bottom-left, so topY = origin.y + height
-        let screenHeight = NSScreen.main?.frame.height ?? 0
-        let topLeftY = screenHeight - (frame.origin.y + frame.height)
-        UserDefaults.standard.set(frame.origin.x, forKey: "subtitlePanelX")
-        UserDefaults.standard.set(topLeftY, forKey: "subtitlePanelTopY")
-        UserDefaults.standard.set(true, forKey: "subtitlePanelPositionSaved")
+        SubtitlePosition.save(frame: frame)
     }
 
     /// Build the view hierarchy: background view + centered text field.
@@ -432,53 +408,11 @@ public final class SubtitlePanel: NSPanel {
         backgroundView.layer?.backgroundColor = SubtitleStyle.backgroundColor.cgColor
         backgroundView.layer?.cornerRadius = SubtitleStyle.cornerRadius
         backgroundView.layer?.masksToBounds = false
-        backgroundView.layer?.borderWidth = 3.0
-        backgroundView.layer?.borderColor = NSColor.systemPurple.cgColor
 
-        // Animated rainbow gradient border using a sublayer
-        let gradientBorder = CAGradientLayer()
-        gradientBorder.colors = [
-            NSColor.systemRed.cgColor,
-            NSColor.systemOrange.cgColor,
-            NSColor.systemYellow.cgColor,
-            NSColor.systemGreen.cgColor,
-            NSColor.systemCyan.cgColor,
-            NSColor.systemBlue.cgColor,
-            NSColor.systemPurple.cgColor,
-            NSColor.systemPink.cgColor,
-            NSColor.systemRed.cgColor,
-        ]
-        gradientBorder.startPoint = CGPoint(x: 0, y: 0)
-        gradientBorder.endPoint = CGPoint(x: 1, y: 1)
-        gradientBorder.cornerRadius = SubtitleStyle.cornerRadius
-
-        let mask = CAShapeLayer()
-        mask.lineWidth = 3.0
-        mask.fillColor = nil
-        mask.strokeColor = NSColor.white.cgColor
-        gradientBorder.mask = mask
-
-        backgroundView.layer?.addSublayer(gradientBorder)
-        self.rainbowBorderLayer = gradientBorder
-        self.rainbowMaskLayer = mask
-
-        // Animate the gradient rotation
-        let animation = CABasicAnimation(keyPath: "colors")
-        animation.toValue = [
-            NSColor.systemPurple.cgColor,
-            NSColor.systemPink.cgColor,
-            NSColor.systemRed.cgColor,
-            NSColor.systemOrange.cgColor,
-            NSColor.systemYellow.cgColor,
-            NSColor.systemGreen.cgColor,
-            NSColor.systemCyan.cgColor,
-            NSColor.systemBlue.cgColor,
-            NSColor.systemPurple.cgColor,
-        ]
-        animation.duration = 3.0
-        animation.autoreverses = true
-        animation.repeatCount = .infinity
-        gradientBorder.add(animation, forKey: "rainbowShift")
+        // Attach animated rainbow gradient border
+        if let layer = backgroundView.layer {
+            border.attach(to: layer, cornerRadius: SubtitleStyle.cornerRadius)
+        }
 
         // Pin background to fill the content view
         NSLayoutConstraint.activate([
@@ -527,46 +461,18 @@ public final class SubtitlePanel: NSPanel {
         // Use the dynamic font size from settings (small/medium/large)
         let font = SubtitleStyle.dynamicCurrentWordFont(currentFontSizeName)
 
-        // Auto-size height: use NSTextFieldCell.cellSize(forBounds:) for accurate
-        // measurement with attributed strings (mixed fonts, word wrap).
-        let lineHeight = ceil(font.ascender - font.descender + font.leading)
         let textWidth = panelWidth - SubtitleStyle.horizontalPadding * 2
         textField.preferredMaxLayoutWidth = textWidth
 
-        let measuredHeight: CGFloat
-        if let cell = textField.cell, textField.attributedStringValue.length > 0 {
-            let cellSize = cell.cellSize(forBounds: NSRect(x: 0, y: 0, width: textWidth, height: CGFloat.greatestFiniteMagnitude))
-            measuredHeight = max(lineHeight * 2, ceil(cellSize.height))
-        } else {
-            measuredHeight = lineHeight * 2
-        }
-        // Cap at 60% of screen height
-        let maxHeight = screenFrame.height * 0.6
-        let panelHeight = min(measuredHeight + SubtitleStyle.verticalPadding * 2, maxHeight)
+        let panelHeight = SubtitlePosition.measureHeight(
+            textField: textField, font: font, textWidth: textWidth, screenHeight: screenFrame.height
+        )
 
-        // Restore last user-dragged position (top-left corner), otherwise use configured position.
-        let savedX = UserDefaults.standard.double(forKey: "subtitlePanelX")
-        let savedTopY = UserDefaults.standard.double(forKey: "subtitlePanelTopY")
-        let hasSavedPosition = UserDefaults.standard.bool(forKey: "subtitlePanelPositionSaved")
-
-        let x: CGFloat
-        let y: CGFloat
-        if hasSavedPosition {
-            let screenHeight = NSScreen.main?.frame.height ?? screenFrame.height
-            x = savedX
-            y = screenHeight - savedTopY - panelHeight  // Convert top-left back to bottom-left origin
-        } else {
-            x = screenFrame.origin.x + (screenFrame.width - panelWidth) / 2
-            if currentPosition == "top" {
-                y = screenFrame.origin.y + screenFrame.height - panelHeight - SubtitleStyle.topOffset
-            } else if currentPosition == "middle" {
-                y = screenFrame.origin.y + (screenFrame.height - panelHeight) / 2
-            } else {
-                y = screen.frame.origin.y + SubtitleStyle.bottomOffset
-            }
-        }
-
-        let frame = NSRect(x: x, y: y, width: panelWidth, height: panelHeight)
+        let frame = SubtitlePosition.calculateFrame(
+            panelWidth: panelWidth, panelHeight: panelHeight,
+            screenFrame: screenFrame, screenFullFrame: screen.frame,
+            preset: currentPosition
+        )
 
         // Update the text field height constraint to match 2 lines.
         // This drives Auto Layout to size the window correctly instead of
@@ -579,87 +485,8 @@ public final class SubtitlePanel: NSPanel {
         // Tell the text field the width at which to wrap (required for multi-line layout)
         textField.preferredMaxLayoutWidth = textWidth
 
-        // Update rainbow border gradient to match new panel bounds
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        let bgBounds = backgroundView.bounds
-        rainbowBorderLayer?.frame = bgBounds
-        let path = CGPath(roundedRect: bgBounds, cornerWidth: SubtitleStyle.cornerRadius, cornerHeight: SubtitleStyle.cornerRadius, transform: nil)
-        rainbowMaskLayer?.path = path
-        CATransaction.commit()
+        // Update rainbow border to match new panel bounds
+        border.updateFrame(bounds: backgroundView.bounds, cornerRadius: SubtitleStyle.cornerRadius)
     }
 
-    // MARK: - Diagnostic Logging
-
-    /// Log panel and text field dimensions for wrapping diagnostics.
-    ///
-    /// Since the panel has `sharingType = .none` (invisible to screenshots),
-    /// log-based telemetry is the only way to verify multi-line rendering.
-    private func logDiagnostics(label: String, text: String) {
-        let panelFrame = frame
-        let tfFrame = textField.frame
-        let prefMaxWidth = textField.preferredMaxLayoutWidth
-        let maxLines = textField.maximumNumberOfLines
-
-        // Measure the text width using the bold font (worst-case width)
-        let measuredWidth = SubtitleChunker.measureWidth(text, fontSizeName: currentFontSizeName)
-        let availableWidth = tfFrame.width
-
-        // Count rendered lines using NSLayoutManager for accurate line fragment enumeration
-        let renderedLines: Int
-        if !text.isEmpty {
-            let attrStr: NSAttributedString
-            if textField.attributedStringValue.length > 0 {
-                attrStr = textField.attributedStringValue
-            } else {
-                attrStr = NSAttributedString(
-                    string: text,
-                    attributes: [.font: SubtitleStyle.regularFont]
-                )
-            }
-            // Ensure the measurement uses word wrapping (matches the text field config)
-            let measuredAttr = NSMutableAttributedString(attributedString: attrStr)
-            if measuredAttr.length > 0 {
-                let ps = NSMutableParagraphStyle()
-                ps.lineBreakMode = .byWordWrapping
-                measuredAttr.addAttribute(
-                    .paragraphStyle, value: ps,
-                    range: NSRange(location: 0, length: measuredAttr.length)
-                )
-            }
-            let textStorage = NSTextStorage(attributedString: measuredAttr)
-            let layoutManager = NSLayoutManager()
-            let textContainer = NSTextContainer(
-                size: NSSize(width: availableWidth, height: .greatestFiniteMagnitude)
-            )
-            textContainer.lineFragmentPadding = 0
-            layoutManager.addTextContainer(textContainer)
-            textStorage.addLayoutManager(layoutManager)
-
-            // Force layout then count line fragments
-            layoutManager.ensureLayout(for: textContainer)
-            var lineCount = 0
-            var index = 0
-            let glyphRange = layoutManager.glyphRange(for: textContainer)
-            while index < NSMaxRange(glyphRange) {
-                var lineRange = NSRange()
-                layoutManager.lineFragmentRect(forGlyphAt: index, effectiveRange: &lineRange)
-                lineCount += 1
-                index = NSMaxRange(lineRange)
-            }
-            renderedLines = lineCount
-        } else {
-            renderedLines = 0
-        }
-
-        logger.info("""
-            [\(label)] panel=\(Int(panelFrame.width))x\(Int(panelFrame.height)) \
-            tf=\(Int(tfFrame.width))x\(Int(tfFrame.height)) \
-            prefMaxW=\(Int(prefMaxWidth)) maxLines=\(maxLines) \
-            measuredW=\(Int(measuredWidth)) availW=\(Int(availableWidth)) \
-            renderedLines=\(renderedLines) \
-            wraps=\(measuredWidth > availableWidth) \
-            text=\"\(text.prefix(80))\"
-            """)
-    }
 }
