@@ -1,8 +1,7 @@
 import AppKit
 import Logging
 
-/// Floating subtitle overlay with karaoke word highlighting.
-/// All UI operations must occur on the main thread.
+/// Floating subtitle overlay with karaoke word highlighting. @MainActor.
 @MainActor
 public final class SubtitlePanel: NSPanel {
 
@@ -16,6 +15,9 @@ public final class SubtitlePanel: NSPanel {
     private var scheduledWorkItems: [DispatchWorkItem] = []
     private var lingerWorkItem: DispatchWorkItem?
     private var textFieldHeightConstraint: NSLayoutConstraint?
+
+    /// Clipboard + UUID display handler.
+    let clipboard = SubtitleClipboard()
 
     /// Background container with rounded corners and solid fill.
     private let backgroundView: NSView = {
@@ -422,12 +424,7 @@ public final class SubtitlePanel: NSPanel {
             backgroundView.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
 
-        // Text field inside background with padding.
-        //
-        // Uses a height constraint instead of bottom-pinning to prevent
-        // Auto Layout from collapsing the text field to single-line intrinsic
-        // height (which would shrink the entire window to 57px via the
-        // background → content view → window constraint chain).
+        // Text field with height constraint (prevents Auto Layout single-line collapse)
         backgroundView.addSubview(textField)
         let heightConstraint = textField.heightAnchor.constraint(equalToConstant: 0)
         textFieldHeightConstraint = heightConstraint
@@ -446,6 +443,16 @@ public final class SubtitlePanel: NSPanel {
             ),
             heightConstraint,
         ])
+
+        // UUID label (bottom-right, subtle gray)
+        clipboard.attach(to: backgroundView,
+            trailingAnchor: backgroundView.trailingAnchor,
+            bottomAnchor: backgroundView.bottomAnchor)
+    }
+
+    /// Right-click (two-finger tap) copies subtitle + UUID to clipboard.
+    public override func rightMouseDown(with event: NSEvent) {
+        clipboard.copyToClipboard()
     }
 
     /// Position the panel on the main screen based on current settings (SUB-02).

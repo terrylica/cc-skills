@@ -225,7 +225,13 @@ public actor TTSQueue {
         let totalWords = chunks.reduce(0) { $0 + ($1.wordTimings.count) }
         let totalOnsets = chunks.reduce(0) { $0 + ($1.wordOnsets?.count ?? 0) }
         let totalDuration = chunks.reduce(0.0) { $0 + $1.audioDuration }
+        let entryUUID = UUID().uuidString
         captionHistory.record(fullText, wordCount: totalWords, onsetCount: totalOnsets, audioDuration: totalDuration)
+
+        // Set UUID on subtitle clipboard for right-click copy
+        DispatchQueue.main.async { [subtitlePanel] in
+            subtitlePanel.clipboard.update(text: fullText, uuid: entryUUID)
+        }
 
         // Start playback and await completion
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
