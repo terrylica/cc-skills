@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v4.9.0
 milestone_name: SwiftBar UI & Telegram Bot Activation
 status: executing
-stopped_at: Phase 32 context gathered
-last_updated: "2026-03-29T07:08:56.263Z"
-last_activity: 2026-03-28
+stopped_at: Completed 32-01-PLAN.md
+last_updated: "2026-03-29T07:29:31.709Z"
+last_activity: 2026-03-29
 progress:
   total_phases: 29
   completed_phases: 28
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** See what Claude says, anywhere -- real-time karaoke subtitles synced with TTS playback
-**Current focus:** Phase 31 — e2e-integration-verification
+**Current focus:** Phase 32 — audio-device-resilience
 
 ## Current Position
 
-Phase: 31
-Plan: Not started
-Status: Executing Phase 31
-Last activity: 2026-03-28
+Phase: 32 (audio-device-resilience) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: Stable (~3min average)
 
 | Phase 30 P01 | 2min | 3 tasks | 1 files |
+| Phase 32 P01 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - [Phase 28]: healthResponse() made non-async -- no actor access needed after removing memoryDiagnostics
 - [Phase 30]: Python TTS PID/RSS via pgrep+ps (server /health lacks process metrics)
 - [Phase 30]: Bot 'unknown' mapped to 'disabled' (white dot) -- intentional config state, not error
+- [Phase 32]: C function pointer HAL listener over block variant (Apple removal bug)
+- [Phase 32]: Cached device ID approach over AudioUnit query for health check comparison
 
 ### Roadmap Evolution
 
@@ -87,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T07:08:56.258Z
-Stopped at: Phase 32 context gathered
-Resume file: .planning/phases/32-audio-device-resilience/32-CONTEXT.md
+Last session: 2026-03-29T07:29:31.706Z
+Stopped at: Completed 32-01-PLAN.md
+Resume file: None
