@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.9.0
 milestone_name: SwiftBar UI & Telegram Bot Activation
 status: executing
-stopped_at: Completed 30-01-PLAN (SwiftBar UI Updates)
-last_updated: "2026-03-28T19:18:07.044Z"
+stopped_at: Phase 32 context gathered
+last_updated: "2026-03-29T07:08:56.263Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 29
@@ -71,6 +71,10 @@ Recent decisions affecting current work:
 - [Phase 30]: Python TTS PID/RSS via pgrep+ps (server /health lacks process metrics)
 - [Phase 30]: Bot 'unknown' mapped to 'disabled' (white dot) -- intentional config state, not error
 
+### Roadmap Evolution
+
+- Phase 32 added: Audio Device Resilience — CoreAudio HAL listener + health check + engine rebuild for AVAudioEngine stale aggregate device (terrylica/cc-skills#73)
+
 ### Pending Todos
 
 None yet.
@@ -83,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T19:09:18.571Z
-Stopped at: Completed 30-01-PLAN (SwiftBar UI Updates)
-Resume file: None
+Last session: 2026-03-29T07:08:56.258Z
+Stopped at: Phase 32 context gathered
+Resume file: .planning/phases/32-audio-device-resilience/32-CONTEXT.md
