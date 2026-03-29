@@ -54,7 +54,9 @@ public final class CaptionHistory: @unchecked Sendable {
 
     /// Record a new caption with optional sync telemetry.
     func record(_ text: String, wordCount: Int? = nil, onsetCount: Int? = nil, audioDuration: Double? = nil) {
+        // Preserve paragraph breaks as single \n, collapse other whitespace
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\n\n+", with: "\n", options: .regularExpression)
         guard !trimmed.isEmpty else { return }
 
         let formatter = ISO8601DateFormatter()

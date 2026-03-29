@@ -238,7 +238,7 @@ public final class SubtitlePanel: NSPanel {
             result.append(NSAttributedString(string: word, attributes: attributes))
             // Insert paragraph break after this word if marked
             if paragraphBreaksAfter.contains(i) {
-                result.append(NSAttributedString(string: "\n\n", attributes: spaceAttributes))
+                result.append(NSAttributedString(string: "\n", attributes: spaceAttributes))
             }
         }
 
