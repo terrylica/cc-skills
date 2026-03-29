@@ -1,3 +1,39 @@
+# [12.24.0](https://github.com/terrylica/cc-skills/compare/v12.23.1...v12.24.0) (2026-03-29)
+
+
+### Features
+
+* **itp-hooks:** add Stop hook for markdownlint + prettier on .md files ([c5a88ac](https://github.com/terrylica/cc-skills/commit/c5a88ac5a195ad28a6aa78b2ac0595c20baf91a0))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Milestones](https://github.com/terrylica/cc-skills/blob/main/.planning/MILESTONES.md) - updated (+60)
+- [Milestone v4.9.0 Audit Report](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.9.0-MILESTONE-AUDIT.md) - updated (+55/-43)
+- [Requirements Archive: v4.9.0 SwiftBar UI & Telegram Bot Activation](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.9.0-REQUIREMENTS.md) - updated (+35/-20)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/milestones/v4.9.0-ROADMAP.md) - updated (+45/-2)
+- [Telegram Bot Verification](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/33-telegram-bot-verification/33-01-PLAN.md) - new (+143)
+- [Phase 33 Plan 01: Telegram Bot Verification Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/33-telegram-bot-verification/33-01-SUMMARY.md) - new (+94)
+- [Phase 33: Telegram Bot Verification - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/33-telegram-bot-verification/33-CONTEXT.md) - new (+58)
+- [Telegram Bot Verification](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/33-telegram-bot-verification/33-VERIFICATION.md) - new (+105)
+- [E2E Pipeline Verification](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/34-e2e-pipeline-verification/34-01-PLAN.md) - new (+149)
+- [Phase 34 Plan 01: E2E Pipeline Verification Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/34-e2e-pipeline-verification/34-01-SUMMARY.md) - new (+86)
+- [Phase 34: E2E Pipeline Verification - Context](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/34-e2e-pipeline-verification/34-CONTEXT.md) - new (+59)
+- [E2E Pipeline Verification](https://github.com/terrylica/cc-skills/blob/main/.planning/phases/34-e2e-pipeline-verification/34-VERIFICATION.md) - new (+94)
+- [Requirements: claude-tts-companion v4.9.0](https://github.com/terrylica/cc-skills/blob/main/.planning/REQUIREMENTS.md) - updated (+23/-23)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - updated (+30/-2)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+10/-6)
+- [v4.9.0-MILESTONE-AUDIT](https://github.com/terrylica/cc-skills/blob/v12.23.1/.planning/v4.9.0-MILESTONE-AUDIT.md) - deleted
+
 ## [12.23.1](https://github.com/terrylica/cc-skills/compare/v12.23.0...v12.23.1) (2026-03-29)
 
 
