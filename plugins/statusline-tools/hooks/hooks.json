@@ -11,6 +11,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools/hooks/stop-cron-gc.ts",
+            "timeout": 3000
+          }
+        ]
+      }
     ]
   }
 }

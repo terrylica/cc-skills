@@ -240,9 +240,14 @@ logEvent("info", "hook_fired", { tool_name, project_path: projectPath, session_i
 let entries: CronEntry[] = [];
 try { entries = JSON.parse(readFileSync(STATE_FILE, "utf-8")); } catch { entries = []; }
 
-const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+// Layer 3 of 3: TTL backstop — entries older than 6 hours are expired.
+// Reduced from 3 days to 6 hours (2026-03-29) after incident where a stale
+// entry persisted indefinitely because this hook only fires on CronCreate/
+// Delete/List events. Layers 1 (render-time GC) and 2 (Stop hook) handle
+// the common case; this is the final safety net for edge cases.
+const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000;
 const before = entries.length;
-entries = entries.filter((e) => new Date(e.created_at).getTime() > threeDaysAgo);
+entries = entries.filter((e) => new Date(e.created_at).getTime() > sixHoursAgo);
 if (entries.length < before) logEvent("info", "expired_entries_removed", { count: before - entries.length });
 
 // ── Handle CronCreate ──────────────────────────────────────────────────────
