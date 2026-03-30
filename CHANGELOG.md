@@ -1,3 +1,10 @@
+## [12.27.1](https://github.com/terrylica/cc-skills/compare/v12.27.0...v12.27.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* **tts:** ipv6 localhost format and increased tts timeout to 120s ([11a086f](https://github.com/terrylica/cc-skills/commit/11a086f8d19c5fd4b5f9475076f22b238adad5b0))
+
 # [12.27.0](https://github.com/terrylica/cc-skills/compare/v12.26.2...v12.27.0) (2026-03-30)
 
 
