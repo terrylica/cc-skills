@@ -151,63 +151,44 @@ public struct PronunciationProcessor: Sendable {
 
     /// Compute which display word indices are followed by a paragraph break in the original text.
     ///
-    /// Uses character-offset anchoring: finds `\n\n` positions in the source text, then maps
-    /// each display word to its character range in the source. The display word whose range ends
-    /// just before a `\n\n` gets marked as a break point. This is immune to tokenization
-    /// differences between `splitWordsMatchingKokoro` and Kokoro's actual output.
+    /// Splits by `\n\n`, counts words per paragraph, then maps break indices from source-word
+    /// space to display-word space. When counts match (common case), indices are used directly.
+    /// When Kokoro tokenizes differently (rare), proportional mapping keeps breaks within 1 word.
     public static func paragraphBreakIndices(_ text: String, displayWords: [String]? = nil) -> Set<Int> {
         guard text.contains("\n\n") else { return [] }
 
-        let words = displayWords ?? splitWordsMatchingKokoro(text)
-        guard words.count > 1 else { return [] }
+        let paragraphs = text.components(separatedBy: "\n\n")
+        guard paragraphs.count > 1 else { return [] }
 
-        // 1. Find character offsets of all \n\n boundaries
-        var breakOffsets: [Int] = []
-        var searchStart = text.startIndex
-        while let range = text.range(of: "\n\n", range: searchStart..<text.endIndex) {
-            breakOffsets.append(text.distance(from: text.startIndex, to: range.lowerBound))
-            searchStart = range.upperBound
-        }
-        guard !breakOffsets.isEmpty else { return [] }
-
-        // 2. Extract only letters/digits from source text for position mapping
-        let sourceChars = Array(text.unicodeScalars)
-
-        // 3. Map each display word to the character offset where it ends in the source.
-        //    Walk through source characters, matching each word's letters/digits in order.
-        var charCursor = 0
-        var wordEndOffsets: [Int] = []
-
-        for word in words {
-            let wordLetters = Array(word.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
-            var matched = 0
-
-            while charCursor < sourceChars.count && matched < wordLetters.count {
-                if CharacterSet.alphanumerics.contains(sourceChars[charCursor]) {
-                    if String(sourceChars[charCursor]).lowercased() == String(wordLetters[matched]).lowercased() {
-                        matched += 1
-                    }
-                }
-                charCursor += 1
+        // Count words per paragraph using the same filter as splitWordsMatchingKokoro
+        var sourceBreakIndices: [Int] = []
+        var cumulative = 0
+        for (i, paragraph) in paragraphs.enumerated() {
+            let count = paragraph.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
+                .filter { $0.contains(where: { $0.isLetter || $0.isNumber }) }
+                .count
+            cumulative += count
+            if i < paragraphs.count - 1 && count > 0 {
+                sourceBreakIndices.append(cumulative - 1)
             }
-            wordEndOffsets.append(charCursor)
+        }
+        guard !sourceBreakIndices.isEmpty else { return [] }
+
+        let sourceWordCount = cumulative
+        let displayCount = displayWords?.count ?? sourceWordCount
+
+        // Common case: counts match → source indices map 1:1 to display indices
+        if displayCount == sourceWordCount {
+            return Set(sourceBreakIndices.filter { $0 < displayCount - 1 })
         }
 
-        // 4. For each \n\n offset, find the last display word that ends at or before it
+        // Rare case: Kokoro tokenized differently → proportional mapping
+        let ratio = Double(displayCount) / Double(sourceWordCount)
         var breaks: Set<Int> = []
-        for bp in breakOffsets {
-            // Find the last word whose end offset is <= the break position
-            var bestIdx = -1
-            for (i, endOff) in wordEndOffsets.enumerated() {
-                if endOff <= bp {
-                    bestIdx = i
-                }
-            }
-            if bestIdx >= 0 && bestIdx < words.count - 1 {
-                breaks.insert(bestIdx)
-            }
+        for srcIdx in sourceBreakIndices {
+            let mapped = min(Int(round(Double(srcIdx) * ratio)), displayCount - 2)
+            if mapped >= 0 { breaks.insert(mapped) }
         }
-
         return breaks
     }
 }
