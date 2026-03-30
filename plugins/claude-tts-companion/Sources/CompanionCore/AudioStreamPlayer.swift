@@ -372,7 +372,8 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     }
 
     /// Debounced entry point for engine rebuild. Cancels any pending rebuild and schedules
-    /// a new one after the debounce window. Enforces cooldown between rebuilds.
+    /// a new one after the debounce window. Enforces cooldown between rebuilds unless
+    /// the system device has actually changed (Bluetooth switches trigger intermediate hops).
     func triggerRebuild(source: RebuildSource) {
         logger.info("Rebuild triggered by \(source.rawValue)")
 
@@ -382,11 +383,22 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         let work = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
 
-            // Cooldown check
+            let systemDevice = self.getSystemDefaultOutputDeviceID()
+            let deviceActuallyChanged = systemDevice != self.cachedOutputDeviceID
+                && systemDevice != AudioDeviceID(kAudioDeviceUnknown)
+
+            // Cooldown check — bypass if system device differs from engine device
+            // (Bluetooth switches route briefly through built-in speakers first)
             let now = CFAbsoluteTimeGetCurrent()
-            if now - self.lastRebuildTime < Config.audioRebuildCooldownSeconds {
+            if !deviceActuallyChanged && now - self.lastRebuildTime < Config.audioRebuildCooldownSeconds {
                 let remaining = Config.audioRebuildCooldownSeconds - (now - self.lastRebuildTime)
-                self.logger.info("Rebuild skipped (cooldown active, \(String(format: "%.1f", remaining))s remaining)")
+                self.logger.info("Rebuild skipped (cooldown active, \(String(format: "%.1f", remaining))s remaining, device unchanged)")
+                return
+            }
+
+            if !deviceActuallyChanged {
+                let deviceName = self.getDeviceName(deviceID: systemDevice)
+                self.logger.info("Rebuild skipped (device unchanged: \(deviceName) [\(systemDevice)])")
                 return
             }
 
