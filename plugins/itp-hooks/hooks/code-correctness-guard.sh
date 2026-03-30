@@ -441,6 +441,16 @@ Escape hatch: Add INLINE-IGNORE-OK on the same line if truly unavoidable."
             ;;
     esac
 
+    # For Edit tool: scope inline ignore audit to changed lines only.
+    # Pre-existing ignores elsewhere in the file are not the editor's problem.
+    if [[ -n "$EDIT_LINE_START" && -n "$EDIT_LINE_END" && -n "$INLINE_IGNORES" ]]; then
+        INLINE_IGNORES=$(echo "$INLINE_IGNORES" | while IFS=: read -r line_num rest; do
+            if [[ "$line_num" -ge "$EDIT_LINE_START" && "$line_num" -le "$EDIT_LINE_END" ]]; then
+                echo "$line_num:$rest"
+            fi
+        done)
+    fi
+
     if [[ -n "$INLINE_IGNORES" ]]; then
         IGNORE_COUNT=$(echo "$INLINE_IGNORES" | wc -l | tr -d ' ')
         # Cap at 5 lines
