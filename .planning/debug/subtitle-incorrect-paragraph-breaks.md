@@ -1,5 +1,5 @@
 ---
-status: awaiting_human_verify_v2
+status: awaiting_human_verify_v3
 trigger: "subtitle-incorrect-paragraph-breaks"
 created: 2026-03-28T00:00:00Z
 updated: 2026-03-28T00:00:00Z
@@ -38,6 +38,7 @@ started: After the sync drift + punctuation fixes in this session
 
 root_cause: `paragraphBreakIndices` counts words using `splitWordsMatchingKokoro` logic (original text word count), but the display word array comes from `reattachPunctuation` which has `kokoroTokens.count` words. When Kokoro tokenizes differently (merges or splits), the indices point to wrong positions.
 fix_v1: (FAILED) Greedy word-by-word matching — fragile, breaks when words don't match.
-fix_v2: Character-offset anchoring — finds \n\n positions in the source text by character offset, maps each display word to the character range it covers in the source, then marks the display word whose range ends before each \n\n. Immune to tokenization differences because character positions are invariant. Based on industry standard approach (Azure TTS text_offset, spaCy tokenizations library).
+fix_v2: (FAILED) Character-offset anchoring — greedy alphanumeric matching can consume characters from WRONG source words when Kokoro drops tokens (e.g., source "format for" with display ["for"] matches f,o,r from "format" instead of the actual "for"). Causes cascading position drift.
+fix_v3: Paragraph-structure counting with proportional mapping — splits source text by \n\n, counts words per paragraph, computes break indices in source-word space. Common case (counts match): indices used directly. Rare case (Kokoro tokenized differently): proportional mapping keeps breaks within 1 word of correct position. Simple, predictable, no fragile character matching.
 verification: Build succeeds. Awaiting human verification of correct paragraph break rendering during TTS playback.
 files_changed: [PronunciationProcessor.swift, TTSPipelineCoordinator.swift]
