@@ -20,7 +20,7 @@ Sound alerts (fire once per cron cycle, reset after execution):
 
 Installation:
   ln -s /path/to/cc-skills/plugins/statusline-tools/scripts/iterm2-cron-countdown.py \
-        ~/Library/Application\ Support/iTerm2/Scripts/AutoLaunch/cron-countdown.py
+        "$HOME/Library/Application Support/iTerm2/Scripts/AutoLaunch/cron-countdown.py"
 
 Requirements:
   iTerm2 Python API enabled: Preferences > General > Magic > Enable Python API
