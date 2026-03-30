@@ -1,3 +1,10 @@
+# [12.25.0](https://github.com/terrylica/cc-skills/compare/v12.24.4...v12.25.0) (2026-03-30)
+
+
+### Features
+
+* **statusline:** show git version tag after status indicators ([08f19ff](https://github.com/terrylica/cc-skills/commit/08f19ffbf79e3fa9672b51fac92fa411cf0f4a05))
+
 ## [12.24.4](https://github.com/terrylica/cc-skills/compare/v12.24.3...v12.24.4) (2026-03-30)
 
 
