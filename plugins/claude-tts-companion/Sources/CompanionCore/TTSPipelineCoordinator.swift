@@ -204,7 +204,7 @@ public final class TTSPipelineCoordinator {
                 words = PronunciationProcessor.splitWordsMatchingKokoro(chunk.text)
                 logger.info("Fallback to splitWordsMatchingKokoro for subtitle display (\(words.count) words)")
             }
-            let breaks = PronunciationProcessor.paragraphBreakIndices(chunk.text)
+            let breaks = PronunciationProcessor.paragraphBreakIndices(chunk.text, displayWords: words)
             let pages = [SubtitlePage(words: words, startWordIndex: 0, paragraphBreaksAfter: breaks)]
             driver.addChunk(
                 wavPath: chunk.wavPath,

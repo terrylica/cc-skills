@@ -149,22 +149,65 @@ public struct PronunciationProcessor: Sendable {
         return displayWords
     }
 
-    /// Compute which word indices are followed by a paragraph break (\n\n) in the original text.
-    /// Returns a set of local word indices (0-based). Used by subtitle renderer to insert line breaks.
-    /// Word count matches splitWordsMatchingKokoro (paragraph breaks don't add words).
-    public static func paragraphBreakIndices(_ text: String) -> Set<Int> {
+    /// Compute which display word indices are followed by a paragraph break in the original text.
+    ///
+    /// Uses character-offset anchoring: finds `\n\n` positions in the source text, then maps
+    /// each display word to its character range in the source. The display word whose range ends
+    /// just before a `\n\n` gets marked as a break point. This is immune to tokenization
+    /// differences between `splitWordsMatchingKokoro` and Kokoro's actual output.
+    public static func paragraphBreakIndices(_ text: String, displayWords: [String]? = nil) -> Set<Int> {
+        guard text.contains("\n\n") else { return [] }
+
+        let words = displayWords ?? splitWordsMatchingKokoro(text)
+        guard words.count > 1 else { return [] }
+
+        // 1. Find character offsets of all \n\n boundaries
+        var breakOffsets: [Int] = []
+        var searchStart = text.startIndex
+        while let range = text.range(of: "\n\n", range: searchStart..<text.endIndex) {
+            breakOffsets.append(text.distance(from: text.startIndex, to: range.lowerBound))
+            searchStart = range.upperBound
+        }
+        guard !breakOffsets.isEmpty else { return [] }
+
+        // 2. Extract only letters/digits from source text for position mapping
+        let sourceChars = Array(text.unicodeScalars)
+
+        // 3. Map each display word to the character offset where it ends in the source.
+        //    Walk through source characters, matching each word's letters/digits in order.
+        var charCursor = 0
+        var wordEndOffsets: [Int] = []
+
+        for word in words {
+            let wordLetters = Array(word.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+            var matched = 0
+
+            while charCursor < sourceChars.count && matched < wordLetters.count {
+                if CharacterSet.alphanumerics.contains(sourceChars[charCursor]) {
+                    if String(sourceChars[charCursor]).lowercased() == String(wordLetters[matched]).lowercased() {
+                        matched += 1
+                    }
+                }
+                charCursor += 1
+            }
+            wordEndOffsets.append(charCursor)
+        }
+
+        // 4. For each \n\n offset, find the last display word that ends at or before it
         var breaks: Set<Int> = []
-        let paragraphs = text.components(separatedBy: "\n\n")
-        var wordIndex = 0
-        for (i, paragraph) in paragraphs.enumerated() {
-            let words = paragraph.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
-                .filter { $0.contains(where: { $0.isLetter || $0.isNumber }) }
-            wordIndex += words.count
-            // Mark the last word of this paragraph as having a break after it
-            if i < paragraphs.count - 1 && !words.isEmpty {
-                breaks.insert(wordIndex - 1)
+        for bp in breakOffsets {
+            // Find the last word whose end offset is <= the break position
+            var bestIdx = -1
+            for (i, endOff) in wordEndOffsets.enumerated() {
+                if endOff <= bp {
+                    bestIdx = i
+                }
+            }
+            if bestIdx >= 0 && bestIdx < words.count - 1 {
+                breaks.insert(bestIdx)
             }
         }
+
         return breaks
     }
 }
