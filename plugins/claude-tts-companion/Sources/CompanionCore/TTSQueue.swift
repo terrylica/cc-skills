@@ -84,6 +84,7 @@ public actor TTSQueue {
     private let pipelineCoordinator: TTSPipelineCoordinator
     private let subtitlePanel: SubtitlePanel
     private let captionHistory: CaptionHistory
+    private let settingsStore: SettingsStore
 
     // Queue state
     private struct WorkItem {
@@ -100,11 +101,12 @@ public actor TTSQueue {
 
     static let maxAutomatedQueueDepth = 3
 
-    public init(ttsEngine: TTSEngine, pipelineCoordinator: TTSPipelineCoordinator, subtitlePanel: SubtitlePanel, captionHistory: CaptionHistory) {
+    public init(ttsEngine: TTSEngine, pipelineCoordinator: TTSPipelineCoordinator, subtitlePanel: SubtitlePanel, captionHistory: CaptionHistory, settingsStore: SettingsStore) {
         self.ttsEngine = ttsEngine
         self.pipelineCoordinator = pipelineCoordinator
         self.subtitlePanel = subtitlePanel
         self.captionHistory = captionHistory
+        self.settingsStore = settingsStore
     }
 
     // MARK: - Status
@@ -285,9 +287,19 @@ public actor TTSQueue {
         logger.info("Synthesizing \(item.priority == .userInitiated ? "USER" : "auto") TTS: \(fullText.count) chars")
 
         // Check if text has multiple paragraphs (split by \n\n)
-        let paragraphs = fullText.components(separatedBy: "\n\n")
+        var paragraphs = fullText.components(separatedBy: "\n\n")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+
+        // Adaptive Paragraph Segmentation: enforce paragraph budget via sentence bisection
+        let budget = settingsStore.getSettings().tts.paragraphBudget
+        if budget > 0 {
+            let before = paragraphs.count
+            paragraphs = PronunciationProcessor.enforceParargraphBudget(paragraphs, budget: budget)
+            if paragraphs.count > before {
+                logger.info("Paragraph budget (\(budget) chars): \(before) paragraphs → \(paragraphs.count) segments")
+            }
+        }
 
         if paragraphs.count > 1 {
             // === Multi-paragraph streaming path ===

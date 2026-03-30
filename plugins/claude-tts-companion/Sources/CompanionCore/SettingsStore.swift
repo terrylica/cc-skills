@@ -50,12 +50,33 @@ public struct TTSSettings: Codable, Sendable {
     var enabled: Bool
     var voice: String
     var speed: Double
+    /// Maximum characters per synthesis chunk (Paragraph Budget).
+    /// Paragraphs exceeding this are recursively bisected at sentence boundaries.
+    /// 0 = unlimited (no budget enforcement).
+    var paragraphBudget: Int
 
     static let `default` = TTSSettings(
         enabled: true,
         voice: "af_heart",
-        speed: 1.0
+        speed: 1.0,
+        paragraphBudget: 500
     )
+
+    init(enabled: Bool, voice: String, speed: Double, paragraphBudget: Int = 500) {
+        self.enabled = enabled
+        self.voice = voice
+        self.speed = speed
+        self.paragraphBudget = paragraphBudget
+    }
+
+    /// Backward-compatible decoder for settings files without paragraphBudget.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        enabled = try container.decode(Bool.self, forKey: .enabled)
+        voice = try container.decode(String.self, forKey: .voice)
+        speed = try container.decode(Double.self, forKey: .speed)
+        paragraphBudget = try container.decodeIfPresent(Int.self, forKey: .paragraphBudget) ?? 500
+    }
 }
 
 /// Top-level settings container holding all subsystem configurations.

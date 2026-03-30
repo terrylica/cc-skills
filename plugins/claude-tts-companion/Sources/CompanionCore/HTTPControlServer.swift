@@ -18,6 +18,7 @@ public struct TTSSettingsUpdate: Codable, Sendable {
     var enabled: Bool?
     var voice: String?
     var speed: Double?
+    var paragraphBudget: Int?
 }
 
 /// Request body for POST /subtitle/show.
@@ -158,6 +159,7 @@ public final class HTTPControlServer: @unchecked Sendable {
                     if let v = update.enabled { s.enabled = v }
                     if let v = update.voice { s.voice = v }
                     if let v = update.speed { s.speed = v }
+                    if let v = update.paragraphBudget { s.paragraphBudget = max(0, v) }
                 }
                 let settings = settingsStore.getSettings()
                 return jsonResponse(settings)
