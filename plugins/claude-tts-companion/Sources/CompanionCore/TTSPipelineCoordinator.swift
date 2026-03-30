@@ -134,6 +134,7 @@ public final class TTSPipelineCoordinator {
         activeSyncDriver = nil
         playbackManager.audioStreamPlayer.reset()
         playbackManager.stopPlayback()
+        subtitlePanel.clearEdgeHint()
         isActive = false
         streamingChunkCount = 0
         streamingOnComplete = nil
@@ -313,7 +314,7 @@ public final class TTSPipelineCoordinator {
     ///
     /// Uses the same subtitle logic as startBatchPipeline: paragraph scope with
     /// Kokoro-aligned words and punctuation reattachment.
-    func addStreamingChunk(_ chunks: [TTSEngine.ChunkResult]) {
+    func addStreamingChunk(_ chunks: [TTSEngine.ChunkResult], edgeHint: SubtitleBorder.EdgeHint = .none) {
         guard let driver = activeSyncDriver else {
             logger.warning("addStreamingChunk called with no active pipeline -- ignoring")
             return
@@ -406,6 +407,13 @@ public final class TTSPipelineCoordinator {
         }
 
         streamingChunkCount += 1
+
+        // Apply bisection edge hint to the rainbow border
+        if edgeHint != .none {
+            subtitlePanel.setEdgeHint(edgeHint)
+        } else if streamingChunkCount == 1 {
+            subtitlePanel.clearEdgeHint()
+        }
 
         // Schedule audio directly on AudioStreamPlayer for immediate playback.
         // The driver tracks subtitle karaoke timing via its streamChunks array.

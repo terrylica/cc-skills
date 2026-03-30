@@ -496,4 +496,16 @@ public final class SubtitlePanel: NSPanel {
         border.updateFrame(bounds: backgroundView.bounds, cornerRadius: SubtitleStyle.cornerRadius)
     }
 
+    // MARK: - Border Edge Hints
+
+    /// Update the jagged waveform edges on the rainbow border to indicate bisected paragraph state.
+    func setEdgeHint(_ hint: SubtitleBorder.EdgeHint) {
+        border.setEdgeHint(hint, bounds: backgroundView.bounds)
+    }
+
+    /// Clear any jagged edges (restore normal rounded border).
+    func clearEdgeHint() {
+        border.clearEdgeHint(bounds: backgroundView.bounds)
+    }
+
 }
