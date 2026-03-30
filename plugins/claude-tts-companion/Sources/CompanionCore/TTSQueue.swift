@@ -339,24 +339,50 @@ public actor TTSQueue {
                     break
                 }
 
-                // Brief pause between paragraphs to let the MLX server release resources.
-                // Prevents resource exhaustion on rapid sequential synthesis calls.
+                // Health-gated synthesis: confirm server readiness before each paragraph.
+                // The server's own /health endpoint defines when it's ready — no magic delays.
                 if index > 0 {
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+                    let ready = await ttsEngine.awaitServerReady(cancellationCheck: { token.isCancelled })
+                    if !ready {
+                        logger.info("Streaming cancelled while waiting for server readiness")
+                        break
+                    }
                 }
 
+                // Compute edge hints upfront (needed for both initial and retry paths).
+                // Top zigzag = continuation from previous bisected segment
+                // Bottom zigzag = more bisected segments follow
+                let edgeHint = SubtitleBorder.EdgeHint(
+                    jaggedTop: segment.isContinuation,
+                    jaggedBottom: segment.isUnfinished
+                )
+
                 let paraStart = CFAbsoluteTimeGetCurrent()
-                let chunks = await ttsEngine.synthesizeStreamingAutoRoute(
+                var chunks = await ttsEngine.synthesizeStreamingAutoRoute(
                     text: segment.text,
                     cancellationCheck: { token.isCancelled }
                 )
-                let paraElapsed = CFAbsoluteTimeGetCurrent() - paraStart
 
                 if chunks.isEmpty {
-                    logger.warning("Paragraph \(index + 1)/\(segments.count) produced no chunks — skipping")
-                    continue
+                    // Server may have dropped — wait for recovery, then retry once.
+                    logger.warning("Paragraph \(index + 1)/\(segments.count) produced no chunks — awaiting server recovery")
+                    let recovered = await ttsEngine.awaitServerReady(cancellationCheck: { token.isCancelled })
+                    if !recovered || token.isCancelled {
+                        logger.warning("Paragraph \(index + 1)/\(segments.count) skipped (cancelled or server unrecoverable)")
+                        continue
+                    }
+                    chunks = await ttsEngine.synthesizeStreamingAutoRoute(
+                        text: segment.text,
+                        cancellationCheck: { token.isCancelled }
+                    )
+                    if chunks.isEmpty {
+                        logger.warning("Paragraph \(index + 1)/\(segments.count) retry failed — skipping")
+                        continue
+                    }
+                    logger.info("Paragraph \(index + 1)/\(segments.count) recovered after server restart")
                 }
 
+                let paraElapsed = CFAbsoluteTimeGetCurrent() - paraStart
                 anyChunkProduced = true
                 accumulatedWords += chunks.reduce(0) { $0 + $1.wordTimings.count }
                 accumulatedOnsets += chunks.reduce(0) { $0 + ($1.wordOnsets?.count ?? 0) }
@@ -364,13 +390,6 @@ public actor TTSQueue {
 
                 logger.info("Paragraph \(index + 1)/\(segments.count) synthesized in \(String(format: "%.2f", paraElapsed))s (\(segment.text.count) chars)")
 
-                // Feed chunks to the streaming pipeline on MainActor with bisection edge hints.
-                // Last segment gets no indicators — nothing left to signal.
-                let isLastSegment = !segment.isUnfinished
-                let edgeHint = SubtitleBorder.EdgeHint(
-                    jaggedTop: segment.isContinuation && !isLastSegment,
-                    jaggedBottom: segment.isUnfinished
-                )
                 await MainActor.run { [pipelineCoordinator] in
                     pipelineCoordinator.addStreamingChunk(chunks, edgeHint: edgeHint)
                 }
