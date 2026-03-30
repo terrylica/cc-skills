@@ -134,7 +134,7 @@ public final class TTSPipelineCoordinator {
         activeSyncDriver = nil
         playbackManager.audioStreamPlayer.reset()
         playbackManager.stopPlayback()
-        subtitlePanel.clearEdgeHint()
+        subtitlePanel.clearEdgeHint()  // Clear any jagged edges from bisected segments
         isActive = false
         streamingChunkCount = 0
         streamingOnComplete = nil
@@ -337,7 +337,8 @@ public final class TTSPipelineCoordinator {
                     samples: chunk.samples,
                     pages: pages,
                     wordTimings: chunk.wordTimings,
-                    nativeOnsets: chunk.wordOnsets
+                    nativeOnsets: chunk.wordOnsets,
+                    edgeHint: edgeHint
                 )
             }
         } else if chunks.count == 1 {
@@ -360,7 +361,8 @@ public final class TTSPipelineCoordinator {
                 samples: chunk.samples,
                 pages: pages,
                 wordTimings: chunk.wordTimings,
-                nativeOnsets: chunk.wordOnsets
+                nativeOnsets: chunk.wordOnsets,
+                edgeHint: edgeHint
             )
         } else {
             // Multiple chunks in paragraph mode: merge into one subtitle stream.
@@ -402,18 +404,12 @@ public final class TTSPipelineCoordinator {
                 samples: allSamples.isEmpty ? nil : allSamples,
                 pages: pages,
                 wordTimings: allWordTimings,
-                nativeOnsets: allWordOnsets.isEmpty ? nil : allWordOnsets
+                nativeOnsets: allWordOnsets.isEmpty ? nil : allWordOnsets,
+                edgeHint: edgeHint
             )
         }
 
         streamingChunkCount += 1
-
-        // Apply bisection edge hint to the rainbow border
-        if edgeHint != .none {
-            subtitlePanel.setEdgeHint(edgeHint)
-        } else if streamingChunkCount == 1 {
-            subtitlePanel.clearEdgeHint()
-        }
 
         // Schedule audio directly on AudioStreamPlayer for immediate playback.
         // The driver tracks subtitle karaoke timing via its streamChunks array.
