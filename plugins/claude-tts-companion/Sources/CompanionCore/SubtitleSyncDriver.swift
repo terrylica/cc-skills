@@ -347,6 +347,8 @@ public final class SubtitleSyncDriver {
             return
         }
 
+        // Clear any stale edge hints before activating first chunk
+        subtitlePanel.clearEdgeHint()
         activateChunk(at: 0)
         chunkStartTime = 0
 
