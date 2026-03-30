@@ -235,6 +235,26 @@ public final class HTTPControlServer: @unchecked Sendable {
             return jsonResponse(OkResponse(ok: true))
         }
 
+        // API-11: TTS status — queue depth, playing state, pipeline info
+        await server.appendRoute("GET /tts/status") { [self] _ in
+            let queueStatus = await ttsQueue.status
+            let pipelineActive = await MainActor.run { pipelineCoordinator.isBusy }
+            let response: [String: Any] = [
+                "queueDepth": queueStatus.queueDepth,
+                "isPlaying": queueStatus.isPlaying || pipelineActive,
+                "userRequestActive": queueStatus.userRequestActive,
+                "maxQueueDepth": queueStatus.maxQueueDepth,
+                "pipelineActive": pipelineActive,
+            ]
+            // Manual JSON since [String: Any] isn't Codable
+            let json = try! JSONSerialization.data(withJSONObject: response, options: [.sortedKeys])
+            return HTTPResponse(
+                statusCode: .ok,
+                headers: [.contentType: "application/json"],
+                body: json
+            )
+        }
+
         // API-07: Get caption history
         await server.appendRoute("GET /captions") { [self] _ in
             let entries = captionHistory.getAll()
