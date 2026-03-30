@@ -84,8 +84,8 @@ public final class SubtitleBorder {
 
         let r = cornerRadius
         let path = CGMutablePath()
-        let tooth: CGFloat = 6.0   // zigzag tooth height
-        let pitch: CGFloat = 12.0  // zigzag tooth width
+        let tooth: CGFloat = 2.0   // zigzag tooth height (subtle)
+        let pitch: CGFloat = 6.0   // zigzag tooth width
 
         // Start at top-left after corner
         if edgeHint.jaggedTop {

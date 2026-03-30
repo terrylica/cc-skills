@@ -60,6 +60,7 @@ public final class SubtitleSyncDriver {
         let wordOnsets: [TimeInterval]
         let totalWords: Int
         let audioDuration: TimeInterval
+        let edgeHint: SubtitleBorder.EdgeHint
     }
 
     /// All chunks received so far (played + pending)
@@ -222,7 +223,7 @@ public final class SubtitleSyncDriver {
     ///   - pages: Subtitle pages for this chunk
     ///   - wordTimings: Per-word durations from TTSEngine
     ///   - nativeOnsets: Native word onset times from Python MLX server (nil = derive from durations)
-    func addChunk(wavPath: String, samples: [Float]? = nil, pages: [SubtitlePage], wordTimings: [TimeInterval], nativeOnsets: [TimeInterval]? = nil) {
+    func addChunk(wavPath: String, samples: [Float]? = nil, pages: [SubtitlePage], wordTimings: [TimeInterval], nativeOnsets: [TimeInterval]? = nil, edgeHint: SubtitleBorder.EdgeHint = .none) {
         guard isStreamingMode else {
             logger.warning("addChunk() called on single-shot driver")
             return
@@ -251,7 +252,8 @@ public final class SubtitleSyncDriver {
             wordTimings: wordTimings,
             wordOnsets: onsets,
             totalWords: totalWords,
-            audioDuration: audioDuration
+            audioDuration: audioDuration,
+            edgeHint: edgeHint
         )
         streamChunks.append(chunk)
 
@@ -424,6 +426,9 @@ public final class SubtitleSyncDriver {
 
         currentChunkIndex = index
         let chunk = streamChunks[index]
+
+        // Apply border edge hint for this chunk (jagged edges for bisected paragraphs)
+        subtitlePanel.setEdgeHint(chunk.edgeHint)
 
         // Calculate cumulative offset from all previous chunks
         cumulativeOffset = 0
@@ -603,6 +608,7 @@ public final class SubtitleSyncDriver {
         // If self is nil when the timer runs, hide() never executes and the subtitle
         // stays on screen permanently.
         let panel = subtitlePanel
+        panel.clearEdgeHint()
         DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration) {
             panel.hide()
         }
