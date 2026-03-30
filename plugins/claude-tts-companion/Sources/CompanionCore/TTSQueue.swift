@@ -107,6 +107,26 @@ public actor TTSQueue {
         self.captionHistory = captionHistory
     }
 
+    // MARK: - Status
+
+    /// Snapshot of current queue state for HTTP API.
+    public struct Status: Codable, Sendable {
+        public let queueDepth: Int
+        public let isPlaying: Bool
+        public let userRequestActive: Bool
+        public let maxQueueDepth: Int
+    }
+
+    /// Get a snapshot of current queue state.
+    public var status: Status {
+        Status(
+            queueDepth: queue.count,
+            isPlaying: currentTask != nil,
+            userRequestActive: userRequestActive,
+            maxQueueDepth: Self.maxAutomatedQueueDepth
+        )
+    }
+
     // MARK: - Public API
 
     /// Enqueue a TTS request. Returns immediately with queue status.
