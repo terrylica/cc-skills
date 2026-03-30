@@ -101,7 +101,9 @@ public final class SubtitleBorder {
     // MARK: - Border Mask (gaps for zigzag edges)
 
     /// Build the border stroke mask. When zigzag is active on an edge,
-    /// that edge segment is omitted from the mask so the zigzag strip shows through.
+    /// that edge is omitted so the zigzag strip shows through.
+    /// Uses separate subpaths per visible segment — never closeSubpath()
+    /// (which would draw a diagonal line across gaps).
     private func buildBorderMask(bounds: CGRect, cornerRadius: CGFloat) -> CGPath {
         guard currentEdgeHint.jaggedTop || currentEdgeHint.jaggedBottom else {
             return CGPath(roundedRect: bounds, cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil)
@@ -110,37 +112,31 @@ public final class SubtitleBorder {
         let r = cornerRadius
         let path = CGMutablePath()
 
-        // Draw border as individual segments, skipping edges that have zigzag.
-        // Left edge + corners (always drawn)
+        // Segment 1: Left edge (bottom-left corner → top-left corner)
         path.move(to: CGPoint(x: 0, y: bounds.height - r))
-        path.addArc(tangent1End: CGPoint(x: 0, y: 0), tangent2End: CGPoint(x: r, y: 0), radius: r)
+        path.addLine(to: CGPoint(x: 0, y: r))
+        path.addArc(center: CGPoint(x: r, y: r), radius: r, startAngle: .pi, endAngle: .pi * 1.5, clockwise: false)
 
+        // Segment 2: Top edge (only if not jagged)
         if !currentEdgeHint.jaggedTop {
-            // Top edge: draw straight
             path.addLine(to: CGPoint(x: bounds.width - r, y: 0))
-        } else {
-            // Top edge: skip (move without drawing)
-            path.move(to: CGPoint(x: bounds.width - r, y: 0))
         }
 
-        // Top-right corner + right edge (always drawn)
-        path.addArc(tangent1End: CGPoint(x: bounds.width, y: 0), tangent2End: CGPoint(x: bounds.width, y: r), radius: r)
+        // Segment 3: Top-right corner + right edge + bottom-right corner
+        path.move(to: CGPoint(x: bounds.width - r, y: 0))
+        path.addArc(center: CGPoint(x: bounds.width - r, y: r), radius: r, startAngle: .pi * 1.5, endAngle: 0, clockwise: false)
         path.addLine(to: CGPoint(x: bounds.width, y: bounds.height - r))
+        path.addArc(center: CGPoint(x: bounds.width - r, y: bounds.height - r), radius: r, startAngle: 0, endAngle: .pi * 0.5, clockwise: false)
 
+        // Segment 4: Bottom edge (only if not jagged)
         if !currentEdgeHint.jaggedBottom {
-            // Bottom edge: draw straight
-            path.addArc(tangent1End: CGPoint(x: bounds.width, y: bounds.height), tangent2End: CGPoint(x: bounds.width - r, y: bounds.height), radius: r)
             path.addLine(to: CGPoint(x: r, y: bounds.height))
-            path.addArc(tangent1End: CGPoint(x: 0, y: bounds.height), tangent2End: CGPoint(x: 0, y: bounds.height - r), radius: r)
-        } else {
-            // Bottom edge: draw corners only, skip straight segment
-            path.addArc(tangent1End: CGPoint(x: bounds.width, y: bounds.height), tangent2End: CGPoint(x: bounds.width - r, y: bounds.height), radius: r)
-            path.move(to: CGPoint(x: r, y: bounds.height))
-            path.addArc(tangent1End: CGPoint(x: 0, y: bounds.height), tangent2End: CGPoint(x: 0, y: bounds.height - r), radius: r)
         }
 
-        // Close left edge
-        path.closeSubpath()
+        // Segment 5: Bottom-left corner (connects back to left edge start)
+        path.move(to: CGPoint(x: r, y: bounds.height))
+        path.addArc(center: CGPoint(x: r, y: bounds.height - r), radius: r, startAngle: .pi * 0.5, endAngle: .pi, clockwise: false)
+
         return path
     }
 
