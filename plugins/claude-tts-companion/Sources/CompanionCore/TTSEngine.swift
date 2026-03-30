@@ -66,7 +66,7 @@ public actor TTSEngine {
 
     /// Circuit breaker tracking consecutive synthesis failures.
     /// Delegates to the existing CircuitBreaker class.
-    private let circuitBreaker = CircuitBreaker(maxFailures: 3, cooldownSeconds: 300)
+    private let circuitBreaker = CircuitBreaker(maxFailures: 3, cooldownSeconds: 30)
 
     /// Check whether TTS is temporarily disabled by the circuit breaker.
     /// If the cooldown has elapsed, automatically re-enable.
@@ -88,32 +88,40 @@ public actor TTSEngine {
     }
 
     /// Check if the Python TTS server is reachable. Called during startup.
-    /// Non-blocking -- logs warning if unreachable but does not disable TTS
-    /// (server may come up later).
+    /// Retries up to 6 times (30s total) to wait for the Kokoro server to load its model.
+    /// This prevents the circuit breaker from tripping on startup race conditions.
     func checkPythonServerHealth() async {
-        let healthURL = URL(string: "\(Config.pythonTTSServerURL)/health")!
-        var request = URLRequest(url: healthURL)
-        request.timeoutInterval = Config.pythonTTSHealthCheckTimeout
+        let maxRetries = 6
+        let retryDelay: UInt64 = 5_000_000_000  // 5 seconds
 
-        do {
-            let (data, response) = try await urlSession.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                logger.warning("Python TTS server health check failed -- server may not be ready")
-                pythonServerWarning = true
+        for attempt in 1...maxRetries {
+            let healthURL = URL(string: "\(Config.pythonTTSServerURL)/health")!
+            var request = URLRequest(url: healthURL)
+            request.timeoutInterval = Config.pythonTTSHealthCheckTimeout
+
+            do {
+                let (data, response) = try await urlSession.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200 else {
+                    throw URLError(.badServerResponse)
+                }
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let status = json["status"] as? String {
+                    logger.info("Python TTS server healthy: status=\(status)")
+                } else {
+                    logger.info("Python TTS server reachable (health endpoint returned 200)")
+                }
+                pythonServerWarning = false
                 return
+            } catch {
+                if attempt < maxRetries {
+                    logger.info("Python TTS server not ready (attempt \(attempt)/\(maxRetries)), retrying in 5s...")
+                    try? await Task.sleep(nanoseconds: retryDelay)
+                } else {
+                    logger.warning("Python TTS server unreachable after \(maxRetries) attempts at \(Config.pythonTTSServerURL)")
+                    pythonServerWarning = true
+                }
             }
-            // Parse health response for logging
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let status = json["status"] as? String {
-                logger.info("Python TTS server healthy: status=\(status)")
-            } else {
-                logger.info("Python TTS server reachable (health endpoint returned 200)")
-            }
-            pythonServerWarning = false
-        } catch {
-            logger.warning("Python TTS server unreachable at \(Config.pythonTTSServerURL): \(error.localizedDescription)")
-            pythonServerWarning = true
         }
     }
 
