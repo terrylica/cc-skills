@@ -1,3 +1,10 @@
+# [12.26.0](https://github.com/terrylica/cc-skills/compare/v12.25.0...v12.26.0) (2026-03-30)
+
+
+### Features
+
+* **statusline:** add release age "ago" suffix to version tag ([681a9e7](https://github.com/terrylica/cc-skills/commit/681a9e7ac608dfd224d8bf8fb63798ad159c710f))
+
 # [12.25.0](https://github.com/terrylica/cc-skills/compare/v12.24.4...v12.25.0) (2026-03-30)
 
 
