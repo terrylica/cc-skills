@@ -202,10 +202,31 @@ public struct PronunciationProcessor: Sendable {
         return sentences.isEmpty ? [text] : sentences
     }
 
+    /// Metadata for a paragraph segment produced by budget enforcement.
+    public struct ParagraphSegment: Sendable {
+        public let text: String
+        /// True if this segment continues from a previous bisection of the same original paragraph.
+        public let isContinuation: Bool
+        /// True if there are more bisected segments of the same original paragraph after this one.
+        public let isUnfinished: Bool
+    }
+
     /// Apply paragraph budget enforcement to a list of paragraphs (from `\n\n` splitting).
     /// Each paragraph that exceeds the budget is recursively bisected at sentence boundaries.
-    public static func enforceParargraphBudget(_ paragraphs: [String], budget: Int) -> [String] {
-        paragraphs.flatMap { bisectParagraph($0, budget: budget) }
+    /// Returns segments with continuation metadata for border rendering.
+    public static func enforceParargraphBudget(_ paragraphs: [String], budget: Int) -> [ParagraphSegment] {
+        var result: [ParagraphSegment] = []
+        for paragraph in paragraphs {
+            let segments = bisectParagraph(paragraph, budget: budget)
+            for (i, seg) in segments.enumerated() {
+                result.append(ParagraphSegment(
+                    text: seg,
+                    isContinuation: i > 0,
+                    isUnfinished: i < segments.count - 1
+                ))
+            }
+        }
+        return result
     }
 
     /// Compute which display word indices are followed by a paragraph break in the original text.
