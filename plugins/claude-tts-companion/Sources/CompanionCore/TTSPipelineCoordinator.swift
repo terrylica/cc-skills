@@ -118,6 +118,12 @@ public final class TTSPipelineCoordinator {
 
     // MARK: - Pipeline Lifecycle
 
+    /// Tracks how many streaming chunks have been fed (for "start playback on first chunk" logic).
+    private var streamingChunkCount: Int = 0
+
+    /// Stored completion callback for streaming pipeline (called when playback finishes).
+    private var streamingOnComplete: (() -> Void)?
+
     /// Cancel any in-progress pipeline session.
     ///
     /// Stops the active sync driver, resets AudioStreamPlayer (cancels queued buffers,
@@ -129,6 +135,8 @@ public final class TTSPipelineCoordinator {
         playbackManager.audioStreamPlayer.reset()
         playbackManager.stopPlayback()
         isActive = false
+        streamingChunkCount = 0
+        streamingOnComplete = nil
         if hadActive {
             logger.info("Cancelled active pipeline session")
         }
@@ -263,5 +271,174 @@ public final class TTSPipelineCoordinator {
         driver.startBatchPlayback()
 
         logger.info("Started batch pipeline with \(chunks.count) chunks")
+    }
+
+    // MARK: - Streaming Paragraph Pipeline
+
+    /// Start a streaming pipeline session. Creates the SubtitleSyncDriver upfront,
+    /// then callers feed chunks incrementally via addStreamingChunk().
+    /// Call finalizeStreamingPipeline() after the last chunk is fed.
+    ///
+    /// - Parameter onComplete: Called when all streaming playback finishes.
+    /// - Returns: true if pipeline started successfully.
+    @discardableResult
+    func startStreamingPipeline(onComplete: (() -> Void)? = nil) -> Bool {
+        // Cancel any in-progress session first
+        cancelCurrentPipeline()
+        isActive = true
+        streamingChunkCount = 0
+        streamingOnComplete = onComplete
+
+        // Create sync driver for streaming playback
+        let driver = SubtitleSyncDriver(
+            subtitlePanel: subtitlePanel,
+            audioStreamPlayer: playbackManager.audioStreamPlayer,
+            onStreamingComplete: { [weak self] in
+                self?.isActive = false
+                self?.activeSyncDriver = nil
+                self?.streamingChunkCount = 0
+                self?.logger.info("Streaming pipeline playback complete")
+                self?.streamingOnComplete?()
+                self?.streamingOnComplete = nil
+            }
+        )
+        activeSyncDriver = driver
+
+        logger.info("Started streaming pipeline session (awaiting paragraph chunks)")
+        return true
+    }
+
+    /// Feed a synthesized paragraph chunk to the active streaming pipeline.
+    /// The driver accumulates chunks for gapless playback.
+    ///
+    /// Uses the same subtitle logic as startBatchPipeline: paragraph scope with
+    /// Kokoro-aligned words and punctuation reattachment.
+    func addStreamingChunk(_ chunks: [TTSEngine.ChunkResult]) {
+        guard let driver = activeSyncDriver else {
+            logger.warning("addStreamingChunk called with no active pipeline -- ignoring")
+            return
+        }
+
+        guard !chunks.isEmpty else {
+            logger.warning("addStreamingChunk called with empty chunks")
+            return
+        }
+
+        let scope = subtitlePanel.currentSubtitleScope
+
+        if scope == "sentence" {
+            // Legacy per-sentence subtitles (paginated to 2-line pages)
+            let fontSizeName = subtitlePanel.currentFontSizeName
+            for chunk in chunks {
+                let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+                driver.addChunk(
+                    wavPath: chunk.wavPath,
+                    samples: chunk.samples,
+                    pages: pages,
+                    wordTimings: chunk.wordTimings,
+                    nativeOnsets: chunk.wordOnsets
+                )
+            }
+        } else if chunks.count == 1 {
+            // Paragraph scope: single page with ALL words (panel auto-sizes).
+            let chunk = chunks[0]
+            let words: [String]
+            if let kokoroWords = chunk.wordTexts, !kokoroWords.isEmpty {
+                words = PronunciationProcessor.reattachPunctuation(
+                    originalText: chunk.text, kokoroTokens: kokoroWords
+                )
+                logger.info("Streaming chunk: Kokoro-aligned words with punctuation (\(words.count) words)")
+            } else {
+                words = PronunciationProcessor.splitWordsMatchingKokoro(chunk.text)
+                logger.info("Streaming chunk: fallback splitWordsMatchingKokoro (\(words.count) words)")
+            }
+            let breaks = PronunciationProcessor.paragraphBreakIndices(chunk.text, displayWords: words)
+            let pages = [SubtitlePage(words: words, startWordIndex: 0, paragraphBreaksAfter: breaks)]
+            driver.addChunk(
+                wavPath: chunk.wavPath,
+                samples: chunk.samples,
+                pages: pages,
+                wordTimings: chunk.wordTimings,
+                nativeOnsets: chunk.wordOnsets
+            )
+        } else {
+            // Multiple chunks in paragraph mode: merge into one subtitle stream.
+            var allSamples: [Float] = []
+            var allWordTimings: [TimeInterval] = []
+            var allWordOnsets: [TimeInterval] = []
+            var allWordTexts: [String] = []
+            var cumulativeTime: TimeInterval = 0
+
+            for chunk in chunks {
+                allSamples.append(contentsOf: chunk.samples ?? [])
+                allWordTimings.append(contentsOf: chunk.wordTimings)
+                if let onsets = chunk.wordOnsets {
+                    for onset in onsets {
+                        allWordOnsets.append(onset + cumulativeTime)
+                    }
+                }
+                if let texts = chunk.wordTexts {
+                    allWordTexts.append(contentsOf: texts)
+                }
+                cumulativeTime += chunk.audioDuration
+            }
+
+            let allWords: [String]
+            if !allWordTexts.isEmpty {
+                let fullText = chunks.map { $0.text }.joined(separator: " ")
+                allWords = PronunciationProcessor.reattachPunctuation(
+                    originalText: fullText, kokoroTokens: allWordTexts
+                )
+                logger.info("Streaming chunk: merged Kokoro-aligned words (\(allWords.count) words)")
+            } else {
+                let fullText = chunks.map { $0.text }.joined(separator: " ")
+                allWords = PronunciationProcessor.splitWordsMatchingKokoro(fullText)
+                logger.info("Streaming chunk: fallback merged splitWordsMatchingKokoro (\(allWords.count) words)")
+            }
+            let pages = [SubtitlePage(words: allWords, startWordIndex: 0)]
+            driver.addChunk(
+                wavPath: chunks.first?.wavPath ?? "",
+                samples: allSamples.isEmpty ? nil : allSamples,
+                pages: pages,
+                wordTimings: allWordTimings,
+                nativeOnsets: allWordOnsets.isEmpty ? nil : allWordOnsets
+            )
+        }
+
+        streamingChunkCount += 1
+
+        // Schedule audio directly on AudioStreamPlayer for immediate playback.
+        // The driver tracks subtitle karaoke timing via its streamChunks array.
+        let asp = playbackManager.audioStreamPlayer
+        if streamingChunkCount == 1 {
+            // First chunk: reset AudioStreamPlayer for a fresh session, activate
+            // the first chunk in the driver for karaoke, and start the timer.
+            // We do NOT call driver.startBatchPlayback() because that would set
+            // allChunksDelivered=true and only schedule existing chunks.
+            asp.reset()
+        }
+
+        // Schedule this paragraph's audio buffer on AudioStreamPlayer
+        for chunk in chunks {
+            if let samples = chunk.samples, !samples.isEmpty {
+                asp.scheduleChunk(samples: samples)
+            }
+        }
+
+        if streamingChunkCount == 1 {
+            // Activate chunk 0 for karaoke tracking and start the 60Hz timer
+            driver.activateFirstChunkForStreaming()
+            logger.info("Streaming pipeline: first chunk fed, playback started")
+        }
+
+        logger.info("Fed streaming chunk \(streamingChunkCount) to pipeline")
+    }
+
+    /// Signal that all chunks have been fed. No more chunks will arrive.
+    /// Schedules the completion callback on the last audio buffer.
+    func finalizeStreamingPipeline() {
+        guard let driver = activeSyncDriver else { return }
+        driver.markAllChunksDelivered()
+        logger.info("Streaming pipeline finalized with \(streamingChunkCount) total chunks")
     }
 }

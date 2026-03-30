@@ -26,6 +26,50 @@ public final class CancellationToken: @unchecked Sendable {
     public func cancel() { lock.lock(); _cancelled = true; lock.unlock() }
 }
 
+/// Thread-safe box that wraps an async/await continuation for cross-isolation use.
+/// Used by the streaming paragraph pipeline: the @MainActor onComplete callback
+/// calls resume(), and the TTSQueue actor awaits wait().
+private final class PlaybackContinuationBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var resumed = false
+
+    func resume() {
+        lock.withLock {
+            if let cont = continuation {
+                continuation = nil
+                resumed = true
+                cont.resume()
+            } else {
+                resumed = true
+            }
+        }
+    }
+
+    /// Check if already resumed, non-async so it can be called before withCheckedContinuation.
+    private func checkAndStoreContinuation(_ cont: CheckedContinuation<Void, Never>) -> Bool {
+        lock.withLock {
+            if resumed {
+                return true
+            } else {
+                continuation = cont
+                return false
+            }
+        }
+    }
+
+    func wait() async {
+        let alreadyDone = lock.withLock { resumed }
+        if alreadyDone { return }
+
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            if checkAndStoreContinuation(cont) {
+                cont.resume()
+            }
+        }
+    }
+}
+
 /// Priority-aware FIFO queue that serializes TTS synthesis and playback.
 ///
 /// - Automated requests (hooks): queued up to 3 deep, drop-oldest on overflow
@@ -203,46 +247,134 @@ public actor TTSQueue {
 
         logger.info("Synthesizing \(item.priority == .userInitiated ? "USER" : "auto") TTS: \(fullText.count) chars")
 
-        // Synthesize with cooperative cancellation
-        let chunks = await ttsEngine.synthesizeStreamingAutoRoute(
-            text: fullText,
-            cancellationCheck: { token.isCancelled }
-        )
+        // Check if text has multiple paragraphs (split by \n\n)
+        let paragraphs = fullText.components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
 
-        // Check cancellation between synthesis and playback
-        if Task.isCancelled || token.isCancelled {
-            logger.info("TTS cancelled before playback")
-            return
-        }
+        if paragraphs.count > 1 {
+            // === Multi-paragraph streaming path ===
+            // Synthesize each paragraph sequentially, start playback after first one arrives.
+            logger.info("Streaming \(paragraphs.count) paragraphs (\(fullText.count) total chars)")
 
-        guard !chunks.isEmpty else {
-            logger.warning("No chunks produced — subtitle-only fallback")
-            showSubtitleFallback(item)
-            return
-        }
+            // Set UUID on subtitle clipboard for right-click copy
+            let entryUUID = UUID().uuidString
+            DispatchQueue.main.async { [subtitlePanel] in
+                subtitlePanel.clipboard.update(text: fullText, uuid: entryUUID)
+            }
 
-        // Record to caption history with sync telemetry
-        let totalWords = chunks.reduce(0) { $0 + ($1.wordTimings.count) }
-        let totalOnsets = chunks.reduce(0) { $0 + ($1.wordOnsets?.count ?? 0) }
-        let totalDuration = chunks.reduce(0.0) { $0 + $1.audioDuration }
-        let entryUUID = UUID().uuidString
-        captionHistory.record(fullText, wordCount: totalWords, onsetCount: totalOnsets, audioDuration: totalDuration)
+            // Start streaming pipeline on MainActor BEFORE synthesis begins.
+            // Use a nonisolated Sendable box so the continuation can be stored
+            // inside the @MainActor callback and resumed later when playback completes.
+            let playbackDone = PlaybackContinuationBox()
 
-        // Set UUID on subtitle clipboard for right-click copy
-        DispatchQueue.main.async { [subtitlePanel] in
-            subtitlePanel.clipboard.update(text: fullText, uuid: entryUUID)
-        }
+            await MainActor.run { [pipelineCoordinator] in
+                pipelineCoordinator.startStreamingPipeline(onComplete: {
+                    playbackDone.resume()
+                })
+            }
 
-        // Start playback and await completion
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            DispatchQueue.main.async { [pipelineCoordinator, logger] in
-                pipelineCoordinator.startBatchPipeline(
-                    chunks: chunks,
-                    onComplete: {
-                        logger.info("Playback complete for \(item.priority == .userInitiated ? "USER" : "auto") request")
-                        continuation.resume()
-                    }
+            // Synthesize paragraphs sequentially, feeding each to the pipeline
+            var accumulatedWords = 0
+            var accumulatedOnsets = 0
+            var accumulatedDuration: TimeInterval = 0
+            var anyChunkProduced = false
+
+            for (index, paragraph) in paragraphs.enumerated() {
+                // Check cancellation between paragraphs
+                if token.isCancelled || Task.isCancelled {
+                    logger.info("Streaming cancelled before paragraph \(index + 1)/\(paragraphs.count)")
+                    break
+                }
+
+                let paraStart = CFAbsoluteTimeGetCurrent()
+                let chunks = await ttsEngine.synthesizeStreamingAutoRoute(
+                    text: paragraph,
+                    cancellationCheck: { token.isCancelled }
                 )
+                let paraElapsed = CFAbsoluteTimeGetCurrent() - paraStart
+
+                if chunks.isEmpty {
+                    logger.warning("Paragraph \(index + 1)/\(paragraphs.count) produced no chunks — skipping")
+                    continue
+                }
+
+                anyChunkProduced = true
+                accumulatedWords += chunks.reduce(0) { $0 + $1.wordTimings.count }
+                accumulatedOnsets += chunks.reduce(0) { $0 + ($1.wordOnsets?.count ?? 0) }
+                accumulatedDuration += chunks.reduce(0.0) { $0 + $1.audioDuration }
+
+                logger.info("Paragraph \(index + 1)/\(paragraphs.count) synthesized in \(String(format: "%.2f", paraElapsed))s (\(paragraph.count) chars)")
+
+                // Feed chunks to the streaming pipeline on MainActor
+                await MainActor.run { [pipelineCoordinator] in
+                    pipelineCoordinator.addStreamingChunk(chunks)
+                }
+            }
+
+            // Record caption history with accumulated metrics
+            if anyChunkProduced {
+                captionHistory.record(fullText, wordCount: accumulatedWords, onsetCount: accumulatedOnsets, audioDuration: accumulatedDuration)
+            }
+
+            // Finalize the streaming pipeline (all paragraphs synthesized)
+            await MainActor.run { [pipelineCoordinator] in
+                pipelineCoordinator.finalizeStreamingPipeline()
+            }
+
+            if !anyChunkProduced {
+                logger.warning("No paragraphs produced audio — subtitle-only fallback")
+                await MainActor.run { [pipelineCoordinator] in
+                    pipelineCoordinator.cancelCurrentPipeline()
+                }
+                showSubtitleFallback(item)
+            } else {
+                // Await playback completion (continuation resumes via onStreamingComplete)
+                await playbackDone.wait()
+            }
+        } else {
+            // === Single paragraph path (existing behavior) ===
+            // Synthesize with cooperative cancellation
+            let chunks = await ttsEngine.synthesizeStreamingAutoRoute(
+                text: fullText,
+                cancellationCheck: { token.isCancelled }
+            )
+
+            // Check cancellation between synthesis and playback
+            if Task.isCancelled || token.isCancelled {
+                logger.info("TTS cancelled before playback")
+                return
+            }
+
+            guard !chunks.isEmpty else {
+                logger.warning("No chunks produced — subtitle-only fallback")
+                showSubtitleFallback(item)
+                return
+            }
+
+            // Record to caption history with sync telemetry
+            let totalWords = chunks.reduce(0) { $0 + ($1.wordTimings.count) }
+            let totalOnsets = chunks.reduce(0) { $0 + ($1.wordOnsets?.count ?? 0) }
+            let totalDuration = chunks.reduce(0.0) { $0 + $1.audioDuration }
+            let entryUUID = UUID().uuidString
+            captionHistory.record(fullText, wordCount: totalWords, onsetCount: totalOnsets, audioDuration: totalDuration)
+
+            // Set UUID on subtitle clipboard for right-click copy
+            DispatchQueue.main.async { [subtitlePanel] in
+                subtitlePanel.clipboard.update(text: fullText, uuid: entryUUID)
+            }
+
+            // Start playback and await completion
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                DispatchQueue.main.async { [pipelineCoordinator, logger] in
+                    pipelineCoordinator.startBatchPipeline(
+                        chunks: chunks,
+                        onComplete: {
+                            logger.info("Playback complete for \(item.priority == .userInitiated ? "USER" : "auto") request")
+                            continuation.resume()
+                        }
+                    )
+                }
             }
         }
     }
