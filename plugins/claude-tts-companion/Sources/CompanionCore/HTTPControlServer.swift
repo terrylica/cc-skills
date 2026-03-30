@@ -228,6 +228,13 @@ public final class HTTPControlServer: @unchecked Sendable {
             }
         }
 
+        // API-10: TTS stop — cancel in-flight synthesis and stop audio immediately
+        await server.appendRoute("POST /tts/stop") { [self] _ in
+            logger.info("TTS stop requested via HTTP")
+            await ttsQueue.stopAll()
+            return jsonResponse(OkResponse(ok: true))
+        }
+
         // API-07: Get caption history
         await server.appendRoute("GET /captions") { [self] _ in
             let entries = captionHistory.getAll()

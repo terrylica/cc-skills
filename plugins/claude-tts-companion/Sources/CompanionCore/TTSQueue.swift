@@ -171,6 +171,23 @@ public actor TTSQueue {
         return .queued(position: queue.count)
     }
 
+    // MARK: - Public: Stop All
+
+    /// Stop all TTS activity: cancel in-flight synthesis, drain queue, stop playback.
+    /// Called from HTTP /tts/stop endpoint.
+    public func stopAll() {
+        currentToken?.cancel()
+        currentTask?.cancel()
+        currentTask = nil
+        currentToken = nil
+        queue.removeAll()
+        userRequestActive = false
+        DispatchQueue.main.async { [pipelineCoordinator] in
+            pipelineCoordinator.cancelCurrentPipeline()
+        }
+        logger.info("All TTS activity stopped (queue drained, pipeline cancelled)")
+    }
+
     // MARK: - Private: Preemption
 
     private func preempt() {
