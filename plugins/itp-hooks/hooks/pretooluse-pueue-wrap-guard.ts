@@ -29,6 +29,10 @@
 import { allow, allowWithInput, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 import { maybeInjectOpToken } from "./lib/op-token-injector.ts";
 
+/** File where we record pueue task IDs for session-scoped cleanup.
+ *  The stop hook reads this to kill only OUR jobs, not all jobs. */
+const SESSION_TASK_LOG = `/tmp/claude-pueue-tasks-${process.env.CLAUDE_SESSION_ID || process.ppid}.txt`;
+
 /** Opt-in escape hatch — force wrapping */
 const WRAP_COMMENT = /# *PUEUE-WRAP/i;
 
@@ -48,7 +52,7 @@ const BACKGROUNDED = /\bnohup\s|&\s*$|\bscreen\s|\btmux\s/i;
  *  (commit messages, branch names, file paths) happen to match LONG_RUNNING_PATTERNS.
  *  Includes linters/formatters whose file path arguments can trigger false positives
  *  (e.g., `ruff check scripts/populate_full_cache.py` matching "populate_cache"). */
-const NEVER_WRAP = /^\s*(git|ruff|mypy|pyright|pylint|flake8|black|isort|prettier|eslint|biome|cargo\s+(clippy|fmt|doc))\s/i;
+const NEVER_WRAP = /^\s*(git|ruff|mypy|pyright|pylint|flake8|black|isort|prettier|eslint|biome|mise|cargo\s+(check|build|test|clippy|fmt|doc|nextest|bench|run|publish|install|update|add|remove))\s/i;
 
 /**
  * Known long-running patterns that benefit from pueue wrapping.
@@ -106,11 +110,20 @@ function buildWrappedCommand(command: string, cwd: string): string {
   const escapedCommand = command.replace(/'/g, "'\\''");
   const escapedCwd = cwd.replace(/'/g, "'\\''");
 
+  // Fail-loud: if pueue add fails or returns no task ID, print error and
+  // fall back to running the command directly instead of silent 0-byte output.
+  // Record task ID to SESSION_TASK_LOG for session-scoped cleanup.
+  const escapedLog = SESSION_TASK_LOG.replace(/'/g, "'\\''");
   return (
-    `TASK_ID=$(pueue add --print-task-id -w '${escapedCwd}' -- ${escapedCommand} 2>/dev/null | grep -oE '^[0-9]+$' | tail -1) && ` +
-    `[ -n "$TASK_ID" ] && ` +
+    `TASK_ID=$(pueue add --print-task-id -w '${escapedCwd}' -- ${escapedCommand} 2>&1 | grep -oE '^[0-9]+$' | tail -1); ` +
+    `if [ -z "$TASK_ID" ]; then ` +
+    `echo >&2 "[pueue-wrap] Failed to queue command, running directly"; ` +
+    `${escapedCommand}; ` +
+    `else ` +
+    `echo "$TASK_ID" >> '${escapedLog}'; ` +
     `pueue wait "$TASK_ID" --quiet && ` +
-    `pueue log "$TASK_ID" --full`
+    `pueue log "$TASK_ID" --full; ` +
+    `fi`
   );
 }
 

@@ -20,7 +20,9 @@
  */
 
 /**
- * Kill all PUEUE jobs
+ * Kill only PUEUE jobs owned by this session.
+ * The wrap guard records task IDs to a session-scoped file.
+ * Falls back to killing all jobs only if the log file is missing.
  */
 async function cleanupPueueJobs(): Promise<void> {
   try {
@@ -30,22 +32,40 @@ async function cleanupPueueJobs(): Promise<void> {
       stderr: "ignore",
     });
 
-    if (status_check.exitCode === 0) {
-      console.warn("🧹 Cleaning up PUEUE jobs...");
+    if (status_check.exitCode !== 0) return;
 
-      // Kill all running jobs
-      Bun.spawnSync(["pueue", "kill"], {
-        stdout: "ignore",
-        stderr: "ignore",
-      });
+    console.warn("🧹 Cleaning up PUEUE jobs...");
 
-      // Clean job queue
+    // Read session task log — only kill jobs we started
+    const sessionId = process.env.CLAUDE_SESSION_ID || String(process.ppid);
+    const taskLogPath = `/tmp/claude-pueue-tasks-${sessionId}.txt`;
+
+    let taskIds: string[] = [];
+    try {
+      const content = await Bun.file(taskLogPath).text();
+      taskIds = content.trim().split("\n").filter(Boolean);
+    } catch {
+      // No task log — nothing to clean
+    }
+
+    if (taskIds.length > 0) {
+      // Kill only our session's jobs
+      for (const id of taskIds) {
+        Bun.spawnSync(["pueue", "kill", id], {
+          stdout: "ignore",
+          stderr: "ignore",
+        });
+      }
+      // Clean completed/killed jobs
       Bun.spawnSync(["pueue", "clean"], {
         stdout: "ignore",
         stderr: "ignore",
       });
-
-      console.warn("   ✓ PUEUE jobs cleaned");
+      // Remove the session task log
+      try { await Bun.write(taskLogPath, ""); } catch { /* ignore */ }
+      console.warn(`   ✓ ${taskIds.length} session PUEUE job(s) cleaned`);
+    } else {
+      console.warn("   ✓ No session PUEUE jobs to clean");
     }
   } catch (e) {
     console.warn("   ⚠️  PUEUE cleanup error:", e);
