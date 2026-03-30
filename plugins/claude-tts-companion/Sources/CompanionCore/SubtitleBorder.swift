@@ -70,12 +70,7 @@ public final class SubtitleBorder {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         gradientLayer.frame = bounds
-        maskLayer.path = CGPath(
-            roundedRect: bounds,
-            cornerWidth: cornerRadius,
-            cornerHeight: cornerRadius,
-            transform: nil
-        )
+        maskLayer.path = buildBorderMask(bounds: bounds, cornerRadius: cornerRadius)
         updateZigzagStrips(bounds: bounds, cornerRadius: cornerRadius)
         CATransaction.commit()
     }
@@ -86,6 +81,8 @@ public final class SubtitleBorder {
         currentEdgeHint = hint
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        // Rebuild border mask with gaps where zigzag replaces straight edges
+        maskLayer.path = buildBorderMask(bounds: bounds, cornerRadius: gradientLayer.cornerRadius)
         updateZigzagStrips(bounds: bounds, cornerRadius: gradientLayer.cornerRadius)
         CATransaction.commit()
     }
@@ -95,36 +92,85 @@ public final class SubtitleBorder {
         setEdgeHint(.none, bounds: bounds)
     }
 
+    // MARK: - Border Mask (gaps for zigzag edges)
+
+    /// Build the border stroke mask. When zigzag is active on an edge,
+    /// that edge segment is omitted from the mask so the zigzag strip shows through.
+    private func buildBorderMask(bounds: CGRect, cornerRadius: CGFloat) -> CGPath {
+        guard currentEdgeHint.jaggedTop || currentEdgeHint.jaggedBottom else {
+            return CGPath(roundedRect: bounds, cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil)
+        }
+
+        let r = cornerRadius
+        let path = CGMutablePath()
+
+        // Draw border as individual segments, skipping edges that have zigzag.
+        // Left edge + corners (always drawn)
+        path.move(to: CGPoint(x: 0, y: bounds.height - r))
+        path.addArc(tangent1End: CGPoint(x: 0, y: 0), tangent2End: CGPoint(x: r, y: 0), radius: r)
+
+        if !currentEdgeHint.jaggedTop {
+            // Top edge: draw straight
+            path.addLine(to: CGPoint(x: bounds.width - r, y: 0))
+        } else {
+            // Top edge: skip (move without drawing)
+            path.move(to: CGPoint(x: bounds.width - r, y: 0))
+        }
+
+        // Top-right corner + right edge (always drawn)
+        path.addArc(tangent1End: CGPoint(x: bounds.width, y: 0), tangent2End: CGPoint(x: bounds.width, y: r), radius: r)
+        path.addLine(to: CGPoint(x: bounds.width, y: bounds.height - r))
+
+        if !currentEdgeHint.jaggedBottom {
+            // Bottom edge: draw straight
+            path.addArc(tangent1End: CGPoint(x: bounds.width, y: bounds.height), tangent2End: CGPoint(x: bounds.width - r, y: bounds.height), radius: r)
+            path.addLine(to: CGPoint(x: r, y: bounds.height))
+            path.addArc(tangent1End: CGPoint(x: 0, y: bounds.height), tangent2End: CGPoint(x: 0, y: bounds.height - r), radius: r)
+        } else {
+            // Bottom edge: draw corners only, skip straight segment
+            path.addArc(tangent1End: CGPoint(x: bounds.width, y: bounds.height), tangent2End: CGPoint(x: bounds.width - r, y: bounds.height), radius: r)
+            path.move(to: CGPoint(x: r, y: bounds.height))
+            path.addArc(tangent1End: CGPoint(x: 0, y: bounds.height), tangent2End: CGPoint(x: 0, y: bounds.height - r), radius: r)
+        }
+
+        // Close left edge
+        path.closeSubpath()
+        return path
+    }
+
     // MARK: - Zigzag Strip Rendering
 
     private func updateZigzagStrips(bounds: CGRect, cornerRadius: CGFloat) {
         let r = cornerRadius
         let tooth: CGFloat = 2.5
         let pitch: CGFloat = 8.0
+        let borderWidth: CGFloat = maskLayer.lineWidth
 
-        // Top zigzag strip
+        // Top zigzag strip — sits on the border line position
         if currentEdgeHint.jaggedTop {
             let path = CGMutablePath()
-            let y: CGFloat = 1.5  // just inside the border
+            let y = borderWidth / 2  // center of where the border stroke would be
             path.move(to: CGPoint(x: r, y: y))
             Self.addZigzag(to: path, from: CGPoint(x: r, y: y), to: CGPoint(x: bounds.width - r, y: y), tooth: tooth, pitch: pitch)
             topZigzag.path = path
             topZigzag.frame = bounds
-            topZigzag.strokeColor = NSColor.systemOrange.withAlphaComponent(0.8).cgColor
+            topZigzag.lineWidth = borderWidth
+            topZigzag.strokeColor = NSColor.systemOrange.withAlphaComponent(0.9).cgColor
             topZigzag.isHidden = false
         } else {
             topZigzag.isHidden = true
         }
 
-        // Bottom zigzag strip
+        // Bottom zigzag strip — sits on the border line position
         if currentEdgeHint.jaggedBottom {
             let path = CGMutablePath()
-            let y = bounds.height - 1.5  // just inside the border
+            let y = bounds.height - borderWidth / 2
             path.move(to: CGPoint(x: r, y: y))
             Self.addZigzag(to: path, from: CGPoint(x: r, y: y), to: CGPoint(x: bounds.width - r, y: y), tooth: tooth, pitch: pitch)
             bottomZigzag.path = path
             bottomZigzag.frame = bounds
-            bottomZigzag.strokeColor = NSColor.systemCyan.withAlphaComponent(0.8).cgColor
+            bottomZigzag.lineWidth = borderWidth
+            bottomZigzag.strokeColor = NSColor.systemCyan.withAlphaComponent(0.9).cgColor
             bottomZigzag.isHidden = false
         } else {
             bottomZigzag.isHidden = true
