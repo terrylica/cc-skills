@@ -1,3 +1,24 @@
+## [12.24.4](https://github.com/terrylica/cc-skills/compare/v12.24.3...v12.24.4) (2026-03-30)
+
+
+### Bug Fixes
+
+* **claude-tts-companion:** character-offset anchoring for paragraph break alignment ([33a9d7a](https://github.com/terrylica/cc-skills/commit/33a9d7aada76f732dc3c6b94a1fe4ab702bd5a97))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [subtitle-incorrect-paragraph-breaks](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/subtitle-incorrect-paragraph-breaks.md) - new (+43)
+
 ## [12.24.3](https://github.com/terrylica/cc-skills/compare/v12.24.2...v12.24.3) (2026-03-29)
 
 
