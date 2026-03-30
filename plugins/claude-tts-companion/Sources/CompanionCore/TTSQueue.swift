@@ -262,15 +262,15 @@ public actor TTSQueue {
         // Memory pressure check
         let memoryConstrained = await MainActor.run { pipelineCoordinator.shouldUseSubtitleOnly }
         if memoryConstrained {
-            logger.warning("Memory pressure — subtitle-only for \(item.text.count) chars")
-            showSubtitleFallback(item)
+            logger.warning("Memory pressure — skipping TTS for \(item.text.count) chars (priority: \(item.priority))")
+            if item.priority == .userInitiated { showSubtitleFallback(item) }
             return
         }
 
         // Circuit breaker check
         if await ttsEngine.isTTSCircuitBreakerOpen {
-            logger.warning("Circuit breaker open — subtitle-only for \(item.text.count) chars")
-            showSubtitleFallback(item)
+            logger.warning("Circuit breaker open — skipping TTS for \(item.text.count) chars (priority: \(item.priority))")
+            if item.priority == .userInitiated { showSubtitleFallback(item) }
             return
         }
 
