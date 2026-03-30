@@ -47,13 +47,11 @@ public final class SubtitleBorder {
 
         hostLayer.addSublayer(gradientLayer)
 
-        // Configure zigzag indicator strips (hidden by default)
+        // Configure zigzag indicator strips (added/removed dynamically per edge hint)
         for strip in [topZigzag, bottomZigzag] {
             strip.fillColor = nil
             strip.strokeColor = nil
             strip.lineWidth = 2.0
-            strip.isHidden = true
-            hostLayer.addSublayer(strip)
         }
 
         // Animate color cycling on main border
@@ -89,7 +87,15 @@ public final class SubtitleBorder {
 
     /// Reset edges to normal (hide all zigzag indicators).
     func clearEdgeHint(bounds: CGRect) {
-        setEdgeHint(.none, bounds: bounds)
+        currentEdgeHint = .none
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        topZigzag.isHidden = true
+        topZigzag.path = nil
+        bottomZigzag.isHidden = true
+        bottomZigzag.path = nil
+        maskLayer.path = buildBorderMask(bounds: bounds, cornerRadius: gradientLayer.cornerRadius)
+        CATransaction.commit()
     }
 
     // MARK: - Border Mask (gaps for zigzag edges)
@@ -146,10 +152,14 @@ public final class SubtitleBorder {
         let pitch: CGFloat = 8.0
         let borderWidth: CGFloat = maskLayer.lineWidth
 
+        // Remove both strips from layer tree first (guarantees no stale visuals)
+        topZigzag.removeFromSuperlayer()
+        bottomZigzag.removeFromSuperlayer()
+
         // Top zigzag strip — sits on the border line position
-        if currentEdgeHint.jaggedTop {
+        if currentEdgeHint.jaggedTop, let host = hostLayer {
             let path = CGMutablePath()
-            let y = borderWidth / 2  // center of where the border stroke would be
+            let y = borderWidth / 2
             path.move(to: CGPoint(x: r, y: y))
             Self.addZigzag(to: path, from: CGPoint(x: r, y: y), to: CGPoint(x: bounds.width - r, y: y), tooth: tooth, pitch: pitch)
             topZigzag.path = path
@@ -157,12 +167,11 @@ public final class SubtitleBorder {
             topZigzag.lineWidth = borderWidth
             topZigzag.strokeColor = NSColor.systemOrange.withAlphaComponent(0.9).cgColor
             topZigzag.isHidden = false
-        } else {
-            topZigzag.isHidden = true
+            host.addSublayer(topZigzag)
         }
 
         // Bottom zigzag strip — sits on the border line position
-        if currentEdgeHint.jaggedBottom {
+        if currentEdgeHint.jaggedBottom, let host = hostLayer {
             let path = CGMutablePath()
             let y = bounds.height - borderWidth / 2
             path.move(to: CGPoint(x: r, y: y))
@@ -172,8 +181,7 @@ public final class SubtitleBorder {
             bottomZigzag.lineWidth = borderWidth
             bottomZigzag.strokeColor = NSColor.systemCyan.withAlphaComponent(0.9).cgColor
             bottomZigzag.isHidden = false
-        } else {
-            bottomZigzag.isHidden = true
+            host.addSublayer(bottomZigzag)
         }
     }
 

@@ -125,6 +125,37 @@ public actor TTSEngine {
         }
     }
 
+    /// Wait until the Python TTS server reports healthy.
+    /// Used as a gate before each streaming paragraph synthesis call.
+    /// No magic delays — the server's own `/health` endpoint defines readiness.
+    /// Returns true if the server is ready, false if it never became ready
+    /// before cancellation was requested.
+    func awaitServerReady(cancellationCheck: (() -> Bool)? = nil) async -> Bool {
+        let healthURL = URL(string: "\(Config.pythonTTSServerURL)/health")!
+        var request = URLRequest(url: healthURL)
+        request.timeoutInterval = Config.pythonTTSHealthCheckTimeout
+
+        // Poll until healthy. The interval between polls is derived from the
+        // health check timeout itself — no separate magic number.
+        let pollInterval = UInt64(Config.pythonTTSHealthCheckTimeout * 1_000_000_000)
+
+        while true {
+            if cancellationCheck?() == true { return false }
+
+            do {
+                let (_, response) = try await urlSession.data(for: request)
+                if let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                    return true
+                }
+            } catch {
+                // Server not ready — wait one health-check-timeout cycle then retry
+            }
+
+            logger.info("Waiting for TTS server readiness...")
+            try? await Task.sleep(nanoseconds: pollInterval)
+        }
+    }
+
     // MARK: - Public API
 
     /// Synthesize text to a WAV file by delegating to the Python Kokoro server.
