@@ -17,7 +17,7 @@ set -euo pipefail
 export PATH="/usr/bin:/usr/sbin:/bin:/sbin:/usr/local/bin:/opt/homebrew/bin:$PATH"
 
 # --- Configuration ---
-TTS_SERVICE="http://localhost:8780"
+TTS_SERVICE="http://[::1]:8780"
 LOG="/tmp/kokoro-tts.log"
 
 log() { echo "[$(date '+%H:%M:%S')] $*" >> "$LOG"; }
@@ -46,7 +46,7 @@ fi
 
 # --- Send to TTS service ---
 # POST /tts/speak synthesizes text, plays audio, and shows karaoke subtitles
-RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 30 \
+RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 120 \
     -X POST "${TTS_SERVICE}/tts/speak" \
     -H "Content-Type: application/json" \
     -H "X-TTS-Priority: user-initiated" \
