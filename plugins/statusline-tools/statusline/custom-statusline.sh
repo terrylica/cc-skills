@@ -235,17 +235,39 @@ git_changes="${git_changes} $(colorize_stat ≡ "$stash_count")"
 # Conflict indicator (RED when non-zero)
 git_changes="${git_changes} $(colorize_stat ⚠ "$conflicts" "$RED")"
 
-# === Version Tag ===
+# === Version Tag + Release Age ===
 # Show latest git tag after git indicators, separated by |
-# Semver tags (vN.N.N): shown as-is in cyan
-# Non-semver tags: shown as-is in yellow
+# Includes compact relative time since tag was created (e.g., "3h", "2d")
+# Semver tags (vN.N.N): shown in cyan
+# Non-semver tags: shown in yellow
 # No tags: show ∅ in gray
+
+# Compact relative time: epoch → "3s", "5m", "2h", "3d", "2w", "4mo", "1y"
+reltime() {
+    local diff=$(( $(date +%s) - $1 ))
+    if   (( diff < 60 ));       then printf '%ds ago'  "$diff"
+    elif (( diff < 3600 ));     then printf '%dm ago'  "$(( diff / 60 ))"
+    elif (( diff < 86400 ));    then printf '%dh ago'  "$(( diff / 3600 ))"
+    elif (( diff < 604800 ));   then printf '%dd ago'  "$(( diff / 86400 ))"
+    elif (( diff < 2592000 ));  then printf '%dw ago'  "$(( diff / 604800 ))"
+    elif (( diff < 31536000 )); then printf '%dmo ago' "$(( diff / 2592000 ))"
+    else                             printf '%dy ago'  "$(( diff / 31536000 ))"
+    fi
+}
+
 latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 if [ -n "$latest_tag" ]; then
+    # Get tag creation epoch (works for both annotated and lightweight tags)
+    tag_epoch=$(git log -1 --format='%ct' "$latest_tag" 2>/dev/null || echo "")
+    tag_age=""
+    if [ -n "$tag_epoch" ]; then
+        tag_age=" ${BRIGHT_BLACK}$(reltime "$tag_epoch")${RESET}"
+    fi
+
     if [[ "$latest_tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-        git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${CYAN}${latest_tag}${RESET}"
+        git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${CYAN}${latest_tag}${RESET}${tag_age}"
     else
-        git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${YELLOW}${latest_tag}${RESET}"
+        git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${YELLOW}${latest_tag}${RESET}${tag_age}"
     fi
 else
     git_changes="${git_changes} ${BRIGHT_BLACK}| ∅${RESET}"
