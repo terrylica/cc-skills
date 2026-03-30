@@ -339,6 +339,12 @@ public actor TTSQueue {
                     break
                 }
 
+                // Brief pause between paragraphs to let the MLX server release resources.
+                // Prevents resource exhaustion on rapid sequential synthesis calls.
+                if index > 0 {
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
+                }
+
                 let paraStart = CFAbsoluteTimeGetCurrent()
                 let chunks = await ttsEngine.synthesizeStreamingAutoRoute(
                     text: segment.text,
