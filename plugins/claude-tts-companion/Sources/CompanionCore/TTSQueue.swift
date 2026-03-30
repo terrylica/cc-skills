@@ -293,18 +293,21 @@ public actor TTSQueue {
 
         // Adaptive Paragraph Segmentation: enforce paragraph budget via sentence bisection
         let budget = settingsStore.getSettings().tts.paragraphBudget
+        var segments: [PronunciationProcessor.ParagraphSegment] = paragraphs.map {
+            PronunciationProcessor.ParagraphSegment(text: $0, isContinuation: false, isUnfinished: false)
+        }
         if budget > 0 {
             let before = paragraphs.count
-            paragraphs = PronunciationProcessor.enforceParargraphBudget(paragraphs, budget: budget)
-            if paragraphs.count > before {
-                logger.info("Paragraph budget (\(budget) chars): \(before) paragraphs → \(paragraphs.count) segments")
+            segments = PronunciationProcessor.enforceParargraphBudget(paragraphs, budget: budget)
+            if segments.count > before {
+                logger.info("Paragraph budget (\(budget) chars): \(before) paragraphs → \(segments.count) segments")
             }
         }
 
-        if paragraphs.count > 1 {
+        if segments.count > 1 {
             // === Multi-paragraph streaming path ===
             // Synthesize each paragraph sequentially, start playback after first one arrives.
-            logger.info("Streaming \(paragraphs.count) paragraphs (\(fullText.count) total chars)")
+            logger.info("Streaming \(segments.count) paragraphs (\(fullText.count) total chars)")
 
             // Set UUID on subtitle clipboard for right-click copy
             let entryUUID = UUID().uuidString
@@ -329,22 +332,22 @@ public actor TTSQueue {
             var accumulatedDuration: TimeInterval = 0
             var anyChunkProduced = false
 
-            for (index, paragraph) in paragraphs.enumerated() {
+            for (index, segment) in segments.enumerated() {
                 // Check cancellation between paragraphs
                 if token.isCancelled || Task.isCancelled {
-                    logger.info("Streaming cancelled before paragraph \(index + 1)/\(paragraphs.count)")
+                    logger.info("Streaming cancelled before paragraph \(index + 1)/\(segments.count)")
                     break
                 }
 
                 let paraStart = CFAbsoluteTimeGetCurrent()
                 let chunks = await ttsEngine.synthesizeStreamingAutoRoute(
-                    text: paragraph,
+                    text: segment.text,
                     cancellationCheck: { token.isCancelled }
                 )
                 let paraElapsed = CFAbsoluteTimeGetCurrent() - paraStart
 
                 if chunks.isEmpty {
-                    logger.warning("Paragraph \(index + 1)/\(paragraphs.count) produced no chunks — skipping")
+                    logger.warning("Paragraph \(index + 1)/\(segments.count) produced no chunks — skipping")
                     continue
                 }
 
@@ -353,11 +356,15 @@ public actor TTSQueue {
                 accumulatedOnsets += chunks.reduce(0) { $0 + ($1.wordOnsets?.count ?? 0) }
                 accumulatedDuration += chunks.reduce(0.0) { $0 + $1.audioDuration }
 
-                logger.info("Paragraph \(index + 1)/\(paragraphs.count) synthesized in \(String(format: "%.2f", paraElapsed))s (\(paragraph.count) chars)")
+                logger.info("Paragraph \(index + 1)/\(segments.count) synthesized in \(String(format: "%.2f", paraElapsed))s (\(segment.text.count) chars)")
 
-                // Feed chunks to the streaming pipeline on MainActor
+                // Feed chunks to the streaming pipeline on MainActor with bisection edge hints
+                let edgeHint = SubtitleBorder.EdgeHint(
+                    jaggedTop: segment.isContinuation,
+                    jaggedBottom: segment.isUnfinished
+                )
                 await MainActor.run { [pipelineCoordinator] in
-                    pipelineCoordinator.addStreamingChunk(chunks)
+                    pipelineCoordinator.addStreamingChunk(chunks, edgeHint: edgeHint)
                 }
             }
 
