@@ -336,6 +336,22 @@ public final class SubtitleSyncDriver {
         logger.info("Batch playback started: \(streamChunks.count) chunks, total duration \(String(format: "%.2f", streamChunks.reduce(0) { $0 + $1.audioDuration }))s")
     }
 
+    /// Activate the first chunk for karaoke tracking and start the 60Hz timer.
+    /// Used by the streaming paragraph pipeline where audio is scheduled externally
+    /// by TTSPipelineCoordinator (not by startBatchPlayback).
+    func activateFirstChunkForStreaming() {
+        guard isStreamingMode, !streamChunks.isEmpty else {
+            logger.warning("activateFirstChunkForStreaming: no chunks or not streaming mode")
+            return
+        }
+
+        activateChunk(at: 0)
+        chunkStartTime = 0
+
+        startTimer()
+        logger.info("Streaming karaoke started: chunk 0 activated, timer running")
+    }
+
     /// Signal that all chunks have been delivered (legacy compatibility).
     /// In batch-then-play mode, startBatchPlayback() handles this automatically.
     func markAllChunksDelivered() {
@@ -489,6 +505,14 @@ public final class SubtitleSyncDriver {
         }
 
         guard let asp = audioStreamPlayer else { return }
+
+        // For streaming paragraph pipeline: audio is scheduled externally by coordinator.
+        // Detect end-of-stream when all chunks delivered and AudioStreamPlayer has
+        // no more scheduled buffers (all audio played through).
+        if allChunksDelivered && !asp.isPlaying && !asp.hasScheduledBuffers {
+            finishPlayback()
+            return
+        }
 
         // AudioStreamPlayer.currentTime is cumulative across ALL scheduled buffers,
         // including the silent lead-in buffer from reset(). Subtract the lead-in
