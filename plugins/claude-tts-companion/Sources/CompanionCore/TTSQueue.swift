@@ -358,9 +358,11 @@ public actor TTSQueue {
 
                 logger.info("Paragraph \(index + 1)/\(segments.count) synthesized in \(String(format: "%.2f", paraElapsed))s (\(segment.text.count) chars)")
 
-                // Feed chunks to the streaming pipeline on MainActor with bisection edge hints
+                // Feed chunks to the streaming pipeline on MainActor with bisection edge hints.
+                // Last segment gets no indicators — nothing left to signal.
+                let isLastSegment = !segment.isUnfinished
                 let edgeHint = SubtitleBorder.EdgeHint(
-                    jaggedTop: segment.isContinuation,
+                    jaggedTop: segment.isContinuation && !isLastSegment,
                     jaggedBottom: segment.isUnfinished
                 )
                 await MainActor.run { [pipelineCoordinator] in

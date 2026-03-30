@@ -428,6 +428,7 @@ public final class SubtitleSyncDriver {
         let chunk = streamChunks[index]
 
         // Apply border edge hint for this chunk (jagged edges for bisected paragraphs)
+        logger.info("activateChunk[\(index)]: edgeHint top=\(chunk.edgeHint.jaggedTop) bottom=\(chunk.edgeHint.jaggedBottom)")
         subtitlePanel.setEdgeHint(chunk.edgeHint)
 
         // Calculate cumulative offset from all previous chunks
@@ -515,8 +516,15 @@ public final class SubtitleSyncDriver {
         // Detect end-of-stream when all chunks delivered and AudioStreamPlayer has
         // no more scheduled buffers (all audio played through).
         if allChunksDelivered && !asp.hasScheduledBuffers {
-            finishPlayback()
-            return
+            // Double-check: also verify AudioStreamPlayer reports not playing
+            // and that we're past the expected total duration.
+            // This prevents premature finish if buffer completion fires slightly early.
+            let totalExpectedDuration = streamChunks.reduce(0.0) { $0 + $1.audioDuration }
+            let globalTime = max(0, asp.currentTime - AudioStreamPlayer.leadInDuration)
+            if globalTime >= totalExpectedDuration - 0.5 || !asp.isPlaying {
+                finishPlayback()
+                return
+            }
         }
 
         // AudioStreamPlayer.currentTime is cumulative across ALL scheduled buffers,
