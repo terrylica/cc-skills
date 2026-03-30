@@ -1,3 +1,24 @@
+## [12.26.1](https://github.com/terrylica/cc-skills/compare/v12.26.0...v12.26.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* **claude-tts-companion:** replace character-offset anchoring with paragraph-structure counting ([01dcb71](https://github.com/terrylica/cc-skills/commit/01dcb714577d05335c213d70726d5b89670e5e6e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [subtitle-incorrect-paragraph-breaks](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/subtitle-incorrect-paragraph-breaks.md) - updated (+3/-2)
+
 # [12.26.0](https://github.com/terrylica/cc-skills/compare/v12.25.0...v12.26.0) (2026-03-30)
 
 
