@@ -149,6 +149,65 @@ public struct PronunciationProcessor: Sendable {
         return displayWords
     }
 
+    // MARK: - Sentence Bisector (Adaptive Paragraph Segmentation)
+
+    /// Recursively bisect a paragraph at sentence midpoints until every segment
+    /// falls under the paragraph budget (max character count per synthesis chunk).
+    ///
+    /// Algorithm: split into sentences, divide at the midpoint, recurse on each
+    /// half if still over budget. Returns segments in reading order.
+    /// If a single sentence exceeds the budget, it is returned as-is (atomic unit).
+    public static func bisectParagraph(_ text: String, budget: Int) -> [String] {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > budget else { return [trimmed] }
+
+        let sentences = splitSentences(trimmed)
+        guard sentences.count > 1 else {
+            // Single sentence exceeds budget — atomic, cannot split further
+            return [trimmed]
+        }
+
+        let mid = sentences.count / 2
+        let firstHalf = sentences[..<mid].joined(separator: " ")
+        let secondHalf = sentences[mid...].joined(separator: " ")
+
+        // Recurse on each half
+        return bisectParagraph(firstHalf, budget: budget)
+             + bisectParagraph(secondHalf, budget: budget)
+    }
+
+    /// Split text into sentences using Unicode-aware sentence boundary detection.
+    /// Falls back to regex splitting on common sentence-ending punctuation.
+    private static func splitSentences(_ text: String) -> [String] {
+        var sentences: [String] = []
+        text.enumerateSubstrings(in: text.startIndex..., options: .bySentences) { substring, _, _, _ in
+            if let s = substring?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
+                sentences.append(s)
+            }
+        }
+        // Fallback: if enumerateSubstrings produces a single chunk, try regex
+        if sentences.count <= 1 {
+            let pattern = #"[^.!?]+[.!?]+"#
+            if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+                let range = NSRange(text.startIndex..., in: text)
+                let matches = regex.matches(in: text, options: [], range: range)
+                let regexSentences = matches.compactMap { match -> String? in
+                    guard let r = Range(match.range, in: text) else { return nil }
+                    let s = String(text[r]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    return s.isEmpty ? nil : s
+                }
+                if regexSentences.count > 1 { return regexSentences }
+            }
+        }
+        return sentences.isEmpty ? [text] : sentences
+    }
+
+    /// Apply paragraph budget enforcement to a list of paragraphs (from `\n\n` splitting).
+    /// Each paragraph that exceeds the budget is recursively bisected at sentence boundaries.
+    public static func enforceParargraphBudget(_ paragraphs: [String], budget: Int) -> [String] {
+        paragraphs.flatMap { bisectParagraph($0, budget: budget) }
+    }
+
     /// Compute which display word indices are followed by a paragraph break in the original text.
     ///
     /// Splits by `\n\n`, counts words per paragraph, then maps break indices from source-word

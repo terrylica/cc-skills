@@ -41,7 +41,7 @@ public final class CompanionApp: @unchecked Sendable {
         captionHistory = CaptionHistory()
         captionHistoryPanel = CaptionHistoryPanel(captionHistory: captionHistory)
         pipelineCoordinator = TTSPipelineCoordinator(playbackManager: playbackManager, subtitlePanel: subtitlePanel)
-        ttsQueue = TTSQueue(ttsEngine: ttsEngine, pipelineCoordinator: pipelineCoordinator, subtitlePanel: subtitlePanel, captionHistory: captionHistory)
+        ttsQueue = TTSQueue(ttsEngine: ttsEngine, pipelineCoordinator: pipelineCoordinator, subtitlePanel: subtitlePanel, captionHistory: captionHistory, settingsStore: settingsStore)
         httpServer = HTTPControlServer(
             settingsStore: settingsStore,
             subtitlePanel: subtitlePanel,
