@@ -509,7 +509,7 @@ public final class SubtitleSyncDriver {
         // For streaming paragraph pipeline: audio is scheduled externally by coordinator.
         // Detect end-of-stream when all chunks delivered and AudioStreamPlayer has
         // no more scheduled buffers (all audio played through).
-        if allChunksDelivered && !asp.isPlaying && !asp.hasScheduledBuffers {
+        if allChunksDelivered && !asp.hasScheduledBuffers {
             finishPlayback()
             return
         }
