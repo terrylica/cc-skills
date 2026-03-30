@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 Phase: 34
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-03-29
+Last activity: 2026-03-30 - Completed quick task 260330-9js: Streaming paragraph chunking for long TTS text
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -93,6 +93,12 @@ None yet.
 - Python MLX server must use `uv` for all Python tooling (user policy)
 - Python 3.13 ONLY -- never use 3.14 or any other version (user policy)
 - Bot credentials must exist at ~/.claude/.secrets/ccterrybot-telegram before Phase 29 execution
+
+### Quick Tasks Completed
+
+| #          | Description                                    | Date       | Commit   | Directory                                                                                                           |
+| ---------- | ---------------------------------------------- | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| 260330-9js | Streaming paragraph chunking for long TTS text | 2026-03-30 | d2ea52c7 | [260330-9js-streaming-paragraph-chunking-for-long-tt](./quick/260330-9js-streaming-paragraph-chunking-for-long-tt/) |
 
 ## Session Continuity
 
