@@ -235,6 +235,22 @@ git_changes="${git_changes} $(colorize_stat ≡ "$stash_count")"
 # Conflict indicator (RED when non-zero)
 git_changes="${git_changes} $(colorize_stat ⚠ "$conflicts" "$RED")"
 
+# === Version Tag ===
+# Show latest git tag after git indicators, separated by |
+# Semver tags (vN.N.N): shown as-is in cyan
+# Non-semver tags: shown as-is in yellow
+# No tags: show ∅ in gray
+latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+if [ -n "$latest_tag" ]; then
+    if [[ "$latest_tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${CYAN}${latest_tag}${RESET}"
+    else
+        git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${YELLOW}${latest_tag}${RESET}"
+    fi
+else
+    git_changes="${git_changes} ${BRIGHT_BLACK}| ∅${RESET}"
+fi
+
 # === Active Cron Jobs ===
 # Reads ~/.claude/state/active-crons.json written by cron-tracker.ts hook
 # Each entry includes: id, schedule, session_id, project_path, prompt_file
