@@ -1,3 +1,10 @@
+## [12.26.2](https://github.com/terrylica/cc-skills/compare/v12.26.1...v12.26.2) (2026-03-30)
+
+
+### Bug Fixes
+
+* **claude-tts-companion:** bypass audio rebuild cooldown when device actually changed ([ff969a0](https://github.com/terrylica/cc-skills/commit/ff969a0ae58cdcd3a051316baa1bec4100031fcf))
+
 ## [12.26.1](https://github.com/terrylica/cc-skills/compare/v12.26.0...v12.26.1) (2026-03-30)
 
 
