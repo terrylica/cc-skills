@@ -1,3 +1,46 @@
+# [12.27.0](https://github.com/terrylica/cc-skills/compare/v12.26.2...v12.27.0) (2026-03-30)
+
+
+### Bug Fixes
+
+* **itp-hooks:** pueue hook improvements for Claude Code integration ([155c0f7](https://github.com/terrylica/cc-skills/commit/155c0f7ea76923d570e0c5bfc3ccb9591122da46))
+* scope inline-ignore audit to edited lines only ([e70dc40](https://github.com/terrylica/cc-skills/commit/e70dc4005173fa2504e8755faec6d014066762b9))
+* **tts:** 500ms inter-paragraph delay for MLX server stability ([5276dcd](https://github.com/terrylica/cc-skills/commit/5276dcdf25d3676defebdbc811f1dda014da881e))
+* **tts:** anti-fragile startup and circuit breaker tuning ([54a3668](https://github.com/terrylica/cc-skills/commit/54a3668fc52d326451e59699b5ed27dc2e46d021))
+* **tts:** clear stale edge hints before first streaming chunk ([21f4a92](https://github.com/terrylica/cc-skills/commit/21f4a92936ed818d8a4296a8388416c5c903d576))
+* **tts:** correct zigzag edge hints and health-gated synthesis ([b464770](https://github.com/terrylica/cc-skills/commit/b464770c5be6886b910214dc47b523525bb4d91e))
+* **tts:** edge hints applied on chunk activation, not scheduling ([1e98d15](https://github.com/terrylica/cc-skills/commit/1e98d15c55f9ee58d789839e9712bed8e6bd672a))
+* **tts:** remove diagonal line artifact from border mask ([9fe3d12](https://github.com/terrylica/cc-skills/commit/9fe3d123033820317536abc81e76aaf227c0552b))
+* **tts:** streaming subtitle hide after last paragraph finishes ([0c32afe](https://github.com/terrylica/cc-skills/commit/0c32afe90bca77c63486168cbf6b4b9f3875296f))
+* **tts:** suppress subtitle-only flash for automated TTS requests ([72720db](https://github.com/terrylica/cc-skills/commit/72720db9cf7b8bd6b0bc62c70fef44fe3097e954))
+* **tts:** zigzag indicators as overlay strips, clean last segment ([b70e533](https://github.com/terrylica/cc-skills/commit/b70e533ec852e9f69384252dc65c33b08feaa3f7))
+* **tts:** zigzag replaces border edge instead of overlapping ([c6150e9](https://github.com/terrylica/cc-skills/commit/c6150e92d6a735fbe6e402bb5a5cbcfc612d3e80))
+
+
+### Features
+
+* **quick-260330-9js:** add POST /tts/stop endpoint for mid-stream cancellation ([7007be8](https://github.com/terrylica/cc-skills/commit/7007be88d85fc5ad602b705fb036adb609eb722a))
+* **quick-260330-9js:** streaming paragraph-chunked TTS pipeline ([aa3e950](https://github.com/terrylica/cc-skills/commit/aa3e950bd58ed0c6d303d5c8b87abffb43b08977))
+* **tts:** adaptive paragraph segmentation with configurable budget ([1de124b](https://github.com/terrylica/cc-skills/commit/1de124be6dfaca77f452c42dd702e8c43e8025d9))
+* **tts:** add GET /tts/status endpoint and TTSQueue.Status ([a665ae0](https://github.com/terrylica/cc-skills/commit/a665ae068c5bbef60da3b56377f67bc95039030e))
+* **tts:** jagged rainbow border for bisected paragraph continuation ([361a831](https://github.com/terrylica/cc-skills/commit/361a831b46f4c6a5a742981cd0146ae47893b4bf))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [260330-9js-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260330-9js-streaming-paragraph-chunking-for-long-tt/260330-9js-PLAN.md) - new (+266)
+- [Quick Plan 260330-9js: Streaming Paragraph Chunking for Long TTS Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260330-9js-streaming-paragraph-chunking-for-long-tt/260330-9js-SUMMARY.md) - new (+100)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+7/-1)
+
 ## [12.26.2](https://github.com/terrylica/cc-skills/compare/v12.26.1...v12.26.2) (2026-03-30)
 
 
