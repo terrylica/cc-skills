@@ -1,3 +1,10 @@
+## [12.28.2](https://github.com/terrylica/cc-skills/compare/v12.28.1...v12.28.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* **claude-tts-companion:** eliminate audio jitter via posix_spawn backend ([c3525c2](https://github.com/terrylica/cc-skills/commit/c3525c2e392fbae14710b5de65bdf6f2a09f0e6d))
+
 ## [12.28.1](https://github.com/terrylica/cc-skills/compare/v12.28.0...v12.28.1) (2026-03-31)
 
 
