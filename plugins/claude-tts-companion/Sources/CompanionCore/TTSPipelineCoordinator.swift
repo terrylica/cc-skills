@@ -116,7 +116,8 @@ public final class TTSPipelineCoordinator {
         activeSyncDriver = nil
         playbackManager.afplayPlayer.reset()
         playbackManager.stopPlayback()
-        subtitlePanel.clearEdgeHint()  // Clear any jagged edges from bisected segments
+        subtitlePanel.clearEdgeHint()
+        subtitlePanel.hide()  // Remove subtitle from screen immediately
         isActive = false
         streamingChunkCount = 0
         streamingOnComplete = nil
