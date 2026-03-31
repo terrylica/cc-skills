@@ -107,7 +107,9 @@ public final class HTTPControlServer: @unchecked Sendable {
     }
 
     func start() async throws {
-        let server = HTTPServer(address: .loopback(port: Config.httpPort))
+        // 300s timeout: user-initiated TTS blocks for synthesis + playback (20-90s+).
+        // FlyingFox default is 15s which causes HTTP 500 for any text longer than ~5 words.
+        let server = HTTPServer(address: .loopback(port: Config.httpPort), timeout: 300)
 
         // API-01: Health endpoint
         await server.appendRoute("GET /health") { [self] _ in
