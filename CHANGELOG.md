@@ -1,3 +1,10 @@
+## [12.29.1](https://github.com/terrylica/cc-skills/compare/v12.29.0...v12.29.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* **tts:** fix audio jitter via launchd ProcessType=Interactive scheduling ([815844e](https://github.com/terrylica/cc-skills/commit/815844e2892fb3b940898c4473221140664aa120))
+
 # [12.29.0](https://github.com/terrylica/cc-skills/compare/v12.28.3...v12.29.0) (2026-03-31)
 
 
