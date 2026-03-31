@@ -48,6 +48,8 @@ private struct HealthResponse: Codable {
     let uptime_seconds: Int
     let rss_mb: Double
     let subsystems: SubsystemStatus
+    let audio_routing_clean: Bool?
+    let audio_routing_warnings: [String]?
 }
 
 /// Subsystem status within health response.
@@ -87,6 +89,10 @@ public final class HTTPControlServer: @unchecked Sendable {
     private let ttsQueue: TTSQueue
     private let startTime: Date
     private var telegramBot: TelegramBot?
+
+    /// Audio routing diagnostic results, set by CompanionApp at startup.
+    var audioRoutingClean: Bool = true
+    var audioRoutingWarnings: [String] = []
 
     init(settingsStore: SettingsStore, subtitlePanel: SubtitlePanel, playbackManager: PlaybackManager, ttsEngine: TTSEngine, captionHistory: CaptionHistory, captionHistoryPanel: CaptionHistoryPanel, pipelineCoordinator: TTSPipelineCoordinator, ttsQueue: TTSQueue) {
         self.settingsStore = settingsStore
@@ -296,14 +302,16 @@ public final class HTTPControlServer: @unchecked Sendable {
         let rssMB = currentRSSMB()
 
         let health = HealthResponse(
-            status: "ok",
+            status: audioRoutingClean ? "ok" : "degraded",
             uptime_seconds: uptimeSeconds,
             rss_mb: rssMB,
             subsystems: SubsystemStatus(
                 bot: telegramBot?.watching == true ? "watching" : (telegramBot != nil ? "stopped" : "unknown"),
                 tts: "ready",
                 subtitle: "ready"
-            )
+            ),
+            audio_routing_clean: audioRoutingClean,
+            audio_routing_warnings: audioRoutingWarnings.isEmpty ? nil : audioRoutingWarnings
         )
         return jsonResponse(health)
     }
