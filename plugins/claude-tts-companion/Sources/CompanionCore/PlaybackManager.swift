@@ -48,13 +48,11 @@ public final class PlaybackManager {
     // MARK: - Lifecycle
 
     init() {
-        // Pre-warm CoreAudio hardware so the first real play() doesn't stutter.
-        warmUpAudioHardware()
-
-        // Start AVAudioEngine early so hardware stays warm for streaming playback.
-        audioStreamPlayer.start()
-
-        logger.info("PlaybackManager created (audio hardware pre-warmed, AudioStreamPlayer started)")
+        // AudioStreamPlayer and hardware warm-up are disabled — afplay subprocess
+        // handles all playback. Starting AVAudioEngine and playing silent warm-up
+        // buffers modified CoreAudio hardware state (buffer sizes, device pinning)
+        // that caused jitter/pops in the afplay audio path.
+        logger.info("PlaybackManager created (afplay backend, no AVAudioEngine)")
     }
 
     // MARK: - Public API

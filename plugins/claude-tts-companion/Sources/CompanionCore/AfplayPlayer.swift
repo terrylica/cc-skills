@@ -99,8 +99,7 @@ public final class AfplayPlayer {
         pendingSamples.removeAll(keepingCapacity: true)
 
         // Launch afplay via posix_spawn in its own process group.
-        // This matches terminal behavior: own process group, /dev/null I/O,
-        // no Foundation Process wrapper overhead.
+        // Own process group + /dev/null I/O matches terminal launch behavior.
         var pid: pid_t = 0
 
         let cPath = strdup("/usr/bin/afplay")!
@@ -114,11 +113,16 @@ public final class AfplayPlayer {
         posix_spawn_file_actions_addopen(&fileActions, STDOUT_FILENO, "/dev/null", O_WRONLY, 0)
         posix_spawn_file_actions_addopen(&fileActions, STDERR_FILENO, "/dev/null", O_WRONLY, 0)
 
-        // Spawn attributes: own process group
+        // Spawn attributes: own process group + high QoS.
+        // The companion app runs as .accessory (no dock icon), which macOS assigns
+        // a low QoS class. Child processes inherit this, causing I/O and CPU
+        // throttling that manifests as audio jitter. USER_INTERACTIVE QoS ensures
+        // afplay gets priority scheduling matching terminal-launched behavior.
         var spawnAttr: posix_spawnattr_t? = nil
         posix_spawnattr_init(&spawnAttr)
         posix_spawnattr_setflags(&spawnAttr, Int16(POSIX_SPAWN_SETPGROUP))
         posix_spawnattr_setpgroup(&spawnAttr, 0)
+        posix_spawnattr_set_qos_class_np(&spawnAttr, QOS_CLASS_USER_INTERACTIVE)
 
         let spawnResult = posix_spawn(&pid, "/usr/bin/afplay", &fileActions, &spawnAttr, &argv, environ)
 

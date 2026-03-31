@@ -130,36 +130,13 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         }
         self.format = fmt
 
-        // Attach the player node to the engine graph
-        engine.attach(playerNode)
-        engine.connect(playerNode, to: engine.mainMixerNode, format: format)
-
-        // Pin output to actual hardware device, bypassing virtual audio devices
-        // (e.g., Background Music) that add an extra IOProc hop causing jitter.
-        let hwDevice = resolveHardwareOutputDevice()
-        setOutputDevice(hwDevice)
-        setBufferSize(hwDevice, frames: 2048)  // ~42ms at 48kHz — resilient to CPU spikes
-
-        // Observe audio configuration changes (Bluetooth disconnect, USB DAC removal, etc.)
-        // When hardware route changes, macOS invalidates the AVAudioEngine configuration.
-        configChangeObserver = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange,
-            object: engine,
-            queue: .main
-        ) { [weak self] _ in
-            self?.handleConfigurationChange()
-        }
-
-        // Register CoreAudio HAL listener for default output device changes
-        setupHALListener()
-
-        // Start periodic health check (safety net for missed device changes)
-        startHealthCheck()
-
-        // Cache the resolved hardware device ID (not the virtual default)
-        cachedOutputDeviceID = hwDevice
-        let initialDeviceName = getDeviceName(deviceID: cachedOutputDeviceID)
-        logger.info("AudioStreamPlayer created (48kHz mono float32, AVAudioEngine, device: \(initialDeviceName) [\(cachedOutputDeviceID)])")
+        // AudioStreamPlayer is kept inert — afplay subprocess handles all playback.
+        // Previously this init attached the player node, pinned output to hardware,
+        // changed the buffer size to 2048, registered HAL listeners, and started
+        // health check timers. All of those CoreAudio state changes persisted on the
+        // hardware device and affected afplay's audio path, causing jitter/pops.
+        // With afplay as the sole playback backend, none of this is needed.
+        logger.info("AudioStreamPlayer created (inert — afplay backend active)")
     }
 
     deinit {
