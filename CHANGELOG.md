@@ -1,3 +1,10 @@
+## [12.28.3](https://github.com/terrylica/cc-skills/compare/v12.28.2...v12.28.3) (2026-03-31)
+
+
+### Bug Fixes
+
+* **tts:** increase HTTP handler timeout and improve tts_kokoro.sh reliability ([9b57f53](https://github.com/terrylica/cc-skills/commit/9b57f5302dbf4c30deeb381945534a0ec013e9d9))
+
 ## [12.28.2](https://github.com/terrylica/cc-skills/compare/v12.28.1...v12.28.2) (2026-03-31)
 
 
