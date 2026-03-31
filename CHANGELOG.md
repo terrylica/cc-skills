@@ -1,3 +1,10 @@
+## [12.29.3](https://github.com/terrylica/cc-skills/compare/v12.29.2...v12.29.3) (2026-03-31)
+
+
+### Bug Fixes
+
+* **tts:** add killall afplay safety net to stop() for race condition ([be32ab2](https://github.com/terrylica/cc-skills/commit/be32ab2b43d0448ec93fdfc4910f1ede0d8c6e15))
+
 ## [12.29.2](https://github.com/terrylica/cc-skills/compare/v12.29.1...v12.29.2) (2026-03-31)
 
 
