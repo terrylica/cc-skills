@@ -1,3 +1,10 @@
+# [12.29.0](https://github.com/terrylica/cc-skills/compare/v12.28.3...v12.29.0) (2026-03-31)
+
+
+### Features
+
+* **tts:** add audio routing audit to detect virtual device jitter at startup ([9bd033c](https://github.com/terrylica/cc-skills/commit/9bd033c5d56c5bc45cecdd6735dfac99f85ec8b5))
+
 ## [12.28.3](https://github.com/terrylica/cc-skills/compare/v12.28.2...v12.28.3) (2026-03-31)
 
 
