@@ -54,11 +54,10 @@ public final class TTSPipelineCoordinator {
 
     // MARK: - Monitoring
 
-    /// Start memory pressure monitoring and wire audio route change callback.
+    /// Start memory pressure monitoring.
     ///
     /// Called from CompanionApp.start() after subsystems are created.
     func startMonitoring() {
-        // Memory pressure monitoring via DispatchSource
         let source = DispatchSource.makeMemoryPressureSource(
             eventMask: [.warning, .critical],
             queue: .main
@@ -74,7 +73,6 @@ public final class TTSPipelineCoordinator {
                 self.isMemoryConstrained = true
                 self.logger.warning("Memory pressure WARNING -- new TTS requests will use subtitle-only mode")
             }
-            // Auto-recover after 60s of no new pressure events
             self.memoryRecoveryWorkItem?.cancel()
             let recovery = DispatchWorkItem { [weak self] in
                 self?.isMemoryConstrained = false
@@ -86,12 +84,7 @@ public final class TTSPipelineCoordinator {
         source.resume()
         memoryPressureSource = source
 
-        // Wire audio route change callback from AudioStreamPlayer
-        playbackManager.audioStreamPlayer.onRouteChange = { [weak self] in
-            self?.handleAudioRouteChange()
-        }
-
-        logger.info("TTSPipelineCoordinator monitoring started (memory pressure + audio route)")
+        logger.info("TTSPipelineCoordinator monitoring started (memory pressure)")
     }
 
     /// Stop monitoring and clean up dispatch sources.
@@ -102,18 +95,7 @@ public final class TTSPipelineCoordinator {
         memoryPressureSource = nil
         memoryRecoveryWorkItem?.cancel()
         memoryRecoveryWorkItem = nil
-        playbackManager.audioStreamPlayer.onRouteChange = nil
         logger.info("TTSPipelineCoordinator monitoring stopped")
-    }
-
-    /// Handle audio route change (Bluetooth disconnect, USB DAC removal).
-    ///
-    /// The AudioStreamPlayer already restarted the engine on the new device.
-    /// We cancel the current pipeline so the in-progress audio stops cleanly.
-    /// The next TTS request will work on the new audio device automatically.
-    private func handleAudioRouteChange() {
-        logger.warning("Audio route changed -- cancelling current pipeline for graceful recovery")
-        cancelCurrentPipeline()
     }
 
     // MARK: - Pipeline Lifecycle
@@ -133,7 +115,6 @@ public final class TTSPipelineCoordinator {
         activeSyncDriver?.stop()
         activeSyncDriver = nil
         playbackManager.afplayPlayer.reset()
-        playbackManager.audioStreamPlayer.reset()
         playbackManager.stopPlayback()
         subtitlePanel.clearEdgeHint()  // Clear any jagged edges from bisected segments
         isActive = false
@@ -164,15 +145,10 @@ public final class TTSPipelineCoordinator {
             return
         }
 
-        // Create sync driver with afplay backend for jitter-free playback.
-        // Stop AVAudioEngine first -- two processes competing for the same
-        // CoreAudio hardware device causes jitter on the afplay output.
         let afplay = playbackManager.afplayPlayer
         afplay.reset()
-        playbackManager.audioStreamPlayer.stop()
         let driver = SubtitleSyncDriver(
             subtitlePanel: subtitlePanel,
-            audioStreamPlayer: playbackManager.audioStreamPlayer,
             afplayPlayer: afplay,
             onStreamingComplete: { [weak self] in
                 self?.isActive = false
@@ -297,15 +273,10 @@ public final class TTSPipelineCoordinator {
         streamingChunkCount = 0
         streamingOnComplete = onComplete
 
-        // Create sync driver with afplay backend for jitter-free playback.
-        // Stop AVAudioEngine first -- two processes competing for the same
-        // CoreAudio hardware device causes jitter on the afplay output.
         let afplay = playbackManager.afplayPlayer
         afplay.reset()
-        playbackManager.audioStreamPlayer.stop()
         let driver = SubtitleSyncDriver(
             subtitlePanel: subtitlePanel,
-            audioStreamPlayer: playbackManager.audioStreamPlayer,
             afplayPlayer: afplay,
             onStreamingComplete: { [weak self] in
                 self?.isActive = false
