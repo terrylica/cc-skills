@@ -1,3 +1,10 @@
+# [12.28.0](https://github.com/terrylica/cc-skills/compare/v12.27.1...v12.28.0) (2026-03-31)
+
+
+### Features
+
+* **tts:** replace AVAudioEngine with afplay subprocess for jitter-free playback ([e2e80e1](https://github.com/terrylica/cc-skills/commit/e2e80e1e989a47ec5e760d70dc76d2125ef7b9fd))
+
 ## [12.27.1](https://github.com/terrylica/cc-skills/compare/v12.27.0...v12.27.1) (2026-03-30)
 
 
