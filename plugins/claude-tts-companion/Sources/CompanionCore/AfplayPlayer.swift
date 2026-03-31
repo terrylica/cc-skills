@@ -1,8 +1,9 @@
 // Jitter-free audio playback via afplay subprocess.
 //
-// Replaces AVAudioEngine scheduling with macOS's built-in afplay command,
-// which uses CoreAudio's optimized file-playback path. Wall-clock timing
-// provides currentTime for karaoke subtitle sync.
+// Uses posix_spawn directly (not Foundation Process) to launch afplay
+// in its own process group with /dev/null I/O — matching how terminal
+// launches it. Wall-clock timing provides currentTime for karaoke sync.
+import Darwin
 import Foundation
 import Logging
 
@@ -11,9 +12,9 @@ import Logging
 /// Accumulates Float32 PCM chunks, writes a single WAV file, and plays it
 /// through afplay. Provides wall-clock currentTime for karaoke sync.
 ///
-/// afplay uses CoreAudio's ExtAudioFile path which is more resilient to
-/// CPU contention than AVAudioEngine's real-time render thread, eliminating
-/// jitter during concurrent heavy workloads (e.g., Rust compilation).
+/// Uses posix_spawn directly instead of Foundation's Process class to
+/// eliminate overhead and give afplay its own process group, matching
+/// terminal launch behavior.
 @MainActor
 public final class AfplayPlayer {
 
@@ -22,8 +23,8 @@ public final class AfplayPlayer {
     /// Accumulated Float32 PCM samples at 48kHz mono.
     private var pendingSamples: [Float] = []
 
-    /// The running afplay subprocess.
-    private var process: Process?
+    /// PID of the running afplay subprocess.
+    private var afplayPID: pid_t = 0
 
     /// Wall-clock time when afplay started playing.
     private var playStartTime: Date?
@@ -31,11 +32,22 @@ public final class AfplayPlayer {
     /// Path to the current WAV file being played.
     private var currentWavPath: String?
 
+    /// Debug directory for retaining WAV files for manual inspection.
+    /// Files are kept (not deleted) so you can listen independently.
+    private let debugWavDir: String = {
+        let dir = NSHomeDirectory() + "/.local/share/tts-debug-wav"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        return dir
+    }()
+
     /// Completion callback when playback finishes.
     private var onComplete: (() -> Void)?
 
     /// Whether playback has been stopped externally (vs finishing naturally).
     private var wasStopped = false
+
+    /// Background thread monitoring afplay exit via waitpid.
+    private var waitThread: Thread?
 
     // MARK: - Public API
 
@@ -45,9 +57,11 @@ public final class AfplayPlayer {
     }
 
     /// Write all pending samples to a WAV file and play via afplay.
-    /// Returns false if there are no samples or playback fails to start.
+    /// - Parameter label: Optional identifier embedded in the WAV filename
+    ///   (e.g., first few words of subtitle text) for correlating files to captions.
+    /// - Returns: false if there are no samples or playback fails to start.
     @discardableResult
-    func play(onComplete: (() -> Void)? = nil) -> Bool {
+    func play(label: String? = nil, onComplete: (() -> Void)? = nil) -> Bool {
         guard !pendingSamples.isEmpty else {
             logger.warning("play() called with no pending samples")
             onComplete?()
@@ -58,8 +72,20 @@ public final class AfplayPlayer {
         self.onComplete = onComplete
         wasStopped = false
 
-        // Write WAV file
-        let wavPath = NSTemporaryDirectory() + "tts-afplay-\(UUID().uuidString).wav"
+        // Write WAV file to debug directory (retained for manual inspection)
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+            .replacingOccurrences(of: ":", with: "-")
+        let slug: String
+        if let label = label, !label.isEmpty {
+            let clean = label
+                .prefix(40)
+                .filter { $0.isLetter || $0.isNumber || $0 == " " }
+                .replacingOccurrences(of: " ", with: "_")
+            slug = clean.isEmpty ? String(UUID().uuidString.prefix(8)).lowercased() : clean
+        } else {
+            slug = String(UUID().uuidString.prefix(8)).lowercased()
+        }
+        let wavPath = debugWavDir + "/tts-\(timestamp)_\(slug).wav"
         do {
             try writeWav(samples: pendingSamples, sampleRate: 48000, to: wavPath)
         } catch {
@@ -72,39 +98,72 @@ public final class AfplayPlayer {
         let duration = Double(pendingSamples.count) / 48000.0
         pendingSamples.removeAll(keepingCapacity: true)
 
-        // Launch afplay
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/afplay")
-        proc.arguments = [wavPath]
-        proc.terminationHandler = { [weak self] process in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                let exitCode = process.terminationStatus
-                if exitCode == 0 {
+        // Launch afplay via posix_spawn in its own process group.
+        // This matches terminal behavior: own process group, /dev/null I/O,
+        // no Foundation Process wrapper overhead.
+        var pid: pid_t = 0
+
+        let cPath = strdup("/usr/bin/afplay")!
+        let cArg = strdup(wavPath)!
+        var argv: [UnsafeMutablePointer<CChar>?] = [cPath, cArg, nil]
+
+        // File actions: redirect stdin/stdout/stderr to /dev/null
+        var fileActions: posix_spawn_file_actions_t? = nil
+        posix_spawn_file_actions_init(&fileActions)
+        posix_spawn_file_actions_addopen(&fileActions, STDIN_FILENO, "/dev/null", O_RDONLY, 0)
+        posix_spawn_file_actions_addopen(&fileActions, STDOUT_FILENO, "/dev/null", O_WRONLY, 0)
+        posix_spawn_file_actions_addopen(&fileActions, STDERR_FILENO, "/dev/null", O_WRONLY, 0)
+
+        // Spawn attributes: own process group
+        var spawnAttr: posix_spawnattr_t? = nil
+        posix_spawnattr_init(&spawnAttr)
+        posix_spawnattr_setflags(&spawnAttr, Int16(POSIX_SPAWN_SETPGROUP))
+        posix_spawnattr_setpgroup(&spawnAttr, 0)
+
+        let spawnResult = posix_spawn(&pid, "/usr/bin/afplay", &fileActions, &spawnAttr, &argv, environ)
+
+        // Cleanup spawn resources
+        posix_spawn_file_actions_destroy(&fileActions)
+        posix_spawnattr_destroy(&spawnAttr)
+        free(cPath)
+        free(cArg)
+
+        guard spawnResult == 0 else {
+            logger.error("posix_spawn failed: \(spawnResult) (\(String(cString: strerror(spawnResult))))")
+            onComplete?()
+            self.onComplete = nil
+            return false
+        }
+
+        afplayPID = pid
+        playStartTime = Date()
+        logger.info("afplay started (posix_spawn): \(wavPath) (\(String(format: "%.2f", duration))s, pid \(pid))")
+
+        // Monitor afplay exit on a background thread via waitpid.
+        // Can't use SIGCHLD because our process may have other children.
+        let capturedPID = pid
+        let thread = Thread {
+            var status: Int32 = 0
+            waitpid(capturedPID, &status, 0)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, self.afplayPID == capturedPID else { return }
+                if (status & 0x7f) == 0 && ((status >> 8) & 0xff) == 0 {
                     self.logger.info("afplay finished normally")
                 } else if !self.wasStopped {
-                    self.logger.warning("afplay exited with code \(exitCode)")
+                    self.logger.warning("afplay exited with status \(status)")
                 }
+                self.afplayPID = 0
                 self.cleanup()
                 let callback = self.onComplete
                 self.onComplete = nil
                 callback?()
             }
         }
+        thread.qualityOfService = QualityOfService.utility
+        thread.start()
+        waitThread = thread
 
-        do {
-            try proc.run()
-            process = proc
-            playStartTime = Date()
-            logger.info("afplay started: \(wavPath) (\(String(format: "%.2f", duration))s, \(proc.processIdentifier))")
-            return true
-        } catch {
-            logger.error("Failed to launch afplay: \(error)")
-            cleanup()
-            onComplete?()
-            self.onComplete = nil
-            return false
-        }
+        return true
     }
 
     /// Current playback time based on wall clock since play() was called.
@@ -115,7 +174,9 @@ public final class AfplayPlayer {
 
     /// Whether afplay is currently running.
     var isPlaying: Bool {
-        process?.isRunning ?? false
+        guard afplayPID > 0 else { return false }
+        // kill(pid, 0) checks if process exists without sending a signal
+        return kill(afplayPID, 0) == 0
     }
 
     /// Whether there are samples waiting to be played.
@@ -126,11 +187,11 @@ public final class AfplayPlayer {
     /// Stop playback, kill the afplay process, and discard pending samples.
     func stop() {
         wasStopped = true
-        if let proc = process, proc.isRunning {
-            proc.terminate()
-            logger.info("afplay terminated (pid \(proc.processIdentifier))")
+        if afplayPID > 0 {
+            kill(afplayPID, SIGTERM)
+            logger.info("afplay terminated (pid \(afplayPID))")
+            afplayPID = 0
         }
-        process = nil
         playStartTime = nil
         cleanup()
     }
@@ -144,12 +205,11 @@ public final class AfplayPlayer {
 
     // MARK: - Private
 
-    /// Delete the temp WAV file.
+    /// Clear reference to current WAV path. Files are retained in debugWavDir
+    /// for manual inspection -- listen to them to determine if jitter is in
+    /// generation or playback. Clean up ~/.local/share/tts-debug-wav/ manually.
     private func cleanup() {
-        if let path = currentWavPath {
-            try? FileManager.default.removeItem(atPath: path)
-            currentWavPath = nil
-        }
+        currentWavPath = nil
     }
 
     /// Write Float32 samples as a 16-bit PCM WAV file.

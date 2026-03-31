@@ -164,9 +164,12 @@ public final class TTSPipelineCoordinator {
             return
         }
 
-        // Create sync driver with afplay backend for jitter-free playback
+        // Create sync driver with afplay backend for jitter-free playback.
+        // Stop AVAudioEngine first -- two processes competing for the same
+        // CoreAudio hardware device causes jitter on the afplay output.
         let afplay = playbackManager.afplayPlayer
         afplay.reset()
+        playbackManager.audioStreamPlayer.stop()
         let driver = SubtitleSyncDriver(
             subtitlePanel: subtitlePanel,
             audioStreamPlayer: playbackManager.audioStreamPlayer,
@@ -294,9 +297,12 @@ public final class TTSPipelineCoordinator {
         streamingChunkCount = 0
         streamingOnComplete = onComplete
 
-        // Create sync driver with afplay backend for jitter-free playback
+        // Create sync driver with afplay backend for jitter-free playback.
+        // Stop AVAudioEngine first -- two processes competing for the same
+        // CoreAudio hardware device causes jitter on the afplay output.
         let afplay = playbackManager.afplayPlayer
         afplay.reset()
+        playbackManager.audioStreamPlayer.stop()
         let driver = SubtitleSyncDriver(
             subtitlePanel: subtitlePanel,
             audioStreamPlayer: playbackManager.audioStreamPlayer,
