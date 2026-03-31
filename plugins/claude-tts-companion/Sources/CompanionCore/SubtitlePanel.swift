@@ -113,6 +113,8 @@ public final class SubtitlePanel: NSPanel {
             textField.font = font
             textField.stringValue = text
         }
+        pendingLingerHide?.cancel()
+        pendingLingerHide = nil
         positionOnScreen()
         orderFrontRegardless()
         logDiagnostics(label: "show(text:)", text: text)
@@ -120,11 +122,33 @@ public final class SubtitlePanel: NSPanel {
 
     /// Hide the subtitle panel.
     func hide() {
+        pendingLingerHide?.cancel()
+        pendingLingerHide = nil
         orderOut(nil)
+    }
+
+    /// Pending linger-hide work item. Cancelled whenever new content is shown
+    /// (via orderFrontRegardless) so stale timers from old playback sessions
+    /// never hide subtitles that a new driver is actively displaying.
+    private var pendingLingerHide: DispatchWorkItem?
+
+    /// Schedule a hide after the linger duration. Automatically cancelled if
+    /// new content is shown before the timer fires (orderFrontRegardless
+    /// cancels pendingLingerHide).
+    func lingerThenHide() {
+        pendingLingerHide?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?.pendingLingerHide = nil
+            self?.orderOut(nil)
+        }
+        pendingLingerHide = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration, execute: item)
     }
 
     /// Show attributed text for karaoke highlighting (gold/grey/white per word).
     func updateAttributedText(_ text: NSAttributedString) {
+        pendingLingerHide?.cancel()
+        pendingLingerHide = nil
         textField.attributedStringValue = text
         positionOnScreen()
         orderFrontRegardless()
