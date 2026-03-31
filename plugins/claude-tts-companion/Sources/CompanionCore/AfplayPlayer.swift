@@ -99,7 +99,15 @@ public final class AfplayPlayer {
         pendingSamples.removeAll(keepingCapacity: true)
 
         // Launch afplay via posix_spawn in its own process group.
-        // Own process group + /dev/null I/O matches terminal launch behavior.
+        //
+        // QoS scheduling: the companion's launchd plist uses ProcessType=Interactive
+        // (not Adaptive) so macOS assigns it user-interactive QoS (PRI≈60). Child
+        // processes spawned with QOS_CLASS_USER_INTERACTIVE inherit this elevated
+        // scheduling band, matching terminal-launched afplay behavior.
+        //
+        // Previous bug: ProcessType=Adaptive allowed macOS to downgrade the companion
+        // to background QoS (PRI=4), and posix_spawnattr_set_qos_class_np was ignored
+        // for children of low-QoS parents — causing audio jitter.
         var pid: pid_t = 0
 
         let cPath = strdup("/usr/bin/afplay")!
@@ -113,11 +121,7 @@ public final class AfplayPlayer {
         posix_spawn_file_actions_addopen(&fileActions, STDOUT_FILENO, "/dev/null", O_WRONLY, 0)
         posix_spawn_file_actions_addopen(&fileActions, STDERR_FILENO, "/dev/null", O_WRONLY, 0)
 
-        // Spawn attributes: own process group + high QoS.
-        // The companion app runs as .accessory (no dock icon), which macOS assigns
-        // a low QoS class. Child processes inherit this, causing I/O and CPU
-        // throttling that manifests as audio jitter. USER_INTERACTIVE QoS ensures
-        // afplay gets priority scheduling matching terminal-launched behavior.
+        // Spawn attributes: own process group + USER_INTERACTIVE QoS.
         var spawnAttr: posix_spawnattr_t? = nil
         posix_spawnattr_init(&spawnAttr)
         posix_spawnattr_setflags(&spawnAttr, Int16(POSIX_SPAWN_SETPGROUP))
