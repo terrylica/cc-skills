@@ -124,6 +124,7 @@ public final class SubtitlePanel: NSPanel {
     func hide() {
         pendingLingerHide?.cancel()
         pendingLingerHide = nil
+        clearEdgeHint()
         orderOut(nil)
     }
 
@@ -139,6 +140,7 @@ public final class SubtitlePanel: NSPanel {
         pendingLingerHide?.cancel()
         let item = DispatchWorkItem { [weak self] in
             self?.pendingLingerHide = nil
+            self?.clearEdgeHint()
             self?.orderOut(nil)
         }
         pendingLingerHide = item
