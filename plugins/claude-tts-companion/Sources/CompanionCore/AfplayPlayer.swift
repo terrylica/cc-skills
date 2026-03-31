@@ -193,6 +193,10 @@ public final class AfplayPlayer {
     }
 
     /// Stop playback, kill the afplay process, and discard pending samples.
+    ///
+    /// Kills the tracked PID first, then does a defensive killall to catch any
+    /// orphaned afplay processes from race conditions (e.g., new afplay spawned
+    /// between task cancellation and pipeline cancel dispatch).
     func stop() {
         wasStopped = true
         if afplayPID > 0 {
@@ -200,6 +204,14 @@ public final class AfplayPlayer {
             logger.info("afplay terminated (pid \(afplayPID))")
             afplayPID = 0
         }
+        // Belt-and-suspenders: kill ANY afplay process spawned by this user.
+        // Catches orphans from async dispatch races in stopAll().
+        let killall = Process()
+        killall.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+        killall.arguments = ["-TERM", "afplay"]
+        killall.standardOutput = FileHandle.nullDevice
+        killall.standardError = FileHandle.nullDevice
+        try? killall.run()
         playStartTime = nil
         cleanup()
     }
