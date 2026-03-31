@@ -1,5 +1,6 @@
 // Priority-aware FIFO queue for TTS requests.
 // User-initiated (BTT) preempts automated (hooks). Single worker serializes GPU access.
+import Darwin
 import Foundation
 import Logging
 
