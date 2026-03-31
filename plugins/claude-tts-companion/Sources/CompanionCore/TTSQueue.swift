@@ -301,7 +301,11 @@ public actor TTSQueue {
             segments = PronunciationProcessor.enforceParargraphBudget(paragraphs, budget: budget)
             if segments.count > before {
                 logger.info("Paragraph budget (\(budget) chars): \(before) paragraphs → \(segments.count) segments")
+            } else {
+                logger.info("[TELEMETRY] No bisection needed: \(paragraphs.count) paragraphs all under budget (\(budget) chars)")
             }
+        } else {
+            logger.info("[TELEMETRY] Paragraph budget disabled (0), no bisection applied")
         }
 
         if segments.count > 1 {
@@ -356,6 +360,8 @@ public actor TTSQueue {
                     jaggedTop: segment.isContinuation,
                     jaggedBottom: segment.isUnfinished
                 )
+                logger.info("[TELEMETRY] Segment \(index + 1)/\(segments.count): isContinuation=\(segment.isContinuation), isUnfinished=\(segment.isUnfinished), edgeHint top=\(edgeHint.jaggedTop) bottom=\(edgeHint.jaggedBottom), text=\"\(segment.text.prefix(60))\"")
+
 
                 let paraStart = CFAbsoluteTimeGetCurrent()
                 var chunks = await ttsEngine.synthesizeStreamingAutoRoute(
