@@ -1,3 +1,10 @@
+## [12.29.2](https://github.com/terrylica/cc-skills/compare/v12.29.1...v12.29.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* **tts:** hide subtitle panel on stop playback ([fd959ea](https://github.com/terrylica/cc-skills/commit/fd959eac2fe74a7a4e1175cb9d9837ada03591a1))
+
 ## [12.29.1](https://github.com/terrylica/cc-skills/compare/v12.29.0...v12.29.1) (2026-03-31)
 
 
