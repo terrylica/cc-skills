@@ -300,7 +300,8 @@ public final class SubtitleSyncDriver {
             activateChunk(at: 0)
             chunkStartTime = 0
 
-            afplay.play { [weak self] in
+            let firstWords = streamChunks.first?.pages.first?.words.prefix(6).joined(separator: " ") ?? ""
+            afplay.play(label: firstWords) { [weak self] in
                 self?.currentChunkComplete = true
                 self?.logger.info("afplay batch playback complete")
             }
@@ -402,7 +403,8 @@ public final class SubtitleSyncDriver {
         activateChunk(at: 0)
         chunkStartTime = 0
 
-        afplay.play { [weak self] in
+        let firstWords = streamChunks.first?.pages.first?.words.prefix(6).joined(separator: " ") ?? ""
+        afplay.play(label: firstWords) { [weak self] in
             self?.currentChunkComplete = true
             self?.logger.info("afplay streaming playback complete")
         }
