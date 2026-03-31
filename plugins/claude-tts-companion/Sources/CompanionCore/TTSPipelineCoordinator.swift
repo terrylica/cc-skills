@@ -132,6 +132,7 @@ public final class TTSPipelineCoordinator {
         let hadActive = activeSyncDriver != nil
         activeSyncDriver?.stop()
         activeSyncDriver = nil
+        playbackManager.afplayPlayer.reset()
         playbackManager.audioStreamPlayer.reset()
         playbackManager.stopPlayback()
         subtitlePanel.clearEdgeHint()  // Clear any jagged edges from bisected segments
@@ -163,10 +164,13 @@ public final class TTSPipelineCoordinator {
             return
         }
 
-        // Create sync driver for batch playback
+        // Create sync driver with afplay backend for jitter-free playback
+        let afplay = playbackManager.afplayPlayer
+        afplay.reset()
         let driver = SubtitleSyncDriver(
             subtitlePanel: subtitlePanel,
             audioStreamPlayer: playbackManager.audioStreamPlayer,
+            afplayPlayer: afplay,
             onStreamingComplete: { [weak self] in
                 self?.isActive = false
                 self?.activeSyncDriver = nil
@@ -290,10 +294,13 @@ public final class TTSPipelineCoordinator {
         streamingChunkCount = 0
         streamingOnComplete = onComplete
 
-        // Create sync driver for streaming playback
+        // Create sync driver with afplay backend for jitter-free playback
+        let afplay = playbackManager.afplayPlayer
+        afplay.reset()
         let driver = SubtitleSyncDriver(
             subtitlePanel: subtitlePanel,
             audioStreamPlayer: playbackManager.audioStreamPlayer,
+            afplayPlayer: afplay,
             onStreamingComplete: { [weak self] in
                 self?.isActive = false
                 self?.activeSyncDriver = nil
@@ -411,31 +418,15 @@ public final class TTSPipelineCoordinator {
 
         streamingChunkCount += 1
 
-        // Schedule audio directly on AudioStreamPlayer for immediate playback.
-        // The driver tracks subtitle karaoke timing via its streamChunks array.
-        let asp = playbackManager.audioStreamPlayer
-        if streamingChunkCount == 1 {
-            // First chunk: reset AudioStreamPlayer for a fresh session, activate
-            // the first chunk in the driver for karaoke, and start the timer.
-            // We do NOT call driver.startBatchPlayback() because that would set
-            // allChunksDelivered=true and only schedule existing chunks.
-            asp.reset()
-        }
-
-        // Schedule this paragraph's audio buffer on AudioStreamPlayer
+        // Accumulate audio on AfplayPlayer (deferred playback until finalize).
+        let afplay = playbackManager.afplayPlayer
         for chunk in chunks {
             if let samples = chunk.samples, !samples.isEmpty {
-                asp.scheduleChunk(samples: samples)
+                afplay.appendChunk(samples: samples)
             }
         }
 
-        if streamingChunkCount == 1 {
-            // Activate chunk 0 for karaoke tracking and start the 60Hz timer
-            driver.activateFirstChunkForStreaming()
-            logger.info("Streaming pipeline: first chunk fed, playback started")
-        }
-
-        logger.info("Fed streaming chunk \(streamingChunkCount) to pipeline")
+        logger.info("Fed streaming chunk \(streamingChunkCount) to pipeline (afplay-deferred)")
     }
 
     /// Signal that all chunks have been fed. No more chunks will arrive.
@@ -443,6 +434,12 @@ public final class TTSPipelineCoordinator {
     func finalizeStreamingPipeline() {
         guard let driver = activeSyncDriver else { return }
         driver.markAllChunksDelivered()
-        logger.info("Streaming pipeline finalized with \(streamingChunkCount) total chunks")
+
+        // Start afplay playback now that all chunks are accumulated.
+        // The driver's startAfplayPlayback() writes the WAV and launches afplay,
+        // then starts the 60Hz karaoke timer synced to wall-clock time.
+        driver.startAfplayPlayback()
+
+        logger.info("Streaming pipeline finalized with \(streamingChunkCount) total chunks (afplay started)")
     }
 }

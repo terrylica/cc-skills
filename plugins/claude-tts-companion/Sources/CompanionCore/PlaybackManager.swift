@@ -40,6 +40,11 @@ public final class PlaybackManager {
     /// Shared across streaming sessions -- reset() between sessions, never deallocated.
     public let audioStreamPlayer = AudioStreamPlayer()
 
+    /// Jitter-free audio player using afplay subprocess.
+    /// Used instead of AudioStreamPlayer for TTS playback to avoid AVAudioEngine
+    /// jitter under CPU contention (e.g., concurrent Rust compilation).
+    public let afplayPlayer = AfplayPlayer()
+
     // MARK: - Lifecycle
 
     init() {
