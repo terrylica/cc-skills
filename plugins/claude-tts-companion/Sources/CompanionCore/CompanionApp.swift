@@ -1,4 +1,5 @@
 import AppKit
+import CoreAudio
 import Foundation
 import Logging
 
@@ -58,8 +59,22 @@ public final class CompanionApp: @unchecked Sendable {
         notificationProcessor = NotificationProcessor()
     }
 
+    /// Audio routing diagnostic result, queryable via /health endpoint.
+    /// Detects virtual audio devices (e.g., Background Music, Loopback) in the
+    /// default output path that add latency and cause playback jitter.
+    private(set) var audioRoutingClean: Bool = true
+    private(set) var audioRoutingWarnings: [String] = []
+
     @MainActor public func start() {
         logger.info("TTS backend: Python Kokoro server (\(Config.pythonTTSServerURL)) + sherpa-onnx CJK")
+
+        // Audio routing diagnostic: detect virtual devices in the output path.
+        // Virtual audio devices (Background Music, Loopback, Soundflower) add a
+        // routing hop that causes jitter under CPU contention. Log a clear warning
+        // so the cause is immediately visible in service logs and /health endpoint.
+        auditAudioRouting()
+        httpServer.audioRoutingClean = audioRoutingClean
+        httpServer.audioRoutingWarnings = audioRoutingWarnings
 
         // Check Python TTS server health (non-blocking, logs warning if unavailable)
         Task {
@@ -147,6 +162,85 @@ public final class CompanionApp: @unchecked Sendable {
         thinkingWatcher?.stop()
         if let bot = telegramBot {
             Task { await bot.stop() }
+        }
+    }
+}
+
+// MARK: - Audio Routing Diagnostic
+
+private extension CompanionApp {
+
+    /// Known virtual audio device manufacturers that cause jitter when in the output path.
+    static let virtualDeviceBlocklist = [
+        "background music",
+        "loopback",
+        "soundflower",
+        "blackhole",
+        "existential audio",  // BlackHole
+    ]
+
+    /// Audit the default audio output device at startup.
+    /// If a virtual device (BGM, Loopback, etc.) is the default output, log a
+    /// critical warning — this WILL cause playback jitter.
+    func auditAudioRouting() {
+        var deviceID = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &deviceID
+        )
+        guard status == noErr, deviceID != 0 else {
+            logger.warning("AUDIO AUDIT: could not query default output device (status=\(status))")
+            return
+        }
+
+        // Get device transport type
+        var transportType: UInt32 = 0
+        var transportSize = UInt32(MemoryLayout<UInt32>.size)
+        var transportAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyTransportType,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectGetPropertyData(deviceID, &transportAddress, 0, nil, &transportSize, &transportType)
+
+        // Get device manufacturer
+        var manufacturer: CFString = "" as CFString
+        var mfgSize = UInt32(MemoryLayout<CFString>.size)
+        var mfgAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioObjectPropertyManufacturer,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectGetPropertyData(deviceID, &mfgAddress, 0, nil, &mfgSize, &manufacturer)
+
+        // Get device name
+        var deviceName: CFString = "" as CFString
+        var nameSize = UInt32(MemoryLayout<CFString>.size)
+        var nameAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioObjectPropertyName,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectGetPropertyData(deviceID, &nameAddress, 0, nil, &nameSize, &deviceName)
+
+        let name = deviceName as String
+        let mfg = manufacturer as String
+        let isVirtual = transportType == kAudioDeviceTransportTypeVirtual
+        let isBlocklisted = Self.virtualDeviceBlocklist.contains { mfg.lowercased().contains($0) }
+
+        if isVirtual || isBlocklisted {
+            audioRoutingClean = false
+            let warning = "Virtual audio device '\(name)' (mfg: \(mfg)) is default output — WILL cause playback jitter. Remove it or switch default output to hardware device."
+            audioRoutingWarnings.append(warning)
+            logger.critical("AUDIO AUDIT FAILED: \(warning)")
+        } else {
+            logger.info("AUDIO AUDIT: default output '\(name)' (mfg: \(mfg), transport=\(transportType == kAudioDeviceTransportTypeBuiltIn ? "built-in" : String(transportType))) — clean")
         }
     }
 }
