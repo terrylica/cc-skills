@@ -58,6 +58,10 @@ public final class AudioStreamPlayer: @unchecked Sendable {
     /// Whether the engine is currently running.
     private(set) var isRunning: Bool = false
 
+    /// App Nap prevention token. Held while audio buffers are scheduled to prevent
+    /// macOS from throttling this .accessory process and starving the audio render thread.
+    private var appNapActivity: NSObjectProtocol?
+
     /// Lock protecting engine start/stop operations.
     private let engineLock = NSLock()
 
@@ -130,6 +134,12 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         engine.attach(playerNode)
         engine.connect(playerNode, to: engine.mainMixerNode, format: format)
 
+        // Pin output to actual hardware device, bypassing virtual audio devices
+        // (e.g., Background Music) that add an extra IOProc hop causing jitter.
+        let hwDevice = resolveHardwareOutputDevice()
+        setOutputDevice(hwDevice)
+        setBufferSize(hwDevice, frames: 2048)  // ~42ms at 48kHz — resilient to CPU spikes
+
         // Observe audio configuration changes (Bluetooth disconnect, USB DAC removal, etc.)
         // When hardware route changes, macOS invalidates the AVAudioEngine configuration.
         configChangeObserver = NotificationCenter.default.addObserver(
@@ -146,8 +156,8 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         // Start periodic health check (safety net for missed device changes)
         startHealthCheck()
 
-        // Cache the initial output device ID
-        cachedOutputDeviceID = getSystemDefaultOutputDeviceID()
+        // Cache the resolved hardware device ID (not the virtual default)
+        cachedOutputDeviceID = hwDevice
         let initialDeviceName = getDeviceName(deviceID: cachedOutputDeviceID)
         logger.info("AudioStreamPlayer created (48kHz mono float32, AVAudioEngine, device: \(initialDeviceName) [\(cachedOutputDeviceID)])")
     }
@@ -175,6 +185,7 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         guard !isRunning else { return }
 
         do {
+            engine.prepare()
             try engine.start()
             isRunning = true
             cachedOutputDeviceID = getSystemDefaultOutputDeviceID()
@@ -198,6 +209,10 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         bufferCountLock.lock()
         scheduledBufferCount = 0
         bufferCountLock.unlock()
+        if let activity = appNapActivity {
+            ProcessInfo.processInfo.endActivity(activity)
+            appNapActivity = nil
+        }
 
         logger.info("AudioStreamPlayer stopped")
     }
@@ -214,10 +229,15 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         bufferCountLock.lock()
         scheduledBufferCount = 0
         bufferCountLock.unlock()
+        if let activity = appNapActivity {
+            ProcessInfo.processInfo.endActivity(activity)
+            appNapActivity = nil
+        }
 
         // Ensure engine is running (start is idempotent internally)
         if !isRunning {
             do {
+                engine.prepare()
                 try engine.start()
                 isRunning = true
             } catch {
@@ -327,7 +347,7 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         // Skip during active playback -- audio is working if playing
         guard !playerNode.isPlaying else { return }
 
-        let systemDevice = getSystemDefaultOutputDeviceID()
+        let systemDevice = resolveHardwareOutputDevice()
         let engineDevice = cachedOutputDeviceID
 
         if systemDevice != engineDevice && systemDevice != AudioDeviceID(kAudioDeviceUnknown) {
@@ -353,6 +373,141 @@ public final class AudioStreamPlayer: @unchecked Sendable {
             &propertySize, &deviceID
         )
         return deviceID
+    }
+
+    /// Get the transport type of an audio device.
+    private func getTransportType(deviceID: AudioDeviceID) -> UInt32 {
+        var transportType: UInt32 = 0
+        var propertySize = UInt32(MemoryLayout<UInt32>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyTransportType,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectGetPropertyData(deviceID, &address, 0, nil, &propertySize, &transportType)
+        return transportType
+    }
+
+    /// Check if a device has output channels.
+    private func hasOutputChannels(deviceID: AudioDeviceID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreamConfiguration,
+            mScope: kAudioObjectPropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var propertySize: UInt32 = 0
+        let status = AudioObjectGetPropertyDataSize(deviceID, &address, 0, nil, &propertySize)
+        guard status == noErr, propertySize > 0 else { return false }
+        let bufferList = UnsafeMutablePointer<AudioBufferList>.allocate(capacity: Int(propertySize))
+        defer { bufferList.deallocate() }
+        let status2 = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &propertySize, bufferList)
+        guard status2 == noErr else { return false }
+        let count = Int(bufferList.pointee.mNumberBuffers)
+        return count > 0 && bufferList.pointee.mBuffers.mNumberChannels > 0
+    }
+
+    /// Find the preferred hardware output device, bypassing virtual audio devices
+    /// (e.g., Background Music, Loopback) that add an extra IOProc hop causing jitter.
+    /// Falls back to the system default if no hardware device is found.
+    func resolveHardwareOutputDevice() -> AudioDeviceID {
+        let systemDefault = getSystemDefaultOutputDeviceID()
+        let transportType = getTransportType(deviceID: systemDefault)
+
+        // If the default device is already hardware (built-in, USB, Bluetooth, etc.), use it directly.
+        // kAudioDeviceTransportTypeVirtual = 'virt' = 0x76697274
+        if transportType != kAudioDeviceTransportTypeVirtual {
+            return systemDefault
+        }
+
+        // Default is virtual — enumerate all devices and find first non-virtual output device.
+        var propertySize: UInt32 = 0
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &propertySize)
+        let deviceCount = Int(propertySize) / MemoryLayout<AudioDeviceID>.size
+        guard deviceCount > 0 else { return systemDefault }
+
+        var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
+        AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &propertySize, &deviceIDs)
+
+        // Prefer built-in output, then any non-virtual output
+        var fallbackHardware: AudioDeviceID?
+        for id in deviceIDs {
+            let tt = getTransportType(deviceID: id)
+            guard tt != kAudioDeviceTransportTypeVirtual else { continue }
+            guard hasOutputChannels(deviceID: id) else { continue }
+            if tt == kAudioDeviceTransportTypeBuiltIn {
+                let name = getDeviceName(deviceID: id)
+                logger.info("Resolved hardware device: \(name) [\(id)] (built-in, bypassing virtual default)")
+                return id
+            }
+            if fallbackHardware == nil {
+                fallbackHardware = id
+            }
+        }
+
+        if let hw = fallbackHardware {
+            let name = getDeviceName(deviceID: hw)
+            logger.info("Resolved hardware device: \(name) [\(hw)] (non-virtual, bypassing virtual default)")
+            return hw
+        }
+
+        logger.warning("No hardware output device found, using virtual default")
+        return systemDefault
+    }
+
+    /// Pin the engine's output audio unit to a specific device.
+    /// Bypasses the system default routing (and any virtual device in the chain).
+    private func setOutputDevice(_ deviceID: AudioDeviceID) {
+        guard let outputUnit = engine.outputNode.audioUnit else {
+            logger.warning("Cannot set output device: outputNode has no audioUnit")
+            return
+        }
+        var mutableID = deviceID
+        let status = AudioUnitSetProperty(
+            outputUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &mutableID,
+            UInt32(MemoryLayout<AudioDeviceID>.size)
+        )
+        if status == noErr {
+            let name = getDeviceName(deviceID: deviceID)
+            logger.info("Pinned engine output to \(name) [\(deviceID)]")
+        } else {
+            logger.error("Failed to set output device \(deviceID): OSStatus \(status)")
+        }
+    }
+
+    /// Set the I/O buffer size on a hardware device.
+    /// Larger buffers give the real-time audio thread more headroom to survive
+    /// CPU spikes (e.g., Rust compilation). Default is typically 512 frames (~10ms).
+    /// 2048 frames (~42ms at 48kHz) adds negligible latency for TTS but greatly
+    /// reduces sensitivity to scheduling jitter from CPU contention.
+    private func setBufferSize(_ deviceID: AudioDeviceID, frames: UInt32) {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyBufferFrameSize,
+            mScope: kAudioObjectPropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size = frames
+        let status = AudioObjectSetPropertyData(
+            deviceID, &address, 0, nil,
+            UInt32(MemoryLayout<UInt32>.size), &size
+        )
+        if status == noErr {
+            logger.info("Set I/O buffer size to \(frames) frames (\(String(format: "%.1f", Double(frames) / 48000.0 * 1000))ms at 48kHz)")
+        } else {
+            // Device may clamp to nearest supported size — read back actual value
+            var actual: UInt32 = 0
+            var propSize = UInt32(MemoryLayout<UInt32>.size)
+            AudioObjectGetPropertyData(deviceID, &address, 0, nil, &propSize, &actual)
+            logger.warning("Buffer size request \(frames) -> actual \(actual) (OSStatus \(status))")
+        }
     }
 
     /// Get the human-readable name for an audio device.
@@ -445,13 +600,18 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         // 3. Rebuild graph (preserves 48kHz mono float32 format)
         engine.attach(playerNode)
         engine.connect(playerNode, to: engine.mainMixerNode, format: format)
+
+        // Re-pin to hardware device (may have changed after route change)
+        let hwDevice = resolveHardwareOutputDevice()
+        setOutputDevice(hwDevice)
+        setBufferSize(hwDevice, frames: 2048)
         engine.prepare()
 
         // 4. Start
         do {
             try engine.start()
             isRunning = true
-            cachedOutputDeviceID = getSystemDefaultOutputDeviceID()
+            cachedOutputDeviceID = hwDevice
             lastRebuildTime = CFAbsoluteTimeGetCurrent()
             let duration = lastRebuildTime - startTime
             logger.info("Audio engine rebuilt successfully on \(newDeviceName) (took \(String(format: "%.1f", duration * 1000))ms)")
@@ -492,16 +652,35 @@ public final class AudioStreamPlayer: @unchecked Sendable {
         }
 
         bufferCountLock.lock()
+        let wasEmpty = scheduledBufferCount == 0
         scheduledBufferCount += 1
         bufferCountLock.unlock()
+
+        // Prevent App Nap while audio is playing. macOS throttles .accessory processes
+        // that appear idle, which starves the real-time audio render thread causing jitter.
+        if wasEmpty && appNapActivity == nil {
+            appNapActivity = ProcessInfo.processInfo.beginActivity(
+                options: [.userInitiated, .latencyCritical],
+                reason: "TTS audio playback in progress"
+            )
+        }
 
         // Schedule the buffer with .dataPlayedBack completion type.
         // This fires when the audio data has actually been rendered to hardware,
         // not just when it was consumed from the queue.
         playerNode.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
-            self?.bufferCountLock.lock()
-            self?.scheduledBufferCount -= 1
-            self?.bufferCountLock.unlock()
+            guard let self = self else {
+                onComplete?()
+                return
+            }
+            self.bufferCountLock.lock()
+            self.scheduledBufferCount -= 1
+            let nowEmpty = self.scheduledBufferCount == 0
+            self.bufferCountLock.unlock()
+            if nowEmpty, let activity = self.appNapActivity {
+                ProcessInfo.processInfo.endActivity(activity)
+                self.appNapActivity = nil
+            }
             onComplete?()
         }
 

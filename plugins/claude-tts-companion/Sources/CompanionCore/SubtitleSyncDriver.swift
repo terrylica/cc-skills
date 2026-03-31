@@ -89,9 +89,12 @@ public final class SubtitleSyncDriver {
     /// Whether all chunks have been delivered (onAllComplete called)
     private var allChunksDelivered: Bool = false
 
-    /// AudioStreamPlayer reference for gapless streaming playback.
-    /// Received directly (decoupled from TTSEngine -- SubtitleSyncDriver only needs playback, not synthesis).
+    /// AudioStreamPlayer reference for gapless streaming playback (legacy, kept for compatibility).
     private var audioStreamPlayer: AudioStreamPlayer?
+
+    /// AfplayPlayer for jitter-free playback via afplay subprocess.
+    /// When set, playback uses afplay instead of AudioStreamPlayer.
+    private var afplayPlayer: AfplayPlayer?
 
     /// Called when all streaming playback finishes (after last chunk plays to completion)
     private var onStreamingComplete: (() -> Void)?
@@ -184,13 +187,14 @@ public final class SubtitleSyncDriver {
     ///   - subtitlePanel: The panel to update with karaoke highlights
     ///   - audioStreamPlayer: AudioStreamPlayer instance for gapless playback
     ///   - onStreamingComplete: Called when all chunks have finished playing (not just synthesized)
-    init(subtitlePanel: SubtitlePanel, audioStreamPlayer: AudioStreamPlayer, onStreamingComplete: (() -> Void)? = nil) {
+    init(subtitlePanel: SubtitlePanel, audioStreamPlayer: AudioStreamPlayer, afplayPlayer: AfplayPlayer? = nil, onStreamingComplete: (() -> Void)? = nil) {
         self.subtitlePanel = subtitlePanel
         self.audioStreamPlayer = audioStreamPlayer
+        self.afplayPlayer = afplayPlayer
         self.isStreamingMode = true
         self.onStreamingComplete = onStreamingComplete
 
-        logger.info("SubtitleSyncDriver init (streaming, batch-then-play): awaiting chunks")
+        logger.info("SubtitleSyncDriver init (streaming, batch-then-play, afplay=\(afplayPlayer != nil)): awaiting chunks")
     }
 
     // MARK: - Public API
@@ -281,13 +285,38 @@ public final class SubtitleSyncDriver {
 
         allChunksDelivered = true
 
+        // Use afplay backend if available
+        if let afplay = afplayPlayer {
+            // Accumulate all chunk samples into AfplayPlayer
+            for (index, chunk) in streamChunks.enumerated() {
+                if let samples = chunk.samples {
+                    afplay.appendChunk(samples: samples)
+                }
+                let pageText = chunk.pages.first?.words.joined(separator: " ").prefix(50) ?? "(no pages)"
+                logger.info("[TELEMETRY] Batch chunk \(index)/\(streamChunks.count - 1): \"\(pageText)\", samples=\(chunk.samples?.count ?? 0), duration=\(String(format: "%.3f", chunk.audioDuration))s")
+            }
+
+            // Activate first chunk for karaoke and start playback
+            activateChunk(at: 0)
+            chunkStartTime = 0
+
+            afplay.play { [weak self] in
+                self?.currentChunkComplete = true
+                self?.logger.info("afplay batch playback complete")
+            }
+
+            startTimer()
+            let totalDuration = streamChunks.reduce(0.0) { $0 + $1.audioDuration }
+            logger.info("Batch playback started via afplay: \(streamChunks.count) chunks, total duration \(String(format: "%.2f", totalDuration))s")
+            return
+        }
+
+        // Legacy: AudioStreamPlayer path
         guard let asp = audioStreamPlayer else {
             logger.error("No AudioStreamPlayer reference for batch playback")
             return
         }
 
-        // Schedule ALL buffers on AudioStreamPlayer before starting playback.
-        // AVAudioPlayerNode queues them internally for gapless back-to-back rendering.
         for (index, chunk) in streamChunks.enumerated() {
             let isLastChunk = (index == streamChunks.count - 1)
             let pageText = chunk.pages.first?.words.joined(separator: " ").prefix(50) ?? "(no pages)"
@@ -297,14 +326,11 @@ public final class SubtitleSyncDriver {
                 asp.scheduleChunk(samples: samples) { [weak self] in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
-                        // Clean up WAV file (skip if already deleted by another chunk sharing the path)
                         if !self.deletedWavPaths.contains(chunk.wavPath) {
                             try? FileManager.default.removeItem(atPath: chunk.wavPath)
                             self.deletedWavPaths.insert(chunk.wavPath)
                         }
-
                         if isLastChunk {
-                            // Last buffer finished playing — playback is complete
                             self.currentChunkComplete = true
                             self.logger.info("Last chunk \(index) playback complete — finishing")
                         } else {
@@ -313,7 +339,6 @@ public final class SubtitleSyncDriver {
                     }
                 }
             } else {
-                // Fallback: schedule from WAV file
                 asp.scheduleFile(wavPath: chunk.wavPath) { [weak self] in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
@@ -328,11 +353,8 @@ public final class SubtitleSyncDriver {
 
         logger.info("Batch playback: scheduled \(streamChunks.count) buffers on AudioStreamPlayer")
 
-        // Activate the first chunk for karaoke tracking
         activateChunk(at: 0)
-        chunkStartTime = 0  // First chunk starts at content time 0
-
-        // Start the 60Hz karaoke timer
+        chunkStartTime = 0
         startTimer()
 
         logger.info("Batch playback started: \(streamChunks.count) chunks, total duration \(String(format: "%.2f", streamChunks.reduce(0) { $0 + $1.audioDuration }))s")
@@ -363,10 +385,40 @@ public final class SubtitleSyncDriver {
         logger.info("All streaming chunks delivered (\(streamChunks.count) total)")
     }
 
+    /// Start afplay playback for the streaming pipeline.
+    /// Called by TTSPipelineCoordinator.finalizeStreamingPipeline() after all
+    /// chunks have been accumulated on the AfplayPlayer.
+    func startAfplayPlayback() {
+        guard let afplay = afplayPlayer else {
+            logger.warning("startAfplayPlayback called with no afplayPlayer")
+            return
+        }
+        guard !streamChunks.isEmpty else {
+            logger.warning("startAfplayPlayback called with no chunks")
+            finishPlayback()
+            return
+        }
+
+        activateChunk(at: 0)
+        chunkStartTime = 0
+
+        afplay.play { [weak self] in
+            self?.currentChunkComplete = true
+            self?.logger.info("afplay streaming playback complete")
+        }
+
+        startTimer()
+        let totalDuration = streamChunks.reduce(0.0) { $0 + $1.audioDuration }
+        logger.info("Streaming afplay playback started: \(streamChunks.count) chunks, \(String(format: "%.2f", totalDuration))s")
+    }
+
     /// Stop the polling timer (called on cancellation or when playback ends).
     func stop() {
         timer?.cancel()
         timer = nil
+
+        // Stop afplay if running
+        afplayPlayer?.stop()
 
         // Reset AudioStreamPlayer for streaming mode (cancels queued buffers)
         if isStreamingMode {
@@ -512,27 +564,29 @@ public final class SubtitleSyncDriver {
             return
         }
 
-        guard let asp = audioStreamPlayer else { return }
-
-        // For streaming paragraph pipeline: audio is scheduled externally by coordinator.
-        // Detect end-of-stream when all chunks delivered and AudioStreamPlayer has
-        // no more scheduled buffers (all audio played through).
-        if allChunksDelivered && !asp.hasScheduledBuffers {
-            // Double-check: also verify AudioStreamPlayer reports not playing
-            // and that we're past the expected total duration.
-            // This prevents premature finish if buffer completion fires slightly early.
-            let totalExpectedDuration = streamChunks.reduce(0.0) { $0 + $1.audioDuration }
-            let globalTime = max(0, asp.currentTime - AudioStreamPlayer.leadInDuration)
-            if globalTime >= totalExpectedDuration - 0.5 || !asp.isPlaying {
+        // Get global playback time from the appropriate player
+        let globalTime: TimeInterval
+        if let afplay = afplayPlayer {
+            // afplay mode: wall-clock time since play() was called
+            if !afplay.isPlaying && allChunksDelivered && afplay.currentTime > 0 {
                 finishPlayback()
                 return
             }
-        }
+            globalTime = afplay.currentTime
+        } else {
+            guard let asp = audioStreamPlayer else { return }
 
-        // AudioStreamPlayer.currentTime is cumulative across ALL scheduled buffers,
-        // including the silent lead-in buffer from reset(). Subtract the lead-in
-        // duration so time 0 aligns with the start of real audio content.
-        let globalTime = max(0, asp.currentTime - AudioStreamPlayer.leadInDuration)
+            // Legacy AudioStreamPlayer path
+            if allChunksDelivered && !asp.hasScheduledBuffers {
+                let totalExpectedDuration = streamChunks.reduce(0.0) { $0 + $1.audioDuration }
+                let aspTime = max(0, asp.currentTime - AudioStreamPlayer.leadInDuration)
+                if aspTime >= totalExpectedDuration - 0.5 || !asp.isPlaying {
+                    finishPlayback()
+                    return
+                }
+            }
+            globalTime = max(0, asp.currentTime - AudioStreamPlayer.leadInDuration)
+        }
 
         // Find the active chunk based on cumulative time boundaries
         var cumulative: TimeInterval = 0
@@ -613,14 +667,10 @@ public final class SubtitleSyncDriver {
         onStreamingComplete?()
         onStreamingComplete = nil
 
-        // Capture subtitlePanel directly — not [weak self] — because the driver
-        // may be deallocated by TTSPipelineCoordinator before the linger timer fires.
-        // If self is nil when the timer runs, hide() never executes and the subtitle
-        // stays on screen permanently.
-        let panel = subtitlePanel
-        panel.clearEdgeHint()
-        DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration) {
-            panel.hide()
-        }
+        // Use the panel's lingerThenHide() which is automatically cancelled if
+        // a new driver shows content before the timer fires. This prevents stale
+        // linger timers from hiding subtitles that a new playback session is displaying.
+        subtitlePanel.clearEdgeHint()
+        subtitlePanel.lingerThenHide()
     }
 }
