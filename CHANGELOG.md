@@ -1,3 +1,10 @@
+## [12.28.1](https://github.com/terrylica/cc-skills/compare/v12.28.0...v12.28.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* **tts:** eliminate audio jitter via posix_spawn afplay backend ([2be6067](https://github.com/terrylica/cc-skills/commit/2be6067267c4295a3a390b7a0ae5ffd522dfaf37))
+
 # [12.28.0](https://github.com/terrylica/cc-skills/compare/v12.27.1...v12.28.0) (2026-03-31)
 
 
