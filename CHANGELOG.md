@@ -1,3 +1,34 @@
+# [12.33.0](https://github.com/terrylica/cc-skills/compare/v12.32.0...v12.33.0) (2026-04-01)
+
+
+### Bug Fixes
+
+* **validation:** fix sandwich check SIGPIPE and add reminder to skill-architecture ([3fcc5dd](https://github.com/terrylica/cc-skills/commit/3fcc5dd52d82bd1ae0faab080b305c2b4eff0c73))
+
+
+### Features
+
+* **validation:** enforce self-evolution sandwich in validator and release preflight ([c49a67f](https://github.com/terrylica/cc-skills/commit/c49a67f44b78387439e43cf549cb027a723aec5b))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+2)
+
+</details>
+
 # [12.32.0](https://github.com/terrylica/cc-skills/compare/v12.31.1...v12.32.0) (2026-04-01)
 
 
