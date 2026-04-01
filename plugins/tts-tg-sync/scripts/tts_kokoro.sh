@@ -2,11 +2,10 @@
 # Kokoro TTS — clipboard to speech via claude-tts-companion Swift service.
 # Uses the unified HTTP control API on localhost:8780.
 #
-# Flow: clipboard → unwrap → progressive chunking → POST /tts/speak → karaoke subtitles + audio
+# Flow: clipboard → awk unwrap → progressive chunking → POST /tts/speak
 #
 # Progressive chunking: sends paragraph 1 first for fast startup (~3s),
 # then exponentially larger batches (2, 4, 8...) while earlier ones play.
-# This gives 5-10x faster time-to-first-audio for long text.
 #
 # Usage:
 #   tts_kokoro.sh              # speak clipboard
@@ -23,7 +22,6 @@ export PATH="/usr/bin:/usr/sbin:/bin:/sbin:/usr/local/bin:/opt/homebrew/bin:$PAT
 # --- Configuration ---
 TTS_SERVICE="http://[::1]:8780"
 LOG="/tmp/kokoro-tts.log"
-# User-initiated blocks until playback completes (synthesis + audio = 20-120s)
 CURL_TIMEOUT=300
 
 log() { echo "[$(date '+%H:%M:%S')] $*" >> "$LOG"; }
@@ -49,32 +47,32 @@ if ! curl -s --max-time 2 "${TTS_SERVICE}/health" >/dev/null 2>&1; then
     exit 1
 fi
 
-# --- Unwrap terminal soft-wraps, clean for TTS, and send progressive chunks ---
-# Outputs NUL-delimited chunks with exponential paragraph batching (1, 2, 4, 8, ...).
-# First chunk = 1 paragraph (fast startup), subsequent chunks grow exponentially.
+# --- Unwrap, clean, and progressively send ---
+# Phase 1 (awk): Unwrap terminal soft-wraps into clean paragraphs.
+#   - Lines starting with ·•*- or N. or # start a new paragraph
+#   - Everything else is a continuation (joined with space)
+#   - Bullet markers are stripped
+#   - Output: one paragraph per line
 #
-# Unwrap rules:
-#   - Blank line (\n\n)          → paragraph break (keep)
-#   - Line starting with N.      → numbered list item (new paragraph)
-#   - Line starting with -/*/•   → bullet item (new paragraph)
-#   - Line starting with #       → heading (new paragraph)
-#   - Everything else            → continuation (join with space)
+# Phase 2 (awk): Progressive batching (1, 2, 4, 8... paragraphs per chunk).
+#   - NUL-delimited output for bash read -d ''
+#   - Paragraphs within a chunk separated by \n\n
+#
+# Phase 3 (bash): Send each chunk as user-initiated TTS request.
+
 CHUNK_IDX=0
 while IFS= read -r -d '' CHUNK; do
     CHUNK_IDX=$((CHUNK_IDX + 1))
 
-    # Build JSON payload
     JSON_PAYLOAD=$(jq -nc --arg t "$CHUNK" '{"text":$t}')
 
     if [[ -z "$JSON_PAYLOAD" || "$JSON_PAYLOAD" == "{}" ]]; then
-        log "ERROR: JSON encoding produced empty payload for chunk ${CHUNK_IDX}"
+        log "ERROR: empty payload for chunk ${CHUNK_IDX}"
         continue
     fi
 
     log "Progressive chunk ${CHUNK_IDX}: ${#CHUNK} chars"
 
-    # Send chunk — user-initiated blocks until playback completes.
-    # Each chunk plays fully before the next one is sent, so no preemption conflict.
     RESPONSE=$(curl -s -w "\n%{http_code}" --max-time "$CURL_TIMEOUT" \
         -X POST "${TTS_SERVICE}/tts/speak" \
         -H "Content-Type: application/json" \
@@ -92,62 +90,79 @@ while IFS= read -r -d '' CHUNK; do
         echo "Error: TTS synthesis failed (HTTP ${HTTP_CODE})" >&2
         exit 1
     fi
-done < <(printf '%s' "$TEXT" | python3 -c '
-import sys, re
+done < <(printf '%s\n' "$TEXT" | awk '
+# Phase 1: Unwrap terminal soft-wraps into paragraphs.
+# Detects structural elements (bullets, numbers, headings) as paragraph starters.
+# Joins continuation lines. Strips bullet markers and markdown.
+{
+    # Strip leading whitespace
+    gsub(/^[[:space:]]+/, "")
+    # Skip blank lines (they become paragraph breaks via double-newline in input)
+    if ($0 == "") {
+        if (buf != "") { paras[n++] = buf; buf = "" }
+        next
+    }
+    # Structural element: starts a new paragraph
+    if (match($0, /^[·•*\-] /) || match($0, /^[0-9]+[\.\)] /) || match($0, /^#+ /)) {
+        if (buf != "") paras[n++] = buf
+        # Strip bullet markers (not numbered — those provide spoken structure)
+        sub(/^[·•*\-] +/, "")
+        sub(/^#+ */, "")
+        buf = $0
+    } else {
+        # Continuation line: join with previous
+        if (buf != "") buf = buf " " $0
+        else buf = $0
+    }
+}
+END {
+    if (buf != "") paras[n++] = buf
 
-text = sys.stdin.read()
+    # Clean for TTS: strip markdown bold/italic, emoji, symbol→word
+    for (i = 0; i < n; i++) {
+        p = paras[i]
+        # **bold** → bold
+        while (match(p, /\*\*[^*]+\*\*/)) {
+            pre = substr(p, 1, RSTART-1)
+            mid = substr(p, RSTART+2, RLENGTH-4)
+            post = substr(p, RSTART+RLENGTH)
+            p = pre mid post
+        }
+        # *italic* → italic (single star, not **)
+        while (match(p, /\*[^*]+\*/)) {
+            pre = substr(p, 1, RSTART-1)
+            mid = substr(p, RSTART+1, RLENGTH-2)
+            post = substr(p, RSTART+RLENGTH)
+            p = pre mid post
+        }
+        # " + " → " plus ", " & " → " and "
+        gsub(/ \+ /, " plus ", p)
+        gsub(/ & /, " and ", p)
+        # Collapse multiple spaces
+        gsub(/  +/, " ", p)
+        # Trim
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", p)
+        if (p != "") paras[i] = p
+        else paras[i] = ""
+    }
 
-# --- Unwrap terminal soft-wraps ---
-raw_paragraphs = re.split(r"\n{2,}", text)
-paragraphs = []
-for para in raw_paragraphs:
-    lines = para.split("\n")
-    merged = []
-    buf = ""
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if re.match(r"^\d+[\.\)]\s", stripped) or re.match(r"^[-*•·]\s", stripped) or re.match(r"^#+\s", stripped):
-            if buf:
-                merged.append(buf)
-                buf = ""
-            buf = stripped
-        else:
-            if buf:
-                buf += " " + stripped
-            else:
-                buf = stripped
-    if buf:
-        merged.append(buf)
-    paragraphs.extend(merged)
-
-# Filter empty
-paragraphs = [p.strip() for p in paragraphs if p.strip()]
-
-# --- Clean for TTS ---
-def clean(t):
-    t = re.sub(r"\*\*(.+?)\*\*", r"\1", t)  # **bold**
-    t = re.sub(r"\*(.+?)\*", r"\1", t)       # *italic*
-    t = re.sub(r"^#+\s*", "", t, flags=re.MULTILINE)  # # headings
-    t = re.sub(r"[⚠️🔴🟢🟡✅❌•·]", "", t)  # emoji/bullets/middle dot
-    t = re.sub(r"\s\+\s", " plus ", t)    # " + " → " plus "
-    t = re.sub(r"\s&\s", " and ", t)       # " & " → " and "
-    t = re.sub(r"[^\S\n]{2,}", " ", t)    # collapse spaces/tabs
-    return t.strip()
-
-paragraphs = [clean(p) for p in paragraphs]
-paragraphs = [p for p in paragraphs if p]
-
-# --- Progressive batching: 1, 2, 4, 8, ... paragraphs per chunk ---
-idx = 0
-batch_size = 1
-while idx < len(paragraphs):
-    end = min(idx + batch_size, len(paragraphs))
-    chunk = "\n\n".join(paragraphs[idx:end])
-    sys.stdout.write(chunk + "\0")
-    idx = end
-    batch_size *= 2
+    # Phase 2: Progressive batching (1, 2, 4, 8...)
+    idx = 0
+    batch = 1
+    while (idx < n) {
+        end = idx + batch
+        if (end > n) end = n
+        chunk = ""
+        for (j = idx; j < end; j++) {
+            if (paras[j] == "") continue
+            if (chunk != "") chunk = chunk "\n\n"
+            chunk = chunk paras[j]
+        }
+        if (chunk != "") printf "%s\0", chunk
+        idx = end
+        batch = batch * 2
+    }
+}
 ')
 
 log "TTS complete: ${CHUNK_IDX} chunks played"
