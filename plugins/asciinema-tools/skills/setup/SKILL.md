@@ -4,7 +4,7 @@ description: Check and install dependencies for asciinema-tools. TRIGGERS - setu
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "[check|install|repair] [--all] [--core] [--optional] [-y|--yes]"
 model: haiku
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # /asciinema-tools:setup

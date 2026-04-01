@@ -3,7 +3,7 @@ name: bootstrap
 description: Pre-session bootstrap - generates script to start recording BEFORE entering Claude Code. Chunking handled by daemon. TRIGGERS - bootstrap, pre-session, start recording, before claude.
 allowed-tools: Bash, AskUserQuestion, Glob, Write, Read
 argument-hint: "[-r repo] [-b branch] [--setup-orphan] [-y|--yes]"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # /asciinema-tools:bootstrap

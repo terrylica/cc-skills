@@ -4,7 +4,7 @@ description: "Disable autonomous loop mode immediately. TRIGGERS - ru stop, stop
 allowed-tools: Bash
 argument-hint: ""
 model: haiku
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # RU: Stop

@@ -2,7 +2,7 @@
 name: setup
 description: "Use when user needs to set up Telegram CLI for the first time, authenticate or log in to a Telegram account, re-authenticate a session, or configure 1Password credentials for Telegram access."
 allowed-tools: Bash, Read, Write, AskUserQuestion
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Telegram CLI Setup

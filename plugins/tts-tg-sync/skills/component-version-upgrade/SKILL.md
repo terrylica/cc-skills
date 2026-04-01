@@ -2,7 +2,7 @@
 name: component-version-upgrade
 description: Upgrade Kokoro model, bot dependencies, or TTS components. TRIGGERS - upgrade kokoro, update model, upgrade bot, update dependencies, version bump, component update.
 allowed-tools: Read, Write, Edit, Bash, Glob, AskUserQuestion
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Component Version Upgrade
