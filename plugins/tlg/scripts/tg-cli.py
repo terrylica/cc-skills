@@ -21,7 +21,10 @@ import os
 import subprocess
 import sys
 
+from pathlib import Path
+
 from telethon import TelegramClient, functions, types
+from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 
 SESSION_DIR = os.path.expanduser("~/.local/share/telethon")
 
@@ -310,6 +313,94 @@ async def cmd_download(
     await client.disconnect()
 
 
+# ── Channel Dump ─────────────────────────────────────────
+
+
+def _media_extension(msg) -> str | None:
+    """Determine file extension from message media type."""
+    if isinstance(msg.media, MessageMediaPhoto):
+        return ".jpg"
+    if isinstance(msg.media, MessageMediaDocument):
+        doc = msg.media.document
+        if doc:
+            for attr in doc.attributes:
+                name = getattr(attr, "file_name", None)
+                if name and "." in name:
+                    return Path(name).suffix
+            mime = getattr(doc, "mime_type", "") or ""
+            return {
+                "video/mp4": ".mp4", "image/png": ".png", "image/jpeg": ".jpg",
+                "image/webp": ".webp", "audio/ogg": ".ogg", "application/pdf": ".pdf",
+                "video/quicktime": ".mov", "image/gif": ".gif",
+            }.get(mime, ".bin")
+    return None
+
+
+async def cmd_dump(
+    profile: str, chat: str | int, out_dir: str, *, download_media: bool = True,
+) -> None:
+    client = await _make_client(profile)
+    out_path = Path(out_dir)
+    ndjson_path = out_path / "messages.ndjson"
+    media_dir = out_path / "media"
+    media_dir.mkdir(parents=True, exist_ok=True)
+
+    msg_count = 0
+    media_count = 0
+    skip_count = 0
+
+    with open(ndjson_path, "w", encoding="utf-8") as f:
+        async for msg in client.iter_messages(chat, limit=None, reverse=True):
+            ext = _media_extension(msg) if msg.media else None
+            media_file = f"{msg.id}{ext}" if ext else None
+
+            record = {
+                "id": msg.id,
+                "date": msg.date.isoformat() if msg.date else None,
+                "text": msg.text,
+                "has_media": msg.media is not None,
+                "media_type": type(msg.media).__name__ if msg.media else None,
+                "media_file": media_file,
+                "views": getattr(msg, "views", None),
+                "forwards": getattr(msg, "forwards", None),
+                "reply_to_msg_id": msg.reply_to.reply_to_msg_id if msg.reply_to else None,
+                "grouped_id": msg.grouped_id,
+                "edit_date": msg.edit_date.isoformat() if msg.edit_date else None,
+            }
+            if msg.sender:
+                s = msg.sender
+                record["sender"] = {
+                    "id": s.id,
+                    "name": getattr(s, "title", None) or getattr(s, "first_name", "") or "",
+                    "username": getattr(s, "username", None),
+                }
+            else:
+                record["sender"] = None
+
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+            if download_media and media_file:
+                dest = media_dir / media_file
+                if dest.exists():
+                    skip_count += 1
+                else:
+                    try:
+                        await msg.download_media(file=str(dest))
+                        media_count += 1
+                    except Exception as exc:
+                        print(f"  WARN: msg {msg.id} download failed: {exc}", file=sys.stderr)
+
+            msg_count += 1
+            if msg_count % 500 == 0:
+                print(f"  ... {msg_count} msgs, {media_count} media, {skip_count} skipped", file=sys.stderr)
+
+    await client.disconnect()
+    print(f"Done: {msg_count} messages, {media_count} media → {out_dir}", file=sys.stderr)
+    if skip_count:
+        print(f"  ({skip_count} already existed — skipped)", file=sys.stderr)
+    print(ndjson_path)
+
+
 # ── Group/Channel Management ─────────────────────────────
 
 
@@ -484,6 +575,12 @@ def main() -> None:
     sp.add_argument("message_id", type=int, help="Message ID with media")
     sp.add_argument("-o", "--output", default=".", help="Output directory (default: current)")
 
+    # ── Dump ──
+    sp = sub.add_parser("dump", help="Dump full chat/channel history to NDJSON + media")
+    sp.add_argument("chat", help="Chat ID or username")
+    sp.add_argument("output", help="Output directory (messages.ndjson + media/ created inside)")
+    sp.add_argument("--no-media", action="store_true", help="Skip media downloads (NDJSON only)")
+
     # ── Groups/Channels ──
     sp = sub.add_parser("create-group", help="Create a group, supergroup, or channel")
     sp.add_argument("title", help="Group/channel title")
@@ -542,6 +639,8 @@ def main() -> None:
             asyncio.run(cmd_find_user(profile, args.query))
         case "download":
             asyncio.run(cmd_download(profile, parse_entity(args.chat), args.message_id, args.output))
+        case "dump":
+            asyncio.run(cmd_dump(profile, parse_entity(args.chat), args.output, download_media=not args.no_media))
         case "create-group":
             asyncio.run(cmd_create_group(profile, args.title, args.group_type, args.about, args.users))
         case "invite":

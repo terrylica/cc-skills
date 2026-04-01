@@ -10,7 +10,7 @@ Single Python script using Telethon (MTProto client). Multi-profile support for 
 
 | Component   | Path                                        | Purpose                                   |
 | ----------- | ------------------------------------------- | ----------------------------------------- |
-| CLI Script  | `scripts/send.py`                           | PEP 723 inline deps, invoked via `uv run` |
+| CLI Script  | `scripts/tg-cli.py`                           | PEP 723 inline deps, invoked via `uv run` |
 | Sessions    | `~/.local/share/telethon/<profile>.session` | Per-profile persisted auth                |
 | Credentials | 1Password `Claude Automation` vault         | Per-profile API credentials               |
 | Source Fork | `~/fork-tools/Telethon`                     | Cloned from Codeberg (canonical upstream) |
@@ -60,7 +60,7 @@ Single Python script using Telethon (MTProto client). Multi-profile support for 
 ## Quick Reference
 
 ```bash
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/send.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Messaging
 uv run --python 3.13 "$SCRIPT" send <to> "text"
