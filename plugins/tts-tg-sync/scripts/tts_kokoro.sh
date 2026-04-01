@@ -49,7 +49,10 @@ while ! shlock -f "$LOCKFILE" -p $$; do
 done
 trap 'rm -f "$LOCKFILE"' EXIT
 
-# --- Check service is running ---
+# --- Check companion is running ---
+# Only check the companion (port 8780). The companion handles Kokoro server
+# recovery internally (awaitServerReady + retry). Don't gate on Kokoro
+# directly — it briefly drops after stop operations and auto-recovers.
 if ! curl -s --max-time 2 "${TTS_SERVICE}/health" >/dev/null 2>&1; then
     log "ERROR: claude-tts-companion not responding on ${TTS_SERVICE}"
     echo "Error: TTS service not running. Start with: launchctl kickstart gui/$(id -u)/com.example.claude-tts-companion" >&2
