@@ -256,7 +256,9 @@ public final class TTSPipelineCoordinator {
                 allWords = PronunciationProcessor.splitWordsMatchingKokoro(fullText)
                 logger.info("Fallback to splitWordsMatchingKokoro for multi-chunk subtitle display (\(allWords.count) words)")
             }
-            let pages = [SubtitlePage(words: allWords, startWordIndex: 0)]
+            let batchFullText = chunks.map { $0.text }.joined(separator: "\n\n")
+            let batchBreaks = PronunciationProcessor.paragraphBreakIndices(batchFullText, displayWords: allWords)
+            let pages = [SubtitlePage(words: allWords, startWordIndex: 0, paragraphBreaksAfter: batchBreaks)]
             driver.addChunk(
                 wavPath: chunks.first?.wavPath ?? "",
                 samples: allSamples.isEmpty ? nil : allSamples,
@@ -423,7 +425,9 @@ public final class TTSPipelineCoordinator {
                 }
                 finalOnsets = padded
             }
-            let pages = [SubtitlePage(words: allWords, startWordIndex: 0)]
+            let fullText = chunks.map { $0.text }.joined(separator: "\n\n")
+            let breaks = PronunciationProcessor.paragraphBreakIndices(fullText, displayWords: allWords)
+            let pages = [SubtitlePage(words: allWords, startWordIndex: 0, paragraphBreaksAfter: breaks)]
             driver.addChunk(
                 wavPath: chunks.first?.wavPath ?? "",
                 samples: allSamples.isEmpty ? nil : allSamples,
