@@ -171,9 +171,14 @@ public final class SubtitlePanel: NSPanel {
         let sizeName = currentFontSizeName
         let mode = currentDisplayMode
 
-        // Bionic mode: bold-prefix rendering, no karaoke gold/grey coloring (BION-04)
+        // Bionic mode: bold-prefix rendering with gold highlight on current word
         if mode == .bionic {
-            let attributed = BionicRenderer.render(words: words, fontSizeName: sizeName)
+            let attributed = BionicRenderer.render(
+                words: words,
+                fontSizeName: sizeName,
+                highlightIndex: index,
+                paragraphBreaksAfter: paragraphBreaksAfter
+            )
             if isPageTransition {
                 updateAttributedText(attributed)
             } else {

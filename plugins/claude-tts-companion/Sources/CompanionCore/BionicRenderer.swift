@@ -19,14 +19,26 @@ public enum BionicRenderer {
     /// Render an array of words as an NSAttributedString with bold prefixes.
     ///
     /// Each word's first `boldPrefixLength` characters use the bold (current-word)
-    /// font, and the remaining characters use the regular font. All text is white.
-    /// Words are separated by single spaces.
+    /// font, and the remaining characters use the regular font.
+    ///
+    /// - `highlightIndex`: when >= 0, the word at that index gets gold coloring
+    ///   (current spoken word). Past words use `currentWordColor` (already spoken),
+    ///   future words use `futureWordColor` (grey). When -1, all words are white
+    ///   (static bionic display without karaoke tracking).
+    /// - `paragraphBreaksAfter`: word indices after which to insert a newline.
     @MainActor
-    public static func render(words: [String], fontSizeName: String) -> NSAttributedString {
+    public static func render(
+        words: [String],
+        fontSizeName: String,
+        highlightIndex: Int = -1,
+        paragraphBreaksAfter: Set<Int> = []
+    ) -> NSAttributedString {
         let result = NSMutableAttributedString()
         let boldFont = SubtitleStyle.dynamicCurrentWordFont(fontSizeName)
         let regularFont = SubtitleStyle.dynamicRegularFont(fontSizeName)
-        let color = SubtitleStyle.futureWordColor
+        let goldColor = SubtitleStyle.currentWordColor
+        let spokenColor = SubtitleStyle.futureWordColor  // white for already-spoken
+        let futureColor = SubtitleStyle.futureWordColor
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
@@ -36,9 +48,21 @@ public enum BionicRenderer {
             if index > 0 {
                 result.append(NSAttributedString(string: " ", attributes: [
                     .font: regularFont,
-                    .foregroundColor: color,
+                    .foregroundColor: futureColor,
                     .paragraphStyle: paragraphStyle,
                 ]))
+            }
+
+            // Determine color based on position relative to highlight
+            let color: NSColor
+            if highlightIndex < 0 {
+                color = futureColor  // static mode, all white
+            } else if index == highlightIndex {
+                color = goldColor    // current word: gold
+            } else if index < highlightIndex {
+                color = spokenColor  // already spoken: white
+            } else {
+                color = futureColor  // future: grey
             }
 
             let prefixLen = boldPrefixLength(word)
@@ -60,6 +84,14 @@ public enum BionicRenderer {
                         .paragraphStyle: paragraphStyle,
                     ]))
                 }
+            }
+
+            // Paragraph break
+            if paragraphBreaksAfter.contains(index) {
+                result.append(NSAttributedString(string: "\n", attributes: [
+                    .font: regularFont,
+                    .paragraphStyle: paragraphStyle,
+                ]))
             }
         }
 
