@@ -1,6 +1,6 @@
 ---
 name: calendar-event-manager
-description: Create macOS Calendar events with sound alarms and paired Reminders. TRIGGERS - add event, calendar event, create reminder, birthday party, schedule event, RSVP, don't miss, set reminder
+description: "Use when user wants to create a macOS Calendar event with sound alarms and paired Reminders, schedule a meeting, RSVP to an invitation, or set reminders."
 allowed-tools: Bash, Read, AskUserQuestion
 ---
 
@@ -111,28 +111,85 @@ Open with: `open "x-apple.systempreferences:com.apple.Notifications-Settings.ext
 
 ---
 
-## AppleScript Patterns
+## AppleScript Date Construction (CRITICAL)
+
+**NEVER use `date "STRING"` in AppleScript.** String-based date parsing is locale-dependent and silently produces wrong results:
+
+| Anti-pattern                         | What happens                                  | Example                      |
+| ------------------------------------ | --------------------------------------------- | ---------------------------- |
+| `date "April 1, 2026 at 6:00:00 PM"` | On 24h systems, "PM" is ignored → 06:00       | 4 failures in amonic session |
+| `date "2026-04-01 18:00:00"`         | ISO parsed as individual numbers → year 12169 | 1 failure                    |
+| `set month` before `set day to 1`    | Day 31 + April (30 days) → rolls to May 1     | 1 failure                    |
+
+**ALWAYS use programmatic date construction:**
+
+```applescript
+-- Build date safely: day-first-then-month prevents rollover
+set d to current date
+set day of d to 1           -- safe floor FIRST (prevents month rollover)
+set month of d to April
+set year of d to 2026
+set day of d to 1           -- now set actual target day
+set hours of d to 18        -- 24h format, no AM/PM ambiguity
+set minutes of d to 0
+set seconds of d to 0
+```
+
+### Calendar Discovery (run first)
+
+```applescript
+tell application "Calendar"
+    set output to ""
+    repeat with c in calendars
+        set output to output & name of c & " (writable:" & writable of c & ")" & linefeed
+    end repeat
+    output
+end tell
+```
+
+Use the first `writable:true` calendar. Never assume "Home" or "Calendar" exists.
 
 ### Full Event Creation (Copy-Paste Ready)
 
 ```applescript
 tell application "Calendar"
-    tell calendar "Calendar"
-        set newEvent to make new event with properties {summary:"EVENT_NAME", start date:date "DATE_STRING", end date:date "DATE_STRING", location:"LOCATION", description:"NOTES"}
+    -- Build start date programmatically
+    set startDate to current date
+    set day of startDate to 1
+    set month of startDate to MONTH_CONSTANT
+    set year of startDate to YEAR_INT
+    set day of startDate to DAY_INT
+    set hours of startDate to HOUR_24
+    set minutes of startDate to 0
+    set seconds of startDate to 0
+
+    -- Build end date (1 hour later)
+    set endDate to startDate + 1 * hours
+
+    tell calendar "WRITABLE_CALENDAR_NAME"
+        set newEvent to make new event with properties {summary:"EVENT_NAME", start date:startDate, end date:endDate, location:"LOCATION", description:"NOTES"}
         tell newEvent
-            -- 1 day before: gentle
             make new sound alarm at end of sound alarms with properties {trigger interval:-1440, sound name:"Blow"}
-            -- 3 hours before: noticeable
             make new sound alarm at end of sound alarms with properties {trigger interval:-180, sound name:"Pop"}
-            -- 1 hour before: clear
             make new sound alarm at end of sound alarms with properties {trigger interval:-60, sound name:"Glass"}
-            -- 30 min before: time to go
             make new sound alarm at end of sound alarms with properties {trigger interval:-30, sound name:"Ping"}
-            -- At event time: loudest
             make new sound alarm at end of sound alarms with properties {trigger interval:0, sound name:"Funk"}
         end tell
     end tell
     reload calendars
+end tell
+```
+
+### Verification (always run after creation)
+
+```applescript
+tell application "Calendar"
+    tell calendar "WRITABLE_CALENDAR_NAME"
+        set matches to (every event whose summary is "EVENT_NAME" and start date > (current date))
+        repeat with e in matches
+            log (summary of e) & " | " & (start date of e) & " → " & (end date of e)
+        end repeat
+    end tell
 end tell
 ```
 
@@ -141,13 +198,25 @@ end tell
 ```applescript
 tell application "Reminders"
     set defaultList to default list
+
+    -- Build date programmatically (same pattern as Calendar)
+    set eventDate to current date
+    set day of eventDate to 1
+    set month of eventDate to MONTH_CONSTANT
+    set year of eventDate to YEAR_INT
+    set day of eventDate to DAY_INT
+    set hours of eventDate to HOUR_24
+    set minutes of eventDate to 0
+    set seconds of eventDate to 0
+
     -- Due-time reminder
-    make new reminder in defaultList with properties {name:"EVENT_NAME", due date:EVENT_DATE, body:"LOCATION\nNOTES"}
+    make new reminder in defaultList with properties {name:"EVENT_NAME", due date:eventDate, body:"LOCATION\nNOTES"}
     -- Day-before
-    make new reminder in defaultList with properties {name:"TOMORROW: EVENT_NAME", due date:(EVENT_DATE - 1 * days), body:"Event tomorrow! LOCATION"}
+    make new reminder in defaultList with properties {name:"TOMORROW: EVENT_NAME", due date:(eventDate - 1 * days), body:"Event tomorrow! LOCATION"}
     -- Morning-of at 9 AM
-    set morningDate to date "DATE_STRING"
-    set time of morningDate to 9 * hours
+    set morningDate to eventDate
+    set hours of morningDate to 9
+    set minutes of morningDate to 0
     make new reminder in defaultList with properties {name:"TODAY: EVENT_NAME", due date:morningDate, body:"Today! LOCATION"}
 end tell
 ```
@@ -170,7 +239,6 @@ After modifying this skill:
 
 - [Sound Reference](./references/sound-reference.md) - Full sound duration data and approved/rejected lists
 - [Apple Calendar Scripting Guide](https://developer.apple.com/library/archive/documentation/AppleApplications/Conceptual/CalendarScriptingGuide/Calendar-AddanAlarmtoanEvent.html)
-
 
 ## Post-Execution Reflection
 
