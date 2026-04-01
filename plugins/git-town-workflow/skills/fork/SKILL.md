@@ -458,18 +458,6 @@ git remote add upstream git@github.com:{upstream_owner}/{repo}.git
 ```
 
 
-## Post-Execution Reflection
-
-After this skill completes, reflect before closing the task:
-
-0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
-1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
-2. **What worked better than expected?** — Promote it to recommended practice. Document why.
-3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
-4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
-
-Do NOT defer. The next invocation inherits whatever you leave behind.
-
 ---
 ## Troubleshooting
 
@@ -481,3 +469,15 @@ Do NOT defer. The next invocation inherits whatever you leave behind.
 | Fork not detected     | Origin URL doesn't match    | Check `git remote -v` for mismatch    |
 | Upstream sync fails   | Diverged histories          | `git town sync` to reconcile          |
 | "Not a fork" error    | Repo is origin, not a fork  | Fork first via `gh repo fork`         |
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
+1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
+2. **What worked better than expected?** — Promote it to recommended practice. Document why.
+3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
+4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

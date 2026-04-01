@@ -134,21 +134,6 @@ After applying the fix, verify the issue is resolved:
 - [ ] No stale locks or orphan processes remain
 
 
-## Post-Execution Reflection
-
-After this skill completes, reflect before closing the task:
-
-0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
-1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
-2. **What worked better than expected?** — Promote it to recommended practice. Document why.
-3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
-4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
-
-Do NOT defer. The next invocation inherits whatever you leave behind.
-
----
----
-
 ## Troubleshooting
 
 This skill IS the troubleshooting skill. If the standard diagnostics do not identify the issue:
@@ -166,3 +151,18 @@ This skill IS the troubleshooting skill. If the standard diagnostics do not iden
 - [Common Issues](./references/common-issues.md) -- Expanded diagnostic procedures for each known issue
 - [Lock Debugging](./references/lock-debugging.md) -- Deep dive into the two-layer lock mechanism
 - [Evolution Log](./references/evolution-log.md) -- Change history for this skill
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
+1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
+2. **What worked better than expected?** — Promote it to recommended practice. Document why.
+3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
+4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
+
+---
+---
