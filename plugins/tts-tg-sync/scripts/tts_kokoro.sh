@@ -130,7 +130,7 @@ def clean(t):
     t = re.sub(r"\*\*(.+?)\*\*", r"\1", t)  # **bold**
     t = re.sub(r"\*(.+?)\*", r"\1", t)       # *italic*
     t = re.sub(r"^#+\s*", "", t, flags=re.MULTILINE)  # # headings
-    t = re.sub(r"[⚠️🔴🟢🟡✅❌•]", "", t)  # emoji/bullets
+    t = re.sub(r"[⚠️🔴🟢🟡✅❌•·]", "", t)  # emoji/bullets/middle dot
     t = re.sub(r"\s\+\s", " plus ", t)    # " + " → " plus "
     t = re.sub(r"\s&\s", " and ", t)       # " & " → " and "
     t = re.sub(r"[^\S\n]{2,}", " ", t)    # collapse spaces/tabs

@@ -43,7 +43,7 @@ public struct PronunciationProcessor: Sendable {
             (#"`(.+?)`"#, "$1"),            // `code` → code
             (#"^\s*#{1,6}\s+"#, ""),        // ## Heading → Heading
             (#"\[([^\]]+)\]\([^\)]+\)"#, "$1"),  // [text](url) → text
-            (#"^[\s]*[-*+]\s+"#, ""),       // - list item → list item
+            (#"^[\s]*[-*+·]\s+"#, ""),      // - list item / · middle dot → list item
             // Numbered list prefixes (1. 2. 3.) are NOT stripped — they provide
             // spoken structure for TTS listeners.
         ]
