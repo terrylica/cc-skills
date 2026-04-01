@@ -345,7 +345,7 @@ For detailed information, see:
 
 This section is placed last so it is the final thing processed before the skill exits — maximizing recency effect.
 
-Every skill that performs stepwise execution **MUST** include a Post-Execution Reflection section. This is a structural requirement, not advisory. Without it, errors repeat silently across sessions.
+Every skill **MUST** include a Post-Execution Reflection section — workflow skills, task skills, and capability skills alike. This is a structural requirement, not advisory. Without it, errors and drift repeat silently across sessions. Task-pattern skills are just as susceptible: scripts change interfaces, parameters get added, error messages drift from documentation.
 
 ### After this skill completes, reflect before closing
 
@@ -358,9 +358,9 @@ Every skill that performs stepwise execution **MUST** include a Post-Execution R
 
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
-### Template for other skills
+### Template: Workflow / Stepwise Skills
 
-Add this to any stepwise skill's SKILL.md (adapt the specifics):
+For skills with multiple phases, evolution-log, and references/:
 
 ```markdown
 ## Post-Execution Reflection
@@ -374,6 +374,22 @@ After this skill completes, reflect before closing the task:
 4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
 
 Do NOT defer. The next invocation inherits whatever you leave behind.
+```
+
+### Template: Task-Pattern Skills
+
+For single-action skills wrapping a CLI command or script:
+
+```markdown
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the script's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.
 ```
 
 See [Post-Execution Reflection Reference](./references/post-execution-reflection.md) for the full pattern, validation requirements, and examples.

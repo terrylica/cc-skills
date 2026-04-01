@@ -26,7 +26,7 @@ uv run --python 3.13 "$SCRIPT" read <chat> -n 10
 uv run --python 3.13 "$SCRIPT" download <chat> <message_id>
 
 # Download to specific directory
-uv run --python 3.13 "$SCRIPT" download 2124832490 471931 -o /tmp/downloads
+uv run --python 3.13 "$SCRIPT" download 2124832490 471931 -o ./downloads
 EOF
 ```
 
@@ -50,3 +50,13 @@ EOF
 | ------------------- | ------------------ | --------------------------- |
 | `message not found` | Invalid message ID | Check with `read` first     |
 | `has no media`      | Text-only message  | Choose a message with media |
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If send.py's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.
