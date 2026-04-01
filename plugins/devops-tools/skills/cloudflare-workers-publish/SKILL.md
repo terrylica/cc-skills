@@ -259,19 +259,6 @@ The working production deployment lives in `rangebar-patterns`:
 
 ---
 
-## Post-Execution Reflection
-
-After this skill completes, reflect before closing the task:
-
-0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
-1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
-2. **What worked better than expected?** — Promote it to recommended practice. Document why.
-3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
-4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
-
-Do NOT defer. The next invocation inherits whatever you leave behind.
----
-
 ## Post-Change Checklist
 
 After modifying this skill:
@@ -302,3 +289,16 @@ After modifying this skill:
 | mise TOML parse error          | Tera template conflict (CFW-13)       | Move complex bash to standalone `.sh` file                    |
 | Empty index.html               | No `gen*/*.html` files found          | Check file paths match `find . -path './gen*/*.html'` pattern |
 | Token permission denied        | Wrong token scope (CFW-11)            | Recreate with Account > Workers Scripts > Edit permission     |
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
+1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
+2. **What worked better than expected?** — Promote it to recommended practice. Document why.
+3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
+4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
+---
