@@ -292,8 +292,10 @@ public actor TTSQueue {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
-        // Adaptive Paragraph Segmentation: enforce paragraph budget via sentence bisection
-        let budget = settingsStore.getSettings().tts.paragraphBudget
+        // Read TTS settings for this synthesis run
+        let ttsSettings = settingsStore.getSettings().tts
+        let budget = ttsSettings.paragraphBudget
+        let speed = Float(ttsSettings.speed)
         var segments: [PronunciationProcessor.ParagraphSegment] = paragraphs.map {
             PronunciationProcessor.ParagraphSegment(text: $0, isContinuation: false, isUnfinished: false)
         }
@@ -367,6 +369,7 @@ public actor TTSQueue {
                 let paraStart = CFAbsoluteTimeGetCurrent()
                 var chunks = await ttsEngine.synthesizeStreamingAutoRoute(
                     text: segment.text,
+                    speed: speed,
                     cancellationCheck: { token.isCancelled }
                 )
 
@@ -380,6 +383,7 @@ public actor TTSQueue {
                     }
                     chunks = await ttsEngine.synthesizeStreamingAutoRoute(
                         text: segment.text,
+                        speed: speed,
                         cancellationCheck: { token.isCancelled }
                     )
                     if chunks.isEmpty {
@@ -427,6 +431,7 @@ public actor TTSQueue {
             // Synthesize with cooperative cancellation
             let chunks = await ttsEngine.synthesizeStreamingAutoRoute(
                 text: fullText,
+                speed: speed,
                 cancellationCheck: { token.isCancelled }
             )
 
