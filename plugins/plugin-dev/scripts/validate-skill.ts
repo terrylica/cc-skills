@@ -606,8 +606,63 @@ function validateSelfEvolution(skillPath: string, content: string): ValidationRe
   const hasPhaseNumbers = /^##+ Phase \d/m.test(content);
   const isStepwise = hasExecuteLabels || hasPhaseNumbers;
 
+  // Check 0: Self-Evolution reminder at TOP of skill (primacy position)
+  // Must appear in first 25 lines of body (after frontmatter)
+  const bodyLines = content.replace(/^---[\s\S]*?---\n?/, "").split("\n");
+  const top25 = bodyLines.slice(0, 25).join("\n");
+  const hasTopReminder = /self-evolv/i.test(top25);
+
+  if (!hasTopReminder) {
+    results.push({
+      check: "self_evolution_top",
+      passed: false,
+      message: "Skill missing Self-Evolving reminder at top — must appear in first 25 lines after frontmatter",
+      severity: "warning",
+      fixSuggestion:
+        'Add after H1 title: > **Self-Evolving Skill**: This skill improves through use. ' +
+        "If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. " +
+        "Only update for real, reproducible issues.",
+    });
+  } else {
+    results.push({
+      check: "self_evolution_top",
+      passed: true,
+      message: "Self-Evolving reminder present at top (primacy position)",
+      severity: "info",
+    });
+  }
+
   // Check 1: Post-Execution Reflection section header (required for ALL skills)
   const hasReflectionSection = /^##\s+Post-Execution Reflection/m.test(content);
+
+  // Check 1b: Reflection must be at BOTTOM of file (recency position)
+  if (hasReflectionSection) {
+    const lines = content.split("\n");
+    const totalLines = lines.length;
+    let reflectionLine = 0;
+    for (let i = 0; i < totalLines; i++) {
+      if (/^##\s+Post-Execution Reflection/.test(lines[i])) {
+        reflectionLine = i + 1; // 1-indexed
+      }
+    }
+    const linesAfter = totalLines - reflectionLine;
+    if (linesAfter > 15) {
+      results.push({
+        check: "reflection_bottom_placement",
+        passed: false,
+        message: `Post-Execution Reflection is ${linesAfter} lines from end — must be the last section (within 15 lines of EOF)`,
+        severity: "warning",
+        fixSuggestion: "Move the Post-Execution Reflection section to the very end of SKILL.md for maximum recency effect.",
+      });
+    } else {
+      results.push({
+        check: "reflection_bottom_placement",
+        passed: true,
+        message: "Post-Execution Reflection at bottom (recency position)",
+        severity: "info",
+      });
+    }
+  }
 
   if (!hasReflectionSection) {
     results.push({
