@@ -173,11 +173,13 @@ public final class SubtitlePanel: NSPanel {
 
         // Bionic mode: bold-prefix rendering with gold highlight on current word
         if mode == .bionic {
+            let bionicOpacity = CGFloat(settingsStore?.getSettings().subtitle.bionicSuffixOpacity ?? 0.7)
             let attributed = BionicRenderer.render(
                 words: words,
                 fontSizeName: sizeName,
                 highlightIndex: index,
-                paragraphBreaksAfter: paragraphBreaksAfter
+                paragraphBreaksAfter: paragraphBreaksAfter,
+                suffixOpacity: bionicOpacity
             )
             if isPageTransition {
                 updateAttributedText(attributed)

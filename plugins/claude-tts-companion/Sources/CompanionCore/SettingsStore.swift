@@ -11,6 +11,8 @@ public struct SubtitleSettings: Codable, Sendable {
     var displayMode: String
     /// "paragraph" (default) shows full text on subtitle; "sentence" shows one sentence at a time
     var subtitleScope: String
+    /// Bionic reading suffix opacity (0.0–1.0). Prefix is full opacity, suffix is dimmed.
+    var bionicSuffixOpacity: Double
 
     static let `default` = SubtitleSettings(
         fontSize: "medium",
@@ -19,7 +21,8 @@ public struct SubtitleSettings: Codable, Sendable {
         karaokeEnabled: true,
         screen: "builtin",
         displayMode: "karaoke",
-        subtitleScope: "paragraph"
+        subtitleScope: "paragraph",
+        bionicSuffixOpacity: 0.7
     )
 
     /// Custom decoder with backward-compatible defaults for new fields.
@@ -32,9 +35,10 @@ public struct SubtitleSettings: Codable, Sendable {
         screen = try container.decode(String.self, forKey: .screen)
         displayMode = try container.decodeIfPresent(String.self, forKey: .displayMode) ?? "karaoke"
         subtitleScope = try container.decodeIfPresent(String.self, forKey: .subtitleScope) ?? "paragraph"
+        bionicSuffixOpacity = try container.decodeIfPresent(Double.self, forKey: .bionicSuffixOpacity) ?? 0.7
     }
 
-    init(fontSize: String, position: String, opacity: Double, karaokeEnabled: Bool, screen: String, displayMode: String, subtitleScope: String = "paragraph") {
+    init(fontSize: String, position: String, opacity: Double, karaokeEnabled: Bool, screen: String, displayMode: String, subtitleScope: String = "paragraph", bionicSuffixOpacity: Double = 0.7) {
         self.fontSize = fontSize
         self.position = position
         self.opacity = opacity
@@ -42,6 +46,7 @@ public struct SubtitleSettings: Codable, Sendable {
         self.screen = screen
         self.displayMode = displayMode
         self.subtitleScope = subtitleScope
+        self.bionicSuffixOpacity = bionicSuffixOpacity
     }
 }
 
