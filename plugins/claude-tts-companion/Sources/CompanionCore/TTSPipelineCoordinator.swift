@@ -185,14 +185,28 @@ public final class TTSPipelineCoordinator {
             // punctuation from the original text for display. Kokoro's Misaki/spaCy
             // tokens strip trailing punctuation (e.g., "running" not "running.").
             let words: [String]
+            var onsets = chunk.wordOnsets
             if let kokoroWords = chunk.wordTexts, !kokoroWords.isEmpty {
                 words = PronunciationProcessor.reattachPunctuation(
                     originalText: chunk.text, kokoroTokens: kokoroWords
                 )
-                logger.info("Using Kokoro-aligned words with punctuation for subtitle display (\(words.count) words)")
-                if words.count <= 30 {
-                    logger.info("[PUNCT-FIX] Display words: \(words.joined(separator: " | "))")
+                // Pad onsets for trailing words appended by reattachPunctuation.
+                // Kokoro occasionally drops the last word from its timing array
+                // but still synthesizes the audio. Estimate trailing onsets by
+                // extrapolating from the last known onset.
+                if let existingOnsets = onsets, words.count > existingOnsets.count {
+                    var padded = existingOnsets
+                    let lastOnset = existingOnsets.last ?? 0
+                    let avgGap: TimeInterval = existingOnsets.count >= 2
+                        ? (existingOnsets.last! - existingOnsets.first!) / Double(existingOnsets.count - 1)
+                        : 0.4
+                    for i in 0..<(words.count - existingOnsets.count) {
+                        padded.append(lastOnset + avgGap * Double(i + 1))
+                    }
+                    onsets = padded
+                    logger.info("Padded \(words.count - existingOnsets.count) trailing onset(s) for Kokoro-dropped words")
                 }
+                logger.info("Kokoro-aligned words with punctuation (\(words.count) words)")
             } else {
                 words = PronunciationProcessor.splitWordsMatchingKokoro(chunk.text)
                 logger.info("Fallback to splitWordsMatchingKokoro for subtitle display (\(words.count) words)")
@@ -204,7 +218,7 @@ public final class TTSPipelineCoordinator {
                 samples: chunk.samples,
                 pages: pages,
                 wordTimings: chunk.wordTimings,
-                nativeOnsets: chunk.wordOnsets
+                nativeOnsets: onsets
             )
         } else {
             // Multiple chunks in paragraph mode: merge into one subtitle stream.
