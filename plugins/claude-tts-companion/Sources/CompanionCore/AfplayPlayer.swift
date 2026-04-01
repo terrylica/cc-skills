@@ -200,15 +200,17 @@ public final class AfplayPlayer {
     func stop() {
         wasStopped = true
         if afplayPID > 0 {
-            kill(afplayPID, SIGTERM)
-            logger.info("afplay terminated (pid \(afplayPID))")
+            // SIGKILL (not SIGTERM): afplay with USER_INTERACTIVE QoS on a
+            // real-time audio thread ignores or delays SIGTERM delivery.
+            // SIGKILL cannot be caught or ignored — instant process death.
+            kill(afplayPID, SIGKILL)
+            logger.info("afplay killed (pid \(afplayPID))")
             afplayPID = 0
         }
-        // Belt-and-suspenders: kill ANY afplay process spawned by this user.
-        // Catches orphans from async dispatch races in stopAll().
+        // Belt-and-suspenders: kill ANY afplay process.
         let killall = Process()
         killall.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        killall.arguments = ["-TERM", "afplay"]
+        killall.arguments = ["-9", "afplay"]
         killall.standardOutput = FileHandle.nullDevice
         killall.standardError = FileHandle.nullDevice
         try? killall.run()
