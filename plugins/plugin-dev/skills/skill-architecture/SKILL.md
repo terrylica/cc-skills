@@ -7,6 +7,8 @@ description: Create new skills, modify existing skills, and understand skill arc
 
 Comprehensive guide for creating effective Claude Code skills following Anthropic's official standards with emphasis on security and progressive disclosure architecture.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 > **Scope**: Claude Code Agent Skills (`~/.claude/skills/`), not Claude.ai API skills
 
 ## Self-Evolution Protocol
