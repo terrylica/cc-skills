@@ -32,7 +32,12 @@ interface HookInput {
     content?: string;
     new_string?: string;
   };
+  tool_result?: {
+    stdout?: string;
+    stderr?: string;
+  };
   session_id?: string;
+  duration_ms?: number;
 }
 
 interface HookOutput {
@@ -644,7 +649,10 @@ async function main(): Promise<void> {
     }
 
     // Check for long-running tasks that should use Pueue
-    if (!reminder) {
+    // Only suggest pueue if the command took >30s (fast commands don't need queue management)
+    // If duration_ms is unavailable (older Claude Code), fall back to always showing
+    const durationMs = input.duration_ms;
+    if (!reminder && (durationMs === undefined || durationMs > 30_000)) {
       reminder = checkPueueUsage(command);
     }
 

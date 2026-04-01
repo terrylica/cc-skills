@@ -71,9 +71,12 @@ const LONG_RUNNING_PATTERNS = [
   /for\s+\w+\s+in.*;\s*do[^;]*(populate|bulk|cache|python|uv\s+run)/i,
   /while.*;\s*do[^;]*(populate|bulk|cache|python|uv\s+run)/i,
 
-  // SSH with long-running remote commands
-  /ssh\s+\S+\s+["']?.*populate/i,
-  /ssh\s+\S+\s+["']?.*--phase/i,
+  // SSH commands are EXCLUDED from auto-wrapping (opt-in only via # PUEUE-WRAP).
+  // Reason: SSH commands already run remotely — local pueue wrapping adds no value
+  // but creates quoting hell (zsh → pueue add → SSH → remote bash = 4 quote layers).
+  // The PostToolUse pueue-reminder still suggests pueue for SSH long-running commands.
+  // Evidence: opendeviationbar-py session 3774932e — 3 consecutive failures from
+  // quote mangling when auto-wrapping `ssh bigblack 'for sym in ...; do curl ...; done'`.
 ];
 
 /**
