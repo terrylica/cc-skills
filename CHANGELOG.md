@@ -1,3 +1,69 @@
+# [12.31.0](https://github.com/terrylica/cc-skills/compare/v12.30.1...v12.31.0) (2026-04-01)
+
+
+### Bug Fixes
+
+* **skills:** relocate self-evolution for attention primacy/recency and fix tlg skill standards ([1326a30](https://github.com/terrylica/cc-skills/commit/1326a308f97879ddbdc2349052bc205cb701de06))
+* **tts:** add paragraph breaks to multi-chunk subtitle pages ([8ffe076](https://github.com/terrylica/cc-skills/commit/8ffe076fe20a646bd3d9dee8a7e415d5cb07bbe0))
+* **tts:** append trailing words dropped by Kokoro tokenizer to subtitles ([fb4a11c](https://github.com/terrylica/cc-skills/commit/fb4a11c47a9b435413b5ecd43ade91ffb1a6ee59))
+* **tts:** onset padding for all pipeline paths and strip middle dot ([58ce3ac](https://github.com/terrylica/cc-skills/commit/58ce3acaaa9860f372dc5d23efb4cf361c1738f7))
+* **tts:** pad onsets for trailing words dropped by Kokoro tokenizer ([889b396](https://github.com/terrylica/cc-skills/commit/889b39668073b9323db24a766fc5b8461cf770f3))
+* **tts:** recognize middle dot (·) as bullet marker for paragraph splitting ([13b3913](https://github.com/terrylica/cc-skills/commit/13b3913b9b938064a65f5a7b43a505da024fbec1))
+* **tts:** replace + and & symbols with words for subtitle alignment ([ba57aad](https://github.com/terrylica/cc-skills/commit/ba57aad6cdc9ab80eb6ceb251d20c46a2888f875))
+
+
+### Features
+
+* **tts:** add tts_stop.sh for ⌃ESC hotkey to kill TTS instantly ([5886f0c](https://github.com/terrylica/cc-skills/commit/5886f0c280a80a93f71b1fb8b509fd526e78b85f))
+* **tts:** progressive chunking for faster time-to-first-audio ([76bdf62](https://github.com/terrylica/cc-skills/commit/76bdf62199726307e74cfa460026b09af2ed91e5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>plugin-dev</strong> (1 change)</summary>
+
+- [skill-architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/SKILL.md) - updated (+61/-43)
+
+</details>
+
+<details>
+<summary><strong>tlg</strong> (12 changes)</summary>
+
+- [cleanup-deleted](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/cleanup-deleted/SKILL.md) - updated (+6/-1)
+- [create-group](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/create-group/SKILL.md) - updated (+6/-1)
+- [delete-messages](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/delete-messages/SKILL.md) - updated (+6/-1)
+- [download-media](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/download-media/SKILL.md) - updated (+6/-1)
+- [find-user](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/find-user/SKILL.md) - updated (+6/-1)
+- [forward-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/forward-message/SKILL.md) - updated (+6/-1)
+- [manage-members](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/manage-members/SKILL.md) - updated (+6/-1)
+- [mark-read](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/mark-read/SKILL.md) - updated (+6/-1)
+- [pin-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/pin-message/SKILL.md) - updated (+6/-1)
+- [search-messages](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/search-messages/SKILL.md) - updated (+6/-1)
+- [send-media](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-media/SKILL.md) - updated (+6/-1)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/evolution-log.md) - updated (+32)
+
+</details>
+
 ## [12.30.1](https://github.com/terrylica/cc-skills/compare/v12.30.0...v12.30.1) (2026-04-01)
 
 
