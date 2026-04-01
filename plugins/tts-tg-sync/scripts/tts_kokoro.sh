@@ -89,6 +89,9 @@ output = re.sub(r"\*\*(.+?)\*\*", r"\1", output)  # **bold**
 output = re.sub(r"\*(.+?)\*", r"\1", output)       # *italic*
 output = re.sub(r"^#+\s*", "", output, flags=re.MULTILINE)  # # headings
 output = re.sub(r"[⚠️🔴🟢🟡✅❌•]", "", output)  # emoji/bullets
+# Replace symbols that TTS pronounces but subtitles cannot display
+output = re.sub(r"\s\+\s", " plus ", output)    # " + " → " plus "
+output = re.sub(r"\s&\s", " and ", output)       # " & " → " and "
 output = re.sub(r"[^\S\n]{2,}", " ", output)  # collapse spaces/tabs but NOT newlines
 print(output.strip())
 ')
