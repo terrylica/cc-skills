@@ -158,7 +158,7 @@ END {
             if (chunk != "") chunk = chunk "\n\n"
             chunk = chunk paras[j]
         }
-        if (chunk != "") printf "%s\0", chunk
+        if (chunk != "") printf "%s%c", chunk, 0
         idx = end
         batch = batch * 2
     }
