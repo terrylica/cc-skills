@@ -12,6 +12,8 @@ Unified read/write MLflow operations via Python API with QuantStats integration 
 
 > **Note**: This skill uses Pandas (MLflow API requires it). The `mlflow-python` path is auto-skipped by the Polars preference hook.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 **CAN Do**:

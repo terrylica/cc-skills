@@ -4,6 +4,8 @@ description: Analyze Claude Code sessions in three expert modes — Handoff Docu
 allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion, Agent
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Execution Model — MANDATORY
 
 **You MUST use AskUserQuestion TWICE before spawning an Agent.** Ask for the goal first, then the time range. Then spawn the Agent with resolved parameters.
@@ -67,6 +69,8 @@ When the Agent returns, present the output directly to the user with no addition
 ---
 
 # Session Blind Spots — Reference
+
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
 ## The Three Goals
 
@@ -185,7 +189,6 @@ ls -lt ~/.claude/projects/*/*.jsonl 2>/dev/null | head -20
 | `MINIMAX_API_KEY not found`    | Missing secrets file            | Check `~/.claude/.secrets/ccterrybot-telegram`         |
 | `context window exceeds`       | Single session too large        | Use `--dry --verbose` to check size; try `--no-chain`  |
 | Goal 1 produces multiple parts | Sessions exceeded single budget | Expected behavior — multiple chunks = maximum coverage |
-
 
 ## Post-Execution Reflection
 

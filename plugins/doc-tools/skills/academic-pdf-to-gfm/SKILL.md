@@ -10,6 +10,8 @@ A battle-tested workflow for converting academic/research PDF papers into GitHub
 
 **Battle-tested on**: López de Prado (2026) "How to Use the Sharpe Ratio" — 51 pages, 82 equations, 8 figures.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Quick Start (3 Steps)
 
 ```bash

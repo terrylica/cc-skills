@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Edit, Write
 
 Battle-tested patterns for creating custom MQL5 indicators with proper display, buffer management, and real-time updates.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

@@ -12,6 +12,8 @@ Diagnose and fix common TTS + Telegram bot issues through systematic symptom col
 
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - TTS audio is not playing or sounds wrong

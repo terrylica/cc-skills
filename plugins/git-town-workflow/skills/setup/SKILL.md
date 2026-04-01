@@ -12,6 +12,8 @@ disable-model-invocation: true
 
 **Run this ONCE per repository to configure git-town.**
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Prerequisites
 
 1. git-town installed (`brew install git-town`)

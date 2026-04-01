@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, Write
 
 # Pandoc PDF Generation
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Overview
 
 Generate professional PDF documents from Markdown using Pandoc with the XeLaTeX engine. This skill covers automatic section numbering, table of contents, bibliography management, LaTeX customization, and common troubleshooting patterns learned through production use.

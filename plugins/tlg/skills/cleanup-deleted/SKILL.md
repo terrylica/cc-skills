@@ -16,6 +16,8 @@ The script uses 3 progressively aggressive deletion methods because Telegram's d
 
 After the first pass, it re-scans for survivors and retries with method 3.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Preflight
 
 1. Session must exist: `~/.local/share/telethon/<profile>.session`

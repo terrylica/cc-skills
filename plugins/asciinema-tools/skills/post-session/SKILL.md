@@ -9,6 +9,8 @@ argument-hint: "[file] [--finalize] [-q|--quick] [-f|--full] [--summarize] [--ou
 
 Complete post-session workflow: finalize orphaned recordings → convert to text → AI-powered summarize.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Arguments
 
 | Argument      | Description                                      |

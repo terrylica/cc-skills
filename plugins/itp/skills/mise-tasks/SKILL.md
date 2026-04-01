@@ -10,6 +10,8 @@ allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 
 Orchestrate multi-step project workflows using mise `[tasks]` section with dependency management, argument handling, and file tracking.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 **Explicit triggers**:

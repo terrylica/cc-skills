@@ -8,6 +8,8 @@ allowed-tools: Read, Edit, Grep, Glob
 
 Add Architecture Decision Record references to code for decision traceability. Provides language-specific patterns and placement guidelines.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - Creating new files as part of an ADR implementation

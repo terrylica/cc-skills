@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, Write, Glob, Grep
 
 # Multi-Agent E2E Validation
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Overview
 
 Prescriptive workflow for spawning parallel validation agents to comprehensively test database refactors. Successfully identified 5 critical bugs (100% system failure rate) in QuestDB migration that would have shipped in production.

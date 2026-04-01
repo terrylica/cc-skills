@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Gmail Commander Telegram bot — slash commands for email access + AI-powered free-text routing.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Mandatory Preflight
 
 ### Step 1: Check Bot Script Exists

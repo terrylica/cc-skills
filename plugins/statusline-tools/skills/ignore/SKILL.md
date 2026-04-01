@@ -10,6 +10,8 @@ model: haiku
 
 Manage global ignore patterns for the `lint-relative-paths` linter.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Purpose
 
 Some repositories intentionally use relative paths in markdown (e.g., `../docs/file.md`)

@@ -9,6 +9,8 @@ argument-hint: "[text to speak]"
 
 Generate speech from text using the Kokoro TTS CLI tool. Supports single WAV output or chunked streaming for long text.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Quick Usage
 
 ```bash

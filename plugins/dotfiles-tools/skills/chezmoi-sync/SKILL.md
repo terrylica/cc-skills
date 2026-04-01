@@ -8,6 +8,8 @@ allowed-tools: Read, Edit, Bash, AskUserQuestion
 
 On-demand replacement for the automatic chezmoi stop guard. Run this skill whenever you want to check for chezmoi drift and sync tracked dotfiles.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Workflow
 
 ### Step 1: Check for drift

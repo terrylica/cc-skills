@@ -11,6 +11,8 @@ description: "Complete contribution workflow using git-town. Create branch → c
 
 **This workflow guides you through a complete contribution cycle using git-town.**
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## ⛔ WORKFLOW ENFORCEMENT
 
 **YOU MUST USE GIT-TOWN COMMANDS. RAW GIT BRANCH COMMANDS ARE FORBIDDEN.**
