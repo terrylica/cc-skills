@@ -1,3 +1,194 @@
+# [12.34.0](https://github.com/terrylica/cc-skills/compare/v12.33.0...v12.34.0) (2026-04-01)
+
+
+### Bug Fixes
+
+* **calendar-event-manager:** replace date strings with programmatic construction ([da189b4](https://github.com/terrylica/cc-skills/commit/da189b4efdce9b3da6356a92095c434522237826))
+* **pueue:** exclude SSH from auto-wrap and add duration gate to reminder ([1636604](https://github.com/terrylica/cc-skills/commit/1636604dab31ee1f5d605a8ad71b6c544333b060))
+* **skills:** restrict disable-model-invocation: true to hooks only ([2c2af20](https://github.com/terrylica/cc-skills/commit/2c2af20ac13978bb46795782c06315f3334aa1af))
+* **tts:** add word-tracking to bionic reading mode ([c2470a0](https://github.com/terrylica/cc-skills/commit/c2470a0242338ded8e2d55945946ed086ad48306))
+* **tts:** bionic reading uses opacity contrast instead of font weight ([7d370ca](https://github.com/terrylica/cc-skills/commit/7d370ca096339daccb1914e1ae2ddad54802c629))
+
+
+### Features
+
+* **agent-reach:** sync with upstream router architecture ([910c12d](https://github.com/terrylica/cc-skills/commit/910c12d3e40f430b5cbac95e2fb64bd81ad0f22c))
+* **tts:** adjustable bionic suffix opacity via SwiftBar ([8d7178c](https://github.com/terrylica/cc-skills/commit/8d7178cf3bcf0cbe134887c4364eaf687f568c1c))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>agent-reach</strong> (1 change)</summary>
+
+- [agent-reach](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/SKILL.md) - updated (+40/-127)
+
+</details>
+
+<details>
+<summary><strong>asciinema-tools</strong> (5 changes)</summary>
+
+- [bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/bootstrap/SKILL.md) - updated (+1/-1)
+- [daemon-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-setup/SKILL.md) - updated (+1/-1)
+- [daemon-start](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-start/SKILL.md) - updated (+1/-1)
+- [daemon-stop](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/daemon-stop/SKILL.md) - updated (+1/-1)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>calcom-commander</strong> (2 changes)</summary>
+
+- [infra-deploy](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/infra-deploy/SKILL.md) - updated (+1/-1)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [cloudflare-workers-publish](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/cloudflare-workers-publish/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>doc-tools</strong> (1 change)</summary>
+
+- [latex-setup](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/skills/latex-setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>git-town-workflow</strong> (1 change)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>gmail-commander</strong> (1 change)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>itp</strong> (4 changes)</summary>
+
+- [bootstrap-monorepo](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/bootstrap-monorepo/SKILL.md) - updated (+1/-1)
+- [release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/release/SKILL.md) - updated (+1/-1)
+- [semantic-release](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/semantic-release/SKILL.md) - updated (+1/-1)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>itp-hooks</strong> (1 change)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [sred-commit](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/sred-commit/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>productivity-tools</strong> (1 change)</summary>
+
+- [calendar-event-manager](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/calendar-event-manager/SKILL.md) - updated (+82/-14)
+
+</details>
+
+<details>
+<summary><strong>ru</strong> (2 changes)</summary>
+
+- [start](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/start/SKILL.md) - updated (+1/-1)
+- [stop](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/skills/stop/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools</strong> (1 change)</summary>
+
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>tlg</strong> (15 changes)</summary>
+
+- [cleanup-deleted](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/cleanup-deleted/SKILL.md) - updated (+1/-1)
+- [create-group](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/create-group/SKILL.md) - updated (+2/-2)
+- [delete-messages](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/delete-messages/SKILL.md) - updated (+2/-2)
+- [download-media](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/download-media/SKILL.md) - updated (+2/-2)
+- [dump-channel](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/dump-channel/SKILL.md) - new (+128)
+- [find-user](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/find-user/SKILL.md) - updated (+2/-2)
+- [forward-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/forward-message/SKILL.md) - updated (+2/-2)
+- [list-dialogs](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/list-dialogs/SKILL.md) - updated (+2/-2)
+- [manage-members](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/manage-members/SKILL.md) - updated (+2/-2)
+- [mark-read](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/mark-read/SKILL.md) - updated (+2/-2)
+- [pin-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/pin-message/SKILL.md) - updated (+2/-2)
+- [search-messages](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/search-messages/SKILL.md) - updated (+2/-2)
+- [send-media](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-media/SKILL.md) - updated (+2/-2)
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-message/SKILL.md) - updated (+2/-2)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/setup/SKILL.md) - updated (+5/-5)
+
+</details>
+
+<details>
+<summary><strong>tts-tg-sync</strong> (4 changes)</summary>
+
+- [clean-component-removal](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/clean-component-removal/SKILL.md) - updated (+1/-1)
+- [component-version-upgrade](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/component-version-upgrade/SKILL.md) - updated (+1/-1)
+- [full-stack-bootstrap](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/full-stack-bootstrap/SKILL.md) - updated (+1/-1)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/skills/setup/SKILL.md) - updated (+1/-1)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>agent-reach/agent-reach</strong> (6 files)</summary>
+
+- [职场招聘](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/references/career.md) - new (+29)
+- [开发工具](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/references/dev.md) - new (+63)
+- [搜索工具](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/references/search.md) - new (+33)
+- [社交媒体 & 社区](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/references/social.md) - new (+209)
+- [视频/播客](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/references/video.md) - new (+115)
+- [网页阅读](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/skills/agent-reach/references/web.md) - new (+76)
+
+</details>
+
+<details>
+<summary><strong>plugin-dev/skill-architecture</strong> (3 files)</summary>
+
+- [Invocation Control](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/invocation-control.md) - updated (+7/-11)
+- [Task Templates](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/task-templates.md) - updated (+1/-1)
+- [My Skill](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/skills/skill-architecture/references/validation-reference.md) - updated (+2/-1)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Telegram CLI Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/CLAUDE.md) - updated (+2/-2)
+
 # [12.33.0](https://github.com/terrylica/cc-skills/compare/v12.32.0...v12.33.0) (2026-04-01)
 
 
