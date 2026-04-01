@@ -1,3 +1,49 @@
+## [12.31.1](https://github.com/terrylica/cc-skills/compare/v12.31.0...v12.31.1) (2026-04-01)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>mise</strong> (1 change)</summary>
+
+- [run-full-release](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/SKILL.md) - updated (+95/-26)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>mise/run-full-release</strong> (3 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/skills/run-full-release/references/evolution-log.md) - updated (+20/-1)
+- [Scaffolding And Recovery](https://github.com/terrylica/cc-skills/blob/v12.31.0/plugins/mise/skills/run-full-release/references/scaffolding-and-recovery.md) - deleted
+- [Task Implementations](https://github.com/terrylica/cc-skills/blob/v12.31.0/plugins/mise/skills/run-full-release/references/task-implementations.md) - deleted
+
+</details>
+
+
+## Repository Documentation
+
+### General Documentation
+
+- [Lessons Learned](https://github.com/terrylica/cc-skills/blob/main/docs/LESSONS.md) - updated (+2)
+
+## Other Documentation
+
+### Other
+
+- [mise Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/CLAUDE.md) - updated (+6/-27)
+
 # [12.31.0](https://github.com/terrylica/cc-skills/compare/v12.30.1...v12.31.0) (2026-04-01)
 
 
