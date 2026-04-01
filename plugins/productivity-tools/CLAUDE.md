@@ -10,7 +10,8 @@
 | ------------------------ | --------------------------------------------------------------- |
 | `slash-command-factory`  | Generate custom slash commands through guided flow (10 presets) |
 | `calendar-event-manager` | Create macOS Calendar events with 6-tier sound alarms           |
-| `notion-sdk`             | Notion API integration                                          |
+| `notion-sdk`             | Notion API integration (Python SDK)                             |
+| `notion-cli`             | Notion CLI access via 4ier/notion-cli Go binary                 |
 | `imessage-query`         | iMessage database queries                                       |
 | `gdrive-access`          | Google Drive API access (1Password OAuth)                       |
 | `iterm2-layout`          | iTerm2 window/tab layout management                             |
