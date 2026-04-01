@@ -1,6 +1,6 @@
 ---
 name: cleanup-deleted
-description: "Purge deleted/ghost Telegram accounts from dialog lists and contacts. Removes spam ghosts that clutter your chat list. Use whenever user mentions deleted accounts, ghost accounts, spam cleanup, telegram cleanup, clean chat list, or remove deleted contacts. TRIGGERS - telegram cleanup, deleted accounts, ghost accounts, telegram spam, clean telegram, purge deleted, remove ghosts, telegram housekeeping"
+description: "Use when user wants to clean up Telegram by purging deleted or ghost accounts from their dialog list and contacts, removing spam ghosts that clutter the chat list, or doing general Telegram housekeeping."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
@@ -15,6 +15,11 @@ The script uses 3 progressively aggressive deletion methods because Telegram's d
 3. **Block + Unblock + delete** — resets Telegram's peer state cache, then deletes
 
 After the first pass, it re-scans for survivors and retries with method 3.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 

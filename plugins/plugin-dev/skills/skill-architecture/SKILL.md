@@ -9,6 +9,28 @@ Comprehensive guide for creating effective Claude Code skills following Anthropi
 
 > **Scope**: Claude Code Agent Skills (`~/.claude/skills/`), not Claude.ai API skills
 
+## Self-Evolution Protocol
+
+This skill — and every skill it creates — must actively evolve through use. This section is placed first because it governs all other sections.
+
+**During execution**, watch for these signals: friction in instructions, missing edge cases, better patterns discovered, repeated manual steps, drift between documentation and reality.
+
+**Before writing any change**, pass all three admission gates:
+
+| Gate           | Question                                                           | Fail → |
+| -------------- | ------------------------------------------------------------------ | ------ |
+| **VALUE**      | Does this fix a real problem observed empirically, not speculated? | Skip   |
+| **REDUNDANCY** | Is this already documented or obvious from the code?               | Skip   |
+| **FRESHNESS**  | Will this still be true next month, or is it ephemeral?            | Skip   |
+
+Most executions should produce **no evolution**. Convergence to stability is success, not stagnation.
+
+**When all gates pass**: Pause current work → fix SKILL.md or references → log in evolution-log.md with trigger + evidence → resume. Do NOT defer — the next invocation inherits whatever you leave behind.
+
+**What never passes the gate**: Major structural changes (discuss with user first), speculative improvements without empirical evidence, cosmetic preferences.
+
+---
+
 ## When to Use This Skill
 
 Use this skill when:
@@ -48,49 +70,6 @@ After modifying THIS skill (skill-architecture):
 5. [ ] Update user's CLAUDE.md if triggers changed
 
 ---
-
-## Post-Execution Reflection (Compulsory)
-
-Every skill that performs stepwise execution **MUST** include a Post-Execution Reflection section. This is not advisory — it is a structural requirement, like YAML frontmatter or a Post-Change Checklist. The reflection triggers at the end of every skill invocation and instructs Claude to retrospectively examine the execution and rectify the skill's own artifacts.
-
-**Why this exists**: Agent skills executing stepwise are prone to errors — instructions that don't survive real-world conditions, scripts that fail on edge cases, references that mislead. Without a compulsory reflection loop, these errors repeat silently across sessions. The skill never learns from its own failures.
-
-### What the reflection section must do
-
-At the end of every skill execution, the skill's Post-Execution Reflection section reminds Claude to:
-
-1. **Review execution for errors** — What failed? What required manual workarounds? What steps were skipped or reordered?
-2. **Identify patterns and anti-patterns** — What worked unexpectedly well (candidate pattern)? What caused recurring friction (candidate anti-pattern)? These are empirical — discovered through trial, not speculation.
-3. **Rectify the skill** — Update SKILL.md instructions, fix scripts, correct references, add missing edge cases. The rectification is immediate, not deferred.
-4. **Log in evolution-log.md** — Record what changed, what triggered the change, and the empirical evidence (the actual error or friction observed).
-
-### Template for the section
-
-Add this to any skill's SKILL.md (adapt the specifics):
-
-```markdown
-## Post-Execution Reflection
-
-After this skill completes, reflect before closing the task:
-
-0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
-1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
-2. **What worked better than expected?** — Promote it to recommended practice. Document why.
-3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
-4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
-
-Do NOT defer. The next invocation inherits whatever you leave behind.
-```
-
-See [Post-Execution Reflection Reference](./references/post-execution-reflection.md) for the full pattern, validation requirements, and examples.
-
----
-
-## Continuous Improvement
-
-Skills must actively evolve. When you notice friction, missing edge cases, better patterns, or repeated manual steps -- **update immediately**: pause, fix SKILL.md or resources, log in evolution-log.md, resume.
-
-**Do NOT update immediately**: major structural changes (discuss first), speculative improvements without evidence.
 
 ---
 
@@ -359,3 +338,42 @@ For detailed information, see:
 - [Troubleshooting](./references/troubleshooting.md) - Common issues and solutions
 - [SYNC-TRACKING](./references/SYNC-TRACKING.md) - Marketplace version tracking
 - [Evolution Log](./references/evolution-log.md) - This skill's change history
+
+---
+
+## Post-Execution Reflection (Compulsory)
+
+This section is placed last so it is the final thing processed before the skill exits — maximizing recency effect.
+
+Every skill that performs stepwise execution **MUST** include a Post-Execution Reflection section. This is a structural requirement, not advisory. Without it, errors repeat silently across sessions.
+
+### After this skill completes, reflect before closing
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
+1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
+2. **What worked better than expected?** — Promote it to recommended practice. Document why.
+3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
+4. **Pass the admission gates.** — Apply the Self-Evolution Protocol (top of this file). VALUE + REDUNDANCY + FRESHNESS must all pass before writing any change.
+5. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
+
+### Template for other skills
+
+Add this to any stepwise skill's SKILL.md (adapt the specifics):
+
+```markdown
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
+```
+
+See [Post-Execution Reflection Reference](./references/post-execution-reflection.md) for the full pattern, validation requirements, and examples.

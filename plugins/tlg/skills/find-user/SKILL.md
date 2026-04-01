@@ -1,12 +1,17 @@
 ---
 name: find-user
-description: "Find and resolve Telegram users by username, phone number, or ID. Get profile info. TRIGGERS - telegram find user, telegram user info, telegram resolve username, telegram who is, telegram lookup, telegram profile"
+description: "Use when user wants to find, look up, or resolve a Telegram user by username, phone number, or ID, or get someone's Telegram profile info."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Find Telegram User
 
 Resolve usernames, phone numbers, or IDs to full user/chat profile information.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 

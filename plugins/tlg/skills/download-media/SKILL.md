@@ -1,12 +1,17 @@
 ---
 name: download-media
-description: "Download media files (photos, videos, documents) from Telegram messages. TRIGGERS - telegram download, download telegram, telegram save, telegram get file, telegram export media"
+description: "Use when user wants to download, save, or extract media files such as photos, videos, and documents from Telegram messages."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Download Telegram Media
 
 Download photos, videos, documents, and other media from Telegram messages.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 

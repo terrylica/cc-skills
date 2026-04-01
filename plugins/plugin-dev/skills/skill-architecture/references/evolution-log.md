@@ -4,6 +4,38 @@
 
 ---
 
+## 2026-03-31: Relocate Self-Evolution for Attention Primacy/Recency
+
+**Trigger**: Empirical observation over months that the self-evolving mechanism was not firing — skills never evolved despite instructions to do so. Research across 6 GitHub repos, 4 blog posts, and Anthropic's own context window documentation confirmed the root cause.
+
+### Root Cause
+
+The self-evolving instructions were buried at lines 52-93 of a 362-line SKILL.md — the attention "dead zone." Research shows:
+
+- Context window quality degrades at **20-40% capacity** due to attention dilution (not token exhaustion)
+- Instructions at document boundaries (top/bottom) receive disproportionately higher attention weight
+- Fully autonomous self-improvement without admission gating produces noise faster than signal
+
+### Changes Made
+
+1. **New section: "Self-Evolution Protocol"** — placed immediately after frontmatter (line 12), before all other content. Contains a 3-gate admission protocol (VALUE, REDUNDANCY, FRESHNESS) that makes "do nothing" the default outcome.
+2. **Moved "Post-Execution Reflection"** — from line 52 (mid-document) to absolute last section (after Reference Documentation) for maximum recency effect. Added step 4 requiring admission gate passage before writing changes.
+3. **Removed "Continuous Improvement"** — consolidated into the Self-Evolution Protocol. The old 5-line section was too weak to trigger behavior.
+4. **Added cross-reference** — Post-Execution Reflection step 4 now explicitly references the admission gates at the top, creating a top↔bottom sandwich.
+
+### Key Insight
+
+> Placement determines whether instructions get followed. "Attention primacy" (top of document) and "recency effect" (bottom of document) are the two highest-weight positions. Self-evolution instructions must occupy both — the protocol at the top sets the rules, the reflection at the bottom triggers the action. The mid-document position is where instructions go to die.
+
+### Sources
+
+- [191341025/Self-Evolving-Skill](https://github.com/191341025/Self-Evolving-Skill) — Five-Gate Protocol, confidence decay
+- [KERNEL](https://medium.com/@ariaxhan) — deletion as evolution, file-based persistence
+- [Context Window Degradation (BSWEN)](https://docs.bswen.com/blog/2026-03-19-claude-context-window-degradation/) — 20-40% capacity threshold
+- [nathanonn.com](https://www.nathanonn.com/how-to-build-evolving-claude-code-rules/) — index-based loading, SKILL.md under 100 lines
+
+---
+
 ## 2026-03-27: Add Compulsory Post-Execution Reflection
 
 **Trigger**: User identified that agent skills executing stepwise are prone to errors that repeat silently across sessions because skills never learn from their own execution failures. The existing "Continuous Improvement" section was advisory, not structural — skills could (and did) skip reflection entirely.

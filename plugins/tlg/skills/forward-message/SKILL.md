@@ -1,12 +1,17 @@
 ---
 name: forward-message
-description: "Forward messages between Telegram chats. Supports single or batch forwarding. TRIGGERS - telegram forward, forward telegram message, telegram relay, telegram copy message"
+description: "Use when user wants to forward, relay, or copy Telegram messages from one chat to another, supporting both single and batch forwarding."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Forward Telegram Messages
 
 Forward one or multiple messages between chats.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 
