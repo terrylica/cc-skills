@@ -64,3 +64,16 @@ Model cache is preserved across uninstall, so reinstall reuses the cached model.
 | Upgrade fails       | No internet or PyPI down  | Check connectivity, retry                       |
 | Import error after  | mlx-audio incompatibility | Clean reinstall: `--uninstall` then `--install` |
 | Model download slow | Large download            | Wait for HuggingFace download to complete       |
+
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

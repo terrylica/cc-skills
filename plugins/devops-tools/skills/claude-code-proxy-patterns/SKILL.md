@@ -314,3 +314,14 @@ After modifying this skill:
 | Token expired after 5 min              | Cache TTL (WP-05)                              | Normal behavior; proxy re-reads from Keychain    |
 | Auth conflict warning in Claude Code   | ANTHROPIC_API_KEY set (CCP-08)                 | Unset ANTHROPIC_API_KEY in .zshenv               |
 | cache_control.ephemeral.scope error    | MiniMax doesn't support cache_control (CCP-09) | Remove cache_control from allowedParams          |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

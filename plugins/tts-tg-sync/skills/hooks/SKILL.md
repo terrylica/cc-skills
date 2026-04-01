@@ -82,3 +82,14 @@ Hooks are loaded at session start.
 | Notification missing | Bot not running        | Start bot first                 |
 | Timeout errors       | Bot slow to respond    | Increase timeout in hooks.json  |
 | Bun not found        | PATH issue in hook env | Add Bun to PATH in hook command |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

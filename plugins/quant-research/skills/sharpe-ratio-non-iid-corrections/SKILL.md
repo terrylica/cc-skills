@@ -157,3 +157,14 @@ Tier 5: dsr (Eqs 29-31), sfdr_threshold (Eqs 32-33)  ← APEX
 | [opendeviation-eval-metrics](../opendeviation-eval-metrics/SKILL.md)   | Consumes PSR, DSR, MinTRL for range bar evaluation; has quick-ref formulas (ρ=0 case) |
 | [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md)                   | Uses DSR for WFE validation across walk-forward folds                                 |
 | [evolutionary-metric-ranking](../evolutionary-metric-ranking/SKILL.md) | DSR as one of the metrics in multi-objective ranking                                  |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.
