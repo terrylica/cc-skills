@@ -11,6 +11,7 @@ public struct SubtitleSettingsUpdate: Codable, Sendable {
     var screen: String?
     var displayMode: String?
     var subtitleScope: String?
+    var bionicSuffixOpacity: Double?
 }
 
 /// Partial update struct for TTS settings (all fields optional for PATCH semantics).
@@ -150,6 +151,7 @@ public final class HTTPControlServer: @unchecked Sendable {
                         }
                     }
                     if let v = update.subtitleScope { s.subtitleScope = v }
+                    if let v = update.bionicSuffixOpacity { s.bionicSuffixOpacity = max(0.1, min(1.0, v)) }
                 }
                 let settings = settingsStore.getSettings()
                 return jsonResponse(settings)

@@ -31,16 +31,16 @@ public enum BionicRenderer {
         words: [String],
         fontSizeName: String,
         highlightIndex: Int = -1,
-        paragraphBreaksAfter: Set<Int> = []
+        paragraphBreaksAfter: Set<Int> = [],
+        suffixOpacity: CGFloat = 0.7
     ) -> NSAttributedString {
         let result = NSMutableAttributedString()
         let boldFont = SubtitleStyle.dynamicCurrentWordFont(fontSizeName)
         let regularFont = SubtitleStyle.dynamicRegularFont(fontSizeName)
         let goldColor = SubtitleStyle.currentWordColor
-        // Bionic contrast: bold prefix is full white, regular suffix is 50% opacity.
-        // This works even when the monospace Nerd Font lacks a true regular weight,
-        // because the visual distinction comes from color, not font weight.
-        let suffixAlpha: CGFloat = 0.5
+        // Bionic contrast: bold prefix is full opacity, regular suffix is dimmed.
+        // Configurable via SwiftBar (bionicSuffixOpacity setting).
+        let suffixAlpha: CGFloat = suffixOpacity
         let spokenColor = NSColor.white
         let futureColor = NSColor.white
 
