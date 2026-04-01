@@ -1,12 +1,17 @@
 ---
 name: search-messages
-description: "Search for messages across all Telegram chats or within a specific chat. Find text, filter by sender. TRIGGERS - telegram search, search telegram, find in telegram, telegram find message, search telegram chat, search telegram text"
+description: "Use when user wants to search for messages across all Telegram chats or within a specific chat, find old messages by text, or look up Telegram message history filtered by sender."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Search Telegram Messages
 
 Search messages globally across all chats or within a specific chat.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 

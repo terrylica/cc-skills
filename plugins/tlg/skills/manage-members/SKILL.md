@@ -1,12 +1,17 @@
 ---
 name: manage-members
-description: "Manage Telegram group/channel members: invite, kick, list members, filter admins. TRIGGERS - telegram invite, telegram kick, telegram members, telegram add user, telegram remove user, telegram ban, list telegram members, telegram group members"
+description: "Use when user wants to manage Telegram group or channel members, including inviting users, kicking or banning someone, listing members, or filtering admins."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Manage Telegram Members
 
 Invite, kick, and list members in groups and channels.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 

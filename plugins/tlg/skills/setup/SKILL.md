@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "First-time Telegram CLI setup - authenticate your personal account and configure 1Password credentials. TRIGGERS - telegram setup, telegram auth, telegram login, configure telegram cli"
+description: "Use when user needs to set up Telegram CLI for the first time, authenticate or log in to a Telegram account, re-authenticate a session, or configure 1Password credentials for Telegram access."
 allowed-tools: Bash, Read, Write, AskUserQuestion
 disable-model-invocation: true
 ---

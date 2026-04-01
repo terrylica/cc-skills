@@ -1,12 +1,17 @@
 ---
 name: pin-message
-description: "Pin or unpin messages in Telegram chats and groups. TRIGGERS - telegram pin, telegram unpin, pin telegram message, unpin telegram message"
+description: "Use when user wants to pin or unpin a message in a Telegram chat, group, or channel, or manage pinned messages."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Pin/Unpin Telegram Messages
 
 Pin or unpin messages in chats, groups, and channels.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 
