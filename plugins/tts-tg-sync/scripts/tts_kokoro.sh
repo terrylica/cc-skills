@@ -40,6 +40,17 @@ if [[ -z "$TEXT" ]]; then
     exit 1
 fi
 
+# --- Kill previous instance (prevents preemption ping-pong) ---
+# When invoked rapidly (e.g., BTT hotkey double-tap), two instances
+# fight over user-initiated priority, each preempting the other's
+# synthesis before audio plays. Kill siblings first.
+for PID in $(pgrep -f "tts_kokoro.sh"); do
+    [[ "$PID" -ne "$$" ]] && kill "$PID" 2>/dev/null || true
+done
+# Also stop any in-flight TTS (kills afplay + clears subtitle)
+killall -9 afplay 2>/dev/null || true
+curl -sf --max-time 1 -X POST "${TTS_SERVICE}/tts/stop" >/dev/null 2>&1 || true
+
 # --- Check service is running ---
 if ! curl -s --max-time 2 "${TTS_SERVICE}/health" >/dev/null 2>&1; then
     log "ERROR: claude-tts-companion not responding on ${TTS_SERVICE}"
