@@ -1,3 +1,10 @@
+## [12.30.1](https://github.com/terrylica/cc-skills/compare/v12.30.0...v12.30.1) (2026-04-01)
+
+
+### Bug Fixes
+
+* **tts:** use SIGKILL instead of SIGTERM to stop afplay ([7eb74ae](https://github.com/terrylica/cc-skills/commit/7eb74ae457676c55ba1448fc43e5ef62338002c6))
+
 # [12.30.0](https://github.com/terrylica/cc-skills/compare/v12.29.3...v12.30.0) (2026-04-01)
 
 
