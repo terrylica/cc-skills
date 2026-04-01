@@ -13,6 +13,8 @@ allowed-tools:
 
 Run long-form research queries through Google's Gemini Deep Research via browser automation (Playwright CDP). Produces 40k+ char markdown reports with source citations.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Prerequisites
 
 1. **Chrome with debug port**: Must be running with `--remote-debugging-port=9222`

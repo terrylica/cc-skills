@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Grep, Glob, Write
 
 Query the macOS iMessage SQLite database (`~/Library/Messages/chat.db`) to retrieve conversation history, decode messages stored in binary format, and build sourced timelines with precise timestamps.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use
 
 - Retrieving iMessage conversation history for a specific contact

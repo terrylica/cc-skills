@@ -11,6 +11,8 @@ One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (ML
 
 > **Platform**: macOS (Apple Silicon)
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - First-time setup of the tts-tg-sync plugin

@@ -9,6 +9,8 @@ disable-model-invocation: true
 
 Complete setup wizard for Cal.com CLI access, Telegram bot, Supabase database, and launchd services.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Prerequisites Check
 
 ```bash

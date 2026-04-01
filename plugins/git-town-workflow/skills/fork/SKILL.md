@@ -17,6 +17,8 @@ This is a **prescriptive, gated workflow**. Every step requires:
 2. **User confirmation** - AskUserQuestion before action
 3. **Validation** - Verify action succeeded
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## ⛔ WORKFLOW PHILOSOPHY
 
 **GIT-TOWN IS CANONICAL. RAW GIT IS FORBIDDEN FOR BRANCH OPERATIONS.**

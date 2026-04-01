@@ -10,6 +10,8 @@ Semantic analysis of converted .txt recordings for Claude Code consumption. Uses
 
 > **Platform**: macOS, Linux (requires ripgrep, optional YAKE)
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

@@ -10,6 +10,8 @@ Play terminal session recordings (.cast files) in a dedicated iTerm2 window with
 
 > **Platform**: macOS only (requires iTerm2)
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

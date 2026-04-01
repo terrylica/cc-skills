@@ -14,6 +14,8 @@ Configuration and anti-patterns for using backtesting.py to validate ClickHouse 
 
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Critical Configuration (NEVER omit)
 
 ```python

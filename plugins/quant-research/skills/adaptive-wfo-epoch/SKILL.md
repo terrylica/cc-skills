@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Glob, Bash
 
 Machine-readable reference for adaptive epoch selection within Walk-Forward Optimization (WFO). Optimizes training epochs per-fold using Walk-Forward Efficiency (WFE) as the objective.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

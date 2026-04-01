@@ -11,6 +11,8 @@ model: haiku
 
 Analyze the blast radius of changing a symbol — who calls it, what processes it participates in, and what tests cover it.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use
 
 - Before modifying a function with many callers

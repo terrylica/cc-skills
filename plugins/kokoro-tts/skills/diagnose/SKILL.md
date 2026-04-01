@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 
 Troubleshoot Kokoro TTS engine issues through systematic diagnostics.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Known Issues
 
 | Issue              | Likely Cause        | Diagnostic                                                            | Fix                                          |

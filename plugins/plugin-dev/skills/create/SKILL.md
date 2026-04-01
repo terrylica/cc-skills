@@ -15,6 +15,8 @@ This is a structured workflow command for creating a new plugin in a Claude Code
 
 Your FIRST and ONLY action right now: **Execute the TodoWrite below.**
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## ⛔ MANDATORY FIRST ACTION: TodoWrite Initialization
 
 **YOUR FIRST ACTION MUST BE the TodoWrite call below.**

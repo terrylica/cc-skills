@@ -10,6 +10,8 @@ disable-model-invocation: true
 
 Full-stack bootstrap: Kokoro TTS engine, Telegram bot, BotFather token, secrets, symlinks.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Prerequisites
 
 | Component   | Required | Check                                   |

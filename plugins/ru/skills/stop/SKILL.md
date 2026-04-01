@@ -9,6 +9,8 @@ disable-model-invocation: true
 
 # RU: Stop
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 **EXECUTE IMMEDIATELY**: Use the Bash tool to run the following script.
 
 ```bash
@@ -46,6 +48,8 @@ RALPH_UNIVERSAL_STOP
 
 After execution, confirm the loop has been stopped.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Troubleshooting
 
 | Issue                   | Cause                 | Solution                             |
@@ -55,7 +59,6 @@ After execution, confirm the loop has been stopped.
 | jq error                | Config file malformed | Delete and recreate config file      |
 | Permission denied       | File not writable     | Check directory permissions          |
 | Global stop not working | Different project dir | Ensure CLAUDE_PROJECT_DIR is correct |
-
 
 ## Post-Execution Reflection
 

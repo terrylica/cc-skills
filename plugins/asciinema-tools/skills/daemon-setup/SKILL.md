@@ -10,6 +10,8 @@ disable-model-invocation: true
 
 Interactive wizard to set up the asciinema chunker daemon. This daemon runs independently of Claude Code, using dedicated credentials stored in macOS Keychain.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Why a Daemon?
 
 | Problem with old approach     | Daemon solution                  |

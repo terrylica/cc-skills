@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Write, Edit, Glob, Grep
 
 Guide for developing Claude Code hooks with proper output visibility patterns.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - Creating a new PostToolUse or PreToolUse hook
