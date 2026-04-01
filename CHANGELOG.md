@@ -1,3 +1,15 @@
+# [12.30.0](https://github.com/terrylica/cc-skills/compare/v12.29.3...v12.30.0) (2026-04-01)
+
+
+### Bug Fixes
+
+* **tts:** preserve numbered list prefixes in speech and unwrap terminal soft-wraps ([21966de](https://github.com/terrylica/cc-skills/commit/21966de5d175251c4c815dcb7503c3d648061b4e))
+
+
+### Features
+
+* **claude-tts-companion:** add Makefile for atomic build-deploy-restart ([0e22605](https://github.com/terrylica/cc-skills/commit/0e226054c56e52534c64b367c13fc53c4e4cfa03))
+
 ## [12.29.3](https://github.com/terrylica/cc-skills/compare/v12.29.2...v12.29.3) (2026-03-31)
 
 
