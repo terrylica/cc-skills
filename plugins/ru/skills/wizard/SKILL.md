@@ -9,6 +9,8 @@ argument-hint: "[--clear]"
 
 Interactive configuration wizard using AskUserQuestion. Presents work categories neutrally, lets user classify each as Encourage/Forbid, then resolves conflicts.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Arguments
 
 - `--clear`: Clear existing guidance before starting (fresh config)

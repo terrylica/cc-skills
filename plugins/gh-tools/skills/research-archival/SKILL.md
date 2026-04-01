@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Grep, Glob, Edit, Write
 
 Scrape AI research conversations (ChatGPT, Gemini, Claude) and web pages, archive them as markdown files with YAML frontmatter, and create cross-referenced GitHub Issues — with mandatory identity verification at every step.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## FIRST - TodoWrite Task Templates
 
 **MANDATORY**: Select and load the appropriate template before any archival work.

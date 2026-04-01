@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Write, Edit, Glob, Grep, AskUserQuestion, WebSearch
 
 A holistic configuration guide for running a MacBook as an always-on-AC desktop workstation. Solves two interconnected problems: USB devices (especially USB 1.1 audio) disappearing during sleep/wake cycles, and unnecessary battery degradation from constant charge cycling.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - USB microphone or audio device disappears after sleep/wake

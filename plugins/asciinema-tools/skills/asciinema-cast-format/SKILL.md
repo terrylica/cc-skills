@@ -10,6 +10,8 @@ Reference documentation for the asciinema v3 .cast file format (asciicast v2 spe
 
 > **Platform**: All platforms (documentation only)
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

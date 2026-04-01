@@ -16,6 +16,8 @@ Verify and install dependencies required by the `/itp:go` workflow using TodoWri
 
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## MANDATORY FIRST ACTION
 
 **YOUR FIRST ACTION MUST BE TodoWrite with the template below.**

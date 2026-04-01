@@ -7,6 +7,8 @@ description: Generate custom Claude Code slash commands via guided question flow
 
 A comprehensive system for generating production-ready Claude Code slash commands through a simple question-based workflow.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - Creating new custom slash commands for Claude Code

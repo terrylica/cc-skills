@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, Edit, Grep
 
 # Glossary Management
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Overview
 
 Manage the global terminology glossary (`~/.claude/docs/GLOSSARY.md`) and its Vale integration. The glossary is the Single Source of Truth (SSoT) for terminology across all projects.

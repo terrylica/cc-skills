@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Glob, AskUserQuestion
 
 Clean uninstall of the Kokoro TTS engine. Preserves model cache by default.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## What Gets Removed
 
 - Python venv at `~/.local/share/kokoro/.venv`

@@ -10,6 +10,8 @@ disable-model-invocation: true
 
 Enable autonomous loop mode for **any project type**.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Arguments
 
 - `--poc`: Use proof-of-concept settings (5 min / 10 min limits, 10/20 iterations)

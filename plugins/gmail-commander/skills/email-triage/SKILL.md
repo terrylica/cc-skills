@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Automated email triage running every 6h via launchd. Fetches recent emails, triages with Haiku, sends significant findings to Telegram.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Mandatory Preflight
 
 ### Step 1: Check Digest Script Exists

@@ -9,6 +9,8 @@ argument-hint: "[file] [-d domains] [-t type] [--json] [--md] [--density] [--jum
 
 Run semantic analysis on converted .txt recordings.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Arguments
 
 | Argument        | Description                                |

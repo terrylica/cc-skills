@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Bash, WebSearch, WebFetch
 
 Comprehensive dependency audit workflow using four complementary tools: freshness checking, vulnerability scanning, license/advisory compliance, and supply chain verification.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## CRITICAL: Web-Verify Before Upgrade Decisions
 
 **Always check crates.io for latest versions before recommending upgrades.** Static docs go stale; the crates.io API is ground truth.

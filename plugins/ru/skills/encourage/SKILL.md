@@ -13,6 +13,8 @@ Encouraged items get priority in opportunity discovery and override forbidden pa
 
 **Runtime configurable**: Works with or without active loop. Changes apply on next iteration.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Usage
 
 - `/ru:encourage test coverage` - Add "test coverage" to encouraged list

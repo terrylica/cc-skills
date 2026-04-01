@@ -9,6 +9,8 @@ argument-hint: "[-t title] [-q|--quick] [-f|--full] [-d domains] [--no-backup] [
 
 Complete end-to-end workflow: record, backup, convert, and analyze.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Arguments
 
 | Argument        | Description                           |

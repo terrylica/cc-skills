@@ -9,6 +9,8 @@ argument-hint: "[--dry] [--status]"
 
 Run the current repo's mise release pipeline — or bootstrap one if it doesn't exist yet.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Step 1: Detect Existing Release Tasks
 
 ```bash

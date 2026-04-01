@@ -10,6 +10,8 @@ Machine-readable reference + computation scripts for state-of-the-art metrics ev
 
 **Cross-reference**: Project-level experiment catalogue at [signal-archaeology](https://github.com/terrylica/opendeviationbar-patterns) skill in `opendeviationbar-patterns` repo — contains 10 BHR-validated experiments with auditable SQL.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

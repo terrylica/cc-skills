@@ -8,6 +8,8 @@ allowed-tools: Read, Bash
 
 ADR: 2025-12-08-clickhouse-cloud-management-skill
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Overview
 
 ClickHouse Cloud user and permission management via SQL commands over HTTP interface. This skill covers database user creation, permission grants, and credential management for ClickHouse Cloud instances.

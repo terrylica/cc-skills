@@ -13,6 +13,8 @@ allowed-tools: Read, Grep, Glob, Bash
 
 Generalized Sharpe ratio inference framework for non-Normal, serially correlated returns. Reference implementation of López de Prado, Lipton & Zoonekynd (2026).
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Quick Start
 
 ```bash

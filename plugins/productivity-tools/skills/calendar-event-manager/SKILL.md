@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, AskUserQuestion
 
 Create macOS Calendar events with **tiered sound alarms** and **paired Reminders** so events are never missed across Mac and iOS.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## CRITICAL RULES (Hard-Learned Truths 2026-02-12)
 
 > **These rules are NON-NEGOTIABLE. Violating any of them defeats the purpose of this skill.**

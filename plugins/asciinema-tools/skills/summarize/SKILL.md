@@ -9,6 +9,8 @@ argument-hint: "[file] [--topic topic] [--depth quick|medium|deep] [--output fil
 
 AI-powered iterative deep-dive analysis for large .txt recordings. Uses guided sampling and AskUserQuestion to progressively explore the content.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Philosophy
 
 Large recordings (1GB+) cannot be read entirely. This command uses:

@@ -13,6 +13,8 @@ Manage gh-tools hook installation in `~/.claude/settings.json`.
 
 This hook soft-blocks WebFetch requests to github.com URLs and suggests using the `gh` CLI instead for better data access.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Actions
 
 | Action      | Description                                     |

@@ -13,6 +13,8 @@ Manage chezmoi-sync-reminder hook installation in `~/.claude/settings.json`.
 
 Claude Code only loads hooks from settings.json, not from plugin.json files. This command installs/uninstalls the chezmoi PostToolUse hook that reminds you to sync dotfile changes.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Actions
 
 | Action           | Description                            |

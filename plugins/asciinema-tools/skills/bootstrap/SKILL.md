@@ -12,6 +12,8 @@ Generate a bootstrap script that runs OUTSIDE Claude Code to start a recording s
 
 **Important**: Chunking is handled by the launchd daemon. Run `/asciinema-tools:daemon-setup` first if you haven't already.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Architecture
 
 ```

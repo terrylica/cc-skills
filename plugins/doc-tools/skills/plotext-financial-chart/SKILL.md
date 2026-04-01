@@ -10,6 +10,8 @@ Create ASCII financial line charts for GitHub Flavored Markdown using plotext wi
 
 **Analogy**: `graph-easy` is for flowcharts. `plotext` with dot marker is for financial line charts.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - Adding price path / line chart diagrams to markdown documentation

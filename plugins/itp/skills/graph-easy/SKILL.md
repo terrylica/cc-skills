@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Write, Edit
 
 Create ASCII architecture diagrams for any GitHub Flavored Markdown file using graph-easy. Pure text output with automatic layout - no image rendering required.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - Adding diagrams to README files

@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Bash, Edit, Write
 
 Detect code clones and guide refactoring using PMD CPD (exact duplicates) + Semgrep (patterns).
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Tools
 
 - **PMD CPD v7.17.0+**: Exact duplicate detection

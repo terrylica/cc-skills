@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Grep
 
 Validate and auto-convert GFM links in pull request descriptions to prevent 404 errors.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 This skill triggers when:

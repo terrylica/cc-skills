@@ -13,6 +13,8 @@ Upgrade individual components of the TTS + Telegram bot stack without rebuilding
 
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - User wants to upgrade Kokoro TTS engine, Python dependencies, or the model

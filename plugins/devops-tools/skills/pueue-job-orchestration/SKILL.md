@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Write
 
 > Universal CLI telemetry layer and job management — every command routed through pueue gets precise timing, exit code capture, full stdout/stderr logs, environment snapshots, and callback-on-completion.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Overview
 
 [Pueue](https://github.com/Nukesor/pueue) is a Rust CLI tool for managing shell command queues. It provides:

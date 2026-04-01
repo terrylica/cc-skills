@@ -13,6 +13,8 @@ BookPlayer is an iOS audiobook player that resumes playback position — ideal f
 
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Task Template
 
 Execute phases 0–5 sequentially. Each phase has a `[Preflight]`, `[Ask]`, `[Execute]`, or `[Verify]` tag indicating its nature. **Do not skip phases.**

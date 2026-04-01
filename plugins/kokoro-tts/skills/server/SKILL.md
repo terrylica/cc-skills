@@ -8,6 +8,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, AskUserQuestion
 
 Manage the Kokoro TTS HTTP server — an OpenAI-compatible `/v1/audio/speech` endpoint on localhost:8779.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Server Overview
 
 The server provides:

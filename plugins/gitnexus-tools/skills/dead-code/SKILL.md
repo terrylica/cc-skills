@@ -11,6 +11,8 @@ model: haiku
 
 Find orphan functions, dangling imports, isolated files, and unreachable code using the GitNexus knowledge graph.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use
 
 - Periodic codebase cleanup

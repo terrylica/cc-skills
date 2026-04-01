@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 
 > Safely migrate Claude Code project context (sessions, memory, history) when renaming a project directory.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

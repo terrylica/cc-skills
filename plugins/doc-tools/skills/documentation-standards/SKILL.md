@@ -6,6 +6,8 @@ allowed-tools: Read, Glob, Grep
 
 # Documentation Standards
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Overview
 
 Standards for writing markdown documentation optimized for both LLM consumption and conversion to professional PDFs using Pandoc. Ensures consistency across all documentation.

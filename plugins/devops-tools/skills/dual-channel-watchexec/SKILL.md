@@ -8,6 +8,8 @@ allowed-tools: Read, Write, Edit, Bash
 
 Send reliable notifications to both Telegram and Pushover when watchexec detects file changes or process crashes.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

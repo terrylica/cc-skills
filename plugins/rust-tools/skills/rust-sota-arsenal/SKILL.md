@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Bash, Edit, Write, WebSearch, WebFetch
 
 State-of-the-art Rust tooling knowledge for refactoring, profiling, benchmarking, testing, and SIMD optimization — tools that LLMs often lack deep training data on.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## CRITICAL: Web-Verify Before Acting
 
 **The reference docs in this skill are a starting point, not ground truth.** Tool versions, compatibility matrices, and API surfaces evolve faster than static docs. Before recommending specific versions or making upgrade decisions:

@@ -13,6 +13,8 @@ disable-model-invocation: true
 
 **This command installs Claude Code hooks that BLOCK forbidden raw git commands.**
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## What Gets Blocked
 
 | Forbidden Command      | Reason                     | Replacement       |

@@ -12,6 +12,8 @@ Excavate Claude Code session logs to capture **complete provenance** for researc
 
 **S3 Artifact Sharing**: Artifacts can be uploaded to S3 for team access. See [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md).
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - User asks "who created this?" or "where did this come from?"

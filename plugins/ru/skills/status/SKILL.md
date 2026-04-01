@@ -8,6 +8,8 @@ model: haiku
 
 # RU: Status
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ```bash
 /usr/bin/env bash << 'RALPH_UNIVERSAL_STATUS'
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
@@ -47,6 +49,8 @@ fi
 RALPH_UNIVERSAL_STATUS
 ```
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Examples
 
 ```bash
@@ -65,7 +69,6 @@ cat .claude/ru-state.json 2>/dev/null | jq -r '.state' || echo "not started"
 | State: unknown   | Corrupted state file   | Delete `.claude/ru-state.json`    |
 | No configuration | Config file missing    | Run `/ru:wizard` for guided setup |
 | jq not found     | jq not installed       | `brew install jq`                 |
-
 
 ## Post-Execution Reflection
 

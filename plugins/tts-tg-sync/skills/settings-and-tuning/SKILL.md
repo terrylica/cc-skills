@@ -10,6 +10,8 @@ Configure all adjustable parameters for the TTS engine, Telegram bot, and suppor
 
 > **Platform**: macOS (Apple Silicon)
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - Changing TTS voice (English, Chinese, or macOS `say` voices)

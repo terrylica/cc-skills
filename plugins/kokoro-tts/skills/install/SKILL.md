@@ -10,6 +10,8 @@ Install the Kokoro TTS engine: Apple Silicon verification, Python 3.13 venv, MLX
 
 > **Platform**: macOS Apple Silicon (M1+) only. Fails fast on Intel/Linux.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Prerequisites
 
 | Component     | Required | Check                |
