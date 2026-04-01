@@ -44,7 +44,8 @@ public struct PronunciationProcessor: Sendable {
             (#"^\s*#{1,6}\s+"#, ""),        // ## Heading → Heading
             (#"\[([^\]]+)\]\([^\)]+\)"#, "$1"),  // [text](url) → text
             (#"^[\s]*[-*+]\s+"#, ""),       // - list item → list item
-            (#"^[\s]*\d+\.\s+"#, ""),       // 1. numbered → numbered
+            // Numbered list prefixes (1. 2. 3.) are NOT stripped — they provide
+            // spoken structure for TTS listeners.
         ]
         return patterns.compactMap { (pattern, replacement) in
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else { return nil }
