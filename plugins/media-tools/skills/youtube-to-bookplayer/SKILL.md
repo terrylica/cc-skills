@@ -271,6 +271,16 @@ Full troubleshooting: [references/troubleshooting.md](./references/troubleshooti
 
 ---
 
+## Post-Change Checklist
+
+When modifying this skill, verify:
+
+- [ ] Phase 0 preflight catches all missing tools with correct install commands
+- [ ] Phase 4 uses Python API with `documents_only=True` (never CLI `apps push`)
+- [ ] No hardcoded paths — uses `$HOME`, `mktemp`, `command -v`, `create_using_usbmux()`
+- [ ] Python commands use `--python 3.13` (per global policy)
+- [ ] Anti-pattern warning is preserved in Phase 4
+
 ## Post-Execution Reflection
 
 After this skill completes, reflect before closing the task:
@@ -283,13 +293,3 @@ After this skill completes, reflect before closing the task:
 
 Do NOT defer. The next invocation inherits whatever you leave behind.
 ---
-
-## Post-Change Checklist
-
-When modifying this skill, verify:
-
-- [ ] Phase 0 preflight catches all missing tools with correct install commands
-- [ ] Phase 4 uses Python API with `documents_only=True` (never CLI `apps push`)
-- [ ] No hardcoded paths — uses `$HOME`, `mktemp`, `command -v`, `create_using_usbmux()`
-- [ ] Python commands use `--python 3.13` (per global policy)
-- [ ] Anti-pattern warning is preserved in Phase 4
