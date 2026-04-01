@@ -53,24 +53,24 @@ echo "→ Checking self-evolution sandwich..."
 SANDWICH_ERRORS=0
 for f in plugins/*/skills/*/SKILL.md; do
     SKILL_NAME=$(echo "$f" | sed 's|plugins/\(.*\)/skills/\(.*\)/SKILL.md|\1:\2|')
-    # Top check: Self-Evolving in first 25 lines of body
-    BODY_TOP=$(awk '/^---$/{n++; next} n>=2' "$f" | head -25)
-    if ! echo "$BODY_TOP" | grep -qi "self-evolv"; then
+    # Top check: Self-Evolving or Self-Evolution in first 25 lines of body
+    BODY_TOP=$(awk '/^---$/{n++; next} n>=2' "$f" | head -25 || true)
+    if ! grep -qi "self-evolv" <<< "$BODY_TOP"; then
         echo "  ✗ $SKILL_NAME: missing Self-Evolving reminder at top"
         SANDWICH_ERRORS=$((SANDWICH_ERRORS + 1))
     fi
     # Bottom check: Post-Execution Reflection in last 15 lines
-    REF_LINE=$(grep -n "## Post-Execution Reflection" "$f" | tail -1 | cut -d: -f1)
+    REF_LINE=$(grep -n "## Post-Execution Reflection" "$f" | tail -1 | cut -d: -f1 || true)
     TOTAL=$(wc -l < "$f" | tr -d ' ')
-    if [ -z "$REF_LINE" ]; then
+    if [[ -z "$REF_LINE" ]]; then
         echo "  ✗ $SKILL_NAME: missing Post-Execution Reflection"
         SANDWICH_ERRORS=$((SANDWICH_ERRORS + 1))
-    elif [ "$((TOTAL - REF_LINE))" -gt 15 ]; then
+    elif [[ "$((TOTAL - REF_LINE))" -gt 15 ]]; then
         echo "  ✗ $SKILL_NAME: Post-Execution Reflection not at bottom"
         SANDWICH_ERRORS=$((SANDWICH_ERRORS + 1))
     fi
 done
-if [ "$SANDWICH_ERRORS" -gt 0 ]; then
+if [[ "$SANDWICH_ERRORS" -gt 0 ]]; then
     echo "  ✗ Self-evolution sandwich check failed ($SANDWICH_ERRORS issue(s))"
     exit 1
 fi
