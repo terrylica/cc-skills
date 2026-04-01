@@ -147,6 +147,14 @@ public struct PronunciationProcessor: Sendable {
             }
         }
 
+        // Append any trailing original words that Kokoro's tokenizer dropped.
+        // Common case: the last word with a trailing period (e.g., "content.")
+        // gets spoken but excluded from Kokoro's word timing array.
+        while origIdx < originalWords.count {
+            displayWords.append(originalWords[origIdx])
+            origIdx += 1
+        }
+
         return displayWords
     }
 
