@@ -1,12 +1,17 @@
 ---
 name: send-media
-description: "Send files, photos, videos, voice notes, and documents on Telegram via your personal account. TRIGGERS - telegram send file, telegram photo, telegram video, telegram voice note, telegram document, send file telegram, upload telegram"
+description: "Use when user wants to send or upload a file, photo, video, voice note, or document on Telegram via their personal account."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Send Media on Telegram
 
 Send files, photos, videos, voice notes, and documents from your personal Telegram account.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 

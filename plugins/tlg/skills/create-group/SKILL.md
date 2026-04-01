@@ -1,12 +1,17 @@
 ---
 name: create-group
-description: "Create Telegram groups, supergroups, or channels. Optionally invite users on creation. TRIGGERS - telegram create group, telegram new group, telegram create channel, telegram new channel, make telegram group"
+description: "Use when user wants to create a new Telegram group, supergroup, or channel, optionally inviting members on creation."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Create Telegram Group/Channel
 
 Create groups, supergroups, or channels and optionally invite users.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 

@@ -1,12 +1,17 @@
 ---
 name: delete-messages
-description: "Delete messages from Telegram chats. Supports deleting for everyone or self only. TRIGGERS - telegram delete, delete telegram message, telegram remove message, telegram unsend"
+description: "Use when user wants to delete, remove, or unsend Telegram messages from a chat, either for everyone or just for themselves."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Delete Telegram Messages
 
 Delete one or multiple messages from a chat. By default deletes for everyone.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 

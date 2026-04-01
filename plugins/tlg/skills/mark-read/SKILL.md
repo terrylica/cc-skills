@@ -1,12 +1,17 @@
 ---
 name: mark-read
-description: "Mark Telegram chats as read, clear unread badges and mentions. TRIGGERS - telegram mark read, telegram read receipt, telegram clear unread, telegram acknowledge"
+description: "Use when user wants to mark Telegram chats as read, clear unread badges and mentions, dismiss notifications, or acknowledge messages to remove the unread counter."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Mark Telegram Chat as Read
 
 Mark all messages in a chat as read, clearing unread badges and mentions.
+
+## Preflight
+
+1. Session must exist: `~/.local/share/telethon/<profile>.session`
+   - If missing, run `/tlg:setup` first
 
 ## Usage
 
