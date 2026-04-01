@@ -6,6 +6,8 @@ Dated entries extracted from root [CLAUDE.md](../CLAUDE.md). Newest first.
 
 ---
 
+**2026-03-31**: Terminal text unwrapping for TTS — use `awk`, not FOSS parsers. Spike-tested `par`, `fmt`, `fold`, `pandoc`, `textwrap`, `pysbd` — all fail at joining soft-wrapped continuation lines while preserving bullet boundaries. `par` and `fmt` merge everything into one paragraph (F). `fold` and `pandoc` are passthrough (D). `textwrap` strips indent but doesn't join continuations (D+). `pysbd` splits continuations as separate sentences (D). Only custom `awk` (or equivalent regex) handles the combination of: (1) bullet detection (`·•*-`, numbered, headings), (2) continuation line joining, (3) marker stripping, (4) progressive batching. Zero dependencies, single-pass, built-in on every Unix. Anti-pattern: reaching for Python `textwrap`/`pysbd` or `par` for terminal-copied text — they don't understand bullet-prefixed paragraphs with soft-wrapped continuations.
+
 **2026-03-05**: MCP `mcp-shell-server` causes TTY suspension via hardcoded `-i` (interactive) shell flag + `pwd.getpwuid()` ignoring `$SHELL` env var. Hook-based fix impossible (MCP command allowlist rejects `bash`). Fix: monkeypatch entrypoint replacing `-i` with `-l` (login) + `stdin=DEVNULL`. [Full Guide](./cargo-tty-suspension-prevention.md#mcp-shell-server-tty-suspension-2026-03-05) | Patch: `~/.claude/bin/mcp-shell-server-patched.py`
 
 **2026-03-05**: `bun add -g` fails for packages with native deps (kuzu in gitnexus). Use `npm install -g` instead — mise reshims automatically. Bun-First Policy exception for native modules.
