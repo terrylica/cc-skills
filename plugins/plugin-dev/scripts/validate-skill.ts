@@ -139,7 +139,7 @@ function validateFrontmatter(
       passed: false,
       message: frontmatterError,
       severity: "error",
-      fixSuggestion: "Add YAML frontmatter:\n---\nname: skill-name\ndescription: Description. TRIGGERS - keyword1, keyword2.\n---",
+      fixSuggestion: "Add YAML frontmatter:\n---\nname: skill-name\ndescription: Use when user wants to... describe trigger scenarios here.\n---",
     });
     return results;
   }
@@ -221,14 +221,14 @@ function validateFrontmatter(
       });
     }
 
-    // Check for TRIGGERS keyword
-    if (!/triggers/i.test(frontmatter.description)) {
+    // Check for discoverability pattern: "Use when" (preferred) or "TRIGGERS" (legacy)
+    if (!/\buse when\b/i.test(frontmatter.description) && !/triggers/i.test(frontmatter.description)) {
       results.push({
         check: "description_triggers",
         passed: false,
-        message: "Description missing 'TRIGGERS' keyword for discoverability",
+        message: "Description missing discoverability pattern — add 'Use when user wants to...' phrasing",
         severity: "warning",
-        fixSuggestion: "Add 'TRIGGERS - keyword1, keyword2.' to description",
+        fixSuggestion: "Start or include 'Use when user wants to...' in description for auto-triggering",
       });
     }
   }
@@ -561,7 +561,7 @@ function detectBashPattern(block: string): string {
   if (/^\s*declare\s/m.test(block)) return "declare";
   if (/^\s*local\s/m.test(block)) return "local";
   if (/^\s*function\s/m.test(block)) return "function";
-  if (/\$\{[^}]+\}/.test(block)) return "${...}";
+  if (/\$\{[^}]+\}/.test(block)) return "dollar-brace expansion";
   return "bash-specific syntax";
 }
 
@@ -582,16 +582,19 @@ const REFLECTION_PRINCIPLES = [
 ] as const;
 
 /**
- * Check if a skill with stepwise execution includes Post-Execution Reflection.
+ * Check if a skill includes Post-Execution Reflection.
  *
- * Detection heuristics for stepwise skills:
- *   - [Execute] labels in task templates
- *   - Phase-numbered sections (## Phase 0, ## Phase 1, etc.)
+ * ALL skills must have a Post-Execution Reflection section — workflow, task,
+ * and capability patterns alike. Task-pattern skills are just as susceptible
+ * to drift (scripts change interfaces, parameters get added, errors change).
  *
- * Stepwise skills MUST have:
- *   1. A "Post-Execution Reflection" section header
- *   2. The canonical 5-principle template (no bespoke variants)
- *   3. A references/evolution-log.md file
+ * Stepwise skills additionally require:
+ *   - The canonical 5-principle template (Locate, Failed, Worked, Drifted, Log)
+ *   - A references/evolution-log.md file
+ *
+ * Task-pattern skills need at minimum:
+ *   - A "Post-Execution Reflection" section header
+ *   - Self-correction instructions (command success, parameter drift, workarounds)
  *
  * Reference: post-execution-reflection.md → "Validation Requirements"
  */
@@ -603,23 +606,18 @@ function validateSelfEvolution(skillPath: string, content: string): ValidationRe
   const hasPhaseNumbers = /^##+ Phase \d/m.test(content);
   const isStepwise = hasExecuteLabels || hasPhaseNumbers;
 
-  if (!isStepwise) {
-    logDebug("No [Execute] labels or Phase sections found — self-evolution check skipped");
-    return results;
-  }
-
-  // Check 1: Post-Execution Reflection section header
+  // Check 1: Post-Execution Reflection section header (required for ALL skills)
   const hasReflectionSection = /^##\s+Post-Execution Reflection/m.test(content);
 
   if (!hasReflectionSection) {
     results.push({
       check: "post_execution_reflection",
       passed: false,
-      message: "Stepwise skill missing 'Post-Execution Reflection' section",
+      message: "Skill missing 'Post-Execution Reflection' section — all skills must be self-evolving",
       severity: "warning",
       fixSuggestion:
         "Add a '## Post-Execution Reflection' section to SKILL.md. " +
-        "See skill-architecture references/post-execution-reflection.md for the canonical template.",
+        "See skill-architecture for workflow (5-principle) and task-pattern (3-check) templates.",
     });
   } else {
     results.push({
@@ -629,60 +627,55 @@ function validateSelfEvolution(skillPath: string, content: string): ValidationRe
       severity: "info",
     });
 
-    // Check 2: Canonical template — all 5 principles must be present
-    const missingPrinciples = REFLECTION_PRINCIPLES.filter(
-      (principle) => !content.includes(principle)
-    );
+    // Check 2: Canonical 5-principle template (stepwise skills only)
+    // Task-pattern skills use a lighter 3-check template — don't enforce the 5 principles on them
+    if (isStepwise) {
+      const missingPrinciples = REFLECTION_PRINCIPLES.filter(
+        (principle) => !content.includes(principle)
+      );
 
-    if (missingPrinciples.length > 0) {
-      results.push({
-        check: "reflection_canonical_template",
-        passed: false,
-        message: `Post-Execution Reflection uses non-canonical template — missing: ${missingPrinciples.join(", ")}`,
-        severity: "warning",
-        fixSuggestion:
-          "Replace with the canonical 5-principle template (steps 0-4). " +
-          "No bespoke variants — see post-execution-reflection.md.",
-      });
-    } else {
-      results.push({
-        check: "reflection_canonical_template",
-        passed: true,
-        message: "Post-Execution Reflection uses canonical 5-principle template",
-        severity: "info",
-      });
+      if (missingPrinciples.length > 0) {
+        results.push({
+          check: "reflection_canonical_template",
+          passed: false,
+          message: `Stepwise skill reflection uses non-canonical template — missing: ${missingPrinciples.join(", ")}`,
+          severity: "warning",
+          fixSuggestion:
+            "Replace with the canonical 5-principle template (steps 0-4). " +
+            "See post-execution-reflection.md for the workflow template.",
+        });
+      } else {
+        results.push({
+          check: "reflection_canonical_template",
+          passed: true,
+          message: "Post-Execution Reflection uses canonical 5-principle template",
+          severity: "info",
+        });
+      }
     }
   }
 
-  // Check 3: evolution-log.md existence
-  const hasEvolutionLog = existsSync(join(skillPath, "references", "evolution-log.md"));
+  // Check 3: evolution-log.md existence (stepwise skills only — task-pattern skills don't need it)
+  if (isStepwise) {
+    const hasEvolutionLog = existsSync(join(skillPath, "references", "evolution-log.md"));
 
-  if (hasReflectionSection && !hasEvolutionLog) {
-    results.push({
-      check: "evolution_log_exists",
-      passed: false,
-      message: "Post-Execution Reflection references evolution-log.md but file not found",
-      severity: "warning",
-      fixSuggestion:
-        "Create references/evolution-log.md (reverse chronological change history). " +
-        "See skill-architecture Template D for the format.",
-    });
-  } else if (isStepwise && !hasEvolutionLog) {
-    results.push({
-      check: "evolution_log_exists",
-      passed: false,
-      message: "Stepwise skill missing references/evolution-log.md for tracking empirical changes",
-      severity: "warning",
-      fixSuggestion:
-        "Create references/evolution-log.md to track changes discovered through execution.",
-    });
-  } else if (hasEvolutionLog) {
-    results.push({
-      check: "evolution_log_exists",
-      passed: true,
-      message: "evolution-log.md present",
-      severity: "info",
-    });
+    if (!hasEvolutionLog) {
+      results.push({
+        check: "evolution_log_exists",
+        passed: false,
+        message: "Stepwise skill missing references/evolution-log.md for tracking empirical changes",
+        severity: "warning",
+        fixSuggestion:
+          "Create references/evolution-log.md to track changes discovered through execution.",
+      });
+    } else {
+      results.push({
+        check: "evolution_log_exists",
+        passed: true,
+        message: "evolution-log.md present",
+        severity: "info",
+      });
+    }
   }
 
   return results;

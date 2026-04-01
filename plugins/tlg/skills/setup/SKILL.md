@@ -37,13 +37,15 @@ VERIFY_EOF
 Each profile requires a one-time interactive auth. The user must run directly:
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}"
+/usr/bin/env bash << 'AUTH_EOF'
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/send.py"
 
 # Auth eon profile
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p eon whoami
+uv run --python 3.13 "$SCRIPT" -p eon whoami
 
 # Auth personal profile
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p personal whoami
+uv run --python 3.13 "$SCRIPT" -p personal whoami
+AUTH_EOF
 ```
 
 Prompts for:
@@ -55,9 +57,11 @@ Prompts for:
 ### Step 3: Verify
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}"
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p eon whoami
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p personal whoami
+/usr/bin/env bash << 'VERIFY_EOF'
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/send.py"
+uv run --python 3.13 "$SCRIPT" -p eon whoami
+uv run --python 3.13 "$SCRIPT" -p personal whoami
+VERIFY_EOF
 ```
 
 ## Session Management
@@ -87,3 +91,13 @@ PROFILES: dict[str, str] = {
 ```
 
 Then store API credentials in 1Password vault `Claude Automation` with fields `App ID` and `App API Hash`.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If send.py's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.
