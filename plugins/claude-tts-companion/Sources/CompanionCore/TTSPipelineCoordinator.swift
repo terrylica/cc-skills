@@ -344,10 +344,23 @@ public final class TTSPipelineCoordinator {
             // Paragraph scope: single page with ALL words (panel auto-sizes).
             let chunk = chunks[0]
             let words: [String]
+            var onsets = chunk.wordOnsets
             if let kokoroWords = chunk.wordTexts, !kokoroWords.isEmpty {
                 words = PronunciationProcessor.reattachPunctuation(
                     originalText: chunk.text, kokoroTokens: kokoroWords
                 )
+                // Pad onsets for trailing words appended by reattachPunctuation
+                if let existingOnsets = onsets, words.count > existingOnsets.count {
+                    var padded = existingOnsets
+                    let lastOnset = existingOnsets.last ?? 0
+                    let avgGap: TimeInterval = existingOnsets.count >= 2
+                        ? (existingOnsets.last! - existingOnsets.first!) / Double(existingOnsets.count - 1)
+                        : 0.4
+                    for i in 0..<(words.count - existingOnsets.count) {
+                        padded.append(lastOnset + avgGap * Double(i + 1))
+                    }
+                    onsets = padded
+                }
                 logger.info("Streaming chunk: Kokoro-aligned words with punctuation (\(words.count) words)")
             } else {
                 words = PronunciationProcessor.splitWordsMatchingKokoro(chunk.text)
@@ -360,7 +373,7 @@ public final class TTSPipelineCoordinator {
                 samples: chunk.samples,
                 pages: pages,
                 wordTimings: chunk.wordTimings,
-                nativeOnsets: chunk.wordOnsets,
+                nativeOnsets: onsets,
                 edgeHint: edgeHint
             )
         } else {
@@ -397,13 +410,26 @@ public final class TTSPipelineCoordinator {
                 allWords = PronunciationProcessor.splitWordsMatchingKokoro(fullText)
                 logger.info("Streaming chunk: fallback merged splitWordsMatchingKokoro (\(allWords.count) words)")
             }
+            // Pad onsets for trailing words appended by reattachPunctuation
+            var finalOnsets: [TimeInterval]? = allWordOnsets.isEmpty ? nil : allWordOnsets
+            if let existingOnsets = finalOnsets, allWords.count > existingOnsets.count {
+                var padded = existingOnsets
+                let lastOnset = existingOnsets.last ?? 0
+                let avgGap: TimeInterval = existingOnsets.count >= 2
+                    ? (existingOnsets.last! - existingOnsets.first!) / Double(existingOnsets.count - 1)
+                    : 0.4
+                for i in 0..<(allWords.count - existingOnsets.count) {
+                    padded.append(lastOnset + avgGap * Double(i + 1))
+                }
+                finalOnsets = padded
+            }
             let pages = [SubtitlePage(words: allWords, startWordIndex: 0)]
             driver.addChunk(
                 wavPath: chunks.first?.wavPath ?? "",
                 samples: allSamples.isEmpty ? nil : allSamples,
                 pages: pages,
                 wordTimings: allWordTimings,
-                nativeOnsets: allWordOnsets.isEmpty ? nil : allWordOnsets,
+                nativeOnsets: finalOnsets,
                 edgeHint: edgeHint
             )
         }
