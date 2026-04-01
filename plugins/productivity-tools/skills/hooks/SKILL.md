@@ -13,6 +13,8 @@ Manage productivity-tools hook installation in `~/.claude/settings.json`.
 
 The calendar-reminder-sync hook validates sound alarm compliance on Calendar event creation and auto-creates paired Reminders.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Actions
 
 | Action      | Description                                        |

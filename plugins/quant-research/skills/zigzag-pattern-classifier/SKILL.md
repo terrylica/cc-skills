@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Glob
 
 Complete taxonomy for classifying ZigZag swing patterns by structure and market regime. Every confirmed ZigZag sequence maps to exactly one variant — no gaps, no overlaps.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use
 
 - Classifying a confirmed L₀→H₁→L₂ (two-pivot) or L₀→H₁→L₂→H₃ (three-pivot) swing

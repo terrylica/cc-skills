@@ -10,6 +10,8 @@ disable-model-invocation: true
 
 Manage Claude Code hooks for asciinema-tools automation.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Arguments
 
 | Argument            | Description                     |

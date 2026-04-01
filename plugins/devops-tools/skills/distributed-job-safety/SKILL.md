@@ -14,6 +14,8 @@ Patterns and anti-patterns for concurrent job management with pueue + mise + sys
 
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## The Nine Invariants
 
 Non-negotiable rules for concurrent job safety. Violating any one causes silent data corruption or job failure.

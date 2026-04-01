@@ -9,6 +9,8 @@ disable-model-invocation: true
 
 One-time setup to authenticate personal Telegram accounts via MTProto.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Prerequisites
 
 - 1Password CLI installed: `op --version`

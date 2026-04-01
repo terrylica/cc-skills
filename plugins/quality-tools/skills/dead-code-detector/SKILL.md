@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Bash, Edit, Write
 
 Find and remove unused code across Python, TypeScript, and Rust codebases.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Tools by Language
 
 | Language   | Tool                                                      | Detects                                       |

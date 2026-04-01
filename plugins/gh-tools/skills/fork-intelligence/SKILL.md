@@ -10,6 +10,8 @@ Systematic methodology for discovering valuable work in GitHub fork ecosystems. 
 
 Validated empirically across 10 repositories spanning Python, Rust, TypeScript, C++/Python, and Node.js (tensortrade, backtesting.py, kokoro, pymoo, firecrawl, barter-rs, pueue, dukascopy-node, ArcticDB, flowsurface).
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## FIRST — TodoWrite Task Templates
 
 **MANDATORY**: Select and load the appropriate template before any fork analysis.

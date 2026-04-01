@@ -10,6 +10,8 @@ model: haiku
 
 Check comprehensive asciinema status including daemon, running processes, and unhandled .cast files.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Execution
 
 ### Collect Status Information

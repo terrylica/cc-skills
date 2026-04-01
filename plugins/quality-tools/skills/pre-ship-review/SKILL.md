@@ -10,6 +10,8 @@ Structured quality review before shipping code at any checkpoint: PRs, releases,
 
 > **Core thesis**: AI-generated code excels at isolated components but fails systematically at boundaries between components. This skill systematically checks those boundaries.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use before any significant code shipment:

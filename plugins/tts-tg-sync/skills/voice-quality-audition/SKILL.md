@@ -12,6 +12,8 @@ Compare Kokoro TTS voice quality across all available voices. Runs `tts_kokoro_a
 
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 - Audition all available Kokoro voices to hear quality differences

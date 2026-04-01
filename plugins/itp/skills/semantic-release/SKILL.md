@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 # semantic-release
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Overview
 
 Automate semantic versioning and release management using **semantic-release v25+ (Node.js)** following 2025 best practices. Works with **all languages** (JavaScript, TypeScript, Python, Rust, Go, C++, etc.) via the `@semantic-release/exec` plugin. Create shareable configurations for multi-repository setups, initialize individual projects with automated releases, and configure GitHub Actions workflows with OIDC trusted publishing.

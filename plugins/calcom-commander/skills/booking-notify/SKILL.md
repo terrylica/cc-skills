@@ -13,6 +13,8 @@ Automated booking notifications via two channels:
 | Telegram | Scheduled | HTML       | Interactive commands, daily digest, search |
 | Pushover | Real-time | Plain text | Emergency alerts with custom sound (dune)  |
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Mandatory Preflight
 
 ### Step 1: Check Sync Script Exists

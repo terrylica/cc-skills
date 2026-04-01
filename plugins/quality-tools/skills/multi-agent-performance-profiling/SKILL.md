@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, Write, Glob, Grep
 
 # Multi-Agent Performance Profiling
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Overview
 
 Prescriptive workflow for spawning parallel profiling agents to comprehensively identify performance bottlenecks across multiple system layers. Successfully discovered that QuestDB ingests at 1.1M rows/sec (11x faster than target), proving database was NOT the bottleneck - CloudFront download was 90% of pipeline time.

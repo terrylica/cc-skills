@@ -9,6 +9,8 @@ allowed-tools: Read, Bash, Grep, Glob, Write
 **Default**: Use GitHub Issues exclusively for all content, hierarchy, and tracking.
 **Optional**: Link to Projects v2 for cross-repo visualization only.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Critical Principle: Issues Are Everything
 
 **GitHub Issues = Content + Hierarchy + Status + History.**

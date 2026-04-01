@@ -13,6 +13,8 @@ Forbidden items are blocked from opportunity discovery.
 
 **Runtime configurable**: Works with or without active loop. Changes apply on next iteration.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Usage
 
 - `/ru:forbid documentation updates` - Add "documentation updates" to forbidden list

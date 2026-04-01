@@ -12,6 +12,8 @@ Generate DBeaver database client configurations from Pydantic v2 models using mi
 
 **Schema documentation principle**: ClickHouse table/column COMMENTs are the SSoT for what each column means and how it's computed. See `quality-tools:clickhouse-architect` for the full COMMENT policy.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## When to Use This Skill
 
 Use this skill when:

@@ -12,6 +12,8 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 
 ---
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## FIRST — TodoWrite Task Templates
 
 **MANDATORY**: Select and load the appropriate template before any research work.

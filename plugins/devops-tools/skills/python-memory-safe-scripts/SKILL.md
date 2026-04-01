@@ -20,6 +20,8 @@ Battle-tested patterns for keeping Python scripts alive under systemd `MemoryMax
 
 **Core insight**: Python's garbage collector frees objects, but the C allocator (glibc ptmalloc2) does NOT return freed pages to the OS. Without explicit `malloc_trim(0)`, RSS only grows — even after `del` and `gc.collect()`. mimalloc with `MIMALLOC_PURGE_DELAY` helps but explicit purge is faster.
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## The 7 Patterns
 
 ### 1. Cached Allocator Purge
