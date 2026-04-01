@@ -300,18 +300,6 @@ Use Earthly as canonical pipeline: non-blocking, observability-first, ensure Git
 - [ ] If feature branch: PR created, Phase 3 skipped
 
 
-## Post-Execution Reflection
-
-After this skill completes, reflect before closing the task:
-
-0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
-1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
-2. **What worked better than expected?** — Promote it to recommended practice. Document why.
-3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
-4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
-
-Do NOT defer. The next invocation inherits whatever you leave behind.
-
 ---
 ## Troubleshooting
 
@@ -324,3 +312,15 @@ Do NOT defer. The next invocation inherits whatever you leave behind.
 | semantic-release fails | No GITHUB_TOKEN              | Check token with `echo $GITHUB_TOKEN`        |
 | Diagram missing        | graph-easy not invoked       | Run Skill(itp:adr-graph-easy-architect)      |
 | Spec validation fails  | Missing frontmatter fields   | Check required fields in Quick Reference     |
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
+1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
+2. **What worked better than expected?** — Promote it to recommended practice. Document why.
+3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
+4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

@@ -212,6 +212,10 @@ Execute ONLY the skills for components the user selected:
 - [ ] GitHub release published
 
 
+## Troubleshooting
+
+See [Troubleshooting Reference](./references/troubleshooting.md) for common issues and fixes.
+
 ## Post-Execution Reflection
 
 After this skill completes, reflect before closing the task:
@@ -226,7 +230,3 @@ Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
 ---
-
-## Troubleshooting
-
-See [Troubleshooting Reference](./references/troubleshooting.md) for common issues and fixes.

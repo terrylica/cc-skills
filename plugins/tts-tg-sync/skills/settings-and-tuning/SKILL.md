@@ -107,21 +107,6 @@ After modifying this skill:
 4. [ ] Update `references/evolution-log.md` with change description
 
 
-## Post-Execution Reflection
-
-After this skill completes, reflect before closing the task:
-
-0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
-1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
-2. **What worked better than expected?** — Promote it to recommended practice. Document why.
-3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
-4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
-
-Do NOT defer. The next invocation inherits whatever you leave behind.
-
----
----
-
 ## Troubleshooting
 
 | Issue                      | Cause                            | Solution                                               |
@@ -140,3 +125,18 @@ Do NOT defer. The next invocation inherits whatever you leave behind.
 - [Config Reference](./references/config-reference.md) - Full reference table with all env vars, defaults, valid ranges, and component ownership
 - [mise.toml Reference](./references/mise-toml-reference.md) - Hub/spoke mise architecture, secret loading, and task file structure
 - [Evolution Log](./references/evolution-log.md) - Change history for this skill
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
+1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
+2. **What worked better than expected?** — Promote it to recommended practice. Document why.
+3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
+4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
+
+---
+---
