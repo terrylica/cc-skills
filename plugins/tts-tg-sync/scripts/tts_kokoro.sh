@@ -108,7 +108,7 @@ for para in raw_paragraphs:
         stripped = line.strip()
         if not stripped:
             continue
-        if re.match(r"^\d+[\.\)]\s", stripped) or re.match(r"^[-*•]\s", stripped) or re.match(r"^#+\s", stripped):
+        if re.match(r"^\d+[\.\)]\s", stripped) or re.match(r"^[-*•·]\s", stripped) or re.match(r"^#+\s", stripped):
             if buf:
                 merged.append(buf)
                 buf = ""
