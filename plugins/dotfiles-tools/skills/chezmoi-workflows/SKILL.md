@@ -306,3 +306,14 @@ chezmoi doctor | grep -v "^ok"         # Show only warnings and errors
 | Secrets detected   | Plain text credentials     | Use chezmoi templates with 1Password/Doppler   |
 | forget needs TTY   | Interactive confirmation   | Use `chezmoi forget --force <path>`            |
 | Template not found | Missing `.tmpl` suffix     | Use `chezmoi add --template` to create `.tmpl` |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

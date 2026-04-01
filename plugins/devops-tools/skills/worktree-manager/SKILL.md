@@ -452,3 +452,16 @@ The `default-layout.py` script auto-discovers worktrees:
 | iTerm2 tab not appearing  | Dynamic layout not refreshed   | Restart iTerm2 to trigger layout regeneration   |
 | Main worktree not on main | Previous work not switched     | Run `git checkout main` in main worktree first  |
 | Stale worktree detected   | Branch merged but not cleaned  | Run `git worktree remove <path>` to cleanup     |
+
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

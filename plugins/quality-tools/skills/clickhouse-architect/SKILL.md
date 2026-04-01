@@ -405,3 +405,14 @@ Source: scripts/populate-sessions/populate_v3.py';
 | Dictionary stale             | Lifetime expired               | Increase LIFETIME or trigger refresh             |
 | Replication lag              | Part merges falling behind     | Check merge_tree settings, add resources         |
 | INSERT too slow              | Small batch sizes              | Batch to 10k-100k rows per INSERT                |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

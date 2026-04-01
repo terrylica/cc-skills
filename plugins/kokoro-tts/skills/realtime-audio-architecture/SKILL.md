@@ -309,3 +309,14 @@ If audio goes to wrong device:
 ## See Also
 
 - **`devops-tools:macbook-desktop-mode`** — Complementary skill covering USB device _resilience_ (sleep/wake recovery, uhubctl port cycling, battery longevity, pmset desktop configuration). This skill handles the application/playback layer; that one handles the system/USB layer.
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

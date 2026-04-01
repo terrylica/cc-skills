@@ -185,3 +185,16 @@ ls -lt ~/.claude/projects/*/*.jsonl 2>/dev/null | head -20
 | `MINIMAX_API_KEY not found`    | Missing secrets file            | Check `~/.claude/.secrets/ccterrybot-telegram`         |
 | `context window exceeds`       | Single session too large        | Use `--dry --verbose` to check size; try `--no-chain`  |
 | Goal 1 produces multiple parts | Sessions exceeded single budget | Expected behavior — multiple chunks = maximum coverage |
+
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

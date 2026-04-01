@@ -162,3 +162,14 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 | Whispers slow scan       | Large directories           | Exclude via `.gitignore`; whispers config auto-generated from it         |
 | Whispers zero findings   | No config files in scope    | Whispers targets YAML/JSON/Docker/INI; use on project root, not src/     |
 | Severity filter empty    | No findings at that level   | Use `--severity all` to see all findings                                 |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

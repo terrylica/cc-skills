@@ -173,3 +173,14 @@ The `exchange_calendars` library is ~10MB installed and has no heavy dependencie
 Validated implementation: `~/eon/exness-data-preprocess/src/exness_data_preprocess/session_detector.py` + `exchanges.py`
 
 Simplified predecessor: `~/eon/opendeviationbar/python/opendeviationbar/ouroboros.py` (Tier 1 only)
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

@@ -174,3 +174,14 @@ See [migration-from-cli.md](./references/migration-from-cli.md) for detailed map
 | Run creation fails      | Experiment doesn't exist     | Use `create_experiment.py` to create first          |
 | Metric history empty    | Wrong run_id or metric name  | Verify run_id with `query_experiments.py runs`      |
 | Returns CSV parse error | Wrong date format or columns | Check CSV has date index and returns column         |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.
