@@ -2,20 +2,20 @@
 name: agent-reach
 description: >
   Give your AI agent eyes to see the entire internet.
-  Search and read 15+ platforms: Twitter/X, Reddit, YouTube, GitHub, Bilibili,
-  XiaoHongShu, Douyin, Weibo, WeChat Articles, Xiaoyuzhou Podcast, LinkedIn,
-  V2EX, RSS, Exa web search, and any web page.
+  17 platforms via CLI, MCP, curl, and Python scripts.
+  Zero config for 8 channels.
+  Route by intent: search / social (小红书/抖音/微博/推特/B站/V2EX/Reddit) / career (LinkedIn) / dev (GitHub) / web (网页/文章/公众号/RSS) / video (YouTube/B站/播客).
   Use when user asks to search, read, or interact on any supported platform,
   shares a URL from a supported site, or asks to search the web.
   Triggers: "search twitter", "youtube transcript", "search reddit", "read this link",
   "bilibili", "web search", "research this", "search weibo", "wechat article",
-  "xiaohongshu", "douyin", "podcast transcript", "V2EX", "RSS feed".
+  "xiaohongshu", "douyin", "podcast transcript", "V2EX", "RSS feed", "xueqiu", "stock".
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
-# Agent Reach
+# Agent Reach — Router
 
-Search and read 15+ internet platforms from the CLI. Zero API fees for most channels.
+17 platform toolset. Route by user intent to the matching category reference.
 
 **Upstream**: [Panniantong/Agent-Reach](https://github.com/Panniantong/Agent-Reach)
 
@@ -78,139 +78,51 @@ echo "Preflight passed."
 
 If the version check fails (no network, GitHub rate-limited), it silently continues with the installed version. Updates are best-effort, never blocking.
 
-## Platform Commands
+## Routing Table
 
-Run `agent-reach doctor` to see which channels are active on your machine.
+| User Intent                           | Category | Reference                                    |
+| ------------------------------------- | -------- | -------------------------------------------- |
+| Web search / code search              | search   | [references/search.md](references/search.md) |
+| 小红书/抖音/微博/推特/B站/V2EX/Reddit | social   | [references/social.md](references/social.md) |
+| Jobs / LinkedIn                       | career   | [references/career.md](references/career.md) |
+| GitHub / code                         | dev      | [references/dev.md](references/dev.md)       |
+| Web pages / articles / 公众号 / RSS   | web      | [references/web.md](references/web.md)       |
+| YouTube / Bilibili / podcasts         | video    | [references/video.md](references/video.md)   |
 
-### Web — Any URL
+## Zero-Config Quick Commands
 
 ```bash
-curl -s "https://r.jina.ai/URL"
-```
-
-### Web Search (Exa)
-
-```bash
+# Exa web search
 mcporter call 'exa.web_search_exa(query: "query", numResults: 5)'
-mcporter call 'exa.get_code_context_exa(query: "code question", tokensNum: 3000)'
-```
 
-### Twitter/X (xreach)
+# Read any web page
+curl -s "https://r.jina.ai/URL"
 
-```bash
-xreach search "query" -n 10 --json          # search
-xreach tweet URL_OR_ID --json                # read tweet
-xreach tweets @username -n 20 --json         # user timeline
-xreach thread URL_OR_ID --json               # full thread
-```
-
-### YouTube (yt-dlp)
-
-```bash
-yt-dlp --dump-json "URL"                     # video metadata
-yt-dlp --write-sub --write-auto-sub --sub-lang "zh-Hans,zh,en" --skip-download -o "/tmp/%(id)s" "URL"
-                                             # download subtitles
-yt-dlp --dump-json "ytsearch5:query"         # search
-```
-
-### Bilibili (yt-dlp)
-
-```bash
-yt-dlp --dump-json "https://www.bilibili.com/video/BVxxx"
-yt-dlp --write-sub --write-auto-sub --sub-lang "zh-Hans,zh,en" --convert-subs vtt --skip-download -o "/tmp/%(id)s" "URL"
-```
-
-> Server IPs may get 412. Use `--cookies-from-browser chrome` or configure proxy.
-
-### Reddit
-
-```bash
-curl -s "https://www.reddit.com/r/SUBREDDIT/hot.json?limit=10" -H "User-Agent: agent-reach/1.0"
-curl -s "https://www.reddit.com/search.json?q=QUERY&limit=10" -H "User-Agent: agent-reach/1.0"
-```
-
-> Server IPs may get 403. Search via Exa instead, or configure proxy.
-
-### GitHub (gh CLI)
-
-```bash
+# GitHub search
 gh search repos "query" --sort stars --limit 10
-gh repo view owner/repo
-gh search code "query" --language python
-gh issue list -R owner/repo --state open
-```
 
-### XiaoHongShu (mcporter)
+# Twitter search
+twitter search "query" --limit 10
 
-```bash
-mcporter call 'xiaohongshu.search_feeds(keyword: "query")'
-mcporter call 'xiaohongshu.get_feed_detail(feed_id: "xxx", xsec_token: "yyy")'
-```
+# YouTube / Bilibili subtitles
+yt-dlp --write-sub --skip-download -o "/tmp/%(id)s" "URL"
 
-> Requires Docker + cookies. See [setup reference](./references/setup-channels.md).
+# Reddit search + read
+rdt search "query" --limit 10
+rdt read POST_ID
 
-### Douyin (mcporter)
-
-```bash
-mcporter call 'douyin.parse_douyin_video_info(share_link: "https://v.douyin.com/xxx/")'
-mcporter call 'douyin.get_douyin_download_link(share_link: "https://v.douyin.com/xxx/")'
-```
-
-### WeChat Articles
-
-**Search** (miku_ai):
-
-```bash
-python3 -c "
-import asyncio
-from miku_ai import get_wexin_article
-async def s():
-    for a in await get_wexin_article('query', 5):
-        print(f'{a[\"title\"]} | {a[\"url\"]}')
-asyncio.run(s())
-"
-```
-
-**Read** (Camoufox — bypasses WeChat anti-bot):
-
-```bash
-cd ~/.agent-reach/tools/wechat-article-for-ai && python3 main.py "https://mp.weixin.qq.com/s/ARTICLE_ID"
-```
-
-> WeChat articles cannot be read with Jina Reader or curl. Must use Camoufox.
-
-### Xiaoyuzhou Podcast
-
-```bash
-~/.agent-reach/tools/xiaoyuzhou/transcribe.sh "https://www.xiaoyuzhoufm.com/episode/EPISODE_ID"
-```
-
-> Requires ffmpeg + Groq API Key (free). Configure: `agent-reach configure groq-key YOUR_KEY`
-
-### LinkedIn (mcporter)
-
-```bash
-mcporter call 'linkedin.get_person_profile(linkedin_url: "https://linkedin.com/in/username")'
-mcporter call 'linkedin.search_people(keyword: "AI engineer", limit: 10)'
-```
-
-Fallback: `curl -s "https://r.jina.ai/https://linkedin.com/in/username"`
-
-### V2EX (public API)
-
-```bash
+# V2EX hot topics
 curl -s "https://www.v2ex.com/api/topics/hot.json" -H "User-Agent: agent-reach/1.0"
-curl -s "https://www.v2ex.com/api/topics/show.json?node_name=python&page=1" -H "User-Agent: agent-reach/1.0"
 ```
 
-### RSS
+## Environment Check
 
 ```bash
-python3 -c "
-import feedparser
-for e in feedparser.parse('FEED_URL').entries[:5]:
-    print(f'{e.title} — {e.link}')
-"
+# Check available channels
+agent-reach doctor
+
+# List all MCP services
+mcporter_list_servers()
 ```
 
 ## Configuration
@@ -223,16 +135,17 @@ agent-reach configure xhs-cookies "key1=val1; key2=val2" # XiaoHongShu
 agent-reach configure --from-browser chrome              # Auto-extract all cookies
 ```
 
-## Troubleshooting
-
-- **Channel not working?** Run `agent-reach doctor`
-- **Update manually:** `pipx upgrade agent-reach && agent-reach install --env=auto`
-- **Full reinstall:** `pipx reinstall agent-reach && agent-reach install --env=auto`
+For channel-specific setup details, see [references/setup-channels.md](references/setup-channels.md).
 
 ## Workspace Rules
 
 **Never create files in the agent workspace.** Use `/tmp/` for temporary output and `~/.agent-reach/` for persistent data.
 
+## Troubleshooting
+
+- **Channel not working?** Run `agent-reach doctor`
+- **Update manually:** `pipx upgrade agent-reach && agent-reach install --env=auto`
+- **Full reinstall:** `pipx reinstall agent-reach && agent-reach install --env=auto`
 
 ## Post-Execution Reflection
 
