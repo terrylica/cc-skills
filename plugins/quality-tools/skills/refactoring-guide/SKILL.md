@@ -114,3 +114,14 @@ Read when refactoring Rust codebases. Covers visibility as architecture, public 
 ### Swift/macOS-Specific (`references/swift-macos-specific.md`)
 
 Read when refactoring Swift codebases on macOS. Covers access control as architecture (`package` modifier), explicit import visibility (SE-0409), target/framework boundary selection, macro isolation, and API governance tooling.
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

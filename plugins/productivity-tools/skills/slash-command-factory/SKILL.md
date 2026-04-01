@@ -192,3 +192,14 @@ Create a custom command for analyzing customer feedback
 Works with: factory-guide, skills-guide, prompts-guide, agents-guide
 
 More examples and integration details: [Usage Examples](./references/usage-examples.md)
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

@@ -351,3 +351,14 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
 | UUID chain broken         | Session compacted           | Check related sessions for continuation             |
 | GitHub username missing   | Attribution not set         | Always require github_username in registry entry    |
 | Registry entry invalid    | Missing required fields     | Verify id, type, created_at, session_contexts exist |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

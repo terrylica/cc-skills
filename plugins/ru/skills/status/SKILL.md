@@ -65,3 +65,14 @@ cat .claude/ru-state.json 2>/dev/null | jq -r '.state' || echo "not started"
 | State: unknown   | Corrupted state file   | Delete `.claude/ru-state.json`    |
 | No configuration | Config file missing    | Run `/ru:wizard` for guided setup |
 | jq not found     | jq not installed       | `brew install jq`                 |
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

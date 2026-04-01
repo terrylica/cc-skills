@@ -167,3 +167,16 @@ bash scripts/claude-code-migrate.sh --help
 | `.envrc` not allowed          | **Warned** (Phase 8) | `direnv allow`                         |
 | Git push auth fails           | No                   | Update credential helper or remote URL |
 | Session subdirs missing       | No                   | Use `--rollback`, retry                |
+
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

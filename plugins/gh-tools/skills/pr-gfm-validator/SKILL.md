@@ -275,3 +275,16 @@ After modifying this skill:
 | Anchor links broken      | Incorrectly included in scan   | Skip links starting with `#`                      |
 | Wrong repo detected      | Remote not set correctly       | Check `git remote -v` output                      |
 | Conversion duplicated    | Running validator twice        | Check if links already absolute before converting |
+
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

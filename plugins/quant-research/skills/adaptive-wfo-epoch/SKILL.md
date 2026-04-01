@@ -267,3 +267,14 @@ See [references/look-ahead-bias-v3.md](./references/look-ahead-bias-v3.md) for t
 - López de Prado, M. (2018). _Advances in Financial Machine Learning_. Wiley. Chapter 7.
 - Nomura, M., & Ono, I. (2021). Warm Starting CMA-ES for Hyperparameter Optimization. _AAAI Conference on Artificial Intelligence_.
 - Pardo, R. E. (2008). _The Evaluation and Optimization of Trading Strategies, 2nd Edition_. John Wiley & Sons.
+
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If the underlying tool's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

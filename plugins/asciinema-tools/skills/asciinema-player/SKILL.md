@@ -362,3 +362,16 @@ After modifying this skill:
 - [asciinema CLI Options](https://man.archlinux.org/man/extra/asciinema/asciinema-play.1.en)
 - [iTerm2 AppleScript Documentation](https://iterm2.com/documentation-scripting.html)
 - [asciinema Markers](https://docs.asciinema.org/manual/cli/markers/)
+
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
