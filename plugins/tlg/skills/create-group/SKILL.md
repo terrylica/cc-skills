@@ -49,3 +49,13 @@ EOF
 | `group`      | ~200 max  | Two-way               | Small teams       |
 | `supergroup` | 200K max  | Two-way + admin tools | Large communities |
 | `channel`    | Unlimited | One-way (admins only) | Broadcasts        |
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If send.py's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.

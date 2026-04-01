@@ -1,6 +1,6 @@
 ---
 name: send-message
-description: "Send Telegram message as your personal account via MTProto. Use when user wants to send a message on Telegram, text someone on Telegram, or message a Telegram contact. TRIGGERS - telegram send, send telegram, text on telegram, message telegram, telegram message"
+description: "Use when user wants to send a text message on Telegram as their personal account via MTProto, text someone, or message a contact by username, phone, or chat ID."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
@@ -20,16 +20,16 @@ Before sending, verify:
 
 ```bash
 /usr/bin/env bash << 'SEND_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/send.py"
 
 # Default profile (eon)
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" send @username "Hello"
+uv run --python 3.13 "$SCRIPT" send @username "Hello"
 
 # By chat ID
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" send 2124832490 "Hello"
+uv run --python 3.13 "$SCRIPT" send 2124832490 "Hello"
 
 # Specific profile
-uv run --python 3.13 "$PLUGIN_DIR/scripts/send.py" -p personal send @username "Hello"
+uv run --python 3.13 "$SCRIPT" -p personal send @username "Hello"
 SEND_EOF
 ```
 
@@ -55,3 +55,13 @@ SEND_EOF
 | `Unknown profile`         | Invalid `-p` value  | Use `eon` or `personal`    |
 | `Cannot find any entity`  | Bad username/ID     | Verify with `dialogs` command |
 | `message cannot be empty` | Empty string passed | Provide message text          |
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
+2. **Did parameters or output change?** — If send.py's interface drifted, update Usage examples and Parameters table to match.
+3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+
+Only update if the issue is real and reproducible — not speculative.
