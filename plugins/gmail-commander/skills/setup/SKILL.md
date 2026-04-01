@@ -2,7 +2,7 @@
 name: setup
 description: "Full Gmail Commander setup wizard - Gmail OAuth, Telegram bot, launchd services. Discovers 1Password items, configures mise environment, installs launchd plists. TRIGGERS - gmail setup, email bot setup, gmail install, gmail oauth configure."
 allowed-tools: Bash, Read, Write, AskUserQuestion, Edit
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Gmail Commander Setup

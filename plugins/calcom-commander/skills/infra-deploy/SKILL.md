@@ -2,7 +2,7 @@
 name: infra-deploy
 description: Cal.com self-hosted deployment to GCP Cloud Run with Supabase PostgreSQL. Docker Compose for local dev. TRIGGERS - deploy calcom, cloud run, self-hosted, docker compose, supabase, gcp deploy, infrastructure, cal.com hosting.
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Infrastructure Deployment

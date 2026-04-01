@@ -2,7 +2,7 @@
 name: semantic-release
 description: Automate versioning with Node.js semantic-release v25+. TRIGGERS - npm run release, version bump, changelog, conventional commits, release automation.
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # semantic-release

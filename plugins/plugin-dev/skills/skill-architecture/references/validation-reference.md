@@ -32,7 +32,8 @@ Before finalizing:
 - [ ] Markdown formatting: No manual section numbering (use `--number-sections` for PDFs)
 - [ ] At least one concrete example
 - [ ] Classify as **reference** (inline knowledge) or **task** (side-effect action):
-  - Task skills (deploy, commit, send): `disable-model-invocation: true`
+  - `disable-model-invocation: true` ONLY for hook-installation skills (`skills/hooks/`)
+  - All other skills: `disable-model-invocation: false` (or omit — default is `false`)
   - Background knowledge skills: `user-invocable: false`
 - [ ] If using `context: fork`, skill has explicit actionable instructions (not guidelines-only)
 - [ ] If skill requires external tools (git, docker, jq), add `compatibility` field

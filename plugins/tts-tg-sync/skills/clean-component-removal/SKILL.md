@@ -2,7 +2,7 @@
 name: clean-component-removal
 description: Remove TTS and Telegram sync components cleanly. TRIGGERS - uninstall tts, remove telegram bot, uninstall kokoro, clean tts, teardown, component removal.
 allowed-tools: Read, Bash, Glob, AskUserQuestion
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Clean Component Removal

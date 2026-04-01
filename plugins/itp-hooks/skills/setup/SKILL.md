@@ -4,7 +4,7 @@ description: "Check and install dependencies for itp-hooks (silent failure detec
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[--install|--check]"
 model: haiku
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # ITP Hooks Setup

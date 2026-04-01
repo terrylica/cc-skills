@@ -4,7 +4,7 @@ description: Start the asciinema chunker daemon. TRIGGERS - start daemon, resume
 allowed-tools: Bash
 argument-hint: ""
 model: haiku
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # /asciinema-tools:daemon-start

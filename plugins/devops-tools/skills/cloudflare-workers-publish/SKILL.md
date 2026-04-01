@@ -1,7 +1,7 @@
 ---
 name: cloudflare-workers-publish
 description: Deploy static HTML files to Cloudflare Workers with 1Password credential management. TRIGGERS - Cloudflare Workers deploy, publish static site, wrangler deploy, static hosting, cloudflare publish, CF Workers, HTML hosting, workers.dev, static assets deploy
-disable-model-invocation: true
+disable-model-invocation: false
 allowed-tools: Read, Bash, Grep, Write, Edit, Glob, AskUserQuestion
 ---
 
