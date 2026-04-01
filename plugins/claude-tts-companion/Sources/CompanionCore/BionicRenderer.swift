@@ -37,8 +37,12 @@ public enum BionicRenderer {
         let boldFont = SubtitleStyle.dynamicCurrentWordFont(fontSizeName)
         let regularFont = SubtitleStyle.dynamicRegularFont(fontSizeName)
         let goldColor = SubtitleStyle.currentWordColor
-        let spokenColor = SubtitleStyle.futureWordColor  // white for already-spoken
-        let futureColor = SubtitleStyle.futureWordColor
+        // Bionic contrast: bold prefix is full white, regular suffix is 50% opacity.
+        // This works even when the monospace Nerd Font lacks a true regular weight,
+        // because the visual distinction comes from color, not font weight.
+        let suffixAlpha: CGFloat = 0.5
+        let spokenColor = NSColor.white
+        let futureColor = NSColor.white
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
@@ -54,15 +58,20 @@ public enum BionicRenderer {
             }
 
             // Determine color based on position relative to highlight
-            let color: NSColor
+            let prefixColor: NSColor
+            let suffixColor: NSColor
             if highlightIndex < 0 {
-                color = futureColor  // static mode, all white
+                prefixColor = futureColor
+                suffixColor = futureColor.withAlphaComponent(suffixAlpha)
             } else if index == highlightIndex {
-                color = goldColor    // current word: gold
+                prefixColor = goldColor
+                suffixColor = goldColor.withAlphaComponent(suffixAlpha)
             } else if index < highlightIndex {
-                color = spokenColor  // already spoken: white
+                prefixColor = spokenColor
+                suffixColor = spokenColor.withAlphaComponent(suffixAlpha)
             } else {
-                color = futureColor  // future: grey
+                prefixColor = futureColor
+                suffixColor = futureColor.withAlphaComponent(suffixAlpha)
             }
 
             let prefixLen = boldPrefixLength(word)
@@ -73,14 +82,14 @@ public enum BionicRenderer {
 
                 result.append(NSAttributedString(string: boldPart, attributes: [
                     .font: boldFont,
-                    .foregroundColor: color,
+                    .foregroundColor: prefixColor,
                     .paragraphStyle: paragraphStyle,
                 ]))
 
                 if !regularPart.isEmpty {
                     result.append(NSAttributedString(string: regularPart, attributes: [
                         .font: regularFont,
-                        .foregroundColor: color,
+                        .foregroundColor: suffixColor,
                         .paragraphStyle: paragraphStyle,
                     ]))
                 }
