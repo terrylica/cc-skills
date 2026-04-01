@@ -1,54 +1,123 @@
 ---
 name: run-full-release
-description: "Run the current repo's mise release pipeline with auto-scaffolding. Handles GitHub releases (mandatory), PyPI publishing (if Python), and crates.io (if Rust). TRIGGERS - mise release, full release, version bump, release automation, mise run release."
+description: "Run the current repo's mise release pipeline, or bootstrap one if missing. Use when user wants to release, version bump, publish a package, or set up release automation for a new repo. Detects ecosystem (Python/Rust/Node/mixed) and scaffolds individualized mise release tasks."
 allowed-tools: Read, Bash, Glob, Grep, Write, Edit, AskUserQuestion
 argument-hint: "[--dry] [--status]"
-model: haiku
 ---
 
 # /mise:run-full-release
 
-Run the current repo's mise release pipeline end-to-end. Detects GitHub releases (mandatory), PyPI (optional), and crates.io (optional).
+Run the current repo's mise release pipeline — or bootstrap one if it doesn't exist yet.
 
-## Step 0: Pre-Release Sync
-
-```bash
-git pull origin main
-```
-
-## Step 1: Detect Release Tasks
+## Step 1: Detect Existing Release Tasks
 
 ```bash
 mise tasks ls 2>/dev/null | grep -i release
 ```
 
-If release tasks **NOT FOUND** → read [scaffolding-and-recovery.md](./references/scaffolding-and-recovery.md) and scaffold first.
+**If tasks exist** → skip to [Step 3: Execute](#step-3-execute).
+**If tasks NOT found** → continue to Step 2.
 
-## Step 2: Execute Release
+## Step 2: Bootstrap Release Workflow
 
-1. Check working directory: `git status --porcelain`
-2. Push unpushed commits: `git log --oneline @{u}..HEAD` → `git push origin main`
-3. Reset lockfile drift: `git diff --name-only | grep -E '(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb)$' | xargs -r git checkout --`
-4. If dirty → commit related changes or stash WIP, then verify clean
-5. Route by flags:
-   - `--dry` → `mise run release:dry`
-   - `--status` → `mise run release:status`
-   - No flags → `mise run release:full`
-6. Post-release: reset any lockfile drift from release tasks
+This step scaffolds an individualized release pipeline for THIS repo. Every repo is different — do not copy templates verbatim. Audit first, then scaffold what fits.
 
-## References
+### 2a. Audit the Repository
 
-- [Scaffolding & Recovery](./references/scaffolding-and-recovery.md) — audit, scaffold, error recovery, known issues
-- [Task Implementations](./references/task-implementations.md) — PyPI, crates.io, postflight details
+Run all of these to understand what this repo needs:
+
+```bash
+# Ecosystem detection
+ls pyproject.toml Cargo.toml package.json setup.py 2>/dev/null
+
+# Existing mise config
+cat .mise.toml 2>/dev/null || cat mise.toml 2>/dev/null
+
+# Existing release infra (semantic-release, Makefile, GitHub Actions)
+ls .releaserc* release.config.* 2>/dev/null
+ls .github/workflows/*release* 2>/dev/null
+grep -i release Makefile 2>/dev/null
+
+# Credentials already configured
+grep -E 'GH_TOKEN|GITHUB_TOKEN|UV_PUBLISH_TOKEN|CARGO_REGISTRY_TOKEN|NPM_TOKEN' .mise.toml mise.toml 2>/dev/null
+```
+
+### 2b. Read the Reference Implementation
+
+Read cc-skills' own release tasks as a working example — adapt, don't copy:
+
+```bash
+ls $HOME/.claude/plugins/marketplaces/cc-skills/.mise/tasks/release/
+```
+
+Also read: `$HOME/.claude/plugins/marketplaces/cc-skills/docs/RELEASE.md`
+
+### 2c. Scaffold `.mise/tasks/release/`
+
+Create only the tasks this repo actually needs. The 5-phase pattern is:
+
+| Phase         | Task         | Purpose                                          | Required? |
+| ------------- | ------------ | ------------------------------------------------ | --------- |
+| 1. Preflight  | `preflight`  | Clean dir, auth, branch check                    | Always    |
+| 2. Version    | `version`    | `semantic-release` (or repo-specific versioning) | Always    |
+| 3. Publish    | `pypi`       | `uv publish` or custom script                    | If Python |
+|               | `crates`     | `cargo publish --workspace` (Rust 1.90+)         | If Rust   |
+|               | `npm`        | `npm publish`                                    | If Node   |
+| 4. Verify     | `verify`     | Tag exists, release exists, artifacts published  | Always    |
+| 5. Postflight | `postflight` | Clean git state, no unpushed, lockfile reset     | Always    |
+
+**Orchestrator**: `full` task chains the phases with `depends = [...]`.
+
+**Key rules**:
+
+- Credentials in `.mise.toml` `[env]`, not hardcoded in scripts
+- Tool versions in `.mise.toml` `[tools]`
+- Lockfile drift reset in both `preflight` and `postflight` (build artifacts, not intentional changes)
+- `--dry` and `--status` convenience tasks
+
+### 2d. Known Issues
+
+**`@semantic-release/git` untracked file explosion**: v10.x runs `git ls-files -m -o` without `--exclude-standard`. Patch after install:
+
+```bash
+find $(npm root -g 2>/dev/null) node_modules \
+  -path "*/@semantic-release/git/lib/git.js" 2>/dev/null | while read f; do
+  grep -q 'exclude-standard' "$f" || \
+    sed -i '' "s/\['ls-files', '-m', '-o'\]/['ls-files', '-m', '-o', '--exclude-standard']/" "$f"
+done
+```
+
+**Partial semantic-release failure** (version bumped, no tag): Do NOT re-run semantic-release. Manually create tag + GitHub release, then continue with publish tasks.
+
+## Step 3: Execute
+
+```bash
+# Pre-release sync
+git pull origin main
+
+# Check for unpushed commits
+git log --oneline @{u}..HEAD
+
+# Route by flags
+mise run release:full    # default
+mise run release:dry     # --dry
+mise run release:status  # --status
+```
+
+If working directory is dirty: commit related changes or stash WIP first. Reset lockfile drift if present:
+
+```bash
+git diff --name-only | grep -E '(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb)$' | xargs -r git checkout --
+```
 
 ## Post-Execution Reflection
 
 After this skill completes, reflect before closing the task:
 
-0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
-1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
-2. **What worked better than expected?** — Promote it to recommended practice. Document why.
-3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
-4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
 
 Do NOT defer. The next invocation inherits whatever you leave behind.

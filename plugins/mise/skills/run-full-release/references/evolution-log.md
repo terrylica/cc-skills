@@ -4,7 +4,26 @@
 
 ---
 
-## 2026-03-09: Production Learnings from opendeviationbar-py v13.2.0 Release
+## 2026-03-31: Consolidate into Single Self-Contained SKILL.md
+
+**Trigger**: Skill was too big and brittle — two reference files (scaffolding-and-recovery.md at 177 lines, task-implementations.md at 173 lines) tried to cover every ecosystem with hardcoded templates. The skill was also conflating two jobs: running releases (trivial) and bootstrapping release workflows (the actual value).
+
+### What Changed
+
+- **Deleted** `references/scaffolding-and-recovery.md` and `references/task-implementations.md`
+- **Rewrote SKILL.md** as a self-contained guide (98 lines, down from 55 + 350 in references)
+- **Restructured** into 3 clear steps: Detect → Bootstrap → Execute
+- **Bootstrap is now a guide**, not a template dump — audit the repo first, scaffold only what fits
+- **Known issues and recovery** consolidated into compact 2d section (was 80+ lines across two files)
+- **Description** updated to natural language "Use when..." pattern per skill-architecture guidance
+
+### Why It Changed
+
+The reference files were not robust for diverse repos because they assumed fixed ecosystem patterns. A Python-only repo doesn't need crates.io templates. A repo with existing Makefile releases doesn't need full semantic-release scaffolding. The new approach: audit first, then scaffold what the specific repo actually needs.
+
+---
+
+## 2026-03-09: Production Learnings from opendeviationbar-py Release <!-- # SSoT-OK -->
 
 **Status**: Major update — 3 new sections added from real-world release failure.
 
