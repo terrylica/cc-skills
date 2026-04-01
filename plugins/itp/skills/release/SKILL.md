@@ -3,7 +3,7 @@ name: release
 description: Run semantic-release with preflight checks. TRIGGERS - npm run release, version bump, changelog, release automation.
 allowed-tools: Read, Bash, Glob, Grep, Edit, AskUserQuestion, TodoWrite
 argument-hint: "[--dry] [--status]"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # /itp:release

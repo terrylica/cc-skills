@@ -3,7 +3,7 @@ name: sred-commit
 description: "Create a git commit with SR&ED (CRA tax credit) trailers. TRIGGERS - sred commit, sred, cra commit, tax credit commit, scientific research commit."
 allowed-tools: Read, Bash, Glob, Grep, Write, AskUserQuestion
 argument-hint: "[commit message summary]"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # /mise:sred-commit

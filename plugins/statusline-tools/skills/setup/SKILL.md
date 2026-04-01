@@ -4,7 +4,7 @@ description: "Configure statusline-tools status line and dependencies. TRIGGERS 
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Status Line Setup

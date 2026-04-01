@@ -17,12 +17,12 @@ Two frontmatter fields control how a skill is invoked:
 
 ### Truth Table
 
-| `disable-model-invocation` | `user-invocable` | `/name`? | Auto-trigger? | Use case                     |
-| -------------------------- | ---------------- | -------- | ------------- | ---------------------------- |
-| `false` (default)          | `true` (default) | Yes      | Yes           | Most skills                  |
-| `true`                     | `true`           | Yes      | No            | Dangerous ops (deploy, nuke) |
-| `false`                    | `false`          | No       | Yes           | Domain knowledge, context    |
-| `true`                     | `false`          | No       | No            | Effectively disabled         |
+| `disable-model-invocation` | `user-invocable` | `/name`? | Auto-trigger? | Use case                      |
+| -------------------------- | ---------------- | -------- | ------------- | ----------------------------- |
+| `false` (default)          | `true` (default) | Yes      | Yes           | Most skills                   |
+| `true`                     | `true`           | Yes      | No            | Hook-installation skills only |
+| `false`                    | `false`          | No       | Yes           | Domain knowledge, context     |
+| `true`                     | `false`          | No       | No            | Effectively disabled          |
 
 ---
 
@@ -34,11 +34,7 @@ The skill is available via `/name` AND Claude auto-triggers it when description 
 
 ### Manual-Only (`disable-model-invocation: true`)
 
-Use for operations that should never fire automatically:
-
-- **Deployment**: `/deploy` — accidental auto-trigger could push to production
-- **Release**: `/release` — version bumps need explicit intent
-- **Destructive ops**: `/teardown`, `/reset` — data loss risk
+Reserved exclusively for **hook-installation skills** (`skills/hooks/`) that modify `~/.claude/settings.json`. All other skills — including deploy, release, setup, and destructive ops — should keep the default `false` so Claude can auto-trigger them when the user's intent matches. Claude already asks for confirmation before executing side effects via `allowed-tools` restrictions.
 
 ### Background-Only (`user-invocable: false`)
 

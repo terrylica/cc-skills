@@ -2,7 +2,7 @@
 name: latex-setup
 description: LaTeX environment setup on macOS. TRIGGERS - install LaTeX, MacTeX, Skim viewer, SyncTeX setup.
 allowed-tools: Read, Edit, Bash
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # LaTeX Environment Setup

@@ -105,7 +105,7 @@ After ANY skill work, verify:
 - [ ] Description not too broad (doesn't false-trigger on unrelated conversations)
 - [ ] SKILL.md body under 500 lines (move detail to `references/`)
 - [ ] Classify skill as **reference** (inline knowledge) or **task** (side-effect action):
-  - Task skills with side effects: set `disable-model-invocation: true`
+  - `disable-model-invocation: true` ONLY for hook-installation skills — all others keep `false` (default)
   - Reference-only skills users shouldn't invoke: set `user-invocable: false`
 - [ ] If using `context: fork`, skill has explicit actionable instructions (not guidelines-only)
 - [ ] If skill requires external tools (git, docker, jq), add `compatibility` field
