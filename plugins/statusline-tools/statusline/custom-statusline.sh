@@ -1,4 +1,5 @@
 #!/bin/bash
+# FILE-SIZE-OK
 # Custom Claude Code Status Line
 # Receives Claude Code status JSON via stdin, outputs formatted status line
 #
@@ -315,6 +316,15 @@ get_github_url() {
 
 github_url=$(get_github_url)
 
+# Repo visibility (public/private) — live query per render
+repo_visibility=""
+if [[ -n "$github_url" ]]; then
+    owner_repo=$(git remote get-url origin 2>/dev/null | sed -E 's|.*github\.com[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
+    if [ -n "$owner_repo" ]; then
+        repo_visibility=$(gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>/dev/null || echo "")
+    fi
+fi
+
 # UTC and local timestamps with conditional date display
 # Same date:        Tue 04 Mar 2026 23:36 UTC | 15:36 PST
 # Different day:    Sun 22 Mar 2026 02:08 UTC | Sat 21 19:08 PDT
@@ -349,22 +359,30 @@ fi
 # Status line layout:
 #   Line 1: git stats
 #   Line 2: UTC time | local time
-#   Line 3: github-url | ~/path
+#   Line 3: ~/path | github-url
 #   Line 4: session UUID (if available)
 #   Line 5: ~/asciinemalogs cast UUID
 line1="${git_changes}"
 
-# Line 3: GitHub URL | path (URL first, then local path)
+# Line 3: path | GitHub URL (visibility)
+vis_label=""
+if [ -n "$repo_visibility" ]; then
+    if [ "$repo_visibility" = "private" ]; then
+        vis_label=" ${YELLOW}(${repo_visibility})${RESET}"
+    else
+        vis_label=" ${BRIGHT_BLACK}(${repo_visibility})${RESET}"
+    fi
+fi
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
-        line_repo="${BRIGHT_BLACK}${github_url}${RESET} | ${GREEN}${repo_path}${RESET}"
+        line_repo="${GREEN}${repo_path}${RESET} | ${BRIGHT_BLACK}${github_url}${RESET}${vis_label}"
     else
-        line_repo="${MAGENTA}${github_url}${RESET} | ${GREEN}${repo_path}${RESET}"
+        line_repo="${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url}${RESET}${vis_label}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    line_repo="${RED}⚠ no remote${RESET} | ${GREEN}${repo_path}${RESET}"
+    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET}"
 else
-    line_repo="${RED}⚠ no git${RESET} | ${GREEN}${repo_path}${RESET}"
+    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET}"
 fi
 
 # Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
