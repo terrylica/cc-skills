@@ -6,14 +6,15 @@
 
 ## Skills
 
-| Skill                              | Purpose                                                          |
-| ---------------------------------- | ---------------------------------------------------------------- |
-| `opendeviation-eval-metrics`       | SOTA metrics: Sharpe, PSR, DSR, risk, ML quality (IC)            |
-| `sharpe-ratio-non-iid-corrections` | Generalized ρ-corrected Sharpe inference (PSR, DSR, pFDR, oFDR)  |
-| `adaptive-wfo-epoch`               | Adaptive epoch selection for WFO                                 |
-| `backtesting-py-oracle`            | backtesting.py config for SQL oracle validation                  |
-| `evolutionary-metric-ranking`      | Multi-objective evolutionary optimization for per-metric cutoffs |
-| `exchange-session-detector`        | DST-aware exchange session detection via exchange_calendars      |
+| Skill                              | Purpose                                                                |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| `opendeviation-eval-metrics`       | SOTA metrics: Sharpe, PSR, DSR, risk, ML quality (IC)                  |
+| `sharpe-ratio-non-iid-corrections` | Generalized ρ-corrected Sharpe inference (PSR, DSR, pFDR, oFDR)        |
+| `adaptive-wfo-epoch`               | Adaptive epoch selection for WFO                                       |
+| `backtesting-py-oracle`            | backtesting.py config for SQL oracle validation                        |
+| `evolutionary-metric-ranking`      | Multi-objective evolutionary optimization for per-metric cutoffs       |
+| `exchange-session-detector`        | DST-aware exchange session detection via exchange_calendars            |
+| `odb-microstructure-forensics`     | Investigate ODB bar anomalies via Parquet trade + ClickHouse forensics |
 
 ## Conventions
 

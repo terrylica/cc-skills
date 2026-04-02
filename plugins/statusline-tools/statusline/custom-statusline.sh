@@ -255,7 +255,7 @@ reltime() {
     fi
 }
 
-latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+latest_tag=$(git tag --sort=-v:refname 2>/dev/null | head -1)
 if [ -n "$latest_tag" ]; then
     # Get tag creation epoch (works for both annotated and lightweight tags)
     tag_epoch=$(git log -1 --format='%ct' "$latest_tag" 2>/dev/null || echo "")
@@ -348,23 +348,23 @@ fi
 
 # Status line layout:
 #   Line 1: git stats
-#   Line 2:  ~/asciinemalogs cast UUID
-#   Line 3:    ~/path | github-url
-#   Line 4:    session UUID (if available)
-#   Line 5:    UTC time | local time
+#   Line 2: UTC time | local time
+#   Line 3: github-url | ~/path
+#   Line 4: session UUID (if available)
+#   Line 5: ~/asciinemalogs cast UUID
 line1="${git_changes}"
 
-# Line 3: path | GitHub URL (indented, no timestamps)
+# Line 3: GitHub URL | path (URL first, then local path)
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
-        line_repo="    ${GREEN}${repo_path}${RESET} | ${BRIGHT_BLACK}${github_url}${RESET}"
+        line_repo="${BRIGHT_BLACK}${github_url}${RESET} | ${GREEN}${repo_path}${RESET}"
     else
-        line_repo="    ${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url}${RESET}"
+        line_repo="${MAGENTA}${github_url}${RESET} | ${GREEN}${repo_path}${RESET}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    line_repo="    ${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET}"
+    line_repo="${RED}⚠ no remote${RESET} | ${GREEN}${repo_path}${RESET}"
 else
-    line_repo="    ${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET}"
+    line_repo="${RED}⚠ no git${RESET} | ${GREEN}${repo_path}${RESET}"
 fi
 
 # Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
@@ -373,22 +373,22 @@ if [ -n "$ITERM_SESSION_ID" ]; then
     iterm_session_uuid=$(echo "$ITERM_SESSION_ID" | cut -d':' -f2)
 fi
 
-# Output: git stats, cast, repo, session, timestamps, then cron jobs (bottom)
+# Output: git stats, timestamps, repo, session, cast, then cron jobs (bottom)
 echo -e "$line1"
 
-if [ -n "$iterm_session_uuid" ]; then
-    echo -e " ${BRIGHT_BLACK}~/asciinemalogs cast: ${iterm_session_uuid}${RESET}"
-fi
+echo -e "${datetime_display}"
 
 echo -e "$line_repo"
 
 if [ -n "$session_chain" ]; then
-    echo -e "    ${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
+    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
 elif [ -n "$session_id" ]; then
-    echo -e "    ${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
+    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
 fi
 
-echo -e "    ${datetime_display}"
+if [ -n "$iterm_session_uuid" ]; then
+    echo -e "${BRIGHT_BLACK}~/asciinemalogs cast: ${iterm_session_uuid}${RESET}"
+fi
 
 # Cron jobs: one line per scheduler, after datetime (bottom of statusline)
 # OSC 8 parts emitted with printf directly — never stored in variables to
