@@ -1,3 +1,72 @@
+# [12.35.0](https://github.com/terrylica/cc-skills/compare/v12.34.0...v12.35.0) (2026-04-02)
+
+
+### Bug Fixes
+
+* **tts:** kill previous tts_kokoro.sh instance on rapid re-invocation ([d4950a4](https://github.com/terrylica/cc-skills/commit/d4950a48d5965c3fc4d334c8bcec7853f381edaa))
+* **tts:** pass speed setting to Kokoro synthesis engine ([390faf0](https://github.com/terrylica/cc-skills/commit/390faf0aa8220655b73b816b7ca6f8fe1c537fc8))
+* **tts:** queue consecutive invocations instead of preempting ([7df85ac](https://github.com/terrylica/cc-skills/commit/7df85ac55b46140bb2502b0924e94172f66bed28))
+* **tts:** simplify health check to companion-only for reliability ([c44f225](https://github.com/terrylica/cc-skills/commit/c44f225b14574ddbb90cd08a5378619e931430d5))
+* **tts:** stop script kills entire queue, not just current playback ([c2c8a13](https://github.com/terrylica/cc-skills/commit/c2c8a13cb831ef73b54d95e94cbfd0883c35c4ea))
+* **tts:** use awk %c NUL output instead of \0 for macOS compatibility ([7c7bb9c](https://github.com/terrylica/cc-skills/commit/7c7bb9c21100c4dc6fe98bb031936bf099ca6752))
+
+
+### Features
+
+* **quant-research:** add odb-microstructure-forensics skill ([c96c5b4](https://github.com/terrylica/cc-skills/commit/c96c5b418152c9bc26e3de73625ab0535a0688fd))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>productivity-tools</strong> (1 change)</summary>
+
+- [notion-cli](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/notion-cli/SKILL.md) - new (+205)
+
+</details>
+
+<details>
+<summary><strong>quant-research</strong> (1 change)</summary>
+
+- [odb-microstructure-forensics](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/odb-microstructure-forensics/SKILL.md) - new (+191)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>productivity-tools/notion-cli</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/skills/notion-cli/references/evolution-log.md) - new (+11)
+
+</details>
+
+<details>
+<summary><strong>quant-research/odb-microstructure-forensics</strong> (2 files)</summary>
+
+- [ClickHouse Schema Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/odb-microstructure-forensics/references/clickhouse-schema.md) - new (+72)
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/skills/odb-microstructure-forensics/references/evolution-log.md) - new (+9)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [productivity-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/CLAUDE.md) - updated (+2/-1)
+- [quant-research Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/CLAUDE.md) - updated (+9/-8)
+
 # [12.34.0](https://github.com/terrylica/cc-skills/compare/v12.33.0...v12.34.0) (2026-04-01)
 
 
