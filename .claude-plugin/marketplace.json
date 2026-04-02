@@ -680,7 +680,7 @@
     },
     {
       "name": "claude-tts-companion",
-      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
+      "description": "Real-time karaoke subtitles synced with TTS playback \u2014 unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
       "version": "12.35.1",
       "source": "./plugins/claude-tts-companion",
       "category": "productivity",
@@ -699,6 +699,24 @@
         "kokoro"
       ],
       "strict": false
+    },
+    {
+      "name": "ssh-tunnel-companion",
+      "description": "SSH tunnel persistence for bigblack ClickHouse via launchd + sleepwatcher",
+      "version": "1.0.0",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "ssh",
+        "tunnel",
+        "clickhouse",
+        "launchd"
+      ],
+      "strict": false,
+      "source": "./plugins/ssh-tunnel-companion",
+      "category": "devops"
     }
   ]
 }
