@@ -1,3 +1,5 @@
+## [12.35.1](https://github.com/terrylica/cc-skills/compare/v12.35.0...v12.35.1) (2026-04-02)
+
 # [12.35.0](https://github.com/terrylica/cc-skills/compare/v12.34.0...v12.35.0) (2026-04-02)
 
 
