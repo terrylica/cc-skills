@@ -73,7 +73,7 @@ function extractRepo(cmd) {
   if (repoFlag) return repoFlag[1];
 
   // gh api repos/owner/repo/...
-  const apiPath = cmd.match(/\bgh\s+api\s+repos\/([^\/]+\/[^\/]+)/);
+  const apiPath = cmd.match(/\bgh\s+api\s+repos\/([^/]+\/[^/]+)/);
   if (apiPath) return apiPath[1];
 
   // Fallback: git remote
@@ -108,10 +108,17 @@ if (!ghToken) {
   process.exit(0);
 }
 
-// Fast-path: GH_ACCOUNT env var
+// Fast-path: GH_ACCOUNT env var (personal account match)
 const ghAccount = process.env.GH_ACCOUNT;
 if (ghAccount && ghAccount === repoOwner) {
   process.exit(0); // Owner match — allow immediately (zero API calls)
+}
+
+// Fast-path: GH_ORGS env var (comma-separated org names the user belongs to)
+// e.g. GH_ORGS="Eon-Labs,my-other-org"
+const ghOrgs = process.env.GH_ORGS;
+if (ghOrgs?.split(",").map(s => s.trim()).includes(repoOwner)) {
+  process.exit(0); // Org match — allow immediately (zero API calls)
 }
 
 // Cache: /tmp/.gh-identity-cache-{uid}.json

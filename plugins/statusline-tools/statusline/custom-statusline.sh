@@ -289,6 +289,7 @@ cron_countdown_pid=$(pgrep -f 'cron-countdown\.py' 2>/dev/null | head -1)
 
 
 # Get GitHub remote URL (convert SSH to HTTPS for browser link)
+# Handles standard repos and wiki repos (*.wiki.git → /wiki URL)
 get_github_url() {
     local remote_url
     remote_url=$(git remote get-url origin 2>/dev/null)
@@ -298,19 +299,30 @@ get_github_url() {
         return
     fi
 
+    # Detect wiki repos before stripping .git suffix
+    local is_wiki=false
+    if [[ "$remote_url" == *.wiki.git || "$remote_url" == *.wiki ]]; then
+        is_wiki=true
+    fi
+
     # Convert SSH format to HTTPS
     # git@github.com-terrylica:terrylica/repo.git -> https://github.com/terrylica/repo
     # git@github.com:user/repo.git -> https://github.com/user/repo
+    # Also handles wiki: Eon-Labs/kb.wiki.git -> https://github.com/Eon-Labs/kb/wiki
     local https_url
-    https_url=$(echo "$remote_url" | sed -E 's|git@github\.com[^:]*:|https://github.com/|' | sed 's|\.git$||')
+    https_url=$(echo "$remote_url" | sed -E 's|git@github\.com[^:]*:|https://github.com/|' | sed 's|\.wiki\.git$||; s|\.wiki$||; s|\.git$||')
 
-    # Add branch path if not on main/master
-    local branch
-    branch=$(git branch --show-current 2>/dev/null)
-    if [[ -n "$branch" && "$branch" != "main" && "$branch" != "master" ]]; then
-        echo "${https_url}/tree/${branch}"
+    if $is_wiki; then
+        echo "${https_url}/wiki"
     else
-        echo "$https_url"
+        # Add branch path if not on main/master
+        local branch
+        branch=$(git branch --show-current 2>/dev/null)
+        if [[ -n "$branch" && "$branch" != "main" && "$branch" != "master" ]]; then
+            echo "${https_url}/tree/${branch}"
+        else
+            echo "$https_url"
+        fi
     fi
 }
 
@@ -319,7 +331,7 @@ github_url=$(get_github_url)
 # Repo visibility (public/private) — live query per render
 repo_visibility=""
 if [[ -n "$github_url" ]]; then
-    owner_repo=$(git remote get-url origin 2>/dev/null | sed -E 's|.*github\.com[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
+    owner_repo=$(git remote get-url origin 2>/dev/null | sed -E 's|\.wiki\.git$||; s|\.wiki$||' | sed -E 's|.*github\.com[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
     if [ -n "$owner_repo" ]; then
         repo_visibility=$(gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>/dev/null || echo "")
     fi
