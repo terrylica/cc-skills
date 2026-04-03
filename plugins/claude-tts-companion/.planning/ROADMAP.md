@@ -34,7 +34,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 1. Bun bot no longer watches the notification directory or sends session-end Telegram messages
 2. Bun bot /prompt and /sessions commands still work after watcher removal
 3. Companion receives and processes every session-end notification without duplicates
-   **Plans**: TBD
+
+**Plans**: 1 plan
+
+Plans:
+
+- [ ] 01-01-PLAN.md — Remove Bun bot notification watcher, deprecate notification-watcher.ts
 
 ### Phase 2: Message ID & Edit Infrastructure
 
@@ -131,7 +136,7 @@ Note: Phases 6, 7, 8 are independent of each other and only depend on Phase 1 (6
 
 | Phase                                   | Plans Complete | Status      | Completed |
 | --------------------------------------- | -------------- | ----------- | --------- |
-| 1. Single-Consumer Consolidation        | 0/0            | Not started | -         |
+| 1. Single-Consumer Consolidation        | 0/1            | Not started | -         |
 | 2. Message ID & Edit Infrastructure     | 0/0            | Not started | -         |
 | 3. Parse-Then-Edit Re-check             | 0/0            | Not started | -         |
 | 4. Three-Stage Lifecycle Orchestration  | 0/0            | Not started | -         |
