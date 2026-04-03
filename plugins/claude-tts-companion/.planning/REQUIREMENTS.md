@@ -61,9 +61,28 @@
 
 ## Traceability
 
-| REQ-ID                    | Phase |
-| ------------------------- | ----- |
-| (Populated by roadmapper) |       |
+| REQ-ID   | Phase   | Status  |
+| -------- | ------- | ------- |
+| NOTIF-01 | Phase 1 | Pending |
+| NOTIF-02 | Phase 2 | Pending |
+| NOTIF-03 | Phase 3 | Pending |
+| NOTIF-04 | Phase 2 | Pending |
+| NOTIF-05 | Phase 3 | Pending |
+| NOTIF-06 | Phase 5 | Pending |
+| NOTIF-07 | Phase 5 | Pending |
+| NOTIF-08 | Phase 5 | Pending |
+| NOTIF-09 | Phase 4 | Pending |
+| NOTIF-10 | Phase 5 | Pending |
+| QA-01    | Phase 6 | Pending |
+| QA-02    | Phase 6 | Pending |
+| QA-03    | Phase 6 | Pending |
+| QA-04    | Phase 6 | Pending |
+| UX-01    | Phase 7 | Pending |
+| UX-02    | Phase 7 | Pending |
+| UX-03    | Phase 7 | Pending |
+| MSG-01   | Phase 8 | Pending |
+| MSG-02   | Phase 8 | Pending |
+| MSG-03   | Phase 8 | Pending |
 
 ---
 
