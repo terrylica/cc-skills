@@ -191,6 +191,8 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 **Philosophy**: Treat GitHub Issues as human-readable insight repository for research and findings.
 
+**Body Limit**: Issue bodies and comments each support **65,536 characters**. Always aim to maximize a single post — pack comprehensive analysis, multi-perspective reasoning, historical context, and all evidence into one body rather than fragmenting across multiple issues or comments. Target ~60,000 chars to leave headroom. Only split if you genuinely exceed the limit. See [issue-create SKILL.md](./skills/issue-create/SKILL.md) for the pre-post size check pattern.
+
 ### When to Post Issue Comments
 
 | Action                  | Safe to Post?            | Example                                                    |
