@@ -104,6 +104,9 @@ public final class SubtitleSyncDriver {
     /// Checked by the 60Hz tick to know when to advance to the next chunk.
     private var currentChunkComplete: Bool = false
 
+    /// Tick counter for periodic telemetry logging (every 30 ticks = ~0.5s).
+    private var tickCount: Int = 0
+
     // MARK: - Legacy streaming mode properties (AVAudioPlayer-based, for single-shot)
 
     /// The player for the currently playing chunk (single-shot mode only)
@@ -335,6 +338,13 @@ public final class SubtitleSyncDriver {
         logger.info("All streaming chunks delivered (\(streamChunks.count) total)")
     }
 
+    /// Called by TTSPipelineCoordinator when all pipelined afplay segments have finished.
+    /// Triggers the subtitle linger and completion callback.
+    func onPipelinedPlaybackComplete() {
+        currentChunkComplete = true
+        finishPlayback()
+    }
+
     /// Start afplay playback for the streaming pipeline.
     /// Called by TTSPipelineCoordinator.finalizeStreamingPipeline() after all
     /// chunks have been accumulated on the AfplayPlayer.
@@ -417,7 +427,9 @@ public final class SubtitleSyncDriver {
         let chunk = streamChunks[index]
 
         // Apply border edge hint for this chunk (jagged edges for bisected paragraphs)
-        logger.info("activateChunk[\(index)]: edgeHint top=\(chunk.edgeHint.jaggedTop) bottom=\(chunk.edgeHint.jaggedBottom)")
+        let firstOnset = chunk.wordOnsets.first.map { String(format: "%.3f", $0) } ?? "nil"
+        let lastOnset = chunk.wordOnsets.last.map { String(format: "%.3f", $0) } ?? "nil"
+        logger.info("[TELEMETRY] activateChunk[\(index)]: \(chunk.totalWords) words, onsetRange=[\(firstOnset)..\(lastOnset)], audioDuration=\(String(format: "%.3f", chunk.audioDuration))s, edgeHint top=\(chunk.edgeHint.jaggedTop) bottom=\(chunk.edgeHint.jaggedBottom)")
         subtitlePanel.setEdgeHint(chunk.edgeHint)
 
         // Calculate cumulative offset from all previous chunks
@@ -434,7 +446,9 @@ public final class SubtitleSyncDriver {
         self.currentLocalWordIndex = -1
         self.currentChunkComplete = false
 
-        // Show first page (full display pipeline for initial chunk display)
+        // Show first page with full display pipeline (positionOnScreen + orderFront).
+        // This is safe for all chunks now that the timing fixes (segment-duration cap,
+        // deferred offset, <= boundary) prevent premature chunk activation.
         if let firstPage = chunk.pages.first {
             subtitlePanel.highlightWord(at: 0, in: firstPage.words, isPageTransition: true, paragraphBreaksAfter: firstPage.paragraphBreaksAfter)
             currentPageIndex = 0
@@ -493,6 +507,8 @@ public final class SubtitleSyncDriver {
     }
 
     private func tickStreaming() {
+        tickCount += 1
+
         // Check if the last chunk's playback completed (set by completion callback)
         if currentChunkComplete {
             finishPlayback()
@@ -501,17 +517,30 @@ public final class SubtitleSyncDriver {
 
         // Get global playback time from afplay's wall-clock timer
         guard let afplay = afplayPlayer else { return }
-        if !afplay.isPlaying && allChunksDelivered && afplay.currentTime > 0 {
+        // Safety-net termination: only for non-pipelined mode (single afplay).
+        // In pipelined mode, isPlaying goes false between every segment — the
+        // definitive completion is currentChunkComplete (set by onPipelinedPlaybackComplete).
+        if !afplay.isPipelinedMode && !afplay.isPlaying && allChunksDelivered && afplay.currentTime > 0 {
             finishPlayback()
             return
         }
+        // Log when pipelined safety-net skip occurs (isPlaying false but pipelined mode)
+        if afplay.isPipelinedMode && !afplay.isPlaying && allChunksDelivered && afplay.currentTime > 0 {
+            if tickCount % 30 == 0 {
+                logger.info("[TELEMETRY] Pipelined safety-net skip: isPlaying=false but isPipelinedMode=true, waiting for currentChunkComplete")
+            }
+        }
         let globalTime = afplay.currentTime
 
-        // Find the active chunk based on cumulative time boundaries
+        // Find the active chunk based on cumulative time boundaries.
+        // Use <= (not <) so we stay on the current chunk when currentTime hits
+        // the exact boundary. AfplayPlayer caps currentTime to segment duration,
+        // so we sit at the boundary until the next segment's afplay actually starts
+        // and cumulativeTimeOffset advances past it.
         var cumulative: TimeInterval = 0
         var targetChunkIndex = currentChunkIndex
         for (i, chunk) in streamChunks.enumerated() {
-            if globalTime < cumulative + chunk.audioDuration {
+            if globalTime <= cumulative + chunk.audioDuration {
                 targetChunkIndex = i
                 break
             }
@@ -531,6 +560,12 @@ public final class SubtitleSyncDriver {
         }
 
         let chunkLocalTime = max(0, globalTime - chunkStartTime)
+
+        // Periodic telemetry every 30 ticks (~0.5s)
+        if tickCount % 30 == 0 {
+            logger.info("[TELEMETRY] tick: globalTime=\(String(format: "%.3f", globalTime)), chunk=\(currentChunkIndex), localWordIdx=\(currentLocalWordIndex), chunkLocalTime=\(String(format: "%.3f", chunkLocalTime)), totalWordsInChunk=\(totalWordCount)")
+        }
+
         updateHighlight(for: chunkLocalTime)
     }
 

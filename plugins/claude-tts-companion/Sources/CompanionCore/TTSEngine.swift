@@ -62,6 +62,25 @@ public actor TTSEngine {
     /// but a warning is logged.
     private(set) var pythonServerWarning: Bool = false
 
+    // MARK: - RTF (Real-Time Factor) Observability
+
+    /// Exponential moving average of synthesis_time / audio_duration.
+    /// RTF < 1.0 means synthesis is faster than real-time (no gaps in pipelined playback).
+    /// RTF > 1.0 means synthesis can't keep up (gaps inevitable).
+    private var rtfEMA: Double = 0.5
+    private let rtfAlpha: Double = 0.3
+
+    /// Current RTF EMA for external observability (e.g., health endpoint).
+    var currentRTF: Double { rtfEMA }
+
+    /// Update RTF after a synthesis call completes.
+    private func updateRTF(synthesisTime: Double, audioDuration: Double) {
+        guard audioDuration > 0 else { return }
+        let observed = synthesisTime / audioDuration
+        rtfEMA = rtfAlpha * observed + (1 - rtfAlpha) * rtfEMA
+        logger.info("[RTF] observed=\(String(format: "%.3f", observed)) ema=\(String(format: "%.3f", rtfEMA)) (\(String(format: "%.2f", synthesisTime))s synth / \(String(format: "%.2f", audioDuration))s audio)")
+    }
+
     // MARK: - TTS Circuit Breaker (P1)
 
     /// Circuit breaker tracking consecutive synthesis failures.
@@ -254,10 +273,8 @@ public actor TTSEngine {
         speed: Float = 1.2,
         cancellationCheck: (() -> Bool)? = nil
     ) async -> [ChunkResult] {
-        guard !isTTSCircuitBreakerOpen else {
-            logger.warning("TTS circuit breaker open -- skipping synthesis (\(text.count) chars)")
-            return []
-        }
+        // Circuit breaker gating moved to TTSQueue (priority-aware: blocks automated,
+        // allows user-initiated). Engine still records failures/successes for the breaker.
 
         // Check cancellation before starting
         if Task.isCancelled || (cancellationCheck?() == true) {
@@ -283,8 +300,7 @@ public actor TTSEngine {
             circuitBreaker.recordSuccess()
 
             let elapsed = CFAbsoluteTimeGetCurrent() - pipelineStart
-            let rtf = elapsed / tsResult.audioDuration
-            logger.info("Synthesis complete: \(String(format: "%.2f", tsResult.audioDuration))s audio in \(String(format: "%.2f", elapsed))s (RTF: \(String(format: "%.3f", rtf)))")
+            updateRTF(synthesisTime: elapsed, audioDuration: tsResult.audioDuration)
 
             // Check cancellation after synthesis
             if Task.isCancelled || (cancellationCheck?() == true) {

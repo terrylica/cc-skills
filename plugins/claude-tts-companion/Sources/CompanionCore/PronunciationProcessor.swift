@@ -69,6 +69,17 @@ public struct PronunciationProcessor: Sendable {
     /// Apply markdown stripping and pronunciation overrides before passing to TTS.
     public static func preprocessText(_ text: String) -> String {
         var result = stripMarkdown(text)
+        // Collapse newlines to spaces. By this point, paragraph splitting has already
+        // happened — any remaining newlines within a segment are soft wraps or artifacts
+        // from clipboard/terminal copy that should not appear in subtitles or TTS input.
+        result = result.replacingOccurrences(of: "\r\n", with: " ")
+        result = result.replacingOccurrences(of: "\n", with: " ")
+        result = result.replacingOccurrences(of: "\r", with: " ")
+        // Collapse multiple spaces from newline replacement
+        while result.contains("  ") {
+            result = result.replacingOccurrences(of: "  ", with: " ")
+        }
+        result = result.trimmingCharacters(in: .whitespaces)
         for override in compiledOverrides {
             let range = NSRange(result.startIndex..., in: result)
             result = override.regex.stringByReplacingMatches(
@@ -129,10 +140,25 @@ public struct PronunciationProcessor: Sendable {
             var searchIdx = origIdx
             while searchIdx < originalWords.count {
                 let origLower = originalWords[searchIdx].lowercased()
-                // Check if original word contains the token (handles trailing punctuation)
-                // e.g., origLower="running." contains tokenLower="running"
-                if origLower.hasPrefix(tokenLower) || origLower == tokenLower ||
-                   origLower.contains(tokenLower) {
+                // Match: exact, or token + trailing punctuation only.
+                // hasPrefix guard: the char after the token must be non-alphanumeric,
+                // preventing "anniversary.Consecutive" from matching token "anniversary"
+                // (the "C" after the period is alphanumeric → another word is glued on).
+                let isMatch: Bool
+                if origLower == tokenLower {
+                    isMatch = true
+                } else if origLower.hasPrefix(tokenLower) {
+                    let afterIdx = origLower.index(origLower.startIndex, offsetBy: tokenLower.count)
+                    if afterIdx < origLower.endIndex {
+                        let c = origLower[afterIdx]
+                        isMatch = !c.isLetter && !c.isNumber
+                    } else {
+                        isMatch = true
+                    }
+                } else {
+                    isMatch = false
+                }
+                if isMatch {
                     displayWords.append(originalWords[searchIdx])
                     origIdx = searchIdx + 1
                     matched = true

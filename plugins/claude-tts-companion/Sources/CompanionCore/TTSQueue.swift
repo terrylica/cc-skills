@@ -270,11 +270,14 @@ public actor TTSQueue {
             return
         }
 
-        // Circuit breaker check
-        if await ttsEngine.isTTSCircuitBreakerOpen {
-            logger.warning("Circuit breaker open — skipping TTS for \(item.text.count) chars (priority: \(item.priority))")
-            if item.priority == .userInitiated { showSubtitleFallback(item) }
-            return
+        // Circuit breaker check — only block automated requests.
+        // User-initiated TTS (tts_kokoro.sh / BTT) should always attempt synthesis;
+        // if the server is truly down, the per-paragraph retry logic handles it.
+        if item.priority == .automated {
+            if await ttsEngine.isTTSCircuitBreakerOpen {
+                logger.warning("Circuit breaker open — skipping automated TTS for \(item.text.count) chars")
+                return
+            }
         }
 
         // Build full text with greeting
@@ -346,15 +349,9 @@ public actor TTSQueue {
                     break
                 }
 
-                // Health-gated synthesis: confirm server readiness before each paragraph.
-                // The server's own /health endpoint defines when it's ready — no magic delays.
-                if index > 0 {
-                    let ready = await ttsEngine.awaitServerReady(cancellationCheck: { token.isCancelled })
-                    if !ready {
-                        logger.info("Streaming cancelled while waiting for server readiness")
-                        break
-                    }
-                }
+                // Server readiness check removed: synthesis HTTP call has its own retry
+                // logic (lines below) for server drops. The health-gate between paragraphs
+                // added 1-5s of pure latency with no benefit in the pipelined model.
 
                 // Compute edge hints upfront (needed for both initial and retry paths).
                 // Top zigzag = continuation from previous bisected segment
