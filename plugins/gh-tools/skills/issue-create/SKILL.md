@@ -51,7 +51,37 @@ Use this skill when:
 - Adds type prefix (Bug:, Feature:, etc.)
 - **Maximizes GitHub's 256-character limit** for informative titles
 
-### 4. Template Formatting
+### 4. Body Limit Maximization (65,536 Characters)
+
+GitHub issue bodies support **65,536 characters** (not bytes — UTF-8 multibyte characters count as 1). Always aim to fill a single post rather than splitting across multiple issues or comments.
+
+**Principle**: One comprehensive post is more valuable than many fragmented ones. Pack as much analysis, context, history, and multi-perspective reasoning as possible into a single issue body or comment.
+
+**When composing long-form issue content**:
+
+- **Check remaining capacity**: `echo "$BODY" | wc -m` (characters, not bytes)
+- **Target ~60,000 chars** to leave headroom for GFM rendering edge cases
+- **Use collapsible sections** (`<details><summary>`) for dense reference material — they don't reduce the char budget but improve readability
+- **Include all perspectives**: if the issue documents a decision, include the alternatives considered, trade-offs, evidence for/against, and why the chosen path won
+- **Embed historical context**: timelines, prior art, links to related issues, session provenance — all belong in one post
+- **Never pre-emptively split**: only split if you genuinely exceed 65,536 chars (rare)
+
+**Pre-post size check pattern**:
+
+```bash
+# Build body, then verify it fits
+BODY=$(cat <<'EOF'
+... your content ...
+EOF
+)
+CHARS=$(echo "$BODY" | wc -m | tr -d ' ')
+echo "Body size: ${CHARS}/65536 chars"
+if [ "$CHARS" -gt 65536 ]; then
+  echo "WARNING: Exceeds limit by $((CHARS - 65536)) chars — trim or split"
+fi
+```
+
+### 5. Template Formatting
 
 - Auto-selects template based on content type
 - Bug: Steps to reproduce, Expected/Actual behavior
@@ -318,7 +348,6 @@ Install gh-models extension:
 ```bash
 gh extension install github/gh-models
 ```
-
 
 ## Post-Execution Reflection
 
