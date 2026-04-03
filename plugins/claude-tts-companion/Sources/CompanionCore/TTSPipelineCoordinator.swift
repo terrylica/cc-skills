@@ -439,29 +439,52 @@ public final class TTSPipelineCoordinator {
         }
 
         streamingChunkCount += 1
+        let isFirstChunk = streamingChunkCount == 1
+        logger.info("[TELEMETRY] addStreamingChunk: chunk \(streamingChunkCount), isFirst=\(isFirstChunk), textLen=\(chunks.reduce(0) { $0 + $1.text.count })")
 
-        // Accumulate audio on AfplayPlayer (deferred playback until finalize).
+        // Pipelined playback: play first paragraph immediately, queue subsequent.
+        // Synthesis and playback overlap — no waiting for all paragraphs to synthesize.
         let afplay = playbackManager.afplayPlayer
+        var mergedSamples: [Float] = []
         for chunk in chunks {
             if let samples = chunk.samples, !samples.isEmpty {
-                afplay.appendChunk(samples: samples)
+                mergedSamples.append(contentsOf: samples)
             }
         }
+        if !mergedSamples.isEmpty {
+            let firstWords = chunks.first?.wordTexts?.prefix(6).joined(separator: " ")
+                ?? chunks.first?.text.prefix(40).description
+            afplay.playOrEnqueue(samples: mergedSamples, label: firstWords)
+        }
 
-        logger.info("Fed streaming chunk \(streamingChunkCount) to pipeline (afplay-deferred)")
+        // Activate karaoke on first chunk (starts 60Hz timer)
+        if streamingChunkCount == 1 {
+            driver.activateFirstChunkForStreaming()
+            // Re-anchor time=0 to now so the first tick sees currentTime ≈ 0,
+            // not the 50-200ms that elapsed during WAV write + posix_spawn.
+            afplay.resyncPlayStart()
+        }
+
+        logger.info("Fed streaming chunk \(streamingChunkCount) to pipeline (afplay-pipelined)")
     }
 
     /// Signal that all chunks have been fed. No more chunks will arrive.
-    /// Schedules the completion callback on the last audio buffer.
+    /// The AfplayPlayer chains remaining queued paragraphs and fires completion when done.
     func finalizeStreamingPipeline() {
         guard let driver = activeSyncDriver else { return }
         driver.markAllChunksDelivered()
 
-        // Start afplay playback now that all chunks are accumulated.
-        // The driver's startAfplayPlayback() writes the WAV and launches afplay,
-        // then starts the 60Hz karaoke timer synced to wall-clock time.
-        driver.startAfplayPlayback()
+        // Signal end-of-stream to AfplayPlayer's chained queue.
+        // Playback already started on first chunk — this just tells the queue
+        // to fire the completion callback when all segments have played.
+        let afplay = playbackManager.afplayPlayer
+        afplay.markQueueComplete { [weak self] in
+            guard let self = self else { return }
+            self.logger.info("Streaming afplay playback started: \(self.streamingChunkCount) chunks, \(String(format: "%.2f", afplay.currentTime))s")
+            // Trigger the SubtitleSyncDriver's completion flow
+            driver.onPipelinedPlaybackComplete()
+        }
 
-        logger.info("Streaming pipeline finalized with \(streamingChunkCount) total chunks (afplay started)")
+        logger.info("Streaming pipeline finalized with \(streamingChunkCount) total chunks (afplay pipelined)")
     }
 }
