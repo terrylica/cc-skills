@@ -1,3 +1,24 @@
+# [12.37.0](https://github.com/terrylica/cc-skills/compare/v12.36.1...v12.37.0) (2026-04-03)
+
+
+### Features
+
+* **claude-tts-companion:** pipelined paragraph playback with RTF-driven prefetch ([7d0964b](https://github.com/terrylica/cc-skills/commit/7d0964b2999c67aeeb547500c69d9833f91d7669))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Phase 1: Single-Consumer Consolidation Verification Report](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/phases/01-single-consumer-consolidation/01-VERIFICATION.md) - new (+99)
+
 ## [12.36.1](https://github.com/terrylica/cc-skills/compare/v12.36.0...v12.36.1) (2026-04-03)
 
 
