@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 
-- [ ] 01-01-PLAN.md — Remove Bun bot notification watcher, deprecate notification-watcher.ts
+- [x] 01-01-PLAN.md — Remove Bun bot notification watcher, deprecate notification-watcher.ts
 
 ### Phase 2: Message ID & Edit Infrastructure
 
