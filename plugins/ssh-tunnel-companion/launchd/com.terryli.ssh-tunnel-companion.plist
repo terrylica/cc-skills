@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ssh-tunnel-companion — LaunchAgent (Layer 2 of 3)
+  ═════════════════════════════════════════════════
+
+  PURPOSE:
+    Persistent SSH tunnel to bigblack ClickHouse. Pure OpenSSH — no autossh.
+    launchd KeepAlive restarts SSH when it exits (network loss, sleep/wake).
+    sleepwatcher (Layer 3) kills stale SSH on wake for instant reconnection.
+
+  3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
+    Layer 1: SSH keepalive     — ~/.ssh/config (Host bigblack, ServerAliveInterval=30)
+                                 Detects dead connections within 90s, SSH exits cleanly.
+    Layer 2: launchd (THIS)    — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
+                                 Restarts SSH on exit. No autossh needed.
+    Layer 3: sleepwatcher      — ~/.wakeup (kills stale SSH on macOS wake)
+                                 Instant recovery instead of waiting 90s for keepalive timeout.
+
+  COMPANION FILES:
+    SwiftBar plugin:  ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
+    ZeroTier probe:   ~/eon/cc-skills/plugins/ssh-tunnel-companion/scripts/zt-probe.sh
+    Wakeup script:    ~/.wakeup (sleepwatcher hook)
+    Install script:   ~/eon/cc-skills/plugins/ssh-tunnel-companion/scripts/install.sh
+    Uninstall script: ~/eon/cc-skills/plugins/ssh-tunnel-companion/scripts/uninstall.sh
+    Source repo:      ~/eon/cc-skills/plugins/ssh-tunnel-companion/
+
+  PORTS FORWARDED:
+    localhost:18123 → bigblack:8123  (ClickHouse HTTP)
+    localhost:18081 → bigblack:8081  (SSE sidecar)
+
+  WHY NO AUTOSSH:
+    With -M 0, autossh is just a wrapper that restarts SSH on exit — exactly
+    what launchd KeepAlive=true does. Removing autossh eliminates a dependency
+    with zero loss of functionality. Modern OpenSSH + ExitOnForwardFailure
+    handles all failure detection natively.
+
+  INSTALL:   make install   (from repo root)
+  UNINSTALL: make uninstall (from repo root)
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.terryli.ssh-tunnel-companion</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/bin/ssh</string>
+		<string>-N</string>
+		<string>-o</string>
+		<string>ExitOnForwardFailure=yes</string>
+		<string>-o</string>
+		<string>ConnectTimeout=8</string>
+		<string>-L</string>
+		<string>18123:localhost:8123</string>
+		<string>-L</string>
+		<string>18081:localhost:8081</string>
+		<string>bigblack</string>
+	</array>
+
+	<!-- Start at login -->
+	<key>RunAtLoad</key>
+	<true/>
+
+	<!-- Restart when SSH exits (dead connection, network loss, wake kill) -->
+	<key>KeepAlive</key>
+	<true/>
+
+	<!-- Prevent rapid-fire reconnection on sustained outage -->
+	<key>ThrottleInterval</key>
+	<integer>10</integer>
+
+	<key>StandardOutPath</key>
+	<string>/tmp/ssh-tunnel-companion.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/ssh-tunnel-companion.log</string>
+</dict>
+</plist>
