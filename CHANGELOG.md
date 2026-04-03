@@ -1,3 +1,45 @@
+# [12.36.0](https://github.com/terrylica/cc-skills/compare/v12.35.1...v12.36.0) (2026-04-03)
+
+
+### Features
+
+* add ssh-tunnel-companion plugin scaffold ([9946279](https://github.com/terrylica/cc-skills/commit/9946279e15c155b01c697bb65e43a740f880897f))
+* **statusline,gh-tools:** wiki URL detection + org fast-path in identity guard ([17caf23](https://github.com/terrylica/cc-skills/commit/17caf23a20fb9dc12ec6a6d319df0ba4affb28ad)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Architecture](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/codebase/ARCHITECTURE.md) - new (+285)
+- [Codebase Concerns](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/codebase/CONCERNS.md) - new (+323)
+- [Coding Conventions](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/codebase/CONVENTIONS.md) - new (+216)
+- [External Integrations](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/codebase/INTEGRATIONS.md) - new (+178)
+- [Technology Stack](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/codebase/STACK.md) - new (+137)
+- [Codebase Structure](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/codebase/STRUCTURE.md) - new (+299)
+- [Testing Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/codebase/TESTING.md) - new (+380)
+- [01-01-PLAN](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/phases/01-single-consumer-consolidation/01-01-PLAN.md) - new (+196)
+- [Phase 1 Plan 1: Remove Bun Bot Notification Watcher Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/phases/01-single-consumer-consolidation/01-01-SUMMARY.md) - new (+105)
+- [Phase 1: Single-Consumer Consolidation - Context](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/phases/01-single-consumer-consolidation/01-CONTEXT.md) - new (+67)
+- [claude-tts-companion — Notification Intelligence Milestone](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/PROJECT.md) - new (+94)
+- [Requirements: claude-tts-companion — Notification Intelligence](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/REQUIREMENTS.md) - new (+89)
+- [Architecture: Notification Intelligence Pipeline](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/research/ARCHITECTURE.md) - new (+318)
+- [Feature Landscape: Notification Intelligence](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/research/FEATURES.md) - new (+100)
+- [Domain Pitfalls](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/research/PITFALLS.md) - new (+269)
+- [Technology Stack: Notification Intelligence](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/research/STACK.md) - new (+420)
+- [Project Research Summary](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/research/SUMMARY.md) - new (+176)
+- [Roadmap: claude-tts-companion — Notification Intelligence](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/ROADMAP.md) - new (+146)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/.planning/STATE.md) - new (+81)
+- [claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/CLAUDE.md) - updated (+339)
+- [ssh-tunnel-companion](https://github.com/terrylica/cc-skills/blob/main/plugins/ssh-tunnel-companion/CLAUDE.md) - new (+195)
+
 ## [12.35.1](https://github.com/terrylica/cc-skills/compare/v12.35.0...v12.35.1) (2026-04-02)
 
 # [12.35.0](https://github.com/terrylica/cc-skills/compare/v12.34.0...v12.35.0) (2026-04-02)
