@@ -7,7 +7,7 @@
 
 ### Notification Pipeline
 
-- [ ] **NOTIF-01**: Companion is the sole notification consumer (Bun bot notification watcher removed)
+- [x] **NOTIF-01**: Companion is the sole notification consumer (Bun bot notification watcher removed)
 - [ ] **NOTIF-02**: Session summary Telegram message is editable (sendSessionNotification returns message ID)
 - [ ] **NOTIF-03**: 3-second re-check compares transcript state and edits Telegram message if last turn changed
 - [ ] **NOTIF-04**: Inline keyboard is preserved on all editMessageText calls (re-attached explicitly)
@@ -63,7 +63,7 @@
 
 | REQ-ID   | Phase   | Status  |
 | -------- | ------- | ------- |
-| NOTIF-01 | Phase 1 | Pending |
+| NOTIF-01 | Phase 1 | Complete |
 | NOTIF-02 | Phase 2 | Pending |
 | NOTIF-03 | Phase 3 | Pending |
 | NOTIF-04 | Phase 2 | Pending |
