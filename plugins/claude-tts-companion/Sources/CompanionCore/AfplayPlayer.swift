@@ -1,3 +1,4 @@
+// FILE-SIZE-OK — single-file player with batch + pipelined modes sharing 60%+ logic
 // Jitter-free audio playback via afplay subprocess.
 //
 // Uses posix_spawn directly (not Foundation Process) to launch afplay
@@ -7,10 +8,16 @@ import Darwin
 import Foundation
 import Logging
 
-/// Plays concatenated TTS audio via afplay subprocess.
+/// Plays TTS audio via afplay subprocess with chained paragraph playback.
 ///
-/// Accumulates Float32 PCM chunks, writes a single WAV file, and plays it
-/// through afplay. Provides wall-clock currentTime for karaoke sync.
+/// Two modes of operation:
+/// 1. **Batch mode** (existing): `appendChunk()` → `play()` — accumulates samples,
+///    writes one WAV, plays once. Used for single-paragraph and automated TTS.
+/// 2. **Pipelined mode** (new): `playOrEnqueue()` → `markQueueComplete()` — plays
+///    first paragraph immediately, queues subsequent paragraphs, chains afplay
+///    invocations with ~50-200ms natural gaps. Used for multi-paragraph user TTS.
+///
+/// Provides cumulative `currentTime` across chained paragraphs for karaoke sync.
 ///
 /// Uses posix_spawn directly instead of Foundation's Process class to
 /// eliminate overhead and give afplay its own process group, matching
@@ -20,13 +27,13 @@ public final class AfplayPlayer {
 
     private let logger = Logger(label: "afplay-player")
 
-    /// Accumulated Float32 PCM samples at 48kHz mono.
+    /// Accumulated Float32 PCM samples at 48kHz mono (batch mode).
     private var pendingSamples: [Float] = []
 
     /// PID of the running afplay subprocess.
     private var afplayPID: pid_t = 0
 
-    /// Wall-clock time when afplay started playing.
+    /// Wall-clock time when current afplay segment started playing.
     private var playStartTime: Date?
 
     /// Path to the current WAV file being played.
@@ -40,7 +47,7 @@ public final class AfplayPlayer {
         return dir
     }()
 
-    /// Completion callback when playback finishes.
+    /// Completion callback when playback finishes (batch mode).
     private var onComplete: (() -> Void)?
 
     /// Whether playback has been stopped externally (vs finishing naturally).
@@ -48,6 +55,46 @@ public final class AfplayPlayer {
 
     /// Background thread monitoring afplay exit via waitpid.
     private var waitThread: Thread?
+
+    // MARK: - Pipelined Playback State
+
+    /// Queue of paragraphs waiting to play after the current one finishes.
+    private var playQueue: [(samples: [Float], label: String?)] = []
+
+    /// Cumulative playback time from all finished paragraph segments.
+    /// Added to wall-clock elapsed for correct karaoke sync across chained afplay.
+    private var cumulativeTimeOffset: TimeInterval = 0
+
+    /// Duration of the currently-playing paragraph segment (computed from sample count).
+    private var currentSegmentDuration: TimeInterval = 0
+
+    /// Whether markQueueComplete() has been called (no more paragraphs coming).
+    private var queueComplete = false
+
+    /// Whether playback finished and is waiting for next synthesis to arrive.
+    /// When true, the next playOrEnqueue() call starts afplay immediately.
+    private var isWaitingForNextChunk = false
+
+    /// Callback fired when queue drains and queueComplete is true.
+    private var allCompleteCallback: (() -> Void)?
+
+    /// Duration of the segment that just finished (pending offset advancement).
+    /// Advanced into cumulativeTimeOffset when the NEXT segment starts, not when
+    /// the current one finishes. This prevents currentTime from jumping to the
+    /// next chunk boundary during the gap between segments.
+    private var finishedSegmentDuration: TimeInterval = 0
+
+    /// Wall-clock time when the last segment finished playing (for gap measurement).
+    private var lastSegmentEndTime: Date?
+
+    /// Whether we already logged the segment-duration cap for the current segment.
+    /// Prevents 60Hz log spam from the cap firing every tick.
+    private var didLogCap: Bool = false
+
+    /// Whether we're in pipelined mode (vs batch mode).
+    /// Exposed for SubtitleSyncDriver to skip the !isPlaying safety-net check
+    /// during inter-segment gaps (isPlaying is briefly false between chained afplay).
+    private(set) var isPipelinedMode = false
 
     // MARK: - Public API
 
@@ -174,10 +221,28 @@ public final class AfplayPlayer {
         return true
     }
 
-    /// Current playback time based on wall clock since play() was called.
+    /// Current playback time, cumulative across chained paragraph segments.
+    ///
+    /// Between segments (playStartTime nil): frozen at `cumulativeTimeOffset`.
+    /// During playback: `cumulativeTimeOffset + elapsed`, capped to the current
+    /// segment's duration so the subtitle can never overflow into the next chunk
+    /// (afplay startup delay would otherwise make currentTime race ahead of audio).
     var currentTime: TimeInterval {
-        guard let start = playStartTime else { return 0 }
-        return Date().timeIntervalSince(start)
+        guard let start = playStartTime else {
+            return cumulativeTimeOffset  // frozen between segments
+        }
+        let elapsed = Date().timeIntervalSince(start)
+        let capped: TimeInterval
+        if currentSegmentDuration > 0 && elapsed > currentSegmentDuration {
+            capped = currentSegmentDuration
+            if !didLogCap {
+                didLogCap = true
+                logger.info("[TELEMETRY] Segment-duration cap activated: elapsed=\(String(format: "%.3f", elapsed))s > segmentDuration=\(String(format: "%.3f", currentSegmentDuration))s, capping at \(String(format: "%.3f", currentSegmentDuration))s")
+            }
+        } else {
+            capped = elapsed
+        }
+        return cumulativeTimeOffset + capped
     }
 
     /// Whether afplay is currently running.
@@ -192,7 +257,199 @@ public final class AfplayPlayer {
         !pendingSamples.isEmpty
     }
 
-    /// Stop playback, kill the afplay process, and discard pending samples.
+    /// Re-anchor playStartTime to now, aligning time=0 with subtitle display.
+    /// Combined with the segment-duration cap on currentTime, this ensures the
+    /// first tick sees currentTime ≈ 0 (not the WAV write + spawn delay).
+    func resyncPlayStart() {
+        playStartTime = Date()
+    }
+
+    // MARK: - Pipelined Playback API
+
+    /// Play a paragraph immediately or queue it behind the current playback.
+    ///
+    /// First call: writes WAV and launches afplay immediately.
+    /// Subsequent calls while playing: queues for chained playback.
+    /// If called while waiting (synthesis slower than playback): plays immediately.
+    func playOrEnqueue(samples: [Float], label: String?) {
+        guard !samples.isEmpty else {
+            logger.warning("playOrEnqueue called with empty samples")
+            return
+        }
+
+        isPipelinedMode = true
+
+        if isWaitingForNextChunk {
+            // Synthesis caught up — play immediately
+            isWaitingForNextChunk = false
+            logger.info("Synthesis caught up — playing queued paragraph immediately")
+            startSegment(samples: samples, label: label)
+        } else if afplayPID > 0 && kill(afplayPID, 0) == 0 {
+            // Currently playing — queue for chained playback
+            playQueue.append((samples: samples, label: label))
+            let queuedDuration = Double(samples.count) / 48000.0
+            logger.info("Queued paragraph for chained playback (\(String(format: "%.2f", queuedDuration))s, queue depth: \(playQueue.count))")
+        } else {
+            // Nothing playing — start immediately
+            startSegment(samples: samples, label: label)
+        }
+    }
+
+    /// Signal that no more paragraphs will be enqueued.
+    /// Fires the callback when the queue fully drains (all paragraphs played).
+    func markQueueComplete(onComplete: @escaping () -> Void) {
+        queueComplete = true
+
+        if playQueue.isEmpty && !isPlaying && !isWaitingForNextChunk {
+            // Already done — fire immediately
+            logger.info("Queue already drained — firing completion immediately")
+            onComplete()
+        } else {
+            allCompleteCallback = onComplete
+        }
+    }
+
+    /// Start playing a single paragraph segment via afplay.
+    private func startSegment(samples: [Float], label: String?) {
+        // Reset cap log flag for the new segment
+        didLogCap = false
+
+        // Log inter-segment gap duration
+        if let lastEnd = lastSegmentEndTime {
+            let gap = Date().timeIntervalSince(lastEnd)
+            logger.info("[TELEMETRY] Inter-segment gap: \(String(format: "%.3f", gap))s")
+        }
+
+        // Advance cumulative offset for the just-finished segment NOW (not in callback).
+        // This ensures currentTime jumps to the next chunk boundary exactly when
+        // the new afplay launches, keeping subtitle sync aligned with actual audio.
+        if finishedSegmentDuration > 0 {
+            cumulativeTimeOffset += finishedSegmentDuration
+            finishedSegmentDuration = 0
+        }
+
+        // Kill any running afplay first
+        if afplayPID > 0 {
+            kill(afplayPID, SIGKILL)
+            afplayPID = 0
+        }
+        wasStopped = false
+
+        // Write WAV
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+            .replacingOccurrences(of: ":", with: "-")
+        let slug: String
+        if let label = label, !label.isEmpty {
+            let clean = label
+                .prefix(40)
+                .filter { $0.isLetter || $0.isNumber || $0 == " " }
+                .replacingOccurrences(of: " ", with: "_")
+            slug = clean.isEmpty ? String(UUID().uuidString.prefix(8)).lowercased() : clean
+        } else {
+            slug = String(UUID().uuidString.prefix(8)).lowercased()
+        }
+        let wavPath = debugWavDir + "/tts-\(timestamp)_\(slug).wav"
+        do {
+            try writeWav(samples: samples, sampleRate: 48000, to: wavPath)
+        } catch {
+            logger.error("Failed to write WAV for pipelined afplay: \(error)")
+            advanceQueue()
+            return
+        }
+        currentWavPath = wavPath
+
+        currentSegmentDuration = Double(samples.count) / 48000.0
+
+        // Launch afplay via posix_spawn
+        var pid: pid_t = 0
+        let cPath = strdup("/usr/bin/afplay")!
+        let cArg = strdup(wavPath)!
+        var argv: [UnsafeMutablePointer<CChar>?] = [cPath, cArg, nil]
+
+        var fileActions: posix_spawn_file_actions_t? = nil
+        posix_spawn_file_actions_init(&fileActions)
+        posix_spawn_file_actions_addopen(&fileActions, STDIN_FILENO, "/dev/null", O_RDONLY, 0)
+        posix_spawn_file_actions_addopen(&fileActions, STDOUT_FILENO, "/dev/null", O_WRONLY, 0)
+        posix_spawn_file_actions_addopen(&fileActions, STDERR_FILENO, "/dev/null", O_WRONLY, 0)
+
+        var spawnAttr: posix_spawnattr_t? = nil
+        posix_spawnattr_init(&spawnAttr)
+        posix_spawnattr_setflags(&spawnAttr, Int16(POSIX_SPAWN_SETPGROUP))
+        posix_spawnattr_setpgroup(&spawnAttr, 0)
+        posix_spawnattr_set_qos_class_np(&spawnAttr, QOS_CLASS_USER_INTERACTIVE)
+
+        let spawnResult = posix_spawn(&pid, "/usr/bin/afplay", &fileActions, &spawnAttr, &argv, environ)
+
+        posix_spawn_file_actions_destroy(&fileActions)
+        posix_spawnattr_destroy(&spawnAttr)
+        free(cPath)
+        free(cArg)
+
+        guard spawnResult == 0 else {
+            logger.error("posix_spawn failed for pipelined afplay: \(spawnResult)")
+            advanceQueue()
+            return
+        }
+
+        afplayPID = pid
+        playStartTime = Date()
+        logger.info("afplay pipelined segment: \(wavPath) (\(String(format: "%.2f", currentSegmentDuration))s, pid \(pid), offset \(String(format: "%.2f", cumulativeTimeOffset))s)")
+
+        // Monitor exit and chain to next segment
+        let capturedPID = pid
+        let thread = Thread {
+            var status: Int32 = 0
+            waitpid(capturedPID, &status, 0)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, self.afplayPID == capturedPID else { return }
+                self.afplayPID = 0
+                self.playStartTime = nil
+                self.lastSegmentEndTime = Date()
+                // Do NOT advance cumulativeTimeOffset here. It stays frozen so
+                // currentTime returns the END of the last segment, keeping the tick
+                // on the current chunk. Offset is advanced in startSegment() when
+                // the next segment's afplay actually launches.
+                self.finishedSegmentDuration = self.currentSegmentDuration
+                self.currentWavPath = nil
+
+                if self.wasStopped { return }
+
+                if (status & 0x7f) == 0 && ((status >> 8) & 0xff) == 0 {
+                    self.logger.info("afplay segment finished (cumulative \(String(format: "%.2f", self.cumulativeTimeOffset + self.finishedSegmentDuration))s)")
+                } else {
+                    self.logger.warning("afplay segment exited with status \(status)")
+                }
+
+                self.advanceQueue()
+            }
+        }
+        thread.qualityOfService = .utility
+        thread.start()
+        waitThread = thread
+    }
+
+    /// Advance to the next queued paragraph or signal completion.
+    private func advanceQueue() {
+        logger.info("[TELEMETRY] advanceQueue: queue depth=\(playQueue.count)")
+        if let next = playQueue.first {
+            playQueue.removeFirst()
+            startSegment(samples: next.samples, label: next.label)
+        } else if queueComplete {
+            // Flush any pending offset for the final segment
+            cumulativeTimeOffset += finishedSegmentDuration
+            finishedSegmentDuration = 0
+            logger.info("All pipelined segments played (total \(String(format: "%.2f", cumulativeTimeOffset))s)")
+            let callback = allCompleteCallback
+            allCompleteCallback = nil
+            callback?()
+        } else {
+            // Synthesis slower than playback — wait for next chunk
+            isWaitingForNextChunk = true
+            logger.info("Waiting for next synthesis (playback outpaced synthesis at \(String(format: "%.2f", cumulativeTimeOffset))s)")
+        }
+    }
+
+    /// Stop playback, kill the afplay process, drain queue, and discard pending samples.
     ///
     /// Kills the tracked PID first, then does a defensive killall to catch any
     /// orphaned afplay processes from race conditions (e.g., new afplay spawned
@@ -215,14 +472,25 @@ public final class AfplayPlayer {
         killall.standardError = FileHandle.nullDevice
         try? killall.run()
         playStartTime = nil
+        // Drain pipelined queue
+        playQueue.removeAll()
+        queueComplete = false
+        isWaitingForNextChunk = false
+        allCompleteCallback = nil
+        isPipelinedMode = false
         cleanup()
     }
 
-    /// Reset for a new session: stop playback and clear pending samples.
+    /// Reset for a new session: stop playback, clear pending samples and pipelined state.
     func reset() {
         stop()
         pendingSamples.removeAll(keepingCapacity: true)
         onComplete = nil
+        cumulativeTimeOffset = 0
+        currentSegmentDuration = 0
+        finishedSegmentDuration = 0
+        lastSegmentEndTime = nil
+        didLogCap = false
     }
 
     // MARK: - Private
