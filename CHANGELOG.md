@@ -1,3 +1,31 @@
+## [12.36.1](https://github.com/terrylica/cc-skills/compare/v12.36.0...v12.36.1) (2026-04-03)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [issue-create](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/issue-create/SKILL.md) - updated (+31/-2)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+2)
+
 # [12.36.0](https://github.com/terrylica/cc-skills/compare/v12.35.1...v12.36.0) (2026-04-03)
 
 
