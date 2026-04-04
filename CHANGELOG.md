@@ -1,3 +1,15 @@
+# [12.38.0](https://github.com/terrylica/cc-skills/compare/v12.37.0...v12.38.0) (2026-04-04)
+
+
+### Bug Fixes
+
+* **claude-tts-companion:** audit fixes for pipelined playback state machine ([72884aa](https://github.com/terrylica/cc-skills/commit/72884aa33bf675b5923ce117eace72c2e9ca3257))
+
+
+### Features
+
+* **claude-tts-companion,statusline:** Telegram Q&A handler + ccmax monitor ([497d87a](https://github.com/terrylica/cc-skills/commit/497d87a2918a71f09a6e6e848887c25ffa5d955f))
+
 # [12.37.0](https://github.com/terrylica/cc-skills/compare/v12.36.1...v12.37.0) (2026-04-03)
 
 
