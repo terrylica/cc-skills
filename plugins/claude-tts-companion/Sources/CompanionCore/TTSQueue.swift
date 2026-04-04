@@ -304,7 +304,7 @@ public actor TTSQueue {
         }
         if budget > 0 {
             let before = paragraphs.count
-            segments = PronunciationProcessor.enforceParargraphBudget(paragraphs, budget: budget)
+            segments = PronunciationProcessor.enforceParagraphBudget(paragraphs, budget: budget)
             if segments.count > before {
                 logger.info("Paragraph budget (\(budget) chars): \(before) paragraphs → \(segments.count) segments")
             } else {

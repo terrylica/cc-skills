@@ -276,6 +276,10 @@ public final class AfplayPlayer {
             logger.warning("playOrEnqueue called with empty samples")
             return
         }
+        guard !queueComplete else {
+            logger.warning("playOrEnqueue called after markQueueComplete — ignoring")
+            return
+        }
 
         isPipelinedMode = true
 
@@ -300,7 +304,16 @@ public final class AfplayPlayer {
     func markQueueComplete(onComplete: @escaping () -> Void) {
         queueComplete = true
 
-        if playQueue.isEmpty && !isPlaying && !isWaitingForNextChunk {
+        if isWaitingForNextChunk && playQueue.isEmpty {
+            // Was waiting for synthesis that will never come — flush and complete.
+            // Without this, the system deadlocks: it waits for a playOrEnqueue that
+            // will never arrive, and the completion callback never fires.
+            cumulativeTimeOffset += finishedSegmentDuration
+            finishedSegmentDuration = 0
+            isWaitingForNextChunk = false
+            logger.info("Queue complete while waiting for next chunk — flushing and completing")
+            onComplete()
+        } else if playQueue.isEmpty && !isPlaying && !isWaitingForNextChunk {
             // Already done — fire immediately
             logger.info("Queue already drained — firing completion immediately")
             onComplete()
@@ -438,6 +451,7 @@ public final class AfplayPlayer {
             // Flush any pending offset for the final segment
             cumulativeTimeOffset += finishedSegmentDuration
             finishedSegmentDuration = 0
+            isPipelinedMode = false
             logger.info("All pipelined segments played (total \(String(format: "%.2f", cumulativeTimeOffset))s)")
             let callback = allCompleteCallback
             allCompleteCallback = nil
