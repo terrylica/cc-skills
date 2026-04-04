@@ -393,7 +393,7 @@ public final class AutoContinueEvaluator: @unchecked Sendable {
             state.totalIterations += 1
             state.lastBlockedAt = Date().timeIntervalSince1970 * 1000
             saveState(sessionId: sessionId, state: state)
-            return (true, reason.isEmpty ? "Continue as planned" : reason)
+            return (true, reason.isEmpty ? "MiniMax returned CONTINUE without specific instructions — session will resume its current task" : reason)
         case .sweep:
             state.sweepInjected = true
             state.iteration += 1

@@ -368,9 +368,81 @@ else
     datetime_display="${BRIGHT_BLACK}${utc_date} ${utc_hm} UTC | ${YELLOW}${local_short}${BRIGHT_BLACK} ${local_hm} ${local_tz}${RESET}"
 fi
 
+# === ccmax-monitor: Active Account + 7d Reset ===
+# Fetches from bigblack's Dashboard API, cached for 60s to avoid network spam.
+# Appended inline to datetime line: ... UTC | ... PDT | usalchemist 88% 1d 22h
+CCMAX_CACHE="/tmp/ccmax-statusline-cache.json"
+CCMAX_CACHE_TTL=60
+ccmax_line=""
+
+ccmax_needs_fetch=1
+if [ -f "$CCMAX_CACHE" ]; then
+    cache_mtime=$(stat -f %m "$CCMAX_CACHE" 2>/dev/null || echo 0)
+    cache_age=$(( $(date +%s) - cache_mtime ))
+    [ "$cache_age" -lt "$CCMAX_CACHE_TTL" ] && ccmax_needs_fetch=0
+fi
+
+if [ "$ccmax_needs_fetch" -eq 1 ]; then
+    ccmax_raw=$(curl -sf --connect-timeout 1 --max-time 2 "http://172.25.253.142:8095/api/status" 2>/dev/null) || ccmax_raw=""
+    if [ -n "$ccmax_raw" ]; then
+        echo "$ccmax_raw" > "$CCMAX_CACHE"
+    fi
+else
+    ccmax_raw=$(cat "$CCMAX_CACHE" 2>/dev/null) || ccmax_raw=""
+fi
+
+if [ -n "$ccmax_raw" ]; then
+    ccmax_line=$(echo "$ccmax_raw" | python3 -c "
+import sys, json
+from datetime import datetime, timezone
+try:
+    d = json.loads(sys.stdin.read())
+    active = d.get('active_account', '')
+    accounts = d.get('accounts', [])
+    if not active:
+        print('')
+        sys.exit()
+    # Find active account's usage
+    for a in accounts:
+        if a.get('name', '').startswith(active.split('@')[0]):
+            u = a.get('usage', {})
+            sd = (u.get('seven_day') or {}).get('utilization', 0) or 0
+            resets_at = (u.get('seven_day') or {}).get('resets_at', '')
+            reset_str = ''
+            if resets_at:
+                try:
+                    rt = datetime.fromisoformat(resets_at)
+                    now = datetime.now(timezone.utc)
+                    delta = rt - now
+                    secs = max(0, int(delta.total_seconds()))
+                    days = secs // 86400
+                    hours = (secs % 86400) // 3600
+                    mins = (secs % 3600) // 60
+                    if days > 0:
+                        reset_str = f'{days}d {hours}h'
+                    elif hours > 0:
+                        reset_str = f'{hours}h {mins}m'
+                    else:
+                        reset_str = f'{mins}m'
+                except Exception:
+                    pass
+            # Compact: usalchemist 88% 1d 22h
+            short = active.split('@')[0]
+            parts = [short, f'{sd:.0f}%']
+            if reset_str:
+                parts.append(reset_str)
+            print(' '.join(parts))
+            sys.exit()
+    # Fallback: just show active account
+    print(active.split('@')[0])
+except Exception:
+    print('')
+" 2>/dev/null) || ccmax_line=""
+fi
+
 # Status line layout:
 #   Line 1: git stats
-#   Line 2: UTC time | local time
+#   Line 2: UTC time | local time | ccmax (inline)
 #   Line 3: ~/path | github-url
 #   Line 4: session UUID (if available)
 #   Line 5: ~/asciinemalogs cast UUID
@@ -406,7 +478,12 @@ fi
 # Output: git stats, timestamps, repo, session, cast, then cron jobs (bottom)
 echo -e "$line1"
 
-echo -e "${datetime_display}"
+# Append ccmax info inline with datetime: ... UTC | ... PDT | usalchemist 88% 1d 22h
+if [ -n "$ccmax_line" ]; then
+    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET} ${CYAN}${ccmax_line}${RESET}"
+else
+    echo -e "${datetime_display}"
+fi
 
 echo -e "$line_repo"
 

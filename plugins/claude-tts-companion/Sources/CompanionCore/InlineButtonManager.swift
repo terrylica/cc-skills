@@ -29,6 +29,13 @@ public final class InlineButtonManager {
         let createdAt: Date
     }
 
+    /// Session context for interactive MiniMax Q&A (Ask About This).
+    struct SessionContext {
+        let transcriptText: String
+        let cwd: String
+        let sessionId: String
+    }
+
     // MARK: - State
 
     /// Auto-incrementing counter for notification IDs.
@@ -40,6 +47,9 @@ public final class InlineButtonManager {
     /// Maps iTerm session UUID to the last message with Focus Tab button.
     /// Bounded to 100 entries (FIFO).
     private var focusTabMessages: [String: FocusTabEntry] = [:]
+
+    /// Last session context for free-text MiniMax Q&A. Updated on each notification.
+    var lastSessionContext: SessionContext?
 
     /// Insertion-order tracking for FIFO eviction.
     private var notifInsertionOrder: [Int] = []
@@ -126,7 +136,7 @@ public final class InlineButtonManager {
 
     /// Build an inline keyboard for an Arc Summary notification message.
     ///
-    /// Layout: single row with [Focus Tab] [Follow Up] [Transcript]
+    /// Layout: single row with [Focus Tab] [Ask About This] [Transcript]
     /// Focus Tab is only included when itermSessionId is non-nil.
     func buildInlineKeyboard(itermSessionId: String?, notifId: Int) -> TGInlineKeyboardMarkup {
         var buttons: [TGInlineKeyboardButton] = []
@@ -139,7 +149,7 @@ public final class InlineButtonManager {
         }
 
         buttons.append(TGInlineKeyboardButton(
-            text: "\u{1F4AC} Follow Up",
+            text: "\u{1F4AC} Ask About This",
             callbackData: "fu:\(notifId)"
         ))
 
