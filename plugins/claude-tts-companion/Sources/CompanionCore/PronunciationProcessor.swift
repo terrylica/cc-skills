@@ -75,10 +75,8 @@ public struct PronunciationProcessor: Sendable {
         result = result.replacingOccurrences(of: "\r\n", with: " ")
         result = result.replacingOccurrences(of: "\n", with: " ")
         result = result.replacingOccurrences(of: "\r", with: " ")
-        // Collapse multiple spaces from newline replacement
-        while result.contains("  ") {
-            result = result.replacingOccurrences(of: "  ", with: " ")
-        }
+        // Collapse runs of whitespace to a single space (O(n) via regex)
+        result = result.replacingOccurrences(of: " {2,}", with: " ", options: .regularExpression)
         result = result.trimmingCharacters(in: .whitespaces)
         for override in compiledOverrides {
             let range = NSRange(result.startIndex..., in: result)
@@ -116,8 +114,10 @@ public struct PronunciationProcessor: Sendable {
     /// greedily match each Kokoro token to the next original word that contains it.
     /// The original word (with punctuation) becomes the display word.
     ///
-    /// Returns display words with punctuation, guaranteed same count as kokoroTokens.
-    /// Falls back to kokoroTokens if matching fails.
+    /// Returns display words with punctuation. Count may exceed kokoroTokens if the
+    /// original text has trailing words that Kokoro's tokenizer dropped (e.g., a final
+    /// "content." that gets spoken but excluded from the word timing array).
+    /// TTSPipelineCoordinator pads onset arrays to match the extended count.
     public static func reattachPunctuation(originalText: String, kokoroTokens: [String]) -> [String] {
         // Split original text same way as splitWordsMatchingKokoro
         let originalWords = splitWordsMatchingKokoro(originalText)
@@ -249,7 +249,7 @@ public struct PronunciationProcessor: Sendable {
     /// Apply paragraph budget enforcement to a list of paragraphs (from `\n\n` splitting).
     /// Each paragraph that exceeds the budget is recursively bisected at sentence boundaries.
     /// Returns segments with continuation metadata for border rendering.
-    public static func enforceParargraphBudget(_ paragraphs: [String], budget: Int) -> [ParagraphSegment] {
+    public static func enforceParagraphBudget(_ paragraphs: [String], budget: Int) -> [ParagraphSegment] {
         var result: [ParagraphSegment] = []
         for paragraph in paragraphs {
             let segments = bisectParagraph(paragraph, budget: budget)
