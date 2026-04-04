@@ -68,6 +68,8 @@ fi
 
 CLEAN_TEXT=$(printf '%s\n' "$TEXT" | awk '
 {
+    gsub(/\r/, "")
+    gsub(/\t/, " ")
     gsub(/^[[:space:]]+/, "")
     if ($0 == "") {
         if (buf != "") { paras[n++] = buf; buf = "" }
