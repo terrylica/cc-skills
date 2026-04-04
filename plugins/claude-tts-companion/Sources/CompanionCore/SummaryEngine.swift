@@ -36,6 +36,9 @@ public final class SummaryEngine: @unchecked Sendable {
     private let client: MiniMaxClient
     private let logger = Logger(label: "summary-engine")
 
+    /// Public access for interactive Q&A (Ask About This).
+    var miniMaxClient: MiniMaxClient { client }
+
     init(client: MiniMaxClient = MiniMaxClient()) {
         self.client = client
     }
@@ -193,7 +196,7 @@ public final class SummaryEngine: @unchecked Sendable {
         } catch {
             logger.error("Single-turn summary failed: \(error)")
             return SummaryResult(
-                narrative: "Session completed.",
+                narrative: "Summary unavailable — MiniMax API error: \(error)",
                 promptSummary: nil,
                 ttsGreeting: nil
             )
@@ -209,7 +212,7 @@ public final class SummaryEngine: @unchecked Sendable {
     func arcSummary(turns: [ConversationTurn], cwd: String?) async -> SummaryResult {
         // Empty turns -- safe fallback without API call
         if turns.isEmpty {
-            return SummaryResult(narrative: "Session completed.", promptSummary: nil, ttsGreeting: nil)
+            return SummaryResult(narrative: "Empty session — no turns to summarize", promptSummary: nil, ttsGreeting: nil)
         }
 
         // Single or two turns -- delegate to single-turn (MiniMax hallucinates in arc mode)
@@ -331,7 +334,7 @@ public final class SummaryEngine: @unchecked Sendable {
         } catch {
             logger.error("Arc summary failed: \(error)")
             return SummaryResult(
-                narrative: "Session completed.",
+                narrative: "Summary unavailable — MiniMax API error: \(error)",
                 promptSummary: nil,
                 ttsGreeting: nil
             )
