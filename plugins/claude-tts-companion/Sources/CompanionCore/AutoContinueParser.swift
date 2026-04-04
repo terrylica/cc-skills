@@ -15,7 +15,7 @@ enum AutoContinueParser {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             logger.warning("Empty model response, defaulting to DONE (fail-open)")
-            return (.done, "empty model response")
+            return (.done, "MiniMax returned empty response (possible timeout or token limit) — stopping as safety fallback")
         }
 
         let lines = trimmed.components(separatedBy: "\n")
@@ -75,7 +75,7 @@ enum AutoContinueParser {
         }
 
         logger.warning("No decision found in response, defaulting to DONE: \(String(trimmed.prefix(100)))")
-        return (.done, "no decision line found")
+        return (.done, "MiniMax response contained no recognized decision keyword — stopping as safety fallback")
     }
 
     /// Check if a string starts with a known decision keyword.
@@ -121,6 +121,6 @@ enum AutoContinueParser {
             return cleaned
         }
 
-        return "(no details available)"
+        return "MiniMax fallback extraction found no usable context in response"
     }
 }

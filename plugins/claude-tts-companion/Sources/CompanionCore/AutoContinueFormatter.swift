@@ -103,7 +103,7 @@ enum AutoContinueFormatter {
 
         var lines: [String] = [
             "<b>\(icon) Auto-Continue: \(decision)</b>  <code>\(shortSession)</code>",
-            "<i>\(escapedReason.isEmpty ? "No reason provided" : escapedReason)</i>",
+            "<i>\(escapedReason.isEmpty ? "MiniMax evaluated \(result.turnCount) turns across \(String(format: "%.0f", result.elapsedMin))m and determined session is complete" : escapedReason)</i>",
         ]
 
         if result.decision == .sweep {

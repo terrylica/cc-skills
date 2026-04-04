@@ -59,7 +59,7 @@ extension TelegramBot {
             lastActivity: lastActivity ?? Date(),
             turnCount: turns.count,
             lastUserPrompt: lastPrompt,
-            aiNarrative: arc.narrative != "Session completed." ? arc.narrative : nil,
+            aiNarrative: !arc.narrative.hasPrefix("Summary unavailable") && !arc.narrative.hasPrefix("Empty session") ? arc.narrative : nil,
             promptSummary: condensedPrompt
         )
 
@@ -70,7 +70,7 @@ extension TelegramBot {
         if FeatureGates.summarizerTgEnabled {
             // If rendering produced nothing useful, send minimal fallback
             if message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                await sendMessage("<b>Session Complete</b>\n\n<i>Summary generation failed or was skipped.</i>")
+                await sendMessage("<b>Session Complete</b>\n\n<i>Summary unavailable — MiniMax returned empty or the circuit breaker is open. Check companion logs for details.</i>")
             } else if let tp = transcriptPath {
                 // Attach inline keyboard when transcript is available (BTN-01)
                 let workspace = (cwd as NSString?)?.lastPathComponent ?? "unknown"
@@ -79,6 +79,17 @@ extension TelegramBot {
                     workspace: workspace,
                     transcriptPath: tp
                 )
+
+                // Populate session context for MiniMax Q&A (Ask About This)
+                let transcriptText = turns.enumerated().map { (i, t) in
+                    "Turn \(i + 1):\nUser: \(String(t.prompt.prefix(2000)))\nAssistant: \(String(t.response.prefix(4000)))"
+                }.joined(separator: "\n\n")
+                inlineButtonManager.lastSessionContext = InlineButtonManager.SessionContext(
+                    transcriptText: transcriptText,
+                    cwd: cwd ?? "unknown",
+                    sessionId: sessionId ?? "unknown"
+                )
+
                 let keyboard = inlineButtonManager.buildInlineKeyboard(
                     itermSessionId: itermSessionId,
                     notifId: notifId
