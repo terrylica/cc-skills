@@ -369,11 +369,20 @@ else
 fi
 
 # === ccmax-monitor: Active Account + 7d Reset ===
-# Fetches from bigblack's Dashboard API, cached for 60s to avoid network spam.
+# Fetches from el02's Dashboard API, cached for 60s to avoid network spam.
+# Uses resolve-el02.sh cache for dynamic ZeroTier resolution.
 # Appended inline to datetime line: ... UTC | ... PDT | usalchemist 88% 1d 22h
 CCMAX_CACHE="/tmp/ccmax-statusline-cache.json"
 CCMAX_CACHE_TTL=60
 ccmax_line=""
+
+# Resolve el02 address (use cached result from hooks, or try mDNS/hostname)
+CCMAX_EL02_CACHE="/tmp/ccmax-el02-resolved"
+if [ -f "$CCMAX_EL02_CACHE" ]; then
+    CCMAX_BASE=$(cat "$CCMAX_EL02_CACHE")
+else
+    CCMAX_BASE="http://el02.local:8095"
+fi
 
 ccmax_needs_fetch=1
 if [ -f "$CCMAX_CACHE" ]; then
@@ -383,7 +392,7 @@ if [ -f "$CCMAX_CACHE" ]; then
 fi
 
 if [ "$ccmax_needs_fetch" -eq 1 ]; then
-    ccmax_raw=$(curl -sf --connect-timeout 1 --max-time 2 "http://172.25.253.142:8095/api/status" 2>/dev/null) || ccmax_raw=""
+    ccmax_raw=$(curl -sf --connect-timeout 1 --max-time 2 "${CCMAX_BASE}/api/status" 2>/dev/null) || ccmax_raw=""
     if [ -n "$ccmax_raw" ]; then
         echo "$ccmax_raw" > "$CCMAX_CACHE"
     fi
@@ -391,20 +400,46 @@ else
     ccmax_raw=$(cat "$CCMAX_CACHE" 2>/dev/null) || ccmax_raw=""
 fi
 
+# Identify which account the LOCAL keychain token belongs to (cached 5min)
+CCMAX_LOCAL_CACHE="/tmp/ccmax-local-account"
+ccmax_local_account=""
+if [ -f "$CCMAX_LOCAL_CACHE" ]; then
+    local_cache_age=$(( $(date +%s) - $(stat -f %m "$CCMAX_LOCAL_CACHE" 2>/dev/null || echo 0) ))
+    if [ "$local_cache_age" -lt 60 ]; then
+        ccmax_local_account=$(cat "$CCMAX_LOCAL_CACHE")
+    fi
+fi
+if [ -z "$ccmax_local_account" ]; then
+    local_token=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
+        | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('claudeAiOauth',{}).get('accessToken',''))" 2>/dev/null) || local_token=""
+    if [ -n "$local_token" ]; then
+        ccmax_local_account=$(curl -sf --max-time 3 "https://api.anthropic.com/api/oauth/profile" \
+            -H "Authorization: Bearer $local_token" -H "Content-Type: application/json" 2>/dev/null \
+            | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('account',{}).get('email',''))" 2>/dev/null) || ccmax_local_account=""
+        if [ -n "$ccmax_local_account" ]; then
+            echo "$ccmax_local_account" > "$CCMAX_LOCAL_CACHE"
+        fi
+    fi
+fi
+
 if [ -n "$ccmax_raw" ]; then
+    # Use local keychain account if known, otherwise fall back to fleet's active
+    ccmax_lookup="${ccmax_local_account}"
+    [ -z "$ccmax_lookup" ] && ccmax_lookup=$(echo "$ccmax_raw" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('active_account',''))" 2>/dev/null)
+
     ccmax_line=$(echo "$ccmax_raw" | python3 -c "
 import sys, json
 from datetime import datetime, timezone
 try:
     d = json.loads(sys.stdin.read())
-    active = d.get('active_account', '')
+    lookup = '${ccmax_lookup}'
     accounts = d.get('accounts', [])
-    if not active:
+    if not lookup:
         print('')
         sys.exit()
-    # Find active account's usage
+    prefix = lookup.split('@')[0]
     for a in accounts:
-        if a.get('name', '').startswith(active.split('@')[0]):
+        if a.get('name', '').startswith(prefix + '@') or a.get('name', '').startswith(prefix + \"'\"):
             u = a.get('usage', {})
             sd = (u.get('seven_day') or {}).get('utilization', 0) or 0
             resets_at = (u.get('seven_day') or {}).get('resets_at', '')
@@ -426,18 +461,40 @@ try:
                         reset_str = f'{mins}m'
                 except Exception:
                     pass
-            # Compact: usalchemist 88% 1d 22h
-            short = active.split('@')[0]
+            short = prefix
             parts = [short, f'{sd:.0f}%']
             if reset_str:
                 parts.append(reset_str)
             print(' '.join(parts))
             sys.exit()
-    # Fallback: just show active account
-    print(active.split('@')[0])
+    # Fallback: just show account name
+    print(prefix)
 except Exception:
     print('')
 " 2>/dev/null) || ccmax_line=""
+else
+    # el02 unreachable — show account name + token expiry from local keychain
+    if [ -n "$ccmax_local_account" ]; then
+        expiry=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
+            | python3 -c "
+import sys, json, time
+d = json.loads(sys.stdin.read())
+exp = d.get(\"claudeAiOauth\", {}).get(\"expiresAt\", 0)
+if exp:
+    remaining = (exp / 1000) - time.time()
+    h = int(remaining / 3600)
+    m = int((remaining % 3600) / 60)
+    print(\"{}h{}m\".format(h, m) if remaining > 0 else \"expired\")
+else:
+    print(\"\")
+" 2>/dev/null) || expiry=""
+        short="${ccmax_local_account%%@*}"
+        if [ -n "$expiry" ]; then
+            ccmax_line="${short} tok:${expiry}"
+        else
+            ccmax_line="${short}"
+        fi
+    fi
 fi
 
 # Status line layout:
@@ -479,8 +536,15 @@ fi
 echo -e "$line1"
 
 # Append ccmax info inline with datetime: ... UTC | ... PDT | usalchemist 88% 1d 22h
+# Account name and reset time in BRIGHT_BLACK, percentage in CYAN
 if [ -n "$ccmax_line" ]; then
-    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET} ${CYAN}${ccmax_line}${RESET}"
+    # Split: "usalchemist 88% 1d 22h" → name="usalchemist" pct="88%" rest="1d 22h"
+    ccmax_name=$(echo "$ccmax_line" | awk '{print $1}')
+    ccmax_pct=$(echo "$ccmax_line" | awk '{print $2}')
+    ccmax_rest=$(echo "$ccmax_line" | awk '{for(i=3;i<=NF;i++) printf "%s%s",$i,(i<NF?" ":"")}')
+    ccmax_colored="${BRIGHT_BLACK}${ccmax_name}${RESET} ${CYAN}${ccmax_pct}${RESET}"
+    [ -n "$ccmax_rest" ] && ccmax_colored="${ccmax_colored} ${BRIGHT_BLACK}${ccmax_rest}${RESET}"
+    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET} ${ccmax_colored}"
 else
     echo -e "${datetime_display}"
 fi
