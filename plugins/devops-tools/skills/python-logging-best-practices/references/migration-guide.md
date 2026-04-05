@@ -20,57 +20,59 @@ This guide covers migrating from `print()` statements to structured JSONL loggin
 ```python
 # PEP 723 inline script metadata
 # /// script
-# requires-python = ">=3.11"
-# dependencies = ["loguru", "platformdirs"]
+# requires-python = ">=3.13"
+# dependencies = ["loguru", "orjson"]
 # ///
 ```
 
 Or via pyproject.toml:
 
 ```bash
-uv add loguru platformdirs
+uv add loguru orjson
 ```
 
 ### Step 2: Add Logger Setup
 
 ```python
-import json
 import sys
 from pathlib import Path
 from loguru import logger
-import platformdirs
+import orjson
+
 
 def json_formatter(record) -> str:
     """JSONL formatter for machine-readable output."""
-    return json.dumps({
+    return orjson.dumps({
         "timestamp": record["time"].strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
         "level": record["level"].name.lower(),
         "message": record["message"],
         "extra": record["extra"]
-    })
+    }).decode()
 
-def setup_logger(app_name: str):
+
+def setup_logger(app_name: str, log_dir: Path | None = None):
     logger.remove()
 
     # Console output
     logger.add(sys.stderr, format=json_formatter, level="INFO")
 
-    # File output with rotation
-    log_dir = Path(platformdirs.user_log_dir(appname=app_name, ensure_exists=True))
-    logger.add(
-        str(log_dir / f"{app_name}.jsonl"),
-        format=json_formatter,
-        rotation="10 MB",
-        retention="7 days",
-        compression="gz"
-    )
+    # File output with rotation (if log_dir provided)
+    if log_dir is not None:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        logger.add(
+            str(log_dir / f"{app_name}.jsonl"),
+            format=json_formatter,
+            rotation="10 MB",
+            retention="7 days",
+            compression="gz"
+        )
 ```
 
 ### Step 3: Call Setup Early
 
 ```python
 # At module level or in main()
-setup_logger("my-app")
+setup_logger("my-app", log_dir=Path.home() / ".local" / "log" / "my-app")
 ```
 
 ### Step 4: Replace Print Statements
