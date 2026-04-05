@@ -1,3 +1,38 @@
+## [12.38.2](https://github.com/terrylica/cc-skills/compare/v12.38.1...v12.38.2) (2026-04-05)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [python-logging-best-practices](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/SKILL.md) - updated (+155/-65)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/python-logging-best-practices</strong> (5 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/evolution-log.md) - updated (+57)
+- [Python Logging Architecture Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/logging-architecture.md) - updated (+104/-30)
+- [Loguru Configuration Patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/loguru-patterns.md) - updated (+78/-8)
+- [Migration Guide: print() to Structured Logging](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/references/migration-guide.md) - updated (+20/-18)
+- [Platformdirs Xdg](https://github.com/terrylica/cc-skills/blob/v12.38.1/plugins/devops-tools/skills/python-logging-best-practices/references/platformdirs-xdg.md) - deleted
+
+</details>
+
 ## [12.38.1](https://github.com/terrylica/cc-skills/compare/v12.38.0...v12.38.1) (2026-04-04)
 
 # [12.38.0](https://github.com/terrylica/cc-skills/compare/v12.37.0...v12.38.0) (2026-04-04)
