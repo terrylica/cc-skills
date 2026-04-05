@@ -17,19 +17,21 @@ logger.add("app.log", rotation="10 MB")
 ## JSONL Output Pattern
 
 ```python
-import json
+import orjson
 
 def json_formatter(record) -> str:
-    """JSONL formatter - one JSON per line."""
-    return json.dumps({
+    """JSONL formatter — orjson is 2-10x faster than stdlib json."""
+    return orjson.dumps({
         "timestamp": record["time"].strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
         "level": record["level"].name.lower(),
         "message": record["message"],
         "extra": record["extra"]
-    })
+    }).decode()
 
 logger.add(sys.stderr, format=json_formatter)
 ```
+
+> **Why orjson?** Native datetime/UUID/dataclass serialization, RFC 8259 compliant, 2-10x faster than `json.dumps()`. Use `orjson.dumps().decode()` since orjson returns bytes.
 
 ## Structured Logging
 
@@ -95,14 +97,78 @@ except ValueError:
 logger.opt(exception=True).error("Error with traceback")
 ```
 
-## Async Support
+## Async Support & enqueue
 
 ```python
-# For async applications - use enqueue
+# For async/multiprocess applications — use enqueue
 logger.add("app.log", enqueue=True)
-
-# Note: For simple startup scripts, enqueue=False (default) is fine
 ```
+
+<!-- SSoT-OK: loguru version referenced for issue context, not as a dependency pin -->
+
+> **WARNING — Unbounded memory risk**: `enqueue=True` uses an internal `multiprocessing.SimpleQueue` with **no max size**. If the sink is slow (disk I/O, network), the queue grows unbounded until OOM. See [loguru#1419](https://github.com/Delgan/loguru/issues/1419). No upstream fix merged yet.
+>
+> **Mitigations**:
+>
+> - Monitor RSS in production when using `enqueue=True`
+> - Avoid slow sinks (network loggers, remote databases) with enqueue
+> - For high-throughput async services, consider **structlog** with ContextVars instead
+> - For simple CLI scripts, `enqueue=False` (default) is fine
+
+### Shutdown — logger.complete()
+
+When using `enqueue=True`, **always flush before exit** to prevent silent log loss:
+
+```python
+import asyncio
+from loguru import logger
+
+async def main():
+    logger.add("app.jsonl", enqueue=True)
+    # ... application logic ...
+    await logger.complete()  # Flush all enqueued messages before exit
+
+asyncio.run(main())
+```
+
+Synchronous alternative — `logger.remove()` implicitly flushes and closes all sinks:
+
+```python
+def main():
+    logger.add("app.jsonl", enqueue=True)
+    try:
+        # ... application logic ...
+        pass
+    finally:
+        logger.remove()  # Flushes enqueued messages + closes sinks
+```
+
+## Security — Redaction Filters
+
+Scrub secrets at the filter level so they never reach any sink:
+
+```python
+import re
+
+REDACT_PATTERNS = [
+    (re.compile(r'AKIA[0-9A-Z]{16}'), '[REDACTED_AWS_KEY]'),
+    (re.compile(r'sk-[a-zA-Z0-9]{48}'), '[REDACTED_API_KEY]'),
+    (re.compile(r'(?i)bearer\s+[a-zA-Z0-9._~+/=-]+'), '[REDACTED_BEARER]'),
+    (re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'), '[REDACTED_EMAIL]'),
+]
+
+def redact_filter(record):
+    """Scrub secrets from messages before they reach any sink."""
+    for pattern, replacement in REDACT_PATTERNS:
+        record["message"] = pattern.sub(replacement, record["message"])
+    return True
+
+# Apply to ALL sinks
+logger.add("app.jsonl", filter=redact_filter)
+logger.add(sys.stderr, filter=redact_filter)
+```
+
+**Best practice**: Don't log PII at all. Store PII in a vault, log tokens/hashes. Redaction filters are a safety net, not primary defense.
 
 ## Filtering
 
@@ -120,7 +186,11 @@ logger.add("filtered.log", filter=my_filter)
 ## Best Practices
 
 1. **Always `logger.remove()`** first - Removes default handler
-2. **Use rotation** - Prevent unbounded growth
+2. **Use rotation** - Prevent unbounded growth (local/CLI apps only)
 3. **Use retention** - Clean up old logs
 4. **Use compression** - Save disk space
 5. **Use structured extras** - Add context via kwargs
+6. **Use `redact_filter`** - Scrub secrets from all sinks
+7. **Call `logger.complete()`** - Flush enqueued messages before shutdown
+8. **Monitor RSS with `enqueue=True`** - Unbounded queue risk with slow sinks
+9. **Use orjson** - 2-10x faster JSONL serialization
