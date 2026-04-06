@@ -1,3 +1,34 @@
+# [12.40.0](https://github.com/terrylica/cc-skills/compare/v12.39.1...v12.40.0) (2026-04-06)
+
+
+### Bug Fixes
+
+* **quality-tools:** eliminate mega-clusters in term_similarity ([c0c686f](https://github.com/terrylica/cc-skills/commit/c0c686fb64ba5383e82d219dc0f74559e92a3a5b))
+
+
+### Features
+
+* **quality-tools:** v2 term_similarity — raw scores, WordNet, no thresholds ([a67cb28](https://github.com/terrylica/cc-skills/commit/a67cb2817a5619d928e5afe3cc8be78f145b97b5))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [telemetry-terminology-similarity](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/telemetry-terminology-similarity/SKILL.md) - updated (+82/-116)
+
+</details>
+
 ## [12.39.1](https://github.com/terrylica/cc-skills/compare/v12.39.0...v12.39.1) (2026-04-06)
 
 
