@@ -1,3 +1,52 @@
+# [12.41.0](https://github.com/terrylica/cc-skills/compare/v12.40.0...v12.41.0) (2026-04-06)
+
+
+### Bug Fixes
+
+* **statusline,ssh-tunnel:** restore ccmax-monitor account display ([6afbedc](https://github.com/terrylica/cc-skills/commit/6afbedccc912e7d099dd8341948b5c7c123be4fa))
+
+
+### Features
+
+* **quality-tools:** canonical anchoring + proposer prompt for term_similarity ([3ca953b](https://github.com/terrylica/cc-skills/commit/3ca953b8667b5aa553e40d3977fddde284f675bf))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [telemetry-terminology-similarity](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/telemetry-terminology-similarity/SKILL.md) - updated (+45/-10)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>quality-tools/telemetry-terminology-similarity</strong> (1 file)</summary>
+
+- [Proposer Prompt Template](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/telemetry-terminology-similarity/references/proposer-prompt.md) - new (+202)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [Canonical Telemetry Names Dictionary](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/telemetry-terminology-similarity/references/canonical-dictionary/README.md) - new (+52)
+- [ssh-tunnel-companion](https://github.com/terrylica/cc-skills/blob/main/plugins/ssh-tunnel-companion/CLAUDE.md) - updated (+6/-4)
+
 # [12.40.0](https://github.com/terrylica/cc-skills/compare/v12.39.1...v12.40.0) (2026-04-06)
 
 
