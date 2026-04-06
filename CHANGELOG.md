@@ -1,3 +1,29 @@
+## [12.39.1](https://github.com/terrylica/cc-skills/compare/v12.39.0...v12.39.1) (2026-04-06)
+
+
+### Bug Fixes
+
+* **quality-tools:** fix cross-repo invocation of term_similarity skill ([883e316](https://github.com/terrylica/cc-skills/commit/883e316090f0eefce7ed3ceeffbfaaa4a1392a8e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [telemetry-terminology-similarity](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/telemetry-terminology-similarity/SKILL.md) - updated (+46/-15)
+
+</details>
+
 # [12.39.0](https://github.com/terrylica/cc-skills/compare/v12.38.2...v12.39.0) (2026-04-06)
 
 
