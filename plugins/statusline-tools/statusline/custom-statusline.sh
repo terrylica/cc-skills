@@ -369,20 +369,15 @@ else
 fi
 
 # === ccmax-monitor: Active Account + 7d Reset ===
-# Fetches from el02's Dashboard API, cached for 60s to avoid network spam.
-# Uses resolve-el02.sh cache for dynamic ZeroTier resolution.
+# Fetches from ccmax-monitor Dashboard API, cached for 60s to avoid network spam.
+# Endpoint: localhost:18095 (forwarded by ssh-tunnel-companion to bigblack:8095).
+# ccmax-monitor binds 127.0.0.1 only — must be reached via SSH tunnel.
+# ZeroTier was removed 2026-04-06; the old /tmp/ccmax-el02-resolved cache is dead.
 # Appended inline to datetime line: ... UTC | ... PDT | usalchemist 88% 1d 22h
 CCMAX_CACHE="/tmp/ccmax-statusline-cache.json"
 CCMAX_CACHE_TTL=60
 ccmax_line=""
-
-# Resolve el02 address (use cached result from hooks, or try mDNS/hostname)
-CCMAX_EL02_CACHE="/tmp/ccmax-el02-resolved"
-if [ -f "$CCMAX_EL02_CACHE" ]; then
-    CCMAX_BASE=$(cat "$CCMAX_EL02_CACHE")
-else
-    CCMAX_BASE="http://el02.local:8095"
-fi
+CCMAX_BASE="http://localhost:18095"
 
 ccmax_needs_fetch=1
 if [ -f "$CCMAX_CACHE" ]; then

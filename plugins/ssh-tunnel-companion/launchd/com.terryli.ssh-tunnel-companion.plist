@@ -28,6 +28,7 @@
   PORTS FORWARDED:
     localhost:18123 → bigblack:8123  (ClickHouse HTTP)
     localhost:18081 → bigblack:8081  (SSE sidecar)
+    localhost:18095 → bigblack:8095  (ccmax-monitor dashboard API)
 
   WHY NO AUTOSSH:
     With -M 0, autossh is just a wrapper that restarts SSH on exit — exactly
@@ -55,6 +56,8 @@
 		<string>18123:localhost:8123</string>
 		<string>-L</string>
 		<string>18081:localhost:8081</string>
+		<string>-L</string>
+		<string>18095:localhost:8095</string>
 		<string>bigblack</string>
 	</array>
 

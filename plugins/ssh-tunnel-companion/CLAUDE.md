@@ -31,10 +31,11 @@ ssh-tunnel-companion/
 
 ## Ports Forwarded
 
-| Local             | Remote          | Service         |
-| ----------------- | --------------- | --------------- |
-| `localhost:18123` | `bigblack:8123` | ClickHouse HTTP |
-| `localhost:18081` | `bigblack:8081` | SSE sidecar     |
+| Local             | Remote          | Service                     |
+| ----------------- | --------------- | --------------------------- |
+| `localhost:18123` | `bigblack:8123` | ClickHouse HTTP             |
+| `localhost:18081` | `bigblack:8081` | SSE sidecar                 |
+| `localhost:18095` | `bigblack:8095` | ccmax-monitor dashboard API |
 
 ## Commands
 
@@ -52,6 +53,7 @@ make zt-probe    # ZeroTier diagnostics (requires sudo)
 ## Consumers
 
 - **flowsurface** — `mise run preflight` checks `localhost:18123` connectivity. Tunnel lifecycle is NOT managed by flowsurface (was migrated out of `.mise/tasks/infra.toml`).
+- **statusline-tools** — `custom-statusline.sh` queries `localhost:18095/api/status` for ccmax-monitor account info (added 2026-04-06 after ZeroTier removal).
 - Any tool needing ClickHouse on bigblack via `localhost:18123`.
 
 ## Self-Referencing Convention
