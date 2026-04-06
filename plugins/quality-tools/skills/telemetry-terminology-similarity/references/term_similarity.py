@@ -235,7 +235,7 @@ def analyze_fields(
     fields: list[str],
     *,
     syntactic_threshold: float = 65.0,
-    semantic_threshold: float = 0.45,
+    semantic_threshold: float = 0.55,
 ) -> AnalysisReport:
     """Run the full 3-layer similarity analysis pipeline."""
     # Layer 1: Normalize
@@ -307,7 +307,16 @@ def analyze_fields(
             parent[rb] = ra
 
     for m in matches:
-        union(m.field_a, m.field_b)
+        # Only cluster on strong matches to prevent mega-clusters from
+        # transitive chains of weak matches through common English words.
+        # Require: both layers agree, OR semantic score is very high.
+        is_strong = (
+            m.match_type == "both"
+            or m.semantic_score >= 0.65
+            or m.syntactic_score >= 90
+        )
+        if is_strong:
+            union(m.field_a, m.field_b)
 
     cluster_map: dict[str, list[str]] = defaultdict(list)
     for f in unique_originals:
