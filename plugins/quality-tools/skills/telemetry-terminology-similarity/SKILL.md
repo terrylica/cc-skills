@@ -21,7 +21,7 @@ Use this skill when:
 
 ## Architecture
 
-4-layer scoring pipeline — each layer catches what the others miss:
+5-layer scoring pipeline — each layer catches what the others miss:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -42,11 +42,24 @@ Use this skill when:
 │  Cosine similarity via all-MiniLM-L6-v2 embeddings     │
 │  Catches: error ↔ exception, user_id ↔ account_id      │
 ├─────────────────────────────────────────────────────────┤
-│  Output: All pairs scored, sorted by max(syn/100,       │
-│          taxonomic, semantic). Agent decides what to act │
-│          on — tool computes, agent judges.               │
+│  Layer 5: CANONICAL (--canonical flag, optional)        │
+│  RapidFuzz vs bundled OTel/OCSF/CloudEvents dictionary  │
+│  Catches: http_method → http.request.method (OTel)      │
+├─────────────────────────────────────────────────────────┤
+│  Output: All pairs scored + canonical anchors.          │
+│  Agent decides what to act on — tool computes, judges.  │
+│  Use proposer-prompt.md for structured rename proposals.│
 └─────────────────────────────────────────────────────────┘
 ```
+
+## Two-Phase Workflow: Score → Propose
+
+The skill works in two phases:
+
+1. **Phase 1 — Score** (`term_similarity.py`): Compute raw similarity scores across 5 layers. Tool computes, no opinions emitted.
+2. **Phase 2 — Propose** (`references/proposer-prompt.md`): A bundled prompt template that consumes the scoring JSON and asks the LLM to produce structured rename proposals with confidence levels, evidence citations, and explicit escape hatches.
+
+The two phases are deliberately separated. Phase 1 is deterministic and reproducible; Phase 2 applies domain judgment that only an LLM with conversation context can provide.
 
 ## Dependencies
 
@@ -128,14 +141,36 @@ uv run --python 3.13 "$SCRIPT" --top 0 field1 field2 field3    # All pairs
 uv run --python 3.13 "$SCRIPT" --json field1 field2 field3     # JSON output
 ```
 
+### Lookup against canonical standards (OTel/OCSF/CloudEvents)
+
+```bash
+# Anchor each field against 1,453 bundled canonical names from OTel + OCSF + CloudEvents
+uv run --python 3.13 "$SCRIPT" --canonical http_method http_status request_id severity
+```
+
+Output adds a `=== CANONICAL ANCHORS ===` section showing the closest standard names per field. Useful for "should we rename to match an industry standard" decisions.
+
+### Generate structured rename proposals (Phase 2)
+
+After running with `--json --canonical`, paste the output into [`references/proposer-prompt.md`](./references/proposer-prompt.md) — a bundled prompt template that produces atomic, reviewable rename proposals with confidence levels and explicit escape hatches.
+
+```bash
+# Phase 1: Score
+uv run --python 3.13 "$SCRIPT" --json --canonical [fields...] > analysis.json
+
+# Phase 2: Apply proposer prompt (paste analysis.json into the template)
+# The LLM produces structured proposals.json — review atomically
+```
+
 ## Parameters
 
-| Parameter       | Default | Description                                        |
-| --------------- | ------- | -------------------------------------------------- |
-| `--top`         | 50      | Show top N pairs by combined score (0 = all)       |
-| `--jsonl`       | —       | Extract fields from a JSONL file (all unique keys) |
-| `--schema-a/-b` | —       | Cross-schema comparison (two JSON schema files)    |
-| `--json`        | false   | Output as structured JSON instead of text          |
+| Parameter       | Default | Description                                                  |
+| --------------- | ------- | ------------------------------------------------------------ |
+| `--top`         | 50      | Show top N pairs by combined score (0 = all)                 |
+| `--canonical`   | false   | Lookup each field against bundled OTel/OCSF/CloudEvents dict |
+| `--jsonl`       | —       | Extract fields from a JSONL file (all unique keys)           |
+| `--schema-a/-b` | —       | Cross-schema comparison (two JSON schema files)              |
+| `--json`        | false   | Output as structured JSON instead of text                    |
 
 ## Output Format
 
