@@ -1,12 +1,12 @@
 ---
 name: telemetry-terminology-similarity
-description: Detect similar/duplicate field names in telemetry, logging, and observability schemas. TRIGGERS - field name collision, terminology overlap, schema dedup, naming inconsistency, telemetry naming, log field similarity.
+description: Score telemetry field name similarity across syntactic, taxonomic, and semantic layers. TRIGGERS - field name collision, terminology overlap, schema dedup, naming inconsistency, telemetry naming, log field similarity.
 allowed-tools: Read, Bash, Grep, Edit, Write
 ---
 
 # Telemetry Terminology Similarity
 
-Detect when different telemetry field names mean the same thing — preventing terminology collisions that cause silent data misinterpretation in observability pipelines.
+Score pairwise similarity of telemetry field names across three independent layers. Emits raw scores — no thresholds, no clustering, no opinions. The consuming AI agent applies its own domain judgment.
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
@@ -16,13 +16,12 @@ Use this skill when:
 
 - Auditing a telemetry/logging schema for naming collisions
 - Comparing two JSONL log schemas for field overlap
-- Reviewing OTel semantic convention compliance
 - Detecting `trace_id` vs `traceId` vs `request_id` vs `correlation_id` style problems
 - Validating field naming consistency before shipping telemetry changes
 
 ## Architecture
 
-3-layer pipeline — each layer catches what the others miss:
+4-layer scoring pipeline — each layer catches what the others miss:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -31,15 +30,21 @@ Use this skill when:
 │  wordninja for concatenated words                       │
 │  "traceId" → "trace id", "ts" → "timestamp"            │
 ├─────────────────────────────────────────────────────────┤
-│  Layer 2: SYNTACTIC (RapidFuzz)                         │
+│  Layer 2: SYNTACTIC (RapidFuzz, 0-100)                  │
 │  token_set_ratio on normalized forms                    │
 │  Catches: trace_id ↔ traceId, level ↔ log_level        │
 ├─────────────────────────────────────────────────────────┤
-│  Layer 3: SEMANTIC (sentence-transformers)              │
+│  Layer 3: TAXONOMIC (WordNet Wu-Palmer, 0.0-1.0)        │
+│  Head-noun synonym detection via hypernym tree          │
+│  Catches: level ↔ severity, error ↔ fault, op ↔ action │
+├─────────────────────────────────────────────────────────┤
+│  Layer 4: SEMANTIC (sentence-transformers, 0.0-1.0)     │
 │  Cosine similarity via all-MiniLM-L6-v2 embeddings     │
 │  Catches: error ↔ exception, user_id ↔ account_id      │
 ├─────────────────────────────────────────────────────────┤
-│  Output: Union-find clusters + ranked match pairs       │
+│  Output: All pairs scored, sorted by max(syn/100,       │
+│          taxonomic, semantic). Agent decides what to act │
+│          on — tool computes, agent judges.               │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -47,14 +52,15 @@ Use this skill when:
 
 All installed via `uv run` (PEP 723 inline metadata — no global install needed):
 
-| Package                 | Purpose                          | Size    |
-| ----------------------- | -------------------------------- | ------- |
-| `sentence-transformers` | Semantic embeddings (MiniLM-L6)  | ~80 MB  |
-| `rapidfuzz`             | Fast fuzzy string matching (C++) | ~1.3 MB |
-| `wordninja`             | Probabilistic word splitting     | ~0.5 MB |
-| `orjson`                | Fast JSON serialization          | ~0.3 MB |
+| Package                 | Purpose                             | Size    |
+| ----------------------- | ----------------------------------- | ------- |
+| `sentence-transformers` | Semantic embeddings (MiniLM-L6)     | ~80 MB  |
+| `rapidfuzz`             | Fast fuzzy string matching (C++)    | ~1.3 MB |
+| `wordninja`             | Probabilistic word splitting        | ~0.5 MB |
+| `nltk`                  | WordNet Wu-Palmer synonym detection | ~30 MB  |
+| `orjson`                | Fast JSON serialization             | ~0.3 MB |
 
-First run downloads the `all-MiniLM-L6-v2` model (~80 MB). Subsequent runs use cache.
+First run downloads the `all-MiniLM-L6-v2` model (~80 MB) and WordNet data (~30 MB).
 
 ## Script Location
 
@@ -66,7 +72,7 @@ SCRIPT_DIR="$(dirname "$(find ~/.claude/plugins -path '*/telemetry-terminology-s
 SCRIPT="$SCRIPT_DIR/term_similarity.py"
 ```
 
-All examples below assume `$SCRIPT` is set. When invoking from the cc-skills repo itself, use the relative path directly: `plugins/quality-tools/skills/telemetry-terminology-similarity/references/term_similarity.py`.
+All examples below assume `$SCRIPT` is set. When invoking from the cc-skills repo itself, use the relative path directly.
 
 ## Usage
 
@@ -76,10 +82,7 @@ All examples below assume `$SCRIPT` is set. When invoking from the cc-skills rep
 # SSoT-OK: uv run handles PEP 723 inline deps
 uv run --python 3.13 "$SCRIPT" \
   trace_id traceId request_id correlation_id \
-  level severity log_level priority \
-  timestamp created_at time ts \
-  error exception fault \
-  duration_ms latency response_time
+  level severity log_level priority
 ```
 
 ### Extract fields from a Python codebase
@@ -88,7 +91,7 @@ Use Python regex extraction (macOS lacks `grep -P`):
 
 ```bash
 python3 -c "
-import re, glob, sys
+import re, glob
 fields = set()
 for f in glob.glob('**/*.py', recursive=True):
     text = open(f).read()
@@ -99,15 +102,13 @@ for f in sorted(fields):
 " | uv run --python 3.13 "$SCRIPT"
 ```
 
-### Analyze from stdin (pipe from jq, grep, etc.)
+### Analyze from stdin (pipe from jq, etc.)
 
 ```bash
-# Extract field names from JSONL and pipe
-head -1 telemetry.jsonl | jq -r 'keys[]' | \
-  uv run --python 3.13 "$SCRIPT"
+head -1 telemetry.jsonl | jq -r 'keys[]' | uv run --python 3.13 "$SCRIPT"
 ```
 
-### Analyze a JSONL file's fields (including nested)
+### Analyze a JSONL file's fields
 
 ```bash
 uv run --python 3.13 "$SCRIPT" --jsonl /path/to/telemetry.jsonl
@@ -116,131 +117,95 @@ uv run --python 3.13 "$SCRIPT" --jsonl /path/to/telemetry.jsonl
 ### Compare two JSON schemas
 
 ```bash
-uv run --python 3.13 "$SCRIPT" \
-  --schema-a schema_v1.json --schema-b schema_v2.json
+uv run --python 3.13 "$SCRIPT" --schema-a schema_v1.json --schema-b schema_v2.json
 ```
 
-### JSON output (for programmatic consumption)
+### Control output size
 
 ```bash
-uv run --python 3.13 "$SCRIPT" --json \
-  trace_id request_id correlation_id level severity
-```
-
-### Custom thresholds
-
-```bash
-# Tighter thresholds (fewer false positives)
-uv run --python 3.13 "$SCRIPT" \
-  --syntactic-threshold 75 --semantic-threshold 0.65 \
-  trace_id traceId level severity
-
-# Looser thresholds (catch more borderline cases)
-uv run --python 3.13 "$SCRIPT" \
-  --syntactic-threshold 55 --semantic-threshold 0.45 \
-  trace_id traceId level severity
+uv run --python 3.13 "$SCRIPT" --top 30 field1 field2 field3   # Top 30 pairs
+uv run --python 3.13 "$SCRIPT" --top 0 field1 field2 field3    # All pairs
+uv run --python 3.13 "$SCRIPT" --json field1 field2 field3     # JSON output
 ```
 
 ## Parameters
 
-| Parameter               | Default | Range   | Description                                        |
-| ----------------------- | ------- | ------- | -------------------------------------------------- |
-| `--syntactic-threshold` | 65      | 0-100   | RapidFuzz token_set_ratio cutoff                   |
-| `--semantic-threshold`  | 0.55    | 0.0-1.0 | Cosine similarity cutoff for sentence-transformers |
-| `--jsonl`               | —       | path    | Extract fields from a JSONL file (all unique keys) |
-| `--schema-a` / `-b`     | —       | path    | Cross-schema comparison (two JSON schema files)    |
-| `--json`                | false   | flag    | Output as structured JSON instead of text          |
+| Parameter       | Default | Description                                        |
+| --------------- | ------- | -------------------------------------------------- |
+| `--top`         | 50      | Show top N pairs by combined score (0 = all)       |
+| `--jsonl`       | —       | Extract fields from a JSONL file (all unique keys) |
+| `--schema-a/-b` | —       | Cross-schema comparison (two JSON schema files)    |
+| `--json`        | false   | Output as structured JSON instead of text          |
 
 ## Output Format
 
 ### Text output (default)
 
 ```
-Fields analyzed: 24
-Unique after normalization: 21
+Fields analyzed: 21
+Unique after normalization: 19
 
 === EXACT DUPLICATES (after normalization) ===
   trace_id  ==  traceId
   timestamp  ==  ts
-  user_id  ==  uid
 
-=== SIMILARITY CLUSTERS ===
-  [exact+semantic] correlation_id
-               ~ trace_id
-               ~ request_id
-  [both]       level
-               ~ log_level
-  [semantic]   error
-               ~ exception
-
-=== ALL MATCHES (sorted by combined score) ===
-  syn=100.0  sem=0.560  [both     ]  level         <-> log_level
-  syn= 28.6  sem=0.700  [semantic ]  error         <-> exception
+=== SCORED PAIRS (sorted by combined score) ===
+    syn    tax    sem   comb  pair
+    ---    ---    ---   ----  ----
+  100.0  0.000  0.560  1.000  level                     <-> log_level
+    0.0  1.000  0.472  1.000  error                     <-> fault
+   66.7  0.909  0.457  0.909  operation                 <-> action
+   46.2  0.833  0.251  0.833  level                     <-> severity
+   28.6  0.667  0.700  0.700  error                     <-> exception
 ```
+
+Three independent scores per pair — the agent reads all three to decide:
+
+- **syn** (syntactic): high = surface-level name variant
+- **tax** (taxonomic): high = WordNet synonym (hypernym tree)
+- **sem** (semantic): high = embedding similarity (distributional)
+- **comb** (combined): max(syn/100, tax, sem) — sorting key
 
 ### JSON output (`--json`)
 
-Structured JSON with `similarity_matches` and `clusters` arrays. Useful for CI integration or downstream analysis.
+Structured JSON with `exact_duplicates` and `scored_pairs` arrays.
+
+## How Each Layer Contributes
+
+| Scenario                  | syn   | tax   | sem   | Which layer wins |
+| ------------------------- | ----- | ----- | ----- | ---------------- |
+| `trace_id` vs `traceId`   | 100.0 | 0.0   | 1.0   | Syntactic        |
+| `level` vs `severity`     | 46.2  | 0.833 | 0.251 | Taxonomic        |
+| `error` vs `fault`        | 0.0   | 1.000 | 0.472 | Taxonomic        |
+| `operation` vs `action`   | 66.7  | 0.909 | 0.457 | Taxonomic        |
+| `error` vs `exception`    | 28.6  | 0.667 | 0.700 | Semantic         |
+| `user_id` vs `account_id` | 47.1  | 0.0   | 0.792 | Semantic         |
 
 ## Abbreviation Dictionary
 
 The normalizer expands common telemetry abbreviations:
 
-| Abbreviation | Expansion      | Abbreviation | Expansion     |
-| ------------ | -------------- | ------------ | ------------- |
-| `ts`         | timestamp      | `uid`        | user id       |
-| `req`        | request        | `resp`       | response      |
-| `err`        | error          | `msg`        | message       |
-| `dur`        | duration       | `ms`         | milliseconds  |
-| `svc`        | service        | `env`        | environment   |
-| `op`         | operation      | `lvl`        | level         |
-| `evt`        | event          | `attr`       | attribute     |
-| `ctx`        | context        | `lat`        | latency       |
-| `acct`       | account        | `cfg`        | configuration |
-| `auth`       | authentication | `conn`       | connection    |
+| Abbr   | Expansion | Abbr   | Expansion     |
+| ------ | --------- | ------ | ------------- |
+| `ts`   | timestamp | `uid`  | user id       |
+| `req`  | request   | `resp` | response      |
+| `err`  | error     | `msg`  | message       |
+| `svc`  | service   | `env`  | environment   |
+| `op`   | operation | `lvl`  | level         |
+| `evt`  | event     | `ctx`  | context       |
+| `acct` | account   | `cfg`  | configuration |
+| `dur`  | duration  | `lat`  | latency       |
 
 Add domain-specific abbreviations by editing `ABBREVIATIONS` in `term_similarity.py`.
 
-## How Each Layer Contributes
-
-| Scenario                         | Layer 1 (Normalize) | Layer 2 (Syntactic) | Layer 3 (Semantic) |
-| -------------------------------- | ------------------- | ------------------- | ------------------ |
-| `trace_id` vs `traceId`          | exact match         | 100                 | 1.000              |
-| `timestamp` vs `ts`              | exact (abbrev)      | 100                 | 1.000              |
-| `level` vs `log_level`           | different           | 100 (subset)        | 0.560              |
-| `error` vs `exception`           | different           | 28.6                | 0.700              |
-| `user_id` vs `account_id`        | different           | 47.1                | 0.792              |
-| `duration_ms` vs `response_time` | different           | 35.3                | 0.456              |
-
-## Known Limitations
-
-1. **Semantic model biases**: `all-MiniLM-L6-v2` trained on general English — may miss domain-specific equivalences (e.g., `severity` ↔ `level` scores ~0.38, below default threshold)
-2. **Abbreviation dictionary is static**: Novel abbreviations require manual addition
-3. **No value-based matching**: Only compares field names, not field values (use Valentine for value-distribution-based matching)
-4. **First-run latency**: ~5s to download and load the model on first invocation
-
-## Complementary Tools
-
-| Tool             | When to Use Instead                                      |
-| ---------------- | -------------------------------------------------------- |
-| **OTel Weaver**  | Validate against OTel semantic conventions (CI linting)  |
-| **Valentine**    | Schema matching using both names AND value distributions |
-| **SemHash**      | Fast bulk dedup (>10k fields) with Model2Vec embeddings  |
-| **Vector + VRL** | Runtime field renaming in observability pipelines        |
-
 ## Troubleshooting
 
-| Issue                            | Cause                         | Solution                                           |
-| -------------------------------- | ----------------------------- | -------------------------------------------------- |
-| `ModuleNotFoundError`            | Missing deps                  | Use `uv run` (PEP 723 resolves deps automatically) |
-| Model download slow              | First run                     | Model cached after first download (~80 MB)         |
-| Too many false positives         | Thresholds too low            | Raise `--semantic-threshold` to 0.65+              |
-| Mega-clusters (60+ fields)       | Generic English words cluster | Raise `--semantic-threshold` to 0.65+              |
-| Missing known equivalences       | Thresholds too high           | Lower `--semantic-threshold` to 0.45               |
-| Abbreviation not expanded        | Not in dictionary             | Add to `ABBREVIATIONS` in `term_similarity.py`     |
-| `severity` ↔ `level` not caught  | Model limitation              | Lower threshold or add to abbreviation dict        |
-| Script not found from other repo | Path not resolved             | Set `$SCRIPT` per Script Location section above    |
-| `grep: invalid option -- P`      | macOS lacks PCRE              | Use `python3 -c "import re..."` pattern instead    |
+| Issue                            | Cause             | Solution                                        |
+| -------------------------------- | ----------------- | ----------------------------------------------- |
+| `ModuleNotFoundError`            | Missing deps      | Use `uv run` (PEP 723 resolves automatically)   |
+| Model download slow              | First run         | Cached after first download (~110 MB total)     |
+| Script not found from other repo | Path not resolved | Set `$SCRIPT` per Script Location section       |
+| `grep: invalid option -- P`      | macOS lacks PCRE  | Use `python3 -c "import re..."` pattern instead |
 
 ## Post-Execution Reflection
 
