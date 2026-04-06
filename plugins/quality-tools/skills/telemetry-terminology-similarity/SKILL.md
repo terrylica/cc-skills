@@ -132,12 +132,12 @@ uv run --python 3.13 "$SCRIPT" --json \
 ```bash
 # Tighter thresholds (fewer false positives)
 uv run --python 3.13 "$SCRIPT" \
-  --syntactic-threshold 70 --semantic-threshold 0.50 \
+  --syntactic-threshold 75 --semantic-threshold 0.65 \
   trace_id traceId level severity
 
 # Looser thresholds (catch more borderline cases)
 uv run --python 3.13 "$SCRIPT" \
-  --syntactic-threshold 55 --semantic-threshold 0.40 \
+  --syntactic-threshold 55 --semantic-threshold 0.45 \
   trace_id traceId level severity
 ```
 
@@ -146,7 +146,7 @@ uv run --python 3.13 "$SCRIPT" \
 | Parameter               | Default | Range   | Description                                        |
 | ----------------------- | ------- | ------- | -------------------------------------------------- |
 | `--syntactic-threshold` | 65      | 0-100   | RapidFuzz token_set_ratio cutoff                   |
-| `--semantic-threshold`  | 0.45    | 0.0-1.0 | Cosine similarity cutoff for sentence-transformers |
+| `--semantic-threshold`  | 0.55    | 0.0-1.0 | Cosine similarity cutoff for sentence-transformers |
 | `--jsonl`               | —       | path    | Extract fields from a JSONL file (all unique keys) |
 | `--schema-a` / `-b`     | —       | path    | Cross-schema comparison (two JSON schema files)    |
 | `--json`                | false   | flag    | Output as structured JSON instead of text          |
@@ -230,16 +230,17 @@ Add domain-specific abbreviations by editing `ABBREVIATIONS` in `term_similarity
 
 ## Troubleshooting
 
-| Issue                            | Cause               | Solution                                           |
-| -------------------------------- | ------------------- | -------------------------------------------------- |
-| `ModuleNotFoundError`            | Missing deps        | Use `uv run` (PEP 723 resolves deps automatically) |
-| Model download slow              | First run           | Model cached after first download (~80 MB)         |
-| Too many false positives         | Thresholds too low  | Raise `--semantic-threshold` to 0.55+              |
-| Missing known equivalences       | Thresholds too high | Lower `--semantic-threshold` to 0.40               |
-| Abbreviation not expanded        | Not in dictionary   | Add to `ABBREVIATIONS` in `term_similarity.py`     |
-| `severity` ↔ `level` not caught  | Model limitation    | Lower threshold or add to abbreviation dict        |
-| Script not found from other repo | Path not resolved   | Set `$SCRIPT` per Script Location section above    |
-| `grep: invalid option -- P`      | macOS lacks PCRE    | Use `python3 -c "import re..."` pattern instead    |
+| Issue                            | Cause                         | Solution                                           |
+| -------------------------------- | ----------------------------- | -------------------------------------------------- |
+| `ModuleNotFoundError`            | Missing deps                  | Use `uv run` (PEP 723 resolves deps automatically) |
+| Model download slow              | First run                     | Model cached after first download (~80 MB)         |
+| Too many false positives         | Thresholds too low            | Raise `--semantic-threshold` to 0.65+              |
+| Mega-clusters (60+ fields)       | Generic English words cluster | Raise `--semantic-threshold` to 0.65+              |
+| Missing known equivalences       | Thresholds too high           | Lower `--semantic-threshold` to 0.45               |
+| Abbreviation not expanded        | Not in dictionary             | Add to `ABBREVIATIONS` in `term_similarity.py`     |
+| `severity` ↔ `level` not caught  | Model limitation              | Lower threshold or add to abbreviation dict        |
+| Script not found from other repo | Path not resolved             | Set `$SCRIPT` per Script Location section above    |
+| `grep: invalid option -- P`      | macOS lacks PCRE              | Use `python3 -c "import re..."` pattern instead    |
 
 ## Post-Execution Reflection
 
