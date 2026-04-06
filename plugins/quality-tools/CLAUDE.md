@@ -17,6 +17,7 @@
 | `symmetric-dogfooding`              | Bidirectional integration validation between repos          |
 | `dead-code-detector`                | Detect dead code with Vulture and coverage analysis         |
 | `alpha-forge-preship`               | Alpha-forge specific pre-ship gates                         |
+| `telemetry-terminology-similarity`  | Detect similar/duplicate field names in telemetry schemas   |
 
 ## Conventions
 
