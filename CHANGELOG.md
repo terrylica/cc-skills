@@ -1,3 +1,44 @@
+# [12.39.0](https://github.com/terrylica/cc-skills/compare/v12.38.2...v12.39.0) (2026-04-06)
+
+
+### Features
+
+* **devops-tools:** add lightweight logging pattern as preferred default ([a3d53f8](https://github.com/terrylica/cc-skills/commit/a3d53f8e0eb21f48f2ea98aeac0f2bbfaf8aee64))
+* **quality-tools:** add telemetry-terminology-similarity skill ([1d05ecb](https://github.com/terrylica/cc-skills/commit/1d05ecb03ffe1879a5134d81cc6bf37cb330d251))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [python-logging-best-practices](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/python-logging-best-practices/SKILL.md) - updated (+268/-131)
+
+</details>
+
+<details>
+<summary><strong>quality-tools</strong> (1 change)</summary>
+
+- [telemetry-terminology-similarity](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/skills/telemetry-terminology-similarity/SKILL.md) - new (+221)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [quality-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/CLAUDE.md) - updated (+1)
+
 ## [12.38.2](https://github.com/terrylica/cc-skills/compare/v12.38.1...v12.38.2) (2026-04-05)
 
 
