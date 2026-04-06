@@ -34,7 +34,7 @@ import argparse
 import re
 import sys
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -112,19 +112,32 @@ def syntactic_similarity(a: str, b: str) -> float:
 # ---------------------------------------------------------------------------
 
 
+_WN_CACHE: dict[tuple[str, str], float] = {}
+
+
 def wordnet_similarity(a: str, b: str) -> float:
-    """Wu-Palmer similarity between head nouns of two normalized names."""
-    wn = _get_wordnet()
+    """Wu-Palmer similarity between head nouns of two normalized names.
+
+    Memoized by (head_a, head_b) — at scale, repeated head nouns dominate
+    cost. For 840 fields, ~352k pair calls collapse to ~3k unique head pairs.
+    """
     head_a = a.split()[-1]
     head_b = b.split()[-1]
     if head_a == head_b:
         return 0.0
+    # Canonical key (order-independent)
+    key = (head_a, head_b) if head_a < head_b else (head_b, head_a)
+    cached = _WN_CACHE.get(key)
+    if cached is not None:
+        return cached
+    wn = _get_wordnet()
     best = 0.0
     for s1 in wn.synsets(head_a):
         for s2 in wn.synsets(head_b):
             score = s1.wup_similarity(s2)
             if score is not None and score > best:
                 best = score
+    _WN_CACHE[key] = best
     return best
 
 
@@ -149,6 +162,54 @@ def semantic_similarity_matrix(names: list[str]) -> list[list[float]]:
 
 
 # ---------------------------------------------------------------------------
+# Layer 5: Canonical Anchoring (bundled dictionary)
+# ---------------------------------------------------------------------------
+
+_CANONICAL: list[dict] | None = None
+
+
+def _load_canonical() -> list[dict]:
+    """Load bundled canonical-names.json from sibling directory."""
+    global _CANONICAL
+    if _CANONICAL is None:
+        dict_path = Path(__file__).parent / "canonical-dictionary" / "canonical-names.json"
+        if dict_path.exists():
+            _CANONICAL = orjson.loads(dict_path.read_text())
+        else:
+            _CANONICAL = []
+    return _CANONICAL
+
+
+def canonical_match(field_normalized: str, top_n: int = 3) -> list[dict]:
+    """Find closest canonical names for a normalized field name.
+
+    Returns list of {name, source, score} sorted by score desc.
+    Score is RapidFuzz token_set_ratio against the canonical name's normalized form.
+    """
+    canonical = _load_canonical()
+    if not canonical:
+        return []
+
+    matches: list[tuple[float, dict]] = []
+    for entry in canonical:
+        canon_normalized = normalize_field_name(entry["name"])
+        score = fuzz.token_set_ratio(field_normalized, canon_normalized)
+        if score >= 60:
+            matches.append((score, entry))
+
+    matches.sort(key=lambda x: x[0], reverse=True)
+    return [
+        {
+            "name": entry["name"],
+            "source": entry["source"],
+            "namespace": entry.get("namespace", ""),
+            "score": round(score, 1),
+        }
+        for score, entry in matches[:top_n]
+    ]
+
+
+# ---------------------------------------------------------------------------
 # Scoring Pipeline
 # ---------------------------------------------------------------------------
 
@@ -166,11 +227,19 @@ class ScoredPair:
 
 
 @dataclass
+class CanonicalAnchor:
+    field: str
+    normalized: str
+    matches: list[dict]  # [{name, source, namespace, score}, ...]
+
+
+@dataclass
 class ScoringReport:
     total_fields: int
     unique_normalized: int
     exact_duplicates: list[tuple[str, str]]
     scored_pairs: list[ScoredPair]
+    canonical_anchors: list[CanonicalAnchor] = field(default_factory=list)
 
     def to_json(self) -> str:
         return orjson.dumps(
@@ -190,6 +259,14 @@ class ScoringReport:
                         "combined": round(p.combined, 3),
                     }
                     for p in self.scored_pairs
+                ],
+                "canonical_anchors": [
+                    {
+                        "field": a.field,
+                        "normalized": a.normalized,
+                        "matches": a.matches,
+                    }
+                    for a in self.canonical_anchors
                 ],
             },
             option=orjson.OPT_INDENT_2,
@@ -216,12 +293,33 @@ class ScoringReport:
                     f"  {p.syntactic:5.1f}  {p.taxonomic:5.3f}  {p.semantic:5.3f}"
                     f"  {p.combined:5.3f}  {p.field_a:25s} <-> {p.field_b}"
                 )
+            lines.append("")
+
+        if self.canonical_anchors:
+            lines.append("=== CANONICAL ANCHORS (top matches in OTel/OCSF/CloudEvents) ===")
+            for a in self.canonical_anchors:
+                if not a.matches:
+                    continue
+                lines.append(f"  {a.field}")
+                for m in a.matches:
+                    lines.append(
+                        f"    {m['score']:5.1f}  [{m['source']}]  {m['name']}"
+                    )
 
         return "\n".join(lines)
 
 
-def score_fields(fields: list[str], *, top: int = 0) -> ScoringReport:
-    """Score all field name pairs across 3 layers. No filtering, no thresholds."""
+def score_fields(
+    fields: list[str], *, top: int = 0, canonical: bool = False
+) -> ScoringReport:
+    """Score all field name pairs across 3 layers. No filtering, no thresholds.
+
+    Args:
+        fields: Input field names to score.
+        top: Limit output to top N pairs (0 = all).
+        canonical: If True, also lookup each field against the bundled
+                   canonical dictionary (OTel/OCSF/CloudEvents).
+    """
     # Layer 1: Normalize
     normalized = {f: normalize_field_name(f) for f in fields}
 
@@ -273,11 +371,24 @@ def score_fields(fields: list[str], *, top: int = 0) -> ScoringReport:
     if top > 0:
         scored = scored[:top]
 
+    # Layer 5: Canonical anchoring (optional)
+    anchors: list[CanonicalAnchor] = []
+    if canonical:
+        for orig, norm in zip(unique_originals, unique_fields, strict=False):
+            matches = canonical_match(norm, top_n=3)
+            if matches:
+                anchors.append(CanonicalAnchor(
+                    field=orig,
+                    normalized=norm,
+                    matches=matches,
+                ))
+
     return ScoringReport(
         total_fields=len(fields),
         unique_normalized=len(unique_fields),
         exact_duplicates=exact_duplicates,
         scored_pairs=scored,
+        canonical_anchors=anchors,
     )
 
 
@@ -342,6 +453,8 @@ def main() -> None:
     parser.add_argument("--schema-a", type=Path, help="First JSON schema")
     parser.add_argument("--schema-b", type=Path, help="Second JSON schema")
     parser.add_argument("--top", type=int, default=50, help="Show top N pairs (default: 50, 0=all)")
+    parser.add_argument("--canonical", action="store_true",
+                        help="Lookup each field against bundled OTel/OCSF/CloudEvents dictionary")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     args = parser.parse_args()
@@ -371,7 +484,7 @@ def main() -> None:
             seen.add(f)
             unique.append(f)
 
-    report = score_fields(unique, top=args.top)
+    report = score_fields(unique, top=args.top, canonical=args.canonical)
 
     if args.json:
         print(report.to_json())
