@@ -56,13 +56,25 @@ All installed via `uv run` (PEP 723 inline metadata — no global install needed
 
 First run downloads the `all-MiniLM-L6-v2` model (~80 MB). Subsequent runs use cache.
 
+## Script Location
+
+The analysis script lives in this skill's `references/` directory. Resolve the path before use:
+
+```bash
+# SSoT-OK: marketplace path resolution for cross-repo invocation
+SCRIPT_DIR="$(dirname "$(find ~/.claude/plugins -path '*/telemetry-terminology-similarity/references/term_similarity.py' -print -quit 2>/dev/null)")"
+SCRIPT="$SCRIPT_DIR/term_similarity.py"
+```
+
+All examples below assume `$SCRIPT` is set. When invoking from the cc-skills repo itself, use the relative path directly: `plugins/quality-tools/skills/telemetry-terminology-similarity/references/term_similarity.py`.
+
 ## Usage
 
 ### Analyze field names directly
 
 ```bash
 # SSoT-OK: uv run handles PEP 723 inline deps
-uv run --python 3.13 term_similarity.py \
+uv run --python 3.13 "$SCRIPT" \
   trace_id traceId request_id correlation_id \
   level severity log_level priority \
   timestamp created_at time ts \
@@ -70,31 +82,48 @@ uv run --python 3.13 term_similarity.py \
   duration_ms latency response_time
 ```
 
+### Extract fields from a Python codebase
+
+Use Python regex extraction (macOS lacks `grep -P`):
+
+```bash
+python3 -c "
+import re, glob, sys
+fields = set()
+for f in glob.glob('**/*.py', recursive=True):
+    text = open(f).read()
+    for m in re.finditer(r'\"([a-z][a-z0-9_]*?)\":', text):
+        fields.add(m.group(1))
+for f in sorted(fields):
+    print(f)
+" | uv run --python 3.13 "$SCRIPT"
+```
+
 ### Analyze from stdin (pipe from jq, grep, etc.)
 
 ```bash
 # Extract field names from JSONL and pipe
 head -1 telemetry.jsonl | jq -r 'keys[]' | \
-  uv run --python 3.13 term_similarity.py
+  uv run --python 3.13 "$SCRIPT"
 ```
 
 ### Analyze a JSONL file's fields (including nested)
 
 ```bash
-uv run --python 3.13 term_similarity.py --jsonl /path/to/telemetry.jsonl
+uv run --python 3.13 "$SCRIPT" --jsonl /path/to/telemetry.jsonl
 ```
 
 ### Compare two JSON schemas
 
 ```bash
-uv run --python 3.13 term_similarity.py \
+uv run --python 3.13 "$SCRIPT" \
   --schema-a schema_v1.json --schema-b schema_v2.json
 ```
 
 ### JSON output (for programmatic consumption)
 
 ```bash
-uv run --python 3.13 term_similarity.py --json \
+uv run --python 3.13 "$SCRIPT" --json \
   trace_id request_id correlation_id level severity
 ```
 
@@ -102,12 +131,12 @@ uv run --python 3.13 term_similarity.py --json \
 
 ```bash
 # Tighter thresholds (fewer false positives)
-uv run --python 3.13 term_similarity.py \
+uv run --python 3.13 "$SCRIPT" \
   --syntactic-threshold 70 --semantic-threshold 0.50 \
   trace_id traceId level severity
 
 # Looser thresholds (catch more borderline cases)
-uv run --python 3.13 term_similarity.py \
+uv run --python 3.13 "$SCRIPT" \
   --syntactic-threshold 55 --semantic-threshold 0.40 \
   trace_id traceId level severity
 ```
@@ -201,14 +230,16 @@ Add domain-specific abbreviations by editing `ABBREVIATIONS` in `term_similarity
 
 ## Troubleshooting
 
-| Issue                           | Cause               | Solution                                           |
-| ------------------------------- | ------------------- | -------------------------------------------------- |
-| `ModuleNotFoundError`           | Missing deps        | Use `uv run` (PEP 723 resolves deps automatically) |
-| Model download slow             | First run           | Model cached after first download (~80 MB)         |
-| Too many false positives        | Thresholds too low  | Raise `--semantic-threshold` to 0.55+              |
-| Missing known equivalences      | Thresholds too high | Lower `--semantic-threshold` to 0.40               |
-| Abbreviation not expanded       | Not in dictionary   | Add to `ABBREVIATIONS` in `term_similarity.py`     |
-| `severity` ↔ `level` not caught | Model limitation    | Lower threshold or add to abbreviation dict        |
+| Issue                            | Cause               | Solution                                           |
+| -------------------------------- | ------------------- | -------------------------------------------------- |
+| `ModuleNotFoundError`            | Missing deps        | Use `uv run` (PEP 723 resolves deps automatically) |
+| Model download slow              | First run           | Model cached after first download (~80 MB)         |
+| Too many false positives         | Thresholds too low  | Raise `--semantic-threshold` to 0.55+              |
+| Missing known equivalences       | Thresholds too high | Lower `--semantic-threshold` to 0.40               |
+| Abbreviation not expanded        | Not in dictionary   | Add to `ABBREVIATIONS` in `term_similarity.py`     |
+| `severity` ↔ `level` not caught  | Model limitation    | Lower threshold or add to abbreviation dict        |
+| Script not found from other repo | Path not resolved   | Set `$SCRIPT` per Script Location section above    |
+| `grep: invalid option -- P`      | macOS lacks PCRE    | Use `python3 -c "import re..."` pattern instead    |
 
 ## Post-Execution Reflection
 
