@@ -1,3 +1,10 @@
+## [12.42.2](https://github.com/terrylica/cc-skills/compare/v12.42.1...v12.42.2) (2026-04-07)
+
+
+### Bug Fixes
+
+* **release:** preserve old plugin cache versions during sync ([e510889](https://github.com/terrylica/cc-skills/commit/e510889ce3fa25069c30bfef9adcc54879b4c682))
+
 ## [12.42.1](https://github.com/terrylica/cc-skills/compare/v12.42.0...v12.42.1) (2026-04-07)
 
 
