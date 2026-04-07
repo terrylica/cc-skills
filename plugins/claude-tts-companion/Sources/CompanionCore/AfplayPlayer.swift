@@ -41,11 +41,65 @@ public final class AfplayPlayer {
 
     /// Debug directory for retaining WAV files for manual inspection.
     /// Files are kept (not deleted) so you can listen independently.
-    private let debugWavDir: String = {
-        let dir = NSHomeDirectory() + "/.local/share/tts-debug-wav"
-        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-        return dir
-    }()
+    ///
+    /// Path is captured eagerly; actual writability is re-verified before
+    /// every WAV write via `ensureWritableWavDirectory()` to self-heal
+    /// mid-session deletion (h07).
+    private let debugWavDir: String = NSHomeDirectory() + "/.local/share/tts-debug-wav"
+
+    // MARK: - WAV Path Fallback Chain (h07)
+
+    /// Classification of WAV-write-path failures, for structured telemetry.
+    private enum WavFailureClass: String {
+        case missingDir = "missing_dir"   // ENOENT on parent
+        case eperm = "eperm"              // EPERM / EACCES
+        case enospc = "enospc"            // ENOSPC / EDQUOT
+        case erofs = "erofs"              // EROFS
+        case eexist = "eexist"            // EEXIST where dir was expected (race)
+        case other = "other"
+    }
+
+    /// Collapsed failure telemetry — at most one log per class per 60s.
+    private struct WavWriteFailureState {
+        var consecutiveFailureCount: Int = 0
+        var firstFailureAt: Date? = nil
+        var lastFailureClass: String? = nil
+        var fallbackLevel: Int = 0          // 0=primary, 1=tmpdir, 2=mkstemp
+        var nextRecoveryAttemptAt: Date? = nil
+        var totalFallbackWrites: Int = 0
+        var lastLoggedAt: [String: Date] = [:]   // per-class throttle
+    }
+
+    /// Sendable snapshot for /health exposure.
+    public struct AfplayHealthSnapshot: Sendable, Codable {
+        public let primary_dir_writable: Bool
+        public let fallback_level: Int
+        public let consecutive_failure_count: Int
+        public let total_fallback_writes: Int
+        public let last_failure_class: String?
+        public let last_failure_at: String?   // ISO8601, nil if never
+    }
+
+    private var wavFailureState = WavWriteFailureState()
+
+    public init() {
+        do {
+            try FileManager.default.createDirectory(
+                atPath: debugWavDir, withIntermediateDirectories: true)
+        } catch {
+            // Non-fatal: ensureWritableWavDirectory() will retry on first write.
+            logger.error("Failed to create debugWavDir at init: \(error) — will retry on first write via fallback chain")
+        }
+    }
+
+    #if DEBUG
+    /// Test-only accessor for log throttle state. Do not use in production code.
+    internal var __testing_loggedClassCount: Int { wavFailureState.lastLoggedAt.count }
+    internal var __testing_consecutiveFailureCount: Int { wavFailureState.consecutiveFailureCount }
+    internal func ensureWritableWavDirectoryForTesting() -> (url: URL, level: Int, mkstempPath: String?) {
+        return ensureWritableWavDirectory()
+    }
+    #endif
 
     /// Completion callback when playback finishes (batch mode).
     private var onComplete: (() -> Void)?
@@ -132,10 +186,17 @@ public final class AfplayPlayer {
         } else {
             slug = String(UUID().uuidString.prefix(8)).lowercased()
         }
-        let wavPath = debugWavDir + "/tts-\(timestamp)_\(slug).wav"
+        let resolved = ensureWritableWavDirectory()
+        let wavPath: String
+        if let mkstempPath = resolved.mkstempPath {
+            wavPath = mkstempPath  // level 2 — exact file path from mkstemp
+        } else {
+            wavPath = resolved.url.appendingPathComponent("tts-\(timestamp)_\(slug).wav").path
+        }
         do {
             try writeWav(samples: pendingSamples, sampleRate: 48000, to: wavPath)
         } catch {
+            recordFailure(classify(error), error: error, attemptedPath: wavPath)
             logger.error("Failed to write WAV for afplay: \(error)")
             onComplete?()
             return false
@@ -361,10 +422,17 @@ public final class AfplayPlayer {
         } else {
             slug = String(UUID().uuidString.prefix(8)).lowercased()
         }
-        let wavPath = debugWavDir + "/tts-\(timestamp)_\(slug).wav"
+        let resolved = ensureWritableWavDirectory()
+        let wavPath: String
+        if let mkstempPath = resolved.mkstempPath {
+            wavPath = mkstempPath  // level 2 — exact file path from mkstemp
+        } else {
+            wavPath = resolved.url.appendingPathComponent("tts-\(timestamp)_\(slug).wav").path
+        }
         do {
             try writeWav(samples: samples, sampleRate: 48000, to: wavPath)
         } catch {
+            recordFailure(classify(error), error: error, attemptedPath: wavPath)
             logger.error("Failed to write WAV for pipelined afplay: \(error)")
             advanceQueue()
             return
@@ -514,6 +582,133 @@ public final class AfplayPlayer {
     /// generation or playback. Clean up ~/.local/share/tts-debug-wav/ manually.
     private func cleanup() {
         currentWavPath = nil
+    }
+
+    // MARK: - WAV Path Resolution (h07)
+
+    /// Resolve a writable directory for WAV output. Tries primary, then tmp, then
+    /// last-resort mkstemp. Called before every WAV write — the createDirectory
+    /// syscall is ~1-10us on an existing dir (idempotent stat).
+    ///
+    /// Returns the directory URL plus the fallback level used (0/1/2). For level 2
+    /// (mkstemp), the "directory" is `/tmp` and the caller must use the exact file
+    /// path returned by `mkstempPath` rather than composing its own.
+    private func ensureWritableWavDirectory() -> (url: URL, level: Int, mkstempPath: String?) {
+        // Tier 0: primary
+        let primaryURL = URL(fileURLWithPath: debugWavDir, isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: primaryURL, withIntermediateDirectories: true)
+            // Success — check if we're recovering from a failing state
+            if wavFailureState.fallbackLevel > 0 || wavFailureState.consecutiveFailureCount > 0 {
+                logger.info("[TELEMETRY] afplay-player WAV write primary_recovered prior_failures=\(wavFailureState.consecutiveFailureCount) prior_level=\(wavFailureState.fallbackLevel)")
+                wavFailureState.consecutiveFailureCount = 0
+                wavFailureState.fallbackLevel = 0
+                wavFailureState.firstFailureAt = nil
+                wavFailureState.lastFailureClass = nil
+                wavFailureState.nextRecoveryAttemptAt = nil
+                wavFailureState.lastLoggedAt.removeAll()
+            }
+            return (primaryURL, 0, nil)
+        } catch {
+            recordFailure(classify(error), error: error, attemptedPath: debugWavDir)
+        }
+
+        // Tier 1: NSTemporaryDirectory()/claude-tts-wav
+        let tmpPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("claude-tts-wav")
+        let tmpURL = URL(fileURLWithPath: tmpPath, isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: tmpURL, withIntermediateDirectories: true)
+            if wavFailureState.fallbackLevel < 1 {
+                wavFailureState.fallbackLevel = 1
+                logger.warning("[TELEMETRY] afplay-player WAV write fallback_engaged level=1 path=\(tmpPath) reason=\(wavFailureState.lastFailureClass ?? "unknown")")
+            }
+            wavFailureState.totalFallbackWrites += 1
+            return (tmpURL, 1, nil)
+        } catch {
+            recordFailure(classify(error), error: error, attemptedPath: tmpPath)
+        }
+
+        // Tier 2: mkstemp in /tmp
+        var template = Array("/tmp/claude-tts-wav-XXXXXX.wav".utf8CString)
+        let fd = template.withUnsafeMutableBufferPointer { buf -> Int32 in
+            return mkstemps(buf.baseAddress, 4)  // 4 = length of ".wav" suffix
+        }
+        if fd >= 0 {
+            close(fd)
+            let path = template.withUnsafeBufferPointer { buf -> String in
+                String(cString: buf.baseAddress!)
+            }
+            if wavFailureState.fallbackLevel < 2 {
+                wavFailureState.fallbackLevel = 2
+                logger.warning("[TELEMETRY] afplay-player WAV write ultimate_fallback_engaged level=2 path=\(path)")
+            }
+            wavFailureState.totalFallbackWrites += 1
+            return (URL(fileURLWithPath: "/tmp", isDirectory: true), 2, path)
+        }
+        // Truly exhausted — log and return primary (caller will fail gracefully)
+        logger.error("[TELEMETRY] afplay-player WAV write all_tiers_exhausted errno=\(errno)")
+        return (primaryURL, 0, nil)
+    }
+
+    private func classify(_ error: Error) -> WavFailureClass {
+        let ns = error as NSError
+        // NSError wrapping POSIX errors uses NSPOSIXErrorDomain with errno codes.
+        if ns.domain == NSPOSIXErrorDomain {
+            switch Int32(ns.code) {
+            case ENOENT: return .missingDir
+            case EPERM, EACCES: return .eperm
+            case ENOSPC, EDQUOT: return .enospc
+            case EROFS: return .erofs
+            case EEXIST: return .eexist
+            default: return .other
+            }
+        }
+        // Cocoa errors from FileManager
+        if ns.domain == NSCocoaErrorDomain {
+            switch ns.code {
+            case NSFileNoSuchFileError, NSFileReadNoSuchFileError: return .missingDir
+            case NSFileWriteNoPermissionError, NSFileReadNoPermissionError: return .eperm
+            case NSFileWriteOutOfSpaceError: return .enospc
+            case NSFileWriteVolumeReadOnlyError: return .erofs
+            case NSFileWriteFileExistsError: return .eexist
+            default: return .other
+            }
+        }
+        return .other
+    }
+
+    private func recordFailure(_ cls: WavFailureClass, error: Error, attemptedPath: String) {
+        wavFailureState.consecutiveFailureCount += 1
+        if wavFailureState.firstFailureAt == nil {
+            wavFailureState.firstFailureAt = Date()
+        }
+        wavFailureState.lastFailureClass = cls.rawValue
+
+        // Throttle: at most one log per class per 60s
+        let now = Date()
+        let lastLogged = wavFailureState.lastLoggedAt[cls.rawValue]
+        if lastLogged == nil || now.timeIntervalSince(lastLogged!) >= 60.0 {
+            let iso = ISO8601DateFormatter().string(from: wavFailureState.firstFailureAt ?? now)
+            let tmpPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("claude-tts-wav")
+            let activeFallback = wavFailureState.fallbackLevel == 0 ? debugWavDir
+                : wavFailureState.fallbackLevel == 1 ? tmpPath : "/tmp/mkstemp"
+            logger.warning("afplay-player WAV write failure CLASS=\(cls.rawValue) COUNT=\(wavFailureState.consecutiveFailureCount) SINCE=\(iso) fallback_active=\(activeFallback) successful_writes_via_fallback=\(wavFailureState.totalFallbackWrites) attempted_path=\(attemptedPath) error=\(error)")
+            wavFailureState.lastLoggedAt[cls.rawValue] = now
+        }
+    }
+
+    /// Sendable snapshot for /health.
+    public func getAfplayHealthSnapshot() -> AfplayHealthSnapshot {
+        let iso: String? = wavFailureState.firstFailureAt.map { ISO8601DateFormatter().string(from: $0) }
+        let primaryWritable = (wavFailureState.fallbackLevel == 0 && wavFailureState.consecutiveFailureCount == 0)
+        return AfplayHealthSnapshot(
+            primary_dir_writable: primaryWritable,
+            fallback_level: wavFailureState.fallbackLevel,
+            consecutive_failure_count: wavFailureState.consecutiveFailureCount,
+            total_fallback_writes: wavFailureState.totalFallbackWrites,
+            last_failure_class: wavFailureState.lastFailureClass,
+            last_failure_at: iso
+        )
     }
 
     /// Write Float32 samples as a 16-bit PCM WAV file.
