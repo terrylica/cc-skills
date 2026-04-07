@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
-#MISE description="Remove stale plugin cache versions from ~/.claude/plugins/cache/cc-skills/, keeping only the current version from package.json. Run after release to free disk space. Safe to run anytime - only deletes outdated cached versions."
+#MISE description="Prune old plugin cache versions from ~/.claude/plugins/cache/cc-skills/, keeping the N most recent (default 3, override with KEEP_VERSIONS env var). Safe for live sessions: previous versions are retained so sessions started under older releases don't break with 'Plugin directory does not exist' when their cache dir is yanked. Run periodically to free disk space."
 set -euo pipefail
 
 CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
 CURRENT=$(jq -r '.version' package.json)
+KEEP="${KEEP_VERSIONS:-3}"
 
-echo "Cleaning old versions from cache (keeping v$CURRENT)..."
+echo "Pruning cache (keeping last $KEEP versions, current v$CURRENT)..."
 
+PRUNED=0
 for PLUGIN in $(ls -1 "$CACHE_DIR" 2>/dev/null); do
-    for VERSION_DIR in "$CACHE_DIR/$PLUGIN"/*; do
-        VERSION=$(basename "$VERSION_DIR")
-        if [[ "$VERSION" != "$CURRENT" && "$VERSION" != "local" ]]; then
+    PLUGIN_DIR="$CACHE_DIR/$PLUGIN"
+    [[ -d "$PLUGIN_DIR" ]] || continue
+    # Sort semver descending; "local" sorts as non-semver and is filtered out below
+    VERSIONS=$(ls -1 "$PLUGIN_DIR" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' | sort -rV)
+    COUNT=0
+    while IFS= read -r VERSION; do
+        [[ -z "$VERSION" ]] && continue
+        ((COUNT++))
+        if [[ $COUNT -gt $KEEP && "$VERSION" != "$CURRENT" ]]; then
             echo "  Removing $PLUGIN/$VERSION"
-            rm -rf "$VERSION_DIR"
+            rm -rf "$PLUGIN_DIR/$VERSION"
+            ((PRUNED++))
         fi
-    done
+    done <<< "$VERSIONS"
 done
 
-echo "✓ Cache cleaned"
+echo "✓ Cache pruned ($PRUNED dir(s) removed)"
