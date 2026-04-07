@@ -1,3 +1,48 @@
+# [12.42.0](https://github.com/terrylica/cc-skills/compare/v12.41.0...v12.42.0) (2026-04-07)
+
+
+### Bug Fixes
+
+* **claude-tts-companion:** self-healing WAV path fallback + collapsed telemetry ([285416a](https://github.com/terrylica/cc-skills/commit/285416ab96513dd9e4783f204d0f63597ed206ae)), closes [#if](https://github.com/terrylica/cc-skills/issues/if)
+
+
+### Features
+
+* **claude-tts-companion:** expose afplay WAV telemetry on /health + log SettingsStore dir failures ([0489c04](https://github.com/terrylica/cc-skills/commit/0489c04a351abbddd8574b89f28aa507d76690a4))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Repository Documentation
+
+### Root Documentation
+
+- [CLAUDE.md](https://github.com/terrylica/cc-skills/blob/main/CLAUDE.md) - updated (+23/-122)
+
+### General Documentation
+
+- [Lessons Learned](https://github.com/terrylica/cc-skills/blob/main/docs/LESSONS.md) - updated (+6)
+
+## Other Documentation
+
+### Other
+
+- [tts-no-audio-260406](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/tts-no-audio-260406.md) - new (+94)
+- [260406-nts-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260406-nts-fix-pythontimestampresponse-snake-case-c/260406-nts-PLAN.md) - new (+146)
+- [Quick Task 260406-nts: Fix PythonTimestampResponse snake_case Swift Property Names](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260406-nts-fix-pythontimestampresponse-snake-case-c/260406-nts-SUMMARY.md) - new (+95)
+- [260407-h07-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260407-h07-antifragile-fix-for-afplayplayer-wav-wri/260407-h07-PLAN.md) - new (+830)
+- [Research: Antifragile AfplayPlayer fix](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260407-h07-antifragile-fix-for-afplayplayer-wav-wri/260407-h07-RESEARCH.md) - new (+477)
+- [Quick 260407-h07: Antifragile fix for AfplayPlayer WAV write Summary](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260407-h07-antifragile-fix-for-afplayplayer-wav-wri/260407-h07-SUMMARY.md) - new (+153)
+- [Quick 260407-h07: Antifragile AfplayPlayer WAV-Write Fix — Verification Report](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260407-h07-antifragile-fix-for-afplayplayer-wav-wri/260407-h07-VERIFICATION.md) - new (+86)
+- [Roadmap: claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/.planning/ROADMAP.md) - updated (+38/-38)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+6/-4)
+- [claude-tts-companion](https://github.com/terrylica/cc-skills/blob/main/plugins/claude-tts-companion/CLAUDE.md) - updated (+84/-1)
+
 # [12.41.0](https://github.com/terrylica/cc-skills/compare/v12.40.0...v12.41.0) (2026-04-06)
 
 
