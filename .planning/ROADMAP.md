@@ -8,7 +8,7 @@
 - ✅ **v4.6.0 Legacy Pipeline Feature Parity** - Phases 11-17 (shipped 2026-03-27)
 - ✅ **v4.7.0 Architecture Hardening + Feature Expansion** - Phases 18-24 (shipped 2026-03-28)
 - ✅ **v4.8.0 Python MLX TTS Consolidation** - Phases 25-28 (shipped 2026-03-28)
-- 🚧 **v4.9.0 SwiftBar UI & Telegram Bot Activation** - Phases 29-31 (in progress)
+- ✅ **v4.9.0 SwiftBar UI & Telegram Bot Activation** - Phases 29-34 (shipped 2026-03-29)
 
 ## Overview
 
@@ -731,40 +731,40 @@ Plans:
 **Execution Order:**
 Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33 -> 34
 
-| Phase                                           | Plans Complete | Status      | Completed  |
-| ----------------------------------------------- | -------------- | ----------- | ---------- |
-| 1. Foundation & Build System                    | 2/2            | Complete    | -          |
-| 2. Subtitle Overlay                             | 2/2            | Complete    | -          |
-| 3. TTS Engine                                   | 1/2            | In progress | -          |
-| 4. AI Summaries                                 | 0/0            | Not started | -          |
-| 5. Telegram Bot Core                            | 0/0            | Not started | -          |
-| 6. Telegram Bot Commands                        | 2/2            | Complete    | 2026-03-26 |
-| 7. File Watching & Auto-Continue                | 2/2            | Complete    | 2026-03-26 |
-| 8. HTTP Control API                             | 1/2            | In progress | -          |
-| 9. SwiftBar Integration                         | 0/0            | Not started | -          |
-| 10. Deployment & Extras                         | 2/2            | Complete    | 2026-03-26 |
-| 11. Notification Formatting                     | 2/2            | Complete    | 2026-03-27 |
-| 12. AI Summary Prompts                          | 2/2            | Complete    | 2026-03-27 |
-| 13. Auto-Continue Evaluation                    | 2/2            | Complete    | 2026-03-27 |
-| 14. TTS Dispatch & Feature Gates                | 2/2            | Complete    | 2026-03-27 |
-| 15. Telegram Inline Buttons                     | 2/2            | Complete    | 2026-03-27 |
-| 16. Integration & Reliability                   | 1/1            | Complete    | 2026-03-27 |
-| 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete    | 2026-03-27 |
-| 18. CompanionCore Library & Test Infrastructure | 2/2            | Complete    | 2026-03-28 |
-| 19. TTSEngine Decomposition & Actor Migration   | 2/2            | Complete    | 2026-03-28 |
-| 20. Unit & Integration Tests                    | 2/2            | Complete    | 2026-03-28 |
-| 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete    | 2026-03-28 |
-| 21. Pipeline Hardening                          | 2/2            | Complete    | 2026-03-28 |
-| 22. Bionic Reading Mode                         | 2/2            | Complete    | 2026-03-28 |
-| 23. Caption History Panel                       | 2/2            | Complete    | 2026-03-28 |
-| 24. Chinese TTS Fallback                        | 2/2            | Complete    | 2026-03-28 |
-| 25. Python TTS Server Timestamp Endpoint        | 1/1            | Complete    | 2026-03-28 |
-| 26. Swift TTSEngine Python Integration          | 1/1            | Complete    | 2026-03-28 |
-| 27. MLX Dependency Removal                      | 1/1            | Complete    | 2026-03-28 |
-| 28. Memory Lifecycle Cleanup                    | 1/1            | Complete    | 2026-03-28 |
-| 29. Telegram Bot Activation                     | 0/0            | Complete    | 2026-03-28 |
-| 30. SwiftBar UI Updates                         | 1/1            | Complete    | 2026-03-28 |
-| 31. E2E Integration Verification                | 0/0            | Complete    | 2026-03-28 |
-| 32. Audio Device Resilience                     | 2/2            | Complete    | 2026-03-29 |
-| 33. Telegram Bot Verification                   | 1/1            | Complete    | 2026-03-29 |
-| 34. E2E Pipeline Verification                   | 1/1            | Complete    | 2026-03-29 |
+| Phase                                           | Plans Complete | Status   | Completed  |
+| ----------------------------------------------- | -------------- | -------- | ---------- |
+| 1. Foundation & Build System                    | 2/2            | Complete | -          |
+| 2. Subtitle Overlay                             | 2/2            | Complete | -          |
+| 3. TTS Engine                                   | 2/2            | Complete | 2026-03-26 |
+| 4. AI Summaries                                 | 2/2            | Complete | 2026-03-26 |
+| 5. Telegram Bot Core                            | 2/2            | Complete | 2026-03-26 |
+| 6. Telegram Bot Commands                        | 2/2            | Complete | 2026-03-26 |
+| 7. File Watching & Auto-Continue                | 2/2            | Complete | 2026-03-26 |
+| 8. HTTP Control API                             | 2/2            | Complete | 2026-03-26 |
+| 9. SwiftBar Integration                         | 2/2            | Complete | 2026-03-26 |
+| 10. Deployment & Extras                         | 2/2            | Complete | 2026-03-26 |
+| 11. Notification Formatting                     | 2/2            | Complete | 2026-03-27 |
+| 12. AI Summary Prompts                          | 2/2            | Complete | 2026-03-27 |
+| 13. Auto-Continue Evaluation                    | 2/2            | Complete | 2026-03-27 |
+| 14. TTS Dispatch & Feature Gates                | 2/2            | Complete | 2026-03-27 |
+| 15. Telegram Inline Buttons                     | 2/2            | Complete | 2026-03-27 |
+| 16. Integration & Reliability                   | 1/1            | Complete | 2026-03-27 |
+| 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete | 2026-03-27 |
+| 18. CompanionCore Library & Test Infrastructure | 2/2            | Complete | 2026-03-28 |
+| 19. TTSEngine Decomposition & Actor Migration   | 2/2            | Complete | 2026-03-28 |
+| 20. Unit & Integration Tests                    | 2/2            | Complete | 2026-03-28 |
+| 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete | 2026-03-28 |
+| 21. Pipeline Hardening                          | 2/2            | Complete | 2026-03-28 |
+| 22. Bionic Reading Mode                         | 2/2            | Complete | 2026-03-28 |
+| 23. Caption History Panel                       | 2/2            | Complete | 2026-03-28 |
+| 24. Chinese TTS Fallback                        | 2/2            | Complete | 2026-03-28 |
+| 25. Python TTS Server Timestamp Endpoint        | 1/1            | Complete | 2026-03-28 |
+| 26. Swift TTSEngine Python Integration          | 1/1            | Complete | 2026-03-28 |
+| 27. MLX Dependency Removal                      | 1/1            | Complete | 2026-03-28 |
+| 28. Memory Lifecycle Cleanup                    | 1/1            | Complete | 2026-03-28 |
+| 29. Telegram Bot Activation                     | 0/0            | Complete | 2026-03-28 |
+| 30. SwiftBar UI Updates                         | 1/1            | Complete | 2026-03-28 |
+| 31. E2E Integration Verification                | 0/0            | Complete | 2026-03-28 |
+| 32. Audio Device Resilience                     | 2/2            | Complete | 2026-03-29 |
+| 33. Telegram Bot Verification                   | 1/1            | Complete | 2026-03-29 |
+| 34. E2E Pipeline Verification                   | 1/1            | Complete | 2026-03-29 |
