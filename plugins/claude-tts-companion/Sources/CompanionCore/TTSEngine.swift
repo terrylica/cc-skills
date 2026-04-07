@@ -431,10 +431,17 @@ public actor TTSEngine {
 
     /// Full response from the timestamp endpoint: base64 WAV + per-word timing array.
     private struct PythonTimestampResponse: Codable {
-        let audio_b64: String
+        let audioB64: String
         let words: [PythonTimestampWord]
-        let audio_duration: Double
-        let sample_rate: Int
+        let audioDuration: Double
+        let sampleRate: Int
+
+        enum CodingKeys: String, CodingKey {
+            case audioB64 = "audio_b64"
+            case words
+            case audioDuration = "audio_duration"
+            case sampleRate = "sample_rate"
+        }
     }
 
     /// Result of calling the Python server with timestamps.
@@ -490,7 +497,7 @@ public actor TTSEngine {
         // Parse JSON response with base64 audio + word timing array
         let tsResponse = try JSONDecoder().decode(PythonTimestampResponse.self, from: data)
 
-        guard let wavData = Data(base64Encoded: tsResponse.audio_b64) else {
+        guard let wavData = Data(base64Encoded: tsResponse.audioB64) else {
             throw TTSError.synthesisReturnedNil
         }
 
@@ -503,7 +510,7 @@ public actor TTSEngine {
             wordOnsets: wordOnsets,
             wordDurations: wordDurations,
             wordTexts: wordTexts,
-            audioDuration: TimeInterval(tsResponse.audio_duration)
+            audioDuration: TimeInterval(tsResponse.audioDuration)
         )
     }
 
