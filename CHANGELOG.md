@@ -1,3 +1,19 @@
+## [12.42.1](https://github.com/terrylica/cc-skills/compare/v12.42.0...v12.42.1) (2026-04-07)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [Debug Session: iterm2-stop-notification](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/iterm2-stop-notification.md) - new (+80)
+
 # [12.42.0](https://github.com/terrylica/cc-skills/compare/v12.41.0...v12.42.0) (2026-04-07)
 
 
