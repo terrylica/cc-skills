@@ -51,6 +51,7 @@ private struct HealthResponse: Codable {
     let subsystems: SubsystemStatus
     let audio_routing_clean: Bool?
     let audio_routing_warnings: [String]?
+    let afplay: AfplayPlayer.AfplayHealthSnapshot   // h07
 }
 
 /// Subsystem status within health response.
@@ -120,7 +121,7 @@ public final class HTTPControlServer: @unchecked Sendable {
 
         // API-01: Health endpoint
         await server.appendRoute("GET /health") { [self] _ in
-            return healthResponse()
+            return await healthResponse()
         }
 
         // API-02: Get all settings
@@ -299,9 +300,10 @@ public final class HTTPControlServer: @unchecked Sendable {
     // MARK: - Private Helpers
 
     /// Build the health response with uptime and RSS (API-01).
-    private func healthResponse() -> HTTPResponse {
+    private func healthResponse() async -> HTTPResponse {
         let uptimeSeconds = Int(Date().timeIntervalSince(startTime))
         let rssMB = currentRSSMB()
+        let afplaySnapshot = await MainActor.run { playbackManager.afplayPlayer.getAfplayHealthSnapshot() }
 
         let health = HealthResponse(
             status: audioRoutingClean ? "ok" : "degraded",
@@ -313,7 +315,8 @@ public final class HTTPControlServer: @unchecked Sendable {
                 subtitle: "ready"
             ),
             audio_routing_clean: audioRoutingClean,
-            audio_routing_warnings: audioRoutingWarnings.isEmpty ? nil : audioRoutingWarnings
+            audio_routing_warnings: audioRoutingWarnings.isEmpty ? nil : audioRoutingWarnings,
+            afplay: afplaySnapshot
         )
         return jsonResponse(health)
     }

@@ -118,12 +118,16 @@ public final class SettingsStore: @unchecked Sendable {
         let configDir = "\(home)/.config/\(Config.appName)"
         self.settingsFilePath = "\(configDir)/settings.json"
 
-        // Ensure config directory exists
-        try? FileManager.default.createDirectory(
-            atPath: configDir,
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
+        // Ensure config directory exists (explicit error logging — h07)
+        do {
+            try FileManager.default.createDirectory(
+                atPath: configDir,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+        } catch {
+            logger.error("Failed to create config dir \(configDir): \(error) — settings writes will fail until dir is recreated")
+        }
 
         // Load from disk or use defaults
         if let loaded = SettingsStore.load(from: settingsFilePath) {
