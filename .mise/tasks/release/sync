@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 3 of 4: Sync released version to local Claude Code environment. Updates marketplace repo, syncs hooks to settings.json, syncs commands to ~/.claude/commands/, auto-enables new plugins, and clears stale plugin cache."
+#MISE description="Phase 3 of 4: Sync released version to local Claude Code environment. Updates marketplace repo, syncs hooks to settings.json, syncs commands to ~/.claude/commands/, auto-enables new plugins, and adds the new version to the plugin cache without removing older versions (live sessions need them). Run release:clean separately to prune."
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"
@@ -50,21 +50,26 @@ else
     echo "  ⚠ Plugin sync script not found"
 fi
 
-# Step 3: Rebuild plugin cache from marketplace + update installed_plugins.json
-echo "→ Rebuilding plugin cache..."
-rm -rf "$CACHE_DIR"
+# Step 3: Add new version to plugin cache (keeps older versions for live sessions)
+# IMPORTANT: do NOT wipe $CACHE_DIR — live Claude Code sessions pin plugin paths
+# at startup and break with "Plugin directory does not exist" if their version is
+# yanked mid-session. Older versions are pruned later by `mise run release:clean`,
+# which keeps the last N versions (default 3).
+echo "→ Adding v$VERSION to plugin cache..."
 CACHE_COUNT=0
 for plugin_source in "$MARKETPLACE_DIR/plugins"/*/; do
     [[ -d "$plugin_source" ]] || continue
     plugin_name=$(basename "$plugin_source")
     plugin_target="$CACHE_DIR/$plugin_name/$VERSION"
+    # Replace just this version's dir (idempotent re-runs of sync)
+    rm -rf "$plugin_target"
     mkdir -p "$plugin_target"
     [[ -d "$plugin_source/skills" ]] && cp -r "$plugin_source/skills" "$plugin_target/"
     [[ -d "$plugin_source/hooks" ]] && cp -r "$plugin_source/hooks" "$plugin_target/"
     [[ -f "$plugin_source/plugin.json" ]] && cp "$plugin_source/plugin.json" "$plugin_target/"
     ((CACHE_COUNT++))
 done
-echo "  ✓ Cache rebuilt: $CACHE_COUNT plugin(s) at v$VERSION"
+echo "  ✓ Cache populated: $CACHE_COUNT plugin(s) at v$VERSION (older versions preserved)"
 
 echo "→ Syncing installed_plugins.json..."
 INSTALLED="$HOME/.claude/plugins/installed_plugins.json"
