@@ -141,9 +141,9 @@ extension TelegramBot {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.subtitlePanel.show(text: text)
-            DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration + 5.0) { [weak self] in
-                self?.subtitlePanel.hide()
-            }
+            // Schedule cancellable hide -- cancelled automatically if SubtitlePanel.show(),
+            // hide(), or updateAttributedText() is called before timer fires.
+            self.subtitlePanel.lingerThenHide(after: SubtitleStyle.lingerDuration + 5.0)
         }
     }
 
