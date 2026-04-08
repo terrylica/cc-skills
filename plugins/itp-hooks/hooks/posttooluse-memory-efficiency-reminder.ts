@@ -75,11 +75,8 @@ async function main(): Promise<void> {
     return; // Fail silently
   }
 
-  // Emit reminder as context message
-  console.log(JSON.stringify({
-    hookSpecificOutput: {
-      hookEventName: "PostToolUse",
-      context: `[MEMORY-EFFICIENCY] When writing data-path code, prefer these patterns:
+  // PostToolUse hooks deliver context via plain stdout (not JSON hookSpecificOutput)
+  console.log(`[MEMORY-EFFICIENCY] When writing data-path code, prefer these patterns:
 
 ┌──────────────────┬─────────────────────────────────────┐
 │ AVOID COPIES     │ zero-copy, view, slice, borrow,     │
@@ -95,9 +92,7 @@ async function main(): Promise<void> {
 │                  │ predicate pushdown, lazy frame      │
 └──────────────────┴─────────────────────────────────────┘
 
-Anti-patterns: Python list → Arrow (copy!), df.to_dict() in loops, .values() materializing lazy frames, repeated pd.concat instead of pre-sized buffer.`,
-    },
-  }));
+Anti-patterns: Python list → Arrow (copy!), df.to_dict() in loops, .values() materializing lazy frames, repeated pd.concat instead of pre-sized buffer.`);
 }
 
 void main();
