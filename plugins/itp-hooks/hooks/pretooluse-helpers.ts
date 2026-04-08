@@ -173,6 +173,7 @@ export { isPlanMode, isQuickPlanMode, type HookInputWithPlanMode, type PlanModeC
 export {
   isReadOnlyCommand,
   isReadOnly,
+  isRemoteCommand,
   type ReadOnlyCheckResult,
 } from "./lib/readonly-command-detector.ts";
 

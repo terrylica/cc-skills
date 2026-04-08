@@ -200,6 +200,13 @@ export function isReadOnlyCommand(command: string): ReadOnlyCheckResult {
 
   const trimmedCommand = command.trim();
 
+  // SSH commands execute remotely — local guards (CWD deletion, UV enforcement,
+  // cargo TTY, process storm) don't apply. Skip before NEVER_READ_ONLY so that
+  // `ssh gpu-host 'rm -rf /tmp/foo'` isn't blocked by the local \brm\b pattern.
+  if (isRemoteCommand(trimmedCommand)) {
+    return { isReadOnly: true, matchedPattern: "ssh remote command" };
+  }
+
   // First check if command matches a NEVER read-only pattern
   for (const pattern of NEVER_READ_ONLY_PATTERNS) {
     if (pattern.test(trimmedCommand)) {
@@ -235,6 +242,17 @@ export function isReadOnlyCommand(command: string): ReadOnlyCheckResult {
  */
 export function isReadOnly(command: string): boolean {
   return isReadOnlyCommand(command).isReadOnly;
+}
+
+/**
+ * Check if a command executes on a remote host via SSH.
+ * Local guards (CWD deletion, UV enforcement, cargo TTY, process storm)
+ * don't apply to remote commands — all modifications happen on the remote.
+ *
+ * Excludes localhost/loopback to avoid bypassing guards for local SSH.
+ */
+export function isRemoteCommand(command: string): boolean {
+  return /^\s*ssh\s+(?!localhost\b|127\.0\.0\.1\b|::1\b)/.test(command.trim());
 }
 
 /**
