@@ -475,9 +475,7 @@ public actor TTSQueue {
         let text = item.greeting.map { "\($0) \(item.text)" } ?? item.text
         DispatchQueue.main.async { [subtitlePanel] in
             subtitlePanel.show(text: text)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
-                subtitlePanel.hide()
-            }
+            subtitlePanel.lingerThenHide(after: 8.0)
         }
     }
 }
