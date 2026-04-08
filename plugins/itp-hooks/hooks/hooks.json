@@ -269,6 +269,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-memory-efficiency-reminder.ts",
+            "timeout": 3000,
+            "description": "Memory efficiency reminder - zero-copy, pre-allocate, cache locality, lazy eval (once per session)"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-ty-type-check.ts",
             "timeout": 5000,
             "description": "ty type checker - runs on every .py file edit (4.7ms incremental)"
