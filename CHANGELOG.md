@@ -1,3 +1,10 @@
+## [12.43.1](https://github.com/terrylica/cc-skills/compare/v12.43.0...v12.43.1) (2026-04-08)
+
+
+### Bug Fixes
+
+* **itp-hooks:** use plain stdout for PostToolUse memory efficiency hook ([4542a2a](https://github.com/terrylica/cc-skills/commit/4542a2a245725df1dd9f0999771d33028cb8c9a4))
+
 # [12.43.0](https://github.com/terrylica/cc-skills/compare/v12.42.4...v12.43.0) (2026-04-08)
 
 
