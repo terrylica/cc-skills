@@ -1,3 +1,28 @@
+## [12.42.3](https://github.com/terrylica/cc-skills/compare/v12.42.2...v12.42.3) (2026-04-08)
+
+
+### Bug Fixes
+
+* **itp-hooks:** skip local guards for SSH remote commands ([66c6356](https://github.com/terrylica/cc-skills/commit/66c6356bd3d77c843eb91b16f54d842e6988ec66))
+* **quick-260407-odg:** make fallback hide() calls cancellable via pendingLingerHide ([994ed8a](https://github.com/terrylica/cc-skills/commit/994ed8adfedea38c5c66c5d3b1231c80ab00ff6f))
+* **quick-260407-odg:** re-assert panel front ordering every 0.5s in tickStreaming ([211e308](https://github.com/terrylica/cc-skills/commit/211e308ebdd4ad3c78af3b3be733a8ac6071cb10))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [subtitle-panel-intermittent-disappear](https://github.com/terrylica/cc-skills/blob/main/.planning/debug/subtitle-panel-intermittent-disappear.md) - new (+74)
+- [260407-odg-PLAN](https://github.com/terrylica/cc-skills/blob/main/.planning/quick/260407-odg-fix-subtitle-panel-intermittent-disappea/260407-odg-PLAN.md) - new (+307)
+- [Project State](https://github.com/terrylica/cc-skills/blob/main/.planning/STATE.md) - updated (+7/-6)
+
 ## [12.42.2](https://github.com/terrylica/cc-skills/compare/v12.42.1...v12.42.2) (2026-04-07)
 
 
