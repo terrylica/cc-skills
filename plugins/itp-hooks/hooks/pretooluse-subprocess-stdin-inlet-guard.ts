@@ -23,7 +23,7 @@
  * Related: pretooluse-cargo-tty-guard.ts (specific cargo handling)
  */
 
-import { allow, allowWithInput, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
+import { allow, allowWithInput, parseStdinOrAllow, trackHookError, isRemoteCommand } from "./pretooluse-helpers.ts";
 
 async function main() {
   const input = await parseStdinOrAllow("STDIN-INLET-GUARD");
@@ -34,6 +34,15 @@ async function main() {
   // Bash: inject `< /dev/null` to disconnect stdin
   if (tool_name === "Bash" && typeof tool_input.command === "string") {
     let command = tool_input.command;
+
+    // SSH commands handle stdin through the SSH channel — wrapping with
+    // < /dev/null triggers a Claude Code confirmation prompt (updatedInput
+    // mutation) that blocks remote work unnecessarily.
+    if (isRemoteCommand(command)) {
+      allow();
+      return;
+    }
+
     if (!command.includes("</dev/null") && !command.includes("< /dev/null")) {
       command = `(${command}) < /dev/null`;
     }
