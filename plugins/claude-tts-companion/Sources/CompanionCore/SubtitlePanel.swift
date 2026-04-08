@@ -137,6 +137,13 @@ public final class SubtitlePanel: NSPanel {
     /// new content is shown before the timer fires (orderFrontRegardless
     /// cancels pendingLingerHide).
     func lingerThenHide() {
+        lingerThenHide(after: SubtitleStyle.lingerDuration)
+    }
+
+    /// Schedule a hide after a custom delay. Uses the same pendingLingerHide
+    /// mechanism as lingerThenHide() -- automatically cancelled if new content
+    /// is shown (show/updateAttributedText cancel pendingLingerHide).
+    func lingerThenHide(after delay: TimeInterval) {
         pendingLingerHide?.cancel()
         let item = DispatchWorkItem { [weak self] in
             self?.pendingLingerHide = nil
@@ -144,7 +151,7 @@ public final class SubtitlePanel: NSPanel {
             self?.orderOut(nil)
         }
         pendingLingerHide = item
-        DispatchQueue.main.asyncAfter(deadline: .now() + SubtitleStyle.lingerDuration, execute: item)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
     }
 
     /// Show attributed text for karaoke highlighting (gold/grey/white per word).
