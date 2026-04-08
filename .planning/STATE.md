@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 Phase: 34
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-04-07 - Completed quick task 260407-h07: Antifragile fix for AfplayPlayer WAV-write failure (self-healing fallback chain + collapsed telemetry + /health exposure + chaos test)
+Last activity: 2026-04-07 - Completed quick task 260407-odg: Fix subtitle panel intermittent disappearance (cancellable hide + periodic orderFrontRegardless)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -96,11 +96,12 @@ None yet.
 
 ### Quick Tasks Completed
 
-| #          | Description                                                                                | Date       | Commit   | Directory                                                                                                           |
-| ---------- | ------------------------------------------------------------------------------------------ | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| 260330-9js | Streaming paragraph chunking for long TTS text                                             | 2026-03-30 | d2ea52c7 | [260330-9js-streaming-paragraph-chunking-for-long-tt](./quick/260330-9js-streaming-paragraph-chunking-for-long-tt/) |
-| 260406-nts | Fix PythonTimestampResponse snake_case/camelCase duplicate naming (telemetry audit)        | 2026-04-07 | af9698be | [260406-nts-fix-pythontimestampresponse-snake-case-c](./quick/260406-nts-fix-pythontimestampresponse-snake-case-c/) |
-| 260407-h07 | Antifragile fix for AfplayPlayer WAV-write failure (self-healing + telemetry + chaos test) | 2026-04-07 | 11b86163 | [260407-h07-antifragile-fix-for-afplayplayer-wav-wri](./quick/260407-h07-antifragile-fix-for-afplayplayer-wav-wri/) |
+| #          | Description                                                                                      | Date       | Commit   | Directory                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------ | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| 260330-9js | Streaming paragraph chunking for long TTS text                                                   | 2026-03-30 | d2ea52c7 | [260330-9js-streaming-paragraph-chunking-for-long-tt](./quick/260330-9js-streaming-paragraph-chunking-for-long-tt/) |
+| 260406-nts | Fix PythonTimestampResponse snake_case/camelCase duplicate naming (telemetry audit)              | 2026-04-07 | af9698be | [260406-nts-fix-pythontimestampresponse-snake-case-c](./quick/260406-nts-fix-pythontimestampresponse-snake-case-c/) |
+| 260407-h07 | Antifragile fix for AfplayPlayer WAV-write failure (self-healing + telemetry + chaos test)       | 2026-04-07 | 11b86163 | [260407-h07-antifragile-fix-for-afplayplayer-wav-wri](./quick/260407-h07-antifragile-fix-for-afplayplayer-wav-wri/) |
+| 260407-odg | Fix subtitle panel intermittent disappearance (cancellable hide + periodic orderFrontRegardless) | 2026-04-07 | 211e308e | [260407-odg-fix-subtitle-panel-intermittent-disappea](./quick/260407-odg-fix-subtitle-panel-intermittent-disappea/) |
 
 ## Session Continuity
 
