@@ -566,6 +566,14 @@ public final class SubtitleSyncDriver {
             logger.info("[TELEMETRY] tick: globalTime=\(String(format: "%.3f", globalTime)), chunk=\(currentChunkIndex), localWordIdx=\(currentLocalWordIndex), chunkLocalTime=\(String(format: "%.3f", chunkLocalTime)), totalWordsInChunk=\(totalWordCount)")
         }
 
+        // Re-assert panel front ordering every ~0.5s (30 ticks at 60Hz).
+        // macOS can silently demote floating NSPanels during Spaces transitions,
+        // Mission Control, display wake, or fullscreen app focus changes.
+        // This is cheap (one ObjC message send) and ensures the panel stays visible.
+        if tickCount % 30 == 0 {
+            subtitlePanel.orderFrontRegardless()
+        }
+
         updateHighlight(for: chunkLocalTime)
     }
 
