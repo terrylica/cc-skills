@@ -1,3 +1,10 @@
+## [12.42.4](https://github.com/terrylica/cc-skills/compare/v12.42.3...v12.42.4) (2026-04-08)
+
+
+### Bug Fixes
+
+* **itp-hooks:** skip stdin-inlet guard for SSH remote commands ([cf67586](https://github.com/terrylica/cc-skills/commit/cf6758625bdb59633943bf46bb868dcbd14e800f))
+
 ## [12.42.3](https://github.com/terrylica/cc-skills/compare/v12.42.2...v12.42.3) (2026-04-08)
 
 
