@@ -1,3 +1,10 @@
+# [12.43.0](https://github.com/terrylica/cc-skills/compare/v12.42.4...v12.43.0) (2026-04-08)
+
+
+### Features
+
+* **itp-hooks:** memory efficiency reminder hook (once per session) ([139b413](https://github.com/terrylica/cc-skills/commit/139b4138948138b78de193d83bd9a1744cf033d5))
+
 ## [12.42.4](https://github.com/terrylica/cc-skills/compare/v12.42.3...v12.42.4) (2026-04-08)
 
 
