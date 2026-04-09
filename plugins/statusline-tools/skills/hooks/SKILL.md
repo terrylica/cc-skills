@@ -7,6 +7,8 @@ model: haiku
 disable-model-invocation: true
 ---
 
+> **Navigation**: [Plugin CLAUDE.md](../../CLAUDE.md) | [Root CLAUDE.md](../../../../CLAUDE.md)
+
 # Status Line Hooks Manager
 
 Manage Stop hook installation for link validation and path linting.
@@ -95,14 +97,17 @@ Hooks are loaded at session start. Modifications to settings.json require a rest
 
 ## Troubleshooting
 
-| Issue                      | Cause                        | Solution                           |
-| -------------------------- | ---------------------------- | ---------------------------------- |
-| jq not found               | jq not installed             | `brew install jq`                  |
-| lychee not found           | Link validator not installed | `brew install lychee`              |
-| Hooks not working          | Session not restarted        | Restart Claude Code session        |
-| lint-relative-paths errors | Invalid path patterns        | Check file paths in SKILL.md files |
-| Cache stale                | Stop hook failed             | Check ~/.claude/statusline/ logs   |
+| Issue                      | Cause                        | Solution                                                                                 |
+| -------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
+| jq not found               | jq not installed             | `brew install jq`                                                                        |
+| lychee not found           | Link validator not installed | `brew install lychee`                                                                    |
+| Hooks not working          | Session not restarted        | Restart Claude Code session                                                              |
+| lint-relative-paths errors | Invalid path patterns        | Check file paths in SKILL.md files                                                       |
+| Cache stale                | Stop hook failed             | Check `.lychee-results.json` and `.lint-relative-paths-results.txt` in the git repo root |
 
+## Note on hooks.json Hooks
+
+`cron-tracker.ts` and `stop-cron-gc.ts` are registered directly in `hooks.json` and are **not** managed by `manage-hooks.sh`. They run automatically via the hooks framework and do not need manual install/uninstall.
 
 ## Post-Execution Reflection
 
