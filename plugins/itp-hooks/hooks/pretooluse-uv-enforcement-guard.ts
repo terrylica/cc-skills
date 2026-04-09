@@ -85,12 +85,18 @@ function isException(command: string): boolean {
     return true;
   }
 
-  // 6. Commands whose arguments contain free-form text (commit messages, issue bodies)
-  //    These commonly reference pip/conda as documentation, not as actual operations
-  if (/^\s*gh\s+(issue|pr)\s+(create|edit|comment)\b/i.test(commandLower)) {
+  // 6. Commands whose arguments contain free-text (commit messages, issue bodies, notes)
+  //    These commonly reference pip/conda as documentation, not as actual operations.
+  //    Match anywhere in the command (not just ^start) to handle chained commands:
+  //    e.g., `git add ... && git commit -m "mentions pip install"` or
+  //          `node tool.cjs commit "docs about pip install"`
+  if (/\bgh\s+(issue|pr)\s+(create|edit|comment)\b/i.test(commandLower)) {
     return true;
   }
-  if (/^\s*git\s+(commit|tag)\b/i.test(commandLower)) {
+  if (/\bgit\s+(commit|tag)\b/i.test(commandLower)) {
+    return true;
+  }
+  if (/\bnode\s+.*\bcommit\b/i.test(commandLower)) {
     return true;
   }
 
