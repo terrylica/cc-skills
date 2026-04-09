@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# NOTE: This hook is NOT registered in hooks.json.
+# It is installed into ~/.claude/settings.json by scripts/manage-hooks.sh.
+# Run `/statusline-tools:hooks` to install/uninstall.
+#
 # lychee-stop-hook.sh - Simplified Stop hook for link validation
 #
 # MIT License

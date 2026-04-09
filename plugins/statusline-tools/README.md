@@ -1,17 +1,20 @@
 # statusline-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-0-gray.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-4-blue.svg)]()
+[![Hooks](https://img.shields.io/badge/Hooks-2-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Custom Claude Code status line with git status indicators.
 
 ## Skills
 
-| Skill          | Description                                       |
-| -------------- | ------------------------------------------------- |
-| `session-info` | Get current Claude Code session UUID and registry |
+| Skill          | Description                                            |
+| -------------- | ------------------------------------------------------ |
+| `setup`        | Install/uninstall/status for statusline + dependencies |
+| `ignore`       | Manage global ignore patterns for lint-relative-paths  |
+| `session-info` | Display current session UUID, chain, registry info     |
+| `hooks`        | Install/uninstall link validation stop hooks           |
 
 **Trigger phrases:** "current session", "session uuid", "session id", "what session"
 
@@ -57,27 +60,50 @@ Manage global ignore patterns for `lint-relative-paths`. Use this when a reposit
 
 **Ignore file location**: `~/.claude/lint-relative-paths-ignore`
 
+### /statusline-tools:hooks
+
+Install or uninstall link validation stop hooks.
+
+```bash
+/statusline-tools:hooks install    # Install link validation hooks
+/statusline-tools:hooks uninstall  # Remove link validation hooks
+```
+
 ## Status Line Display
 
-The status line outputs three lines:
+The status line outputs 5 lines (plus optional cron lines):
 
-**Line 1**: Repository path, git indicators, local time
-
-```
-repo-name/path | M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 | 25Jan07 14:32L
-```
-
-**Line 2**: GitHub URL (or warning), UTC time
+**Line 1**: Git indicators + version tag + release age
 
 ```
-https://github.com/user/repo/tree/branch | 25Jan07 14:32Z
+M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 | v<version> | 2d ago
 ```
 
-**Line 3**: ~/.claude/projects JSONL ID
+**Line 2**: Datetime (UTC + local TZ) + ccmax account usage
 
 ```
-~/.claude/projects JSONL ID: abc12345-def4-5678-90ab-cdef12345678
+Tue 04 Mar 2026 23:36 UTC | 15:36 PST | ccmax: 42%
 ```
+
+**Line 3**: Repo path + GitHub URL (public/private badge)
+
+```
+~/eon/cc-skills | https://github.com/user/repo [public]
+```
+
+**Line 4**: Session UUID + chain
+
+```
+Session: abc12345-def4-5678-90ab-cdef12345678 | chain: 3
+```
+
+**Line 5**: Asciinema cast UUID
+
+```
+Cast: def45678-abcd-1234-5678-abcdef123456
+```
+
+**Additional lines**: Active cron jobs (if any)
 
 ### Indicators
 
@@ -104,12 +130,17 @@ https://github.com/user/repo/tree/branch | 25Jan07 14:32Z
 
 ### System Dependencies
 
-| Tool | Required | Installation                             |
-| ---- | -------- | ---------------------------------------- |
-| bash | Yes      | Built-in                                 |
-| jq   | Yes      | `brew install jq`                        |
-| git  | Yes      | Built-in on macOS                        |
-| bun  | Yes      | `brew install oven-sh/bun/bun` or bun.sh |
+| Tool     | Required | Installation                             |
+| -------- | -------- | ---------------------------------------- |
+| bash     | Yes      | Built-in                                 |
+| jq       | Yes      | `brew install jq`                        |
+| git      | Yes      | Built-in on macOS                        |
+| bun      | Yes      | `brew install oven-sh/bun/bun` or bun.sh |
+| python3  | Yes      | Built-in on macOS                        |
+| curl     | Yes      | Built-in on macOS                        |
+| security | Yes      | Built-in (macOS Keychain)                |
+| gh       | Yes      | `brew install gh`                        |
+| gtimeout | Yes      | `brew install coreutils`                 |
 
 ## How It Works
 
@@ -118,15 +149,43 @@ https://github.com/user/repo/tree/branch | 25Jan07 14:32Z
 ## Files
 
 ```
-statusline-tools/
-├── commands/
-│   └── setup.md                  # /statusline-tools:setup command
-├── statusline/
-│   └── custom-statusline.sh      # Status line renderer
+plugins/statusline-tools/
+├── CLAUDE.md                    ← Plugin docs hub
+├── README.md                    ← This file
+├── hooks/
+│   ├── hooks.json               ← Hook registration
+│   ├── cron-tracker.ts          ← PostToolUse: tracks CronCreate/Delete/List
+│   ├── stop-cron-gc.ts          ← Stop: prunes stale cron entries
+│   └── lychee-stop-hook.sh      ← Link validation (installed via manage-hooks.sh)
+├── lib/
+│   ├── config.ts                ← Session registry config loader
+│   ├── session-registry.ts      ← Session chain persistence
+│   ├── chain-formatter.ts       ← ANSI session ID formatting
+│   ├── path-encoder.ts          ← Project path encoding
+│   └── logger.ts                ← NDJSON structured logging
 ├── scripts/
-│   └── manage-statusline.sh      # Install/uninstall statusLine
-└── tests/
-    └── test_statusline.bats      # Status line tests
+│   ├── manage-statusline.sh     ← Install/uninstall/status
+│   ├── manage-hooks.sh          ← Hook install/uninstall
+│   ├── manage-ignore.sh         ← Global ignore patterns
+│   ├── get-session-info.ts      ← Session info display
+│   ├── update-session-registry.ts
+│   ├── session-chain.ts         ← Session ancestry chain
+│   ├── lint-relative-paths.ts   ← Link validation linter
+│   ├── lint-relative-paths      ← Compiled bash wrapper
+│   └── iterm2-cron-countdown.py ← iTerm2 cron component
+├── skills/
+│   ├── setup/SKILL.md
+│   ├── ignore/SKILL.md
+│   ├── session-info/SKILL.md
+│   └── hooks/SKILL.md
+├── statusline/
+│   └── custom-statusline.sh     ← Main statusline script
+├── tests/
+│   ├── test_statusline.bats
+│   ├── test_lint_relative.bats
+│   └── test_stop_hook.bats
+└── types/
+    └── session.d.ts
 ```
 
 ## Testing

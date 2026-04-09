@@ -6,6 +6,8 @@ argument-hint: "[add|list|remove] [pattern]"
 model: haiku
 ---
 
+> **Navigation**: [Plugin CLAUDE.md](../../CLAUDE.md) | [Root CLAUDE.md](../../../../CLAUDE.md)
+
 # Global Ignore Patterns
 
 Manage global ignore patterns for the `lint-relative-paths` linter.
@@ -111,7 +113,6 @@ echo "my-repo-pattern" >> ~/.claude/lint-relative-paths-ignore
 | Ignore file not found | ~/.claude doesn't exist   | Create with `mkdir -p ~/.claude`                     |
 | Permission denied     | File not writable         | Check file permissions with `ls -la`                 |
 | Script not found      | Plugin not installed      | Reinstall plugin from marketplace                    |
-
 
 ## Post-Execution Reflection
 

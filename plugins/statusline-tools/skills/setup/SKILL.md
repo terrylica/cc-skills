@@ -7,6 +7,8 @@ model: haiku
 disable-model-invocation: false
 ---
 
+> **Navigation**: [Plugin CLAUDE.md](../../CLAUDE.md) | [Root CLAUDE.md](../../../../CLAUDE.md)
+
 # Status Line Setup
 
 Manage custom status line installation and dependencies.
@@ -20,6 +22,7 @@ Manage custom status line installation and dependencies.
 | `install`   | Install status line to settings.json        |
 | `uninstall` | Remove status line from settings.json       |
 | `status`    | Show current configuration and dependencies |
+| `deps`      | Install dependencies (lychee) via mise      |
 
 ## Execution
 
@@ -78,7 +81,6 @@ The statusLine is loaded at session start. Modifications to settings.json requir
 | Settings file missing | ~/.claude doesn't exist | Create with `mkdir -p ~/.claude`        |
 | Install fails         | Invalid settings.json   | Validate JSON with `jq . settings.json` |
 | Script not found      | Plugin not installed    | Reinstall plugin from marketplace       |
-
 
 ## Post-Execution Reflection
 

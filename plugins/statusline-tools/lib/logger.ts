@@ -10,6 +10,7 @@
  */
 
 import { appendFileSync, existsSync, mkdirSync } from "fs";
+import { sanitizePath } from "./path-encoder";
 
 const LOG_DIR = `${process.env.HOME}/.claude/logs`;
 const LOG_FILE = `${LOG_DIR}/session-registry.jsonl`;
@@ -25,15 +26,6 @@ interface LogEntry {
   event?: string;
   duration_ms?: number;
   ctx?: Record<string, unknown>;
-}
-
-/**
- * Sanitize path for logging (PII prevention)
- * Replaces home directory with ~
- */
-function sanitizePath(path: string): string {
-  const home = process.env.HOME || "";
-  return path.replace(home, "~");
 }
 
 /**
@@ -77,12 +69,3 @@ export function log(
   }
 }
 
-/**
- * Convenience methods for each log level
- */
-export const logger = {
-  debug: (msg: string, ctx?: Parameters<typeof log>[2]) => log("debug", msg, ctx),
-  info: (msg: string, ctx?: Parameters<typeof log>[2]) => log("info", msg, ctx),
-  warn: (msg: string, ctx?: Parameters<typeof log>[2]) => log("warn", msg, ctx),
-  error: (msg: string, ctx?: Parameters<typeof log>[2]) => log("error", msg, ctx),
-};
