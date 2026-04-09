@@ -1,3 +1,69 @@
+## [12.43.3](https://github.com/terrylica/cc-skills/compare/v12.43.2...v12.43.3) (2026-04-09)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>statusline-tools</strong> (4 changes)</summary>
+
+- [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/hooks/SKILL.md) - updated (+12/-7)
+- [ignore](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/ignore/SKILL.md) - updated (+2/-1)
+- [session-info](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/SKILL.md) - updated (+4/-15)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/setup/SKILL.md) - updated (+3/-1)
+
+</details>
+
+
+### Plugin READMEs
+
+- [statusline-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/README.md) - updated (+85/-26)
+
+### Skill References
+
+<details>
+<summary><strong>statusline-tools/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/hooks/references/evolution-log.md) - updated (+1/-24)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/ignore</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/ignore/references/evolution-log.md) - updated (+1/-24)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/session-info</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/session-info/references/evolution-log.md) - updated (+1/-24)
+
+</details>
+
+<details>
+<summary><strong>statusline-tools/setup</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/skills/setup/references/evolution-log.md) - updated (+1/-24)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [statusline-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/CLAUDE.md) - updated (+20/-7)
+
 ## [12.43.2](https://github.com/terrylica/cc-skills/compare/v12.43.1...v12.43.2) (2026-04-09)
 
 
