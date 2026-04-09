@@ -4,6 +4,8 @@ description: Get current Claude Code session UUID and registry info. TRIGGERS - 
 allowed-tools: Bash, Read
 ---
 
+> **Navigation**: [Plugin CLAUDE.md](../../CLAUDE.md) | [Root CLAUDE.md](../../../../CLAUDE.md)
+
 # Session Info Skill
 
 Returns the current Claude Code session UUID and registry information.
@@ -38,20 +40,9 @@ Project: ~/.claude
 Registry: ~/.claude/projects/-Users-terryli--claude/.session-chain-cache.json
 Chain Length: 3 session(s)
 Last Updated: 2026-01-15T21:30:00.000Z
-Managed By: session-registry-plugin@1.0.0
-
-Metadata:
-  Repo: cc-skills
-  Hash: a1b2c3d4e5f6
-  Branch: main
-  Model: opus-4
-  Cost: $0.42
-
-Recent Sessions (last 5):
-  1. 8e017a43 (2026-01-15T10:00:00.000Z)
-  2. a2b3c4d5 (2026-01-15T14:00:00.000Z)
-  3. c1c1c149 (2026-01-15T21:30:00.000Z)
 ```
+
+> **Note**: The `Managed By`, `Metadata` (Repo, Hash, Branch, Model, Cost), and `Recent Sessions` sections shown in earlier versions of this doc are **not yet implemented** in `get-session-info.ts`. The script currently outputs only the 6 fields above.
 
 ## Registry Location
 
@@ -79,11 +70,9 @@ Where `encoded-path` replaces `/` with `-`:
 | JSONL ID undefined        | No active session          | Start Claude Code session first                  |
 | Registry file not found   | First session in project   | Registry created automatically on first session  |
 | Chain length is 0         | Fresh project              | Normal for new projects, chain grows over time   |
-| Metadata missing          | Older session format       | Recent sessions include metadata automatically   |
 | Path encoding looks wrong | Special characters in path | Claude Code uses `-` to replace `/` in paths     |
 | Bun not found             | Bun not installed          | Install with `brew install oven-sh/bun/bun`      |
 | Permission denied         | Registry file permissions  | Check ~/.claude permissions (should be readable) |
-
 
 ## Post-Execution Reflection
 
