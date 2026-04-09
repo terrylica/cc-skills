@@ -1,3 +1,10 @@
+# [12.44.0](https://github.com/terrylica/cc-skills/compare/v12.43.3...v12.44.0) (2026-04-09)
+
+
+### Features
+
+* **itp-hooks:** register .pth contamination guard + remove memory reference ([01fc6d8](https://github.com/terrylica/cc-skills/commit/01fc6d88f9d4dd1f9d9efee297ad2f4f281f14c8))
+
 ## [12.43.3](https://github.com/terrylica/cc-skills/compare/v12.43.2...v12.43.3) (2026-04-09)
 
 
