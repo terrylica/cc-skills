@@ -1,3 +1,10 @@
+## [12.43.2](https://github.com/terrylica/cc-skills/compare/v12.43.1...v12.43.2) (2026-04-09)
+
+
+### Bug Fixes
+
+* **itp-hooks:** UV enforcement guard false positive on chained git commit ([138aeda](https://github.com/terrylica/cc-skills/commit/138aedaad5f68fbcdbde09335c256913d11c090b))
+
 ## [12.43.1](https://github.com/terrylica/cc-skills/compare/v12.43.0...v12.43.1) (2026-04-08)
 
 
