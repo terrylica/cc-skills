@@ -62,9 +62,12 @@ function extractRemoteHost(command: string): string | null {
 	return host;
 }
 
-/** Detect project-dir install: `pip install .`, `pip install -e .`, not from /tmp/. */
+/** Detect project-dir install: `pip install .`, `pip install -e .`, not from /tmp/.
+ * Excludes flag arguments (starting with `-`) to avoid false positives like
+ * `pip install --force-reinstall ... /tmp/x.whl`.
+ */
 function isProjectDirInstall(command: string): boolean {
-	return /\bpip\s+install\s+(?:-e\s+)?(?:\.(?:\s|$|;|&&|\|)|(?!\/tmp\/)[\w/.~-]+(?:\s|$|;|&&|\|))/i.test(
+	return /\bpip\s+install\s+(?:-e\s+)?(?:\.(?:\s|$|;|&&|\|)|(?!-)(?!\/tmp\/)[\w/.~][\w/.~-]*(?:\s|$|;|&&|\|))/i.test(
 		command,
 	);
 }
