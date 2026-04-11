@@ -135,6 +135,10 @@ public final class HTTPControlServer: @unchecked Sendable {
             do {
                 let body = try await request.bodyData
                 let update = try JSONDecoder().decode(SubtitleSettingsUpdate.self, from: body)
+                // Clear drag-saved position when position preset or screen changes
+                if update.position != nil || update.screen != nil {
+                    await MainActor.run { SubtitlePosition.clearSaved() }
+                }
                 settingsStore.updateSubtitle { s in
                     if let v = update.fontSize { s.fontSize = v }
                     if let v = update.position { s.position = v }
