@@ -45,6 +45,10 @@ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) PID=$$ PPID=$PPID PWD=$(pwd)" >> "$DEBUG_LO
 input=$(cat)
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INPUT_LEN=${#input} MODEL_RAW=$(echo "$input" | jq -r '.model // "null"' 2>/dev/null | head -c 80)" >> "$DEBUG_LOG" 2>/dev/null
 
+# Append raw statusline data to JSONL for analytics (ccmax-monitor analytics package)
+# Format matches ccost's expected schema: {"ts":<unix_epoch>,"data":<stdin_json>}
+echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 2>/dev/null
+
 # Extract fields
 model=$(echo "$input" | jq -r '.model.display_name // .model.id // .model // "Unknown"' | sed 's/Claude //' | sed 's/ 4.5/4.5/')
 session_id=$(echo "$input" | jq -r '.session_id // ""')
@@ -256,19 +260,29 @@ reltime() {
     fi
 }
 
-latest_tag=$(git tag --sort=-v:refname 2>/dev/null | head -1)
-if [ -n "$latest_tag" ]; then
-    # Get tag creation epoch (works for both annotated and lightweight tags)
-    tag_epoch=$(git log -1 --format='%ct' "$latest_tag" 2>/dev/null || echo "")
-    tag_age=""
-    if [ -n "$tag_epoch" ]; then
-        tag_age=" ${BRIGHT_BLACK}$(reltime "$tag_epoch")${RESET}"
-    fi
+# Extract owner/repo early — needed by both version lookup and visibility check
+owner_repo=""
+remote_url_raw=$(git remote get-url origin 2>/dev/null)
+if [ -n "$remote_url_raw" ]; then
+    owner_repo=$(echo "$remote_url_raw" | sed -E 's|\.wiki\.git$||; s|\.wiki$||' | sed -E 's|.*github\.com[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
+fi
 
-    if [[ "$latest_tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+# Latest release from GitHub (semantic-release SSoT, not local tags which may
+# include GSD milestone tags like v2.0/v2.1 that sort above semver releases)
+if [ -n "$owner_repo" ]; then
+    release_json=$(timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>/dev/null)
+    if [ -n "$release_json" ]; then
+        latest_tag="${release_json%%|*}"
+        published_at="${release_json##*|}"
+        # Convert ISO 8601 publishedAt (UTC) to epoch for reltime
+        tag_epoch=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$published_at" "+%s" 2>/dev/null || echo "")
+        tag_age=""
+        if [ -n "$tag_epoch" ]; then
+            tag_age=" ${BRIGHT_BLACK}$(reltime "$tag_epoch")${RESET}"
+        fi
         git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${CYAN}${latest_tag}${RESET}${tag_age}"
     else
-        git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${YELLOW}${latest_tag}${RESET}${tag_age}"
+        git_changes="${git_changes} ${BRIGHT_BLACK}| ⌁ offline${RESET}"
     fi
 else
     git_changes="${git_changes} ${BRIGHT_BLACK}| ∅${RESET}"
@@ -330,11 +344,8 @@ github_url=$(get_github_url)
 
 # Repo visibility (public/private) — live query per render
 repo_visibility=""
-if [[ -n "$github_url" ]]; then
-    owner_repo=$(git remote get-url origin 2>/dev/null | sed -E 's|\.wiki\.git$||; s|\.wiki$||' | sed -E 's|.*github\.com[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
-    if [ -n "$owner_repo" ]; then
-        repo_visibility=$(gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>/dev/null || echo "")
-    fi
+if [[ -n "$github_url" && -n "$owner_repo" ]]; then
+    repo_visibility=$(gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>/dev/null || echo "")
 fi
 
 # UTC and local timestamps with conditional date display
