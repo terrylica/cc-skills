@@ -166,10 +166,11 @@ public final class TTSPipelineCoordinator {
         let fontSizeName = subtitlePanel.currentFontSizeName
         let scope = subtitlePanel.currentSubtitleScope
 
+        let targetScreenWidth = subtitlePanel.resolveTargetScreen()?.visibleFrame.width
         if scope == "sentence" {
             // Legacy per-sentence subtitles (paginated to 2-line pages)
             for chunk in chunks {
-                let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+                let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName, screenWidth: targetScreenWidth)
                 driver.addChunk(
                     wavPath: chunk.wavPath,
                     samples: chunk.samples,
@@ -327,12 +328,13 @@ public final class TTSPipelineCoordinator {
         }
 
         let scope = subtitlePanel.currentSubtitleScope
+        let streamScreenWidth = subtitlePanel.resolveTargetScreen()?.visibleFrame.width
 
         if scope == "sentence" {
             // Legacy per-sentence subtitles (paginated to 2-line pages)
             let fontSizeName = subtitlePanel.currentFontSizeName
             for chunk in chunks {
-                let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName)
+                let pages = SubtitleChunker.chunkIntoPages(text: chunk.text, fontSizeName: fontSizeName, screenWidth: streamScreenWidth)
                 driver.addChunk(
                     wavPath: chunk.wavPath,
                     samples: chunk.samples,
