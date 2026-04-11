@@ -1,3 +1,15 @@
+# [12.45.0](https://github.com/terrylica/cc-skills/compare/v12.44.0...v12.45.0) (2026-04-11)
+
+
+### Bug Fixes
+
+* **claude-tts-companion:** multi-monitor subtitle positioning ([2660d18](https://github.com/terrylica/cc-skills/commit/2660d180a08a32d6432ad69d44b2e655e7c9a123)), closes [terrylica/private-config#76](https://github.com/terrylica/private-config/issues/76)
+
+
+### Features
+
+* **statusline-tools:** append raw statusline data to JSONL for analytics ([19dd068](https://github.com/terrylica/cc-skills/commit/19dd068d313ac1f78f999868b36f03ef34f8777b))
+
 # [12.44.0](https://github.com/terrylica/cc-skills/compare/v12.43.3...v12.44.0) (2026-04-09)
 
 
