@@ -1,3 +1,31 @@
+## [12.45.1](https://github.com/terrylica/cc-skills/compare/v12.45.0...v12.45.1) (2026-04-11)
+
+
+### Bug Fixes
+
+* **itp-hooks:** exclude flag arguments from pth contamination guard regex ([46144fe](https://github.com/terrylica/cc-skills/commit/46144fed2f24ad104b32d7357c7ea909859df57a))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>tlg</strong> (3 changes)</summary>
+
+- [send-media](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-media/SKILL.md) - updated (+85/-29)
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-message/SKILL.md) - updated (+151/-18)
+- [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/setup/SKILL.md) - updated (+105/-47)
+
+</details>
+
 # [12.45.0](https://github.com/terrylica/cc-skills/compare/v12.44.0...v12.45.0) (2026-04-11)
 
 
