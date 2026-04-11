@@ -34,22 +34,25 @@ public enum SubtitleChunker {
     /// - Parameter fontSizeName: Settings font size ("small", "medium", "large").
     ///   Defaults to "medium". MUST match the font size used by SubtitlePanel at
     ///   render time, otherwise text may overflow the 2-line panel.
-    static func chunkIntoPages(text: String, fontSizeName: String = "medium") -> [SubtitlePage] {
+    static func chunkIntoPages(text: String, fontSizeName: String = "medium", screenWidth: CGFloat? = nil) -> [SubtitlePage] {
         // Normalize: replace all whitespace runs (including \n, \r, \t) with single space
         let normalized = text.split(omittingEmptySubsequences: true, whereSeparator: \.isWhitespace)
             .joined(separator: " ")
         let words = normalized.split(separator: " ").map(String.init)
         guard !words.isEmpty else { return [] }
-        let width = availableLineWidth()
+        let width = availableLineWidth(screenWidth: screenWidth)
         return chunkIntoPages(words: words, availableWidth: width, fontSizeName: fontSizeName)
     }
 
     // MARK: - Width Measurement
 
     /// Compute the available line width in points, accounting for panel width ratio and padding.
-    static func availableLineWidth() -> CGFloat {
-        let screenWidth = NSScreen.main?.visibleFrame.width ?? 2056
-        return screenWidth * SubtitleStyle.widthRatio - (SubtitleStyle.horizontalPadding * 2)
+    ///
+    /// - Parameter screenWidth: Width of the target screen in points. If nil, uses the
+    ///   first screen's width as fallback (not NSScreen.main which follows the mouse).
+    static func availableLineWidth(screenWidth: CGFloat? = nil) -> CGFloat {
+        let width = screenWidth ?? NSScreen.screens.first?.visibleFrame.width ?? 2056
+        return width * SubtitleStyle.widthRatio - (SubtitleStyle.horizontalPadding * 2)
     }
 
     /// Measure the rendered width of a string using the bold subtitle font.

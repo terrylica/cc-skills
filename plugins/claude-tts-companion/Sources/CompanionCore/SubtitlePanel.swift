@@ -433,12 +433,28 @@ public final class SubtitlePanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
+
+        // Monitor connect/disconnect — revalidate position when screens change
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.handleScreenConfigurationChange()
+        }
+    }
+
+    /// React to monitor connect/disconnect. Validates saved position is still
+    /// on a connected screen; falls back to preset if not.
+    private func handleScreenConfigurationChange() {
+        positionOnScreen()
     }
 
     /// Save position after user drags the panel.
+    /// Passes `self.screen` so the display ID and screen height are saved
+    /// from the screen the panel is actually on, not NSScreen.main.
     public override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
-        SubtitlePosition.save(frame: frame)
+        SubtitlePosition.save(frame: frame, on: self.screen)
     }
 
     /// Build the view hierarchy: background view + centered text field.
@@ -495,12 +511,37 @@ public final class SubtitlePanel: NSPanel {
         clipboard.copyToClipboard()
     }
 
-    /// Position the panel on the main screen based on current settings (SUB-02).
+    /// Resolve the target screen for subtitle placement.
+    ///
+    /// Priority: settings.screen preference → screen the panel is currently on → first screen.
+    /// Never uses NSScreen.main (which follows the mouse cursor between monitors).
+    func resolveTargetScreen() -> NSScreen? {
+        // 1. Try to match the screen preference from settings (e.g., "builtin", display name)
+        let screenPref = settingsStore?.getSettings().subtitle.screen ?? "builtin"
+        if let matched = NSScreen.screens.first(where: { screen in
+            let name = screen.localizedName.lowercased()
+            let pref = screenPref.lowercased()
+            return name.contains(pref) || pref.contains("builtin") && name.contains("built")
+        }) {
+            return matched
+        }
+
+        // 2. Use the screen the panel is currently on (stable across mouse moves)
+        if let panelScreen = self.screen {
+            return panelScreen
+        }
+
+        // 3. Fall back to first available screen
+        return NSScreen.screens.first
+    }
+
+    /// Position the panel on the target screen based on current settings (SUB-02).
     ///
     /// Reads font size and position from SettingsStore on every call, so
     /// changes made via the HTTP API take effect on the next subtitle display.
+    /// Multi-monitor safe: uses resolveTargetScreen() instead of NSScreen.main.
     func positionOnScreen() {
-        guard let screen = NSScreen.main else { return }
+        guard let screen = resolveTargetScreen() else { return }
 
         let screenFrame = screen.visibleFrame
         let panelWidth = screenFrame.width * SubtitleStyle.widthRatio
