@@ -77,11 +77,69 @@ def parse_entity(value: str) -> str | int:
 
 
 async def _make_client(profile: str) -> TelegramClient:
+    """Create and authenticate a TelegramClient.
+
+    Checks session authorization before calling start() to avoid
+    interactive prompts (EOFError) in non-interactive environments
+    like Claude Code's Bash tool.
+    """
+    api_id, api_hash = get_credentials(profile)
+    os.makedirs(SESSION_DIR, exist_ok=True)
+    client = TelegramClient(session_path(profile), api_id, api_hash)
+    await client.connect()
+    if not await client.is_user_authorized():
+        await client.disconnect()
+        session_file = session_path(profile) + ".session"
+        print(
+            f"Error: Telegram session expired for profile '{profile}'.\n"
+            f"Session file: {session_file}\n"
+            f"Re-authenticate by running:  ! /tlg:setup\n"
+            f"Or interactively:  ! uv run --python 3.13 {__file__} auth {profile}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    # Session is valid — start() will reuse it without prompting
+    await client.start()
+    return client
+
+
+async def cmd_check_auth(profile: str) -> None:
+    """Check if the session is authorized without running any command."""
+    api_id, api_hash = get_credentials(profile)
+    os.makedirs(SESSION_DIR, exist_ok=True)
+    client = TelegramClient(session_path(profile), api_id, api_hash)
+    await client.connect()
+    authorized = await client.is_user_authorized()
+    if authorized:
+        me = await client.get_me()
+        print(json.dumps({
+            "authorized": True,
+            "profile": profile,
+            "user_id": me.id,
+            "username": me.username,
+            "phone": me.phone,
+            "session_file": session_path(profile) + ".session",
+        }, indent=2))
+    else:
+        print(json.dumps({
+            "authorized": False,
+            "profile": profile,
+            "session_file": session_path(profile) + ".session",
+            "action": "Run /tlg:setup to re-authenticate",
+        }, indent=2))
+    await client.disconnect()
+    sys.exit(0 if authorized else 1)
+
+
+async def cmd_auth(profile: str) -> None:
+    """Interactive authentication — must be run from a terminal (! prefix in Claude Code)."""
     api_id, api_hash = get_credentials(profile)
     os.makedirs(SESSION_DIR, exist_ok=True)
     client = TelegramClient(session_path(profile), api_id, api_hash)
     await client.start()
-    return client
+    me = await client.get_me()
+    print(f"Authenticated as {me.first_name} (@{me.username}, ID: {me.id})")
+    await client.disconnect()
 
 
 # ── Messages ──────────────────────────────────────────────
@@ -602,6 +660,10 @@ def main() -> None:
     sp.add_argument("--admins", action="store_true", help="Show admins only")
     sp.add_argument("-n", "--limit", type=int, default=200, help="Max members (default: 200)")
 
+    # ── Auth ──
+    sub.add_parser("check-auth", help="Check if session is authorized (no interaction)")
+    sub.add_parser("auth", help="Interactive authentication (run with ! prefix in Claude Code)")
+
     args = parser.parse_args()
     profile = args.profile
 
@@ -649,6 +711,10 @@ def main() -> None:
             asyncio.run(cmd_kick(profile, parse_entity(args.group), args.user))
         case "members":
             asyncio.run(cmd_members(profile, parse_entity(args.group), args.search, args.admins, args.limit))
+        case "check-auth":
+            asyncio.run(cmd_check_auth(profile))
+        case "auth":
+            asyncio.run(cmd_auth(profile))
         case _:
             parser.print_help()
 
