@@ -1,3 +1,25 @@
+# [12.46.0](https://github.com/terrylica/cc-skills/compare/v12.45.1...v12.46.0) (2026-04-13)
+
+
+### Features
+
+* **statusline-tools:** show both 7d and 5h quota windows with color demarcation ([8fee458](https://github.com/terrylica/cc-skills/commit/8fee45833cdcea175f96d4f0e42c7a5086606e36))
+* **tlg:** add session preflight + check-auth and auth subcommands ([cb80661](https://github.com/terrylica/cc-skills/commit/cb80661ba0238fc82614e067d5856832eccd3c80))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Other Documentation
+
+### Other
+
+- [ssh-tunnel-companion](https://github.com/terrylica/cc-skills/blob/main/plugins/ssh-tunnel-companion/CLAUDE.md) - updated (+10)
+
 ## [12.45.1](https://github.com/terrylica/cc-skills/compare/v12.45.0...v12.45.1) (2026-04-11)
 
 
