@@ -401,6 +401,10 @@ if [ "$ccmax_needs_fetch" -eq 1 ]; then
     ccmax_raw=$(curl -sf --connect-timeout 1 --max-time 2 "${CCMAX_BASE}/api/status" 2>/dev/null) || ccmax_raw=""
     if [ -n "$ccmax_raw" ]; then
         echo "$ccmax_raw" > "$CCMAX_CACHE"
+    elif [ -f "$CCMAX_CACHE" ]; then
+        # Fresh fetch failed (tunnel down?) — fall back to stale cache.
+        # Stale quota data is better than the tok-only fallback path.
+        ccmax_raw=$(cat "$CCMAX_CACHE" 2>/dev/null) || ccmax_raw=""
     fi
 else
     ccmax_raw=$(cat "$CCMAX_CACHE" 2>/dev/null) || ccmax_raw=""
@@ -436,6 +440,37 @@ if [ -n "$ccmax_raw" ]; then
     ccmax_line=$(echo "$ccmax_raw" | python3 -c "
 import sys, json
 from datetime import datetime, timezone
+
+def humanize(secs: int) -> str:
+    secs = max(0, secs)
+    days = secs // 86400
+    hours = (secs % 86400) // 3600
+    mins = (secs % 3600) // 60
+    if days > 0:
+        return f'{days}d {hours}h'
+    if hours > 0:
+        return f'{hours}h {mins}m'
+    return f'{mins}m'
+
+def window_parts(window: dict | None) -> list[str]:
+    if not window:
+        return []
+    pct = window.get('utilization', 0) or 0
+    parts = [f'{pct:.0f}%']
+    secs = window.get('resets_in_seconds')
+    if secs is None:
+        resets_at = window.get('resets_at', '')
+        if resets_at:
+            try:
+                rt = datetime.fromisoformat(resets_at)
+                now = datetime.now(timezone.utc)
+                secs = int((rt - now).total_seconds())
+            except Exception:
+                secs = None
+    if secs is not None:
+        parts.append(humanize(int(secs)))
+    return parts
+
 try:
     d = json.loads(sys.stdin.read())
     lookup = '${ccmax_lookup}'
@@ -447,30 +482,11 @@ try:
     for a in accounts:
         if a.get('name', '').startswith(prefix + '@') or a.get('name', '').startswith(prefix + \"'\"):
             u = a.get('usage', {})
-            sd = (u.get('seven_day') or {}).get('utilization', 0) or 0
-            resets_at = (u.get('seven_day') or {}).get('resets_at', '')
-            reset_str = ''
-            if resets_at:
-                try:
-                    rt = datetime.fromisoformat(resets_at)
-                    now = datetime.now(timezone.utc)
-                    delta = rt - now
-                    secs = max(0, int(delta.total_seconds()))
-                    days = secs // 86400
-                    hours = (secs % 86400) // 3600
-                    mins = (secs % 3600) // 60
-                    if days > 0:
-                        reset_str = f'{days}d {hours}h'
-                    elif hours > 0:
-                        reset_str = f'{hours}h {mins}m'
-                    else:
-                        reset_str = f'{mins}m'
-                except Exception:
-                    pass
-            short = prefix
-            parts = [short, f'{sd:.0f}%']
-            if reset_str:
-                parts.append(reset_str)
+            # Format: <name> <7d%> <7d reset> <5h%> <5h reset>
+            # Fields are space-separated for downstream shell parsing.
+            parts = [prefix]
+            parts.extend(window_parts(u.get('seven_day')))
+            parts.extend(window_parts(u.get('five_hour')))
             print(' '.join(parts))
             sys.exit()
     # Fallback: just show account name
@@ -541,15 +557,35 @@ fi
 # Output: git stats, timestamps, repo, session, cast, then cron jobs (bottom)
 echo -e "$line1"
 
-# Append ccmax info inline with datetime: ... UTC | ... PDT | usalchemist 88% 1d 22h
-# Account name and reset time in BRIGHT_BLACK, percentage in CYAN
+# Append ccmax info inline with datetime:
+#   ... UTC | ... PDT | serviceaccount 15% 6d 8h 55% 2h 15m
+#                      └─name──────┘ └7d──────┘ └5h──────┘
+# Account name + reset windows in BRIGHT_BLACK, percentages in CYAN (7d) and MAGENTA (5h)
+# for visual demarcation between the two quota windows.
 if [ -n "$ccmax_line" ]; then
-    # Split: "usalchemist 88% 1d 22h" → name="usalchemist" pct="88%" rest="1d 22h"
-    ccmax_name=$(echo "$ccmax_line" | awk '{print $1}')
-    ccmax_pct=$(echo "$ccmax_line" | awk '{print $2}')
-    ccmax_rest=$(echo "$ccmax_line" | awk '{for(i=3;i<=NF;i++) printf "%s%s",$i,(i<NF?" ":"")}')
-    ccmax_colored="${BRIGHT_BLACK}${ccmax_name}${RESET} ${CYAN}${ccmax_pct}${RESET}"
-    [ -n "$ccmax_rest" ] && ccmax_colored="${ccmax_colored} ${BRIGHT_BLACK}${ccmax_rest}${RESET}"
+    # Parse tokens produced by the Python block:
+    #   <name> <7d%> <7d reset...> <5h%> <5h reset...>
+    # Reset values may be "3d 1h", "2h 15m", or "5m" — variable token count.
+    # Strategy: iterate and split whenever we hit a token ending in '%'.
+    ccmax_colored=$(echo "$ccmax_line" | awk -v BB="${BRIGHT_BLACK}" -v C="${CYAN}" -v M="${MAGENTA}" -v R="${RESET}" '
+    {
+        out = BB $1 R           # account name
+        buf = ""                # reset-string accumulator
+        window = 0              # 0 = 7d, 1 = 5h
+        for (i = 2; i <= NF; i++) {
+            tok = $i
+            if (tok ~ /%$/) {
+                if (buf != "") { out = out " " BB buf R; buf = "" }
+                color = (window == 0) ? C : M
+                out = out " " color tok R
+                window++
+            } else {
+                buf = (buf == "") ? tok : buf " " tok
+            }
+        }
+        if (buf != "") { out = out " " BB buf R }
+        print out
+    }')
     echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET} ${ccmax_colored}"
 else
     echo -e "${datetime_display}"
