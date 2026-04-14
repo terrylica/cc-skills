@@ -145,13 +145,13 @@ async def cmd_auth(profile: str) -> None:
 # ── Messages ──────────────────────────────────────────────
 
 
-async def cmd_send(profile: str, recipient: str | int, message: str) -> None:
+async def cmd_send(profile: str, recipient: str | int, message: str, *, parse_mode: str | None = None) -> None:
     if not message:
         print("Error: message cannot be empty", file=sys.stderr)
         sys.exit(1)
     client = await _make_client(profile)
     try:
-        await client.send_message(recipient, message)
+        await client.send_message(recipient, message, parse_mode=parse_mode)
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         await client.disconnect()
@@ -576,6 +576,7 @@ def main() -> None:
     sp = sub.add_parser("send", help="Send a text message")
     sp.add_argument("recipient", help="Username, phone, or chat ID")
     sp.add_argument("message", help="Message text")
+    sp.add_argument("--html", action="store_true", help="Parse message as HTML")
 
     sp = sub.add_parser("send-file", help="Send a file/photo/video")
     sp.add_argument("recipient", help="Username, phone, or chat ID")
@@ -669,7 +670,7 @@ def main() -> None:
 
     match args.command:
         case "send":
-            asyncio.run(cmd_send(profile, parse_entity(args.recipient), args.message))
+            asyncio.run(cmd_send(profile, parse_entity(args.recipient), args.message, parse_mode="html" if args.html else None))
         case "send-file":
             asyncio.run(cmd_send_file(
                 profile, parse_entity(args.recipient), args.file,

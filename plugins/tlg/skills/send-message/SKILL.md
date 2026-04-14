@@ -41,14 +41,17 @@ uv run --python 3.13 "$SCRIPT" send @username "Hello"
 # By chat ID (groups use negative IDs)
 uv run --python 3.13 "$SCRIPT" send -5111414203 "Hello group"
 
+# HTML formatting (bold, italic, code, etc.)
+uv run --python 3.13 "$SCRIPT" send --html -5111414203 "<b>Bold</b> and <code>code</code>"
+
 # Specific profile
 uv run --python 3.13 "$SCRIPT" -p personal send @username "Hello"
 SEND_EOF
 ```
 
-## Usage: Direct Telethon (preferred for HTML formatting, files, or when tg-cli.py fails)
+## Usage: Direct Telethon (for multi-message sequences, files, or when tg-cli.py fails)
 
-When you need HTML parse mode, multi-message sequences, or file attachments with captions, bypass `tg-cli.py` and use Telethon directly. This was proven more reliable in practice:
+When you need multi-message sequences, file attachments with captions, or tg-cli.py fails, use Telethon directly. For simple HTML messages, prefer `tg-cli.py send --html` above:
 
 ```bash
 VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
@@ -174,12 +177,12 @@ Use `━` (U+2501) for horizontal rules. Emojis are supported but user may prefe
 
 ## Anti-Patterns (NEVER DO)
 
-| Anti-Pattern                                           | Why It Fails                                                              |
-| ------------------------------------------------------ | ------------------------------------------------------------------------- |
-| Running `uv run "$SCRIPT"` without checking auth first | If session expired, `client.start()` calls `input()` — EOFError           |
-| Running `uv run` without `VIRTUAL_ENV=""`              | Broken `.venv` symlink in cwd causes uv to fail even with `--no-project`  |
-| Checking only session file existence in preflight      | Session file can exist but be expired — must check `is_user_authorized()` |
-| Using Markdown parse mode                              | Telethon MTProto uses HTML, not Markdown. Use `parse_mode='html'`         |
+| Anti-Pattern                                           | Why It Fails                                                                       |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Running `uv run "$SCRIPT"` without checking auth first | If session expired, `client.start()` calls `input()` — EOFError                    |
+| Running `uv run` without `VIRTUAL_ENV=""`              | Broken `.venv` symlink in cwd causes uv to fail even with `--no-project`           |
+| Checking only session file existence in preflight      | Session file can exist but be expired — must check `is_user_authorized()`          |
+| Using Markdown parse mode                              | Telethon MTProto uses HTML, not Markdown. Use `--html` flag or `parse_mode='html'` |
 
 ## Error Handling
 
