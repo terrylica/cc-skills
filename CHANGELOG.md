@@ -1,3 +1,96 @@
+# [12.47.0](https://github.com/terrylica/cc-skills/compare/v12.46.0...v12.47.0) (2026-04-14)
+
+
+### Features
+
+* **infra:** migrate to Tailscale-only, add VNC tunnel forward ([7689d53](https://github.com/terrylica/cc-skills/commit/7689d5387d05464b9427cce0e930da90d94bb43f)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **tlg:** add --html flag to tg-cli send command ([6b5eff8](https://github.com/terrylica/cc-skills/commit/6b5eff8da438969e9e81578827e1c28bf6299175))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [firecrawl-research-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/SKILL.md) - updated (+15/-16)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+9/-11)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [research-archival](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/SKILL.md) - updated (+14/-15)
+
+</details>
+
+<details>
+<summary><strong>rust-tools</strong> (2 changes)</summary>
+
+- [rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/SKILL.md) - updated (+2/-3)
+- [rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/SKILL.md) - updated (+2/-3)
+
+</details>
+
+<details>
+<summary><strong>tlg</strong> (1 change)</summary>
+
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-message/SKILL.md) - updated (+11/-8)
+
+</details>
+
+
+### Plugin READMEs
+
+- [devops-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/README.md) - updated (+2/-2)
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/firecrawl-research-patterns</strong> (6 files)</summary>
+
+- [Academic Paper Routing](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/academic-paper-routing.md) - updated (+18/-18)
+- [API Endpoint Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/api-endpoint-reference.md) - updated (+15/-15)
+- [Recursive Research Protocol](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/recursive-research-protocol.md) - updated (+2/-2)
+- [Firecrawl Bootstrap: Fresh Installation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-bootstrap-guide.md) - updated (+2/-2)
+- [Firecrawl Self-Hosted Operations](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-operations.md) - updated (+22/-22)
+- [Firecrawl Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-troubleshooting.md) - updated (+14/-14)
+
+</details>
+
+<details>
+<summary><strong>devops-tools/pueue-job-orchestration</strong> (1 file)</summary>
+
+- [Installation Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/references/installation-guide.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>gh-tools/research-archival</strong> (2 files)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/evolution-log.md) - updated (+1/-1)
+- [URL Routing](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/url-routing.md) - updated (+16/-16)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [devops-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/CLAUDE.md) - updated (+7/-10)
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+13/-10)
+- [ssh-tunnel-companion](https://github.com/terrylica/cc-skills/blob/main/plugins/ssh-tunnel-companion/CLAUDE.md) - updated (+11/-9)
+
 # [12.46.0](https://github.com/terrylica/cc-skills/compare/v12.45.1...v12.46.0) (2026-04-13)
 
 
