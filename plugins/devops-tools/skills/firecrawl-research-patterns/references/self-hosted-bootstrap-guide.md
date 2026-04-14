@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Debian/Ubuntu server with Docker
-- ZeroTier network membership
+- Tailscale network membership (tailnet: terrylica.github)
 - Domain or static IP (optional, for public access)
 
 ## Step 1: Clone Repository
@@ -140,7 +140,7 @@ serve({
       await Bun.write(filepath, markdown);
 
       return Response.json({
-        url: `http://172.25.236.1:8080/${filename}`,
+        url: `http://gpu-host:8080/${filename}`,
         file: filename,
       });
     }

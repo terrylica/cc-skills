@@ -100,6 +100,8 @@ for i in $(seq 1 5); do
     echo "=== Install complete ==="
     echo "  localhost:18123 → gpu-host:8123 (ClickHouse)"
     echo "  localhost:18081 → gpu-host:8081 (SSE sidecar)"
+    echo "  localhost:18095 → gpu-host:8095 (relay-monitor API)"
+    echo "  localhost:5900  → gpu-host:5900 (VNC — MT5/WINE)"
     echo ""
     echo "  SwiftBar: look for the tunnel indicator in your menu bar"
     echo "  Logs: /tmp/ssh-tunnel-companion.log"
@@ -112,5 +114,5 @@ done
 echo ""
 echo "WARNING: Tunnel did not come up within 10s"
 echo "  Check: /tmp/ssh-tunnel-companion.log"
-echo "  Check: Is gpu-host reachable? Run: make zt-probe"
+echo "  Check: Is gpu-host reachable? Run: tailscale ping gpu-host"
 exit 1

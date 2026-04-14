@@ -2,15 +2,15 @@
 /**
  * Kokoro TTS Client + Telegram Voice Message
  *
- * Generates podcast-style audio via Kokoro TTS on small-host (ZeroTier),
+ * Generates podcast-style audio via Kokoro TTS on gpu-host (Tailscale),
  * converts WAV -> OGG/Opus via ffmpeg, sends as Telegram voice message.
  */
 
 import { auditLog } from "./audit.js";
 import { unlinkSync } from "fs";
 
-const KOKORO_HOST = "172.25.236.1";
-const KOKORO_PORT = "8090";
+const KOKORO_HOST = process.env.KOKORO_HOST ?? "gpu-host";
+const KOKORO_PORT = process.env.KOKORO_PORT ?? "8090";
 const KOKORO_URL = `http://${KOKORO_HOST}:${KOKORO_PORT}/tts`;
 const HEALTH_URL = `http://${KOKORO_HOST}:${KOKORO_PORT}/health`;
 

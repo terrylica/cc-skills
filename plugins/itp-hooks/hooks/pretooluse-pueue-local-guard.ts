@@ -42,7 +42,6 @@ const REMOTE_CONTEXT_PATTERNS: { pattern: RegExp; label: string }[] = [
 
   // Explicit hostname references
   { pattern: /\bgpu-host\b/i, label: "gpu-host" },
-  { pattern: /\bsmall-host\b/i, label: "small-host" },
 
   // Remote working directory flag
   { pattern: /-w\s+\/home\//, label: "-w /home/" },

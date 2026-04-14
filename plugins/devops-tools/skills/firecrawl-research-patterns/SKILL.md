@@ -1,6 +1,6 @@
 ---
 name: firecrawl-research-patterns
-description: "Programmatic Firecrawl usage, self-hosted operations, academic paper routing, recursive deep research, and raw corpus persistence. TRIGGERS - firecrawl search, firecrawl scrape, academic paper, arxiv, deep research, recursive search, research pattern, corpus persistence, firecrawl, self-hosted scraping, web scrape, scraper wrapper, small-host, ZeroTier scraping."
+description: "Programmatic Firecrawl usage, self-hosted operations, academic paper routing, recursive deep research, and raw corpus persistence. TRIGGERS - firecrawl search, firecrawl scrape, academic paper, arxiv, deep research, recursive search, research pattern, corpus persistence, firecrawl, self-hosted scraping, web scrape, scraper wrapper, gpu-host, Tailscale scraping."
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
@@ -21,7 +21,7 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 ### Template A — Single Firecrawl Search + Persist
 
 ```
-1. Health check — GET http://172.25.236.1:3002/v1/health (fallback: test search)
+1. Health check — GET http://gpu-host:3002/v1/health (fallback: test search)
 2. Execute search — POST /v1/search with query, limit, scrapeOptions
 3. Persist raw results — save each result page to docs/research/corpus/ with frontmatter
 4. Update corpus index — append entries to docs/research/corpus-index.jsonl
@@ -42,7 +42,7 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 ### Template C — Full Recursive Deep Research with Corpus
 
 ```
-1. Health check — verify Firecrawl reachable at 172.25.236.1:3002
+1. Health check — verify Firecrawl reachable at gpu-host:3002
 2. Initialize parameters — set breadth (default 4), depth (default 2), concurrency (default 2)
 3. Generate search queries — LLM generates N queries from topic + prior learnings
 4. Execute searches — Firecrawl /v1/search for each query via p-limit(concurrency)
@@ -83,7 +83,7 @@ Use when paper contains architecture diagrams, result plots, attention maps, or 
 
 ## Section 1 — Programmatic Firecrawl Usage
 
-**Instance**: Self-hosted at `http://172.25.236.1:3002` via ZeroTier. No API key needed.
+**Instance**: Self-hosted at `http://gpu-host:3002` via Tailscale. No API key needed.
 
 ### Why `fetch()` Instead of `@mendable/firecrawl-js` SDK
 
@@ -103,7 +103,7 @@ See [api-endpoint-reference.md](./references/api-endpoint-reference.md) for full
 **Search** (returns multiple results with markdown):
 
 ```typescript
-const res = await fetch("http://172.25.236.1:3002/v1/search", {
+const res = await fetch("http://gpu-host:3002/v1/search", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -118,7 +118,7 @@ const { data } = await res.json(); // data: [{ url, markdown, metadata }]
 **Scrape** (single URL):
 
 ```typescript
-const res = await fetch("http://172.25.236.1:3002/v1/scrape", {
+const res = await fetch("http://gpu-host:3002/v1/scrape", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -153,7 +153,7 @@ try {
 
 ```typescript
 // Quick health check before starting a research session
-const res = await fetch("http://172.25.236.1:3002/v1/health");
+const res = await fetch("http://gpu-host:3002/v1/health");
 if (!res.ok)
   throw new Error(
     "Firecrawl unhealthy — see self-hosted-operations.md and self-hosted-troubleshooting.md references",
@@ -307,7 +307,7 @@ content_tokens_approx: 4200
 
 ## Section 5 — Self-Hosted Operations
 
-The Firecrawl instance runs on **small-host** (172.25.236.1) via ZeroTier. No API key needed.
+The Firecrawl instance runs on **gpu-host** (Tailscale: <host>) — currently offline. No API key needed.
 
 | Port | Service           | Type   | Purpose                                            |
 | ---- | ----------------- | ------ | -------------------------------------------------- |
@@ -327,15 +327,15 @@ The Firecrawl instance runs on **small-host** (172.25.236.1) via ZeroTier. No AP
 
 ```bash
 # Standard scrape (port 3003 — JS rendering + save)
-curl "http://172.25.236.1:3003/scrape?url=URL&name=NAME"
+curl "http://gpu-host:3003/scrape?url=URL&name=NAME"
 
 # Cloudflare bypass (port 3004)
-curl "http://172.25.236.1:3004/scrape-cf?url=URL&name=NAME"
+curl "http://gpu-host:3004/scrape-cf?url=URL&name=NAME"
 
 # Health checks (no SSH required)
-curl -s --max-time 4 http://172.25.236.1:3003/health
-curl -s --max-time 4 http://172.25.236.1:3004/health
-curl -s --max-time 4 http://172.25.236.1:8080/
+curl -s --max-time 4 http://gpu-host:3003/health
+curl -s --max-time 4 http://gpu-host:3004/health
+curl -s --max-time 4 http://gpu-host:8080/
 ```
 
 For architecture diagrams, health checks, recovery commands, and deployment details, see:
@@ -467,12 +467,12 @@ figure_urls:
 
 **Verdict**: Firecrawl (port 3002/3003) gets **17% more bytes, 2.1× more lines, 22% more words, 1 extra figure** vs Jina. Port 3002 and 3003 produce identical markdown (3003 just wraps 3002 and saves to Caddy). **Both emit absolute inline figure URLs** — no URL reconstruction needed from either scraper.
 
-**Note on the earlier session timeout**: The March 2026 session failure was machine downtime (small-host was offline), not a routing issue. When small-host is up, port 3003 reaches arxiv.org fine.
+**Note on the earlier session timeout**: The March 2026 session failure was machine downtime (gpu-host was offline), not a routing issue. When gpu-host is up, port 3003 reaches arxiv.org fine.
 
 **Recommended arXiv workflow**:
 
 1. Port 3003 (preferred) — more complete content, figures inline, saves to Caddy
-2. Jina Reader (fallback when small-host is down) — 17% less content but still gets absolute figure URLs
+2. Jina Reader (fallback when gpu-host is down) — 17% less content but still gets absolute figure URLs
 3. Probe loop to build `figure_urls` frontmatter catalog regardless of scraper used
 4. For human-readable math on GitHub: Pandoc from arXiv LaTeX source (see below)
 
@@ -581,7 +581,6 @@ cat preamble-block.md "${ARXIV_ID}-pandoc.md" > "${ARXIV_ID}-with-macros.md"
 - [Self-Hosted Bootstrap Guide](./references/self-hosted-bootstrap-guide.md) — Fresh installation guide
 - [Self-Hosted Best Practices](./references/self-hosted-best-practices.md) — Docker restart policies, monitoring
 - [Self-Hosted Troubleshooting](./references/self-hosted-troubleshooting.md) — Symptom-based diagnosis and recovery
-
 
 ## Post-Execution Reflection
 

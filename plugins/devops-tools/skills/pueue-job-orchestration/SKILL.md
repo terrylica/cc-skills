@@ -1,6 +1,6 @@
 ---
 name: pueue-job-orchestration
-description: "Manage long-running jobs and batch processing with pueue queue orchestration, CLI telemetry, and companion monitoring tools (noti, ntfy, mprocs, task-spooler). Use whenever the user wants to queue a job, run tasks on gpu-host or small-host, manage long-running processes, do batch processing, set up pueue callbacks or priorities, get notified when jobs finish (noti/ntfy), watch multiple processes (mprocs), or needs GPU workstation job management. Also use for cache population tasks that run in the background. Do NOT use for simple foreground shell commands that complete quickly or for job scheduling via cron/launchd."
+description: "Manage long-running jobs and batch processing with pueue queue orchestration, CLI telemetry, and companion monitoring tools (noti, ntfy, mprocs, task-spooler). Use whenever the user wants to queue a job, run tasks on gpu-host, manage long-running processes, do batch processing, set up pueue callbacks or priorities, get notified when jobs finish (noti/ntfy), watch multiple processes (mprocs), or needs GPU workstation job management. Also use for cache population tasks that run in the background. Do NOT use for simple foreground shell commands that complete quickly or for job scheduling via cron/launchd."
 allowed-tools: Read, Bash, Write
 ---
 
@@ -35,14 +35,14 @@ allowed-tools: Read, Bash, Write
 
 Use this skill when the user mentions:
 
-| Trigger                               | Example                                    |
-| ------------------------------------- | ------------------------------------------ |
-| Running tasks on gpu-host/small-host | "Run this on gpu-host"                     |
-| Long-running data processing          | "Populate the cache for all symbols"       |
-| Batch/parallel operations             | "Process these 70 jobs"                    |
-| SSH remote execution                  | "Execute this overnight on the GPU server" |
-| Cache population                      | "Fill the ClickHouse cache"                |
-| Pueue features                        | "Set up a callback", "delay this job"      |
+| Trigger                      | Example                                    |
+| ---------------------------- | ------------------------------------------ |
+| Running tasks on gpu-host    | "Run this on gpu-host"                     |
+| Long-running data processing | "Populate the cache for all symbols"       |
+| Batch/parallel operations    | "Process these 70 jobs"                    |
+| SSH remote execution         | "Execute this overnight on the GPU server" |
+| Cache population             | "Fill the ClickHouse cache"                |
+| Pueue features               | "Set up a callback", "delay this job"      |
 
 ## Quick Reference
 
@@ -104,7 +104,6 @@ pueue reset                # Clear all jobs (use with caution)
 | Host          | Location                  | Parallelism Groups              |
 | ------------- | ------------------------- | ------------------------------- |
 | gpu-host      | `~/.local/bin/pueue`      | p1 (16), p2 (2), p3 (3), p4 (1) |
-| small-host   | `~/.local/bin/pueue`      | default (2)                     |
 | Local (macOS) | `/opt/homebrew/bin/pueue` | default                         |
 
 ## Core Workflows
@@ -388,7 +387,6 @@ For structured, repeatable workflows needing durability and dedup, consider [Tem
 - **SOTA Alternative**: [Temporal](https://temporal.io/) — durable workflow orchestration with built-in dedup, retry, visibility
 - **Issue**: [rangebar-py#77](https://github.com/terrylica/rangebar-py/issues/77) - Original implementation
 - **Issue**: [rangebar-py#88](https://github.com/terrylica/rangebar-py/issues/88) - Production deployment lessons
-
 
 ## Post-Execution Reflection
 

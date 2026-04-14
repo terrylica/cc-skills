@@ -39,16 +39,13 @@ op item get "Item" --vault "Claude Automation" --reveal
 
 ## Self-Hosted Services
 
-| Service    | Host        | Port | Skill                                             |
-| ---------- | ----------- | ---- | ------------------------------------------------- |
-| Firecrawl  | small-host | 3003 | `Skill(devops-tools:firecrawl-research-patterns)` |
-| ClickHouse | gpu-host    | 8123 | `Skill(devops-tools:clickhouse-cloud-management)` |
+All services run on **gpu-host** (Tailscale: `<host>`). Access via SSH tunnel managed by ssh-tunnel-companion.
 
-**Firecrawl**: Web scraping for JS-heavy pages (Gemini/ChatGPT shares). Use `curl` not `WebFetch` (ZeroTier only).
-
-```bash
-curl "http://172.25.236.1:3003/scrape?url=URL&name=NAME"
-```
+| Service    | Host     | Port | Tunnel          | Skill                                                                 |
+| ---------- | -------- | ---- | --------------- | --------------------------------------------------------------------- |
+| ClickHouse | gpu-host | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)`                     |
+| VNC (MT5)  | gpu-host | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                                         |
+| Firecrawl  | gpu-host | 3003 | —               | `Skill(devops-tools:firecrawl-research-patterns)` (currently offline) |
 
 **ClickHouse (gpu-host)**: Range bar data with 47 microstructure features (260M+ bars). Used by `rangebar-py` package. ClickHouse listens on localhost only — access via SSH tunnel (rangebar preflight handles automatically).
 
@@ -61,7 +58,7 @@ RANGEBAR_MODE=remote          # Skip local ClickHouse check
 ssh gpu-host "curl -s 'http://localhost:8123/?query=SELECT+1'"
 ```
 
-**Reference**: [ZeroTier Network](/docs/infrastructure/zerotier-network.md)
+**Network**: Tailscale primary (`ssh gpu-host`), Cloudflare Access fallback (`ssh gpu-host-cf`). See [ssh-tunnel-companion CLAUDE.md](../ssh-tunnel-companion/CLAUDE.md).
 
 ## Skills
 

@@ -25,7 +25,7 @@ LABEL="com.example.ssh-tunnel-companion"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 TUNNEL_PORT=18123
 LOG="/tmp/ssh-tunnel-companion.log"
-ZT_PROBE="$HOME/eon/cc-skills/plugins/ssh-tunnel-companion/scripts/zt-probe.sh"
+# ZT_PROBE removed — ZeroTier deprecated 2026-04-06, Tailscale is primary
 
 # --- Actions ---
 if [ "$1" = "start" ]; then
@@ -45,10 +45,7 @@ if [ "$1" = "restart" ]; then
     [ -n "$PID" ] && kill "$PID" 2>/dev/null
     exit 0
 fi
-if [ "$1" = "zt-probe" ]; then
-    [ -x "$ZT_PROBE" ] && "$ZT_PROBE"
-    exit 0
-fi
+# zt-probe action removed — ZeroTier deprecated 2026-04-06
 
 # --- Status checks ---
 TUNNEL_PID=$(lsof -ti:${TUNNEL_PORT} 2>/dev/null)
@@ -119,6 +116,8 @@ echo "---"
 echo "Ports | sfimage=network"
 echo "-- :18123 → gpu-host:8123 (ClickHouse)"
 echo "-- :18081 → gpu-host:8081 (SSE sidecar)"
+echo "-- :18095 → gpu-host:8095 (relay-monitor API)"
+echo "-- :5900  → gpu-host:5900 (VNC — MT5/WINE)"
 
 echo "---"
 
@@ -129,7 +128,7 @@ if [ -n "$TUNNEL_PID" ]; then
 else
     echo "Start Tunnel | sfimage=play.circle bash='$0' param1=start terminal=false refresh=true"
 fi
-echo "ZeroTier Probe | sfimage=antenna.radiowaves.left.and.right bash='$0' param1=zt-probe terminal=true"
+echo "Tailscale Ping | sfimage=antenna.radiowaves.left.and.right bash=/usr/local/bin/tailscale param1=ping param2=gpu-host terminal=true"
 
 echo "---"
 

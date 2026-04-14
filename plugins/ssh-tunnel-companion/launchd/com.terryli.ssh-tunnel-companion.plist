@@ -19,7 +19,7 @@
 
   COMPANION FILES:
     SwiftBar plugin:  ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
-    ZeroTier probe:   ~/eon/cc-skills/plugins/ssh-tunnel-companion/scripts/zt-probe.sh
+    Tailscale ping:   tailscale ping gpu-host
     Wakeup script:    ~/.wakeup (sleepwatcher hook)
     Install script:   ~/eon/cc-skills/plugins/ssh-tunnel-companion/scripts/install.sh
     Uninstall script: ~/eon/cc-skills/plugins/ssh-tunnel-companion/scripts/uninstall.sh
@@ -29,6 +29,7 @@
     localhost:18123 → gpu-host:8123  (ClickHouse HTTP)
     localhost:18081 → gpu-host:8081  (SSE sidecar)
     localhost:18095 → gpu-host:8095  (relay-monitor dashboard API)
+    localhost:5900  → gpu-host:5900  (VNC — x11vnc, MT5/WINE on display :99)
 
   WHY NO AUTOSSH:
     With -M 0, autossh is just a wrapper that restarts SSH on exit — exactly
@@ -58,6 +59,8 @@
 		<string>18081:localhost:8081</string>
 		<string>-L</string>
 		<string>18095:localhost:8095</string>
+		<string>-L</string>
+		<string>5900:localhost:5900</string>
 		<string>gpu-host</string>
 	</array>
 

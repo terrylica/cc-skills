@@ -122,11 +122,11 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 ### Firecrawl Research Patterns
 
-- Programmatic search and scrape via self-hosted Firecrawl (172.25.236.1)
+- Programmatic search and scrape via self-hosted Firecrawl (gpu-host (Tailscale))
 - Academic paper routing (arxiv, Semantic Scholar, IEEE, ACM DL)
 - Recursive deep research protocol with corpus persistence
 - Self-hosted operations: Docker Compose, health checks, recovery
-- ZeroTier network integration
+- Tailscale network integration
 
 ### ML Data Pipeline Architecture
 
