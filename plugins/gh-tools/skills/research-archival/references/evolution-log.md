@@ -5,7 +5,7 @@ Reverse chronological — newest entries on top.
 ## 2026-02-13 — Add Firecrawl health check + auto-revival to scraping workflow
 
 - Firecrawl containers can show "Up" while internal processes are dead (RAM/CPU overload: `WORKER STALLED cpuUsage=0.998 memoryUsage=0.858`)
-- Added 3-step deep health check: ZeroTier ping → API HTTP probe → log inspection
+- Added 3-step deep health check: Tailscale ping → API HTTP probe → log inspection
 - Added auto-revival: `docker restart` with 20s wait and verification
 - Escalation path: restart → force-recreate → manual intervention → Jina fallback
 - Added "Container Up but dead" failure mode documentation with diagnosis and fix

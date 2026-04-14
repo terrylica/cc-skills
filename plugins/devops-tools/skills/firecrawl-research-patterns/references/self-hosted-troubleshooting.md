@@ -8,10 +8,10 @@
 
 ```bash
 # Check container status
-ssh small-host 'docker ps -a --filter "name=firecrawl"'
+ssh gpu-host 'docker ps -a --filter "name=firecrawl"'
 
 # Check restart policy
-ssh small-host 'docker inspect --format "{{.Name}}: {{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
+ssh gpu-host 'docker inspect --format "{{.Name}}: {{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
 ```
 
 **Fix**: Add `restart: unless-stopped` to ALL services in `docker-compose.yaml`:
@@ -49,13 +49,13 @@ services:
 **Apply Fix**:
 
 ```bash
-ssh small-host 'cd ~/firecrawl && docker compose up -d --force-recreate'
+ssh gpu-host 'cd ~/firecrawl && docker compose up -d --force-recreate'
 ```
 
 **Verify**:
 
 ```bash
-ssh small-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
+ssh gpu-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
 # All should show: RestartPolicy=unless-stopped
 ```
 
@@ -64,13 +64,13 @@ ssh small-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.
 **Diagnosis**:
 
 ```bash
-ssh small-host "systemctl --user status firecrawl-scraper"
+ssh gpu-host "systemctl --user status firecrawl-scraper"
 ```
 
 **Fix**:
 
 ```bash
-ssh small-host "systemctl --user restart firecrawl-scraper"
+ssh gpu-host "systemctl --user restart firecrawl-scraper"
 ```
 
 ## Symptom: Caddy File Server Down
@@ -78,26 +78,26 @@ ssh small-host "systemctl --user restart firecrawl-scraper"
 **Diagnosis**:
 
 ```bash
-ssh small-host "systemctl --user status caddy-firecrawl"
-curl -I http://172.25.236.1:8080/
+ssh gpu-host "systemctl --user status caddy-firecrawl"
+curl -I http://gpu-host:8080/
 ```
 
 **Fix**:
 
 ```bash
-ssh small-host "systemctl --user restart caddy-firecrawl"
+ssh gpu-host "systemctl --user restart caddy-firecrawl"
 ```
 
-## Symptom: ZeroTier Unreachable
+## Symptom: Tailscale Unreachable
 
 **Diagnosis**:
 
 ```bash
 # From local machine
-ping 172.25.236.1
+tailscale ping gpu-host
 
-# Check ZeroTier status
-zerotier-cli listnetworks
+# Check Tailscale status
+tailscale status
 ```
 
-**Fix**: Re-authorize device in ZeroTier Central if needed.
+**Fix**: Re-authorize device in Tailscale admin console if needed.
