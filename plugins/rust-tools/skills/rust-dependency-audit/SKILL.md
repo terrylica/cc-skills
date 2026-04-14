@@ -37,13 +37,13 @@ Comprehensive dependency audit workflow using four complementary tools: freshnes
 4. **Fallback: Firecrawl scrape** (if WebFetch fails — JS-heavy pages, rate limits, incomplete data):
 
    ```bash
-   curl -s -X POST http://172.25.236.1:3002/v1/scrape \
+   curl -s -X POST http://gpu-host:3002/v1/scrape \
      -H "Content-Type: application/json" \
      -d '{"url": "https://crates.io/crates/{crate_name}", "formats": ["markdown"], "waitFor": 0}' \
      | jq -r '.data.markdown'
    ```
 
-   Requires ZeroTier connectivity. See `/devops-tools:firecrawl-research-patterns` for full API reference.
+   Requires Tailscale connectivity. See `/devops-tools:firecrawl-research-patterns` for full API reference.
 
 ## When to Use
 
@@ -299,7 +299,6 @@ jobs:
 | `cargo outdated` shows yanked       | Run `cargo update` first to refresh `Cargo.lock`            |
 | Private registry crates             | Configure `[sources]` in `deny.toml` for private registries |
 | Workspace vs single crate           | Most tools support `--workspace` flag                       |
-
 
 ## Post-Execution Reflection
 

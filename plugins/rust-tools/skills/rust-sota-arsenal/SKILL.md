@@ -37,13 +37,13 @@ State-of-the-art Rust tooling knowledge for refactoring, profiling, benchmarking
 4. **Fallback: Firecrawl scrape** (if WebFetch fails or returns incomplete data — e.g., JS-heavy pages, rate limits):
 
    ```bash
-   curl -s -X POST http://172.25.236.1:3002/v1/scrape \
+   curl -s -X POST http://gpu-host:3002/v1/scrape \
      -H "Content-Type: application/json" \
      -d '{"url": "https://crates.io/crates/{crate_name}", "formats": ["markdown"], "waitFor": 0}' \
      | jq -r '.data.markdown'
    ```
 
-   Requires ZeroTier connectivity. See `/devops-tools:firecrawl-research-patterns` for full API reference.
+   Requires Tailscale connectivity. See `/devops-tools:firecrawl-research-patterns` for full API reference.
 
 **Why**: The opendeviationbar session discovered PyO3 was at 0.28.2 (not 0.28) and pyo3-arrow at 0.17.0 only by web-searching — static docs would have led to wrong upgrade decisions.
 
@@ -373,7 +373,6 @@ The summary at the end reports total passes, failures, and advisory warnings.
 | `macerator` compile errors      | Check minimum Rust version; requires SIMD target features         |
 | `cargo-nextest` missing tests   | Doc-tests not supported; use `cargo test --doc` separately        |
 | `cargo-hack` OOM on powerset    | Use `--depth 2` to limit combinations                             |
-
 
 ## Post-Execution Reflection
 

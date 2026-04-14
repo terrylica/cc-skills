@@ -2,14 +2,14 @@
 
 Deployment, health checks, recovery, and best practices for the self-hosted Firecrawl instance.
 
-**Host**: small-host (172.25.236.1) via ZeroTier
+**Host**: gpu-host (Tailscale: `<host>`) — currently offline
 **Source**: <https://github.com/mendableai/firecrawl>
 
 ## Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    small-host (172.25.236.1)                   │
+│                    gpu-host (Tailscale)                   │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
@@ -29,7 +29,7 @@ Deployment, health checks, recovery, and best practices for the self-hosted Fire
 │         │            │ (files)      │    │ RabbitMQ     │       │
 │         ▼            └──────────────┘    └──────────────┘       │
 │  ┌──────────────┐                                               │
-│  │ Output URL   │◀── http://172.25.236.1:8080/NAME-TS.md       │
+│  │ Output URL   │◀── http://gpu-host:8080/NAME-TS.md       │
 │  └──────────────┘                                               │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -58,14 +58,14 @@ Deployment, health checks, recovery, and best practices for the self-hosted Fire
 ### Recommended: Wrapper Endpoint (port 3003)
 
 ```bash
-curl "http://172.25.236.1:3003/scrape?url=URL&name=NAME"
+curl "http://gpu-host:3003/scrape?url=URL&name=NAME"
 ```
 
 Returns:
 
 ```json
 {
-  "url": "http://172.25.236.1:8080/NAME-TIMESTAMP.md",
+  "url": "http://gpu-host:8080/NAME-TIMESTAMP.md",
   "file": "NAME-TIMESTAMP.md"
 }
 ```
@@ -73,7 +73,7 @@ Returns:
 ### Direct API (Advanced)
 
 ```bash
-curl -s -X POST http://172.25.236.1:3002/v1/scrape \
+curl -s -X POST http://gpu-host:3002/v1/scrape \
   -H "Content-Type: application/json" \
   -d '{"url":"URL","formats":["markdown"],"waitFor":5000}' \
   | jq -r '.data.markdown'
@@ -85,50 +85,50 @@ curl -s -X POST http://172.25.236.1:3002/v1/scrape \
 
 ```bash
 # All containers running?
-ssh small-host 'docker ps --filter "name=firecrawl" --format "{{.Names}}: {{.Status}}"'
+ssh gpu-host 'docker ps --filter "name=firecrawl" --format "{{.Names}}: {{.Status}}"'
 
 # API responding?
-ssh small-host 'curl -s -o /dev/null -w "%{http_code}" http://localhost:3002/v1/scrape'
+ssh gpu-host 'curl -s -o /dev/null -w "%{http_code}" http://localhost:3002/v1/scrape'
 # Expected: 401 (no payload) or 200 (with payload)
 
 # Wrapper responding?
-curl -s -o /dev/null -w "%{http_code}" "http://172.25.236.1:3003/health"
+curl -s -o /dev/null -w "%{http_code}" "http://gpu-host:3003/health"
 ```
 
 ### Detailed Status
 
 ```bash
 # systemd services (services run under kab user, not yca SSH user)
-ssh small-host "sudo systemctl --user -M kab@ status firecrawl-scraper caddy-firecrawl"
+ssh gpu-host "sudo systemctl --user -M kab@ status firecrawl-scraper caddy-firecrawl"
 
 # Docker container details
-ssh small-host 'docker ps -a --filter "name=firecrawl" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
+ssh gpu-host 'docker ps -a --filter "name=firecrawl" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
 
 # Logs (live)
-ssh small-host "sudo journalctl --user -M kab@ -u firecrawl-scraper -u caddy-firecrawl -f"
+ssh gpu-host "sudo journalctl --user -M kab@ -u firecrawl-scraper -u caddy-firecrawl -f"
 ```
 
-**Note**: Firecrawl services run under the `kab` user on small-host. The SSH user is `yca`. Always use `sudo systemctl --user -M kab@` — plain `systemctl --user` targets the SSH user and sees no services.
+**Note**: Firecrawl services run under the `kab` user on gpu-host. The SSH user is `yca`. Always use `sudo systemctl --user -M kab@` — plain `systemctl --user` targets the SSH user and sees no services.
 
 ## Recovery Commands Cheatsheet
 
 ```bash
 # Full restart (all services)
-ssh small-host 'cd ~/firecrawl && docker compose restart'
-ssh small-host 'sudo systemctl --user -M kab@ restart firecrawl-scraper caddy-firecrawl'
+ssh gpu-host 'cd ~/firecrawl && docker compose restart'
+ssh gpu-host 'sudo systemctl --user -M kab@ restart firecrawl-scraper caddy-firecrawl'
 
 # Check everything
-ssh small-host 'docker ps --filter "name=firecrawl" && sudo systemctl --user -M kab@ status firecrawl-scraper caddy-firecrawl --no-pager'
+ssh gpu-host 'docker ps --filter "name=firecrawl" && sudo systemctl --user -M kab@ status firecrawl-scraper caddy-firecrawl --no-pager'
 
 # Logs (last 100 lines)
-ssh small-host 'docker logs firecrawl-api-1 --tail 100'
-ssh small-host 'sudo journalctl --user -M kab@ -u firecrawl-scraper --no-pager -n 100'
+ssh gpu-host 'docker logs firecrawl-api-1 --tail 100'
+ssh gpu-host 'sudo journalctl --user -M kab@ -u firecrawl-scraper --no-pager -n 100'
 
 # Force recreate with new config
-ssh small-host 'cd ~/firecrawl && docker compose up -d --force-recreate'
+ssh gpu-host 'cd ~/firecrawl && docker compose up -d --force-recreate'
 
 # Verify restart policies
-ssh small-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
+ssh gpu-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
 ```
 
 ## Cloudflare Bypass (Port 3004)
@@ -136,14 +136,14 @@ ssh small-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.
 For sites that block Playwright-based scraping (Cloudflare challenge pages), use the curl-impersonate bypass service:
 
 ```bash
-curl "http://172.25.236.1:3004/scrape-cf?url=URL&name=NAME"
+curl "http://gpu-host:3004/scrape-cf?url=URL&name=NAME"
 ```
 
 This uses `curl-impersonate` to mimic a real browser TLS fingerprint, bypassing Cloudflare's bot detection. Use when port 3003 returns a Cloudflare challenge instead of page content.
 
 ## Files Reference
 
-| Path on small-host               | Purpose                           |
+| Path on gpu-host                  | Purpose                           |
 | --------------------------------- | --------------------------------- |
 | `~/firecrawl/`                    | Firecrawl Docker deployment       |
 | `~/firecrawl/docker-compose.yaml` | Docker orchestration (EDIT THIS)  |

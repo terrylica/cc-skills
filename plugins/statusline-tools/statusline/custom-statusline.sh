@@ -383,7 +383,7 @@ fi
 # Fetches from relay-monitor Dashboard API, cached for 60s to avoid network spam.
 # Endpoint: localhost:18095 (forwarded by ssh-tunnel-companion to gpu-host:8095).
 # relay-monitor binds 127.0.0.1 only — must be reached via SSH tunnel.
-# ZeroTier was removed 2026-04-06; the old /tmp/ccmax-el02-resolved cache is dead.
+# Network: Tailscale primary (<host>), CF Access fallback.
 # Appended inline to datetime line: ... UTC | ... PDT | usalchemist 88% 1d 22h
 CCMAX_CACHE="/tmp/ccmax-statusline-cache.json"
 CCMAX_CACHE_TTL=60

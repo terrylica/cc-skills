@@ -12,7 +12,7 @@
 LABEL := com.example.ssh-tunnel-companion
 PLIST := $(HOME)/Library/LaunchAgents/$(LABEL).plist
 
-.PHONY: install uninstall start stop restart status logs zt-probe help
+.PHONY: install uninstall start stop restart status logs ping help
 
 install:            ## Deploy launchd + sleepwatcher + SwiftBar, start tunnel
 	@bash scripts/install.sh
@@ -88,8 +88,8 @@ status:             ## Show all 3 layers + connectivity
 logs:               ## Tail tunnel log
 	@tail -f /tmp/ssh-tunnel-companion.log
 
-zt-probe:           ## Run ZeroTier health probe (requires sudo)
-	@bash scripts/zt-probe.sh
+ping:               ## Tailscale connectivity check to gpu-host
+	@tailscale ping gpu-host
 
 help:               ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-16s %s\n", $$1, $$2}'

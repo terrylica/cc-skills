@@ -25,17 +25,19 @@ adr: 2025-12-20-ralph-rssi-eternal-loop
 ---
 
 ## USER GUIDANCE
+
 {% if forbidden_items.size > 0 %}
 
 ### FORBIDDEN (User-Defined)
 
 **YOU SHALL NOT work on:**
 {% for item in forbidden_items -%}
+
 - {{ item }}
-{% endfor -%}
-⚠️ These are user-specified constraints. If you find yourself about to work on any of these, STOP and find alternative work.
-{% endif %}
-{% if encouraged_items.size > 0 %}
+  {% endfor -%}
+  ⚠️ These are user-specified constraints. If you find yourself about to work on any of these, STOP and find alternative work.
+  {% endif %}
+  {% if encouraged_items.size > 0 %}
 
 ### ENCOURAGED (User Priorities)
 
@@ -115,10 +117,9 @@ Recovery strategies for autonomous operation (no human interaction available):
 
 **Maximize GPU acceleration for slow processes.** Search for OSS tools, fork broken ones to `~/fork-tools/`, patch for Python 3.13 + latest CUDA.
 
-| Workstation | SSH Alias     | GPU          | Use                |
-| ----------- | ------------- | ------------ | ------------------ |
-| small-host | `small-host` | RTX 2080 Ti  | dev/test           |
-| gpu-host    | `gpu-host`    | RTX 4090     | production         |
+| Workstation | SSH Alias  | GPU      | Use        |
+| ----------- | ---------- | -------- | ---------- |
+| gpu-host    | `gpu-host` | RTX 4090 | production |
 
 **Python 3.13 ONLY. Never downgrade.**
 
@@ -287,10 +288,12 @@ Task(
 {% if feature_ideas.size > 0 %}
 
 ### Accumulated Feature Ideas
+
 {% for idea in feature_ideas -%}
+
 - **{{ idea.idea }}** ({{ idea.priority }}, source: {{ idea.source }})
-{% endfor -%}
-{% endif %}
+  {% endfor -%}
+  {% endif %}
 
 ---
 

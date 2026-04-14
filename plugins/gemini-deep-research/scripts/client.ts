@@ -30,7 +30,7 @@ export interface DeepResearchClientOptions {
   autoConfirm?: boolean;
   /** Callback for progress updates */
   onProgress?: (message: string) => void;
-  /** Firecrawl endpoint for scraping share links. Default: http://172.25.236.1:3002 */
+  /** Firecrawl endpoint for scraping share links. Default: http://localhost:3002 */
   firecrawlUrl?: string;
   /** Whether to extract share link and scrape via Firecrawl. Default: false */
   enableFirecrawl?: boolean;

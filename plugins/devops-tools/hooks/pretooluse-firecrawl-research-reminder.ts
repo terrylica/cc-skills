@@ -155,7 +155,7 @@ WHY:
 - WebFetch fails on PDFs (returns binary), JS-heavy sites (IEEE, ACM), and paywalls
 - Firecrawl routes papers optimally: arxiv → direct HTML, Semantic Scholar → API, others → JS-rendered scrape
 - Persists raw corpus with academic frontmatter for re-analysis
-- Self-hosted on small-host (ZeroTier) — no rate limits
+- Self-hosted on gpu-host (Tailscale) — no rate limits
 
 QUICK FIX for arxiv:
   Use /html/ instead of /abs/ or /pdf/:
