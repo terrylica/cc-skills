@@ -178,22 +178,14 @@ async function main() {
 		return;
 	}
 
-	// Rule 1: maturin develop on remote → BLOCK
+	// Rule 1: maturin develop on remote → BLOCK (kept — legitimate hard block)
 	const r1 = checkMaturinDevelopRemote(command);
 	if (r1) return deny(r1);
 
-	// Rule 2: rsync to site-packages → ASK
-	const r2 = checkRsyncSitePackages(command);
-	if (r2) return ask(r2);
-
-	// Rule 3: project-dir install on remote → ASK
-	const r3 = checkRemoteProjectDirInstall(command);
-	if (r3) return ask(r3);
-
-	// Rule 4: any remote pip install → ASK (softest)
-	const r4 = checkRemotePipInstall(command);
-	if (r4) return ask(r4);
-
+	// Rules 2-4: previously returned ask() but caused excessive friction during
+	// legitimate deploy flows. Now allow silently — the user has confirmed they
+	// understand the .pth deploy hazard and uses /tmp/*.whl pattern. Rule 1
+	// (maturin develop deny) remains as the only hard block.
 	allow();
 }
 
