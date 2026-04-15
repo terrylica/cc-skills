@@ -628,31 +628,31 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 
 For **PreToolUse** hooks, two approaches achieve the **same blocking effect**:
 
-| Approach        | Mechanism                                                 | Claude Receives                  | Production Example                     |
-| --------------- | --------------------------------------------------------- | -------------------------------- | -------------------------------------- |
-| Exit 0 + JSON   | `permissionDecision: "deny"` + `permissionDecisionReason` | Structured reason via JSON field | All TypeScript hooks (`deny()` helper) |
-| Exit 2 + stderr | `echo "reason" >&2; exit 2`                               | stderr text as error message     | `pretooluse-guard.sh`                  |
+| Approach        | Mechanism                                                 | Claude Receives                  | Production Example                         |
+| --------------- | --------------------------------------------------------- | -------------------------------- | ------------------------------------------ |
+| Exit 0 + JSON   | `permissionDecision: "deny"` + `permissionDecisionReason` | Structured reason via JSON field | All TypeScript hooks (`deny()` helper)     |
+| Exit 2 + stderr | `echo "reason" >&2; exit 2`                               | stderr text as error message     | `pretooluse-guard.sh` (removed 2026-04-14) |
 
 Both prevent the tool call from executing. The difference is in output channel:
 
 - **Exit 0 + JSON**: Preferred for structured control — supports `updatedInput`, `additionalContext`, `permissionDecision: "ask"` (prompt user). Can combine multiple fields.
 - **Exit 2 + stderr**: Simpler for bash scripts, but limited to deny-only with plain text reason. JSON on stdout is **ignored** when exit code is 2.
 
-> **Empirically validated** (2026-03-27): Agent 6 confirmed via test scripts that exit 2 overrides even `permissionDecision: "allow"` on stdout. Exit 1 is always fail-open (hook error, tool proceeds). Production evidence: `pretooluse-guard.sh` (exit 2) and all TypeScript hooks (JSON deny) coexist in the same plugin.
+> **Empirically validated** (2026-03-27): Agent 6 confirmed via test scripts that exit 2 overrides even `permissionDecision: "allow"` on stdout. Exit 1 is always fail-open (hook error, tool proceeds). Historical production evidence: `pretooluse-guard.sh` (exit 2, removed 2026-04-14) and all TypeScript hooks (JSON deny) coexisted in the same plugin.
 
 #### Exit 2 Behavior by Hook Type
 
 Exit 2 is not PreToolUse-exclusive. Its effect varies by hook type, but **production usage is limited**:
 
-| Hook Type            | Exit 2 Effect                                                                                            | Production Evidence            |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **PreToolUse**       | Blocks tool call; stderr fed to Claude                                                                   | `pretooluse-guard.sh` (proven) |
-| **UserPromptSubmit** | Blocks prompt; stderr shown to user                                                                      | Documented, no cc-skills usage |
-| **TeammateIdle**     | Keeps teammate working; stderr = feedback                                                                | Schema-confirmed               |
-| **TaskCompleted**    | Prevents task completion; stderr = feedback                                                              | Schema-confirmed               |
-| **ConfigChange**     | Blocks config change                                                                                     | Documented, no cc-skills usage |
-| **Stop**             | Documented but **zero production usage** — all cc-skills Stop hooks use `decision:block` (exit 0 + JSON) | No cc-skills evidence          |
-| **PostToolUse**      | stderr shown in verbose mode only (tool already ran)                                                     | No cc-skills usage             |
+| Hook Type            | Exit 2 Effect                                                                                            | Production Evidence                                        |
+| -------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **PreToolUse**       | Blocks tool call; stderr fed to Claude                                                                   | `pretooluse-guard.sh` (removed 2026-04-14; proven pattern) |
+| **UserPromptSubmit** | Blocks prompt; stderr shown to user                                                                      | Documented, no cc-skills usage                             |
+| **TeammateIdle**     | Keeps teammate working; stderr = feedback                                                                | Schema-confirmed                                           |
+| **TaskCompleted**    | Prevents task completion; stderr = feedback                                                              | Schema-confirmed                                           |
+| **ConfigChange**     | Blocks config change                                                                                     | Documented, no cc-skills usage                             |
+| **Stop**             | Documented but **zero production usage** — all cc-skills Stop hooks use `decision:block` (exit 0 + JSON) | No cc-skills evidence                                      |
+| **PostToolUse**      | stderr shown in verbose mode only (tool already ran)                                                     | No cc-skills usage                                         |
 
 ### Environment Variables
 
