@@ -1,3 +1,47 @@
+## [12.47.1](https://github.com/terrylica/cc-skills/compare/v12.47.0...v12.47.1) (2026-04-15)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| partially | [PreToolUse and PostToolUse Hooks for Implementation Standards](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-12-06-pretooluse-posttooluse-hooks.md) | updated (+3/-1) |
+
+### Design Specs
+
+- [PreToolUse and PostToolUse Hooks](https://github.com/terrylica/cc-skills/blob/main/docs/design/2025-12-06-pretooluse-posttooluse-hooks/spec.md) - coupled
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [ITP Hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/README.md) - updated (-1)
+
+### Skill References
+
+<details>
+<summary><strong>itp-hooks/hooks-development</strong> (1 file)</summary>
+
+- [❌ WRONG - Claude sees NOTHING](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/skills/hooks-development/references/lifecycle-reference.md) - updated (+14/-14)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (-1)
+
 # [12.47.0](https://github.com/terrylica/cc-skills/compare/v12.46.0...v12.47.0) (2026-04-14)
 
 
