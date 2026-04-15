@@ -160,7 +160,19 @@ Telegram supports a subset of HTML (not Markdown in MTProto):
 | `<a href="url">text</a>`        | Hyperlink         |
 | `<tg-spoiler>text</tg-spoiler>` | Spoiler           |
 
-Use `━` (U+2501) for horizontal rules. Emojis are supported but user may prefer decorations without emojis — use `<pre>` blocks and box-drawing characters instead.
+### Horizontal separator rules (enforced convention)
+
+Use `━` (U+2501) for horizontal rules between sections in long messages.
+
+**Length rule**: **14 characters preferred, 22 characters absolute maximum.**
+
+- **Preferred**: `━━━━━━━━━━━━━━` (14 × `━`)
+- **Acceptable ceiling**: `━━━━━━━━━━━━━━━━━━━━━━` (22 × `━`, = 14 + 8)
+- **Never exceed** 22 characters — longer separators look visually unbalanced on mobile clients and push body content off-screen.
+
+Rationale: Telegram's mobile client reflows body text but does NOT wrap separator lines of box-drawing characters. A 28-char separator forces horizontal scrolling on narrow phones; 14 char fits cleanly in every viewport and still reads as a clear section break. If you need more visual weight, use a heading (`<b>...</b>`) above the separator rather than making the separator longer.
+
+Emojis are supported but user may prefer decorations without emojis — use `<pre>` blocks and box-drawing characters instead.
 
 ## Profiles
 
