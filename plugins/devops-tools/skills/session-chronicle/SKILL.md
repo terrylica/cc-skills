@@ -51,6 +51,39 @@ Summary of steps:
 2. **Find Current Project Sessions** - Encode CWD path, enumerate main + subagent `.jsonl` files
 3. **Verify Required Tools** - Check `jq`, `brotli`, `aws`, `op` are installed
 
+### Step 4 (MANDATORY before any S3 share): Sanitize
+
+**Raw Claude Code session JSONL files are dangerous to share.** They commonly contain real credentials (AWS keys, GitHub PATs, Telegram bot tokens, Tailscale API keys, 1Password service tokens), internal hostnames, Tailscale CGNAT IPs, emails, and other infrastructure secrets that leak into prompts via screenshots, env dumps, and shell commands.
+
+**Before** zipping + uploading to S3, run the sanitizer:
+
+```bash
+SKILL_DIR="$(find $HOME/.claude/plugins/marketplaces/cc-skills -type d -name session-chronicle | head -1)"
+"$SKILL_DIR/scripts/sanitize_sessions.py" \
+  --input  /path/to/raw/claude-sessions-export-raw \
+  --output /path/to/sanitized/claude-sessions-export \
+  --report /path/to/redaction_report.txt
+```
+
+The sanitizer is **field-aware** (does not destroy UUIDs, tool-use IDs, or forex decimals — v1 had a 92% phone-regex false-positive rate that murdered structural identifiers) and covers:
+
+- AWS / GitHub / OpenAI / Anthropic / Slack / Stripe / Google / JWT / Bearer / Authorization
+- Tailscale API keys (`tskey-*`), CGNAT IPs (100.64–127.x.x), tailnet DNS (`*.ts.net`), tailnet names
+- 1Password service tokens (`ops_*`), `op://` URLs, 32-char item IDs after `op` CLI context
+- Cloudflare API tokens + Global API Key + `CF_AppSession`
+- Doppler (`dp.*`), Docker PAT (`dckr_pat_*`), npm (`npm_*`), Supabase (`sbp_*`), SendGrid (`SG.*`)
+- Telegram bot tokens (`<bot_id>:<secret>` format) — catches tokens pasted into env dumps
+- ClickHouse URLs with embedded credentials
+- `.internal` hostnames, 172.25.x.x private range
+- PEM private key blocks (OPENSSH / RSA / EC / DSA / PGP / ED25519)
+- Generic `password=`, `api_key=`, `secret=` declarations in JSON/YAML/env format
+- Email addresses
+- Phone numbers — **only when separators present** (prevents UUID/decimal destruction)
+
+**Output**: a redaction report listing per-pattern counts. Review before packaging to confirm nothing important was destroyed (sanity check: UUID integrity should be preserved).
+
+**S3 upload sequence**: always raw → sanitize → zip → S3 → presigned URL. **Never upload `-raw/` directly.**
+
 ---
 
 ## Part 1: AskUserQuestion Flows
@@ -310,8 +343,14 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
     ├── Append to sessions/<id>/iterations.jsonl
     └── Validate NDJSON format
 
-12. (OPTIONAL) S3 UPLOAD
-    └── Upload compressed archives
+12. SANITIZE (MANDATORY before any S3 share)
+    ├── Run scripts/sanitize_sessions.py on the staging directory
+    ├── Review redaction_report.txt (verify no structural destruction)
+    └── Produce sanitized/ directory for downstream packaging
+
+13. (OPTIONAL) S3 UPLOAD
+    ├── Package sanitized/ directory (zip or brotli per-file)
+    └── Upload compressed archives, generate presigned URL if sharing externally
 ```
 
 ---
@@ -353,7 +392,6 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
 | UUID chain broken         | Session compacted           | Check related sessions for continuation             |
 | GitHub username missing   | Attribution not set         | Always require github_username in registry entry    |
 | Registry entry invalid    | Missing required fields     | Verify id, type, created_at, session_contexts exist |
-
 
 ## Post-Execution Reflection
 
