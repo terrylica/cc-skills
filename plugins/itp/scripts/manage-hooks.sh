@@ -130,13 +130,9 @@ do_install() {
     fi
 
     # Verify hook scripts exist
-    local pretooluse_script="$HOOKS_BASE/pretooluse-guard.sh"
     local posttooluse_script="$HOOKS_BASE/posttooluse-reminder.sh"
     local fakedata_script="$HOOKS_BASE/pretooluse-fake-data-guard.mjs"
 
-    if [[ ! -x "$pretooluse_script" ]]; then
-        die "PreToolUse script not found or not executable: $pretooluse_script"
-    fi
     if [[ ! -x "$posttooluse_script" ]]; then
         die "PostToolUse script not found or not executable: $posttooluse_script"
     fi
@@ -151,7 +147,6 @@ do_install() {
 
     # Prepare hook entries (using $HOME literal, not expanded)
     # Timeouts are in milliseconds (Claude Code hook standard)
-    local pretooluse_entry='{"matcher":"Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/pretooluse-guard.sh","timeout":15000}]}'
     local posttooluse_entry='{"matcher":"Bash|Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/posttooluse-reminder.sh","timeout":10000}]}'
     local fakedata_entry='{"matcher":"Write","hooks":[{"type":"command","command":"bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/pretooluse-fake-data-guard.mjs","timeout":5000}]}'
 
@@ -161,11 +156,11 @@ do_install() {
     trap 'rm -f "$temp_file"' EXIT
 
     # Apply modifications using jq
-    jq --argjson pre "$pretooluse_entry" --argjson post "$posttooluse_entry" --argjson fakedata "$fakedata_entry" '
+    jq --argjson post "$posttooluse_entry" --argjson fakedata "$fakedata_entry" '
         .hooks //= {} |
         .hooks.PreToolUse //= [] |
         .hooks.PostToolUse //= [] |
-        .hooks.PreToolUse += [$pre, $fakedata] |
+        .hooks.PreToolUse += [$fakedata] |
         .hooks.PostToolUse += [$post]
     ' "$SETTINGS" > "$temp_file"
 

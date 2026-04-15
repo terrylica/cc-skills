@@ -126,7 +126,6 @@ The GPU optimization guard hook enforces **mandatory** GPU optimization best pra
 - `commands/setup.md` - Setup command for dependency installation
 - `commands/hooks.md` - Hook management command
 - `hooks/hooks.json` - Hook configuration
-- `hooks/pretooluse-guard.sh` - ASCII art blocking
 - `hooks/pretooluse-gpu-optimization-guard.ts` - GPU optimization enforcement
 - `hooks/posttooluse-reminder.ts` - Sync reminders + UV preference
 - `hooks/code-correctness-guard.sh` - Code correctness detection (silent failures + cross-language syntax)
