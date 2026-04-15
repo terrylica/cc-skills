@@ -138,6 +138,37 @@ asyncio.run(edit())
 PYEOF
 ```
 
+### Editing Discipline — unread vs. read
+
+**The core principle**: edit silently only when you are confident the recipient has NOT read the message yet. Once someone has seen a message, editing it risks creating a false record and confusing them (they remember the original text; the chat now shows different text).
+
+| Situation                                                                                                          | Action                                                                  |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| You sent a message <30s ago in an active async chat and nobody has touched Telegram since                          | **Edit is safe** — iterate freely                                       |
+| You just sent a message with a typo or factual error and the recipient has not responded                           | **Edit is safe** — they likely have not read it yet                     |
+| The recipient has replied to your message                                                                          | **Do NOT edit silently** — send a supplement                            |
+| The recipient has read the message but not yet replied (you see read receipts or their typing indicator came/went) | **Do NOT edit silently** — send a supplement                            |
+| You're not sure whether the recipient has read it                                                                  | **Default to supplement** — safer than confusing them                   |
+| The message has been cited or quoted by others in the chat                                                         | **Do NOT edit** — the citation is now stale context; supplement instead |
+
+**Supplement pattern** (when edit is unsafe):
+
+```
+Correction on my previous message: <specific change>
+```
+
+or
+
+```
+Update to what I said above: <new info that supersedes>
+```
+
+Make the supplement self-contained so a reader scrolling back understands without having to cross-reference.
+
+**Why this matters**: silent edits of read messages are one of the most confusing UX anti-patterns in chat systems. The recipient remembers "Terry told me X", sees "X'" now, and wonders if their memory is wrong or if they're being gaslit. Edits are a privilege to use before observation, not to rewrite history.
+
+**How to tell if it's been read**: Telegram's MTProto exposes read receipts in 1:1 and small group chats via `messages.readHistoryOutbox` updates, but in large groups this is unreliable. The safest heuristic is time + activity: if more than ~60 seconds have elapsed and/or the recipient has been active in the chat, assume they saw it.
+
 ### Deleting messages
 
 ```bash
