@@ -14,16 +14,6 @@
         ]
       },
       {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-guard.sh",
-            "timeout": 15000
-          }
-        ]
-      },
-      {
         "matcher": "Write",
         "hooks": [
           {
