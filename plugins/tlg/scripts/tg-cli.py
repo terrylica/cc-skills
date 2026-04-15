@@ -198,10 +198,10 @@ async def cmd_forward(
     await client.disconnect()
 
 
-async def cmd_edit(profile: str, chat: str | int, msg_id: int, new_text: str) -> None:
+async def cmd_edit(profile: str, chat: str | int, msg_id: int, new_text: str, *, parse_mode: str | None = None) -> None:
     client = await _make_client(profile)
     try:
-        await client.edit_message(chat, msg_id, new_text)
+        await client.edit_message(chat, msg_id, new_text, parse_mode=parse_mode)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         await client.disconnect()
@@ -595,6 +595,7 @@ def main() -> None:
     sp.add_argument("chat", help="Chat ID or username")
     sp.add_argument("message_id", type=int, help="Message ID to edit")
     sp.add_argument("new_text", help="New message text")
+    sp.add_argument("--html", action="store_true", help="Parse message as HTML")
 
     sp = sub.add_parser("delete", help="Delete messages")
     sp.add_argument("chat", help="Chat ID or username")
@@ -680,7 +681,7 @@ def main() -> None:
             ids = [int(x.strip()) for x in args.message_ids.split(",")]
             asyncio.run(cmd_forward(profile, parse_entity(args.from_chat), ids, parse_entity(args.to_chat)))
         case "edit":
-            asyncio.run(cmd_edit(profile, parse_entity(args.chat), args.message_id, args.new_text))
+            asyncio.run(cmd_edit(profile, parse_entity(args.chat), args.message_id, args.new_text, parse_mode="html" if args.html else None))
         case "delete":
             ids = [int(x.strip()) for x in args.message_ids.split(",")]
             asyncio.run(cmd_delete(profile, parse_entity(args.chat), ids, not args.self_only))
