@@ -1,3 +1,37 @@
+# [12.48.0](https://github.com/terrylica/cc-skills/compare/v12.47.1...v12.48.0) (2026-04-15)
+
+
+### Features
+
+* **session-chronicle:** add field-aware sanitizer + mandatory pre-S3 step ([d5c3d4d](https://github.com/terrylica/cc-skills/commit/d5c3d4d15c6e13751f8a0eb8233d99f0dd35dd61))
+* **tlg:** add --html flag to edit command + document separator length rules ([04d174e](https://github.com/terrylica/cc-skills/commit/04d174ef18be70abcc14a574453222edbb01d232))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (1 change)</summary>
+
+- [session-chronicle](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/session-chronicle/SKILL.md) - updated (+41/-3)
+
+</details>
+
+<details>
+<summary><strong>tlg</strong> (1 change)</summary>
+
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-message/SKILL.md) - updated (+13/-1)
+
+</details>
+
 ## [12.47.1](https://github.com/terrylica/cc-skills/compare/v12.47.0...v12.47.1) (2026-04-15)
 
 
