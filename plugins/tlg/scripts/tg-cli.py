@@ -160,6 +160,55 @@ async def cmd_send(profile: str, recipient: str | int, message: str, *, parse_mo
     await client.disconnect()
 
 
+async def cmd_draft(profile: str, recipient: str | int, message: str, *, parse_mode: str | None = None) -> None:
+    """Send a draft to the user's Saved Messages for review before posting to target chat.
+
+    Saved Messages instead of MTProto cloud drafts: the official Telegram client has a
+    known unfixed race condition (tdesktop#29111) where local empty-draft state silently
+    overwrites SaveDraftRequest drafts pushed from another authorization. Saved Messages
+    preserves full formatting and native copy-paste into the target chat's compose area
+    works across all clients.
+
+    `recipient` is used only as a label in the Saved Messages banner so the user knows
+    which chat each accumulated draft is intended for.
+    """
+    if not message:
+        print("Error: message cannot be empty", file=sys.stderr)
+        sys.exit(1)
+
+    client = await _make_client(profile)
+    try:
+        try:
+            target = await client.get_entity(recipient)
+            label = (
+                getattr(target, "title", None)
+                or getattr(target, "username", None)
+                or " ".join(filter(None, [
+                    getattr(target, "first_name", None),
+                    getattr(target, "last_name", None),
+                ])).strip()
+                or str(recipient)
+            )
+        except Exception:
+            label = str(recipient)
+
+        me = await client.get_me()
+        await client.send_message(me.id, f"<b>Draft → {label}</b>", parse_mode="html")
+        await client.send_message(me.id, message, parse_mode=parse_mode)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        await client.disconnect()
+        sys.exit(1)
+
+    mode_note = f" ({parse_mode.upper()})" if parse_mode else ""
+    print(
+        f"[{profile}] Draft for '{label}' saved to Saved Messages{mode_note} "
+        f"({len(message)} chars). Open Saved Messages → long-press body → Copy → "
+        f"paste into target chat's compose area."
+    )
+    await client.disconnect()
+
+
 async def cmd_send_file(
     profile: str, recipient: str | int, file_path: str,
     caption: str | None, voice: bool, video_note: bool, force_doc: bool,
@@ -578,6 +627,11 @@ def main() -> None:
     sp.add_argument("message", help="Message text")
     sp.add_argument("--html", action="store_true", help="Parse message as HTML")
 
+    sp = sub.add_parser("draft", help="Send to Saved Messages for review before posting to target chat (does NOT send to target)")
+    sp.add_argument("recipient", help="Target chat ID/username — used only to label the Saved Messages banner")
+    sp.add_argument("message", help="Message text")
+    sp.add_argument("--html", action="store_true", help="Parse message as HTML")
+
     sp = sub.add_parser("send-file", help="Send a file/photo/video")
     sp.add_argument("recipient", help="Username, phone, or chat ID")
     sp.add_argument("file", help="Path to file")
@@ -672,6 +726,8 @@ def main() -> None:
     match args.command:
         case "send":
             asyncio.run(cmd_send(profile, parse_entity(args.recipient), args.message, parse_mode="html" if args.html else None))
+        case "draft":
+            asyncio.run(cmd_draft(profile, parse_entity(args.recipient), args.message, parse_mode="html" if args.html else None))
         case "send-file":
             asyncio.run(cmd_send_file(
                 profile, parse_entity(args.recipient), args.file,
