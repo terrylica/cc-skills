@@ -31,23 +31,31 @@ If `EXPIRED`, run `/tlg:setup` first (uses 3-step non-interactive auth pattern).
 
 ## Usage: tg-cli.py (when session is valid)
 
+> **When in doubt, USE `--html`.** If your message contains ANY of: `<b>`, `<i>`, `<code>`, `<pre>`, `<a href>`, bold headers, inline code, or markdown-style `**bold**` / `` `code` ``, you MUST either pass `--html` (and translate markdown → HTML tags first) or strip the decoration. Sending Telegram-style markdown without `--html` renders the asterisks and backticks literally to the recipient. For multi-section messages with headers, separators, and code spans — **always** use `--html`.
+>
+> Recovery pattern when you've already sent a mangled message: send a follow-up prefixed `Resend — earlier message rendered as raw markdown, readable version below:` then the correctly-HTML-formatted content. Do NOT silently edit if the message has been read (see "Editing Discipline" below).
+
 ```bash
 /usr/bin/env bash << 'SEND_EOF'
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
-# Default profile (eon)
+# Default: plain text (use only for single-line unformatted messages)
 uv run --python 3.13 "$SCRIPT" send @username "Hello"
+
+# HTML formatting — the recommended default for any structured message
+uv run --python 3.13 "$SCRIPT" send --html -5111414203 "<b>Bold header</b>
+
+Body with <code>inline code</code> and <a href='https://example.com'>a link</a>."
 
 # By chat ID (groups use negative IDs)
 uv run --python 3.13 "$SCRIPT" send -5111414203 "Hello group"
-
-# HTML formatting (bold, italic, code, etc.)
-uv run --python 3.13 "$SCRIPT" send --html -5111414203 "<b>Bold</b> and <code>code</code>"
 
 # Specific profile
 uv run --python 3.13 "$SCRIPT" -p personal send @username "Hello"
 SEND_EOF
 ```
+
+**Long HTML messages**: when the body has multiple paragraphs, bullets, separators, or code blocks, prefer the "Direct Telethon" pattern below — it avoids shell-quoting hell on multi-line bodies and is what actually works reliably for operator-written messages with structure.
 
 ## Usage: Direct Telethon (for multi-message sequences, files, or when tg-cli.py fails)
 
