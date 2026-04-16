@@ -1,3 +1,24 @@
+## [12.49.1](https://github.com/terrylica/cc-skills/compare/v12.49.0...v12.49.1) (2026-04-16)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>tlg</strong> (1 change)</summary>
+
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-message/SKILL.md) - updated (+12/-4)
+
+</details>
+
 # [12.49.0](https://github.com/terrylica/cc-skills/compare/v12.48.0...v12.49.0) (2026-04-15)
 
 
