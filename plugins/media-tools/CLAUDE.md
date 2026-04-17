@@ -10,9 +10,7 @@
 
 ## Skills
 
-| Skill                                                            | Description                                                        | Trigger Keywords                                            |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| [youtube-to-bookplayer](./skills/youtube-to-bookplayer/SKILL.md) | Download YouTube audio → tag metadata → push to BookPlayer via USB | youtube audio, bookplayer, download youtube, push to iphone |
+- [youtube-to-bookplayer](./skills/youtube-to-bookplayer/SKILL.md)
 
 ## Dependencies
 

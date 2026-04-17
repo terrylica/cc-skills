@@ -164,13 +164,12 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 ## Skills
 
-| Skill               | Purpose                                                      |
-| ------------------- | ------------------------------------------------------------ |
-| `pr-gfm-validator`  | Validate and auto-fix GFM links in PR bodies                 |
-| `issue-create`      | Create issues with AI labeling (256-char titles)             |
-| `issues-workflow`   | Issues-first workflow, sub-issues, issue-branch-PR lifecycle |
-| `research-archival` | Scrape AI research URLs, archive with frontmatter + Issues   |
-| `fork-intelligence` | Discover valuable fork divergence beyond stars               |
+- [fork-intelligence](./skills/fork-intelligence/SKILL.md)
+- [hooks](./skills/hooks/SKILL.md)
+- [issue-create](./skills/issue-create/SKILL.md)
+- [issues-workflow](./skills/issues-workflow/SKILL.md)
+- [pr-gfm-validator](./skills/pr-gfm-validator/SKILL.md)
+- [research-archival](./skills/research-archival/SKILL.md)
 
 ## GitHub Operations Policy
 

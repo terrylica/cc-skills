@@ -69,3 +69,14 @@ Full patterns and anti-patterns: `kokoro-tts:realtime-audio-architecture`
 - HTTP server API: [server-api.md](./skills/server/references/server-api.md)
 - Voice catalog: [voice-catalog.md](./skills/synthesize/references/voice-catalog.md)
 - Real-time audio patterns: [realtime-audio-architecture](./skills/realtime-audio-architecture/SKILL.md)
+
+## Skills
+
+- [diagnose](./skills/diagnose/SKILL.md)
+- [health](./skills/health/SKILL.md)
+- [install](./skills/install/SKILL.md)
+- [realtime-audio-architecture](./skills/realtime-audio-architecture/SKILL.md)
+- [remove](./skills/remove/SKILL.md)
+- [server](./skills/server/SKILL.md)
+- [synthesize](./skills/synthesize/SKILL.md)
+- [upgrade](./skills/upgrade/SKILL.md)

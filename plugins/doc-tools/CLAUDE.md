@@ -6,18 +6,16 @@
 
 ## Skills
 
-| Skill                     | Purpose                                                             |
-| ------------------------- | ------------------------------------------------------------------- |
-| `academic-pdf-to-gfm`     | Convert academic PDFs to GFM with inline figures and validated math |
-| `ascii-diagram-validator` | Validates ASCII box-drawing diagram alignment                       |
-| `documentation-standards` | Markdown standards for LLM-optimized architecture                   |
-| `glossary-management`     | Terminology glossary with Vale vocabulary sync                      |
-| `latex-build`             | Build automation with latexmk, live preview                         |
-| `latex-setup`             | macOS environment setup (MacTeX, Skim, SyncTeX)                     |
-| `latex-tables`            | Modern table creation with tabularray                               |
-| `pandoc-pdf-generation`   | Markdown to PDF with XeLaTeX, TOC, bibliography                     |
-| `plotext-financial-chart` | ASCII financial line charts for GitHub markdown                     |
-| `terminal-print`          | Print iTerm2 terminal output to HP printer via PDF                  |
+- [academic-pdf-to-gfm](./skills/academic-pdf-to-gfm/SKILL.md)
+- [ascii-diagram-validator](./skills/ascii-diagram-validator/SKILL.md)
+- [documentation-standards](./skills/documentation-standards/SKILL.md)
+- [glossary-management](./skills/glossary-management/SKILL.md)
+- [latex-build](./skills/latex-build/SKILL.md)
+- [latex-setup](./skills/latex-setup/SKILL.md)
+- [latex-tables](./skills/latex-tables/SKILL.md)
+- [pandoc-pdf-generation](./skills/pandoc-pdf-generation/SKILL.md)
+- [plotext-financial-chart](./skills/plotext-financial-chart/SKILL.md)
+- [terminal-print](./skills/terminal-print/SKILL.md)
 
 ## Conventions
 

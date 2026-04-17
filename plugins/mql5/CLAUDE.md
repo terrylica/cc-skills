@@ -6,12 +6,12 @@
 
 ## Skills
 
-| Skill                     | Purpose                                                      |
-| ------------------------- | ------------------------------------------------------------ |
-| `mql5-indicator-patterns` | Buffer management, display scaling, recalculation, debugging |
-| `article-extractor`       | Extract technical trading articles from mql5.com             |
-| `python-workspace`        | Configure Python workspace for MQL5-Python integration       |
-| `log-reader`              | Read MetaTrader 5 log files to validate indicator execution  |
+- [article-extractor](./skills/article-extractor/SKILL.md)
+- [fxview-parquet-consumer](./skills/fxview-parquet-consumer/SKILL.md)
+- [log-reader](./skills/log-reader/SKILL.md)
+- [mql5-indicator-patterns](./skills/mql5-indicator-patterns/SKILL.md)
+- [python-workspace](./skills/python-workspace/SKILL.md)
+- [tick-collection-ops](./skills/tick-collection-ops/SKILL.md)
 
 ## Conventions
 

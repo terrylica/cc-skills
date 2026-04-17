@@ -6,10 +6,8 @@
 
 ## Skills
 
-| Skill             | Purpose                                                         |
-| ----------------- | --------------------------------------------------------------- |
-| `link-validator`  | Validate markdown link portability (relative vs absolute paths) |
-| `link-validation` | Lychee broken link detection with path policy linting           |
+- [link-validation](./skills/link-validation/SKILL.md)
+- [link-validator](./skills/link-validator/SKILL.md)
 
 ## Conventions
 
