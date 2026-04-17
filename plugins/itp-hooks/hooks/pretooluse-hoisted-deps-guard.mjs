@@ -11,7 +11,8 @@
  * Reference: https://docs.astral.sh/uv/concepts/projects/dependencies/
  */
 
-import { dirname, basename, resolve, relative } from "path";
+import { dirname, basename, resolve, relative, join } from "path";
+import { existsSync, readFileSync } from "fs";
 import { execSync } from "child_process";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 
@@ -101,6 +102,45 @@ function isAtGitRoot(filePath, gitRoot) {
 }
 
 /**
+ * Check if pyproject.toml is a maturin-built Rust extension.
+ * These MUST co-locate with Cargo.toml because maturin reads both from the
+ * crate directory; they are not fragmentation, they are the canonical
+ * PyO3 + maturin layout.
+ *
+ * Heuristic: sibling Cargo.toml exists AND either (a) the pyproject.toml content
+ * declares build-backend = "maturin", or (b) no content is visible yet (Write
+ * hook fires before file exists) and the sibling Cargo.toml declares
+ * crate-type = "cdylib".
+ *
+ * @param {string} filePath - Absolute path to pyproject.toml being written
+ * @param {string} content - Content being written (may be empty for Edit)
+ * @returns {boolean}
+ */
+function isMaturinCrate(filePath, content) {
+  const fileDir = dirname(filePath);
+  const cargoToml = join(fileDir, "Cargo.toml");
+
+  if (!existsSync(cargoToml)) {
+    return false;
+  }
+
+  if (content && /build-backend\s*=\s*["']maturin["']/.test(content)) {
+    return true;
+  }
+
+  try {
+    const cargoContent = readFileSync(cargoToml, "utf8");
+    if (/crate-type\s*=\s*\[[^\]]*["']cdylib["']/.test(cargoContent)) {
+      return true;
+    }
+  } catch {
+    // Fall through to false
+  }
+
+  return false;
+}
+
+/**
  * Check if path is a sub-package (not workspace root)
  * @param {string} filePath
  * @returns {boolean}
@@ -144,8 +184,7 @@ function findEscapingPaths(content, filePath, gitRoot) {
   const pathPattern =
     /^([a-zA-Z0-9_-]+)\s*=\s*\{[^}]*path\s*=\s*["']([^"']+)["']/gm;
 
-  let match;
-  while ((match = pathPattern.exec(content)) !== null) {
+  for (const match of content.matchAll(pathPattern)) {
     const packageName = match[1];
     const pathValue = match[2];
 
@@ -205,9 +244,22 @@ async function main() {
   // Get git root for boundary validation
   const gitRoot = getGitRoot(filePath);
 
+  // Get the content being written/edited (may need early for exception check)
+  let newContent = "";
+  if (toolName === "Write") {
+    newContent = input.tool_input?.content || "";
+  } else if (toolName === "Edit") {
+    newContent = input.tool_input?.new_string || "";
+  }
+
   // --- POLICY 1: Root-only pyproject.toml ---
-  // Block pyproject.toml creation/editing outside git root
-  if (gitRoot && !isAtGitRoot(filePath, gitRoot)) {
+  // Block pyproject.toml creation/editing outside git root,
+  // EXCEPT maturin-built Rust extensions which must co-locate with Cargo.toml.
+  if (
+    gitRoot &&
+    !isAtGitRoot(filePath, gitRoot) &&
+    !isMaturinCrate(filePath, newContent)
+  ) {
     const relPath = relative(gitRoot, filePath);
     denyWithReason(`[PYPROJECT-ROOT-ONLY] Blocked: pyproject.toml outside monorepo root
 
@@ -233,15 +285,7 @@ REFERENCE: https://docs.astral.sh/uv/concepts/projects/workspaces/`);
     process.exit(0);
   }
 
-  // Get the content being written/edited
-  let newContent = "";
-
-  if (toolName === "Write") {
-    newContent = input.tool_input?.content || "";
-  } else if (toolName === "Edit") {
-    // For Edit, check the new_string being added
-    newContent = input.tool_input?.new_string || "";
-  }
+  // newContent already captured above (before POLICY 1 for maturin exception check)
 
   // --- POLICY 2: Path boundary validation ---
   // Block [tool.uv.sources] path references escaping git root
