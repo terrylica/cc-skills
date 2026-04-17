@@ -1,19 +1,23 @@
 # quant-research
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-4-blue.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-8-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
 Quantitative research skills for financial data analysis and ML model evaluation: SOTA metrics for range bars, Sharpe ratios, ML prediction quality, WFO epoch selection, and evolutionary multi-metric ranking.
 
 ## Skills
 
-| Skill                                                                        | Description                                                      |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [rangebar-eval-metrics](./skills/rangebar-eval-metrics/SKILL.md)             | SOTA metrics for range bar evaluation: Sharpe, risk, ML quality  |
-| [adaptive-wfo-epoch](./skills/adaptive-wfo-epoch/SKILL.md)                   | Adaptive epoch selection for Walk-Forward Optimization (WFO)     |
-| [backtesting-py-oracle](./skills/backtesting-py-oracle/SKILL.md)             | backtesting.py config for SQL oracle validation (hedging, NaN)   |
-| [evolutionary-metric-ranking](./skills/evolutionary-metric-ranking/SKILL.md) | Multi-objective evolutionary optimization for per-metric cutoffs |
+Each skill's SKILL.md frontmatter is the SSoT for its description. Listed by name:
+
+- [adaptive-wfo-epoch](./skills/adaptive-wfo-epoch/SKILL.md)
+- [backtesting-py-oracle](./skills/backtesting-py-oracle/SKILL.md)
+- [evolutionary-metric-ranking](./skills/evolutionary-metric-ranking/SKILL.md)
+- [exchange-session-detector](./skills/exchange-session-detector/SKILL.md)
+- [odb-microstructure-forensics](./skills/odb-microstructure-forensics/SKILL.md)
+- [opendeviation-eval-metrics](./skills/opendeviation-eval-metrics/SKILL.md)
+- [sharpe-ratio-non-iid-corrections](./skills/sharpe-ratio-non-iid-corrections/SKILL.md)
+- [zigzag-pattern-classifier](./skills/zigzag-pattern-classifier/SKILL.md)
 
 ## Installation
 
@@ -28,16 +32,16 @@ Skills are model-invoked based on context.
 
 **Trigger phrases:**
 
-- "range bar metrics", "Sharpe ratio", "WFO metrics", "DSR", "PSR" → rangebar-eval-metrics
+- "open deviation metrics", "Sharpe ratio", "WFO metrics", "DSR", "PSR" → opendeviation-eval-metrics
 - "WFO epoch", "epoch selection", "adaptive epochs", "WFE" → adaptive-wfo-epoch
 - "backtesting.py", "hedging", "exclusive_orders", "oracle validation", "SQL vs Python" → backtesting-py-oracle
 - "ranking optimization", "cutoff search", "metric intersection", "Optuna cutoffs", "Pareto frontier cutoffs" → evolutionary-metric-ranking
 
 ## Features
 
-### rangebar-eval-metrics
+### opendeviation-eval-metrics
 
-Metrics for evaluating price-based sampling (range bars):
+Metrics for evaluating price-based sampling (open deviation bars):
 
 - **Sharpe ratio** calculations with proper daily aggregation and annualization
 - **Risk metrics**: Maximum drawdown, Calmar ratio, Sortino ratio
