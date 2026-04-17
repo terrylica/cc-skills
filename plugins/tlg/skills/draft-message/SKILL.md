@@ -51,10 +51,10 @@ If `EXPIRED`, run `/tlg:setup` first.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Draft a plain-text message labelled for a group
-uv run --python 3.13 "$SCRIPT" draft -5111414203 "Plain text draft goes here"
+uv run --python 3.13 "$SCRIPT" draft -1003958083153 "Plain text draft goes here"
 
 # Draft an HTML-formatted message
-uv run --python 3.13 "$SCRIPT" draft --html -5111414203 "<b>Bold heading</b>
+uv run --python 3.13 "$SCRIPT" draft --html -1003958083153 "<b>Bold heading</b>
 
 Body text with <code>inline code</code> and a <a href=\"https://example.com\">link</a>."
 
