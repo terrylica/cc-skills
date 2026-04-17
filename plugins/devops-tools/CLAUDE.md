@@ -39,13 +39,13 @@ op item get "Item" --vault "Claude Automation" --reveal
 
 ## Self-Hosted Services
 
-All services run on **gpu-host** (Tailscale: `<host>`). Access via SSH tunnel managed by ssh-tunnel-companion.
+Services run on two GPU workstations: **gpu-host** (RTX 4090) for primary compute, **small-host** (RTX 2080 Ti) for secondary workloads. Access via Tailscale primary path or legacy ZeroTier fallback.
 
-| Service    | Host     | Port | Tunnel          | Skill                                                                 |
-| ---------- | -------- | ---- | --------------- | --------------------------------------------------------------------- |
-| ClickHouse | gpu-host | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)`                     |
-| VNC (MT5)  | gpu-host | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                                         |
-| Firecrawl  | gpu-host | 3003 | —               | `Skill(devops-tools:firecrawl-research-patterns)` (currently offline) |
+| Service    | Host        | Port | Tunnel          | Skill                                             |
+| ---------- | ----------- | ---- | --------------- | ------------------------------------------------- |
+| ClickHouse | gpu-host    | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)` |
+| VNC (MT5)  | gpu-host    | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                     |
+| Firecrawl  | small-host | 3002 | —               | `Skill(devops-tools:firecrawl-research-patterns)` |
 
 **ClickHouse (gpu-host)**: Range bar data with 47 microstructure features (260M+ bars). Used by `rangebar-py` package. ClickHouse listens on localhost only — access via SSH tunnel (rangebar preflight handles automatically).
 
