@@ -70,16 +70,19 @@ The refresh_token has a 7-day TTL in Google OAuth Testing mode. When it expires,
 
 ## Environment Variables
 
-| Variable                   | Required | Description                                                           |
-| -------------------------- | -------- | --------------------------------------------------------------------- |
-| `GMAIL_OP_UUID`            | Yes      | 1Password item UUID for OAuth credentials                             |
-| `TELEGRAM_BOT_TOKEN`       | Yes      | Telegram bot token                                                    |
-| `TELEGRAM_CHAT_ID`         | Yes      | Authorized chat ID                                                    |
-| `HAIKU_MODEL`              | Yes      | Claude model for triage (e.g. `claude-haiku-4-5-20251001`)            |
-| `OP_SERVICE_ACCOUNT_TOKEN` | Yes      | 1Password service account (biometric-free)                            |
-| `AUDIT_DIR`                | No       | Audit log directory (default: `~/own/amonic/logs/audit`, app-managed) |
-| `BOT_STATE_FILE`           | No       | Bot state file path                                                   |
-| `GMAIL_OP_VAULT`           | No       | 1Password vault (default: `Claude Automation`)                        |
+| Variable                      | Required | Description                                                                               |
+| ----------------------------- | -------- | ----------------------------------------------------------------------------------------- |
+| `GMAIL_OP_UUID`               | Yes      | 1Password item UUID for OAuth credentials                                                 |
+| `TELEGRAM_BOT_TOKEN`          | Yes      | Telegram bot token                                                                        |
+| `TELEGRAM_CHAT_ID`            | Yes      | Authorized chat ID                                                                        |
+| `HAIKU_MODEL`                 | Yes      | Claude model for triage (e.g. `claude-haiku-4-5-20251001`)                                |
+| `OP_SERVICE_ACCOUNT_TOKEN`    | Yes      | 1Password service account (biometric-free)                                                |
+| `AUDIT_DIR`                   | No       | Audit log directory (default: `~/own/amonic/logs/audit`, app-managed)                     |
+| `BOT_STATE_FILE`              | No       | Bot state file path                                                                       |
+| `GMAIL_OP_VAULT`              | No       | 1Password vault (default: `Claude Automation`)                                            |
+| `GMAIL_COMMANDER_PROJECT_DIR` | No       | Project directory resolver; overrides auto-detection when running outside the plugin tree |
+| `KOKORO_HOST`                 | No       | Kokoro TTS host for voice digest (default: `littleblack`)                                 |
+| `KOKORO_PORT`                 | No       | Kokoro TTS port (default: `8090`)                                                         |
 
 ## Conventions
 

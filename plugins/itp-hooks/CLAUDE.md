@@ -338,6 +338,17 @@ Edit `~/.claude/docs/GLOSSARY.md` to configure scan paths:
 - [hooks-development](./skills/hooks-development/SKILL.md)
 - [setup](./skills/setup/SKILL.md)
 
+## Environment Variables (Hook Context)
+
+These variables are **set by Claude Code** when a hook fires — hooks read them, not users. Document them here so hook authors know the contract.
+
+| Variable                 | Source               | Description                                                                                       |
+| ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------- |
+| `CLAUDE_SESSION_ID`      | Claude Code runtime  | UUID of the current session; used for per-session gate files and session-scoped caches            |
+| `CLAUDE_CONVERSATION_ID` | Claude Code runtime  | Conversation UUID (alias surfaced by some hook events)                                            |
+| `CLAUDE_PROJECT_DIR`     | Claude Code runtime  | Absolute path to the project root Claude is working in; used to resolve `.claude/` config files   |
+| `CLAUDE_HOOK_SPAWNED`    | set by hook wrappers | Set to `1` when a hook is running via a wrapper process; guards against recursive hook invocation |
+
 ## Pueue Reminder for Long-Running Tasks
 
 The `posttooluse-reminder.ts` hook detects long-running tasks and suggests using [Pueue](https://github.com/Nukesor/pueue) for job orchestration.

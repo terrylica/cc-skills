@@ -86,3 +86,8 @@ ssh bigblack "curl -s 'http://localhost:8123/?query=SELECT+1'"
 - [session-recovery](./skills/session-recovery/SKILL.md)
 - [worktree-manager](./skills/worktree-manager/SKILL.md)
 
+## Environment Variables
+
+| Variable        | Required | Description                                                                                                                           |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `MINIMAX_MODEL` | No       | MiniMax model ID for `session-debrief` and `prompt-benchmark`; SSoT is `~/.config/mise/config.toml`; default `MiniMax-M2.7-highspeed` |
