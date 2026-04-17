@@ -144,19 +144,130 @@ async def cmd_auth(profile: str) -> None:
 
 # ── Messages ──────────────────────────────────────────────
 
+# Telegram's hard limit is 4096 post-parsing chars. 3900 leaves margin for a
+# part-header line (e.g., "<i>(Part 3/5)</i>\n\n") prepended to continuation
+# chunks. See send-message SKILL.md "Auto-split for long messages" section.
+TELEGRAM_MAX_PLAIN_CHARS = 3900
 
-async def cmd_send(profile: str, recipient: str | int, message: str, *, parse_mode: str | None = None) -> None:
+# Preferred split boundaries, finest-grained last. Auto-split walks this list
+# and uses the first separator that yields chunks all fitting under the limit.
+_SPLIT_SEPARATORS = (
+    "\n\n━━━━━━━━━━━━━━\n\n",
+    "\n━━━━━━━━━━━━━━\n",
+    "\n\n",
+    "\n",
+)
+
+
+def _plain_len(html: str) -> int:
+    """Length of the HTML message as Telegram counts it (post-entity-parsing)."""
+    from telethon.extensions import html as html_parser
+    return len(html_parser.parse(html)[0])
+
+
+def _split_long_message(
+    message: str, *, parse_mode: str | None, max_chars: int = TELEGRAM_MAX_PLAIN_CHARS,
+) -> list[str]:
+    """Split a message into Telegram-sendable chunks, preserving formatting.
+
+    Splits at major section boundaries first (━ separators), then paragraph
+    breaks, then line breaks. Returns [message] unchanged if it already fits.
+    """
+    effective_len = _plain_len(message) if parse_mode == "html" else len(message)
+    if effective_len <= max_chars:
+        return [message]
+
+    for sep in _SPLIT_SEPARATORS:
+        if sep not in message:
+            continue
+        chunks = _try_split_at(message, sep, parse_mode, max_chars)
+        if chunks is not None:
+            return chunks
+
+    # Last resort: hard character split. May break tags or words. Rare.
+    print(
+        f"Warning: no clean split boundary found; hard-chunking at {max_chars} chars. "
+        "Consider adding paragraph breaks or ━ separators to the message.",
+        file=sys.stderr,
+    )
+    return [message[i : i + max_chars] for i in range(0, len(message), max_chars)]
+
+
+def _try_split_at(
+    message: str, separator: str, parse_mode: str | None, max_chars: int,
+) -> list[str] | None:
+    """Greedy split: walk sections, pack as many as fit into each chunk.
+
+    Returns None if any single section alone exceeds max_chars (separator too
+    coarse; caller should try a finer one).
+    """
+    sections = message.split(separator)
+    chunks: list[str] = []
+    current: list[str] = []
+
+    def size(parts: list[str]) -> int:
+        joined = separator.join(parts)
+        return _plain_len(joined) if parse_mode == "html" else len(joined)
+
+    for section in sections:
+        section_size = _plain_len(section) if parse_mode == "html" else len(section)
+        if section_size > max_chars:
+            return None
+
+        if not current:
+            current = [section]
+            continue
+
+        if size(current + [section]) <= max_chars:
+            current.append(section)
+        else:
+            chunks.append(separator.join(current))
+            current = [section]
+
+    if current:
+        chunks.append(separator.join(current))
+    return chunks
+
+
+def _annotate_part(chunk: str, index: int, total: int, parse_mode: str | None) -> str:
+    """Prepend a part indicator to a chunk when there is more than one."""
+    if total == 1:
+        return chunk
+    if parse_mode == "html":
+        return f"<i>(Part {index}/{total})</i>\n\n{chunk}"
+    return f"(Part {index}/{total})\n\n{chunk}"
+
+
+async def cmd_send(
+    profile: str, recipient: str | int, message: str, *,
+    parse_mode: str | None = None, reply_to: int | None = None,
+) -> None:
     if not message:
         print("Error: message cannot be empty", file=sys.stderr)
         sys.exit(1)
     client = await _make_client(profile)
     try:
-        await client.send_message(recipient, message, parse_mode=parse_mode)
+        chunks = _split_long_message(message, parse_mode=parse_mode)
+        sent_ids: list[int] = []
+        for i, chunk in enumerate(chunks, start=1):
+            body = _annotate_part(chunk, i, len(chunks), parse_mode)
+            sent = await client.send_message(
+                recipient, body, parse_mode=parse_mode, reply_to=reply_to,
+            )
+            sent_ids.append(sent.id)
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         await client.disconnect()
         sys.exit(1)
-    print(f"[{profile}] Sent to {recipient}")
+    if len(chunks) == 1:
+        reply_note = f" (reply_to={reply_to})" if reply_to else ""
+        print(f"[{profile}] Sent to {recipient}{reply_note}: id={sent_ids[0]}")
+    else:
+        reply_note = f" reply_to={reply_to}" if reply_to else ""
+        print(
+            f"[{profile}] Sent to {recipient}{reply_note} in {len(chunks)} parts: "
+            f"ids={sent_ids}"
+        )
     await client.disconnect()
 
 
@@ -194,15 +305,19 @@ async def cmd_draft(profile: str, recipient: str | int, message: str, *, parse_m
 
         me = await client.get_me()
         await client.send_message(me.id, f"<b>Draft → {label}</b>", parse_mode="html")
-        await client.send_message(me.id, message, parse_mode=parse_mode)
+        chunks = _split_long_message(message, parse_mode=parse_mode)
+        for i, chunk in enumerate(chunks, start=1):
+            body = _annotate_part(chunk, i, len(chunks), parse_mode)
+            await client.send_message(me.id, body, parse_mode=parse_mode)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         await client.disconnect()
         sys.exit(1)
 
     mode_note = f" ({parse_mode.upper()})" if parse_mode else ""
+    parts_note = f" in {len(chunks)} parts" if len(chunks) > 1 else ""
     print(
-        f"[{profile}] Draft for '{label}' saved to Saved Messages{mode_note} "
+        f"[{profile}] Draft for '{label}' saved to Saved Messages{mode_note}{parts_note} "
         f"({len(message)} chars). Open Saved Messages → long-press body → Copy → "
         f"paste into target chat's compose area."
     )
@@ -622,10 +737,14 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
 
     # ── Messages ──
-    sp = sub.add_parser("send", help="Send a text message")
+    sp = sub.add_parser("send", help="Send a text message (auto-splits if >3900 chars)")
     sp.add_argument("recipient", help="Username, phone, or chat ID")
     sp.add_argument("message", help="Message text")
     sp.add_argument("--html", action="store_true", help="Parse message as HTML")
+    sp.add_argument(
+        "--reply-to", type=int, default=None, dest="reply_to",
+        help="Reply to a message ID (for supergroup topics, pass the topic's root_msg_id)",
+    )
 
     sp = sub.add_parser("draft", help="Send to Saved Messages for review before posting to target chat (does NOT send to target)")
     sp.add_argument("recipient", help="Target chat ID/username — used only to label the Saved Messages banner")
@@ -725,7 +844,11 @@ def main() -> None:
 
     match args.command:
         case "send":
-            asyncio.run(cmd_send(profile, parse_entity(args.recipient), args.message, parse_mode="html" if args.html else None))
+            asyncio.run(cmd_send(
+                profile, parse_entity(args.recipient), args.message,
+                parse_mode="html" if args.html else None,
+                reply_to=args.reply_to,
+            ))
         case "draft":
             asyncio.run(cmd_draft(profile, parse_entity(args.recipient), args.message, parse_mode="html" if args.html else None))
         case "send-file":
