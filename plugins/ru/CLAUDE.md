@@ -47,3 +47,15 @@ Stop Event → wrapper.sh (activation gate, <1ms if inactive) → loop-until-don
   → State machine: RUNNING → DRAINING → STOPPED
   → Template rendering (LiquidJS) with forbidden[]/encouraged[]
 ```
+
+## Skills
+
+- [audit-now](./skills/audit-now/SKILL.md)
+- [encourage](./skills/encourage/SKILL.md)
+- [forbid](./skills/forbid/SKILL.md)
+- [hooks](./skills/hooks/SKILL.md)
+- [settings](./skills/settings/SKILL.md)
+- [start](./skills/start/SKILL.md)
+- [status](./skills/status/SKILL.md)
+- [stop](./skills/stop/SKILL.md)
+- [wizard](./skills/wizard/SKILL.md)

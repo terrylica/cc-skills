@@ -6,15 +6,14 @@
 
 ## Skills
 
-| Skill                              | Purpose                                                                |
-| ---------------------------------- | ---------------------------------------------------------------------- |
-| `opendeviation-eval-metrics`       | SOTA metrics: Sharpe, PSR, DSR, risk, ML quality (IC)                  |
-| `sharpe-ratio-non-iid-corrections` | Generalized ρ-corrected Sharpe inference (PSR, DSR, pFDR, oFDR)        |
-| `adaptive-wfo-epoch`               | Adaptive epoch selection for WFO                                       |
-| `backtesting-py-oracle`            | backtesting.py config for SQL oracle validation                        |
-| `evolutionary-metric-ranking`      | Multi-objective evolutionary optimization for per-metric cutoffs       |
-| `exchange-session-detector`        | DST-aware exchange session detection via exchange_calendars            |
-| `odb-microstructure-forensics`     | Investigate ODB bar anomalies via Parquet trade + ClickHouse forensics |
+- [adaptive-wfo-epoch](./skills/adaptive-wfo-epoch/SKILL.md)
+- [backtesting-py-oracle](./skills/backtesting-py-oracle/SKILL.md)
+- [evolutionary-metric-ranking](./skills/evolutionary-metric-ranking/SKILL.md)
+- [exchange-session-detector](./skills/exchange-session-detector/SKILL.md)
+- [odb-microstructure-forensics](./skills/odb-microstructure-forensics/SKILL.md)
+- [opendeviation-eval-metrics](./skills/opendeviation-eval-metrics/SKILL.md)
+- [sharpe-ratio-non-iid-corrections](./skills/sharpe-ratio-non-iid-corrections/SKILL.md)
+- [zigzag-pattern-classifier](./skills/zigzag-pattern-classifier/SKILL.md)
 
 ## Conventions
 

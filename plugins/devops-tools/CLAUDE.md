@@ -62,22 +62,27 @@ ssh bigblack "curl -s 'http://localhost:8123/?query=SELECT+1'"
 
 ## Skills
 
-| Skill                           | Purpose                                                                                                      |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `clickhouse-cloud-management`   | ClickHouse schema management and query optimization                                                          |
-| `clickhouse-pydantic-config`    | ClickHouse connection config with Pydantic validation                                                        |
-| `doppler-secret-validation`     | Doppler secret rotation and validation                                                                       |
-| `doppler-workflows`             | Doppler project/config management workflows                                                                  |
-| `firecrawl-research-patterns`   | Programmatic Firecrawl: search, scrape, academic routing, deep research, corpus persistence, self-hosted ops |
-| `pueue-job-orchestration`       | Pueue job queue management for long-running tasks                                                            |
-| `distributed-job-safety`        | Safety patterns for distributed job execution                                                                |
-| `session-recovery`              | Claude Code session recovery and continuation                                                                |
-| `session-chronicle`             | Session event logging and chronicle                                                                          |
-| `disk-hygiene`                  | Disk space management and cleanup                                                                            |
-| `cloudflare-workers-publish`    | Cloudflare Workers deployment                                                                                |
-| `python-logging-best-practices` | Python logging configuration patterns                                                                        |
-| `mlflow-python`                 | MLflow experiment tracking setup                                                                             |
-| `project-directory-migration`   | Project directory restructuring                                                                              |
-| `dual-channel-watchexec`        | File watcher with dual notification channels                                                                 |
-| `ml-failfast-validation`        | ML pipeline fast-fail validation                                                                             |
-| `ml-data-pipeline-architecture` | ML data pipeline design patterns                                                                             |
+- [agentic-process-monitor](./skills/agentic-process-monitor/SKILL.md)
+- [claude-code-proxy-patterns](./skills/claude-code-proxy-patterns/SKILL.md)
+- [clickhouse-cloud-management](./skills/clickhouse-cloud-management/SKILL.md)
+- [clickhouse-pydantic-config](./skills/clickhouse-pydantic-config/SKILL.md)
+- [cloudflare-workers-publish](./skills/cloudflare-workers-publish/SKILL.md)
+- [disk-hygiene](./skills/disk-hygiene/SKILL.md)
+- [distributed-job-safety](./skills/distributed-job-safety/SKILL.md)
+- [doppler-secret-validation](./skills/doppler-secret-validation/SKILL.md)
+- [doppler-workflows](./skills/doppler-workflows/SKILL.md)
+- [dual-channel-watchexec](./skills/dual-channel-watchexec/SKILL.md)
+- [firecrawl-research-patterns](./skills/firecrawl-research-patterns/SKILL.md)
+- [macbook-desktop-mode](./skills/macbook-desktop-mode/SKILL.md)
+- [ml-data-pipeline-architecture](./skills/ml-data-pipeline-architecture/SKILL.md)
+- [ml-failfast-validation](./skills/ml-failfast-validation/SKILL.md)
+- [mlflow-python](./skills/mlflow-python/SKILL.md)
+- [project-directory-migration](./skills/project-directory-migration/SKILL.md)
+- [pueue-job-orchestration](./skills/pueue-job-orchestration/SKILL.md)
+- [python-logging-best-practices](./skills/python-logging-best-practices/SKILL.md)
+- [python-memory-safe-scripts](./skills/python-memory-safe-scripts/SKILL.md)
+- [session-chronicle](./skills/session-chronicle/SKILL.md)
+- [session-debrief](./skills/session-debrief/SKILL.md)
+- [session-recovery](./skills/session-recovery/SKILL.md)
+- [worktree-manager](./skills/worktree-manager/SKILL.md)
+

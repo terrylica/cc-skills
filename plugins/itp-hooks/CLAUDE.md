@@ -335,10 +335,8 @@ Edit `~/.claude/docs/GLOSSARY.md` to configure scan paths:
 
 ## Skills
 
-| Skill               | Purpose                                             |
-| ------------------- | --------------------------------------------------- |
-| `itp-hooks:setup`   | Check and install hook dependencies                 |
-| `hooks-development` | Hook development reference (lifecycle-reference.md) |
+- [hooks-development](./skills/hooks-development/SKILL.md)
+- [setup](./skills/setup/SKILL.md)
 
 ## Pueue Reminder for Long-Running Tasks
 

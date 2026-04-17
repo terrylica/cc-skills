@@ -35,3 +35,7 @@ Reference guide covering:
 
 - **Upstream**: [HKUDS/CLI-Anything](https://github.com/HKUDS/CLI-Anything)
 - **HARNESS.md**: Methodology document in `cli-anything-plugin/HARNESS.md` (upstream)
+
+## Skills
+
+- [cli-anything](./skills/cli-anything/SKILL.md)

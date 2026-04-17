@@ -6,18 +6,17 @@
 
 ## Skills
 
-| Skill                               | Purpose                                                     |
-| ----------------------------------- | ----------------------------------------------------------- |
-| `clickhouse-architect`              | ClickHouse schema design, compression codecs, ORDER BY keys |
-| `code-clone-assistant`              | Detect and refactor code duplication (PMD CPD, Semgrep)     |
-| `multi-agent-e2e-validation`        | Parallel E2E validation for database refactors              |
-| `multi-agent-performance-profiling` | Parallel performance profiling for bottlenecks              |
-| `pre-ship-review`                   | Structured quality review before shipping (PRs, releases)   |
-| `schema-e2e-validation`             | Earthly E2E validation for schema-first data contracts      |
-| `symmetric-dogfooding`              | Bidirectional integration validation between repos          |
-| `dead-code-detector`                | Detect dead code with Vulture and coverage analysis         |
-| `alpha-forge-preship`               | Alpha-forge specific pre-ship gates                         |
-| `telemetry-terminology-similarity`  | Detect similar/duplicate field names in telemetry schemas   |
+- [alpha-forge-preship](./skills/alpha-forge-preship/SKILL.md)
+- [clickhouse-architect](./skills/clickhouse-architect/SKILL.md)
+- [code-clone-assistant](./skills/code-clone-assistant/SKILL.md)
+- [dead-code-detector](./skills/dead-code-detector/SKILL.md)
+- [multi-agent-e2e-validation](./skills/multi-agent-e2e-validation/SKILL.md)
+- [multi-agent-performance-profiling](./skills/multi-agent-performance-profiling/SKILL.md)
+- [pre-ship-review](./skills/pre-ship-review/SKILL.md)
+- [refactoring-guide](./skills/refactoring-guide/SKILL.md)
+- [schema-e2e-validation](./skills/schema-e2e-validation/SKILL.md)
+- [symmetric-dogfooding](./skills/symmetric-dogfooding/SKILL.md)
+- [telemetry-terminology-similarity](./skills/telemetry-terminology-similarity/SKILL.md)
 
 ## Conventions
 

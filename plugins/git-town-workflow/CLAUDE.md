@@ -27,3 +27,10 @@
 | `git rebase`           | `git town sync`   |
 
 Allowed: `git add`, `git commit`, `git status`, `git log`, `git diff`, `git stash`.
+
+## Skills
+
+- [contribute](./skills/contribute/SKILL.md)
+- [fork](./skills/fork/SKILL.md)
+- [hooks](./skills/hooks/SKILL.md)
+- [setup](./skills/setup/SKILL.md)

@@ -69,3 +69,7 @@ plugins/gemini-deep-research/
 ## Cross-References
 
 - Firecrawl scraping: [devops-tools](../devops-tools/CLAUDE.md) (self-hosted Firecrawl patterns)
+
+## Skills
+
+- [research](./skills/research/SKILL.md)

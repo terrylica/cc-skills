@@ -6,10 +6,9 @@
 
 ## Skills
 
-| Skill               | Purpose                                                              |
-| ------------------- | -------------------------------------------------------------------- |
-| `chezmoi-workflows` | Dotfile tracking, sync, push, templates, secret detection, migration |
-| `chezmoi-sync`      | Interactive on-demand chezmoi drift check and sync                   |
+- [chezmoi-sync](./skills/chezmoi-sync/SKILL.md)
+- [chezmoi-workflows](./skills/chezmoi-workflows/SKILL.md)
+- [hooks](./skills/hooks/SKILL.md)
 
 ## Hooks
 

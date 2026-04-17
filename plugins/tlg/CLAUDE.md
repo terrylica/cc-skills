@@ -129,3 +129,22 @@ All 17 subcommands empirically tested bi-directionally between `eon` and `misste
 | Error: invalid profile             | ✅ clean error |
 | Error: empty message               | ✅ clean error |
 | Error: bad recipient               | ✅ clean error |
+
+## Skills
+
+- [cleanup-deleted](./skills/cleanup-deleted/SKILL.md)
+- [create-group](./skills/create-group/SKILL.md)
+- [delete-messages](./skills/delete-messages/SKILL.md)
+- [download-media](./skills/download-media/SKILL.md)
+- [draft-message](./skills/draft-message/SKILL.md)
+- [dump-channel](./skills/dump-channel/SKILL.md)
+- [find-user](./skills/find-user/SKILL.md)
+- [forward-message](./skills/forward-message/SKILL.md)
+- [list-dialogs](./skills/list-dialogs/SKILL.md)
+- [manage-members](./skills/manage-members/SKILL.md)
+- [mark-read](./skills/mark-read/SKILL.md)
+- [pin-message](./skills/pin-message/SKILL.md)
+- [search-messages](./skills/search-messages/SKILL.md)
+- [send-media](./skills/send-media/SKILL.md)
+- [send-message](./skills/send-message/SKILL.md)
+- [setup](./skills/setup/SKILL.md)

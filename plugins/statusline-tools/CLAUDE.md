@@ -6,12 +6,10 @@
 
 ## Skills
 
-| Skill          | Purpose                                                |
-| -------------- | ------------------------------------------------------ |
-| `setup`        | Install/uninstall/status for statusline + dependencies |
-| `ignore`       | Manage global ignore patterns for lint-relative-paths  |
-| `session-info` | Display current session UUID, chain, registry info     |
-| `hooks`        | Install/uninstall link validation stop hooks           |
+- [hooks](./skills/hooks/SKILL.md)
+- [ignore](./skills/ignore/SKILL.md)
+- [session-info](./skills/session-info/SKILL.md)
+- [setup](./skills/setup/SKILL.md)
 
 ## Commands
 

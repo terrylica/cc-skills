@@ -10,14 +10,30 @@ Full terminal recording lifecycle: record sessions, stream to GitHub, convert to
 
 ## Skills
 
-| Skill                        | Purpose                                                     |
-| ---------------------------- | ----------------------------------------------------------- |
-| `asciinema-player`           | Play .cast recordings in iTerm2 with speed controls         |
-| `asciinema-recorder`         | Record sessions with dynamic workspace-based filenames      |
-| `asciinema-streaming-backup` | Real-time backup to GitHub orphan branch with idle-chunking |
-| `asciinema-cast-format`      | Reference for asciinema v3 NDJSON format                    |
-| `asciinema-converter`        | Convert .cast to .txt for analysis (950:1 compression)      |
-| `asciinema-analyzer`         | Keyword extraction and density analysis                     |
+- [analyze](./skills/analyze/SKILL.md)
+- [asciinema-analyzer](./skills/asciinema-analyzer/SKILL.md)
+- [asciinema-cast-format](./skills/asciinema-cast-format/SKILL.md)
+- [asciinema-converter](./skills/asciinema-converter/SKILL.md)
+- [asciinema-player](./skills/asciinema-player/SKILL.md)
+- [asciinema-recorder](./skills/asciinema-recorder/SKILL.md)
+- [asciinema-streaming-backup](./skills/asciinema-streaming-backup/SKILL.md)
+- [backup](./skills/backup/SKILL.md)
+- [bootstrap](./skills/bootstrap/SKILL.md)
+- [convert](./skills/convert/SKILL.md)
+- [daemon-logs](./skills/daemon-logs/SKILL.md)
+- [daemon-setup](./skills/daemon-setup/SKILL.md)
+- [daemon-start](./skills/daemon-start/SKILL.md)
+- [daemon-status](./skills/daemon-status/SKILL.md)
+- [daemon-stop](./skills/daemon-stop/SKILL.md)
+- [finalize](./skills/finalize/SKILL.md)
+- [format](./skills/format/SKILL.md)
+- [full-workflow](./skills/full-workflow/SKILL.md)
+- [hooks](./skills/hooks/SKILL.md)
+- [play](./skills/play/SKILL.md)
+- [post-session](./skills/post-session/SKILL.md)
+- [record](./skills/record/SKILL.md)
+- [setup](./skills/setup/SKILL.md)
+- [summarize](./skills/summarize/SKILL.md)
 
 ## Commands
 
