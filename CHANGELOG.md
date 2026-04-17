@@ -1,3 +1,30 @@
+# [12.51.0](https://github.com/terrylica/cc-skills/compare/v12.50.1...v12.51.0) (2026-04-17)
+
+
+### Features
+
+* **tlg:** auto-split long messages + --reply-to flag ([fe63231](https://github.com/terrylica/cc-skills/commit/fe6323161f5b67b5869fdd52452ebd88fb8ddb3e))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>tlg</strong> (2 changes)</summary>
+
+- [draft-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/draft-message/SKILL.md) - updated (+1)
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-message/SKILL.md) - updated (+26/-4)
+
+</details>
+
 ## [12.50.1](https://github.com/terrylica/cc-skills/compare/v12.50.0...v12.50.1) (2026-04-17)
 
 
