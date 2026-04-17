@@ -39,7 +39,7 @@ SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugi
 uv run --python 3.13 "$SCRIPT" send-file @username /path/to/photo.jpg
 
 # Send with caption
-uv run --python 3.13 "$SCRIPT" send-file -5111414203 /path/to/image.png -c "Check this out"
+uv run --python 3.13 "$SCRIPT" send-file -1003958083153 /path/to/image.png -c "Check this out"
 
 # Force send as document (no preview)
 uv run --python 3.13 "$SCRIPT" send-file @username /path/to/image.png --document
@@ -58,7 +58,7 @@ from telethon import TelegramClient
 SESSION = os.path.expanduser("~/.local/share/telethon/eon")
 API_ID = 18256514
 API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-CHAT_ID = -5111414203  # negative for groups
+CHAT_ID = -1003958083153  # negative for groups
 
 CAPTION = """<b>File Title</b>
 
