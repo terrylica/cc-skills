@@ -29,6 +29,29 @@ asyncio.run(c())
 
 If `EXPIRED`, run `/tlg:setup` first (uses 3-step non-interactive auth pattern).
 
+## Supergroup-First Methodology
+
+The Bruntwork group (`-1003958083153`) is a **supergroup with Topics**. All messages to this group MUST target a specific topic — never post to the bare supergroup without a topic target.
+
+**Why supergroup over basic chat:**
+
+- **Server-global message IDs.** Every member sees the same `id=N` for each message. Both sides' Claude Code resolves citations identically — no viewer-qualifier needed, no cross-boundary ambiguity.
+- **Topic namespaces.** Policies don't get buried between daily check-ins. Each subject has its own searchable thread with independent pins.
+- **AI-agent addressability.** Claude Code can target reads/writes to specific topics via `reply_to_msg_id`, enabling precise routing: "post this bug report to Bug Reports" or "search Policies for the carve-out decision."
+- **Emoji reactions as acknowledgment signals.** Reactions are programmatically readable via `message.reactions.results` — enables lightweight ACK checking without requiring a text reply.
+
+**Topic selection discipline:** When composing a message, select the most specific topic from the Topic Registry below. Use General only as a fallback. Never cross-post the same message to multiple topics.
+
+**Citation convention:** Bare `id=N` citations resolve identically for every member. When referencing a prior message, cite its ID. Claude Code on both sides can look it up autonomously via `client.get_messages(supergroup_id, ids=N)`.
+
+**Sending to a topic via tg-cli.py:** Currently tg-cli.py does not have a `--reply-to` flag. For topic-targeted messages, use Direct Telethon with `reply_to=<root_msg_id>`. See the Topic Registry section for root_msg_id values.
+
+**Sending to a topic via Direct Telethon:**
+
+```python
+await client.send_message(-1003958083153, message, parse_mode="html", reply_to=TOPIC_ROOT_ID)
+```
+
 ## Usage: tg-cli.py (when session is valid)
 
 > **When in doubt, USE `--html`.** If your message contains ANY of: `<b>`, `<i>`, `<code>`, `<pre>`, `<a href>`, bold headers, inline code, or markdown-style `**bold**` / `` `code` ``, you MUST either pass `--html` (and translate markdown → HTML tags first) or strip the decoration. Sending Telegram-style markdown without `--html` renders the asterisks and backticks literally to the recipient. For multi-section messages with headers, separators, and code spans — **always** use `--html`.
@@ -43,12 +66,12 @@ SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugi
 uv run --python 3.13 "$SCRIPT" send @username "Hello"
 
 # HTML formatting — the recommended default for any structured message
-uv run --python 3.13 "$SCRIPT" send --html -5111414203 "<b>Bold header</b>
+uv run --python 3.13 "$SCRIPT" send --html -1003958083153 "<b>Bold header</b>
 
 Body with <code>inline code</code> and <a href='https://example.com'>a link</a>."
 
 # By chat ID (groups use negative IDs)
-uv run --python 3.13 "$SCRIPT" send -5111414203 "Hello group"
+uv run --python 3.13 "$SCRIPT" send -1003958083153 "Hello group"
 
 # Specific profile
 uv run --python 3.13 "$SCRIPT" -p missterryli send @username "Hello"
@@ -69,7 +92,7 @@ from telethon import TelegramClient
 SESSION = os.path.expanduser("~/.local/share/telethon/eon")
 API_ID = 18256514
 API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-CHAT_ID = -5111414203  # negative for groups
+CHAT_ID = -1003958083153  # negative for groups
 
 MSG = """<b>Bold title</b>
 <i>Italic subtitle</i>
@@ -103,7 +126,7 @@ from telethon import TelegramClient
 SESSION = os.path.expanduser("~/.local/share/telethon/eon")
 API_ID = 18256514
 API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-CHAT_ID = -5111414203
+CHAT_ID = -1003958083153
 
 CAPTION = """<b>File Title</b>
 
@@ -130,7 +153,7 @@ from telethon import TelegramClient
 SESSION = os.path.expanduser("~/.local/share/telethon/eon")
 API_ID = 18256514
 API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-CHAT_ID = -5111414203
+CHAT_ID = -1003958083153
 
 async def edit():
     client = TelegramClient(SESSION, API_ID, API_HASH)
@@ -222,9 +245,27 @@ Emojis are supported but user may prefer decorations without emojis — use `<pr
 
 ## Known Group Chat IDs
 
-| Group                  | Chat ID     |
-| ---------------------- | ----------- |
-| Terry & MD (Bruntwork) | -5111414203 |
+| Group                  | Chat ID        | Type                                                           |
+| ---------------------- | -------------- | -------------------------------------------------------------- |
+| Terry & MD (Bruntwork) | -1003958083153 | Supergroup                                                     |
+| Terry & MD (Bruntwork) | -1003958083153 | Legacy basic chat (pre-2026-04-16, read-only for old messages) |
+
+## Topic Registry (Bruntwork Supergroup)
+
+To send a message to a specific topic, pass `reply_to=<root_msg_id>` in `send_message()` or use `--reply-to` in tg-cli.py.
+
+| Topic                      | root_msg_id | Scope                                                  |
+| -------------------------- | ----------- | ------------------------------------------------------ |
+| General                    | 1           | Catch-all, quick questions                             |
+| Assignments & Deliverables | 2           | Task definitions, PR reviews, Block check-ins          |
+| Daily Operations           | 3           | Commencement/disembarkation, shift status              |
+| Onboarding & Access        | 4           | Repo access, SSH/Tailscale, tool provisioning          |
+| Policy & Standards         | 5           | cc-skills carve-out, conventions, discipline           |
+| Bug Reports & Incidents    | 6           | Merge conflicts, hook bugs, pipeline breaks            |
+| Tool Setup & Config        | 7           | ccmax-monitor, FlowSurface, chronicle pipeline         |
+| Knowledge Base & Learning  | 8           | KB pages, research material, skill references          |
+| HR & Scheduling            | 9           | Shift hours, Bruntwork coordination                    |
+| Session Monitor            | 185         | Real-time Claude Code session summaries (CC Nasim Bot) |
 
 ## Anti-Patterns (NEVER DO)
 
