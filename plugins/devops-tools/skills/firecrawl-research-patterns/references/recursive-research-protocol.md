@@ -37,7 +37,7 @@ Verify Firecrawl is reachable before starting. A failed health check saves minut
 
 ```typescript
 try {
-  await fetch("http://gpu-host:3002/v1/health", {
+  await fetch("http://small-host:3002/v1/health", {
     signal: AbortSignal.timeout(5_000),
   });
 } catch {
@@ -74,7 +74,7 @@ const results = await Promise.all(
   queries.map((q) =>
     limit(async () => {
       const searchResult = await firecrawlSearch(
-        "http://gpu-host:3002",
+        "http://small-host:3002",
         q.query,
         { timeout: 15_000, limit: 5 },
       );

@@ -8,10 +8,10 @@
 
 ```bash
 # Check container status
-ssh gpu-host 'docker ps -a --filter "name=firecrawl"'
+ssh small-host 'docker ps -a --filter "name=firecrawl"'
 
 # Check restart policy
-ssh gpu-host 'docker inspect --format "{{.Name}}: {{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
+ssh small-host 'docker inspect --format "{{.Name}}: {{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
 ```
 
 **Fix**: Add `restart: unless-stopped` to ALL services in `docker-compose.yaml`:
@@ -49,13 +49,13 @@ services:
 **Apply Fix**:
 
 ```bash
-ssh gpu-host 'cd ~/firecrawl && docker compose up -d --force-recreate'
+ssh small-host 'cd ~/firecrawl && docker compose up -d --force-recreate'
 ```
 
 **Verify**:
 
 ```bash
-ssh gpu-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
+ssh small-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}" $(docker ps -a --filter "name=firecrawl" -q)'
 # All should show: RestartPolicy=unless-stopped
 ```
 
@@ -64,13 +64,13 @@ ssh gpu-host 'docker inspect --format "{{.Name}}: RestartPolicy={{.HostConfig.Re
 **Diagnosis**:
 
 ```bash
-ssh gpu-host "systemctl --user status firecrawl-scraper"
+ssh small-host "systemctl --user status firecrawl-scraper"
 ```
 
 **Fix**:
 
 ```bash
-ssh gpu-host "systemctl --user restart firecrawl-scraper"
+ssh small-host "systemctl --user restart firecrawl-scraper"
 ```
 
 ## Symptom: Caddy File Server Down
@@ -78,14 +78,14 @@ ssh gpu-host "systemctl --user restart firecrawl-scraper"
 **Diagnosis**:
 
 ```bash
-ssh gpu-host "systemctl --user status caddy-firecrawl"
-curl -I http://gpu-host:8080/
+ssh small-host "systemctl --user status caddy-firecrawl"
+curl -I http://small-host:8080/
 ```
 
 **Fix**:
 
 ```bash
-ssh gpu-host "systemctl --user restart caddy-firecrawl"
+ssh small-host "systemctl --user restart caddy-firecrawl"
 ```
 
 ## Symptom: Tailscale Unreachable
@@ -94,7 +94,7 @@ ssh gpu-host "systemctl --user restart caddy-firecrawl"
 
 ```bash
 # From local machine
-tailscale ping gpu-host
+tailscale ping small-host
 
 # Check Tailscale status
 tailscale status

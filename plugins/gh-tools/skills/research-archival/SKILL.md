@@ -106,7 +106,7 @@ URL contains chatgpt.com/share/
 
 URL contains gemini.google.com/share/
   → Firecrawl (JS-heavy SPA)
-  → Preflight: ping -c1 -W2 gpu-host
+  → Preflight: ping -c1 -W2 small-host
 
 URL contains claude.ai/artifacts/ or is a static web page
   → Jina Reader (https://r.jina.ai/{URL})
@@ -121,15 +121,15 @@ URL contains claude.ai/artifacts/ or is a static web page
 /usr/bin/env bash << 'SCRAPE_EOF'
 set -euo pipefail
 
-# Step 1: Check Tailscale connectivity
-if ! ping -c1 -W2 gpu-host >/dev/null 2>&1; then
+# Step 1: Check Tailscale connectivity (small-host primary, ZeroTier legacy at 172.25.236.1)
+if ! ping -c1 -W2 small-host >/dev/null 2>&1; then
   echo "ERROR: Firecrawl host unreachable. Check Tailscale: tailscale status"
   exit 1
 fi
 
 # Step 2: Deep health check — test actual API response, not just container status
 # Port 3003 (wrapper) may accept TCP but return empty if Firecrawl API (3002) is dead inside
-HTTP_CODE=$(ssh gpu-host 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
+HTTP_CODE=$(ssh small-host 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
   -X POST http://localhost:3002/v1/scrape \
   -H "Content-Type: application/json" \
   -d "{\"url\":\"https://example.com\",\"formats\":[\"markdown\"]}"' 2>/dev/null || echo "000")
@@ -138,22 +138,22 @@ if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503
   echo "WARNING: Firecrawl API unhealthy (HTTP $HTTP_CODE). Attempting revival..."
 
   # Step 2a: Check docker logs for WORKER STALLED (RAM/CPU overload)
-  ssh gpu-host 'docker logs firecrawl-api-1 --tail 20 2>&1 | grep -i "stalled\|error\|exit" || true'
+  ssh small-host 'docker logs firecrawl-api-1 --tail 20 2>&1 | grep -i "stalled\|error\|exit" || true'
 
   # Step 2b: Restart the critical containers
-  ssh gpu-host 'docker restart firecrawl-api-1 firecrawl-playwright-service-1' 2>/dev/null
+  ssh small-host 'docker restart firecrawl-api-1 firecrawl-playwright-service-1' 2>/dev/null
   echo "Containers restarted. Waiting 20s for API to initialize..."
   sleep 20
 
   # Step 2c: Verify recovery
-  HTTP_CODE=$(ssh gpu-host 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
+  HTTP_CODE=$(ssh small-host 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
     -X POST http://localhost:3002/v1/scrape \
     -H "Content-Type: application/json" \
     -d "{\"url\":\"https://example.com\",\"formats\":[\"markdown\"]}"' 2>/dev/null || echo "000")
 
   if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ]; then
     echo "ERROR: Firecrawl still unhealthy after restart (HTTP $HTTP_CODE)."
-    echo "Manual intervention needed. Try: ssh gpu-host 'cd ~/firecrawl && docker compose up -d --force-recreate'"
+    echo "Manual intervention needed. Try: ssh small-host 'cd ~/firecrawl && docker compose up -d --force-recreate'"
     echo "Falling back to Jina Reader: https://r.jina.ai/${URL}"
     exit 1
   fi
@@ -161,7 +161,7 @@ if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503
 fi
 
 # Step 3: Scrape via wrapper
-CONTENT=$(curl -s --max-time 120 "http://gpu-host:3003/scrape?url=${URL}&name=${SLUG}")
+CONTENT=$(curl -s --max-time 120 "http://small-host:3003/scrape?url=${URL}&name=${SLUG}")
 
 if [ -z "$CONTENT" ]; then
   echo "ERROR: Scrape returned empty. Try Jina fallback: https://r.jina.ai/${URL}"

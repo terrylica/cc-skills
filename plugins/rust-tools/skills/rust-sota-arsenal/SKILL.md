@@ -37,7 +37,7 @@ State-of-the-art Rust tooling knowledge for refactoring, profiling, benchmarking
 4. **Fallback: Firecrawl scrape** (if WebFetch fails or returns incomplete data — e.g., JS-heavy pages, rate limits):
 
    ```bash
-   curl -s -X POST http://gpu-host:3002/v1/scrape \
+   curl -s -X POST http://small-host:3002/v1/scrape \
      -H "Content-Type: application/json" \
      -d '{"url": "https://crates.io/crates/{crate_name}", "formats": ["markdown"], "waitFor": 0}' \
      | jq -r '.data.markdown'
