@@ -12,10 +12,8 @@ This plugin fills an LLM knowledge gap: many SOTA Rust tools (cargo-wizard, mace
 
 ## Skills
 
-| Skill                   | Slash Command                       | Purpose                                                    |
-| ----------------------- | ----------------------------------- | ---------------------------------------------------------- |
-| `rust-sota-arsenal`     | `/rust-tools:rust-sota-arsenal`     | Refactoring, profiling, benchmarking, testing, SIMD        |
-| `rust-dependency-audit` | `/rust-tools:rust-dependency-audit` | Dependency freshness, vulnerability, license, supply chain |
+- [rust-dependency-audit](./skills/rust-dependency-audit/SKILL.md)
+- [rust-sota-arsenal](./skills/rust-sota-arsenal/SKILL.md)
 
 ## Hooks
 

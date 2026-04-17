@@ -88,3 +88,12 @@ The refresh_token has a 7-day TTL in Google OAuth Testing mode. When it expires,
 - **CLI paths**: `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail`
 - **Sender alignment**: Auto-detect for replies, AskUserQuestion for new emails
 - **Secrets**: `.mise.local.toml` (gitignored) in project directory
+
+## Skills
+
+- [bot-process-control](./skills/bot-process-control/SKILL.md)
+- [email-triage](./skills/email-triage/SKILL.md)
+- [gmail-access](./skills/gmail-access/SKILL.md)
+- [health](./skills/health/SKILL.md)
+- [interactive-bot](./skills/interactive-bot/SKILL.md)
+- [setup](./skills/setup/SKILL.md)

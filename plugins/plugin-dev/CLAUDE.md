@@ -6,10 +6,9 @@
 
 ## Skills
 
-| Skill                | Purpose                                                             |
-| -------------------- | ------------------------------------------------------------------- |
-| `plugin-validator`   | Validate plugin structure, manifests, and silent failure patterns   |
-| `skill-architecture` | Meta-skill for creating Claude Code skills with TodoWrite templates |
+- [create](./skills/create/SKILL.md)
+- [plugin-validator](./skills/plugin-validator/SKILL.md)
+- [skill-architecture](./skills/skill-architecture/SKILL.md)
 
 ## Commands
 

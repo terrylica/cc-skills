@@ -63,3 +63,16 @@ Shell scripts use plain text via `tts_log`. Logs: `~/.claude/automation/claude-t
 - [Lock debugging](./skills/diagnostic-issue-resolver/references/lock-debugging.md)
 - [Config reference](./skills/settings-and-tuning/references/config-reference.md)
 - [Voice catalog](./skills/voice-quality-audition/references/voice-catalog.md)
+
+## Skills
+
+- [bot-process-control](./skills/bot-process-control/SKILL.md)
+- [clean-component-removal](./skills/clean-component-removal/SKILL.md)
+- [component-version-upgrade](./skills/component-version-upgrade/SKILL.md)
+- [diagnostic-issue-resolver](./skills/diagnostic-issue-resolver/SKILL.md)
+- [full-stack-bootstrap](./skills/full-stack-bootstrap/SKILL.md)
+- [health](./skills/health/SKILL.md)
+- [hooks](./skills/hooks/SKILL.md)
+- [settings-and-tuning](./skills/settings-and-tuning/SKILL.md)
+- [setup](./skills/setup/SKILL.md)
+- [voice-quality-audition](./skills/voice-quality-audition/SKILL.md)
