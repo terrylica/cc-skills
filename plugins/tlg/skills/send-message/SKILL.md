@@ -44,13 +44,35 @@ The Bruntwork group (`-1003958083153`) is a **supergroup with Topics**. All mess
 
 **Citation convention:** Bare `id=N` citations resolve identically for every member. When referencing a prior message, cite its ID. Claude Code on both sides can look it up autonomously via `client.get_messages(supergroup_id, ids=N)`.
 
-**Sending to a topic via tg-cli.py:** Currently tg-cli.py does not have a `--reply-to` flag. For topic-targeted messages, use Direct Telethon with `reply_to=<root_msg_id>`. See the Topic Registry section for root_msg_id values.
+**Sending to a topic via tg-cli.py:** use the `--reply-to` flag with the topic's root_msg_id. See the Topic Registry section below for root_msg_id values.
+
+```bash
+uv run --python 3.13 "$SCRIPT" send --html --reply-to 5 -1003958083153 "<b>Policy update</b> ..."
+```
 
 **Sending to a topic via Direct Telethon:**
 
 ```python
 await client.send_message(-1003958083153, message, parse_mode="html", reply_to=TOPIC_ROOT_ID)
 ```
+
+## Auto-split for long messages
+
+Telegram's hard limit is 4096 post-parsing chars per message. **tg-cli.py `send` and `draft` both auto-split** messages exceeding ~3900 plain chars into multiple sequential posts, preserving HTML formatting and section structure.
+
+**Split algorithm**: splits at the finest-grained safe boundary that fits all chunks:
+
+1. `\n\n━━━━━━━━━━━━━━\n\n` (major section separator, preferred)
+2. `\n━━━━━━━━━━━━━━\n` (section separator)
+3. `\n\n` (paragraph break)
+4. `\n` (line break)
+5. Hard character split (last resort — prints warning; may break tags)
+
+Each continuation chunk gets a `<i>(Part N/M)</i>` header prepended so recipients see the sequence clearly. All parts share the same `--reply-to` target so a multi-part post stays in one topic thread.
+
+**You do NOT need to manually split messages anymore.** Compose the full HTML as one string, pass to `send`, and the splitter handles it. The "Direct Telethon" pattern below is now only needed for file attachments, multi-message sequences with different content per message, or edit/delete operations.
+
+**Size-aware authoring guidance**: prefer messages that fit in one post (≤ 3900 plain chars) — splits add visual overhead with part headers. If a message is naturally larger (e.g., a pinned reference), let the splitter do its job. Structure with `━━━━━━━━━━━━━━` separators so split boundaries land cleanly between logical sections.
 
 ## Usage: tg-cli.py (when session is valid)
 
@@ -78,11 +100,11 @@ uv run --python 3.13 "$SCRIPT" -p personal send @username "Hello"
 SEND_EOF
 ```
 
-**Long HTML messages**: when the body has multiple paragraphs, bullets, separators, or code blocks, prefer the "Direct Telethon" pattern below — it avoids shell-quoting hell on multi-line bodies and is what actually works reliably for operator-written messages with structure.
+**Long HTML messages**: `tg-cli.py send --html` auto-splits at the 3900-plain-char threshold. Compose the full HTML as one string and let the splitter handle it. See "Auto-split for long messages" above.
 
-## Usage: Direct Telethon (for multi-message sequences, files, or when tg-cli.py fails)
+## Usage: Direct Telethon (for file attachments, multi-message sequences with varying content, edits/deletes)
 
-When you need multi-message sequences, file attachments with captions, or tg-cli.py fails, use Telethon directly. For simple HTML messages, prefer `tg-cli.py send --html` above:
+Direct Telethon is now only needed for cases `tg-cli.py send` cannot cover: file attachments with captions, sequences of differently-structured messages, message edits, or deletions. Long single-body messages are handled by `tg-cli.py send` auto-split.
 
 ```bash
 VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
