@@ -1,3 +1,53 @@
+## [12.50.1](https://github.com/terrylica/cc-skills/compare/v12.50.0...v12.50.1) (2026-04-17)
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Plugin READMEs
+
+- [quant-research](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/README.md) - updated (+14/-10)
+
+## Other Documentation
+
+### Other
+
+- [agent-reach Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/agent-reach/CLAUDE.md) - new (+24)
+- [asciinema-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/asciinema-tools/CLAUDE.md) - updated (+24/-8)
+- [Cal.com Commander Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/calcom-commander/CLAUDE.md) - updated (+9)
+- [Plugin Development Guide](https://github.com/terrylica/cc-skills/blob/main/plugins/CLAUDE.md) - updated (+34/-29)
+- [cli-anything Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/cli-anything/CLAUDE.md) - updated (+4)
+- [devops-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/CLAUDE.md) - updated (+29/-19)
+- [doc-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/doc-tools/CLAUDE.md) - updated (+10/-12)
+- [dotfiles-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/dotfiles-tools/CLAUDE.md) - updated (+3/-4)
+- [gemini-deep-research Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gemini-deep-research/CLAUDE.md) - updated (+4)
+- [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+14/-9)
+- [git-town-workflow Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/CLAUDE.md) - updated (+7)
+- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+4/-6)
+- [Gmail Commander Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/CLAUDE.md) - updated (+22/-10)
+- [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+13/-4)
+- [itp Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/CLAUDE.md) - updated (+15/-17)
+- [kokoro-tts Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/kokoro-tts/CLAUDE.md) - updated (+11)
+- [link-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/link-tools/CLAUDE.md) - updated (+2/-4)
+- [media-tools](https://github.com/terrylica/cc-skills/blob/main/plugins/media-tools/CLAUDE.md) - updated (+1/-3)
+- [mise Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/mise/CLAUDE.md) - updated (+7)
+- [mql5 Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/mql5/CLAUDE.md) - updated (+6/-6)
+- [plugin-dev Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/plugin-dev/CLAUDE.md) - updated (+3/-4)
+- [productivity-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/productivity-tools/CLAUDE.md) - updated (+8/-9)
+- [quality-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/quality-tools/CLAUDE.md) - updated (+11/-12)
+- [quant-research Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/quant-research/CLAUDE.md) - updated (+8/-9)
+- [ru Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/CLAUDE.md) - updated (+12)
+- [rust-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/CLAUDE.md) - updated (+2/-4)
+- [statusline-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/statusline-tools/CLAUDE.md) - updated (+4/-6)
+- [Telegram CLI Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/CLAUDE.md) - updated (+19)
+- [tts-tg-sync Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/tts-tg-sync/CLAUDE.md) - updated (+13)
+
 # [12.50.0](https://github.com/terrylica/cc-skills/compare/v12.49.1...v12.50.0) (2026-04-17)
 
 
