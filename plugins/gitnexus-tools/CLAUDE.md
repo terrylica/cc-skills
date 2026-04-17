@@ -14,12 +14,10 @@ GitNexus indexes codebases into a KuzuDB knowledge graph (nodes: functions, clas
 
 ## Skills
 
-| Skill       | Slash Command               | Purpose                                            |
-| ----------- | --------------------------- | -------------------------------------------------- |
-| `explore`   | `/gitnexus-tools:explore`   | Trace execution flows, understand how code works   |
-| `impact`    | `/gitnexus-tools:impact`    | Blast radius analysis before modifying code        |
-| `dead-code` | `/gitnexus-tools:dead-code` | Find orphan functions, dangling imports, dead code |
-| `reindex`   | `/gitnexus-tools:reindex`   | Re-index repository and verify graph stats         |
+- [dead-code](./skills/dead-code/SKILL.md)
+- [explore](./skills/explore/SKILL.md)
+- [impact](./skills/impact/SKILL.md)
+- [reindex](./skills/reindex/SKILL.md)
 
 ## Hooks
 

@@ -33,3 +33,10 @@ Reference: cc-skills' own `.mise/tasks/release/` and `docs/RELEASE.md`.
 
 - `mise-tasks` skill (in itp) — task orchestration with `[tasks]`, dependencies, DAGs
 - `mise-configuration` skill (in itp) — environment SSoT with `[env]`, `[tools]`, templates
+
+## Skills
+
+- [list-repo-tasks](./skills/list-repo-tasks/SKILL.md)
+- [run-full-release](./skills/run-full-release/SKILL.md)
+- [show-env-status](./skills/show-env-status/SKILL.md)
+- [sred-commit](./skills/sred-commit/SKILL.md)

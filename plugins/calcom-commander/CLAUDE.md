@@ -53,3 +53,12 @@ Cal.com CLI (compiled Bun binary): `scripts/calcom-cli/` — separate `package.j
 - **Dual-channel**: Telegram (HTML) + Pushover (plain text). Build in HTML, strip for Pushover.
 - **Pushover optional**: All Pushover functionality gracefully degrades if credentials not set
 - **Webhook relay**: Deployed to same GCP project as Cal.com (Cloud Run, `--allow-unauthenticated`)
+
+## Skills
+
+- [booking-config](./skills/booking-config/SKILL.md)
+- [booking-notify](./skills/booking-notify/SKILL.md)
+- [calcom-access](./skills/calcom-access/SKILL.md)
+- [health](./skills/health/SKILL.md)
+- [infra-deploy](./skills/infra-deploy/SKILL.md)
+- [setup](./skills/setup/SKILL.md)
