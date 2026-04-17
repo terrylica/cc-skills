@@ -1,3 +1,91 @@
+# [12.50.0](https://github.com/terrylica/cc-skills/compare/v12.49.1...v12.50.0) (2026-04-17)
+
+
+### Features
+
+* **itp-hooks:** allow maturin pyproject.toml co-located with Cargo.toml ([a052b6c](https://github.com/terrylica/cc-skills/commit/a052b6c57ab3082181f131efa5d59b80e39356fb))
+* **tlg:** migrate Bruntwork to supergroup with topics ([945c009](https://github.com/terrylica/cc-skills/commit/945c009bdb63bb586d20b0e5acd1f01a62a3f8c1))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>devops-tools</strong> (2 changes)</summary>
+
+- [firecrawl-research-patterns](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/SKILL.md) - updated (+15/-15)
+- [pueue-job-orchestration](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/pueue-job-orchestration/SKILL.md) - updated (+5/-4)
+
+</details>
+
+<details>
+<summary><strong>gh-tools</strong> (1 change)</summary>
+
+- [research-archival](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/SKILL.md) - updated (+9/-9)
+
+</details>
+
+<details>
+<summary><strong>rust-tools</strong> (2 changes)</summary>
+
+- [rust-dependency-audit](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-dependency-audit/SKILL.md) - updated (+1/-1)
+- [rust-sota-arsenal](https://github.com/terrylica/cc-skills/blob/main/plugins/rust-tools/skills/rust-sota-arsenal/SKILL.md) - updated (+1/-1)
+
+</details>
+
+<details>
+<summary><strong>tlg</strong> (3 changes)</summary>
+
+- [draft-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/draft-message/SKILL.md) - updated (+2/-2)
+- [send-media](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-media/SKILL.md) - updated (+2/-2)
+- [send-message](https://github.com/terrylica/cc-skills/blob/main/plugins/tlg/skills/send-message/SKILL.md) - updated (+49/-8)
+
+</details>
+
+
+### Skill References
+
+<details>
+<summary><strong>devops-tools/firecrawl-research-patterns</strong> (6 files)</summary>
+
+- [Academic Paper Routing](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/academic-paper-routing.md) - updated (+18/-18)
+- [API Endpoint Reference](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/api-endpoint-reference.md) - updated (+15/-15)
+- [Recursive Research Protocol](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/recursive-research-protocol.md) - updated (+2/-2)
+- [Firecrawl Bootstrap: Fresh Installation](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-bootstrap-guide.md) - updated (+1/-1)
+- [Firecrawl Self-Hosted Operations](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-operations.md) - updated (+21/-21)
+- [Firecrawl Troubleshooting](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/skills/firecrawl-research-patterns/references/self-hosted-troubleshooting.md) - updated (+10/-10)
+
+</details>
+
+<details>
+<summary><strong>gh-tools/research-archival</strong> (1 file)</summary>
+
+- [URL Routing](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/skills/research-archival/references/url-routing.md) - updated (+14/-14)
+
+</details>
+
+
+## Repository Documentation
+
+### General Documentation
+
+- [1Password Credential Registry](https://github.com/terrylica/cc-skills/blob/main/docs/1password-credential-registry.md) - new (+37)
+
+## Other Documentation
+
+### Other
+
+- [devops-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/devops-tools/CLAUDE.md) - updated (+6/-6)
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/main/plugins/ru/hooks/templates/ralph-unified.md) - updated (+4/-3)
+
 ## [12.49.1](https://github.com/terrylica/cc-skills/compare/v12.49.0...v12.49.1) (2026-04-16)
 
 
