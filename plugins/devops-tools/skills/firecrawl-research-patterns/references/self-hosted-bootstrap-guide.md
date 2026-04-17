@@ -140,7 +140,7 @@ serve({
       await Bun.write(filepath, markdown);
 
       return Response.json({
-        url: `http://gpu-host:8080/${filename}`,
+        url: `http://small-host:8080/${filename}`,
         file: filename,
       });
     }

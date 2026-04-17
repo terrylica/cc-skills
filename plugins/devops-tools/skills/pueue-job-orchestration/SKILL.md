@@ -101,10 +101,11 @@ pueue reset                # Clear all jobs (use with caution)
 
 ## Host Configuration
 
-| Host          | Location                  | Parallelism Groups              |
-| ------------- | ------------------------- | ------------------------------- |
-| gpu-host      | `~/.local/bin/pueue`      | p1 (16), p2 (2), p3 (3), p4 (1) |
-| Local (macOS) | `/opt/homebrew/bin/pueue` | default                         |
+| Host          | Location                  | GPU         | Parallelism Groups              |
+| ------------- | ------------------------- | ----------- | ------------------------------- |
+| gpu-host      | `~/.local/bin/pueue`      | RTX 4090    | p1 (16), p2 (2), p3 (3), p4 (1) |
+| small-host   | `~/.local/bin/pueue`      | RTX 2080 Ti | p1 (8), p2 (2)                  |
+| Local (macOS) | `/opt/homebrew/bin/pueue` | N/A         | default                         |
 
 ## Core Workflows
 
