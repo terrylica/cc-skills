@@ -717,6 +717,27 @@
       "strict": false,
       "source": "./plugins/ssh-tunnel-companion",
       "category": "devops"
+    },
+    {
+      "name": "crucible",
+      "description": "Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns. Covers epistemic foundations (causality, nulls, record-keeping), investigation patterns (multi-lens agents, adversarial gates, per-trade enrichment), decision layer (constraint-pivot, supersede-not-rewrite), and emergent resurrection (failure archive with resurrect_if conditions).",
+      "version": "0.1.0",
+      "author": {
+        "name": "<user>ca",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "research-methodology",
+        "self-evolving",
+        "adversarial-gates",
+        "shuffled-null",
+        "genetic-evolutionary",
+        "agnostic-principles",
+        "llm-investigation"
+      ],
+      "strict": false,
+      "source": "./plugins/crucible",
+      "category": "ai"
     }
   ]
 }
