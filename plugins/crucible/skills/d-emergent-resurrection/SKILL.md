@@ -40,6 +40,7 @@ Each failed campaign fits one or more modes. Classification determines resurrect
 | `overfit-in-sample`       | Strong IS, poor OOS                                      | Cross-validation success on a different data regime or architectural redesign                   |
 | `wrong-null-applied`      | Correct signal, wrong null type broke it                 | Correct null method discovered (see Skill B §5 orthogonal cascade)                              |
 | `cross-asset-failed`      | Works on one asset, breaks on others                     | Same config trial on a DIFFERENT asset passing, OR regime detector enabling per-asset selection |
+| `regime-conditional`      | Full-history fails; edge concentrated in specific regime | Causal walk-forward regime classification + train/test both positive within regime + null z>3   |
 | `label-leaked`            | Features/labels violated causality                       | Causality re-verified (`bars[:i]` exclusive) and retest OK                                      |
 | `agent-overestimation`    | Agent's estimate > reality                               | External oracle or per-bar replay validates a scaled-down version                               |
 | `grid-degenerate`         | Parameter grid too narrow                                | Widen grid, OR sensitivity analysis reveals dormant dimension                                   |
