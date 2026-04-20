@@ -680,7 +680,7 @@
     },
     {
       "name": "claude-tts-companion",
-      "description": "Real-time karaoke subtitles synced with TTS playback \u2014 unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
+      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
       "version": "12.51.0",
       "source": "./plugins/claude-tts-companion",
       "category": "productivity",
@@ -738,6 +738,29 @@
       "strict": false,
       "source": "./plugins/crucible",
       "category": "ai"
+    },
+    {
+      "name": "autonomous-loop",
+      "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autonomous-loop:start, /autonomous-loop:status, /autonomous-loop:stop",
+      "version": "12.51.0",
+      "source": "./plugins/autonomous-loop",
+      "category": "automation",
+      "author": {
+        "name": "<user>ca",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "autonomous",
+        "loop",
+        "self-revising",
+        "contract",
+        "dynamic-pacing",
+        "schedule-wakeup",
+        "monitor",
+        "long-horizon",
+        "living-documentation"
+      ],
+      "strict": false
     }
   ]
 }
