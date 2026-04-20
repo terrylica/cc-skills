@@ -1,0 +1,8 @@
+{
+  "name": "chronicle-share",
+  "version": "0.0.1",
+  "description": "Producer-side session chronicle sharing pipeline: bundle → sanitize → Cloudflare R2 → presigned URL",
+  "author": {
+    "name": "mdnasim"
+  }
+}
