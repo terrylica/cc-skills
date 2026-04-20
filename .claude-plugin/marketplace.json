@@ -272,28 +272,6 @@
       "strict": false
     },
     {
-      "name": "ru",
-      "description": "RU - autonomous loop mode for any project. Commands: /ru:start, /ru:stop, /ru:status",
-      "version": "12.52.0",
-      "source": "./plugins/ru",
-      "category": "automation",
-      "author": {
-        "name": "<user>ca",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "ralph",
-        "universal",
-        "autonomous",
-        "loop",
-        "automation",
-        "any-project",
-        "ru"
-      ],
-      "hooks": "./plugins/ru/hooks/hooks.json",
-      "strict": false
-    },
-    {
       "name": "statusline-tools",
       "description": "Custom status line with git status indicators",
       "version": "12.52.0",
