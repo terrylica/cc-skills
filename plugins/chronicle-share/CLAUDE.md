@@ -2,7 +2,7 @@
 
 > Producer-side session chronicle sharing pipeline. Bundles Claude Code JSONL, sanitizes, uploads to Cloudflare R2, emits a 7-day presigned URL.
 
-**Status:** skeleton. Scaffolded 2026-04-17. Nothing runs yet; this commit establishes the plugin folder only.
+**Status:** Phase 0 (R2 provisioning) and Phase 1 (bundle) complete. Phases 2–8 pending.
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md)
 
@@ -13,8 +13,8 @@ Terry (supervisor) needs a reliable way to receive my session chronicles for rev
 ## Target architecture
 
 ```
-1. Bundle      bun script enumerates ~/.claude/projects/<encoded-cwd>/ JSONL files,
-               tars them into a staging dir.
+1. Bundle      scripts/bundle.sh enumerates ~/.claude/projects/<encoded-cwd>/
+               JSONL files into a staging dir + manifest.json.
                          │
                          ▼
 2. Sanitize    Shell out to the upstream sanitizer:
@@ -23,19 +23,77 @@ Terry (supervisor) needs a reliable way to receive my session chronicles for rev
                — never skipped, never re-implemented locally.
                          │
                          ▼
-3. Compress    Brotli-9 the sanitized files, zip into a single archive.
+3. Archive     zip the sanitized sessions + manifest into a single .zip.
                          │
                          ▼
-4. Upload      aws s3 cp / aws s3api put-object against the R2 endpoint
-               (R2 speaks S3-compat API). Credentials loaded from 1Password.
+4. Upload      aws s3 cp against the R2 endpoint (S3-compat API).
+               Credentials loaded from 1Password.
                          │
                          ▼
 5. Presign     aws s3 presign --expires-in 604800 (7 days).
                          │
                          ▼
-6. Emit        Print the URL to stdout. Optionally pipe to tlg:send-media
-               for direct posting into the Bruntwork Assignments topic.
+6. Emit        Print the URL to stdout. Optionally inline Telethon post
+               into Bruntwork Assignments topic (nasim profile).
 ```
+
+## Phase 1 (bundle) — implemented
+
+**Script:** [`scripts/bundle.sh`](./scripts/bundle.sh)
+
+### CLI surface
+```
+bundle.sh [--project PATH] [--out DIR] [--limit N]
+```
+- `--project`: project dir whose sessions to bundle (default: `$PWD`). Encoded per Claude Code's scheme (strip leading `/`, replace `/` and `.` with `-`, prepend `-`).
+- `--out`: staging dir to create (default: `$TMPDIR/chronicle-share-<UTC>`). Must not exist (fail-safe).
+- `--limit N`: bundle only the N newest sessions by mtime. `0` = all.
+
+Stdout: the staging dir path. Stderr: all logs. Exit codes: `0` ok, `1` usage error, `2` no sessions.
+
+### Staging layout
+```
+<OUT_DIR>/
+├── manifest.json
+└── sessions/
+    └── <session-uuid>.jsonl   (one per session, newest first)
+```
+
+### Manifest schema (v1)
+Downstream phases mutate this file in place. Single evolving record.
+
+```jsonc
+{
+  "manifest_version": 1,
+  "generated_at_utc": "2026-04-21T00:00:00Z",
+  "generated_by": "chronicle-share/bundle.sh",
+  "source": {
+    "project_path":    "/Users/mdnasim/eon/cc-skills",
+    "project_encoded": "-Users-mdnasim-eon-cc-skills",
+    "host":            "MDs-MacBook-Pro",
+    "claude_user":     "mdnasim"
+  },
+  "sessions": [
+    {
+      "session_id":  "<uuid>",
+      "filename":    "<uuid>.jsonl",
+      "size_bytes":  2570551,
+      "line_count":  1793,
+      "mtime_utc":   "2026-04-20T23:30:36Z",
+      "sha256":      "b41fef...abf99"
+    }
+  ],
+  "totals": {
+    "session_count":    9,
+    "total_size_bytes": 11532055
+  },
+  "sanitized": false,   // Phase 2 flips to true + adds redactions metadata
+  "archived":  false    // Phase 3 flips to true + adds archive_path + archive_sha256
+}
+```
+
+### Test coverage
+15-case suite covers: `--help`, happy path, manifest shape, file count agreement, SHA-256 round-trip, `--limit 1` picks newest, explicit `--project`, nonexistent project (exit 1), missing session dir (exit 2), `--out` collision refused, `--limit 3` ordering, `--limit` clamping, `--limit 0 = all`, negative `--limit` rejected, unknown flag rejected. All pass as of 2026-04-21.
 
 ## Key design decisions (to be formalized)
 
@@ -48,17 +106,17 @@ Terry (supervisor) needs a reliable way to receive my session chronicles for rev
 | Credentials | 1Password (separate item from Terry's) | Isolation: my R2 creds are mine, not the company's. |
 | Telegram post | Delegated to `tlg:send-media` | Uses existing Telethon personal-account session; no new bot infra. |
 
-## Not yet implemented
+## Roadmap
 
-- [ ] R2 account + bucket + API token provisioning (one-time, manual)
-- [ ] 1Password item for R2 credentials (one-time, manual)
-- [ ] `scripts/bundle.ts` — enumerate + tar session JSONL
-- [ ] `scripts/upload.sh` — aws s3 cp against R2 endpoint
-- [ ] `scripts/presign.sh` — aws s3 presign, 7-day expiry
-- [ ] `skills/share/SKILL.md` — full workflow (currently a stub)
-- [ ] `/chronicle:share` slash command wrapper (requires appending to `.mise.toml` `[task_config].includes` — **not yet done** because editing upstream-owned files needs Nasim's explicit sign-off per the fork rule)
-- [ ] `/chronicle:doctor` + `/chronicle:check-full` (required by Eon cross-repo pattern)
-- [ ] ADR + design spec in `docs/adr/` + `docs/design/` (also deferred pending rule clarification)
+- [x] **Phase 0** — R2 account + bucket + API token + 1Password item (done 2026-04-21; verified via end-to-end presigned-URL download)
+- [x] **Phase 1** — `scripts/bundle.sh` (done 2026-04-21; 15/15 tests pass)
+- [ ] **Phase 2** — `scripts/sanitize.sh` (shell out to upstream `sanitize_sessions.py`; flip `manifest.sanitized` true; add redaction metadata)
+- [ ] **Phase 3** — `scripts/archive.sh` (zip staging into single `.zip`; add `archive_path` + `archive_sha256` to manifest)
+- [ ] **Phase 4** — `scripts/upload.sh` (aws s3 cp + presign; add presigned URL + object key to manifest)
+- [ ] **Phase 5** — `scripts/share.sh` (orchestrator chaining 1→4; first working end-to-end)
+- [ ] **Phase 6** — inline Telethon post (nasim profile → Bruntwork topic 2)
+- [ ] **Phase 7** — full `skills/share/SKILL.md` workflow + `skills/doctor/SKILL.md` preflight
+- [ ] **Phase 8** — discoverability: user-global `~/.claude/commands/chronicle-share.md` OR marketplace.json registration (requires Nasim's explicit sign-off per fork rule)
 
 ## Boundary with upstream cc-skills
 

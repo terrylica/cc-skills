@@ -11,7 +11,7 @@ allowed-tools: Bash, Read, AskUserQuestion
 ## Planned workflow
 
 1. **Preflight** — verify `brotli`, `aws`, `op`, `bun` installed; verify R2 bucket reachable; verify 1Password access.
-2. **Bundle** — enumerate session JSONL under `~/.claude/projects/<encoded-cwd>/`; tar into staging dir.
+2. **Bundle** — run `scripts/bundle.sh` to enumerate session JSONL under `~/.claude/projects/<encoded-cwd>/` and stage them with a manifest. See [Plugin CLAUDE.md](../../CLAUDE.md#phase-1-bundle--implemented) for the CLI and manifest schema.
 3. **Sanitize** — shell out to upstream sanitizer. Never skip, never re-implement:
 
    ```bash
