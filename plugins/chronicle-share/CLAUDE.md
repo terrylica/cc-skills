@@ -2,7 +2,7 @@
 
 > Producer-side session chronicle sharing pipeline. Bundles Claude Code JSONL, sanitizes, uploads to Cloudflare R2, emits a 7-day presigned URL.
 
-**Status:** Phase 0 (R2 provisioning) and Phase 1 (bundle) complete. Phases 2–8 pending.
+**Status:** Phases 0 (R2 provisioning), 1 (bundle), 2 (sanitize) complete. Phases 3–8 pending.
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md)
 
@@ -95,6 +95,75 @@ Downstream phases mutate this file in place. Single evolving record.
 ### Test coverage
 15-case suite covers: `--help`, happy path, manifest shape, file count agreement, SHA-256 round-trip, `--limit 1` picks newest, explicit `--project`, nonexistent project (exit 1), missing session dir (exit 2), `--out` collision refused, `--limit 3` ordering, `--limit` clamping, `--limit 0 = all`, negative `--limit` rejected, unknown flag rejected. All pass as of 2026-04-21.
 
+## Phase 2 (sanitize) — implemented
+
+**Script:** [`scripts/sanitize.sh`](./scripts/sanitize.sh)
+
+### CLI surface
+```
+sanitize.sh [--sanitizer PATH] STAGING_DIR
+```
+- Positional `STAGING_DIR`: the path returned by `bundle.sh` on stdout.
+- `--sanitizer PATH`: override the auto-discovered upstream sanitizer. Auto-search order:
+  1. `~/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py` (installed marketplace)
+  2. `~/eon/cc-skills/plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py` (dev mirror)
+
+Stdout: same `STAGING_DIR` (for chaining). Stderr: logs. Exit codes: `0` ok, `1` usage/validation, `2` sanitizer invocation failure.
+
+### Key behaviors
+- **Never re-implements redaction logic** — shells out to Terry's upstream `sanitize_sessions.py`; its SHA-256 is recorded in the manifest so consumers can detect script drift.
+- **Idempotency guard** — refuses to run if `manifest.sanitized` is already `true`. Bundle a fresh staging dir to re-sanitize.
+- **Non-destructive** — keeps raw `sessions/` intact; sanitized output goes to a **new** `sessions-sanitized/` sibling.
+- **Output count check** — fails (exit 2) if the sanitizer's output file count diverges from the manifest's session count.
+- **Dependency check** — fails fast if `uv`, `jq`, or `shasum` is missing.
+
+### Post-Phase-2 staging layout
+```
+<STAGING>/
+├── manifest.json              (mutated: sanitized=true + new fields)
+├── sessions/                   (unchanged — forensic audit trail)
+├── sessions-sanitized/         (new — redacted JSONL, Phase 3 will archive this)
+└── redaction_report.txt        (new — human-readable report)
+```
+
+### Manifest v2 additions
+Phase 2 flips `sanitized: true` and adds two new top-level objects plus three fields per session.
+
+```jsonc
+{
+  // ... all Phase 1 fields unchanged ...
+  "sanitized": true,                                        // was false
+  "sessions": [
+    {
+      // ... all Phase 1 session fields unchanged ...
+      "sanitized_size_bytes": 2103987,                      // NEW
+      "sanitized_line_count": 1793,                         // NEW
+      "sanitized_sha256":     "a0b1c2...deadbeef"           // NEW
+    }
+  ],
+  "sanitization": {                                         // NEW
+    "sanitized_at_utc": "2026-04-21T00:46:12Z",
+    "sanitizer_path":   "/Users/mdnasim/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py",
+    "sanitizer_sha256": "f6eda9be...06ff5c",                // fingerprint of the script used
+    "report_path":      "<STAGING>/redaction_report.txt"
+  },
+  "redactions": {                                           // NEW
+    "total": 272,
+    "by_pattern": {
+      "email_address":        110,
+      "onepassword_item_id":   52,
+      "onepassword_op_url":    48,
+      "aws_access_key":        18,
+      "tailscale_cgnat_ip":    17
+      // ... other patterns that had non-zero counts ...
+    }
+  }
+}
+```
+
+### Test coverage
+14-case suite covers: `--help`, missing staging dir (exit 1), staging without manifest (exit 1), staging without sessions/ (exit 1), missing `STAGING_DIR` arg, happy path end-to-end, post-sanitize manifest schema, file count parity raw↔sanitized, sanitized SHA-256 round-trip + valid JSONL, idempotency guard (re-sanitize refused), **canary with 4 known secrets** (email / GitHub PAT / AWS key / JWT — all replaced with correct placeholders), bad `--sanitizer` path rejected, unknown flag rejected, two positional args rejected. All pass as of 2026-04-21.
+
 ## Key design decisions (to be formalized)
 
 | Decision | Choice | Rationale |
@@ -110,7 +179,7 @@ Downstream phases mutate this file in place. Single evolving record.
 
 - [x] **Phase 0** — R2 account + bucket + API token + 1Password item (done 2026-04-21; verified via end-to-end presigned-URL download)
 - [x] **Phase 1** — `scripts/bundle.sh` (done 2026-04-21; 15/15 tests pass)
-- [ ] **Phase 2** — `scripts/sanitize.sh` (shell out to upstream `sanitize_sessions.py`; flip `manifest.sanitized` true; add redaction metadata)
+- [x] **Phase 2** — `scripts/sanitize.sh` (done 2026-04-21; 14/14 tests pass including canary with 4 real-format secrets)
 - [ ] **Phase 3** — `scripts/archive.sh` (zip staging into single `.zip`; add `archive_path` + `archive_sha256` to manifest)
 - [ ] **Phase 4** — `scripts/upload.sh` (aws s3 cp + presign; add presigned URL + object key to manifest)
 - [ ] **Phase 5** — `scripts/share.sh` (orchestrator chaining 1→4; first working end-to-end)
