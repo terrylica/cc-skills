@@ -1,6 +1,6 @@
 {
   "name": "cc-skills",
-  "version": "12.52.0",
+  "version": "13.0.0",
   "description": "Claude Code Skills Marketplace",
   "owner": {
     "name": "Terry Li",
@@ -10,7 +10,7 @@
     {
       "name": "plugin-dev",
       "description": "Plugin and skill development: structure validation, silent failure auditing, skill architecture meta-skill with TodoWrite templates",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/plugin-dev",
       "category": "development",
       "author": {
@@ -33,7 +33,7 @@
     {
       "name": "itp",
       "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/itp",
       "category": "productivity",
       "author": {
@@ -55,7 +55,7 @@
     {
       "name": "gh-tools",
       "description": "GitHub workflow automation: GFM link validation, WebFetch enforcement, issue management, fork intelligence",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/gh-tools",
       "category": "development",
       "author": {
@@ -77,7 +77,7 @@
     {
       "name": "link-tools",
       "description": "Comprehensive link validation: portability checks, lychee broken link detection, path policy linting",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/link-tools",
       "category": "quality",
       "author": {
@@ -99,7 +99,7 @@
     {
       "name": "devops-tools",
       "description": "DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, MiniMax consensus analysis",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/devops-tools",
       "category": "devops",
       "author": {
@@ -134,7 +134,7 @@
     {
       "name": "dotfiles-tools",
       "description": "Chezmoi dotfile management via natural language workflows",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/dotfiles-tools",
       "category": "utilities",
       "author": {
@@ -154,7 +154,7 @@
     {
       "name": "doc-tools",
       "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/doc-tools",
       "category": "documents",
       "author": {
@@ -179,7 +179,7 @@
     {
       "name": "quality-tools",
       "description": "Code quality and validation: clone detection, multi-agent E2E validation, performance profiling, schema testing",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/quality-tools",
       "category": "quality",
       "author": {
@@ -201,7 +201,7 @@
     {
       "name": "productivity-tools",
       "description": "Slash command factory and calendar event management with tiered sound alarms",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/productivity-tools",
       "category": "productivity",
       "author": {
@@ -226,7 +226,7 @@
     {
       "name": "mql5",
       "description": "MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/mql5",
       "category": "trading",
       "author": {
@@ -248,7 +248,7 @@
     {
       "name": "itp-hooks",
       "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/itp-hooks",
       "category": "enforcement",
       "author": {
@@ -274,7 +274,7 @@
     {
       "name": "statusline-tools",
       "description": "Custom status line with git status indicators",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/statusline-tools",
       "category": "utilities",
       "author": {
@@ -291,7 +291,7 @@
     {
       "name": "asciinema-tools",
       "description": "Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/asciinema-tools",
       "category": "utilities",
       "author": {
@@ -316,7 +316,7 @@
     {
       "name": "git-town-workflow",
       "description": "Prescriptive git-town workflow enforcement for fork-based development: fork creation, contribution workflow, enforcement hooks that block forbidden raw git commands",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/git-town-workflow",
       "category": "devops",
       "author": {
@@ -339,7 +339,7 @@
     {
       "name": "quant-research",
       "description": "Quantitative research metrics: SOTA evaluation for range bars, Sharpe ratios with daily aggregation, ML prediction quality (IC, autocorrelation), crypto-specific considerations",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/quant-research",
       "category": "trading",
       "author": {
@@ -365,7 +365,7 @@
     {
       "name": "gmail-commander",
       "description": "Gmail + Telegram bot lifecycle - email triage, interactive commands, voice digest, Agent SDK routing, 1Password OAuth",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/gmail-commander",
       "category": "productivity",
       "author": {
@@ -392,7 +392,7 @@
     {
       "name": "kokoro-tts",
       "description": "Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, health checks, diagnostics (Apple Silicon)",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/kokoro-tts",
       "category": "devops",
       "author": {
@@ -412,7 +412,7 @@
     {
       "name": "tts-tg-sync",
       "description": "Telegram bot + iTerm2 TTS integration: bot process control, voice audition, settings, hooks (requires kokoro-tts for engine)",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/tts-tg-sync",
       "category": "devops",
       "requires": [
@@ -440,7 +440,7 @@
     {
       "name": "calcom-commander",
       "description": "Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/calcom-commander",
       "category": "productivity",
       "author": {
@@ -469,7 +469,7 @@
     {
       "name": "mise",
       "description": "User-global mise workflow commands: release pipeline delegation, environment status, task discovery across any repo",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/mise",
       "category": "productivity",
       "author": {
@@ -489,7 +489,7 @@
     {
       "name": "gitnexus-tools",
       "description": "GitNexus knowledge graph: explore symbols, blast radius analysis, staleness detection hooks",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/gitnexus-tools",
       "category": "development",
       "author": {
@@ -509,7 +509,7 @@
     {
       "name": "rust-tools",
       "description": "SOTA Rust tooling - refactoring, profiling, benchmarking, testing, SIMD, dependency audit",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/rust-tools",
       "category": "development",
       "author": {
@@ -541,7 +541,7 @@
     {
       "name": "media-tools",
       "description": "YouTube audio download and iOS device media transfer workflows",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/media-tools",
       "category": "utilities",
       "author": {
@@ -562,7 +562,7 @@
     {
       "name": "cli-anything",
       "description": "Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology.",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/cli-anything",
       "category": "development",
       "author": {
@@ -588,7 +588,7 @@
     {
       "name": "gemini-deep-research",
       "description": "Gemini Deep Research via browser automation: Playwright CDP, 8-step flow, 40k+ char research reports",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/gemini-deep-research",
       "category": "ai",
       "author": {
@@ -609,7 +609,7 @@
     {
       "name": "tlg",
       "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, list dialogs, 1Password credentials",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/tlg",
       "category": "productivity",
       "author": {
@@ -629,7 +629,7 @@
     {
       "name": "agent-reach",
       "description": "Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/agent-reach",
       "category": "productivity",
       "author": {
@@ -659,7 +659,7 @@
     {
       "name": "claude-tts-companion",
       "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/claude-tts-companion",
       "category": "productivity",
       "author": {
@@ -681,7 +681,7 @@
     {
       "name": "ssh-tunnel-companion",
       "description": "SSH tunnel persistence for bigblack ClickHouse via launchd + sleepwatcher",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
@@ -699,7 +699,7 @@
     {
       "name": "crucible",
       "description": "Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns. Covers epistemic foundations (causality, nulls, record-keeping), investigation patterns (multi-lens agents, adversarial gates, per-trade enrichment), decision layer (constraint-pivot, supersede-not-rewrite), and emergent resurrection (failure archive with resurrect_if conditions).",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
@@ -720,7 +720,7 @@
     {
       "name": "autonomous-loop",
       "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autonomous-loop:start, /autonomous-loop:status, /autonomous-loop:stop",
-      "version": "12.52.0",
+      "version": "13.0.0",
       "source": "./plugins/autonomous-loop",
       "category": "automation",
       "author": {

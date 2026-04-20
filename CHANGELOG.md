@@ -1,3 +1,129 @@
+# [13.0.0](https://github.com/terrylica/cc-skills/compare/v12.52.0...v13.0.0) (2026-04-20)
+
+
+* feat(autonomous-loop)!: remove ru plugin superseded by autonomous-loop ([f076802](https://github.com/terrylica/cc-skills/commit/f076802cd553c8ae7c92ee5b002480d76a970cdb))
+
+
+### BREAKING CHANGES
+
+* /ru:* commands removed. Migrate to /autonomous-loop:*
+per docs/adr/2026-04-20-remove-ru-plugin.md migration table. Advanced
+features (forbid/encourage/wizard) have no direct replacement and
+require manual contract editing.
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [Remove `ru` plugin — superseded by `autonomous-loop`](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-04-20-remove-ru-plugin.md) | new (+63) |
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>ru</strong> (9 changes)</summary>
+
+- [audit now](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/audit-now/SKILL.md) - deleted
+- [encourage](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/encourage/SKILL.md) - deleted
+- [forbid](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/forbid/SKILL.md) - deleted
+- [hooks](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/hooks/SKILL.md) - deleted
+- [settings](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/settings/SKILL.md) - deleted
+- [start](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/start/SKILL.md) - deleted
+- [status](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/status/SKILL.md) - deleted
+- [stop](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/stop/SKILL.md) - deleted
+- [wizard](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/wizard/SKILL.md) - deleted
+
+</details>
+
+
+### Plugin READMEs
+
+- [ru](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/README.md) - deleted
+
+### Skill References
+
+<details>
+<summary><strong>ru/audit-now</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/audit-now/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>ru/encourage</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/encourage/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>ru/forbid</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/forbid/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>ru/hooks</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/hooks/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>ru/settings</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/settings/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>ru/start</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/start/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>ru/status</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/status/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>ru/stop</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/stop/references/evolution-log.md) - deleted
+
+</details>
+
+<details>
+<summary><strong>ru/wizard</strong> (1 file)</summary>
+
+- [Evolution Log](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/skills/wizard/references/evolution-log.md) - deleted
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [CLAUDE](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/CLAUDE.md) - deleted
+- [ralph-unified](https://github.com/terrylica/cc-skills/blob/v12.52.0/plugins/ru/hooks/templates/ralph-unified.md) - deleted
+
 # [12.52.0](https://github.com/terrylica/cc-skills/compare/v12.51.0...v12.52.0) (2026-04-20)
 
 
