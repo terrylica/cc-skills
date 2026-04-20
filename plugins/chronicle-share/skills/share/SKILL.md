@@ -12,15 +12,7 @@ allowed-tools: Bash, Read, AskUserQuestion
 
 1. **Preflight** — verify `brotli`, `aws`, `op`, `bun` installed; verify R2 bucket reachable; verify 1Password access.
 2. **Bundle** — run `scripts/bundle.sh` to enumerate session JSONL under `~/.claude/projects/<encoded-cwd>/` and stage them with a manifest. See [Plugin CLAUDE.md](../../CLAUDE.md#phase-1-bundle--implemented) for the CLI and manifest schema.
-3. **Sanitize** — shell out to upstream sanitizer. Never skip, never re-implement:
-
-   ```bash
-   SKILL_DIR="$(find $HOME/.claude/plugins/marketplaces/cc-skills -type d -name session-chronicle | head -1)"
-   "$SKILL_DIR/scripts/sanitize_sessions.py" \
-     --input  /path/to/staging-raw \
-     --output /path/to/staging-sanitized \
-     --report /path/to/redaction_report.txt
-   ```
+3. **Sanitize** — run `scripts/sanitize.sh <STAGING_DIR>`. Wraps the upstream `sanitize_sessions.py`, auto-discovers it, fingerprints it, mutates the manifest. See [Plugin CLAUDE.md](../../CLAUDE.md#phase-2-sanitize--implemented).
 
 4. **Compress** — Brotli-9 sanitized files.
 5. **Upload** — `aws s3 cp` to R2 endpoint, credentials from 1Password.
