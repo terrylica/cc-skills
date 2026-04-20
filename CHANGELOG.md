@@ -1,3 +1,107 @@
+# [12.52.0](https://github.com/terrylica/cc-skills/compare/v12.51.0...v12.52.0) (2026-04-20)
+
+
+### Features
+
+* **autonomous-loop:** add plugin for self-revising LOOP_CONTRACT.md pattern ([7194e28](https://github.com/terrylica/cc-skills/commit/7194e2831c108252aa0c9829577afd6e718da01c))
+* **plugins:** add crucible - self-evolving research methodology plugin ([deb9aab](https://github.com/terrylica/cc-skills/commit/deb9aab38df17ae091ee137a51bcfce821b9cc53))
+
+
+
+
+
+---
+
+## Documentation Changes
+
+## Architecture Decisions
+
+### ADRs
+
+| Status | ADR | Change |
+|--------|-----|--------|
+| unknown | [autonomous-loop plugin — self-revising execution contract for long-horizon autonomous work](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-04-20-autonomous-loop.md) | new (+114) |
+
+### Design Specs
+
+- [Design Spec: autonomous-loop plugin](https://github.com/terrylica/cc-skills/blob/main/docs/design/2026-04-20-autonomous-loop/spec.md) - new (+105)
+
+## Plugin Documentation
+
+### Skills
+
+<details>
+<summary><strong>autonomous-loop</strong> (3 changes)</summary>
+
+- [start](https://github.com/terrylica/cc-skills/blob/main/plugins/autonomous-loop/skills/start/SKILL.md) - new (+112)
+- [status](https://github.com/terrylica/cc-skills/blob/main/plugins/autonomous-loop/skills/status/SKILL.md) - new (+112)
+- [stop](https://github.com/terrylica/cc-skills/blob/main/plugins/autonomous-loop/skills/stop/SKILL.md) - new (+109)
+
+</details>
+
+<details>
+<summary><strong>crucible</strong> (5 changes)</summary>
+
+- [crucible-navigator](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/00-navigator/SKILL.md) - new (+96)
+- [crucible-research-foundations](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/a-research-foundations/SKILL.md) - new (+189)
+- [crucible-investigation-methodology](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/b-investigation-methodology/SKILL.md) - new (+189)
+- [crucible-meta-governance](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/c-meta-governance/SKILL.md) - new (+168)
+- [crucible-emergent-resurrection](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/d-emergent-resurrection/SKILL.md) - new (+218)
+
+</details>
+
+
+### Plugin READMEs
+
+- [autonomous-loop](https://github.com/terrylica/cc-skills/blob/main/plugins/autonomous-loop/README.md) - new (+79)
+- [crucible](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/README.md) - new (+70)
+
+### Skill References
+
+<details>
+<summary><strong>crucible/00-navigator</strong> (1 file)</summary>
+
+- [evolution-log: 00-navigator](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/00-navigator/references/evolution-log.md) - new (+29)
+
+</details>
+
+<details>
+<summary><strong>crucible/a-research-foundations</strong> (1 file)</summary>
+
+- [evolution-log: a-research-foundations](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/a-research-foundations/references/evolution-log.md) - new (+22)
+
+</details>
+
+<details>
+<summary><strong>crucible/b-investigation-methodology</strong> (1 file)</summary>
+
+- [evolution-log: b-investigation-methodology](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/b-investigation-methodology/references/evolution-log.md) - new (+22)
+
+</details>
+
+<details>
+<summary><strong>crucible/c-meta-governance</strong> (1 file)</summary>
+
+- [evolution-log: c-meta-governance](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/c-meta-governance/references/evolution-log.md) - new (+22)
+
+</details>
+
+<details>
+<summary><strong>crucible/d-emergent-resurrection</strong> (1 file)</summary>
+
+- [evolution-log: d-emergent-resurrection](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/skills/d-emergent-resurrection/references/evolution-log.md) - new (+22)
+
+</details>
+
+
+## Other Documentation
+
+### Other
+
+- [autonomous-loop Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/autonomous-loop/CLAUDE.md) - new (+77)
+- [<PROJECT OR CAMPAIGN TITLE>](https://github.com/terrylica/cc-skills/blob/main/plugins/autonomous-loop/templates/LOOP_CONTRACT.template.md) - new (+190)
+- [crucible — Plugin Navigator](https://github.com/terrylica/cc-skills/blob/main/plugins/crucible/CLAUDE.md) - new (+104)
+
 # [12.51.0](https://github.com/terrylica/cc-skills/compare/v12.50.1...v12.51.0) (2026-04-17)
 
 
