@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, AskUserQuestion
 
 # chronicle:share (stub)
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 **Status:** stub. This skill is scaffolded but not functional. Target workflow documented below; implementation is pending.
 
 ## Planned workflow
@@ -22,3 +24,15 @@ allowed-tools: Bash, Read, AskUserQuestion
 ## Plugin docs
 
 [Plugin CLAUDE.md](../../CLAUDE.md) — architecture, roadmap, boundary with upstream cc-skills.
+
+## Post-Execution Reflection
+
+After this skill completes (once it is no longer a stub), reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency that no longer matches reality.
+4. **Log it.** — Evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
