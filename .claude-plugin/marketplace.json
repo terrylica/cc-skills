@@ -739,6 +739,29 @@
         "living-documentation"
       ],
       "strict": false
+    },
+    {
+      "name": "chronicle-share",
+      "description": "Producer-side session chronicle sharing pipeline: bundle -> sanitize -> Cloudflare R2 -> presigned URL (skeleton, not yet functional)",
+      "version": "0.0.1",
+      "source": "./plugins/chronicle-share",
+      "category": "devops",
+      "author": {
+        "name": "mdnasim",
+        "url": "https://github.com/nasimubd"
+      },
+      "keywords": [
+        "session-chronicle",
+        "chronicle-share",
+        "r2",
+        "cloudflare-r2",
+        "presigned-url",
+        "sanitize",
+        "bundle",
+        "session-sharing",
+        "producer-side"
+      ],
+      "strict": false
     }
   ]
 }
