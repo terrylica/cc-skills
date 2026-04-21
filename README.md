@@ -388,12 +388,12 @@ bun scripts/validate-plugins.mjs --fix
 
 Understanding the architectural hierarchy:
 
-| Term          | Definition                                                                                    | Location             | Example                          |
-| ------------- | --------------------------------------------------------------------------------------------- | -------------------- | -------------------------------- |
-| **Plugin**    | Marketplace-installable container with metadata, commands, and optional bundled skills        | `~/.claude/plugins/` | `itp`, `gh-tools`                |
-| **Skill**     | Executable agent with SKILL.md frontmatter; can be standalone or bundled within a plugin      | `~/.claude/skills/`  | `semantic-release`, `graph-easy` |
-| **Command**   | Slash command (`/plugin:command`) defined in `.md` file within plugin's `commands/` directory | Plugin's `commands/` | `/itp:setup`                     |
-| **Reference** | Supporting documentation in `references/` directory; not directly executable                  | `references/`        | `error-handling.md`              |
+| Term          | Definition                                                                                    | Location             | Example                      |
+| ------------- | --------------------------------------------------------------------------------------------- | -------------------- | ---------------------------- |
+| **Plugin**    | Marketplace-installable container with metadata, commands, and optional bundled skills        | `~/.claude/plugins/` | `itp`, `gh-tools`            |
+| **Skill**     | Executable agent with SKILL.md frontmatter; can be standalone or bundled within a plugin      | `~/.claude/skills/`  | `graph-easy`, `pypi-doppler` |
+| **Command**   | Slash command (`/plugin:command`) defined in `.md` file within plugin's `commands/` directory | Plugin's `commands/` | `/itp:setup`                 |
+| **Reference** | Supporting documentation in `references/` directory; not directly executable                  | `references/`        | `error-handling.md`          |
 
 **Hierarchy**:
 
@@ -421,11 +421,11 @@ Plugin (Container)
 
 Some plugins use skills from other plugins. Install dependencies first for full functionality.
 
-| Plugin       | Depends On  | Skills Used                                                     |
-| ------------ | ----------- | --------------------------------------------------------------- |
-| `plugin-dev` | `itp`       | implement-plan-preflight, code-hardcode-audit, semantic-release |
-| `doc-tools`  | `itp`       | graph-easy, adr-graph-easy-architect                            |
-| `itp`        | `doc-tools` | ascii-diagram-validator                                         |
+| Plugin       | Depends On  | Skills Used                                   |
+| ------------ | ----------- | --------------------------------------------- |
+| `plugin-dev` | `itp`       | implement-plan-preflight, code-hardcode-audit |
+| `doc-tools`  | `itp`       | graph-easy, adr-graph-easy-architect          |
+| `itp`        | `doc-tools` | ascii-diagram-validator                       |
 
 **Note:** `doc-tools` and `itp` have a circular dependency (both provide diagram tools). Install both for full functionality.
 
@@ -529,11 +529,11 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 - **Preflight**: ADR + Design Spec creation with graph-easy diagrams
 - **Phase 1**: Implementation with engineering standards
 - **Phase 2**: Format & Push to GitHub
-- **Phase 3**: Release (semantic-release) & Publish (PyPI)
+- **Phase 3**: Release via the repo's mise release pipeline, optionally Publish (PyPI)
 
-**Commands**: `/itp:go`, `/itp:setup`, `/itp:release`, `/itp:hooks`
+**Commands**: `/itp:go`, `/itp:setup`, `/itp:hooks` (release runs via `/mise:run-full-release`)
 
-**Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, bootstrap-monorepo, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, mise-configuration, mise-tasks, pypi-doppler, semantic-release
+**Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, bootstrap-monorepo, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, mise-configuration, mise-tasks, pypi-doppler
 
 ### plugin-dev
 

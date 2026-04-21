@@ -158,15 +158,15 @@ bash plugins/itp/skills/pypi-doppler/scripts/publish-to-pypi.sh
 
 **LOCAL-ONLY** publishing with CI detection guards.
 
-### Semantic Release
+### Release Pipeline
 
-Located in `plugins/itp/skills/semantic-release/scripts/`:
+For releasing plugins, delegate to the repo's mise release pipeline:
 
 ```bash
-bash plugins/itp/skills/semantic-release/scripts/init_project.sh
-bash plugins/itp/skills/semantic-release/scripts/init_user_config.sh
-bash plugins/itp/skills/semantic-release/scripts/create_org_config.sh
+mise run release:full
 ```
+
+See `/mise:run-full-release` for the orchestrating skill. Repo-specific release logic lives in `.mise/tasks/release/`, not in a bundled skill.
 
 ## Shared Library Pattern
 

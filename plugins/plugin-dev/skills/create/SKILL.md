@@ -89,7 +89,7 @@ TodoWrite with todos:
 | 6     | agent-development        | 2     | Create agents (if has-agents)     | `Skill(plugin-dev:agent-development)`   |
 | 7     | code-hardcode-audit      | 3     | Quality audit                     | `Skill(itp:code-hardcode-audit)`        |
 | 8     | plugin-validator         | 3     | Silent failure audit              | `Skill(plugin-dev:plugin-validator)`    |
-| 9     | semantic-release         | 4     | Version & publish                 | `Skill(itp:semantic-release)`           |
+| 9     | run-full-release         | 4     | Run repo's mise release pipeline  | `Skill(mise:run-full-release)`          |
 
 ### Skills EXCLUDED (Redundant)
 
@@ -201,7 +201,7 @@ Execute ONLY the skills for components the user selected:
 1. **Stage changes**: plugin dir, marketplace.json, ADR, design spec
 2. **Conventional commit**: `feat($PLUGIN_NAME): add plugin for [brief description]`
 3. **Push to remote**
-4. **Invoke `Skill(itp:semantic-release)`** -- tag, changelog, GitHub release
+4. **Invoke `Skill(mise:run-full-release)`** -- run repo's mise release pipeline for tag, changelog, GitHub release
 
 **Detailed steps**: [Phase 4 Reference](./references/phase4-release.md)
 
@@ -212,7 +212,6 @@ Execute ONLY the skills for components the user selected:
 - [ ] semantic-release completed
 - [ ] New version tag created
 - [ ] GitHub release published
-
 
 ## Troubleshooting
 
@@ -231,4 +230,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---
