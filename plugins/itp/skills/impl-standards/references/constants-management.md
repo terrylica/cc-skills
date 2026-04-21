@@ -84,7 +84,7 @@ from importlib.metadata import version
 __version__ = version("mypackage")
 ```
 
-See [`semantic-release` skill](../../semantic-release/SKILL.md) for version management.
+For version management, delegate to the repo's mise release pipeline (`mise run release:full`).
 
 ---
 

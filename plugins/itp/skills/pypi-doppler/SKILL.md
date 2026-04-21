@@ -219,7 +219,6 @@ CONFIG_EOF
 - **ADR-0027**: `docs/architecture/decisions/0027-local-only-pypi-publishing.md` - Architectural decision for local-only publishing
 - **ADR-0028**: `docs/architecture/decisions/0028-skills-documentation-alignment.md` - Skills alignment with ADR-0027
 - **PUBLISHING.md**: `docs/development/PUBLISHING.md` - Complete release workflow guide
-- **semantic-release Skill**: [`semantic-release`](../semantic-release/SKILL.md) - Versioning automation (NO publishing)
 - **mise-tasks Skill**: [`mise-tasks`](../mise-tasks/SKILL.md) - Task orchestration with dependency management
 - **Release Workflow Patterns**: [`release-workflow-patterns.md`](../mise-tasks/references/release-workflow-patterns.md) - DAG patterns and anti-patterns
 - **Bundled Script**: [`scripts/publish-to-pypi.sh`](./scripts/publish-to-pypi.sh) - Reference implementation with CI guards
@@ -239,7 +238,6 @@ CONFIG_EOF
 **Last Updated**: 2025-12-03
 **Policy**: Workspace-wide local-only PyPI publishing (ADR-0027)
 **Supersedes**: None (created with ADR-0027 compliance from start)
-
 
 ## Post-Execution Reflection
 
