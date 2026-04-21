@@ -10,6 +10,7 @@
 This document synthesizes findings from Tasks 1, 2, and 5 to define a comprehensive metadata and linking framework for the cc-skills ecosystem. It addresses how documentation should link to each other, defines metadata needs (tags, categories, owners), and proposes a unified linking + metadata strategy.
 
 **Key Deliverables:**
+
 - Metadata schema for CLAUDE.md files (frontmatter)
 - Standardized linking conventions
 - Cross-reference strategy
@@ -21,29 +22,31 @@ This document synthesizes findings from Tasks 1, 2, and 5 to define a comprehens
 
 ### 1.1 Cross-Linking State (from Task 1)
 
-| Link Type | Current Usage | Compliance |
-|-----------|---------------|------------|
-| Hub links | All plugin CLAUDE.md have Hub link | ✅ 100% |
-| Sibling links | Most have, kokoro-tts missing | ⚠️ 96% |
-| Relative links (`./`) | Skills, references | ✅ Compliant |
-| Repo-root (`/docs/...`) | ADRs | ⚠️ Some inconsistencies |
-| Full URL | External resources | ✅ Compliant |
+| Link Type               | Current Usage                      | Compliance              |
+| ----------------------- | ---------------------------------- | ----------------------- |
+| Hub links               | All plugin CLAUDE.md have Hub link | ✅ 100%                 |
+| Sibling links           | Most have, kokoro-tts missing      | ⚠️ 96%                  |
+| Relative links (`./`)   | Skills, references                 | ✅ Compliant            |
+| Repo-root (`/docs/...`) | ADRs                               | ⚠️ Some inconsistencies |
+| Full URL                | External resources                 | ✅ Compliant            |
 
 **Issues Identified:**
+
 - Some plugins use hardcoded paths instead of repo-root
 - Bidirectional links between spokes (docs ↔ plugins) are weak
 - No cross-plugin skill references
 
 ### 1.2 Metadata现状 (from Task 2)
 
-| Doc Type | Metadata | Notes |
-|----------|----------|-------|
-| SKILL.md | YAML frontmatter | ✅ Structured (name, description, allowed-tools) |
-| CLAUDE.md | None | ❌ No frontmatter |
-| marketplace.json | JSON | ✅ Rich (name, category, keywords, author) |
-| hooks.json | JSON | ✅ Structured |
+| Doc Type         | Metadata         | Notes                                            |
+| ---------------- | ---------------- | ------------------------------------------------ |
+| SKILL.md         | YAML frontmatter | ✅ Structured (name, description, allowed-tools) |
+| CLAUDE.md        | None             | ❌ No frontmatter                                |
+| marketplace.json | JSON             | ✅ Rich (name, category, keywords, author)       |
+| hooks.json       | JSON             | ✅ Structured                                    |
 
 **SKILL.md Frontmatter Schema (Current):**
+
 ```yaml
 ---
 name: <skill-name>
@@ -53,6 +56,7 @@ allowed-tools: <comma-separated tools>
 ```
 
 **Optional Fields (~30% usage):**
+
 - `argument-hint`: CLI argument hints
 - `model`: Recommended model (haiku, sonnet, opus)
 - `disable-model-invocation`: Manual-only skills
@@ -87,7 +91,7 @@ keywords:
   - <keyword2>
   - <keyword3>
 depends-on:
-  - <plugin-name>  # Optional: list required plugins
+  - <plugin-name> # Optional: list required plugins
 links:
   hub: ../../CLAUDE.md
   sibling: ../<other-plugin>/CLAUDE.md
@@ -99,35 +103,35 @@ last-updated: <YYYY-MM-DD>
 
 **Field Definitions:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | string | Yes | Display name, e.g., "ITP Plugin" |
-| `description` | string | Yes | 1-2 sentence summary |
-| `category` | enum | Yes | Plugin category (see taxonomy below) |
-| `owner.name` | string | Yes | Author/maintainer name |
-| `owner.url` | string | No | Author's GitHub URL |
-| `keywords` | array | Yes | Searchable terms (min 3) |
-| `depends-on` | array | No | Required plugins |
-| `links.hub` | string | Yes | Path to root CLAUDE.md |
-| `links.sibling` | string | No | Path to related plugin |
-| `links.skills` | string | No | Path to skills directory |
-| `version` | string | Yes | Semantic version (matches marketplace.json) |
-| `last-updated` | date | No | Last significant update |
+| Field           | Type   | Required | Description                                 |
+| --------------- | ------ | -------- | ------------------------------------------- |
+| `title`         | string | Yes      | Display name, e.g., "ITP Plugin"            |
+| `description`   | string | Yes      | 1-2 sentence summary                        |
+| `category`      | enum   | Yes      | Plugin category (see taxonomy below)        |
+| `owner.name`    | string | Yes      | Author/maintainer name                      |
+| `owner.url`     | string | No       | Author's GitHub URL                         |
+| `keywords`      | array  | Yes      | Searchable terms (min 3)                    |
+| `depends-on`    | array  | No       | Required plugins                            |
+| `links.hub`     | string | Yes      | Path to root CLAUDE.md                      |
+| `links.sibling` | string | No       | Path to related plugin                      |
+| `links.skills`  | string | No       | Path to skills directory                    |
+| `version`       | string | Yes      | Semantic version (matches marketplace.json) |
+| `last-updated`  | date   | No       | Last significant update                     |
 
 ### 2.2 Category Taxonomy
 
 Standardized categories derived from marketplace.json:
 
-| Category | Description | Plugins |
-|----------|-------------|---------|
-| `development` | Code development tools | plugin-dev, gh-tools, gitnexus-tools, rust-tools |
-| `productivity` | Workflow automation | itp, mise, gmail-commander, calcom-commander, productivity-tools |
-| `devops` | Infrastructure & deployment | devops-tools, dotfiles-tools, asciinema-tools, git-town-workflow, kokoro-tts, tts-tg-sync |
-| `trading` | Financial trading | mql5, quant-research |
-| `utilities` | General utilities | statusline-tools |
-| `enforcement` | Workflow enforcement | itp-hooks |
-| `automation` | Autonomous automation | ru |
-| `documents` | Documentation tools | doc-tools, quality-tools |
+| Category       | Description                 | Plugins                                                                                   |
+| -------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
+| `development`  | Code development tools      | plugin-dev, gh-tools, gitnexus-tools, rust-tools                                          |
+| `productivity` | Workflow automation         | itp, mise, gmail-commander, calcom-commander, productivity-tools                          |
+| `devops`       | Infrastructure & deployment | devops-tools, dotfiles-tools, asciinema-tools, git-town-workflow, kokoro-tts, tts-tg-sync |
+| `trading`      | Financial trading           | mql5, quant-research                                                                      |
+| `utilities`    | General utilities           | statusline-tools                                                                          |
+| `enforcement`  | Workflow enforcement        | itp-hooks                                                                                 |
+| `automation`   | Autonomous automation       | ru                                                                                        |
+| `documents`    | Documentation tools         | doc-tools, quality-tools                                                                  |
 
 ### 2.3 SKILL.md Enhanced Frontmatter
 
@@ -140,26 +144,26 @@ description: <description>
 allowed-tools: <comma-separated tools>
 
 # Enhanced fields
-argument-hint: "<cli-args>"      # Existing optional
-model: <haiku|sonnet|opus>       # Existing optional
+argument-hint: "<cli-args>" # Existing optional
+model: <haiku|sonnet|opus> # Existing optional
 disable-model-invocation: <bool> # Existing optional
 
 # New cross-reference fields
-category: <category-name>         # Inherit from plugin or custom
+category: <category-name> # Inherit from plugin or custom
 related-skills:
-  - <other-skill-name>           # Skills in same plugin
-  - <plugin>/<skill-name>       # Skills in other plugins
+  - <other-skill-name> # Skills in same plugin
+  - <plugin>/<skill-name> # Skills in other plugins
 related-docs:
-  - ../README.md                 # Plugin README
+  - ../README.md # Plugin README
   - ../../docs/adr/<adr-num>.md # Related ADRs
 tags:
   - <tag1>
   - <tag2>
-owner: <skill-author>            # Override plugin owner if different
+owner: <skill-author> # Override plugin owner if different
 ---
 ```
 
-### 2.4 docs/*.md Frontmatter Standard
+### 2.4 docs/\*.md Frontmatter Standard
 
 For documentation files in `docs/`:
 
@@ -191,16 +195,16 @@ last-updated: <YYYY-MM-DD>
 
 ### 3.1 Link Type Standards
 
-| Context | Link Type | Example |
-|---------|-----------|---------|
-| Skill to Skill (same plugin) | Relative | `[skill-name](./skills/skill-name/SKILL.md)` |
-| Skill to Skill (cross-plugin) | Relative | `[release](../../mise/skills/release/SKILL.md)` |
-| Plugin CLAUDE to Hub | Relative | `[Root CLAUDE.md](../../CLAUDE.md)` |
-| Plugin CLAUDE to Sibling | Relative | `[gh-tools](../gh-tools/CLAUDE.md)` |
-| Plugin CLAUDE to docs | Repo-root | `[ADR Guide](/docs/adr/)` |
-| docs to docs (same dir) | Relative | `[related doc](./other-file.md)` |
-| docs to ADRs | Repo-root | `/docs/adr/0012-example-adr.md` |
-| External resources | Full URL | `[External Doc](https://example.com)` |
+| Context                       | Link Type | Example                                              |
+| ----------------------------- | --------- | ---------------------------------------------------- |
+| Skill to Skill (same plugin)  | Relative  | `[skill-name](./skills/skill-name/SKILL.md)`         |
+| Skill to Skill (cross-plugin) | Relative  | `[graph-easy](../../itp/skills/graph-easy/SKILL.md)` |
+| Plugin CLAUDE to Hub          | Relative  | `[Root CLAUDE.md](../../CLAUDE.md)`                  |
+| Plugin CLAUDE to Sibling      | Relative  | `[gh-tools](../gh-tools/CLAUDE.md)`                  |
+| Plugin CLAUDE to docs         | Repo-root | `[ADR Guide](/docs/adr/)`                            |
+| docs to docs (same dir)       | Relative  | `[related doc](./other-file.md)`                     |
+| docs to ADRs                  | Repo-root | `/docs/adr/0012-example-adr.md`                      |
+| External resources            | Full URL  | `[External Doc](https://example.com)`                |
 
 ### 3.2 Link Syntax Rules
 
@@ -235,15 +239,16 @@ Add "Related Skills" section to plugin CLAUDE.md:
 ## Related Skills
 
 ### Within This Plugin
-| Skill | Purpose |
-|-------|---------|
+
+| Skill                                      | Purpose      |
+| ------------------------------------------ | ------------ |
 | [skill-name](./skills/skill-name/SKILL.md) | What it does |
 
 ### In Other Plugins
-| Skill | Plugin | Purpose |
-|-------|--------|---------|
-| [release](../../mise/skills/release/SKILL.md) | Mise release tasks |
-| [validate](../../link-tools/skills/validate/SKILL.md) | Lychee link validation |
+
+| Skill                                                 | Plugin     | Purpose                |
+| ----------------------------------------------------- | ---------- | ---------------------- |
+| [validate](../../link-tools/skills/validate/SKILL.md) | link-tools | Lychee link validation |
 ```
 
 ---
@@ -271,23 +276,23 @@ Root CLAUDE.md
 
 ### 4.2 Ownership Metadata
 
-| Doc Type | Owner Source | Override Allowed |
-|----------|--------------|------------------|
-| Root CLAUDE.md | Project maintainer | No |
-| docs/CLAUDE.md | Docs owner | No |
-| docs/*.md | Explicit in frontmatter | Yes |
-| plugins/*/CLAUDE.md | marketplace.json author | Yes |
-| skills/*/SKILL.md | Inherit from plugin | Yes |
+| Doc Type             | Owner Source            | Override Allowed |
+| -------------------- | ----------------------- | ---------------- |
+| Root CLAUDE.md       | Project maintainer      | No               |
+| docs/CLAUDE.md       | Docs owner              | No               |
+| docs/\*.md           | Explicit in frontmatter | Yes              |
+| plugins/\*/CLAUDE.md | marketplace.json author | Yes              |
+| skills/\*/SKILL.md   | Inherit from plugin     | Yes              |
 
 ### 4.3 Ownership Responsibilities
 
-| Role | Responsibilities |
-|------|------------------|
-| **Project Maintainer** | Root docs, plugin registry, release process |
-| **Docs Owner** | docs/ structure, ADR process, standards compliance |
-| **Plugin Author** | Plugin CLAUDE.md, skills, hooks.json |
-| **ADR Author** | Specific ADR content, status updates |
-| **Design Author** | Design spec content, implementation tracking |
+| Role                   | Responsibilities                                   |
+| ---------------------- | -------------------------------------------------- |
+| **Project Maintainer** | Root docs, plugin registry, release process        |
+| **Docs Owner**         | docs/ structure, ADR process, standards compliance |
+| **Plugin Author**      | Plugin CLAUDE.md, skills, hooks.json               |
+| **ADR Author**         | Specific ADR content, status updates               |
+| **Design Author**      | Design spec content, implementation tracking       |
 
 ---
 
@@ -298,6 +303,7 @@ Root CLAUDE.md
 Add frontmatter to all 26 CLAUDE.md files. Example transformation:
 
 **Before:**
+
 ```markdown
 # itp Plugin
 
@@ -305,6 +311,7 @@ Add frontmatter to all 26 CLAUDE.md files. Example transformation:
 ```
 
 **After:**
+
 ```yaml
 ---
 title: ITP Plugin
@@ -319,8 +326,8 @@ keywords:
   - adr
   - workflow
   - implementation
-  - release
-  - semantic-release
+  - preflight
+  - graph-easy
 links:
   hub: ../../CLAUDE.md
   sibling: ../itp-hooks/CLAUDE.md
@@ -340,16 +347,18 @@ Add to each plugin CLAUDE.md:
 ## Related Documentation
 
 ### Skills
-| Skill | Purpose |
-|-------|---------|
+
+| Skill                                      | Purpose         |
+| ------------------------------------------ | --------------- |
 | [adr-create](./skills/adr-create/SKILL.md) | Create new ADRs |
-| [release](./skills/release/SKILL.md) | Automated releases |
 
 ### Dependencies
+
 - Requires: None
 - Related: [itp-hooks](../itp-hooks/CLAUDE.md) for enforcement
 
 ### External Resources
+
 - [ADR GitHub](https://github.com/terrylica/cc-skills/tree/main/docs/adr)
 - [MADR Format](https://github.com/adr/madr)
 ```
@@ -366,21 +375,25 @@ Browse all 164 skills across 23 plugins.
 ## By Category
 
 ### Development
-| Skill | Plugin | Description |
-|-------|--------|-------------|
-| adr-create | itp | Create new ADRs |
+
+| Skill            | Plugin     | Description               |
+| ---------------- | ---------- | ------------------------- |
+| adr-create       | itp        | Create new ADRs           |
 | validate-plugins | plugin-dev | Validate plugin structure |
 
 ### Productivity
-| Skill | Plugin | Description |
-|-------|--------|-------------|
-| release | itp | Semantic versioning |
-| release | mise | Mise-based releases |
+
+| Skill            | Plugin | Description                      |
+| ---------------- | ------ | -------------------------------- |
+| go               | itp    | 4-phase ADR-driven workflow      |
+| run-full-release | mise   | Run repo's mise release pipeline |
 
 ## By Keyword
-Search: ___ (future: full-text search)
+
+Search: \_\_\_ (future: full-text search)
 
 ## Alphabetical
+
 ...
 ```
 
@@ -396,6 +409,7 @@ Add to `scripts/validate-plugins.mjs`:
 ### 5.5 Priority 5: Orphan Detection (Low Impact)
 
 Add to validation script:
+
 - Report docs with no inbound links
 - Report skills not linked from any CLAUDE.md
 - Report plugins not listed in root CLAUDE.md
@@ -407,6 +421,7 @@ Add to validation script:
 ### 6.1 Required Frontmatter Fields
 
 **CLAUDE.md:**
+
 - `title`: non-empty string
 - `description`: non-empty string, max 200 chars
 - `category`: must match taxonomy
@@ -415,35 +430,39 @@ Add to validation script:
 - `version`: semver format
 
 **SKILL.md:**
+
 - `name`: kebab-case
 - `description`: non-empty string
 - `allowed-tools`: non-empty string
 
 ### 6.2 Link Validation Rules
 
-| Rule | Severity | Description |
-|------|----------|-------------|
-| Broken internal link | Error | Target must exist |
-| Missing Hub link | Warning | CLAUDE.md should link to root |
-| Missing category | Warning | Metadata should include category |
-| Orphan skill | Info | Skill not linked from CLAUDE.md |
-| Missing owner | Warning | Ownership metadata required |
+| Rule                 | Severity | Description                      |
+| -------------------- | -------- | -------------------------------- |
+| Broken internal link | Error    | Target must exist                |
+| Missing Hub link     | Warning  | CLAUDE.md should link to root    |
+| Missing category     | Warning  | Metadata should include category |
+| Orphan skill         | Info     | Skill not linked from CLAUDE.md  |
+| Missing owner        | Warning  | Ownership metadata required      |
 
 ---
 
 ## 7. Migration Path
 
 ### Phase 1: Schema Definition (Complete)
+
 - [x] Define metadata schema (this document)
 - [x] Define linking conventions
 - [x] Define ownership model
 
 ### Phase 2: Tooling (Future)
+
 - [ ] Update validate-plugins.mjs
 - [ ] Add frontmatter validator
 - [ ] Add link validator
 
 ### Phase 3: Incremental Migration (Future)
+
 - [ ] Add frontmatter to root CLAUDE.md
 - [ ] Add frontmatter to docs/CLAUDE.md
 - [ ] Add frontmatter to plugins/CLAUDE.md
@@ -451,6 +470,7 @@ Add to validation script:
 - [ ] Create skills index
 
 ### Phase 4: Validation Enforcement (Future)
+
 - [ ] CI checks for frontmatter
 - [ ] CI checks for link integrity
 - [ ] Orphan detection reports
@@ -459,14 +479,14 @@ Add to validation script:
 
 ## 8. Related Tasks
 
-| Task | Status | Relevance |
-|------|--------|-----------|
-| Task 1: Documentation Standards Audit | ✅ Complete | Compliance matrix, gap analysis |
-| Task 2: Cross-Platform Format Analysis | ✅ Complete | Format inventory, frontmatter schema |
-| Task 5: Search & Discovery Architecture | ✅ Complete | Discovery gaps, skill index recommendations |
-| Task 6: Content Deduplication Analysis | 🔄 In Progress | Duplicate detection (assumed) |
-| Task 8: Accessibility & Findability Review | 🚫 Pending | Broken link validation |
-| Task 9: Governance & Maintenance Model | 🚫 Pending | Ownership enforcement |
+| Task                                       | Status         | Relevance                                   |
+| ------------------------------------------ | -------------- | ------------------------------------------- |
+| Task 1: Documentation Standards Audit      | ✅ Complete    | Compliance matrix, gap analysis             |
+| Task 2: Cross-Platform Format Analysis     | ✅ Complete    | Format inventory, frontmatter schema        |
+| Task 5: Search & Discovery Architecture    | ✅ Complete    | Discovery gaps, skill index recommendations |
+| Task 6: Content Deduplication Analysis     | 🔄 In Progress | Duplicate detection (assumed)               |
+| Task 8: Accessibility & Findability Review | 🚫 Pending     | Broken link validation                      |
+| Task 9: Governance & Maintenance Model     | 🚫 Pending     | Ownership enforcement                       |
 
 ---
 
@@ -476,18 +496,23 @@ Add to validation script:
 
 ```markdown
 <!-- Within same plugin -->
+
 [Skill Name](./skills/skill-name/SKILL.md)
 
 <!-- Cross-plugin -->
+
 [Skill Name](../../other-plugin/skills/skill-name/SKILL.md)
 
 <!-- To root docs -->
+
 [ADR Guide](/docs/adr/)
 
 <!-- To root CLAUDE -->
+
 [Hub](../../CLAUDE.md)
 
 <!-- External -->
+
 [External](https://example.com)
 ```
 
@@ -500,6 +525,7 @@ development, productivity, devops, trading, utilities, enforcement, automation, 
 ### Metadata Field Checklist
 
 **CLAUDE.md:**
+
 - [ ] title
 - [ ] description
 - [ ] category
@@ -509,6 +535,7 @@ development, productivity, devops, trading, utilities, enforcement, automation, 
 - [ ] links.hub
 
 **SKILL.md:**
+
 - [ ] name
 - [ ] description
 - [ ] allowed-tools
@@ -517,4 +544,4 @@ development, productivity, devops, trading, utilities, enforcement, automation, 
 
 ---
 
-*Generated by Task 7: Metadata & Linking Framework*
+_Generated by Task 7: Metadata & Linking Framework_

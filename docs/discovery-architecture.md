@@ -25,6 +25,7 @@ Root CLAUDE.md (Hub)
 ```
 
 **Link Density Analysis:**
+
 - Root CLAUDE.md: 14 outbound links
 - plugins/CLAUDE.md: 27 outbound links (21 plugin CLAUDE.md files)
 - docs/CLAUDE.md: 8 outbound links to sub-docs
@@ -36,6 +37,7 @@ Root CLAUDE.md (Hub)
 Skills are discovered via:
 
 1. **Frontmatter metadata** in each SKILL.md:
+
    ```yaml
    ---
    name: adr-graph-easy-architect
@@ -49,6 +51,7 @@ Skills are discovered via:
 3. **Trigger phrases** (stored in description): e.g., "TRIGGERS - ADR diagram, architecture diagram"
 
 **Statistics:**
+
 - 164 SKILL.md files across 23 plugins
 - Skills organized in `plugins/{plugin}/skills/{skill-name}/SKILL.md` structure
 
@@ -65,8 +68,9 @@ The Single Source of Truth (SSoT) is `.claude-plugin/marketplace.json`:
   - `author`, `source`, `hooks`
 
 **Keywords for discovery:**
+
 - plugin-dev: ["plugin", "skill", "validation", "silent-failures", "meta-skill"...]
-- itp: ["adr", "workflow", "implementation", "release", "semantic-release"...]
+- itp: ["adr", "workflow", "implementation", "preflight", "graph-easy"...]
 - gh-tools: ["github", "pull-request", "gfm", "link-validation"...]
 
 **Finding**: Keywords provide some discoverability but are not exposed to end users in the Claude Code interface.
@@ -74,6 +78,7 @@ The Single Source of Truth (SSoT) is `.claude-plugin/marketplace.json`:
 ### 4. Link Validation (Lychee)
 
 The `lychee.toml` configuration provides broken link detection:
+
 - Caches results for 7 days
 - Excludes external URLs with rate limits
 - Checks markdown files across the ecosystem
@@ -83,6 +88,7 @@ The `lychee.toml` configuration provides broken link detection:
 ### 5. Validation Script (validate-plugins.mjs)
 
 Comprehensive validation that checks:
+
 - Plugin registration in marketplace.json
 - Required fields in JSON entries
 - Source/hook paths exist
@@ -96,31 +102,36 @@ Comprehensive validation that checks:
 ## Discoverability Gaps
 
 ### Gap 1: No Unified Skill Index
+
 - **Problem**: 164 skills exist but no single place lists them all
 - **Impact**: Users can't discover skills across plugins
 - **Example**: A user looking for "link validation" doesn't know it exists in `link-tools` plugin
 
 ### Gap 2: No Full-Text Search
+
 - **Problem**: Cannot search skill descriptions or content
 - **Impact**: Users must manually browse or guess
 - **Example**: Searching for "markdown" returns no results across skills
 
 ### Gap 3: Weak Cross-Spoke Links
+
 - **Problem**: docs/CLAUDE.md and plugins/CLAUDE.md don't fully link to each other
 - **Impact**: Documentation is siloed
 - **Finding**: Root CLAUDE.md links to both spokes, but spokes rarely link to each other
 
 ### Gap 4: Category/Tag Browsing Absent
+
 - **Problem**: marketplace.json has `category` and `keywords` but no UI exposure
 - **Impact**: No way to browse by category (devops, productivity, trading...)
 - **Example**: Want all "productivity" plugins → must check marketplace.json manually
 
 ### Gap 5: No Skill-to-Skill References
+
 - **Problem**: Skills don't reference related skills in other plugins
 - **Impact**: No way to discover "similar" skills
-- **Example**: `itp:release` and `mise:release` are related but not linked
 
 ### Gap 6: Plugin Dependencies Not Exposed
+
 - **Problem**: `tts-tg-sync` requires `kokoro-tts` but this isn't visible to users
 - **Impact**: Users don't understand plugin relationships
 
@@ -139,10 +150,10 @@ Browse skills by category or search by keyword.
 
 ## All Skills (164)
 
-| Skill | Plugin | Description | Triggers |
-|-------|--------|-------------|----------|
-| adr-graph-easy-architect | itp | ASCII architecture diagrams | ADR diagram, architecture |
-| semantic-release | itp | Automated releases via semantic-release | release, version, publish |
+| Skill                    | Plugin | Description                 | Triggers                  |
+| ------------------------ | ------ | --------------------------- | ------------------------- |
+| adr-graph-easy-architect | itp    | ASCII architecture diagrams | ADR diagram, architecture |
+
 ...
 ```
 
@@ -157,10 +168,10 @@ Enhance CLAUDE.md files with bidirectional links:
 - Each plugin CLAUDE.md → Link to related skills in other plugins
 
 **Example** (plugins/itp/CLAUDE.md):
+
 ```markdown
 ## Related Skills
 
-- [semantic-release](../mise/skills/release/SKILL.md) - Mise release tasks
 - [link-validation](../link-tools/skills/validate/SKILL.md) - Lychee integration
 ```
 
@@ -174,12 +185,12 @@ Create a machine-readable index for potential tooling:
 {
   "skills": [
     {
-      "name": "semantic-release",
+      "name": "adr-graph-easy-architect",
       "plugin": "itp",
-      "description": "Automated semantic versioning and releases",
-      "triggers": ["release", "version", "publish", "changelog"],
-      "keywords": ["semantic-release", "changelog", "versioning"],
-      "path": "plugins/itp/skills/release/SKILL.md"
+      "description": "ASCII architecture diagrams for ADRs via graph-easy",
+      "triggers": ["adr", "diagram", "architecture"],
+      "keywords": ["graph-easy", "ascii", "architecture"],
+      "path": "plugins/itp/skills/adr-graph-easy-architect/SKILL.md"
     }
   ]
 }
@@ -195,15 +206,19 @@ Enhance root CLAUDE.md with category-based plugin listing:
 ## Plugins by Category
 
 ### Development (7)
+
 - plugin-dev, gh-tools, gitnexus-tools, rust-tools, devops-tools...
 
 ### Productivity (5)
+
 - itp, gmail-commander, calcom-commander, mise, productivity-tools
 
 ### DevOps (5)
+
 - devops-tools, asciinema-tools, git-town-workflow, kokoro-tts, tts-tg-sync
 
 ### Trading (2)
+
 - mql5, quant-research
 ```
 
@@ -213,11 +228,13 @@ Add dependency visualization to root CLAUDE.md:
 
 ```markdown
 ## Plugin Dependencies
-
 ```
+
 tts-tg-sync ──requires──► kokoro-tts
 git-town-workflow ──requires──► git-town
+
 ```
+
 ```
 
 ### Recommendation 6: Enhance Skill Triggers (Priority: Low)
@@ -226,15 +243,14 @@ Standardize trigger phrase format across all SKILL.md files:
 
 ```yaml
 ---
-name: semantic-release
-description: Automated semantic versioning and releases
+name: adr-graph-easy-architect
+description: ASCII architecture diagrams for ADRs via graph-easy
 triggers:
-  - release
-  - version
-  - publish
-  - changelog
-  - major/minor/patch
-allowed-tools: Bash, Git, npm
+  - adr diagram
+  - architecture
+  - graph-easy
+  - ascii chart
+allowed-tools: Bash, Read, Write
 ---
 ```
 
@@ -244,14 +260,14 @@ allowed-tools: Bash, Git, npm
 
 ## Implementation Priority
 
-| Priority | Recommendation | Effort | Impact |
-|----------|---------------|--------|--------|
-| 1 | Unified Skill Index | Low | High |
-| 2 | Cross-Reference Links | Medium | High |
-| 3 | Skill Metadata Index | Medium | Medium |
-| 4 | Category Browsing | Low | Medium |
-| 5 | Dependency Documentation | Low | Low |
-| 6 | Enhanced Triggers | High | Low |
+| Priority | Recommendation           | Effort | Impact |
+| -------- | ------------------------ | ------ | ------ |
+| 1        | Unified Skill Index      | Low    | High   |
+| 2        | Cross-Reference Links    | Medium | High   |
+| 3        | Skill Metadata Index     | Medium | Medium |
+| 4        | Category Browsing        | Low    | Medium |
+| 5        | Dependency Documentation | Low    | Low    |
+| 6        | Enhanced Triggers        | High   | Low    |
 
 ---
 

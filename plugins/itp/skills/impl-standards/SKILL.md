@@ -135,12 +135,11 @@ See [ml-data-pipeline-architecture](/plugins/devops-tools/skills/ml-data-pipelin
 
 ## Related Skills
 
-| Skill                                                                                                  | Purpose                                   |
-| ------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| [`adr-code-traceability`](../adr-code-traceability/SKILL.md)                                           | Add ADR references to code                |
-| [`code-hardcode-audit`](../code-hardcode-audit/SKILL.md)                                               | Detect hardcoded values before release    |
-| [`semantic-release`](../semantic-release/SKILL.md)                                                     | Version management and release automation |
-| [`ml-data-pipeline-architecture`](/plugins/devops-tools/skills/ml-data-pipeline-architecture/SKILL.md) | Polars/Arrow efficiency patterns          |
+| Skill                                                                                                  | Purpose                                |
+| ------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| [`adr-code-traceability`](../adr-code-traceability/SKILL.md)                                           | Add ADR references to code             |
+| [`code-hardcode-audit`](../code-hardcode-audit/SKILL.md)                                               | Detect hardcoded values before release |
+| [`ml-data-pipeline-architecture`](/plugins/devops-tools/skills/ml-data-pipeline-architecture/SKILL.md) | Polars/Arrow efficiency patterns       |
 
 ---
 
@@ -161,7 +160,6 @@ See [ml-data-pipeline-architecture](/plugins/devops-tools/skills/ml-data-pipelin
 | Error swallowed        | except: pass pattern | Log error before continuing or re-raise    |
 | Type errors at runtime | Missing validation   | Add input validation at boundaries         |
 | Config not loading     | Hardcoded paths      | Use environment variables with defaults    |
-
 
 ## Post-Execution Reflection
 

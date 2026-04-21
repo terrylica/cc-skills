@@ -173,4 +173,3 @@ GITHUB_TOKEN = "{{ cache(key='gh_token', duration='1h', run='op read op://Engine
 ## References
 
 - [mise env documentation](https://mise.jdx.dev/environments/)
-- [semantic-release skill](../../semantic-release/SKILL.md)
