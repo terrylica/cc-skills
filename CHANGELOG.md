@@ -1,3 +1,65 @@
+# [14.0.0](https://github.com/terrylica/cc-skills/compare/v13.0.0...v14.0.0) (2026-04-21)
+
+
+* feat(itp)!: remove release and semantic-release skills ([ccb91f5](https://github.com/terrylica/cc-skills/commit/ccb91f58d2a6b0dc219e16d181734d91811f04ec))
+
+
+### Bug Fixes
+
+* **release:** drop generateNotesCmd pointing at deleted script ([bac5421](https://github.com/terrylica/cc-skills/commit/bac54213f343b62e86e9a707437d1ce366d833be))
+
+
+### Features
+
+* **chronicle-share:** Phase 1 — bundle.sh + manifest v1 ([7ec85c0](https://github.com/terrylica/cc-skills/commit/7ec85c06db6d0859da759005996de35bc23092b5))
+* **chronicle-share:** Phase 2 — sanitize.sh + manifest v2 additions ([f1171d7](https://github.com/terrylica/cc-skills/commit/f1171d74fa1e65907d815325f83167af0026ebef))
+* **chronicle-share:** scaffold plugin for R2 producer pipeline ([6885ab7](https://github.com/terrylica/cc-skills/commit/6885ab797eadd8d90b7fce5c07a10fc48ab2a3bb))
+
+
+### BREAKING CHANGES
+
+* The `itp:release` and `itp:semantic-release` skills
+have been removed. `/itp:release` no longer exists.
+
+Migration: use `/mise:run-full-release` instead. Every repo owns its
+release DAG in `.mise/tasks/release/`, which is where the logic
+actually belongs — the two itp skills had drifted into either thin
+delegators to mise or reference material duplicated across other
+skills.
+
+Purge includes:
+- plugins/itp/skills/release/ (entire directory)
+- plugins/itp/skills/semantic-release/ (entire directory, incl. templates,
+  references, scripts, and historical audit report)
+
+Cross-reference cleanup:
+- plugins/itp/CLAUDE.md: drop Skills and Commands entries; update
+  Phase 3 description to point at the mise release pipeline
+- plugins/itp/skills/impl-standards/SKILL.md + references: drop
+  semantic-release row from the Related Skills table; update
+  constants-management to refer to mise release pipeline
+- plugins/itp/skills/mise-configuration/references/github-tokens.md:
+  drop semantic-release link
+- plugins/itp/skills/mise-tasks/references/release-workflow-patterns.md:
+  drop semantic-release from Related header
+- plugins/itp/skills/pypi-doppler/SKILL.md: drop semantic-release
+  bullet from the Related Skills list
+- plugins/plugin-dev/skills/create/SKILL.md: replace two
+  Skill(itp:semantic-release) references with Skill(mise:run-full-release)
+- plugins/plugin-dev/skills/skill-architecture/references/scripts-reference.md:
+  replace "Semantic Release" section with "Release Pipeline" pointing
+  at the mise skill
+- README.md: update docs examples, plugin-dev dependency row, and
+  the itp plugin summary to drop the removed skills
+- docs/discovery-architecture.md + docs/metadata-linking-framework.md:
+  replace removed-skill examples (keywords, frontmatter samples,
+  cross-reference tables) with still-existing skills
+
+CHANGELOG.md historical entries referencing these skills are kept
+intact — history is immutable.
+
+SRED-Type: experimental-development
+
 # [13.0.0](https://github.com/terrylica/cc-skills/compare/v12.52.0...v13.0.0) (2026-04-20)
 
 
