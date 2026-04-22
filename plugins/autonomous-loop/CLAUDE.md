@@ -45,21 +45,29 @@ max_iterations: 100
 ## Non-Obvious Learnings # preserved across firings
 ```
 
-## Dynamic wake-up policy table
+## Core design principle
 
-| Situation                                        | Delay                                      | Why                                        |
-| ------------------------------------------------ | ------------------------------------------ | ------------------------------------------ |
-| Long-running task in flight (>10 min)            | 1200-1800s + Monitor                       | Event fires before heartbeat; cache saved  |
-| Short task in flight (<5 min)                    | 60-300s + Monitor                          | Tight cap for fast turnaround              |
-| Nothing in flight, self-directed work continues  | 60s (continue-now)                         | Don't idle; effectively the next iteration |
-| Waiting on user decision                         | 3600s (max)                                | User will return; no wake-ups wasted       |
-| Saturation detected (3 consecutive null rescues) | **omit ScheduleWakeup** + PushNotification | Honest stop, user notified                 |
+**Every waker mechanism exists for one reason only: to make the main Claude Code session resume.** There is no other point. The loop never executes work outside Claude Code — only inside it. So picking a waker reduces to: what is the cheapest, most honest way to signal "work is ready"?
 
-Prompt cache TTL is 5 minutes. Delays ≤270s keep the cache warm; delays ≥300s pay one cache miss. The anti-pattern is picking 300s (cache miss without amortizing the wait).
+Ranked by cost (lowest → highest). Always pick the earliest tier that fits.
 
-## Monitor-primary + ScheduleWakeup-fallback
+| Tier                                               | Mechanism                                                                                                                    | When to use                                                                                                | Cost                                             |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **0 — In-turn continuation (default)**             | No waker at all. Just start the next iteration in the same turn.                                                             | Implementation Queue has a ready item AND tokens remain. This is 90% of the case.                          | Zero — no cache miss, no real-time gap           |
+| **1 — `Monitor`**                                  | Arm a `Monitor` on a background script's stdout so the turn wakes on each emitted line (build output, file-watch, log tail). | External event is the natural readiness signal AND we're still in the same session.                        | Near-zero; cache stays warm                      |
+| **2 — `ScheduleWakeup` (≤270s)**                   | Timer fires within the 5-min prompt cache TTL.                                                                               | Genuinely timed external blocker: API rate limit window, deployment known-ETA, polled API with no webhook. | One cached turn of real-time wait; no cache miss |
+| **3 — `ScheduleWakeup` (≥1200s)**                  | Long-sleep timer (20 min – 1 hr). Expect to pay one prompt-cache miss on resume.                                             | User will be away for a while; external event is unlikely to fire sooner.                                  | Cache miss + longer wall-clock wait              |
+| **4 — External waker (watchexec / systemd.timer)** | Cross-_session_ waker. Something outside Claude Code launches a fresh `claude --continue`.                                   | Session has fully ended (user closed terminal, machine rebooted) and we need to resume automatically.      | Full cold start of a new session                 |
 
-When an external event (build done, chain complete, log line matches) is the natural wake signal, arm a `Monitor` with `persistent: true`. Add a `ScheduleWakeup` as heartbeat safety net (1200-1800s) in case the Monitor filter misses.
+**Key rule:** Never pick `ScheduleWakeup(300s)` — it's the worst of both (cache miss without amortizing the wait). Stay ≤270s or jump to ≥1200s.
+
+## The classical bug: using a waker as pacing
+
+If iter-N completes and iter-N+1 is ready, **do not** call `ScheduleWakeup(60s)`. Do not call it at all. Chain in-turn instead. `ScheduleWakeup` is for **external blockers**, not for pacing your own work. A firing that produces "scheduled next wake-up, did nothing else" while the Implementation Queue has ready work is a regression — reviewers should flag it.
+
+## Monitor as the preferred reactive waker
+
+When an external event (build done, chain complete, log line matches) is the natural wake signal, arm a `Monitor` with `persistent: true`. A `ScheduleWakeup` heartbeat (1200-1800s) is optional _safety net only_ — it should be redundant in the happy path. If you find yourself relying on the heartbeat to advance iterations, the Monitor filter is wrong.
 
 ## Saturation detection heuristic
 
@@ -67,6 +75,8 @@ Count consecutive firings where `CURRENT_STATE` reports a "null-rescue" outcome 
 
 ## Anti-patterns
 
+- **Never use `ScheduleWakeup` as pacing.** It is strictly for external blockers (timed webhook, rate-limit window, user-return wait). If the next iteration can fire immediately, fire it — do not schedule.
+- **Never leave dead air between completed iterations.** If iter-N commits and iter-N+1 is queued, iter-N+1 runs in the same turn. No 60s nap. No "fallback heartbeat" when nothing is blocking.
 - Never re-issue `/loop` with a new prompt each firing — use the short trigger pattern so the contract file is the SSoT.
 - Never store state in memory (Claude's `auto memory`) — the contract file is the state. Memory is for cross-session preferences, not mid-loop state.
 - Never rely on Opus 4.7 task budgets — [API-only](https://platform.claude.com/docs/en/build-with-claude/task-budgets), unavailable in Claude Code subscription.
