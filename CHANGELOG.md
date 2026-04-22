@@ -1,3 +1,21 @@
+# [15.0.0](https://github.com/terrylica/cc-skills/compare/v14.0.0...v15.0.0) (2026-04-22)
+
+
+* feat(release)!: add Phase 1.5 pre-sync to release:full ([8d66160](https://github.com/terrylica/cc-skills/commit/8d66160b5e65202ad54ef060b2a905e4f405d3c5))
+
+
+### Bug Fixes
+
+* **autonomous-loop:** use CLAUDE_PLUGIN_ROOT + add parallel-secondary-work clause ([e034cf7](https://github.com/terrylica/cc-skills/commit/e034cf7e8a4eedef2562043e9ef8d1afaf06415a)), closes [#6](https://github.com/terrylica/cc-skills/issues/6) [#7](https://github.com/terrylica/cc-skills/issues/7)
+
+
+### BREAKING CHANGES
+
+* release:full now runs six phases instead of five.
+Custom downstream invocations that replicate individual phases should
+add release:presync between preflight and version, or continue to call
+release:full as the single entry point.
+
 # [14.0.0](https://github.com/terrylica/cc-skills/compare/v13.0.0...v14.0.0) (2026-04-21)
 
 
