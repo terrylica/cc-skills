@@ -1,0 +1,9 @@
+{
+  "name": "macro-keyboard",
+  "version": "15.0.0",
+  "description": "Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Elements: emit real Fn, remap per-device, diagnose mystery keycodes. Includes worked example: Jieli/Free3-P (VID 0x4c4a USB / 0x04E8 BT).",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

@@ -762,6 +762,54 @@
         "producer-side"
       ],
       "strict": false
+    },
+    {
+      "name": "macro-keyboard",
+      "description": "Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Elements: emit real Fn, remap per-device, diagnose mystery keycodes. Includes worked example: Jieli/Free3-P (VID 0x4c4a USB / 0x04E8 BT).",
+      "version": "15.0.0",
+      "source": "./plugins/macro-keyboard",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "macro-pad",
+        "macro-keyboard",
+        "3-key-pad",
+        "stream-deck-alternative",
+        "aliexpress-macropad",
+        "karabiner",
+        "karabiner-elements",
+        "karabiner-rule",
+        "hid",
+        "hid-diagnostic",
+        "hid-report-descriptor",
+        "jieli",
+        "free3-p",
+        "realtek",
+        "ch57x",
+        "bluetooth-hid",
+        "bluetooth-remap",
+        "usb-to-bluetooth-remap",
+        "samsung-vid-0x04e8",
+        "fn-key",
+        "fn-emission",
+        "real-apple-fn",
+        "apple-fn",
+        "apple-vendor-top-case",
+        "driverkit-virtualhiddevice",
+        "typeless",
+        "typeless-push-to-talk",
+        "macos-dictation",
+        "cgeventpost-fn-failure",
+        "btt-fn-failure",
+        "macos",
+        "remap",
+        "device-scoped",
+        "device-if"
+      ],
+      "strict": false
     }
   ]
 }

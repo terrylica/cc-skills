@@ -1,0 +1,12 @@
+{
+  "device_id": 4308529721,
+  "device_identifiers": {
+    "is_keyboard": true,
+    "product_id": 28705,
+    "vendor_id": 1256
+  },
+  "location_id": 1691613079,
+  "product": "Free3-P",
+  "serial_number": "EC:BD:E4:D3:F7:97",
+  "transport": "Bluetooth"
+}

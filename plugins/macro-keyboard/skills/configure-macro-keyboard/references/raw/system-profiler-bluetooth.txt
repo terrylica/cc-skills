@@ -1,0 +1,15 @@
+          Free3-P:
+              Address: EC:BD:E4:D3:F7:97
+              Vendor ID: 0x04E8
+              Product ID: 0x7021
+              Firmware Version: 0.1.11
+              Minor Type: Keyboard
+              RSSI: -40
+              Services: 0x800020 < HID ACL >
+      Not Connected:
+          DS19:
+              Address: 41:42:EB:1F:07:C8
+              Firmware Version: 0.0.0
+              Minor Type: Headphones
+          iPhone TerryLi:
+              Address: 98:50:2E:A3:61:B5

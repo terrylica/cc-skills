@@ -106,6 +106,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [itp-hooks](./itp-hooks/CLAUDE.md)
 - [kokoro-tts](./kokoro-tts/CLAUDE.md)
 - [link-tools](./link-tools/CLAUDE.md)
+- [macro-keyboard](./macro-keyboard/CLAUDE.md)
 - [media-tools](./media-tools/CLAUDE.md)
 - [mise](./mise/CLAUDE.md)
 - [mql5](./mql5/CLAUDE.md)
