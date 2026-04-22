@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Execute complete 5-phase release pipeline: preflight validation → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache clear → artifact verification → postflight git state validation. This is the primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
+#MISE description="Execute complete 6-phase release pipeline: preflight validation → pre-sync (mirror HEAD to ~/.claude so live env reflects pending changes) → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache population → artifact verification → postflight git state validation. Primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
 #MISE depends=["release:preflight"]
 set -euo pipefail
 
@@ -8,6 +8,12 @@ echo "╔═══════════════════════�
 echo "║  cc-skills Full Release Workflow                          ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
+
+# Phase 1.5: Pre-sync
+# Mirrors current HEAD to ~/.claude so the live environment reflects
+# pending plugin changes BEFORE semantic-release runs. Idempotent with
+# Phase 3 post-sync; skips gracefully if local commits are unpushed.
+mise run release:presync
 
 # Phase 2: Version
 mise run release:version

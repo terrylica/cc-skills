@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#MISE description="Phase 1.5 of 5: Pre-release sync. Mirrors the current main HEAD into ~/.claude/plugins/marketplaces/cc-skills and runs hook/command/enabled-plugin sync so the live Claude Code environment reflects pending plugin changes BEFORE semantic-release runs. Safe against unpushed commits (skips with a warning). Idempotent with Phase 3 post-sync."
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Phase 1.5: PRE-SYNC (~/.claude ← current HEAD)"
+echo "═══════════════════════════════════════════════════════════"
+
+MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
+
+# Compare local HEAD against origin/main. If they differ, we'd be mirroring
+# unpushed commits — refuse, since semantic-release will push those commits
+# anyway and post-sync will pick them up.
+LOCAL_SHA=$(git rev-parse HEAD)
+git fetch origin main --quiet 2>/dev/null || {
+    echo "  ⚠ Could not fetch origin/main — skipping pre-sync"
+    echo ""
+    exit 0
+}
+REMOTE_SHA=$(git rev-parse origin/main)
+
+if [[ "$LOCAL_SHA" != "$REMOTE_SHA" ]]; then
+    echo "  ⚠ Local HEAD ($LOCAL_SHA) differs from origin/main ($REMOTE_SHA)"
+    echo "    Pre-sync only mirrors pushed commits to avoid inconsistent state."
+    echo "    Push first (git push origin main) if you want pre-sync to run."
+    echo "    Post-sync (Phase 3) will still run after semantic-release."
+    echo ""
+    exit 0
+fi
+
+# Update the marketplace mirror to the current HEAD so hook/command sync
+# scripts (which read from $MARKETPLACE_DIR, not the dev tree) see the
+# pending changes.
+if [[ -d "$MARKETPLACE_DIR/.git" ]]; then
+    echo "→ Updating marketplace mirror to HEAD ($LOCAL_SHA)..."
+    pushd "$MARKETPLACE_DIR" >/dev/null
+    git fetch origin main --quiet
+    git reset --hard "$LOCAL_SHA" --quiet
+    git clean -fd --quiet
+    popd >/dev/null
+    echo "  ✓ Marketplace mirror at $LOCAL_SHA"
+else
+    echo "  ⚠ Marketplace not found at $MARKETPLACE_DIR — skipping sync"
+    echo ""
+    exit 0
+fi
+
+# Sync hooks / commands / enabled plugins from the freshly updated mirror.
+# These scripts are version-independent, so they run fine before the version bump.
+echo "→ Syncing hooks to settings.json..."
+if [[ -x "./scripts/sync-hooks-to-settings.sh" ]]; then
+    ./scripts/sync-hooks-to-settings.sh
+else
+    echo "  ⚠ Hook sync script not found"
+fi
+
+echo "→ Syncing commands to ~/.claude/commands/..."
+if [[ -x "./scripts/sync-commands-to-settings.sh" ]]; then
+    ./scripts/sync-commands-to-settings.sh
+else
+    echo "  ⚠ Command sync script not found"
+fi
+
+echo "→ Enabling new plugins in settings.json..."
+if [[ -x "./scripts/sync-enabled-plugins.sh" ]]; then
+    ./scripts/sync-enabled-plugins.sh
+else
+    echo "  ⚠ Plugin enable script not found"
+fi
+
+echo ""
+echo "✓ Pre-sync complete — ~/.claude reflects current HEAD"
+echo "  (Phase 3 post-sync will update again with the released version)"
+echo ""
