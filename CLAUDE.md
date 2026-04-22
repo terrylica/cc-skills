@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **30 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **31 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -40,9 +40,9 @@ CLAUDE.md (this file)                  ◄── Hub: Navigation + Essentials
 | ADRs              | [docs/adr/](./docs/adr/)                                                                                                     |
 | Resume Context    | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
 
-### Plugin CLAUDE.md Files (30/30)
+### Plugin CLAUDE.md Files (31/31)
 
-All 30 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
+All 31 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
 **Active project (SSoT):** [plugins/claude-tts-companion/CLAUDE.md](./plugins/claude-tts-companion/CLAUDE.md) — project/stack/conventions/architecture for the Swift macOS companion binary. Critical invariants (e.g., _do not replace afplay with AVAudioPlayer_) live there, not here.
 
