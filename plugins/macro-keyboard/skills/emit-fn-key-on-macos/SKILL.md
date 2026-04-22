@@ -6,6 +6,8 @@ allowed-tools: Read, Edit, Write, Bash
 
 # Emit a Real Fn Key on macOS
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Macos's Fn key (also called the "globe" key on modern MacBooks) is special. It's not a regular modifier — it carries `kCGEventFlagMaskSecondaryFn`, a flag that macOS's input subsystem **discards if set from userland via `CGEventPost`**. Many "remap anything" tools assume Fn behaves like Cmd / Option / Ctrl and try to emit it via `CGEventPost` — and silently fail for dictation, Typeless, macOS's dictation shortcut, Spotlight-via-globe, emoji picker, etc.
 
 The only userland path that emits a Fn the kernel accepts is a **DriverKit VirtualHIDDevice**. Karabiner-Elements ships one. That's why Karabiner is the only FOSS tool for this job in 2026.
@@ -157,3 +159,15 @@ For flashable boards see: <https://github.com/qmk/qmk_firmware> → `APPLE_FN_EN
 
 - [`configure-macro-keyboard`](../configure-macro-keyboard/SKILL.md) — the end-to-end setup workflow that uses this skill as one step (wiring an external macro pad's button to Fn inside a larger Karabiner rule)
 - [`diagnose-hid-keycodes`](../diagnose-hid-keycodes/SKILL.md) — use this FIRST if you don't yet know which keycode your hardware emits; only then come back here to remap it to Fn
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Confirm this SKILL.md is the canonical file before any edit.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Update vendor IDs, keycodes, or FOSS-tool versions if reality disagrees with the doc.
+4. **Log it.** — Add an evolution-log entry (or `04-anti-patterns.md` row) with trigger, fix, evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

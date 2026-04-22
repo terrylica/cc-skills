@@ -208,3 +208,15 @@ See `references/08-bluetooth-configuration.md` for the full mode-4 setup.
 
 - `emit-fn-key-on-macos` — focused coverage of why only Karabiner can emit real Fn (BTT / hidutil / QMK on locked firmware all fail)
 - `diagnose-hid-keycodes` — `ignore: true` + EventViewer + Quartz focus-free screencap workflow for figuring out what a mystery button emits
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Confirm this SKILL.md is the canonical file before any edit.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Update vendor IDs, keycodes, or FOSS-tool versions if reality disagrees with the doc.
+4. **Log it.** — Add an evolution-log entry (or `04-anti-patterns.md` row) with trigger, fix, evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

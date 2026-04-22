@@ -6,6 +6,8 @@ allowed-tools: Read, Edit, Write, Bash
 
 # Diagnose HID Keycodes
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Given an unknown macro pad, mouse button, foot pedal, or HID gadget, find out exactly what each button emits at the OS level — **without guessing from labels, vendor docs, or photos**. Cheap HID pads frequently ship with arbitrary or mis-labeled keycodes (the Jieli/Free3-P ships with buttons labeled top/middle/bottom emitting Ctrl+C/Ctrl+V/Ctrl+X — which isn't the cut/copy/paste convention; it's hardware-random).
 
 ## When to Use This Skill
@@ -149,3 +151,15 @@ The working tool IS the audit. This was discovered the hard way; see [`../config
 
 - [`configure-macro-keyboard`](../configure-macro-keyboard/SKILL.md) — once you know what your buttons emit, use this to write the device-scoped Karabiner rule. The `vk_none` no-op rule from Step 2 here converts directly into the real rule by swapping `from` / `to` bindings.
 - [`emit-fn-key-on-macos`](../emit-fn-key-on-macos/SKILL.md) — if one of the keycodes you discovered should be remapped to real Fn (for Typeless, dictation, globe key), this sibling skill explains the one correct Karabiner incantation.
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Confirm this SKILL.md is the canonical file before any edit.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Update vendor IDs, keycodes, or FOSS-tool versions if reality disagrees with the doc.
+4. **Log it.** — Add an evolution-log entry (or `04-anti-patterns.md` row) with trigger, fix, evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
