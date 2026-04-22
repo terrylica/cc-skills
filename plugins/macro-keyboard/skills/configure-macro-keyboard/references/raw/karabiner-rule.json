@@ -1,0 +1,203 @@
+{
+  "description": "Jieli/Free3-P macro pad: Top -> Fn (Typeless), Middle -> Return, Bottom -> Command+Delete (delete to start of line). Matches both USB and Bluetooth transports.",
+  "manipulators": [
+    {
+      "type": "basic",
+      "from": {
+        "simultaneous": [
+          {
+            "key_code": "left_control"
+          },
+          {
+            "key_code": "c"
+          }
+        ],
+        "simultaneous_options": {
+          "key_down_order": "insensitive",
+          "key_up_order": "insensitive",
+          "detect_key_down_uninterruptedly": true
+        }
+      },
+      "to": [
+        {
+          "apple_vendor_top_case_key_code": "keyboard_fn"
+        }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            {
+              "vendor_id": 19530,
+              "product_id": 16725
+            },
+            {
+              "vendor_id": 1256,
+              "product_id": 28705
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "basic",
+      "from": {
+        "simultaneous": [
+          {
+            "key_code": "left_control"
+          },
+          {
+            "key_code": "v"
+          }
+        ],
+        "simultaneous_options": {
+          "key_down_order": "insensitive",
+          "key_up_order": "insensitive",
+          "detect_key_down_uninterruptedly": true
+        }
+      },
+      "to": [
+        {
+          "key_code": "return_or_enter"
+        }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            {
+              "vendor_id": 19530,
+              "product_id": 16725
+            },
+            {
+              "vendor_id": 1256,
+              "product_id": 28705
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "basic",
+      "from": {
+        "key_code": "page_up"
+      },
+      "to": [
+        {
+          "apple_vendor_top_case_key_code": "keyboard_fn"
+        }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            {
+              "vendor_id": 19530,
+              "product_id": 16725
+            },
+            {
+              "vendor_id": 1256,
+              "product_id": 28705
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "basic",
+      "from": {
+        "key_code": "page_down"
+      },
+      "to": [
+        {
+          "key_code": "return_or_enter"
+        }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            {
+              "vendor_id": 19530,
+              "product_id": 16725
+            },
+            {
+              "vendor_id": 1256,
+              "product_id": 28705
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "basic",
+      "from": {
+        "simultaneous": [
+          {
+            "key_code": "left_control"
+          },
+          {
+            "key_code": "x"
+          }
+        ],
+        "simultaneous_options": {
+          "key_down_order": "insensitive",
+          "key_up_order": "insensitive",
+          "detect_key_down_uninterruptedly": true
+        }
+      },
+      "to": [
+        {
+          "key_code": "delete_or_backspace",
+          "modifiers": [
+            "left_command"
+          ]
+        }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            {
+              "vendor_id": 19530,
+              "product_id": 16725
+            },
+            {
+              "vendor_id": 1256,
+              "product_id": 28705
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "basic",
+      "from": {
+        "key_code": "equal_sign"
+      },
+      "to": [
+        {
+          "key_code": "delete_or_backspace",
+          "modifiers": [
+            "left_command"
+          ]
+        }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            {
+              "vendor_id": 19530,
+              "product_id": 16725
+            },
+            {
+              "vendor_id": 1256,
+              "product_id": 28705
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

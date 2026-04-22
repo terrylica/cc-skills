@@ -1,0 +1,6 @@
+          Manufacturer: Jieli Technology
+          Location ID: 0x00100000 / 1
+          Current Available (mA): 500
+          Current Required (mA): 100
+          Extra Operating Current (mA): 0
+
