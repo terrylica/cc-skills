@@ -55,15 +55,26 @@ git log --oneline -5                # recent commits
 
 Form a one-sentence assessment: _"Last firing finished X with Y result; next logical step is Z from the queue."_
 
-### Phase 2 — Act (single highest-value step)
+### Phase 2 — Act (fill available time, not just one step)
 
-Priority order:
+Priority order (stop at the first match that has actionable work; then
+continue to rule 6 if time/tokens remain):
 
 1. If a long-running task is **in flight**: verify Monitor armed, check progress, schedule fallback (1200-1800s).
 2. If a Monitor event **just fired** (chain done): archive artifacts, write verdict, append ledger, commit atomically, pick next iteration.
 3. If **uncommitted research artifacts** exist (git status dirty): commit as logical atomic group before starting new work.
 4. If a **major milestone** just landed (cross-asset validation, composability proof, tier complete): consider `mise run release:full` per release rules.
 5. If **nothing in flight + tree clean**: pick the next pending item from Implementation Queue; build, deploy, monitor.
+6. **Continue filling available time** — after the primary step above, if a long-running task was merely launched (not blocked-waiting) and tokens remain, ALSO pop the next non-conflicting secondary queue item and make progress on it in the same firing. Idle waiting is the exception, not the norm. Suitable secondary items:
+   - Documentation / CLAUDE.md updates triggered by the primary work
+   - Refactors / lint fixes unrelated to the in-flight code path
+   - Auditing commands (non-mutating) whose output informs the next primary step
+   - Spawning independent `Agent` subtasks (in parallel) for research or validation that doesn't touch the mutating code path
+7. If the **Implementation Queue is empty AND the primary in-flight task is the only work**: only then go to sleep with a delay matched to the expected task duration per the Dynamic Wake-Up table.
+
+**Explicit rule — "continuation over idle":** a firing that produces
+"scheduled next wake-up, did nothing else" is a regression whenever the
+Implementation Queue has any non-blocked item. Reviewers should flag it.
 
 ### Phase 3 — Revise (this file)
 
