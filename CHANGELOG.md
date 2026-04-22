@@ -1,3 +1,27 @@
+# [16.0.0](https://github.com/terrylica/cc-skills/compare/v15.0.0...v16.0.0) (2026-04-22)
+
+
+* fix(autonomous-loop)!: waker-tier model — never use ScheduleWakeup as pacing ([1cf0915](https://github.com/terrylica/cc-skills/commit/1cf0915ffcb21420e89d346b836b9318d9dc7fa9))
+
+
+### Features
+
+* **macro-keyboard:** add plugin for 3-key USB-C/Bluetooth macro pad on macOS ([8ef6899](https://github.com/terrylica/cc-skills/commit/8ef6899e756ebc5ee80155b7809111e84433bb26))
+
+
+### BREAKING CHANGES
+
+* the `Nothing in flight, self-directed work continues`
+row is removed from the pacing table. Contracts that interpreted this
+row as "schedule 60s wake-up between iterations" will now correctly
+chain in-turn. No action needed from users — the template is
+idempotent on next firing.
+
+Research basis: Anthropic's own `/loop` docs (self-paced interval is
+for continuous work; ScheduleWakeup is for external blockers), plus
+durable-execution patterns from Temporal / Restate / LangGraph
+(event-driven primary, timer-only-as-safety-net).
+
 # [15.0.0](https://github.com/terrylica/cc-skills/compare/v14.0.0...v15.0.0) (2026-04-22)
 
 
