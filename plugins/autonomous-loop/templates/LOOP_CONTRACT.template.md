@@ -60,7 +60,7 @@ Form a one-sentence assessment: _"Last firing finished X with Y result; next log
 Priority order (stop at the first match that has actionable work; then
 continue to rule 6 if time/tokens remain):
 
-1. If a long-running task is **in flight**: verify Monitor armed, check progress, schedule fallback (1200-1800s).
+1. If a long-running task is **in flight**: verify `Monitor` is armed on its output stream so the turn reacts as events arrive. Only arm a `ScheduleWakeup(1200-1800s)` heartbeat as a *safety net* (redundant in the happy path). If the queue has other non-conflicting items, keep working in the same turn — don't sleep.
 2. If a Monitor event **just fired** (chain done): archive artifacts, write verdict, append ledger, commit atomically, pick next iteration.
 3. If **uncommitted research artifacts** exist (git status dirty): commit as logical atomic group before starting new work.
 4. If a **major milestone** just landed (cross-asset validation, composability proof, tier complete): consider `mise run release:full` per release rules.
@@ -70,7 +70,7 @@ continue to rule 6 if time/tokens remain):
    - Refactors / lint fixes unrelated to the in-flight code path
    - Auditing commands (non-mutating) whose output informs the next primary step
    - Spawning independent `Agent` subtasks (in parallel) for research or validation that doesn't touch the mutating code path
-7. If the **Implementation Queue is empty AND the primary in-flight task is the only work**: only then go to sleep with a delay matched to the expected task duration per the Dynamic Wake-Up table.
+7. If the **Implementation Queue is empty AND the only remaining work is an in-flight task you can't accelerate**: choose the cheapest waker tier that fits (see Phase 4 table). Prefer `Monitor` over `ScheduleWakeup`. If there is no in-flight task and the queue is empty, the loop's exit condition is met — do not schedule; stop honestly.
 
 **Explicit rule — "continuation over idle":** a firing that produces
 "scheduled next wake-up, did nothing else" is a regression whenever the
@@ -80,20 +80,25 @@ Implementation Queue has any non-blocked item. Reviewers should flag it.
 
 Rewrite the **Current State** section. Remove completed queue items. Promote next-tier items when current tier empties. Preserve the Core Directive and Non-Obvious Learnings verbatim.
 
-### Phase 4 — Persist with dynamic pacing
+### Phase 4 — Persist, then choose a waker (cheapest tier that fits)
 
-**Dynamic Wake-Up Delay Policy** (no magic numbers):
+**Core principle**: every waker exists solely to make the main session resume. If the next iteration is ready right now, do not call a waker at all — chain in-turn.
 
-| Situation                                           | Delay                                    | Rationale                                     |
-| --------------------------------------------------- | ---------------------------------------- | --------------------------------------------- |
-| Long task in flight (>10 min)                       | 1200-1800s with Monitor armed            | Event fires before deadline; cache not wasted |
-| Short task in flight (<5 min)                       | 60-300s with Monitor armed               | Tight cap for fast turnaround                 |
-| **Nothing in flight, self-directed work continues** | **60s (minimum, continue-now)**          | **Effectively "continue now"; don't idle**    |
-| Blocked on user input / decision                    | 3600s (max)                              | User will return; hold efficiently            |
-| Release milestone just shipped                      | 60s                                      | Continue immediately to next build            |
-| Saturation detected (3 consecutive null rescues)    | **omit ScheduleWakeup** + PushNotification | Loop terminates; user notified              |
+| Tier | Mechanism | When to use | Cost |
+| ---- | --------- | ----------- | ---- |
+| **0 — In-turn continuation (default)** | No waker. Just start the next iteration in the same turn. | Implementation Queue has a ready item AND tokens remain. | Zero |
+| **1 — `Monitor`** | Arm a `Monitor` on a background stream (build output, file-watch, log tail). The turn wakes on each emitted line. | An external event is the natural readiness signal, and you're still in-session. | Near-zero; cache warm |
+| **2 — `ScheduleWakeup` (≤270s)** | Timer fires within the 5-min prompt-cache TTL. | Genuinely timed external blocker: API rate-limit window, deployment ETA, polled API with no webhook. | One warm turn of real-time wait |
+| **3 — `ScheduleWakeup` (≥1200s)** | Long-sleep timer. Pay one prompt-cache miss on resume. | User away for a while; no sooner signal expected. | Cache miss + long wall-clock wait |
+| **4 — External waker** (watchexec / systemd.timer) | Something outside Claude Code launches a fresh `claude --continue`. | Session has fully ended and we need to resume automatically across restarts. | Full cold-start of a new session |
+| **Saturation detected (3 consecutive null rescues)** | **Omit the waker entirely** + `PushNotification`. | Loop has stalled. Stop honestly; user resumes manually. | — |
 
-**Key rule**: never `ScheduleWakeup(300s)`. 300s is the worst-of-both — pays a cache miss without amortizing it. Pick ≤270s (cache warm) or ≥1200s (cache miss + long wait).
+**Hard rules**:
+1. **Never use `ScheduleWakeup` as pacing.** If the next iteration is queued, fire it in the same turn. `ScheduleWakeup` is strictly for *external* blockers.
+2. **Never pick `ScheduleWakeup(300s)`** — worst of both (cache miss without amortizing). Stay ≤270s or jump ≥1200s.
+3. **Heartbeats are safety nets, not triggers.** If `Monitor` is doing its job, the heartbeat fires as a no-op. If you rely on the heartbeat to advance, the `Monitor` filter is wrong.
+
+A firing that produces "scheduled next wake-up, did nothing else" while the Implementation Queue has ready work is a regression. Reviewers should flag it.
 
 ```bash
 git add <LOOP_CONTRACT_PATH> <artifacts>
