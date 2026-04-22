@@ -44,11 +44,21 @@ Use `AskUserQuestion` to collect:
 
 ## Step 3: Scaffold the contract
 
-Copy the plugin-shipped template and substitute placeholders:
+Copy the plugin-shipped template and substitute placeholders. Use
+`$CLAUDE_PLUGIN_ROOT` (set by Claude Code for every plugin skill) to
+resolve the template — **do not use `$0`**, which is not set when a
+SKILL.md is loaded as instructions rather than executed as a script.
 
 ```bash
-PLUGIN_ROOT="$(dirname "$(dirname "$(dirname "$(realpath "$0")")")")"
+# CLAUDE_PLUGIN_ROOT points at /…/plugins/<plugin-name> when invoked from
+# a skill. Fall back to the marketplace cache path if unset (e.g., when a
+# user invokes the skill's Bash manually outside the harness).
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
 TEMPLATE="$PLUGIN_ROOT/templates/LOOP_CONTRACT.template.md"
+if [ ! -f "$TEMPLATE" ]; then
+  echo "ERROR: template missing at $TEMPLATE — reinstall the plugin" >&2
+  exit 1
+fi
 cp "$TEMPLATE" "$CONTRACT_PATH"
 ```
 
