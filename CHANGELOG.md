@@ -1,3 +1,10 @@
+## [16.1.2](https://github.com/terrylica/cc-skills/compare/v16.1.1...v16.1.2) (2026-04-23)
+
+
+### Bug Fixes
+
+* **itp-hooks:** exclude LOOP_CONTRACT.md from version-guard ([f086cce](https://github.com/terrylica/cc-skills/commit/f086cceb474ba20e31967acb940bfc118a3a102a))
+
 ## [16.1.1](https://github.com/terrylica/cc-skills/compare/v16.1.0...v16.1.1) (2026-04-23)
 
 
