@@ -1,3 +1,10 @@
+# [16.2.0](https://github.com/terrylica/cc-skills/compare/v16.1.3...v16.2.0) (2026-04-23)
+
+
+### Features
+
+* **itp-hooks:** stop-loop-stall-guard with asyncRewake ([a51fd7f](https://github.com/terrylica/cc-skills/commit/a51fd7f440e032e83a5edd5a793212978a40bc9e))
+
 ## [16.1.3](https://github.com/terrylica/cc-skills/compare/v16.1.2...v16.1.3) (2026-04-23)
 
 
