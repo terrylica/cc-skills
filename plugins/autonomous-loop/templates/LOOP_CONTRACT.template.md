@@ -8,7 +8,6 @@ max_iterations: 100
 trigger: "/loop — reads this file verbatim each firing"
 dispatch_policy:
   enabled: false              # set true to allow Phase 2a multi-agent dispatch on opt-in items
-  budget_per_firing: 40000    # hard token ceiling per firing; stop dispatching when hit
   require_experimental_teams: false  # set true only if using TeamCreate/SendMessage (needs CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
 ---
 
@@ -82,7 +81,7 @@ Implementation Queue has any non-blocked item. Reviewers should flag it.
 
 ### Phase 2a — Dispatch decision (opt-in multi-agent)
 
-**Runs only if** `dispatch_policy.enabled: true` in frontmatter AND the current queue item has a non-empty `perspectives` list AND cumulative firing tokens < `dispatch_policy.budget_per_firing`. Otherwise skip to Phase 3.
+**Runs only if** `dispatch_policy.enabled: true` in frontmatter AND the current queue item has a non-empty `perspectives` list. Otherwise skip to Phase 3.
 
 **Default posture**: in-turn (Tier 0). Dispatch is the exception, not the norm. Shipyard's published warning stands: "multi-agent doesn't make sense for 95% of agent-assisted tasks."
 
@@ -128,10 +127,9 @@ Implementation Queue has any non-blocked item. Reviewers should flag it.
 1. **Never lead-implements.** If `perspectives` is non-empty, the main session aggregates reports only — it does NOT execute the task's write tool-calls. Delegate or skip. The most common multi-agent failure is a capable lead that writes files itself while teammates sit idle.
 2. **Deterministic worktree names.** Use `<queue_item_id>-<perspective>` in the `Agent` invocation's worktree name. Collisions can delete the parent session's working directory.
 3. **Explicit file ownership per perspective.** Declare allowed write paths in the spawn prompt. Overlapping paths across parallel perspectives in the same firing are forbidden — without this interface contract, MAST-Data showed 41-86.7% failure rates.
-4. **Budget gate is a hard stop.** When `budget_per_firing` is reached, finish in-flight dispatch, then force Tier 0 for the rest of the firing. Do NOT continue dispatching, even for "just one more" item.
-5. **Cleanup is coordinator-only.** Never let a teammate call `TeamDelete` or `ExitWorktree`.
-6. **No MCP in background agents.** `run_in_background: true` disables MCP tool access. If a perspective needs MCP, run it foreground.
-7. **Prefer `Agent` over `TeamCreate`** for one-shot perspectives. Reserve `TeamCreate` + `SendMessage` for teams that must persist across firings.
+4. **Cleanup is coordinator-only.** Never let a teammate call `TeamDelete` or `ExitWorktree`.
+5. **No MCP in background agents.** `run_in_background: true` disables MCP tool access. If a perspective needs MCP, run it foreground.
+6. **Prefer `Agent` over `TeamCreate`** for one-shot perspectives. Reserve `TeamCreate` + `SendMessage` for teams that must persist across firings.
 
 **When to add `## Subagent Reports` section** (inserted between `## Current State` and `## Implementation Queue` on first dispatch):
 
