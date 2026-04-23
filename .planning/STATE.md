@@ -4,8 +4,8 @@ milestone: v4.9.0
 milestone_name: SwiftBar UI & Telegram Bot Activation
 status: verifying
 stopped_at: Completed 34-01-PLAN.md
-last_updated: "2026-03-29T08:04:49.884Z"
-last_activity: 2026-03-29
+last_updated: "2026-04-23T23:44:47.108Z"
+last_activity: 2026-04-23
 progress:
   total_phases: 29
   completed_phases: 28
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 Phase: 34
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-04-07 - Completed quick task 260407-odg: Fix subtitle panel intermittent disappearance (cancellable hide + periodic orderFrontRegardless)
+Last activity: 2026-04-23 - Completed quick task 260423-n9b: Add floating-clock plugin (single-file Objective-C, 56KB binary)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -102,6 +102,7 @@ None yet.
 | 260406-nts | Fix PythonTimestampResponse snake_case/camelCase duplicate naming (telemetry audit)              | 2026-04-07 | af9698be | [260406-nts-fix-pythontimestampresponse-snake-case-c](./quick/260406-nts-fix-pythontimestampresponse-snake-case-c/) |
 | 260407-h07 | Antifragile fix for AfplayPlayer WAV-write failure (self-healing + telemetry + chaos test)       | 2026-04-07 | 11b86163 | [260407-h07-antifragile-fix-for-afplayplayer-wav-wri](./quick/260407-h07-antifragile-fix-for-afplayplayer-wav-wri/) |
 | 260407-odg | Fix subtitle panel intermittent disappearance (cancellable hide + periodic orderFrontRegardless) | 2026-04-07 | 211e308e | [260407-odg-fix-subtitle-panel-intermittent-disappea](./quick/260407-odg-fix-subtitle-panel-intermittent-disappea/) |
+| 260423-n9b | Add floating-clock plugin (single-file Objective-C, 56KB binary, NSPanel always-on-top)          | 2026-04-23 | 05a0cc44 | [260423-n9b-add-floating-clock-plugin-single-file-ob](./quick/260423-n9b-add-floating-clock-plugin-single-file-ob/) |
 
 ## Session Continuity
 
