@@ -1,3 +1,5 @@
+## [16.0.1](https://github.com/terrylica/cc-skills/compare/v16.0.0...v16.0.1) (2026-04-23)
+
 # [16.0.0](https://github.com/terrylica/cc-skills/compare/v15.0.0...v16.0.0) (2026-04-22)
 
 
