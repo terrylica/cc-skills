@@ -1,3 +1,10 @@
+## [16.1.1](https://github.com/terrylica/cc-skills/compare/v16.1.0...v16.1.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **autonomous-loop:** mandatory end-of-firing decision + interrupt handling ([175e506](https://github.com/terrylica/cc-skills/commit/175e50618da679128ffdeae980dbec0c78e38450))
+
 # [16.1.0](https://github.com/terrylica/cc-skills/compare/v16.0.1...v16.1.0) (2026-04-23)
 
 
