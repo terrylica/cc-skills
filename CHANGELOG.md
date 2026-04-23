@@ -1,3 +1,10 @@
+# [16.1.0](https://github.com/terrylica/cc-skills/compare/v16.0.1...v16.1.0) (2026-04-23)
+
+
+### Features
+
+* **autonomous-loop:** opt-in multi-agent dispatch via Phase 2a ([b1d4cab](https://github.com/terrylica/cc-skills/commit/b1d4cab18fac12a6d7a250ac5173ed5e0bbc16ff))
+
 ## [16.0.1](https://github.com/terrylica/cc-skills/compare/v16.0.0...v16.0.1) (2026-04-23)
 
 # [16.0.0](https://github.com/terrylica/cc-skills/compare/v15.0.0...v16.0.0) (2026-04-22)
