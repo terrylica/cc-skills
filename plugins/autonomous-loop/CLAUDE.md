@@ -128,16 +128,15 @@ Prefer `Agent(run_in_background: true)` over `TeamCreate` for one-shot perspecti
 
 ### Canonical perspectives
 
-| Role           | Purpose                                          | Gate                                                 |
-| -------------- | ------------------------------------------------ | ---------------------------------------------------- |
-| `implementer`  | Executes the work                                | Required when any perspective listed                 |
-| `critic`       | Veto on output quality / correctness             | Default pair with `implementer`                      |
-| `researcher`   | Surface tradeoffs, prior art, hidden assumptions | Queue item has >2 plausible paths                    |
-| `auditor`      | Threat model / security review                   | `security_sensitive: true` on item                   |
-| `adversary`    | Red-team the plan; devil's-advocate stress test  | Releases, architectural pivots, irreversible changes |
-| `budget-guard` | Tracks cumulative tokens, halts runaway          | Runs as a hook, not a perspective                    |
+| Role          | Purpose                                          | Gate                                                 |
+| ------------- | ------------------------------------------------ | ---------------------------------------------------- |
+| `implementer` | Executes the work                                | Required when any perspective listed                 |
+| `critic`      | Veto on output quality / correctness             | Default pair with `implementer`                      |
+| `researcher`  | Surface tradeoffs, prior art, hidden assumptions | Queue item has >2 plausible paths                    |
+| `auditor`     | Threat model / security review                   | `security_sensitive: true` on item                   |
+| `adversary`   | Red-team the plan; devil's-advocate stress test  | Releases, architectural pivots, irreversible changes |
 
-Minimum useful set: `[implementer, critic]`. Add others only when the gate condition fires. `researcher` is NOT a free add — it doubles token spend per item.
+Minimum useful set: `[implementer, critic]`. Add others only when the gate condition fires.
 
 ### State handoff (the spawn contract)
 
@@ -169,21 +168,21 @@ When perspectives disagree:
 1. **Never lead-implements.** If `perspectives` is non-empty, the main session aggregates reports only — it does not execute the task's write tool-calls. The most common multi-agent anti-pattern ("claudefa.st/blog/guide/agents/agent-teams-best-practices") is a capable lead that ignores delegate mode and writes files itself, leaving teammates idle.
 2. **Deterministic worktree names.** Use `<queue_item_id>-<perspective>`. Collisions can delete parent session working directory (real bug: anthropics/claude-code issue #41010).
 3. **Explicit file ownership per perspective.** Declare allowed write paths in the spawn prompt. Overlapping paths across parallel perspectives in the same firing are forbidden — this is the interface contract.
-4. **Budget gate is a hard stop, not advisory.** When `dispatch_policy.budget_per_firing` is reached mid-firing, finish in-flight dispatch, then force Tier-0 for the rest of the firing. Do NOT continue dispatching.
-5. **Cleanup is coordinator-only.** Teammates never call `TeamDelete` or `ExitWorktree` — context may not resolve correctly from inside a teammate.
-6. **MCP tools unavailable in background agents.** `run_in_background: true` disables MCP access. If a perspective needs MCP, run it foreground.
-7. **Don't replicate CLAUDE.md across N agents.** The contract has what they need — subagents read it on demand. A bloated CLAUDE.md injected per-agent is 7× setup cost before any work starts.
+4. **Cleanup is coordinator-only.** Teammates never call `TeamDelete` or `ExitWorktree` — context may not resolve correctly from inside a teammate.
+5. **MCP tools unavailable in background agents.** `run_in_background: true` disables MCP access. If a perspective needs MCP, run it foreground.
+6. **Don't replicate CLAUDE.md across N agents.** The contract has what they need — subagents read it on demand. A bloated CLAUDE.md injected per-agent is 7× setup cost before any work starts.
 
 ### Universality tradeoff (explicit)
 
 - **Upside**: multi-perspective catches blind spots; parallel execution hides latency; git history captures reasoning from all perspectives.
-- **Downside**: trivial tasks now cost 3+ invocations; budget balloons without strict gating; new failure modes (timeouts, orphans, worktree collisions).
+- **Downside**: trivial tasks cost 3+ invocations when dispatched; new failure modes (timeouts, orphans, worktree collisions).
 
-**Mitigation stack** (all three, composable):
+**Mitigation stack** (two gates, composable):
 
-- **Structural**: `perspectives` field is empty by default (opt-in per item).
-- **Economic**: `budget_per_firing` hard ceiling.
-- **Semantic**: `cost_estimate: low` items skip dispatch regardless of perspectives.
+- **Structural**: `perspectives` field is empty by default (opt-in per item). This is the primary defense — nothing dispatches unless the contract author explicitly lists roles on a queue item.
+- **Semantic**: `cost_estimate: low` items skip dispatch regardless of `perspectives`.
+
+No numeric token budget is enforced. The project policy is to trust the contract author's opt-in discipline rather than impose a per-firing ceiling. If you want belt-and-suspenders, wrap the whole loop in an external cost-monitoring tool (watchexec, pueue, or a shell check-in) — keep the contract about work, not about accounting.
 
 If dispatch-rate metrics later show under-dispatch (perspectives catching things the coordinator missed), add an LLM classifier on queue items — but not before metrics show signal.
 
