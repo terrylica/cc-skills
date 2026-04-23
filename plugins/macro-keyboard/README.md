@@ -4,10 +4,13 @@
 [![Skills](https://img.shields.io/badge/Skills-3-blue.svg)]()
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
 
-Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Elements. Covers Fn emission, device-scoped remaps, HID diagnostics, and dual-transport (USB + Bluetooth) rules for pads whose BT firmware emits different keycodes than USB.
+Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Elements. Covers Fn emission, device-scoped remaps, HID diagnostics, dual-transport (USB + Bluetooth) rules for pads whose BT firmware emits different keycodes than USB, and the tap-vs-double-tap pattern for giving a single button two behaviors.
 
 > [!NOTE]
 > This plugin was distilled from live work on a Jieli/Free3-P 3-key pad (VID `0x4c4a` USB / `0x04E8` BT). The patterns apply to any cheap HID pad from AliExpress or Amazon — Jieli, Realtek, CH57x — that cannot be flashed with QMK/VIA/Vial.
+
+> [!TIP]
+> **Want the turnkey recipe?** → [`skills/configure-macro-keyboard/references/09-turnkey-walkthrough.md`](./skills/configure-macro-keyboard/references/09-turnkey-walkthrough.md) — copy-paste-ready 30-minute walkthrough for a ~$10 pad with push-to-talk (Fn) on top, tap-vs-double-tap safe-Return on middle, Command+Delete on bottom, across USB + Bluetooth.
 
 ## What You Get
 
@@ -56,7 +59,7 @@ cp -r /tmp/cc-skills/plugins/macro-keyboard/skills/* ~/.claude/skills/
 
 **macOS permissions**: Karabiner needs Input Monitoring, Accessibility, and (on Sequoia+) a Login Items toggle for its privileged daemon — the skill will remind you.
 
-## Quick Example: Jieli/Free3-P
+## Quick Example: Jieli/Free3-P (MacroKeyBot)
 
 After pairing + USB plug-in:
 
@@ -66,32 +69,37 @@ ioreg -p IOUSB -l -w 0 | grep -A 20 "USB Composite Device"
 # → VID 0x4c4a, PID 0x4155 (USB)
 # → BT: pair via System Settings; signature 0x04E8 / 0x7021 / "Free3-P"
 
-# 2. What does the top button emit?
-# Create a rule with "ignore": true, press the button, watch Karabiner-EventViewer
-# → USB: Ctrl+C (one HID report) → requires simultaneous matcher
-# → BT mode 4: page_up (plain key)
+# 2. What does each button emit?
+# Create a rule with "ignore": true, press the buttons, watch Karabiner-EventViewer
+# → USB: Ctrl+C / Ctrl+V / Ctrl+X (one HID report each) → requires simultaneous matcher
+# → BT mode 4: page_up / page_down / equal_sign (plain keys)
 
 # 3. Write the rule
 #    ~/.config/karabiner/karabiner.json → complex_modifications.rules → append
-#    One rule, device_if covering BOTH VID/PIDs, six manipulators (3 buttons × 2 transports)
+#    One rule, device_if covering BOTH VID/PIDs, 8 manipulators:
+#    - top (USB + BT) → Fn for dictation push-to-talk
+#    - middle tap/double-tap pair (USB + BT) → Shift+Return vs. Return
+#    - bottom (USB + BT) → Command+Delete
+#    (6 manipulators if you drop the tap/double-tap on middle and bind a single action.)
 
 # 4. Verify the grab
 karabiner_cli --list-connected-devices | jq '.[] | select(.product == "Free3-P")'
 ```
 
-Full JSON exports live in `skills/configure-macro-keyboard/references/raw/karabiner-rule.json`.
+Full JSON export: [`skills/configure-macro-keyboard/references/raw/karabiner-rule.json`](./skills/configure-macro-keyboard/references/raw/karabiner-rule.json). Copy-paste-ready recipe (with VID/PID placeholders you swap for your own hardware): [`skills/configure-macro-keyboard/references/09-turnkey-walkthrough.md`](./skills/configure-macro-keyboard/references/09-turnkey-walkthrough.md).
 
-## The Five Traps This Plugin Documents
+## The Traps This Plugin Documents
 
-Five concrete traps the plugin's skills and references walk you through — all hit live on a Jieli/Free3-P pad:
+Six concrete traps the plugin's skills and references walk you through — all hit live on a Jieli/Free3-P pad:
 
 1. Single-report modifier+key combos (default Karabiner `mandatory` misses them) → use `simultaneous`
 2. Different VID/PID over Bluetooth than USB (Samsung-borrowed `0x04E8`) → one `device_if` with both identifiers
 3. `CGEventPost` cannot emit real Fn → only Karabiner's DriverKit path works
 4. Hidden BT firmware modes emit different keycodes per mode → diagnose all modes, pick the one with rarest keys
 5. Sudo TCC.db audits trigger Touch ID → use `karabiner_cli --list-connected-devices` non-sudo
+6. One physical button needs to emit two different things → `set_variable` + `to_delayed_action` tap-vs-double-tap pair; the only Karabiner-native way to discriminate without `to_if_held_down` (which comes with its own Fn-specific gotchas — see anti-patterns)
 
-Full per-trap root cause + fix in [`CLAUDE.md`](./CLAUDE.md#why-this-plugin-exists) and full dead-end catalog in [`skills/configure-macro-keyboard/references/04-anti-patterns.md`](./skills/configure-macro-keyboard/references/04-anti-patterns.md).
+Full per-trap root cause + fix in [`CLAUDE.md`](./CLAUDE.md#why-this-plugin-exists) and full dead-end catalog in [`skills/configure-macro-keyboard/references/04-anti-patterns.md`](./skills/configure-macro-keyboard/references/04-anti-patterns.md). The tap-vs-double-tap pattern lives as a standalone reusable recipe in [`03-patterns.md`](./skills/configure-macro-keyboard/references/03-patterns.md#pattern-tap-vs-double-tap-discrimination-on-one-button).
 
 ## Platform Support
 
