@@ -51,10 +51,42 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### Stop Hooks
 
-| Hook                         | Purpose                                                                                   |
-| ---------------------------- | ----------------------------------------------------------------------------------------- |
-| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit                                    |
-| `stop-ty-project-check.ts`   | Project-wide ty type check on exit (only if .py files were edited, --python-version 3.13) |
+| Hook                         | Purpose                                                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit                                                                     |
+| `stop-ty-project-check.ts`   | Project-wide ty type check on exit (only if .py files were edited, --python-version 3.13)                                  |
+| `stop-loop-stall-guard.ts`   | **asyncRewake** — detects autonomous-loop firings that ended without a waker and forces the model to wake and schedule one |
+
+## Autonomous-Loop Stall Guard
+
+The `stop-loop-stall-guard.ts` hook enforces the autonomous-loop skill's "Mandatory end-of-firing decision" rule at the harness level. Documentation in the skill describes the rule; this hook catches violations the model missed.
+
+### How it works
+
+Runs as a Stop hook with `asyncRewake: true`. When a stall is detected, the hook exits code 2 with a diagnostic on stderr. The Claude Code runtime wakes the just-stopped model with a system-reminder prefixed by the hook's `rewakeSummary` and containing the diagnostic body. The model responds by (per the reminder's instructions) running Phase 3 Revise + Phase 4 Persist with a proper waker — OR flipping `status: DONE`/`SATURATED` to stop honestly.
+
+### Four gates (all must pass to fire stall)
+
+| Gate | Check                                                         | Rationale                                                                                            |
+| ---- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1    | `LOOP_CONTRACT.md` exists in session's `cwd`                  | Narrows scope to autonomous-loop projects                                                            |
+| 2    | Frontmatter `status` is NOT terminal                          | Terminal states: `done`, `saturated`, `paused`, `completed`, `stopped` — these are intentional stops |
+| 3    | Last real user message contains `/loop` or `/autonomous-loop` | Distinguishes loop firings from manual sessions in the same project                                  |
+| 4    | Last assistant `tool_use` is NOT a valid waker                | Valid wakers: `ScheduleWakeup`, `Monitor`, `Agent`, `TeamCreate`, `SendMessage` (chain-in-turn)      |
+
+Gate 3 specifically prevents false positives when the user opens Claude Code in a loop project for a quick manual task unrelated to the loop.
+
+### Real-world incident caught
+
+mql5 Campaign 4 firing on 2026-04-23 at 19:25 UTC — user manually triggered `/autonomous-loop:start`, the model closed 2 GitHub issues + committed atomically, then ended with `PushNotification` and text-only "iter-22 already queued" rationalization. Observable as a 6+ minute idle gap with desynchronized state. The stall guard would have exit-2'd and rewakened the model to call a fresh `ScheduleWakeup` (or chain in-turn).
+
+### Escape hatch
+
+Set `CLAUDE_LOOP_STALL_GUARD_DISABLE=1` in the session's environment to skip the check entirely. Use when doing deliberately non-loop work in a loop project, or when manually winding down a loop.
+
+### Design scope
+
+This hook lives in itp-hooks (enforcement), not autonomous-loop (skill doc). The skill stays declarative; itp-hooks holds the teeth. When the autonomous-loop guidance evolves, this hook keeps enforcing the invariant.
 
 ## SR&ED Commit Guard
 
