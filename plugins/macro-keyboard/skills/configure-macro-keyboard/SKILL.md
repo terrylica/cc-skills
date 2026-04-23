@@ -8,6 +8,8 @@ allowed-tools: Read, Edit, Write, Bash
 
 End-to-end workflow for cheap 3-key USB-C/Bluetooth macro pads (Jieli, Realtek, CH57x, AliExpress-class): identify the device, figure out what each button actually emits, write a Karabiner rule scoped to that device only, and handle USB + Bluetooth in one rule even when the pad's BT firmware emits different keycodes than its USB side.
 
+> **Just want the turnkey recipe?** [`references/09-turnkey-walkthrough.md`](./references/09-turnkey-walkthrough.md) is a copy-paste-ready 30-minute walkthrough that replicates the "MacroKeyBot" setup used as this plugin's worked example — push-to-talk on top, tap/double-tap safe-Return on middle, Command+Delete on bottom, across USB + Bluetooth. Start there if you know what you want; come back here when you need the reusable workflow or deeper pattern references.
+
 > **Self-Evolving Skill**: If a step breaks on a new pad, fix this file immediately. Every dead-end discovered belongs in `references/04-anti-patterns.md`.
 
 ## When to Use This Skill
@@ -193,18 +195,19 @@ See `references/08-bluetooth-configuration.md` for the full mode-4 setup.
 
 ## Deep References (load on demand)
 
-| Topic                           | File                                                                                         |
-| ------------------------------- | -------------------------------------------------------------------------------------------- |
-| Device overview (TL;DR tables)  | [references/overview.md](./references/overview.md)                                           |
-| Hardware identification         | [references/01-hardware-identification.md](./references/01-hardware-identification.md)       |
-| Live USB config (Jieli)         | [references/02-usb-wired-configuration.md](./references/02-usb-wired-configuration.md)       |
-| Reusable patterns               | [references/03-patterns.md](./references/03-patterns.md)                                     |
-| Anti-patterns / dead-ends       | [references/04-anti-patterns.md](./references/04-anti-patterns.md)                           |
-| BT pairing roadmap (historical) | [references/05-bluetooth-roadmap.md](./references/05-bluetooth-roadmap.md)                   |
-| BT ecosystem survey             | [references/06-bluetooth-landscape-survey.md](./references/06-bluetooth-landscape-survey.md) |
-| BT toolbox (evaluated tools)    | [references/07-bluetooth-toolbox.md](./references/07-bluetooth-toolbox.md)                   |
-| Live BT config (Jieli mode 4)   | [references/08-bluetooth-configuration.md](./references/08-bluetooth-configuration.md)       |
-| Raw dumps                       | [references/raw/](./references/raw/)                                                         |
+| Topic                                | File                                                                                         |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| **Turnkey walkthrough (start here)** | [references/09-turnkey-walkthrough.md](./references/09-turnkey-walkthrough.md)               |
+| Device overview (TL;DR tables)       | [references/overview.md](./references/overview.md)                                           |
+| Hardware identification              | [references/01-hardware-identification.md](./references/01-hardware-identification.md)       |
+| Live USB config (Jieli)              | [references/02-usb-wired-configuration.md](./references/02-usb-wired-configuration.md)       |
+| Reusable patterns                    | [references/03-patterns.md](./references/03-patterns.md)                                     |
+| Anti-patterns / dead-ends            | [references/04-anti-patterns.md](./references/04-anti-patterns.md)                           |
+| BT pairing roadmap (historical)      | [references/05-bluetooth-roadmap.md](./references/05-bluetooth-roadmap.md)                   |
+| BT ecosystem survey                  | [references/06-bluetooth-landscape-survey.md](./references/06-bluetooth-landscape-survey.md) |
+| BT toolbox (evaluated tools)         | [references/07-bluetooth-toolbox.md](./references/07-bluetooth-toolbox.md)                   |
+| Live BT config (Jieli mode 4)        | [references/08-bluetooth-configuration.md](./references/08-bluetooth-configuration.md)       |
+| Raw dumps                            | [references/raw/](./references/raw/)                                                         |
 
 ## Sibling Skills
 
