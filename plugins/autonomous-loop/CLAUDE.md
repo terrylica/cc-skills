@@ -84,6 +84,93 @@ Real-world reference: the `mql5/session-calendar-v2` Campaign 3 loop hit `dead_t
 
 When an external event (build done, chain complete, log line matches) is the natural wake signal, arm a `Monitor` with `persistent: true`. A `ScheduleWakeup` heartbeat (1200-1800s) is optional _safety net only_ — it should be redundant in the happy path. If you find yourself relying on the heartbeat to advance iterations, the Monitor filter is wrong.
 
+## Multi-agent dispatch (Phase 2a, opt-in)
+
+Long-horizon loops benefit from parallel multi-perspective review on _hard_ queue items — but only when gated. Published multi-agent post-mortems consistently fail on **over-orchestration** (spawning teams for tasks that don't decompose), not on under-use. The academic MAST-Data study (arxiv:2503.13657) shows 41-86.7% system failure when interface contracts between agents are unstructured; documented runaway cases burned $8K-$47K on 23-49 agent swarms. The rule: dispatch exactly when work decomposes, not by default.
+
+### Core principle
+
+`LOOP_CONTRACT.md` stays the SSoT. Dispatched subagents read the contract directly — the coordinator does **not** re-serialize state. Dispatch is declarative per queue item via an optional `perspectives` list. Empty/absent = in-turn (Tier 0). Non-empty = parallel dispatch.
+
+### Native primitives to use
+
+| Primitive                                   | Use for                                                                                     | Invocation                                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `Agent` tool with `run_in_background: true` | One-shot parallel perspective (default choice)                                              | `subagent_type: "general-purpose" \| "Explore" \| "Plan"` or a custom name from `.claude/agents/` |
+| `TeamCreate` + `SendMessage`                | Persistent cross-firing team (experimental; needs `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) | Only when perspectives must survive across multiple firings                                       |
+| `EnterWorktree` / `ExitWorktree`            | Explicit worktree lifecycle when `isolation: "worktree"` isn't enough                       | v2.1.72+                                                                                          |
+| `.claude/agents/*.md`                       | Persistent agent manifests with tool allowlists, model, memory                              | One per canonical perspective, scoped per-project                                                 |
+| `teammateMode: "tmux"` in `~/.claude.json`  | Visualize teammates in iTerm2 native panes                                                  | Display layer only — does not change orchestration                                                |
+
+Prefer `Agent(run_in_background: true)` over `TeamCreate` for one-shot perspectives. `TeamCreate` is worth the ceremony only when a perspective must persist across firings.
+
+### Canonical perspectives
+
+| Role           | Purpose                                          | Gate                                                 |
+| -------------- | ------------------------------------------------ | ---------------------------------------------------- |
+| `implementer`  | Executes the work                                | Required when any perspective listed                 |
+| `critic`       | Veto on output quality / correctness             | Default pair with `implementer`                      |
+| `researcher`   | Surface tradeoffs, prior art, hidden assumptions | Queue item has >2 plausible paths                    |
+| `auditor`      | Threat model / security review                   | `security_sensitive: true` on item                   |
+| `adversary`    | Red-team the plan; devil's-advocate stress test  | Releases, architectural pivots, irreversible changes |
+| `budget-guard` | Tracks cumulative tokens, halts runaway          | Runs as a hook, not a perspective                    |
+
+Minimum useful set: `[implementer, critic]`. Add others only when the gate condition fires. `researcher` is NOT a free add — it doubles token spend per item.
+
+### State handoff (the spawn contract)
+
+Every dispatched perspective gets this exact prompt shape:
+
+```
+Read the autonomous work contract at <absolute path to LOOP_CONTRACT.md>.
+
+Role: <perspective>.
+Task: <queue item identifier + one-line objective>.
+Allowed write paths: <explicit list; empty means read-only>.
+Report format: <structured output spec — e.g. "verdict: approve|flag|reject; rationale ≤ 200 words; risks as bulleted list">.
+
+Do not read this conversation. The contract is your only source of truth.
+```
+
+Subagents never see the parent conversation. The contract file is the interface contract (the absence of one is what drives the 41-86.7% failure rate in MAST-Data). Each perspective writes its report to a `## Subagent Reports` subsection before returning.
+
+### Conflict resolution
+
+When perspectives disagree:
+
+1. **Weighted vote by domain fit**: implementer 2× on feasibility, researcher 2× on tradeoffs, auditor 2× on risk. Critic is always 1× but carries a hard veto on correctness failures.
+2. **Auditor hard veto** on `security_sensitive: true` items — flagged items revert to researcher's next-ranked option and re-run audit.
+3. **User escalation**: after 2 tiebreaker reboots, emit `PushNotification` with all verdicts and stop. Never silently pick.
+
+### Hard rules (inherited from failure-mode research)
+
+1. **Never lead-implements.** If `perspectives` is non-empty, the main session aggregates reports only — it does not execute the task's write tool-calls. The most common multi-agent anti-pattern ("claudefa.st/blog/guide/agents/agent-teams-best-practices") is a capable lead that ignores delegate mode and writes files itself, leaving teammates idle.
+2. **Deterministic worktree names.** Use `<queue_item_id>-<perspective>`. Collisions can delete parent session working directory (real bug: anthropics/claude-code issue #41010).
+3. **Explicit file ownership per perspective.** Declare allowed write paths in the spawn prompt. Overlapping paths across parallel perspectives in the same firing are forbidden — this is the interface contract.
+4. **Budget gate is a hard stop, not advisory.** When `dispatch_policy.budget_per_firing` is reached mid-firing, finish in-flight dispatch, then force Tier-0 for the rest of the firing. Do NOT continue dispatching.
+5. **Cleanup is coordinator-only.** Teammates never call `TeamDelete` or `ExitWorktree` — context may not resolve correctly from inside a teammate.
+6. **MCP tools unavailable in background agents.** `run_in_background: true` disables MCP access. If a perspective needs MCP, run it foreground.
+7. **Don't replicate CLAUDE.md across N agents.** The contract has what they need — subagents read it on demand. A bloated CLAUDE.md injected per-agent is 7× setup cost before any work starts.
+
+### Universality tradeoff (explicit)
+
+- **Upside**: multi-perspective catches blind spots; parallel execution hides latency; git history captures reasoning from all perspectives.
+- **Downside**: trivial tasks now cost 3+ invocations; budget balloons without strict gating; new failure modes (timeouts, orphans, worktree collisions).
+
+**Mitigation stack** (all three, composable):
+
+- **Structural**: `perspectives` field is empty by default (opt-in per item).
+- **Economic**: `budget_per_firing` hard ceiling.
+- **Semantic**: `cost_estimate: low` items skip dispatch regardless of perspectives.
+
+If dispatch-rate metrics later show under-dispatch (perspectives catching things the coordinator missed), add an LLM classifier on queue items — but not before metrics show signal.
+
+### Shipyard's warning (internalize it)
+
+> "Multi-agent doesn't make sense for 95% of agent-assisted tasks."
+
+Frame dispatch as **exceptional**, not routine. If a firing dispatches for every queue item, the dispatch decision rule is wrong.
+
 ## Saturation detection heuristic
 
 Count consecutive firings where `CURRENT_STATE` reports a "null-rescue" outcome (no improvement, no new direction). At **3 in a row**, omit the next `ScheduleWakeup`, send a `PushNotification` summarizing the final state, and let the loop terminate naturally.
