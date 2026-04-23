@@ -23,21 +23,36 @@ Binary at `build/floating-clock` (~50KB), app bundle at `build/FloatingClock.app
 - **NSPanel (not NSWindow)**: Borderless, non-activating, always floating
 - **All Spaces**: `collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorStationary`
 - **Timer**: `dispatch_source_t` aligned to second boundary, 1-second interval
-- **Position persistence**: NSUserDefaults key `FloatingClockWindowFrame`, restored on launch
 - **No Dock icon**: `LSUIElement=YES` in Info.plist
-- **Monospaced digits**: `monospacedDigitSystemFontOfSize:weight:` (stable-width for clean display)
+- **Font resolution** (in priority order):
+  1. User override via NSUserDefaults key `FontName` (PostScript name)
+  2. iTerm2 default profile's `Normal Font` (extracted from `com.googlecode.iterm2.plist`)
+  3. System monospaced fallback: SF Mono (macOS 10.15+) or Menlo (older)
+  4. Displays at fixed 24pt size (independent of iTerm2's size preference)
+- **Default position** (first launch, no saved state): bottom-center of main screen's `visibleFrame` (respects menu bar and Dock)
+- **Multi-monitor position persistence**:
+  - Saves both window frame and screen ID on every move (`windowDidMove:`)
+  - On launch: restores only if saved screen still connected AND frame intersects that screen
+  - If saved screen disconnected: falls back to bottom-center of main screen
+  - At runtime: monitors `NSApplicationDidChangeScreenParametersNotification`; if clock's screen unplugged, relocates to bottom-center of main screen with animation
+- **Defensive parsing**: All plist dictionary lookups verify `isKindOfClass:` before use — malformed iTerm2 plist cannot crash the clock
 
 ## Implementation
 
-**Single-file source**: `Sources/clock.m` (~115 LoC)
+**Single-file source**: `Sources/clock.m` (232 LoC)
 
 - `@autoreleasepool` for memory hygiene
 - Self-contained: no separate header files, no external dependencies beyond Cocoa
 - No SwiftUI, no Swift runtime tax
 - Automatic Reference Counting (ARC) for safety
+- `resolveClockFont()`: static helper for multi-fallback font resolution
+- `defaultFrame()`: computes bottom-center position on main screen
+- `screensChanged:` runtime observer for monitor hot-unplug detection
 
 ## Future Enhancements
 
+- Configurable font size via NSUserDefaults key `FontSize`
+- Configurable font override via NSUserDefaults key `FontName` (already partially implemented — accepts PostScript name)
 - 12h/24h format toggle (requires simple pref UI)
 - Seconds toggle
 - Menu bar integration (future plugin: `statusline-tools` could consume this)
