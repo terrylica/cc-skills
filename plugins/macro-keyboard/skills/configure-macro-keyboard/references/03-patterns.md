@@ -110,6 +110,91 @@ grep "USB Composite Device" /var/log/karabiner/core_service.log | tail -2
 
 **When to use**: Always, unless the data genuinely requires root (which is rare for user-facing tools like Karabiner).
 
+## Pattern: Tap vs. double-tap discrimination on one button
+
+**What**: Let a single macro-pad button emit two different targets depending on whether it's pressed once or twice quickly. Use `set_variable` + `to_delayed_action` across two coordinated manipulators sharing the same `from` trigger.
+
+**Why**: Cheap macro pads have few buttons, and some target pairs are a natural fit (`Return` vs. `Shift+Return` for chat composers; `Escape` vs. `Command+.` for dismiss vs. interrupt; `Cmd+C` vs. `Cmd+Shift+C` for copy vs. copy-path). Karabiner has no first-class "double-tap" matcher, but the delayed-action + variable pattern yields the same behavior with predictable semantics.
+
+**When to use**: Any time one button should produce two distinct outputs and you're OK with the single-tap action firing ~200ms late (the double-tap detection window is unavoidable discrimination latency). Not the right pattern when the single-tap target is latency-sensitive — prefer `to_if_alone` + `to_if_held_down` (tap vs. hold) instead, which has zero delay on tap.
+
+**Structure** (two manipulators sharing one `from`, ordered second-tap-detector first):
+
+```json
+{
+  "description": "<button>: single-tap = X, double-tap = Y",
+  "manipulators": [
+    {
+      "type": "basic",
+      "from": {
+        /* your button trigger */
+      },
+      "to": [
+        { "key_code": "<DOUBLE_TAP_TARGET>" },
+        { "set_variable": { "name": "<button>_tap", "value": 0 } }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            /* VID/PID */
+          ]
+        },
+        { "type": "variable_if", "name": "<button>_tap", "value": 1 }
+      ]
+    },
+    {
+      "type": "basic",
+      "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
+      "from": {
+        /* same button trigger */
+      },
+      "to": [{ "set_variable": { "name": "<button>_tap", "value": 1 } }],
+      "to_delayed_action": {
+        "to_if_invoked": [
+          { "key_code": "<SINGLE_TAP_TARGET>" },
+          { "set_variable": { "name": "<button>_tap", "value": 0 } }
+        ],
+        "to_if_canceled": [
+          { "set_variable": { "name": "<button>_tap", "value": 0 } }
+        ]
+      },
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            /* VID/PID */
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Mechanism**:
+
+1. **First tap** arrives with `<button>_tap == 0`. The detector's `variable_if` fails. Execution falls through to the handler: variable is set to `1`, a 200ms timer starts.
+2. **If nothing happens within 200ms**: `to_if_invoked` fires → `SINGLE_TAP_TARGET` is emitted, variable is reset to `0`.
+3. **If a second tap arrives within 200ms**: the detector's `variable_if` now matches (`== 1`). It fires first (Karabiner evaluates top-down), emitting `DOUBLE_TAP_TARGET` and resetting the variable. The still-pending delayed action is canceled automatically — `to_if_canceled` just resets the variable again (idempotent safety).
+
+**Why the detector must come first**: Karabiner evaluates manipulators in order and takes the first match. If the handler came first, every tap would match the handler first and the detector would never fire. Order matters.
+
+**Tuning knob**: `basic.to_delayed_action_delay_milliseconds`. Default 500 is too long for a tap/double-tap gesture — humans double-tap in 100-250ms. Start at 200ms; raise to 250-300 if users miss double-taps, lower to 150 if they accidentally trigger single-tap when meaning double. The same variable can be shared across multiple manipulators (e.g. USB + Bluetooth transports of the same button) because only one path is physically active at a time.
+
+**Trade-off framing — choose which side pays the cost**:
+
+| Single-tap action | Double-tap action | Framing                                                                            |
+| ----------------- | ----------------- | ---------------------------------------------------------------------------------- |
+| `Return` (send)   | `Shift+Return`    | Speed on send, delay on newline — good for high-throughput chat                    |
+| `Shift+Return`    | `Return` (send)   | **Safety** — newline is easy, send is deliberate (accidental sends are suppressed) |
+| `Escape`          | `Command+.`       | Dismiss is fast, interrupt is deliberate                                           |
+| `Cmd+C`           | `Cmd+Shift+C`     | Copy is fast, copy-path is deliberate                                              |
+
+**Live example**: Jieli/Free3-P middle button (both USB + BT). See `references/raw/karabiner-rule.json` for the full 8-manipulator config (6 single-action + 2 tap/double-tap for middle).
+
+**Anti-pattern warning**: don't pick this pattern when the latency on single-tap matters. For instance, tap-vs-double-tap on a push-to-talk button adds 200ms before the mic opens — use tap-vs-hold instead (`to_if_alone` + `to_if_held_down`), which discriminates by duration rather than a commit window.
+
 ## Pattern: Atomic commits after verifying each change
 
 **What**: After every rule change, verify it works via EventViewer or direct test before moving to the next. If something breaks later, you can `git bisect` or revert to a known-good state.

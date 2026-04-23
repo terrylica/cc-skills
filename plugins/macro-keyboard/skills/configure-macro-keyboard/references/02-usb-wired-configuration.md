@@ -4,11 +4,11 @@ How the pad is configured right now, when connected via USB-C.
 
 ## Mapping Summary
 
-| Physical Button | Firmware Emits | Remapped To                     | What It Does                         |
-| --------------- | -------------- | ------------------------------- | ------------------------------------ |
-| **Top**         | `Ctrl+C`       | `Fn` (Apple vendor keyboard Fn) | Push-to-talk for Typeless dictation  |
-| **Middle**      | `Ctrl+V`       | `Return`                        | Submit / newline in any text context |
-| **Bottom**      | `Ctrl+X`       | `Command+Delete`                | Delete from cursor to start of line  |
+| Physical Button | Firmware Emits | Remapped To                                                                      | What It Does                                                           |
+| --------------- | -------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Top**         | `Ctrl+C`       | `Fn` (Apple vendor keyboard Fn)                                                  | Push-to-talk for Typeless dictation                                    |
+| **Middle**      | `Ctrl+V`       | **Single-tap** → `Shift+Return` (after ~200ms); **Double-tap ≤200ms** → `Return` | Single tap inserts a newline in chat/compose; double tap commits/sends |
+| **Bottom**      | `Ctrl+X`       | `Command+Delete`                                                                 | Delete from cursor to start of line                                    |
 
 Apple keyboard's built-in Fn key is untouched by this rule. Your coworker using the MacBook Fn for Typeless is unaffected.
 
@@ -36,9 +36,11 @@ Typeless's koffi CGEventTap / Cocoa text field
 
 Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules`. Exported verbatim in [`references/karabiner-rule.json`](references/karabiner-rule.json).
 
+Abridged USB-only view — the full live rule covers USB + Bluetooth in 8 manipulators. See `raw/karabiner-rule.json` for the verbatim dump.
+
 ```json
 {
-  "description": "Jieli macro pad: Ctrl+C -> Fn (push-to-talk, top), Ctrl+V -> Return (middle), Ctrl+X passes through (bottom)",
+  "description": "Jieli macro pad: Ctrl+C -> Fn (top); Ctrl+V -> single-tap Shift+Return / double-tap Return (middle); Ctrl+X -> Command+Delete (bottom)",
   "manipulators": [
     {
       "type": "basic",
@@ -68,7 +70,39 @@ Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modif
           "detect_key_down_uninterruptedly": true
         }
       },
-      "to": [{ "key_code": "return_or_enter" }],
+      "to": [
+        { "key_code": "return_or_enter" },
+        { "set_variable": { "name": "jieli_middle_tap", "value": 0 } }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [{ "vendor_id": 19530, "product_id": 16725 }]
+        },
+        { "type": "variable_if", "name": "jieli_middle_tap", "value": 1 }
+      ]
+    },
+    {
+      "type": "basic",
+      "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
+      "from": {
+        "simultaneous": [{ "key_code": "left_control" }, { "key_code": "v" }],
+        "simultaneous_options": {
+          "key_down_order": "insensitive",
+          "key_up_order": "insensitive",
+          "detect_key_down_uninterruptedly": true
+        }
+      },
+      "to": [{ "set_variable": { "name": "jieli_middle_tap", "value": 1 } }],
+      "to_delayed_action": {
+        "to_if_invoked": [
+          { "key_code": "return_or_enter", "modifiers": ["left_shift"] },
+          { "set_variable": { "name": "jieli_middle_tap", "value": 0 } }
+        ],
+        "to_if_canceled": [
+          { "set_variable": { "name": "jieli_middle_tap", "value": 0 } }
+        ]
+      },
       "conditions": [
         {
           "type": "device_if",
@@ -79,6 +113,19 @@ Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modif
   ]
 }
 ```
+
+### How the middle-button tap/double-tap works
+
+Two manipulators share the same `from` trigger (`Ctrl+V`) and coordinate via a runtime variable `jieli_middle_tap`:
+
+1. **Second-tap detector** (listed first — Karabiner evaluates top-down, first match wins): matches only when `jieli_middle_tap == 1`. Emits `Return` and resets the variable.
+2. **First-tap handler**: matches when the variable is `0` (unset). Sets the variable to `1` and starts a 200ms delayed action:
+   - `to_if_invoked` (timer elapsed, no second press arrived) → emit `Shift+Return` + reset variable
+   - `to_if_canceled` (second press arrived, canceling the delay before it fired) → just reset the variable (the second-tap detector already handled the commit)
+
+**Design tradeoff**: single-tap has ~200ms discrimination latency (unavoidable in any tap/double-tap scheme) but double-tap is instant. This is the "safety" framing: the more common action (newline) is safer/slower, the decisive action (send) is deliberate and fast. To invert (fast single-tap, delayed double-tap) swap `Shift+Return` and `Return` in the JSON. For zero-latency alternatives, see `03-patterns.md` → "Tap vs. double-tap discrimination" (suggests tap-vs-hold when latency matters).
+
+**Tuning**: `basic.to_delayed_action_delay_milliseconds: 200` is the double-tap window. Raise it (250-300) if users miss double-taps, lower it (150) if they accidentally trigger the double-tap target when meaning the single-tap target.
 
 ## Changing the Mapping
 
@@ -145,13 +192,16 @@ If the daemons ever fail to come up after a reboot (symptom: pad keys emit uncha
 
 ## Troubleshooting
 
-| Symptom                                                               | Likely Cause                   | Check / Fix                                                                                                                                                                                  |
-| --------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pad emits Ctrl+C/V/X unmodified                                       | Karabiner daemon not running   | `pgrep -l karabiner` — expect `Karabiner-Core-Service`, `karabiner_console_user_server`, `karabiner_session_monitor`, `Karabiner-NotificationWindow`. If missing, check Login Items approval |
-| Pad is visible in Karabiner's devices list but rule doesn't fire      | Karabiner not grabbing the pad | `grep "USB Composite Device" /var/log/karabiner/core_service.log \| tail -2` — last line should say `(grabbed)`. If it says `(stopped)`, pad was unplugged or set to `ignore`                |
-| Top button triggers something other than Typeless (e.g. emoji picker) | Globe key behavior overriding  | `defaults read com.apple.HIToolbox AppleFnUsageType` — should be `0` (Do Nothing). If not, change in System Settings → Keyboard → "Press 🌐 key to..."                                       |
-| Fn fires but Typeless silent                                          | Typeless stopped listening     | Restart Typeless.app. If still silent, check Typeless's `app-settings.json` has `"pushToTalk": "Fn"`                                                                                         |
-| Middle button inserts text instead of newline                         | Rule targeting wrong keycode   | Verify the Ctrl+V manipulator's `to` contains `return_or_enter`, not `v`                                                                                                                     |
+| Symptom                                                               | Likely Cause                   | Check / Fix                                                                                                                                                                                                       |
+| --------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pad emits Ctrl+C/V/X unmodified                                       | Karabiner daemon not running   | `pgrep -l karabiner` — expect `Karabiner-Core-Service`, `karabiner_console_user_server`, `karabiner_session_monitor`, `Karabiner-NotificationWindow`. If missing, check Login Items approval                      |
+| Pad is visible in Karabiner's devices list but rule doesn't fire      | Karabiner not grabbing the pad | `grep "USB Composite Device" /var/log/karabiner/core_service.log \| tail -2` — last line should say `(grabbed)`. If it says `(stopped)`, pad was unplugged or set to `ignore`                                     |
+| Top button triggers something other than Typeless (e.g. emoji picker) | Globe key behavior overriding  | `defaults read com.apple.HIToolbox AppleFnUsageType` — should be `0` (Do Nothing). If not, change in System Settings → Keyboard → "Press 🌐 key to..."                                                            |
+| Fn fires but Typeless silent                                          | Typeless stopped listening     | Restart Typeless.app. If still silent, check Typeless's `app-settings.json` has `"pushToTalk": "Fn"`                                                                                                              |
+| Middle button inserts text instead of newline                         | Rule targeting wrong keycode   | Verify both Ctrl+V manipulators: the second-tap detector's `to` has `return_or_enter`; the first-tap handler's `to_if_invoked` has `return_or_enter` + `modifiers: ["left_shift"]`. Neither target should be `v`. |
+| Middle button fires double-tap target on single press                 | Variable stuck at `1`          | Kickstart Karabiner to clear runtime variables: `launchctl kickstart -k gui/$(id -u)/org.pqrs.karabiner.karabiner_console_user_server`. Or force a config reload by touching the file.                            |
+| Middle button's 200ms single-tap delay feels sluggish                 | Default detection window       | Edit the first-tap manipulator's `parameters.basic.to_delayed_action_delay_milliseconds` to a lower value (e.g. 150). Tradeoff: fewer successful double-tap detections.                                           |
+| Double-tap fails — two single-tap targets fire back-to-back           | Taps were slower than window   | Raise `basic.to_delayed_action_delay_milliseconds` to 250-300. Tradeoff: more single-tap latency.                                                                                                                 |
 
 ## Diagnostic Commands (non-sudo)
 
@@ -176,11 +226,19 @@ jq '.profiles[0].complex_modifications.rules[] | select(.description | startswit
 
 **Disable only this rule**: Karabiner-Elements → Complex Modifications → toggle off "Jieli macro pad: …". Keeps Karabiner running; other rules (AudioPrioritySetter, Ultra Custom Shortcut, Option-L script) stay active.
 
-**Restore pre-change config byte-for-byte**:
+**Restore pre-change config byte-for-byte**. Karabiner doesn't auto-snapshot, so always back up before editing:
 
 ```bash
-cp ~/.config/karabiner/karabiner.json.bak.20260421-130748 ~/.config/karabiner/karabiner.json
+# Before any change:
+cp ~/.config/karabiner/karabiner.json \
+   ~/.config/karabiner/karabiner.json.bak.$(date +%Y%m%d-%H%M%S)
+
+# To revert:
+cp ~/.config/karabiner/karabiner.json.bak.<YOUR_TIMESTAMP> \
+   ~/.config/karabiner/karabiner.json
 ```
+
+Karabiner will auto-reload the restored file within ~1 second (watch the daemon log at `/var/log/karabiner/core_service.log` to confirm).
 
 **Full Karabiner uninstall**:
 

@@ -128,7 +128,7 @@ cp ~/.config/karabiner/karabiner.json ~/.config/karabiner/karabiner.json.bak.$(d
 }
 ```
 
-_(Repeat the manipulator block for middle, bottom, and the BT-mode variants — total 6 manipulators for a 3-key pad with USB + BT. JSON does not support `//` comments, so do not paste comment lines into your config.)_
+_(Repeat the manipulator block for middle, bottom, and the BT-mode variants — **6 manipulators** for a pure 3-key pad × 2 transports; **8 manipulators** if any button uses the tap-vs-double-tap pattern (adds one extra manipulator per transport for that button — see `references/03-patterns.md`). JSON does not support `//` comments, so do not paste comment lines into your config.)_
 
 **Five rules to remember**:
 
@@ -138,7 +138,7 @@ _(Repeat the manipulator block for middle, bottom, and the BT-mode variants — 
 4. **Scope every manipulator to the device**. Without `device_if`, you'll remap your MacBook's built-in keyboard and break Apple's native keys.
 5. **`modifiers: {"optional": ["any"]}`** — lets the firmware's modifier report flow through without blocking the rule.
 
-Full live example (Jieli + Free3-P, 6 manipulators): `references/raw/karabiner-rule.json`.
+Full live example (Jieli + Free3-P, 8 manipulators with middle-button tap/double-tap pair): `references/raw/karabiner-rule.json`.
 
 ### Step 5 — Verify the grab + test
 
@@ -161,16 +161,18 @@ If real Fn stops working system-wide after your rule loads: **revert immediately
 
 ## Decision Tree: Which Target Keycode?
 
-| You want button to emit…        | Target JSON                                                          |
-| ------------------------------- | -------------------------------------------------------------------- |
-| Return / Enter                  | `{"key_code": "return_or_enter"}`                                    |
-| Fn (for Typeless, dictation)    | `{"apple_vendor_top_case_key_code": "keyboard_fn"}`                  |
-| Command+Delete (delete-to-home) | `{"key_code": "delete_or_backspace", "modifiers": ["left_command"]}` |
-| Option+Delete (delete word)     | `{"key_code": "delete_or_backspace", "modifiers": ["left_option"]}`  |
-| Media play/pause                | `{"consumer_key_code": "play_or_pause"}`                             |
-| Volume up/down                  | `{"consumer_key_code": "volume_increment"}` / `volume_decrement`     |
-| Launch an app                   | `{"shell_command": "open -a 'App Name'"}`                            |
-| Run a shell command             | `{"shell_command": "/path/to/script.sh"}`                            |
+| You want button to emit…                    | Target JSON                                                                                                             |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Return / Enter                              | `{"key_code": "return_or_enter"}`                                                                                       |
+| Shift+Return (newline without submitting)   | `{"key_code": "return_or_enter", "modifiers": ["left_shift"]}`                                                          |
+| Fn (for Typeless, dictation)                | `{"apple_vendor_top_case_key_code": "keyboard_fn"}`                                                                     |
+| Command+Delete (delete-to-home)             | `{"key_code": "delete_or_backspace", "modifiers": ["left_command"]}`                                                    |
+| Option+Delete (delete word)                 | `{"key_code": "delete_or_backspace", "modifiers": ["left_option"]}`                                                     |
+| Media play/pause                            | `{"consumer_key_code": "play_or_pause"}`                                                                                |
+| Volume up/down                              | `{"consumer_key_code": "volume_increment"}` / `volume_decrement`                                                        |
+| Launch an app                               | `{"shell_command": "open -a 'App Name'"}`                                                                               |
+| Run a shell command                         | `{"shell_command": "/path/to/script.sh"}`                                                                               |
+| **Tap = A, double-tap = B** (single button) | See pattern in `references/03-patterns.md` → "Tap vs. double-tap discrimination" (`set_variable` + `to_delayed_action`) |
 
 ## Handling Multiple BT Firmware Modes
 
