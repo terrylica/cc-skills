@@ -76,6 +76,7 @@ const EXCLUDED_PATHS = [
   /\/crates\/[^/]+\/README\.md$/i, // Crate-level READMEs
   /\/development\//i, // Development docs
   /^\/tmp\//i, // Temp files (gh issue body-file, scratch docs)
+  /LOOP_CONTRACT.*\.md$/i, // Autonomous-loop contract files (self-revising version field is the contract's own, not a package)
 ];
 
 import {
