@@ -73,6 +73,28 @@ Agents discover creative reasons to keep picking Tier 2. Flag these:
 - **"Stays in cache (≤270s) for efficiency."** Cache efficiency is a tie-breaker between Tiers 2 and 3, not a reason to prefer Tier 2 over Tier 0. Tier 0 has zero cost on every dimension — cache, real-time, tokens.
 - **"Fresh context will produce better work."** The cache TTL is 5 minutes; a 270s wait does not give you a "fresh context" — it gives you the same context on a slightly warmer cache. Only a full prompt-cache miss (≥1200s + compaction) produces different reasoning, and that's a cost, not a feature.
 - **"Heartbeat in case the Monitor misses an event."** If you're relying on the heartbeat, your `Monitor` filter is wrong — fix the filter. Heartbeats should fire as no-ops in the happy path.
+- **"A prior ScheduleWakeup is already queued — it'll handle the next iteration."** A stale wake re-reads the contract **at its own firing time**, but its context is frozen at the pre-interrupt state. If THIS firing did new work without updating the contract, the stale wake runs on stale state — iteration numbers desync, Current State lies, Revision Log has gaps. Always call a fresh `ScheduleWakeup` (or chain in-turn) after doing work, regardless of pending wakes. Real incident: `mql5/news-events-ingest` firing on 2026-04-23 at 19:25 UTC closed 2 GitHub issues + committed atomically, then ended with "iter-22 already queued" and skipped Phase 3 Revise. The 19:36 wake fired on a contract that still said "iter-21 monitoring" — a 6+ minute idle gap plus desynchronized state.
+
+### Mandatory end-of-firing decision
+
+Every firing MUST end with exactly one of these as its **literal final tool call** (not a text summary):
+
+1. **Chain in-turn** — the next queue item's first tool call fires in the same turn.
+2. **`Monitor(...)`** — reactive waker armed on a background stream.
+3. **`ScheduleWakeup(...)`** — fresh wake. This supersedes any pending wake from a prior firing.
+4. **Flip `status: SATURATED`** + `PushNotification(...)` — 3 consecutive null-rescues detected.
+5. **Flip `status: DONE`** + no waker — exit condition met, loop terminates honestly.
+
+A firing that ends with a text-only summary (no final tool call) and trusts a pending ScheduleWakeup from a prior firing is a bug. Reviewers: grep the transcript for the final `tool_use` event and verify one of 1-5 fired. Pattern to catch: final assistant turn is `type: "text"` with rationalization "already queued" or "will pick up automatically."
+
+### Handling manual interrupts inside a pending wake window
+
+When `/loop`, `/autonomous-loop:start`, or a user prompt triggers a firing while a prior `ScheduleWakeup` is still pending (the pending wake hasn't fired yet):
+
+1. **Treat the fresh firing as authoritative.** The pending wake is now stale — its `prompt` will re-read `LOOP_CONTRACT.md` at its firing time, but if THIS firing doesn't update the contract, the stale wake runs on pre-interrupt state.
+2. **Supersede the pending wake at end-of-firing.** Either chain in-turn (best if the queue has ready work) OR call a fresh `ScheduleWakeup` that reflects the new state. Do not rely on the pending wake.
+3. **Phase 3 Revise is mandatory.** Update iteration number, Current State, and Revision Log so any waker — fresh or stale — that fires next reads accurate state. A firing that committed new work but did not touch `LOOP_CONTRACT.md` has violated Phase 3, and Phase 4's waker decision runs on a lie.
+4. **Never end with "the prior wake will handle it."** The prior wake's context is stale; the user's interrupt asked for work THIS firing addressed, not one scheduled minutes earlier.
 
 ### Empirical smell-check
 

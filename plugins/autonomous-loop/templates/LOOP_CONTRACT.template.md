@@ -156,6 +156,18 @@ Rewrite the **Current State** section. Remove completed queue items. Promote nex
 
 **Core principle**: every waker exists solely to make the main session resume. If the next iteration is ready right now, do not call a waker at all — chain in-turn.
 
+**Mandatory end-of-firing decision**: every firing MUST end with exactly one of these as its **literal final tool call** (not a text summary):
+
+1. **Chain in-turn** — the next queue item's first tool call fires in the same turn.
+2. **`Monitor(...)`** — reactive waker armed on a background stream.
+3. **`ScheduleWakeup(...)`** — fresh wake. This supersedes any pending wake from a prior firing.
+4. **Flip `status: SATURATED`** (in frontmatter) + `PushNotification(...)` — 3 consecutive null-rescues detected.
+5. **Flip `status: DONE`** (in frontmatter) + no waker — exit condition met, loop terminates honestly.
+
+A firing that ends with a text-only summary, no final tool call, and a pending ScheduleWakeup from a prior firing is a bug — the pending wake's context is frozen at pre-interrupt state and will fire on a stale contract. Never rely on "already queued" — call a fresh waker or chain in-turn.
+
+**Handling manual interrupts inside an active wake window**: when `/loop`, `/autonomous-loop:start`, or a user prompt triggers this firing while a prior `ScheduleWakeup` is still pending, treat the fresh firing as authoritative and supersede the pending wake with option 1, 2, 3, 4, or 5 above. Phase 3 Revise is mandatory even on interrupt firings — update the contract so the (now-stale) pending wake, if it still fires, reads accurate state.
+
 | Tier                                                 | Mechanism                                                                                                         | When to use                                                                                          | Cost                              |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------- |
 | **0 — In-turn continuation (default)**               | No waker. Just start the next iteration in the same turn.                                                         | Implementation Queue has a ready item AND tokens remain.                                             | Zero                              |
