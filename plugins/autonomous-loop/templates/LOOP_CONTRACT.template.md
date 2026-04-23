@@ -6,6 +6,10 @@ last_updated: <ISO_8601_UTC>
 exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 100
 trigger: "/loop — reads this file verbatim each firing"
+dispatch_policy:
+  enabled: false              # set true to allow Phase 2a multi-agent dispatch on opt-in items
+  budget_per_firing: 40000    # hard token ceiling per firing; stop dispatching when hit
+  require_experimental_teams: false  # set true only if using TeamCreate/SendMessage (needs CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
 ---
 
 # <PROJECT OR CAMPAIGN TITLE>
@@ -75,6 +79,74 @@ continue to rule 6 if time/tokens remain):
 **Explicit rule — "continuation over idle":** a firing that produces
 "scheduled next wake-up, did nothing else" is a regression whenever the
 Implementation Queue has any non-blocked item. Reviewers should flag it.
+
+### Phase 2a — Dispatch decision (opt-in multi-agent)
+
+**Runs only if** `dispatch_policy.enabled: true` in frontmatter AND the current queue item has a non-empty `perspectives` list AND cumulative firing tokens < `dispatch_policy.budget_per_firing`. Otherwise skip to Phase 3.
+
+**Default posture**: in-turn (Tier 0). Dispatch is the exception, not the norm. Shipyard's published warning stands: "multi-agent doesn't make sense for 95% of agent-assisted tasks."
+
+**Dispatch procedure**:
+
+1. For each perspective `p` in `queue_item.perspectives`, spawn one subagent:
+
+   ```
+   Agent(
+     subagent_type: "general-purpose",        # or a custom name from .claude/agents/
+     description: "<perspective> for <queue-item-id>",
+     prompt: <spawn contract — see below>,
+     isolation: "worktree",                    # only if this perspective writes code
+     run_in_background: true                   # all perspectives in parallel
+   )
+   ```
+
+2. **Spawn contract prompt** (use this shape verbatim — subagents don't see parent conversation):
+
+   ```
+   Read the autonomous work contract at <absolute path to LOOP_CONTRACT.md>.
+
+   Role: <perspective name — implementer | critic | researcher | auditor | adversary>.
+   Task: <queue item id + one-line objective>.
+   Allowed write paths: <explicit list, empty = read-only>.
+   Report format: <structured spec — e.g. "verdict: approve|flag|reject; rationale ≤ 200 words; risks as bulleted list">.
+
+   Do not read this conversation. The contract is your only source of truth.
+   Write your report to the `## Subagent Reports` section of the contract before returning.
+   ```
+
+3. **Await all responses** (`run_in_background` means they return as notifications).
+
+4. **Aggregate**: read all reports from `## Subagent Reports`. Apply conflict resolution:
+   - Weighted vote by domain fit (implementer 2× on feasibility, researcher 2× on tradeoffs, auditor 2× on risk, critic 1× with hard veto on correctness).
+   - Auditor hard veto on `security_sensitive: true` items.
+   - After 2 tiebreaker reboots → `PushNotification` + stop; never silently pick.
+
+5. **Update queue item** with "approved by X, flagged by Y" annotations. Commit the contract revision (subagent reports included) as one atomic commit.
+
+**Hard rules**:
+
+1. **Never lead-implements.** If `perspectives` is non-empty, the main session aggregates reports only — it does NOT execute the task's write tool-calls. Delegate or skip. The most common multi-agent failure is a capable lead that writes files itself while teammates sit idle.
+2. **Deterministic worktree names.** Use `<queue_item_id>-<perspective>` in the `Agent` invocation's worktree name. Collisions can delete the parent session's working directory.
+3. **Explicit file ownership per perspective.** Declare allowed write paths in the spawn prompt. Overlapping paths across parallel perspectives in the same firing are forbidden — without this interface contract, MAST-Data showed 41-86.7% failure rates.
+4. **Budget gate is a hard stop.** When `budget_per_firing` is reached, finish in-flight dispatch, then force Tier 0 for the rest of the firing. Do NOT continue dispatching, even for "just one more" item.
+5. **Cleanup is coordinator-only.** Never let a teammate call `TeamDelete` or `ExitWorktree`.
+6. **No MCP in background agents.** `run_in_background: true` disables MCP tool access. If a perspective needs MCP, run it foreground.
+7. **Prefer `Agent` over `TeamCreate`** for one-shot perspectives. Reserve `TeamCreate` + `SendMessage` for teams that must persist across firings.
+
+**When to add `## Subagent Reports` section** (inserted between `## Current State` and `## Implementation Queue` on first dispatch):
+
+```markdown
+## Subagent Reports (iter-<N>)
+
+### <perspective> on <queue-item-id> — <ISO timestamp>
+
+Verdict: approve | flag | reject
+Rationale: <≤ 200 words>
+Risks:
+- <risk 1>
+- <risk 2>
+Allowed writes touched: <paths>
+```
 
 ### Phase 3 — Revise (this file)
 
@@ -176,10 +248,31 @@ If none apply, stay on the same version and keep committing atomic artifacts.
 
 ## Implementation Queue
 
+Queue items support optional fields that gate Phase 2a multi-agent dispatch. When `dispatch_policy.enabled: false` in frontmatter, these fields are ignored and all items run in-turn (Tier 0).
+
+Per-item schema (all optional except the checkbox line):
+
+```markdown
+- [ ] <action>
+      id: <stable-identifier-for-worktree-naming>    # required if perspectives set
+      cost_estimate: low | medium | high             # low = skip dispatch regardless of perspectives
+      perspectives: [implementer, critic]            # empty/absent = in-turn (Tier 0)
+      security_sensitive: true                       # triggers auditor hard veto
+      allowed_writes:                                # per-perspective file-ownership (anti-collision)
+        implementer: [path/to/dir/, another/file.py]
+        critic: []                                   # read-only
+```
+
 ### Tier 1 (start here — ready-to-build, 1-3 days each)
 
-- [ ] <action 1>
-- [ ] <action 2>
+- [ ] <simple action — in-turn, no dispatch>
+- [ ] <complex action>
+      id: <slug>
+      cost_estimate: high
+      perspectives: [implementer, critic]
+      allowed_writes:
+        implementer: [<paths>]
+        critic: []
 
 ### Tier 2 (1-2 weeks, production libraries available)
 
