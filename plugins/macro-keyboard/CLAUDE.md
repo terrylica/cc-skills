@@ -14,7 +14,11 @@ Generic "remap my keyboard" plugins (Karabiner skills bundled in other marketpla
 4. Emit modifier+key in **one HID report**, which breaks Karabiner's default sequential `mandatory` matcher and requires `simultaneous` with `detect_key_down_uninterruptedly: true`.
 5. **Cannot** emit real Fn from userland via `CGEventPost` — Typeless / macOS dictation keys need a real `kCGEventFlagMaskSecondaryFn` that only DriverKit-backed remappers (Karabiner) can produce.
 
-All five traps were hit and solved during the live Jieli/Free3-P work captured here. The plugin packages the reusable patterns + a device-specific worked example.
+And once the basics work, a sixth challenge often appears: with only 3 buttons, users want more than 3 actions. The reusable trick here is:
+
+1. **Tap-vs-double-tap discrimination** — coordinate two manipulators via `set_variable` + `to_delayed_action` sharing one `from` trigger. The single-tap target fires after a 200ms detection window expires; the double-tap target fires on the second press (which cancels the pending single-tap). Live example: the "MacroKeyBot" middle-button Shift+Return/Return pair. Full reusable recipe in [`03-patterns.md`](./skills/configure-macro-keyboard/references/03-patterns.md#pattern-tap-vs-double-tap-discrimination-on-one-button) with the safety/speed framing and tuning knob.
+
+All six traps were hit and solved during the live Jieli/Free3-P work captured here. The plugin packages the reusable patterns + a device-specific worked example ("MacroKeyBot").
 
 ## Skills
 
@@ -28,16 +32,17 @@ All five traps were hit and solved during the live Jieli/Free3-P work captured h
 
 The device-specific config lives under `configure-macro-keyboard/references/`:
 
+- **`09-turnkey-walkthrough.md`** — **start here for replication** — copy-paste-ready 30-minute MacroKeyBot recipe for any 3-key pad, with VID/PID placeholders, complete 8-manipulator config, and variation bindings for different use cases
 - `overview.md` — TL;DR of device signatures + mapping table
 - `01-hardware-identification.md` — VID/PID, HID descriptor decode, chip family inference
-- `02-usb-wired-configuration.md` — live USB rule with `simultaneous: [Ctrl, C/V/X]` matchers
-- `03-patterns.md` — reusable techniques (`simultaneous` vs `mandatory`, `device_if`, Quartz capture, `ignore:true`)
-- `04-anti-patterns.md` — dead-ends (BTT `CGEventPost`, hidutil combos, QMK/VIA on Jieli, Touch-ID-triggering audits)
+- `02-usb-wired-configuration.md` — live USB rule with `simultaneous: [Ctrl, C/V/X]` matchers + tap/double-tap middle button explanation
+- `03-patterns.md` — reusable techniques (`simultaneous` vs `mandatory`, `device_if`, Quartz capture, `ignore:true`, tap-vs-double-tap discrimination)
+- `04-anti-patterns.md` — dead-ends (BTT `CGEventPost`, hidutil combos, QMK/VIA on Jieli, Touch-ID-triggering audits, tap-vs-hold Fn emission)
 - `05-bluetooth-roadmap.md` — historical pre-pairing plan
 - `06-bluetooth-landscape-survey.md` — 2026 macro-pad ecosystem survey
 - `07-bluetooth-toolbox.md` — tier-ranked FOSS tools for BT control on macOS
-- `08-bluetooth-configuration.md` — live BT rule with mode-4 firmware (page_up/page_down/equal_sign)
-- `raw/` — verbatim `lsusb -v`, `system_profiler`, `ioreg`, and Karabiner exports captured on the development laptop 2026-04-21
+- `08-bluetooth-configuration.md` — live BT rule with mode-4 firmware (page_up/page_down/equal_sign) and parallel tap/double-tap middle-button manipulators
+- `raw/` — verbatim `lsusb -v`, `system_profiler`, `ioreg`, and Karabiner exports regenerated on change (currently: 8-manipulator live rule)
 
 ## Dependencies
 
