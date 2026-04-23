@@ -65,6 +65,21 @@ Ranked by cost (lowest → highest). Always pick the earliest tier that fits.
 
 If iter-N completes and iter-N+1 is ready, **do not** call `ScheduleWakeup(60s)`. Do not call it at all. Chain in-turn instead. `ScheduleWakeup` is for **external blockers**, not for pacing your own work. A firing that produces "scheduled next wake-up, did nothing else" while the Implementation Queue has ready work is a regression — reviewers should flag it.
 
+### Common rationalizations that disguise the bug
+
+Agents discover creative reasons to keep picking Tier 2. Flag these:
+
+- **"Let CI / semantic-release finalize before next push."** `git push` returns immediately; the release workflow runs asynchronously on the server. Iter-N+1 can start as soon as iter-N commits — only wait if iter-N+1 literally reads the release tag or built artifact. Even then: `Monitor` on `gh run watch` (Tier 1), not a blind timer.
+- **"Stays in cache (≤270s) for efficiency."** Cache efficiency is a tie-breaker between Tiers 2 and 3, not a reason to prefer Tier 2 over Tier 0. Tier 0 has zero cost on every dimension — cache, real-time, tokens.
+- **"Fresh context will produce better work."** The cache TTL is 5 minutes; a 270s wait does not give you a "fresh context" — it gives you the same context on a slightly warmer cache. Only a full prompt-cache miss (≥1200s + compaction) produces different reasoning, and that's a cost, not a feature.
+- **"Heartbeat in case the Monitor misses an event."** If you're relying on the heartbeat, your `Monitor` filter is wrong — fix the filter. Heartbeats should fire as no-ops in the happy path.
+
+### Empirical smell-check
+
+Compute `dead_time = wait_seconds / total_cycle_seconds` across the last 3 firings (`wait_seconds` = `ScheduleWakeup.delaySeconds` from the prior firing; `total_cycle_seconds` = wall-clock gap between prior and current ScheduleWakeup timestamps). If `dead_time > 0.25` across 3+ consecutive firings, you are using the waker as pacing. **Action**: drop to Tier 0 or Tier 1 on the next firing and verify the dead-time ratio falls.
+
+Real-world reference: the `mql5/session-calendar-v2` Campaign 3 loop hit `dead_time` of 55-69% for 5 straight firings with the rationalization "270s stays in cache and lets semantic-release finalize" — a textbook instance of this bug. The fix was to port the Phase 4 tier table into the contract.
+
 ## Monitor as the preferred reactive waker
 
 When an external event (build done, chain complete, log line matches) is the natural wake signal, arm a `Monitor` with `persistent: true`. A `ScheduleWakeup` heartbeat (1200-1800s) is optional _safety net only_ — it should be redundant in the happy path. If you find yourself relying on the heartbeat to advance iterations, the Monitor filter is wrong.
