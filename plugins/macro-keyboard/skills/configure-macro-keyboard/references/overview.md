@@ -4,8 +4,8 @@ Dedicated documentation for the 3-key USB-C/Bluetooth macro pad, covering hardwa
 
 ## Current Status
 
-- **USB-C wired mode**: ✅ working. Remapped via Karabiner so TOP button drives Typeless push-to-talk (Fn), MIDDLE sends Return, BOTTOM is reserved. See [`02-usb-wired-configuration.md`](02-usb-wired-configuration.md).
-- **Bluetooth mode**: ✅ working on firmware mode 4 (page_up / page_down / equal_sign). Same Karabiner rule extended with two additional manipulators maps page_up→Fn and page_down→Return. See [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md).
+- **USB-C wired mode**: ✅ working. Remapped via Karabiner so TOP drives Typeless push-to-talk (Fn), MIDDLE is a tap/double-tap pair (single-tap = Shift+Return newline, double-tap = Return send), BOTTOM is Command+Delete (delete-to-start-of-line). See [`02-usb-wired-configuration.md`](02-usb-wired-configuration.md).
+- **Bluetooth mode**: ✅ working on firmware mode 4 (page_up / page_down / equal_sign). Same Karabiner rule extended with parallel BT manipulators — page_up→Fn, page_down→tap/double-tap pair (Shift+Return / Return), equal_sign→Command+Delete. See [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md).
 
 ## Contents
 
@@ -32,14 +32,19 @@ Dedicated documentation for the 3-key USB-C/Bluetooth macro pad, covering hardwa
 
 **Current button mapping** — same user-facing behavior across both transports:
 
-| Physical | USB-C emits | BT mode-4 emits | Effect after Karabiner                     |
-| -------- | ----------- | --------------- | ------------------------------------------ |
-| Top      | `Ctrl+C`    | `page_up`       | `Fn` (Typeless push-to-talk)               |
-| Middle   | `Ctrl+V`    | `page_down`     | `Return`                                   |
-| Bottom   | `Ctrl+X`    | `equal_sign`    | `Command+Delete` (delete to start of line) |
+| Physical | USB-C emits | BT mode-4 emits | Effect after Karabiner                                                                                          |
+| -------- | ----------- | --------------- | --------------------------------------------------------------------------------------------------------------- |
+| Top      | `Ctrl+C`    | `page_up`       | `Fn` (Typeless push-to-talk)                                                                                    |
+| Middle   | `Ctrl+V`    | `page_down`     | **Single-tap** = `Shift+Return` (newline, ~200ms after release); **Double-tap ≤200ms** = `Return` (send/commit) |
+| Bottom   | `Ctrl+X`    | `equal_sign`    | `Command+Delete` (delete to start of line)                                                                      |
 
 The pad's BT firmware has 4 distinct modes; we use mode 4 because its native keys (PageUp, PageDown, `=`) are rarely used on macOS and map cleanly to Fn/Return via Karabiner.
 
-**Config file**: `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules` → rule named `Jieli macro pad: ...`
+**Config file**: `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules` → rule named `Jieli/Free3-P macro pad: ...`
 
-**Pre-change backup**: `~/.config/karabiner/karabiner.json.bak.20260421-130748`
+**Pre-change backups**: Karabiner doesn't auto-snapshot. Always back up before editing:
+
+```bash
+cp ~/.config/karabiner/karabiner.json \
+   ~/.config/karabiner/karabiner.json.bak.$(date +%Y%m%d-%H%M%S)
+```
