@@ -60,7 +60,7 @@ Form a one-sentence assessment: _"Last firing finished X with Y result; next log
 Priority order (stop at the first match that has actionable work; then
 continue to rule 6 if time/tokens remain):
 
-1. If a long-running task is **in flight**: verify `Monitor` is armed on its output stream so the turn reacts as events arrive. Only arm a `ScheduleWakeup(1200-1800s)` heartbeat as a *safety net* (redundant in the happy path). If the queue has other non-conflicting items, keep working in the same turn — don't sleep.
+1. If a long-running task is **in flight**: verify `Monitor` is armed on its output stream so the turn reacts as events arrive. Only arm a `ScheduleWakeup(1200-1800s)` heartbeat as a _safety net_ (redundant in the happy path). If the queue has other non-conflicting items, keep working in the same turn — don't sleep.
 2. If a Monitor event **just fired** (chain done): archive artifacts, write verdict, append ledger, commit atomically, pick next iteration.
 3. If **uncommitted research artifacts** exist (git status dirty): commit as logical atomic group before starting new work.
 4. If a **major milestone** just landed (cross-asset validation, composability proof, tier complete): consider `mise run release:full` per release rules.
@@ -84,19 +84,22 @@ Rewrite the **Current State** section. Remove completed queue items. Promote nex
 
 **Core principle**: every waker exists solely to make the main session resume. If the next iteration is ready right now, do not call a waker at all — chain in-turn.
 
-| Tier | Mechanism | When to use | Cost |
-| ---- | --------- | ----------- | ---- |
-| **0 — In-turn continuation (default)** | No waker. Just start the next iteration in the same turn. | Implementation Queue has a ready item AND tokens remain. | Zero |
-| **1 — `Monitor`** | Arm a `Monitor` on a background stream (build output, file-watch, log tail). The turn wakes on each emitted line. | An external event is the natural readiness signal, and you're still in-session. | Near-zero; cache warm |
-| **2 — `ScheduleWakeup` (≤270s)** | Timer fires within the 5-min prompt-cache TTL. | Genuinely timed external blocker: API rate-limit window, deployment ETA, polled API with no webhook. | One warm turn of real-time wait |
-| **3 — `ScheduleWakeup` (≥1200s)** | Long-sleep timer. Pay one prompt-cache miss on resume. | User away for a while; no sooner signal expected. | Cache miss + long wall-clock wait |
-| **4 — External waker** (watchexec / systemd.timer) | Something outside Claude Code launches a fresh `claude --continue`. | Session has fully ended and we need to resume automatically across restarts. | Full cold-start of a new session |
-| **Saturation detected (3 consecutive null rescues)** | **Omit the waker entirely** + `PushNotification`. | Loop has stalled. Stop honestly; user resumes manually. | — |
+| Tier                                                 | Mechanism                                                                                                         | When to use                                                                                          | Cost                              |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------- |
+| **0 — In-turn continuation (default)**               | No waker. Just start the next iteration in the same turn.                                                         | Implementation Queue has a ready item AND tokens remain.                                             | Zero                              |
+| **1 — `Monitor`**                                    | Arm a `Monitor` on a background stream (build output, file-watch, log tail). The turn wakes on each emitted line. | An external event is the natural readiness signal, and you're still in-session.                      | Near-zero; cache warm             |
+| **2 — `ScheduleWakeup` (≤270s)**                     | Timer fires within the 5-min prompt-cache TTL.                                                                    | Genuinely timed external blocker: API rate-limit window, deployment ETA, polled API with no webhook. | One warm turn of real-time wait   |
+| **3 — `ScheduleWakeup` (≥1200s)**                    | Long-sleep timer. Pay one prompt-cache miss on resume.                                                            | User away for a while; no sooner signal expected.                                                    | Cache miss + long wall-clock wait |
+| **4 — External waker** (watchexec / systemd.timer)   | Something outside Claude Code launches a fresh `claude --continue`.                                               | Session has fully ended and we need to resume automatically across restarts.                         | Full cold-start of a new session  |
+| **Saturation detected (3 consecutive null rescues)** | **Omit the waker entirely** + `PushNotification`.                                                                 | Loop has stalled. Stop honestly; user resumes manually.                                              | —                                 |
 
 **Hard rules**:
-1. **Never use `ScheduleWakeup` as pacing.** If the next iteration is queued, fire it in the same turn. `ScheduleWakeup` is strictly for *external* blockers.
-2. **Never pick `ScheduleWakeup(300s)`** — worst of both (cache miss without amortizing). Stay ≤270s or jump ≥1200s.
-3. **Heartbeats are safety nets, not triggers.** If `Monitor` is doing its job, the heartbeat fires as a no-op. If you rely on the heartbeat to advance, the `Monitor` filter is wrong.
+
+1. **Never use `ScheduleWakeup` as pacing.** If the next iteration is queued and non-blocked, fire it in the same turn. `ScheduleWakeup` is strictly for _external_ blockers.
+2. **CI / semantic-release after push is NOT a Tier-2 blocker** by default. `git push` returns immediately; the release workflow runs asynchronously. Iter-N+1 can start as soon as iter-N commits — only wait if iter-N+1 literally reads the release tag or built artifact. Even then: `Monitor` on `gh run watch` (Tier 1), not a blind 270s timer.
+3. **Never pick `ScheduleWakeup(300s)`** — worst of both (cache miss without amortizing). Stay ≤270s or jump ≥1200s.
+4. **Heartbeats are safety nets, not triggers.** If `Monitor` is doing its job, the heartbeat fires as a no-op. If you rely on the heartbeat to advance, the `Monitor` filter is wrong.
+5. **Smell-check**: if the last 3 firings show `wait_seconds / total_cycle_seconds > 0.25`, you are using the waker as pacing. Drop to Tier 0 or Tier 1 on the next firing and verify the ratio falls.
 
 A firing that produces "scheduled next wake-up, did nothing else" while the Implementation Queue has ready work is a regression. Reviewers should flag it.
 
@@ -118,14 +121,14 @@ Then schedule next firing with the pointer-trigger prompt above.
 
 Scope-tag first; body explains WHY.
 
-| Scope                    | Use for                                                                                 |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| `loop(iter-<N>)`         | Autonomous firing output — per-iteration meta commit                                    |
-| `audit(<area>)`          | Verdict + artifact commits                                                              |
-| `research(<topic>)`      | External-source research corpus                                                         |
-| `ledger`                 | Append-only `evolution.jsonl` (or your equivalent) entries                              |
-| `docs(<area>)`           | CLAUDE.md / README / summary updates                                                    |
-| `chore(release)`         | Auto-generated by semantic-release — do not hand-write                                  |
+| Scope               | Use for                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `loop(iter-<N>)`    | Autonomous firing output — per-iteration meta commit       |
+| `audit(<area>)`     | Verdict + artifact commits                                 |
+| `research(<topic>)` | External-source research corpus                            |
+| `ledger`            | Append-only `evolution.jsonl` (or your equivalent) entries |
+| `docs(<area>)`      | CLAUDE.md / README / summary updates                       |
+| `chore(release)`    | Auto-generated by semantic-release — do not hand-write     |
 
 Commit template:
 
