@@ -1,0 +1,9 @@
+{
+  "name": "floating-clock",
+  "version": "1.0.0",
+  "description": "Always-on-top floating desktop clock for macOS — single-file Objective-C NSPanel with persistent positioning and sub-0.1% idle CPU.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

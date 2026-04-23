@@ -810,6 +810,28 @@
         "device-if"
       ],
       "strict": false
+    },
+    {
+      "name": "floating-clock",
+      "description": "Always-on-top floating desktop clock for macOS — borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
+      "version": "1.0.0",
+      "source": "./plugins/floating-clock",
+      "category": "utilities",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "macos",
+        "clock",
+        "floating-window",
+        "nspanel",
+        "objective-c",
+        "minimal-footprint",
+        "always-on-top",
+        "draggable"
+      ],
+      "strict": false
     }
   ]
 }
