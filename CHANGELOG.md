@@ -1,3 +1,10 @@
+## [16.1.3](https://github.com/terrylica/cc-skills/compare/v16.1.2...v16.1.3) (2026-04-23)
+
+
+### Bug Fixes
+
+* **autonomous-loop:** remove numeric token budget gate on dispatch ([48a8970](https://github.com/terrylica/cc-skills/commit/48a89708275d34049aeef08a955c0ae4280663bd)), closes [#4](https://github.com/terrylica/cc-skills/issues/4) [#4](https://github.com/terrylica/cc-skills/issues/4)
+
 ## [16.1.2](https://github.com/terrylica/cc-skills/compare/v16.1.1...v16.1.2) (2026-04-23)
 
 
