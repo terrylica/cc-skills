@@ -213,6 +213,20 @@
                                       @[@"5",  @5], @[@"7", @7], @[@"10", @10]]
                         defaultsKey:@"NextItemCount"]];
 
+    // v4 iter-136: Session Signals shortcut. The pref gates whether
+    // PRE-MARKET (◐) and AFTER-HOURS (◒) glyphs appear on NEXT entries
+    // (iter-123/125/126). NEXT is the segment most affected, so expose
+    // the lever directly here — previously only reachable via Full
+    // Preferences → MARKET → Session Signals.
+    [m addItem:[self submenuTitled:@"Session Signals"
+                             action:@selector(setSessionSignalWindow:)
+                              pairs:@[@[@"Off           (no ◐ ◒ promotion)", @"off"],
+                                      @[@"Brief         (5 min)",             @"5min"],
+                                      @[@"Standard      (15 min)",            @"15min"],
+                                      @[@"Extended      (30 min)",            @"30min"],
+                                      @[@"Hour          (60 min)",            @"60min"]]
+                        defaultsKey:@"SessionSignalWindow"]];
+
     [m addItem:[self submenuTitled:@"Font Size"
                              action:@selector(setNextFontSize:)
                               pairs:@[@[@"9", @9.0],  @[@"10", @10.0], @[@"11", @11.0],
