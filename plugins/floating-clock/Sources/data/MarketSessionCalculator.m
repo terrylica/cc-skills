@@ -91,6 +91,18 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
         state = kSessionPreMarket;
     }
 
+    // v4 iter-125: mirror of iter-123 for the post-close window. CLOSED is
+    // promoted to AFTER-HOURS during the first 15 min following the regular
+    // close (weekdays only). The countdown keeps pointing at tomorrow's
+    // open; the distinct glyph is what signals "just closed" in the NEXT
+    // segment. After-hours auction windows vary per market (US ~4h, others
+    // 1-2h) — we cap at 15 min so the signal stays short and symmetric
+    // with PRE-MARKET rather than claim to model each exchange's full
+    // extended session.
+    if (state == kSessionClosed && !isWeekend && nowMins >= closeMins && (nowMins - closeMins) <= 15) {
+        state = kSessionAfterHours;
+    }
+
     if (outState) *outState = state;
     if (outProgress01) *outProgress01 = progress;
     if (outSecsToNext) *outSecsToNext = secsToNext;
@@ -179,10 +191,11 @@ int fcProgressBarFullCells(double progress01, int totalCells) {
 
 NSString *glyphForState(SessionState s) {
     switch (s) {
-        case kSessionOpen:      return @"●";
-        case kSessionLunch:     return @"◑";
-        case kSessionClosed:    return @"○";
-        case kSessionPreMarket: return @"◐";  // v4 iter-123
+        case kSessionOpen:       return @"●";
+        case kSessionLunch:      return @"◑";
+        case kSessionClosed:     return @"○";
+        case kSessionPreMarket:  return @"◐";  // v4 iter-123 (left half dark)
+        case kSessionAfterHours: return @"◒";  // v4 iter-125 (bottom half dark — symmetric to PRE-MARKET)
     }
     return @"○";
 }
@@ -190,10 +203,11 @@ NSString *glyphForState(SessionState s) {
 NSColor *colorForState(SessionState s, const ClockTheme *theme) {
     (void)theme;  // reserved for future per-theme override
     switch (s) {
-        case kSessionOpen:      return [NSColor colorWithRed:0.20 green:0.95 blue:0.40 alpha:1.0];
-        case kSessionLunch:     return [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0];
-        case kSessionClosed:    return [NSColor colorWithWhite:0.55 alpha:1.0];
-        case kSessionPreMarket: return [NSColor colorWithRed:1.00 green:0.70 blue:0.15 alpha:1.0];  // amber — iter-123
+        case kSessionOpen:       return [NSColor colorWithRed:0.20 green:0.95 blue:0.40 alpha:1.0];
+        case kSessionLunch:      return [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0];
+        case kSessionClosed:     return [NSColor colorWithWhite:0.55 alpha:1.0];
+        case kSessionPreMarket:  return [NSColor colorWithRed:1.00 green:0.70 blue:0.15 alpha:1.0];  // amber — iter-123 (dawn)
+        case kSessionAfterHours: return [NSColor colorWithRed:0.95 green:0.45 blue:0.55 alpha:1.0];  // rose/sunset — iter-125 (dusk)
     }
     return [NSColor whiteColor];
 }
