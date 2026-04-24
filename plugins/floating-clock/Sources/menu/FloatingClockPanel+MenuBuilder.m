@@ -84,6 +84,16 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Triptych (single row)",     @"horizontal-triptych"]]
                                      defaultsKey:@"LayoutMode"]];
 
+    // v4 iter-29: inter-segment gap / density.
+    [displayItems addObject:[self submenuTitled:@"Segment Gap"
+                                          action:@selector(setSegmentGap:)
+                                           pairs:@[@[@"Tight (2pt)",    @"tight"],
+                                                   @[@"Snug (3pt)",     @"snug"],
+                                                   @[@"Normal (4pt)",   @"normal"],
+                                                   @[@"Airy (8pt)",     @"airy"],
+                                                   @[@"Spacious (14pt)", @"spacious"]]
+                                     defaultsKey:@"SegmentGap"]];
+
     [m addItem:fcTopCategory(@"Display", displayItems)];
 
     // === THEMES ===

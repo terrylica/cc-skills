@@ -62,7 +62,7 @@ NSArray<NSString *> *profileManagedKeys(void) {
     return @[
         @"DisplayMode", @"LocalTheme", @"ActiveTheme", @"NextTheme", @"ColorTheme",
         @"FontName", @"FontSize", @"ShowSeconds", @"ShowDate", @"TimeFormat",
-        @"DateFormat", @"CanvasOpacity", @"ProgressBarStyle", @"LayoutMode",
+        @"DateFormat", @"CanvasOpacity", @"ProgressBarStyle", @"LayoutMode", @"SegmentGap",
         @"ActiveBarCells", @"NextItemCount", @"SelectedMarket",
     ];
 }

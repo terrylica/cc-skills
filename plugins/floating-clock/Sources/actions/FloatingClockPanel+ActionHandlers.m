@@ -99,6 +99,13 @@
     }
 }
 
+- (void)setSegmentGap:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"SegmentGap"];
+        [self applyDisplaySettings];
+    }
+}
+
 - (void)setNextItemCount:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
         [[NSUserDefaults standardUserDefaults] setInteger:[sender.representedObject integerValue] forKey:@"NextItemCount"];

@@ -103,7 +103,16 @@
     CGFloat localInnerWidth  = ceilf(localSize.width) + 32;
     CGFloat activeSegWidth   = ceilf(activeSize.width) + 32;
     CGFloat nextSegWidth     = ceilf(nextSize.width) + 32;
-    CGFloat marketRowInnerWidth = activeSegWidth + 4 + nextSegWidth;
+
+    // v4 iter-29: SegmentGap pref — controls inter-segment breathing room.
+    NSString *gapId = [d stringForKey:@"SegmentGap"];
+    CGFloat gap = 4;  // "normal" default
+    if      ([gapId isEqualToString:@"tight"])    gap = 2;
+    else if ([gapId isEqualToString:@"snug"])     gap = 3;
+    else if ([gapId isEqualToString:@"airy"])     gap = 8;
+    else if ([gapId isEqualToString:@"spacious"]) gap = 14;
+
+    CGFloat marketRowInnerWidth = activeSegWidth + gap + nextSegWidth;
 
     // v4 iter-28: LayoutMode picks the high-level arrangement.
     //   stacked-local-top    (default) — LOCAL top row, ACTIVE+NEXT below
@@ -118,26 +127,24 @@
     CGFloat nextX = 0, nextY = 0, nextW = 0, nextH = 0;
 
     if ([layoutMode isEqualToString:@"horizontal-triptych"]) {
-        // Single row: LOCAL | ACTIVE | NEXT — each as-tall-as-needed, shared height.
         CGFloat rowHeight = MAX(MAX(localHeight, activeHeight), nextHeight) + 24;
-        windowWidth  = localInnerWidth + 4 + activeSegWidth + 4 + nextSegWidth + 24;  // 12pt L+R
-        windowHeight = rowHeight + 24;  // 12pt T+B
-        localX = 12;               localY = 12; localW = localInnerWidth;  localH = rowHeight;
-        activeX = localX + localW + 4; activeY = 12; activeW = activeSegWidth; activeH = rowHeight;
-        nextX = activeX + activeW + 4; nextY = 12; nextW = nextSegWidth;   nextH = rowHeight;
+        windowWidth  = localInnerWidth + gap + activeSegWidth + gap + nextSegWidth + 24;
+        windowHeight = rowHeight + 24;
+        localX = 12;                     localY = 12; localW = localInnerWidth;  localH = rowHeight;
+        activeX = localX + localW + gap; activeY = 12; activeW = activeSegWidth; activeH = rowHeight;
+        nextX = activeX + activeW + gap; nextY = 12; nextW = nextSegWidth;       nextH = rowHeight;
     } else {
-        // Two-row stacked. Top/bottom order varies by mode.
         CGFloat rowWidth = MAX(localInnerWidth, marketRowInnerWidth);
         windowWidth  = rowWidth + 24;
-        windowHeight = localRowHeight + 4 + marketRowHeight + 24;
+        windowHeight = localRowHeight + gap + marketRowHeight + 24;
         BOOL localOnTop = ![layoutMode isEqualToString:@"stacked-local-bottom"];
-        CGFloat localRowY  = localOnTop ? (12 + marketRowHeight + 4) : 12;
-        CGFloat marketRowY = localOnTop ? 12 : (12 + localRowHeight + 4);
+        CGFloat localRowY  = localOnTop ? (12 + marketRowHeight + gap) : 12;
+        CGFloat marketRowY = localOnTop ? 12 : (12 + localRowHeight + gap);
 
         localX = 12; localY = localRowY; localW = rowWidth; localH = localRowHeight;
         CGFloat pairX = 12 + (rowWidth - marketRowInnerWidth) / 2.0;
-        activeX = pairX;               activeY = marketRowY; activeW = activeSegWidth; activeH = marketRowHeight;
-        nextX = pairX + activeW + 4;   nextY = marketRowY;   nextW = nextSegWidth;     nextH = marketRowHeight;
+        activeX = pairX;                 activeY = marketRowY; activeW = activeSegWidth; activeH = marketRowHeight;
+        nextX = pairX + activeW + gap;   nextY = marketRowY;   nextW = nextSegWidth;     nextH = marketRowHeight;
     }
 
     NSRect oldFrame = self.frame;
