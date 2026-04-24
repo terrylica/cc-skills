@@ -68,9 +68,9 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
         NSDateFormatter *hf = [[NSDateFormatter alloc] init];
         hf.dateFormat = @"EEE MMM d HH:mm:ss";
         if (tz) hf.timeZone = tz;
-        NSString *tzAbbrev = friendlyAbbrevForIana(iana.UTF8String, now);
+        NSString *tzLabel = fullTzLabelForIana(iana.UTF8String, now);
         NSString *headerTime = [NSString stringWithFormat:@"%@ %@",
-            [hf stringFromDate:now], tzAbbrev];
+            [hf stringFromDate:now], tzLabel];
         const ClockMarket *firstM = &kMarkets[[(NSNumber *)group[0] intValue]];
         const char *cityCode = cityCodeForIana(firstM->iana);
         const char *flag = [d boolForKey:@"ShowFlags"] ? flagForIana(firstM->iana) : "";

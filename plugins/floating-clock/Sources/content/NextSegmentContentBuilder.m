@@ -80,9 +80,9 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             openFmt.dateFormat = @"EEE HH:mm";
             NSTimeZone *mktTz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:e.mkt->iana]];
             if (mktTz) openFmt.timeZone = mktTz;
-            NSString *abbrev = friendlyAbbrevForIana(e.mkt->iana, opensAt);
+            NSString *label = fullTzLabelForIana(e.mkt->iana, opensAt);
             countdown = [NSString stringWithFormat:@"opens %@ %@",
-                [openFmt stringFromDate:opensAt], abbrev];
+                [openFmt stringFromDate:opensAt], label];
         } else {
             NSString *verb = e.isLunchResume ? @"resumes in" : @"opens in";
             countdown = [NSString stringWithFormat:@"%@ %@", verb, formatCountdown(e.secs)];

@@ -73,6 +73,41 @@ NSString *friendlyAbbrevForIana(const char *iana, NSDate *date) {
     return tz ? ([tz abbreviationForDate:date] ?: @"") : @"";
 }
 
+NSString *utcOffsetForIana(const char *iana, NSDate *date) {
+    if (!date) return @"";
+    NSTimeZone *tz = nil;
+    if (iana && *iana) {
+        tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:iana]];
+    }
+    if (!tz) tz = [NSTimeZone localTimeZone];
+    NSInteger secs = [tz secondsFromGMTForDate:date];
+    char sign = (secs < 0) ? '-' : '+';
+    NSInteger a = labs((long)secs);
+    NSInteger h = a / 3600;
+    NSInteger m = (a % 3600) / 60;
+    if (m == 0) return [NSString stringWithFormat:@"UTC%c%ld", sign, (long)h];
+    return [NSString stringWithFormat:@"UTC%c%ld:%02ld", sign, (long)h, (long)m];
+}
+
+NSString *fullTzLabelForIana(const char *iana, NSDate *date) {
+    if (!date) return @"";
+    NSString *abbrev = friendlyAbbrevForIana(iana, date);
+    NSString *offset = utcOffsetForIana(iana, date);
+    // Avoid redundancy when the abbreviation is itself a numeric fallback
+    // like "+09" (macOS returns these for some zones without CLDR data).
+    if (abbrev.length == 0 || [abbrev hasPrefix:@"+"] || [abbrev hasPrefix:@"-"]
+        || [abbrev hasPrefix:@"GMT"]) {
+        return offset;
+    }
+    return [NSString stringWithFormat:@"%@ %@", abbrev, offset];
+}
+
+NSString *fullTzLabelForZone(NSTimeZone *tz, NSDate *date) {
+    if (!tz || !date) return @"";
+    const char *ianaCStr = tz.name.UTF8String;
+    return fullTzLabelForIana(ianaCStr, date);
+}
+
 const char *cityCodeForIana(const char *iana) {
     if (!iana || !*iana) return "LOC";
     if (strcmp(iana, "America/New_York") == 0) return "NYC";

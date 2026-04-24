@@ -73,9 +73,9 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     _dateFormatter.timeZone = localTz;
 
     NSDate *nowLocal = [NSDate date];
-    NSString *localAbbrev = [localTz abbreviationForDate:nowLocal] ?: @"";
+    NSString *localLabel = fullTzLabelForZone(localTz, nowLocal);
     _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@",
-        [_dateFormatter stringFromDate:nowLocal], localAbbrev];
+        [_dateFormatter stringFromDate:nowLocal], localLabel];
     _activeSeg.contentLabel.attributedStringValue = FCBuildActiveSegmentContent();
     _nextSeg.contentLabel.attributedStringValue = FCBuildNextSegmentContent();
 
@@ -110,11 +110,11 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     }
     _dateFormatter.timeZone = effectiveTz;
 
-    NSString *legacyAbbrev = (strlen(mkt->iana) > 0)
-        ? friendlyAbbrevForIana(mkt->iana, now)
-        : ([effectiveTz abbreviationForDate:now] ?: @"");
+    NSString *legacyLabel = (strlen(mkt->iana) > 0)
+        ? fullTzLabelForIana(mkt->iana, now)
+        : fullTzLabelForZone(effectiveTz, now);
     _label.stringValue = [NSString stringWithFormat:@"%@ %@",
-        [_dateFormatter stringFromDate:now], legacyAbbrev];
+        [_dateFormatter stringFromDate:now], legacyLabel];
 
     if (strlen(mkt->iana) == 0) return;  // local mode — no session label
 
@@ -164,9 +164,9 @@ static NSString *dateFormatPrefix(NSString *presetId) {
             openFmt.dateFormat = @"EEE HH:mm";
             NSTimeZone *mktTz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
             if (mktTz) openFmt.timeZone = mktTz;
-            NSString *abbrev = friendlyAbbrevForIana(mkt->iana, opensAt);
+            NSString *label = fullTzLabelForIana(mkt->iana, opensAt);
             countdownText = [NSString stringWithFormat:@" CLOSED · opens %@ %@",
-                [openFmt stringFromDate:opensAt], abbrev];
+                [openFmt stringFromDate:opensAt], label];
         } else {
             countdownText = [NSString stringWithFormat:@" CLOSED · opens in %@", formatCountdown(secsToNext)];
         }
