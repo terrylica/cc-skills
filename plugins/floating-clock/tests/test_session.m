@@ -477,6 +477,7 @@ static void test_city_codes_for_all_markets(void) {
         {"Asia/Seoul",        "SEO"},
         {"Asia/Kolkata",      "MUM"},
         {"Australia/Sydney",  "SYD"},
+        {"Africa/Johannesburg", "JHB"},  // iter-155
     };
     for (size_t i = 0; i < sizeof(fixtures)/sizeof(fixtures[0]); i++) {
         const char *got = cityCodeForIana(fixtures[i].iana);
@@ -496,6 +497,7 @@ static void test_flag_emoji_present_for_all_markets(void) {
         "America/New_York", "America/Toronto", "Europe/London", "Europe/Paris",
         "Europe/Berlin", "Europe/Zurich", "Asia/Tokyo", "Asia/Hong_Kong",
         "Asia/Shanghai", "Asia/Seoul", "Asia/Kolkata", "Australia/Sydney",
+        "Africa/Johannesburg",  // iter-155
     };
     for (size_t i = 0; i < sizeof(ianas)/sizeof(ianas[0]); i++) {
         const char *flag = flagForIana(ianas[i]);
@@ -506,6 +508,32 @@ static void test_flag_emoji_present_for_all_markets(void) {
             fprintf(stderr, "FAIL %s: %s flag lead byte 0x%02x (expected 0xF0)\n",
                     __func__, ianas[i], (unsigned char)flag[0]);
             failures++;
+        }
+    }
+}
+
+static void test_market_roster_lock(void) {
+    // v4 iter-156: lock the 13-exchange roster (post-iter-155 JSE).
+    // Existing coverage tests iterate kMarkets and pass for whatever
+    // count happens to be present — a silent removal wouldn't fail
+    // any test. This one explicitly names each market ID so removal
+    // triggers a failure immediately.
+    NSArray *expectedIds = @[
+        @"local", @"nyse", @"tsx", @"lse", @"euronext", @"xetra", @"six",
+        @"tse", @"hkex", @"sse", @"krx", @"nse", @"asx", @"jse",
+    ];
+    if (kNumMarkets != expectedIds.count) {
+        failures++;
+        fprintf(stderr, "FAIL %s: kNumMarkets=%zu, expected %lu\n",
+                __func__, kNumMarkets, (unsigned long)expectedIds.count);
+    }
+    for (NSString *want in expectedIds) {
+        const ClockMarket *m = marketForId(want);
+        NSString *got = [NSString stringWithUTF8String:m->id];
+        if (![got isEqualToString:want]) {
+            failures++;
+            fprintf(stderr, "FAIL %s: '%s' missing (marketForId returned '%s')\n",
+                    __func__, want.UTF8String, got.UTF8String);
         }
     }
 }
@@ -706,6 +734,7 @@ int main(void) {
 
         test_city_codes_for_all_markets();
         test_flag_emoji_present_for_all_markets();
+        test_market_roster_lock();
         test_flag_empty_for_unknown_iana();
 
         test_starter_profiles_cover_all_keys();
@@ -742,7 +771,7 @@ int main(void) {
         test_session_state_color();
 
         if (failures == 0) {
-            fprintf(stderr, "All 56 tests passed.\n");
+            fprintf(stderr, "All 57 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
