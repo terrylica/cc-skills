@@ -2,14 +2,17 @@
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../data/MarketSessionCalculator.h"
+#import "../rendering/FontResolver.h"
 #import "SegmentHeaderRenderer.h"
 #import "UrgencyColors.h"
 
 NSAttributedString *FCBuildActiveSegmentContent(void) {
     NSDate *now = [NSDate date];
-    CGFloat fontSize = [[NSUserDefaults standardUserDefaults] doubleForKey:@"ActiveFontSize"];
+    NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+    CGFloat fontSize = [ud doubleForKey:@"ActiveFontSize"];
     if (fontSize < 6) fontSize = 11;
-    NSFont *font = [NSFont monospacedSystemFontOfSize:fontSize weight:NSFontWeightMedium];
+    NSFontWeight fw = FCParseFontWeight([ud stringForKey:@"FontWeight"]);
+    NSFont *font = FCResolveMonoFont(fontSize, fw);
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     const ClockTheme *theme = themeForId([d stringForKey:@"ActiveTheme"]);
     NSColor *headerColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];

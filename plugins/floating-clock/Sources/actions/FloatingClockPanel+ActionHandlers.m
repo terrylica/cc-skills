@@ -135,6 +135,13 @@
     }
 }
 
+- (void)setFontWeight:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"FontWeight"];
+        [self applyDisplaySettings];
+    }
+}
+
 - (void)toggleShowFlags:(NSMenuItem *)sender {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"ShowFlags"] forKey:@"ShowFlags"];

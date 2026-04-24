@@ -78,8 +78,12 @@
     if (activeFS < 6) activeFS = 11;
     CGFloat nextFS = [d doubleForKey:@"NextFontSize"];
     if (nextFS < 6) nextFS = 11;
-    NSFont *activeFont = [NSFont monospacedSystemFontOfSize:activeFS weight:NSFontWeightMedium];
-    NSFont *nextFont   = [NSFont monospacedSystemFontOfSize:nextFS   weight:NSFontWeightMedium];
+    // v4 iter-88: FontWeight lever applies to system-monospaced paths
+    // (ACTIVE + NEXT). LOCAL primary font is iTerm2 / named-font first,
+    // so weight can't drive it via API — documented limitation.
+    NSFontWeight fw = FCParseFontWeight([d stringForKey:@"FontWeight"]);
+    NSFont *activeFont = FCResolveMonoFont(activeFS, fw);
+    NSFont *nextFont   = FCResolveMonoFont(nextFS,   fw);
     NSDictionary *primaryAttrs = @{NSFontAttributeName: primaryFont};
     NSDictionary *activeAttrs  = @{NSFontAttributeName: activeFont};
     NSDictionary *nextAttrs    = @{NSFontAttributeName: nextFont};

@@ -81,6 +81,18 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
         @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
     ]                                      defaultsKey:@"FontSize"]];
 
+    // v4 iter-88: typographic weight lever. Applies to ACTIVE + NEXT
+    // (system monospaced) paths. LOCAL primary uses iTerm2 / named font
+    // so weight can't drive it via API — documented limitation.
+    [displayItems addObject:[self submenuTitled:@"Font Weight"
+                                          action:@selector(setFontWeight:)
+                                           pairs:@[@[@"Regular",  @"regular"],
+                                                   @[@"Medium",   @"medium"],
+                                                   @[@"Semibold", @"semibold"],
+                                                   @[@"Bold",     @"bold"],
+                                                   @[@"Heavy",    @"heavy"]]
+                                     defaultsKey:@"FontWeight"]];
+
     [displayItems addObject:[self submenuTitled:@"Transparency"
                                           action:@selector(setCanvasOpacity:)
                                            pairs:@[@[@"Opaque (100%)", @1.0],
