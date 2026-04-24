@@ -135,6 +135,22 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"medium", @"LetterSpacing": @"normal", @"LineSpacing": @"airy",
         @"TimeSeparator": @"middot",
     };
+    // v4 iter-223: pairs with iter-222's Concrete theme (mirrors iter-169
+    // Carnival → iter-170 Samba narrative). Studio is the CALM
+    // architectural readout — distinct from existing loud-architectural
+    // moods (Brutalist uses high_contrast + heavy/wide/dash; Hacker uses
+    // green_phosphor + bold; Industrial uses espresso + black). Studio
+    // takes Concrete's chromaless palette and adds professional restraint:
+    // sharp corners + subtle shadow + medium weight + middot separator
+    // + 30min urgency horizon + subtle flash.
+    NSDictionary *studio = @{
+        @"LocalTheme": @"concrete", @"ActiveTheme": @"concrete", @"NextTheme": @"concrete",
+        @"CornerStyle": @"sharp", @"ShadowStyle": @"subtle", @"Density": @"default",
+        @"FontWeight": @"medium", @"LetterSpacing": @"normal", @"LineSpacing": @"snug",
+        @"TimeSeparator": @"middot",
+        @"UrgencyHorizon": @"30min",
+        @"UrgencyFlash": @"subtle",
+    };
 
     return @[
         @[@"Brutalist",     brutalist],
@@ -153,5 +169,6 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @[@"Borealis",      borealis],
         @[@"Cinema",        cinema],
         @[@"Levitation",    levitation],
+        @[@"Studio",        studio],
     ];
 }
