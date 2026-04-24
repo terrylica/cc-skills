@@ -287,8 +287,20 @@ static NSArray<NSString *> *profileManagedKeys(void) {
     return @[
         @"DisplayMode", @"LocalTheme", @"ActiveTheme", @"NextTheme", @"ColorTheme",
         @"FontName", @"FontSize", @"ShowSeconds", @"ShowDate", @"TimeFormat",
+        @"DateFormat",
         @"ActiveBarCells", @"NextItemCount", @"SelectedMarket",
     ];
+}
+
+// Map DateFormat preset id → DateFormatter pattern prefix (includes trailing
+// "  " separator before the time). Falls back to "short" if unknown/absent.
+static NSString *dateFormatPrefix(NSString *presetId) {
+    if ([presetId isEqualToString:@"long"])    return @"EEEE MMMM d  ";    // "Thursday April 23"
+    if ([presetId isEqualToString:@"iso"])     return @"yyyy-MM-dd  ";     // "2026-04-23"
+    if ([presetId isEqualToString:@"numeric"]) return @"M/d  ";            // "4/23"
+    if ([presetId isEqualToString:@"weeknum"]) return @"'Wk' w  ";         // "Wk 17"
+    if ([presetId isEqualToString:@"dayofyr"]) return @"'Day' D  ";        // "Day 114"
+    return @"EEE MMM d  ";  // default "short": "Thu Apr 23"
 }
 
 // Short 3-letter city codes for the ACTIVE segment headers.
@@ -494,6 +506,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (BOOL)setChecksInMenu:(NSMenu *)menu forKey:(NSString *)key currentValue:(id)current;
 - (BOOL)representedObject:(id)ro matchesValue:(id)v;
 - (void)applyDisplaySettings;
+- (NSRect)clampFrameToVisibleScreen:(NSRect)proposed;
 - (void)applyThreeSegmentLayout;
 - (void)applySingleMarketLayout;
 - (void)applyLocalOnlyLayout;
@@ -521,6 +534,8 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)quit:(id)sender;
 - (void)activateProfile:(NSString *)name;
 - (void)saveCurrentProfileAs:(id)sender;
+- (void)quickSaveCurrentProfile:(id)sender;
+- (void)setDateFormat:(NSMenuItem *)sender;
 - (void)deleteProfile:(NSMenuItem *)sender;
 - (void)switchToProfile:(NSMenuItem *)sender;
 - (NSMenuItem *)buildProfileMenu;
@@ -570,6 +585,7 @@ static NSFont *resolveClockFont(CGFloat size) {
         @"NextTheme": @"soft_glass",
         @"ActiveBarCells": @7,
         @"NextItemCount": @3,
+        @"DateFormat": @"short",
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
@@ -693,7 +709,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     BOOL showSeconds = [d boolForKey:@"ShowSeconds"];
     NSString *tf = [d stringForKey:@"TimeFormat"];
 
-    if (showDate) [fmt appendString:@"EEE MMM d  "];
+    if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     if ([tf isEqualToString:@"12h"]) {
         [fmt appendString:showSeconds ? @"h:mm:ss a" : @"h:mm a"];
     } else {
@@ -962,7 +978,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     BOOL showSeconds = [d boolForKey:@"ShowSeconds"];
 
     if (showDate) {
-        [fmt appendString:@"EEE MMM d  "];
+        [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     }
 
     if ([timeFormat isEqualToString:@"12h"]) {
@@ -1076,6 +1092,24 @@ static NSFont *resolveClockFont(CGFloat size) {
     CGFloat x = vf.origin.x + (vf.size.width - f.size.width) / 2.0;
     CGFloat y = vf.origin.y + 24;  // 24pt above Dock / bottom edge
     return NSMakeRect(x, y, f.size.width, f.size.height);
+}
+
+// Clamp a proposed frame so no edge extends past the current screen's
+// visibleFrame. Used after each layout resize so the window never slips
+// below the Dock, above the menu bar, or past the sides. The window's
+// current screen is preferred; falls back to primary if unknown.
+- (NSRect)clampFrameToVisibleScreen:(NSRect)proposed {
+    NSScreen *s = self.screen ?: [self primaryScreen];
+    NSRect vf = s.visibleFrame;
+    NSRect r = proposed;
+    // If window is larger than the screen, prefer anchoring to bottom-left.
+    if (r.size.width > vf.size.width)  r.size.width  = vf.size.width;
+    if (r.size.height > vf.size.height) r.size.height = vf.size.height;
+    if (NSMaxX(r) > NSMaxX(vf)) r.origin.x = NSMaxX(vf) - r.size.width;
+    if (NSMaxY(r) > NSMaxY(vf)) r.origin.y = NSMaxY(vf) - r.size.height;
+    if (r.origin.x < vf.origin.x) r.origin.x = vf.origin.x;
+    if (r.origin.y < vf.origin.y) r.origin.y = vf.origin.y;
+    return r;
 }
 
 - (void)windowDidMove:(NSNotification *)n {
@@ -1500,6 +1534,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
     CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
     NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
+    newFrame = [self clampFrameToVisibleScreen:newFrame];
     [self setFrame:newFrame display:YES animate:NO];
 
     // Position segments within contentView (origin bottom-left)
@@ -1560,6 +1595,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
     CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
     NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
+    newFrame = [self clampFrameToVisibleScreen:newFrame];
     [self setFrame:newFrame display:YES animate:NO];
 
     // 1-line centered
@@ -1616,6 +1652,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
     CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
     NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
+    newFrame = [self clampFrameToVisibleScreen:newFrame];
     [self setFrame:newFrame display:YES animate:NO];
 
     // Lay out labels within contentView
@@ -1756,6 +1793,17 @@ static NSFont *resolveClockFont(CGFloat size) {
                               pairs:@[@[@"24-hour", @"24h"], @[@"12-hour", @"12h"]]
                         defaultsKey:@"TimeFormat"]];
 
+    // Date Format presets (used when Show Date is on)
+    [m addItem:[self submenuTitled:@"Date Format"
+                             action:@selector(setDateFormat:)
+                              pairs:@[@[@"Short (Thu Apr 23)", @"short"],
+                                      @[@"Long (Thursday April 23)", @"long"],
+                                      @[@"ISO (2026-04-23)", @"iso"],
+                                      @[@"Numeric (4/23)", @"numeric"],
+                                      @[@"Week Number (Wk 17)", @"weeknum"],
+                                      @[@"Day of Year (Day 114)", @"dayofyr"]]
+                        defaultsKey:@"DateFormat"]];
+
     // Font Size hierarchical
     [m addItem:[self groupedSubmenuTitled:@"Font Size"
                                     action:@selector(setFontSize:)
@@ -1765,6 +1813,11 @@ static NSFont *resolveClockFont(CGFloat size) {
         @[@"Large",  @[@[@"28", @28.0], @[@"32", @32.0], @[@"36", @36.0], @[@"42", @42.0]]],
         @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
     ]                           defaultsKey:@"FontSize"]];
+
+    [m addItem:[NSMenuItem separatorItem]];
+    [m addItem:[self buildProfileMenu]];
+    NSMenuItem *qs = [m addItemWithTitle:@"Quick Save Profile" action:@selector(quickSaveCurrentProfile:) keyEquivalent:@"s"];
+    qs.target = self;
 
     [m addItem:[NSMenuItem separatorItem]];
     NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
@@ -1807,6 +1860,11 @@ static NSFont *resolveClockFont(CGFloat size) {
     ]                          defaultsKey:@"ActiveBarCells"]];
 
     [m addItem:[NSMenuItem separatorItem]];
+    [m addItem:[self buildProfileMenu]];
+    NSMenuItem *qs = [m addItemWithTitle:@"Quick Save Profile" action:@selector(quickSaveCurrentProfile:) keyEquivalent:@""];
+    qs.target = self;
+
+    [m addItem:[NSMenuItem separatorItem]];
     NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
     fp.target = self;
 
@@ -1841,6 +1899,11 @@ static NSFont *resolveClockFont(CGFloat size) {
                              action:@selector(setNextItemCount:)
                               pairs:@[@[@"1", @1], @[@"2", @2], @[@"3", @3], @[@"5", @5]]
                         defaultsKey:@"NextItemCount"]];
+
+    [m addItem:[NSMenuItem separatorItem]];
+    [m addItem:[self buildProfileMenu]];
+    NSMenuItem *qs = [m addItemWithTitle:@"Quick Save Profile" action:@selector(quickSaveCurrentProfile:) keyEquivalent:@""];
+    qs.target = self;
 
     [m addItem:[NSMenuItem separatorItem]];
     NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
@@ -1932,6 +1995,31 @@ static NSFont *resolveClockFont(CGFloat size) {
     [self recordProfileActivationInCCMemory:name];
     // Rebuild menu so the new profile appears
     self.contentView.menu = [self buildMenu];
+}
+
+// Silently overwrite the currently-active profile with current settings.
+// No dialog, no prompt — one-click save for the common "remember this" case.
+- (void)quickSaveCurrentProfile:(id)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *active = [d stringForKey:@"ActiveProfile"];
+    if (!active || active.length == 0) active = @"Default";
+
+    NSMutableDictionary *profiles = [[d objectForKey:@"Profiles"] mutableCopy] ?: [NSMutableDictionary dictionary];
+    NSMutableDictionary *snapshot = [NSMutableDictionary dictionary];
+    for (NSString *key in profileManagedKeys()) {
+        id val = [d objectForKey:key];
+        if (val != nil) snapshot[key] = val;
+    }
+    profiles[active] = snapshot;
+    [d setObject:profiles forKey:@"Profiles"];
+    [self recordProfileActivationInCCMemory:active];
+}
+
+- (void)setDateFormat:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"DateFormat"];
+        [self applyDisplaySettings];
+    }
 }
 
 - (void)deleteProfile:(NSMenuItem *)sender {
