@@ -1,6 +1,7 @@
 #import "MarketSessionCalculator.h"
 #import "../core/SessionSignalWindow.h"
 #import "HolidayCalendar.h"  // iter-174
+#import "HalfDayCalendar.h"  // iter-189
 #include <string.h>
 
 const long kFCSecondsPerDay           = 24L * 3600L;
@@ -36,6 +37,21 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     BOOL hasLunch = (mkt->lunch_start_h >= 0);
     NSInteger lunchStartMins = hasLunch ? (mkt->lunch_start_h * 60 + mkt->lunch_start_m) : -1;
     NSInteger lunchEndMins   = hasLunch ? (mkt->lunch_end_h   * 60 + mkt->lunch_end_m)   : -1;
+
+    // v4 iter-189: if today is a half-day, override closeMins with the
+    // early-close time. Half-days implicitly skip lunch — NYSE Black
+    // Friday closes at 13:00 ET with no lunch break, and the only
+    // markets with lunch breaks (TSE / HKEX / SSE) don't have NYSE-
+    // style half-days wired yet, so disabling hasLunch on half-days
+    // is a safe conservative default that prevents any future lunch-
+    // state leak if a TSE/HKEX/SSE half-day is added without
+    // explicit lunch semantics.
+    int halfDayCloseH = 0, halfDayCloseM = 0;
+    BOOL isHalfDay = FCIsMarketHalfDay(mkt, now, &halfDayCloseH, &halfDayCloseM);
+    if (isHalfDay) {
+        closeMins = halfDayCloseH * 60 + halfDayCloseM;
+        hasLunch = NO;
+    }
 
     SessionState state;
     if (isWeekend || isHoliday) {
