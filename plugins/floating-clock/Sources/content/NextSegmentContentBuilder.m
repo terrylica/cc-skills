@@ -2,6 +2,8 @@
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../data/MarketSessionCalculator.h"
+#import "SegmentHeaderRenderer.h"
+#import "UrgencyColors.h"
 
 NSAttributedString *FCBuildNextSegmentContent(void) {
     NSDate *now = [NSDate date];
@@ -65,21 +67,11 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     // at top and between entries so each market is clearly delimited
     // as a unit. Horizontal rule uses light-weight U+2500 '─' at length
     // 44, which fits comfortably in the NEXT segment at 11pt.
-    // v4 iter-66: column-header legend replaces per-row repeated words.
-    // Prior rendering repeated 'until open', 'local', and 'session' on
-    // every row. A single legend line under the title labels them once
-    // as semantic columns; each row then becomes pure data. Classic
-    // table tabulation.
-    NSString *hrule = @"────────────────────────────────────────────";
-    [out appendAttributedString:[[NSAttributedString alloc]
-        initWithString:@"NEXT TO OPEN\n"
-        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
-    [out appendAttributedString:[[NSAttributedString alloc]
-        initWithString:@"countdown · your time → market time · session\n"
-        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
-    [out appendAttributedString:[[NSAttributedString alloc]
-        initWithString:[hrule stringByAppendingString:@"\n"]
-        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
+    // v4 iter-73: shared section-header helper (SegmentHeaderRenderer).
+    FCAppendSectionHeader(out, font,
+        @"NEXT TO OPEN",
+        @"countdown · your time → market time · session",
+        headerColor, dimColor, FCDividerRuleColor());
 
     int maxItems = entryCount < maxN ? entryCount : (int)maxN;
     for (int i = 0; i < maxItems; i++) {
@@ -151,15 +143,14 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:codeLabel
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
-        // v4 iter-45: symmetric urgency tiers with iter-44 (ACTIVE close
-        // countdown). Markets imminently opening deserve the same visual
-        // urgency as markets imminently closing. Only applies to bounded
-        // countdowns (e.secs <= 99h); >99h opens use absolute-date form.
-        NSColor *countdownColor = headerColor;
-        if (e.secs <= 99 * 3600) {
-            if (e.secs < 1800)      countdownColor = [NSColor colorWithRed:0.95 green:0.40 blue:0.40 alpha:1.0];
-            else if (e.secs < 3600) countdownColor = [NSColor colorWithRed:0.95 green:0.75 blue:0.30 alpha:1.0];
-        }
+        // v4 iter-45: symmetric urgency tiers with iter-44 (ACTIVE close).
+        // v4 iter-73: routed through shared FCUrgencyColorForSecs —
+        // single source of truth for thresholds & palette across both
+        // sections. Only bounded countdowns (<=99h) get tiered; >99h
+        // opens use absolute-date form.
+        NSColor *countdownColor = (e.secs <= 99 * 3600)
+            ? FCUrgencyColorForSecs(e.secs, headerColor)
+            : headerColor;
         // v4 iter-66: dropped the "until open" / "until lunch ends"
         // suffix — redundant with the segment's 'NEXT TO OPEN' title
         // and the column-header legend. Lunch-resume entries keep the
@@ -254,12 +245,12 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         }
 
         // v4 iter-63: horizontal rule between entries — clear tabular
-        // demarcation. Always-shown (including after the last entry)
-        // for visual consistency; the trailing \n below finishes off
-        // the string properly for AppKit rendering.
+        // demarcation. v4 iter-73: shared constant + helper (note
+        // inline \n prefix here because the secondLine above ends
+        // without newline — pre-rule separator).
         [out appendAttributedString:[[NSAttributedString alloc]
-            initWithString:[@"\n" stringByAppendingString:hrule]
-            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
+            initWithString:[@"\n" stringByAppendingString:kFCSegmentHRule]
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: FCDividerRuleColor()}]];
         if (i < maxItems - 1) {
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:@"\n" attributes:@{NSFontAttributeName: font}]];
