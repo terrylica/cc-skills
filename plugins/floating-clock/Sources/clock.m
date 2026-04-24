@@ -3,6 +3,7 @@
 #import "rendering/AttributedStringLayoutMeasurer.h"
 #import "data/ThemeCatalog.h"
 #import "data/MarketCatalog.h"
+#import "data/MarketSessionCalculator.h"
 
 // # FILE-SIZE-OK
 
@@ -20,143 +21,8 @@ static uint64_t nsUntilNextSecond(void) {
 // ClockTheme + kThemes + themeForId moved to Sources/data/ThemeCatalog.{h,m}
 // ClockMarket + kMarkets + marketForId moved to Sources/data/MarketCatalog.{h,m}
 
-// Session state values
-typedef enum {
-    kSessionOpen = 0,        // regular session (including pre-open auctions)
-    kSessionLunch = 1,       // midday break on Asian exchanges
-    kSessionClosed = 2,      // overnight, weekend
-} SessionState;
-
-// Computes session state + progress + secs to next transition for the given market at `now`.
-// `progress01` is 0.0–1.0 representing how far through the regular session we are.
-// `secs_to_next` is seconds until the next boundary (close if open; open if closed/lunch).
-static void computeSessionState(const ClockMarket *mkt, NSDate *now,
-                                 SessionState *outState, double *outProgress01,
-                                 long *outSecsToNext) {
-    if (strlen(mkt->iana) == 0) {
-        // Local — not applicable. Caller should not call this for local.
-        if (outState) *outState = kSessionClosed;
-        if (outProgress01) *outProgress01 = 0.0;
-        if (outSecsToNext) *outSecsToNext = 0;
-        return;
-    }
-
-    NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
-    if (!tz) tz = [NSTimeZone localTimeZone];
-
-    NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
-    cal.timeZone = tz;
-
-    NSCalendarUnit units = NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay
-                         | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond
-                         | NSCalendarUnitWeekday;
-    NSDateComponents *comps = [cal components:units fromDate:now];
-
-    // Weekday: 1=Sunday, 2=Monday, ..., 7=Saturday (Gregorian default)
-    BOOL isWeekend = (comps.weekday == 1 || comps.weekday == 7);
-
-    NSInteger nowMins = comps.hour * 60 + comps.minute;
-    NSInteger openMins = mkt->open_h * 60 + mkt->open_m;
-    NSInteger closeMins = mkt->close_h * 60 + mkt->close_m;
-    BOOL hasLunch = (mkt->lunch_start_h >= 0);
-    NSInteger lunchStartMins = hasLunch ? (mkt->lunch_start_h * 60 + mkt->lunch_start_m) : -1;
-    NSInteger lunchEndMins   = hasLunch ? (mkt->lunch_end_h   * 60 + mkt->lunch_end_m)   : -1;
-
-    SessionState state;
-    if (isWeekend) {
-        state = kSessionClosed;
-    } else if (nowMins < openMins || nowMins >= closeMins) {
-        state = kSessionClosed;
-    } else if (hasLunch && nowMins >= lunchStartMins && nowMins < lunchEndMins) {
-        state = kSessionLunch;
-    } else {
-        state = kSessionOpen;
-    }
-
-    // Progress: 0.0 at open, 1.0 at close (straight-line, ignoring lunch for simplicity).
-    double progress = 0.0;
-    if (state == kSessionOpen || state == kSessionLunch) {
-        double elapsed = (double)(nowMins - openMins);
-        double total = (double)(closeMins - openMins);
-        if (total > 0) progress = MIN(1.0, MAX(0.0, elapsed / total));
-    } else if (nowMins >= closeMins) {
-        progress = 1.0;
-    }
-
-    // Seconds to next boundary.
-    NSInteger nextBoundaryMins;
-    if (state == kSessionClosed) {
-        // Next open — today if pre-session, tomorrow (skipping weekend) if post-session
-        if (!isWeekend && nowMins < openMins) {
-            nextBoundaryMins = openMins;
-        } else {
-            // Next trading day's open. Find days_until_next_trading_day.
-            int addDays = 1;
-            NSInteger nextWeekday = ((comps.weekday) % 7) + 1;  // tomorrow's weekday
-            while (nextWeekday == 1 || nextWeekday == 7) {      // skip Sat(7) and Sun(1)
-                addDays++;
-                nextWeekday = (nextWeekday % 7) + 1;
-            }
-            // Minutes from now to end-of-today + addDays full days + open time
-            nextBoundaryMins = (24 * 60 - nowMins) + (addDays - 1) * 24 * 60 + openMins;
-        }
-    } else if (state == kSessionLunch) {
-        nextBoundaryMins = lunchEndMins - nowMins;
-    } else {
-        // Open — time to close (if there's a lunch between now and close, still count toward close
-        // to match user mental model of "session end")
-        nextBoundaryMins = closeMins - nowMins;
-    }
-    long secsToNext = nextBoundaryMins * 60L - comps.second;
-    if (secsToNext < 0) secsToNext = 0;
-
-    if (outState) *outState = state;
-    if (outProgress01) *outProgress01 = progress;
-    if (outSecsToNext) *outSecsToNext = secsToNext;
-}
-
-// Format countdown in human-readable form: "5s", "47m", "2h17m"
-static NSString *formatCountdown(long secs) {
-    if (secs < 60) return [NSString stringWithFormat:@"%lds", secs];
-    long mins = secs / 60;
-    if (mins < 60) return [NSString stringWithFormat:@"%ldm", mins];
-    long hours = mins / 60;
-    long rmins = mins % 60;
-    if (hours < 100) return [NSString stringWithFormat:@"%ldh%02ldm", hours, rmins];
-    // >99h — return special placeholder; caller will swap in a date format
-    return [NSString stringWithFormat:@"%ldh", hours];
-}
-
-// Returns a fixed-length bar string (totalCells chars) with filled portion
-// proportional to progress01. Rounds to whole cells (no partial-cell glyphs)
-// because partial glyphs like ▏ leave a visible empty gap between filled (█)
-// and unfilled (▒) — the transparent right-side of the partial character
-// shows the background through it.
-static NSString *buildProgressBar(double progress01, int totalCells) {
-    if (progress01 < 0) progress01 = 0;
-    if (progress01 > 1) progress01 = 1;
-
-    // Round to nearest whole cell. Granularity at 12 cells = 8.3% per cell
-    // (~25 min resolution on a 5h session) — plenty for at-a-glance scanning.
-    int fullCells = (int)(progress01 * totalCells + 0.5);
-    if (fullCells > totalCells) fullCells = totalCells;
-
-    NSMutableString *bar = [NSMutableString string];
-    for (int i = 0; i < fullCells; i++) [bar appendString:@"█"];
-    // U+2592 MEDIUM SHADE for unfilled — denser than ░ for contrast against
-    // translucent themes, but still visually distinct from the solid █ fill.
-    for (int i = fullCells; i < totalCells; i++) [bar appendString:@"▒"];
-    return bar;
-}
-
-static NSString *glyphForState(SessionState s) {
-    switch (s) {
-        case kSessionOpen:    return @"●";
-        case kSessionLunch:   return @"◑";
-        case kSessionClosed:  return @"○";
-    }
-    return @"○";
-}
+// SessionState enum + computeSessionState + formatCountdown + buildProgressBar
+// + glyphForState + colorForState moved to Sources/data/MarketSessionCalculator.{h,m}
 
 // Built-in starter profiles. Each entry is a snapshot of profile-managed NSUserDefaults keys.
 static NSDictionary *buildStarterProfiles(void) {
@@ -241,14 +107,7 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
 // cityCodeForIana moved to Sources/data/MarketCatalog.{h,m}
 
-static NSColor *colorForState(SessionState s, const ClockTheme *theme) {
-    switch (s) {
-        case kSessionOpen:    return [NSColor colorWithRed:0.20 green:0.95 blue:0.40 alpha:1.0];  // green
-        case kSessionLunch:   return [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0];  // violet
-        case kSessionClosed:  return [NSColor colorWithWhite:0.55 alpha:1.0];                    // dim gray
-    }
-    return [NSColor whiteColor];
-}
+// colorForState moved to Sources/data/MarketSessionCalculator.{h,m}
 
 // swatchForTheme moved to Sources/data/ThemeCatalog.{h,m}
 
