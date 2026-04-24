@@ -603,8 +603,11 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     // row, so the top and bottom are flush.
     CGFloat topRowWidth = MAX(ceilf(localSize.width) + 32, bottomRowInnerWidth);
 
-    CGFloat windowWidth  = topRowWidth + 16;   // 8pt L+R margins
-    CGFloat windowHeight = topRowHeight + 4 + bottomRowHeight + 16; // 4pt inter-row gap, 8pt T+B margins
+    // 12pt margins all around instead of 8pt — the contentView's 10pt rounded
+    // corner mask eats ~10pt of top content, which was visibly clipping the
+    // top of LOCAL's glyphs. 12pt gives 2pt slack above the mask curve.
+    CGFloat windowWidth  = topRowWidth + 24;    // 12pt L+R
+    CGFloat windowHeight = topRowHeight + 4 + bottomRowHeight + 24; // 12pt T+B, 4pt inter-row
 
     NSRect oldFrame = self.frame;
     if (fabs(oldFrame.size.width  - windowWidth)  < 0.5 &&
@@ -618,16 +621,14 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     newFrame = [self clampFrameToVisibleScreen:newFrame];
     [self setFrame:newFrame display:YES animate:NO];
 
-    // contentView origin is bottom-left. Bottom row first (y=8), then top row.
-    CGFloat bottomY = 8;
-    CGFloat topY    = 8 + bottomRowHeight + 4;
+    // contentView origin is bottom-left. 12pt margin so segment tops/bottoms
+    // sit inside the contentView's 10pt corner mask.
+    CGFloat bottomY = 12;
+    CGFloat topY    = 12 + bottomRowHeight + 4;
 
-    // LOCAL top row stretches full inner width; centered horizontally inside.
-    _localSeg.frame = NSMakeRect(8, topY, topRowWidth, topRowHeight);
+    _localSeg.frame = NSMakeRect(12, topY, topRowWidth, topRowHeight);
 
-    // ACTIVE + NEXT share the bottom row. Center them as a pair under LOCAL
-    // so the layout stays visually balanced even when LOCAL is wider.
-    CGFloat bottomPairX = 8 + (topRowWidth - bottomRowInnerWidth) / 2.0;
+    CGFloat bottomPairX = 12 + (topRowWidth - bottomRowInnerWidth) / 2.0;
     _activeSeg.frame = NSMakeRect(bottomPairX, bottomY, activeSegWidth, bottomRowHeight);
     _nextSeg.frame   = NSMakeRect(bottomPairX + activeSegWidth + 4, bottomY, nextSegWidth, bottomRowHeight);
 
