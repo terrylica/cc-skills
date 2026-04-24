@@ -1,5 +1,6 @@
 #import "UrgencyColors.h"
 #import "UrgencyHorizon.h"  // iter-215: runtime user-pref horizon
+#import "UrgencyFlash.h"    // iter-219: runtime user-pref pulse intensity
 #include <math.h>
 
 // Legacy iter-73 thresholds. Production callers (iter-212+) use the
@@ -80,8 +81,14 @@ CGFloat FCUrgencyFlashAlpha(long secs, long nowEpoch) {
     // 1Hz pulse: alternate full / dim each second. Reuses the
     // panel's existing per-second tick — no flicker timer needed.
     // Cursor-blink convention: dim is ~half intensity.
+    //
+    // iter-219: dim-half alpha is now user-configurable via the
+    // UrgencyFlash pref. "off" returns 1.0 always, disabling the
+    // pulse entirely for users who find it distracting; other
+    // presets adjust the perceived pulse strength.
     if (secs >= kFCUrgencyFlashThresholdSecs) return 1.0;
-    return (nowEpoch & 1L) ? 1.0 : kFCUrgencyFlashDimAlpha;
+    CGFloat dim = FCUrgencyFlashDimAlphaCurrent();
+    return (nowEpoch & 1L) ? 1.0 : dim;
 }
 
 NSColor *FCUrgencyAlertColor(long secs, NSColor *normalColor, long nowEpoch) {
