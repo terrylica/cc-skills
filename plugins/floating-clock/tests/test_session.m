@@ -428,6 +428,46 @@ static void test_font_weight_parser(void) {
     }
 }
 
+static void test_segment_weight_fallback(void) {
+    // FCResolveSegmentWeight's lookup order:
+    //   1. NSUserDefaults[segmentKey]  (when non-empty)
+    //   2. NSUserDefaults[@"FontWeight"] (when non-empty)
+    //   3. NSFontWeightMedium
+    // Seed values directly, verify each tier resolves.
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d removeObjectForKey:@"FontWeight"];
+    [d removeObjectForKey:@"TestSegWeight"];
+
+    // Tier 3: both unset → Medium
+    if (fabs(FCResolveSegmentWeight(@"TestSegWeight") - NSFontWeightMedium) > 0.001) {
+        fprintf(stderr, "FAIL %s: unset → Medium\n", __func__); failures++;
+    }
+
+    // Tier 2: only global set → inherits global
+    [d setObject:@"bold" forKey:@"FontWeight"];
+    if (fabs(FCResolveSegmentWeight(@"TestSegWeight") - NSFontWeightBold) > 0.001) {
+        fprintf(stderr, "FAIL %s: global bold → Bold\n", __func__); failures++;
+    }
+
+    // Tier 1: segment override wins over global
+    [d setObject:@"heavy" forKey:@"TestSegWeight"];
+    if (fabs(FCResolveSegmentWeight(@"TestSegWeight") - NSFontWeightHeavy) > 0.001) {
+        fprintf(stderr, "FAIL %s: override heavy → Heavy\n", __func__); failures++;
+    }
+
+    // Empty string in segment key falls through to global.
+    [d setObject:@"" forKey:@"TestSegWeight"];
+    if (fabs(FCResolveSegmentWeight(@"TestSegWeight") - NSFontWeightBold) > 0.001) {
+        fprintf(stderr, "FAIL %s: empty override → global Bold\n", __func__); failures++;
+    }
+
+    // Cleanup — don't leak fixtures into user defaults when run outside
+    // the test binary (though standardUserDefaults in a throwaway
+    // process is memory-only under normal test invocation).
+    [d removeObjectForKey:@"FontWeight"];
+    [d removeObjectForKey:@"TestSegWeight"];
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -461,9 +501,10 @@ int main(void) {
         test_landing_empty_iana();
 
         test_font_weight_parser();
+        test_segment_weight_fallback();
 
         if (failures == 0) {
-            fprintf(stderr, "All 25 tests passed.\n");
+            fprintf(stderr, "All 26 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

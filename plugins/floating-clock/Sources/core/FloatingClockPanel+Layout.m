@@ -81,9 +81,10 @@
     // v4 iter-88: FontWeight lever applies to system-monospaced paths
     // (ACTIVE + NEXT). LOCAL primary font is iTerm2 / named-font first,
     // so weight can't drive it via API — documented limitation.
-    NSFontWeight fw = FCParseFontWeight([d stringForKey:@"FontWeight"]);
-    NSFont *activeFont = FCResolveMonoFont(activeFS, fw);
-    NSFont *nextFont   = FCResolveMonoFont(nextFS,   fw);
+    // v4 iter-89: per-segment overrides (ActiveWeight / NextWeight)
+    // fall back to the global FontWeight when unset.
+    NSFont *activeFont = FCResolveMonoFont(activeFS, FCResolveSegmentWeight(@"ActiveWeight"));
+    NSFont *nextFont   = FCResolveMonoFont(nextFS,   FCResolveSegmentWeight(@"NextWeight"));
     NSDictionary *primaryAttrs = @{NSFontAttributeName: primaryFont};
     NSDictionary *activeAttrs  = @{NSFontAttributeName: activeFont};
     NSDictionary *nextAttrs    = @{NSFontAttributeName: nextFont};

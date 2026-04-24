@@ -27,4 +27,12 @@ NSFontWeight FCParseFontWeight(NSString * _Nullable weightId);
 // weight:weight] on macOS 10.15+, Menlo fallback otherwise.
 NSFont *FCResolveMonoFont(CGFloat size, NSFontWeight weight);
 
+// v4 iter-89. Per-segment weight lookup with fallback to the global
+// "FontWeight" pref. segmentKey is an NSUserDefaults key such as
+// "ActiveWeight" or "NextWeight". Lookup order:
+//   1. NSUserDefaults[segmentKey] if non-empty
+//   2. NSUserDefaults[@"FontWeight"] if non-empty
+//   3. NSFontWeightMedium
+NSFontWeight FCResolveSegmentWeight(NSString *segmentKey);
+
 NS_ASSUME_NONNULL_END
