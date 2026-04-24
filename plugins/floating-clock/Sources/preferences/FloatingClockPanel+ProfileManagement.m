@@ -101,7 +101,7 @@
     NSString *name = sender.representedObject;
     if (![name isKindOfClass:[NSString class]]) return;
 
-    NSSet *protected = [NSSet setWithArray:@[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Watch Party"]];
+    NSSet *protected = [NSSet setWithArray:@[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Researcher", @"Watch Party"]];
     if ([protected containsObject:name]) {
         NSAlert *a = [[NSAlert alloc] init];
         a.messageText = @"Cannot delete starter profile";
