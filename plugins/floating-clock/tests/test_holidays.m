@@ -303,6 +303,50 @@ void test_holiday_calendar_target2(void) {
     if (FCIsMarketHoliday(euronext, regularWed)) { failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on Euronext\n", __func__); }
 }
 
+void test_holiday_calendar_asx(void) {
+    // v4 iter-180: ASX 2026 non-trading days. First Oceania coverage.
+    // Distinctive: Easter Tuesday (Apr 7) — ASX is one of the few
+    // major exchanges that closes a 4-day Easter long weekend. Also
+    // locks Australia Day (Jan 26) + King's Birthday (2nd Mon of Jun,
+    // Jun 8 2026).
+    const ClockMarket *asx  = marketForId(@"asx");
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    NSDate *australiaDay  = holidayDateAt(@"Australia/Sydney", 2026,  1, 26, 12, 0, 0);
+    NSDate *easterTuesday = holidayDateAt(@"Australia/Sydney", 2026,  4,  7, 12, 0, 0);
+    NSDate *kingsBday     = holidayDateAt(@"Australia/Sydney", 2026,  6,  8, 12, 0, 0);
+    NSDate *boxingObs     = holidayDateAt(@"Australia/Sydney", 2026, 12, 28, 12, 0, 0);
+    if (!FCIsMarketHoliday(asx, australiaDay))   { failures++; fprintf(stderr, "FAIL %s: Australia Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(asx, easterTuesday))  { failures++; fprintf(stderr, "FAIL %s: Easter Tuesday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(asx, kingsBday))      { failures++; fprintf(stderr, "FAIL %s: King's Birthday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(asx, boxingObs))      { failures++; fprintf(stderr, "FAIL %s: Boxing Day (observed Dec 28) not flagged\n", __func__); }
+
+    // Cross-market negatives: NYSE must NOT flag ASX-only holidays.
+    if (FCIsMarketHoliday(nyse, australiaDay))   { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Australia Day\n", __func__); }
+    if (FCIsMarketHoliday(nyse, easterTuesday))  { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Easter Tuesday\n", __func__); }
+    if (FCIsMarketHoliday(nyse, kingsBday))      { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged King's Birthday\n", __func__); }
+
+    // ASX does NOT flag NYSE-only holidays (Thanksgiving, Juneteenth).
+    NSDate *thanksgiving = holidayDateAt(@"Australia/Sydney", 2026, 11, 26, 12, 0, 0);
+    NSDate *juneteenth   = holidayDateAt(@"Australia/Sydney", 2026,  6, 19, 12, 0, 0);
+    if (FCIsMarketHoliday(asx, thanksgiving)) { failures++; fprintf(stderr, "FAIL %s: ASX wrongly flagged Thanksgiving\n", __func__); }
+    if (FCIsMarketHoliday(asx, juneteenth))   { failures++; fprintf(stderr, "FAIL %s: ASX wrongly flagged Juneteenth\n", __func__); }
+
+    // ANZAC Day Apr 25 2026 is Saturday — ASX does NOT observe a Mon
+    // substitute; weekend branch handles the closure. So Apr 27 Mon
+    // must NOT be flagged (regular trading).
+    NSDate *anzacMondayAfter = holidayDateAt(@"Australia/Sydney", 2026, 4, 27, 12, 0, 0);
+    if (FCIsMarketHoliday(asx, anzacMondayAfter)) {
+        failures++; fprintf(stderr, "FAIL %s: ASX wrongly flagged Apr 27 Mon (no ANZAC substitute)\n", __func__);
+    }
+
+    // Regular ASX trading day should NOT be flagged.
+    NSDate *regularWed = holidayDateAt(@"Australia/Sydney", 2026, 3, 11, 12, 0, 0);
+    if (FCIsMarketHoliday(asx, regularWed)) {
+        failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on ASX\n", __func__);
+    }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and
