@@ -120,6 +120,20 @@
     }
 }
 
+- (void)setActiveFontSize:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
+        [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue] forKey:@"ActiveFontSize"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)setNextFontSize:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
+        [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue] forKey:@"NextFontSize"];
+        [self applyDisplaySettings];
+    }
+}
+
 - (void)setNextItemCount:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
         [[NSUserDefaults standardUserDefaults] setInteger:[sender.representedObject integerValue] forKey:@"NextItemCount"];

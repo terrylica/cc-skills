@@ -5,7 +5,9 @@
 
 NSAttributedString *FCBuildActiveSegmentContent(void) {
     NSDate *now = [NSDate date];
-    NSFont *font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
+    CGFloat fontSize = [[NSUserDefaults standardUserDefaults] doubleForKey:@"ActiveFontSize"];
+    if (fontSize < 6) fontSize = 11;
+    NSFont *font = [NSFont monospacedSystemFontOfSize:fontSize weight:NSFontWeightMedium];
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     const ClockTheme *theme = themeForId([d stringForKey:@"ActiveTheme"]);
     NSColor *headerColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
