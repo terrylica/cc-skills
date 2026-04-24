@@ -91,8 +91,16 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:glyph
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: glyphColor}]];
+        const char *flag = [d boolForKey:@"ShowFlags"] ? flagForIana(e.mkt->iana) : "";
+        if (flag[0] != 0) {
+            NSString *flagStr = [@" " stringByAppendingString:[NSString stringWithUTF8String:flag]];
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:flagStr
+                attributes:@{NSFontAttributeName: ([NSFont fontWithName:@"Apple Color Emoji" size:fontSize] ?: [NSFont systemFontOfSize:fontSize])}]];
+        }
+        NSString *codeLabel = [NSString stringWithFormat:@" %-4s ", [code UTF8String]];
         [out appendAttributedString:[[NSAttributedString alloc]
-            initWithString:[NSString stringWithFormat:@" %-4s ", [code UTF8String]]
+            initWithString:codeLabel
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:[NSString stringWithFormat:@"%@%@", countdown, suffix]
