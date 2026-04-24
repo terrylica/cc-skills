@@ -11,23 +11,21 @@
 //
 // History: added after v4 iter-48 caught a "closed-before-open-today"
 // off-by-7h bug that had shipped since iter-9 (session-state intro).
+// Split v4 iter-118: the ~14 pref-lever / dispatcher invariant tests
+// moved to test_levers.m once this file hit the 1000-LoC cap. Session-
+// state, TZ-helper, flag/city, landing-time, and profile-coverage
+// tests stay here.
 
 #import <Foundation/Foundation.h>
 #import "../Sources/data/MarketCatalog.h"
 #import "../Sources/data/MarketSessionCalculator.h"
 #import "../Sources/preferences/FloatingClockStarterProfiles.h"
 #import "../Sources/content/LandingTimeFormatter.h"
-#import "../Sources/rendering/FontResolver.h"
-#import "../Sources/rendering/SegmentOpacityResolver.h"
-#import "../Sources/data/ThemeCatalog.h"
-#import "../Sources/preferences/FloatingClockQuickStyles.h"
-#import "../Sources/core/DateFormatPrefix.h"
-#import "../Sources/core/SkyGlyph.h"
-#import "../Sources/core/SegmentGap.h"
-#import "../Sources/core/DensityPad.h"
-#import "../Sources/core/CornerRadius.h"
+#import "test_levers.h"
 
-static int failures = 0;
+// Shared failure counter — extern-declared in test_levers.h so
+// test_levers.m can increment the same storage.
+int failures = 0;
 
 static NSDate *dateAt(NSString *iana, int y, int m, int d, int h, int mm, int ss) {
     NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
@@ -300,13 +298,9 @@ static void test_countdown_fancy_format(void) {
     ASSERT_EQ_STR(formatCountdownFancy(-5),     @"T-00:00:00");  // negative clamp
 
     // v4 iter-75: progressive human-readable at >=1 day.
-    // 24h exactly = 1d 0h 0m.
     ASSERT_EQ_STR(formatCountdownFancy(86400),  @"T-1d 0h 00m");
-    // 2d 11h 27m = 2*86400 + 11*3600 + 27*60 = 172800 + 39600 + 1620 = 214020
     ASSERT_EQ_STR(formatCountdownFancy(214020), @"T-2d 11h 27m");
-    // 1d 0h 05m — minute zero-padding
     ASSERT_EQ_STR(formatCountdownFancy(86400 + 5*60), @"T-1d 0h 05m");
-    // Just-under-day stays in HH:MM:SS form (23:59:59).
     ASSERT_EQ_STR(formatCountdownFancy(86399), @"T-23:59:59");
 }
 
@@ -338,9 +332,7 @@ static void test_lunch_markets_identified(void) {
 // Scenario 1: same-day, same-weekday — both bare HH:mm.
 //   User PDT (UTC-7), NYSE opens at local 06:30 today.
 static void test_landing_same_day_same_weekday(void) {
-    // Fri 2026-04-24 04:00 PDT = Fri 11:00 UTC.
     NSDate *now     = dateAt(@"America/Los_Angeles", 2026, 4, 24, 4, 0, 0);
-    // NYSE opens 09:30 EDT = 06:30 PDT same Fri.
     NSDate *landsAt = dateAt(@"America/Los_Angeles", 2026, 4, 24, 6, 30, 0);
     NSString *user = nil, *mkt = nil;
     FCFormatLandingTime(now, landsAt, "America/New_York", &user, &mkt);
@@ -348,12 +340,8 @@ static void test_landing_same_day_same_weekday(void) {
     ASSERT_EQ_STR(mkt,  @"09:30 EDT");
 }
 
-// Scenario 2: cross-day AND cross-weekday — Sun in user-local, Mon in
-// market-local (the TSE weekend case the user flagged).
 static void test_landing_cross_day_cross_weekday(void) {
-    // Fri 2026-04-24 04:00 PDT.
     NSDate *now = dateAt(@"America/Los_Angeles", 2026, 4, 24, 4, 0, 0);
-    // TSE opens Mon 2026-04-27 09:00 JST = Sun 2026-04-26 17:00 PDT.
     NSDate *landsAt = dateAt(@"America/Los_Angeles", 2026, 4, 26, 17, 0, 0);
     NSString *user = nil, *mkt = nil;
     FCFormatLandingTime(now, landsAt, "Asia/Tokyo", &user, &mkt);
@@ -361,24 +349,15 @@ static void test_landing_cross_day_cross_weekday(void) {
     ASSERT_EQ_STR(mkt,  @"Mon 09:00 JST");
 }
 
-// Scenario 3: cross-day but same weekday in both zones (user sees a
-// different date but same weekday — e.g. London opens tomorrow for a
-// user who stays up past midnight).
 static void test_landing_cross_day_same_weekday(void) {
-    // Fri 2026-04-24 23:00 PDT = Sat 06:00 UTC.
     NSDate *now = dateAt(@"America/Los_Angeles", 2026, 4, 24, 23, 0, 0);
-    // LSE opens Mon 2026-04-27 08:00 BST = Sun 00:00 PDT = Sun 07:00 UTC.
-    // Both times are Mon in their respective zones.
     NSDate *landsAt = dateAt(@"America/Los_Angeles", 2026, 4, 27, 0, 0, 0);
     NSString *user = nil, *mkt = nil;
     FCFormatLandingTime(now, landsAt, "Europe/London", &user, &mkt);
-    // Not same-day (Fri vs Mon) so user gets weekday prefix.
     ASSERT_EQ_STR(user, @"Mon 00:00");
-    // Same weekday on both sides (Mon) so market gets no prefix.
     ASSERT_EQ_STR(mkt,  @"08:00 BST");
 }
 
-// Scenario 4: unknown/empty IANA — market string should be empty.
 static void test_landing_empty_iana(void) {
     NSDate *now     = dateAt(@"America/Los_Angeles", 2026, 4, 24, 4, 0, 0);
     NSDate *landsAt = dateAt(@"America/Los_Angeles", 2026, 4, 24, 6, 30, 0);
@@ -389,8 +368,7 @@ static void test_landing_empty_iana(void) {
 }
 
 static void test_starter_profiles_count(void) {
-    // Sanity: the 5 canonical bundled starters exist. Catches accidental
-    // deletion or typo in buildStarterProfiles.
+    // Sanity: the canonical bundled starters exist.
     NSDictionary *profiles = buildStarterProfiles();
     NSArray *expected = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Researcher", @"Watch Party"];
     if (profiles.count != expected.count) {
@@ -414,527 +392,6 @@ static void test_full_tz_label_composition(void) {
     // "GMT UTC+0". Lock that behavior in the test.
     NSDate *winter = dateAt(@"Europe/London", 2026, 1, 15, 12, 0, 0);
     ASSERT_EQ_STR(fullTzLabelForIana("Europe/London", winter), @"UTC+0");
-}
-
-static void test_font_weight_parser(void) {
-    // Known ids map to their NSFontWeight constants.
-    struct { NSString *id; NSFontWeight w; } cases[] = {
-        {@"regular",  NSFontWeightRegular},
-        {@"medium",   NSFontWeightMedium},
-        {@"semibold", NSFontWeightSemibold},
-        {@"bold",     NSFontWeightBold},
-        {@"heavy",    NSFontWeightHeavy},
-    };
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        NSFontWeight got = FCParseFontWeight(cases[i].id);
-        if (fabs(got - cases[i].w) > 0.001) {
-            fprintf(stderr, "FAIL %s: '%s' expected %.2f got %.2f\n",
-                    __func__, cases[i].id.UTF8String,
-                    (double)cases[i].w, (double)got);
-            failures++;
-        }
-    }
-    // Unknown / nil / empty fall back to Medium (matches registerDefaults).
-    if (fabs(FCParseFontWeight(nil) - NSFontWeightMedium) > 0.001) {
-        fprintf(stderr, "FAIL %s: nil → Medium\n", __func__); failures++;
-    }
-    if (fabs(FCParseFontWeight(@"") - NSFontWeightMedium) > 0.001) {
-        fprintf(stderr, "FAIL %s: empty → Medium\n", __func__); failures++;
-    }
-    if (fabs(FCParseFontWeight(@"ultrablack") - NSFontWeightMedium) > 0.001) {
-        fprintf(stderr, "FAIL %s: unknown → Medium\n", __func__); failures++;
-    }
-}
-
-static void test_segment_weight_fallback(void) {
-    // FCResolveSegmentWeight's lookup order:
-    //   1. NSUserDefaults[segmentKey]  (when non-empty)
-    //   2. NSUserDefaults[@"FontWeight"] (when non-empty)
-    //   3. NSFontWeightMedium
-    // Seed values directly, verify each tier resolves.
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d removeObjectForKey:@"FontWeight"];
-    [d removeObjectForKey:@"TestSegWeight"];
-
-    // Tier 3: both unset → Medium
-    if (fabs(FCResolveSegmentWeight(@"TestSegWeight") - NSFontWeightMedium) > 0.001) {
-        fprintf(stderr, "FAIL %s: unset → Medium\n", __func__); failures++;
-    }
-
-    // Tier 2: only global set → inherits global
-    [d setObject:@"bold" forKey:@"FontWeight"];
-    if (fabs(FCResolveSegmentWeight(@"TestSegWeight") - NSFontWeightBold) > 0.001) {
-        fprintf(stderr, "FAIL %s: global bold → Bold\n", __func__); failures++;
-    }
-
-    // Tier 1: segment override wins over global
-    [d setObject:@"heavy" forKey:@"TestSegWeight"];
-    if (fabs(FCResolveSegmentWeight(@"TestSegWeight") - NSFontWeightHeavy) > 0.001) {
-        fprintf(stderr, "FAIL %s: override heavy → Heavy\n", __func__); failures++;
-    }
-
-    // Empty string in segment key falls through to global.
-    [d setObject:@"" forKey:@"TestSegWeight"];
-    if (fabs(FCResolveSegmentWeight(@"TestSegWeight") - NSFontWeightBold) > 0.001) {
-        fprintf(stderr, "FAIL %s: empty override → global Bold\n", __func__); failures++;
-    }
-
-    // Cleanup — don't leak fixtures into user defaults when run outside
-    // the test binary (though standardUserDefaults in a throwaway
-    // process is memory-only under normal test invocation).
-    [d removeObjectForKey:@"FontWeight"];
-    [d removeObjectForKey:@"TestSegWeight"];
-}
-
-static void test_segment_opacity_fallback(void) {
-    // FCResolveSegmentOpacity's lookup order:
-    //   1. NSUserDefaults[segmentKey]  (when set and > 0)
-    //   2. NSUserDefaults[@"CanvasOpacity"] (when set and > 0)
-    //   3. themeFallback (clamped to [0.10, 1.00])
-    // All non-fallback returns are also clamped.
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d removeObjectForKey:@"CanvasOpacity"];
-    [d removeObjectForKey:@"TestSegOpacity"];
-
-    // Tier 3: both unset → theme fallback, clamped.
-    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.55) - 0.55) > 0.001) {
-        fprintf(stderr, "FAIL %s: unset → 0.55\n", __func__); failures++;
-    }
-    // Theme fallback below floor is clamped to 0.10.
-    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.02) - 0.10) > 0.001) {
-        fprintf(stderr, "FAIL %s: theme 0.02 clamped to 0.10\n", __func__); failures++;
-    }
-    // Theme fallback above ceiling is clamped to 1.00.
-    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 1.75) - 1.00) > 0.001) {
-        fprintf(stderr, "FAIL %s: theme 1.75 clamped to 1.00\n", __func__); failures++;
-    }
-
-    // Tier 2: only global CanvasOpacity set → wins over theme fallback.
-    [d setDouble:0.80 forKey:@"CanvasOpacity"];
-    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.30) - 0.80) > 0.001) {
-        fprintf(stderr, "FAIL %s: global 0.80 wins over theme 0.30\n", __func__); failures++;
-    }
-
-    // Tier 1: segment override wins over global.
-    [d setDouble:0.15 forKey:@"TestSegOpacity"];
-    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.30) - 0.15) > 0.001) {
-        fprintf(stderr, "FAIL %s: segment 0.15 wins over global 0.80\n", __func__); failures++;
-    }
-
-    // Segment key with 0 value is treated as unset → falls through.
-    [d setDouble:0 forKey:@"TestSegOpacity"];
-    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.30) - 0.80) > 0.001) {
-        fprintf(stderr, "FAIL %s: segment=0 → global 0.80\n", __func__); failures++;
-    }
-
-    // Cleanup.
-    [d removeObjectForKey:@"CanvasOpacity"];
-    [d removeObjectForKey:@"TestSegOpacity"];
-}
-
-static void test_progress_bar_glyph_styles(void) {
-    // All 10 glyph styles are reachable by id and emit the documented
-    // (filled, empty) pair. buildProgressBar(0.5, 4) → 2 filled + 2 empty,
-    // so position 0 is filled and position 3 is empty.
-    struct { NSString *id; NSString *filled; NSString *empty; } cases[] = {
-        {@"blocks",  @"█", @"▒"},
-        {@"dots",    @"●", @"○"},
-        {@"dashes",  @"━", @"╌"},
-        {@"arrows",  @"▶", @"▷"},
-        {@"binary",  @"█", @"░"},
-        {@"braille", @"⣿", @"⣀"},
-        {@"hearts",  @"♥", @"♡"},
-        {@"stars",   @"★", @"☆"},
-        {@"ribbon",  @"▰", @"▱"},
-        {@"diamond", @"◆", @"◇"},
-    };
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        [d setObject:cases[i].id forKey:@"ProgressBarStyle"];
-        NSString *bar = buildProgressBar(0.5, 4);
-        if (![bar hasPrefix:cases[i].filled] || ![bar hasSuffix:cases[i].empty]) {
-            fprintf(stderr, "FAIL %s: style '%s' expected prefix '%s' suffix '%s' got '%s'\n",
-                    __func__, cases[i].id.UTF8String,
-                    cases[i].filled.UTF8String,
-                    cases[i].empty.UTF8String,
-                    bar.UTF8String);
-            failures++;
-        }
-    }
-    // Unknown id falls back to "dots".
-    [d setObject:@"does-not-exist" forKey:@"ProgressBarStyle"];
-    NSString *bar = buildProgressBar(0.5, 4);
-    if (![bar hasPrefix:@"●"] || ![bar hasSuffix:@"○"]) {
-        fprintf(stderr, "FAIL %s: unknown id should fall back to dots, got '%s'\n",
-                __func__, bar.UTF8String);
-        failures++;
-    }
-    [d removeObjectForKey:@"ProgressBarStyle"];
-}
-
-static void test_theme_catalog_invariants(void) {
-    // Catalog has 25 themes since iter-92. Every entry must: have a
-    // non-empty id + display, have color channels in [0,1], and have
-    // alpha in [0, 1]. themeForId round-trips each id. Unknown id falls
-    // back to kThemes[0] (terminal).
-    if (kNumThemes != 25) {
-        fprintf(stderr, "FAIL %s: expected 25 themes got %zu\n", __func__, kNumThemes);
-        failures++;
-    }
-    for (size_t i = 0; i < kNumThemes; i++) {
-        const ClockTheme *t = &kThemes[i];
-        if (!t->id || t->id[0] == 0 || !t->display || t->display[0] == 0) {
-            fprintf(stderr, "FAIL %s: theme %zu missing id or display\n", __func__, i);
-            failures++;
-            continue;
-        }
-        if (t->fg_r < 0 || t->fg_r > 1 || t->fg_g < 0 || t->fg_g > 1 || t->fg_b < 0 || t->fg_b > 1 ||
-            t->bg_r < 0 || t->bg_r > 1 || t->bg_g < 0 || t->bg_g > 1 || t->bg_b < 0 || t->bg_b > 1 ||
-            t->alpha < 0 || t->alpha > 1) {
-            fprintf(stderr, "FAIL %s: theme '%s' has out-of-range channel\n",
-                    __func__, t->id);
-            failures++;
-        }
-        NSString *idNS = [NSString stringWithUTF8String:t->id];
-        const ClockTheme *roundtrip = themeForId(idNS);
-        if (roundtrip != t) {
-            fprintf(stderr, "FAIL %s: themeForId('%s') did not round-trip\n",
-                    __func__, t->id);
-            failures++;
-        }
-    }
-    // Unknown falls back to kThemes[0] (terminal).
-    if (themeForId(@"this-does-not-exist") != &kThemes[0]) {
-        fprintf(stderr, "FAIL %s: unknown id did not fall back to kThemes[0]\n", __func__);
-        failures++;
-    }
-}
-
-static void test_letter_spacing_parser(void) {
-    // iter-94: the 5 spacing ids map to fixed kern values; unknown /
-    // nil / empty collapse to 0.0 (no kerning, attribute skipped).
-    struct { NSString *id; CGFloat kern; } cases[] = {
-        {@"compact", -1.0},
-        {@"tight",   -0.5},
-        {@"normal",   0.0},
-        {@"airy",     0.5},
-        {@"wide",     1.0},
-    };
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        CGFloat got = FCParseLetterSpacing(cases[i].id);
-        if (fabs(got - cases[i].kern) > 0.001) {
-            fprintf(stderr, "FAIL %s: '%s' expected %.2f got %.2f\n",
-                    __func__, cases[i].id.UTF8String,
-                    (double)cases[i].kern, (double)got);
-            failures++;
-        }
-    }
-    if (fabs(FCParseLetterSpacing(nil)) > 0.001) {
-        fprintf(stderr, "FAIL %s: nil → 0.0\n", __func__); failures++;
-    }
-    if (fabs(FCParseLetterSpacing(@"")) > 0.001) {
-        fprintf(stderr, "FAIL %s: empty → 0.0\n", __func__); failures++;
-    }
-    if (fabs(FCParseLetterSpacing(@"ultra-extended")) > 0.001) {
-        fprintf(stderr, "FAIL %s: unknown → 0.0\n", __func__); failures++;
-    }
-}
-
-static void test_line_spacing_parser(void) {
-    // iter-95: 5 presets map to fixed point values; unknown / nil /
-    // empty collapse to 2.0 (matches registered default "normal").
-    struct { NSString *id; CGFloat leading; } cases[] = {
-        {@"tight",  0.0},
-        {@"snug",   1.0},
-        {@"normal", 2.0},
-        {@"loose",  4.0},
-        {@"airy",   7.0},
-    };
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        CGFloat got = FCParseLineSpacing(cases[i].id);
-        if (fabs(got - cases[i].leading) > 0.001) {
-            fprintf(stderr, "FAIL %s: '%s' expected %.2f got %.2f\n",
-                    __func__, cases[i].id.UTF8String,
-                    (double)cases[i].leading, (double)got);
-            failures++;
-        }
-    }
-    if (fabs(FCParseLineSpacing(nil) - 2.0) > 0.001) {
-        fprintf(stderr, "FAIL %s: nil → 2.0 (default)\n", __func__); failures++;
-    }
-    if (fabs(FCParseLineSpacing(@"") - 2.0) > 0.001) {
-        fprintf(stderr, "FAIL %s: empty → 2.0 (default)\n", __func__); failures++;
-    }
-    if (fabs(FCParseLineSpacing(@"double") - 2.0) > 0.001) {
-        fprintf(stderr, "FAIL %s: unknown → 2.0 (default)\n", __func__); failures++;
-    }
-}
-
-static void test_date_format_prefix(void) {
-    // iter-113: locks in the 9-preset catalog (iter-111's new locale
-    // variants included) plus the short-default fallback for unknown
-    // / nil / empty ids. Each pattern ends in the 2-space "  " gap
-    // that separates date from time, so sub-formatters can append
-    // time tokens directly.
-    struct { NSString *id; NSString *pattern; } cases[] = {
-        {@"short",       @"EEE MMM d  "},
-        {@"long",        @"EEEE MMMM d  "},
-        {@"iso",         @"yyyy-MM-dd  "},
-        {@"numeric",     @"M/d  "},
-        {@"weeknum",     @"'Wk' w  "},
-        {@"dayofyr",     @"'Day' D  "},
-        {@"usa",         @"M/d/yyyy  "},
-        {@"european",    @"d.M.yyyy  "},
-        {@"compact_iso", @"MM-dd  "},
-    };
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        NSString *got = FCDateFormatPrefix(cases[i].id);
-        if (![got isEqualToString:cases[i].pattern]) {
-            fprintf(stderr, "FAIL %s: '%s' expected '%s' got '%s'\n",
-                    __func__, cases[i].id.UTF8String,
-                    cases[i].pattern.UTF8String, got.UTF8String);
-            failures++;
-        }
-    }
-    // Unknown / nil / empty → short default.
-    if (![FCDateFormatPrefix(nil) isEqualToString:@"EEE MMM d  "]) {
-        fprintf(stderr, "FAIL %s: nil should → short default\n", __func__);
-        failures++;
-    }
-    if (![FCDateFormatPrefix(@"") isEqualToString:@"EEE MMM d  "]) {
-        fprintf(stderr, "FAIL %s: empty should → short default\n", __func__);
-        failures++;
-    }
-    if (![FCDateFormatPrefix(@"julian-1582") isEqualToString:@"EEE MMM d  "]) {
-        fprintf(stderr, "FAIL %s: unknown id should → short default\n", __func__);
-        failures++;
-    }
-}
-
-static void test_corner_radius_points(void) {
-    // iter-117: lock iter-97's 8-preset CornerStyle catalog (lean:
-    // one representative per bucket; full ladder would exceed the
-    // 1000-line test-file cap — rest is covered by the data-module
-    // declaration).
-    if (fabs(FCCornerRadiusPoints(@"sharp",    100, 40) -  0.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: sharp\n",    __func__); }
-    if (fabs(FCCornerRadiusPoints(@"hairline", 100, 40) -  1.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: hairline\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(@"rounded",  100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: rounded\n",  __func__); }
-    if (fabs(FCCornerRadiusPoints(@"squircle", 100, 40) - 14.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: squircle\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(@"pill",     100, 40) - 20.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: pill w>h\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(@"pill",      40, 80) - 20.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: pill h>w\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(nil,         100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: nil→rounded\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(@"made-up",  100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: unknown→rounded\n", __func__); }
-}
-
-static void test_density_pad_points(void) {
-    // iter-116: lock iter-99's 6-preset Density catalog.
-    struct { NSString *id; CGFloat pt; } cases[] = {
-        {@"ultracompact",  4},
-        {@"compact",      12},
-        {@"default",      24},
-        {@"comfortable",  36},
-        {@"spacious",     48},
-        {@"cavernous",    64},
-    };
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        CGFloat got = FCDensityPadPoints(cases[i].id);
-        if (fabs(got - cases[i].pt) > 0.001) {
-            fprintf(stderr, "FAIL %s: '%s' expected %.1fpt got %.1fpt\n",
-                    __func__, cases[i].id.UTF8String,
-                    (double)cases[i].pt, (double)got);
-            failures++;
-        }
-    }
-    // nil / empty / unknown → default (24pt).
-    if (fabs(FCDensityPadPoints(nil) - 24) > 0.001) {
-        fprintf(stderr, "FAIL %s: nil should → 24pt\n", __func__); failures++;
-    }
-    if (fabs(FCDensityPadPoints(@"") - 24) > 0.001) {
-        fprintf(stderr, "FAIL %s: empty should → 24pt\n", __func__); failures++;
-    }
-    if (fabs(FCDensityPadPoints(@"infinite") - 24) > 0.001) {
-        fprintf(stderr, "FAIL %s: unknown should → 24pt\n", __func__); failures++;
-    }
-}
-
-static void test_segment_gap_points(void) {
-    // iter-115: lock iter-108's 7-preset SegmentGap catalog. Layout.m
-    // calls this at every relayout; any change to these values
-    // ripples through the ACTIVE+NEXT horizontal arithmetic.
-    struct { NSString *id; CGFloat pt; } cases[] = {
-        {@"flush",      0},
-        {@"tight",      2},
-        {@"snug",       3},
-        {@"normal",     4},
-        {@"airy",       8},
-        {@"spacious",  14},
-        {@"cavernous", 24},
-    };
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        CGFloat got = FCSegmentGapPoints(cases[i].id);
-        if (fabs(got - cases[i].pt) > 0.001) {
-            fprintf(stderr, "FAIL %s: '%s' expected %.1fpt got %.1fpt\n",
-                    __func__, cases[i].id.UTF8String,
-                    (double)cases[i].pt, (double)got);
-            failures++;
-        }
-    }
-    // nil / empty / unknown → normal default (4pt).
-    if (fabs(FCSegmentGapPoints(nil) - 4) > 0.001) {
-        fprintf(stderr, "FAIL %s: nil should → 4pt\n", __func__); failures++;
-    }
-    if (fabs(FCSegmentGapPoints(@"") - 4) > 0.001) {
-        fprintf(stderr, "FAIL %s: empty should → 4pt\n", __func__); failures++;
-    }
-    if (fabs(FCSegmentGapPoints(@"infinite") - 4) > 0.001) {
-        fprintf(stderr, "FAIL %s: unknown should → 4pt\n", __func__); failures++;
-    }
-}
-
-static void test_sky_glyph_phases(void) {
-    // iter-114: 24-hour coverage of the 5-phase sky glyph buckets
-    // (iter-112). Expected mapping is a fixed schedule — if the hour
-    // boundaries drift this test catches it immediately.
-    NSString *dawn  = @"\U0001F305";  // 🌅
-    NSString *day   = @"☀️";
-    NSString *dusk  = @"\U0001F307";  // 🌇
-    NSString *night = @"\U0001F319";  // 🌙
-    NSString *expected[24] = {
-        night, night, night, night, night,  // 0..4
-        dawn, dawn,                          // 5..6
-        day, day, day, day, day, day, day, day, day, day,  // 7..16
-        dusk, dusk,                          // 17..18
-        night, night, night, night, night,   // 19..23
-    };
-    for (NSInteger hour = 0; hour < 24; hour++) {
-        NSString *got = FCSkyGlyphForHour(hour);
-        if (![got isEqualToString:expected[hour]]) {
-            fprintf(stderr, "FAIL %s: hour=%ld expected '%s' got '%s'\n",
-                    __func__, (long)hour,
-                    expected[hour].UTF8String, got.UTF8String);
-            failures++;
-        }
-    }
-    // Out-of-band hours fall back to night (non-fatal but locked).
-    if (![FCSkyGlyphForHour(-1) isEqualToString:night]) {
-        fprintf(stderr, "FAIL %s: hour=-1 should → night\n", __func__); failures++;
-    }
-    if (![FCSkyGlyphForHour(24) isEqualToString:night]) {
-        fprintf(stderr, "FAIL %s: hour=24 should → night\n", __func__); failures++;
-    }
-}
-
-static void test_current_time_format(void) {
-    // iter-107: FCCurrentTimeFormat composes the NSDateFormatter pattern
-    // from the user's "TimeSeparator" pref. Colon stays as a literal
-    // colon; other separators are single-quoted for UTS#35 literal
-    // passthrough so they don't get interpreted as pattern tokens.
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-
-    struct { NSString *sepId; NSString *patternSep; } cases[] = {
-        {@"colon",  @":"},
-        {@"middot", @"'·'"},
-        {@"space",  @"' '"},
-        {@"slash",  @"'/'"},
-        {@"dash",   @"'-'"},
-    };
-    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        [d setObject:cases[i].sepId forKey:@"TimeSeparator"];
-        // 24h + seconds
-        NSString *expected24 = [NSString stringWithFormat:@"HH%@mm%@ss",
-                                cases[i].patternSep, cases[i].patternSep];
-        NSString *got24 = FCCurrentTimeFormat(NO, YES);
-        if (![got24 isEqualToString:expected24]) {
-            fprintf(stderr, "FAIL %s: 24h+sec '%s' expected '%s' got '%s'\n",
-                    __func__, cases[i].sepId.UTF8String,
-                    expected24.UTF8String, got24.UTF8String);
-            failures++;
-        }
-        // 12h no-seconds
-        NSString *expected12 = [NSString stringWithFormat:@"h%@mm a", cases[i].patternSep];
-        NSString *got12 = FCCurrentTimeFormat(YES, NO);
-        if (![got12 isEqualToString:expected12]) {
-            fprintf(stderr, "FAIL %s: 12h-sec '%s' expected '%s' got '%s'\n",
-                    __func__, cases[i].sepId.UTF8String,
-                    expected12.UTF8String, got12.UTF8String);
-            failures++;
-        }
-    }
-    // Unknown id falls back to colon (classical default).
-    [d setObject:@"unknown-sep" forKey:@"TimeSeparator"];
-    if (![FCCurrentTimeFormat(NO, YES) isEqualToString:@"HH:mm:ss"]) {
-        fprintf(stderr, "FAIL %s: unknown-id should collapse to colon\n", __func__);
-        failures++;
-    }
-    [d removeObjectForKey:@"TimeSeparator"];
-}
-
-static void test_quick_styles_invariants(void) {
-    // iter-104: each Quick Style bundle must pass basic sanity checks.
-    // Structure: outer array of @[displayName, bundleDict].
-    NSArray<NSArray *> *styles = buildQuickStyles();
-    if (styles.count == 0) {
-        fprintf(stderr, "FAIL %s: empty catalog\n", __func__); failures++;
-        return;
-    }
-
-    // Allowed value sets for each aesthetic pref key. Locks typo-proofness.
-    NSDictionary *allowed = @{
-        @"CornerStyle":    [NSSet setWithArray:@[@"sharp", @"hairline", @"micro", @"rounded",
-                                                  @"soft", @"squircle", @"jumbo", @"pill"]],
-        @"ShadowStyle":    [NSSet setWithArray:@[@"none", @"subtle", @"lifted", @"glow",
-                                                  @"crisp", @"plinth", @"halo"]],
-        @"Density":        [NSSet setWithArray:@[@"ultracompact", @"compact", @"default",
-                                                  @"comfortable", @"spacious", @"cavernous"]],
-        @"FontWeight":     [NSSet setWithArray:@[@"regular", @"medium", @"semibold",
-                                                  @"bold", @"heavy"]],
-        @"LetterSpacing":  [NSSet setWithArray:@[@"compact", @"tight", @"normal", @"airy", @"wide"]],
-        @"LineSpacing":    [NSSet setWithArray:@[@"tight", @"snug", @"normal", @"loose", @"airy"]],
-        @"TimeSeparator":  [NSSet setWithArray:@[@"colon", @"middot", @"space", @"slash", @"dash"]],
-    };
-
-    for (NSArray *style in styles) {
-        if (style.count != 2) {
-            fprintf(stderr, "FAIL %s: malformed entry\n", __func__); failures++;
-            continue;
-        }
-        NSString *name = style[0];
-        NSDictionary *bundle = style[1];
-        if (![name isKindOfClass:[NSString class]] || name.length == 0) {
-            fprintf(stderr, "FAIL %s: empty display name\n", __func__); failures++;
-            continue;
-        }
-        if (![bundle isKindOfClass:[NSDictionary class]] || bundle.count == 0) {
-            fprintf(stderr, "FAIL %s: '%s' has empty bundle\n",
-                    __func__, name.UTF8String); failures++;
-            continue;
-        }
-
-        // Theme values round-trip via themeForId (catches theme-id typos).
-        for (NSString *themeKey in @[@"LocalTheme", @"ActiveTheme", @"NextTheme"]) {
-            NSString *themeId = bundle[themeKey];
-            if (themeId == nil) continue;
-            const ClockTheme *resolved = themeForId(themeId);
-            NSString *resolvedId = [NSString stringWithUTF8String:resolved->id];
-            if (![resolvedId isEqualToString:themeId]) {
-                fprintf(stderr, "FAIL %s: '%s' → %s = '%s' unresolved\n",
-                        __func__, name.UTF8String, themeKey.UTF8String,
-                        themeId.UTF8String); failures++;
-            }
-        }
-
-        // Remaining enum-valued keys must be in their allowed sets.
-        for (NSString *k in allowed) {
-            id v = bundle[k];
-            if (v == nil) continue;
-            NSSet *set = allowed[k];
-            if (![set containsObject:v]) {
-                fprintf(stderr, "FAIL %s: '%s' → %s='%s' not in allowed set\n",
-                        __func__, name.UTF8String, k.UTF8String,
-                        [v description].UTF8String); failures++;
-            }
-        }
-    }
 }
 
 int main(void) {
@@ -969,6 +426,8 @@ int main(void) {
         test_landing_cross_day_same_weekday();
         test_landing_empty_iana();
 
+        // Lever / dispatcher tests (declared in test_levers.h,
+        // defined in test_levers.m; share the `failures` counter).
         test_font_weight_parser();
         test_segment_weight_fallback();
         test_segment_opacity_fallback();
