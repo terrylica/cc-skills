@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 91
+iteration: 92
 status: ACTIVE
-last_updated: 2026-04-24T07:00:00Z
+last_updated: 2026-04-24T07:10:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -521,3 +521,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 06:40 UTC — iter-89: **per-segment FontWeight overrides** (b47dd029). New `ActiveWeight` + `NextWeight` prefs with 3-tier fallback (segment key → global FontWeight → Medium) via new helper `FCResolveSegmentWeight` in FontResolver. Font Weight submenu added to ACTIVE + NEXT scoped right-click menus (LOCAL skipped — iTerm2 path). Starter profiles set per-segment weights matching their global FontWeight. Tests +1 covering all 3 fallback tiers + empty-string pass-through (26 total). Warning-free build, 184 KB binary.
 - 2026-04-24 06:50 UTC — iter-90: **per-segment Transparency** (0450705d). New `LocalOpacity` / `ActiveOpacity` / `NextOpacity` prefs via new `Sources/rendering/SegmentOpacityResolver.{h,m}` module. `FCResolveSegmentOpacity` three-tier lookup (segment key → CanvasOpacity → theme->alpha) with clamping to [0.10, 1.00]. `applyTheme:` now takes `opacityKey:` param; LOCAL scoped Transparency submenu rewired to write LocalOpacity; ACTIVE + NEXT scoped menus get new Transparency submenus. Tests +1 (27 total) covering all tiers, clamping, and segment=0 pass-through. Warning-free build, 184 KB binary.
 - 2026-04-24 07:00 UTC — iter-91: **progress-bar glyph catalog 6 → 10** (f43c39f1). New styles: hearts (♥ ♡), stars (★ ☆), ribbon (▰ ▱), diamond (◆ ◇). ACTIVE scoped menu's Progress Bar Style submenu grows to 10 entries with inline glyph previews. Unknown ids still fall back to "dots". Tests +1 (28 total) — verifies buildProgressBar emits the correct prefix/suffix glyph for each of the 10 ids plus the fallback path. Warning-free build, 184 KB binary.
+- 2026-04-24 07:10 UTC — iter-92: **theme catalog 20 → 25** (44d6499a). Five new mood palettes: oceanic_deep, cherry_blossom, espresso, lavender_dream, mint_dark. Zero menu changes needed — theme submenus auto-enumerate kThemes. Tests +1 (29 total) `test_theme_catalog_invariants` locks count=25, checks id/display non-empty, color channels and alpha in [0,1], themeForId round-trip for every entry, plus unknown-id fallback to kThemes[0]. CLAUDE.md header bumped 10 → 25 themes with provenance by batch.
