@@ -60,6 +60,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)copyTime:(id)sender;
 - (void)copyActiveMarkets:(id)sender;
 - (void)copyNextOpens:(id)sender;
+- (void)revealAppInFinder:(id)sender;
 
 @end
 
