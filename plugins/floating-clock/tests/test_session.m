@@ -288,6 +288,19 @@ static void test_state_invariants_asx_sweep(void) {
     sweep_invariants(asx, @"Australia/Sydney", "AEST");
 }
 
+static void test_state_invariants_lse_sweep(void) {
+    // v4 iter-163: European DST sweep. LSE (Europe/London) runs
+    // BST (UTC+1, DST-on) from last-Sunday-of-March to last-Sunday-
+    // of-October, GMT (UTC+0, DST-off) otherwise — DIFFERENT transition
+    // rules than US (second-Sunday-of-March / first-Sunday-of-November).
+    // 2026-04-24 is post-EU-spring-transition (Mar 29 was the switch),
+    // so LSE sits in BST for this test. Validates the invariant path
+    // through the EU DST zone — neither NYSE (US DST) nor ASX (SH DST)
+    // exercises the EU transition-date logic.
+    const ClockMarket *lse = marketForId(@"lse");
+    sweep_invariants(lse, @"Europe/London", "BST");
+}
+
 static void test_auction_watcher_sets_extended_window(void) {
     // v4 iter-148: Auction Watcher's identity is "extended 30-min
     // auction window". If the profile doesn't explicitly set the pref,
@@ -743,6 +756,7 @@ int main(void) {
         test_state_invariants_tse_sweep();
         test_state_invariants_jse_sweep();
         test_state_invariants_asx_sweep();
+        test_state_invariants_lse_sweep();
         test_weekend_always_closed();
         test_auction_watcher_sets_extended_window();
         test_signal_window_pref_gates_premarket();
@@ -798,7 +812,7 @@ int main(void) {
         test_clipboard_header_format();
 
         if (failures == 0) {
-            fprintf(stderr, "All 60 tests passed.\n");
+            fprintf(stderr, "All 61 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
