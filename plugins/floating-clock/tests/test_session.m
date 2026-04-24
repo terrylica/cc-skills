@@ -16,6 +16,7 @@
 #import "../Sources/data/MarketCatalog.h"
 #import "../Sources/data/MarketSessionCalculator.h"
 #import "../Sources/preferences/FloatingClockStarterProfiles.h"
+#import "../Sources/content/LandingTimeFormatter.h"
 
 static int failures = 0;
 
@@ -311,6 +312,63 @@ static void test_lunch_markets_identified(void) {
     }
 }
 
+// FCFormatLandingTime fixtures (iter-74/76). Tests the dual-zone
+// landing-time formatter's cross-day / cross-weekday disambiguation
+// rules. Now that `now` is a parameter, results are reproducible.
+//
+// Scenario 1: same-day, same-weekday — both bare HH:mm.
+//   User PDT (UTC-7), NYSE opens at local 06:30 today.
+static void test_landing_same_day_same_weekday(void) {
+    // Fri 2026-04-24 04:00 PDT = Fri 11:00 UTC.
+    NSDate *now     = dateAt(@"America/Los_Angeles", 2026, 4, 24, 4, 0, 0);
+    // NYSE opens 09:30 EDT = 06:30 PDT same Fri.
+    NSDate *landsAt = dateAt(@"America/Los_Angeles", 2026, 4, 24, 6, 30, 0);
+    NSString *user = nil, *mkt = nil;
+    FCFormatLandingTime(now, landsAt, "America/New_York", &user, &mkt);
+    ASSERT_EQ_STR(user, @"06:30");
+    ASSERT_EQ_STR(mkt,  @"09:30 EDT");
+}
+
+// Scenario 2: cross-day AND cross-weekday — Sun in user-local, Mon in
+// market-local (the TSE weekend case the user flagged).
+static void test_landing_cross_day_cross_weekday(void) {
+    // Fri 2026-04-24 04:00 PDT.
+    NSDate *now = dateAt(@"America/Los_Angeles", 2026, 4, 24, 4, 0, 0);
+    // TSE opens Mon 2026-04-27 09:00 JST = Sun 2026-04-26 17:00 PDT.
+    NSDate *landsAt = dateAt(@"America/Los_Angeles", 2026, 4, 26, 17, 0, 0);
+    NSString *user = nil, *mkt = nil;
+    FCFormatLandingTime(now, landsAt, "Asia/Tokyo", &user, &mkt);
+    ASSERT_EQ_STR(user, @"Sun 17:00");
+    ASSERT_EQ_STR(mkt,  @"Mon 09:00 JST");
+}
+
+// Scenario 3: cross-day but same weekday in both zones (user sees a
+// different date but same weekday — e.g. London opens tomorrow for a
+// user who stays up past midnight).
+static void test_landing_cross_day_same_weekday(void) {
+    // Fri 2026-04-24 23:00 PDT = Sat 06:00 UTC.
+    NSDate *now = dateAt(@"America/Los_Angeles", 2026, 4, 24, 23, 0, 0);
+    // LSE opens Mon 2026-04-27 08:00 BST = Sun 00:00 PDT = Sun 07:00 UTC.
+    // Both times are Mon in their respective zones.
+    NSDate *landsAt = dateAt(@"America/Los_Angeles", 2026, 4, 27, 0, 0, 0);
+    NSString *user = nil, *mkt = nil;
+    FCFormatLandingTime(now, landsAt, "Europe/London", &user, &mkt);
+    // Not same-day (Fri vs Mon) so user gets weekday prefix.
+    ASSERT_EQ_STR(user, @"Mon 00:00");
+    // Same weekday on both sides (Mon) so market gets no prefix.
+    ASSERT_EQ_STR(mkt,  @"08:00 BST");
+}
+
+// Scenario 4: unknown/empty IANA — market string should be empty.
+static void test_landing_empty_iana(void) {
+    NSDate *now     = dateAt(@"America/Los_Angeles", 2026, 4, 24, 4, 0, 0);
+    NSDate *landsAt = dateAt(@"America/Los_Angeles", 2026, 4, 24, 6, 30, 0);
+    NSString *user = nil, *mkt = nil;
+    FCFormatLandingTime(now, landsAt, "", &user, &mkt);
+    ASSERT_EQ_STR(user, @"06:30");
+    ASSERT_EQ_STR(mkt,  @"");
+}
+
 static void test_starter_profiles_count(void) {
     // Sanity: the 5 canonical bundled starters exist. Catches accidental
     // deletion or typo in buildStarterProfiles.
@@ -366,8 +424,13 @@ int main(void) {
         test_countdown_fancy_format();
         test_lunch_markets_identified();
 
+        test_landing_same_day_same_weekday();
+        test_landing_cross_day_cross_weekday();
+        test_landing_cross_day_same_weekday();
+        test_landing_empty_iana();
+
         if (failures == 0) {
-            fprintf(stderr, "All 20 tests passed.\n");
+            fprintf(stderr, "All 24 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

@@ -2,7 +2,8 @@
 #import "../data/MarketCatalog.h"
 #include <string.h>
 
-void FCFormatLandingTime(NSDate *landsAt,
+void FCFormatLandingTime(NSDate *now,
+                         NSDate *landsAt,
                          const char *mktIana,
                          NSString **outUserStr,
                          NSString **outMktStr) {
@@ -15,7 +16,7 @@ void FCFormatLandingTime(NSDate *landsAt,
     NSCalendar *localCal = [NSCalendar currentCalendar];
     localCal.timeZone = localTz;
     NSCalendarUnit ymd = NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay;
-    NSDateComponents *nowC  = [localCal components:ymd fromDate:[NSDate date]];
+    NSDateComponents *nowC  = [localCal components:ymd fromDate:now];
     NSDateComponents *landC = [localCal components:ymd fromDate:landsAt];
     BOOL sameDay = (nowC.year == landC.year && nowC.month == landC.month && nowC.day == landC.day);
 

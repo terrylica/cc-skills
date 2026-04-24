@@ -176,7 +176,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             // rule and the iter-68 weekday-differs rule in one place.
             NSString *localAt = @"";
             NSString *mktAt = @"";
-            FCFormatLandingTime(landsAt, e.mkt->iana, &localAt, &mktAt);
+            FCFormatLandingTime([NSDate date], landsAt, e.mkt->iana, &localAt, &mktAt);
 
             // Session duration (close - open, same-day). Lunch-resume
             // events share the session — skip dur line for them since
