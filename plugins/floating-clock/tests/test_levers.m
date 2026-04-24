@@ -17,11 +17,13 @@
 void test_font_weight_parser(void) {
     // Known ids map to their NSFontWeight constants.
     struct { NSString *id; NSFontWeight w; } cases[] = {
+        {@"thin",     NSFontWeightThin},      // iter-129
         {@"regular",  NSFontWeightRegular},
         {@"medium",   NSFontWeightMedium},
         {@"semibold", NSFontWeightSemibold},
         {@"bold",     NSFontWeightBold},
         {@"heavy",    NSFontWeightHeavy},
+        {@"black",    NSFontWeightBlack},     // iter-129
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         NSFontWeight got = FCParseFontWeight(cases[i].id);
@@ -358,8 +360,8 @@ void test_quick_styles_invariants(void) {
                                                   @"crisp", @"plinth", @"halo"]],
         @"Density":        [NSSet setWithArray:@[@"ultracompact", @"compact", @"default",
                                                   @"comfortable", @"spacious", @"cavernous"]],
-        @"FontWeight":     [NSSet setWithArray:@[@"regular", @"medium", @"semibold",
-                                                  @"bold", @"heavy"]],
+        @"FontWeight":     [NSSet setWithArray:@[@"thin", @"regular", @"medium", @"semibold",
+                                                  @"bold", @"heavy", @"black"]],
         @"LetterSpacing":  [NSSet setWithArray:@[@"compact", @"tight", @"normal", @"airy", @"wide"]],
         @"LineSpacing":    [NSSet setWithArray:@[@"tight", @"snug", @"normal", @"loose", @"airy"]],
         @"TimeSeparator":  [NSSet setWithArray:@[@"colon", @"middot", @"space", @"slash", @"dash"]],
