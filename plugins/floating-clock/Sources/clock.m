@@ -871,16 +871,13 @@ static NSFont *resolveClockFont(CGFloat size) {
     // Measure text to resize window
     [self tick];
 
-    // Measure primary line
-    NSString *text = _label.stringValue;
-    NSDictionary *attrs = @{NSFontAttributeName: _label.font};
-    NSSize textSize = [text sizeWithAttributes:attrs];
+    // Measure both labels via sizeToFit — the NSTextField itself is the
+    // authoritative source for its required size. String-level
+    // sizeWithAttributes: consistently under-measures nerd-font advance
+    // widths and attributed-run widths, clipping the trailing glyph.
+    [_label sizeToFit];
+    NSSize textSize = _label.frame.size;
 
-    // Measure secondary line if market mode. Ask the NSTextField itself how
-    // big it wants to be — sizeToFit accounts for its internal padding,
-    // attributed run widths, and rendering-engine-specific advance widths.
-    // String-level sizeWithAttributes: consistently under-measures and clips
-    // the trailing countdown.
     NSSize size2 = NSZeroSize;
     if (marketMode) {
         [_sessionLabel sizeToFit];
@@ -890,10 +887,14 @@ static NSFont *resolveClockFont(CGFloat size) {
     CGFloat w1 = ceilf(textSize.width),  h1 = ceilf(textSize.height);
     CGFloat w2 = ceilf(size2.width),     h2 = ceilf(size2.height);
 
-    CGFloat contentWidth  = MAX(w1, w2);
+    // Safety slack: sizeToFit under-measures nerd-font glyphs (JetBrains Mono NL
+    // Nerd Font Mono specifically) because the trailing glyph advance isn't
+    // fully counted. 24pt of extra headroom per side prevents the last char
+    // from clipping at any font size.
+    CGFloat contentWidth  = MAX(w1, w2) + 16;  // 8pt per side extra content room
     CGFloat contentHeight = marketMode ? (h1 + h2 + 4) : h1;
-    CGFloat windowWidth  = contentWidth + 32;
-    CGFloat windowHeight = contentHeight + 20;
+    CGFloat windowWidth   = contentWidth + 32;  // 16pt per side window margin
+    CGFloat windowHeight  = contentHeight + 20;
 
     NSRect oldFrame = self.frame;
     CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
