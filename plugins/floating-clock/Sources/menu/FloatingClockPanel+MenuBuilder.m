@@ -93,6 +93,19 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Heavy",    @"heavy"]]
                                      defaultsKey:@"FontWeight"]];
 
+    // v4 iter-94: typographic tracking (letter-spacing) lever.
+    // Applied via NSKernAttributeName to ACTIVE + NEXT attributed
+    // strings only — LOCAL's plain-text label isn't kerned (would
+    // require switching to attributedStringValue, out of scope).
+    [displayItems addObject:[self submenuTitled:@"Letter Spacing"
+                                          action:@selector(setLetterSpacing:)
+                                           pairs:@[@[@"Compact (-1.0)", @"compact"],
+                                                   @[@"Tight   (-0.5)", @"tight"],
+                                                   @[@"Normal  ( 0.0)", @"normal"],
+                                                   @[@"Airy    (+0.5)", @"airy"],
+                                                   @[@"Wide    (+1.0)", @"wide"]]
+                                     defaultsKey:@"LetterSpacing"]];
+
     [displayItems addObject:[self submenuTitled:@"Transparency"
                                           action:@selector(setCanvasOpacity:)
                                            pairs:@[@[@"Opaque (100%)", @1.0],

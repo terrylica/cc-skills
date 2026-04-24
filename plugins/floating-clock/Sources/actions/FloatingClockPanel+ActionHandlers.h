@@ -34,6 +34,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setFontWeight:(NSMenuItem *)sender;
 - (void)setActiveWeight:(NSMenuItem *)sender;
 - (void)setNextWeight:(NSMenuItem *)sender;
+- (void)setLetterSpacing:(NSMenuItem *)sender;
 - (void)toggleShowFlags:(NSMenuItem *)sender;
 - (void)toggleShowUTCReference:(NSMenuItem *)sender;
 - (void)toggleShowSkyState:(NSMenuItem *)sender;

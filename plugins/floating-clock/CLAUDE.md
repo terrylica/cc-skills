@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` — 29 fixtures covering
+Tests live in `tests/test_session.m` — 30 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -135,6 +135,7 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 | `FontWeight`                | NSString     | `"medium"`               | Menu (regular / medium / semibold / bold / heavy) — applies to ACTIVE + NEXT monospaced paths. LOCAL keeps iTerm2 / named-font weight. |
 | `ActiveWeight`              | NSString     | inherits `FontWeight`    | Per-segment weight override for ACTIVE (iter-89). Same 5 presets. Empty/unset → falls back to `FontWeight`.                            |
 | `NextWeight`                | NSString     | inherits `FontWeight`    | Per-segment weight override for NEXT (iter-89). Same 5 presets. Empty/unset → falls back to `FontWeight`.                              |
+| `LetterSpacing`             | NSString     | `"normal"`               | Menu (compact / tight / normal / airy / wide) — NSKernAttributeName on ACTIVE + NEXT attributed strings (iter-94). LOCAL unaffected.   |
 | `LocalOpacity`              | double       | inherits `CanvasOpacity` | Per-segment canvas opacity for LOCAL (iter-90). 0 or unset → falls back to `CanvasOpacity` → theme->alpha. Clamped to [0.10, 1.00].    |
 | `ActiveOpacity`             | double       | inherits `CanvasOpacity` | Per-segment canvas opacity for ACTIVE (iter-90). Same fallback chain.                                                                  |
 | `NextOpacity`               | double       | inherits `CanvasOpacity` | Per-segment canvas opacity for NEXT (iter-90). Same fallback chain.                                                                    |

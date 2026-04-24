@@ -256,15 +256,17 @@ static void test_starter_profiles_cover_all_keys(void) {
     // Locks in v4 iter-55's fix: each starter must specify every key
     // in profileManagedKeys() so switching profiles fully resets state.
     // Exceptions are power-user overrides that fall back cleanly when
-    // unset: FontName (iter-6, iTerm2/system cascade fallback) and
+    // unset: FontName (iter-6, iTerm2/system cascade fallback),
     // {Local,Active,Next}Opacity (iter-90, CanvasOpacity fallback via
-    // FCResolveSegmentOpacity).
+    // FCResolveSegmentOpacity), and LetterSpacing (iter-94, no-op at
+    // value "normal" which is the registered default).
     NSDictionary *profiles = buildStarterProfiles();
     NSArray *keys = profileManagedKeys();
     NSSet *exempt = [NSSet setWithObjects:@"FontName",
                                           @"LocalOpacity",
                                           @"ActiveOpacity",
                                           @"NextOpacity",
+                                          @"LetterSpacing",
                                           nil];
 
     for (NSString *profileName in profiles.allKeys) {
@@ -600,6 +602,36 @@ static void test_theme_catalog_invariants(void) {
     }
 }
 
+static void test_letter_spacing_parser(void) {
+    // iter-94: the 5 spacing ids map to fixed kern values; unknown /
+    // nil / empty collapse to 0.0 (no kerning, attribute skipped).
+    struct { NSString *id; CGFloat kern; } cases[] = {
+        {@"compact", -1.0},
+        {@"tight",   -0.5},
+        {@"normal",   0.0},
+        {@"airy",     0.5},
+        {@"wide",     1.0},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        CGFloat got = FCParseLetterSpacing(cases[i].id);
+        if (fabs(got - cases[i].kern) > 0.001) {
+            fprintf(stderr, "FAIL %s: '%s' expected %.2f got %.2f\n",
+                    __func__, cases[i].id.UTF8String,
+                    (double)cases[i].kern, (double)got);
+            failures++;
+        }
+    }
+    if (fabs(FCParseLetterSpacing(nil)) > 0.001) {
+        fprintf(stderr, "FAIL %s: nil → 0.0\n", __func__); failures++;
+    }
+    if (fabs(FCParseLetterSpacing(@"")) > 0.001) {
+        fprintf(stderr, "FAIL %s: empty → 0.0\n", __func__); failures++;
+    }
+    if (fabs(FCParseLetterSpacing(@"ultra-extended")) > 0.001) {
+        fprintf(stderr, "FAIL %s: unknown → 0.0\n", __func__); failures++;
+    }
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -637,9 +669,10 @@ int main(void) {
         test_segment_opacity_fallback();
         test_progress_bar_glyph_styles();
         test_theme_catalog_invariants();
+        test_letter_spacing_parser();
 
         if (failures == 0) {
-            fprintf(stderr, "All 29 tests passed.\n");
+            fprintf(stderr, "All 30 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
