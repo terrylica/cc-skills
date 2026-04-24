@@ -15,6 +15,7 @@
 #import <Foundation/Foundation.h>
 #import "../Sources/data/MarketCatalog.h"
 #import "../Sources/data/MarketSessionCalculator.h"
+#import "../Sources/preferences/FloatingClockStarterProfiles.h"
 
 static int failures = 0;
 
@@ -247,6 +248,46 @@ static void test_flag_empty_for_unknown_iana(void) {
     }
 }
 
+static void test_starter_profiles_cover_all_keys(void) {
+    // Locks in v4 iter-55's fix: each starter must specify every key
+    // in profileManagedKeys() so switching profiles fully resets state.
+    // FontName is the one legit exception (power-user override that
+    // defaults to the iTerm2/system cascade).
+    NSDictionary *profiles = buildStarterProfiles();
+    NSArray *keys = profileManagedKeys();
+    NSSet *exempt = [NSSet setWithObject:@"FontName"];
+
+    for (NSString *profileName in profiles.allKeys) {
+        NSDictionary *profile = profiles[profileName];
+        for (NSString *key in keys) {
+            if ([exempt containsObject:key]) continue;
+            if (profile[key] == nil) {
+                fprintf(stderr, "FAIL %s: profile '%s' missing key '%s'\n",
+                        __func__, [profileName UTF8String], [key UTF8String]);
+                failures++;
+            }
+        }
+    }
+}
+
+static void test_starter_profiles_count(void) {
+    // Sanity: the 5 canonical bundled starters exist. Catches accidental
+    // deletion or typo in buildStarterProfiles.
+    NSDictionary *profiles = buildStarterProfiles();
+    NSArray *expected = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Watch Party"];
+    if (profiles.count != expected.count) {
+        fprintf(stderr, "FAIL %s: expected %lu starters got %lu\n",
+                __func__, (unsigned long)expected.count, (unsigned long)profiles.count);
+        failures++;
+    }
+    for (NSString *name in expected) {
+        if (profiles[name] == nil) {
+            fprintf(stderr, "FAIL %s: missing starter '%s'\n", __func__, [name UTF8String]);
+            failures++;
+        }
+    }
+}
+
 static void test_full_tz_label_composition(void) {
     NSDate *summer = dateAt(@"Europe/London", 2026, 7, 15, 12, 0, 0);
     ASSERT_EQ_STR(fullTzLabelForIana("Europe/London", summer), @"BST UTC+1");
@@ -278,8 +319,11 @@ int main(void) {
         test_flag_emoji_present_for_all_markets();
         test_flag_empty_for_unknown_iana();
 
+        test_starter_profiles_cover_all_keys();
+        test_starter_profiles_count();
+
         if (failures == 0) {
-            fprintf(stderr, "All 16 tests passed.\n");
+            fprintf(stderr, "All 18 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
