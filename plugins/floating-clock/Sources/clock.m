@@ -89,7 +89,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     self.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorStationary;
     self.hasShadow = YES;
     self.opaque = NO;
-    self.backgroundColor = [NSColor colorWithWhite:0.0 alpha:0.55];
+    self.backgroundColor = [NSColor colorWithWhite:0.0 alpha:0.32];
     self.titleVisibility = NSWindowTitleHidden;
 
     // Rounded corners
