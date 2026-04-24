@@ -605,9 +605,10 @@ int main(void) {
         test_quick_styles_invariants();
         test_shadow_spec_catalog();
         test_session_signal_window();
+        test_session_state_label();
 
         if (failures == 0) {
-            fprintf(stderr, "All 48 tests passed.\n");
+            fprintf(stderr, "All 49 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

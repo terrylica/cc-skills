@@ -66,6 +66,12 @@ int fcProgressBarFullCells(double progress01, int totalCells);
 // Single-char state glyphs: ● / ◑ / ○.
 NSString *glyphForState(SessionState s);
 
+// Word-form of the state — "OPEN" / "LUNCH" / "CLOSED" /
+// "PRE-MARKET" / "AFTER-HOURS". Used by the single-market legacy
+// label (iter-134) and anywhere else a human-readable state is
+// needed. Parallel to glyphForState + colorForState.
+NSString *labelForState(SessionState s);
+
 // Color bound to each SessionState. Theme parameter reserved for future
 // per-theme override; currently ignored (fixed palette).
 NSColor *colorForState(SessionState s, const ClockTheme * _Nullable theme);
