@@ -6,6 +6,7 @@
 #import "../content/ActiveSegmentContentBuilder.h"
 #import "../content/NextSegmentContentBuilder.h"
 #import "../rendering/FontResolver.h"  // FCCurrentTimeFormat
+#import "DateFormatPrefix.h"              // FCDateFormatPrefix
 
 // Nanoseconds until next second boundary. Used by setupTimer's first fire.
 static uint64_t nsUntilNextSecond(void) {
@@ -14,20 +15,10 @@ static uint64_t nsUntilNextSecond(void) {
     return (uint64_t)((1.0 - frac) * NSEC_PER_SEC);
 }
 
-// Date-format preset id → NSDateFormatter pattern prefix. Trailing "  " goes
-// before the time portion. Falls back to "short" ("EEE MMM d  ").
-// v4 iter-111: 3 locale-flavored presets added (usa / european / compact_iso).
-static NSString *dateFormatPrefix(NSString *presetId) {
-    if ([presetId isEqualToString:@"long"])        return @"EEEE MMMM d  ";
-    if ([presetId isEqualToString:@"iso"])         return @"yyyy-MM-dd  ";
-    if ([presetId isEqualToString:@"numeric"])     return @"M/d  ";
-    if ([presetId isEqualToString:@"weeknum"])     return @"'Wk' w  ";
-    if ([presetId isEqualToString:@"dayofyr"])     return @"'Day' D  ";
-    if ([presetId isEqualToString:@"usa"])         return @"M/d/yyyy  ";       // 4/24/2026
-    if ([presetId isEqualToString:@"european"])    return @"d.M.yyyy  ";       // 24.4.2026
-    if ([presetId isEqualToString:@"compact_iso"]) return @"MM-dd  ";          // 04-24
-    return @"EEE MMM d  ";
-}
+// v4 iter-111 / iter-113: date-format preset dispatcher lives in
+// Sources/core/DateFormatPrefix.{h,m} now — FCDateFormatPrefix(id)
+// is the public entry point. Runtime.m's 2 call sites below route
+// through it.
 
 // v4 iter-98 / iter-107: TimeSeparator helpers live in FontResolver.{h,m}
 // now — `FCCurrentTimeFormat(is12h, showSec)` is the public entry point.
@@ -68,7 +59,7 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     // uncheck it with no effect. Now it really strips the ":ss" portion
     // — less jitter, less clutter for minimalist setups.
     BOOL showSec = [d boolForKey:@"ShowSeconds"];
-    if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
+    if (showDate) [fmt appendString:FCDateFormatPrefix([d stringForKey:@"DateFormat"])];
     // v4 iter-98: separator chosen via FCCurrentTimeFormat (was hardcoded `:`).
     [fmt appendString:FCCurrentTimeFormat([tf isEqualToString:@"12h"], showSec)];
 
@@ -142,7 +133,7 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     NSString *timeFormat = [d stringForKey:@"TimeFormat"];
 
     BOOL showSec2 = [d boolForKey:@"ShowSeconds"];
-    if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
+    if (showDate) [fmt appendString:FCDateFormatPrefix([d stringForKey:@"DateFormat"])];
     // v4 iter-98: separator chosen via FCCurrentTimeFormat.
     [fmt appendString:FCCurrentTimeFormat([timeFormat isEqualToString:@"12h"], showSec2)];
 
