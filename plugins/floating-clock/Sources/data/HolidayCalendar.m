@@ -140,6 +140,29 @@ static NSString * const kTSX2026Holidays[] = {
     @"2026-12-28",  // Boxing Day observed (Dec 26 Sat)
 };
 
+// v4 iter-182: SIX Swiss Exchange 2026 non-trading days. Source: SIX
+// published calendar. Distinctive: (1) Berchtold's Day Jan 2 — Swiss-
+// specific second New Year; (2) Ascension Day (40 days after Easter
+// Sunday = May 14 2026) + Whit Monday / Pfingstmontag (50 days after
+// Easter = May 25 2026) — Christian holidays most non-European
+// markets don't observe; (3) **Dec 24 + Dec 31 are FULL closures**
+// at SIX, not half-day sessions like NYSE/LSE — one of the few
+// exchanges where these are hard closures; (4) Aug 1 Swiss National
+// Day falls Saturday 2026 (weekend handles). No substitute; SIX does
+// not shift weekend-coincident holidays to weekdays.
+static NSString * const kSIX2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    @"2026-01-02",  // Berchtold's Day (Berchtoldstag)
+    @"2026-04-03",  // Good Friday
+    @"2026-04-06",  // Easter Monday
+    @"2026-05-01",  // Labour Day
+    @"2026-05-14",  // Ascension Day (Auffahrt)
+    @"2026-05-25",  // Whit Monday (Pfingstmontag)
+    @"2026-12-24",  // Christmas Eve (FULL closure at SIX)
+    @"2026-12-25",  // Christmas Day
+    @"2026-12-31",  // New Year's Eve (FULL closure at SIX)
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -159,6 +182,7 @@ static const FCHolidayTable kHolidayTables[] = {
     { "euronext", kTARGET2_2026Holidays, sizeof(kTARGET2_2026Holidays) / sizeof(kTARGET2_2026Holidays[0]) },
     { "asx",      kASX2026Holidays,      sizeof(kASX2026Holidays)      / sizeof(kASX2026Holidays[0])      },
     { "tsx",      kTSX2026Holidays,      sizeof(kTSX2026Holidays)      / sizeof(kTSX2026Holidays[0])      },
+    { "six",      kSIX2026Holidays,      sizeof(kSIX2026Holidays)      / sizeof(kSIX2026Holidays[0])      },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
