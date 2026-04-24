@@ -21,6 +21,7 @@ void test_holiday_calendar_asx(void);
 void test_holiday_calendar_tsx(void);
 void test_holiday_calendar_six(void);
 void test_holiday_calendar_sse(void);
+void test_holiday_calendar_krx(void);
 void test_nyse_holiday_state_closed(void);
 void test_holiday_chains_through_weekend(void);
 
