@@ -301,6 +301,16 @@ static void test_state_invariants_lse_sweep(void) {
     sweep_invariants(lse, @"Europe/London", "BST");
 }
 
+static void test_state_invariants_b3_sweep(void) {
+    // v4 iter-171: Americas-south no-DST sweep. B3 (America/Sao_Paulo)
+    // runs at BRT (UTC-3) year-round since Brazil abolished DST in
+    // 2019. Structurally parallel to JSE (no-DST) but in a different
+    // TZ region — covers the negative-UTC-offset no-DST path. Iter-161
+    // added the market, this iter adds the invariant sweep completion.
+    const ClockMarket *b3 = marketForId(@"b3");
+    sweep_invariants(b3, @"America/Sao_Paulo", "BRT");
+}
+
 static void test_auction_watcher_sets_extended_window(void) {
     // v4 iter-148: Auction Watcher's identity is "extended 30-min
     // auction window". If the profile doesn't explicitly set the pref,
@@ -786,6 +796,7 @@ int main(void) {
         test_state_invariants_jse_sweep();
         test_state_invariants_asx_sweep();
         test_state_invariants_lse_sweep();
+        test_state_invariants_b3_sweep();
         test_weekend_always_closed();
         test_auction_watcher_sets_extended_window();
         test_signal_window_pref_gates_premarket();
@@ -843,7 +854,7 @@ int main(void) {
         test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 63 tests passed.\n");
+            fprintf(stderr, "All 64 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
