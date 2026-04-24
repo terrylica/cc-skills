@@ -53,18 +53,16 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     BOOL showDate = [d boolForKey:@"ShowDate"];
     NSString *tf = [d stringForKey:@"TimeFormat"];
 
-    // Seconds always shown; ShowSeconds pref no longer suppresses them
-    // (per user spec). Retained only for menu-state backward compat.
-    // TZ abbreviation via NSTimeZone.abbreviationForDate: — always returns
-    // the crisp regional form (PDT, BST, CEST, JST). The `z` pattern would
-    // fall back to "GMT+1/+2" for locales whose CLDR data lacks a short
-    // English form — user directive 2026-04-24 requires proper regional
-    // abbreviations, so bypass the formatter's locale-dependent resolution.
+    // v4 iter-46: honor ShowSeconds pref. Prior comment said "always
+    // shown" but the menu toggle still existed and users could check/
+    // uncheck it with no effect. Now it really strips the ":ss" portion
+    // — less jitter, less clutter for minimalist setups.
+    BOOL showSec = [d boolForKey:@"ShowSeconds"];
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     if ([tf isEqualToString:@"12h"]) {
-        [fmt appendString:@"h:mm:ss a"];
+        [fmt appendString:showSec ? @"h:mm:ss a" : @"h:mm a"];
     } else {
-        [fmt appendString:@"HH:mm:ss"];
+        [fmt appendString:showSec ? @"HH:mm:ss" : @"HH:mm"];
     }
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
@@ -103,8 +101,8 @@ static NSString *dateFormatPrefix(NSString *presetId) {
         if (!_utcFormatter) {
             _utcFormatter = [[NSDateFormatter alloc] init];
             _utcFormatter.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
-            _utcFormatter.dateFormat = @"HH:mm:ss";
         }
+        _utcFormatter.dateFormat = showSec ? @"HH:mm:ss" : @"HH:mm";
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
         _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@",
             localBase, localLabel, utcStr, skyGlyph];
@@ -126,11 +124,12 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     BOOL showDate = [d boolForKey:@"ShowDate"];
     NSString *timeFormat = [d stringForKey:@"TimeFormat"];
 
+    BOOL showSec2 = [d boolForKey:@"ShowSeconds"];
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     if ([timeFormat isEqualToString:@"12h"]) {
-        [fmt appendString:@"h:mm:ss a"];
+        [fmt appendString:showSec2 ? @"h:mm:ss a" : @"h:mm a"];
     } else {
-        [fmt appendString:@"HH:mm:ss"];
+        [fmt appendString:showSec2 ? @"HH:mm:ss" : @"HH:mm"];
     }
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
