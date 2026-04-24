@@ -379,6 +379,10 @@ void test_quick_styles_invariants(void) {
         // (e.g. Hacker=off for minimalism, Trading Floor=60min for
         // macro-trader awareness).
         @"SessionSignalWindow": [NSSet setWithArray:@[@"off", @"5min", @"15min", @"30min", @"60min"]],
+        // v4 iter-216: UrgencyHorizon (iter-215) becomes Quick-Style-composable.
+        // Trading Floor=15min for tight closing-bell glow, Featherlight=240min
+        // for slow ethereal build, Hacker=5min for terminal-precise alarm.
+        @"UrgencyHorizon":      [NSSet setWithArray:@[@"5min", @"15min", @"30min", @"60min", @"120min", @"240min"]],
     };
     for (NSArray *style in styles) {
         if (style.count != 2) { failures++; fprintf(stderr, "FAIL %s: malformed entry\n", __func__); continue; }
