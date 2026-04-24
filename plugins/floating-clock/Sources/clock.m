@@ -225,6 +225,74 @@ static NSString *glyphForState(SessionState s) {
     return @"○";
 }
 
+// Built-in starter profiles. Each entry is a snapshot of profile-managed NSUserDefaults keys.
+static NSDictionary *buildStarterProfiles(void) {
+    return @{
+        @"Default": @{
+            @"DisplayMode": @"three-segment",
+            @"LocalTheme": @"terminal",
+            @"ActiveTheme": @"green_phosphor",
+            @"NextTheme": @"soft_glass",
+            @"ColorTheme": @"terminal",
+            @"FontSize": @24.0,
+            @"ShowSeconds": @YES,
+            @"ShowDate": @NO,
+            @"TimeFormat": @"24h",
+            @"ActiveBarCells": @7,
+            @"NextItemCount": @3,
+            @"SelectedMarket": @"local",
+        },
+        @"Day Trader": @{
+            @"DisplayMode": @"three-segment",
+            @"LocalTheme": @"amber_crt",
+            @"ActiveTheme": @"amber_crt",
+            @"NextTheme": @"amber_crt",
+            @"FontSize": @32.0,
+            @"ShowSeconds": @YES,
+            @"ShowDate": @NO,
+            @"TimeFormat": @"24h",
+            @"ActiveBarCells": @12,
+            @"NextItemCount": @5,
+            @"SelectedMarket": @"nyse",
+        },
+        @"Night Owl": @{
+            @"DisplayMode": @"local-only",
+            @"ColorTheme": @"soft_glass",
+            @"FontSize": @16.0,
+            @"ShowSeconds": @YES,
+            @"ShowDate": @NO,
+            @"TimeFormat": @"24h",
+        },
+        @"Minimalist": @{
+            @"DisplayMode": @"local-only",
+            @"ColorTheme": @"high_contrast",
+            @"FontSize": @20.0,
+            @"ShowSeconds": @NO,
+            @"ShowDate": @NO,
+            @"TimeFormat": @"24h",
+        },
+        @"Watch Party": @{
+            @"DisplayMode": @"single-market",
+            @"ColorTheme": @"dracula",
+            @"FontSize": @48.0,
+            @"ShowSeconds": @YES,
+            @"ShowDate": @YES,
+            @"TimeFormat": @"24h",
+            @"SelectedMarket": @"nyse",
+        },
+    };
+}
+
+// List of NSUserDefaults keys that are profile-managed (saved/loaded with profiles).
+// Window position keys (FloatingClockWindowFrame, FloatingClockScreenNumber) are NOT included.
+static NSArray<NSString *> *profileManagedKeys(void) {
+    return @[
+        @"DisplayMode", @"LocalTheme", @"ActiveTheme", @"NextTheme", @"ColorTheme",
+        @"FontName", @"FontSize", @"ShowSeconds", @"ShowDate", @"TimeFormat",
+        @"ActiveBarCells", @"NextItemCount", @"SelectedMarket",
+    ];
+}
+
 // Short 3-letter city codes for the ACTIVE segment headers.
 // IANA zone → city code mapping.
 static const char *cityCodeForIana(const char *iana) {
@@ -407,6 +475,12 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)resetPosition:(id)sender;
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;
+- (void)activateProfile:(NSString *)name;
+- (void)saveCurrentProfileAs:(id)sender;
+- (void)deleteProfile:(NSMenuItem *)sender;
+- (void)switchToProfile:(NSMenuItem *)sender;
+- (NSMenuItem *)buildProfileMenu;
+- (void)recordProfileActivationInCCMemory:(NSString *)profileName;
 @end
 
 @implementation FloatingClockPanel
@@ -452,7 +526,18 @@ static NSFont *resolveClockFont(CGFloat size) {
         @"NextTheme": @"soft_glass",
         @"ActiveBarCells": @7,
         @"NextItemCount": @3,
+        @"Profiles": buildStarterProfiles(),
+        @"ActiveProfile": @"Default",
     }];
+
+    // Ensure Profiles and ActiveProfile are persisted (registerDefaults doesn't persist to disk)
+    if ([d objectForKey:@"Profiles"] == nil) {
+        [d setObject:buildStarterProfiles() forKey:@"Profiles"];
+    }
+    if ([d objectForKey:@"ActiveProfile"] == nil) {
+        [d setObject:@"Default" forKey:@"ActiveProfile"];
+    }
+    [d synchronize];
 
     NSRect defaultFrame = NSMakeRect(0, 0, 140, 50);
     self = [super initWithContentRect:defaultFrame
@@ -1021,6 +1106,8 @@ static NSFont *resolveClockFont(CGFloat size) {
     [m addItemWithTitle:@"Show Date" action:@selector(toggleShowDate:) keyEquivalent:@""];
 
     [m addItem:[NSMenuItem separatorItem]];
+
+    [m addItem:[self buildProfileMenu]];
 
     [m addItem:[self submenuTitled:@"Time Format" action:@selector(setTimeFormat:)
                               pairs:@[@[@"24-hour", @"24h"], @[@"12-hour", @"12h"]]
@@ -1727,6 +1814,204 @@ static NSFont *resolveClockFont(CGFloat size) {
 
 - (void)quit:(id)sender {
     [NSApp terminate:nil];
+}
+
+#pragma mark - Profile Management
+
+- (void)activateProfile:(NSString *)name {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSDictionary *profiles = [d objectForKey:@"Profiles"];
+    if (![profiles isKindOfClass:[NSDictionary class]]) return;
+
+    NSDictionary *profile = profiles[name];
+    if (![profile isKindOfClass:[NSDictionary class]]) return;
+
+    // Apply every key from the profile that's in the managed set
+    for (NSString *key in profileManagedKeys()) {
+        id val = profile[key];
+        if (val != nil) {
+            [d setObject:val forKey:key];
+        }
+    }
+
+    [d setObject:name forKey:@"ActiveProfile"];
+    [self applyDisplaySettings];
+
+    // Auto-memory integration: append to ~/.claude/projects/.../memory/
+    [self recordProfileActivationInCCMemory:name];
+}
+
+- (void)saveCurrentProfileAs:(id)sender {
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"Save Profile As";
+    alert.informativeText = @"Enter a name for this profile:";
+    [alert addButtonWithTitle:@"Save"];
+    [alert addButtonWithTitle:@"Cancel"];
+
+    NSTextField *input = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 240, 24)];
+    input.stringValue = @"";
+    alert.accessoryView = input;
+    [alert.window makeFirstResponder:input];
+
+    NSModalResponse resp = [alert runModal];
+    if (resp != NSAlertFirstButtonReturn) return;
+
+    NSString *name = [input.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+    if (name.length == 0) return;
+
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSMutableDictionary *profiles = [[d objectForKey:@"Profiles"] mutableCopy] ?: [NSMutableDictionary dictionary];
+
+    NSMutableDictionary *snapshot = [NSMutableDictionary dictionary];
+    for (NSString *key in profileManagedKeys()) {
+        id val = [d objectForKey:key];
+        if (val != nil) snapshot[key] = val;
+    }
+    profiles[name] = snapshot;
+    [d setObject:profiles forKey:@"Profiles"];
+    [d setObject:name forKey:@"ActiveProfile"];
+
+    [self recordProfileActivationInCCMemory:name];
+    // Rebuild menu so the new profile appears
+    self.contentView.menu = [self buildMenu];
+}
+
+- (void)deleteProfile:(NSMenuItem *)sender {
+    NSString *name = sender.representedObject;
+    if (![name isKindOfClass:[NSString class]]) return;
+
+    // Refuse to delete the built-in 5 starters and "Default"
+    NSSet *protected = [NSSet setWithArray:@[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Watch Party"]];
+    if ([protected containsObject:name]) {
+        NSAlert *a = [[NSAlert alloc] init];
+        a.messageText = @"Cannot delete starter profile";
+        a.informativeText = [NSString stringWithFormat:@"\"%@\" is a built-in starter and cannot be deleted.", name];
+        [a addButtonWithTitle:@"OK"];
+        [a runModal];
+        return;
+    }
+
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSMutableDictionary *profiles = [[d objectForKey:@"Profiles"] mutableCopy];
+    [profiles removeObjectForKey:name];
+    [d setObject:profiles forKey:@"Profiles"];
+
+    // If we deleted the active profile, fall back to Default
+    NSString *active = [d stringForKey:@"ActiveProfile"];
+    if ([active isEqualToString:name]) {
+        [self activateProfile:@"Default"];
+    }
+    self.contentView.menu = [self buildMenu];
+}
+
+- (void)switchToProfile:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [self activateProfile:sender.representedObject];
+        // Rebuild menu so checkmark moves
+        self.contentView.menu = [self buildMenu];
+    }
+}
+
+- (NSMenuItem *)buildProfileMenu {
+    NSMenuItem *root = [[NSMenuItem alloc] initWithTitle:@"Profile" action:nil keyEquivalent:@""];
+    NSMenu *sub = [[NSMenu alloc] init];
+
+    NSDictionary *profiles = [[NSUserDefaults standardUserDefaults] objectForKey:@"Profiles"];
+    NSString *active = [[NSUserDefaults standardUserDefaults] stringForKey:@"ActiveProfile"];
+    NSArray *starters = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Watch Party"];
+
+    // Starters first (in defined order)
+    for (NSString *name in starters) {
+        if (profiles[name] == nil) continue;
+        NSMenuItem *item = [sub addItemWithTitle:name action:@selector(switchToProfile:) keyEquivalent:@""];
+        item.target = self;
+        item.representedObject = name;
+        if ([name isEqualToString:active]) item.state = NSControlStateValueOn;
+    }
+
+    // Separator if custom profiles exist
+    NSMutableArray *customNames = [NSMutableArray array];
+    for (NSString *name in profiles.allKeys) {
+        if (![starters containsObject:name]) [customNames addObject:name];
+    }
+    [customNames sortUsingSelector:@selector(compare:)];
+
+    if (customNames.count > 0) {
+        [sub addItem:[NSMenuItem separatorItem]];
+        for (NSString *name in customNames) {
+            NSMenuItem *item = [sub addItemWithTitle:name action:@selector(switchToProfile:) keyEquivalent:@""];
+            item.target = self;
+            item.representedObject = name;
+            if ([name isEqualToString:active]) item.state = NSControlStateValueOn;
+        }
+    }
+
+    [sub addItem:[NSMenuItem separatorItem]];
+
+    NSMenuItem *saveItem = [sub addItemWithTitle:@"Save Current As…" action:@selector(saveCurrentProfileAs:) keyEquivalent:@""];
+    saveItem.target = self;
+
+    // Delete submenu (only shows non-starter profiles)
+    if (customNames.count > 0) {
+        NSMenuItem *delRoot = [[NSMenuItem alloc] initWithTitle:@"Delete…" action:nil keyEquivalent:@""];
+        NSMenu *delSub = [[NSMenu alloc] init];
+        for (NSString *name in customNames) {
+            NSMenuItem *di = [delSub addItemWithTitle:name action:@selector(deleteProfile:) keyEquivalent:@""];
+            di.target = self;
+            di.representedObject = name;
+        }
+        delRoot.submenu = delSub;
+        [sub addItem:delRoot];
+    }
+
+    root.submenu = sub;
+    return root;
+}
+
+- (void)recordProfileActivationInCCMemory:(NSString *)profileName {
+    NSString *memDir = [NSHomeDirectory() stringByAppendingPathComponent:
+        @".claude/projects/-Users-<you>-eon-cc-skills/memory"];
+    NSFileManager *fm = [NSFileManager defaultManager];
+    BOOL isDir = NO;
+    if (![fm fileExistsAtPath:memDir isDirectory:&isDir] || !isDir) {
+        // Don't create the directory — if it doesn't exist, just skip silently
+        return;
+    }
+
+    NSString *path = [memDir stringByAppendingPathComponent:@"floating_clock_active_profile.md"];
+    NSDateFormatter *fmt = [[NSDateFormatter alloc] init];
+    fmt.dateFormat = @"yyyy-MM-dd HH:mm:ss zzz";
+    NSString *now = [fmt stringFromDate:[NSDate date]];
+
+    NSString *content = [NSString stringWithFormat:
+        @"---\n"
+        @"name: floating_clock_active_profile\n"
+        @"description: User's currently-active floating-clock profile (auto-updated by the app on every profile switch)\n"
+        @"type: project\n"
+        @"---\n"
+        @"\n"
+        @"## Active Profile\n"
+        @"\n"
+        @"User's floating-clock is running the **%@** profile as of %@.\n"
+        @"\n"
+        @"**Why:** set automatically by the floating-clock app whenever the user activates a profile via the right-click menu → Profile → <name>.\n"
+        @"**How to apply:** when the user references clock display preferences or asks what their settings are, this file reflects the current state.\n",
+        profileName, now];
+
+    NSError *err = nil;
+    [content writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:&err];
+    if (err) {
+        NSLog(@"[floating-clock] Could not write memory entry: %@", err);
+    }
+
+    // Also update MEMORY.md index if it exists (don't create if missing)
+    NSString *indexPath = [memDir stringByAppendingPathComponent:@"MEMORY.md"];
+    NSString *existing = [NSString stringWithContentsOfFile:indexPath encoding:NSUTF8StringEncoding error:nil];
+    if (existing && ![existing containsString:@"floating_clock_active_profile.md"]) {
+        NSString *entry = @"\n- [Floating clock active profile](./floating_clock_active_profile.md) — currently-selected clock profile, auto-updated\n";
+        NSString *updated = [existing stringByAppendingString:entry];
+        [updated writeToFile:indexPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    }
 }
 
 @end
