@@ -317,12 +317,34 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (NSMenu *)menuForEvent:(NSEvent *)event;
 @end
 
+// Three-segment NSView subclasses for iter-11 three-segment layout
+@interface LocalSegmentView : NSView
+@property (weak) FloatingClockPanel *panel;
+@property (strong) NSTextField *timeLabel;
+- (NSMenu *)menuForEvent:(NSEvent *)event;
+@end
+
+@interface ActiveSegmentView : NSView
+@property (weak) FloatingClockPanel *panel;
+@property (strong) NSTextField *contentLabel;
+- (NSMenu *)menuForEvent:(NSEvent *)event;
+@end
+
+@interface NextSegmentView : NSView
+@property (weak) FloatingClockPanel *panel;
+@property (strong) NSTextField *contentLabel;
+- (NSMenu *)menuForEvent:(NSEvent *)event;
+@end
+
 @interface FloatingClockPanel : NSPanel {
     NSTextField *_label;
     NSTextField *_sessionLabel;
     dispatch_source_t _timer;
     NSDateFormatter *_dateFormatter;
     id _keyMonitor;
+    LocalSegmentView *_localSeg;
+    ActiveSegmentView *_activeSeg;
+    NextSegmentView *_nextSeg;
 }
 - (NSMenu *)buildMenu;
 - (void)refreshMenuChecks:(NSMenu *)menu;
@@ -331,12 +353,19 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (BOOL)setChecksInMenu:(NSMenu *)menu forKey:(NSString *)key currentValue:(id)current;
 - (BOOL)representedObject:(id)ro matchesValue:(id)v;
 - (void)applyDisplaySettings;
+- (void)applyThreeSegmentLayout;
+- (void)applySingleMarketLayout;
+- (void)applyLocalOnlyLayout;
+- (void)tickThreeSegment;
+- (void)tickLegacy;
 - (void)toggleShowSeconds:(NSMenuItem *)sender;
 - (void)toggleShowDate:(NSMenuItem *)sender;
 - (void)setTimeFormat:(NSMenuItem *)sender;
 - (void)setFontSize:(NSMenuItem *)sender;
 - (void)setColorTheme:(NSMenuItem *)sender;
 - (void)setMarket:(NSMenuItem *)sender;
+- (void)setDisplayMode:(NSMenuItem *)sender;
+- (void)showFullPreferences:(id)sender;
 - (void)resetPosition:(id)sender;
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;
@@ -361,6 +390,17 @@ static NSFont *resolveClockFont(CGFloat size) {
         [d synchronize];
     }
 
+    // Migrate DisplayMode: if not set and SelectedMarket != "local", use "single-market"; else use "three-segment"
+    if ([d objectForKey:@"DisplayMode"] == nil) {
+        NSString *sel = [d stringForKey:@"SelectedMarket"];
+        NSString *mode = @"three-segment";  // default for fresh installs
+        if ([sel isKindOfClass:[NSString class]] && ![sel isEqualToString:@"local"]) {
+            mode = @"single-market";  // migrate legacy users
+        }
+        [d setObject:mode forKey:@"DisplayMode"];
+        [d synchronize];
+    }
+
     // Register default values for NSUserDefaults (after migration, so if ColorTheme wasn't set, it's now there)
     [d registerDefaults:@{
         @"ShowSeconds": @YES,
@@ -368,6 +408,7 @@ static NSFont *resolveClockFont(CGFloat size) {
         @"TimeFormat": @"24h",
         @"FontSize": @24.0,
         @"SelectedMarket": @"local",
+        @"DisplayMode": @"three-segment",
     }];
 
     NSRect defaultFrame = NSMakeRect(0, 0, 140, 50);
@@ -464,6 +505,40 @@ static NSFont *resolveClockFont(CGFloat size) {
 }
 
 - (void)tick {
+    NSString *mode = [[NSUserDefaults standardUserDefaults] stringForKey:@"DisplayMode"];
+    if ([mode isEqualToString:@"three-segment"]) {
+        [self tickThreeSegment];
+    } else {
+        [self tickLegacy];
+    }
+}
+
+- (void)tickThreeSegment {
+    // Build format for LOCAL segment from user prefs
+    NSMutableString *fmt = [NSMutableString string];
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    BOOL showDate = [d boolForKey:@"ShowDate"];
+    BOOL showSeconds = [d boolForKey:@"ShowSeconds"];
+    NSString *tf = [d stringForKey:@"TimeFormat"];
+
+    if (showDate) [fmt appendString:@"EEE MMM d  "];
+    if ([tf isEqualToString:@"12h"]) {
+        [fmt appendString:showSeconds ? @"h:mm:ss a" : @"h:mm a"];
+    } else {
+        [fmt appendString:showSeconds ? @"HH:mm:ss" : @"HH:mm"];
+    }
+
+    if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
+    _dateFormatter.dateFormat = fmt;
+    _dateFormatter.timeZone = [NSTimeZone localTimeZone];  // LOCAL segment is always local
+
+    _localSeg.timeLabel.stringValue = [_dateFormatter stringFromDate:[NSDate date]];
+    _activeSeg.contentLabel.stringValue = @"ACTIVE (—)";   // placeholder; iter-12 replaces
+    _nextSeg.contentLabel.stringValue   = @"NEXT (—)";     // placeholder; iter-13 replaces
+}
+
+- (void)tickLegacy {
+    // Original iter-9 behavior for single-market and local-only modes
     // Build format string dynamically from current settings
     NSMutableString *fmt = [NSMutableString string];
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
@@ -726,6 +801,25 @@ static NSFont *resolveClockFont(CGFloat size) {
     tzRoot.submenu = tzSub;
     [m addItem:tzRoot];
 
+    // Build Display Mode submenu
+    NSMenuItem *displayModeRoot = [[NSMenuItem alloc] initWithTitle:@"Display Mode" action:nil keyEquivalent:@""];
+    NSMenu *displayModeSub = [[NSMenu alloc] init];
+
+    NSMenuItem *threeSegItem = [displayModeSub addItemWithTitle:@"Three-Segment" action:@selector(setDisplayMode:) keyEquivalent:@""];
+    threeSegItem.representedObject = @"three-segment";
+    threeSegItem.target = self;
+
+    NSMenuItem *singleMktItem = [displayModeSub addItemWithTitle:@"Single Market" action:@selector(setDisplayMode:) keyEquivalent:@""];
+    singleMktItem.representedObject = @"single-market";
+    singleMktItem.target = self;
+
+    NSMenuItem *localOnlyItem = [displayModeSub addItemWithTitle:@"Local Only" action:@selector(setDisplayMode:) keyEquivalent:@""];
+    localOnlyItem.representedObject = @"local-only";
+    localOnlyItem.target = self;
+
+    displayModeRoot.submenu = displayModeSub;
+    [m addItem:displayModeRoot];
+
     // Build Color Theme submenu with swatches
     NSMutableArray *themePairs = [NSMutableArray array];
     for (size_t i = 0; i < kNumThemes; i++) {
@@ -843,6 +937,8 @@ static NSFont *resolveClockFont(CGFloat size) {
                 currentValue = [d stringForKey:@"SelectedMarket"];
             } else if ([subTitle isEqualToString:@"Color Theme"]) {
                 currentValue = [d stringForKey:@"ColorTheme"];
+            } else if ([subTitle isEqualToString:@"Display Mode"]) {
+                currentValue = [d stringForKey:@"DisplayMode"];
             }
 
             [self setChecksInMenu:item.submenu forKey:subTitle currentValue:currentValue];
@@ -851,6 +947,143 @@ static NSFont *resolveClockFont(CGFloat size) {
 }
 
 - (void)applyDisplaySettings {
+    NSString *mode = [[NSUserDefaults standardUserDefaults] stringForKey:@"DisplayMode"];
+    if (!mode) mode = @"three-segment";
+
+    if ([mode isEqualToString:@"three-segment"]) {
+        [self applyThreeSegmentLayout];
+    } else if ([mode isEqualToString:@"local-only"]) {
+        [self applyLocalOnlyLayout];
+    } else {
+        [self applySingleMarketLayout];
+    }
+}
+
+- (void)applyThreeSegmentLayout {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+
+    // Lazily create segment views if not present
+    if (!_localSeg) {
+        _localSeg = [[LocalSegmentView alloc] initWithFrame:NSZeroRect];
+        _localSeg.panel = self;
+        [self.contentView addSubview:_localSeg];
+    }
+    if (!_activeSeg) {
+        _activeSeg = [[ActiveSegmentView alloc] initWithFrame:NSZeroRect];
+        _activeSeg.panel = self;
+        [self.contentView addSubview:_activeSeg];
+    }
+    if (!_nextSeg) {
+        _nextSeg = [[NextSegmentView alloc] initWithFrame:NSZeroRect];
+        _nextSeg.panel = self;
+        [self.contentView addSubview:_nextSeg];
+    }
+
+    // Hide legacy labels
+    _label.hidden = YES;
+    _sessionLabel.hidden = YES;
+
+    // Update segment visibility
+    _localSeg.hidden = NO;
+    _activeSeg.hidden = NO;
+    _nextSeg.hidden = NO;
+
+    // Trigger tick to populate content
+    [self tick];
+
+    // Measure segment content to compute sizes
+    CGFloat fontSize = [d doubleForKey:@"FontSize"];
+    NSFont *primaryFont = resolveClockFont(fontSize);
+    NSFont *contentFont = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
+
+    // Measure placeholder text
+    NSDictionary *primaryAttrs = @{NSFontAttributeName: primaryFont};
+    NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
+
+    NSSize localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
+    NSSize activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
+    NSSize nextSize = [@"NEXT (—)" sizeWithAttributes:contentAttrs];
+
+    CGFloat maxHeight = ceilf(MAX(MAX(localSize.height, activeSize.height), nextSize.height));
+
+    CGFloat localSegWidth  = ceilf(localSize.width) + 32;
+    CGFloat activeSegWidth = ceilf(activeSize.width) + 32;
+    CGFloat nextSegWidth   = ceilf(nextSize.width) + 32;
+
+    CGFloat windowWidth  = localSegWidth + 4 + activeSegWidth + 4 + nextSegWidth + 16;  // 4pt gaps + 8pt margins per side
+    CGFloat segHeight    = maxHeight + 20;
+    CGFloat windowHeight = segHeight + 16;
+
+    // Anchor at current window center
+    NSRect oldFrame = self.frame;
+    CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
+    CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
+    NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
+    [self setFrame:newFrame display:YES animate:NO];
+
+    // Position segments within contentView (origin bottom-left)
+    _localSeg.frame = NSMakeRect(8, 8, localSegWidth, segHeight);
+    _activeSeg.frame = NSMakeRect(8 + localSegWidth + 4, 8, activeSegWidth, segHeight);
+    _nextSeg.frame = NSMakeRect(8 + localSegWidth + 4 + activeSegWidth + 4, 8, nextSegWidth, segHeight);
+
+    // Position text fields within each segment
+    _localSeg.timeLabel.frame = NSInsetRect(_localSeg.bounds, 8, 6);
+    _activeSeg.contentLabel.frame = NSInsetRect(_activeSeg.bounds, 8, 6);
+    _nextSeg.contentLabel.frame = NSInsetRect(_nextSeg.bounds, 8, 6);
+
+    // Set fonts
+    _localSeg.timeLabel.font = primaryFont;
+    _activeSeg.contentLabel.font = contentFont;
+    _nextSeg.contentLabel.font = contentFont;
+}
+
+- (void)applyLocalOnlyLayout {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+
+    // Update label with new font
+    CGFloat fontSize = [d doubleForKey:@"FontSize"];
+    _label.font = resolveClockFont(fontSize);
+
+    // Apply theme: foreground, background, and alpha atomically
+    NSString *themeId = [d stringForKey:@"ColorTheme"];
+    const ClockTheme *t = themeForId(themeId);
+    _label.textColor = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
+    self.backgroundColor = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:t->alpha];
+
+    _sessionLabel.hidden = YES;
+
+    // Hide segment views if they exist
+    _localSeg.hidden = YES;
+    _activeSeg.hidden = YES;
+    _nextSeg.hidden = YES;
+
+    // Show legacy labels
+    _label.hidden = NO;
+
+    // Measure text to resize window
+    [self tick];
+
+    [_label sizeToFit];
+    NSSize textSize = _label.frame.size;
+
+    CGFloat w1 = ceilf(textSize.width),  h1 = ceilf(textSize.height);
+
+    CGFloat contentWidth  = w1 + 16;
+    CGFloat contentHeight = h1;
+    CGFloat windowWidth   = contentWidth + 32;
+    CGFloat windowHeight  = contentHeight + 20;
+
+    NSRect oldFrame = self.frame;
+    CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
+    CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
+    NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
+    [self setFrame:newFrame display:YES animate:NO];
+
+    // 1-line centered
+    _label.frame = NSInsetRect(self.contentView.bounds, 8, 8);
+}
+
+- (void)applySingleMarketLayout {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
 
     // Update label with new font
@@ -868,13 +1101,17 @@ static NSFont *resolveClockFont(CGFloat size) {
     BOOL marketMode = (strlen(mkt->iana) > 0);
     _sessionLabel.hidden = !marketMode;
 
+    // Hide segment views if they exist
+    _localSeg.hidden = YES;
+    _activeSeg.hidden = YES;
+    _nextSeg.hidden = YES;
+
+    // Show legacy labels
+    _label.hidden = NO;
+
     // Measure text to resize window
     [self tick];
 
-    // Measure both labels via sizeToFit — the NSTextField itself is the
-    // authoritative source for its required size. String-level
-    // sizeWithAttributes: consistently under-measures nerd-font advance
-    // widths and attributed-run widths, clipping the trailing glyph.
     [_label sizeToFit];
     NSSize textSize = _label.frame.size;
 
@@ -887,13 +1124,9 @@ static NSFont *resolveClockFont(CGFloat size) {
     CGFloat w1 = ceilf(textSize.width),  h1 = ceilf(textSize.height);
     CGFloat w2 = ceilf(size2.width),     h2 = ceilf(size2.height);
 
-    // Safety slack: sizeToFit under-measures nerd-font glyphs (JetBrains Mono NL
-    // Nerd Font Mono specifically) because the trailing glyph advance isn't
-    // fully counted. 24pt of extra headroom per side prevents the last char
-    // from clipping at any font size.
-    CGFloat contentWidth  = MAX(w1, w2) + 16;  // 8pt per side extra content room
+    CGFloat contentWidth  = MAX(w1, w2) + 16;
     CGFloat contentHeight = marketMode ? (h1 + h2 + 4) : h1;
-    CGFloat windowWidth   = contentWidth + 32;  // 16pt per side window margin
+    CGFloat windowWidth   = contentWidth + 32;
     CGFloat windowHeight  = contentHeight + 20;
 
     NSRect oldFrame = self.frame;
@@ -958,6 +1191,19 @@ static NSFont *resolveClockFont(CGFloat size) {
     }
 }
 
+- (void)setDisplayMode:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"DisplayMode"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)showFullPreferences:(id)sender {
+    // Show the existing full menu as a popup at current mouse location
+    NSMenu *full = [self buildMenu];
+    [NSMenu popUpContextMenu:full withEvent:[NSApp currentEvent] forView:self.contentView];
+}
+
 - (void)resetPosition:(id)sender {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d removeObjectForKey:@"FloatingClockWindowFrame"];
@@ -975,6 +1221,99 @@ static NSFont *resolveClockFont(CGFloat size) {
 
 - (void)quit:(id)sender {
     [NSApp terminate:nil];
+}
+
+@end
+
+// LocalSegmentView implementation
+@implementation LocalSegmentView
+
+- (instancetype)initWithFrame:(NSRect)frame {
+    self = [super initWithFrame:frame];
+    if (!self) return nil;
+
+    self.wantsLayer = YES;
+    self.layer.backgroundColor = [NSColor colorWithRed:0.05 green:0.05 blue:0.05 alpha:0.50].CGColor;
+    self.layer.cornerRadius = 6.0;
+
+    NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    label.editable = NO;
+    label.selectable = NO;
+    label.bezeled = NO;
+    label.drawsBackground = NO;
+    label.alignment = NSTextAlignmentCenter;
+    [self addSubview:label];
+    _timeLabel = label;
+
+    return self;
+}
+
+- (NSMenu *)menuForEvent:(NSEvent *)event {
+    NSMenu *m = [[NSMenu alloc] init];
+    [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""].target = self.panel;
+    return m;
+}
+
+@end
+
+// ActiveSegmentView implementation
+@implementation ActiveSegmentView
+
+- (instancetype)initWithFrame:(NSRect)frame {
+    self = [super initWithFrame:frame];
+    if (!self) return nil;
+
+    self.wantsLayer = YES;
+    self.layer.backgroundColor = [NSColor colorWithRed:0.02 green:0.08 blue:0.04 alpha:0.50].CGColor;
+    self.layer.cornerRadius = 6.0;
+
+    NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    label.editable = NO;
+    label.selectable = NO;
+    label.bezeled = NO;
+    label.drawsBackground = NO;
+    label.alignment = NSTextAlignmentCenter;
+    [self addSubview:label];
+    _contentLabel = label;
+
+    return self;
+}
+
+- (NSMenu *)menuForEvent:(NSEvent *)event {
+    NSMenu *m = [[NSMenu alloc] init];
+    [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""].target = self.panel;
+    return m;
+}
+
+@end
+
+// NextSegmentView implementation
+@implementation NextSegmentView
+
+- (instancetype)initWithFrame:(NSRect)frame {
+    self = [super initWithFrame:frame];
+    if (!self) return nil;
+
+    self.wantsLayer = YES;
+    self.layer.backgroundColor = [NSColor colorWithRed:0.05 green:0.05 blue:0.08 alpha:0.50].CGColor;
+    self.layer.cornerRadius = 6.0;
+
+    NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    label.editable = NO;
+    label.selectable = NO;
+    label.bezeled = NO;
+    label.drawsBackground = NO;
+    label.alignment = NSTextAlignmentCenter;
+    [self addSubview:label];
+    _contentLabel = label;
+
+    return self;
+}
+
+- (NSMenu *)menuForEvent:(NSEvent *)event {
+    NSMenu *m = [[NSMenu alloc] init];
+    [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""].target = self.panel;
+    return m;
 }
 
 @end
