@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 162
+iteration: 163
 status: ACTIVE
-last_updated: 2026-04-24T18:50:00Z
+last_updated: 2026-04-24T19:00:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -596,3 +596,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 18:30 UTC — iter-160: **ClipboardHeader extracted + tested** (8e96dabf). First post-v1.9.0 iter. iter-152's fcCopyWithHeader was a static helper inside ActionHandlers.m — functional but untestable. Extracted the pure-function body to new `Sources/core/ClipboardHeader.{h,m}` module: `FCComposeClipboardSnapshot(label, body, now)` returns the formatted string; ActionHandlers only wraps it with NSPasteboard write. nil-safety via `_Nullable` annotations. New `test_clipboard_header_format`: fixed-date composition locks exact format, empty-body returns empty, nil-label graceful. Tests +1 (59 total). 59/59 pass, warning-free.
 - 2026-04-24 18:40 UTC — iter-161: **B3 (São Paulo) fills the Latin America gap** (2316a60f). Parallels iter-155's JSE (Africa) addition. Bovespa/B3: America/Sao_Paulo, 10:00–17:00 BRT year-round (Brazil abolished DST in 2019), no lunch. Flag 🇧🇷 / city SAO / abbreviation BRT. All three test fixtures extended (roster lock, city-code coverage, flag-emoji coverage). iana-prefix grouping from iter-155 auto-filed B3 under Americas — zero menu-code edit. 14-exchange roster covers all populated continents except Antarctica. 59/59 still pass.
 - 2026-04-24 18:50 UTC — iter-162: **24h sweep extended to ASX (SH-DST)** (9374d094). Sweep-family structural coverage gains a Southern-Hemisphere DST cell. ASX (Australia/Sydney) runs AEDT (UTC+11) Oct→Apr + AEST (UTC+10) Apr→Oct — inverse of NYSE's Northern calendar. 2026-04-24 is post-DST-end, so sweep validates the AEST "just ended DST" path. Catches potential SH-DST-specific regressions neither NYSE (NH-DST) nor JSE/B3 (no-DST) sweeps can detect. Tests +1 (60 total). 60/60 pass. Coverage recap: NYSE (NH-DST) · TSE (lunch+no-DST) · JSE (no-DST+no-lunch) · ASX (SH-DST).
+- 2026-04-24 19:00 UTC — iter-163: **24h sweep extended to LSE (EU-DST)** (f563ea3e). Sweep family gains its 5th distinct structural cell. LSE (Europe/London) uses EU DST rules: BST last-Sun-Mar → last-Sun-Oct, GMT otherwise — transition dates ~1 week off from US (second-Sun-Mar / first-Sun-Nov). A hypothetical hardcoded-US-transition regression would now fail CI via the EU-calendar sweep. 2026-04-24 is post-EU-spring-transition (Mar 29), so LSE sits in BST. Tests +1 (61 total). 61/61 pass. Full coverage: NYSE (US-DST) · TSE (no-DST+lunch) · JSE (no-DST+no-lunch) · ASX (SH-DST) · LSE (EU-DST).
