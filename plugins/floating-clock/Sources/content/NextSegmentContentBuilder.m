@@ -84,8 +84,19 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             countdown = [NSString stringWithFormat:@"opens %@ %@",
                 [openFmt stringFromDate:opensAt], label];
         } else {
+            // v4 iter-41: append the absolute landing time in the user's
+            // local zone so traders can see "when does this land in my
+            // day" without mental arithmetic. Market's own-TZ opening is
+            // already implicit (each market has fixed local open hours);
+            // what's uniquely useful here is "HH:mm MY time".
             NSString *verb = e.isLunchResume ? @"resumes in" : @"opens in";
-            countdown = [NSString stringWithFormat:@"%@ %@", verb, formatCountdown(e.secs)];
+            NSDate *landsAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
+            NSDateFormatter *localFmt = [[NSDateFormatter alloc] init];
+            localFmt.dateFormat = @"HH:mm";
+            localFmt.timeZone = [NSTimeZone localTimeZone];
+            NSString *localAt = [localFmt stringFromDate:landsAt];
+            countdown = [NSString stringWithFormat:@"%@ %@ · %@ local",
+                verb, formatCountdown(e.secs), localAt];
         }
         NSString *suffix = e.isLunchResume ? @" LUNCH" : @"";
 
