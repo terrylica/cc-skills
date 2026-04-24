@@ -486,6 +486,48 @@ void test_session_signal_window(void) {
     }
 }
 
+void test_session_state_color(void) {
+    // iter-154: completes the (glyph, label, color) triad's test
+    // coverage alongside existing glyphForState + labelForState
+    // fixtures. Every state must produce a color with channels in
+    // [0, 1] + alpha = 1.0; distinct colors so users can tell states
+    // apart visually.
+    SessionState states[] = {kSessionOpen, kSessionLunch, kSessionClosed,
+                             kSessionPreMarket, kSessionAfterHours};
+    NSColor *seen[5];
+    for (size_t i = 0; i < 5; i++) {
+        NSColor *c = [colorForState(states[i], NULL)
+                        colorUsingColorSpace:[NSColorSpace sRGBColorSpace]];
+        if (!c) {
+            failures++;
+            fprintf(stderr, "FAIL %s: state %d returned nil color\n",
+                    __func__, (int)states[i]);
+            continue;
+        }
+        CGFloat r, g, b, a;
+        [c getRed:&r green:&g blue:&b alpha:&a];
+        if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1 ||
+            fabs(a - 1.0) > 0.001) {
+            failures++;
+            fprintf(stderr, "FAIL %s: state %d color channels out of range (%.2f,%.2f,%.2f @ alpha %.2f)\n",
+                    __func__, (int)states[i], r, g, b, a);
+        }
+        seen[i] = c;
+    }
+    // All five colors should be distinct — overlap would mean two
+    // states are visually indistinguishable (e.g. gray CLOSED vs.
+    // gray AFTER-HOURS would hide the iter-125 signal).
+    for (size_t i = 0; i < 5; i++) {
+        for (size_t j = i + 1; j < 5; j++) {
+            if (seen[i] && seen[j] && [seen[i] isEqual:seen[j]]) {
+                failures++;
+                fprintf(stderr, "FAIL %s: states %d and %d share the same color\n",
+                        __func__, (int)states[i], (int)states[j]);
+            }
+        }
+    }
+}
+
 void test_session_state_label(void) {
     // iter-135: lock labelForState's 5-case word mapping (OPEN / LUNCH
     // / CLOSED / PRE-MARKET / AFTER-HOURS). Used by iter-134's legacy
