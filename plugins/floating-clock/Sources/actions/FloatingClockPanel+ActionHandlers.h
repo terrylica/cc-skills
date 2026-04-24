@@ -57,6 +57,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)resetVisualStyle:(id)sender;
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;
+- (void)copyTime:(id)sender;
 
 @end
 
