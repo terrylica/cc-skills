@@ -214,5 +214,6 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"FontWeight", @"ActiveWeight", @"NextWeight",
         @"LocalOpacity", @"ActiveOpacity", @"NextOpacity",
         @"LetterSpacing", @"LineSpacing", @"TimeSeparator",
+        @"SessionSignalWindow",
     ];
 }
