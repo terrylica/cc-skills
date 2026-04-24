@@ -3,6 +3,10 @@
 #import "../core/FloatingClockPanel+Runtime.h"
 #import "../rendering/SegmentOpacityResolver.h"
 
+// v4 iter-153: forward decl so copyStateToClipboard (iter-85, earlier
+// in this file) can route through the helper defined further down.
+static void fcCopyWithHeader(NSString *label, NSString *body);
+
 @implementation FloatingClockPanel (ActionHandlers)
 
 - (void)toggleShowSeconds:(NSMenuItem *)sender {
@@ -231,6 +235,9 @@
 // system clipboard. Useful for sharing state in chat/notes. Uses the
 // same attributed-string content that the UI renders so formatting
 // stays in sync automatically.
+// v4 iter-153: routed through fcCopyWithHeader for output consistency
+// with iter-149/150/152's per-segment Copy actions. All four clipboard
+// outputs now share the same header format.
 - (void)copyStateToClipboard:(id)sender {
     NSMutableString *snapshot = [NSMutableString string];
     if (_localSeg && _localSeg.timeLabel.stringValue.length > 0) {
@@ -244,9 +251,7 @@
     if (_nextSeg && _nextSeg.contentLabel.attributedStringValue.string.length > 0) {
         [snapshot appendString:_nextSeg.contentLabel.attributedStringValue.string];
     }
-    NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    [pb clearContents];
-    [pb setString:snapshot forType:NSPasteboardTypeString];
+    fcCopyWithHeader(@"FULL CLOCK STATE", snapshot);
 }
 
 - (void)setDensity:(NSMenuItem *)sender {
