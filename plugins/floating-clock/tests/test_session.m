@@ -19,6 +19,7 @@
 #import <Foundation/Foundation.h>
 #import "../Sources/data/MarketCatalog.h"
 #import "../Sources/data/MarketSessionCalculator.h"
+#import "../Sources/data/HolidayCalendar.h"
 #import "../Sources/preferences/FloatingClockStarterProfiles.h"
 #import "../Sources/content/LandingTimeFormatter.h"
 #import "test_levers.h"
@@ -559,6 +560,49 @@ static void test_flag_emoji_present_for_all_markets(void) {
     }
 }
 
+static void test_holiday_calendar_nyse(void) {
+    // v4 iter-173: pure-data lookup test for FCIsMarketHoliday.
+    // Does NOT yet test session-state integration — wiring into
+    // computeSessionState is a separate iter.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    const ClockMarket *tse  = marketForId(@"tse");
+
+    // Sample NYSE 2026 holidays (fixture-locked).
+    NSDate *thanksgiving = dateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
+    NSDate *christmas    = dateAt(@"America/New_York", 2026, 12, 25, 12, 0, 0);
+    NSDate *newYears     = dateAt(@"America/New_York", 2026,  1,  1, 12, 0, 0);
+    if (!FCIsMarketHoliday(nyse, thanksgiving)) {
+        failures++; fprintf(stderr, "FAIL %s: Thanksgiving not flagged\n", __func__);
+    }
+    if (!FCIsMarketHoliday(nyse, christmas)) {
+        failures++; fprintf(stderr, "FAIL %s: Christmas not flagged\n", __func__);
+    }
+    if (!FCIsMarketHoliday(nyse, newYears)) {
+        failures++; fprintf(stderr, "FAIL %s: New Year's Day not flagged\n", __func__);
+    }
+
+    // Regular trading day should NOT be flagged.
+    NSDate *regularFriday = dateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
+    if (FCIsMarketHoliday(nyse, regularFriday)) {
+        failures++; fprintf(stderr, "FAIL %s: Fri 2026-04-24 wrongly flagged\n", __func__);
+    }
+
+    // TSE has no hardcoded data yet — must return NO even on a real
+    // Japanese holiday (don't silently claim to know).
+    NSDate *japaneseShogatsu = dateAt(@"Asia/Tokyo", 2026, 1, 1, 12, 0, 0);
+    if (FCIsMarketHoliday(tse, japaneseShogatsu)) {
+        failures++; fprintf(stderr, "FAIL %s: TSE should have no holiday data yet\n", __func__);
+    }
+
+    // Defensive: nil mkt + nil date return NO.
+    if (FCIsMarketHoliday(NULL, thanksgiving)) {
+        failures++; fprintf(stderr, "FAIL %s: nil mkt should return NO\n", __func__);
+    }
+    if (FCIsMarketHoliday(nyse, nil)) {
+        failures++; fprintf(stderr, "FAIL %s: nil date should return NO\n", __func__);
+    }
+}
+
 static void test_market_roster_lock(void) {
     // v4 iter-156: lock the 13-exchange roster (post-iter-155 JSE).
     // Existing coverage tests iterate kMarkets and pass for whatever
@@ -815,6 +859,7 @@ int main(void) {
         test_city_codes_for_all_markets();
         test_flag_emoji_present_for_all_markets();
         test_market_roster_lock();
+        test_holiday_calendar_nyse();
         test_flag_empty_for_unknown_iana();
 
         test_starter_profiles_cover_all_keys();
@@ -854,7 +899,7 @@ int main(void) {
         test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 64 tests passed.\n");
+            fprintf(stderr, "All 65 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
