@@ -127,6 +127,31 @@ static void test_nyse_premarket_last_15min(void) {
     ASSERT_STATE(nyse, d_open, kSessionOpen);
 }
 
+static void test_tse_premarket_not_just_nyse(void) {
+    // v4 iter-124: iter-123's PRE-MARKET promotion is uniform across
+    // all 12 exchanges (no per-market hasPreMarket flag). Verify it
+    // applies to TSE too so the design choice is locked: 15 min before
+    // TSE's 09:00 JST open on a weekday = PRE-MARKET, not CLOSED.
+    const ClockMarket *tse = marketForId(@"tse");
+    // 08:50 JST on Fri 2026-04-24 (early hours pre-open)
+    NSDate *d_pre = dateAt(@"Asia/Tokyo", 2026, 4, 24, 8, 50, 0);
+    ASSERT_STATE(tse, d_pre, kSessionPreMarket);
+    ASSERT_SECS_NEAR(tse, d_pre, 10 * 60, 5);
+
+    // 08:30 JST = 30 min before = still CLOSED (outside the 15-min window).
+    NSDate *d_closed = dateAt(@"Asia/Tokyo", 2026, 4, 24, 8, 30, 0);
+    ASSERT_STATE(tse, d_closed, kSessionClosed);
+}
+
+static void test_premarket_not_on_weekend(void) {
+    // v4 iter-124: PRE-MARKET promotion requires !isWeekend. Saturday
+    // "15 min before market would open if it were a weekday" stays CLOSED.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    // Sat 2026-04-25 09:20 EDT — weekday-schedule would say pre-open.
+    NSDate *d_sat = dateAt(@"America/New_York", 2026, 4, 25, 9, 20, 0);
+    ASSERT_STATE(nyse, d_sat, kSessionClosed);
+}
+
 static void test_tse_lunch_window(void) {
     // TSE lunch is 11:30-12:30 JST. At 12:00 JST the state is LUNCH
     // and secsToNext is 30min = 1800s to lunchEnd.
@@ -420,6 +445,8 @@ int main(void) {
         test_nyse_closed_friday_evening_skips_to_monday();
         test_nyse_saturday_weekend();
         test_nyse_premarket_last_15min();
+        test_tse_premarket_not_just_nyse();
+        test_premarket_not_on_weekend();
         test_tse_lunch_window();
         test_progress_roughly_correct();
 
@@ -465,7 +492,7 @@ int main(void) {
         test_shadow_spec_catalog();
 
         if (failures == 0) {
-            fprintf(stderr, "All 40 tests passed.\n");
+            fprintf(stderr, "All 42 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
