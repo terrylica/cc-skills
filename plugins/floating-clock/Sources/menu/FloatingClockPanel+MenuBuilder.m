@@ -344,6 +344,17 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                   @[@"Four Hours    (240 min)", @"240min"]]
                                     defaultsKey:@"UrgencyHorizon"]];
 
+    // v4 iter-219: 1Hz pulse intensity (iter-212). Lets users opt out
+    // of the pulse entirely ("off") when they find it distracting, or
+    // dial it up for a stronger attention-grab on imminent events.
+    [marketItems addObject:[self submenuTitled:@"Urgency Flash"
+                                         action:@selector(setUrgencyFlash:)
+                                          pairs:@[@[@"Off           (no pulse)",      @"off"],
+                                                  @[@"Subtle        (gentle hint)",   @"subtle"],
+                                                  @[@"Normal        (default)",       @"normal"],
+                                                  @[@"Intense       (strong dim)",    @"intense"]]
+                                    defaultsKey:@"UrgencyFlash"]];
+
     [marketItems addObject:[NSMenuItem separatorItem]];
 
     // Display Mode submenu (three-segment / single-market / local-only).

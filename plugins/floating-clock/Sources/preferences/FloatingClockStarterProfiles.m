@@ -303,5 +303,6 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"LetterSpacing", @"LineSpacing", @"TimeSeparator",
         @"SessionSignalWindow",
         @"UrgencyHorizon",
+        @"UrgencyFlash",
     ];
 }
