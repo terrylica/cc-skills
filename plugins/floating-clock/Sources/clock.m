@@ -1479,14 +1479,13 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     NSString *mode = [d stringForKey:@"DisplayMode"];
     if (!mode) mode = @"three-segment";
 
-    // Canvas-wide transparency. NSWindow.alphaValue dims the entire panel +
-    // all subviews uniformly — a single global dimmer on top of the
-    // per-theme background alphas. Clamped to [0.10, 1.0] so the clock is
-    // never fully invisible.
-    double op = [d objectForKey:@"CanvasOpacity"] ? [d doubleForKey:@"CanvasOpacity"] : 1.0;
-    if (op < 0.10) op = 0.10;
-    if (op > 1.00) op = 1.00;
-    self.alphaValue = op;
+    // Canvas-only transparency. User directive: text must stay fully
+    // opaque, only backgrounds dim. NSWindow.alphaValue is NOT used
+    // (that would dim text too). Instead, applyTheme multiplies the
+    // theme's bg alpha by CanvasOpacity when setting segment layer
+    // backgrounds — text color always rendered at alpha=1.0.
+    // Ensure panel.alphaValue is always 1.0 (no whole-window dimming).
+    self.alphaValue = 1.0;
 
     if ([mode isEqualToString:@"three-segment"]) {
         [self applyThreeSegmentLayout];
@@ -1624,7 +1623,13 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     _activeSeg.frame = NSMakeRect(bottomPairX, bottomY, activeSegWidth, bottomRowHeight);
     _nextSeg.frame   = NSMakeRect(bottomPairX + activeSegWidth + 4, bottomY, nextSegWidth, bottomRowHeight);
 
-    _localSeg.timeLabel.frame     = NSMakeRect(8, 0, topRowWidth - 16, topRowHeight);
+    // LOCAL is single-line: size the label to the exact text height and
+    // position it at the row's midpoint. VCenteredCell's drawingRectForBounds
+    // centering math doesn't always land right for single-line bounds inside
+    // a much taller segment; direct frame positioning is bulletproof.
+    CGFloat localTextH = ceilf(localSize.height);
+    CGFloat localLabelY = floorf((topRowHeight - localTextH) / 2.0);
+    _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, topRowWidth - 16, localTextH);
     _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeSegWidth - 16, bottomRowHeight);
     _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextSegWidth - 16, bottomRowHeight);
 
@@ -1804,7 +1809,14 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
 }
 
 - (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field {
-    seg.layer.backgroundColor = [[NSColor colorWithRed:theme->bg_r green:theme->bg_g blue:theme->bg_b alpha:theme->alpha] CGColor];
+    // Canvas-only transparency: multiply the theme bg alpha by CanvasOpacity
+    // so ONLY the backgrounds dim. Text always renders at alpha=1.0.
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    double op = [d objectForKey:@"CanvasOpacity"] ? [d doubleForKey:@"CanvasOpacity"] : 1.0;
+    if (op < 0.10) op = 0.10;
+    if (op > 1.00) op = 1.00;
+    CGFloat bgAlpha = theme->alpha * op;
+    seg.layer.backgroundColor = [[NSColor colorWithRed:theme->bg_r green:theme->bg_g blue:theme->bg_b alpha:bgAlpha] CGColor];
     field.textColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
 }
 
