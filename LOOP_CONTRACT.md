@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 124
+iteration: 125
 status: ACTIVE
-last_updated: 2026-04-24T12:30:00Z
+last_updated: 2026-04-24T12:40:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -558,3 +558,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 12:10 UTC — iter-122: **CLAUDE.md architecture-tree refresh** (2d559ba4). Last updated at iter-86 (pre-dispatcher-extraction series). Added all 7 new data modules (core/DateFormatPrefix, SkyGlyph, SegmentGap, DensityPad, CornerRadius, ShadowSpec + preferences/FloatingClockQuickStyles) with their iter landmarks. Inline-annotated FontResolver's grown surface (FontWeight/LetterSpacing/LineSpacing/CurrentTimeFormat helpers), MenuBuilder's iter-96 MenuHelpers split, theme count 10→25, progress-bar 6→10. Zero code change. 39/39 still green.
 - 2026-04-24 12:20 UTC — iter-123: **`kSessionPreMarket` state** (07a01efc). Tier-2 enhancement from the queue. New SessionState value for the 15-minute window before each exchange's regular open (weekdays only). Uniform across all 12 exchanges — no per-market hasPreMarket flag; auction-window heuristic holds broadly enough. Promotion logic: CLOSED + !isWeekend + nowMins < openMins + secsToNext ≤ 15 min → PRE-MARKET. New amber ◐ glyph + amber color. NextSegmentContentBuilder includes it alongside CLOSED. Tests +1 (40 total) `test_nyse_premarket_last_15min` locks the 15-min / 10-min / boundary / at-open cases. CLAUDE.md Known-Limitations updated: pre-market handled, after-hours remains Tier-2.
 - 2026-04-24 12:30 UTC — iter-124: **PRE-MARKET universal-exchange + weekend-exclusion fixtures** (b02feefd). iter-123 shipped one NYSE case; backfill locks the two implicit design invariants. `test_tse_premarket_not_just_nyse` — TSE at 08:50 JST = PRE-MARKET, 08:30 JST = CLOSED. Guarantees no one later introduces a per-market `hasPreMarket` flag that silently restricts promotion to NYSE. `test_premarket_not_on_weekend` — Sat 09:20 EDT stays CLOSED despite being <15 min from the imaginary 09:30 open. Locks the `!isWeekend` guard in computeSessionState. Tests +2 (42 total). 42/42 green.
+- 2026-04-24 12:40 UTC — iter-125: **`kSessionAfterHours` state** (d76bdafd). Symmetric to iter-123. New SessionState for the 15-min window immediately after each exchange's regular close (weekdays only). Uniform across all 12 exchanges — no per-market hasAfterHours flag; short symmetric signal rather than trying to model each exchange's full extended session (US ~4h, others 1-2h). Promotion: CLOSED + !isWeekend + nowMins >= closeMins + (nowMins - closeMins) <= 15 → AFTER-HOURS. New ◒ glyph (bottom-half dark, dusk complement to PRE-MARKET's ◐ left-half dawn) + rose color (0.95/0.45/0.55). NextSegmentContentBuilder filter extended. Test harness stateName() switch extended — compiler exhaustiveness caught the gap. Tests +2 (44 total) covering 16:00 boundary / 16:10 within / 15:59 mid-session / 16:30 back to CLOSED / Sat 16:10 weekend-excluded. CLAUDE.md Design state-glyph table + Known-Limitations both updated. 44/44 green, warning-free.
