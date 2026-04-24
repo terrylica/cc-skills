@@ -603,6 +603,34 @@ static void test_holiday_calendar_nyse(void) {
     }
 }
 
+static void test_nyse_holiday_state_closed(void) {
+    // v4 iter-174: integration lock. iter-173 tested FCIsMarketHoliday
+    // as a pure function; this test verifies the result is actually
+    // consumed by computeSessionState — specifically, that NYSE on
+    // Thanksgiving 2026 returns kSessionClosed even at 12:00 ET
+    // (normally mid-session). Also locks down that the PRE-MARKET and
+    // AFTER-HOURS promotions are blocked on holidays: without the
+    // guard, 09:15 (15 min pre-open) and 16:15 (15 min post-close)
+    // would promote to PRE/AFTER respectively.
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    // Mid-session on Thanksgiving → CLOSED (not OPEN).
+    NSDate *thanksgivingMidday = dateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
+    ASSERT_STATE(nyse, thanksgivingMidday, kSessionClosed);
+
+    // Pre-open window on Thanksgiving → CLOSED (not PRE-MARKET).
+    NSDate *thanksgivingPreOpen = dateAt(@"America/New_York", 2026, 11, 26, 9, 25, 0);
+    ASSERT_STATE(nyse, thanksgivingPreOpen, kSessionClosed);
+
+    // Post-close window on Thanksgiving → CLOSED (not AFTER-HOURS).
+    NSDate *thanksgivingPostClose = dateAt(@"America/New_York", 2026, 11, 26, 16, 5, 0);
+    ASSERT_STATE(nyse, thanksgivingPostClose, kSessionClosed);
+
+    // Sanity: a regular Friday (2026-04-24) mid-session still OPEN.
+    NSDate *regularFridayMidday = dateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
+    ASSERT_STATE(nyse, regularFridayMidday, kSessionOpen);
+}
+
 static void test_market_roster_lock(void) {
     // v4 iter-156: lock the 13-exchange roster (post-iter-155 JSE).
     // Existing coverage tests iterate kMarkets and pass for whatever
@@ -860,6 +888,7 @@ int main(void) {
         test_flag_emoji_present_for_all_markets();
         test_market_roster_lock();
         test_holiday_calendar_nyse();
+        test_nyse_holiday_state_closed();
         test_flag_empty_for_unknown_iana();
 
         test_starter_profiles_cover_all_keys();
@@ -899,7 +928,7 @@ int main(void) {
         test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 65 tests passed.\n");
+            fprintf(stderr, "All 66 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
