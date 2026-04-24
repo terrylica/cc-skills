@@ -1,14 +1,14 @@
 ---
-name: floating-clock-v2-enhancements
-version: 2
+name: floating-clock-v3-three-segment-dashboard
+version: 3
 iteration: 10
-status: DONE
-last_updated: 2026-04-24T02:10:00Z
+status: ACTIVE
+last_updated: 2026-04-24T02:30:00Z
 exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 100
 trigger: "/loop — reads this file verbatim each firing"
 dispatch_policy:
-  enabled: false
+  enabled: true
   require_experimental_teams: false
 ---
 
@@ -245,6 +245,157 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 - [ ] User-definable theme bundles (add your own palette)
 
 ---
+
+## Campaign v3 — Three-Segment Dashboard + Profile System + 25-Phase Audit
+
+**Reopened 2026-04-24** per user directive. Extensive autonomous campaign with 7 feature iterations (iter-11 through iter-17) followed by 25 validation iterations (iter-18 through iter-42) and a synthesis iteration (iter-43) — 33 total. Uses multi-agent dispatch (Phase 2a enabled) for audits.
+
+### Locked Design Decisions (from user confirmation 2026-04-24)
+
+1. **Layout**: Three horizontal segments — `LOCAL | ACTIVE MARKETS | NEXT TO OPEN`.
+2. **Window sizing**: Adaptive height + soft width budget (~620 px baseline). Grows vertically when many markets active.
+3. **TZ grouping in ACTIVE segment**: Strict IANA — exchanges in identical IANA TZ strings collapse under one header (NYSE+NASDAQ), different-IANA (Paris/Berlin) do not.
+4. **Empty ACTIVE**: Visible with "—" placeholder (stable layout).
+5. **Legacy preservation**: New pref `DisplayMode` — `three-segment` (new default) / `single-market` (legacy iter-9) / `local-only` (pre-iter-8). Existing users' `SelectedMarket` migrates to `single-market` mode.
+6. **Right-click scope**: segment-specific. Right-click inside the LOCAL segment → menu scoped to local-only options + LocalTheme; right-click ACTIVE → active-scoped options + ActiveTheme; right-click NEXT → next-scoped options + NextTheme. A separate global right-click on the frame border opens the full preferences menu.
+7. **Profile system**: user saves/loads named profile bundles (all prefs). Bundled starters: `Default`, `Day Trader`, `Night Owl`, `Minimalist`, `Watch Party`. Additionally, Claude Code's auto-memory system records profile activations so future sessions know the user's style.
+8. **Per-segment themes**: three new NSUserDefaults keys `LocalTheme`, `ActiveTheme`, `NextTheme`. Existing `ColorTheme` becomes the fallback / legacy.
+
+### Audit Agent Archetypes (10 distinct teams)
+
+Each audit iteration spawns 2-4 of these agents with `run_in_background: true` for parallel evaluation. Agents write structured reports to `.planning/audits/iter-NN-<topic>/<archetype>.md`. Aggregation happens in the main loop.
+
+1. **Visual Inspector** — multimodal vision agent; reviews screenshots against expected layout.
+2. **Typography Critic** — spacing, baseline alignment, font-weight progression, monospace consistency.
+3. **Color Theorist** — WCAG contrast, cross-segment harmony, color-blindness considerations.
+4. **Trader Persona: NYC Day Trader** — roleplays watching NY open while caring about Asia close.
+5. **Trader Persona: London Macro** — roleplays watching EU/UK with US overlap.
+6. **Trader Persona: Asia-Pacific** — roleplays night-session Asian volatility.
+7. **Trader Persona: Remote Nomad** — roleplays someone frequently changing local time zones.
+8. **Novice User** — first-launch discovery, can they customize without docs.
+9. **Power User** — can they find every option, is profile switching fluent.
+10. **Accessibility Auditor** — legibility at small sizes, low-vision, motor-impaired menu navigation.
+11. **Adversarial Fuzzer** — DST transitions, TZ lookup failures, all-markets-closed scenarios, resize stress.
+12. **Code Reviewer** — single-file constraint, ARC correctness, thread safety, memory footprint discipline.
+
+(12 archetypes; loop uses whichever are most relevant per audit phase, targeting "at least 10" participation across the 25 audit iterations.)
+
+### Agent Report Schema
+
+Every audit agent writes to its designated file using this template (Markdown + YAML frontmatter):
+
+```markdown
+---
+archetype: <archetype name>
+iter: <NN>
+topic: <one-line topic>
+timestamp: <ISO 8601>
+verdict: approve | flag | reject
+severity: low | medium | high | critical
+---
+
+## What I evaluated
+
+<1 paragraph — scope of this specific audit>
+
+## Findings
+
+- <finding 1, with rationale>
+- <finding 2>
+- ...
+
+## Recommended fixes (prioritized)
+
+1. <fix>
+2. <fix>
+
+## Specific evidence
+
+<screenshots, logs, file:line references, or concrete examples>
+```
+
+### Feature Iterations (iter-11 through iter-17)
+
+- [ ] **iter-11 — Three-segment NSView layout scaffold**
+      Add three `NSView` subclasses (`LocalSegment`, `ActiveSegment`, `NextSegment`) arranged horizontally. Each has its own `backgroundColor` (theme-driven) and its own `menuForEvent:` returning a segment-scoped menu. Replace the single `_label` NSTextField with three container views, each containing their own NSTextFields as needed. Window width grows as content demands, capped at ~900 px. Add new NSUserDefaults key `DisplayMode` (default `"three-segment"`) with migration: if `SelectedMarket != "local"` at first run of v1.3.0, set `DisplayMode = "single-market"` to preserve current behavior. iter-11 just scaffolds the skeleton with placeholder content — iter-12/13 populate.
+      Commit: `feat(floating-clock): three-segment NSView scaffold with per-segment right-click menus`
+
+- [ ] **iter-12 — ACTIVE segment population with IANA TZ grouping**
+      Scan `kMarkets` each tick; any market in `kSessionOpen` or `kSessionLunch` state → add to ACTIVE. Group by `iana` string (strict equality). One "block" per unique IANA, listing all markets in that IANA. Each market line shows: code + state glyph + progress bar (8 cells) + countdown. Empty-active shows "—". Max 6 visible (scroll/clip extras with "…").
+      Commit: `feat(floating-clock): ACTIVE segment shows live markets grouped by IANA timezone`
+
+- [ ] **iter-13 — NEXT segment population (next opens)**
+      For each market in `kSessionClosed`, compute seconds-to-next-open. Sort ascending. Show top 3. Each line: code + opens-in-countdown ± TZ label. When a lunch-break market ends lunch, should it temporarily appear in NEXT (showing "resumes in Xm")? User decision: YES — include lunch-resume in NEXT for informative value.
+      Commit: `feat(floating-clock): NEXT segment with top-3 upcoming opens including lunch resumes`
+
+- [ ] **iter-14 — Per-segment themes (LocalTheme / ActiveTheme / NextTheme)**
+      Three new NSUserDefaults keys, each holding a theme id from `kThemes`. Defaults: Local=`terminal`, Active=`green_phosphor` (lively), Next=`soft_glass` (subdued). Legacy `ColorTheme` key becomes read-only fallback if any per-segment key unset.
+      Commit: `feat(floating-clock): per-segment theme customization with independent NSUserDefaults keys`
+
+- [ ] **iter-15 — Segment-scoped right-click menus**
+      Each segment's `menuForEvent:` returns a menu scoped to that segment's options: theme picker, a segment-enable/disable toggle (hide this segment entirely), and a "Show Full Preferences…" escape hatch to the global menu. Global menu remains accessible via right-click on the window frame/gutter (outside any segment).
+      Commit: `feat(floating-clock): segment-scoped right-click context menus`
+
+- [ ] **iter-16 — DisplayMode switch preserving legacy**
+      New submenu `Display Mode ▶` with `Three-Segment ✓ / Single Market / Local Only`. In `single-market` mode, the clock reverts to iter-9 behavior (1 exchange selected via `SelectedMarket`). In `local-only`, reverts to iter-7 behavior (just HH:MM:SS). Existing v1.2.0 users who had `SelectedMarket != local` auto-migrate to `single-market` mode on first launch of v1.3.0 (preserve workflow).
+      Commit: `feat(floating-clock): DisplayMode switch with backward-compatible migration`
+
+- [ ] **iter-17 — Profile system with bundled starters + Claude Code memory integration**
+      New NSUserDefaults key `Profiles` holding a dictionary `{name → prefs-dict}`, and `ActiveProfile` holding current profile name. New submenu `Profile ▶ <list of profiles> / Save Current As… / Delete…`. Bundle 5 starters: `Default` (factory), `Day Trader` (large font, three-segment, amber theme), `Night Owl` (small font, dim themes, local-only), `Minimalist` (local-only, soft-glass theme), `Watch Party` (xtra-large font, Dracula, single-market NYSE). When user activates a profile, record it via Claude Code's auto-memory system (append to `~/.claude/projects/…/memory/`) so future Claude sessions know which profile the user is on.
+      Commit: `feat(floating-clock): profile system with 5 bundled starters and CC memory integration`
+
+### Audit Iterations (iter-18 through iter-42 — exactly 25 phases)
+
+Each audit iter spawns 2-4 agents in parallel (`run_in_background: true`). Agents write reports to `.planning/audits/iter-NN-<topic>/`. Main loop aggregates. No code changes in audit phase — findings go into `.planning/audits/SYNTHESIS.md` at iter-43.
+
+**Visual / Multimodal (5 phases — each spawns Visual Inspector + 1 persona):**
+
+- [ ] **iter-18** — Default fresh install visual review (no prefs set). Agents: Visual Inspector, Novice User.
+- [ ] **iter-19** — All 10 themes applied to each segment: 30 permutations screenshot grid. Agents: Visual Inspector, Color Theorist.
+- [ ] **iter-20** — Font-size scaling: screenshots at 10/16/24/36/48/64pt. Agents: Visual Inspector, Typography Critic.
+- [ ] **iter-21** — Multi-market density stress: all Asia active (5 markets). Agents: Visual Inspector, Power User.
+- [ ] **iter-22** — Edge cases: midnight UTC (no markets open), weekend, DST transition dates. Agents: Visual Inspector, Adversarial Fuzzer.
+
+**Aesthetic (5 phases):**
+
+- [ ] **iter-23** — Typography & spacing across segments. Agents: Typography Critic, Accessibility Auditor.
+- [ ] **iter-24** — Cross-segment color harmony. Agents: Color Theorist, Visual Inspector.
+- [ ] **iter-25** — Information hierarchy & eye-scan paths. Agents: Visual Inspector, Novice User, Power User.
+- [ ] **iter-26** — Minimalism vs density balance. Agents: Typography Critic, Trader NYC Day Trader.
+- [ ] **iter-27** — macOS HIG compliance (menu behavior, context-menu conventions). Agents: Power User, Code Reviewer.
+
+**International Trader Personas (8 phases):**
+
+- [ ] **iter-28** — NYC Day Trader: watching NY open with Tokyo close peripheral. Agents: NYC Day Trader, Visual Inspector.
+- [ ] **iter-29** — London Macro: EU markets with US overlap. Agents: London Macro, Color Theorist.
+- [ ] **iter-30** — Asia-Pacific Forex. Agents: Asia-Pacific, Visual Inspector.
+- [ ] **iter-31** — HK/SSE arbitrage. Agents: Asia-Pacific, Adversarial Fuzzer (lunch-break behavior).
+- [ ] **iter-32** — After-hours US retail. Agents: NYC Day Trader, Power User.
+- [ ] **iter-33** — Multi-asset institutional (many markets at once). Agents: Power User, Visual Inspector.
+- [ ] **iter-34** — Remote Nomad (often-changing local TZ). Agents: Remote Nomad, Adversarial Fuzzer.
+- [ ] **iter-35** — Quant researcher (precision + edge cases). Agents: Code Reviewer, Adversarial Fuzzer.
+
+**Customization UX (7 phases):**
+
+- [ ] **iter-36** — Novice first-launch discoverability. Agents: Novice User, Accessibility Auditor.
+- [ ] **iter-37** — Power user feature exploration. Agents: Power User, Code Reviewer.
+- [ ] **iter-38** — Profile switching workflow. Agents: Power User, Novice User.
+- [ ] **iter-39** — Theme creation UX (picking fg/bg/alpha). Agents: Color Theorist, Power User.
+- [ ] **iter-40** — Building a custom layout from defaults. Agents: Novice User, Power User.
+- [ ] **iter-41** — Claude Code memory integration — does it persist preferences meaningfully. Agents: Power User, Code Reviewer.
+- [ ] **iter-42** — Final adversarial sweep: what breaks, what's annoying, what should be Tier 2. Agents: Adversarial Fuzzer, all personas (one comment each).
+
+**Synthesis:**
+
+- [ ] **iter-43** — Aggregate all 25 audit reports. Produce `SYNTHESIS.md` with: top-10 critical findings, top-10 aesthetic improvements, top-10 UX improvements, list of Tier 2 deferred items, and a single "must-fix before v1.3.0" priority list. No code changes — document only, user reviews before any fixes land.
+
+### Autonomous Loop Rules for Campaign v3
+
+- **Feature iters (iter-11 to iter-17)**: Tier 0 in-turn chaining, same as campaign v2. Each ships + validates.
+- **Audit iters (iter-18 to iter-42)**: Phase 2a multi-agent dispatch with `run_in_background: true`. Main loop waits for parallel reports (fires new wake on last report completion via notification). Aggregates + commits report files (no source changes). Continues to next iter.
+- **Synthesis (iter-43)**: Single Agent call reading all 25 audit directories, producing SYNTHESIS.md. Flip `status: DONE`.
+- **Safety**: if any audit agent reports `severity: critical` with `verdict: reject` on a just-shipped feature iter, the main loop PAUSES the audit campaign and spawns a fix iter BEFORE continuing. User is notified via PushNotification.
+- **User stop-early**: user can `rm LOOP_CONTRACT.md` or edit frontmatter to `status: STOPPED`, and the loop exits cleanly at next firing.
 
 ## Non-Obvious Learnings (preserve across revisions)
 
