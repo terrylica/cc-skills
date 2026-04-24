@@ -69,7 +69,17 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
         NSString *headerTime = [hf stringFromDate:now];
         const ClockMarket *firstM = &kMarkets[[(NSNumber *)group[0] intValue]];
         const char *cityCode = cityCodeForIana(firstM->iana);
+        const char *flag = [d boolForKey:@"ShowFlags"] ? flagForIana(firstM->iana) : "";
 
+        // Emoji glyphs don't render inside monospacedSystemFont — use the
+        // default system font (Apple Color Emoji fallback) for the flag
+        // prefix only, then the mono font for the rest of the header.
+        if (flag[0] != 0) {
+            NSString *flagStr = [[NSString stringWithUTF8String:flag] stringByAppendingString:@" "];
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:flagStr
+                attributes:@{NSFontAttributeName: ([NSFont fontWithName:@"Apple Color Emoji" size:fontSize] ?: [NSFont systemFontOfSize:fontSize])}]];
+        }
         NSString *headerLine = [NSString stringWithFormat:@"%s %@\n", cityCode, headerTime];
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:headerLine

@@ -134,6 +134,12 @@
     }
 }
 
+- (void)toggleShowFlags:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setBool:![d boolForKey:@"ShowFlags"] forKey:@"ShowFlags"];
+    [self applyDisplaySettings];
+}
+
 - (void)setNextItemCount:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
         [[NSUserDefaults standardUserDefaults] setInteger:[sender.representedObject integerValue] forKey:@"NextItemCount"];

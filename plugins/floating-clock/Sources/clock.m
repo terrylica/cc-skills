@@ -97,6 +97,7 @@
         @"ShadowStyle": @"none",
         @"ActiveFontSize": @11.0,
         @"NextFontSize": @11.0,
+        @"ShowFlags": @YES,
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];

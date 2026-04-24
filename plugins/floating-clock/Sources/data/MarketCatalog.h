@@ -26,4 +26,8 @@ extern const size_t kNumMarkets;
 const ClockMarket *marketForId(NSString * _Nullable idStr);
 const char *cityCodeForIana(const char * _Nullable iana);
 
+// UTF-8 country-flag emoji for the exchange whose IANA zone is supplied.
+// Returns empty string for IANA zones without a mapping (never crashes).
+const char *flagForIana(const char * _Nullable iana);
+
 NS_ASSUME_NONNULL_END
