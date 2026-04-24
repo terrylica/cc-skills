@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 Phase: 34
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-04-23 - Completed quick task 260423-n9b: Add floating-clock plugin (single-file Objective-C, 56KB binary)
+Last activity: 2026-04-23 - Completed quick task 260423-nig: floating-clock refinements (iTerm2 font, bottom-center default, multi-monitor antifragility)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -103,6 +103,7 @@ None yet.
 | 260407-h07 | Antifragile fix for AfplayPlayer WAV-write failure (self-healing + telemetry + chaos test)       | 2026-04-07 | 11b86163 | [260407-h07-antifragile-fix-for-afplayplayer-wav-wri](./quick/260407-h07-antifragile-fix-for-afplayplayer-wav-wri/) |
 | 260407-odg | Fix subtitle panel intermittent disappearance (cancellable hide + periodic orderFrontRegardless) | 2026-04-07 | 211e308e | [260407-odg-fix-subtitle-panel-intermittent-disappea](./quick/260407-odg-fix-subtitle-panel-intermittent-disappea/) |
 | 260423-n9b | Add floating-clock plugin (single-file Objective-C, 56KB binary, NSPanel always-on-top)          | 2026-04-23 | 05a0cc44 | [260423-n9b-add-floating-clock-plugin-single-file-ob](./quick/260423-n9b-add-floating-clock-plugin-single-file-ob/) |
+| 260423-nig | floating-clock refinements: iTerm2 font + bottom-center default + multi-monitor antifragility    | 2026-04-23 | 53f6167c | [260423-nig-floating-clock-refinements-iterm2-font-b](./quick/260423-nig-floating-clock-refinements-iterm2-font-b/) |
 
 ## Session Continuity
 
