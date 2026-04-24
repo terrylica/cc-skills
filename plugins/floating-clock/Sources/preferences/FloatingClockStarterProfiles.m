@@ -237,6 +237,11 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowSkyState": @NO,
             @"ShowProgressPercent": @YES,
             @"SelectedMarket": @"local",
+            // v4 iter-148: explicit 30-min auction window. Matches the
+            // profile comment; without this line the key falls back to
+            // the registered default "15min" and the "Extended" label
+            // in the comment would be false advertising.
+            @"SessionSignalWindow": @"30min",
         },
     };
 }
