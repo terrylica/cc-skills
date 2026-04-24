@@ -108,6 +108,28 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"thin", @"LetterSpacing": @"wide", @"LineSpacing": @"loose",
         @"TimeSeparator": @"middot",
     };
+    // v4 iter-218: two moods exercising iter-217's new soft-diffuse shadows.
+    // Cinema — film-noir movie-credits readout: midnight_blue palette +
+    // vignette atmospheric drop + thin weight + airy spacings + space
+    // separator (typewriter-on-black-card vibe). Distinct from Midnight
+    // (dense halo) and Featherlight (lavender no-shadow).
+    NSDictionary *cinema = @{
+        @"LocalTheme": @"midnight_blue", @"ActiveTheme": @"midnight_blue", @"NextTheme": @"midnight_blue",
+        @"CornerStyle": @"soft", @"ShadowStyle": @"vignette", @"Density": @"comfortable",
+        @"FontWeight": @"thin", @"LetterSpacing": @"airy", @"LineSpacing": @"loose",
+        @"TimeSeparator": @"space",
+    };
+    // Levitation — content-floats-above-desktop vibe: soft_glass palette
+    // + floating shadow (deep wide-soft drop) + squircle corners +
+    // spacious density + middot separator. Distinct from Zen (halo
+    // shadow + soft_glass) — Levitation's deep offset adds tangible
+    // depth where Zen's halo sits centered.
+    NSDictionary *levitation = @{
+        @"LocalTheme": @"soft_glass", @"ActiveTheme": @"soft_glass", @"NextTheme": @"soft_glass",
+        @"CornerStyle": @"squircle", @"ShadowStyle": @"floating", @"Density": @"spacious",
+        @"FontWeight": @"medium", @"LetterSpacing": @"normal", @"LineSpacing": @"airy",
+        @"TimeSeparator": @"middot",
+    };
 
     return @[
         @[@"Brutalist",     brutalist],
@@ -124,5 +146,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @[@"Scholar",       scholar],
         @[@"Samba",         samba],
         @[@"Borealis",      borealis],
+        @[@"Cinema",        cinema],
+        @[@"Levitation",    levitation],
     ];
 }
