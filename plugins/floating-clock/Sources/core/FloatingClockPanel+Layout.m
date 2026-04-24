@@ -100,6 +100,14 @@
 
     NSSize nextSize = FCMeasureAttributedUnwrapped(_nextSeg.contentLabel.attributedStringValue);
     if (nextSize.height < 10) nextSize = [@"NEXT TO OPEN" sizeWithAttributes:nextAttrs];
+    // v4 iter-61: NEXT layout now renders 2 lines per market (iter-60). The
+    // measurer underestimates by ~1 line-height when the trailing content
+    // isn't terminated by a newline (our last market has none). Add a
+    // safety margin so VerticallyCenteredTextFieldCell doesn't pixel-clip
+    // the last bottom line.
+    NSFont *nextMeasureFont = [nextAttrs objectForKey:NSFontAttributeName] ?: [NSFont systemFontOfSize:11];
+    CGFloat nextLineHeight = [[[NSLayoutManager alloc] init] defaultLineHeightForFont:nextMeasureFont];
+    nextSize.height = ceilf(nextSize.height + nextLineHeight * 1.2);
 
     CGFloat localHeight  = ceilf(localSize.height);
     CGFloat activeHeight = ceilf(activeSize.height);
