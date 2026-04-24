@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 95
+iteration: 96
 status: ACTIVE
-last_updated: 2026-04-24T07:40:00Z
+last_updated: 2026-04-24T07:50:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -525,3 +525,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 07:20 UTC — iter-93: **shadow catalog 4 → 7** (6d45c63e). Three new ShadowStyle presets: `crisp` (pixel-hard 1/-1 drop, radius 0, opacity 0.85 — stamp feel), `plinth` (deep 0/-8 drop, radius 10, opacity 0.70 — stage base), `halo` (theme-bg bloom 0/0, radius 10, opacity 0.50). Pure CALayer.shadow\* property tweaks — no new dependencies. Full Preferences → Display → Shadow submenu grows to 7 entries. No new tests (shadow is purely visual, covered by warning-free build + existing gauntlet). 29/29 still green.
 - 2026-04-24 07:30 UTC — iter-94: **LetterSpacing lever** (02deec81). New typographic axis parallel to FontWeight — adjusts character tracking on ACTIVE + NEXT attributed strings via NSKernAttributeName. 5 presets: compact (-1.0) / tight (-0.5) / normal (0.0) / airy (+0.5) / wide (+1.0). New helpers `FCParseLetterSpacing` + `FCApplyLetterSpacing` in FontResolver. Applied at each return site in both content builders; no-op at "normal" skips attribute entirely. LetterSpacing exempted from starter-coverage test (power-user sticky lever, default = no-op). Tests +1 (30 total). Warning-free build, 184 KB binary.
 - 2026-04-24 07:40 UTC — iter-95: **LineSpacing lever** (8b517bcf). Completes typographic trilogy (FontWeight → LetterSpacing → LineSpacing). Vertical rhythm control on ACTIVE + NEXT multi-line via NSParagraphStyle.lineSpacing. 5 presets: tight (0pt) / snug (1pt) / normal (2pt) / loose (4pt) / airy (7pt). New helpers `FCParseLineSpacing` + `FCApplyLineSpacing`. Applied alongside FCApplyLetterSpacing at each builder return. Default `normal` matches current visual. Full Preferences → Display → Line Spacing submenu. Tests +1 (31 total). Warning-free build.
+- 2026-04-24 07:50 UTC — iter-96: **proactive MenuBuilder split** (7745611d). MenuBuilder.m had grown to 469 LoC — only 31 LoC of cap headroom before next menu addition would break the contract. Extracted 5 shared NSMenu helpers (submenuTitled / groupedSubmenuTitled / setChecksInMenu / representedObject:matchesValue: / refreshMenuChecks) into `Sources/menu/FloatingClockPanel+MenuHelpers.{h,m}` (112 LoC). MenuBuilder.m now 375 LoC. SegmentMenus.m picks up the new import. No behavior change, no new tests. 31/31 still green.
