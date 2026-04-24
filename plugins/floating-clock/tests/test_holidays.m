@@ -554,6 +554,68 @@ void test_holiday_calendar_krx(void) {
     }
 }
 
+void test_holiday_calendar_nse(void) {
+    // v4 iter-185: NSE 2026. India's calendar is the most diverse —
+    // mixes Gregorian-fixed civic dates (Republic Day, Gandhi Jayanti,
+    // Christmas), Christian (Good Friday), Jain (Mahavir Jayanti),
+    // Sikh (Guru Nanak Jayanti), Muslim (Bakri Id), and multiple
+    // Hindu lunar-calendar festivals (Holi, Ram Navami, Ganesh
+    // Chaturthi, Dussehra, Diwali 2-day cluster). This test asserts
+    // the Gregorian-fixed dates with confidence; the lunar-derived
+    // dates are fixture-locked best-effort.
+    const ClockMarket *nse  = marketForId(@"nse");
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    // Gregorian-fixed Indian civic dates (highest confidence).
+    NSDate *republicDay  = holidayDateAt(@"Asia/Kolkata", 2026,  1, 26, 12, 0, 0);
+    NSDate *maharashtra  = holidayDateAt(@"Asia/Kolkata", 2026,  5,  1, 12, 0, 0);
+    NSDate *gandhi       = holidayDateAt(@"Asia/Kolkata", 2026, 10,  2, 12, 0, 0);
+    NSDate *goodFriday   = holidayDateAt(@"Asia/Kolkata", 2026,  4,  3, 12, 0, 0);
+    NSDate *christmas    = holidayDateAt(@"Asia/Kolkata", 2026, 12, 25, 12, 0, 0);
+    if (!FCIsMarketHoliday(nse, republicDay)) { failures++; fprintf(stderr, "FAIL %s: Republic Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(nse, maharashtra)) { failures++; fprintf(stderr, "FAIL %s: Maharashtra Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(nse, gandhi))      { failures++; fprintf(stderr, "FAIL %s: Gandhi Jayanti not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(nse, goodFriday))  { failures++; fprintf(stderr, "FAIL %s: Good Friday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(nse, christmas))   { failures++; fprintf(stderr, "FAIL %s: Christmas not flagged\n", __func__); }
+
+    // Lunar/religious-calc dates (fixture-locked, best-effort).
+    NSDate *diwaliLaxmi  = holidayDateAt(@"Asia/Kolkata", 2026, 11,  9, 12, 0, 0);
+    NSDate *govardhan    = holidayDateAt(@"Asia/Kolkata", 2026, 11, 10, 12, 0, 0);
+    NSDate *ganesh       = holidayDateAt(@"Asia/Kolkata", 2026,  8, 26, 12, 0, 0);
+    NSDate *dussehra     = holidayDateAt(@"Asia/Kolkata", 2026, 10, 20, 12, 0, 0);
+    NSDate *holi         = holidayDateAt(@"Asia/Kolkata", 2026,  3,  3, 12, 0, 0);
+    if (!FCIsMarketHoliday(nse, diwaliLaxmi)) { failures++; fprintf(stderr, "FAIL %s: Diwali Laxmi Pujan not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(nse, govardhan))   { failures++; fprintf(stderr, "FAIL %s: Govardhan Puja not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(nse, ganesh))      { failures++; fprintf(stderr, "FAIL %s: Ganesh Chaturthi not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(nse, dussehra))    { failures++; fprintf(stderr, "FAIL %s: Dussehra not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(nse, holi))        { failures++; fprintf(stderr, "FAIL %s: Holi not flagged\n", __func__); }
+
+    // NSE does NOT substitute Independence Day (Aug 15 2026 = Saturday)
+    // — Mon Aug 17 must NOT be flagged (not an NSE holiday; weekend
+    // branch handles Aug 15 itself).
+    NSDate *aug17Mon = holidayDateAt(@"Asia/Kolkata", 2026, 8, 17, 12, 0, 0);
+    if (FCIsMarketHoliday(nse, aug17Mon)) {
+        failures++; fprintf(stderr, "FAIL %s: NSE wrongly flagged Aug 17 (Indep Day Aug 15 Sat, no substitute)\n", __func__);
+    }
+
+    // Cross-market negatives: NYSE must NOT flag NSE-only holidays.
+    if (FCIsMarketHoliday(nyse, republicDay)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Republic Day\n", __func__); }
+    if (FCIsMarketHoliday(nyse, gandhi))      { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Gandhi Jayanti\n", __func__); }
+    if (FCIsMarketHoliday(nyse, diwaliLaxmi)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Diwali\n", __func__); }
+
+    // NSE must NOT flag NYSE Thanksgiving.
+    NSDate *thanksgiving = holidayDateAt(@"Asia/Kolkata", 2026, 11, 26, 12, 0, 0);
+    if (FCIsMarketHoliday(nse, thanksgiving)) {
+        failures++; fprintf(stderr, "FAIL %s: NSE wrongly flagged Thanksgiving\n", __func__);
+    }
+
+    // Regular NSE trading day should NOT be flagged.
+    NSDate *regularTue = holidayDateAt(@"Asia/Kolkata", 2026, 7, 14, 12, 0, 0);
+    if (FCIsMarketHoliday(nse, regularTue)) {
+        failures++; fprintf(stderr, "FAIL %s: Tue 2026-07-14 wrongly flagged on NSE\n", __func__);
+    }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and
