@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 101
+iteration: 102
 status: ACTIVE
-last_updated: 2026-04-24T08:40:00Z
+last_updated: 2026-04-24T08:50:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -531,3 +531,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 08:20 UTC — iter-99: **Density catalog 4 → 6** (7952e68e). Two new presets bracket the existing range: `ultracompact` (4pt) and `cavernous` (64pt). Pad now spans 4pt → 64pt (16×) vs prior 12pt → 48pt (4×). Pure data — Density pref already drives inner-row-height formula in Layout.m. Full Preferences → Display → Density submenu grows to 6 entries with inline point annotations. 31/31 still green.
 - 2026-04-24 08:30 UTC — **iter-100 milestone** (c2cb3cb4). Plugin bumped 1.4.0 → 1.5.0. Description rewritten to surface v1.5 aesthetic expansion: themes 20→25, progress bars 6→10, corners 4→8, shadows 4→7, density 4→6; new levers FontWeight (global + per-segment), per-segment Transparency, LetterSpacing + LineSpacing, TimeSeparator; plus two proactive category splits (MenuBuilder → SegmentMenus at iter-87, MenuBuilder → MenuHelpers at iter-96). Test suite 23 → 31 fixtures. All validators green. 216 KB signed binary.
 - 2026-04-24 08:40 UTC — iter-101: **NextItemCount 4 → 7 presets** (a0a7b33f). Adds 4 / 7 / 10 to the existing 1 / 2 / 3 / 5. With 12 exchanges up to ~11 can be CLOSED at once, so 10 is now a meaningful ceiling. Menu-only change in SegmentMenus.m. 31/31 still green.
+- 2026-04-24 08:50 UTC — iter-102: **Quick Style presets** (866baf21). New top-level menu category parallel to Profile, scoped to aesthetic-only levers (leaves FontSize / SelectedMarket / DisplayMode alone). 4 bundled moods: Brutalist, Zen, Retro CRT, Executive. Each writes a 10-key pref dict atomically. New methods `buildQuickStylesMenu` + `applyQuickStyle:`. MenuBuilder.m 393 → 454 LoC, still under cap. 31/31 still green.
