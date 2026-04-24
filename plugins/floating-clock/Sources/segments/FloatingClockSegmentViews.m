@@ -9,6 +9,7 @@
 - (NSMenu *)buildLocalSegmentMenu;
 - (NSMenu *)buildActiveSegmentMenu;
 - (NSMenu *)buildNextSegmentMenu;
+- (void)applyDisplaySettings;  // iter-206: collapse toggle dispatch
 @end
 
 // v4 iter-199: shared factory for the bottom-left corner debug label.
@@ -118,8 +119,26 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 }
 
 - (NSString *)fcNameID { return @"LOCAL"; }
-- (NSString *)fcFullName { return @"LOCAL — top segment, current user-local time"; }
+- (NSString *)fcFullName { return @"LOCAL — top segment, current user-local time · double-click to collapse/expand bottom blocks"; }
 - (void)fcRefreshDebugLabel { fcApplyDebugLabelVisibility(_debugLabel); }
+
+// v4 iter-206: double-click LOCAL → toggle SegmentsCollapsed flag,
+// which Layout.m's applyDisplaySettings interprets as temporary
+// local-only rendering. DisplayMode pref stays at three-segment so
+// the collapse is presentation-only, not a mode change. Single click
+// is left untouched (drag-to-move on the window background still
+// works because NSPanel.isMovableByWindowBackground handles it
+// before mouseDown reaches the NSView subclass).
+- (void)mouseDown:(NSEvent *)event {
+    if (event.clickCount == 2) {
+        NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+        BOOL cur = [d boolForKey:@"SegmentsCollapsed"];
+        [d setBool:!cur forKey:@"SegmentsCollapsed"];
+        [(id)self.panel applyDisplaySettings];
+        return;
+    }
+    [super mouseDown:event];
+}
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
     return [(id)self.panel buildLocalSegmentMenu];
