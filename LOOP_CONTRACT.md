@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 144
+iteration: 145
 status: ACTIVE
-last_updated: 2026-04-24T15:50:00Z
+last_updated: 2026-04-24T16:00:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -578,3 +578,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 15:30 UTC — iter-142: **PRE/AFTER progress-value locks** (136cf18f). Existing PRE/AFTER fixtures covered state + secsToNext but left `progress` implicit. Added new `ASSERT_PROGRESS_NEAR` macro (parallel to ASSERT_SECS_NEAR) and two fixtures: `test_premarket_progress_is_zero` (NYSE 09:20 EDT → 0.0) and `test_afterhours_progress_is_one` (NYSE 16:10 EDT → 1.0). Locks the invariant so a future edit to the progress-computation ladder won't silently break bar rendering when state is PRE-MARKET or AFTER-HOURS. Tests +2 (51 total). 51/51 pass, warning-free.
 - 2026-04-24 15:40 UTC — iter-143: **24h state-invariants sweep fixture** (9593f8e0). Prior fixtures verified specific input → specific output; this catches structural regressions at arbitrary minutes. iter-48 caught a similar bug (secsToNext off-by-7h since iter-9) only by chance during manual inspection. New `test_state_invariants_24h_sweep` iterates NYSE's full Friday in 30-min steps (48 checkpoints), asserting at every tick: state ∈ the 5-enum set, progress ∈ [0, 1], secsToNext ≥ 0. Catches enum drift, progress overflow, negative countdowns proactively. Tests +1 (52 total), 52/52 pass, all 48 checkpoints hold, warning-free.
 - 2026-04-24 15:50 UTC — iter-144: **Quick Styles 10 → 12** (a57c7db9). `Trading Floor` (amber_crt / pill / glow / compact / bold / tight / pipe — analog trading desk with iter-139's pipe separator) and `Scholar` (paper_white / rounded / subtle / comfortable / regular / extrawide / cavernous / middot — uses iter-137 extrawide LetterSpacing + iter-138 cavernous LineSpacing for deliberate, studious readout). Iter-104's invariant test auto-covers both; CLAUDE.md Quick-Style row + architecture tree + About-dialog text updated to 12 moods. 52/52 still pass, warning-free.
+- 2026-04-24 16:00 UTC — iter-145: **24h sweep extended to lunch-market (TSE)** (f82a749f). iter-143 covered NYSE's 48 checkpoints but NYSE has no LUNCH state — the lunch-code-path region of computeSessionState (11:30-12:30 JST for TSE / matching for HKEX/SSE) was untested at the invariant level. Refactor: extracted sweep body into `sweep_invariants(mkt, iana, tzLabel)` helper (5-enum validity, progress ∈ [0,1], secsToNext ≥ 0). `test_state_invariants_24h_sweep` kept as NYSE-EDT driver; new `test_state_invariants_tse_sweep` as TSE-JST driver. 48 new checkpoints through LUNCH path. Tests +1 (53 total). 53/53 pass, warning-free.
