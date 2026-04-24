@@ -38,6 +38,19 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"bold", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
         @"TimeSeparator": @"colon",
     };
+    // v4 iter-106: two cool-palette moods.
+    NSDictionary *glacier = @{
+        @"LocalTheme": @"nord", @"ActiveTheme": @"nord", @"NextTheme": @"nord",
+        @"CornerStyle": @"squircle", @"ShadowStyle": @"subtle", @"Density": @"comfortable",
+        @"FontWeight": @"regular", @"LetterSpacing": @"normal", @"LineSpacing": @"normal",
+        @"TimeSeparator": @"middot",
+    };
+    NSDictionary *midnight = @{
+        @"LocalTheme": @"midnight_blue", @"ActiveTheme": @"midnight_blue", @"NextTheme": @"midnight_blue",
+        @"CornerStyle": @"soft", @"ShadowStyle": @"halo", @"Density": @"default",
+        @"FontWeight": @"medium", @"LetterSpacing": @"normal", @"LineSpacing": @"normal",
+        @"TimeSeparator": @"colon",
+    };
 
     return @[
         @[@"Brutalist", brutalist],
@@ -46,5 +59,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @[@"Executive", executive],
         @[@"Neon",      neon],
         @[@"Hacker",    hacker],
+        @[@"Glacier",   glacier],
+        @[@"Midnight",  midnight],
     ];
 }
