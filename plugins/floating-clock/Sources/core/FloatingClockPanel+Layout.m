@@ -119,16 +119,20 @@
     CGFloat activeHeight = ceilf(activeSize.height);
     CGFloat nextHeight   = ceilf(nextSize.height);
 
-    // v4 iter-35: Density profile — scales inner-row padding.
-    //   compact      12pt (half of default)
-    //   default      24pt (baseline, matches prior hardcoded padding)
+    // v4 iter-35 + iter-99: Density profile — scales inner-row padding.
+    //   ultracompact  4pt  (tightest, iter-99)
+    //   compact      12pt  (half of default)
+    //   default      24pt  (baseline, matches prior hardcoded padding)
     //   comfortable  36pt
     //   spacious     48pt
+    //   cavernous    64pt  (widest, iter-99)
     NSString *densityId = [d stringForKey:@"Density"];
     CGFloat pad = 24;
-    if      ([densityId isEqualToString:@"compact"])     pad = 12;
-    else if ([densityId isEqualToString:@"comfortable"]) pad = 36;
-    else if ([densityId isEqualToString:@"spacious"])    pad = 48;
+    if      ([densityId isEqualToString:@"ultracompact"]) pad = 4;
+    else if ([densityId isEqualToString:@"compact"])      pad = 12;
+    else if ([densityId isEqualToString:@"comfortable"])  pad = 36;
+    else if ([densityId isEqualToString:@"spacious"])     pad = 48;
+    else if ([densityId isEqualToString:@"cavernous"])    pad = 64;
 
     CGFloat localRowHeight  = localHeight  + pad;
     CGFloat marketRowHeight = MAX(activeHeight, nextHeight) + pad;
