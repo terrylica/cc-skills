@@ -521,6 +521,46 @@ static void test_segment_opacity_fallback(void) {
     [d removeObjectForKey:@"TestSegOpacity"];
 }
 
+static void test_progress_bar_glyph_styles(void) {
+    // All 10 glyph styles are reachable by id and emit the documented
+    // (filled, empty) pair. buildProgressBar(0.5, 4) → 2 filled + 2 empty,
+    // so position 0 is filled and position 3 is empty.
+    struct { NSString *id; NSString *filled; NSString *empty; } cases[] = {
+        {@"blocks",  @"█", @"▒"},
+        {@"dots",    @"●", @"○"},
+        {@"dashes",  @"━", @"╌"},
+        {@"arrows",  @"▶", @"▷"},
+        {@"binary",  @"█", @"░"},
+        {@"braille", @"⣿", @"⣀"},
+        {@"hearts",  @"♥", @"♡"},
+        {@"stars",   @"★", @"☆"},
+        {@"ribbon",  @"▰", @"▱"},
+        {@"diamond", @"◆", @"◇"},
+    };
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        [d setObject:cases[i].id forKey:@"ProgressBarStyle"];
+        NSString *bar = buildProgressBar(0.5, 4);
+        if (![bar hasPrefix:cases[i].filled] || ![bar hasSuffix:cases[i].empty]) {
+            fprintf(stderr, "FAIL %s: style '%s' expected prefix '%s' suffix '%s' got '%s'\n",
+                    __func__, cases[i].id.UTF8String,
+                    cases[i].filled.UTF8String,
+                    cases[i].empty.UTF8String,
+                    bar.UTF8String);
+            failures++;
+        }
+    }
+    // Unknown id falls back to "dots".
+    [d setObject:@"does-not-exist" forKey:@"ProgressBarStyle"];
+    NSString *bar = buildProgressBar(0.5, 4);
+    if (![bar hasPrefix:@"●"] || ![bar hasSuffix:@"○"]) {
+        fprintf(stderr, "FAIL %s: unknown id should fall back to dots, got '%s'\n",
+                __func__, bar.UTF8String);
+        failures++;
+    }
+    [d removeObjectForKey:@"ProgressBarStyle"];
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -556,9 +596,10 @@ int main(void) {
         test_font_weight_parser();
         test_segment_weight_fallback();
         test_segment_opacity_fallback();
+        test_progress_bar_glyph_styles();
 
         if (failures == 0) {
-            fprintf(stderr, "All 27 tests passed.\n");
+            fprintf(stderr, "All 28 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
