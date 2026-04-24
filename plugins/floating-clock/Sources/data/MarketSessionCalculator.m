@@ -1,4 +1,5 @@
 #import "MarketSessionCalculator.h"
+#import "../core/SessionSignalWindow.h"
 #include <string.h>
 
 const long kFCSecondsPerDay           = 24L * 3600L;
@@ -82,24 +83,30 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     if (secsToNext < 0) secsToNext = 0;
 
     // v4 iter-123: promote CLOSED → PRE-MARKET when today's open is
-    // ≤15 min away (applies to every exchange — simpler than a per-
+    // ≤W min away (applies to every exchange — simpler than a per-
     // market hasPreMarket flag, and the auction-window heuristic
     // holds broadly). Weekend / cross-day-gap closed states stay
     // plain CLOSED because the promotion requires the same calendar
     // day's open ahead of now.
-    if (state == kSessionClosed && !isWeekend && nowMins < openMins && secsToNext <= 15 * 60) {
+    //
+    // v4 iter-126: W is user-controlled via the `SessionSignalWindow`
+    // NSUserDefaults key (presets 0/5/15/30/60 min). W=0 disables both
+    // PRE-MARKET and AFTER-HOURS promotions — pure OPEN/CLOSED/LUNCH
+    // semantics for users who find the short signals noisy.
+    NSString *sigId = [[NSUserDefaults standardUserDefaults] stringForKey:@"SessionSignalWindow"];
+    NSInteger sigMins = FCSessionSignalWindowMinutes(sigId);
+
+    if (sigMins > 0 && state == kSessionClosed && !isWeekend && nowMins < openMins && secsToNext <= sigMins * 60) {
         state = kSessionPreMarket;
     }
 
     // v4 iter-125: mirror of iter-123 for the post-close window. CLOSED is
-    // promoted to AFTER-HOURS during the first 15 min following the regular
+    // promoted to AFTER-HOURS during the first W min following the regular
     // close (weekdays only). The countdown keeps pointing at tomorrow's
     // open; the distinct glyph is what signals "just closed" in the NEXT
-    // segment. After-hours auction windows vary per market (US ~4h, others
-    // 1-2h) — we cap at 15 min so the signal stays short and symmetric
-    // with PRE-MARKET rather than claim to model each exchange's full
-    // extended session.
-    if (state == kSessionClosed && !isWeekend && nowMins >= closeMins && (nowMins - closeMins) <= 15) {
+    // segment. Uniform window shared with PRE-MARKET via
+    // `SessionSignalWindow` (iter-126).
+    if (sigMins > 0 && state == kSessionClosed && !isWeekend && nowMins >= closeMins && (nowMins - closeMins) <= sigMins) {
         state = kSessionAfterHours;
     }
 
