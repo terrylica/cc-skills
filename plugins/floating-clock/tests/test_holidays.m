@@ -758,6 +758,34 @@ void test_halfday_calendar_nyse(void) {
     }
 }
 
+void test_nyse_halfday_state_closed(void) {
+    // v4 iter-189: integration lock for iter-188 data. Verifies that
+    // computeSessionState actually consumes the half-day early-close
+    // time: at 14:00 ET on NYSE Black Friday, state must be CLOSED
+    // (regular NYSE close is 16:00 — without the iter-189 wiring this
+    // would return OPEN). 10:00 ET on Black Friday should still be
+    // OPEN (pre-13:00-close normal trading). Also asserts the same
+    // behavior on Christmas Eve.
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    // Black Friday Nov 27 2026 — early close 13:00 ET.
+    NSDate *bfMorning     = holidayDateAt(@"America/New_York", 2026, 11, 27, 10,  0, 0);
+    NSDate *bfAfterClose  = holidayDateAt(@"America/New_York", 2026, 11, 27, 14,  0, 0);
+    ASSERT_HSTATE(nyse, bfMorning,    kSessionOpen);
+    ASSERT_HSTATE(nyse, bfAfterClose, kSessionClosed);
+
+    // Christmas Eve Dec 24 2026 — early close 13:00 ET.
+    NSDate *xeMorning    = holidayDateAt(@"America/New_York", 2026, 12, 24, 10,  0, 0);
+    NSDate *xeAfterClose = holidayDateAt(@"America/New_York", 2026, 12, 24, 14,  0, 0);
+    ASSERT_HSTATE(nyse, xeMorning,    kSessionOpen);
+    ASSERT_HSTATE(nyse, xeAfterClose, kSessionClosed);
+
+    // Sanity: a regular NYSE Friday at 14:00 should still be OPEN
+    // (iter-189 didn't break the normal case).
+    NSDate *regularFri14 = holidayDateAt(@"America/New_York", 2026, 4, 24, 14, 0, 0);
+    ASSERT_HSTATE(nyse, regularFri14, kSessionOpen);
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and
