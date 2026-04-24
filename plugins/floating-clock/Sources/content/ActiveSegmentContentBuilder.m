@@ -55,8 +55,11 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
     NSMutableAttributedString *out = [[NSMutableAttributedString alloc] init];
 
     // v4 iter-73: shared section-header helper (SegmentHeaderRenderer).
+    // v4 iter-201: title suppressed — [ACTIVE] bottom-left canonical
+    // label (iter-199) is the section identifier. Legend + hrule stay
+    // because they describe the column format.
     FCAppendSectionHeader(out, font,
-        @"ACTIVE MARKETS",
+        @"",
         @"city · market time · progress → time to close",
         headerColor, dimColor, FCDividerRuleColor());
 

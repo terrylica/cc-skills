@@ -78,8 +78,11 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     // as a unit. Horizontal rule uses light-weight U+2500 '─' at length
     // 44, which fits comfortably in the NEXT segment at 11pt.
     // v4 iter-73: shared section-header helper (SegmentHeaderRenderer).
+    // v4 iter-201: title suppressed — [NEXT] bottom-left canonical
+    // label (iter-199) is the section identifier. Legend + hrule stay
+    // because they describe the column format.
     FCAppendSectionHeader(out, font,
-        @"NEXT TO OPEN",
+        @"",
         @"countdown · your time → market time · session",
         headerColor, dimColor, FCDividerRuleColor());
 
