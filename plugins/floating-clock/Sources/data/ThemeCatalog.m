@@ -38,6 +38,11 @@ const ClockTheme kThemes[] = {
     // v4 iter-169: pairs with iter-161's B3 (São Paulo) addition.
     // Brazilian-flag-inspired: warm yellow on deep-green jungle.
     {"carnival",      "Carnival",       0.98, 0.90, 0.20,  0.05, 0.35, 0.15, 0.55},
+    // v4 iter-195: aurora borealis — cyan-green foreground on deep
+    // indigo-black background. Cool winter-night mood, distinct
+    // from the warm amber/red/carnival themes and from the more
+    // desaturated nord / tokyo_night. 29th theme.
+    {"aurora",        "Aurora",         0.35, 0.92, 0.82,  0.03, 0.05, 0.12, 0.45},
 };
 const size_t kNumThemes = sizeof(kThemes) / sizeof(kThemes[0]);
 
