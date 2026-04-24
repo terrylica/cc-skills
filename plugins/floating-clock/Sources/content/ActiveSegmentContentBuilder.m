@@ -140,8 +140,18 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
             // cell [frontier, frontier+1) bright (state color at full
             // saturation), empty cells beyond gray. Creates a "running
             // head" that makes the bar feel alive rather than flat.
-            NSColor *pastColor  = [glyphColor colorWithAlphaComponent:0.55];
-            NSColor *headColor  = glyphColor;
+            //
+            // v4 iter-213: for OPEN state, the running-head color shifts
+            // along the iter-212 imminence gradient (green far from close,
+            // red near close, 1Hz pulse below 30s). The bar's leading
+            // edge becomes a coordinated visual signal with the
+            // countdown text — same color, same pulse phase. Non-OPEN
+            // states keep the static glyphColor (lunch=violet etc.).
+            NSColor *runningColor = (state == kSessionOpen)
+                ? FCUrgencyAlertColor(secsToNext, glyphColor, (long)time(NULL))
+                : glyphColor;
+            NSColor *pastColor  = [runningColor colorWithAlphaComponent:(runningColor.alphaComponent * 0.55)];
+            NSColor *headColor  = runningColor;
             NSColor *emptyColor = FCProgressEmptyColor();
             NSInteger splitIdx = fcProgressBarFullCells(progress, (int)barCells);
             if (splitIdx > (NSInteger)bar.length) splitIdx = bar.length;
