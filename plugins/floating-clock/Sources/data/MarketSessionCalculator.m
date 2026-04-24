@@ -51,10 +51,16 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
         progress = 1.0;
     }
 
+    // Throughout this block `nextBoundaryMins` is DELTA-minutes from now
+    // to the next state transition (not absolute minute-of-day). The
+    // secsToNext conversion below assumes delta form.
     NSInteger nextBoundaryMins;
     if (state == kSessionClosed) {
         if (!isWeekend && nowMins < openMins) {
-            nextBoundaryMins = openMins;
+            // v4 iter-48 fix: was `openMins` (absolute-min-of-day) which
+            // produced a nonsensical secsToNext — e.g. NYSE showed "9h29m"
+            // when actually opening in 2h37m. Correct delta is openMins - nowMins.
+            nextBoundaryMins = openMins - nowMins;
         } else {
             int addDays = 1;
             NSInteger nextWeekday = ((comps.weekday) % 7) + 1;
