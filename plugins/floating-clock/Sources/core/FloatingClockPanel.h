@@ -22,11 +22,12 @@ NS_ASSUME_NONNULL_BEGIN
 }
 // Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
 // Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}
-- (NSRect)clampFrameToVisibleScreen:(NSRect)proposed;
-- (NSRect)defaultFrame;
-- (void)tick;
-- (void)tickThreeSegment;
-- (void)tickLegacy;
+// v4 iter-80: the methods clampFrameToVisibleScreen:/defaultFrame/tick/
+// tickThreeSegment/tickLegacy moved to FloatingClockPanel+Runtime.h
+// (they are implemented in the Runtime category). Declaring them in
+// the primary @interface while categorically implementing them triggered
+// -Wobjc-protocol-method-implementation. Now declared only once, in
+// their implementing category.
 // Profile management → Sources/preferences/FloatingClockPanel+ProfileManagement.{h,m}
 - (void)setDateFormat:(NSMenuItem *)sender;
 @end
