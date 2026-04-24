@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 93
+iteration: 94
 status: ACTIVE
-last_updated: 2026-04-24T07:20:00Z
+last_updated: 2026-04-24T07:30:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -523,3 +523,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 07:00 UTC — iter-91: **progress-bar glyph catalog 6 → 10** (f43c39f1). New styles: hearts (♥ ♡), stars (★ ☆), ribbon (▰ ▱), diamond (◆ ◇). ACTIVE scoped menu's Progress Bar Style submenu grows to 10 entries with inline glyph previews. Unknown ids still fall back to "dots". Tests +1 (28 total) — verifies buildProgressBar emits the correct prefix/suffix glyph for each of the 10 ids plus the fallback path. Warning-free build, 184 KB binary.
 - 2026-04-24 07:10 UTC — iter-92: **theme catalog 20 → 25** (44d6499a). Five new mood palettes: oceanic_deep, cherry_blossom, espresso, lavender_dream, mint_dark. Zero menu changes needed — theme submenus auto-enumerate kThemes. Tests +1 (29 total) `test_theme_catalog_invariants` locks count=25, checks id/display non-empty, color channels and alpha in [0,1], themeForId round-trip for every entry, plus unknown-id fallback to kThemes[0]. CLAUDE.md header bumped 10 → 25 themes with provenance by batch.
 - 2026-04-24 07:20 UTC — iter-93: **shadow catalog 4 → 7** (6d45c63e). Three new ShadowStyle presets: `crisp` (pixel-hard 1/-1 drop, radius 0, opacity 0.85 — stamp feel), `plinth` (deep 0/-8 drop, radius 10, opacity 0.70 — stage base), `halo` (theme-bg bloom 0/0, radius 10, opacity 0.50). Pure CALayer.shadow\* property tweaks — no new dependencies. Full Preferences → Display → Shadow submenu grows to 7 entries. No new tests (shadow is purely visual, covered by warning-free build + existing gauntlet). 29/29 still green.
+- 2026-04-24 07:30 UTC — iter-94: **LetterSpacing lever** (02deec81). New typographic axis parallel to FontWeight — adjusts character tracking on ACTIVE + NEXT attributed strings via NSKernAttributeName. 5 presets: compact (-1.0) / tight (-0.5) / normal (0.0) / airy (+0.5) / wide (+1.0). New helpers `FCParseLetterSpacing` + `FCApplyLetterSpacing` in FontResolver. Applied at each return site in both content builders; no-op at "normal" skips attribute entirely. LetterSpacing exempted from starter-coverage test (power-user sticky lever, default = no-op). Tests +1 (30 total). Warning-free build, 184 KB binary.
