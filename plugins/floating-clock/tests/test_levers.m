@@ -181,6 +181,7 @@ void test_line_spacing_parser(void) {
     struct { NSString *id; CGFloat leading; } cases[] = {
         {@"tight", 0.0}, {@"snug", 1.0}, {@"normal", 2.0},
         {@"loose", 4.0}, {@"airy", 7.0},
+        {@"spacious", 10.0}, {@"cavernous", 14.0},   // iter-138
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         if (fabs(FCParseLineSpacing(cases[i].id) - cases[i].leading) > 0.001) {
@@ -366,7 +367,7 @@ void test_quick_styles_invariants(void) {
         @"FontWeight":     [NSSet setWithArray:@[@"thin", @"regular", @"medium", @"semibold",
                                                   @"bold", @"heavy", @"black"]],
         @"LetterSpacing":  [NSSet setWithArray:@[@"condensed", @"compact", @"tight", @"normal", @"airy", @"wide", @"extrawide"]],
-        @"LineSpacing":    [NSSet setWithArray:@[@"tight", @"snug", @"normal", @"loose", @"airy"]],
+        @"LineSpacing":    [NSSet setWithArray:@[@"tight", @"snug", @"normal", @"loose", @"airy", @"spacious", @"cavernous"]],
         @"TimeSeparator":  [NSSet setWithArray:@[@"colon", @"middot", @"space", @"slash", @"dash"]],
     };
     for (NSArray *style in styles) {
