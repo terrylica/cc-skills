@@ -66,7 +66,8 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
         // names like BST/CEST instead of falling back to GMT+N.
         NSTimeZone *tz = [NSTimeZone timeZoneWithName:iana];
         NSDateFormatter *hf = [[NSDateFormatter alloc] init];
-        hf.dateFormat = @"EEE MMM d HH:mm:ss";
+        BOOL showSec = [d boolForKey:@"ShowSeconds"];
+        hf.dateFormat = showSec ? @"EEE MMM d HH:mm:ss" : @"EEE MMM d HH:mm";
         if (tz) hf.timeZone = tz;
         NSString *tzLabel = fullTzLabelForIana(iana.UTF8String, now);
         NSString *headerTime = [NSString stringWithFormat:@"%@ %@",
