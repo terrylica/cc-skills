@@ -48,13 +48,14 @@ NSString *formatCountdown(long secs);
 NSString *formatCountdownFancy(long secs);
 
 // Fixed-length bar string. The glyph pair is selected by the
-// NSUserDefaults key "ProgressBarStyle":
-//   "blocks" (default) — █ / ▒
-//   "dots"             — ● / ○
-//   "dashes"           — ━ / ╌
-//   "arrows"           — ▶ / ▷
-//   "binary"           — █ / ░
-//   "braille"          — ⣿ / ⣀
+// NSUserDefaults key "ProgressBarStyle" (12 presets, iter-131):
+//   "blocks"    — █ / ▒     "hearts"    — ♥ / ♡
+//   "dots"      — ● / ○     "stars"     — ★ / ☆
+//   "thindots"  — • / ·     "ribbon"    — ▰ / ▱
+//   "dashes"    — ━ / ╌     "diamond"   — ◆ / ◇
+//   "arrows"    — ▶ / ▷     "triangles" — ▲ / △
+//   "binary"    — █ / ░     "braille"   — ⣿ / ⣀
+// Default / unknown / nil → "dots".
 NSString *buildProgressBar(double progress01, int totalCells);
 
 // Return the number of "filled" cells for the given progress. Callers
