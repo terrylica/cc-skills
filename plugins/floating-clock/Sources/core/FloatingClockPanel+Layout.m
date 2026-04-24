@@ -164,6 +164,22 @@
     _activeSeg.frame = NSMakeRect(activeX, activeY, activeW, activeH);
     _nextSeg.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
 
+    // v4 iter-30: CornerStyle applies to all three segments uniformly.
+    //   sharp     0pt
+    //   rounded   6pt  (default, matches prior hardcoded radius)
+    //   squircle  14pt
+    //   pill      half the segment's shorter axis (fully rounded ends)
+    NSString *cornerId = [d stringForKey:@"CornerStyle"];
+    CGFloat (^cornerRadiusFor)(CGFloat, CGFloat) = ^CGFloat(CGFloat w, CGFloat h) {
+        if ([cornerId isEqualToString:@"sharp"])    return 0.0;
+        if ([cornerId isEqualToString:@"squircle"]) return 14.0;
+        if ([cornerId isEqualToString:@"pill"])     return MIN(w, h) / 2.0;
+        return 6.0;  // "rounded" default
+    };
+    _localSeg.layer.cornerRadius  = cornerRadiusFor(localW, localH);
+    _activeSeg.layer.cornerRadius = cornerRadiusFor(activeW, activeH);
+    _nextSeg.layer.cornerRadius   = cornerRadiusFor(nextW, nextH);
+
     // LOCAL label centered inside its row (ascender + |descender| + 25% slack).
     // LOCAL label frame = full segment height. NSTextFieldCell draws text
     // within with built-in vertical metrics; clipping only happens when

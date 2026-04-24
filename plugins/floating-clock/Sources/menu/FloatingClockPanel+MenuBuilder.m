@@ -94,6 +94,15 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Spacious (14pt)", @"spacious"]]
                                      defaultsKey:@"SegmentGap"]];
 
+    // v4 iter-30: corner-style presets (applies to all segments).
+    [displayItems addObject:[self submenuTitled:@"Corners"
+                                          action:@selector(setCornerStyle:)
+                                           pairs:@[@[@"Sharp",    @"sharp"],
+                                                   @[@"Rounded",  @"rounded"],
+                                                   @[@"Squircle", @"squircle"],
+                                                   @[@"Pill",     @"pill"]]
+                                     defaultsKey:@"CornerStyle"]];
+
     [m addItem:fcTopCategory(@"Display", displayItems)];
 
     // === THEMES ===
