@@ -136,7 +136,17 @@
     CGFloat pad = FCDensityPadPoints([d stringForKey:@"Density"]);
 
     CGFloat localRowHeight  = localHeight  + pad;
-    CGFloat marketRowHeight = MAX(activeHeight, nextHeight) + pad;
+    // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
+    // their own measured content instead of sharing MAX. `marketRow`
+    // height (the row the two sit in) still uses MAX because the
+    // window is a single rectangle, but the two segments keep
+    // individual heights so the shorter one doesn't over-pad.
+    // `activeOwnHeight` / `nextOwnHeight` are the intrinsic block
+    // heights; they align at the top of the row so the legend /
+    // hrule lines stay horizontally aligned between the two blocks.
+    CGFloat activeOwnHeight = activeHeight + pad;
+    CGFloat nextOwnHeight   = nextHeight   + pad;
+    CGFloat marketRowHeight = MAX(activeOwnHeight, nextOwnHeight);
 
     CGFloat localInnerWidth  = ceilf(localSize.width) + pad + 8;
     CGFloat activeSegWidth   = ceilf(activeSize.width) + pad + 8;
@@ -179,8 +189,17 @@
 
         localX = 12; localY = localRowY; localW = rowWidth; localH = localRowHeight;
         CGFloat pairX = 12 + (rowWidth - marketRowInnerWidth) / 2.0;
-        activeX = pairX;                 activeY = marketRowY; activeW = activeSegWidth; activeH = marketRowHeight;
-        nextX = pairX + activeW + gap;   nextY = marketRowY;   nextW = nextSegWidth;     nextH = marketRowHeight;
+        // v4 iter-204: per-segment dynamic heights. ACTIVE + NEXT each
+        // take their own measured height (activeOwnHeight /
+        // nextOwnHeight) instead of both inflating to the row max.
+        // Top-aligned so the legend + hrule rows stay on the same
+        // horizontal line across the two blocks — much cleaner than
+        // bottom-align, which would leave a ragged top edge. The
+        // marketRowY anchors the row's TOP edge; each block's bottom
+        // edge is (row_top - own_height).
+        CGFloat marketRowTopY = marketRowY + marketRowHeight;
+        activeX = pairX;               activeY = marketRowTopY - activeOwnHeight; activeW = activeSegWidth; activeH = activeOwnHeight;
+        nextX   = pairX + activeW + gap; nextY = marketRowTopY - nextOwnHeight;   nextW = nextSegWidth;     nextH = nextOwnHeight;
     }
 
     NSRect oldFrame = self.frame;
@@ -194,11 +213,33 @@
     CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
     NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
     newFrame = [self clampFrameToVisibleScreen:newFrame];
-    [self setFrame:newFrame display:YES animate:NO];
 
-    _localSeg.frame  = NSMakeRect(localX,  localY,  localW,  localH);
-    _activeSeg.frame = NSMakeRect(activeX, activeY, activeW, activeH);
-    _nextSeg.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
+    // v4 iter-204: smooth animated resize. Before this iter, frame
+    // changes on market-count deltas (open-close boundary, a new
+    // exchange entering ACTIVE, etc.) snapped instantly. Now wrap
+    // in NSAnimationContext with a short duration so the user sees
+    // the window + segments glide into their new sizes. 150ms is
+    // short enough to feel responsive (not laggy) but long enough
+    // to be perceptible as intentional motion. Guard against runaway
+    // animation stacking: if the size delta is tiny (< 1pt) skip the
+    // animation and use instant setFrame.
+    BOOL isMajorResize = fabs(oldFrame.size.width - windowWidth) > 1.0
+                      || fabs(oldFrame.size.height - windowHeight) > 1.0;
+    if (isMajorResize) {
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *ctx) {
+            ctx.duration = 0.15;
+            ctx.allowsImplicitAnimation = YES;
+            [self.animator setFrame:newFrame display:YES];
+            self->_localSeg.animator.frame  = NSMakeRect(localX,  localY,  localW,  localH);
+            self->_activeSeg.animator.frame = NSMakeRect(activeX, activeY, activeW, activeH);
+            self->_nextSeg.animator.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
+        } completionHandler:nil];
+    } else {
+        [self setFrame:newFrame display:YES animate:NO];
+        _localSeg.frame  = NSMakeRect(localX,  localY,  localW,  localH);
+        _activeSeg.frame = NSMakeRect(activeX, activeY, activeW, activeH);
+        _nextSeg.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
+    }
 
     // v4 iter-30 / iter-97 / iter-117: 8 CornerStyle presets. Dispatcher
     // lives in Sources/core/CornerRadius.{h,m}; test locks the catalog.
