@@ -186,6 +186,67 @@ static void test_utc_offset_format(void) {
     ASSERT_EQ_STR(utcOffsetForIana("Asia/Kolkata", any), @"UTC+5:30");
 }
 
+static void test_city_codes_for_all_markets(void) {
+    // Each supported IANA has a stable 3-letter city code. Catches
+    // future typos or IANA-to-display-code drift.
+    struct { const char *iana; const char *code; } fixtures[] = {
+        {"America/New_York",  "NYC"},
+        {"America/Toronto",   "TOR"},
+        {"Europe/London",     "LON"},
+        {"Europe/Paris",      "PAR"},
+        {"Europe/Berlin",     "FRA"},
+        {"Europe/Zurich",     "ZRH"},
+        {"Asia/Tokyo",        "TOK"},
+        {"Asia/Hong_Kong",    "HKG"},
+        {"Asia/Shanghai",     "SHA"},
+        {"Asia/Seoul",        "SEO"},
+        {"Asia/Kolkata",      "MUM"},
+        {"Australia/Sydney",  "SYD"},
+    };
+    for (size_t i = 0; i < sizeof(fixtures)/sizeof(fixtures[0]); i++) {
+        const char *got = cityCodeForIana(fixtures[i].iana);
+        if (strcmp(got, fixtures[i].code) != 0) {
+            fprintf(stderr, "FAIL %s: %s expected '%s' got '%s'\n",
+                    __func__, fixtures[i].iana, fixtures[i].code, got);
+            failures++;
+        }
+    }
+}
+
+static void test_flag_emoji_present_for_all_markets(void) {
+    // Each supported IANA has a country-flag emoji. Exact byte sequence
+    // isn't asserted (regional-indicator pairs are easy to typo) — just
+    // verify non-empty and starts with the regional-indicator lead byte 0xF0.
+    const char *ianas[] = {
+        "America/New_York", "America/Toronto", "Europe/London", "Europe/Paris",
+        "Europe/Berlin", "Europe/Zurich", "Asia/Tokyo", "Asia/Hong_Kong",
+        "Asia/Shanghai", "Asia/Seoul", "Asia/Kolkata", "Australia/Sydney",
+    };
+    for (size_t i = 0; i < sizeof(ianas)/sizeof(ianas[0]); i++) {
+        const char *flag = flagForIana(ianas[i]);
+        if (flag[0] == 0) {
+            fprintf(stderr, "FAIL %s: %s has empty flag\n", __func__, ianas[i]);
+            failures++;
+        } else if ((unsigned char)flag[0] != 0xF0) {
+            fprintf(stderr, "FAIL %s: %s flag lead byte 0x%02x (expected 0xF0)\n",
+                    __func__, ianas[i], (unsigned char)flag[0]);
+            failures++;
+        }
+    }
+}
+
+static void test_flag_empty_for_unknown_iana(void) {
+    // Defensive: unknown IANAs return "" (not null, not garbage).
+    if (flagForIana("Mars/Olympus_Mons")[0] != 0) {
+        fprintf(stderr, "FAIL %s: expected empty flag for unknown IANA\n", __func__);
+        failures++;
+    }
+    if (flagForIana(NULL)[0] != 0) {
+        fprintf(stderr, "FAIL %s: NULL iana should return empty flag\n", __func__);
+        failures++;
+    }
+}
+
 static void test_full_tz_label_composition(void) {
     NSDate *summer = dateAt(@"Europe/London", 2026, 7, 15, 12, 0, 0);
     ASSERT_EQ_STR(fullTzLabelForIana("Europe/London", summer), @"BST UTC+1");
@@ -213,8 +274,12 @@ int main(void) {
         test_utc_offset_format();
         test_full_tz_label_composition();
 
+        test_city_codes_for_all_markets();
+        test_flag_emoji_present_for_all_markets();
+        test_flag_empty_for_unknown_iana();
+
         if (failures == 0) {
-            fprintf(stderr, "All 13 tests passed.\n");
+            fprintf(stderr, "All 16 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
