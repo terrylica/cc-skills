@@ -13,8 +13,19 @@ cd plugins/floating-clock
 make all          # build + bundle + sign
 make run          # build + bundle + sign + open app
 make install      # install to /Applications
+make test         # build + run data-layer unit tests
+make check        # build + test (pre-release validation)
 make clean        # remove build/ artifacts
+make help         # list all targets
 ```
+
+Tests live in `tests/test_session.m` — 13 fixtures covering
+`computeSessionState` (session boundaries, weekend skip, lunch state,
+progress math) and the TZ-helper layer (DST branching for
+BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
+fullTzLabel composition rules). Added after iter-48 caught a
+"closed-before-open-today" off-by-7h bug that had shipped since
+iter-9.
 
 Binary at `build/floating-clock` (~50KB), app bundle at `build/FloatingClock.app`. App bundle includes `Contents/Resources/Icon.icns` (generated at build time from `Sources/gen-icon.m` via Core Graphics — no external image dependencies). Spotlight/Launchpad/Finder index the app with this icon after first install.
 

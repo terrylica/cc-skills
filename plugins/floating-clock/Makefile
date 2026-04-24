@@ -20,7 +20,7 @@ ICONSET := $(BUILD)/icons.iconset
 ICON_PNGS := $(foreach sz,$(ICON_SIZES),$(BUILD)/icon_$(sz).png)
 ICON_ICNS := $(BUILD)/Icon.icns
 
-.PHONY: all build bundle icon sign install run clean test
+.PHONY: all build bundle icon sign install run clean test check help
 
 # Test binary: links the data/ layer (MarketCatalog + MarketSessionCalculator)
 # with the test harness. Excludes clock.m (has main) and AppKit-dependent modules.
@@ -29,6 +29,21 @@ TEST_SOURCES := tests/test_session.m Sources/data/MarketCatalog.m Sources/data/M
 TEST_CFLAGS := -framework Cocoa -fobjc-arc -Wall -ISources
 
 all: sign
+
+# Conventional CI-style target: build + test in one shot. Use before
+# shipping or cutting a release. `make all` stays build-only to keep
+# the fast iterate loop snappy.
+check: all test
+	@echo "check: build + tests passing."
+
+help:
+	@echo "Targets:"
+	@echo "  make          build + bundle + sign (default: all)"
+	@echo "  make run      same as 'all' then open the app"
+	@echo "  make install  same as 'all' then copy to /Applications/"
+	@echo "  make test     build + run unit tests (data/ layer only)"
+	@echo "  make check    build + unit tests (full validation)"
+	@echo "  make clean    remove the build/ dir"
 
 build: $(BUILD)/$(BIN_NAME)
 
