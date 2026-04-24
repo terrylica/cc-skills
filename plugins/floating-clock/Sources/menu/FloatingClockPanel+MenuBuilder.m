@@ -388,6 +388,17 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
         @[@"Huge",   @[@[@"36 cells", @36], @[@"40 cells", @40]]],
     ]                          defaultsKey:@"ActiveBarCells"]];
 
+    // Progress-bar glyph style — 6 presets per v4 iter-27.
+    [m addItem:[self submenuTitled:@"Progress Bar Style"
+                             action:@selector(setProgressBarStyle:)
+                              pairs:@[@[@"Blocks  (█ ▒)",  @"blocks"],
+                                      @[@"Dots    (● ○)",  @"dots"],
+                                      @[@"Dashes  (━ ╌)",  @"dashes"],
+                                      @[@"Arrows  (▶ ▷)",  @"arrows"],
+                                      @[@"Binary  (█ ░)",  @"binary"],
+                                      @[@"Braille (⣿ ⣀)", @"braille"]]
+                        defaultsKey:@"ProgressBarStyle"]];
+
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];
     NSMenuItem *qs = [m addItemWithTitle:@"Quick Save Profile" action:@selector(quickSaveCurrentProfile:) keyEquivalent:@""];
