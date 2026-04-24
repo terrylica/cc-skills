@@ -435,6 +435,14 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                       @[@"Braille (⣿ ⣀)", @"braille"]]
                         defaultsKey:@"ProgressBarStyle"]];
 
+    // Per-segment font size (v4 iter-33).
+    [m addItem:[self submenuTitled:@"Font Size"
+                             action:@selector(setActiveFontSize:)
+                              pairs:@[@[@"9", @9.0],  @[@"10", @10.0], @[@"11", @11.0],
+                                      @[@"12", @12.0], @[@"14", @14.0], @[@"16", @16.0],
+                                      @[@"18", @18.0], @[@"20", @20.0]]
+                        defaultsKey:@"ActiveFontSize"]];
+
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];
     NSMenuItem *qs = [m addItemWithTitle:@"Quick Save Profile" action:@selector(quickSaveCurrentProfile:) keyEquivalent:@""];
@@ -472,6 +480,13 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                              action:@selector(setNextItemCount:)
                               pairs:@[@[@"1", @1], @[@"2", @2], @[@"3", @3], @[@"5", @5]]
                         defaultsKey:@"NextItemCount"]];
+
+    [m addItem:[self submenuTitled:@"Font Size"
+                             action:@selector(setNextFontSize:)
+                              pairs:@[@[@"9", @9.0],  @[@"10", @10.0], @[@"11", @11.0],
+                                      @[@"12", @12.0], @[@"14", @14.0], @[@"16", @16.0],
+                                      @[@"18", @18.0], @[@"20", @20.0]]
+                        defaultsKey:@"NextFontSize"]];
 
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];

@@ -71,9 +71,17 @@
 
     CGFloat fontSize = [d doubleForKey:@"FontSize"];
     NSFont *primaryFont = resolveClockFont(fontSize);
-    NSFont *contentFont = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
+    // Per-segment font sizes (v4 iter-33). Legacy deployments without
+    // the key fall back to 11pt.
+    CGFloat activeFS = [d doubleForKey:@"ActiveFontSize"];
+    if (activeFS < 6) activeFS = 11;
+    CGFloat nextFS = [d doubleForKey:@"NextFontSize"];
+    if (nextFS < 6) nextFS = 11;
+    NSFont *activeFont = [NSFont monospacedSystemFontOfSize:activeFS weight:NSFontWeightMedium];
+    NSFont *nextFont   = [NSFont monospacedSystemFontOfSize:nextFS   weight:NSFontWeightMedium];
     NSDictionary *primaryAttrs = @{NSFontAttributeName: primaryFont};
-    NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
+    NSDictionary *activeAttrs  = @{NSFontAttributeName: activeFont};
+    NSDictionary *nextAttrs    = @{NSFontAttributeName: nextFont};
 
     _localSeg.timeLabel.font = primaryFont;
     NSString *localStr = _localSeg.timeLabel.stringValue.length > 0
@@ -88,10 +96,10 @@
     _localSeg.timeLabel.usesSingleLineMode = YES;
 
     NSSize activeSize = FCMeasureAttributedUnwrapped(_activeSeg.contentLabel.attributedStringValue);
-    if (activeSize.height < 10) activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
+    if (activeSize.height < 10) activeSize = [@"ACTIVE (—)" sizeWithAttributes:activeAttrs];
 
     NSSize nextSize = FCMeasureAttributedUnwrapped(_nextSeg.contentLabel.attributedStringValue);
-    if (nextSize.height < 10) nextSize = [@"NEXT TO OPEN" sizeWithAttributes:contentAttrs];
+    if (nextSize.height < 10) nextSize = [@"NEXT TO OPEN" sizeWithAttributes:nextAttrs];
 
     CGFloat localHeight  = ceilf(localSize.height);
     CGFloat activeHeight = ceilf(activeSize.height);
@@ -239,8 +247,8 @@
     _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextW - 16, nextH);
 
     _localSeg.timeLabel.font      = primaryFont;
-    _activeSeg.contentLabel.font  = contentFont;
-    _nextSeg.contentLabel.font    = contentFont;
+    _activeSeg.contentLabel.font  = activeFont;
+    _nextSeg.contentLabel.font    = nextFont;
 }
 
 - (void)applyLocalOnlyLayout {
