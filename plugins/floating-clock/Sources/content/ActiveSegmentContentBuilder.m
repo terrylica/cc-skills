@@ -11,7 +11,7 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     CGFloat fontSize = [ud doubleForKey:@"ActiveFontSize"];
     if (fontSize < 6) fontSize = 11;
-    NSFontWeight fw = FCParseFontWeight([ud stringForKey:@"FontWeight"]);
+    NSFontWeight fw = FCResolveSegmentWeight(@"ActiveWeight");
     NSFont *font = FCResolveMonoFont(fontSize, fw);
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     const ClockTheme *theme = themeForId([d stringForKey:@"ActiveTheme"]);
