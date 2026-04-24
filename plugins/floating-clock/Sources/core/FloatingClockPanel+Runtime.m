@@ -130,11 +130,8 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
     if (state == kSessionOpen || state == kSessionLunch) {
         NSString *bar = buildProgressBar(progress01, 12);
-        NSInteger splitIdx = 0;
-        for (NSUInteger i = 0; i < bar.length; i++) {
-            if ([bar characterAtIndex:i] == 0x2591) { splitIdx = i; break; }
-            splitIdx = i + 1;
-        }
+        NSInteger splitIdx = fcProgressBarFullCells(progress01, 12);
+        if (splitIdx > (NSInteger)bar.length) splitIdx = bar.length;
         NSMutableAttributedString *barAttr = [[NSMutableAttributedString alloc]
             initWithString:bar attributes:@{NSFontAttributeName: _sessionLabel.font}];
         [barAttr addAttribute:NSForegroundColorAttributeName value:themeFg range:NSMakeRange(0, splitIdx)];

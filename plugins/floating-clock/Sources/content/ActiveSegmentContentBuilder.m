@@ -97,13 +97,13 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
                 initWithString:[NSString stringWithFormat:@" %-4s ", [code UTF8String]]
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
 
+            // Color split: fill [0..fullCells), empty [fullCells..total).
+            // Using fcProgressBarFullCells keeps the math in one place and
+            // works across every ProgressBarStyle glyph pair.
             NSColor *fillColor = glyphColor;
             NSColor *emptyColor = [NSColor colorWithWhite:0.55 alpha:1.0];
-            NSInteger splitIdx = 0;
-            for (NSUInteger bi = 0; bi < bar.length; bi++) {
-                if ([bar characterAtIndex:bi] == 0x2591) { splitIdx = bi; break; }
-                splitIdx = bi + 1;
-            }
+            NSInteger splitIdx = fcProgressBarFullCells(progress, (int)barCells);
+            if (splitIdx > (NSInteger)bar.length) splitIdx = bar.length;
             NSMutableAttributedString *barAttr = [[NSMutableAttributedString alloc]
                 initWithString:bar attributes:@{NSFontAttributeName: font}];
             [barAttr addAttribute:NSForegroundColorAttributeName value:fillColor

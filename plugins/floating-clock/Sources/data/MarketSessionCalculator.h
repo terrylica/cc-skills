@@ -27,8 +27,20 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
 // Human-readable countdown: "5s" / "47m" / "2h17m" / ">99h" placeholder.
 NSString *formatCountdown(long secs);
 
-// Fixed-length bar string with whole-cell fill (U+2588 █) + U+2592 ▒ unfilled.
+// Fixed-length bar string. The glyph pair is selected by the
+// NSUserDefaults key "ProgressBarStyle":
+//   "blocks" (default) — █ / ▒
+//   "dots"             — ● / ○
+//   "dashes"           — ━ / ╌
+//   "arrows"           — ▶ / ▷
+//   "binary"           — █ / ░
+//   "braille"          — ⣿ / ⣀
 NSString *buildProgressBar(double progress01, int totalCells);
+
+// Return the number of "filled" cells for the given progress. Callers
+// split color between [0..N) and [N..totalCells) — matches the split
+// point regardless of which glyph pair the style picks.
+int fcProgressBarFullCells(double progress01, int totalCells);
 
 // Single-char state glyphs: ● / ◑ / ○.
 NSString *glyphForState(SessionState s);
