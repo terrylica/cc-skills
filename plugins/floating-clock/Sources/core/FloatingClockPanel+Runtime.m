@@ -55,18 +55,27 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
     // Seconds always shown; ShowSeconds pref no longer suppresses them
     // (per user spec). Retained only for menu-state backward compat.
+    // TZ abbreviation via NSTimeZone.abbreviationForDate: — always returns
+    // the crisp regional form (PDT, BST, CEST, JST). The `z` pattern would
+    // fall back to "GMT+1/+2" for locales whose CLDR data lacks a short
+    // English form — user directive 2026-04-24 requires proper regional
+    // abbreviations, so bypass the formatter's locale-dependent resolution.
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     if ([tf isEqualToString:@"12h"]) {
-        [fmt appendString:@"h:mm:ss a z"];
+        [fmt appendString:@"h:mm:ss a"];
     } else {
-        [fmt appendString:@"HH:mm:ss z"];
+        [fmt appendString:@"HH:mm:ss"];
     }
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
     _dateFormatter.dateFormat = fmt;
-    _dateFormatter.timeZone = [NSTimeZone localTimeZone];
+    NSTimeZone *localTz = [NSTimeZone localTimeZone];
+    _dateFormatter.timeZone = localTz;
 
-    _localSeg.timeLabel.stringValue = [_dateFormatter stringFromDate:[NSDate date]];
+    NSDate *nowLocal = [NSDate date];
+    NSString *localAbbrev = [localTz abbreviationForDate:nowLocal] ?: @"";
+    _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@",
+        [_dateFormatter stringFromDate:nowLocal], localAbbrev];
     _activeSeg.contentLabel.attributedStringValue = FCBuildActiveSegmentContent();
     _nextSeg.contentLabel.attributedStringValue = FCBuildNextSegmentContent();
 
@@ -83,9 +92,9 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     if ([timeFormat isEqualToString:@"12h"]) {
-        [fmt appendString:@"h:mm:ss a z"];
+        [fmt appendString:@"h:mm:ss a"];
     } else {
-        [fmt appendString:@"HH:mm:ss z"];
+        [fmt appendString:@"HH:mm:ss"];
     }
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
@@ -94,14 +103,18 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     NSString *marketId = [d stringForKey:@"SelectedMarket"];
     const ClockMarket *mkt = marketForId(marketId);
     NSDate *now = [NSDate date];
+    NSTimeZone *effectiveTz = [NSTimeZone localTimeZone];
     if (strlen(mkt->iana) > 0) {
         NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
-        _dateFormatter.timeZone = tz ?: [NSTimeZone localTimeZone];
-    } else {
-        _dateFormatter.timeZone = [NSTimeZone localTimeZone];
+        if (tz) effectiveTz = tz;
     }
+    _dateFormatter.timeZone = effectiveTz;
 
-    _label.stringValue = [_dateFormatter stringFromDate:now];
+    NSString *legacyAbbrev = (strlen(mkt->iana) > 0)
+        ? friendlyAbbrevForIana(mkt->iana, now)
+        : ([effectiveTz abbreviationForDate:now] ?: @"");
+    _label.stringValue = [NSString stringWithFormat:@"%@ %@",
+        [_dateFormatter stringFromDate:now], legacyAbbrev];
 
     if (strlen(mkt->iana) == 0) return;  // local mode — no session label
 
@@ -148,9 +161,12 @@ static NSString *dateFormatPrefix(NSString *presetId) {
         if (secsToNext > 99 * 3600) {
             NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:secsToNext];
             NSDateFormatter *openFmt = [[NSDateFormatter alloc] init];
-            openFmt.dateFormat = @"EEE HH:mm z";
-            openFmt.timeZone = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
-            countdownText = [NSString stringWithFormat:@" CLOSED · opens %@", [openFmt stringFromDate:opensAt]];
+            openFmt.dateFormat = @"EEE HH:mm";
+            NSTimeZone *mktTz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
+            if (mktTz) openFmt.timeZone = mktTz;
+            NSString *abbrev = friendlyAbbrevForIana(mkt->iana, opensAt);
+            countdownText = [NSString stringWithFormat:@" CLOSED · opens %@ %@",
+                [openFmt stringFromDate:opensAt], abbrev];
         } else {
             countdownText = [NSString stringWithFormat:@" CLOSED · opens in %@", formatCountdown(secsToNext)];
         }

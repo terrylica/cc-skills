@@ -45,6 +45,34 @@ const char *flagForIana(const char *iana) {
     return "";
 }
 
+// Hand-curated DST-aware abbreviations for the 12 exchanges we support.
+// macOS's NSTimeZone abbreviationForDate: returns "GMT+1/+2" instead of
+// "BST/CEST" for many European zones on recent OS releases — so hardcode
+// the regional forms traders actually recognize.
+NSString *friendlyAbbrevForIana(const char *iana, NSDate *date) {
+    if (!iana || !*iana || !date) {
+        NSTimeZone *loc = [NSTimeZone localTimeZone];
+        return [loc abbreviationForDate:date ?: [NSDate date]] ?: @"";
+    }
+    NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:iana]];
+    BOOL dst = tz ? [tz isDaylightSavingTimeForDate:date] : NO;
+
+    if (strcmp(iana, "America/New_York") == 0) return dst ? @"EDT" : @"EST";
+    if (strcmp(iana, "America/Toronto") == 0)  return dst ? @"EDT" : @"EST";
+    if (strcmp(iana, "Europe/London") == 0)    return dst ? @"BST" : @"GMT";
+    if (strcmp(iana, "Europe/Paris") == 0)     return dst ? @"CEST" : @"CET";
+    if (strcmp(iana, "Europe/Berlin") == 0)    return dst ? @"CEST" : @"CET";
+    if (strcmp(iana, "Europe/Zurich") == 0)    return dst ? @"CEST" : @"CET";
+    if (strcmp(iana, "Asia/Tokyo") == 0)       return @"JST";
+    if (strcmp(iana, "Asia/Hong_Kong") == 0)   return @"HKT";
+    if (strcmp(iana, "Asia/Shanghai") == 0)    return @"CST";
+    if (strcmp(iana, "Asia/Seoul") == 0)       return @"KST";
+    if (strcmp(iana, "Asia/Kolkata") == 0)     return @"IST";
+    if (strcmp(iana, "Australia/Sydney") == 0) return dst ? @"AEDT" : @"AEST";
+
+    return tz ? ([tz abbreviationForDate:date] ?: @"") : @"";
+}
+
 const char *cityCodeForIana(const char *iana) {
     if (!iana || !*iana) return "LOC";
     if (strcmp(iana, "America/New_York") == 0) return "NYC";
