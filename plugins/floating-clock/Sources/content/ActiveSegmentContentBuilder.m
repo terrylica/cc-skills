@@ -2,6 +2,8 @@
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../data/MarketSessionCalculator.h"
+#import "SegmentHeaderRenderer.h"
+#import "UrgencyColors.h"
 
 NSAttributedString *FCBuildActiveSegmentContent(void) {
     NSDate *now = [NSDate date];
@@ -49,20 +51,11 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
 
     NSMutableAttributedString *out = [[NSMutableAttributedString alloc] init];
 
-    // v4 iter-72: ACTIVE title + column legend, mirroring NEXT's iter-66
-    // layout. Both sections now open with 'SECTION_NAME\nlegend\n────'
-    // and render as sibling tables.
-    NSColor *ruleColor = [NSColor colorWithWhite:0.40 alpha:0.55];
-    NSString *hrule = @"────────────────────────────────────────────";
-    [out appendAttributedString:[[NSAttributedString alloc]
-        initWithString:@"ACTIVE MARKETS\n"
-        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
-    [out appendAttributedString:[[NSAttributedString alloc]
-        initWithString:@"city · market time · progress → time to close\n"
-        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
-    [out appendAttributedString:[[NSAttributedString alloc]
-        initWithString:[hrule stringByAppendingString:@"\n"]
-        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: ruleColor}]];
+    // v4 iter-73: shared section-header helper (SegmentHeaderRenderer).
+    FCAppendSectionHeader(out, font,
+        @"ACTIVE MARKETS",
+        @"city · market time · progress → time to close",
+        headerColor, dimColor, FCDividerRuleColor());
 
     if (groups.count == 0) {
         [out appendAttributedString:[[NSAttributedString alloc]
@@ -140,7 +133,7 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
             // head" that makes the bar feel alive rather than flat.
             NSColor *pastColor  = [glyphColor colorWithAlphaComponent:0.55];
             NSColor *headColor  = glyphColor;
-            NSColor *emptyColor = [NSColor colorWithWhite:0.40 alpha:0.55];
+            NSColor *emptyColor = FCProgressEmptyColor();
             NSInteger splitIdx = fcProgressBarFullCells(progress, (int)barCells);
             if (splitIdx > (NSInteger)bar.length) splitIdx = bar.length;
             NSMutableAttributedString *barAttr = [[NSMutableAttributedString alloc]
@@ -158,14 +151,13 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
             [out appendAttributedString:barAttr];
 
             // v4 iter-44: urgency color tiers on countdown.
-            // >1h green, 30–60min amber, <30min red. Lunch state keeps
-            // the neutral header color — lunch windows are short and the
-            // urgency signal would be noise there.
-            NSColor *countdownColor = headerColor;
-            if (state == kSessionOpen) {
-                if (secsToNext < 1800)      countdownColor = [NSColor colorWithRed:0.95 green:0.40 blue:0.40 alpha:1.0];
-                else if (secsToNext < 3600) countdownColor = [NSColor colorWithRed:0.95 green:0.75 blue:0.30 alpha:1.0];
-            }
+            // v4 iter-73: routed through FCUrgencyColorForSecs — single
+            // source of truth for thresholds and palette (shared with NEXT).
+            // Lunch state keeps the neutral header color — lunch windows
+            // are short and the urgency signal would be noise there.
+            NSColor *countdownColor = (state == kSessionOpen)
+                ? FCUrgencyColorForSecs(secsToNext, headerColor)
+                : headerColor;
             // v4 iter-57: optional inline progress percent. Users who want
             // a precise read-out alongside the bar toggle ShowProgressPercent
             // on. Default OFF preserves current density.
@@ -181,16 +173,9 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
         }
 
-        // v4 iter-71: horizontal rule between ACTIVE market groups,
-        // matching NEXT's iter-63 tabulation style. Makes ACTIVE and
-        // NEXT read as sibling tables — both show H-rule demarcation
-        // between rows. Rendered at dim color so it doesn't compete
-        // with the live market data above.
+        // v4 iter-73: divider rule via shared helper.
         if (g < groups.count - 1) {
-            NSColor *ruleColor = [NSColor colorWithWhite:0.40 alpha:0.55];
-            [out appendAttributedString:[[NSAttributedString alloc]
-                initWithString:@"────────────────────────────────────────────\n"
-                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: ruleColor}]];
+            FCAppendDividerRule(out, font, FCDividerRuleColor());
         }
     }
 
