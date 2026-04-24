@@ -200,6 +200,44 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowProgressPercent": @NO,
             @"SelectedMarket": @"nyse",
         },
+        @"Auction Watcher": @{
+            // v4 iter-140: showcases the iter-123/125/126 auction-window
+            // cluster. Three-segment so NEXT shows PRE-MARKET ◐ and
+            // AFTER-HOURS ◒ glyphs. Volcanic theme (iter-132) matches
+            // the high-intensity feel of auction windows. Extended 30-min
+            // SessionSignalWindow for a longer pre-open warm-up. Black
+            // weight (iter-129) for punchy, decisive typography. Crisp
+            // shadow + hairline corners for precision readout.
+            @"DisplayMode": @"three-segment",
+            @"LocalTheme": @"espresso",
+            @"ActiveTheme": @"volcanic",
+            @"NextTheme": @"volcanic",
+            @"ColorTheme": @"volcanic",
+            @"FontSize": @28.0,
+            @"ActiveFontSize": @13.0,
+            @"NextFontSize": @13.0,
+            @"FontWeight": @"black",
+            @"ActiveWeight": @"black",
+            @"NextWeight": @"bold",
+            @"ShowSeconds": @YES,
+            @"ShowDate": @YES,
+            @"DateFormat": @"short",
+            @"TimeFormat": @"24h",
+            @"CanvasOpacity": @0.90,
+            @"ActiveBarCells": @40,
+            @"NextItemCount": @5,
+            @"ProgressBarStyle": @"triangles",
+            @"LayoutMode": @"stacked-local-top",
+            @"SegmentGap": @"snug",
+            @"CornerStyle": @"hairline",
+            @"ShadowStyle": @"crisp",
+            @"Density": @"compact",
+            @"ShowFlags": @YES,
+            @"ShowUTCReference": @YES,
+            @"ShowSkyState": @NO,
+            @"ShowProgressPercent": @YES,
+            @"SelectedMarket": @"local",
+        },
     };
 }
 
