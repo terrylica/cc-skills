@@ -91,11 +91,14 @@ CGFloat FCParseLetterSpacing(NSString *spacingId) {
     if (![spacingId isKindOfClass:[NSString class]] || spacingId.length == 0) {
         return 0.0;
     }
-    if ([spacingId isEqualToString:@"compact"]) return -1.0;
-    if ([spacingId isEqualToString:@"tight"])   return -0.5;
-    if ([spacingId isEqualToString:@"normal"])  return  0.0;
-    if ([spacingId isEqualToString:@"airy"])    return  0.5;
-    if ([spacingId isEqualToString:@"wide"])    return  1.0;
+    // v4 iter-137: bracket extension parallel to iter-129's FontWeight.
+    if ([spacingId isEqualToString:@"condensed"]) return -1.5;
+    if ([spacingId isEqualToString:@"compact"])   return -1.0;
+    if ([spacingId isEqualToString:@"tight"])     return -0.5;
+    if ([spacingId isEqualToString:@"normal"])    return  0.0;
+    if ([spacingId isEqualToString:@"airy"])      return  0.5;
+    if ([spacingId isEqualToString:@"wide"])      return  1.0;
+    if ([spacingId isEqualToString:@"extrawide"]) return  1.5;
     return 0.0;
 }
 

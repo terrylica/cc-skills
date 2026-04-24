@@ -159,8 +159,10 @@ void test_theme_catalog_invariants(void) {
 
 void test_letter_spacing_parser(void) {
     struct { NSString *id; CGFloat kern; } cases[] = {
+        {@"condensed", -1.5},  // iter-137
         {@"compact", -1.0}, {@"tight", -0.5}, {@"normal", 0.0},
         {@"airy", 0.5}, {@"wide", 1.0},
+        {@"extrawide", 1.5},   // iter-137
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         if (fabs(FCParseLetterSpacing(cases[i].id) - cases[i].kern) > 0.001) {
@@ -363,7 +365,7 @@ void test_quick_styles_invariants(void) {
                                                   @"comfortable", @"spacious", @"cavernous"]],
         @"FontWeight":     [NSSet setWithArray:@[@"thin", @"regular", @"medium", @"semibold",
                                                   @"bold", @"heavy", @"black"]],
-        @"LetterSpacing":  [NSSet setWithArray:@[@"compact", @"tight", @"normal", @"airy", @"wide"]],
+        @"LetterSpacing":  [NSSet setWithArray:@[@"condensed", @"compact", @"tight", @"normal", @"airy", @"wide", @"extrawide"]],
         @"LineSpacing":    [NSSet setWithArray:@[@"tight", @"snug", @"normal", @"loose", @"airy"]],
         @"TimeSeparator":  [NSSet setWithArray:@[@"colon", @"middot", @"space", @"slash", @"dash"]],
     };

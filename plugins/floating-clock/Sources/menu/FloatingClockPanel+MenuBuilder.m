@@ -116,11 +116,13 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     // require switching to attributedStringValue, out of scope).
     [displayItems addObject:[self submenuTitled:@"Letter Spacing"
                                           action:@selector(setLetterSpacing:)
-                                           pairs:@[@[@"Compact (-1.0)", @"compact"],
-                                                   @[@"Tight   (-0.5)", @"tight"],
-                                                   @[@"Normal  ( 0.0)", @"normal"],
-                                                   @[@"Airy    (+0.5)", @"airy"],
-                                                   @[@"Wide    (+1.0)", @"wide"]]
+                                           pairs:@[@[@"Condensed (-1.5)", @"condensed"],
+                                                   @[@"Compact   (-1.0)", @"compact"],
+                                                   @[@"Tight     (-0.5)", @"tight"],
+                                                   @[@"Normal    ( 0.0)", @"normal"],
+                                                   @[@"Airy      (+0.5)", @"airy"],
+                                                   @[@"Wide      (+1.0)", @"wide"],
+                                                   @[@"Extra Wide (+1.5)", @"extrawide"]]
                                      defaultsKey:@"LetterSpacing"]];
 
     // v4 iter-95: leading (line spacing) lever — vertical rhythm
