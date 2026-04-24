@@ -23,7 +23,15 @@
     // per-theme bg alpha is multiplied by CanvasOpacity in applyTheme.
     self.alphaValue = 1.0;
 
-    if ([mode isEqualToString:@"three-segment"]) {
+    // v4 iter-206: double-click-to-collapse. When user has collapsed
+    // via double-click on LOCAL, treat three-segment as local-only
+    // until they double-click again to restore. DisplayMode pref
+    // stays at "three-segment" — SegmentsCollapsed is a transient
+    // presentation toggle, not a permanent mode change.
+    BOOL collapsed = [d boolForKey:@"SegmentsCollapsed"];
+    if ([mode isEqualToString:@"three-segment"] && collapsed) {
+        [self applyLocalOnlyLayout];
+    } else if ([mode isEqualToString:@"three-segment"]) {
         [self applyThreeSegmentLayout];
     } else if ([mode isEqualToString:@"local-only"]) {
         [self applyLocalOnlyLayout];
