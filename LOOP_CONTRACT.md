@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 102
+iteration: 103
 status: ACTIVE
-last_updated: 2026-04-24T08:50:00Z
+last_updated: 2026-04-24T09:00:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -490,6 +490,10 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - **Validator runs on every commit via pre-commit hook.**
   How to apply: anything touching `plugins/` must keep `bun scripts/validate-plugins.mjs` green. Marketplace.json entry must match plugin.json. Skills (commands) have their own schema requirements — match existing plugin patterns.
 
+- **Never run `defaults delete com.example.floating-clock` mid-loop** (iter-103 learning).
+  Why: caught live during iter-100 verification — wiped the user's running-clock state (window position, active profile, per-segment themes, quick-style selection). User observed "clock is no longer visible" as a direct consequence of the stale pref path + no-longer-running process. `defaults delete` belongs ONLY in the explicit `make leaks` gauntlet which the user has opted into for fresh-install reproducibility; it MUST NOT appear in the per-iter validation loop.
+  How to apply: validation commands that touch live state (defaults, pkill, killing foreground apps, mv/rm on user's bundle) are out-of-scope for autonomous iteration. Read-only checks (`file`, `codesign -v`, `ls`, `otool -L`, `wc -l`, `pgrep -l`) are fine. When in doubt: only use the commands listed in this file's Validation Gauntlet section, which are curated for safety.
+
 ---
 
 ## Revision Log (append-only, one line per firing)
@@ -532,3 +536,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 08:30 UTC — **iter-100 milestone** (c2cb3cb4). Plugin bumped 1.4.0 → 1.5.0. Description rewritten to surface v1.5 aesthetic expansion: themes 20→25, progress bars 6→10, corners 4→8, shadows 4→7, density 4→6; new levers FontWeight (global + per-segment), per-segment Transparency, LetterSpacing + LineSpacing, TimeSeparator; plus two proactive category splits (MenuBuilder → SegmentMenus at iter-87, MenuBuilder → MenuHelpers at iter-96). Test suite 23 → 31 fixtures. All validators green. 216 KB signed binary.
 - 2026-04-24 08:40 UTC — iter-101: **NextItemCount 4 → 7 presets** (a0a7b33f). Adds 4 / 7 / 10 to the existing 1 / 2 / 3 / 5. With 12 exchanges up to ~11 can be CLOSED at once, so 10 is now a meaningful ceiling. Menu-only change in SegmentMenus.m. 31/31 still green.
 - 2026-04-24 08:50 UTC — iter-102: **Quick Style presets** (866baf21). New top-level menu category parallel to Profile, scoped to aesthetic-only levers (leaves FontSize / SelectedMarket / DisplayMode alone). 4 bundled moods: Brutalist, Zen, Retro CRT, Executive. Each writes a 10-key pref dict atomically. New methods `buildQuickStylesMenu` + `applyQuickStyle:`. MenuBuilder.m 393 → 454 LoC, still under cap. 31/31 still green.
+- 2026-04-24 09:00 UTC — iter-103: **guardrail lesson** — user reported clock "no longer visible" caught live during previous firing. Root cause: iter-100 verification step ran `defaults delete com.example.floating-clock` to check binary size, wiping the user's live window-position / active-profile / per-segment theme / quick-style state on an already-running clock. New Non-Obvious Learnings entry (`Never run defaults delete mid-loop`) codifies the rule: destructive state commands (defaults delete, pkill, rm on user's bundle) belong ONLY in the explicit `make leaks` gauntlet the user has opted into. Per-iter validation stays read-only (`file`, `codesign -v`, `ls`, `wc -l`, `pgrep -l`). Zero code change; contract-only commit.
