@@ -136,9 +136,18 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
                             range:NSMakeRange(splitIdx, bar.length - splitIdx)];
             [out appendAttributedString:barAttr];
 
+            // v4 iter-44: urgency color tiers on countdown.
+            // >1h green, 30–60min amber, <30min red. Lunch state keeps
+            // the neutral header color — lunch windows are short and the
+            // urgency signal would be noise there.
+            NSColor *countdownColor = headerColor;
+            if (state == kSessionOpen) {
+                if (secsToNext < 1800)      countdownColor = [NSColor colorWithRed:0.95 green:0.40 blue:0.40 alpha:1.0];
+                else if (secsToNext < 3600) countdownColor = [NSColor colorWithRed:0.95 green:0.75 blue:0.30 alpha:1.0];
+            }
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:[NSString stringWithFormat:@" %@%@\n", cd, suffix]
-                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
         }
 
         if (g < groups.count - 1) {
