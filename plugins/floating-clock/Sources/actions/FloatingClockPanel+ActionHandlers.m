@@ -154,6 +154,12 @@
     [self applyDisplaySettings];
 }
 
+- (void)toggleShowProgressPercent:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setBool:![d boolForKey:@"ShowProgressPercent"] forKey:@"ShowProgressPercent"];
+    [self applyDisplaySettings];
+}
+
 - (void)setDensity:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSString class]]) {
         [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"Density"];

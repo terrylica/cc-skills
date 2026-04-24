@@ -101,6 +101,7 @@
         @"Density": @"default",
         @"ShowUTCReference": @YES,
         @"ShowSkyState": @YES,
+        @"ShowProgressPercent": @NO,
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];

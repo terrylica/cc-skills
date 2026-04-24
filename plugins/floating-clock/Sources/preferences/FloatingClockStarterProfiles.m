@@ -35,6 +35,7 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowFlags": @YES,
             @"ShowUTCReference": @YES,
             @"ShowSkyState": @YES,
+            @"ShowProgressPercent": @NO,
             @"SelectedMarket": @"local",
         },
         @"Day Trader": @{
@@ -62,6 +63,7 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowFlags": @YES,
             @"ShowUTCReference": @YES,
             @"ShowSkyState": @NO,
+            @"ShowProgressPercent": @NO,
             @"SelectedMarket": @"nyse",
         },
         @"Night Owl": @{
@@ -89,6 +91,7 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowFlags": @NO,
             @"ShowUTCReference": @NO,
             @"ShowSkyState": @YES,
+            @"ShowProgressPercent": @NO,
             @"SelectedMarket": @"local",
         },
         @"Minimalist": @{
@@ -116,6 +119,7 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowFlags": @NO,
             @"ShowUTCReference": @NO,
             @"ShowSkyState": @NO,
+            @"ShowProgressPercent": @NO,
             @"SelectedMarket": @"local",
         },
         @"Watch Party": @{
@@ -143,6 +147,7 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowFlags": @YES,
             @"ShowUTCReference": @YES,
             @"ShowSkyState": @YES,
+            @"ShowProgressPercent": @NO,
             @"SelectedMarket": @"nyse",
         },
     };
@@ -155,6 +160,6 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"DateFormat", @"CanvasOpacity", @"ProgressBarStyle", @"LayoutMode", @"SegmentGap", @"CornerStyle", @"ShadowStyle",
         @"ActiveBarCells", @"NextItemCount", @"SelectedMarket",
         @"ActiveFontSize", @"NextFontSize", @"ShowFlags", @"Density",
-        @"ShowUTCReference", @"ShowSkyState",
+        @"ShowUTCReference", @"ShowSkyState", @"ShowProgressPercent",
     ];
 }

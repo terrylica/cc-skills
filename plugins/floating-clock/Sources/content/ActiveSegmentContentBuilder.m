@@ -146,8 +146,18 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
                 if (secsToNext < 1800)      countdownColor = [NSColor colorWithRed:0.95 green:0.40 blue:0.40 alpha:1.0];
                 else if (secsToNext < 3600) countdownColor = [NSColor colorWithRed:0.95 green:0.75 blue:0.30 alpha:1.0];
             }
+            // v4 iter-57: optional inline progress percent. Users who want
+            // a precise read-out alongside the bar toggle ShowProgressPercent
+            // on. Default OFF preserves current density.
+            NSString *pctStr = @"";
+            if ([d boolForKey:@"ShowProgressPercent"]) {
+                int pct = (int)(progress * 100.0 + 0.5);
+                if (pct < 0) pct = 0;
+                if (pct > 100) pct = 100;
+                pctStr = [NSString stringWithFormat:@" %d%%", pct];
+            }
             [out appendAttributedString:[[NSAttributedString alloc]
-                initWithString:[NSString stringWithFormat:@" %@%@\n", cd, suffix]
+                initWithString:[NSString stringWithFormat:@"%@ %@%@\n", pctStr, cd, suffix]
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
         }
 
