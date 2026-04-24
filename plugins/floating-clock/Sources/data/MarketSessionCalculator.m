@@ -95,9 +95,26 @@ NSString *formatCountdown(long secs) {
 
 NSString *formatCountdownFancy(long secs) {
     if (secs < 0) secs = 0;
-    // Above 99 hours (~4 days), T-HH overflows two-digit fixed-width.
-    // Fall back to the compact form to preserve alignment in NEXT rows.
-    if (secs >= 100L * 3600L) return formatCountdown(secs);
+    // v4 iter-75: progressive human-readable format. Sub-day preserves
+    // the ticker-like HH:MM:SS feel (seconds visibly tick as T-0
+    // approaches). At ≥24h, switch to 'Nd Hh Mm' which is how humans
+    // actually read long durations — '2d 11h 27m' is instantly
+    // comprehensible where 'T-59:27:14' requires mental division.
+    // Drops seconds at day-scale since they're visually insignificant.
+    //
+    // Pattern sourced from NSDateComponentsFormatter's .abbreviated
+    // style + progressive-countdown UX pattern (Atlassian Design,
+    // TimeMath, etc.). Implemented inline rather than via
+    // NSDateComponentsFormatter because we want fixed 'T-' prefix and
+    // zero-padded hours/minutes for column alignment.
+    const long SECS_PER_DAY = 24L * 3600L;
+    if (secs >= SECS_PER_DAY) {
+        long days  = secs / SECS_PER_DAY;
+        long rem   = secs % SECS_PER_DAY;
+        long hours = rem / 3600;
+        long mins  = (rem % 3600) / 60;
+        return [NSString stringWithFormat:@"T-%ldd %ldh %02ldm", days, hours, mins];
+    }
     long hours = secs / 3600;
     long rem   = secs % 3600;
     long mins  = rem / 60;
