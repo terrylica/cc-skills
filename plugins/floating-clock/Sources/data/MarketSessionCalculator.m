@@ -87,16 +87,42 @@ NSString *formatCountdown(long secs) {
     return [NSString stringWithFormat:@"%ldh", hours];
 }
 
+// Glyph-set dispatch. Read NSUserDefaults "ProgressBarStyle" and return
+// the (filled, empty) pair. Default = "blocks" (current 1/8-width heavy
+// block + medium shade). Adding a new style = one extra if-branch here.
+static void fcGlyphsForStyle(NSString *styleId, NSString **filled, NSString **empty) {
+    if ([styleId isEqualToString:@"dots"])    { *filled = @"●"; *empty = @"○"; return; }
+    if ([styleId isEqualToString:@"dashes"])  { *filled = @"━"; *empty = @"╌"; return; }
+    if ([styleId isEqualToString:@"arrows"])  { *filled = @"▶"; *empty = @"▷"; return; }
+    if ([styleId isEqualToString:@"binary"])  { *filled = @"█"; *empty = @"░"; return; }
+    if ([styleId isEqualToString:@"braille"]) { *filled = @"⣿"; *empty = @"⣀"; return; }
+    // Default "blocks".
+    *filled = @"█"; *empty = @"▒";
+}
+
 NSString *buildProgressBar(double progress01, int totalCells) {
     if (progress01 < 0) progress01 = 0;
     if (progress01 > 1) progress01 = 1;
     int fullCells = (int)(progress01 * totalCells + 0.5);
     if (fullCells > totalCells) fullCells = totalCells;
 
+    NSString *styleId = [[NSUserDefaults standardUserDefaults] stringForKey:@"ProgressBarStyle"];
+    NSString *filled = nil;
+    NSString *empty = nil;
+    fcGlyphsForStyle(styleId, &filled, &empty);
+
     NSMutableString *bar = [NSMutableString string];
-    for (int i = 0; i < fullCells; i++) [bar appendString:@"█"];
-    for (int i = fullCells; i < totalCells; i++) [bar appendString:@"▒"];
+    for (int i = 0; i < fullCells; i++) [bar appendString:filled];
+    for (int i = fullCells; i < totalCells; i++) [bar appendString:empty];
     return bar;
+}
+
+int fcProgressBarFullCells(double progress01, int totalCells) {
+    if (progress01 < 0) progress01 = 0;
+    if (progress01 > 1) progress01 = 1;
+    int fullCells = (int)(progress01 * totalCells + 0.5);
+    if (fullCells > totalCells) fullCells = totalCells;
+    return fullCells;
 }
 
 NSString *glyphForState(SessionState s) {
