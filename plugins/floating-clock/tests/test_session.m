@@ -763,7 +763,7 @@ static void test_landing_empty_iana(void) {
 static void test_starter_profiles_count(void) {
     // Sanity: the canonical bundled starters exist.
     NSDictionary *profiles = buildStarterProfiles();
-    NSArray *expected = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Researcher", @"Watch Party", @"Auction Watcher"];
+    NSArray *expected = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Researcher", @"Watch Party", @"Auction Watcher", @"Arctic"];
     if (profiles.count != expected.count) {
         fprintf(stderr, "FAIL %s: expected %lu starters got %lu\n",
                 __func__, (unsigned long)expected.count, (unsigned long)profiles.count);

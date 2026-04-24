@@ -243,6 +243,50 @@ NSDictionary *buildStarterProfiles(void) {
             // in the comment would be false advertising.
             @"SessionSignalWindow": @"30min",
         },
+        @"Arctic": @{
+            // v4 iter-198: showcases iter-195 Aurora theme + iter-196
+            // Borealis Quick Style. Cool-palette starter for night-owl
+            // traders who want a luminous readout — thin weight + halo
+            // shadow + wide letter-spacing evokes auroral light over
+            // arctic dark. Three-segment, 15-min auction window (the
+            // default middle-ground, not the Auction Watcher's 30-min
+            // wider lens — Arctic is aesthetically focused, not
+            // operationally extended). Local shows sky-glyph because
+            // night-owl context matters.
+            @"DisplayMode": @"three-segment",
+            @"LocalTheme": @"aurora",
+            @"ActiveTheme": @"aurora",
+            @"NextTheme": @"aurora",
+            @"ColorTheme": @"aurora",
+            @"FontSize": @24.0,
+            @"ActiveFontSize": @11.0,
+            @"NextFontSize": @11.0,
+            @"FontWeight": @"thin",
+            @"ActiveWeight": @"regular",
+            @"NextWeight": @"thin",
+            @"ShowSeconds": @YES,
+            @"ShowDate": @YES,
+            @"DateFormat": @"short",
+            @"TimeFormat": @"24h",
+            @"TimeSeparator": @"middot",
+            @"LetterSpacing": @"wide",
+            @"LineSpacing": @"loose",
+            @"CanvasOpacity": @0.55,
+            @"ActiveBarCells": @40,
+            @"NextItemCount": @3,
+            @"ProgressBarStyle": @"waves",  // iter-197 glyph
+            @"LayoutMode": @"stacked-local-top",
+            @"SegmentGap": @"airy",
+            @"CornerStyle": @"squircle",
+            @"ShadowStyle": @"halo",
+            @"Density": @"comfortable",
+            @"ShowFlags": @YES,
+            @"ShowUTCReference": @YES,
+            @"ShowSkyState": @YES,  // night-owl context matters
+            @"ShowProgressPercent": @NO,
+            @"SelectedMarket": @"local",
+            @"SessionSignalWindow": @"15min",
+        },
     };
 }
 
