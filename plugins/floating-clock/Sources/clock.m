@@ -1425,11 +1425,18 @@ static NSFont *resolveClockFont(CGFloat size) {
         nextSize = [@"NEXT TO OPEN" sizeWithAttributes:contentAttrs];
     }
 
-    CGFloat localHeight  = ceilf(localSize.height) + 12;
-    CGFloat activeHeight = ceilf(activeSize.height) + 12;
-    CGFloat nextHeight   = ceilf(nextSize.height) + 12;
+    // Content heights WITHOUT padding — text is top-anchored inside
+    // NSTextField (wraps=NO, multi-line), so any extra height inside the
+    // label frame leaves empty space at the BOTTOM of the label, breaking
+    // vertical centering. Keep frame exactly sized to content; pad at the
+    // segment level where centering math does the right thing.
+    CGFloat localHeight  = ceilf(localSize.height);
+    CGFloat activeHeight = ceilf(activeSize.height);
+    CGFloat nextHeight   = ceilf(nextSize.height);
 
-    CGFloat segHeight = MAX(MAX(localHeight, activeHeight), nextHeight);
+    // 24pt vertical breathing room (12pt top + 12pt bottom) applied to the
+    // segment itself, shared across all three so heights stay uniform.
+    CGFloat segHeight = MAX(MAX(localHeight, activeHeight), nextHeight) + 24;
 
     CGFloat localSegWidth  = ceilf(localSize.width) + 32;
     CGFloat activeSegWidth = ceilf(activeSize.width) + 32;
