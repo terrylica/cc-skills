@@ -97,20 +97,53 @@
     CGFloat activeHeight = ceilf(activeSize.height);
     CGFloat nextHeight   = ceilf(nextSize.height);
 
-    CGFloat topRowHeight    = localHeight  + 24;
-    CGFloat bottomRowHeight = MAX(activeHeight, nextHeight) + 24;
+    CGFloat localRowHeight  = localHeight  + 24;
+    CGFloat marketRowHeight = MAX(activeHeight, nextHeight) + 24;
 
-    CGFloat activeSegWidth = ceilf(activeSize.width) + 32;
-    CGFloat nextSegWidth   = ceilf(nextSize.width) + 32;
-    CGFloat bottomRowInnerWidth = activeSegWidth + 4 + nextSegWidth;
-    CGFloat topRowWidth = MAX(ceilf(localSize.width) + 32, bottomRowInnerWidth);
+    CGFloat localInnerWidth  = ceilf(localSize.width) + 32;
+    CGFloat activeSegWidth   = ceilf(activeSize.width) + 32;
+    CGFloat nextSegWidth     = ceilf(nextSize.width) + 32;
+    CGFloat marketRowInnerWidth = activeSegWidth + 4 + nextSegWidth;
 
-    CGFloat windowWidth  = topRowWidth + 24;
-    CGFloat windowHeight = topRowHeight + 4 + bottomRowHeight + 24;
+    // v4 iter-28: LayoutMode picks the high-level arrangement.
+    //   stacked-local-top    (default) — LOCAL top row, ACTIVE+NEXT below
+    //   stacked-local-bottom          — ACTIVE+NEXT top row, LOCAL bottom
+    //   horizontal-triptych           — LOCAL | ACTIVE | NEXT on a single row
+    NSString *layoutMode = [d stringForKey:@"LayoutMode"];
+    if (layoutMode.length == 0) layoutMode = @"stacked-local-top";
+
+    CGFloat windowWidth = 0, windowHeight = 0;
+    CGFloat localX = 0, localY = 0, localW = 0, localH = 0;
+    CGFloat activeX = 0, activeY = 0, activeW = 0, activeH = 0;
+    CGFloat nextX = 0, nextY = 0, nextW = 0, nextH = 0;
+
+    if ([layoutMode isEqualToString:@"horizontal-triptych"]) {
+        // Single row: LOCAL | ACTIVE | NEXT — each as-tall-as-needed, shared height.
+        CGFloat rowHeight = MAX(MAX(localHeight, activeHeight), nextHeight) + 24;
+        windowWidth  = localInnerWidth + 4 + activeSegWidth + 4 + nextSegWidth + 24;  // 12pt L+R
+        windowHeight = rowHeight + 24;  // 12pt T+B
+        localX = 12;               localY = 12; localW = localInnerWidth;  localH = rowHeight;
+        activeX = localX + localW + 4; activeY = 12; activeW = activeSegWidth; activeH = rowHeight;
+        nextX = activeX + activeW + 4; nextY = 12; nextW = nextSegWidth;   nextH = rowHeight;
+    } else {
+        // Two-row stacked. Top/bottom order varies by mode.
+        CGFloat rowWidth = MAX(localInnerWidth, marketRowInnerWidth);
+        windowWidth  = rowWidth + 24;
+        windowHeight = localRowHeight + 4 + marketRowHeight + 24;
+        BOOL localOnTop = ![layoutMode isEqualToString:@"stacked-local-bottom"];
+        CGFloat localRowY  = localOnTop ? (12 + marketRowHeight + 4) : 12;
+        CGFloat marketRowY = localOnTop ? 12 : (12 + localRowHeight + 4);
+
+        localX = 12; localY = localRowY; localW = rowWidth; localH = localRowHeight;
+        CGFloat pairX = 12 + (rowWidth - marketRowInnerWidth) / 2.0;
+        activeX = pairX;               activeY = marketRowY; activeW = activeSegWidth; activeH = marketRowHeight;
+        nextX = pairX + activeW + 4;   nextY = marketRowY;   nextW = nextSegWidth;     nextH = marketRowHeight;
+    }
 
     NSRect oldFrame = self.frame;
     if (fabs(oldFrame.size.width  - windowWidth)  < 0.5 &&
-        fabs(oldFrame.size.height - windowHeight) < 0.5) {
+        fabs(oldFrame.size.height - windowHeight) < 0.5 &&
+        fabs(_localSeg.frame.origin.y - localY) < 0.5) {
         return;
     }
 
@@ -120,22 +153,17 @@
     newFrame = [self clampFrameToVisibleScreen:newFrame];
     [self setFrame:newFrame display:YES animate:NO];
 
-    CGFloat bottomY = 12;
-    CGFloat topY    = 12 + bottomRowHeight + 4;
+    _localSeg.frame  = NSMakeRect(localX,  localY,  localW,  localH);
+    _activeSeg.frame = NSMakeRect(activeX, activeY, activeW, activeH);
+    _nextSeg.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
 
-    _localSeg.frame = NSMakeRect(12, topY, topRowWidth, topRowHeight);
-
-    CGFloat bottomPairX = 12 + (topRowWidth - bottomRowInnerWidth) / 2.0;
-    _activeSeg.frame = NSMakeRect(bottomPairX, bottomY, activeSegWidth, bottomRowHeight);
-    _nextSeg.frame   = NSMakeRect(bottomPairX + activeSegWidth + 4, bottomY, nextSegWidth, bottomRowHeight);
-
-    // LOCAL label height = ascender + |descender| + 25% slack for caps/diacritics.
+    // LOCAL label centered inside its row (ascender + |descender| + 25% slack).
     CGFloat ascDesc = primaryFont.ascender + fabs(primaryFont.descender);
     CGFloat localLabelH = ceilf(ascDesc + primaryFont.ascender * 0.25);
-    CGFloat localLabelY = floorf((topRowHeight - localLabelH) / 2.0);
-    _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, topRowWidth - 16, localLabelH);
-    _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeSegWidth - 16, bottomRowHeight);
-    _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextSegWidth - 16, bottomRowHeight);
+    CGFloat localLabelY = floorf((localH - localLabelH) / 2.0);
+    _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, localW - 16, localLabelH);
+    _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeW - 16, activeH);
+    _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextW - 16, nextH);
 
     _localSeg.timeLabel.font      = primaryFont;
     _activeSeg.contentLabel.font  = contentFont;
