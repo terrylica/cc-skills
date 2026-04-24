@@ -211,14 +211,41 @@ void test_date_format_prefix(void) {
 }
 
 void test_corner_radius_points(void) {
-    if (fabs(FCCornerRadiusPoints(@"sharp",    100, 40) -  0.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: sharp\n",    __func__); }
-    if (fabs(FCCornerRadiusPoints(@"hairline", 100, 40) -  1.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: hairline\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(@"rounded",  100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: rounded\n",  __func__); }
-    if (fabs(FCCornerRadiusPoints(@"squircle", 100, 40) - 14.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: squircle\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(@"pill",     100, 40) - 20.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: pill w>h\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(@"pill",      40, 80) - 20.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: pill h>w\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(nil,         100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: nil→rounded\n", __func__); }
-    if (fabs(FCCornerRadiusPoints(@"made-up",  100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: unknown→rounded\n", __func__); }
+    // iter-97's full 8-preset catalog. pill depends on shorter axis,
+    // so test at both orientations (w>h and h>w) to lock that logic.
+    // iter-119: promoted from iter-117's lean form now that
+    // test_levers.m has cap headroom.
+    struct { NSString *id; CGFloat w; CGFloat h; CGFloat expected; } cases[] = {
+        {@"sharp",     100, 40,  0.0},
+        {@"hairline",  100, 40,  1.0},
+        {@"micro",     100, 40,  3.0},
+        {@"rounded",   100, 40,  6.0},
+        {@"soft",      100, 40, 10.0},
+        {@"squircle",  100, 40, 14.0},
+        {@"jumbo",     100, 40, 22.0},
+        {@"pill",      100, 40, 20.0},  // min(w,h)/2 with w>h
+        {@"pill",       40, 80, 20.0},  // min(w,h)/2 with h>w
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        CGFloat got = FCCornerRadiusPoints(cases[i].id, cases[i].w, cases[i].h);
+        if (fabs(got - cases[i].expected) > 0.001) {
+            fprintf(stderr, "FAIL %s: '%s' %.0fx%.0f expected %.1fpt got %.1fpt\n",
+                    __func__, cases[i].id.UTF8String,
+                    (double)cases[i].w, (double)cases[i].h,
+                    (double)cases[i].expected, (double)got);
+            failures++;
+        }
+    }
+    // nil / empty / unknown → rounded (6pt).
+    if (fabs(FCCornerRadiusPoints(nil,        100, 40) - 6.0) > 0.001) {
+        failures++; fprintf(stderr, "FAIL %s: nil → rounded\n", __func__);
+    }
+    if (fabs(FCCornerRadiusPoints(@"",        100, 40) - 6.0) > 0.001) {
+        failures++; fprintf(stderr, "FAIL %s: empty → rounded\n", __func__);
+    }
+    if (fabs(FCCornerRadiusPoints(@"made-up", 100, 40) - 6.0) > 0.001) {
+        failures++; fprintf(stderr, "FAIL %s: unknown → rounded\n", __func__);
+    }
 }
 
 void test_density_pad_points(void) {
