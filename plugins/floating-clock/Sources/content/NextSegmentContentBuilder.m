@@ -6,6 +6,7 @@
 #import "SegmentHeaderRenderer.h"
 #import "UrgencyColors.h"
 #import "LandingTimeFormatter.h"
+#include <time.h>  // iter-212: epoch second for FCUrgencyAlertColor flash modulation
 
 NSAttributedString *FCBuildNextSegmentContent(void) {
     NSDate *now = [NSDate date];
@@ -166,8 +167,12 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:codeLabel
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
+        // v4 iter-212: continuous gradient + flash via FCUrgencyAlertColor.
+        // Out-of-band (>99h) opens stay headerColor — too far away for
+        // gradient to be meaningful; the absolute date already carries
+        // the relevant information.
         NSColor *countdownColor = (e.secs <= kFCMaxBoundedCountdownSecs)
-            ? FCUrgencyColorForSecs(e.secs, headerColor)
+            ? FCUrgencyAlertColor(e.secs, headerColor, (long)time(NULL))
             : headerColor;
         NSString *countdownStr = (e.secs <= kFCMaxBoundedCountdownSecs)
             ? [NSString stringWithFormat:@"%@%@", formatCountdownFancy(e.secs), suffix]

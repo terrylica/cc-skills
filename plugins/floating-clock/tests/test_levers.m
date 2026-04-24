@@ -537,6 +537,79 @@ void test_urgency_color_tiers(void) {
     }
 }
 
+// iter-212: lock the continuous-mode semantics of FCUrgencyAlertColor.
+// Properties checked (not exact RGB — gradient is parameterized):
+//   1. secs >= horizon → returns the caller's normalColor unchanged
+//   2. secs <= imminent → returns a clearly-red color (hue near 0°)
+//   3. monotonic: hue strictly decreases as secs decreases (within range)
+//   4. flash modulator returns 1.0 above flash threshold; alternates
+//      below it based on epoch parity
+//   5. combined alert color picks up the flash multiplier in alpha
+void test_urgency_continuous_and_flash(void) {
+    NSColor *sentinel = [NSColor colorWithRed:0.1 green:0.2 blue:0.3 alpha:1.0];
+
+    // (1) horizon → normalColor pass-through
+    NSColor *atHorizon = FCUrgencyContinuousColor(kFCUrgencyHorizonSecs, sentinel);
+    if (![atHorizon isEqual:sentinel]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: at horizon should pass normalColor through\n", __func__);
+    }
+
+    // (2) below imminent → hue near red endpoint
+    NSColor *atZero = FCUrgencyContinuousColor(0, sentinel);
+    NSColor *rgbZero = [atZero colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]];
+    CGFloat hZero = 0, sZero = 0, bZero = 0, aZero = 0;
+    [rgbZero getHue:&hZero saturation:&sZero brightness:&bZero alpha:&aZero];
+    // hue near 0 (red); also accept 1.0 since hue wraps
+    if (hZero > 0.05 && hZero < 0.95) {
+        failures++;
+        fprintf(stderr, "FAIL %s: at 0s expected hue near 0 (red), got %.3f\n", __func__, hZero);
+    }
+
+    // (3) monotonic: hue at later (further-away) time is greater than
+    //     hue at earlier (closer) time. Sample three log-spaced points
+    //     between imminent and horizon.
+    long s1 = kFCUrgencyImminentSecs * 4;
+    long s2 = kFCUrgencyImminentSecs * 16;
+    long s3 = kFCUrgencyImminentSecs * 60;
+    CGFloat h1 = 0, h2 = 0, h3 = 0, _s = 0, _b = 0, _a = 0;
+    [[FCUrgencyContinuousColor(s1, sentinel) colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]]
+        getHue:&h1 saturation:&_s brightness:&_b alpha:&_a];
+    [[FCUrgencyContinuousColor(s2, sentinel) colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]]
+        getHue:&h2 saturation:&_s brightness:&_b alpha:&_a];
+    [[FCUrgencyContinuousColor(s3, sentinel) colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]]
+        getHue:&h3 saturation:&_s brightness:&_b alpha:&_a];
+    if (!(h1 < h2 && h2 < h3)) {
+        failures++;
+        fprintf(stderr, "FAIL %s: hue not monotonic: h(%lds)=%.3f h(%lds)=%.3f h(%lds)=%.3f\n",
+                __func__, s1, h1, s2, h2, s3, h3);
+    }
+
+    // (4) flash modulator
+    if (FCUrgencyFlashAlpha(kFCUrgencyFlashThresholdSecs, 0) != 1.0) {
+        failures++;
+        fprintf(stderr, "FAIL %s: at flash threshold (boundary) expected 1.0\n", __func__);
+    }
+    if (FCUrgencyFlashAlpha(0, 0) != kFCUrgencyFlashDimAlpha) {
+        failures++;
+        fprintf(stderr, "FAIL %s: at 0s, even epoch expected %.3f got %.3f\n",
+                __func__, kFCUrgencyFlashDimAlpha, FCUrgencyFlashAlpha(0, 0));
+    }
+    if (FCUrgencyFlashAlpha(0, 1) != 1.0) {
+        failures++;
+        fprintf(stderr, "FAIL %s: at 0s, odd epoch expected 1.0 got %.3f\n",
+                __func__, FCUrgencyFlashAlpha(0, 1));
+    }
+
+    // (5) combined alert: flash dim when imminent + even epoch.
+    NSColor *alert = FCUrgencyAlertColor(0, sentinel, 0);
+    if (fabs(alert.alphaComponent - kFCUrgencyFlashDimAlpha) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: combined alert at 0s/even epoch expected alpha %.3f got %.3f\n",
+                __func__, kFCUrgencyFlashDimAlpha, alert.alphaComponent);
+    }
+}
+
 void test_clipboard_header_format(void) {
     // iter-160: lock FCComposeClipboardSnapshot's output format — the
     // pure-function body of the Copy cluster's header-writing helper.
