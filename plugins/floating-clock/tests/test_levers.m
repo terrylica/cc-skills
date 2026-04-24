@@ -10,6 +10,7 @@
 #import "../Sources/core/DensityPad.h"
 #import "../Sources/core/SegmentGap.h"
 #import "../Sources/core/SkyGlyph.h"
+#import "../Sources/core/ShadowSpec.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 
 void test_font_weight_parser(void) {
@@ -396,5 +397,52 @@ void test_quick_styles_invariants(void) {
                         [v description].UTF8String);
             }
         }
+    }
+}
+
+void test_shadow_spec_catalog(void) {
+    // iter-120: lock iter-93's 7 ShadowStyle presets (iter-31's originals
+    // + crisp / plinth / halo). The struct encodes color-source + 4 numeric
+    // params; verify exact match for each id.
+    struct {
+        NSString *id;
+        BOOL enabled;
+        FCShadowColorSource colorSource;
+        CGFloat opacity, offX, offY, radius;
+    } cases[] = {
+        {@"subtle", YES, FCShadowColorBlack,           0.35, 0, -2, 3},
+        {@"lifted", YES, FCShadowColorBlack,           0.55, 0, -4, 6},
+        {@"glow",   YES, FCShadowColorThemeForeground, 0.60, 0,  0, 6},
+        {@"crisp",  YES, FCShadowColorBlack,           0.85, 1, -1, 0},
+        {@"plinth", YES, FCShadowColorBlack,           0.70, 0, -8, 10},
+        {@"halo",   YES, FCShadowColorThemeBackground, 0.50, 0,  0, 10},
+        {@"none",   NO,  FCShadowColorBlack,           0,    0,  0, 0},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        FCShadowSpec s = FCShadowSpecForId(cases[i].id);
+        BOOL ok = s.enabled == cases[i].enabled &&
+                  s.colorSource == cases[i].colorSource &&
+                  fabs(s.opacity - cases[i].opacity) < 0.001 &&
+                  fabs(s.offsetX - cases[i].offX)    < 0.001 &&
+                  fabs(s.offsetY - cases[i].offY)    < 0.001 &&
+                  fabs(s.radius  - cases[i].radius)  < 0.001;
+        if (!ok) {
+            fprintf(stderr, "FAIL %s: '%s' enabled=%d src=%d op=%.2f off=(%.1f,%.1f) r=%.1f\n",
+                    __func__, cases[i].id.UTF8String,
+                    s.enabled, s.colorSource,
+                    (double)s.opacity, (double)s.offsetX, (double)s.offsetY,
+                    (double)s.radius);
+            failures++;
+        }
+    }
+    // Unknown / nil / empty → disabled (matches "none" default).
+    if (FCShadowSpecForId(nil).enabled) {
+        failures++; fprintf(stderr, "FAIL %s: nil should be disabled\n", __func__);
+    }
+    if (FCShadowSpecForId(@"").enabled) {
+        failures++; fprintf(stderr, "FAIL %s: empty should be disabled\n", __func__);
+    }
+    if (FCShadowSpecForId(@"nebula").enabled) {
+        failures++; fprintf(stderr, "FAIL %s: unknown should be disabled\n", __func__);
     }
 }

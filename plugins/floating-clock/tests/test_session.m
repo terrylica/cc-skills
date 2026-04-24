@@ -442,9 +442,10 @@ int main(void) {
         test_corner_radius_points();
         test_current_time_format();
         test_quick_styles_invariants();
+        test_shadow_spec_catalog();
 
         if (failures == 0) {
-            fprintf(stderr, "All 38 tests passed.\n");
+            fprintf(stderr, "All 39 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

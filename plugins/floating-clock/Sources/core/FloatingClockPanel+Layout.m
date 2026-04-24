@@ -9,6 +9,7 @@
 #import "SegmentGap.h"                                      // FCSegmentGapPoints
 #import "DensityPad.h"                                      // FCDensityPadPoints
 #import "CornerRadius.h"                                    // FCCornerRadiusPoints
+#import "ShadowSpec.h"                                      // FCShadowSpecForId
 
 @implementation FloatingClockPanel (Layout)
 
@@ -209,49 +210,29 @@
     // Segments' own layers don't set masksToBounds so their shadows
     // render outside their bounds; contentView's masksToBounds does
     // clip at the window edge, but the 12pt margin gives headroom.
-    NSString *shadowId = [d stringForKey:@"ShadowStyle"];
+    // v4 iter-120: numeric spec extracted to Sources/core/ShadowSpec.{h,m};
+    // caller owns the CALayer write + theme-color substitution.
+    FCShadowSpec ss = FCShadowSpecForId([d stringForKey:@"ShadowStyle"]);
     const ClockTheme *tLocal2  = themeForId([d stringForKey:@"LocalTheme"]);
     const ClockTheme *tActive2 = themeForId([d stringForKey:@"ActiveTheme"]);
     const ClockTheme *tNext2   = themeForId([d stringForKey:@"NextTheme"]);
     void (^applyShadow)(CALayer *, const ClockTheme *) = ^(CALayer *layer, const ClockTheme *t) {
-        if ([shadowId isEqualToString:@"subtle"]) {
-            layer.shadowColor = [NSColor blackColor].CGColor;
-            layer.shadowOpacity = 0.35;
-            layer.shadowOffset = CGSizeMake(0, -2);
-            layer.shadowRadius = 3;
-        } else if ([shadowId isEqualToString:@"lifted"]) {
-            layer.shadowColor = [NSColor blackColor].CGColor;
-            layer.shadowOpacity = 0.55;
-            layer.shadowOffset = CGSizeMake(0, -4);
-            layer.shadowRadius = 6;
-        } else if ([shadowId isEqualToString:@"glow"]) {
-            NSColor *fg = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
-            layer.shadowColor = fg.CGColor;
-            layer.shadowOpacity = 0.6;
-            layer.shadowOffset = CGSizeMake(0, 0);
-            layer.shadowRadius = 6;
-        } else if ([shadowId isEqualToString:@"crisp"]) {
-            // Pixel-hard drop — CALayer-hosted, radius 0 → zero blur.
-            layer.shadowColor = [NSColor blackColor].CGColor;
-            layer.shadowOpacity = 0.85;
-            layer.shadowOffset = CGSizeMake(1, -1);
-            layer.shadowRadius = 0;
-        } else if ([shadowId isEqualToString:@"plinth"]) {
-            // Dramatic stage-base drop: long offset + heavy blur.
-            layer.shadowColor = [NSColor blackColor].CGColor;
-            layer.shadowOpacity = 0.70;
-            layer.shadowOffset = CGSizeMake(0, -8);
-            layer.shadowRadius = 10;
-        } else if ([shadowId isEqualToString:@"halo"]) {
-            // Theme-bg-tinted ambient bloom, no offset.
-            NSColor *bg = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:1.0];
-            layer.shadowColor = bg.CGColor;
-            layer.shadowOpacity = 0.5;
-            layer.shadowOffset = CGSizeMake(0, 0);
-            layer.shadowRadius = 10;
-        } else {
-            layer.shadowOpacity = 0.0;
+        if (!ss.enabled) { layer.shadowOpacity = 0; return; }
+        NSColor *col;
+        switch (ss.colorSource) {
+            case FCShadowColorThemeForeground:
+                col = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
+                break;
+            case FCShadowColorThemeBackground:
+                col = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:1.0];
+                break;
+            default:
+                col = [NSColor blackColor];
         }
+        layer.shadowColor   = col.CGColor;
+        layer.shadowOpacity = ss.opacity;
+        layer.shadowOffset  = CGSizeMake(ss.offsetX, ss.offsetY);
+        layer.shadowRadius  = ss.radius;
     };
     applyShadow(_localSeg.layer,  tLocal2);
     applyShadow(_activeSeg.layer, tActive2);
