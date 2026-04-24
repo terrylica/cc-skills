@@ -113,17 +113,25 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
                 initWithString:[NSString stringWithFormat:@" %-4s ", [code UTF8String]]
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
 
-            // Color split: fill [0..fullCells), empty [fullCells..total).
-            // Using fcProgressBarFullCells keeps the math in one place and
-            // works across every ProgressBarStyle glyph pair.
-            NSColor *fillColor = glyphColor;
-            NSColor *emptyColor = [NSColor colorWithWhite:0.55 alpha:1.0];
+            // Three-tier color split: past cells [0, frontier) dim, frontier
+            // cell [frontier, frontier+1) bright (state color at full
+            // saturation), empty cells beyond gray. Creates a "running
+            // head" that makes the bar feel alive rather than flat.
+            NSColor *pastColor  = [glyphColor colorWithAlphaComponent:0.55];
+            NSColor *headColor  = glyphColor;
+            NSColor *emptyColor = [NSColor colorWithWhite:0.40 alpha:0.55];
             NSInteger splitIdx = fcProgressBarFullCells(progress, (int)barCells);
             if (splitIdx > (NSInteger)bar.length) splitIdx = bar.length;
             NSMutableAttributedString *barAttr = [[NSMutableAttributedString alloc]
                 initWithString:bar attributes:@{NSFontAttributeName: font}];
-            [barAttr addAttribute:NSForegroundColorAttributeName value:fillColor
-                            range:NSMakeRange(0, splitIdx)];
+            if (splitIdx > 1) {
+                [barAttr addAttribute:NSForegroundColorAttributeName value:pastColor
+                                range:NSMakeRange(0, splitIdx - 1)];
+            }
+            if (splitIdx >= 1) {
+                [barAttr addAttribute:NSForegroundColorAttributeName value:headColor
+                                range:NSMakeRange(splitIdx - 1, 1)];
+            }
             [barAttr addAttribute:NSForegroundColorAttributeName value:emptyColor
                             range:NSMakeRange(splitIdx, bar.length - splitIdx)];
             [out appendAttributedString:barAttr];
