@@ -73,6 +73,18 @@ static const char *stateName(SessionState s) {
         }                                                                        \
     } while (0)
 
+#define ASSERT_PROGRESS_NEAR(mkt, date, expected, tolerance)                     \
+    do {                                                                         \
+        SessionState _s; double actual; long _n;                                 \
+        computeSessionState((mkt), (date), &_s, &actual, &_n);                   \
+        double diff = actual > (expected) ? actual - (expected) : (expected) - actual; \
+        if (diff > (tolerance)) {                                                \
+            fprintf(stderr, "FAIL %s: progress expected ~%.3f got %.3f (diff %.3f)\n", \
+                    __func__, (double)(expected), actual, diff);                 \
+            failures++;                                                          \
+        }                                                                        \
+    } while (0)
+
 // ---- Cases ----
 
 static void test_nyse_closed_before_open_today(void) {
@@ -181,6 +193,28 @@ static void test_afterhours_not_on_weekend(void) {
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d_sat = dateAt(@"America/New_York", 2026, 4, 25, 16, 10, 0);
     ASSERT_STATE(nyse, d_sat, kSessionClosed);
+}
+
+static void test_premarket_progress_is_zero(void) {
+    // v4 iter-142: PRE-MARKET is before the regular session, so the
+    // session-progress bar must read 0.0 (not "almost done" or "just
+    // started"). computeSessionState sets progress to 0.0 when state
+    // is neither OPEN/LUNCH nor nowMins >= closeMins. Lock it.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    NSDate *d = dateAt(@"America/New_York", 2026, 4, 24, 9, 20, 0);
+    ASSERT_STATE(nyse, d, kSessionPreMarket);
+    ASSERT_PROGRESS_NEAR(nyse, d, 0.0, 0.001);
+}
+
+static void test_afterhours_progress_is_one(void) {
+    // v4 iter-142: AFTER-HOURS is just after the regular session, so
+    // the session-progress bar reads 1.0 — the session is 100%
+    // complete. nowMins >= closeMins triggers the progress = 1.0
+    // branch before the AFTER-HOURS state promotion.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    NSDate *d = dateAt(@"America/New_York", 2026, 4, 24, 16, 10, 0);
+    ASSERT_STATE(nyse, d, kSessionAfterHours);
+    ASSERT_PROGRESS_NEAR(nyse, d, 1.0, 0.001);
 }
 
 static void test_signal_window_pref_gates_premarket(void) {
@@ -558,6 +592,8 @@ int main(void) {
         test_premarket_not_on_weekend();
         test_nyse_afterhours_first_15min();
         test_afterhours_not_on_weekend();
+        test_premarket_progress_is_zero();
+        test_afterhours_progress_is_one();
         test_signal_window_pref_gates_premarket();
         test_signal_window_pref_gates_afterhours();
         test_tse_lunch_window();
@@ -608,7 +644,7 @@ int main(void) {
         test_session_state_label();
 
         if (failures == 0) {
-            fprintf(stderr, "All 49 tests passed.\n");
+            fprintf(stderr, "All 51 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
