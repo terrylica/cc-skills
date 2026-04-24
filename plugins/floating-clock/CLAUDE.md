@@ -149,7 +149,7 @@ defaults delete com.terryli.floating-clock        # reset everything (next launc
 | `LayoutMode`                | NSString     | `"stacked-local-top"`    | Menu (stacked-local-top / stacked-local-bottom / triptych)                                                                             |
 | `SegmentGap`                | NSString     | `"normal"`               | Menu (tight / snug / normal / airy / spacious)                                                                                         |
 | `CornerStyle`               | NSString     | `"rounded"`              | Menu (sharp / rounded / pill / squircle)                                                                                               |
-| `ShadowStyle`               | NSString     | `"none"`                 | Menu (none / subtle / lifted / glow)                                                                                                   |
+| `ShadowStyle`               | NSString     | `"none"`                 | Menu (none / subtle / lifted / glow / crisp / plinth / halo — 7 presets, iter-93)                                                      |
 | `Density`                   | NSString     | `"default"`              | Menu (compact / default / comfortable / spacious)                                                                                      |
 | `SelectedMarket`            | NSString     | `"local"`                | Menu — only used in single-market mode                                                                                                 |
 | `ActiveProfile`             | NSString     | `"Default"`              | Menu → Profile (Default / Day Trader / Night Owl / Minimalist / Watch Party + user-saved)                                              |

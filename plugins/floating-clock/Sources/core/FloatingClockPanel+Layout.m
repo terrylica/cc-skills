@@ -213,11 +213,14 @@
     _activeSeg.layer.cornerRadius = cornerRadiusFor(activeW, activeH);
     _nextSeg.layer.cornerRadius   = cornerRadiusFor(nextW, nextH);
 
-    // v4 iter-31: ShadowStyle — adds depth / glow around each segment.
-    //   none    (default) — flat, no shadow
-    //   subtle  — faint drop shadow beneath
-    //   lifted  — stronger drop shadow (card-like)
-    //   glow    — outer glow using the segment's foreground color
+    // v4 iter-31 / iter-93: ShadowStyle — adds depth / glow around each segment.
+    //   none       (default) — flat, no shadow
+    //   subtle     — faint drop shadow beneath
+    //   lifted     — stronger drop shadow (card-like)
+    //   glow       — outer glow using the segment's foreground color
+    //   crisp      — iter-93: sharp pixel-hard drop, radius 0 (stamp feel)
+    //   plinth     — iter-93: deep dramatic drop (stage / pedestal)
+    //   halo       — iter-93: background-tinted ambient bloom
     // Segments' own layers don't set masksToBounds so their shadows
     // render outside their bounds; contentView's masksToBounds does
     // clip at the window edge, but the 12pt margin gives headroom.
@@ -242,6 +245,25 @@
             layer.shadowOpacity = 0.6;
             layer.shadowOffset = CGSizeMake(0, 0);
             layer.shadowRadius = 6;
+        } else if ([shadowId isEqualToString:@"crisp"]) {
+            // Pixel-hard drop — CALayer-hosted, radius 0 → zero blur.
+            layer.shadowColor = [NSColor blackColor].CGColor;
+            layer.shadowOpacity = 0.85;
+            layer.shadowOffset = CGSizeMake(1, -1);
+            layer.shadowRadius = 0;
+        } else if ([shadowId isEqualToString:@"plinth"]) {
+            // Dramatic stage-base drop: long offset + heavy blur.
+            layer.shadowColor = [NSColor blackColor].CGColor;
+            layer.shadowOpacity = 0.70;
+            layer.shadowOffset = CGSizeMake(0, -8);
+            layer.shadowRadius = 10;
+        } else if ([shadowId isEqualToString:@"halo"]) {
+            // Theme-bg-tinted ambient bloom, no offset.
+            NSColor *bg = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:1.0];
+            layer.shadowColor = bg.CGColor;
+            layer.shadowOpacity = 0.5;
+            layer.shadowOffset = CGSizeMake(0, 0);
+            layer.shadowRadius = 10;
         } else {
             layer.shadowOpacity = 0.0;
         }
