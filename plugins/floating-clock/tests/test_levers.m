@@ -322,6 +322,7 @@ void test_current_time_format(void) {
     struct { NSString *sepId; NSString *patternSep; } cases[] = {
         {@"colon", @":"}, {@"middot", @"'·'"}, {@"space", @"' '"},
         {@"slash", @"'/'"}, {@"dash", @"'-'"},
+        {@"pipe", @"'|'"}, {@"plus", @"'+'"},   // iter-139
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         [d setObject:cases[i].sepId forKey:@"TimeSeparator"];
@@ -368,7 +369,7 @@ void test_quick_styles_invariants(void) {
                                                   @"bold", @"heavy", @"black"]],
         @"LetterSpacing":  [NSSet setWithArray:@[@"condensed", @"compact", @"tight", @"normal", @"airy", @"wide", @"extrawide"]],
         @"LineSpacing":    [NSSet setWithArray:@[@"tight", @"snug", @"normal", @"loose", @"airy", @"spacious", @"cavernous"]],
-        @"TimeSeparator":  [NSSet setWithArray:@[@"colon", @"middot", @"space", @"slash", @"dash"]],
+        @"TimeSeparator":  [NSSet setWithArray:@[@"colon", @"middot", @"space", @"slash", @"dash", @"pipe", @"plus"]],
     };
     for (NSArray *style in styles) {
         if (style.count != 2) { failures++; fprintf(stderr, "FAIL %s: malformed entry\n", __func__); continue; }

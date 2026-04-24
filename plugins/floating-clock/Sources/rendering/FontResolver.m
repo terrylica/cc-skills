@@ -144,10 +144,14 @@ void FCApplyLineSpacing(NSMutableAttributedString *out) {
 NSString *FCCurrentTimeFormat(BOOL is12h, BOOL showSec) {
     NSString *sepId = [[NSUserDefaults standardUserDefaults] stringForKey:@"TimeSeparator"];
     NSString *sep;
+    // v4 iter-139: expand 5 → 7. Each literal is UTS#35-quoted so the
+    // formatter treats it as plain text (not a pattern token).
     if ([sepId isEqualToString:@"middot"])      sep = @"'·'";
     else if ([sepId isEqualToString:@"space"])  sep = @"' '";
     else if ([sepId isEqualToString:@"slash"])  sep = @"'/'";
     else if ([sepId isEqualToString:@"dash"])   sep = @"'-'";
+    else if ([sepId isEqualToString:@"pipe"])   sep = @"'|'";
+    else if ([sepId isEqualToString:@"plus"])   sep = @"'+'";
     else                                        sep = @":";  // colon / unknown
     if (is12h) {
         return showSec ? [NSString stringWithFormat:@"h%@mm%@ss a", sep, sep]
