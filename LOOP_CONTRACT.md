@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 90
+iteration: 91
 status: ACTIVE
-last_updated: 2026-04-24T06:50:00Z
+last_updated: 2026-04-24T07:00:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -520,3 +520,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 06:30 UTC — iter-88: **FontWeight typographic lever** (b3a453a5). New global `FontWeight` pref (default `medium`), 5 presets (Regular / Medium / Semibold / Bold / Heavy) under DISPLAY category. Applied at every monospacedSystemFont call site (ACTIVE + NEXT) via new helpers `FCParseFontWeight` + `FCResolveMonoFont` in FontResolver. LOCAL primary stays on iTerm2 / named-font path — documented limitation. Starter profiles get character-matching defaults (Day Trader=bold, Watch Party=heavy, Night Owl/Minimalist=regular, Default/Researcher=medium). Tests +1 (25 total). Warning-free build, 184 KB binary.
 - 2026-04-24 06:40 UTC — iter-89: **per-segment FontWeight overrides** (b47dd029). New `ActiveWeight` + `NextWeight` prefs with 3-tier fallback (segment key → global FontWeight → Medium) via new helper `FCResolveSegmentWeight` in FontResolver. Font Weight submenu added to ACTIVE + NEXT scoped right-click menus (LOCAL skipped — iTerm2 path). Starter profiles set per-segment weights matching their global FontWeight. Tests +1 covering all 3 fallback tiers + empty-string pass-through (26 total). Warning-free build, 184 KB binary.
 - 2026-04-24 06:50 UTC — iter-90: **per-segment Transparency** (0450705d). New `LocalOpacity` / `ActiveOpacity` / `NextOpacity` prefs via new `Sources/rendering/SegmentOpacityResolver.{h,m}` module. `FCResolveSegmentOpacity` three-tier lookup (segment key → CanvasOpacity → theme->alpha) with clamping to [0.10, 1.00]. `applyTheme:` now takes `opacityKey:` param; LOCAL scoped Transparency submenu rewired to write LocalOpacity; ACTIVE + NEXT scoped menus get new Transparency submenus. Tests +1 (27 total) covering all tiers, clamping, and segment=0 pass-through. Warning-free build, 184 KB binary.
+- 2026-04-24 07:00 UTC — iter-91: **progress-bar glyph catalog 6 → 10** (f43c39f1). New styles: hearts (♥ ♡), stars (★ ☆), ribbon (▰ ▱), diamond (◆ ◇). ACTIVE scoped menu's Progress Bar Style submenu grows to 10 entries with inline glyph previews. Unknown ids still fall back to "dots". Tests +1 (28 total) — verifies buildProgressBar emits the correct prefix/suffix glyph for each of the 10 ids plus the fallback path. Warning-free build, 184 KB binary.
