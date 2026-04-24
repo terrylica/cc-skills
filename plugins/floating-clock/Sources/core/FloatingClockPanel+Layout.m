@@ -1,4 +1,5 @@
 #import "FloatingClockPanel+Layout.h"
+#import "FloatingClockPanel+Runtime.h"
 #import "../rendering/AttributedStringLayoutMeasurer.h"
 #import "../rendering/FontResolver.h"
 #import "../data/ThemeCatalog.h"

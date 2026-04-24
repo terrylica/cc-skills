@@ -1,5 +1,6 @@
 #import "FloatingClockPanel+ActionHandlers.h"
 #import "../core/FloatingClockPanel+Layout.h"
+#import "../core/FloatingClockPanel+Runtime.h"
 
 @implementation FloatingClockPanel (ActionHandlers)
 

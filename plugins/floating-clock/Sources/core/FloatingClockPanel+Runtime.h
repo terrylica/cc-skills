@@ -21,7 +21,12 @@ NS_ASSUME_NONNULL_BEGIN
 @interface FloatingClockPanel (Runtime)
 
 - (void)setupTimer;
+- (void)tick;
+- (void)tickThreeSegment;
+- (void)tickLegacy;
 - (NSScreen *)primaryScreen;
+- (NSRect)defaultFrame;
+- (NSRect)clampFrameToVisibleScreen:(NSRect)proposed;
 - (void)windowDidMove:(NSNotification *)n;
 - (void)restorePosition;
 - (void)screensChanged:(NSNotification *)n;
