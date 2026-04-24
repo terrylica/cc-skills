@@ -36,6 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setNextWeight:(NSMenuItem *)sender;
 - (void)setLetterSpacing:(NSMenuItem *)sender;
 - (void)setLineSpacing:(NSMenuItem *)sender;
+- (void)setTimeSeparator:(NSMenuItem *)sender;
 - (void)toggleShowFlags:(NSMenuItem *)sender;
 - (void)toggleShowUTCReference:(NSMenuItem *)sender;
 - (void)toggleShowSkyState:(NSMenuItem *)sender;
