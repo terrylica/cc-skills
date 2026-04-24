@@ -35,6 +35,9 @@ const ClockTheme kThemes[] = {
     // (warm red on charred obsidian) — a fiercer counterpart to amber_crt.
     {"forest",        "Forest",         0.55, 0.90, 0.60,  0.03, 0.10, 0.05, 0.52},
     {"volcanic",      "Volcanic",       0.98, 0.35, 0.15,  0.10, 0.02, 0.02, 0.55},
+    // v4 iter-169: pairs with iter-161's B3 (São Paulo) addition.
+    // Brazilian-flag-inspired: warm yellow on deep-green jungle.
+    {"carnival",      "Carnival",       0.98, 0.90, 0.20,  0.05, 0.35, 0.15, 0.55},
 };
 const size_t kNumThemes = sizeof(kThemes) / sizeof(kThemes[0]);
 
