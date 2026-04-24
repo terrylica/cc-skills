@@ -74,6 +74,18 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                            pairs:@[@[@"24-hour", @"24h"], @[@"12-hour", @"12h"]]
                                      defaultsKey:@"TimeFormat"]];
 
+    // v4 iter-98: time-separator lever. Replaces the `:` between
+    // HH/mm/ss tokens with the chosen literal (quoted in UTS#35 form
+    // so the formatter treats it as plain text, not a pattern token).
+    [displayItems addObject:[self submenuTitled:@"Time Separator"
+                                          action:@selector(setTimeSeparator:)
+                                           pairs:@[@[@"Colon   (10:37:45)",   @"colon"],
+                                                   @[@"Middot  (10·37·45)",   @"middot"],
+                                                   @[@"Space   (10 37 45)",   @"space"],
+                                                   @[@"Slash   (10/37/45)",   @"slash"],
+                                                   @[@"Dash    (10-37-45)",   @"dash"]]
+                                     defaultsKey:@"TimeSeparator"]];
+
     [displayItems addObject:[self groupedSubmenuTitled:@"Font Size"
                                                 action:@selector(setFontSize:)
                                                 groups:@[

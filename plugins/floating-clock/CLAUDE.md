@@ -125,6 +125,7 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 | `ShowDate`                  | BOOL         | `YES`                    | Menu                                                                                                                                     |
 | `DateFormat`                | NSString     | `"short"`                | Menu (short / long / iso / numeric / weeknum / dayofyr)                                                                                  |
 | `TimeFormat`                | NSString     | `"24h"`                  | Menu (24h / 12h) — only affects LOCAL; UTC always 24h canonical                                                                          |
+| `TimeSeparator`             | NSString     | `"colon"`                | Menu (colon / middot / space / slash / dash) — character between HH / mm / ss tokens. Applies to LOCAL + UTC time (iter-98).             |
 | `ShowFlags`                 | BOOL         | `YES`                    | Menu — country-flag emoji on ACTIVE/NEXT headers                                                                                         |
 | `ShowUTCReference`          | BOOL         | `YES`                    | Menu — inline `· HH:mm:ss UTC` on LOCAL row                                                                                              |
 | `ShowSkyState`              | BOOL         | `YES`                    | Menu — sun/moon glyph on LOCAL row (☀ hours 6–18, 🌙 otherwise)                                                                          |

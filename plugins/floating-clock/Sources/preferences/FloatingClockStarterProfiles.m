@@ -213,6 +213,6 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"ShowUTCReference", @"ShowSkyState", @"ShowProgressPercent",
         @"FontWeight", @"ActiveWeight", @"NextWeight",
         @"LocalOpacity", @"ActiveOpacity", @"NextOpacity",
-        @"LetterSpacing", @"LineSpacing",
+        @"LetterSpacing", @"LineSpacing", @"TimeSeparator",
     ];
 }

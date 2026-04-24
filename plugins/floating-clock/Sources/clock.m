@@ -100,6 +100,7 @@
         @"FontWeight": @"medium",
         @"LetterSpacing": @"normal",
         @"LineSpacing": @"normal",
+        @"TimeSeparator": @"colon",
         @"ShowFlags": @YES,
         @"Density": @"default",
         @"ShowUTCReference": @YES,
