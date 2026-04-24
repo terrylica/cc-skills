@@ -922,12 +922,16 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     _activeSeg.frame = NSMakeRect(bottomPairX, bottomY, activeSegWidth, bottomRowHeight);
     _nextSeg.frame   = NSMakeRect(bottomPairX + activeSegWidth + 4, bottomY, nextSegWidth, bottomRowHeight);
 
-    // LOCAL: full-segment frame, VerticallyCenteredTextFieldCell does the centering. Adaptive
-    // at any font size. Previous direct-positioning approach sized the
-    // frame to sizeWithAttributes height, which is the nominal line height
-    // and excludes glyph cap-height extensions above — resulting in the top
-    // of the glyphs getting clipped at larger font sizes.
-    _localSeg.timeLabel.frame     = NSMakeRect(8, 0, topRowWidth - 16, topRowHeight);
+    // LOCAL: position label frame directly at row midpoint using true font
+    // metrics (ascender + |descender|) with padding for cap-height and
+    // diacritic extensions. VCenteredCell's drawingRectForBounds centering
+    // biased single-line text toward the top for reasons unclear — direct
+    // frame-positioning with font-metric-based height is both bulletproof
+    // and adaptive at any font size 10pt..64pt.
+    CGFloat ascDesc = primaryFont.ascender + fabs(primaryFont.descender);
+    CGFloat localLabelH = ceilf(ascDesc + primaryFont.ascender * 0.25); // 25% slack for caps/diacritics
+    CGFloat localLabelY = floorf((topRowHeight - localLabelH) / 2.0);
+    _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, topRowWidth - 16, localLabelH);
     _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeSegWidth - 16, bottomRowHeight);
     _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextSegWidth - 16, bottomRowHeight);
 
