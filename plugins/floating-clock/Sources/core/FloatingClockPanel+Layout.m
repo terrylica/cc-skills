@@ -217,13 +217,17 @@
     applyShadow(_activeSeg.layer, tActive2);
     applyShadow(_nextSeg.layer,   tNext2);
 
-    // LOCAL label centered inside its row (ascender + |descender| + 25% slack).
-    // LOCAL label frame = full segment height. NSTextFieldCell draws text
-    // within with built-in vertical metrics; clipping only happens when
-    // the label frame is too tight vs the cell's internal layout box.
-    // Full-height frame gives the cell enough room for ascent + descent +
-    // line leading + its own ~2pt internal padding.
-    _localSeg.timeLabel.frame     = NSMakeRect(8, 0, localW - 16, localH);
+    // LOCAL label positioned at exact row midpoint with boundingRectForFont
+    // height (the TRUE glyph outline box) + a line of leading both above
+    // and below for ascent/descent safety. This bypasses VCenteredCell's
+    // drawingRectForBounds centering (which biased toward top for single-
+    // line content in a much taller frame) and positions the label frame
+    // directly. Text inside the frame fills it.
+    CGFloat boundingH2 = primaryFont.boundingRectForFont.size.height;
+    CGFloat leading = primaryFont.leading > 0 ? primaryFont.leading : primaryFont.ascender * 0.2;
+    CGFloat localLabelH = ceilf(boundingH2 + leading * 2);
+    CGFloat localLabelY = floorf((localH - localLabelH) / 2.0);
+    _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, localW - 16, localLabelH);
     _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeW - 16, activeH);
     _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextW - 16, nextH);
 
