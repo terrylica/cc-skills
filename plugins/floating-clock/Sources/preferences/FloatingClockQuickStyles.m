@@ -92,6 +92,17 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"bold", @"LetterSpacing": @"airy", @"LineSpacing": @"normal",
         @"TimeSeparator": @"middot",
     };
+    // v4 iter-196: pairs with iter-195's Aurora theme (cyan-green on
+    // indigo). Cold-minimalist readout — thin weight + halo shadow
+    // evokes the shimmering aurora borealis glow. Distinct from the
+    // existing cool moods: Glacier uses nord (desaturated); Midnight
+    // leans dense; Borealis is the luminous cool companion.
+    NSDictionary *borealis = @{
+        @"LocalTheme": @"aurora", @"ActiveTheme": @"aurora", @"NextTheme": @"aurora",
+        @"CornerStyle": @"squircle", @"ShadowStyle": @"halo", @"Density": @"comfortable",
+        @"FontWeight": @"thin", @"LetterSpacing": @"wide", @"LineSpacing": @"loose",
+        @"TimeSeparator": @"middot",
+    };
 
     return @[
         @[@"Brutalist",     brutalist],
@@ -107,5 +118,6 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @[@"Trading Floor", tradingFloor],
         @[@"Scholar",       scholar],
         @[@"Samba",         samba],
+        @[@"Borealis",      borealis],
     ];
 }
