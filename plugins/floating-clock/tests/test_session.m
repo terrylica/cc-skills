@@ -412,6 +412,7 @@ static void test_starter_profiles_cover_all_keys(void) {
                                           @"LetterSpacing",
                                           @"LineSpacing",
                                           @"TimeSeparator",
+                                          @"SessionSignalWindow",  // iter-128 — registered default "15min" is fine
                                           nil];
 
     for (NSString *profileName in profiles.allKeys) {
@@ -424,6 +425,19 @@ static void test_starter_profiles_cover_all_keys(void) {
                 failures++;
             }
         }
+    }
+}
+
+static void test_profile_managed_keys_covers_iter126_lever(void) {
+    // v4 iter-128: SessionSignalWindow must live inside profileManagedKeys
+    // so Save/Load/Switch profile round-trips it. Without this, iter-126's
+    // pref silently leaks across profile changes (e.g. user picks Hacker
+    // profile with "off", switches to Day Trader, and still sees no
+    // PRE-MARKET / AFTER-HOURS glyph). Regression guard.
+    NSArray *keys = profileManagedKeys();
+    if (![keys containsObject:@"SessionSignalWindow"]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: profileManagedKeys() missing SessionSignalWindow\n", __func__);
     }
 }
 
@@ -563,6 +577,7 @@ int main(void) {
 
         test_starter_profiles_cover_all_keys();
         test_starter_profiles_count();
+        test_profile_managed_keys_covers_iter126_lever();
 
         test_countdown_fancy_format();
         test_lunch_markets_identified();
@@ -592,7 +607,7 @@ int main(void) {
         test_session_signal_window();
 
         if (failures == 0) {
-            fprintf(stderr, "All 47 tests passed.\n");
+            fprintf(stderr, "All 48 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
