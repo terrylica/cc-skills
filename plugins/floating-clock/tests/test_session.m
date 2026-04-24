@@ -121,6 +121,81 @@ static void test_progress_roughly_correct(void) {
     }
 }
 
+// ---- TZ-helper fixtures (iter-37/38) ----
+//
+// Northern-hemisphere DST is on 2026-04-24 (late April — well into
+// summer time). A January date exercises standard time. Southern-
+// hemisphere (Australia) is inverted.
+
+#define ASSERT_EQ_STR(actual, expected)                                          \
+    do {                                                                         \
+        if (![(actual) isEqualToString:(expected)]) {                            \
+            fprintf(stderr, "FAIL %s: expected '%s' got '%s'\n",                 \
+                    __func__, [(expected) UTF8String], [(actual) UTF8String]);   \
+            failures++;                                                          \
+        }                                                                        \
+    } while (0)
+
+static void test_abbrev_london_dst_vs_standard(void) {
+    NSDate *summer = dateAt(@"Europe/London", 2026, 7, 15, 12, 0, 0);
+    NSDate *winter = dateAt(@"Europe/London", 2026, 1, 15, 12, 0, 0);
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Europe/London", summer), @"BST");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Europe/London", winter), @"GMT");
+}
+
+static void test_abbrev_paris_dst_vs_standard(void) {
+    NSDate *summer = dateAt(@"Europe/Paris", 2026, 7, 15, 12, 0, 0);
+    NSDate *winter = dateAt(@"Europe/Paris", 2026, 1, 15, 12, 0, 0);
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Europe/Paris", summer), @"CEST");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Europe/Paris", winter), @"CET");
+}
+
+static void test_abbrev_new_york_dst_vs_standard(void) {
+    NSDate *summer = dateAt(@"America/New_York", 2026, 7, 15, 12, 0, 0);
+    NSDate *winter = dateAt(@"America/New_York", 2026, 1, 15, 12, 0, 0);
+    ASSERT_EQ_STR(friendlyAbbrevForIana("America/New_York", summer), @"EDT");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("America/New_York", winter), @"EST");
+}
+
+static void test_abbrev_sydney_inverted(void) {
+    // Southern hemisphere DST. July = standard (AEST), January = summer (AEDT).
+    NSDate *nh_summer = dateAt(@"Australia/Sydney", 2026, 7, 15, 12, 0, 0);
+    NSDate *nh_winter = dateAt(@"Australia/Sydney", 2026, 1, 15, 12, 0, 0);
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Australia/Sydney", nh_summer), @"AEST");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Australia/Sydney", nh_winter), @"AEDT");
+}
+
+static void test_abbrev_no_dst_zones(void) {
+    // These never observe DST — should return same value year-round.
+    NSDate *summer = dateAt(@"Asia/Tokyo", 2026, 7, 15, 12, 0, 0);
+    NSDate *winter = dateAt(@"Asia/Tokyo", 2026, 1, 15, 12, 0, 0);
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Asia/Tokyo", summer), @"JST");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Asia/Tokyo", winter), @"JST");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Asia/Kolkata", summer), @"IST");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Asia/Hong_Kong", winter), @"HKT");
+}
+
+static void test_utc_offset_format(void) {
+    NSDate *summer = dateAt(@"America/New_York", 2026, 7, 15, 12, 0, 0);
+    NSDate *winter = dateAt(@"America/New_York", 2026, 1, 15, 12, 0, 0);
+    ASSERT_EQ_STR(utcOffsetForIana("America/New_York", summer), @"UTC-4");
+    ASSERT_EQ_STR(utcOffsetForIana("America/New_York", winter), @"UTC-5");
+
+    // Kolkata has the famous half-hour offset → must render "UTC+5:30".
+    NSDate *any = dateAt(@"Asia/Kolkata", 2026, 4, 24, 12, 0, 0);
+    ASSERT_EQ_STR(utcOffsetForIana("Asia/Kolkata", any), @"UTC+5:30");
+}
+
+static void test_full_tz_label_composition(void) {
+    NSDate *summer = dateAt(@"Europe/London", 2026, 7, 15, 12, 0, 0);
+    ASSERT_EQ_STR(fullTzLabelForIana("Europe/London", summer), @"BST UTC+1");
+    // GMT intentionally suppressed by fullTzLabelForIana — it's a
+    // synonym for UTC, so "UTC+0" alone is less redundant than
+    // "GMT UTC+0". Lock that behavior in the test.
+    NSDate *winter = dateAt(@"Europe/London", 2026, 1, 15, 12, 0, 0);
+    ASSERT_EQ_STR(fullTzLabelForIana("Europe/London", winter), @"UTC+0");
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -130,8 +205,16 @@ int main(void) {
         test_tse_lunch_window();
         test_progress_roughly_correct();
 
+        test_abbrev_london_dst_vs_standard();
+        test_abbrev_paris_dst_vs_standard();
+        test_abbrev_new_york_dst_vs_standard();
+        test_abbrev_sydney_inverted();
+        test_abbrev_no_dst_zones();
+        test_utc_offset_format();
+        test_full_tz_label_composition();
+
         if (failures == 0) {
-            fprintf(stderr, "All 6 session-state tests passed.\n");
+            fprintf(stderr, "All 13 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
