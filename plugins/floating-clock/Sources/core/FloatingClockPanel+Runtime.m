@@ -24,6 +24,32 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     return @"EEE MMM d  ";
 }
 
+// v4 iter-98: Time-separator lever. Returns the quoted UTS#35 pattern
+// fragment that sits between HH/mm/ss tokens. Colon is the classical
+// default and needs no quoting; others quote the literal to prevent
+// the formatter from treating them as pattern tokens. Unknown/missing
+// ids fall back to @":".
+static NSString *fcTimeSeparatorPattern(void) {
+    NSString *sepId = [[NSUserDefaults standardUserDefaults] stringForKey:@"TimeSeparator"];
+    if ([sepId isEqualToString:@"middot"]) return @"'·'";
+    if ([sepId isEqualToString:@"space"])  return @"' '";
+    if ([sepId isEqualToString:@"slash"])  return @"'/'";
+    if ([sepId isEqualToString:@"dash"])   return @"'-'";
+    return @":";
+}
+
+// Builds the HH:MM:SS / H:MM[:SS] AM/PM format fragment with the user's
+// chosen separator substituted between hour/minute/second tokens.
+static NSString *fcBuildTimeFormat(BOOL is12h, BOOL showSec) {
+    NSString *sep = fcTimeSeparatorPattern();
+    if (is12h) {
+        return showSec ? [NSString stringWithFormat:@"h%@mm%@ss a", sep, sep]
+                       : [NSString stringWithFormat:@"h%@mm a", sep];
+    }
+    return showSec ? [NSString stringWithFormat:@"HH%@mm%@ss", sep, sep]
+                   : [NSString stringWithFormat:@"HH%@mm", sep];
+}
+
 @implementation FloatingClockPanel (Runtime)
 
 - (void)setupTimer {
@@ -59,11 +85,8 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     // — less jitter, less clutter for minimalist setups.
     BOOL showSec = [d boolForKey:@"ShowSeconds"];
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
-    if ([tf isEqualToString:@"12h"]) {
-        [fmt appendString:showSec ? @"h:mm:ss a" : @"h:mm a"];
-    } else {
-        [fmt appendString:showSec ? @"HH:mm:ss" : @"HH:mm"];
-    }
+    // v4 iter-98: separator chosen via fcBuildTimeFormat (was hardcoded `:`).
+    [fmt appendString:fcBuildTimeFormat([tf isEqualToString:@"12h"], showSec)];
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
     _dateFormatter.dateFormat = fmt;
@@ -102,7 +125,9 @@ static NSString *dateFormatPrefix(NSString *presetId) {
             _utcFormatter = [[NSDateFormatter alloc] init];
             _utcFormatter.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
         }
-        _utcFormatter.dateFormat = showSec ? @"HH:mm:ss" : @"HH:mm";
+        // UTC always 24h canonical; separator follows user's TimeSeparator pref
+        // for visual consistency with the local time beside it.
+        _utcFormatter.dateFormat = fcBuildTimeFormat(NO, showSec);
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
         _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@",
             localBase, localLabel, utcStr, skyGlyph];
@@ -126,11 +151,8 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
     BOOL showSec2 = [d boolForKey:@"ShowSeconds"];
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
-    if ([timeFormat isEqualToString:@"12h"]) {
-        [fmt appendString:showSec2 ? @"h:mm:ss a" : @"h:mm a"];
-    } else {
-        [fmt appendString:showSec2 ? @"HH:mm:ss" : @"HH:mm"];
-    }
+    // v4 iter-98: separator chosen via fcBuildTimeFormat.
+    [fmt appendString:fcBuildTimeFormat([timeFormat isEqualToString:@"12h"], showSec2)];
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
     _dateFormatter.dateFormat = fmt;

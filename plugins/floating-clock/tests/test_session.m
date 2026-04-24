@@ -268,6 +268,7 @@ static void test_starter_profiles_cover_all_keys(void) {
                                           @"NextOpacity",
                                           @"LetterSpacing",
                                           @"LineSpacing",
+                                          @"TimeSeparator",
                                           nil];
 
     for (NSString *profileName in profiles.allKeys) {
