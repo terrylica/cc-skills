@@ -131,11 +131,13 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     // between line fragments. Default "normal" = 2.0pt.
     [displayItems addObject:[self submenuTitled:@"Line Spacing"
                                           action:@selector(setLineSpacing:)
-                                           pairs:@[@[@"Tight  (0pt)", @"tight"],
-                                                   @[@"Snug   (1pt)", @"snug"],
-                                                   @[@"Normal (2pt)", @"normal"],
-                                                   @[@"Loose  (4pt)", @"loose"],
-                                                   @[@"Airy   (7pt)", @"airy"]]
+                                           pairs:@[@[@"Tight     (0pt)",  @"tight"],
+                                                   @[@"Snug      (1pt)",  @"snug"],
+                                                   @[@"Normal    (2pt)",  @"normal"],
+                                                   @[@"Loose     (4pt)",  @"loose"],
+                                                   @[@"Airy      (7pt)",  @"airy"],
+                                                   @[@"Spacious  (10pt)", @"spacious"],
+                                                   @[@"Cavernous (14pt)", @"cavernous"]]
                                      defaultsKey:@"LineSpacing"]];
 
     [displayItems addObject:[self submenuTitled:@"Transparency"
