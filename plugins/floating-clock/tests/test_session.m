@@ -266,6 +266,16 @@ static void test_state_invariants_tse_sweep(void) {
     sweep_invariants(tse, @"Asia/Tokyo", "JST");
 }
 
+static void test_state_invariants_jse_sweep(void) {
+    // v4 iter-157: extend the invariant-sweep family to Africa. JSE
+    // (Africa/Johannesburg) has no DST, no lunch, UTC+2 year-round —
+    // structurally distinct from NYSE (DST, EDT/EST) and TSE (lunch,
+    // no-DST JST). Running the same invariant sweep catches any
+    // regression specific to the no-DST / no-lunch code path.
+    const ClockMarket *jse = marketForId(@"jse");
+    sweep_invariants(jse, @"Africa/Johannesburg", "SAST");
+}
+
 static void test_auction_watcher_sets_extended_window(void) {
     // v4 iter-148: Auction Watcher's identity is "extended 30-min
     // auction window". If the profile doesn't explicitly set the pref,
@@ -717,6 +727,7 @@ int main(void) {
         test_afterhours_progress_is_one();
         test_state_invariants_24h_sweep();
         test_state_invariants_tse_sweep();
+        test_state_invariants_jse_sweep();
         test_weekend_always_closed();
         test_auction_watcher_sets_extended_window();
         test_signal_window_pref_gates_premarket();
@@ -771,7 +782,7 @@ int main(void) {
         test_session_state_color();
 
         if (failures == 0) {
-            fprintf(stderr, "All 57 tests passed.\n");
+            fprintf(stderr, "All 58 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
