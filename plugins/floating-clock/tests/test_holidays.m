@@ -812,6 +812,63 @@ void test_halfday_calendar_lse_and_target2(void) {
     if (FCIsMarketHalfDay(euronext, regularFri, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: Euronext regular Fri flagged\n", __func__); }
 }
 
+void test_halfday_calendar_hkex_and_tsx(void) {
+    // v4 iter-191: HKEX half-days + TSX Dec 24. HKEX is the first
+    // lunch-bearing market with half-days — stress-tests iter-189's
+    // hasLunch=NO override. HKEX regular schedule: 09:30-12:00 /
+    // 13:00-16:00 with 12:00-13:00 lunch. On half-days HKEX closes
+    // AT 12:00 (lunch start). iter-189's `hasLunch = NO` when
+    // isHalfDay is load-bearing — without it, 12:00-13:00 would
+    // incorrectly promote to LUNCH state instead of CLOSED.
+    const ClockMarket *hkex = marketForId(@"hkex");
+    const ClockMarket *tsx  = marketForId(@"tsx");
+
+    // HKEX: LNY Eve, Xmas Eve, NYE — all 12:00 HKT.
+    NSDate *lnyEve  = holidayDateAt(@"Asia/Hong_Kong", 2026,  2, 16, 10,  0, 0);
+    NSDate *xmasEve = holidayDateAt(@"Asia/Hong_Kong", 2026, 12, 24, 10,  0, 0);
+    NSDate *nye     = holidayDateAt(@"Asia/Hong_Kong", 2026, 12, 31, 10,  0, 0);
+    int h = -1, m = -1;
+    if (!FCIsMarketHalfDay(hkex, lnyEve, &h, &m) || h != 12 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: HKEX LNY Eve expected 12:00 got %d:%02d\n", __func__, h, m);
+    }
+    h = -1; m = -1;
+    if (!FCIsMarketHalfDay(hkex, xmasEve, &h, &m) || h != 12 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: HKEX Xmas Eve expected 12:00 got %d:%02d\n", __func__, h, m);
+    }
+    h = -1; m = -1;
+    if (!FCIsMarketHalfDay(hkex, nye, &h, &m) || h != 12 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: HKEX NYE expected 12:00 got %d:%02d\n", __func__, h, m);
+    }
+
+    // HKEX state integration: 12:30 HKT on a half-day must be CLOSED
+    // (not LUNCH). This validates iter-189's hasLunch=NO override.
+    // Without that guard, the regular 12:00-13:00 lunch window would
+    // return LUNCH instead of CLOSED. Use Xmas Eve at 12:30.
+    NSDate *xmasEveLunch = holidayDateAt(@"Asia/Hong_Kong", 2026, 12, 24, 12, 30, 0);
+    SessionState s; double _p; long _n;
+    computeSessionState(hkex, xmasEveLunch, &s, &_p, &_n);
+    if (s != kSessionClosed) {
+        failures++;
+        fprintf(stderr, "FAIL %s: HKEX 12:30 Xmas Eve half-day expected CLOSED got %s (iter-189 hasLunch=NO override broken)\n",
+                __func__, holidayStateName(s));
+    }
+
+    // HKEX at 10:00 on Xmas Eve (before early close) → OPEN.
+    ASSERT_HSTATE(hkex, xmasEve, kSessionOpen);
+
+    // TSX Dec 24 at 13:00 ET half-day.
+    NSDate *tsxXmasEve = holidayDateAt(@"America/Toronto", 2026, 12, 24, 10, 0, 0);
+    h = -1; m = -1;
+    if (!FCIsMarketHalfDay(tsx, tsxXmasEve, &h, &m) || h != 13 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: TSX Xmas Eve expected 13:00 got %d:%02d\n", __func__, h, m);
+    }
+    // TSX Dec 31 is NOT a half-day (Canadian convention differs from LSE).
+    NSDate *tsxNYE = holidayDateAt(@"America/Toronto", 2026, 12, 31, 10, 0, 0);
+    if (FCIsMarketHalfDay(tsx, tsxNYE, NULL, NULL)) {
+        failures++; fprintf(stderr, "FAIL %s: TSX Dec 31 wrongly flagged half-day (it's a full trading day)\n", __func__);
+    }
+}
+
 void test_nyse_halfday_state_closed(void) {
     // v4 iter-189: integration lock for iter-188 data. Verifies that
     // computeSessionState actually consumes the half-day early-close

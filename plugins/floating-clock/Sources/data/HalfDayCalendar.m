@@ -36,6 +36,26 @@ static const FCHalfDayEntry kTARGET2_2026HalfDays[] = {
     { @"2026-12-31", 14, 0 },  // New Year's Eve
 };
 
+// v4 iter-191: HKEX 2026 half-day sessions. Source: HKEX published
+// trading calendar. All three dates close at 12:00 HKT (noon) —
+// lunch start in HKEX's regular schedule, so "close at lunch start"
+// is functionally equivalent to "morning-only session". iter-189's
+// hasLunch=NO override is load-bearing here: without it, the
+// 12:00-13:00 window would incorrectly promote to LUNCH state instead
+// of CLOSED.
+static const FCHalfDayEntry kHKEX2026HalfDays[] = {
+    { @"2026-02-16", 12, 0 },  // LNY Eve (農曆新年除夕)
+    { @"2026-12-24", 12, 0 },  // Christmas Eve
+    { @"2026-12-31", 12, 0 },  // New Year's Eve
+};
+
+// v4 iter-191: TSX 2026 half-day sessions. Source: TMX Group.
+// Only Dec 24 2026 (Christmas Eve) is a half-day at TSX; closes
+// 13:00 ET. Dec 31 is a full trading day on TSX (unlike LSE).
+static const FCHalfDayEntry kTSX2026HalfDays[] = {
+    { @"2026-12-24", 13, 0 },  // Christmas Eve
+};
+
 typedef struct {
     const char *market_id;
     const FCHalfDayEntry * _Nonnull entries;
@@ -47,6 +67,8 @@ static const FCHalfDayTable kHalfDayTables[] = {
     { "lse",      kLSE2026HalfDays,      sizeof(kLSE2026HalfDays)      / sizeof(kLSE2026HalfDays[0])      },
     { "xetra",    kTARGET2_2026HalfDays, sizeof(kTARGET2_2026HalfDays) / sizeof(kTARGET2_2026HalfDays[0]) },
     { "euronext", kTARGET2_2026HalfDays, sizeof(kTARGET2_2026HalfDays) / sizeof(kTARGET2_2026HalfDays[0]) },
+    { "hkex",     kHKEX2026HalfDays,     sizeof(kHKEX2026HalfDays)     / sizeof(kHKEX2026HalfDays[0])     },
+    { "tsx",      kTSX2026HalfDays,      sizeof(kTSX2026HalfDays)      / sizeof(kTSX2026HalfDays[0])      },
 };
 static const size_t kNumHalfDayTables = sizeof(kHalfDayTables) / sizeof(kHalfDayTables[0]);
 
