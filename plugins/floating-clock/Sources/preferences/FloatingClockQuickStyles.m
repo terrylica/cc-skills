@@ -51,15 +51,31 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"medium", @"LetterSpacing": @"normal", @"LineSpacing": @"normal",
         @"TimeSeparator": @"colon",
     };
+    // v4 iter-130: two moods exercising iter-129's new thin/black weight
+    // extremes. Showcasing what the expanded 7-preset range opens up.
+    NSDictionary *featherlight = @{
+        @"LocalTheme": @"lavender_dream", @"ActiveTheme": @"lavender_dream", @"NextTheme": @"lavender_dream",
+        @"CornerStyle": @"hairline", @"ShadowStyle": @"none", @"Density": @"spacious",
+        @"FontWeight": @"thin", @"LetterSpacing": @"airy", @"LineSpacing": @"loose",
+        @"TimeSeparator": @"space",
+    };
+    NSDictionary *industrial = @{
+        @"LocalTheme": @"espresso", @"ActiveTheme": @"espresso", @"NextTheme": @"espresso",
+        @"CornerStyle": @"sharp", @"ShadowStyle": @"plinth", @"Density": @"compact",
+        @"FontWeight": @"black", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
+        @"TimeSeparator": @"dash",
+    };
 
     return @[
-        @[@"Brutalist", brutalist],
-        @[@"Zen",       zen],
-        @[@"Retro CRT", retro],
-        @[@"Executive", executive],
-        @[@"Neon",      neon],
-        @[@"Hacker",    hacker],
-        @[@"Glacier",   glacier],
-        @[@"Midnight",  midnight],
+        @[@"Brutalist",    brutalist],
+        @[@"Zen",          zen],
+        @[@"Retro CRT",    retro],
+        @[@"Executive",    executive],
+        @[@"Neon",         neon],
+        @[@"Hacker",       hacker],
+        @[@"Glacier",      glacier],
+        @[@"Midnight",     midnight],
+        @[@"Featherlight", featherlight],
+        @[@"Industrial",   industrial],
     ];
 }
