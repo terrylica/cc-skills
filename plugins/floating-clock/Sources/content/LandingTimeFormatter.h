@@ -20,7 +20,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-void FCFormatLandingTime(NSDate *landsAt,
+// `now` is injected (not read from [NSDate date]) so callers can test
+// with fixed fixtures. Production callers pass [NSDate date].
+void FCFormatLandingTime(NSDate *now,
+                         NSDate *landsAt,
                          const char * _Nullable mktIana,
                          NSString * _Nonnull * _Nonnull outUserStr,
                          NSString * _Nonnull * _Nonnull outMktStr);
