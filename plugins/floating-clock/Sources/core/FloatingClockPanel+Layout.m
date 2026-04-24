@@ -197,15 +197,19 @@
     _activeSeg.frame = NSMakeRect(activeX, activeY, activeW, activeH);
     _nextSeg.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
 
-    // v4 iter-30: CornerStyle applies to all three segments uniformly.
-    //   sharp     0pt
-    //   rounded   6pt  (default, matches prior hardcoded radius)
-    //   squircle  14pt
-    //   pill      half the segment's shorter axis (fully rounded ends)
+    // v4 iter-30 / iter-97: CornerStyle — radius presets applied to
+    // all three segment layers uniformly.
+    //   sharp     0pt     hairline  1pt     micro     3pt
+    //   rounded   6pt     soft      10pt    squircle  14pt
+    //   jumbo     22pt    pill      min(w,h)/2 (fully rounded ends)
     NSString *cornerId = [d stringForKey:@"CornerStyle"];
     CGFloat (^cornerRadiusFor)(CGFloat, CGFloat) = ^CGFloat(CGFloat w, CGFloat h) {
         if ([cornerId isEqualToString:@"sharp"])    return 0.0;
+        if ([cornerId isEqualToString:@"hairline"]) return 1.0;
+        if ([cornerId isEqualToString:@"micro"])    return 3.0;
+        if ([cornerId isEqualToString:@"soft"])     return 10.0;
         if ([cornerId isEqualToString:@"squircle"]) return 14.0;
+        if ([cornerId isEqualToString:@"jumbo"])    return 22.0;
         if ([cornerId isEqualToString:@"pill"])     return MIN(w, h) / 2.0;
         return 6.0;  // "rounded" default
     };
