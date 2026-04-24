@@ -87,19 +87,40 @@ defaults read com.terryli.floating-clock          # show all
 defaults delete com.terryli.floating-clock        # reset everything (next launch → defaults)
 ```
 
-| Key                         | Type     | Default      | Source                                                  |
-| --------------------------- | -------- | ------------ | ------------------------------------------------------- |
-| `ShowSeconds`               | BOOL     | `YES`        | Context menu                                            |
-| `ShowDate`                  | BOOL     | `NO`         | Context menu                                            |
-| `TimeFormat`                | NSString | `"24h"`      | Context menu (24h / 12h)                                |
-| `FontSize`                  | double   | `24.0`       | Context menu (15 options, 10–64 pt)                     |
-| `ColorTheme`                | NSString | `"terminal"` | Context menu (10 preset themes)                         |
-| `SelectedMarket`            | NSString | `"local"`    | Context menu (Local + 12 exchanges)                     |
-| `FontName`                  | NSString | unset        | Power-user override (PostScript name)                   |
-| `FloatingClockWindowFrame`  | NSString | unset        | Auto-saved on window move                               |
-| `FloatingClockScreenNumber` | NSNumber | unset        | Auto-saved on window move                               |
-| `TextColor`                 | NSString | unset        | Legacy (pre-1.2.0). Migrated to `ColorTheme` on upgrade |
-| `BackgroundAlpha`           | double   | unset        | Legacy (pre-1.2.0). Alpha now part of theme             |
+| Key                         | Type         | Default               | Source                                                                                    |
+| --------------------------- | ------------ | --------------------- | ----------------------------------------------------------------------------------------- |
+| `DisplayMode`               | NSString     | `"three-segment"`     | Menu (three-segment / single-market / local-only)                                         |
+| `ShowSeconds`               | BOOL         | `YES`                 | Menu — strips `:ss` from all time displays when NO                                        |
+| `ShowDate`                  | BOOL         | `YES`                 | Menu                                                                                      |
+| `DateFormat`                | NSString     | `"short"`             | Menu (short / long / iso / numeric / weeknum / dayofyr)                                   |
+| `TimeFormat`                | NSString     | `"24h"`               | Menu (24h / 12h) — only affects LOCAL; UTC always 24h canonical                           |
+| `ShowFlags`                 | BOOL         | `YES`                 | Menu — country-flag emoji on ACTIVE/NEXT headers                                          |
+| `ShowUTCReference`          | BOOL         | `YES`                 | Menu — inline `· HH:mm:ss UTC` on LOCAL row                                               |
+| `ShowSkyState`              | BOOL         | `YES`                 | Menu — sun/moon glyph on LOCAL row (☀ hours 6–18, 🌙 otherwise)                           |
+| `FontSize`                  | double       | `24.0`                | Menu (15 options, 10–64 pt)                                                               |
+| `ActiveFontSize`            | double       | `11.0`                | Per-segment font size for ACTIVE                                                          |
+| `NextFontSize`              | double       | `11.0`                | Per-segment font size for NEXT                                                            |
+| `ColorTheme`                | NSString     | `"terminal"`          | Legacy / fallback — superseded by per-segment themes                                      |
+| `LocalTheme`                | NSString     | `"terminal"`          | Per-segment theme for LOCAL                                                               |
+| `ActiveTheme`               | NSString     | `"green_phosphor"`    | Per-segment theme for ACTIVE                                                              |
+| `NextTheme`                 | NSString     | `"soft_glass"`        | Per-segment theme for NEXT                                                                |
+| `CanvasOpacity`             | double       | `0.75`                | Menu — segment backdrop alpha (Opaque 1.00 / Solid 0.90 / Glass 0.75 / …)                 |
+| `ActiveBarCells`            | int          | `40`                  | Menu — progress-bar cell count                                                            |
+| `ProgressBarStyle`          | NSString     | `"dots"`              | Menu (dots / blocks / dashes / arrows / binary / braille)                                 |
+| `NextItemCount`             | int          | `3`                   | Menu — max rows in NEXT TO OPEN                                                           |
+| `LayoutMode`                | NSString     | `"stacked-local-top"` | Menu (stacked-local-top / stacked-local-bottom / triptych)                                |
+| `SegmentGap`                | NSString     | `"normal"`            | Menu (tight / snug / normal / airy / spacious)                                            |
+| `CornerStyle`               | NSString     | `"rounded"`           | Menu (sharp / rounded / pill / squircle)                                                  |
+| `ShadowStyle`               | NSString     | `"none"`              | Menu (none / subtle / lifted / glow)                                                      |
+| `Density`                   | NSString     | `"default"`           | Menu (compact / default / comfortable / spacious)                                         |
+| `SelectedMarket`            | NSString     | `"local"`             | Menu — only used in single-market mode                                                    |
+| `ActiveProfile`             | NSString     | `"Default"`           | Menu → Profile (Default / Day Trader / Night Owl / Minimalist / Watch Party + user-saved) |
+| `Profiles`                  | NSDictionary | starter bundle        | User-saved profile bundles — `{name → prefs-dict}`                                        |
+| `FontName`                  | NSString     | unset                 | Power-user override (PostScript name)                                                     |
+| `FloatingClockWindowFrame`  | NSString     | unset                 | Auto-saved on window move. `capture-clock.sh` reads this.                                 |
+| `FloatingClockScreenNumber` | NSNumber     | unset                 | Auto-saved on window move                                                                 |
+| `TextColor`                 | NSString     | unset                 | Legacy (pre-1.2.0). Migrated to `ColorTheme` on upgrade                                   |
+| `BackgroundAlpha`           | double       | unset                 | Legacy (pre-1.2.0). Alpha now `CanvasOpacity` or theme                                    |
 
 ## Implementation
 
