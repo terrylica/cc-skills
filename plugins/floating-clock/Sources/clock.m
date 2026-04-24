@@ -415,21 +415,47 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (NSMenu *)menuForEvent:(NSEvent *)event;
 @end
 
-// Vertically-centering text cell. NSTextFieldCell has no built-in vertical
-// centering: multi-line text is top-anchored within its cell frame, and any
-// extra frame height manifests as bottom whitespace. Override drawingRect so
-// the cell draws at the vertically-centered offset within its bounds.
+// Vertically-centering text cell for multi-line attributed strings.
+// NSTextFieldCell has no built-in vertical centering — multi-line text anchors
+// to the cell top, and any extra frame height manifests as bottom whitespace.
+//
+// The SOTA measurement uses NSLayoutManager + NSTextStorage + NSTextContainer
+// after forced layout. NSAttributedString.size / boundingRectWithSize and
+// NSCell.cellSizeForBounds all MISMEASURE multi-line attributed content with
+// per-range color/font attributes. usedRectForTextContainer queries actual
+// laid-out glyph bounds — the authoritative answer.
+//
+// Critical gotchas:
+//  1) lineFragmentPadding defaults to 5.0 — must be 0 for pixel-accurate height
+//  2) Layout is lazy — force with [layoutManager glyphRangeForTextContainer:]
+//  3) Attach order: addTextContainer: to LM FIRST, then addLayoutManager: to storage
 @interface VCenteredCell : NSTextFieldCell
 @end
 
 @implementation VCenteredCell
+
+- (CGFloat)measuredHeightForWidth:(CGFloat)width {
+    NSAttributedString *attr = self.attributedStringValue;
+    if (attr.length == 0) return 0;
+    NSTextStorage *storage = [[NSTextStorage alloc] initWithAttributedString:attr];
+    NSTextContainer *container = [[NSTextContainer alloc]
+        initWithContainerSize:NSMakeSize(width > 0 ? width : FLT_MAX, FLT_MAX)];
+    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
+    [lm addTextContainer:container];
+    [storage addLayoutManager:lm];
+    container.lineFragmentPadding = 0.0;
+    (void)[lm glyphRangeForTextContainer:container];
+    return [lm usedRectForTextContainer:container].size.height;
+}
+
 - (NSRect)drawingRectForBounds:(NSRect)theRect {
     NSRect newRect = [super drawingRectForBounds:theRect];
-    NSSize textSize = [self cellSizeForBounds:theRect];
-    CGFloat heightDelta = newRect.size.height - textSize.height;
+    CGFloat measured = [self measuredHeightForWidth:newRect.size.width];
+    if (measured <= 0) return newRect;
+    CGFloat heightDelta = newRect.size.height - measured;
     if (heightDelta > 0) {
         newRect.origin.y += heightDelta / 2.0;
-        newRect.size.height = textSize.height;
+        newRect.size.height = measured;
     }
     return newRect;
 }
