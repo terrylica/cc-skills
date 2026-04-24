@@ -134,6 +134,17 @@
                                       @[@"18", @18.0], @[@"20", @20.0]]
                         defaultsKey:@"ActiveFontSize"]];
 
+    // Per-segment font weight (v4 iter-89). Falls back to global FontWeight
+    // if unset. Unlike Font Size, shares the same 5 presets as the global lever.
+    [m addItem:[self submenuTitled:@"Font Weight"
+                             action:@selector(setActiveWeight:)
+                              pairs:@[@[@"Regular",  @"regular"],
+                                      @[@"Medium",   @"medium"],
+                                      @[@"Semibold", @"semibold"],
+                                      @[@"Bold",     @"bold"],
+                                      @[@"Heavy",    @"heavy"]]
+                        defaultsKey:@"ActiveWeight"]];
+
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];
     NSMenuItem *qs = [m addItemWithTitle:@"Quick Save Profile" action:@selector(quickSaveCurrentProfile:) keyEquivalent:@""];
@@ -178,6 +189,18 @@
                                       @[@"12", @12.0], @[@"14", @14.0], @[@"16", @16.0],
                                       @[@"18", @18.0], @[@"20", @20.0]]
                         defaultsKey:@"NextFontSize"]];
+
+    // Per-segment font weight (v4 iter-89). Falls back to global FontWeight
+    // when unset. Helpful when NEXT's lower-priority countdowns should
+    // read lighter than ACTIVE's live markets.
+    [m addItem:[self submenuTitled:@"Font Weight"
+                             action:@selector(setNextWeight:)
+                              pairs:@[@[@"Regular",  @"regular"],
+                                      @[@"Medium",   @"medium"],
+                                      @[@"Semibold", @"semibold"],
+                                      @[@"Bold",     @"bold"],
+                                      @[@"Heavy",    @"heavy"]]
+                        defaultsKey:@"NextWeight"]];
 
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];

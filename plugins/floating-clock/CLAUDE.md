@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` — 25 fixtures covering
+Tests live in `tests/test_session.m` — 26 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -27,10 +27,12 @@ fullTzLabel composition), cityCode / flag emoji mapping coverage for
 all 12 exchanges, starter-profile key-coverage invariants (caught
 iter-55 drift in iter-56), progressive countdown format (sub-day
 `T-HH:MM:SS` vs ≥24h `T-Nd Hh MMm`), lunch-market identification,
-`FCFormatLandingTime` cross-day/cross-weekday matrix, and
-`FCParseFontWeight` id→NSFontWeight mapping with fallback (iter-88).
-Added after iter-48 caught a "closed-before-open-today" off-by-7h
-bug that had shipped since iter-9.
+`FCFormatLandingTime` cross-day/cross-weekday matrix,
+`FCParseFontWeight` id→NSFontWeight mapping with fallback (iter-88),
+and `FCResolveSegmentWeight` three-tier fallback chain (segment key →
+global FontWeight → Medium, iter-89). Added after iter-48 caught a
+"closed-before-open-today" off-by-7h bug that had shipped since
+iter-9.
 
 Binary at `build/floating-clock` (~184 KB signed), app bundle at
 `build/FloatingClock.app`. App bundle includes
@@ -129,6 +131,8 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 | `ActiveFontSize`            | double       | `11.0`                | Per-segment font size for ACTIVE                                                                                                       |
 | `NextFontSize`              | double       | `11.0`                | Per-segment font size for NEXT                                                                                                         |
 | `FontWeight`                | NSString     | `"medium"`            | Menu (regular / medium / semibold / bold / heavy) — applies to ACTIVE + NEXT monospaced paths. LOCAL keeps iTerm2 / named-font weight. |
+| `ActiveWeight`              | NSString     | inherits `FontWeight` | Per-segment weight override for ACTIVE (iter-89). Same 5 presets. Empty/unset → falls back to `FontWeight`.                            |
+| `NextWeight`                | NSString     | inherits `FontWeight` | Per-segment weight override for NEXT (iter-89). Same 5 presets. Empty/unset → falls back to `FontWeight`.                              |
 | `ColorTheme`                | NSString     | `"terminal"`          | Legacy / fallback — superseded by per-segment themes                                                                                   |
 | `LocalTheme`                | NSString     | `"terminal"`          | Per-segment theme for LOCAL                                                                                                            |
 | `ActiveTheme`               | NSString     | `"green_phosphor"`    | Per-segment theme for ACTIVE                                                                                                           |

@@ -12,7 +12,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     CGFloat fontSize = [d doubleForKey:@"NextFontSize"];
     if (fontSize < 6) fontSize = 11;
-    NSFontWeight fw = FCParseFontWeight([d stringForKey:@"FontWeight"]);
+    NSFontWeight fw = FCResolveSegmentWeight(@"NextWeight");
     NSFont *font = FCResolveMonoFont(fontSize, fw);
     const ClockTheme *theme = themeForId([d stringForKey:@"NextTheme"]);
     NSColor *headerColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];

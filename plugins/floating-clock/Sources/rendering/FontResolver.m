@@ -70,3 +70,12 @@ NSFont *FCResolveMonoFont(CGFloat size, NSFontWeight weight) {
     NSFont *menlo = [NSFont fontWithName:@"Menlo-Regular" size:size];
     return menlo ?: [NSFont systemFontOfSize:size weight:weight];
 }
+
+NSFontWeight FCResolveSegmentWeight(NSString *segmentKey) {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *local = [d stringForKey:segmentKey];
+    if ([local isKindOfClass:[NSString class]] && local.length > 0) {
+        return FCParseFontWeight(local);
+    }
+    return FCParseFontWeight([d stringForKey:@"FontWeight"]);
+}
