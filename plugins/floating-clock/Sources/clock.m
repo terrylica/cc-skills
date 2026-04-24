@@ -1,6 +1,7 @@
 #import <Cocoa/Cocoa.h>
 #import "rendering/VerticallyCenteredTextFieldCell.h"
 #import "rendering/AttributedStringLayoutMeasurer.h"
+#import "rendering/FontResolver.h"
 #import "data/ThemeCatalog.h"
 #import "data/MarketCatalog.h"
 #import "data/MarketSessionCalculator.h"
@@ -111,64 +112,7 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
 // swatchForTheme moved to Sources/data/ThemeCatalog.{h,m}
 
-// Resolve clock font: user override → iTerm2 default profile → SF Mono → Menlo
-static NSFont *resolveClockFont(CGFloat size) {
-    // 1. User override: NSUserDefaults "FontName" (future customization)
-    NSString *override = [[NSUserDefaults standardUserDefaults] stringForKey:@"FontName"];
-    if ([override isKindOfClass:[NSString class]] && override.length > 0) {
-        NSFont *f = [NSFont fontWithName:override size:size];
-        if (f) return f;
-    }
-
-    // 2. iTerm2 default profile
-    NSString *plist = [NSHomeDirectory() stringByAppendingPathComponent:
-                       @"Library/Preferences/com.googlecode.iterm2.plist"];
-    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:plist];
-    if ([prefs isKindOfClass:[NSDictionary class]]) {
-        NSArray *bookmarks = prefs[@"New Bookmarks"];
-        NSString *defaultGuid = prefs[@"Default Bookmark Guid"];
-        NSDictionary *chosen = nil;
-
-        if ([bookmarks isKindOfClass:[NSArray class]]) {
-            for (NSDictionary *bm in bookmarks) {
-                if (![bm isKindOfClass:[NSDictionary class]]) continue;
-                NSString *guid = bm[@"Guid"];
-                if ([guid isKindOfClass:[NSString class]] && defaultGuid &&
-                    [guid isEqualToString:defaultGuid]) {
-                    chosen = bm;
-                    break;
-                }
-            }
-            // Fallback to first bookmark if default not found
-            if (!chosen && bookmarks.count > 0) {
-                NSDictionary *first = bookmarks[0];
-                if ([first isKindOfClass:[NSDictionary class]]) {
-                    chosen = first;
-                }
-            }
-        }
-
-        if ([chosen isKindOfClass:[NSDictionary class]]) {
-            NSString *spec = chosen[@"Normal Font"];
-            if ([spec isKindOfClass:[NSString class]] && spec.length > 0) {
-                // spec format: "FontName 12" → extract FontName
-                NSRange r = [spec rangeOfString:@" " options:NSBackwardsSearch];
-                NSString *name = (r.location != NSNotFound) ? [spec substringToIndex:r.location] : spec;
-                NSFont *f = [NSFont fontWithName:name size:size];
-                if (f) return f;
-            }
-        }
-    }
-
-    // 3. System monospaced fallback (SF Mono on Catalina+)
-    if (@available(macOS 10.15, *)) {
-        return [NSFont monospacedSystemFontOfSize:size weight:NSFontWeightMedium];
-    }
-
-    // 4. Pre-Catalina fallback (Menlo)
-    NSFont *menlo = [NSFont fontWithName:@"Menlo-Regular" size:size];
-    return menlo ?: [NSFont systemFontOfSize:size weight:NSFontWeightMedium];
-}
+// resolveClockFont moved to Sources/rendering/FontResolver.{h,m}
 
 // Custom content view that handles right-click menu
 @interface ClockContentView : NSView <NSMenuDelegate>
