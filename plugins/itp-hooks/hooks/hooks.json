@@ -14,16 +14,6 @@
         ]
       },
       {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-fake-data-guard.mjs",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
         "matcher": "Write|Edit",
         "hooks": [
           {
@@ -90,17 +80,6 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pyi-stub-guard.ts",
             "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-inline-ignore-guard.ts",
-            "timeout": 5000,
-            "description": "Blocks inline ignore comments (noqa, type: ignore, eslint-disable) - use config files instead"
           }
         ]
       },
