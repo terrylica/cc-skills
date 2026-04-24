@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` + `tests/test_levers.m` — 58 fixtures covering
+Tests live in `tests/test_session.m` + `tests/test_levers.m` — 59 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -188,6 +188,7 @@ Sources/
     CornerRadius.{h,m}                  8-preset CornerStyle → layer radius (iter-117)
     ShadowSpec.{h,m}                    7-preset ShadowStyle → spec struct (iter-120)
     SessionSignalWindow.{h,m}           5-preset SessionSignalWindow → minutes, gates PRE-MARKET + AFTER-HOURS promotions (iter-126)
+    ClipboardHeader.{h,m}               FCComposeClipboardSnapshot — self-documenting UTC-stamped header for Copy cluster (iter-160)
   segments/
     FloatingClockSegmentViews.{h,m}     Local/Active/Next/ClockContentView subclasses
   content/

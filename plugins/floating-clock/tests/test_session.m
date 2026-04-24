@@ -780,9 +780,10 @@ int main(void) {
         test_session_signal_window();
         test_session_state_label();
         test_session_state_color();
+        test_clipboard_header_format();
 
         if (failures == 0) {
-            fprintf(stderr, "All 58 tests passed.\n");
+            fprintf(stderr, "All 59 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
