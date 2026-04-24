@@ -191,15 +191,17 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Cavernous (24pt)",  @"cavernous"]]
                                      defaultsKey:@"SegmentGap"]];
 
-    // v4 iter-30 + iter-97: 8 corner-style presets (applies to all segments).
+    // v4 iter-30 + iter-97 + iter-224: 10 corner-style presets (applies to all segments).
     [displayItems addObject:[self submenuTitled:@"Corners"
                                           action:@selector(setCornerStyle:)
                                            pairs:@[@[@"Sharp     (0pt)",  @"sharp"],
                                                    @[@"Hairline  (1pt)",  @"hairline"],
                                                    @[@"Micro     (3pt)",  @"micro"],
                                                    @[@"Rounded   (6pt)",  @"rounded"],
+                                                   @[@"Cushion   (8pt)",  @"cushion"],
                                                    @[@"Soft     (10pt)",  @"soft"],
                                                    @[@"Squircle (14pt)",  @"squircle"],
+                                                   @[@"Chunky   (18pt)",  @"chunky"],
                                                    @[@"Jumbo    (22pt)",  @"jumbo"],
                                                    @[@"Pill (half-axis)", @"pill"]]
                                      defaultsKey:@"CornerStyle"]];
