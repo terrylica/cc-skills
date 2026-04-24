@@ -16,12 +16,16 @@ static uint64_t nsUntilNextSecond(void) {
 
 // Date-format preset id → NSDateFormatter pattern prefix. Trailing "  " goes
 // before the time portion. Falls back to "short" ("EEE MMM d  ").
+// v4 iter-111: 3 locale-flavored presets added (usa / european / compact_iso).
 static NSString *dateFormatPrefix(NSString *presetId) {
-    if ([presetId isEqualToString:@"long"])    return @"EEEE MMMM d  ";
-    if ([presetId isEqualToString:@"iso"])     return @"yyyy-MM-dd  ";
-    if ([presetId isEqualToString:@"numeric"]) return @"M/d  ";
-    if ([presetId isEqualToString:@"weeknum"]) return @"'Wk' w  ";
-    if ([presetId isEqualToString:@"dayofyr"]) return @"'Day' D  ";
+    if ([presetId isEqualToString:@"long"])        return @"EEEE MMMM d  ";
+    if ([presetId isEqualToString:@"iso"])         return @"yyyy-MM-dd  ";
+    if ([presetId isEqualToString:@"numeric"])     return @"M/d  ";
+    if ([presetId isEqualToString:@"weeknum"])     return @"'Wk' w  ";
+    if ([presetId isEqualToString:@"dayofyr"])     return @"'Day' D  ";
+    if ([presetId isEqualToString:@"usa"])         return @"M/d/yyyy  ";       // 4/24/2026
+    if ([presetId isEqualToString:@"european"])    return @"d.M.yyyy  ";       // 24.4.2026
+    if ([presetId isEqualToString:@"compact_iso"]) return @"MM-dd  ";          // 04-24
     return @"EEE MMM d  ";
 }
 
