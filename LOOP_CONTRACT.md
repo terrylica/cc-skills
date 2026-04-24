@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 151
+iteration: 152
 status: ACTIVE
-last_updated: 2026-04-24T17:00:00Z
+last_updated: 2026-04-24T17:10:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -585,3 +585,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 16:40 UTC — iter-149: **Copy Time utility in LOCAL segment menu** (f234db9c). Pivot to user-facing utility addition after test-heavy cluster. New `copyTime:` action handler writes the LOCAL row's current display string (time + TZ label + optional UTC reference) to the system clipboard via NSPasteboard. Exposed only from LOCAL's right-click menu — ACTIVE/NEXT have multiple simultaneous entries so "the time" is ambiguous there. Users wanting per-market copy can use single-market display mode. No new test (3-line pasteboard write, negligible risk surface, @selector binding checked at build). 55/55 still pass, warning-free.
 - 2026-04-24 16:50 UTC — iter-150: **Copy Time cross-mode fix + Copy for ACTIVE/NEXT** (d23c390c). Caught a fresh-install regression in iter-149: `copyTime:` only read `_label.stringValue`, which is populated only in legacy single-market / local-only DisplayModes. Three-segment (default since iter-11) stores LOCAL's time in `_localSeg.timeLabel.stringValue` — so iter-149's Copy Time silently copied empty string on a fresh install. Fix: prefer the populated source. Also extended: Copy Active Markets + Copy Next Opens submenu items pull `.attributedStringValue.string` from each segment's contentLabel — snapshot the rendered list for pasting into notes/chat. 55/55 still pass, warning-free.
 - 2026-04-24 17:00 UTC — iter-151: **Future Enhancements roadmap refresh** (db77a623). Zero-code housekeeping after the feature-heavy iter-149/150. Moved 4 silently-shipped items from Near-term / absent to "Already shipped in v4": PRE-MARKET (iter-123), AFTER-HOURS (iter-125), SessionSignalWindow lever (iter-126), Copy cluster (iter-149/150). Added one new Near-term item surfaced by iter-149/150 exploration — keyboard shortcuts for Copy actions (deferred pending LSUIElement global event-tap evaluation). CLAUDE.md is now accurate about what's shipped vs pending. 55/55 still pass.
+- 2026-04-24 17:10 UTC — iter-152: **Copy cluster gets self-documenting header** (4482646d). Clipboard snapshots from iter-149/150 were raw segment text — pasted hours later, a user couldn't tell when the snapshot was taken. Add a single-line header via new `fcCopyWithHeader(label, body)` static helper: `# Floating Clock · <LABEL> · yyyy-MM-dd HH:mm:ss UTC\n<body>`. UTC in the stamp — unambiguous across the user's possibly-changed local zone. All three Copy actions route through the helper so format stays consistent and any future Copy additions are one-liners. 55/55 still pass.
