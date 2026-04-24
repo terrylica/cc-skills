@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 114
+iteration: 115
 status: ACTIVE
-last_updated: 2026-04-24T10:50:00Z
+last_updated: 2026-04-24T11:00:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -548,3 +548,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 10:30 UTC — iter-112: **sky glyph binary → 5-phase** (aad48185). Upgraded LOCAL row's time-of-day cue from ☀️/🌙 binary to 5 buckets: 🌅 dawn [5,7) · ☀️ day [7,17) · 🌇 dusk [17,19) · 🌙 night [19,5). No new pref — ShowSkyState=YES users pick up extra nuance automatically. Still civil-twilight heuristic (no lat/lon solar math). 33/33 still green.
 - 2026-04-24 10:40 UTC — iter-113: **FCDateFormatPrefix extracted + test** (1113b69e). Parallel to iter-107. Runtime.m's static `dateFormatPrefix` dispatcher moved to new `Sources/core/DateFormatPrefix.{h,m}` module. Tests +1 (34 total): locks in all 9 preset → UTS#35 pattern mappings (iter-111's locale additions now covered) + nil/empty/unknown → short-default fallback. 34/34 green.
 - 2026-04-24 10:50 UTC — iter-114: **FCSkyGlyphForHour extracted + test** (bbae1237). Runtime.m's inline 5-phase if-else ladder (iter-112) moved to `Sources/core/SkyGlyph.{h,m}`. Tests +1 (35 total): asserts correct glyph for each hour [0, 23] plus out-of-band -1 / 24 → night fallback. 35/35 green.
+- 2026-04-24 11:00 UTC — iter-115: **FCSegmentGapPoints extracted + test** (c48eaa16). Layout.m's 6-line if-else ladder for iter-108's 7 SegmentGap presets (flush/tight/snug/normal/airy/spacious/cavernous) moved to `Sources/core/SegmentGap.{h,m}`. Tests +1 (36 total): locks the full 7-value catalog + nil/empty/unknown → 4pt normal fallback. 36/36 green.
