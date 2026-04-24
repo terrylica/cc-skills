@@ -8,6 +8,7 @@
 #import "preferences/FloatingClockStarterProfiles.h"
 #import "content/ActiveSegmentContentBuilder.h"
 #import "content/NextSegmentContentBuilder.h"
+#import "segments/FloatingClockSegmentViews.h"
 
 // # FILE-SIZE-OK
 
@@ -49,34 +50,8 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
 // resolveClockFont moved to Sources/rendering/FontResolver.{h,m}
 
-// Custom content view that handles right-click menu
-@interface ClockContentView : NSView <NSMenuDelegate>
-@property (weak) FloatingClockPanel *panel;
-- (NSMenu *)menuForEvent:(NSEvent *)event;
-@end
-
-// Rendering helpers moved to Sources/rendering/ modules:
-//   VerticallyCenteredTextFieldCell — multi-line vertical centering
-//   AttributedStringLayoutMeasurer — FCMeasureAttributedUnwrapped
-
-// Three-segment NSView subclasses for iter-11 three-segment layout
-@interface LocalSegmentView : NSView
-@property (weak) FloatingClockPanel *panel;
-@property (strong) NSTextField *timeLabel;
-- (NSMenu *)menuForEvent:(NSEvent *)event;
-@end
-
-@interface ActiveSegmentView : NSView
-@property (weak) FloatingClockPanel *panel;
-@property (strong) NSTextField *contentLabel;
-- (NSMenu *)menuForEvent:(NSEvent *)event;
-@end
-
-@interface NextSegmentView : NSView
-@property (weak) FloatingClockPanel *panel;
-@property (strong) NSTextField *contentLabel;
-- (NSMenu *)menuForEvent:(NSEvent *)event;
-@end
+// ClockContentView + LocalSegmentView + ActiveSegmentView + NextSegmentView
+// moved to Sources/segments/FloatingClockSegmentViews.{h,m}
 
 @interface FloatingClockPanel : NSPanel {
     NSTextField *_label;
@@ -1595,115 +1570,8 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
 @end
 
-// LocalSegmentView implementation
-@implementation LocalSegmentView
-
-- (instancetype)initWithFrame:(NSRect)frame {
-    self = [super initWithFrame:frame];
-    if (!self) return nil;
-
-    self.wantsLayer = YES;
-    self.layer.backgroundColor = [NSColor colorWithRed:0.05 green:0.05 blue:0.05 alpha:0.50].CGColor;
-    self.layer.cornerRadius = 6.0;
-
-    NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
-    cell.editable = NO;
-    cell.selectable = NO;
-    cell.bezeled = NO;
-    cell.drawsBackground = NO;
-    cell.alignment = NSTextAlignmentCenter;
-    label.cell = cell;
-    [self addSubview:label];
-    _timeLabel = label;
-
-    return self;
-}
-
-- (NSMenu *)menuForEvent:(NSEvent *)event {
-    return [self.panel buildLocalSegmentMenu];
-}
-
-@end
-
-// ActiveSegmentView implementation
-@implementation ActiveSegmentView
-
-- (instancetype)initWithFrame:(NSRect)frame {
-    self = [super initWithFrame:frame];
-    if (!self) return nil;
-
-    self.wantsLayer = YES;
-    self.layer.backgroundColor = [NSColor colorWithRed:0.02 green:0.08 blue:0.04 alpha:0.50].CGColor;
-    self.layer.cornerRadius = 6.0;
-
-    NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
-    cell.editable = NO;
-    cell.selectable = NO;
-    cell.bezeled = NO;
-    cell.drawsBackground = NO;
-    cell.alignment = NSTextAlignmentLeft;
-    cell.wraps = NO;
-    cell.lineBreakMode = NSLineBreakByTruncatingTail;
-    label.cell = cell;
-    label.usesSingleLineMode = NO;
-    [self addSubview:label];
-    _contentLabel = label;
-
-    return self;
-}
-
-- (NSMenu *)menuForEvent:(NSEvent *)event {
-    return [self.panel buildActiveSegmentMenu];
-}
-
-@end
-
-// NextSegmentView implementation
-@implementation NextSegmentView
-
-- (instancetype)initWithFrame:(NSRect)frame {
-    self = [super initWithFrame:frame];
-    if (!self) return nil;
-
-    self.wantsLayer = YES;
-    self.layer.backgroundColor = [NSColor colorWithRed:0.05 green:0.05 blue:0.08 alpha:0.50].CGColor;
-    self.layer.cornerRadius = 6.0;
-
-    NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
-    cell.editable = NO;
-    cell.selectable = NO;
-    cell.bezeled = NO;
-    cell.drawsBackground = NO;
-    cell.alignment = NSTextAlignmentLeft;
-    cell.wraps = NO;
-    label.cell = cell;
-    label.usesSingleLineMode = NO;
-    [self addSubview:label];
-    _contentLabel = label;
-
-    return self;
-}
-
-- (NSMenu *)menuForEvent:(NSEvent *)event {
-    return [self.panel buildNextSegmentMenu];
-}
-
-@end
-
-// ClockContentView implementation
-@implementation ClockContentView
-
-- (NSMenu *)menuForEvent:(NSEvent *)event {
-    if (event.type == NSEventTypeRightMouseDown || event.type == NSEventTypeOtherMouseDown) {
-        return self.menu;
-    }
-    return [super menuForEvent:event];
-}
-
-@end
+// @implementation blocks for the 4 view classes moved to
+// Sources/segments/FloatingClockSegmentViews.m
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
