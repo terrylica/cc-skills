@@ -15,6 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 void test_holiday_calendar_nyse(void);
 void test_holiday_calendar_lse(void);
 void test_holiday_calendar_tse(void);
+void test_holiday_calendar_hkex(void);
 void test_nyse_holiday_state_closed(void);
 void test_holiday_chains_through_weekend(void);
 
