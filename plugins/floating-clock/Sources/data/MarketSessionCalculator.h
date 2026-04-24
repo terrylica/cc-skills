@@ -1,6 +1,6 @@
 // Session-state engine for an exchange. Given a market (from MarketCatalog)
 // and a moment in time, computes:
-//   - SessionState (OPEN / LUNCH / CLOSED / PRE-MARKET)
+//   - SessionState (OPEN / LUNCH / CLOSED / PRE-MARKET / AFTER-HOURS)
 //   - progress 0.0–1.0 through the regular session (for progress bars)
 //   - seconds to next transition (for countdown UI)
 //
@@ -18,6 +18,7 @@ typedef enum {
     kSessionLunch = 1,      // Asian-exchange midday break
     kSessionClosed = 2,     // overnight, weekend
     kSessionPreMarket = 3,  // iter-123: final 15 min before today's open (not weekend)
+    kSessionAfterHours = 4, // iter-125: first 15 min after today's close (not weekend)
 } SessionState;
 
 // v4 iter-77: shared time-unit constants. Previously '86400' and
