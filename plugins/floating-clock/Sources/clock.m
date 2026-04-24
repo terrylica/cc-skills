@@ -1554,15 +1554,23 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
 
     _localSeg.timeLabel.font = primaryFont;
-    // Measure LOCAL content via sizeWithAttributes on the actual string —
-    // sizeToFit mutates the label's frame and can leave it in a state where
-    // later frame assignments don't re-center properly. Direct attribute
-    // measurement is predictable and doesn't touch the cell.
+    // Measure LOCAL using the same NSLayoutManager path that VCenteredCell
+    // uses for rendering — keeps measurement and render in lockstep so the
+    // segment height always has enough slack for glyph ascent/descent at
+    // any font size. sizeWithAttributes alone under-reports cap-height for
+    // many fonts, causing top-clip at 48pt+.
     NSString *localStr = _localSeg.timeLabel.stringValue.length > 0
         ? _localSeg.timeLabel.stringValue : @"HH:MM:SS";
-    NSSize localSize = [localStr sizeWithAttributes:primaryAttrs];
-    // Force center-alignment + single-line every relayout. setStringValue
-    // can reset cell state on some AppKit paths; reapply to be safe.
+    NSAttributedString *localAttr = [[NSAttributedString alloc]
+        initWithString:localStr attributes:primaryAttrs];
+    NSSize localSize = measureAttributedUnwrapped(localAttr);
+    if (localSize.height < 10) {
+        localSize = [localStr sizeWithAttributes:primaryAttrs];
+    }
+    // Add breathing room equal to font lineHeight * 0.3 — covers ascent
+    // extensions (caps, diacritics) and descent tail at every font size,
+    // so content is never clipped top or bottom.
+    localSize.height = ceilf(localSize.height + primaryFont.ascender * 0.3);
     _localSeg.timeLabel.alignment = NSTextAlignmentCenter;
     _localSeg.timeLabel.cell.alignment = NSTextAlignmentCenter;
     _localSeg.timeLabel.usesSingleLineMode = YES;
@@ -1623,13 +1631,12 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     _activeSeg.frame = NSMakeRect(bottomPairX, bottomY, activeSegWidth, bottomRowHeight);
     _nextSeg.frame   = NSMakeRect(bottomPairX + activeSegWidth + 4, bottomY, nextSegWidth, bottomRowHeight);
 
-    // LOCAL is single-line: size the label to the exact text height and
-    // position it at the row's midpoint. VCenteredCell's drawingRectForBounds
-    // centering math doesn't always land right for single-line bounds inside
-    // a much taller segment; direct frame positioning is bulletproof.
-    CGFloat localTextH = ceilf(localSize.height);
-    CGFloat localLabelY = floorf((topRowHeight - localTextH) / 2.0);
-    _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, topRowWidth - 16, localTextH);
+    // LOCAL: full-segment frame, VCenteredCell does the centering. Adaptive
+    // at any font size. Previous direct-positioning approach sized the
+    // frame to sizeWithAttributes height, which is the nominal line height
+    // and excludes glyph cap-height extensions above — resulting in the top
+    // of the glyphs getting clipped at larger font sizes.
+    _localSeg.timeLabel.frame     = NSMakeRect(8, 0, topRowWidth - 16, topRowHeight);
     _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeSegWidth - 16, bottomRowHeight);
     _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextSegWidth - 16, bottomRowHeight);
 
