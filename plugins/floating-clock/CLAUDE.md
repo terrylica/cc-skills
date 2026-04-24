@@ -178,6 +178,12 @@ Sources/
     FloatingClockPanel.{h,m}            NSPanel subclass (interface)
     FloatingClockPanel+Runtime.{h,m}    tick pipeline, timers, positioning
     FloatingClockPanel+Layout.{h,m}     3-segment + legacy layout maths
+    DateFormatPrefix.{h,m}              9-preset DateFormat → UTS#35 pattern (iter-113)
+    SkyGlyph.{h,m}                      5-phase hour-of-day → emoji dispatcher (iter-114)
+    SegmentGap.{h,m}                    7-preset SegmentGap → points (iter-115)
+    DensityPad.{h,m}                    6-preset Density → inner-row padding (iter-116)
+    CornerRadius.{h,m}                  8-preset CornerStyle → layer radius (iter-117)
+    ShadowSpec.{h,m}                    7-preset ShadowStyle → spec struct (iter-120)
   segments/
     FloatingClockSegmentViews.{h,m}     Local/Active/Next/ClockContentView subclasses
   content/
@@ -187,22 +193,24 @@ Sources/
     UrgencyColors.{h,m}                 shared urgency palette + thresholds (iter-73)
     LandingTimeFormatter.{h,m}          dual-zone time w/ weekday disambiguation (iter-74)
   data/
-    ThemeCatalog.{h,m}                  10 theme presets + CG swatches
+    ThemeCatalog.{h,m}                  25 theme presets + CG swatches (iter-92)
     MarketCatalog.{h,m}                 12-exchange registry + IANA helpers
-    MarketSessionCalculator.{h,m}       computeSessionState, countdown fmts
+    MarketSessionCalculator.{h,m}       computeSessionState, countdown fmts, progress-bar 10-glyph dispatch (iter-91)
   rendering/
-    FontResolver.{h,m}                  iTerm2 → system monospaced cascade + FontWeight helpers (iter-88/89)
+    FontResolver.{h,m}                  iTerm2 → system monospaced cascade + FontWeight (iter-88/89) + LetterSpacing (iter-94) + LineSpacing (iter-95) + CurrentTimeFormat (iter-107)
     SegmentOpacityResolver.{h,m}        3-tier canvas-opacity fallback (iter-90)
     AttributedStringLayoutMeasurer.{h,m} NSLayoutManager multi-line height
     VerticallyCenteredTextFieldCell.{h,m} cell that centers attributed text
   menu/
-    FloatingClockPanel+MenuBuilder.{h,m} full preferences menu + shared helpers + Profile
+    FloatingClockPanel+MenuBuilder.{h,m} full preferences menu + Profile submenu + Quick Styles integration
     FloatingClockPanel+SegmentMenus.{h,m} LOCAL / ACTIVE / NEXT scoped menus (iter-87 split)
+    FloatingClockPanel+MenuHelpers.{h,m} shared NSMenu helpers (iter-96 proactive split)
   actions/
-    FloatingClockPanel+ActionHandlers.{h,m} every menu-item action target
+    FloatingClockPanel+ActionHandlers.{h,m} every menu-item action target (40+ setters + applyQuickStyle + resetVisualStyle)
   preferences/
     FloatingClockPanel+ProfileManagement.{h,m}  save/load/switch/delete
     FloatingClockStarterProfiles.{h,m}  6 bundled starters + profileManagedKeys
+    FloatingClockQuickStyles.{h,m}      8 Quick Style bundled moods (iter-104 extracted, iter-105/106 expansions)
   vendor/
     RMBlurredView/                       iter-65 frosted-glass library (MIT)
   gen-icon.m                             build-time-only icon renderer
