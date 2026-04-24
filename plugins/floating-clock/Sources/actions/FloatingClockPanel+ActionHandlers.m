@@ -1,11 +1,19 @@
 #import "FloatingClockPanel+ActionHandlers.h"
 #import "../core/FloatingClockPanel+Layout.h"
 #import "../core/FloatingClockPanel+Runtime.h"
+#import "../core/ClipboardHeader.h"  // iter-160: extracted testable helper
 #import "../rendering/SegmentOpacityResolver.h"
 
-// v4 iter-153: forward decl so copyStateToClipboard (iter-85, earlier
-// in this file) can route through the helper defined further down.
-static void fcCopyWithHeader(NSString *label, NSString *body);
+// v4 iter-160: fcCopyWithHeader now wraps the pure FCComposeClipboardSnapshot.
+// This ObjC-level wrapper stays local because it touches NSPasteboard
+// (side-effecting); the composition logic is exported for testing.
+static void fcCopyWithHeader(NSString *label, NSString *body) {
+    NSString *text = FCComposeClipboardSnapshot(label, body, nil);
+    if (text.length == 0) return;
+    NSPasteboard *pb = [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:text forType:NSPasteboardTypeString];
+}
 
 @implementation FloatingClockPanel (ActionHandlers)
 
@@ -362,21 +370,9 @@ static void fcCopyWithHeader(NSString *label, NSString *body);
     [NSApp terminate:nil];
 }
 
-// v4 iter-152: shared helper for the Copy cluster. Prepends an ISO-8601
-// UTC timestamp header so snapshots are self-documenting when pasted
-// into chat/notes days later. Keeps the Copy actions lightweight.
-static void fcCopyWithHeader(NSString *label, NSString *body) {
-    if (body.length == 0) return;
-    NSDateFormatter *hdrFmt = [[NSDateFormatter alloc] init];
-    hdrFmt.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
-    hdrFmt.dateFormat = @"yyyy-MM-dd HH:mm:ss 'UTC'";
-    NSString *stamp = [hdrFmt stringFromDate:[NSDate date]];
-    NSString *text = [NSString stringWithFormat:@"# Floating Clock · %@ · %@\n%@",
-                      label, stamp, body];
-    NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    [pb clearContents];
-    [pb setString:text forType:NSPasteboardTypeString];
-}
+// v4 iter-160: body extracted to Sources/core/ClipboardHeader.{h,m}.
+// The wrapper (top of file) now only handles the NSPasteboard write;
+// composition is pure-function + tested.
 
 // v4 iter-149: copy the LOCAL row's current display (time + TZ label,
 // and UTC reference if enabled) to the system clipboard.
