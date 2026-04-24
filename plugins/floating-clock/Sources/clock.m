@@ -211,8 +211,9 @@ static NSString *buildProgressBar(double progress01, int totalCells) {
         [bar appendString:partials[remainderEighths]];
         fullCells++;
     }
-    // Pad remainder with dim fill character
-    for (int i = fullCells; i < totalCells; i++) [bar appendString:@"░"];
+    // Pad remainder with MEDIUM shade (U+2592) — denser than light shade
+    // (U+2591) for stronger visual contrast against translucent backgrounds.
+    for (int i = fullCells; i < totalCells; i++) [bar appendString:@"▒"];
     return bar;
 }
 
@@ -767,7 +768,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 
             // Bar with color split
             NSColor *fillColor = glyphColor;  // same color as state glyph
-            NSColor *emptyColor = [NSColor colorWithWhite:0.3 alpha:1.0];
+            NSColor *emptyColor = [NSColor colorWithWhite:0.55 alpha:1.0];
             NSInteger splitIdx = 0;
             for (NSUInteger bi = 0; bi < bar.length; bi++) {
                 if ([bar characterAtIndex:bi] == 0x2591) { splitIdx = bi; break; }
@@ -1407,27 +1408,20 @@ static NSFont *resolveClockFont(CGFloat size) {
 
     NSSize localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
 
-    // Measure actual ACTIVE content (may be multi-line).
-    // -[NSAttributedString size] returns single-line dimensions and ignores
-    // embedded \n — use boundingRectWithSize:options: for multi-line.
-    NSSize activeSize;
-    NSAttributedString *activeAttr = _activeSeg.contentLabel.attributedStringValue;
-    if (activeAttr && activeAttr.string.length > 0) {
-        NSRect r = [activeAttr boundingRectWithSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)
-                                            options:NSStringDrawingUsesLineFragmentOrigin];
-        activeSize = r.size;
-    } else {
+    // Measure actual ACTIVE content via the label itself — sizeToFit accounts
+    // for the label's internal cell padding, line leading, and attributed-run
+    // advances in one authoritative call (pairs with the iter-10 fix for the
+    // single-line session label; boundingRectWithSize alone over-estimates).
+    [_activeSeg.contentLabel sizeToFit];
+    NSSize activeSize = _activeSeg.contentLabel.frame.size;
+    if (activeSize.height < 10) {
+        // Fallback for empty placeholder
         activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
     }
 
-    // Measure actual NEXT content (may be multi-line).
-    NSSize nextSize;
-    NSAttributedString *nextAttr = _nextSeg.contentLabel.attributedStringValue;
-    if (nextAttr && nextAttr.string.length > 0) {
-        NSRect r = [nextAttr boundingRectWithSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)
-                                          options:NSStringDrawingUsesLineFragmentOrigin];
-        nextSize = r.size;
-    } else {
+    [_nextSeg.contentLabel sizeToFit];
+    NSSize nextSize = _nextSeg.contentLabel.frame.size;
+    if (nextSize.height < 10) {
         nextSize = [@"NEXT TO OPEN" sizeWithAttributes:contentAttrs];
     }
 
