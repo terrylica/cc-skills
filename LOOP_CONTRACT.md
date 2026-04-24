@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 205
+iteration: 206
 status: ACTIVE
-last_updated: 2026-04-24T23:20:00Z
+last_updated: 2026-04-24T23:25:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -644,3 +644,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 
 - 2026-04-24 23:15 UTC — iter-204: **per-segment dynamic height for ACTIVE + NEXT (chain-in-turn)** (43d1cbf3). Shipped the iter-203-addendum user directive immediately after the stop hook flagged a defer-to-stale-wake stall. Removed the `marketRowHeight = MAX(activeHeight, nextHeight) + pad` coupling; compute `activeOwnHeight` + `nextOwnHeight` independently. Top-aligned so legend + hrule rows stay horizontally aligned across the two blocks. Wrapped the frame mutation in `NSAnimationContext` (0.15s, `allowsImplicitAnimation=YES`) so window + segment resize animates smoothly on market-count deltas. Skip-animate when size delta < 1pt. Zero external deps, binary delta ~0 LoC. 84 tests still pass. User-facing: ACTIVE-with-6-markets beside NEXT-with-2-markets no longer pads NEXT with empty vertical space.
 - 2026-04-24 23:20 UTC — iter-205: **deterministic top-inset symmetry between ACTIVE and NEXT** (a5afeeba). User followup on iter-204 with a screenshot showing ACTIVE had visibly more top whitespace than NEXT. Two root causes: (1) iter-61's obsolete NEXT-only safety margin (`nextSize.height += 1.2 * lineHeight`) made NEXT's block ~17pt taller than content while ACTIVE was exact; (2) VerticallyCenteredTextFieldCell splits heightDelta half-and-half, asymmetry propagates. Deterministic fix — remove iter-61 margin + size contentLabel frame EXACTLY to measured content height + position at `(8, pad/2, blockW-16, contentHeight)`. Block = content+pad (iter-204), label = content, top inset = pad/2, bottom inset = pad/2. Identical on ACTIVE and NEXT by construction, regardless of content heights. Zero magic numbers; scales with any font size/weight/content/theme. 84 tests still pass.
+- 2026-04-24 23:25 UTC — iter-206: **double-click LOCAL to collapse/expand bottom blocks** (193b4a46). Ships the remaining iter-198 user directive. Added `SegmentsCollapsed` transient-state NSUserDefaults key; LocalSegmentView overrides `mouseDown:` to detect `clickCount == 2` and toggle the key. applyDisplaySettings branches on (three-segment && collapsed) → calls applyLocalOnlyLayout. DisplayMode pref untouched — it's a presentation toggle, not a mode change, reversible with another double-click. Single clicks still pass to super so drag-to-move (NSPanel.isMovableByWindowBackground) still works. iter-204's NSAnimationContext makes the collapse glide smoothly. 84 tests pass. Closes the oldest explicit user ask in this campaign — iter-198 directive A complete (collapse); iter-198 directive B complete (naming via iter-199/200/201/202/203); iter-198 directive C in-progress (standing contract clause continues evolving).
