@@ -99,6 +99,7 @@
         @"NextFontSize": @11.0,
         @"ShowFlags": @YES,
         @"Density": @"default",
+        @"ShowUTCReference": @YES,
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
