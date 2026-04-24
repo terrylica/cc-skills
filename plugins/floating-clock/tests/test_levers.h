@@ -36,5 +36,6 @@ void test_session_signal_window(void);
 void test_session_state_label(void);
 void test_session_state_color(void);
 void test_clipboard_header_format(void);
+void test_urgency_color_tiers(void);
 
 NS_ASSUME_NONNULL_END

@@ -13,6 +13,7 @@
 #import "../Sources/core/ShadowSpec.h"
 #import "../Sources/core/SessionSignalWindow.h"
 #import "../Sources/core/ClipboardHeader.h"
+#import "../Sources/content/UrgencyColors.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 
 void test_font_weight_parser(void) {
@@ -489,6 +490,49 @@ void test_session_signal_window(void) {
     if (FCSessionSignalWindowMinutes(@"forever") != 15) {
         failures++; fprintf(stderr, "FAIL %s: unknown → %ld (want 15)\n",
                            __func__, (long)FCSessionSignalWindowMinutes(@"forever"));
+    }
+}
+
+void test_urgency_color_tiers(void) {
+    // iter-166: lock FCUrgencyColorForSecs's 3-tier branching (iter-73).
+    // Thresholds: red <30 min, amber <60 min, normal ≥60 min. The
+    // `normalColor` arg is returned for the ≥60min tier (theme-dependent
+    // in callers), amber/red are the fixed palette.
+    NSColor *sentinel = [NSColor colorWithRed:0.1 green:0.2 blue:0.3 alpha:1.0];
+    NSColor *amber = FCUrgencyAmberColor();
+    NSColor *red   = FCUrgencyRedColor();
+
+    // ≥60 min → normal (sentinel passed through)
+    if (![FCUrgencyColorForSecs(3600, sentinel) isEqual:sentinel]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: 3600s expected sentinel (normal tier)\n", __func__);
+    }
+    if (![FCUrgencyColorForSecs(kFCUrgencyAmberThresholdSecs, sentinel) isEqual:sentinel]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: exactly-threshold still normal\n", __func__);
+    }
+    // <60 min but ≥30 min → amber
+    if (![FCUrgencyColorForSecs(kFCUrgencyAmberThresholdSecs - 1, sentinel) isEqual:amber]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: just-below-amber should be amber\n", __func__);
+    }
+    if (![FCUrgencyColorForSecs(kFCUrgencyRedThresholdSecs, sentinel) isEqual:amber]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: exactly-red-threshold should still be amber\n", __func__);
+    }
+    // <30 min → red
+    if (![FCUrgencyColorForSecs(kFCUrgencyRedThresholdSecs - 1, sentinel) isEqual:red]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: just-below-red should be red\n", __func__);
+    }
+    if (![FCUrgencyColorForSecs(0, sentinel) isEqual:red]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: 0s should be red\n", __func__);
+    }
+    // Palette distinctness — amber and red must not be visually equal.
+    if ([amber isEqual:red]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: amber == red (palette indistinct)\n", __func__);
     }
 }
 
