@@ -147,6 +147,13 @@
     [self applyDisplaySettings];
 }
 
+- (void)toggleShowSkyState:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    BOOL cur = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
+    [d setBool:!cur forKey:@"ShowSkyState"];
+    [self applyDisplaySettings];
+}
+
 - (void)setDensity:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSString class]]) {
         [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"Density"];
