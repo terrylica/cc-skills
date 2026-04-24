@@ -366,7 +366,8 @@ void test_quick_styles_invariants(void) {
         @"CornerStyle":    [NSSet setWithArray:@[@"sharp", @"hairline", @"micro", @"rounded",
                                                   @"soft", @"squircle", @"jumbo", @"pill"]],
         @"ShadowStyle":    [NSSet setWithArray:@[@"none", @"subtle", @"lifted", @"glow",
-                                                  @"crisp", @"plinth", @"halo"]],
+                                                  @"crisp", @"plinth", @"halo",
+                                                  @"vignette", @"floating"]],  // iter-217
         @"Density":        [NSSet setWithArray:@[@"ultracompact", @"compact", @"default",
                                                   @"comfortable", @"spacious", @"cavernous"]],
         @"FontWeight":     [NSSet setWithArray:@[@"thin", @"regular", @"medium", @"semibold",
@@ -437,6 +438,9 @@ void test_shadow_spec_catalog(void) {
         {@"crisp",  YES, FCShadowColorBlack,           0.85, 1, -1, 0},
         {@"plinth", YES, FCShadowColorBlack,           0.70, 0, -8, 10},
         {@"halo",   YES, FCShadowColorThemeBackground, 0.50, 0,  0, 10},
+        // iter-217 — soft-diffuse pair filling the cinematic / floating gap.
+        {@"vignette", YES, FCShadowColorBlack,         0.40, 0, -3, 18},
+        {@"floating", YES, FCShadowColorBlack,         0.30, 0, -12, 14},
         {@"none",   NO,  FCShadowColorBlack,           0,    0,  0, 0},
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {

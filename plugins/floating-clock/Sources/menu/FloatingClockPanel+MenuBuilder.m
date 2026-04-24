@@ -204,16 +204,18 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Pill (half-axis)", @"pill"]]
                                      defaultsKey:@"CornerStyle"]];
 
-    // v4 iter-31 + iter-93: 7 shadow / glow presets.
+    // v4 iter-31 + iter-93 + iter-217: 9 shadow / glow presets.
     [displayItems addObject:[self submenuTitled:@"Shadow"
                                           action:@selector(setShadowStyle:)
-                                           pairs:@[@[@"None (flat)",              @"none"],
-                                                   @[@"Subtle",                   @"subtle"],
-                                                   @[@"Lifted",                   @"lifted"],
-                                                   @[@"Glow (theme fg)",           @"glow"],
-                                                   @[@"Crisp (pixel-hard)",        @"crisp"],
-                                                   @[@"Plinth (dramatic drop)",    @"plinth"],
-                                                   @[@"Halo (theme bg bloom)",     @"halo"]]
+                                           pairs:@[@[@"None (flat)",                @"none"],
+                                                   @[@"Subtle",                     @"subtle"],
+                                                   @[@"Lifted",                     @"lifted"],
+                                                   @[@"Glow (theme fg)",            @"glow"],
+                                                   @[@"Crisp (pixel-hard)",         @"crisp"],
+                                                   @[@"Plinth (dramatic drop)",     @"plinth"],
+                                                   @[@"Halo (theme bg bloom)",      @"halo"],
+                                                   @[@"Vignette (cinematic)",       @"vignette"],
+                                                   @[@"Floating (hovering)",        @"floating"]]
                                      defaultsKey:@"ShadowStyle"]];
 
     [m addItem:fcTopCategory(@"Display", displayItems)];
