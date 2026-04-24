@@ -13,6 +13,17 @@
     NSDictionary *profile = profiles[name];
     if (![profile isKindOfClass:[NSDictionary class]]) return;
 
+    // v4 iter-194: clear ALL managed keys first, then apply the profile's
+    // keys. Previous impl did `if (val != nil) set` which left stale
+    // top-level keys from the previous profile when the new profile
+    // didn't specify them. That leaked stale values across profile
+    // switches — e.g. Profile-A had LocalOpacity=0.3 set, switching to
+    // Profile-B (which doesn't specify LocalOpacity) left LocalOpacity
+    // at 0.3, overriding B's CanvasOpacity via the iter-90 per-segment
+    // > global fallback. Clear-then-apply gives clean-slate semantics.
+    for (NSString *key in profileManagedKeys()) {
+        [d removeObjectForKey:key];
+    }
     for (NSString *key in profileManagedKeys()) {
         id val = profile[key];
         if (val != nil) [d setObject:val forKey:key];
