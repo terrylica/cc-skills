@@ -233,8 +233,10 @@ void test_corner_radius_points(void) {
         {@"hairline",  100, 40,  1.0},
         {@"micro",     100, 40,  3.0},
         {@"rounded",   100, 40,  6.0},
+        {@"cushion",   100, 40,  8.0},   // iter-224
         {@"soft",      100, 40, 10.0},
         {@"squircle",  100, 40, 14.0},
+        {@"chunky",    100, 40, 18.0},   // iter-224
         {@"jumbo",     100, 40, 22.0},
         {@"pill",      100, 40, 20.0},  // min(w,h)/2 with w>h
         {@"pill",       40, 80, 20.0},  // min(w,h)/2 with h>w
@@ -365,7 +367,8 @@ void test_quick_styles_invariants(void) {
     }
     NSDictionary *allowed = @{
         @"CornerStyle":    [NSSet setWithArray:@[@"sharp", @"hairline", @"micro", @"rounded",
-                                                  @"soft", @"squircle", @"jumbo", @"pill"]],
+                                                  @"cushion", @"soft", @"squircle",
+                                                  @"chunky", @"jumbo", @"pill"]],  // iter-224
         @"ShadowStyle":    [NSSet setWithArray:@[@"none", @"subtle", @"lifted", @"glow",
                                                   @"crisp", @"plinth", @"halo",
                                                   @"vignette", @"floating"]],  // iter-217
