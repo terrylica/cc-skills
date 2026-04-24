@@ -93,6 +93,18 @@ NSString *formatCountdown(long secs) {
     return [NSString stringWithFormat:@"%ldh", hours];
 }
 
+NSString *formatCountdownFancy(long secs) {
+    if (secs < 0) secs = 0;
+    // Above 99 hours (~4 days), T-HH overflows two-digit fixed-width.
+    // Fall back to the compact form to preserve alignment in NEXT rows.
+    if (secs >= 100L * 3600L) return formatCountdown(secs);
+    long hours = secs / 3600;
+    long rem   = secs % 3600;
+    long mins  = rem / 60;
+    long rsecs = rem % 60;
+    return [NSString stringWithFormat:@"T-%02ld:%02ld:%02ld", hours, mins, rsecs];
+}
+
 // Glyph-set dispatch. Read NSUserDefaults "ProgressBarStyle" and return
 // the (filled, empty) pair. Default = "blocks" (current 1/8-width heavy
 // block + medium shade). Adding a new style = one extra if-branch here.

@@ -270,6 +270,41 @@ static void test_starter_profiles_cover_all_keys(void) {
     }
 }
 
+static void test_countdown_fancy_format(void) {
+    // v4 iter-59: T-HH:MM:SS rocket-launch convention, fixed-width.
+    ASSERT_EQ_STR(formatCountdownFancy(0),      @"T-00:00:00");
+    ASSERT_EQ_STR(formatCountdownFancy(7),      @"T-00:00:07");
+    ASSERT_EQ_STR(formatCountdownFancy(105),    @"T-00:01:45");  // 1m 45s
+    ASSERT_EQ_STR(formatCountdownFancy(9257),   @"T-02:34:17");  // 2h 34m 17s
+    ASSERT_EQ_STR(formatCountdownFancy(35940),  @"T-09:59:00");  // almost 10h
+    // Negative guards: clamp to T-00:00:00.
+    ASSERT_EQ_STR(formatCountdownFancy(-5),     @"T-00:00:00");
+    // Overflow (>=100h) falls back to compact form.
+    // 100h in seconds = 360000. Compact form = "100h".
+    ASSERT_EQ_STR(formatCountdownFancy(360000), @"100h");
+}
+
+static void test_lunch_markets_identified(void) {
+    // Lock in which markets have midday-lunch windows. If a future edit
+    // accidentally adds lunch to a no-lunch market or removes it from a
+    // lunch market, this catches it. Source of truth: ClockMarket
+    // struct's lunch_start_h >= 0 flag.
+    struct { const char *id; BOOL hasLunch; } fixtures[] = {
+        {"nyse",  NO},  {"tsx",  NO},  {"lse",  NO},  {"euronext", NO},
+        {"xetra", NO},  {"six",  NO},  {"tse",  YES}, {"hkex",     YES},
+        {"sse",   YES}, {"krx",  NO},  {"nse",  NO},  {"asx",      NO},
+    };
+    for (size_t i = 0; i < sizeof(fixtures)/sizeof(fixtures[0]); i++) {
+        const ClockMarket *m = marketForId(@(fixtures[i].id));
+        BOOL actualHasLunch = (m->lunch_start_h >= 0);
+        if (actualHasLunch != fixtures[i].hasLunch) {
+            fprintf(stderr, "FAIL %s: %s hasLunch expected %d got %d\n",
+                    __func__, fixtures[i].id, fixtures[i].hasLunch, actualHasLunch);
+            failures++;
+        }
+    }
+}
+
 static void test_starter_profiles_count(void) {
     // Sanity: the 5 canonical bundled starters exist. Catches accidental
     // deletion or typo in buildStarterProfiles.
@@ -322,8 +357,11 @@ int main(void) {
         test_starter_profiles_cover_all_keys();
         test_starter_profiles_count();
 
+        test_countdown_fancy_format();
+        test_lunch_markets_identified();
+
         if (failures == 0) {
-            fprintf(stderr, "All 18 tests passed.\n");
+            fprintf(stderr, "All 20 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
