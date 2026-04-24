@@ -59,6 +59,10 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowUTCReference:) keyEquivalent:@""];
     [displayItems addObject:su];
 
+    NSMenuItem *sk = [[NSMenuItem alloc] initWithTitle:@"Show Sun/Moon"
+                                                 action:@selector(toggleShowSkyState:) keyEquivalent:@""];
+    [displayItems addObject:sk];
+
     [displayItems addObject:[NSMenuItem separatorItem]];
 
     [displayItems addObject:[self submenuTitled:@"Time Format" action:@selector(setTimeFormat:)
@@ -325,6 +329,9 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
             item.state = [d boolForKey:@"ShowFlags"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if ([item.title isEqualToString:@"Show UTC Reference"]) {
             BOOL on = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
+            item.state = on ? NSControlStateValueOn : NSControlStateValueOff;
+        } else if ([item.title isEqualToString:@"Show Sun/Moon"]) {
+            BOOL on = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
             item.state = on ? NSControlStateValueOn : NSControlStateValueOff;
         } else if (item.submenu) {
             NSString *subTitle = item.title;
