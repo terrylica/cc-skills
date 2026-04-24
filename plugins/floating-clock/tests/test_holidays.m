@@ -198,3 +198,49 @@ void test_nyse_holiday_state_closed(void) {
     ASSERT_HSTATE(nyse, thanksgivingPostClose, kSessionClosed);
     ASSERT_HSTATE(nyse, regularFridayMidday,   kSessionOpen);
 }
+
+void test_holiday_chains_through_weekend(void) {
+    // v4 iter-177: verify secsToNext correctly skips back-to-back
+    // closed days (holiday → weekend → holiday). Scenario: LSE
+    // on Thu 2026-12-24 at 18:00 London (after 16:30 close). The
+    // calendar ahead:
+    //   Dec 25 Fri — Christmas (holiday)
+    //   Dec 26 Sat — weekend
+    //   Dec 27 Sun — weekend
+    //   Dec 28 Mon — Boxing Day observed (holiday)
+    //   Dec 29 Tue — regular trading day, open 08:00 London
+    // Expected secsToNext: 5 days — 6h (18:00→24:00) + 4×24h + 8h
+    //   = 6*3600 + 4*86400 + 8*3600 = 21600 + 345600 + 28800 = 396000
+    // (Before iter-177, the loop only skipped weekends so the answer
+    // was off by ~3 days — first candidate was Dec 25 Friday's open.)
+    const ClockMarket *lse = marketForId(@"lse");
+    NSDate *thursdayAfterClose = holidayDateAt(@"Europe/London", 2026, 12, 24, 18, 0, 0);
+    SessionState s; double _p; long actual;
+    computeSessionState(lse, thursdayAfterClose, &s, &_p, &actual);
+    if (s != kSessionClosed) {
+        failures++; fprintf(stderr, "FAIL %s: state expected CLOSED got %s\n", __func__, holidayStateName(s));
+    }
+    long expected = 396000L;
+    long diff = actual > expected ? actual - expected : expected - actual;
+    if (diff > 60) {  // 60s tolerance
+        failures++;
+        fprintf(stderr, "FAIL %s: secsToNext expected ~%ld (Dec 29 open) got %ld (diff %ld)\n",
+                __func__, expected, actual, diff);
+    }
+
+    // NYSE Christmas Fri Dec 25 2026 at 18:00 ET → next open Mon Dec 28.
+    // Chain through holiday (Fri) + weekend (Sat+Sun). Dec 28 is a
+    // regular trading day for NYSE (Boxing Day is LSE-only).
+    const ClockMarket *nyse = marketForId(@"nyse");
+    NSDate *nyseChristmasEve = holidayDateAt(@"America/New_York", 2026, 12, 25, 18, 0, 0);
+    computeSessionState(nyse, nyseChristmasEve, &s, &_p, &actual);
+    // From Fri 18:00 ET to Mon 09:30 ET = 6h + 2*24h + 9.5h
+    //   = 21600 + 172800 + 34200 = 228600
+    long nyseExpected = 228600L;
+    long nyseDiff = actual > nyseExpected ? actual - nyseExpected : nyseExpected - actual;
+    if (nyseDiff > 60) {
+        failures++;
+        fprintf(stderr, "FAIL %s: NYSE secsToNext expected ~%ld got %ld (diff %ld)\n",
+                __func__, nyseExpected, actual, nyseDiff);
+    }
+}
