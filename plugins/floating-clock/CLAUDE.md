@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` + `tests/test_levers.m` + `tests/test_holidays.m` (iter-176 split) — 68 fixtures covering
+Tests live in `tests/test_session.m` + `tests/test_levers.m` + `tests/test_holidays.m` (iter-176 split) — 70 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -242,7 +242,7 @@ Design notes:
 
 ## Known limitations
 
-- **Partial holiday awareness (NYSE + LSE + TSE 2026, back-to-back chaining correct)**. iter-173 shipped `Sources/data/HolidayCalendar.{h,m}` with NYSE 2026 data + `FCIsMarketHoliday(mkt, date)` lookup; iter-174 wired it into `computeSessionState` (holidays force CLOSED + block PRE/AFTER promotions); iter-175 refactored to per-market registry + LSE; iter-176 added TSE; iter-177 fixed the advance-to-next-trading-day loop to skip _both_ weekends AND holidays (previously LSE Dec 24 after-close pointed at Christmas Fri; now correctly points at Dec 29 Tue, chaining through Xmas + weekend + Boxing Day observed). Caveats still in play: (1) the 11 other exchanges have no holiday data — JSE, B3 Carnival, HKEX Lunar New Year, KRX Chuseok, NSE Diwali, XETRA, SIX, TSX, Euronext, ASX, SSE still read OPEN on their respective holidays; (2) early-close half-days (Black Friday, Christmas Eve, 大発会 / 大納会 shortened sessions, etc.) render as full trading days. Subsequent iters extend coverage.
+- **Partial holiday awareness (NYSE + LSE + TSE + HKEX 2026, back-to-back chaining correct)**. iter-173 shipped `Sources/data/HolidayCalendar.{h,m}` + `FCIsMarketHoliday(mkt, date)` lookup (NYSE 2026); iter-174 wired it into `computeSessionState` (holidays force CLOSED + block PRE/AFTER promotions); iter-175 refactored to per-market registry + LSE; iter-176 added TSE; iter-177 fixed the advance-to-next-trading-day loop to skip _both_ weekends AND holidays (LSE Dec 24 after-close now correctly chains Xmas + weekend + Boxing Day observed → Dec 29 Tue); iter-178 added HKEX — first calendar with lunar-calendar holidays (LNY 3-day cluster, Buddha's Birthday, Dragon Boat, Mid-Autumn, Chung Yeung). Interesting discovery while testing HKEX: Jun 19 2026 is both NYSE Juneteenth and HKEX Dragon Boat — a genuine multi-market coincidence both calendars correctly flag. Caveats still in play: (1) 10 exchanges have no holiday data — JSE, B3 Carnival, KRX Chuseok, NSE Diwali, XETRA, SIX, TSX, Euronext, ASX, SSE still read OPEN on their respective holidays; (2) early-close half-days (Black Friday, Christmas Eve, 大発会 / 大納会, LNY Eve shortened sessions, etc.) render as full trading days. Subsequent iters extend coverage.
 - **No extended after-hours trading window modelled**. Each exchange's full extended session (US equities 16:00–20:00 ET, various 1–2 h windows elsewhere) is not modelled. What is modelled: the first 15 minutes immediately after regular close promote CLOSED → AFTER-HOURS (iter-125, rose ◒ glyph) — a short signal symmetric to iter-123's PRE-MARKET. Full per-market extended-session modelling remains deferred pending a decision on per-exchange duration data.
 
 ## Future Enhancements
