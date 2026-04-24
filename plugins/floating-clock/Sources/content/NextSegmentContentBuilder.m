@@ -116,9 +116,18 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:codeLabel
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
+        // v4 iter-45: symmetric urgency tiers with iter-44 (ACTIVE close
+        // countdown). Markets imminently opening deserve the same visual
+        // urgency as markets imminently closing. Only applies to bounded
+        // countdowns (e.secs <= 99h); >99h opens use absolute-date form.
+        NSColor *countdownColor = headerColor;
+        if (e.secs <= 99 * 3600) {
+            if (e.secs < 1800)      countdownColor = [NSColor colorWithRed:0.95 green:0.40 blue:0.40 alpha:1.0];
+            else if (e.secs < 3600) countdownColor = [NSColor colorWithRed:0.95 green:0.75 blue:0.30 alpha:1.0];
+        }
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:[NSString stringWithFormat:@"%@%@", countdown, suffix]
-            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
         if (i < maxItems - 1) {
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:@"\n" attributes:@{NSFontAttributeName: font}]];
