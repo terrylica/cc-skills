@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 154
+iteration: 155
 status: ACTIVE
-last_updated: 2026-04-24T17:30:00Z
+last_updated: 2026-04-24T17:40:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -588,3 +588,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 17:10 UTC — iter-152: **Copy cluster gets self-documenting header** (4482646d). Clipboard snapshots from iter-149/150 were raw segment text — pasted hours later, a user couldn't tell when the snapshot was taken. Add a single-line header via new `fcCopyWithHeader(label, body)` static helper: `# Floating Clock · <LABEL> · yyyy-MM-dd HH:mm:ss UTC\n<body>`. UTC in the stamp — unambiguous across the user's possibly-changed local zone. All three Copy actions route through the helper so format stays consistent and any future Copy additions are one-liners. 55/55 still pass.
 - 2026-04-24 17:20 UTC — iter-153: **copyStateToClipboard consolidated under fcCopyWithHeader** (a9b0090d). Discovered iter-85's older global "Copy Clock State" (⌘⇧C) still produced bare-text snapshots — inconsistent with iter-152's header format on the per-segment Copy cluster. Routed copyStateToClipboard (label "FULL CLOCK STATE") through the same helper. Needed a forward declaration since iter-85's handler appears earlier in ActionHandlers.m than the helper (defined next to the iter-149/150 Copy actions). All four clipboard outputs now share the same self-documenting header format. 55/55 still pass.
 - 2026-04-24 17:30 UTC — iter-154: **colorForState fixture completes state triad** (badd6620). The (glyph, label, color) rendering triad for SessionState had glyph (iter-91/129) and label (iter-135) tested, but color was untested. New `test_session_state_color`: every state returns non-nil NSColor with channels ∈ [0,1] alpha=1.0 (converted via sRGB to normalize), and all 5 state colors are pairwise distinct — overlap would mean CLOSED/AFTER-HOURS become visually indistinguishable, silently hiding iter-125's signal. Tests +1 (56 total). 56/56 pass, warning-free.
+- 2026-04-24 17:40 UTC — iter-155: **JSE (Johannesburg) + iana-prefix regional grouping** (8c00844f). First new exchange since iter-8's original 12. Fills the Africa regional gap — JSE (Africa/Johannesburg, 09:00–17:00 SAST, no lunch, no DST). Flag 🇿🇦 / city JHB / abbreviation SAST all added. Also refactored Time Zone menu's regional grouping from hardcoded index ranges (`i <= 2`, etc.) to iana-prefix detection (`America/`, `Europe/`, `Asia/`, `Australia|Pacific/`, `Africa/`) — future additions auto-file themselves under the right region with no menu-code edit. 13-exchange roster. Existing city-code + flag-emoji coverage tests auto-validated the new entry. 56/56 still pass, warning-free. CLAUDE.md updated.
