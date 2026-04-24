@@ -63,6 +63,10 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowSkyState:) keyEquivalent:@""];
     [displayItems addObject:sk];
 
+    NSMenuItem *sp = [[NSMenuItem alloc] initWithTitle:@"Show Progress %"
+                                                 action:@selector(toggleShowProgressPercent:) keyEquivalent:@""];
+    [displayItems addObject:sp];
+
     [displayItems addObject:[NSMenuItem separatorItem]];
 
     [displayItems addObject:[self submenuTitled:@"Time Format" action:@selector(setTimeFormat:)
@@ -333,6 +337,8 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
         } else if ([item.title isEqualToString:@"Show Sun/Moon"]) {
             BOOL on = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
             item.state = on ? NSControlStateValueOn : NSControlStateValueOff;
+        } else if ([item.title isEqualToString:@"Show Progress %"]) {
+            item.state = [d boolForKey:@"ShowProgressPercent"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if (item.submenu) {
             NSString *subTitle = item.title;
             id currentValue = nil;
