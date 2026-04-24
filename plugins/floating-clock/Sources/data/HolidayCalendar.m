@@ -101,6 +101,24 @@ static NSString * const kTARGET2_2026Holidays[] = {
     @"2026-12-25",  // Christmas Day
 };
 
+// v4 iter-180: ASX 2026 non-trading days. Source: ASX published
+// calendar. Distinctive: **Easter Tuesday** — ASX is one of the few
+// major exchanges that closes the Tuesday after Easter Mon (4-day
+// Easter long weekend for Australia). ANZAC Day Apr 25 2026 falls on
+// Saturday — ASX does not observe a Monday substitute when ANZAC is
+// on weekend (weekend branch handles the closure). King's Birthday is
+// the 2nd Monday of June for NSW / VIC / ACT (where ASX operates).
+static NSString * const kASX2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    @"2026-01-26",  // Australia Day
+    @"2026-04-03",  // Good Friday
+    @"2026-04-06",  // Easter Monday
+    @"2026-04-07",  // Easter Tuesday (ASX-distinctive)
+    @"2026-06-08",  // King's Birthday (2nd Mon of Jun)
+    @"2026-12-25",  // Christmas Day
+    @"2026-12-28",  // Boxing Day observed (Dec 26 Sat)
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -118,6 +136,7 @@ static const FCHolidayTable kHolidayTables[] = {
     // v4 iter-179: both XETRA + Euronext reference kTARGET2_2026Holidays.
     { "xetra",    kTARGET2_2026Holidays, sizeof(kTARGET2_2026Holidays) / sizeof(kTARGET2_2026Holidays[0]) },
     { "euronext", kTARGET2_2026Holidays, sizeof(kTARGET2_2026Holidays) / sizeof(kTARGET2_2026Holidays[0]) },
+    { "asx",      kASX2026Holidays,      sizeof(kASX2026Holidays)      / sizeof(kASX2026Holidays[0])      },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
