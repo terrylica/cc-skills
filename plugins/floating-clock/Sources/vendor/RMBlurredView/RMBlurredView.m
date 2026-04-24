@@ -4,6 +4,13 @@
 //  Created by Raffael Hannemann on 08.10.13.
 //  Copyright (c) 2013 Raffael Hannemann. All rights reserved.
 //
+// Local modification (v4 iter-81): suppress -Wunused-property-ivar for
+// the two Interface-Builder-only `…Number` properties. Upstream's
+// accessor pattern forwards to the float setters rather than using
+// the ivar directly, so modern clang warns about 'unused ivars'.
+// Only this pragma differs from upstream.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-property-ivar"
 
 #import "RMBlurredView.h"
 
@@ -113,3 +120,5 @@
 }
 
 @end
+
+#pragma clang diagnostic pop
