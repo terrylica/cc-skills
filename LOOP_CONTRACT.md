@@ -479,6 +479,14 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
   Why: user's explicit preference: "I will always opt for the lowest memory and resources footprint possible, no matter what it takes, even the most complicated method."
   How to apply: prefer NSMenu over NSWindow for preferences, prefer single-file Objective-C over multi-file, prefer compile-time constants over runtime registries, never introduce a Swift/SwiftUI dependency.
 
+- **500-LoC hard cap per source file (user directive 2026-04-24).**
+  Rule: no single `.m` / `.h` / `.c` file may exceed 500 LoC. If a file crosses that threshold, the next iteration MUST modularize it before adding any new feature. Use long self-explanatory filenames under a hierarchical `Sources/<area>/` tree (e.g. `Sources/menu/FloatingClockMenuBuilder.m`). Campaign v4 iters take every opportunity to split proactively — don't wait until a file is overweight; anticipate and pre-split.
+  Why: single-file Objective-C helped v1–v3 ship fast, but at ~2400 LoC it's now a maintenance hazard and hides coupling. User directive overrides the earlier "prefer single-file" heuristic for files > 500 LoC.
+
+- **Canvas-only transparency (2026-04-24).**
+  Rule: transparency settings affect ONLY segment backgrounds. Text must always render at alpha=1.0 regardless of any opacity setting. Never use `NSWindow.alphaValue` for theme-related dimming — it dims text too.
+  Why: users need to keep reading the clock face even when the canvas fades into the desktop.
+
 - **Validator runs on every commit via pre-commit hook.**
   How to apply: anything touching `plugins/` must keep `bun scripts/validate-plugins.mjs` green. Marketplace.json entry must match plugin.json. Skills (commands) have their own schema requirements — match existing plugin patterns.
 
