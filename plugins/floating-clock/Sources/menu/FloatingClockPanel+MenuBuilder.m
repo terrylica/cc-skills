@@ -289,6 +289,19 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                   @[@"Day of Year   (Day 114)",            @"dayofyr"]]
                                     defaultsKey:@"DateFormat"]];
 
+    // v4 iter-126: symmetric auction-window lever. Gates iter-123's
+    // PRE-MARKET (◐ amber) and iter-125's AFTER-HOURS (◒ rose) state
+    // promotions. "off" turns both signals back off for users who find
+    // the short transitional states noisy.
+    [marketItems addObject:[self submenuTitled:@"Session Signals"
+                                         action:@selector(setSessionSignalWindow:)
+                                          pairs:@[@[@"Off           (no ◐ ◒ promotion)", @"off"],
+                                                  @[@"Brief         (5 min)",             @"5min"],
+                                                  @[@"Standard      (15 min)",            @"15min"],
+                                                  @[@"Extended      (30 min)",            @"30min"],
+                                                  @[@"Hour          (60 min)",            @"60min"]]
+                                    defaultsKey:@"SessionSignalWindow"]];
+
     [marketItems addObject:[NSMenuItem separatorItem]];
 
     // Display Mode submenu (three-segment / single-market / local-only).

@@ -523,9 +523,10 @@ int main(void) {
         test_current_time_format();
         test_quick_styles_invariants();
         test_shadow_spec_catalog();
+        test_session_signal_window();
 
         if (failures == 0) {
-            fprintf(stderr, "All 44 tests passed.\n");
+            fprintf(stderr, "All 45 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
