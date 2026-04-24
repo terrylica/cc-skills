@@ -12,6 +12,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"CornerStyle": @"soft", @"ShadowStyle": @"halo", @"Density": @"comfortable",
         @"FontWeight": @"regular", @"LetterSpacing": @"airy", @"LineSpacing": @"loose",
         @"TimeSeparator": @"space",
+        @"UrgencyFlash": @"subtle",  // iter-220: gentle hint matching its calm aesthetic
     };
     NSDictionary *retro = @{
         @"LocalTheme": @"amber_crt", @"ActiveTheme": @"amber_crt", @"NextTheme": @"amber_crt",
@@ -39,6 +40,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"TimeSeparator": @"colon",
         @"SessionSignalWindow": @"off",  // iter-158: minimalism — no auction glyphs
         @"UrgencyHorizon": @"5min",       // iter-216: terminal-precise alarm — only the final sprint glows red
+        @"UrgencyFlash": @"off",          // iter-220: terminal-quiet — no pulse distractions, color shift is enough
     };
     // v4 iter-106: two cool-palette moods.
     NSDictionary *glacier = @{
@@ -61,6 +63,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"thin", @"LetterSpacing": @"airy", @"LineSpacing": @"loose",
         @"TimeSeparator": @"space",
         @"UrgencyHorizon": @"240min",  // iter-216: ethereal slow build — gradient drifts in over 4 hours
+        @"UrgencyFlash": @"subtle",    // iter-220: gentle hint matching thin/airy aesthetic
     };
     NSDictionary *industrial = @{
         @"LocalTheme": @"espresso", @"ActiveTheme": @"espresso", @"NextTheme": @"espresso",
@@ -68,6 +71,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"black", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
         @"TimeSeparator": @"dash",
         @"UrgencyHorizon": @"30min",   // iter-216: mechanical mid-range — half-hour assembly-line warning
+        @"UrgencyFlash": @"intense",   // iter-220: mechanical strong-dim attention-grab matching black weight + crisp shadow
     };
     // v4 iter-144: two more moods. Trading Floor leans into the amber-CRT
     // analog trading vibe with a new pipe separator (iter-139). Scholar
@@ -80,6 +84,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"TimeSeparator": @"pipe",
         @"SessionSignalWindow": @"60min",  // iter-158: macro-trader wants full pre-open awareness
         @"UrgencyHorizon": @"15min",       // iter-216: tight closing-bell glow — only the final stretch alarms
+        @"UrgencyFlash": @"intense",       // iter-220: strong attention-grab on the closing-bell pulse
     };
     NSDictionary *scholar = @{
         @"LocalTheme": @"paper_white", @"ActiveTheme": @"paper_white", @"NextTheme": @"paper_white",
