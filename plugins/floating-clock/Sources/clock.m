@@ -234,7 +234,8 @@ static NSDictionary *buildStarterProfiles(void) {
             @"ColorTheme": @"terminal",
             @"FontSize": @24.0,
             @"ShowSeconds": @YES,
-            @"ShowDate": @NO,
+            @"ShowDate": @YES,
+            @"DateFormat": @"short",
             @"TimeFormat": @"24h",
             @"ActiveBarCells": @7,
             @"NextItemCount": @3,
@@ -441,6 +442,35 @@ static NSFont *resolveClockFont(CGFloat size) {
 @interface VCenteredCell : NSTextFieldCell
 @end
 
+// Authoritative unwrapped multi-line measurement (width + height).
+// Per VCenteredCell's notes: NSAttributedString.size / boundingRectWithSize /
+// cellSizeForBounds all mismeasure mixed-attribute multi-line content.
+// Only NSLayoutManager.usedRectForTextContainer (after forced layout) is correct.
+//
+// AppKit quirk: usedRectForTextContainer does NOT include the trailing line
+// fragment when the string ends with "\n". Every market row in the active
+// segment ends with \n, so the final row gets clipped. Pad one line-height
+// when the last char is a newline.
+static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
+    if (attr.length == 0) return NSZeroSize;
+    NSTextStorage *storage = [[NSTextStorage alloc] initWithAttributedString:attr];
+    NSTextContainer *container = [[NSTextContainer alloc]
+        initWithContainerSize:NSMakeSize(FLT_MAX, FLT_MAX)];
+    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
+    [lm addTextContainer:container];
+    [storage addLayoutManager:lm];
+    container.lineFragmentPadding = 0.0;
+    (void)[lm glyphRangeForTextContainer:container];
+    NSSize s = [lm usedRectForTextContainer:container].size;
+    NSString *str = attr.string;
+    if (str.length > 0 && [str characterAtIndex:str.length - 1] == '\n') {
+        NSFont *f = [attr attribute:NSFontAttributeName atIndex:str.length - 1 effectiveRange:NULL];
+        if (!f) f = [NSFont systemFontOfSize:[NSFont systemFontSize]];
+        s.height += [lm defaultLineHeightForFont:f];
+    }
+    return s;
+}
+
 @implementation VCenteredCell
 
 - (CGFloat)measuredHeightForWidth:(CGFloat)width {
@@ -454,7 +484,17 @@ static NSFont *resolveClockFont(CGFloat size) {
     [storage addLayoutManager:lm];
     container.lineFragmentPadding = 0.0;
     (void)[lm glyphRangeForTextContainer:container];
-    return [lm usedRectForTextContainer:container].size.height;
+    CGFloat h = [lm usedRectForTextContainer:container].size.height;
+    // usedRect omits the trailing line fragment when the string ends with
+    // "\n" — every active-segment row ends with \n. Pad one line-height so
+    // the final row isn't clipped inside VCenteredCell's drawing rect.
+    NSString *str = attr.string;
+    if (str.length > 0 && [str characterAtIndex:str.length - 1] == '\n') {
+        NSFont *f = [attr attribute:NSFontAttributeName atIndex:str.length - 1 effectiveRange:NULL];
+        if (!f) f = [NSFont systemFontOfSize:[NSFont systemFontSize]];
+        h += [lm defaultLineHeightForFont:f];
+    }
+    return h;
 }
 
 - (NSRect)drawingRectForBounds:(NSRect)theRect {
@@ -508,6 +548,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)applyDisplaySettings;
 - (NSRect)clampFrameToVisibleScreen:(NSRect)proposed;
 - (void)applyThreeSegmentLayout;
+- (void)relayoutThreeSegmentIfNeeded;
 - (void)applySingleMarketLayout;
 - (void)applyLocalOnlyLayout;
 - (void)tickThreeSegment;
@@ -575,7 +616,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     // Register default values for NSUserDefaults (after migration, so if ColorTheme wasn't set, it's now there)
     [d registerDefaults:@{
         @"ShowSeconds": @YES,
-        @"ShowDate": @NO,
+        @"ShowDate": @YES,
         @"TimeFormat": @"24h",
         @"FontSize": @24.0,
         @"SelectedMarket": @"local",
@@ -706,14 +747,17 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSMutableString *fmt = [NSMutableString string];
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     BOOL showDate = [d boolForKey:@"ShowDate"];
-    BOOL showSeconds = [d boolForKey:@"ShowSeconds"];
     NSString *tf = [d stringForKey:@"TimeFormat"];
 
+    // Seconds are always shown — user requires second-level granularity
+    // everywhere a time is rendered. ShowSeconds pref is retained only for
+    // backward compatibility with the menu toggle; it no longer suppresses
+    // seconds in the LOCAL segment.
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     if ([tf isEqualToString:@"12h"]) {
-        [fmt appendString:showSeconds ? @"h:mm:ss a" : @"h:mm a"];
+        [fmt appendString:@"h:mm:ss a"];
     } else {
-        [fmt appendString:showSeconds ? @"HH:mm:ss" : @"HH:mm"];
+        [fmt appendString:@"HH:mm:ss"];
     }
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
@@ -723,6 +767,12 @@ static NSFont *resolveClockFont(CGFloat size) {
     _localSeg.timeLabel.stringValue = [_dateFormatter stringFromDate:[NSDate date]];
     _activeSeg.contentLabel.attributedStringValue = [self buildActiveSegmentContent];
     _nextSeg.contentLabel.attributedStringValue = [self buildNextSegmentContent];
+
+    // Re-layout whenever content height changes (markets opening/closing across
+    // the day, first paint after launch, etc.). Measurement is cheap — one
+    // NSLayoutManager pass per segment — and setFrame is a no-op when nothing
+    // actually changed, so running this on every tick is safe.
+    [self relayoutThreeSegmentIfNeeded];
 }
 
 - (NSAttributedString *)buildActiveSegmentContent {
@@ -785,10 +835,12 @@ static NSFont *resolveClockFont(CGFloat size) {
         NSString *iana = groupIanas[g];
         NSUInteger marketsInGroup = group.count / 4;
 
-        // Header: "TOK 11:15"
+        // Header: "TOK Fri Apr 24 11:15:07" — city + local day/date + time with
+        // mandatory seconds granularity. Dates and day-of-week are required
+        // per user spec: every exchange needs its own local calendar context.
         NSTimeZone *tz = [NSTimeZone timeZoneWithName:iana];
         NSDateFormatter *hf = [[NSDateFormatter alloc] init];
-        hf.dateFormat = @"HH:mm";
+        hf.dateFormat = @"EEE MMM d HH:mm:ss";
         if (tz) hf.timeZone = tz;
         NSString *headerTime = [hf stringFromDate:now];
         const ClockMarket *firstM = &kMarkets[[(NSNumber *)group[0] intValue]];
@@ -975,16 +1027,16 @@ static NSFont *resolveClockFont(CGFloat size) {
 
     BOOL showDate = [d boolForKey:@"ShowDate"];
     NSString *timeFormat = [d stringForKey:@"TimeFormat"];
-    BOOL showSeconds = [d boolForKey:@"ShowSeconds"];
 
     if (showDate) {
         [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     }
 
+    // Seconds always shown (user spec).
     if ([timeFormat isEqualToString:@"12h"]) {
-        [fmt appendString:showSeconds ? @"h:mm:ss a" : @"h:mm a"];
+        [fmt appendString:@"h:mm:ss a"];
     } else {
-        [fmt appendString:showSeconds ? @"HH:mm:ss" : @"HH:mm"];
+        [fmt appendString:@"HH:mm:ss"];
     }
 
     if (!_dateFormatter) {
@@ -1471,20 +1523,25 @@ static NSFont *resolveClockFont(CGFloat size) {
     [self applyTheme:tActive toSegmentView:_activeSeg textField:_activeSeg.contentLabel];
     [self applyTheme:tNext   toSegmentView:_nextSeg   textField:_nextSeg.contentLabel];
 
-    // Trigger tick to populate content
+    // Trigger tick to populate content (which itself will call
+    // relayoutThreeSegmentIfNeeded and do the sizing pass).
     [self tick];
+}
 
-    // Measure segment content to compute sizes
+// Re-measure ACTIVE/NEXT content and resize window if it changed. Called
+// from tickThreeSegment on every 1Hz update so the clock grows/shrinks as
+// markets open and close throughout the day. setFrame is a no-op when
+// values match, so this stays cheap.
+- (void)relayoutThreeSegmentIfNeeded {
+    if (!_activeSeg || !_nextSeg || !_localSeg) return;
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+
     CGFloat fontSize = [d doubleForKey:@"FontSize"];
     NSFont *primaryFont = resolveClockFont(fontSize);
     NSFont *contentFont = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
-
-    // Measure placeholder text
     NSDictionary *primaryAttrs = @{NSFontAttributeName: primaryFont};
     NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
 
-    // Measure LOCAL via sizeToFit on the actual label — hardcoded "HH:MM:SS"
-    // under-sizes when ShowDate is on ("Thu Apr 24  23:34:27" gets clipped).
     _localSeg.timeLabel.font = primaryFont;
     [_localSeg.timeLabel sizeToFit];
     NSSize localSize = _localSeg.timeLabel.frame.size;
@@ -1492,67 +1549,53 @@ static NSFont *resolveClockFont(CGFloat size) {
         localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
     }
 
-    // Measure actual ACTIVE content via the label itself — sizeToFit accounts
-    // for the label's internal cell padding, line leading, and attributed-run
-    // advances in one authoritative call (pairs with the iter-10 fix for the
-    // single-line session label; boundingRectWithSize alone over-estimates).
-    [_activeSeg.contentLabel sizeToFit];
-    NSSize activeSize = _activeSeg.contentLabel.frame.size;
+    NSSize activeSize = measureAttributedUnwrapped(_activeSeg.contentLabel.attributedStringValue);
     if (activeSize.height < 10) {
-        // Fallback for empty placeholder
         activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
     }
 
-    [_nextSeg.contentLabel sizeToFit];
-    NSSize nextSize = _nextSeg.contentLabel.frame.size;
+    NSSize nextSize = measureAttributedUnwrapped(_nextSeg.contentLabel.attributedStringValue);
     if (nextSize.height < 10) {
         nextSize = [@"NEXT TO OPEN" sizeWithAttributes:contentAttrs];
     }
 
-    // Content heights WITHOUT padding — text is top-anchored inside
-    // NSTextField (wraps=NO, multi-line), so any extra height inside the
-    // label frame leaves empty space at the BOTTOM of the label, breaking
-    // vertical centering. Keep frame exactly sized to content; pad at the
-    // segment level where centering math does the right thing.
     CGFloat localHeight  = ceilf(localSize.height);
     CGFloat activeHeight = ceilf(activeSize.height);
     CGFloat nextHeight   = ceilf(nextSize.height);
 
-    // 24pt vertical breathing room (12pt top + 12pt bottom) applied to the
-    // segment itself, shared across all three so heights stay uniform.
     CGFloat segHeight = MAX(MAX(localHeight, activeHeight), nextHeight) + 24;
 
     CGFloat localSegWidth  = ceilf(localSize.width) + 32;
     CGFloat activeSegWidth = ceilf(activeSize.width) + 32;
     CGFloat nextSegWidth   = ceilf(nextSize.width) + 32;
 
-    CGFloat windowWidth  = localSegWidth + 4 + activeSegWidth + 4 + nextSegWidth + 16;  // 4pt gaps + 8pt margins per side
+    CGFloat windowWidth  = localSegWidth + 4 + activeSegWidth + 4 + nextSegWidth + 16;
     CGFloat windowHeight = segHeight + 16;
 
-    // Anchor at current window center
     NSRect oldFrame = self.frame;
+    // Bail fast if nothing changed — avoids a needless setFrame per second.
+    if (fabs(oldFrame.size.width  - windowWidth)  < 0.5 &&
+        fabs(oldFrame.size.height - windowHeight) < 0.5) {
+        return;
+    }
+
     CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
     CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
     NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
     newFrame = [self clampFrameToVisibleScreen:newFrame];
     [self setFrame:newFrame display:YES animate:NO];
 
-    // Position segments within contentView (origin bottom-left)
-    _localSeg.frame = NSMakeRect(8, 8, localSegWidth, segHeight);
+    _localSeg.frame  = NSMakeRect(8, 8, localSegWidth, segHeight);
     _activeSeg.frame = NSMakeRect(8 + localSegWidth + 4, 8, activeSegWidth, segHeight);
-    _nextSeg.frame = NSMakeRect(8 + localSegWidth + 4 + activeSegWidth + 4, 8, nextSegWidth, segHeight);
+    _nextSeg.frame   = NSMakeRect(8 + localSegWidth + 4 + activeSegWidth + 4, 8, nextSegWidth, segHeight);
 
-    // Text fields fill their entire segment (minus 8pt horizontal inset).
-    // VCenteredCell handles vertical centering inside the full-height bounds,
-    // so we no longer need per-segment pad math.
-    _localSeg.timeLabel.frame = NSMakeRect(8, 0, localSegWidth - 16, segHeight);
-    _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeSegWidth - 16, segHeight);
-    _nextSeg.contentLabel.frame = NSMakeRect(8, 0, nextSegWidth - 16, segHeight);
+    _localSeg.timeLabel.frame      = NSMakeRect(8, 0, localSegWidth  - 16, segHeight);
+    _activeSeg.contentLabel.frame  = NSMakeRect(8, 0, activeSegWidth - 16, segHeight);
+    _nextSeg.contentLabel.frame    = NSMakeRect(8, 0, nextSegWidth   - 16, segHeight);
 
-    // Set fonts
-    _localSeg.timeLabel.font = primaryFont;
-    _activeSeg.contentLabel.font = contentFont;
-    _nextSeg.contentLabel.font = contentFont;
+    _localSeg.timeLabel.font      = primaryFont;
+    _activeSeg.contentLabel.font  = contentFont;
+    _nextSeg.contentLabel.font    = contentFont;
 }
 
 - (void)applyLocalOnlyLayout {
