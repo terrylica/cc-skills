@@ -488,6 +488,7 @@ static void test_city_codes_for_all_markets(void) {
         {"Asia/Kolkata",      "MUM"},
         {"Australia/Sydney",  "SYD"},
         {"Africa/Johannesburg", "JHB"},  // iter-155
+        {"America/Sao_Paulo",   "SAO"},  // iter-161
     };
     for (size_t i = 0; i < sizeof(fixtures)/sizeof(fixtures[0]); i++) {
         const char *got = cityCodeForIana(fixtures[i].iana);
@@ -508,6 +509,7 @@ static void test_flag_emoji_present_for_all_markets(void) {
         "Europe/Berlin", "Europe/Zurich", "Asia/Tokyo", "Asia/Hong_Kong",
         "Asia/Shanghai", "Asia/Seoul", "Asia/Kolkata", "Australia/Sydney",
         "Africa/Johannesburg",  // iter-155
+        "America/Sao_Paulo",    // iter-161
     };
     for (size_t i = 0; i < sizeof(ianas)/sizeof(ianas[0]); i++) {
         const char *flag = flagForIana(ianas[i]);
@@ -530,7 +532,7 @@ static void test_market_roster_lock(void) {
     // triggers a failure immediately.
     NSArray *expectedIds = @[
         @"local", @"nyse", @"tsx", @"lse", @"euronext", @"xetra", @"six",
-        @"tse", @"hkex", @"sse", @"krx", @"nse", @"asx", @"jse",
+        @"tse", @"hkex", @"sse", @"krx", @"nse", @"asx", @"jse", @"b3",
     ];
     if (kNumMarkets != expectedIds.count) {
         failures++;
