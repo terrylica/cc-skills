@@ -14,6 +14,7 @@
 #import "../Sources/core/SessionSignalWindow.h"
 #import "../Sources/core/ClipboardHeader.h"
 #import "../Sources/content/UrgencyColors.h"
+#import "../Sources/content/UrgencyHorizon.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 
 void test_font_weight_parser(void) {
@@ -737,4 +738,81 @@ void test_session_state_label(void) {
         failures++;
         fprintf(stderr, "FAIL %s: out-of-range should return CLOSED\n", __func__);
     }
+}
+
+void test_urgency_horizon_dispatcher(void) {
+    // iter-215: UrgencyHorizon pref — controls the horizon (in seconds)
+    // below which FCUrgencyContinuousColor's green→red gradient runs.
+    // 6 presets, default fallback to 60 min so unset/empty/unknown
+    // preserves iter-212 behavior.
+    struct { NSString *id; NSInteger mins; } cases[] = {
+        {@"5min",    5},
+        {@"15min",  15},
+        {@"30min",  30},
+        {@"60min",  60},
+        {@"120min", 120},
+        {@"240min", 240},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        NSInteger got = FCUrgencyHorizonMinutes(cases[i].id);
+        if (got != cases[i].mins) {
+            fprintf(stderr, "FAIL %s: '%s' expected %ld got %ld\n",
+                    __func__, cases[i].id.UTF8String,
+                    (long)cases[i].mins, (long)got);
+            failures++;
+        }
+    }
+    // Unknown / nil / empty → 60 (matches iter-212 hardcoded default).
+    if (FCUrgencyHorizonMinutes(nil) != 60) {
+        failures++; fprintf(stderr, "FAIL %s: nil → %ld (want 60)\n",
+                           __func__, (long)FCUrgencyHorizonMinutes(nil));
+    }
+    if (FCUrgencyHorizonMinutes(@"") != 60) {
+        failures++; fprintf(stderr, "FAIL %s: empty → %ld (want 60)\n",
+                           __func__, (long)FCUrgencyHorizonMinutes(@""));
+    }
+    if (FCUrgencyHorizonMinutes(@"forever") != 60) {
+        failures++; fprintf(stderr, "FAIL %s: unknown → %ld (want 60)\n",
+                           __func__, (long)FCUrgencyHorizonMinutes(@"forever"));
+    }
+
+    // FCUrgencyHorizonSecsCurrent reads NSUserDefaults and converts to
+    // seconds. Save/restore the pref to keep tests independent of
+    // local user state.
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *saved = [d stringForKey:@"UrgencyHorizon"];
+
+    [d removeObjectForKey:@"UrgencyHorizon"];
+    long unset = FCUrgencyHorizonSecsCurrent();
+    if (unset != kFCUrgencyHorizonSecs) {
+        failures++;
+        fprintf(stderr, "FAIL %s: unset → %ld (want %ld = SSoT default)\n",
+                __func__, unset, kFCUrgencyHorizonSecs);
+    }
+
+    [d setObject:@"5min" forKey:@"UrgencyHorizon"];
+    if (FCUrgencyHorizonSecsCurrent() != 300) {
+        failures++;
+        fprintf(stderr, "FAIL %s: '5min' → %ld (want 300)\n",
+                __func__, FCUrgencyHorizonSecsCurrent());
+    }
+
+    [d setObject:@"240min" forKey:@"UrgencyHorizon"];
+    if (FCUrgencyHorizonSecsCurrent() != 14400) {
+        failures++;
+        fprintf(stderr, "FAIL %s: '240min' → %ld (want 14400)\n",
+                __func__, FCUrgencyHorizonSecsCurrent());
+    }
+
+    // Unknown id → falls through to 60 min default = 3600 s.
+    [d setObject:@"forever" forKey:@"UrgencyHorizon"];
+    if (FCUrgencyHorizonSecsCurrent() != 3600) {
+        failures++;
+        fprintf(stderr, "FAIL %s: unknown pref → %ld (want 3600)\n",
+                __func__, FCUrgencyHorizonSecsCurrent());
+    }
+
+    // Restore.
+    if (saved) [d setObject:saved forKey:@"UrgencyHorizon"];
+    else       [d removeObjectForKey:@"UrgencyHorizon"];
 }

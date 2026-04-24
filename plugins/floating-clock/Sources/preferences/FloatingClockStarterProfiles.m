@@ -302,5 +302,6 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"LocalOpacity", @"ActiveOpacity", @"NextOpacity",
         @"LetterSpacing", @"LineSpacing", @"TimeSeparator",
         @"SessionSignalWindow",
+        @"UrgencyHorizon",
     ];
 }
