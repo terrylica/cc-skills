@@ -60,4 +60,14 @@ CGFloat FCParseLineSpacing(NSString * _Nullable spacingId);
 // style otherwise.
 void FCApplyLineSpacing(NSMutableAttributedString *out);
 
+// v4 iter-107. Builds the NSDateFormatter pattern for hours/minutes
+// [/seconds] using the current "TimeSeparator" pref. Colon (the
+// default) stays as a literal `:` in the pattern; other separators
+// are UTS#35-quoted ('`·`' / '` `' / '`/`' / '`-`') so the formatter
+// treats them as text rather than pattern tokens.
+//
+// Extracted from Runtime.m's static helpers so a unit test can lock
+// in the pattern construction for each separator id.
+NSString *FCCurrentTimeFormat(BOOL is12h, BOOL showSec);
+
 NS_ASSUME_NONNULL_END
