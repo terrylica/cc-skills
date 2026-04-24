@@ -18,6 +18,15 @@ make clean        # remove build/ artifacts
 
 Binary at `build/floating-clock` (~50KB), app bundle at `build/FloatingClock.app`. App bundle includes `Contents/Resources/Icon.icns` (generated at build time from `Sources/gen-icon.m` via Core Graphics — no external image dependencies). Spotlight/Launchpad/Finder index the app with this icon after first install.
 
+## Slash Commands
+
+| Command                     | Purpose                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| `/floating-clock:install`   | Build + copy to `/Applications/` + launch                                        |
+| `/floating-clock:launch`    | Open the installed (or local) app                                                |
+| `/floating-clock:quit`      | Terminate the running clock                                                      |
+| `/floating-clock:uninstall` | Quit, remove from `/Applications/`, clear NSUserDefaults (confirmation required) |
+
 ## Design
 
 - **NSPanel (not NSWindow)**: Borderless, non-activating, always floating
