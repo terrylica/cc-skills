@@ -185,21 +185,36 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             NSDateComponents *nowC = [cal components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:[NSDate date]];
             NSDateComponents *landC = [cal components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:landsAt];
             BOOL sameDay = (nowC.year == landC.year && nowC.month == landC.month && nowC.day == landC.day);
+            // v4 iter-68: show weekday on BOTH sides when user-local and
+            // market-local dates differ. Prior rendering 'Sun 17:00 →
+            // 09:00 JST' invited misreading as 'TSE opens Sunday'.
+            // Now 'Sun 17:00 → Mon 09:00 JST' disambiguates clearly.
+            // When same weekday on both sides (common cross-TZ cases),
+            // show no weekday on either — purely HH:mm.
+            NSTimeZone *mktTz = (strlen(e.mkt->iana) > 0)
+                ? [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:e.mkt->iana]]
+                : nil;
+            NSCalendar *mktCal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
+            mktCal.timeZone = mktTz ?: localTz;
+            NSDateComponents *localLandC = [cal components:NSCalendarUnitWeekday fromDate:landsAt];
+            NSDateComponents *mktLandC   = [mktCal components:NSCalendarUnitWeekday fromDate:landsAt];
+            BOOL weekdayDiffers = (localLandC.weekday != mktLandC.weekday);
+
             NSDateFormatter *localFmt = [[NSDateFormatter alloc] init];
             localFmt.timeZone = localTz;
-            // v4 iter-66: dropped trailing 'local' — covered by the
-            // column-header legend ("your time"). Cross-day still
-            // suffixes weekday for disambiguation (iter-49).
-            localFmt.dateFormat = sameDay ? @"HH:mm" : @"HH:mm EEE";
+            // Weekday prefix only when there's a difference OR the landing
+            // is a non-today calendar day — covers the Sat-evening / TSE
+            // weekend case the user flagged.
+            BOOL showLocalWeekday = weekdayDiffers || !sameDay;
+            localFmt.dateFormat = showLocalWeekday ? @"EEE HH:mm" : @"HH:mm";
             NSString *localAt = [localFmt stringFromDate:landsAt];
 
-            // Market's own-TZ open time (e.g. "09:30 EDT")
+            // Market's own-TZ open time (e.g. "09:30 EDT" or "Mon 09:00 JST")
             NSString *mktAt = @"";
-            if (strlen(e.mkt->iana) > 0) {
-                NSTimeZone *mktTz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:e.mkt->iana]];
+            if (mktTz) {
                 NSDateFormatter *mktFmt = [[NSDateFormatter alloc] init];
-                mktFmt.dateFormat = @"HH:mm";
-                if (mktTz) mktFmt.timeZone = mktTz;
+                mktFmt.timeZone = mktTz;
+                mktFmt.dateFormat = weekdayDiffers ? @"EEE HH:mm" : @"HH:mm";
                 NSString *mktAbbrev = friendlyAbbrevForIana(e.mkt->iana, landsAt);
                 mktAt = [NSString stringWithFormat:@"%@ %@",
                     [mktFmt stringFromDate:landsAt], mktAbbrev];
