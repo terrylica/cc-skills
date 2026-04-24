@@ -563,7 +563,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 
     _localSeg.timeLabel.stringValue = [_dateFormatter stringFromDate:[NSDate date]];
     _activeSeg.contentLabel.attributedStringValue = [self buildActiveSegmentContent];
-    _nextSeg.contentLabel.stringValue   = @"NEXT (—)";     // placeholder; iter-13 replaces
+    _nextSeg.contentLabel.attributedStringValue = [self buildNextSegmentContent];
 }
 
 - (NSAttributedString *)buildActiveSegmentContent {
@@ -686,6 +686,110 @@ static NSFont *resolveClockFont(CGFloat size) {
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:@"\n"
                 attributes:@{NSFontAttributeName: font}]];
+        }
+    }
+
+    return out;
+}
+
+- (NSAttributedString *)buildNextSegmentContent {
+    NSDate *now = [NSDate date];
+    NSFont *font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
+    NSColor *headerColor = [NSColor colorWithWhite:0.85 alpha:1.0];
+    NSColor *dimColor    = [NSColor colorWithWhite:0.45 alpha:1.0];
+    NSColor *codeColor   = [NSColor colorWithWhite:0.75 alpha:1.0];
+
+    // Candidate entry: market pointer + state + secs-to-next + is-lunch-resume flag
+    typedef struct {
+        const ClockMarket *mkt;
+        long secs;
+        BOOL isLunchResume;
+    } NextEntry;
+
+    NextEntry entries[kNumMarkets];
+    int entryCount = 0;
+
+    for (size_t i = 1; i < kNumMarkets; i++) {  // skip local
+        const ClockMarket *m = &kMarkets[i];
+        SessionState state;
+        double progress;
+        long secsToNext;
+        computeSessionState(m, now, &state, &progress, &secsToNext);
+
+        if (state == kSessionClosed) {
+            // Will open next at its next regular-session open.
+            entries[entryCount++] = (NextEntry){m, secsToNext, NO};
+        } else if (state == kSessionLunch) {
+            // Currently on lunch — will resume soon. secsToNext from computeSessionState
+            // is seconds until lunch ends (resume time).
+            entries[entryCount++] = (NextEntry){m, secsToNext, YES};
+        }
+        // Skip kSessionOpen — they're already in ACTIVE
+    }
+
+    // Sort by secs ascending using insertion sort (small array)
+    for (int i = 1; i < entryCount; i++) {
+        NextEntry key = entries[i];
+        int j = i - 1;
+        while (j >= 0 && entries[j].secs > key.secs) {
+            entries[j+1] = entries[j];
+            j--;
+        }
+        entries[j+1] = key;
+    }
+
+    NSMutableAttributedString *out = [[NSMutableAttributedString alloc] init];
+
+    if (entryCount == 0) {
+        [out appendAttributedString:[[NSAttributedString alloc]
+            initWithString:@"— NO UPCOMING OPENS —"
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
+        return out;
+    }
+
+    // Header
+    [out appendAttributedString:[[NSAttributedString alloc]
+        initWithString:@"NEXT TO OPEN\n"
+        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+
+    // Top 3
+    int maxItems = entryCount < 3 ? entryCount : 3;
+    for (int i = 0; i < maxItems; i++) {
+        NextEntry e = entries[i];
+        NSString *glyph = e.isLunchResume ? @"◑" : @"○";
+        NSColor *glyphColor = e.isLunchResume
+            ? [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0]  // violet
+            : [NSColor colorWithWhite:0.55 alpha:1.0];                    // gray
+        NSString *code = [NSString stringWithUTF8String:e.mkt->code];
+        NSString *countdown;
+        if (e.secs > 99 * 3600) {
+            // >99h — show date-like "opens Mon 09:30"
+            NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
+            NSDateFormatter *openFmt = [[NSDateFormatter alloc] init];
+            openFmt.dateFormat = @"EEE HH:mm";
+            openFmt.timeZone = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:e.mkt->iana]];
+            countdown = [NSString stringWithFormat:@"opens %@", [openFmt stringFromDate:opensAt]];
+        } else {
+            NSString *verb = e.isLunchResume ? @"resumes in" : @"opens in";
+            countdown = [NSString stringWithFormat:@"%@ %@", verb, formatCountdown(e.secs)];
+        }
+        NSString *suffix = e.isLunchResume ? @" LUNCH" : @"";
+
+        // "  ○ NSE  opens in 1h45m\n"
+        [out appendAttributedString:[[NSAttributedString alloc]
+            initWithString:@"  " attributes:@{NSFontAttributeName: font}]];
+        [out appendAttributedString:[[NSAttributedString alloc]
+            initWithString:glyph
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: glyphColor}]];
+        [out appendAttributedString:[[NSAttributedString alloc]
+            initWithString:[NSString stringWithFormat:@" %-4s ", [code UTF8String]]
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
+        [out appendAttributedString:[[NSAttributedString alloc]
+            initWithString:[NSString stringWithFormat:@"%@%@", countdown, suffix]
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+        if (i < maxItems - 1) {
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:@"\n" attributes:@{NSFontAttributeName: font}]];
         }
     }
 
@@ -1156,7 +1260,6 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
 
     NSSize localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
-    NSSize nextSize = [@"NEXT (—)" sizeWithAttributes:contentAttrs];
 
     // Measure actual ACTIVE content (may be multi-line)
     NSSize activeSize;
@@ -1165,6 +1268,15 @@ static NSFont *resolveClockFont(CGFloat size) {
         activeSize = [activeAttr size];
     } else {
         activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
+    }
+
+    // Measure actual NEXT content (may be multi-line)
+    NSSize nextSize;
+    NSAttributedString *nextAttr = _nextSeg.contentLabel.attributedStringValue;
+    if (nextAttr && nextAttr.string.length > 0) {
+        nextSize = [nextAttr size];
+    } else {
+        nextSize = [@"NEXT TO OPEN" sizeWithAttributes:contentAttrs];
     }
 
     CGFloat localHeight  = ceilf(localSize.height) + 12;
@@ -1476,7 +1588,9 @@ static NSFont *resolveClockFont(CGFloat size) {
     label.selectable = NO;
     label.bezeled = NO;
     label.drawsBackground = NO;
-    label.alignment = NSTextAlignmentCenter;
+    label.alignment = NSTextAlignmentLeft;
+    label.usesSingleLineMode = NO;
+    label.cell.wraps = NO;
     [self addSubview:label];
     _contentLabel = label;
 
