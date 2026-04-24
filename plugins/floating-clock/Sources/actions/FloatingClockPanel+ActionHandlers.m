@@ -220,6 +220,15 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     }
 }
 
+// v4 iter-219: 1Hz pulse intensity for FCUrgencyFlashAlpha. "off"
+// disables the pulse; subtle/normal/intense vary the dim-half alpha.
+- (void)setUrgencyFlash:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"UrgencyFlash"];
+        [self applyDisplaySettings];
+    }
+}
+
 // v4 iter-102: Quick Style application. The menu item's representedObject
 // is a dictionary of pref-key → value pairs. Each k/v is written to
 // NSUserDefaults atomically (writes to standardUserDefaults are
@@ -365,7 +374,7 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
         @"ShowSeconds", @"ShowDate", @"ShowFlags", @"ShowUTCReference",
         @"ShowSkyState", @"ShowProgressPercent",
         @"TimeFormat", @"TimeSeparator", @"DateFormat", @"SessionSignalWindow",
-        @"UrgencyHorizon",
+        @"UrgencyHorizon", @"UrgencyFlash",
         @"FontSize", @"ActiveFontSize", @"NextFontSize",
         @"FontWeight", @"ActiveWeight", @"NextWeight",
         @"LetterSpacing", @"LineSpacing",

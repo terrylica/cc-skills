@@ -15,6 +15,7 @@
 #import "../Sources/core/ClipboardHeader.h"
 #import "../Sources/content/UrgencyColors.h"
 #import "../Sources/content/UrgencyHorizon.h"
+#import "../Sources/content/UrgencyFlash.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 
 void test_font_weight_parser(void) {
@@ -823,4 +824,95 @@ void test_urgency_horizon_dispatcher(void) {
     // Restore.
     if (saved) [d setObject:saved forKey:@"UrgencyHorizon"];
     else       [d removeObjectForKey:@"UrgencyHorizon"];
+}
+
+void test_urgency_flash_intensity(void) {
+    // iter-219: UrgencyFlash pref — controls the dim-half alpha of the
+    // 1Hz pulse in FCUrgencyFlashAlpha. 4 presets, default fallback to
+    // kFCUrgencyFlashDimAlpha so unset/empty/unknown preserves iter-212.
+    struct { NSString *id; CGFloat alpha; } cases[] = {
+        {@"off",     1.0},
+        {@"subtle",  0.80},
+        {@"normal",  0.45},
+        {@"intense", 0.15},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        CGFloat got = FCUrgencyFlashDimAlphaForId(cases[i].id);
+        if (fabs(got - cases[i].alpha) > 0.001) {
+            fprintf(stderr, "FAIL %s: '%s' expected %.2f got %.2f\n",
+                    __func__, cases[i].id.UTF8String,
+                    (double)cases[i].alpha, (double)got);
+            failures++;
+        }
+    }
+    // Unknown / nil / empty → kFCUrgencyFlashDimAlpha (iter-212 default).
+    if (fabs(FCUrgencyFlashDimAlphaForId(nil) - kFCUrgencyFlashDimAlpha) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: nil → %.2f (want %.2f = SSoT default)\n",
+                __func__, (double)FCUrgencyFlashDimAlphaForId(nil),
+                (double)kFCUrgencyFlashDimAlpha);
+    }
+    if (fabs(FCUrgencyFlashDimAlphaForId(@"") - kFCUrgencyFlashDimAlpha) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: empty → %.2f (want %.2f)\n",
+                __func__, (double)FCUrgencyFlashDimAlphaForId(@""),
+                (double)kFCUrgencyFlashDimAlpha);
+    }
+    if (fabs(FCUrgencyFlashDimAlphaForId(@"strobe") - kFCUrgencyFlashDimAlpha) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: unknown → %.2f (want %.2f)\n",
+                __func__, (double)FCUrgencyFlashDimAlphaForId(@"strobe"),
+                (double)kFCUrgencyFlashDimAlpha);
+    }
+
+    // FCUrgencyFlashDimAlphaCurrent + FCUrgencyFlashIsDisabled read
+    // NSUserDefaults; save/restore to keep tests independent.
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *saved = [d stringForKey:@"UrgencyFlash"];
+
+    [d removeObjectForKey:@"UrgencyFlash"];
+    if (fabs(FCUrgencyFlashDimAlphaCurrent() - kFCUrgencyFlashDimAlpha) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: unset current → %.2f (want %.2f)\n",
+                __func__, (double)FCUrgencyFlashDimAlphaCurrent(),
+                (double)kFCUrgencyFlashDimAlpha);
+    }
+    if (FCUrgencyFlashIsDisabled()) {
+        failures++; fprintf(stderr, "FAIL %s: unset should not be disabled\n", __func__);
+    }
+
+    [d setObject:@"off" forKey:@"UrgencyFlash"];
+    if (fabs(FCUrgencyFlashDimAlphaCurrent() - 1.0) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: 'off' current → %.2f (want 1.0)\n",
+                __func__, (double)FCUrgencyFlashDimAlphaCurrent());
+    }
+    if (!FCUrgencyFlashIsDisabled()) {
+        failures++; fprintf(stderr, "FAIL %s: 'off' should be disabled\n", __func__);
+    }
+    // Integration check: with pulse off, FCUrgencyFlashAlpha should
+    // return 1.0 even at imminent secs on the dim half of the pulse.
+    // (epoch=0 → even → would dim under default; with off, stays full.)
+    if (fabs(FCUrgencyFlashAlpha(5, 0) - 1.0) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: pulse off but FCUrgencyFlashAlpha(5, 0) = %.2f (want 1.0)\n",
+                __func__, (double)FCUrgencyFlashAlpha(5, 0));
+    }
+
+    [d setObject:@"intense" forKey:@"UrgencyFlash"];
+    if (fabs(FCUrgencyFlashAlpha(5, 0) - 0.15) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: 'intense' dim-half → %.2f (want 0.15)\n",
+                __func__, (double)FCUrgencyFlashAlpha(5, 0));
+    }
+    // Above flash threshold always 1.0 regardless of preset.
+    if (fabs(FCUrgencyFlashAlpha(60, 0) - 1.0) > 0.001) {
+        failures++;
+        fprintf(stderr, "FAIL %s: above-threshold → %.2f (want 1.0)\n",
+                __func__, (double)FCUrgencyFlashAlpha(60, 0));
+    }
+
+    // Restore.
+    if (saved) [d setObject:saved forKey:@"UrgencyFlash"];
+    else       [d removeObjectForKey:@"UrgencyFlash"];
 }

@@ -39,6 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setTimeSeparator:(NSMenuItem *)sender;
 - (void)setSessionSignalWindow:(NSMenuItem *)sender;
 - (void)setUrgencyHorizon:(NSMenuItem *)sender;
+- (void)setUrgencyFlash:(NSMenuItem *)sender;
 - (void)applyQuickStyle:(NSMenuItem *)sender;
 - (void)toggleShowFlags:(NSMenuItem *)sender;
 - (void)toggleShowUTCReference:(NSMenuItem *)sender;
