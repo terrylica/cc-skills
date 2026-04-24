@@ -183,6 +183,70 @@ static void test_afterhours_not_on_weekend(void) {
     ASSERT_STATE(nyse, d_sat, kSessionClosed);
 }
 
+static void test_signal_window_pref_gates_premarket(void) {
+    // v4 iter-127: locks the wiring between iter-126's SessionSignalWindow
+    // pref and iter-123's PRE-MARKET promotion gate. iter-126's unit test
+    // only covers the dispatcher (id → minutes); this covers the
+    // integration (pref-value → actual state outcome).
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *saved = [d stringForKey:@"SessionSignalWindow"];
+
+    const ClockMarket *nyse = marketForId(@"nyse");
+    // NYSE opens 09:30 EDT. 09:20 = 10 min pre-open.
+    NSDate *t = dateAt(@"America/New_York", 2026, 4, 24, 9, 20, 0);
+
+    // "off" disables promotion: 10 min pre-open stays CLOSED.
+    [d setObject:@"off" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionClosed);
+
+    // "5min" is too narrow at T-10min: still CLOSED.
+    [d setObject:@"5min" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionClosed);
+
+    // "15min" / "30min" / "60min" all cover T-10min: PRE-MARKET.
+    [d setObject:@"15min" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionPreMarket);
+    [d setObject:@"30min" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionPreMarket);
+    [d setObject:@"60min" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionPreMarket);
+
+    // Restore.
+    if (saved) [d setObject:saved forKey:@"SessionSignalWindow"];
+    else       [d removeObjectForKey:@"SessionSignalWindow"];
+}
+
+static void test_signal_window_pref_gates_afterhours(void) {
+    // v4 iter-127: symmetric integration test for iter-125's AFTER-HOURS
+    // promotion gate.
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *saved = [d stringForKey:@"SessionSignalWindow"];
+
+    const ClockMarket *nyse = marketForId(@"nyse");
+    // NYSE closes 16:00 EDT. 16:10 = 10 min post-close.
+    NSDate *t = dateAt(@"America/New_York", 2026, 4, 24, 16, 10, 0);
+
+    // "off" disables promotion: 10 min post-close stays CLOSED.
+    [d setObject:@"off" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionClosed);
+
+    // "5min" is too narrow at T+10min: back to CLOSED.
+    [d setObject:@"5min" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionClosed);
+
+    // "15min" / "30min" / "60min" all cover T+10min: AFTER-HOURS.
+    [d setObject:@"15min" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionAfterHours);
+    [d setObject:@"30min" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionAfterHours);
+    [d setObject:@"60min" forKey:@"SessionSignalWindow"];
+    ASSERT_STATE(nyse, t, kSessionAfterHours);
+
+    // Restore.
+    if (saved) [d setObject:saved forKey:@"SessionSignalWindow"];
+    else       [d removeObjectForKey:@"SessionSignalWindow"];
+}
+
 static void test_tse_lunch_window(void) {
     // TSE lunch is 11:30-12:30 JST. At 12:00 JST the state is LUNCH
     // and secsToNext is 30min = 1800s to lunchEnd.
@@ -480,6 +544,8 @@ int main(void) {
         test_premarket_not_on_weekend();
         test_nyse_afterhours_first_15min();
         test_afterhours_not_on_weekend();
+        test_signal_window_pref_gates_premarket();
+        test_signal_window_pref_gates_afterhours();
         test_tse_lunch_window();
         test_progress_roughly_correct();
 
@@ -526,7 +592,7 @@ int main(void) {
         test_session_signal_window();
 
         if (failures == 0) {
-            fprintf(stderr, "All 45 tests passed.\n");
+            fprintf(stderr, "All 47 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
