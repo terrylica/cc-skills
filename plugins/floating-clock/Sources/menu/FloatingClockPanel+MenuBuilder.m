@@ -51,6 +51,10 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowDate:) keyEquivalent:@""];
     [displayItems addObject:sd];
 
+    NSMenuItem *sf = [[NSMenuItem alloc] initWithTitle:@"Show Country Flags"
+                                                 action:@selector(toggleShowFlags:) keyEquivalent:@""];
+    [displayItems addObject:sf];
+
     [displayItems addObject:[NSMenuItem separatorItem]];
 
     [displayItems addObject:[self submenuTitled:@"Time Format" action:@selector(setTimeFormat:)
