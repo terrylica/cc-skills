@@ -324,9 +324,23 @@
 }
 
 - (void)showAbout:(id)sender {
+    // v4 iter-110: pull version from Info.plist so the dialog stays
+    // in sync with plugin.json via CFBundleShortVersionString; append
+    // the v4-campaign iteration number from CFBundleVersion.
+    NSDictionary *info = [[NSBundle mainBundle] infoDictionary];
+    NSString *vers  = [info objectForKey:@"CFBundleShortVersionString"] ?: @"";
+    NSString *build = [info objectForKey:@"CFBundleVersion"] ?: @"";
     NSAlert *alert = [[NSAlert alloc] init];
-    alert.messageText = @"Floating Clock";
-    alert.informativeText = @"Minimal always-on-top floating desktop clock.\n\nObjective-C + NSPanel.\n© 2026 Terry Li";
+    alert.messageText = [NSString stringWithFormat:@"Floating Clock %@", vers];
+    alert.informativeText = [NSString stringWithFormat:
+        @"Always-on-top floating desktop clock for macOS.\n\n"
+         "• 25 color themes · 8 Quick Style moods (Brutalist / Zen / Retro CRT / Executive / Neon / Hacker / Glacier / Midnight)\n"
+         "• 12 major global exchanges with live session state, IANA-backed DST\n"
+         "• Three-segment dashboard · 6 bundled profiles · per-segment Theme / Opacity / Weight\n"
+         "• Typography trilogy: FontWeight · LetterSpacing · LineSpacing\n"
+         "• Sub-0.1%% idle CPU · ~216 KB signed binary\n\n"
+         "Objective-C + NSPanel · build %@\n"
+         "© 2026 Terry Li", build];
     [alert addButtonWithTitle:@"OK"];
     [alert runModal];
 }
