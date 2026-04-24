@@ -31,5 +31,6 @@ void test_segment_gap_points(void);
 void test_sky_glyph_phases(void);
 void test_current_time_format(void);
 void test_quick_styles_invariants(void);
+void test_shadow_spec_catalog(void);
 
 NS_ASSUME_NONNULL_END
