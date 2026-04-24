@@ -1563,17 +1563,24 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     CGFloat activeHeight = ceilf(activeSize.height);
     CGFloat nextHeight   = ceilf(nextSize.height);
 
-    CGFloat segHeight = MAX(MAX(localHeight, activeHeight), nextHeight) + 24;
+    // Stacked block layout: LOCAL on top spanning full width; ACTIVE + NEXT
+    // share the second row. Gives a rectangular, stable silhouette where
+    // the LOCAL clock anchors the top and market detail flows below it.
+    CGFloat topRowHeight    = localHeight  + 24;
+    CGFloat bottomRowHeight = MAX(activeHeight, nextHeight) + 24;
 
-    CGFloat localSegWidth  = ceilf(localSize.width) + 32;
     CGFloat activeSegWidth = ceilf(activeSize.width) + 32;
     CGFloat nextSegWidth   = ceilf(nextSize.width) + 32;
+    CGFloat bottomRowInnerWidth = activeSegWidth + 4 + nextSegWidth;
 
-    CGFloat windowWidth  = localSegWidth + 4 + activeSegWidth + 4 + nextSegWidth + 16;
-    CGFloat windowHeight = segHeight + 16;
+    // LOCAL stretches to whichever is wider: its own content, or the bottom
+    // row, so the top and bottom are flush.
+    CGFloat topRowWidth = MAX(ceilf(localSize.width) + 32, bottomRowInnerWidth);
+
+    CGFloat windowWidth  = topRowWidth + 16;   // 8pt L+R margins
+    CGFloat windowHeight = topRowHeight + 4 + bottomRowHeight + 16; // 4pt inter-row gap, 8pt T+B margins
 
     NSRect oldFrame = self.frame;
-    // Bail fast if nothing changed — avoids a needless setFrame per second.
     if (fabs(oldFrame.size.width  - windowWidth)  < 0.5 &&
         fabs(oldFrame.size.height - windowHeight) < 0.5) {
         return;
@@ -1585,13 +1592,22 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     newFrame = [self clampFrameToVisibleScreen:newFrame];
     [self setFrame:newFrame display:YES animate:NO];
 
-    _localSeg.frame  = NSMakeRect(8, 8, localSegWidth, segHeight);
-    _activeSeg.frame = NSMakeRect(8 + localSegWidth + 4, 8, activeSegWidth, segHeight);
-    _nextSeg.frame   = NSMakeRect(8 + localSegWidth + 4 + activeSegWidth + 4, 8, nextSegWidth, segHeight);
+    // contentView origin is bottom-left. Bottom row first (y=8), then top row.
+    CGFloat bottomY = 8;
+    CGFloat topY    = 8 + bottomRowHeight + 4;
 
-    _localSeg.timeLabel.frame      = NSMakeRect(8, 0, localSegWidth  - 16, segHeight);
-    _activeSeg.contentLabel.frame  = NSMakeRect(8, 0, activeSegWidth - 16, segHeight);
-    _nextSeg.contentLabel.frame    = NSMakeRect(8, 0, nextSegWidth   - 16, segHeight);
+    // LOCAL top row stretches full inner width; centered horizontally inside.
+    _localSeg.frame = NSMakeRect(8, topY, topRowWidth, topRowHeight);
+
+    // ACTIVE + NEXT share the bottom row. Center them as a pair under LOCAL
+    // so the layout stays visually balanced even when LOCAL is wider.
+    CGFloat bottomPairX = 8 + (topRowWidth - bottomRowInnerWidth) / 2.0;
+    _activeSeg.frame = NSMakeRect(bottomPairX, bottomY, activeSegWidth, bottomRowHeight);
+    _nextSeg.frame   = NSMakeRect(bottomPairX + activeSegWidth + 4, bottomY, nextSegWidth, bottomRowHeight);
+
+    _localSeg.timeLabel.frame     = NSMakeRect(8, 0, topRowWidth - 16, topRowHeight);
+    _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeSegWidth - 16, bottomRowHeight);
+    _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextSegWidth - 16, bottomRowHeight);
 
     _localSeg.timeLabel.font      = primaryFont;
     _activeSeg.contentLabel.font  = contentFont;
