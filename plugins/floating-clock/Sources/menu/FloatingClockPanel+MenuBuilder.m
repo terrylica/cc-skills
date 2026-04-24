@@ -362,6 +362,9 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"Reset Visual Style"
                                                        action:@selector(resetVisualStyle:) keyEquivalent:@""]];
     [windowItems addObject:[NSMenuItem separatorItem]];
+    // v4 iter-167: quick "where does this app live?" utility.
+    [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"Reveal App in Finder"
+                                                       action:@selector(revealAppInFinder:) keyEquivalent:@""]];
     [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"About Floating Clock"
                                                        action:@selector(showAbout:) keyEquivalent:@""]];
     NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Floating Clock"
