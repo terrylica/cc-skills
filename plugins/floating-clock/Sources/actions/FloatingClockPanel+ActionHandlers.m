@@ -357,4 +357,16 @@
     [NSApp terminate:nil];
 }
 
+// v4 iter-149: copy the LOCAL row's current display (time + TZ label,
+// and UTC reference if enabled) to the system clipboard. Available only
+// from the LOCAL segment's right-click menu — the ACTIVE/NEXT segments
+// don't have a single "the time" to copy since each entry has its own.
+- (void)copyTime:(id)sender {
+    NSString *text = _label.stringValue;
+    if (text.length == 0) return;
+    NSPasteboard *pb = [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:text forType:NSPasteboardTypeString];
+}
+
 @end

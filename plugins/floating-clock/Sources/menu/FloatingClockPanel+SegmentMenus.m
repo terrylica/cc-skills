@@ -35,6 +35,15 @@
 
     [m addItem:[NSMenuItem separatorItem]];
 
+    // v4 iter-149: Copy Time utility. Puts the LOCAL row's current
+    // text (time + TZ label + optional UTC reference) on the system
+    // clipboard. Only exposed from LOCAL's menu — ACTIVE/NEXT have
+    // multiple simultaneous entries so "the time" is ambiguous there.
+    NSMenuItem *ct = [m addItemWithTitle:@"Copy Time" action:@selector(copyTime:) keyEquivalent:@""];
+    ct.target = self;
+
+    [m addItem:[NSMenuItem separatorItem]];
+
     NSMenuItem *ss = [m addItemWithTitle:@"Show Seconds" action:@selector(toggleShowSeconds:) keyEquivalent:@""];
     ss.target = self;
     NSMenuItem *sd = [m addItemWithTitle:@"Show Date" action:@selector(toggleShowDate:) keyEquivalent:@""];
