@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 122
+iteration: 123
 status: ACTIVE
-last_updated: 2026-04-24T12:10:00Z
+last_updated: 2026-04-24T12:20:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -556,3 +556,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 11:50 UTC — iter-120: **FCShadowSpecForId extracted + test** (205c67f9). Completes the Layout.m dispatcher-extraction series. ShadowStyle is the most complex (4 CALayer props + theme-dependent color). Solved via spec-struct pattern: `FCShadowSpec` struct with `FCShadowColorSource` enum (Black / ThemeForeground / ThemeBackground) + numeric params. Pure mapping in `Sources/core/ShadowSpec.{h,m}`; Layout.m does theme substitution + CALayer write. Tests +1 (39 total) locks all 7 presets with field-by-field match + nil / empty / unknown → disabled. 39/39 green.
 - 2026-04-24 12:00 UTC — iter-121: **v1.6.0 release consolidation** (ade25115). Bump plugin.json 1.5.0 → 1.6.0 + Info.plist sync + CFBundleVersion 110 → 121. Description rewritten to surface v1.6 scope (all aesthetic catalogs + typography trilogy + 7 new data modules + 39 test fixtures across 2 harness files). iter-101..120 focused on testability hardening: 7 new `Sources/core/*.{h,m}` dispatcher modules, 1 `Sources/preferences/*` extraction, test harness split. All dispatchers in Layout.m + Runtime.m are now pure-function helpers with fixture-locked invariants. 39/39 green, validator clean.
 - 2026-04-24 12:10 UTC — iter-122: **CLAUDE.md architecture-tree refresh** (2d559ba4). Last updated at iter-86 (pre-dispatcher-extraction series). Added all 7 new data modules (core/DateFormatPrefix, SkyGlyph, SegmentGap, DensityPad, CornerRadius, ShadowSpec + preferences/FloatingClockQuickStyles) with their iter landmarks. Inline-annotated FontResolver's grown surface (FontWeight/LetterSpacing/LineSpacing/CurrentTimeFormat helpers), MenuBuilder's iter-96 MenuHelpers split, theme count 10→25, progress-bar 6→10. Zero code change. 39/39 still green.
+- 2026-04-24 12:20 UTC — iter-123: **`kSessionPreMarket` state** (07a01efc). Tier-2 enhancement from the queue. New SessionState value for the 15-minute window before each exchange's regular open (weekdays only). Uniform across all 12 exchanges — no per-market hasPreMarket flag; auction-window heuristic holds broadly enough. Promotion logic: CLOSED + !isWeekend + nowMins < openMins + secsToNext ≤ 15 min → PRE-MARKET. New amber ◐ glyph + amber color. NextSegmentContentBuilder includes it alongside CLOSED. Tests +1 (40 total) `test_nyse_premarket_last_15min` locks the 15-min / 10-min / boundary / at-open cases. CLAUDE.md Known-Limitations updated: pre-market handled, after-hours remains Tier-2.
