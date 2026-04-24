@@ -370,6 +370,18 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     [NSApp terminate:nil];
 }
 
+// v4 iter-167: reveal the running app's bundle in Finder. Useful when
+// users want to right-click → Show Package Contents, verify a copy
+// they moved, or just find where FloatingClock lives. Uses the
+// running process's mainBundle so it always points to the actually-
+// executing binary (whether that's /Applications/FloatingClock.app
+// or the plugin's local build/).
+- (void)revealAppInFinder:(id)sender {
+    NSURL *bundleURL = [NSBundle mainBundle].bundleURL;
+    if (!bundleURL) return;
+    [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:@[bundleURL]];
+}
+
 // v4 iter-160: body extracted to Sources/core/ClipboardHeader.{h,m}.
 // The wrapper (top of file) now only handles the NSPasteboard write;
 // composition is pure-function + tested.
