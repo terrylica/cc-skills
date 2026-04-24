@@ -217,43 +217,53 @@ static void test_afterhours_progress_is_one(void) {
     ASSERT_PROGRESS_NEAR(nyse, d, 1.0, 0.001);
 }
 
-static void test_state_invariants_24h_sweep(void) {
-    // v4 iter-143: structural invariants across a full weekday sweep.
-    // For every 30-min tick on Fri 2026-04-24 EDT:
-    //   - state ∈ {OPEN, LUNCH, CLOSED, PRE-MARKET, AFTER-HOURS}
-    //   - progress ∈ [0.0, 1.0]
-    //   - secsToNext ≥ 0
-    // Catches enum drift (e.g. someone adds a 6th state but a caller
-    // still assumes 5), progress overflow (>1.0 or <0.0 from a
-    // miscomputed elapsed/total), and negative-countdown regressions
-    // (the exact bug iter-48 fixed from iter-9 — missing until iter-48
-    // caught it by chance). Now catchable proactively.
-    const ClockMarket *nyse = marketForId(@"nyse");
+// Shared sweep helper — iterates a single weekday in 30-min steps and
+// asserts structural invariants (state ∈ 5-enum set, progress ∈ [0,1],
+// secsToNext ≥ 0). Used by multiple market-specific sweep fixtures.
+static void sweep_invariants(const ClockMarket *mkt, NSString *iana, const char *tzLabel) {
     for (int minute = 0; minute < 24 * 60; minute += 30) {
         int h = minute / 60;
         int m = minute % 60;
-        NSDate *t = dateAt(@"America/New_York", 2026, 4, 24, h, m, 0);
+        NSDate *t = dateAt(iana, 2026, 4, 24, h, m, 0);
         SessionState s; double p; long n;
-        computeSessionState(nyse, t, &s, &p, &n);
+        computeSessionState(mkt, t, &s, &p, &n);
         BOOL stateValid = (s == kSessionOpen || s == kSessionLunch ||
                            s == kSessionClosed || s == kSessionPreMarket ||
                            s == kSessionAfterHours);
         if (!stateValid) {
-            fprintf(stderr, "FAIL %s: invalid state %d at %02d:%02d EDT\n",
-                    __func__, (int)s, h, m);
+            fprintf(stderr, "FAIL sweep %s: invalid state %d at %02d:%02d %s\n",
+                    mkt->code, (int)s, h, m, tzLabel);
             failures++;
         }
         if (p < 0.0 || p > 1.0) {
-            fprintf(stderr, "FAIL %s: progress %.3f out of [0,1] at %02d:%02d EDT\n",
-                    __func__, p, h, m);
+            fprintf(stderr, "FAIL sweep %s: progress %.3f out of [0,1] at %02d:%02d %s\n",
+                    mkt->code, p, h, m, tzLabel);
             failures++;
         }
         if (n < 0) {
-            fprintf(stderr, "FAIL %s: secsToNext %ld negative at %02d:%02d EDT\n",
-                    __func__, n, h, m);
+            fprintf(stderr, "FAIL sweep %s: secsToNext %ld negative at %02d:%02d %s\n",
+                    mkt->code, n, h, m, tzLabel);
             failures++;
         }
     }
+}
+
+static void test_state_invariants_24h_sweep(void) {
+    // v4 iter-143: structural invariants across a full weekday sweep.
+    // NYSE has no LUNCH state — see test_state_invariants_tse_sweep
+    // (iter-145) for lunch-market coverage.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    sweep_invariants(nyse, @"America/New_York", "EDT");
+}
+
+static void test_state_invariants_tse_sweep(void) {
+    // v4 iter-145: extend iter-143's invariant sweep to a lunch-market.
+    // TSE has LUNCH state (11:30-12:30 JST) which NYSE's sweep can never
+    // hit. Locks the same invariants (state valid, progress ∈ [0,1],
+    // secsToNext ≥ 0) through the lunch code path — a previously
+    // untested region of computeSessionState.
+    const ClockMarket *tse = marketForId(@"tse");
+    sweep_invariants(tse, @"Asia/Tokyo", "JST");
 }
 
 static void test_signal_window_pref_gates_premarket(void) {
@@ -634,6 +644,7 @@ int main(void) {
         test_premarket_progress_is_zero();
         test_afterhours_progress_is_one();
         test_state_invariants_24h_sweep();
+        test_state_invariants_tse_sweep();
         test_signal_window_pref_gates_premarket();
         test_signal_window_pref_gates_afterhours();
         test_tse_lunch_window();
@@ -684,7 +695,7 @@ int main(void) {
         test_session_state_label();
 
         if (failures == 0) {
-            fprintf(stderr, "All 52 tests passed.\n");
+            fprintf(stderr, "All 53 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
