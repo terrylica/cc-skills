@@ -67,6 +67,8 @@ NSDictionary *buildStarterProfiles(void) {
         @"Night Owl": @{
             @"DisplayMode": @"local-only",
             @"LocalTheme": @"soft_glass",
+            @"ActiveTheme": @"soft_glass",
+            @"NextTheme": @"soft_glass",
             @"ColorTheme": @"soft_glass",
             @"FontSize": @16.0,
             @"ActiveFontSize": @11.0,
@@ -92,6 +94,8 @@ NSDictionary *buildStarterProfiles(void) {
         @"Minimalist": @{
             @"DisplayMode": @"local-only",
             @"LocalTheme": @"high_contrast",
+            @"ActiveTheme": @"high_contrast",
+            @"NextTheme": @"high_contrast",
             @"ColorTheme": @"high_contrast",
             @"FontSize": @20.0,
             @"ActiveFontSize": @11.0,
@@ -117,6 +121,8 @@ NSDictionary *buildStarterProfiles(void) {
         @"Watch Party": @{
             @"DisplayMode": @"single-market",
             @"LocalTheme": @"dracula",
+            @"ActiveTheme": @"dracula",
+            @"NextTheme": @"dracula",
             @"ColorTheme": @"dracula",
             @"FontSize": @48.0,
             @"ActiveFontSize": @16.0,
