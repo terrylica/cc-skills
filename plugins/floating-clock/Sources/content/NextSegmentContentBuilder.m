@@ -237,5 +237,6 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         initWithString:@"\n" attributes:@{NSFontAttributeName: font}]];
 
     FCApplyLetterSpacing(out);  // v4 iter-94
+    FCApplyLineSpacing(out);    // v4 iter-95
     return out;
 }

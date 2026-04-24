@@ -46,4 +46,18 @@ CGFloat FCParseLetterSpacing(NSString * _Nullable spacingId);
 // value is 0.0 (keeps attribute dictionaries minimal).
 void FCApplyLetterSpacing(NSMutableAttributedString *out);
 
+// v4 iter-95. Maps the "LineSpacing" pref id to an extra-line-gap
+// value in points (NSParagraphStyle.lineSpacing — additive, clamped
+// to >= 0 by AppKit). Accepted ids:
+//   tight (0.0) / snug (1.0) / normal (2.0) / loose (4.0) / airy (7.0).
+// Unknown/nil/empty → 2.0 (matches registered default "normal").
+CGFloat FCParseLineSpacing(NSString * _Nullable spacingId);
+
+// v4 iter-95. Reads NSUserDefaults[@"LineSpacing"] and applies a
+// paragraph style with the resolved leading to the full range of
+// `out`. Any existing NSParagraphStyleAttributeName on the range is
+// overwritten — acceptable for ACTIVE/NEXT which don't set paragraph
+// style otherwise.
+void FCApplyLineSpacing(NSMutableAttributedString *out);
+
 NS_ASSUME_NONNULL_END

@@ -65,6 +65,7 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
             initWithString:@"— NO OPEN MARKETS —"
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
         FCApplyLetterSpacing(out);  // v4 iter-94
+        FCApplyLineSpacing(out);    // v4 iter-95
         return out;
     }
 
@@ -184,5 +185,6 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
     }
 
     FCApplyLetterSpacing(out);  // v4 iter-94
+    FCApplyLineSpacing(out);    // v4 iter-95
     return out;
 }
