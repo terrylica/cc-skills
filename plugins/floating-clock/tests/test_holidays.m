@@ -397,6 +397,54 @@ void test_holiday_calendar_tsx(void) {
     }
 }
 
+void test_holiday_calendar_six(void) {
+    // v4 iter-182: SIX Swiss Exchange 2026. Distinctive dates:
+    // Berchtold's Day Jan 2 (Swiss-only), Ascension Day May 14 +
+    // Whit Monday May 25 (Christian Easter-based holidays other
+    // markets don't observe), Dec 24 + Dec 31 as FULL closures
+    // (most markets treat these as half-day sessions).
+    const ClockMarket *six    = marketForId(@"six");
+    const ClockMarket *xetra  = marketForId(@"xetra");
+
+    NSDate *berchtold    = holidayDateAt(@"Europe/Zurich", 2026,  1,  2, 12, 0, 0);
+    NSDate *ascension    = holidayDateAt(@"Europe/Zurich", 2026,  5, 14, 12, 0, 0);
+    NSDate *whitMonday   = holidayDateAt(@"Europe/Zurich", 2026,  5, 25, 12, 0, 0);
+    NSDate *xmasEve      = holidayDateAt(@"Europe/Zurich", 2026, 12, 24, 12, 0, 0);
+    NSDate *nyEve        = holidayDateAt(@"Europe/Zurich", 2026, 12, 31, 12, 0, 0);
+    if (!FCIsMarketHoliday(six, berchtold))  { failures++; fprintf(stderr, "FAIL %s: Berchtold's Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(six, ascension))  { failures++; fprintf(stderr, "FAIL %s: Ascension Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(six, whitMonday)) { failures++; fprintf(stderr, "FAIL %s: Whit Monday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(six, xmasEve))    { failures++; fprintf(stderr, "FAIL %s: Xmas Eve full closure not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(six, nyEve))      { failures++; fprintf(stderr, "FAIL %s: NYE full closure not flagged\n", __func__); }
+
+    // Cross-market: XETRA (TARGET2) does NOT have Berchtold/Ascension/
+    // Whit Mon/Xmas Eve/NYE — these are SIX-distinctive.
+    if (FCIsMarketHoliday(xetra, berchtold))  { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged Berchtold\n", __func__); }
+    if (FCIsMarketHoliday(xetra, ascension))  { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged Ascension\n", __func__); }
+    if (FCIsMarketHoliday(xetra, whitMonday)) { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged Whit Mon\n", __func__); }
+    if (FCIsMarketHoliday(xetra, xmasEve))    { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged Xmas Eve (XETRA trades — half day)\n", __func__); }
+    if (FCIsMarketHoliday(xetra, nyEve))      { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged NYE (XETRA trades — half day)\n", __func__); }
+
+    // SIX must NOT flag NYSE-only holidays.
+    NSDate *thanksgiving = holidayDateAt(@"Europe/Zurich", 2026, 11, 26, 12, 0, 0);
+    if (FCIsMarketHoliday(six, thanksgiving)) {
+        failures++; fprintf(stderr, "FAIL %s: SIX wrongly flagged Thanksgiving\n", __func__);
+    }
+
+    // Swiss National Day Aug 1 2026 is Saturday — SIX has no substitute,
+    // so Mon Aug 3 must NOT be flagged (weekend handles Aug 1 itself).
+    NSDate *nationalDayAfterMonday = holidayDateAt(@"Europe/Zurich", 2026, 8, 3, 12, 0, 0);
+    if (FCIsMarketHoliday(six, nationalDayAfterMonday)) {
+        failures++; fprintf(stderr, "FAIL %s: SIX wrongly flagged Aug 3 (no National Day substitute)\n", __func__);
+    }
+
+    // Regular SIX trading day should NOT be flagged.
+    NSDate *regularWed = holidayDateAt(@"Europe/Zurich", 2026, 3, 11, 12, 0, 0);
+    if (FCIsMarketHoliday(six, regularWed)) {
+        failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on SIX\n", __func__);
+    }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and
