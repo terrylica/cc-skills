@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 88
+iteration: 89
 status: ACTIVE
-last_updated: 2026-04-24T06:30:00Z
+last_updated: 2026-04-24T06:40:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -518,3 +518,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 06:15 UTC — iter-86: Sources/ architecture tree added to plugins/floating-clock/CLAUDE.md (828c5569). 11-level hierarchy with brief annotations per file matches the modularized layout after iter-70..85.
 - 2026-04-24 06:20 UTC — iter-87: **500-LoC cap enforcement** (605243bc). FloatingClockPanel+MenuBuilder.m crossed the cap (612 LoC) — split into MenuBuilder (428 LoC: full menu + shared helpers + Profile submenu) and new FloatingClockPanel+SegmentMenus (199 LoC: buildLocalSegmentMenu / buildActiveSegmentMenu / buildNextSegmentMenu / showFullPreferences:). SegmentViews.m already dispatches via informal protocol so no caller changes. `make check` clean, 24 tests pass.
 - 2026-04-24 06:30 UTC — iter-88: **FontWeight typographic lever** (b3a453a5). New global `FontWeight` pref (default `medium`), 5 presets (Regular / Medium / Semibold / Bold / Heavy) under DISPLAY category. Applied at every monospacedSystemFont call site (ACTIVE + NEXT) via new helpers `FCParseFontWeight` + `FCResolveMonoFont` in FontResolver. LOCAL primary stays on iTerm2 / named-font path — documented limitation. Starter profiles get character-matching defaults (Day Trader=bold, Watch Party=heavy, Night Owl/Minimalist=regular, Default/Researcher=medium). Tests +1 (25 total). Warning-free build, 184 KB binary.
+- 2026-04-24 06:40 UTC — iter-89: **per-segment FontWeight overrides** (b47dd029). New `ActiveWeight` + `NextWeight` prefs with 3-tier fallback (segment key → global FontWeight → Medium) via new helper `FCResolveSegmentWeight` in FontResolver. Font Weight submenu added to ACTIVE + NEXT scoped right-click menus (LOCAL skipped — iTerm2 path). Starter profiles set per-segment weights matching their global FontWeight. Tests +1 covering all 3 fallback tiers + empty-string pass-through (26 total). Warning-free build, 184 KB binary.
