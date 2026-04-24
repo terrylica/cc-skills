@@ -158,13 +158,17 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Spacious (14pt)", @"spacious"]]
                                      defaultsKey:@"SegmentGap"]];
 
-    // v4 iter-30: corner-style presets (applies to all segments).
+    // v4 iter-30 + iter-97: 8 corner-style presets (applies to all segments).
     [displayItems addObject:[self submenuTitled:@"Corners"
                                           action:@selector(setCornerStyle:)
-                                           pairs:@[@[@"Sharp",    @"sharp"],
-                                                   @[@"Rounded",  @"rounded"],
-                                                   @[@"Squircle", @"squircle"],
-                                                   @[@"Pill",     @"pill"]]
+                                           pairs:@[@[@"Sharp     (0pt)",  @"sharp"],
+                                                   @[@"Hairline  (1pt)",  @"hairline"],
+                                                   @[@"Micro     (3pt)",  @"micro"],
+                                                   @[@"Rounded   (6pt)",  @"rounded"],
+                                                   @[@"Soft     (10pt)",  @"soft"],
+                                                   @[@"Squircle (14pt)",  @"squircle"],
+                                                   @[@"Jumbo    (22pt)",  @"jumbo"],
+                                                   @[@"Pill (half-axis)", @"pill"]]
                                      defaultsKey:@"CornerStyle"]];
 
     // v4 iter-31 + iter-93: 7 shadow / glow presets.
