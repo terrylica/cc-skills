@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 146
+iteration: 147
 status: ACTIVE
-last_updated: 2026-04-24T16:10:00Z
+last_updated: 2026-04-24T16:20:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -580,3 +580,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 15:50 UTC — iter-144: **Quick Styles 10 → 12** (a57c7db9). `Trading Floor` (amber_crt / pill / glow / compact / bold / tight / pipe — analog trading desk with iter-139's pipe separator) and `Scholar` (paper_white / rounded / subtle / comfortable / regular / extrawide / cavernous / middot — uses iter-137 extrawide LetterSpacing + iter-138 cavernous LineSpacing for deliberate, studious readout). Iter-104's invariant test auto-covers both; CLAUDE.md Quick-Style row + architecture tree + About-dialog text updated to 12 moods. 52/52 still pass, warning-free.
 - 2026-04-24 16:00 UTC — iter-145: **24h sweep extended to lunch-market (TSE)** (f82a749f). iter-143 covered NYSE's 48 checkpoints but NYSE has no LUNCH state — the lunch-code-path region of computeSessionState (11:30-12:30 JST for TSE / matching for HKEX/SSE) was untested at the invariant level. Refactor: extracted sweep body into `sweep_invariants(mkt, iana, tzLabel)` helper (5-enum validity, progress ∈ [0,1], secsToNext ≥ 0). `test_state_invariants_24h_sweep` kept as NYSE-EDT driver; new `test_state_invariants_tse_sweep` as TSE-JST driver. 48 new checkpoints through LUNCH path. Tests +1 (53 total). 53/53 pass, warning-free.
 - 2026-04-24 16:10 UTC — iter-146: **v1.8.0 release consolidation** (5fa45ddd). 12 iters since v1.7.0 (iter-133 → iter-146, matching the iter-121 → iter-133 cadence). plugin.json 1.7.0 → 1.8.0; Info.plist CFBundleShortVersionString synced; CFBundleVersion 133 → 146. Description rewritten to surface v1.8 scope: 7 starter profiles (Auction Watcher new), 12 Quick Styles (Trading Floor + Scholar new), typography trilogy at 7 presets each (completed iter-137/138/139), 27 themes, 12 progress-bar glyphs, iter-141 NEXT render fix so PRE/AFTER glyphs are actually visible. 48 → 53 test fixtures. 53/53 green, validator clean. Iter-134 to iter-145 recap: 1 real-bug fix (iter-141), 1 label fix + extraction (iter-134/135), 3 typography bracket expansions (iter-137/138/139), 1 new profile (iter-140), 1 menu shortcut (iter-136), 2 Quick Styles (iter-144), 4 test-coverage expansions (iter-142/143/145).
+- 2026-04-24 16:20 UTC — iter-147: **weekend invariant + stale-caveat cleanup** (6a37d593). First post-v1.8.0 iter. Two-part cleanup. (1) Dropped the outdated Known-Limitation note claiming stacked-top/bottom layouts "may have minor drift" — Layout.m's else-branch handles both variants uniformly (just a Y-position swap), and stacked-local-top has been the default since iter-28 so the path is heavily exercised. (2) New `test_weekend_always_closed` fixture: iterates Sat 2026-04-25 on NYSE in 30-min steps (48 checkpoints), asserts every tick stays CLOSED. Covers the weekend-guard branch that neither iter-143 (NYSE weekday) nor iter-145 (TSE weekday) sweeps touched. Tests +1 (54 total). 54/54 pass, warning-free. CLAUDE.md Known-Limitations trimmed to holidays + extended-after-hours only.
