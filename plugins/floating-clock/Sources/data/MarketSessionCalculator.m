@@ -81,6 +81,16 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     long secsToNext = nextBoundaryMins * 60L - comps.second;
     if (secsToNext < 0) secsToNext = 0;
 
+    // v4 iter-123: promote CLOSED → PRE-MARKET when today's open is
+    // ≤15 min away (applies to every exchange — simpler than a per-
+    // market hasPreMarket flag, and the auction-window heuristic
+    // holds broadly). Weekend / cross-day-gap closed states stay
+    // plain CLOSED because the promotion requires the same calendar
+    // day's open ahead of now.
+    if (state == kSessionClosed && !isWeekend && nowMins < openMins && secsToNext <= 15 * 60) {
+        state = kSessionPreMarket;
+    }
+
     if (outState) *outState = state;
     if (outProgress01) *outProgress01 = progress;
     if (outSecsToNext) *outSecsToNext = secsToNext;
@@ -169,9 +179,10 @@ int fcProgressBarFullCells(double progress01, int totalCells) {
 
 NSString *glyphForState(SessionState s) {
     switch (s) {
-        case kSessionOpen:    return @"●";
-        case kSessionLunch:   return @"◑";
-        case kSessionClosed:  return @"○";
+        case kSessionOpen:      return @"●";
+        case kSessionLunch:     return @"◑";
+        case kSessionClosed:    return @"○";
+        case kSessionPreMarket: return @"◐";  // v4 iter-123
     }
     return @"○";
 }
@@ -179,9 +190,10 @@ NSString *glyphForState(SessionState s) {
 NSColor *colorForState(SessionState s, const ClockTheme *theme) {
     (void)theme;  // reserved for future per-theme override
     switch (s) {
-        case kSessionOpen:    return [NSColor colorWithRed:0.20 green:0.95 blue:0.40 alpha:1.0];
-        case kSessionLunch:   return [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0];
-        case kSessionClosed:  return [NSColor colorWithWhite:0.55 alpha:1.0];
+        case kSessionOpen:      return [NSColor colorWithRed:0.20 green:0.95 blue:0.40 alpha:1.0];
+        case kSessionLunch:     return [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0];
+        case kSessionClosed:    return [NSColor colorWithWhite:0.55 alpha:1.0];
+        case kSessionPreMarket: return [NSColor colorWithRed:1.00 green:0.70 blue:0.15 alpha:1.0];  // amber — iter-123
     }
     return [NSColor whiteColor];
 }

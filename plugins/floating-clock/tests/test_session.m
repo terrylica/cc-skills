@@ -38,9 +38,10 @@ static NSDate *dateAt(NSString *iana, int y, int m, int d, int h, int mm, int ss
 
 static const char *stateName(SessionState s) {
     switch (s) {
-        case kSessionOpen: return "OPEN";
-        case kSessionLunch: return "LUNCH";
-        case kSessionClosed: return "CLOSED";
+        case kSessionOpen:      return "OPEN";
+        case kSessionLunch:     return "LUNCH";
+        case kSessionClosed:    return "CLOSED";
+        case kSessionPreMarket: return "PRE-MARKET";
     }
     return "?";
 }
@@ -106,6 +107,24 @@ static void test_nyse_saturday_weekend(void) {
     NSDate *d = dateAt(@"America/New_York", 2026, 4, 25, 12, 0, 0);
     ASSERT_STATE(nyse, d, kSessionClosed);
     ASSERT_SECS_NEAR(nyse, d, 45 * 3600 + 30 * 60, 120);
+}
+
+static void test_nyse_premarket_last_15min(void) {
+    // v4 iter-123: [open - 15min, open) on a weekday promotes the state
+    // from CLOSED to PRE-MARKET. NYSE opens 09:30 EDT; 09:20 is 10 min
+    // before = PRE-MARKET. 09:10 is 20 min before = still CLOSED.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    NSDate *d_pre  = dateAt(@"America/New_York", 2026, 4, 24, 9, 20, 0);
+    ASSERT_STATE(nyse, d_pre, kSessionPreMarket);
+    ASSERT_SECS_NEAR(nyse, d_pre, 10 * 60, 5);
+
+    NSDate *d_closed_earlier = dateAt(@"America/New_York", 2026, 4, 24, 9, 10, 0);
+    ASSERT_STATE(nyse, d_closed_earlier, kSessionClosed);
+
+    // Edge: exactly at open should be OPEN (not PRE-MARKET — the PRE
+    // promotion requires nowMins < openMins).
+    NSDate *d_open = dateAt(@"America/New_York", 2026, 4, 24, 9, 30, 0);
+    ASSERT_STATE(nyse, d_open, kSessionOpen);
 }
 
 static void test_tse_lunch_window(void) {
@@ -400,6 +419,7 @@ int main(void) {
         test_nyse_open_midsession();
         test_nyse_closed_friday_evening_skips_to_monday();
         test_nyse_saturday_weekend();
+        test_nyse_premarket_last_15min();
         test_tse_lunch_window();
         test_progress_roughly_correct();
 
@@ -445,7 +465,7 @@ int main(void) {
         test_shadow_spec_catalog();
 
         if (failures == 0) {
-            fprintf(stderr, "All 39 tests passed.\n");
+            fprintf(stderr, "All 40 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
