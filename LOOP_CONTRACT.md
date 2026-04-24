@@ -209,27 +209,10 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
       Validation: fresh defaults→terminal, cycle dracula/gruvbox→persist, TextColor=amber migration→amber_crt. 0 leaks, 15MB peak, 80KB binary, 633 LoC, 0 warnings.
       Commit: 6064aeb3 `feat(floating-clock): 10 color-theme presets with inline CG swatches and atomic fg/bg/alpha`
 
-- [ ] **iter-8 — Market-session Time Zone menu + clock in remote TZ**
-      Add `Time Zone ▶` submenu with "Local Time" at top, then 4 region sub-submenus (Americas/Europe/Asia/Oceania) containing 12 exchanges. Data table (all IANA-TZ-backed):
-      `Local Time         — system default
- NYSE/NASDAQ        America/New_York     09:30–16:00  (no lunch)
- TSX (Toronto)      America/Toronto      09:30–16:00  (no lunch)
- LSE (London)       Europe/London        08:00–16:30  (no lunch)
- Euronext (Paris)   Europe/Paris         09:00–17:30  (no lunch)
- XETRA (Frankfurt)  Europe/Berlin        09:00–17:30  (no lunch)
- SIX (Zurich)       Europe/Zurich        09:00–17:20  (no lunch)
- TSE (Tokyo)        Asia/Tokyo           09:00–15:30  (lunch 11:30–12:30)
- HKEX (Hong Kong)   Asia/Hong_Kong       09:30–16:00  (lunch 12:00–13:00)
- SSE (Shanghai)     Asia/Shanghai        09:30–14:57  (lunch 11:30–13:00)
- KRX (Seoul)        Asia/Seoul           09:00–15:30  (no lunch)
- NSE (Mumbai)       Asia/Kolkata         09:15–15:30  (no lunch)
- ASX (Sydney)       Australia/Sydney     10:00–16:00  (no lunch)
-`
-      Store as a static C struct array of 13 entries (Local + 12). Add new NSUserDefaults key `SelectedMarket` (NSString, default `"local"`).
-      When a non-local market is selected, `tick` uses `NSDateFormatter.timeZone = [NSTimeZone timeZoneWithName:iana]`. Foundation handles DST automatically per hemisphere.
-      This iter does NOT add the session-state line yet — that's iter-9. Time-display-only so iter-9 can focus on visuals.
-      Validation: gauntlet + select Tokyo → clock shows JST (~9 hours ahead of PDT), select London → BST, kill+relaunch → selection persists.
-      Commit: `feat(floating-clock): Time Zone menu with 12 major exchanges + IANA-backed conversion`
+- [x] **iter-8 — Market-session Time Zone menu + clock in remote TZ** ✅ COMPLETE
+      ClockMarket struct array with 13 entries (Local + 12 exchanges), all IANA-TZ-backed. Time Zone submenu with regional grouping (Americas/Europe/Asia/Oceania). tick() applies timezone via NSDateFormatter.timeZone lookup. setMarket: persists SelectedMarket. Recursive menu checking handles nested structure. Time-display-only (session state deferred to iter-9).
+      Validation: TSE (Tokyo JST = UTC+9) matches expected time exactly. LSE (London GMT/BST) correct. ASX (Sydney AEDT/AEST) correct. Persistence test: SelectedMarket = "asx" persists across restarts. Leaks: 0, Memory: 14.4MB peak, Binary: 98KB, LoC: 749, Warnings: 0.
+      Commit: 76c988f3 `feat(floating-clock): Time Zone menu with 12 major exchanges + IANA-backed conversion`
 
 - [ ] **iter-9 — Session-state 2-line display with progress bar + countdown**
       When `SelectedMarket != "local"`, the window switches to 2-line mode:
@@ -295,3 +278,4 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 - 2026-04-24 00:45 UTC — iter-5: Gauntlet caught 32-byte \_NSLocalEventObserver leak (d89a4411) and seconds-clip visual regression (4ab429ca); both fixed. 0 leaks, 0 warnings, 14.1 MB peak, 0.0% idle CPU. Queue empty → status: DONE. Loop terminates.
 - 2026-04-23 17:35 UTC — iter-1: right-click NSMenu context menu with 6 persistent options COMPLETE. 96KB binary, 521 LoC, 0 warnings, all validation passed. Commit caeb743c. Next: iter-2 starts icon generation.
 - 2026-04-24 18:48 UTC — iter-7: 10-color-theme presets SHIPPED (6064aeb3). ClockTheme struct + swatches + atomic fg/bg/alpha + legacy TextColor migration. Terminal→terminal, amber→amber_crt, green→green_phosphor, others→terminal. Fresh defaults: terminal. Dracula/gruvbox cycles persist. 0 leaks, 15MB peak, 80KB binary, 633 LoC, 0 warnings. Next: iter-8 market-session timezone menu.
+- 2026-04-24 18:53 UTC — iter-8: Market-session Time Zone menu SHIPPED (76c988f3). ClockMarket struct (13 entries: Local + 12 exchanges IANA-backed). Time Zone submenu with regional grouping (Americas/Europe/Asia/Oceania). tick() applies timezone via NSDateFormatter. setMarket: persists SelectedMarket. Tested: TSE/LSE/ASX timezone conversion pixel-perfect, persistence verified, 0 leaks, 14.4MB peak, 98KB binary, 749 LoC, 0 warnings. Next: iter-9 session-state 2-line display.
