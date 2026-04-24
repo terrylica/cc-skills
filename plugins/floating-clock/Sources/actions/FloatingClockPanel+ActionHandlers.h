@@ -41,7 +41,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)copyStateToClipboard:(id)sender;
 - (void)setDensity:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;
-- (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field;
+- (void)applyTheme:(const ClockTheme *)theme
+     toSegmentView:(NSView *)seg
+         textField:(NSTextField *)field
+       opacityKey:(NSString *)opacityKey;
+- (void)setLocalOpacity:(NSMenuItem *)sender;
+- (void)setActiveOpacity:(NSMenuItem *)sender;
+- (void)setNextOpacity:(NSMenuItem *)sender;
 - (void)resetPosition:(id)sender;
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;

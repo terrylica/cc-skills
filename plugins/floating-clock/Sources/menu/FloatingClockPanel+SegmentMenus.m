@@ -63,15 +63,18 @@
         @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
     ]                           defaultsKey:@"FontSize"]];
 
+    // v4 iter-90: LOCAL's scoped Transparency now writes the per-segment
+    // key (LocalOpacity) so adjusting it from this menu dims LOCAL only.
+    // Global CanvasOpacity remains reachable via Full Preferences…
     [m addItem:[self submenuTitled:@"Transparency"
-                             action:@selector(setCanvasOpacity:)
+                             action:@selector(setLocalOpacity:)
                               pairs:@[@[@"Opaque (100%)", @1.0],
                                       @[@"Solid (90%)",   @0.9],
                                       @[@"Glass (75%)",   @0.75],
                                       @[@"Medium (50%)",  @0.5],
                                       @[@"Faint (30%)",   @0.3],
                                       @[@"Ghost (15%)",   @0.15]]
-                        defaultsKey:@"CanvasOpacity"]];
+                        defaultsKey:@"LocalOpacity"]];
 
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];
@@ -145,6 +148,18 @@
                                       @[@"Heavy",    @"heavy"]]
                         defaultsKey:@"ActiveWeight"]];
 
+    // Per-segment canvas opacity (v4 iter-90). Falls back to global
+    // CanvasOpacity, then to theme->alpha via FCResolveSegmentOpacity.
+    [m addItem:[self submenuTitled:@"Transparency"
+                             action:@selector(setActiveOpacity:)
+                              pairs:@[@[@"Opaque (100%)", @1.0],
+                                      @[@"Solid (90%)",   @0.9],
+                                      @[@"Glass (75%)",   @0.75],
+                                      @[@"Medium (50%)",  @0.5],
+                                      @[@"Faint (30%)",   @0.3],
+                                      @[@"Ghost (15%)",   @0.15]]
+                        defaultsKey:@"ActiveOpacity"]];
+
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];
     NSMenuItem *qs = [m addItemWithTitle:@"Quick Save Profile" action:@selector(quickSaveCurrentProfile:) keyEquivalent:@""];
@@ -201,6 +216,18 @@
                                       @[@"Bold",     @"bold"],
                                       @[@"Heavy",    @"heavy"]]
                         defaultsKey:@"NextWeight"]];
+
+    // Per-segment canvas opacity (v4 iter-90). Dim NEXT independently
+    // of ACTIVE — useful for peripheral-visibility styling.
+    [m addItem:[self submenuTitled:@"Transparency"
+                             action:@selector(setNextOpacity:)
+                              pairs:@[@[@"Opaque (100%)", @1.0],
+                                      @[@"Solid (90%)",   @0.9],
+                                      @[@"Glass (75%)",   @0.75],
+                                      @[@"Medium (50%)",  @0.5],
+                                      @[@"Faint (30%)",   @0.3],
+                                      @[@"Ghost (15%)",   @0.15]]
+                        defaultsKey:@"NextOpacity"]];
 
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];

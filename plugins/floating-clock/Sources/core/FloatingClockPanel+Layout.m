@@ -57,9 +57,9 @@
     const ClockTheme *tActive = themeForId([d stringForKey:@"ActiveTheme"]);
     const ClockTheme *tNext   = themeForId([d stringForKey:@"NextTheme"]);
 
-    [self applyTheme:tLocal  toSegmentView:_localSeg  textField:_localSeg.timeLabel];
-    [self applyTheme:tActive toSegmentView:_activeSeg textField:_activeSeg.contentLabel];
-    [self applyTheme:tNext   toSegmentView:_nextSeg   textField:_nextSeg.contentLabel];
+    [self applyTheme:tLocal  toSegmentView:_localSeg  textField:_localSeg.timeLabel      opacityKey:@"LocalOpacity"];
+    [self applyTheme:tActive toSegmentView:_activeSeg textField:_activeSeg.contentLabel  opacityKey:@"ActiveOpacity"];
+    [self applyTheme:tNext   toSegmentView:_nextSeg   textField:_nextSeg.contentLabel    opacityKey:@"NextOpacity"];
 
     // Trigger tick to populate content (tickThreeSegment itself calls
     // relayoutThreeSegmentIfNeeded and does the sizing pass).

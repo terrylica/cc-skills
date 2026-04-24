@@ -212,5 +212,6 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"ActiveFontSize", @"NextFontSize", @"ShowFlags", @"Density",
         @"ShowUTCReference", @"ShowSkyState", @"ShowProgressPercent",
         @"FontWeight", @"ActiveWeight", @"NextWeight",
+        @"LocalOpacity", @"ActiveOpacity", @"NextOpacity",
     ];
 }
