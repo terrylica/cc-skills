@@ -228,6 +228,32 @@ static NSString * const kKRX2026Holidays[] = {
     @"2026-12-31",  // Year-end closure (폐장일)
 };
 
+// v4 iter-185: NSE (National Stock Exchange of India) 2026 trading
+// holidays. Source: NSE published trading calendar (best-effort for
+// 2026). India's calendar is the most diverse — mixes Gregorian civic
+// dates with Hindu / Muslim / Sikh / Jain / Christian lunar-calc
+// holidays. Dates marked "(approximate)" derive from astronomical
+// computation and may shift by 1 day if NSE's official publication
+// differs — fixture-lock these and refresh when NSE posts 2026
+// calendar. NSE does NOT operate a substitute-holiday rule — when
+// Independence Day (Aug 15) falls on weekend, no Mon substitute.
+static NSString * const kNSE2026Holidays[] = {
+    @"2026-01-26",  // Republic Day (Gregorian-fixed)
+    @"2026-03-03",  // Holi / Dhuleti (approximate — lunar Phalgun)
+    @"2026-04-02",  // Ram Navami (approximate — lunar Chaitra shukla 9)
+    @"2026-04-03",  // Good Friday
+    @"2026-04-10",  // Mahavir Jayanti (approximate)
+    @"2026-05-01",  // Maharashtra Day (state-fixed)
+    @"2026-06-26",  // Bakri Id / Eid ul-Adha (approximate — Islamic)
+    @"2026-08-26",  // Ganesh Chaturthi (approximate — lunar Bhadrapada)
+    @"2026-10-02",  // Gandhi Jayanti (Gregorian-fixed)
+    @"2026-10-20",  // Dussehra / Vijaya Dashami (approximate)
+    @"2026-11-09",  // Diwali / Laxmi Pujan (approximate)
+    @"2026-11-10",  // Govardhan Puja / Diwali Balipratipada (approximate)
+    @"2026-11-25",  // Guru Nanak Jayanti (approximate — lunar Kartik)
+    @"2026-12-25",  // Christmas Day
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -250,6 +276,7 @@ static const FCHolidayTable kHolidayTables[] = {
     { "six",      kSIX2026Holidays,      sizeof(kSIX2026Holidays)      / sizeof(kSIX2026Holidays[0])      },
     { "sse",      kSSE2026Holidays,      sizeof(kSSE2026Holidays)      / sizeof(kSSE2026Holidays[0])      },
     { "krx",      kKRX2026Holidays,      sizeof(kKRX2026Holidays)      / sizeof(kKRX2026Holidays[0])      },
+    { "nse",      kNSE2026Holidays,      sizeof(kNSE2026Holidays)      / sizeof(kNSE2026Holidays[0])      },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
