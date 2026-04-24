@@ -839,6 +839,7 @@ int main(void) {
         test_halfday_calendar_nyse();
         test_halfday_calendar_lse_and_target2();
         test_halfday_calendar_hkex_and_tsx();
+        test_halfday_calendar_jse_and_asx();
         test_nyse_halfday_state_closed();
         test_nyse_holiday_state_closed();
         test_holiday_chains_through_weekend();
@@ -881,7 +882,7 @@ int main(void) {
         test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 83 tests passed.\n");
+            fprintf(stderr, "All 84 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

@@ -869,6 +869,27 @@ void test_halfday_calendar_hkex_and_tsx(void) {
     }
 }
 
+void test_halfday_calendar_jse_and_asx(void) {
+    // v4 iter-192: JSE + ASX Dec 24 half-days fill Africa + Oceania.
+    // JSE: 12:00 SAST. ASX: 14:10 AEDT. Neither has Dec 31 half-day.
+    const ClockMarket *jse = marketForId(@"jse");
+    const ClockMarket *asx = marketForId(@"asx");
+    NSDate *jseXmasEve = holidayDateAt(@"Africa/Johannesburg", 2026, 12, 24, 10, 0, 0);
+    NSDate *asxXmasEve = holidayDateAt(@"Australia/Sydney",    2026, 12, 24, 10, 0, 0);
+    int h = -1, m = -1;
+    if (!FCIsMarketHalfDay(jse, jseXmasEve, &h, &m) || h != 12 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: JSE Xmas Eve expected 12:00 got %d:%02d\n", __func__, h, m);
+    }
+    h = -1; m = -1;
+    if (!FCIsMarketHalfDay(asx, asxXmasEve, &h, &m) || h != 14 || m != 10) {
+        failures++; fprintf(stderr, "FAIL %s: ASX Xmas Eve expected 14:10 got %d:%02d\n", __func__, h, m);
+    }
+    NSDate *jseNYE = holidayDateAt(@"Africa/Johannesburg", 2026, 12, 31, 10, 0, 0);
+    NSDate *asxNYE = holidayDateAt(@"Australia/Sydney",    2026, 12, 31, 10, 0, 0);
+    if (FCIsMarketHalfDay(jse, jseNYE, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: JSE Dec 31 wrongly flagged\n", __func__); }
+    if (FCIsMarketHalfDay(asx, asxNYE, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: ASX Dec 31 wrongly flagged\n", __func__); }
+}
+
 void test_nyse_halfday_state_closed(void) {
     // v4 iter-189: integration lock for iter-188 data. Verifies that
     // computeSessionState actually consumes the half-day early-close
