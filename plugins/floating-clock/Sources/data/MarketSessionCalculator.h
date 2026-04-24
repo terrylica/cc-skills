@@ -19,6 +19,13 @@ typedef enum {
     kSessionClosed = 2,   // overnight, weekend
 } SessionState;
 
+// v4 iter-77: shared time-unit constants. Previously '86400' and
+// '99 * 3600' were inlined across Runtime.m, NextSegmentContentBuilder.m,
+// and MarketSessionCalculator.m. Now named externs — single source of
+// truth for day boundary + the bounded-countdown threshold.
+extern const long kFCSecondsPerDay;           // 24 * 3600 = 86400
+extern const long kFCMaxBoundedCountdownSecs; // 99 * 3600 — below this, countdowns render as T-HH:MM:SS or T-Nd Hh MMm; above, absolute-date form
+
 void computeSessionState(const ClockMarket *mkt, NSDate *now,
                          SessionState *outState,
                          double *outProgress01,
