@@ -24,6 +24,7 @@
 #import "../Sources/content/LandingTimeFormatter.h"
 #import "test_levers.h"
 #import "test_holidays.h"  // iter-176 extraction
+#import "test_halfdays.h"  // iter-193 extraction
 
 // Shared failure counter — extern-declared in test_levers.h so
 // test_levers.m can increment the same storage.
