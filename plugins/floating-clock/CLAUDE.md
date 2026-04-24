@@ -151,8 +151,47 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 
 ## Implementation
 
-**Main source**: `Sources/clock.m` (~1000 LoC)
+**Entry point**: `Sources/clock.m` (~240 LoC)
 **Icon helper**: `Sources/gen-icon.m` (~170 LoC, build-time only)
+
+Post-v4 modularization, source is organized hierarchically by area:
+
+```
+Sources/
+  clock.m                               entry + registerDefaults + panel init
+  core/
+    FloatingClockPanel.{h,m}            NSPanel subclass (interface)
+    FloatingClockPanel+Runtime.{h,m}    tick pipeline, timers, positioning
+    FloatingClockPanel+Layout.{h,m}     3-segment + legacy layout maths
+  segments/
+    FloatingClockSegmentViews.{h,m}     Local/Active/Next/ClockContentView subclasses
+  content/
+    ActiveSegmentContentBuilder.{h,m}   live-markets rendering
+    NextSegmentContentBuilder.{h,m}     next-to-open rendering
+    SegmentHeaderRenderer.{h,m}         shared title/legend/hrule helper (iter-73)
+    UrgencyColors.{h,m}                 shared urgency palette + thresholds (iter-73)
+    LandingTimeFormatter.{h,m}          dual-zone time w/ weekday disambiguation (iter-74)
+  data/
+    ThemeCatalog.{h,m}                  10 theme presets + CG swatches
+    MarketCatalog.{h,m}                 12-exchange registry + IANA helpers
+    MarketSessionCalculator.{h,m}       computeSessionState, countdown fmts
+  rendering/
+    FontResolver.{h,m}                  iTerm2 → system monospaced cascade
+    AttributedStringLayoutMeasurer.{h,m} NSLayoutManager multi-line height
+    VerticallyCenteredTextFieldCell.{h,m} cell that centers attributed text
+  menu/
+    FloatingClockPanel+MenuBuilder.{h,m} full + segment-scoped NSMenu builders
+  actions/
+    FloatingClockPanel+ActionHandlers.{h,m} every menu-item action target
+  preferences/
+    FloatingClockPanel+ProfileManagement.{h,m}  save/load/switch/delete
+    FloatingClockStarterProfiles.{h,m}  6 bundled starters + profileManagedKeys
+  vendor/
+    RMBlurredView/                       iter-65 frosted-glass library (MIT)
+  gen-icon.m                             build-time-only icon renderer
+```
+
+Design notes:
 
 - `@autoreleasepool` for memory hygiene
 - Self-contained: no separate header files, no external dependencies beyond system frameworks
