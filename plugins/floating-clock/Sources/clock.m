@@ -657,12 +657,19 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     self.hasShadow = YES;
     self.opaque = NO;
     self.titleVisibility = NSWindowTitleHidden;
+    // Panel background must be fully clear in three-segment mode — segment
+    // views own their own backgrounds. Otherwise the panel's default solid
+    // windowBackgroundColor blocks desktop/other-app visibility when
+    // CanvasOpacity < 1. (Single-market and local-only modes overwrite this
+    // with the theme's bg color.)
+    self.backgroundColor = [NSColor clearColor];
 
     // Custom content view for menu support
     ClockContentView *cv = [[ClockContentView alloc] initWithFrame:defaultFrame];
     cv.wantsLayer = YES;
     cv.layer.cornerRadius = 10.0;
     cv.layer.masksToBounds = YES;
+    cv.layer.backgroundColor = [[NSColor clearColor] CGColor];
     cv.panel = self;
     self.contentView = cv;
 
