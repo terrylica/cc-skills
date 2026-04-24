@@ -1,0 +1,119 @@
+#import "MarketSessionCalculator.h"
+#include <string.h>
+
+void computeSessionState(const ClockMarket *mkt, NSDate *now,
+                         SessionState *outState, double *outProgress01,
+                         long *outSecsToNext) {
+    if (strlen(mkt->iana) == 0) {
+        if (outState) *outState = kSessionClosed;
+        if (outProgress01) *outProgress01 = 0.0;
+        if (outSecsToNext) *outSecsToNext = 0;
+        return;
+    }
+
+    NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
+    if (!tz) tz = [NSTimeZone localTimeZone];
+
+    NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
+    cal.timeZone = tz;
+
+    NSCalendarUnit units = NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay
+                         | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond
+                         | NSCalendarUnitWeekday;
+    NSDateComponents *comps = [cal components:units fromDate:now];
+
+    BOOL isWeekend = (comps.weekday == 1 || comps.weekday == 7);
+
+    NSInteger nowMins = comps.hour * 60 + comps.minute;
+    NSInteger openMins = mkt->open_h * 60 + mkt->open_m;
+    NSInteger closeMins = mkt->close_h * 60 + mkt->close_m;
+    BOOL hasLunch = (mkt->lunch_start_h >= 0);
+    NSInteger lunchStartMins = hasLunch ? (mkt->lunch_start_h * 60 + mkt->lunch_start_m) : -1;
+    NSInteger lunchEndMins   = hasLunch ? (mkt->lunch_end_h   * 60 + mkt->lunch_end_m)   : -1;
+
+    SessionState state;
+    if (isWeekend) {
+        state = kSessionClosed;
+    } else if (nowMins < openMins || nowMins >= closeMins) {
+        state = kSessionClosed;
+    } else if (hasLunch && nowMins >= lunchStartMins && nowMins < lunchEndMins) {
+        state = kSessionLunch;
+    } else {
+        state = kSessionOpen;
+    }
+
+    double progress = 0.0;
+    if (state == kSessionOpen || state == kSessionLunch) {
+        double elapsed = (double)(nowMins - openMins);
+        double total = (double)(closeMins - openMins);
+        if (total > 0) progress = MIN(1.0, MAX(0.0, elapsed / total));
+    } else if (nowMins >= closeMins) {
+        progress = 1.0;
+    }
+
+    NSInteger nextBoundaryMins;
+    if (state == kSessionClosed) {
+        if (!isWeekend && nowMins < openMins) {
+            nextBoundaryMins = openMins;
+        } else {
+            int addDays = 1;
+            NSInteger nextWeekday = ((comps.weekday) % 7) + 1;
+            while (nextWeekday == 1 || nextWeekday == 7) {
+                addDays++;
+                nextWeekday = (nextWeekday % 7) + 1;
+            }
+            nextBoundaryMins = (24 * 60 - nowMins) + (addDays - 1) * 24 * 60 + openMins;
+        }
+    } else if (state == kSessionLunch) {
+        nextBoundaryMins = lunchEndMins - nowMins;
+    } else {
+        nextBoundaryMins = closeMins - nowMins;
+    }
+    long secsToNext = nextBoundaryMins * 60L - comps.second;
+    if (secsToNext < 0) secsToNext = 0;
+
+    if (outState) *outState = state;
+    if (outProgress01) *outProgress01 = progress;
+    if (outSecsToNext) *outSecsToNext = secsToNext;
+}
+
+NSString *formatCountdown(long secs) {
+    if (secs < 60) return [NSString stringWithFormat:@"%lds", secs];
+    long mins = secs / 60;
+    if (mins < 60) return [NSString stringWithFormat:@"%ldm", mins];
+    long hours = mins / 60;
+    long rmins = mins % 60;
+    if (hours < 100) return [NSString stringWithFormat:@"%ldh%02ldm", hours, rmins];
+    return [NSString stringWithFormat:@"%ldh", hours];
+}
+
+NSString *buildProgressBar(double progress01, int totalCells) {
+    if (progress01 < 0) progress01 = 0;
+    if (progress01 > 1) progress01 = 1;
+    int fullCells = (int)(progress01 * totalCells + 0.5);
+    if (fullCells > totalCells) fullCells = totalCells;
+
+    NSMutableString *bar = [NSMutableString string];
+    for (int i = 0; i < fullCells; i++) [bar appendString:@"█"];
+    for (int i = fullCells; i < totalCells; i++) [bar appendString:@"▒"];
+    return bar;
+}
+
+NSString *glyphForState(SessionState s) {
+    switch (s) {
+        case kSessionOpen:    return @"●";
+        case kSessionLunch:   return @"◑";
+        case kSessionClosed:  return @"○";
+    }
+    return @"○";
+}
+
+NSColor *colorForState(SessionState s, const ClockTheme *theme) {
+    (void)theme;  // reserved for future per-theme override
+    switch (s) {
+        case kSessionOpen:    return [NSColor colorWithRed:0.20 green:0.95 blue:0.40 alpha:1.0];
+        case kSessionLunch:   return [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0];
+        case kSessionClosed:  return [NSColor colorWithWhite:0.55 alpha:1.0];
+    }
+    return [NSColor whiteColor];
+}
