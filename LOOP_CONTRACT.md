@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 157
+iteration: 158
 status: ACTIVE
-last_updated: 2026-04-24T18:00:00Z
+last_updated: 2026-04-24T18:10:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -591,3 +591,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 17:40 UTC — iter-155: **JSE (Johannesburg) + iana-prefix regional grouping** (8c00844f). First new exchange since iter-8's original 12. Fills the Africa regional gap — JSE (Africa/Johannesburg, 09:00–17:00 SAST, no lunch, no DST). Flag 🇿🇦 / city JHB / abbreviation SAST all added. Also refactored Time Zone menu's regional grouping from hardcoded index ranges (`i <= 2`, etc.) to iana-prefix detection (`America/`, `Europe/`, `Asia/`, `Australia|Pacific/`, `Africa/`) — future additions auto-file themselves under the right region with no menu-code edit. 13-exchange roster. Existing city-code + flag-emoji coverage tests auto-validated the new entry. 56/56 still pass, warning-free. CLAUDE.md updated.
 - 2026-04-24 17:50 UTC — iter-156: **market roster lock + JSE backfill** (5455a2ef). Caught a subtle test gap introduced by iter-155: the existing city-code and flag-emoji coverage tests iterate their OWN hardcoded 12-entry fixture arrays, not kMarkets, so they silently passed without covering JSE. Added Africa/Johannesburg to both fixture arrays. Also added a new `test_market_roster_lock` that explicitly names all 14 IDs (local + 13 exchanges), asserts kNumMarkets matches count, and verifies each ID round-trips through marketForId — so silent removal of ANY market fails CI immediately, not just silently via kMarkets iteration becoming a no-op. Tests +1 (57 total). 57/57 pass.
 - 2026-04-24 18:00 UTC — iter-157: **24h invariant sweep extended to JSE** (816e862a). Completes the sweep-family structural coverage: iter-143 (NYSE, DST/EDT), iter-145 (TSE, no-DST JST + lunch), iter-157 (JSE, no-DST SAST + no lunch). Africa/Johannesburg's no-DST year-round UTC+2 is a code path neither prior sweep exercises. 48 new checkpoints through state/progress/secsToNext invariants. Tests +1 (58 total). 58/58 pass, warning-free.
+- 2026-04-24 18:10 UTC — iter-158: **SessionSignalWindow composable into Quick Styles** (bd28d0eb). iter-126 exposed the pref via menu but the test_quick_styles_invariants' allowed-set didn't include it, so Quick Style bundles couldn't set it. Extended allowed-set with the 5 values. Applied to 2 moods where fit is obvious: Hacker → "off" (minimalism, no auction glyphs), Trading Floor → "60min" (macro-trader identity). Other 10 bundles inherit the registered default (15min) via pref fallback — no forced behavior change. 58/58 still pass.
