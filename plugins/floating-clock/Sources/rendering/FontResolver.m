@@ -116,11 +116,17 @@ CGFloat FCParseLineSpacing(NSString *spacingId) {
     if (![spacingId isKindOfClass:[NSString class]] || spacingId.length == 0) {
         return 2.0;  // matches registered default "normal"
     }
-    if ([spacingId isEqualToString:@"tight"])  return 0.0;
-    if ([spacingId isEqualToString:@"snug"])   return 1.0;
-    if ([spacingId isEqualToString:@"normal"]) return 2.0;
-    if ([spacingId isEqualToString:@"loose"])  return 4.0;
-    if ([spacingId isEqualToString:@"airy"])   return 7.0;
+    // v4 iter-138: upper-bracket extension. tight=0 is the natural floor
+    // (negative line spacing would overlap glyphs), so the trilogy's
+    // 5 → 7 expansion goes upward only. spacious 10pt and cavernous 14pt
+    // match the Density/SegmentGap naming convention.
+    if ([spacingId isEqualToString:@"tight"])     return 0.0;
+    if ([spacingId isEqualToString:@"snug"])      return 1.0;
+    if ([spacingId isEqualToString:@"normal"])    return 2.0;
+    if ([spacingId isEqualToString:@"loose"])     return 4.0;
+    if ([spacingId isEqualToString:@"airy"])      return 7.0;
+    if ([spacingId isEqualToString:@"spacious"])  return 10.0;
+    if ([spacingId isEqualToString:@"cavernous"]) return 14.0;
     return 2.0;
 }
 
