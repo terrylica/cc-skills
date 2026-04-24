@@ -299,6 +299,30 @@
     [self setFrame:[self defaultFrame] display:YES animate:YES];
 }
 
+// v4 iter-109: Clear every aesthetic-pref key so NSUserDefaults falls
+// back to the values registered in clock.m's registerDefaults. Leaves
+// market / display-mode / active profile / profiles catalog / font
+// name override / window frame intact — the user's workflow keeps
+// its shape, only the visual style snaps back to factory.
+- (void)resetVisualStyle:(id)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSArray<NSString *> *keys = @[
+        @"ShowSeconds", @"ShowDate", @"ShowFlags", @"ShowUTCReference",
+        @"ShowSkyState", @"ShowProgressPercent",
+        @"TimeFormat", @"TimeSeparator", @"DateFormat",
+        @"FontSize", @"ActiveFontSize", @"NextFontSize",
+        @"FontWeight", @"ActiveWeight", @"NextWeight",
+        @"LetterSpacing", @"LineSpacing",
+        @"ColorTheme", @"LocalTheme", @"ActiveTheme", @"NextTheme",
+        @"CanvasOpacity", @"LocalOpacity", @"ActiveOpacity", @"NextOpacity",
+        @"ActiveBarCells", @"NextItemCount", @"ProgressBarStyle",
+        @"LayoutMode", @"SegmentGap", @"Density",
+        @"CornerStyle", @"ShadowStyle",
+    ];
+    for (NSString *k in keys) [d removeObjectForKey:k];
+    [self applyDisplaySettings];
+}
+
 - (void)showAbout:(id)sender {
     NSAlert *alert = [[NSAlert alloc] init];
     alert.messageText = @"Floating Clock";
