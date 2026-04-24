@@ -195,6 +195,21 @@ static uint64_t nsUntilNextSecond(void) {
         [attr appendAttributedString:[[NSAttributedString alloc]
             initWithString:cd attributes:@{NSFontAttributeName: _sessionLabel.font, NSForegroundColorAttributeName: themeFg}]];
     } else {
+        // v4 iter-134: state-accurate label. iter-123/125 introduced
+        // PRE-MARKET and AFTER-HOURS as distinct states, but this legacy
+        // single-market path kept the literal "CLOSED" prefix — the glyph
+        // color said one thing, the text said another. Map the state to
+        // its word-form now so the two agree.
+        NSString *stateWord;
+        NSColor *textColor;
+        switch (state) {
+            case kSessionPreMarket:
+                stateWord = @"PRE-MARKET"; textColor = colorForState(state, NULL); break;
+            case kSessionAfterHours:
+                stateWord = @"AFTER-HOURS"; textColor = colorForState(state, NULL); break;
+            default:
+                stateWord = @"CLOSED"; textColor = dim; break;
+        }
         NSString *countdownText;
         if (secsToNext > kFCMaxBoundedCountdownSecs) {
             NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:secsToNext];
@@ -203,13 +218,14 @@ static uint64_t nsUntilNextSecond(void) {
             NSTimeZone *mktTz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
             if (mktTz) openFmt.timeZone = mktTz;
             NSString *label = fullTzLabelForIana(mkt->iana, opensAt);
-            countdownText = [NSString stringWithFormat:@" CLOSED · opens %@ %@",
-                [openFmt stringFromDate:opensAt], label];
+            countdownText = [NSString stringWithFormat:@" %@ · opens %@ %@",
+                stateWord, [openFmt stringFromDate:opensAt], label];
         } else {
-            countdownText = [NSString stringWithFormat:@" CLOSED · opens in %@", formatCountdown(secsToNext)];
+            countdownText = [NSString stringWithFormat:@" %@ · opens in %@",
+                stateWord, formatCountdown(secsToNext)];
         }
         [attr appendAttributedString:[[NSAttributedString alloc]
-            initWithString:countdownText attributes:@{NSFontAttributeName: _sessionLabel.font, NSForegroundColorAttributeName: dim}]];
+            initWithString:countdownText attributes:@{NSFontAttributeName: _sessionLabel.font, NSForegroundColorAttributeName: textColor}]];
     }
 
     _sessionLabel.attributedStringValue = attr;
