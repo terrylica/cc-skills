@@ -137,7 +137,7 @@
         @[@"Huge",   @[@[@"36 cells", @36], @[@"40 cells", @40]]],
     ]                          defaultsKey:@"ActiveBarCells"]];
 
-    // Progress-bar glyph style — 12 presets (iter-27: 6, iter-91: +4, iter-131: +2).
+    // Progress-bar glyph style — 14 presets (iter-27: 6, iter-91: +4, iter-131: +2, iter-197: +2).
     [m addItem:[self submenuTitled:@"Progress Bar Style"
                              action:@selector(setProgressBarStyle:)
                               pairs:@[@[@"Blocks    (█ ▒)",  @"blocks"],
@@ -145,9 +145,11 @@
                                       @[@"Thin Dots (• ·)",  @"thindots"],
                                       @[@"Dashes    (━ ╌)",  @"dashes"],
                                       @[@"Arrows    (▶ ▷)",  @"arrows"],
+                                      @[@"Chevrons  (❯ ›)",  @"chevrons"],
                                       @[@"Triangles (▲ △)",  @"triangles"],
                                       @[@"Binary    (█ ░)",  @"binary"],
                                       @[@"Braille   (⣿ ⣀)", @"braille"],
+                                      @[@"Waves     (≋ ∼)",  @"waves"],
                                       @[@"Hearts    (♥ ♡)",  @"hearts"],
                                       @[@"Stars     (★ ☆)",  @"stars"],
                                       @[@"Ribbon    (▰ ▱)",  @"ribbon"],
