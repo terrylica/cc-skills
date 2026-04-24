@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 209
+iteration: 210
 status: ACTIVE
-last_updated: 2026-04-24T23:40:00Z
+last_updated: 2026-04-24T23:45:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -649,3 +649,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 23:32 UTC — iter-207 chain-in-turn: **USER DIRECTIVE TURN-IN — NEXT row format fixes**. Three concrete asks: (1) remove the session-state bullet glyph (○/◐/◒) in front of flags — flag emoji already acts as the row bullet; (2) time displays must include second-granularity to show live countdown motion — currently `T-2d 1h 58m` has no seconds; (3) chronological sequence wrong — countdown appears FIRST in the row but should be LAST. All three fixes land in NextSegmentContentBuilder.m. iter-208 kicks off immediately as chain-in-turn.
 - 2026-04-24 23:35 UTC — iter-208: **NEXT row restructure shipped** (36f54a57). Three user asks landed: (1) leading session-state glyph removed (flag emoji acts as bullet — glyph was redundant; state still encoded via countdown urgency color); (2) `formatCountdownFancy` ≥24h case now `T-Nd Hh MMm SSs` (added seconds — all countdowns now visibly tick); (3) countdown moved from line-1-leading to line-2-trailing — chronological scan reads your-time → market-time → session → countdown; legend updated to match. Test `test_countdown_fancy_format` updated to expect new format. Indent re-aligned from 8→4 spaces since glyph+2-space-indent gone. >99h absolute-date branch also reorganized — countdown now appends after flag+code at end of single-line row. 84 tests pass. NEXT segment is now substantially more readable + matches user's chronological-flow mental model.
 - 2026-04-24 23:40 UTC — iter-209: **duration column — decimal-hour format + 'duration' label** (9b9641e4). User screenshot showed `6h30m` vs `6h` width-mismatch and reported 'session' label was unclear. AskUserQuestion → user picked 'duration' from {open hr, trading hr, session hr, duration}. Two changes: (1) duration formatter `%dh%02dm`/`%dh` → `%.1f hr` (always one decimal, uniform widths: 6.5 hr / 6.0 hr); (2) legend word session → duration → "your time → market time · duration · countdown". 84 tests pass. Closes user's alignment + clarity asks in one iter.
+- 2026-04-24 23:45 UTC — iter-210: **NEXT row redesign — market time + tz move to line 1** (90c0ea62). User asked to compress NEXT block width by relocating "Mon 09:00 JST" from line 2 next to "Sun 17:00" (your time) up to line 1 next to flag+code. Tightens visual coupling of market identity. New layout: line 1 = `🇯🇵 TSE  Mon 09:00 JST` (dim color for market time so flag+code stay primary); line 2 = `└─ Sun 17:00 · 6.5 hr  T-2d 1h 31m 39s` (your local + duration + countdown). Width compression — line 2 ~40 → ~30 chars. iter-204 auto-sizing shrinks the block accordingly. Legend redesigned to mirror split: `market time │ your time · duration · countdown` (│ separator denotes line-1 vs line-2 content). 84 tests pass.
