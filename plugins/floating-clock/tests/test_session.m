@@ -739,9 +739,10 @@ int main(void) {
         test_shadow_spec_catalog();
         test_session_signal_window();
         test_session_state_label();
+        test_session_state_color();
 
         if (failures == 0) {
-            fprintf(stderr, "All 55 tests passed.\n");
+            fprintf(stderr, "All 56 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
