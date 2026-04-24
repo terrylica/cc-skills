@@ -225,6 +225,35 @@ static NSString *glyphForState(SessionState s) {
     return @"○";
 }
 
+// Short 3-letter city codes for the ACTIVE segment headers.
+// IANA zone → city code mapping.
+static const char *cityCodeForIana(const char *iana) {
+    if (!iana || !*iana) return "LOC";
+    if (strcmp(iana, "America/New_York") == 0) return "NYC";
+    if (strcmp(iana, "America/Toronto") == 0)  return "TOR";
+    if (strcmp(iana, "Europe/London") == 0)    return "LON";
+    if (strcmp(iana, "Europe/Paris") == 0)     return "PAR";
+    if (strcmp(iana, "Europe/Berlin") == 0)    return "FRA";
+    if (strcmp(iana, "Europe/Zurich") == 0)    return "ZRH";
+    if (strcmp(iana, "Asia/Tokyo") == 0)       return "TOK";
+    if (strcmp(iana, "Asia/Hong_Kong") == 0)   return "HKG";
+    if (strcmp(iana, "Asia/Shanghai") == 0)    return "SHA";
+    if (strcmp(iana, "Asia/Seoul") == 0)       return "SEO";
+    if (strcmp(iana, "Asia/Kolkata") == 0)     return "MUM";
+    if (strcmp(iana, "Australia/Sydney") == 0) return "SYD";
+    // Fallback: last 3 chars of IANA city portion, uppercased
+    static char fallback[4];
+    const char *slash = strrchr(iana, '/');
+    if (slash && strlen(slash + 1) >= 3) {
+        fallback[0] = toupper(slash[1]);
+        fallback[1] = toupper(slash[2]);
+        fallback[2] = toupper(slash[3]);
+        fallback[3] = 0;
+        return fallback;
+    }
+    return "???";
+}
+
 static NSColor *colorForState(SessionState s, const ClockTheme *theme) {
     switch (s) {
         case kSessionOpen:    return [NSColor colorWithRed:0.20 green:0.95 blue:0.40 alpha:1.0];  // green
@@ -533,8 +562,134 @@ static NSFont *resolveClockFont(CGFloat size) {
     _dateFormatter.timeZone = [NSTimeZone localTimeZone];  // LOCAL segment is always local
 
     _localSeg.timeLabel.stringValue = [_dateFormatter stringFromDate:[NSDate date]];
-    _activeSeg.contentLabel.stringValue = @"ACTIVE (—)";   // placeholder; iter-12 replaces
+    _activeSeg.contentLabel.attributedStringValue = [self buildActiveSegmentContent];
     _nextSeg.contentLabel.stringValue   = @"NEXT (—)";     // placeholder; iter-13 replaces
+}
+
+- (NSAttributedString *)buildActiveSegmentContent {
+    NSDate *now = [NSDate date];
+    NSFont *font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
+    NSColor *headerColor = [NSColor colorWithWhite:0.85 alpha:1.0];
+    NSColor *dimColor    = [NSColor colorWithWhite:0.45 alpha:1.0];
+
+    // First pass: find active markets grouped by IANA.
+    // Each group entry: @[@(marketIndex), @(state), @(progress), @(secsToNext), ...]
+    NSMutableArray<NSMutableArray *> *groups = [NSMutableArray array];
+    NSMutableArray<NSString *> *groupIanas = [NSMutableArray array];
+
+    for (size_t i = 1; i < kNumMarkets; i++) {  // skip local at index 0
+        const ClockMarket *m = &kMarkets[i];
+        SessionState state;
+        double progress;
+        long secsToNext;
+        computeSessionState(m, now, &state, &progress, &secsToNext);
+        if (state == kSessionOpen || state == kSessionLunch) {
+            // Find or create group for this IANA
+            NSString *iana = [NSString stringWithUTF8String:m->iana];
+            NSInteger idx = [groupIanas indexOfObject:iana];
+            if (idx == NSNotFound) {
+                [groupIanas addObject:iana];
+                NSMutableArray *newGroup = [NSMutableArray array];
+                [newGroup addObject:@(i)];
+                [newGroup addObject:@(state)];
+                [newGroup addObject:@(progress)];
+                [newGroup addObject:@(secsToNext)];
+                [groups addObject:newGroup];
+            } else {
+                // Append to existing group (preserve 4-value tuple structure)
+                NSMutableArray *g = groups[idx];
+                [g addObject:@(i)];
+                [g addObject:@(state)];
+                [g addObject:@(progress)];
+                [g addObject:@(secsToNext)];
+            }
+        }
+    }
+
+    NSMutableAttributedString *out = [[NSMutableAttributedString alloc] init];
+
+    if (groups.count == 0) {
+        [out appendAttributedString:[[NSAttributedString alloc]
+            initWithString:@"— NO OPEN MARKETS —"
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
+        return out;
+    }
+
+    for (NSUInteger g = 0; g < groups.count; g++) {
+        NSMutableArray *group = groups[g];
+        NSString *iana = groupIanas[g];
+        NSUInteger marketsInGroup = group.count / 4;
+
+        // Header: "TOK 11:15"
+        NSTimeZone *tz = [NSTimeZone timeZoneWithName:iana];
+        NSDateFormatter *hf = [[NSDateFormatter alloc] init];
+        hf.dateFormat = @"HH:mm";
+        if (tz) hf.timeZone = tz;
+        NSString *headerTime = [hf stringFromDate:now];
+        const ClockMarket *firstM = &kMarkets[[(NSNumber *)group[0] intValue]];
+        const char *cityCode = cityCodeForIana(firstM->iana);
+
+        NSString *headerLine = [NSString stringWithFormat:@"%s %@\n", cityCode, headerTime];
+        [out appendAttributedString:[[NSAttributedString alloc]
+            initWithString:headerLine
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+
+        // Per-market lines
+        for (NSUInteger i = 0; i < marketsInGroup; i++) {
+            NSUInteger mktIdx = [(NSNumber *)group[i*4] unsignedIntValue];
+            const ClockMarket *m = &kMarkets[mktIdx];
+            SessionState state = (SessionState)[(NSNumber *)group[i*4+1] intValue];
+            double progress = [(NSNumber *)group[i*4+2] doubleValue];
+            long secsToNext = [(NSNumber *)group[i*4+3] longValue];
+
+            NSString *glyph = glyphForState(state);
+            NSColor *glyphColor = colorForState(state, NULL);
+            NSString *code = [NSString stringWithUTF8String:m->code];
+            NSString *bar = buildProgressBar(progress, 7);
+            NSString *cd = formatCountdown(secsToNext);
+            NSString *suffix = (state == kSessionLunch) ? @" LUNCH" : @"";
+
+            // "  ● NYSE ████▒░░ 2h17m\n"
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:@"  "
+                attributes:@{NSFontAttributeName: font}]];
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:glyph
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: glyphColor}]];
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:[NSString stringWithFormat:@" %-4s ", [code UTF8String]]
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+
+            // Bar with color split
+            NSColor *fillColor = glyphColor;  // same color as state glyph
+            NSColor *emptyColor = [NSColor colorWithWhite:0.3 alpha:1.0];
+            NSInteger splitIdx = 0;
+            for (NSUInteger bi = 0; bi < bar.length; bi++) {
+                if ([bar characterAtIndex:bi] == 0x2591) { splitIdx = bi; break; }
+                splitIdx = bi + 1;
+            }
+            NSMutableAttributedString *barAttr = [[NSMutableAttributedString alloc]
+                initWithString:bar attributes:@{NSFontAttributeName: font}];
+            [barAttr addAttribute:NSForegroundColorAttributeName value:fillColor
+                            range:NSMakeRange(0, splitIdx)];
+            [barAttr addAttribute:NSForegroundColorAttributeName value:emptyColor
+                            range:NSMakeRange(splitIdx, bar.length - splitIdx)];
+            [out appendAttributedString:barAttr];
+
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:[NSString stringWithFormat:@" %@%@\n", cd, suffix]
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+        }
+
+        // Blank line between groups
+        if (g < groups.count - 1) {
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:@"\n"
+                attributes:@{NSFontAttributeName: font}]];
+        }
+    }
+
+    return out;
 }
 
 - (void)tickLegacy {
@@ -1001,17 +1156,28 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
 
     NSSize localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
-    NSSize activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
     NSSize nextSize = [@"NEXT (—)" sizeWithAttributes:contentAttrs];
 
-    CGFloat maxHeight = ceilf(MAX(MAX(localSize.height, activeSize.height), nextSize.height));
+    // Measure actual ACTIVE content (may be multi-line)
+    NSSize activeSize;
+    NSAttributedString *activeAttr = _activeSeg.contentLabel.attributedStringValue;
+    if (activeAttr && activeAttr.string.length > 0) {
+        activeSize = [activeAttr size];
+    } else {
+        activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
+    }
+
+    CGFloat localHeight  = ceilf(localSize.height) + 12;
+    CGFloat activeHeight = ceilf(activeSize.height) + 12;
+    CGFloat nextHeight   = ceilf(nextSize.height) + 12;
+
+    CGFloat segHeight = MAX(MAX(localHeight, activeHeight), nextHeight);
 
     CGFloat localSegWidth  = ceilf(localSize.width) + 32;
     CGFloat activeSegWidth = ceilf(activeSize.width) + 32;
     CGFloat nextSegWidth   = ceilf(nextSize.width) + 32;
 
     CGFloat windowWidth  = localSegWidth + 4 + activeSegWidth + 4 + nextSegWidth + 16;  // 4pt gaps + 8pt margins per side
-    CGFloat segHeight    = maxHeight + 20;
     CGFloat windowHeight = segHeight + 16;
 
     // Anchor at current window center
@@ -1026,10 +1192,14 @@ static NSFont *resolveClockFont(CGFloat size) {
     _activeSeg.frame = NSMakeRect(8 + localSegWidth + 4, 8, activeSegWidth, segHeight);
     _nextSeg.frame = NSMakeRect(8 + localSegWidth + 4 + activeSegWidth + 4, 8, nextSegWidth, segHeight);
 
-    // Position text fields within each segment
-    _localSeg.timeLabel.frame = NSInsetRect(_localSeg.bounds, 8, 6);
-    _activeSeg.contentLabel.frame = NSInsetRect(_activeSeg.bounds, 8, 6);
-    _nextSeg.contentLabel.frame = NSInsetRect(_nextSeg.bounds, 8, 6);
+    // Position text fields within each segment (vertical centering)
+    CGFloat localPad = (segHeight - localHeight) / 2.0;
+    CGFloat activePad = (segHeight - activeHeight) / 2.0;
+    CGFloat nextPad = (segHeight - nextHeight) / 2.0;
+
+    _localSeg.timeLabel.frame = NSMakeRect(8, localPad, localSegWidth - 16, localHeight);
+    _activeSeg.contentLabel.frame = NSMakeRect(8, activePad, activeSegWidth - 16, activeHeight);
+    _nextSeg.contentLabel.frame = NSMakeRect(8, nextPad, nextSegWidth - 16, nextHeight);
 
     // Set fonts
     _localSeg.timeLabel.font = primaryFont;
@@ -1272,7 +1442,10 @@ static NSFont *resolveClockFont(CGFloat size) {
     label.selectable = NO;
     label.bezeled = NO;
     label.drawsBackground = NO;
-    label.alignment = NSTextAlignmentCenter;
+    label.alignment = NSTextAlignmentLeft;
+    label.usesSingleLineMode = NO;
+    label.cell.wraps = NO;
+    [label.cell setLineBreakMode:NSLineBreakByTruncatingTail];
     [self addSubview:label];
     _contentLabel = label;
 
