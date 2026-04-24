@@ -182,6 +182,73 @@ void test_holiday_calendar_tse(void) {
     }
 }
 
+void test_holiday_calendar_hkex(void) {
+    // v4 iter-178: HKEX 2026 non-trading days. First fixture covering
+    // lunar-calendar holidays whose Gregorian dates shift year-by-year
+    // (Lunar New Year 3-day cluster, Buddha's Birthday, Dragon Boat,
+    // Mid-Autumn, Chung Yeung). Also covers dual observations: Good
+    // Friday (Western) + Lunar New Year Day 1/2/3 within two months.
+    const ClockMarket *hkex = marketForId(@"hkex");
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    // Lunar New Year 3-day cluster — Feb 17/18/19 Tue/Wed/Thu 2026.
+    NSDate *lny1 = holidayDateAt(@"Asia/Hong_Kong", 2026,  2, 17, 12, 0, 0);
+    NSDate *lny2 = holidayDateAt(@"Asia/Hong_Kong", 2026,  2, 18, 12, 0, 0);
+    NSDate *lny3 = holidayDateAt(@"Asia/Hong_Kong", 2026,  2, 19, 12, 0, 0);
+    if (!FCIsMarketHoliday(hkex, lny1)) { failures++; fprintf(stderr, "FAIL %s: LNY Day 1 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(hkex, lny2)) { failures++; fprintf(stderr, "FAIL %s: LNY Day 2 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(hkex, lny3)) { failures++; fprintf(stderr, "FAIL %s: LNY Day 3 not flagged\n", __func__); }
+
+    // Lunar-calendar non-LNY holidays.
+    NSDate *buddha      = holidayDateAt(@"Asia/Hong_Kong", 2026,  5, 25, 12, 0, 0);
+    NSDate *dragonBoat  = holidayDateAt(@"Asia/Hong_Kong", 2026,  6, 19, 12, 0, 0);
+    NSDate *midAutumn   = holidayDateAt(@"Asia/Hong_Kong", 2026,  9, 25, 12, 0, 0);
+    NSDate *chungYeung  = holidayDateAt(@"Asia/Hong_Kong", 2026, 10, 19, 12, 0, 0);
+    if (!FCIsMarketHoliday(hkex, buddha))     { failures++; fprintf(stderr, "FAIL %s: Buddha's Birthday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(hkex, dragonBoat)) { failures++; fprintf(stderr, "FAIL %s: Dragon Boat not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(hkex, midAutumn))  { failures++; fprintf(stderr, "FAIL %s: Mid-Autumn not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(hkex, chungYeung)) { failures++; fprintf(stderr, "FAIL %s: Chung Yeung not flagged\n", __func__); }
+
+    // Civic holidays (National Day + SAR Establishment) and the
+    // Easter Mon + Ching Ming coincidence.
+    NSDate *sarDay      = holidayDateAt(@"Asia/Hong_Kong", 2026,  7,  1, 12, 0, 0);
+    NSDate *nationalDay = holidayDateAt(@"Asia/Hong_Kong", 2026, 10,  1, 12, 0, 0);
+    NSDate *easterMon   = holidayDateAt(@"Asia/Hong_Kong", 2026,  4,  6, 12, 0, 0);
+    if (!FCIsMarketHoliday(hkex, sarDay))      { failures++; fprintf(stderr, "FAIL %s: HKSAR Establishment Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(hkex, nationalDay)) { failures++; fprintf(stderr, "FAIL %s: National Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(hkex, easterMon))   { failures++; fprintf(stderr, "FAIL %s: Easter Mon/Ching Ming not flagged\n", __func__); }
+
+    // Cross-market negatives: NYSE must NOT flag HKEX-only holidays
+    // whose HK-noon doesn't overlap a NY holiday after TZ conversion.
+    // Avoided pitfalls:
+    //   - LNY Day 1 (Feb 17 HK) = Feb 16 NY = Presidents' Day → shared
+    //   - Dragon Boat (Jun 19 HK) = Jun 19 NY = Juneteenth → shared
+    // Use dates that land on ordinary NY weekdays after conversion.
+    if (FCIsMarketHoliday(nyse, lny2))       { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged LNY Day 2\n", __func__); }
+    if (FCIsMarketHoliday(nyse, lny3))       { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged LNY Day 3\n", __func__); }
+    if (FCIsMarketHoliday(nyse, chungYeung)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Chung Yeung\n", __func__); }
+    if (FCIsMarketHoliday(nyse, midAutumn))  { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Mid-Autumn\n", __func__); }
+
+    // HKEX must NOT flag NYSE-only holidays. Same TZ-conversion pitfall
+    // check: Thanksgiving in HK-noon lands on Thanksgiving-in-NY-night,
+    // which is still a NY holiday — but HKEX's own registry has no
+    // Thanksgiving, so it returns NO as expected (cross-market routing
+    // rather than TZ logic).
+    NSDate *thanksgiving = holidayDateAt(@"Asia/Hong_Kong", 2026, 11, 26, 12, 0, 0);
+    if (FCIsMarketHoliday(hkex, thanksgiving)) {
+        failures++; fprintf(stderr, "FAIL %s: HKEX wrongly flagged Thanksgiving\n", __func__);
+    }
+    // Note: Jun 19 2026 happens to be BOTH Juneteenth (US) and Dragon
+    // Boat Festival (HK) — a genuine multi-market holiday coincidence.
+    // Both markets correctly flag it; no negative test applicable.
+
+    // Regular HKEX trading day should NOT be flagged.
+    NSDate *regularWed = holidayDateAt(@"Asia/Hong_Kong", 2026, 3, 11, 12, 0, 0);
+    if (FCIsMarketHoliday(hkex, regularWed)) {
+        failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on HKEX\n", __func__);
+    }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and

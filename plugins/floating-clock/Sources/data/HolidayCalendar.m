@@ -59,6 +59,33 @@ static NSString * const kTSE2026Holidays[] = {
     @"2026-12-31",  // Year-end non-trading day (大納会 was Dec 30)
 };
 
+// v4 iter-178: HKEX 2026 non-trading days. Source: HKEX published
+// calendar. First calendar to feature lunar-calendar holidays
+// (Lunar New Year 3-day cluster, Buddha's Birthday, Dragon Boat,
+// Mid-Autumn, Chung Yeung) whose Gregorian dates shift year-by-year
+// — this fixture-locks the 2026 mapping. Good Friday + Easter Monday
+// coincide with Ching Ming Festival 2026-04-05 Sun → observed Mon
+// (combined into one day off). Half-day trading sessions (e.g. LNY
+// Eve 2026-02-16 Mon) render as full sessions — half-day handling
+// deferred.
+static NSString * const kHKEX2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    @"2026-02-17",  // Lunar New Year Day 1 (農曆新年初一)
+    @"2026-02-18",  // Lunar New Year Day 2 (初二)
+    @"2026-02-19",  // Lunar New Year Day 3 (初三)
+    @"2026-04-03",  // Good Friday
+    @"2026-04-06",  // Easter Monday / Ching Ming observed (coincident)
+    @"2026-05-01",  // Labour Day
+    @"2026-05-25",  // Buddha's Birthday observed (lunar Apr 8 = Sun May 24)
+    @"2026-06-19",  // Dragon Boat Festival (端午節)
+    @"2026-07-01",  // HKSAR Establishment Day
+    @"2026-09-25",  // Mid-Autumn Festival (中秋節)
+    @"2026-10-01",  // National Day (國慶日)
+    @"2026-10-19",  // Chung Yeung Festival (重陽節)
+    @"2026-12-25",  // Christmas Day
+    @"2026-12-28",  // 1st weekday after Christmas (Boxing Day observed; Dec 26 Sat)
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -72,6 +99,7 @@ static const FCHolidayTable kHolidayTables[] = {
     { "nyse", kNYSE2026Holidays, sizeof(kNYSE2026Holidays) / sizeof(kNYSE2026Holidays[0]) },
     { "lse",  kLSE2026Holidays,  sizeof(kLSE2026Holidays)  / sizeof(kLSE2026Holidays[0])  },
     { "tse",  kTSE2026Holidays,  sizeof(kTSE2026Holidays)  / sizeof(kTSE2026Holidays[0])  },
+    { "hkex", kHKEX2026Holidays, sizeof(kHKEX2026Holidays) / sizeof(kHKEX2026Holidays[0]) },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
