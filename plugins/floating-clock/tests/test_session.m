@@ -603,6 +603,52 @@ static void test_holiday_calendar_nyse(void) {
     }
 }
 
+static void test_holiday_calendar_lse(void) {
+    // v4 iter-175: LSE 2026 bank-holiday lookup. Covers the distinct
+    // UK calendar — Easter Monday (not observed US-side), Spring bank
+    // holiday (last Monday of May), Boxing Day observed Dec 28 because
+    // Dec 26 2026 is Saturday. Mirrors the NYSE test's coverage shape.
+    const ClockMarket *lse  = marketForId(@"lse");
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    // LSE-distinctive holidays.
+    NSDate *easterMonday = dateAt(@"Europe/London", 2026, 4, 6, 12, 0, 0);
+    NSDate *springBank   = dateAt(@"Europe/London", 2026, 5, 25, 12, 0, 0);
+    NSDate *summerBank   = dateAt(@"Europe/London", 2026, 8, 31, 12, 0, 0);
+    NSDate *boxingObs    = dateAt(@"Europe/London", 2026, 12, 28, 12, 0, 0);
+    if (!FCIsMarketHoliday(lse, easterMonday)) {
+        failures++; fprintf(stderr, "FAIL %s: Easter Monday not flagged\n", __func__);
+    }
+    if (!FCIsMarketHoliday(lse, springBank)) {
+        failures++; fprintf(stderr, "FAIL %s: Spring bank holiday not flagged\n", __func__);
+    }
+    if (!FCIsMarketHoliday(lse, summerBank)) {
+        failures++; fprintf(stderr, "FAIL %s: Summer bank holiday not flagged\n", __func__);
+    }
+    if (!FCIsMarketHoliday(lse, boxingObs)) {
+        failures++; fprintf(stderr, "FAIL %s: Boxing Day (observed Dec 28) not flagged\n", __func__);
+    }
+
+    // LSE does NOT observe NYSE's Thanksgiving — fixture that was a
+    // "holiday" for NYSE must come back as non-holiday for LSE.
+    NSDate *thanksgiving = dateAt(@"Europe/London", 2026, 11, 26, 12, 0, 0);
+    if (FCIsMarketHoliday(lse, thanksgiving)) {
+        failures++; fprintf(stderr, "FAIL %s: LSE wrongly flagged Thanksgiving\n", __func__);
+    }
+
+    // Symmetric: NYSE should not flag LSE-distinct Easter Monday (US
+    // markets trade Easter Monday regular session).
+    if (FCIsMarketHoliday(nyse, easterMonday)) {
+        failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Easter Monday\n", __func__);
+    }
+
+    // Regular LSE trading day should NOT be flagged.
+    NSDate *regularWed = dateAt(@"Europe/London", 2026, 3, 11, 12, 0, 0);
+    if (FCIsMarketHoliday(lse, regularWed)) {
+        failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on LSE\n", __func__);
+    }
+}
+
 static void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. iter-173 tested FCIsMarketHoliday
     // as a pure function; this test verifies the result is actually
@@ -888,6 +934,7 @@ int main(void) {
         test_flag_emoji_present_for_all_markets();
         test_market_roster_lock();
         test_holiday_calendar_nyse();
+        test_holiday_calendar_lse();
         test_nyse_holiday_state_closed();
         test_flag_empty_for_unknown_iana();
 
@@ -928,7 +975,7 @@ int main(void) {
         test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 66 tests passed.\n");
+            fprintf(stderr, "All 67 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
