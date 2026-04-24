@@ -90,18 +90,26 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     BOOL showUTC = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
     NSString *localBase = [_dateFormatter stringFromDate:nowLocal];
 
-    // v4 iter-42: sun/moon glyph as a subtle day/night cue. Night defined
-    // as local hour outside [6, 18). No astronomical calculation (would
-    // need lat/lon + solar-position math); this simple heuristic matches
-    // civil-twilight expectations across the globe closely enough. Hidden
-    // when ShowSkyState pref is explicitly NO.
+    // v4 iter-42 + iter-112: sun/moon glyph — subtle day/night cue.
+    // No astronomical calculation (needs lat/lon + solar position);
+    // simple hour buckets match civil-twilight expectations closely.
+    // iter-112 upgrades binary (☀/🌙) to 5 phases for more nuance:
+    //   [5, 7)   🌅 dawn / sunrise
+    //   [7, 12)  ☀️ morning
+    //   [12, 17) ☀️ afternoon (same glyph, phase name differs)
+    //   [17, 19) 🌇 dusk / sunset
+    //   [19, 5)  🌙 night
+    // Hidden when ShowSkyState pref is explicitly NO.
     BOOL showSky = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
     NSString *skyGlyph = @"";
     if (showSky) {
         NSCalendar *cal = [NSCalendar currentCalendar];
         cal.timeZone = localTz;
         NSInteger hour = [cal component:NSCalendarUnitHour fromDate:nowLocal];
-        skyGlyph = (hour >= 6 && hour < 18) ? @" ☀️" : @" \U0001F319";
+        if      (hour >= 5  && hour < 7)  skyGlyph = @" \U0001F305";  // 🌅 sunrise
+        else if (hour >= 7  && hour < 17) skyGlyph = @" ☀️";            // day
+        else if (hour >= 17 && hour < 19) skyGlyph = @" \U0001F307";  // 🌇 sunset
+        else                              skyGlyph = @" \U0001F319";  // 🌙 night
     }
 
     if (showUTC) {
