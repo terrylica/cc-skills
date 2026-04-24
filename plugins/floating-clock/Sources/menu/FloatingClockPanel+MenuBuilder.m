@@ -69,6 +69,14 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowProgressPercent:) keyEquivalent:@""];
     [displayItems addObject:sp];
 
+    // v4 iter-199: UI-naming-campaign debug affordance. Toggles tiny
+    // [LOCAL] / [ACTIVE] / [NEXT] corner labels on each segment so
+    // the user can reference UI elements by canonical name in
+    // feedback. Off by default.
+    NSMenuItem *sdbg = [[NSMenuItem alloc] initWithTitle:@"Show Debug Labels"
+                                                  action:@selector(toggleShowDebugLabels:) keyEquivalent:@""];
+    [displayItems addObject:sdbg];
+
     [displayItems addObject:[NSMenuItem separatorItem]];
 
     [displayItems addObject:[self submenuTitled:@"Time Format" action:@selector(setTimeFormat:)

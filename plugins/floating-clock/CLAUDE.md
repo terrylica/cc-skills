@@ -133,6 +133,7 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 | `ShowFlags`                 | BOOL         | `YES`                    | Menu — country-flag emoji on ACTIVE/NEXT headers                                                                                                                                                                                                                                        |
 | `ShowUTCReference`          | BOOL         | `YES`                    | Menu — inline `· HH:mm:ss UTC` on LOCAL row                                                                                                                                                                                                                                             |
 | `ShowSkyState`              | BOOL         | `YES`                    | Menu — time-of-day glyph on LOCAL row; 5 phases (iter-112): 🌅 dawn [5,7) · ☀️ day [7,17) · 🌇 dusk [17,19) · 🌙 night [19,5)                                                                                                                                                           |
+| `ShowDebugLabels`           | BOOL         | `NO`                     | Menu (iter-199) — corner-overlay canonical names `[LOCAL]` / `[ACTIVE]` / `[NEXT]` on each segment for precise feedback. NSToolTips remain active regardless. Registry: see Canonical UI Names table.                                                                                   |
 | `ShowProgressPercent`       | BOOL         | `NO`                     | Menu — inline `N%` next to ACTIVE progress bar (added iter-57)                                                                                                                                                                                                                          |
 | `FontSize`                  | double       | `24.0`                   | Menu (15 options, 10–64 pt)                                                                                                                                                                                                                                                             |
 | `ActiveFontSize`            | double       | `11.0`                   | Per-segment font size for ACTIVE                                                                                                                                                                                                                                                        |
@@ -239,6 +240,18 @@ Design notes:
 - `computeSessionState()` — state + progress + countdown via `NSCalendar` in the exchange's IANA TZ
 - `buildProgressBar()` — Unicode 1/8-width block bar with color-split filled/unfilled portions via `NSAttributedString`
 - `ClockContentView`: custom `NSView` subclass whose `menuForEvent:` returns the context menu on right-click
+
+## Canonical UI Names (iter-199 registry)
+
+Every user-visible UI element has a stable canonical short name so feedback can be precise (e.g. "the label in the bottom-right of ACTIVE called [COUNTDOWN] is 2pt too small"). Toggle `Show Debug Labels` in the context menu (or `defaults write com.example.floating-clock ShowDebugLabels -bool YES`) to render these as tiny corner overlays on the running app. Hovering any named NSView shows its full NSToolTip.
+
+| Nameidg    | Surface class       | Purpose / hover tooltip                                                    |
+| ---------- | ------------------- | -------------------------------------------------------------------------- |
+| `[LOCAL]`  | `LocalSegmentView`  | LOCAL — top segment, current user-local time                               |
+| `[ACTIVE]` | `ActiveSegmentView` | ACTIVE — bottom-left segment, currently-open markets with progress bars    |
+| `[NEXT]`   | `NextSegmentView`   | NEXT — bottom-right segment, upcoming-open markets with landing countdowns |
+
+(Sub-element names for `[TIME]`, `[DATE]`, `[SKYGLYPH]`, `[PROGRESSBAR]`, `[COUNTDOWN]`, etc. will be added in follow-up iters of the UI-naming campaign — see LOOP_CONTRACT Core Directive.)
 
 ## Known limitations
 

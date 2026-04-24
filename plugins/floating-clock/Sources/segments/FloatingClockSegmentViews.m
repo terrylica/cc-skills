@@ -11,6 +11,42 @@
 - (NSMenu *)buildNextSegmentMenu;
 @end
 
+// v4 iter-199: shared factory for the top-left corner debug label.
+// 8pt monospace caps, semi-transparent white, pinned to top-left
+// inside an 8pt inset. Hidden by default — `fcRefreshDebugLabel`
+// toggles visibility based on NSUserDefaults "ShowDebugLabels".
+// Accepts the nameID string (e.g. @"LOCAL") as display text.
+static NSTextField *fcMakeDebugLabel(NSString *nameID) {
+    NSTextField *lbl = [[NSTextField alloc] initWithFrame:NSMakeRect(6, 0, 80, 12)];
+    lbl.stringValue = [NSString stringWithFormat:@"[%@]", nameID];
+    lbl.editable = NO;
+    lbl.selectable = NO;
+    lbl.bezeled = NO;
+    lbl.drawsBackground = NO;
+    lbl.textColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.55];
+    lbl.font = [NSFont monospacedSystemFontOfSize:8.5 weight:NSFontWeightMedium];
+    lbl.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;
+    lbl.hidden = YES;
+    return lbl;
+}
+
+// v4 iter-199: anchor the debug label to the top-left on every layout.
+// Called from `layout` overrides below so the overlay stays pinned
+// when the segment resizes.
+static void fcAnchorDebugLabelTopLeft(NSTextField *lbl, NSRect bounds) {
+    NSRect r = lbl.frame;
+    r.origin.x = 6.0;
+    r.origin.y = bounds.size.height - r.size.height - 4.0;
+    lbl.frame = r;
+}
+
+// v4 iter-199: shared refresh logic — read ShowDebugLabels pref and
+// toggle visibility. Called from panel tick + menu toggle action.
+static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
+    BOOL show = [[NSUserDefaults standardUserDefaults] boolForKey:@"ShowDebugLabels"];
+    lbl.hidden = !show;
+}
+
 @implementation ClockContentView
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
@@ -53,8 +89,22 @@
     [self addSubview:label];
     _timeLabel = label;
 
+    // v4 iter-199: canonical name overlay. Stable ID "LOCAL".
+    _debugLabel = fcMakeDebugLabel([self fcNameID]);
+    [self addSubview:_debugLabel];
+    self.toolTip = [self fcFullName];
+
     return self;
 }
+
+- (void)layout {
+    [super layout];
+    fcAnchorDebugLabelTopLeft(_debugLabel, self.bounds);
+}
+
+- (NSString *)fcNameID { return @"LOCAL"; }
+- (NSString *)fcFullName { return @"LOCAL — top segment, current user-local time"; }
+- (void)fcRefreshDebugLabel { fcApplyDebugLabelVisibility(_debugLabel); }
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
     return [(id)self.panel buildLocalSegmentMenu];
@@ -96,8 +146,22 @@
     [self addSubview:label];
     _contentLabel = label;
 
+    // v4 iter-199: canonical name overlay. Stable ID "ACTIVE".
+    _debugLabel = fcMakeDebugLabel([self fcNameID]);
+    [self addSubview:_debugLabel];
+    self.toolTip = [self fcFullName];
+
     return self;
 }
+
+- (void)layout {
+    [super layout];
+    fcAnchorDebugLabelTopLeft(_debugLabel, self.bounds);
+}
+
+- (NSString *)fcNameID { return @"ACTIVE"; }
+- (NSString *)fcFullName { return @"ACTIVE — bottom-left segment, currently-open markets with progress bars"; }
+- (void)fcRefreshDebugLabel { fcApplyDebugLabelVisibility(_debugLabel); }
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
     return [(id)self.panel buildActiveSegmentMenu];
@@ -141,8 +205,22 @@
     [self addSubview:label];
     _contentLabel = label;
 
+    // v4 iter-199: canonical name overlay. Stable ID "NEXT".
+    _debugLabel = fcMakeDebugLabel([self fcNameID]);
+    [self addSubview:_debugLabel];
+    self.toolTip = [self fcFullName];
+
     return self;
 }
+
+- (void)layout {
+    [super layout];
+    fcAnchorDebugLabelTopLeft(_debugLabel, self.bounds);
+}
+
+- (NSString *)fcNameID { return @"NEXT"; }
+- (NSString *)fcFullName { return @"NEXT — bottom-right segment, upcoming-open markets with landing countdowns"; }
+- (void)fcRefreshDebugLabel { fcApplyDebugLabelVisibility(_debugLabel); }
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
     return [(id)self.panel buildNextSegmentMenu];
