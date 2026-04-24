@@ -118,14 +118,17 @@
 
     NSSize nextSize = FCMeasureAttributedUnwrapped(_nextSeg.contentLabel.attributedStringValue);
     if (nextSize.height < 10) nextSize = [@"NEXT TO OPEN" sizeWithAttributes:nextAttrs];
-    // v4 iter-61: NEXT layout now renders 2 lines per market (iter-60). The
-    // measurer underestimates by ~1 line-height when the trailing content
-    // isn't terminated by a newline (our last market has none). Add a
-    // safety margin so VerticallyCenteredTextFieldCell doesn't pixel-clip
-    // the last bottom line.
-    NSFont *nextMeasureFont = [nextAttrs objectForKey:NSFontAttributeName] ?: [NSFont systemFontOfSize:11];
-    CGFloat nextLineHeight = [[[NSLayoutManager alloc] init] defaultLineHeightForFont:nextMeasureFont];
-    nextSize.height = ceilf(nextSize.height + nextLineHeight * 1.2);
+    // v4 iter-205: OBSOLETE iter-61 NEXT safety margin removed.
+    // Was: nextSize.height += 1.2 * lineHeight to avoid pixel-clip.
+    // Why it's no longer needed: iter-205 sizes the contentLabel frame
+    // EXACTLY to the measured content height (not the block height),
+    // so there's no cell heightDelta to distribute — the measurer's
+    // value is the frame size directly. Also removes the top-margin
+    // asymmetry between ACTIVE (no safety margin) and NEXT (with),
+    // which user reported as "different top blank heights" in
+    // iter-204 screenshot. FCMeasureAttributedUnwrapped already
+    // compensates for the terminal-newline case internally.
+    (void)nextAttrs;  // suppress unused-after-safety-margin-removal
 
     CGFloat localHeight  = ceilf(localSize.height);
     CGFloat activeHeight = ceilf(activeSize.height);
@@ -305,8 +308,17 @@
     CGFloat asymmetry = primaryFont.ascender - fabs(primaryFont.descender);
     CGFloat localLabelY = floorf((localH - localLabelH) / 2.0 - asymmetry / 2.0);
     _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, localW - 16, localLabelH);
-    _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeW - 16, activeH);
-    _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextW - 16, nextH);
+    // v4 iter-205: size contentLabel frame EXACTLY to measured content
+    // height + position with uniform pad/2 top inset inside the block.
+    // Block height = contentHeight + pad (iter-204); label height =
+    // contentHeight; label y = pad/2 → identical top inset on ACTIVE
+    // and NEXT regardless of their content heights. Fully dynamic:
+    // derives from measured content + user-chosen Density pad, zero
+    // hard-coded magic numbers. Eliminates the "different top blank"
+    // asymmetry user reported against iter-204.
+    CGFloat halfPad = pad / 2.0;
+    _activeSeg.contentLabel.frame = NSMakeRect(8, halfPad, activeW - 16, ceilf(activeSize.height));
+    _nextSeg.contentLabel.frame   = NSMakeRect(8, halfPad, nextW - 16, ceilf(nextSize.height));
 
     _localSeg.timeLabel.font      = primaryFont;
     _activeSeg.contentLabel.font  = activeFont;
