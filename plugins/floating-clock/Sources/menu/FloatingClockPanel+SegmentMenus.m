@@ -105,6 +105,12 @@
     NSMenu *m = [[NSMenu alloc] init];
     m.delegate = (ClockContentView *)self.contentView;
 
+    // v4 iter-150: Copy utility for ACTIVE segment — snapshot all
+    // currently-open markets to clipboard.
+    NSMenuItem *copy = [m addItemWithTitle:@"Copy Active Markets" action:@selector(copyActiveMarkets:) keyEquivalent:@""];
+    copy.target = self;
+    [m addItem:[NSMenuItem separatorItem]];
+
     NSMutableArray *themePairs = [NSMutableArray array];
     for (size_t i = 0; i < kNumThemes; i++) {
         [themePairs addObject:@[[NSString stringWithUTF8String:kThemes[i].display],
@@ -196,6 +202,12 @@
 - (NSMenu *)buildNextSegmentMenu {
     NSMenu *m = [[NSMenu alloc] init];
     m.delegate = (ClockContentView *)self.contentView;
+
+    // v4 iter-150: Copy utility for NEXT segment — snapshot upcoming
+    // opens with countdowns to clipboard.
+    NSMenuItem *copy = [m addItemWithTitle:@"Copy Next Opens" action:@selector(copyNextOpens:) keyEquivalent:@""];
+    copy.target = self;
+    [m addItem:[NSMenuItem separatorItem]];
 
     NSMutableArray *themePairs = [NSMutableArray array];
     for (size_t i = 0; i < kNumThemes; i++) {
