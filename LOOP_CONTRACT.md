@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 203
+iteration: 204
 status: ACTIVE
-last_updated: 2026-04-24T23:10:00Z
+last_updated: 2026-04-24T23:15:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -641,3 +641,5 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 23:10 UTC — iter-203: **[TIME] sub-element name via NSToolTip** (988b7a3e). First sub-element entry in the Canonical UI Names registry. Added NSToolTip to `LocalSegmentView.timeLabel` with a description covering controlling prefs (TimeFormat/TimeSeparator/ShowSeconds). No corner overlay — the label fills most of the LOCAL segment so an additional overlay would be visually noisy on top of [LOCAL]. ACTIVE/NEXT contentLabel NSToolTips skipped — those fill the entirety of their parent segments, would duplicate the segment-level tooltip. CLAUDE.md: +[TIME] row in Canonical UI Names + explanatory paragraph on why text-run sub-elements inside NSAttributedString (PROGRESSBAR/COUNTDOWN/SKYGLYPH/DATE/MARKETCODE) can't use NSToolTip directly — they're runs, not views, so names stay as a paper reference until a future iter ships a text-run hit-testing overlay. 84 tests pass. No behavior change to any data or rendering layer.
 
 **NEW USER DIRECTIVE (iter-204 turn-in, 2026-04-24 23:12 UTC):** "Make the bottom two blocks [ACTIVE + NEXT] self-adjusting, especially the height, extremely dynamically — no hard-coding to the text." Root cause located: `Layout.m:139` does `marketRowHeight = MAX(activeHeight, nextHeight) + pad` forcing both to share the taller height → NEXT over-pads when ACTIVE has more rows and vice versa. Fix plan for iter-204: compute per-segment heights independently (`activeSegHeight = activeHeight + pad`, `nextSegHeight = nextHeight + pad`), align them top (keeps hrule lines horizontally level) or bottom, window height = MAX still since they sit side-by-side. Wrap resize in NSAnimationContext so changes animate smoothly on market-count deltas. No external lib needed — NSLayoutManager pixel-accurate measure is already in use via `FCMeasureAttributedUnwrapped`.
+
+- 2026-04-24 23:15 UTC — iter-204: **per-segment dynamic height for ACTIVE + NEXT (chain-in-turn)** (43d1cbf3). Shipped the iter-203-addendum user directive immediately after the stop hook flagged a defer-to-stale-wake stall. Removed the `marketRowHeight = MAX(activeHeight, nextHeight) + pad` coupling; compute `activeOwnHeight` + `nextOwnHeight` independently. Top-aligned so legend + hrule rows stay horizontally aligned across the two blocks. Wrapped the frame mutation in `NSAnimationContext` (0.15s, `allowsImplicitAnimation=YES`) so window + segment resize animates smoothly on market-count deltas. Skip-animate when size delta < 1pt. Zero external deps, binary delta ~0 LoC. 84 tests still pass. User-facing: ACTIVE-with-6-markets beside NEXT-with-2-markets no longer pads NEXT with empty vertical space.
