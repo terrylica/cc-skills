@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` + `tests/test_levers.m` — 64 fixtures covering
+Tests live in `tests/test_session.m` + `tests/test_levers.m` — 65 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -242,7 +242,7 @@ Design notes:
 
 ## Known limitations
 
-- **No holiday awareness**. Session state assumes regular weekday hours. During exchange holidays (e.g. US Thanksgiving, Chinese Golden Week, Good Friday) the clock will show OPEN when the exchange is actually closed. Adding holiday awareness requires bundling annual data per exchange — deferred pending a maintenance plan for yearly tzdata-style refreshes.
+- **Partial holiday awareness (data-only MVP)**. iter-173 shipped `Sources/data/HolidayCalendar.{h,m}` with a hardcoded NYSE-2026 holiday list and `FCIsMarketHoliday(mkt, date)` lookup — but the result is NOT yet wired into `computeSessionState`. Session state during a real holiday still reads OPEN. The lookup is tested; wiring + multi-market calendars (TSE Shogatsu, LSE bank holidays, JSE, etc.) land in subsequent iters.
 - **No extended after-hours trading window modelled**. Each exchange's full extended session (US equities 16:00–20:00 ET, various 1–2 h windows elsewhere) is not modelled. What is modelled: the first 15 minutes immediately after regular close promote CLOSED → AFTER-HOURS (iter-125, rose ◒ glyph) — a short signal symmetric to iter-123's PRE-MARKET. Full per-market extended-session modelling remains deferred pending a decision on per-exchange duration data.
 
 ## Future Enhancements
