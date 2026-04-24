@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 135
+iteration: 136
 status: ACTIVE
-last_updated: 2026-04-24T14:20:00Z
+last_updated: 2026-04-24T14:30:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -569,3 +569,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 14:00 UTC — iter-133: **v1.7.0 release consolidation** (43e54657). 12 iters since v1.6.0 (iter-121 → iter-133, matching the iter-100 → iter-121 cadence). plugin.json bumped 1.6.0 → 1.7.0; Info.plist CFBundleShortVersionString synced + CFBundleVersion 121 → 133. plugin.json description rewritten to surface v1.7 scope: 10 Quick Styles including Featherlight/Industrial, 5-state session tracking (OPEN/LUNCH/PRE-MARKET/AFTER-HOURS/CLOSED) with SessionSignalWindow lever, 27 themes, 12 progress-bar glyphs, 7 font weights. About dialog updated to match. 48/48 green, validator clean. Iter-122 to iter-132 recap: arch-tree refresh + PRE/AFTER state cluster + SessionSignalWindow lever + aesthetic bracket-expansions (FontWeight 5→7, ProgressBar 10→12, Themes 25→27, QuickStyles 8→10).
 - 2026-04-24 14:10 UTC — iter-134: **state-accurate label in legacy single-market view** (6b0cf54a). First post-v1.7.0 iter. Caught a semantic mismatch left over from iter-123/125: the legacy single-market Runtime.m path kept a hardcoded "CLOSED · opens in Xh" literal even when state=PRE-MARKET or AFTER-HOURS, so the glyph's amber ◐ / rose ◒ disagreed with the text. Fix: switch on state → stateWord (PRE-MARKET / AFTER-HOURS / CLOSED) and pick `colorForState(state, NULL)` for the text too. Applies to both countdown-format branches (bounded Xh/Xm and cross-day "EEE HH:mm" absolute). The three-segment dashboard wasn't affected — NextSegmentContentBuilder derives its labels from glyph + state-color via SegmentHeaderRenderer. No test change (Runtime.m renders attributed strings; compiler-enforced exhaustiveness covers OPEN/LUNCH already filtered out before the else branch). 48/48 still pass.
 - 2026-04-24 14:20 UTC — iter-135: **extract `labelForState` for testability** (6cd69b9d). iter-134's state→word switch was inline in Runtime.m — fine for the fix but untestable + not reusable. Extract to `labelForState(SessionState)` alongside `glyphForState`/`colorForState` so the full (glyph, label, color) triad lives in one file. Future SessionState additions become a compiler-enforced 3-switch edit. Runtime.m simplified to single call + inline ternary for textColor. New fixture `test_session_state_label` locks all 5 cases (OPEN/LUNCH/CLOSED/PRE-MARKET/AFTER-HOURS) + out-of-range safe default (CLOSED). Tests +1 (49 total). 49/49 green, warning-free.
+- 2026-04-24 14:30 UTC — iter-136: **Session Signals shortcut in NEXT segment menu** (4a702ff2). iter-126 exposed SessionSignalWindow only via Full Preferences → MARKET → Session Signals. But the pref's visible effect — PRE-MARKET ◐ and AFTER-HOURS ◒ glyphs — shows up specifically on NEXT entries. Added submenu shortcut in `buildNextSegmentMenu` so right-click on NEXT surfaces the lever directly. Same 5 presets, same action handler, same pref key — pure menu-surface addition, zero code or test churn. 49/49 still pass.
