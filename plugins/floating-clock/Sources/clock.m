@@ -93,6 +93,7 @@
         @"ProgressBarStyle": @"blocks",
         @"LayoutMode": @"stacked-local-top",
         @"SegmentGap": @"normal",
+        @"CornerStyle": @"rounded",
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
