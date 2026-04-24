@@ -193,26 +193,23 @@ static NSString *formatCountdown(long secs) {
 }
 
 // Returns a fixed-length bar string (totalCells chars) with filled portion
-// proportional to progress01. Uses 1/8-width block increments for smoothness.
+// proportional to progress01. Rounds to whole cells (no partial-cell glyphs)
+// because partial glyphs like ▏ leave a visible empty gap between filled (█)
+// and unfilled (▒) — the transparent right-side of the partial character
+// shows the background through it.
 static NSString *buildProgressBar(double progress01, int totalCells) {
     if (progress01 < 0) progress01 = 0;
     if (progress01 > 1) progress01 = 1;
-    double totalEighths = progress01 * totalCells * 8.0;
-    int fullCells = (int)(totalEighths / 8);
-    int remainderEighths = ((int)totalEighths) % 8;
 
-    // Partial cell glyphs — ordered from 1/8 to 7/8 width from LEFT
-    // U+258F (1/8), U+258E (2/8), ... U+2589 (7/8), U+2588 (full)
-    NSString *partials[] = {@"", @"▏", @"▎", @"▍", @"▌", @"▋", @"▊", @"▉"};
+    // Round to nearest whole cell. Granularity at 12 cells = 8.3% per cell
+    // (~25 min resolution on a 5h session) — plenty for at-a-glance scanning.
+    int fullCells = (int)(progress01 * totalCells + 0.5);
+    if (fullCells > totalCells) fullCells = totalCells;
 
     NSMutableString *bar = [NSMutableString string];
-    for (int i = 0; i < fullCells && i < totalCells; i++) [bar appendString:@"█"];
-    if (fullCells < totalCells && remainderEighths > 0) {
-        [bar appendString:partials[remainderEighths]];
-        fullCells++;
-    }
-    // Pad remainder with MEDIUM shade (U+2592) — denser than light shade
-    // (U+2591) for stronger visual contrast against translucent backgrounds.
+    for (int i = 0; i < fullCells; i++) [bar appendString:@"█"];
+    // U+2592 MEDIUM SHADE for unfilled — denser than ░ for contrast against
+    // translucent themes, but still visually distinct from the solid █ fill.
     for (int i = fullCells; i < totalCells; i++) [bar appendString:@"▒"];
     return bar;
 }
