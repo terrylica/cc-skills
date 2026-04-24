@@ -17,36 +17,109 @@
 
 @implementation FloatingClockPanel (MenuBuilder)
 
+// Helper: wrap the supplied menu items in a top-level submenu titled `title`.
+// Each `items` entry is already a fully-formed NSMenuItem. Used by buildMenu
+// to assemble the 5 v4 top-level categories.
+static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) {
+    NSMenuItem *root = [[NSMenuItem alloc] initWithTitle:title action:nil keyEquivalent:@""];
+    NSMenu *sub = [[NSMenu alloc] init];
+    for (NSMenuItem *it in items) {
+        if (it) [sub addItem:it];
+    }
+    root.submenu = sub;
+    return root;
+}
+
 - (NSMenu *)buildMenu {
+    // v4 iter-26: 5 top-level categories replace the former flat menu.
+    //   DISPLAY   — toggles + format picks that affect what's rendered
+    //   THEMES    — color-theme pickers (per-segment + legacy) with swatches
+    //   MARKET    — time-zone picker + date format + display mode
+    //   PROFILE   — save/load/switch preset bundles (same as segment menus)
+    //   WINDOW    — position reset + about + quit
     NSMenu *m = [[NSMenu alloc] init];
     m.delegate = (ClockContentView *)self.contentView;
 
-    [m addItemWithTitle:@"Show Seconds" action:@selector(toggleShowSeconds:) keyEquivalent:@""];
-    [m addItemWithTitle:@"Show Date" action:@selector(toggleShowDate:) keyEquivalent:@""];
+    // === DISPLAY ===
+    NSMutableArray *displayItems = [NSMutableArray array];
 
-    [m addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *ss = [[NSMenuItem alloc] initWithTitle:@"Show Seconds"
+                                                 action:@selector(toggleShowSeconds:) keyEquivalent:@""];
+    [displayItems addObject:ss];
 
-    [m addItem:[self buildProfileMenu]];
+    NSMenuItem *sd = [[NSMenuItem alloc] initWithTitle:@"Show Date"
+                                                 action:@selector(toggleShowDate:) keyEquivalent:@""];
+    [displayItems addObject:sd];
 
-    [m addItem:[self submenuTitled:@"Time Format" action:@selector(setTimeFormat:)
-                              pairs:@[@[@"24-hour", @"24h"], @[@"12-hour", @"12h"]]
-                        defaultsKey:@"TimeFormat"]];
+    [displayItems addObject:[NSMenuItem separatorItem]];
 
-    [m addItem:[self groupedSubmenuTitled:@"Font Size"
-                                action:@selector(setFontSize:)
-                                groups:@[
-    @[@"Small",  @[@[@"10", @10.0], @[@"12", @12.0], @[@"14", @14.0], @[@"16", @16.0]]],
-    @[@"Medium", @[@[@"18", @18.0], @[@"20", @20.0], @[@"22", @22.0], @[@"24", @24.0]]],
-    @[@"Large",  @[@[@"28", @28.0], @[@"32", @32.0], @[@"36", @36.0], @[@"42", @42.0]]],
-    @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
-]                          defaultsKey:@"FontSize"]];
+    [displayItems addObject:[self submenuTitled:@"Time Format" action:@selector(setTimeFormat:)
+                                           pairs:@[@[@"24-hour", @"24h"], @[@"12-hour", @"12h"]]
+                                     defaultsKey:@"TimeFormat"]];
 
-    // Build Time Zone submenu with regional groups
+    [displayItems addObject:[self groupedSubmenuTitled:@"Font Size"
+                                                action:@selector(setFontSize:)
+                                                groups:@[
+        @[@"Small",  @[@[@"10", @10.0], @[@"12", @12.0], @[@"14", @14.0], @[@"16", @16.0]]],
+        @[@"Medium", @[@[@"18", @18.0], @[@"20", @20.0], @[@"22", @22.0], @[@"24", @24.0]]],
+        @[@"Large",  @[@[@"28", @28.0], @[@"32", @32.0], @[@"36", @36.0], @[@"42", @42.0]]],
+        @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
+    ]                                      defaultsKey:@"FontSize"]];
+
+    [displayItems addObject:[self submenuTitled:@"Transparency"
+                                          action:@selector(setCanvasOpacity:)
+                                           pairs:@[@[@"Opaque (100%)", @1.0],
+                                                   @[@"Solid (90%)",   @0.9],
+                                                   @[@"Glass (75%)",   @0.75],
+                                                   @[@"Medium (50%)",  @0.5],
+                                                   @[@"Faint (30%)",   @0.3],
+                                                   @[@"Ghost (15%)",   @0.15]]
+                                     defaultsKey:@"CanvasOpacity"]];
+
+    [m addItem:fcTopCategory(@"Display", displayItems)];
+
+    // === THEMES ===
+    NSMutableArray *themePairs = [NSMutableArray array];
+    for (size_t i = 0; i < kNumThemes; i++) {
+        NSString *display = [NSString stringWithUTF8String:kThemes[i].display];
+        NSString *idStr = [NSString stringWithUTF8String:kThemes[i].id];
+        [themePairs addObject:@[display, idStr]];
+    }
+    NSMutableArray *themeItems = [NSMutableArray array];
+    [themeItems addObject:[self submenuTitled:@"Top Segment (Local)"
+                                        action:@selector(setLocalTheme:)
+                                         pairs:themePairs defaultsKey:@"LocalTheme"]];
+    [themeItems addObject:[self submenuTitled:@"Active Markets"
+                                        action:@selector(setActiveTheme:)
+                                         pairs:themePairs defaultsKey:@"ActiveTheme"]];
+    [themeItems addObject:[self submenuTitled:@"Next To Open"
+                                        action:@selector(setNextTheme:)
+                                         pairs:themePairs defaultsKey:@"NextTheme"]];
+    [themeItems addObject:[NSMenuItem separatorItem]];
+    [themeItems addObject:[self submenuTitled:@"Legacy Global"
+                                        action:@selector(setColorTheme:)
+                                         pairs:themePairs defaultsKey:@"ColorTheme"]];
+
+    NSMenuItem *themesRoot = fcTopCategory(@"Themes", themeItems);
+    // Swatch decoration: each theme submenu's items get an NSImage swatch.
+    for (NSMenuItem *item in themesRoot.submenu.itemArray) {
+        if (item.submenu) {
+            NSArray *leaves = item.submenu.itemArray;
+            for (size_t i = 0; i < leaves.count && i < kNumThemes; i++) {
+                [(NSMenuItem *)leaves[i] setImage:swatchForTheme(&kThemes[i])];
+            }
+        }
+    }
+    [m addItem:themesRoot];
+
+    // === MARKET ===
+    NSMutableArray *marketItems = [NSMutableArray array];
+
+    // Time Zone submenu (regional groups).
     NSMutableArray *americasItems = [NSMutableArray array];
     NSMutableArray *europeItems   = [NSMutableArray array];
     NSMutableArray *asiaItems     = [NSMutableArray array];
     NSMutableArray *oceaniaItems  = [NSMutableArray array];
-
     for (size_t i = 1; i < kNumMarkets; i++) {
         NSString *display = [NSString stringWithUTF8String:kMarkets[i].display];
         NSString *idStr = [NSString stringWithUTF8String:kMarkets[i].id];
@@ -56,20 +129,14 @@
         else if (i <= 11)  [asiaItems addObject:pair];
         else               [oceaniaItems addObject:pair];
     }
-
     NSMenuItem *tzRoot = [[NSMenuItem alloc] initWithTitle:@"Time Zone" action:nil keyEquivalent:@""];
     NSMenu *tzSub = [[NSMenu alloc] init];
-
     NSMenuItem *localItem = [tzSub addItemWithTitle:@"Local Time" action:@selector(setMarket:) keyEquivalent:@""];
     localItem.representedObject = @"local";
     localItem.target = self;
     [tzSub addItem:[NSMenuItem separatorItem]];
-
-    for (NSArray *region in @[
-        @[@"Americas", americasItems],
-        @[@"Europe", europeItems],
-        @[@"Asia", asiaItems],
-        @[@"Oceania", oceaniaItems]]) {
+    for (NSArray *region in @[@[@"Americas", americasItems], @[@"Europe", europeItems],
+                              @[@"Asia", asiaItems], @[@"Oceania", oceaniaItems]]) {
         NSMenuItem *regionItem = [[NSMenuItem alloc] initWithTitle:region[0] action:nil keyEquivalent:@""];
         NSMenu *regionSub = [[NSMenu alloc] init];
         for (NSArray *pair in region[1]) {
@@ -80,66 +147,55 @@
         regionItem.submenu = regionSub;
         [tzSub addItem:regionItem];
     }
-
     tzRoot.submenu = tzSub;
-    [m addItem:tzRoot];
+    [marketItems addObject:tzRoot];
 
-    NSMenuItem *displayModeRoot = [[NSMenuItem alloc] initWithTitle:@"Display Mode" action:nil keyEquivalent:@""];
-    NSMenu *displayModeSub = [[NSMenu alloc] init];
+    // Date Format presets (used by LOCAL when ShowDate=YES).
+    [marketItems addObject:[self submenuTitled:@"Date Format"
+                                         action:@selector(setDateFormat:)
+                                          pairs:@[@[@"Short (Thu Apr 23)", @"short"],
+                                                  @[@"Long (Thursday April 23)", @"long"],
+                                                  @[@"ISO (2026-04-23)", @"iso"],
+                                                  @[@"Numeric (4/23)", @"numeric"],
+                                                  @[@"Week Number (Wk 17)", @"weeknum"],
+                                                  @[@"Day of Year (Day 114)", @"dayofyr"]]
+                                    defaultsKey:@"DateFormat"]];
 
-    NSMenuItem *threeSegItem = [displayModeSub addItemWithTitle:@"Three-Segment" action:@selector(setDisplayMode:) keyEquivalent:@""];
-    threeSegItem.representedObject = @"three-segment";
-    threeSegItem.target = self;
+    [marketItems addObject:[NSMenuItem separatorItem]];
 
-    NSMenuItem *singleMktItem = [displayModeSub addItemWithTitle:@"Single Market" action:@selector(setDisplayMode:) keyEquivalent:@""];
-    singleMktItem.representedObject = @"single-market";
-    singleMktItem.target = self;
+    // Display Mode submenu (three-segment / single-market / local-only).
+    NSMenuItem *dmRoot = [[NSMenuItem alloc] initWithTitle:@"Display Mode" action:nil keyEquivalent:@""];
+    NSMenu *dmSub = [[NSMenu alloc] init];
+    NSMenuItem *threeSeg = [dmSub addItemWithTitle:@"Three-Segment" action:@selector(setDisplayMode:) keyEquivalent:@""];
+    threeSeg.representedObject = @"three-segment";  threeSeg.target = self;
+    NSMenuItem *singleMkt = [dmSub addItemWithTitle:@"Single Market" action:@selector(setDisplayMode:) keyEquivalent:@""];
+    singleMkt.representedObject = @"single-market"; singleMkt.target = self;
+    NSMenuItem *localOnly = [dmSub addItemWithTitle:@"Local Only" action:@selector(setDisplayMode:) keyEquivalent:@""];
+    localOnly.representedObject = @"local-only";   localOnly.target = self;
+    dmRoot.submenu = dmSub;
+    [marketItems addObject:dmRoot];
 
-    NSMenuItem *localOnlyItem = [displayModeSub addItemWithTitle:@"Local Only" action:@selector(setDisplayMode:) keyEquivalent:@""];
-    localOnlyItem.representedObject = @"local-only";
-    localOnlyItem.target = self;
+    [m addItem:fcTopCategory(@"Market", marketItems)];
 
-    displayModeRoot.submenu = displayModeSub;
-    [m addItem:displayModeRoot];
+    // === PROFILE ===
+    // buildProfileMenu already returns an NSMenuItem titled "Profile" with
+    // full submenu machinery — promote it to the top level as-is.
+    NSMenuItem *profileItem = [self buildProfileMenu];
+    [m addItem:profileItem];
 
-    NSMutableArray *themePairs = [NSMutableArray array];
-    for (size_t i = 0; i < kNumThemes; i++) {
-        NSString *display = [NSString stringWithUTF8String:kThemes[i].display];
-        NSString *idStr = [NSString stringWithUTF8String:kThemes[i].id];
-        [themePairs addObject:@[display, idStr]];
-    }
-    [m addItem:[self submenuTitled:@"Color Theme (Local)"
-                         action:@selector(setLocalTheme:)
-                          pairs:themePairs defaultsKey:@"LocalTheme"]];
-    [m addItem:[self submenuTitled:@"Color Theme (Active)"
-                         action:@selector(setActiveTheme:)
-                          pairs:themePairs defaultsKey:@"ActiveTheme"]];
-    [m addItem:[self submenuTitled:@"Color Theme (Next)"
-                         action:@selector(setNextTheme:)
-                          pairs:themePairs defaultsKey:@"NextTheme"]];
-    [m addItem:[self submenuTitled:@"Color Theme (Legacy)"
-                         action:@selector(setColorTheme:)
-                          pairs:themePairs defaultsKey:@"ColorTheme"]];
-
-    for (NSMenuItem *rootItem in m.itemArray) {
-        if (([rootItem.title isEqualToString:@"Color Theme (Local)"] ||
-             [rootItem.title isEqualToString:@"Color Theme (Active)"] ||
-             [rootItem.title isEqualToString:@"Color Theme (Next)"] ||
-             [rootItem.title isEqualToString:@"Color Theme (Legacy)"]) && rootItem.submenu) {
-            NSArray *subItems = rootItem.submenu.itemArray;
-            for (size_t i = 0; i < subItems.count && i < kNumThemes; i++) {
-                [(NSMenuItem *)subItems[i] setImage:swatchForTheme(&kThemes[i])];
-            }
-        }
-    }
-
-    [m addItem:[NSMenuItem separatorItem]];
-    [m addItemWithTitle:@"Reset Position" action:@selector(resetPosition:) keyEquivalent:@""];
-
-    [m addItem:[NSMenuItem separatorItem]];
-    [m addItemWithTitle:@"About Floating Clock" action:@selector(showAbout:) keyEquivalent:@""];
-    NSMenuItem *quitItem = [m addItemWithTitle:@"Quit Floating Clock" action:@selector(quit:) keyEquivalent:@"q"];
+    // === WINDOW ===
+    NSMutableArray *windowItems = [NSMutableArray array];
+    [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"Reset Position"
+                                                       action:@selector(resetPosition:) keyEquivalent:@""]];
+    [windowItems addObject:[NSMenuItem separatorItem]];
+    [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"About Floating Clock"
+                                                       action:@selector(showAbout:) keyEquivalent:@""]];
+    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit Floating Clock"
+                                                       action:@selector(quit:) keyEquivalent:@"q"];
     quitItem.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+    [windowItems addObject:quitItem];
+
+    [m addItem:fcTopCategory(@"Window", windowItems)];
 
     return m;
 }
