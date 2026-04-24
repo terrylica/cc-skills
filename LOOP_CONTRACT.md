@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 118
+iteration: 119
 status: ACTIVE
-last_updated: 2026-04-24T11:30:00Z
+last_updated: 2026-04-24T11:40:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -552,3 +552,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 11:10 UTC — iter-116: **FCDensityPadPoints extracted + test** (1dceed64). Layout.m's 5-line if-else for iter-99's 6 Density presets (ultracompact/compact/default/comfortable/spacious/cavernous) moved to `Sources/core/DensityPad.{h,m}`. Tests +1 (37 total): locks all 6 values + nil/empty/unknown → 24pt default fallback. 37/37 green.
 - 2026-04-24 11:20 UTC — iter-117: **FCCornerRadiusPoints extracted + lean test** (d414bfb4). Layout.m's cornerRadiusFor block for iter-97's 8 CornerStyle presets moved to `Sources/core/CornerRadius.{h,m}`. Unique: `pill` takes (w, h) so radius depends on shorter axis. Tests +1 (38 total) — lean version (8 cases + pill-both-orientations + nil/unknown fallback) because test_session.m hit 994/1000 LoC. **Flag**: iter-118 must split the harness before more tests land. 38/38 green.
 - 2026-04-24 11:30 UTC — iter-118: **test harness split** (29ca9877). Resolved iter-117's backlog. Moved the 14 pref-lever / dispatcher invariant tests into new `tests/test_levers.{h,m}` (373 LoC); session-state / TZ-helper / flag / city / landing / profile-coverage tests + main() stay in `tests/test_session.m` (453 LoC). Shared `failures` counter declared `extern int failures` in `test_levers.h`, defined non-static in test_session.m. Makefile's TEST_SOURCES picks up both translation units. Both files have ~550 LoC headroom before cap. 38/38 still green.
+- 2026-04-24 11:40 UTC — iter-119: **backfill lean CornerRadius test** (dc33b5f4). Promoted iter-117's lean individual-assertion form to the struct-loop pattern used by other lever tests (Density / SegmentGap). Covers all 8 CornerStyle presets + pill-both-orientations + nil/empty/unknown → rounded fallback. 38/38 still green. test_levers.m 400 LoC.
