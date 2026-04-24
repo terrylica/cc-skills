@@ -288,7 +288,7 @@ static NSArray<NSString *> *profileManagedKeys(void) {
     return @[
         @"DisplayMode", @"LocalTheme", @"ActiveTheme", @"NextTheme", @"ColorTheme",
         @"FontName", @"FontSize", @"ShowSeconds", @"ShowDate", @"TimeFormat",
-        @"DateFormat",
+        @"DateFormat", @"CanvasOpacity",
         @"ActiveBarCells", @"NextItemCount", @"SelectedMarket",
     ];
 }
@@ -565,6 +565,7 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
 - (void)setDisplayMode:(NSMenuItem *)sender;
 - (void)setActiveBarCells:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;
+- (void)setCanvasOpacity:(NSMenuItem *)sender;
 - (NSMenu *)buildLocalSegmentMenu;
 - (NSMenu *)buildActiveSegmentMenu;
 - (NSMenu *)buildNextSegmentMenu;
@@ -627,6 +628,7 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
         @"ActiveBarCells": @7,
         @"NextItemCount": @3,
         @"DateFormat": @"short",
+        @"CanvasOpacity": @1.0,
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
@@ -1473,8 +1475,18 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
 }
 
 - (void)applyDisplaySettings {
-    NSString *mode = [[NSUserDefaults standardUserDefaults] stringForKey:@"DisplayMode"];
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *mode = [d stringForKey:@"DisplayMode"];
     if (!mode) mode = @"three-segment";
+
+    // Canvas-wide transparency. NSWindow.alphaValue dims the entire panel +
+    // all subviews uniformly — a single global dimmer on top of the
+    // per-theme background alphas. Clamped to [0.10, 1.0] so the clock is
+    // never fully invisible.
+    double op = [d objectForKey:@"CanvasOpacity"] ? [d doubleForKey:@"CanvasOpacity"] : 1.0;
+    if (op < 0.10) op = 0.10;
+    if (op > 1.00) op = 1.00;
+    self.alphaValue = op;
 
     if ([mode isEqualToString:@"three-segment"]) {
         [self applyThreeSegmentLayout];
@@ -1543,11 +1555,18 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
 
     _localSeg.timeLabel.font = primaryFont;
-    [_localSeg.timeLabel sizeToFit];
-    NSSize localSize = _localSeg.timeLabel.frame.size;
-    if (localSize.width < 10) {
-        localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
-    }
+    // Measure LOCAL content via sizeWithAttributes on the actual string —
+    // sizeToFit mutates the label's frame and can leave it in a state where
+    // later frame assignments don't re-center properly. Direct attribute
+    // measurement is predictable and doesn't touch the cell.
+    NSString *localStr = _localSeg.timeLabel.stringValue.length > 0
+        ? _localSeg.timeLabel.stringValue : @"HH:MM:SS";
+    NSSize localSize = [localStr sizeWithAttributes:primaryAttrs];
+    // Force center-alignment + single-line every relayout. setStringValue
+    // can reset cell state on some AppKit paths; reapply to be safe.
+    _localSeg.timeLabel.alignment = NSTextAlignmentCenter;
+    _localSeg.timeLabel.cell.alignment = NSTextAlignmentCenter;
+    _localSeg.timeLabel.usesSingleLineMode = YES;
 
     NSSize activeSize = measureAttributedUnwrapped(_activeSeg.contentLabel.attributedStringValue);
     if (activeSize.height < 10) {
@@ -1803,6 +1822,14 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     }
 }
 
+- (void)setCanvasOpacity:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
+        [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue]
+                                                  forKey:@"CanvasOpacity"];
+        [self applyDisplaySettings];
+    }
+}
+
 - (void)setActiveBarCells:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
         [[NSUserDefaults standardUserDefaults] setInteger:[sender.representedObject integerValue] forKey:@"ActiveBarCells"];
@@ -1872,6 +1899,18 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
         @[@"Large",  @[@[@"28", @28.0], @[@"32", @32.0], @[@"36", @36.0], @[@"42", @42.0]]],
         @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
     ]                           defaultsKey:@"FontSize"]];
+
+    // Canvas-wide transparency (applies to the entire window, not just LOCAL).
+    // Values are NSWindow.alphaValue — 1.0 opaque, 0.10 ghost.
+    [m addItem:[self submenuTitled:@"Transparency"
+                             action:@selector(setCanvasOpacity:)
+                              pairs:@[@[@"Opaque (100%)", @1.0],
+                                      @[@"Solid (90%)",   @0.9],
+                                      @[@"Glass (75%)",   @0.75],
+                                      @[@"Medium (50%)",  @0.5],
+                                      @[@"Faint (30%)",   @0.3],
+                                      @[@"Ghost (15%)",   @0.15]]
+                        defaultsKey:@"CanvasOpacity"]];
 
     [m addItem:[NSMenuItem separatorItem]];
     [m addItem:[self buildProfileMenu]];
