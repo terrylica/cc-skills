@@ -354,7 +354,7 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     alert.messageText = [NSString stringWithFormat:@"Floating Clock %@", vers];
     alert.informativeText = [NSString stringWithFormat:
         @"Always-on-top floating desktop clock for macOS.\n\n"
-         "• 27 color themes · 12 Quick Style moods (Brutalist / Zen / Retro CRT / Executive / Neon / Hacker / Glacier / Midnight / Featherlight / Industrial / Trading Floor / Scholar)\n"
+         "• 28 color themes · 13 Quick Style moods (Brutalist / Zen / Retro CRT / Executive / Neon / Hacker / Glacier / Midnight / Featherlight / Industrial / Trading Floor / Scholar / Samba)\n"
          "• 13 major global exchanges (Americas / Europe / Africa / Asia / Oceania) with 5-state session tracking (OPEN · LUNCH · PRE-MARKET · AFTER-HOURS · CLOSED)\n"
          "• SessionSignalWindow lever controls PRE/AFTER auction gate (off / 5-60 min)\n"
          "• Three-segment dashboard · 6 bundled profiles · per-segment Theme / Opacity / Weight\n"
