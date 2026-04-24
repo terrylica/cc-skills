@@ -161,6 +161,28 @@
     [self applyDisplaySettings];
 }
 
+// v4 iter-85: dump a plain-text snapshot of the current clock to the
+// system clipboard. Useful for sharing state in chat/notes. Uses the
+// same attributed-string content that the UI renders so formatting
+// stays in sync automatically.
+- (void)copyStateToClipboard:(id)sender {
+    NSMutableString *snapshot = [NSMutableString string];
+    if (_localSeg && _localSeg.timeLabel.stringValue.length > 0) {
+        [snapshot appendString:_localSeg.timeLabel.stringValue];
+        [snapshot appendString:@"\n\n"];
+    }
+    if (_activeSeg && _activeSeg.contentLabel.attributedStringValue.string.length > 0) {
+        [snapshot appendString:_activeSeg.contentLabel.attributedStringValue.string];
+        [snapshot appendString:@"\n"];
+    }
+    if (_nextSeg && _nextSeg.contentLabel.attributedStringValue.string.length > 0) {
+        [snapshot appendString:_nextSeg.contentLabel.attributedStringValue.string];
+    }
+    NSPasteboard *pb = [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:snapshot forType:NSPasteboardTypeString];
+}
+
 - (void)setDensity:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSString class]]) {
         [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"Density"];
