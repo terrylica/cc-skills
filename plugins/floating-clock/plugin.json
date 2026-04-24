@@ -1,7 +1,7 @@
 {
   "name": "floating-clock",
-  "version": "1.5.0",
-  "description": "Always-on-top floating desktop clock for macOS — multi-file Objective-C NSPanel with three-segment dashboard (LOCAL · ACTIVE MARKETS · NEXT TO OPEN). 6 bundled profiles (Default / Day Trader / Night Owl / Minimalist / Researcher / Watch Party). 12 major exchanges with live session state, IANA-backed DST, regional TZ abbreviations (PDT/BST/CEST/JST/etc.) + UTC reference. Rocket-launch T-HH:MM:SS countdown (progressive to T-Nd Hh MMm at ≥24h). Urgency-tiered green/amber/red. Tabulated sections with frosted-glass (RMBlurredView). v1.5 aesthetic expansion: 25 color themes, 10 progress-bar glyphs, 8 corner styles, 7 shadow presets, 6 density profiles, global + per-segment FontWeight (5 levels) and Transparency, LetterSpacing + LineSpacing typographic axes, 5 TimeSeparator choices. Sub-0.1% idle CPU. 31-fixture unit-test harness (make test).",
+  "version": "1.6.0",
+  "description": "Always-on-top floating desktop clock for macOS — multi-file Objective-C NSPanel with three-segment dashboard (LOCAL · ACTIVE MARKETS · NEXT TO OPEN). 6 bundled profiles + 8 Quick Style moods (Brutalist / Zen / Retro CRT / Executive / Neon / Hacker / Glacier / Midnight). 12 major exchanges with live session state, IANA-backed DST. Rocket-launch T-HH:MM:SS countdown (progressive to T-Nd Hh MMm at ≥24h). Urgency-tiered green/amber/red. Tabulated sections with frosted-glass. Aesthetic surface: 25 color themes · 10 progress-bar glyphs · 8 corner styles · 7 shadow presets · 7 segment-gap presets · 6 density profiles · 5-phase sun/moon glyph · global + per-segment FontWeight/Transparency · LetterSpacing/LineSpacing typography axes · 5 TimeSeparator choices · 9 DateFormat locales. v1.6 hardens every dispatcher with unit-test coverage (39 fixtures across test_session.m + test_levers.m). Sub-0.1% idle CPU, ~216 KB signed binary.",
   "author": {
     "name": "<user>ca",
     "url": "https://github.com/terrylica"
