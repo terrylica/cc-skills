@@ -81,9 +81,13 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     // v4 iter-201: title suppressed — [NEXT] bottom-left canonical
     // label (iter-199) is the section identifier. Legend + hrule stay
     // because they describe the column format.
+    // v4 iter-208: legend reordered to match the new row layout —
+    // countdown moved to the END of each row (was leading), so the
+    // legend mirrors the new chronological sequence: your time →
+    // market time → session → countdown.
     FCAppendSectionHeader(out, font,
         @"",
-        @"countdown · your time → market time · session",
+        @"your time → market time · session · countdown",
         headerColor, dimColor, FCDividerRuleColor());
 
     int maxItems = entryCount < maxN ? entryCount : (int)maxN;
@@ -143,41 +147,36 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         }
         NSString *suffix = e.isLunchResume ? @" LUNCH" : @"";
 
-        [out appendAttributedString:[[NSAttributedString alloc]
-            initWithString:@"  " attributes:@{NSFontAttributeName: font}]];
-        [out appendAttributedString:[[NSAttributedString alloc]
-            initWithString:glyph
-            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: glyphColor}]];
+        // v4 iter-208: user directive — remove leading glyph bullet
+        // (flag emoji already acts as the row bullet), remove the
+        // 2-space indent that was there to align with the glyph, and
+        // emit flag + code on the first line WITHOUT a countdown.
+        // Countdown is appended at the END of the second line (below)
+        // so the chronological sequence reads your-time → market-time
+        // → session → countdown.
+        (void)glyph; (void)glyphColor;  // iter-208: no longer rendered inline
         const char *flag = [d boolForKey:@"ShowFlags"] ? flagForIana(e.mkt->iana) : "";
         if (flag[0] != 0) {
-            NSString *flagStr = [@" " stringByAppendingString:[NSString stringWithUTF8String:flag]];
+            NSString *flagStr = [NSString stringWithUTF8String:flag];
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:flagStr
                 attributes:@{NSFontAttributeName: ([NSFont fontWithName:@"Apple Color Emoji" size:fontSize] ?: [NSFont systemFontOfSize:fontSize])}]];
         }
-        NSString *codeLabel = [NSString stringWithFormat:@" %-4s ", [code UTF8String]];
+        NSString *codeLabel = [NSString stringWithFormat:@" %-4s", [code UTF8String]];
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:codeLabel
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
         // v4 iter-45: symmetric urgency tiers with iter-44 (ACTIVE close).
-        // v4 iter-73: routed through shared FCUrgencyColorForSecs —
-        // single source of truth for thresholds & palette across both
-        // sections. Only bounded countdowns (<=99h) get tiered; >99h
-        // opens use absolute-date form.
+        // v4 iter-73: routed through shared FCUrgencyColorForSecs.
+        // v4 iter-208: countdown color still computed here but the
+        // glyph used to own the opacity here — now countdown color
+        // carries the urgency signal on its own.
         NSColor *countdownColor = (e.secs <= kFCMaxBoundedCountdownSecs)
             ? FCUrgencyColorForSecs(e.secs, headerColor)
             : headerColor;
-        // v4 iter-66: dropped the "until open" / "until lunch ends"
-        // suffix — redundant with the segment's 'NEXT TO OPEN' title
-        // and the column-header legend. Lunch-resume entries keep the
-        // "LUNCH" suffix tag since that's a distinct state signal
-        // (purple glyph ◑ alone isn't verbose-accessible).
-        NSString *firstLine = (e.secs <= kFCMaxBoundedCountdownSecs)
+        NSString *countdownStr = (e.secs <= kFCMaxBoundedCountdownSecs)
             ? [NSString stringWithFormat:@"%@%@", formatCountdownFancy(e.secs), suffix]
-            : countdown;  // >99h: use the existing absolute-date form
-        [out appendAttributedString:[[NSAttributedString alloc]
-            initWithString:firstLine
-            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
+            : countdown;
 
         // v4 iter-60: richer second-line layout per market — surfaces the
         // market's own-TZ open time + session duration, matching what
@@ -213,17 +212,33 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
                 }
             }
 
-            // v4 iter-69: align the second line under the market code
-            // column. Prior " 2-space-indent" placed └─ under the state
-            // glyph, making the pair look loose. 8 spaces lands └─
-            // roughly under the code (after "  ○ 🇺🇸 " = 2+1+1+3 ≈ 7-8
-            // mono cells — flag emoji counts as ~2 cells wide). Tighter
-            // visual binding of parent/child row.
-            NSString *secondLine = [NSString stringWithFormat:@"\n        └─ %@ → %@%@",
+            // v4 iter-69 → v4 iter-208: iter-208 removed the leading
+            // glyph from line 1, so the indent re-aligns under the
+            // flag+code column (flag ~2 cells + space + 4-char code +
+            // space ≈ 8 cells). Keep └─ anchored via 4-space indent
+            // now that the first line starts at col 0 (no 2-space
+            // indent). Append the countdown at the END — user
+            // directive "chronological sequence: your time → market
+            // time → session → countdown".
+            NSString *secondLinePrefix = [NSString stringWithFormat:@"\n    └─ %@ → %@%@  ",
                 localAt, mktAt, durStr];
             [out appendAttributedString:[[NSAttributedString alloc]
-                initWithString:secondLine
+                initWithString:secondLinePrefix
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
+            // Countdown at line-end, in its urgency color — the row's
+            // visual focal point moves from row-leading (old) to row-
+            // trailing (new), matching a left-to-right chronological
+            // scan your-time → market-time → session → countdown.
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:countdownStr
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
+        } else {
+            // >99h case: append countdown (absolute-date form) still
+            // at the end of the row. There's no second line in this
+            // branch, so it follows right after flag + code.
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:[@"  " stringByAppendingString:countdownStr]
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
         }
 
         // v4 iter-63: horizontal rule between entries — clear tabular

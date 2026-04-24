@@ -175,11 +175,17 @@ NSString *formatCountdownFancy(long secs) {
     // NSDateComponentsFormatter because we want fixed 'T-' prefix and
     // zero-padded hours/minutes for column alignment.
     if (secs >= kFCSecondsPerDay) {
+        // v4 iter-208: include seconds so every countdown visibly
+        // ticks — user directive "all time displays must include
+        // second granularity". Prior format 'T-Nd Hh MMm' had no
+        // motion. Now 'T-Nd Hh MMm SSs' ticks every second even at
+        // day-scale, matching the sub-day T-HH:MM:SS format.
         long days  = secs / kFCSecondsPerDay;
         long rem   = secs % kFCSecondsPerDay;
         long hours = rem / 3600;
         long mins  = (rem % 3600) / 60;
-        return [NSString stringWithFormat:@"T-%ldd %ldh %02ldm", days, hours, mins];
+        long rsecs = rem % 60;
+        return [NSString stringWithFormat:@"T-%ldd %ldh %02ldm %02lds", days, hours, mins, rsecs];
     }
     long hours = secs / 3600;
     long rem   = secs % 3600;
