@@ -65,10 +65,18 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     // at top and between entries so each market is clearly delimited
     // as a unit. Horizontal rule uses light-weight U+2500 '─' at length
     // 44, which fits comfortably in the NEXT segment at 11pt.
+    // v4 iter-66: column-header legend replaces per-row repeated words.
+    // Prior rendering repeated 'until open', 'local', and 'session' on
+    // every row. A single legend line under the title labels them once
+    // as semantic columns; each row then becomes pure data. Classic
+    // table tabulation.
     NSString *hrule = @"────────────────────────────────────────────";
     [out appendAttributedString:[[NSAttributedString alloc]
         initWithString:@"NEXT TO OPEN\n"
         attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+    [out appendAttributedString:[[NSAttributedString alloc]
+        initWithString:@"countdown · your time → market time · session\n"
+        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
     [out appendAttributedString:[[NSAttributedString alloc]
         initWithString:[hrule stringByAppendingString:@"\n"]
         attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
@@ -152,12 +160,13 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             if (e.secs < 1800)      countdownColor = [NSColor colorWithRed:0.95 green:0.40 blue:0.40 alpha:1.0];
             else if (e.secs < 3600) countdownColor = [NSColor colorWithRed:0.95 green:0.75 blue:0.30 alpha:1.0];
         }
-        // v4 iter-60: compact first line = "T-HH:MM:SS until open".
+        // v4 iter-66: dropped the "until open" / "until lunch ends"
+        // suffix — redundant with the segment's 'NEXT TO OPEN' title
+        // and the column-header legend. Lunch-resume entries keep the
+        // "LUNCH" suffix tag since that's a distinct state signal
+        // (purple glyph ◑ alone isn't verbose-accessible).
         NSString *firstLine = (e.secs <= 99 * 3600)
-            ? [NSString stringWithFormat:@"%@ %@%@",
-               formatCountdownFancy(e.secs),
-               e.isLunchResume ? @"until lunch ends" : @"until open",
-               suffix]
+            ? [NSString stringWithFormat:@"%@%@", formatCountdownFancy(e.secs), suffix]
             : countdown;  // >99h: use the existing absolute-date form
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:firstLine
@@ -178,6 +187,9 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             BOOL sameDay = (nowC.year == landC.year && nowC.month == landC.month && nowC.day == landC.day);
             NSDateFormatter *localFmt = [[NSDateFormatter alloc] init];
             localFmt.timeZone = localTz;
+            // v4 iter-66: dropped trailing 'local' — covered by the
+            // column-header legend ("your time"). Cross-day still
+            // suffixes weekday for disambiguation (iter-49).
             localFmt.dateFormat = sameDay ? @"HH:mm" : @"HH:mm EEE";
             NSString *localAt = [localFmt stringFromDate:landsAt];
 
@@ -197,6 +209,8 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             // events share the session — skip dur line for them since
             // the second line would be misleading ("6h30m" isn't the
             // lunch window).
+            // v4 iter-66: duration now just "6h30m" (no " session"
+            // suffix — the column legend says 'session').
             NSString *durStr = @"";
             if (!e.isLunchResume) {
                 int openMins  = e.mkt->open_h * 60 + e.mkt->open_m;
@@ -206,14 +220,14 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
                     int dh = durMins / 60;
                     int dm = durMins % 60;
                     durStr = (dm == 0)
-                        ? [NSString stringWithFormat:@" · %dh session", dh]
-                        : [NSString stringWithFormat:@" · %dh%02dm session", dh, dm];
+                        ? [NSString stringWithFormat:@" · %dh", dh]
+                        : [NSString stringWithFormat:@" · %dh%02dm", dh, dm];
                 }
             }
 
             // v4 iter-63: tree-style └─ prefix visually binds the
             // second line to its parent entry above.
-            NSString *secondLine = [NSString stringWithFormat:@"\n  └─ %@ local → %@%@",
+            NSString *secondLine = [NSString stringWithFormat:@"\n  └─ %@ → %@%@",
                 localAt, mktAt, durStr];
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:secondLine
