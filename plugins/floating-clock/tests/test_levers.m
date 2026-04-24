@@ -129,8 +129,8 @@ void test_progress_bar_glyph_styles(void) {
 }
 
 void test_theme_catalog_invariants(void) {
-    if (kNumThemes != 25) {
-        fprintf(stderr, "FAIL %s: expected 25 themes got %zu\n", __func__, kNumThemes);
+    if (kNumThemes != 27) {
+        fprintf(stderr, "FAIL %s: expected 27 themes got %zu\n", __func__, kNumThemes);
         failures++;
     }
     for (size_t i = 0; i < kNumThemes; i++) {
