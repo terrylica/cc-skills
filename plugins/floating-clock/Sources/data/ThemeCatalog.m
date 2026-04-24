@@ -43,6 +43,12 @@ const ClockTheme kThemes[] = {
     // from the warm amber/red/carnival themes and from the more
     // desaturated nord / tokyo_night. 29th theme.
     {"aurora",        "Aurora",         0.35, 0.92, 0.82,  0.03, 0.05, 0.12, 0.45},
+    // v4 iter-222: architectural minimalist — desaturated cool gray
+    // foreground on charcoal background. Fills the gap between
+    // nord (blue-tinted gray) and high_contrast (pure white-on-black):
+    // Concrete is genuinely chromaless, evoking poured-concrete
+    // surfaces / brutalist office aesthetics. 30th theme — milestone.
+    {"concrete",      "Concrete",       0.78, 0.80, 0.82,  0.12, 0.13, 0.14, 0.55},
 };
 const size_t kNumThemes = sizeof(kThemes) / sizeof(kThemes[0]);
 
