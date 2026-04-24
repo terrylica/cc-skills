@@ -248,8 +248,8 @@ Design notes:
 ### Near-term
 
 - Holiday awareness (bundled annual JSON per exchange, refreshed yearly)
-- Pre-open / after-hours auction as distinct states (with distinct glyphs + urgency tiers)
 - System appearance (light/dark) auto-adjust of themes
+- Copy Time / Copy segments keyboard shortcuts (requires global event tap for LSUIElement)
 
 ### Tier-3
 
@@ -270,3 +270,7 @@ Design notes:
 - ~~Urgency color tiers on ACTIVE + NEXT countdowns~~ — iter-44/45
 - ~~NEXT cross-day weekday disambiguation~~ — iter-49
 - ~~Unit test harness for session-state + TZ helpers~~ — iter-50/51
+- ~~PRE-MARKET state (15-min amber ◐ pre-open window)~~ — iter-123
+- ~~AFTER-HOURS state (15-min rose ◒ post-close window)~~ — iter-125
+- ~~User-configurable SessionSignalWindow (off / 5-60 min)~~ — iter-126
+- ~~Copy Time / Active Markets / Next Opens to clipboard~~ — iter-149/150
