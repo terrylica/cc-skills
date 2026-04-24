@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 140
+iteration: 141
 status: ACTIVE
-last_updated: 2026-04-24T15:10:00Z
+last_updated: 2026-04-24T15:20:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -574,3 +574,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 14:50 UTC — iter-138: **LineSpacing catalog 5 → 7** (27ec3d0e). Completes the typography-trilogy bracket-expansion pattern (FontWeight iter-129, LetterSpacing iter-137, LineSpacing now). Added `spacious` (10pt) and `cavernous` (14pt) on upper end — tight=0pt is the natural floor so expansion goes upward only. Naming matches Density / SegmentGap's cavernous convention. FCParseLineSpacing extended; Line Spacing submenu grows to 7 entries with inline pt annotations; test_line_spacing_parser (table-driven) gets 2 new rows; Quick Styles allowed-set widened. No test-count change (49/49). Warning-free, CLAUDE.md Runtime Preferences updated.
 - 2026-04-24 15:00 UTC — iter-139: **TimeSeparator catalog 5 → 7** (c618e4d4). TimeSeparator was the last 5-preset typographic axis untouched. Added `pipe` (|) and `plus` (+) — both distinct from existing colon/middot/space/slash/dash. FCCurrentTimeFormat extended with two UTS#35-quoted literals; Time Separator submenu grows to 7 entries with inline previews; test_current_time_format (table-driven) gets 2 new rows; Quick Styles allowed-set widened. Post-iter-139, all six 5-preset axes (FontWeight / LetterSpacing / LineSpacing / SegmentGap / CornerStyle / Density / TimeSeparator) are now at ≥6 presets. 49/49 still pass, warning-free.
 - 2026-04-24 15:10 UTC — iter-140: **Auction Watcher starter profile** (28a4f488). Pivot from pref-catalog expansion to bundled-profile packaging. Showcases the iter-123/125/126 auction-window cluster + recent aesthetic additions (iter-132 volcanic theme, iter-129 black weight, iter-131 triangles progress bar). Three-segment (so NEXT shows ◐ / ◒), volcanic/espresso themes, black weight, compact density, hairline corners, crisp shadow — "precision readout" identity. 29 non-exempt keys specified per iter-55 coverage invariant. `test_starter_profiles_count` bumped 6 → 7; `test_starter_profiles_cover_all_keys` auto-validates. 49/49 still pass, warning-free, CLAUDE.md ActiveProfile row updated.
+- 2026-04-24 15:20 UTC — iter-141: **NEXT segment renders real state glyphs** (e8c9cca2). Caught a real bug while verifying iter-140: iter-123/125 introduced PRE-MARKET (◐ amber) and AFTER-HOURS (◒ rose) states, and iter-125 added them to NextSegmentContentBuilder's filter — but the render loop then hardcoded `glyph = lunch ? ◑ : ○` (violet/gray). PRE/AFTER entries appeared with generic gray ○, silently invisible. Fix: preserve `state` on NextEntry struct, then use `glyphForState(e.state)` + `colorForState(e.state, NULL)`. CLOSED/LUNCH behavior unchanged; PRE/AFTER now render their proper amber/rose. iter-140's Auction Watcher profile now actually showcases what it advertised. 49/49 still pass; rendering is attributed-string layout, not easily unit-testable but narrow and covered by compiler exhaustiveness on SessionState.
