@@ -29,8 +29,18 @@
     if (!self) return nil;
 
     self.wantsLayer = YES;
-    self.layer.backgroundColor = [NSColor colorWithRed:0.05 green:0.05 blue:0.05 alpha:0.50].CGColor;
     self.layer.cornerRadius = 6.0;
+    self.layer.masksToBounds = YES;
+
+    // v4 iter-67: RMBlurredView frosted glass (iter-65 consistency pass).
+    // Slightly lower saturation and neutral tint — LOCAL is the calm
+    // anchor row; heavy saturation would steal focus from ACTIVE/NEXT.
+    RMBlurredView *blurView = [[RMBlurredView alloc] initWithFrame:self.bounds];
+    blurView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    blurView.blurRadius = 16.0;
+    blurView.saturationFactor = 1.8;
+    blurView.tintColor = [NSColor colorWithCalibratedWhite:0.06 alpha:0.40];
+    [self addSubview:blurView];
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
     VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
@@ -59,8 +69,18 @@
     if (!self) return nil;
 
     self.wantsLayer = YES;
-    self.layer.backgroundColor = [NSColor colorWithRed:0.02 green:0.08 blue:0.04 alpha:0.50].CGColor;
     self.layer.cornerRadius = 6.0;
+    self.layer.masksToBounds = YES;
+
+    // v4 iter-67: RMBlurredView frosted glass (iter-65 consistency pass).
+    // Green-tinted — matches the live-markets energy and differentiates
+    // from NEXT's neutral dark tint.
+    RMBlurredView *activeBlur = [[RMBlurredView alloc] initWithFrame:self.bounds];
+    activeBlur.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    activeBlur.blurRadius = 20.0;
+    activeBlur.saturationFactor = 2.4;
+    activeBlur.tintColor = [NSColor colorWithCalibratedRed:0.04 green:0.12 blue:0.06 alpha:0.40];
+    [self addSubview:activeBlur];
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
     VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
