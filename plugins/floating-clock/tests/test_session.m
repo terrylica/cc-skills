@@ -20,6 +20,7 @@
 #import "../Sources/rendering/FontResolver.h"
 #import "../Sources/rendering/SegmentOpacityResolver.h"
 #import "../Sources/data/ThemeCatalog.h"
+#import "../Sources/preferences/FloatingClockQuickStyles.h"
 
 static int failures = 0;
 
@@ -664,6 +665,74 @@ static void test_line_spacing_parser(void) {
     }
 }
 
+static void test_quick_styles_invariants(void) {
+    // iter-104: each Quick Style bundle must pass basic sanity checks.
+    // Structure: outer array of @[displayName, bundleDict].
+    NSArray<NSArray *> *styles = buildQuickStyles();
+    if (styles.count == 0) {
+        fprintf(stderr, "FAIL %s: empty catalog\n", __func__); failures++;
+        return;
+    }
+
+    // Allowed value sets for each aesthetic pref key. Locks typo-proofness.
+    NSDictionary *allowed = @{
+        @"CornerStyle":    [NSSet setWithArray:@[@"sharp", @"hairline", @"micro", @"rounded",
+                                                  @"soft", @"squircle", @"jumbo", @"pill"]],
+        @"ShadowStyle":    [NSSet setWithArray:@[@"none", @"subtle", @"lifted", @"glow",
+                                                  @"crisp", @"plinth", @"halo"]],
+        @"Density":        [NSSet setWithArray:@[@"ultracompact", @"compact", @"default",
+                                                  @"comfortable", @"spacious", @"cavernous"]],
+        @"FontWeight":     [NSSet setWithArray:@[@"regular", @"medium", @"semibold",
+                                                  @"bold", @"heavy"]],
+        @"LetterSpacing":  [NSSet setWithArray:@[@"compact", @"tight", @"normal", @"airy", @"wide"]],
+        @"LineSpacing":    [NSSet setWithArray:@[@"tight", @"snug", @"normal", @"loose", @"airy"]],
+        @"TimeSeparator":  [NSSet setWithArray:@[@"colon", @"middot", @"space", @"slash", @"dash"]],
+    };
+
+    for (NSArray *style in styles) {
+        if (style.count != 2) {
+            fprintf(stderr, "FAIL %s: malformed entry\n", __func__); failures++;
+            continue;
+        }
+        NSString *name = style[0];
+        NSDictionary *bundle = style[1];
+        if (![name isKindOfClass:[NSString class]] || name.length == 0) {
+            fprintf(stderr, "FAIL %s: empty display name\n", __func__); failures++;
+            continue;
+        }
+        if (![bundle isKindOfClass:[NSDictionary class]] || bundle.count == 0) {
+            fprintf(stderr, "FAIL %s: '%s' has empty bundle\n",
+                    __func__, name.UTF8String); failures++;
+            continue;
+        }
+
+        // Theme values round-trip via themeForId (catches theme-id typos).
+        for (NSString *themeKey in @[@"LocalTheme", @"ActiveTheme", @"NextTheme"]) {
+            NSString *themeId = bundle[themeKey];
+            if (themeId == nil) continue;
+            const ClockTheme *resolved = themeForId(themeId);
+            NSString *resolvedId = [NSString stringWithUTF8String:resolved->id];
+            if (![resolvedId isEqualToString:themeId]) {
+                fprintf(stderr, "FAIL %s: '%s' → %s = '%s' unresolved\n",
+                        __func__, name.UTF8String, themeKey.UTF8String,
+                        themeId.UTF8String); failures++;
+            }
+        }
+
+        // Remaining enum-valued keys must be in their allowed sets.
+        for (NSString *k in allowed) {
+            id v = bundle[k];
+            if (v == nil) continue;
+            NSSet *set = allowed[k];
+            if (![set containsObject:v]) {
+                fprintf(stderr, "FAIL %s: '%s' → %s='%s' not in allowed set\n",
+                        __func__, name.UTF8String, k.UTF8String,
+                        [v description].UTF8String); failures++;
+            }
+        }
+    }
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -703,9 +772,10 @@ int main(void) {
         test_theme_catalog_invariants();
         test_letter_spacing_parser();
         test_line_spacing_parser();
+        test_quick_styles_invariants();
 
         if (failures == 0) {
-            fprintf(stderr, "All 31 tests passed.\n");
+            fprintf(stderr, "All 32 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
