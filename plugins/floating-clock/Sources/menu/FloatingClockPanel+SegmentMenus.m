@@ -198,9 +198,12 @@
 
     [m addItem:[NSMenuItem separatorItem]];
 
+    // v4 iter-101: Show Count 4 → 7 presets. 12 exchanges → up to ~11 can
+    // be CLOSED at once, so values up to 10 are meaningful.
     [m addItem:[self submenuTitled:@"Show Count"
                              action:@selector(setNextItemCount:)
-                              pairs:@[@[@"1", @1], @[@"2", @2], @[@"3", @3], @[@"5", @5]]
+                              pairs:@[@[@"1",  @1], @[@"2", @2], @[@"3", @3], @[@"4", @4],
+                                      @[@"5",  @5], @[@"7", @7], @[@"10", @10]]
                         defaultsKey:@"NextItemCount"]];
 
     [m addItem:[self submenuTitled:@"Font Size"
