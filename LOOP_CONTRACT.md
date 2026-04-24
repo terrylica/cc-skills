@@ -1,7 +1,7 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 25g
+iteration: 25h
 status: ACTIVE
 last_updated: 2026-04-24T00:18:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
