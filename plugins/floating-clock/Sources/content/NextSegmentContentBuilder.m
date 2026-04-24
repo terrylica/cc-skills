@@ -144,9 +144,72 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             if (e.secs < 1800)      countdownColor = [NSColor colorWithRed:0.95 green:0.40 blue:0.40 alpha:1.0];
             else if (e.secs < 3600) countdownColor = [NSColor colorWithRed:0.95 green:0.75 blue:0.30 alpha:1.0];
         }
+        // v4 iter-60: compact first line = "T-HH:MM:SS until open".
+        NSString *firstLine = (e.secs <= 99 * 3600)
+            ? [NSString stringWithFormat:@"%@ %@%@",
+               formatCountdownFancy(e.secs),
+               e.isLunchResume ? @"until lunch ends" : @"until open",
+               suffix]
+            : countdown;  // >99h: use the existing absolute-date form
         [out appendAttributedString:[[NSAttributedString alloc]
-            initWithString:[NSString stringWithFormat:@"%@%@", countdown, suffix]
+            initWithString:firstLine
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
+
+        // v4 iter-60: richer second-line layout per market — surfaces the
+        // market's own-TZ open time + session duration, matching what
+        // competitor apps (Market 24h Clock, Market Clock Trading Hours,
+        // TradingView session indicators) show. Only rendered for
+        // bounded countdowns; >99h rows already carry market-TZ info.
+        if (e.secs <= 99 * 3600) {
+            NSDate *landsAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
+            NSTimeZone *localTz = [NSTimeZone localTimeZone];
+            NSCalendar *cal = [NSCalendar currentCalendar];
+            cal.timeZone = localTz;
+            NSDateComponents *nowC = [cal components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:[NSDate date]];
+            NSDateComponents *landC = [cal components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:landsAt];
+            BOOL sameDay = (nowC.year == landC.year && nowC.month == landC.month && nowC.day == landC.day);
+            NSDateFormatter *localFmt = [[NSDateFormatter alloc] init];
+            localFmt.timeZone = localTz;
+            localFmt.dateFormat = sameDay ? @"HH:mm" : @"HH:mm EEE";
+            NSString *localAt = [localFmt stringFromDate:landsAt];
+
+            // Market's own-TZ open time (e.g. "09:30 EDT")
+            NSString *mktAt = @"";
+            if (strlen(e.mkt->iana) > 0) {
+                NSTimeZone *mktTz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:e.mkt->iana]];
+                NSDateFormatter *mktFmt = [[NSDateFormatter alloc] init];
+                mktFmt.dateFormat = @"HH:mm";
+                if (mktTz) mktFmt.timeZone = mktTz;
+                NSString *mktAbbrev = friendlyAbbrevForIana(e.mkt->iana, landsAt);
+                mktAt = [NSString stringWithFormat:@"%@ %@",
+                    [mktFmt stringFromDate:landsAt], mktAbbrev];
+            }
+
+            // Session duration (close - open, same-day). Lunch-resume
+            // events share the session — skip dur line for them since
+            // the second line would be misleading ("6h30m" isn't the
+            // lunch window).
+            NSString *durStr = @"";
+            if (!e.isLunchResume) {
+                int openMins  = e.mkt->open_h * 60 + e.mkt->open_m;
+                int closeMins = e.mkt->close_h * 60 + e.mkt->close_m;
+                int durMins   = closeMins - openMins;
+                if (durMins > 0) {
+                    int dh = durMins / 60;
+                    int dm = durMins % 60;
+                    durStr = (dm == 0)
+                        ? [NSString stringWithFormat:@" · %dh session", dh]
+                        : [NSString stringWithFormat:@" · %dh%02dm session", dh, dm];
+                }
+            }
+
+            NSString *secondLine = [NSString stringWithFormat:@"\n       %@ local → %@%@",
+                localAt, mktAt, durStr];
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:secondLine
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
+        }
+
         if (i < maxItems - 1) {
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:@"\n" attributes:@{NSFontAttributeName: font}]];
