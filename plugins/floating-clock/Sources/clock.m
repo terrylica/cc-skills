@@ -415,6 +415,26 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (NSMenu *)menuForEvent:(NSEvent *)event;
 @end
 
+// Vertically-centering text cell. NSTextFieldCell has no built-in vertical
+// centering: multi-line text is top-anchored within its cell frame, and any
+// extra frame height manifests as bottom whitespace. Override drawingRect so
+// the cell draws at the vertically-centered offset within its bounds.
+@interface VCenteredCell : NSTextFieldCell
+@end
+
+@implementation VCenteredCell
+- (NSRect)drawingRectForBounds:(NSRect)theRect {
+    NSRect newRect = [super drawingRectForBounds:theRect];
+    NSSize textSize = [self cellSizeForBounds:theRect];
+    CGFloat heightDelta = newRect.size.height - textSize.height;
+    if (heightDelta > 0) {
+        newRect.origin.y += heightDelta / 2.0;
+        newRect.size.height = textSize.height;
+    }
+    return newRect;
+}
+@end
+
 // Three-segment NSView subclasses for iter-11 three-segment layout
 @interface LocalSegmentView : NSView
 @property (weak) FloatingClockPanel *panel;
@@ -1406,7 +1426,14 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSDictionary *primaryAttrs = @{NSFontAttributeName: primaryFont};
     NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
 
-    NSSize localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
+    // Measure LOCAL via sizeToFit on the actual label — hardcoded "HH:MM:SS"
+    // under-sizes when ShowDate is on ("Thu Apr 24  23:34:27" gets clipped).
+    _localSeg.timeLabel.font = primaryFont;
+    [_localSeg.timeLabel sizeToFit];
+    NSSize localSize = _localSeg.timeLabel.frame.size;
+    if (localSize.width < 10) {
+        localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
+    }
 
     // Measure actual ACTIVE content via the label itself — sizeToFit accounts
     // for the label's internal cell padding, line leading, and attributed-run
@@ -1457,14 +1484,12 @@ static NSFont *resolveClockFont(CGFloat size) {
     _activeSeg.frame = NSMakeRect(8 + localSegWidth + 4, 8, activeSegWidth, segHeight);
     _nextSeg.frame = NSMakeRect(8 + localSegWidth + 4 + activeSegWidth + 4, 8, nextSegWidth, segHeight);
 
-    // Position text fields within each segment (vertical centering)
-    CGFloat localPad = (segHeight - localHeight) / 2.0;
-    CGFloat activePad = (segHeight - activeHeight) / 2.0;
-    CGFloat nextPad = (segHeight - nextHeight) / 2.0;
-
-    _localSeg.timeLabel.frame = NSMakeRect(8, localPad, localSegWidth - 16, localHeight);
-    _activeSeg.contentLabel.frame = NSMakeRect(8, activePad, activeSegWidth - 16, activeHeight);
-    _nextSeg.contentLabel.frame = NSMakeRect(8, nextPad, nextSegWidth - 16, nextHeight);
+    // Text fields fill their entire segment (minus 8pt horizontal inset).
+    // VCenteredCell handles vertical centering inside the full-height bounds,
+    // so we no longer need per-segment pad math.
+    _localSeg.timeLabel.frame = NSMakeRect(8, 0, localSegWidth - 16, segHeight);
+    _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeSegWidth - 16, segHeight);
+    _nextSeg.contentLabel.frame = NSMakeRect(8, 0, nextSegWidth - 16, segHeight);
 
     // Set fonts
     _localSeg.timeLabel.font = primaryFont;
@@ -2035,11 +2060,13 @@ static NSFont *resolveClockFont(CGFloat size) {
     self.layer.cornerRadius = 6.0;
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    label.editable = NO;
-    label.selectable = NO;
-    label.bezeled = NO;
-    label.drawsBackground = NO;
-    label.alignment = NSTextAlignmentCenter;
+    VCenteredCell *cell = [[VCenteredCell alloc] initTextCell:@""];
+    cell.editable = NO;
+    cell.selectable = NO;
+    cell.bezeled = NO;
+    cell.drawsBackground = NO;
+    cell.alignment = NSTextAlignmentCenter;
+    label.cell = cell;
     [self addSubview:label];
     _timeLabel = label;
 
@@ -2064,14 +2091,16 @@ static NSFont *resolveClockFont(CGFloat size) {
     self.layer.cornerRadius = 6.0;
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    label.editable = NO;
-    label.selectable = NO;
-    label.bezeled = NO;
-    label.drawsBackground = NO;
-    label.alignment = NSTextAlignmentLeft;
+    VCenteredCell *cell = [[VCenteredCell alloc] initTextCell:@""];
+    cell.editable = NO;
+    cell.selectable = NO;
+    cell.bezeled = NO;
+    cell.drawsBackground = NO;
+    cell.alignment = NSTextAlignmentLeft;
+    cell.wraps = NO;
+    cell.lineBreakMode = NSLineBreakByTruncatingTail;
+    label.cell = cell;
     label.usesSingleLineMode = NO;
-    label.cell.wraps = NO;
-    [label.cell setLineBreakMode:NSLineBreakByTruncatingTail];
     [self addSubview:label];
     _contentLabel = label;
 
@@ -2096,13 +2125,15 @@ static NSFont *resolveClockFont(CGFloat size) {
     self.layer.cornerRadius = 6.0;
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    label.editable = NO;
-    label.selectable = NO;
-    label.bezeled = NO;
-    label.drawsBackground = NO;
-    label.alignment = NSTextAlignmentLeft;
+    VCenteredCell *cell = [[VCenteredCell alloc] initTextCell:@""];
+    cell.editable = NO;
+    cell.selectable = NO;
+    cell.bezeled = NO;
+    cell.drawsBackground = NO;
+    cell.alignment = NSTextAlignmentLeft;
+    cell.wraps = NO;
+    label.cell = cell;
     label.usesSingleLineMode = NO;
-    label.cell.wraps = NO;
     [self addSubview:label];
     _contentLabel = label;
 
