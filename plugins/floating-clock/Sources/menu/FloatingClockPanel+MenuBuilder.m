@@ -84,7 +84,9 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Middot  (10·37·45)",   @"middot"],
                                                    @[@"Space   (10 37 45)",   @"space"],
                                                    @[@"Slash   (10/37/45)",   @"slash"],
-                                                   @[@"Dash    (10-37-45)",   @"dash"]]
+                                                   @[@"Dash    (10-37-45)",   @"dash"],
+                                                   @[@"Pipe    (10|37|45)",   @"pipe"],
+                                                   @[@"Plus    (10+37+45)",   @"plus"]]
                                      defaultsKey:@"TimeSeparator"]];
 
     [displayItems addObject:[self groupedSubmenuTitled:@"Font Size"
