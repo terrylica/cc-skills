@@ -83,6 +83,15 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"regular", @"LetterSpacing": @"extrawide", @"LineSpacing": @"cavernous",
         @"TimeSeparator": @"middot",
     };
+    // v4 iter-170: pairs with iter-169's Carnival theme + iter-161's B3
+    // addition. Festive Brazilian-flag feel — bold weight + warm yellow
+    // on green + glow shadow for energetic dancing-data vibe.
+    NSDictionary *samba = @{
+        @"LocalTheme": @"carnival", @"ActiveTheme": @"carnival", @"NextTheme": @"carnival",
+        @"CornerStyle": @"rounded", @"ShadowStyle": @"glow", @"Density": @"default",
+        @"FontWeight": @"bold", @"LetterSpacing": @"airy", @"LineSpacing": @"normal",
+        @"TimeSeparator": @"middot",
+    };
 
     return @[
         @[@"Brutalist",     brutalist],
@@ -97,5 +106,6 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @[@"Industrial",    industrial],
         @[@"Trading Floor", tradingFloor],
         @[@"Scholar",       scholar],
+        @[@"Samba",         samba],
     ];
 }
