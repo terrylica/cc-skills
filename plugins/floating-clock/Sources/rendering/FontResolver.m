@@ -79,3 +79,25 @@ NSFontWeight FCResolveSegmentWeight(NSString *segmentKey) {
     }
     return FCParseFontWeight([d stringForKey:@"FontWeight"]);
 }
+
+CGFloat FCParseLetterSpacing(NSString *spacingId) {
+    if (![spacingId isKindOfClass:[NSString class]] || spacingId.length == 0) {
+        return 0.0;
+    }
+    if ([spacingId isEqualToString:@"compact"]) return -1.0;
+    if ([spacingId isEqualToString:@"tight"])   return -0.5;
+    if ([spacingId isEqualToString:@"normal"])  return  0.0;
+    if ([spacingId isEqualToString:@"airy"])    return  0.5;
+    if ([spacingId isEqualToString:@"wide"])    return  1.0;
+    return 0.0;
+}
+
+void FCApplyLetterSpacing(NSMutableAttributedString *out) {
+    if (!out || out.length == 0) return;
+    CGFloat kern = FCParseLetterSpacing(
+        [[NSUserDefaults standardUserDefaults] stringForKey:@"LetterSpacing"]);
+    if (fabs(kern) < 0.001) return;
+    [out addAttribute:NSKernAttributeName
+                value:@(kern)
+                range:NSMakeRange(0, out.length)];
+}
