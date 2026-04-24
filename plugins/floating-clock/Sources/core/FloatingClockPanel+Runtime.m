@@ -200,16 +200,12 @@ static uint64_t nsUntilNextSecond(void) {
         // single-market path kept the literal "CLOSED" prefix — the glyph
         // color said one thing, the text said another. Map the state to
         // its word-form now so the two agree.
-        NSString *stateWord;
-        NSColor *textColor;
-        switch (state) {
-            case kSessionPreMarket:
-                stateWord = @"PRE-MARKET"; textColor = colorForState(state, NULL); break;
-            case kSessionAfterHours:
-                stateWord = @"AFTER-HOURS"; textColor = colorForState(state, NULL); break;
-            default:
-                stateWord = @"CLOSED"; textColor = dim; break;
-        }
+        // v4 iter-135: state→word mapping lifted to `labelForState` in
+        // MarketSessionCalculator (testable, reusable). PRE-MARKET /
+        // AFTER-HOURS use their state color; plain CLOSED stays dim.
+        NSString *stateWord = labelForState(state);
+        NSColor *textColor = (state == kSessionPreMarket || state == kSessionAfterHours)
+                              ? colorForState(state, NULL) : dim;
         NSString *countdownText;
         if (secsToNext > kFCMaxBoundedCountdownSecs) {
             NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:secsToNext];
