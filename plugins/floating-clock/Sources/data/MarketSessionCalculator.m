@@ -205,6 +205,12 @@ static void fcGlyphsForStyle(NSString *styleId, NSString **filled, NSString **em
     // v4 iter-131: expand glyph catalog 10 → 12.
     if ([styleId isEqualToString:@"triangles"]) { *filled = @"▲"; *empty = @"△"; return; }
     if ([styleId isEqualToString:@"thindots"])  { *filled = @"•"; *empty = @"·"; return; }
+    // v4 iter-197: expand glyph catalog 12 → 14. "waves" = flowing
+    // tilde texture (fluid horizontal motion). "chevrons" = stacked
+    // directional arrows (urgent forward motion, distinct from
+    // "arrows" single triangle pair).
+    if ([styleId isEqualToString:@"waves"])     { *filled = @"≋"; *empty = @"∼"; return; }
+    if ([styleId isEqualToString:@"chevrons"])  { *filled = @"❯"; *empty = @"›"; return; }
     // Default "dots" (v4 iter-35 user directive).
     *filled = @"●"; *empty = @"○";
 }
