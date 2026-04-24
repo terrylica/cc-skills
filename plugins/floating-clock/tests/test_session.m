@@ -276,6 +276,18 @@ static void test_state_invariants_jse_sweep(void) {
     sweep_invariants(jse, @"Africa/Johannesburg", "SAST");
 }
 
+static void test_state_invariants_asx_sweep(void) {
+    // v4 iter-162: Southern-Hemisphere DST sweep. ASX (Australia/Sydney)
+    // runs AEDT (UTC+11, DST-on) from Oct to Apr and AEST (UTC+10,
+    // DST-off) from Apr to Oct — inverse of NYSE's NH DST calendar.
+    // 2026-04-24 is post-DST-end in SH (Apr 5 was the transition), so
+    // ASX sits in AEST for this test. Validates the invariant path
+    // through a SH-DST zone that neither NYSE (NH DST) nor
+    // JSE/B3 (no-DST) exercises.
+    const ClockMarket *asx = marketForId(@"asx");
+    sweep_invariants(asx, @"Australia/Sydney", "AEST");
+}
+
 static void test_auction_watcher_sets_extended_window(void) {
     // v4 iter-148: Auction Watcher's identity is "extended 30-min
     // auction window". If the profile doesn't explicitly set the pref,
@@ -730,6 +742,7 @@ int main(void) {
         test_state_invariants_24h_sweep();
         test_state_invariants_tse_sweep();
         test_state_invariants_jse_sweep();
+        test_state_invariants_asx_sweep();
         test_weekend_always_closed();
         test_auction_watcher_sets_extended_window();
         test_signal_window_pref_gates_premarket();
@@ -785,7 +798,7 @@ int main(void) {
         test_clipboard_header_format();
 
         if (failures == 0) {
-            fprintf(stderr, "All 59 tests passed.\n");
+            fprintf(stderr, "All 60 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
