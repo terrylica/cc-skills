@@ -883,9 +883,10 @@ int main(void) {
         test_state_is_trading();
         test_clipboard_header_format();
         test_urgency_color_tiers();
+        test_urgency_continuous_and_flash();
 
         if (failures == 0) {
-            fprintf(stderr, "All 84 tests passed.\n");
+            fprintf(stderr, "All 85 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
