@@ -166,10 +166,16 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
         }
 
+        // v4 iter-71: horizontal rule between ACTIVE market groups,
+        // matching NEXT's iter-63 tabulation style. Makes ACTIVE and
+        // NEXT read as sibling tables — both show H-rule demarcation
+        // between rows. Rendered at dim color so it doesn't compete
+        // with the live market data above.
         if (g < groups.count - 1) {
+            NSColor *ruleColor = [NSColor colorWithWhite:0.40 alpha:0.55];
             [out appendAttributedString:[[NSAttributedString alloc]
-                initWithString:@"\n"
-                attributes:@{NSFontAttributeName: font}]];
+                initWithString:@"────────────────────────────────────────────\n"
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: ruleColor}]];
         }
     }
 
