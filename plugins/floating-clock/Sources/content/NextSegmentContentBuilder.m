@@ -61,9 +61,17 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         return out;
     }
 
+    // v4 iter-63: tabulated demarcation — header + a horizontal rule
+    // at top and between entries so each market is clearly delimited
+    // as a unit. Horizontal rule uses light-weight U+2500 '─' at length
+    // 44, which fits comfortably in the NEXT segment at 11pt.
+    NSString *hrule = @"────────────────────────────────────────────";
     [out appendAttributedString:[[NSAttributedString alloc]
         initWithString:@"NEXT TO OPEN\n"
         attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+    [out appendAttributedString:[[NSAttributedString alloc]
+        initWithString:[hrule stringByAppendingString:@"\n"]
+        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
 
     int maxItems = entryCount < maxN ? entryCount : (int)maxN;
     for (int i = 0; i < maxItems; i++) {
@@ -203,13 +211,22 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
                 }
             }
 
-            NSString *secondLine = [NSString stringWithFormat:@"\n       %@ local → %@%@",
+            // v4 iter-63: tree-style └─ prefix visually binds the
+            // second line to its parent entry above.
+            NSString *secondLine = [NSString stringWithFormat:@"\n  └─ %@ local → %@%@",
                 localAt, mktAt, durStr];
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:secondLine
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
         }
 
+        // v4 iter-63: horizontal rule between entries — clear tabular
+        // demarcation. Always-shown (including after the last entry)
+        // for visual consistency; the trailing \n below finishes off
+        // the string properly for AppKit rendering.
+        [out appendAttributedString:[[NSAttributedString alloc]
+            initWithString:[@"\n" stringByAppendingString:hrule]
+            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
         if (i < maxItems - 1) {
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:@"\n" attributes:@{NSFontAttributeName: font}]];
