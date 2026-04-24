@@ -37,6 +37,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"CornerStyle": @"sharp", @"ShadowStyle": @"none", @"Density": @"compact",
         @"FontWeight": @"bold", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
         @"TimeSeparator": @"colon",
+        @"SessionSignalWindow": @"off",  // iter-158: minimalism — no auction glyphs
     };
     // v4 iter-106: two cool-palette moods.
     NSDictionary *glacier = @{
@@ -74,6 +75,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"CornerStyle": @"pill", @"ShadowStyle": @"glow", @"Density": @"compact",
         @"FontWeight": @"bold", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
         @"TimeSeparator": @"pipe",
+        @"SessionSignalWindow": @"60min",  // iter-158: macro-trader wants full pre-open awareness
     };
     NSDictionary *scholar = @{
         @"LocalTheme": @"paper_white", @"ActiveTheme": @"paper_white", @"NextTheme": @"paper_white",
