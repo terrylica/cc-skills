@@ -27,6 +27,17 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
 // Human-readable countdown: "5s" / "47m" / "2h17m" / ">99h" placeholder.
 NSString *formatCountdown(long secs);
 
+// Rocket-launch style countdown: "T-HH:MM:SS" zero-padded, always
+// three-segment for visual consistency. Used by NEXT TO OPEN (iter-59)
+// because the T- prefix is the universally recognized "counting down
+// to an event" convention (NASA, SpaceX launch streams, etc.) and
+// second-level granularity is critical as T-0 approaches.
+//
+// Examples: "T-02:34:17", "T-00:01:45", "T-00:00:07".
+// For secs > 99h (over ~4 days), rendering falls back to formatCountdown
+// since HH would be multi-digit and lose fixed-width alignment.
+NSString *formatCountdownFancy(long secs);
+
 // Fixed-length bar string. The glyph pair is selected by the
 // NSUserDefaults key "ProgressBarStyle":
 //   "blocks" (default) — █ / ▒
