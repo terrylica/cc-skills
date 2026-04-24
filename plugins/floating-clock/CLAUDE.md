@@ -19,15 +19,30 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` — 13 fixtures covering
+Tests live in `tests/test_session.m` — 24 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
-progress math) and the TZ-helper layer (DST branching for
+progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
-fullTzLabel composition rules). Added after iter-48 caught a
-"closed-before-open-today" off-by-7h bug that had shipped since
-iter-9.
+fullTzLabel composition), cityCode / flag emoji mapping coverage for
+all 12 exchanges, starter-profile key-coverage invariants (caught
+iter-55 drift in iter-56), progressive countdown format (sub-day
+`T-HH:MM:SS` vs ≥24h `T-Nd Hh MMm`), lunch-market identification, and
+`FCFormatLandingTime` cross-day/cross-weekday matrix. Added after
+iter-48 caught a "closed-before-open-today" off-by-7h bug that had
+shipped since iter-9.
 
-Binary at `build/floating-clock` (~50KB), app bundle at `build/FloatingClock.app`. App bundle includes `Contents/Resources/Icon.icns` (generated at build time from `Sources/gen-icon.m` via Core Graphics — no external image dependencies). Spotlight/Launchpad/Finder index the app with this icon after first install.
+Binary at `build/floating-clock` (~184 KB signed), app bundle at
+`build/FloatingClock.app`. App bundle includes
+`Contents/Resources/Icon.icns` (generated at build time from
+`Sources/gen-icon.m` via Core Graphics — no external image
+dependencies). Spotlight/Launchpad/Finder index the app with this icon
+after first install.
+
+Third-party code: `Sources/vendor/RMBlurredView/` vendors
+[RMBlurredView](https://github.com/raffael/RMBlurredView) (Raffael
+Hannemann, 2013, MIT) for the frosted-glass segment backdrops. ~115
+LoC, only public APIs (CIFilter + CALayer.backgroundFilters), one
+local pragma delta from upstream (iter-81).
 
 ## Slash Commands
 
