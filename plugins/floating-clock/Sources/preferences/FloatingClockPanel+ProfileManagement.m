@@ -97,6 +97,37 @@
     self.contentView.menu = [self buildMenu];
 }
 
+// v4 iter-84: nuke user customizations and reseed starter profiles.
+// Confirmation-gated because this is destructive. Only the saved
+// profile dict + managed raw keys are reset — window position and
+// screen number are preserved (ergonomic state, not profile state).
+- (void)resetAllToFactory:(id)sender {
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"Reset to Factory Defaults?";
+    alert.informativeText = @"This wipes all customizations including saved "
+        @"profiles. Window position is preserved. This cannot be undone.";
+    [alert addButtonWithTitle:@"Reset"];
+    [alert addButtonWithTitle:@"Cancel"];
+    alert.buttons.firstObject.hasDestructiveAction = YES;
+    if ([alert runModal] != NSAlertFirstButtonReturn) return;
+
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    // Clear every profile-managed key so registerDefaults' starter
+    // values take effect again on next read.
+    for (NSString *key in profileManagedKeys()) {
+        [d removeObjectForKey:key];
+    }
+    // Reseed starter profile bundle.
+    [d setObject:buildStarterProfiles() forKey:@"Profiles"];
+    [d setObject:@"Default" forKey:@"ActiveProfile"];
+    [d synchronize];
+
+    // Re-apply visuals + rebuild menu so reset is immediately visible.
+    [self applyDisplaySettings];
+    self.contentView.menu = [self buildMenu];
+    [self recordProfileActivationInCCMemory:@"Default"];
+}
+
 - (void)deleteProfile:(NSMenuItem *)sender {
     NSString *name = sender.representedObject;
     if (![name isKindOfClass:[NSString class]]) return;

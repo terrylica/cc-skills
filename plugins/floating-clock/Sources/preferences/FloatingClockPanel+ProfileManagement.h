@@ -11,6 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)saveCurrentProfileAs:(id)sender;
 - (void)quickSaveCurrentProfile:(id)sender;
 - (void)saveAsDefaultProfile:(id)sender;
+- (void)resetAllToFactory:(id)sender;
 - (void)deleteProfile:(NSMenuItem *)sender;
 - (void)switchToProfile:(NSMenuItem *)sender;
 - (void)recordProfileActivationInCCMemory:(NSString *)profileName;
