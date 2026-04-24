@@ -20,7 +20,7 @@ ICONSET := $(BUILD)/icons.iconset
 ICON_PNGS := $(foreach sz,$(ICON_SIZES),$(BUILD)/icon_$(sz).png)
 ICON_ICNS := $(BUILD)/Icon.icns
 
-.PHONY: all build bundle icon sign install run clean test check help
+.PHONY: all build bundle icon sign install run clean test check help leaks
 
 # Test binary: links the data/ layer (MarketCatalog + MarketSessionCalculator)
 # with the test harness. Excludes clock.m (has main) and AppKit-dependent modules.
@@ -43,6 +43,7 @@ help:
 	@echo "  make install  same as 'all' then copy to /Applications/"
 	@echo "  make test     build + run unit tests (data/ layer only)"
 	@echo "  make check    build + unit tests (full validation)"
+	@echo "  make leaks    build + run briefly + leaks audit (Instruments-free)"
 	@echo "  make clean    remove the build/ dir"
 
 build: $(BUILD)/$(BIN_NAME)
@@ -96,6 +97,20 @@ run: sign
 
 test: $(TEST_BIN)
 	@$(TEST_BIN)
+
+# Memory-leak audit without Instruments. Launches the app, waits long
+# enough for a few ticks + layout passes, runs `leaks`, then terminates.
+# Reports physical footprint + leak count — should be 0 leaks /
+# <20 MB footprint (established in v1 iter-5 baseline).
+leaks: sign
+	@pkill -f "FloatingClock.app/Contents/MacOS/floating-clock" 2>/dev/null || true
+	@sleep 0.3
+	@open $(APP)
+	@sleep 2
+	@PID=$$(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1); \
+	if [ -z "$$PID" ]; then echo "floating-clock not running"; exit 1; fi; \
+	leaks $$PID 2>&1 | grep -E "Physical footprint|leaks for|Process" | head -5 || true; \
+	kill $$PID 2>/dev/null || true
 
 $(TEST_BIN): $(TEST_SOURCES)
 	@mkdir -p $(BUILD)
