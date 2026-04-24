@@ -11,13 +11,55 @@ static uint64_t nsUntilNextSecond(void) {
     return (uint64_t)((1.0 - frac) * NSEC_PER_SEC);
 }
 
-// Map color name to NSColor
-static NSColor *colorFromName(NSString *name) {
-    if ([name isEqualToString:@"amber"])  return [NSColor colorWithRed:1.0 green:0.75 blue:0.0 alpha:1.0];
-    if ([name isEqualToString:@"green"])  return [NSColor colorWithRed:0.2 green:0.95 blue:0.4 alpha:1.0];
-    if ([name isEqualToString:@"cyan"])   return [NSColor colorWithRed:0.3 green:0.9 blue:0.95 alpha:1.0];
-    if ([name isEqualToString:@"red"])    return [NSColor colorWithRed:1.0 green:0.35 blue:0.35 alpha:1.0];
-    return [NSColor whiteColor];
+// Color theme definition
+typedef struct {
+    const char *id;              // NSUserDefaults value, e.g. "terminal"
+    const char *display;         // Menu label, e.g. "Terminal"
+    double fg_r, fg_g, fg_b;     // 0.0–1.0
+    double bg_r, bg_g, bg_b;     // 0.0–1.0
+    double alpha;                // 0.0–1.0
+} ClockTheme;
+
+static const ClockTheme kThemes[] = {
+    {"terminal",      "Terminal",       1.00, 1.00, 1.00,  0.00, 0.00, 0.00, 0.32},
+    {"amber_crt",     "Amber CRT",      1.00, 0.75, 0.00,  0.00, 0.00, 0.00, 0.38},
+    {"green_phosphor","Green Phosphor", 0.18, 0.98, 0.36,  0.00, 0.00, 0.00, 0.35},
+    {"solarized_dark","Solarized Dark", 0.71, 0.54, 0.00,  0.00, 0.17, 0.21, 0.40},
+    {"dracula",       "Dracula",        0.74, 0.58, 0.98,  0.16, 0.16, 0.21, 0.45},
+    {"nord",          "Nord",           0.53, 0.75, 0.82,  0.18, 0.20, 0.25, 0.45},
+    {"gruvbox",       "Gruvbox",        0.98, 0.74, 0.18,  0.16, 0.16, 0.16, 0.42},
+    {"rose_pine",     "Rose Pine",      0.92, 0.74, 0.73,  0.10, 0.09, 0.15, 0.42},
+    {"high_contrast", "High Contrast",  1.00, 1.00, 1.00,  0.00, 0.00, 0.00, 1.00},
+    {"soft_glass",    "Soft Glass",     0.96, 0.96, 0.97,  0.00, 0.00, 0.00, 0.18},
+};
+static const size_t kNumThemes = sizeof(kThemes) / sizeof(kThemes[0]);
+
+// Lookup theme by id; returns first theme if not found
+static const ClockTheme *themeForId(NSString *idStr) {
+    if (!idStr) return &kThemes[0];
+    const char *cstr = idStr.UTF8String;
+    for (size_t i = 0; i < kNumThemes; i++) {
+        if (strcmp(kThemes[i].id, cstr) == 0) return &kThemes[i];
+    }
+    return &kThemes[0];  // fallback to first theme (terminal)
+}
+
+// Generate 14×14 color swatch: bg + fg inner square
+static NSImage *swatchForTheme(const ClockTheme *t) {
+    NSSize sz = NSMakeSize(14, 14);
+    NSImage *img = [[NSImage alloc] initWithSize:sz];
+    [img lockFocus];
+    NSBezierPath *p = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(1, 1, 12, 12)
+                                                       xRadius:3 yRadius:3];
+    [[NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:1.0] setFill];
+    [p fill];
+    NSBezierPath *inner = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(3, 3, 8, 8)
+                                                           xRadius:2 yRadius:2];
+    [[NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0] setFill];
+    [inner fill];
+    [img unlockFocus];
+    img.template = NO;  // never treat as template — we want actual colors
+    return img;
 }
 
 // Resolve clock font: user override → iTerm2 default profile → SF Mono → Menlo
@@ -102,8 +144,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)toggleShowDate:(NSMenuItem *)sender;
 - (void)setTimeFormat:(NSMenuItem *)sender;
 - (void)setFontSize:(NSMenuItem *)sender;
-- (void)setOpacity:(NSMenuItem *)sender;
-- (void)setTextColor:(NSMenuItem *)sender;
+- (void)setColorTheme:(NSMenuItem *)sender;
 - (void)resetPosition:(id)sender;
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;
@@ -112,14 +153,28 @@ static NSFont *resolveClockFont(CGFloat size) {
 @implementation FloatingClockPanel
 
 - (instancetype)init {
-    // Register default values for NSUserDefaults
-    [[NSUserDefaults standardUserDefaults] registerDefaults:@{
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+
+    // Migrate from legacy TextColor to ColorTheme BEFORE registerDefaults
+    if ([d objectForKey:@"ColorTheme"] == nil) {
+        NSString *mapped = @"terminal";
+        // Check if legacy TextColor was explicitly set (not a default)
+        NSString *legacy = [d objectForKey:@"TextColor"];
+        if ([legacy isKindOfClass:[NSString class]]) {
+            if ([legacy isEqualToString:@"amber"])      mapped = @"amber_crt";
+            else if ([legacy isEqualToString:@"green"]) mapped = @"green_phosphor";
+            // cyan/red/white all fall through to "terminal"
+        }
+        [d setObject:mapped forKey:@"ColorTheme"];
+        [d synchronize];
+    }
+
+    // Register default values for NSUserDefaults (after migration, so if ColorTheme wasn't set, it's now there)
+    [d registerDefaults:@{
         @"ShowSeconds": @YES,
         @"ShowDate": @NO,
         @"TimeFormat": @"24h",
         @"FontSize": @24.0,
-        @"BackgroundAlpha": @0.32,
-        @"TextColor": @"white",
     }];
 
     NSRect defaultFrame = NSMakeRect(0, 0, 140, 50);
@@ -332,13 +387,28 @@ static NSFont *resolveClockFont(CGFloat size) {
     @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
 ]                          defaultsKey:@"FontSize"]];
 
-    [m addItem:[self submenuTitled:@"Opacity" action:@selector(setOpacity:)
-                              pairs:@[@[@"10%", @0.10], @[@"20%", @0.20], @[@"32%", @0.32], @[@"50%", @0.50], @[@"70%", @0.70], @[@"Opaque", @1.00]]
-                        defaultsKey:@"BackgroundAlpha"]];
+    // Build Color Theme submenu with swatches
+    NSMutableArray *themePairs = [NSMutableArray array];
+    for (size_t i = 0; i < kNumThemes; i++) {
+        NSString *display = [NSString stringWithUTF8String:kThemes[i].display];
+        NSString *idStr = [NSString stringWithUTF8String:kThemes[i].id];
+        [themePairs addObject:@[display, idStr]];
+    }
+    [m addItem:[self submenuTitled:@"Color Theme"
+                         action:@selector(setColorTheme:)
+                          pairs:themePairs
+                    defaultsKey:@"ColorTheme"]];
 
-    [m addItem:[self submenuTitled:@"Text Color" action:@selector(setTextColor:)
-                              pairs:@[@[@"White", @"white"], @[@"Amber", @"amber"], @[@"Green", @"green"], @[@"Cyan", @"cyan"], @[@"Red", @"red"]]
-                        defaultsKey:@"TextColor"]];
+    // Decorate Color Theme items with swatches
+    for (NSMenuItem *rootItem in m.itemArray) {
+        if ([rootItem.title isEqualToString:@"Color Theme"] && rootItem.submenu) {
+            NSArray *subItems = rootItem.submenu.itemArray;
+            for (size_t i = 0; i < subItems.count && i < kNumThemes; i++) {
+                [(NSMenuItem *)subItems[i] setImage:swatchForTheme(&kThemes[i])];
+            }
+            break;
+        }
+    }
 
     [m addItem:[NSMenuItem separatorItem]];
     [m addItemWithTitle:@"Reset Position" action:@selector(resetPosition:) keyEquivalent:@""];
@@ -430,10 +500,8 @@ static NSFont *resolveClockFont(CGFloat size) {
                 currentValue = [d stringForKey:@"TimeFormat"];
             } else if ([subTitle isEqualToString:@"Font Size"]) {
                 currentValue = [d objectForKey:@"FontSize"];
-            } else if ([subTitle isEqualToString:@"Opacity"]) {
-                currentValue = [d objectForKey:@"BackgroundAlpha"];
-            } else if ([subTitle isEqualToString:@"Text Color"]) {
-                currentValue = [d stringForKey:@"TextColor"];
+            } else if ([subTitle isEqualToString:@"Color Theme"]) {
+                currentValue = [d stringForKey:@"ColorTheme"];
             }
 
             [self setChecksInMenu:item.submenu forKey:subTitle currentValue:currentValue];
@@ -444,16 +512,15 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)applyDisplaySettings {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
 
-    // Update label with new font and color
+    // Update label with new font
     CGFloat fontSize = [d doubleForKey:@"FontSize"];
-    NSString *colorName = [d stringForKey:@"TextColor"];
-
     _label.font = resolveClockFont(fontSize);
-    _label.textColor = colorFromName(colorName);
 
-    // Update background alpha
-    CGFloat alpha = [d doubleForKey:@"BackgroundAlpha"];
-    self.backgroundColor = [NSColor colorWithWhite:0.0 alpha:alpha];
+    // Apply theme: foreground, background, and alpha atomically
+    NSString *themeId = [d stringForKey:@"ColorTheme"];
+    const ClockTheme *t = themeForId(themeId);
+    _label.textColor = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
+    self.backgroundColor = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:t->alpha];
 
     // Measure text to resize window
     [self tick];  // Update label with new format
@@ -513,16 +580,9 @@ static NSFont *resolveClockFont(CGFloat size) {
     }
 }
 
-- (void)setOpacity:(NSMenuItem *)sender {
-    if (sender.representedObject) {
-        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"BackgroundAlpha"];
-        [self applyDisplaySettings];
-    }
-}
-
-- (void)setTextColor:(NSMenuItem *)sender {
-    if (sender.representedObject) {
-        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"TextColor"];
+- (void)setColorTheme:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"ColorTheme"];
         [self applyDisplaySettings];
     }
 }
