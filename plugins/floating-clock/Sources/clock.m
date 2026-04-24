@@ -1799,12 +1799,15 @@ static NSFont *resolveClockFont(CGFloat size) {
 
     [m addItem:[NSMenuItem separatorItem]];
 
-    // Progress Bar Width submenu
-    [m addItem:[self submenuTitled:@"Progress Bar Width"
-                             action:@selector(setActiveBarCells:)
-                              pairs:@[@[@"6 cells", @6], @[@"7 cells", @7], @[@"8 cells", @8],
-                                      @[@"10 cells", @10], @[@"12 cells", @12]]
-                        defaultsKey:@"ActiveBarCells"]];
+    // Progress Bar Width submenu — hierarchical Small/Medium/Large/Huge up to 40 cells
+    [m addItem:[self groupedSubmenuTitled:@"Progress Bar Width"
+                                    action:@selector(setActiveBarCells:)
+                                    groups:@[
+        @[@"Small",  @[@[@"6 cells", @6], @[@"7 cells", @7], @[@"8 cells", @8], @[@"10 cells", @10]]],
+        @[@"Medium", @[@[@"12 cells", @12], @[@"14 cells", @14], @[@"16 cells", @16], @[@"18 cells", @18]]],
+        @[@"Large",  @[@[@"20 cells", @20], @[@"24 cells", @24], @[@"28 cells", @28], @[@"32 cells", @32]]],
+        @[@"Huge",   @[@[@"36 cells", @36], @[@"40 cells", @40]]],
+    ]                          defaultsKey:@"ActiveBarCells"]];
 
     [m addItem:[NSMenuItem separatorItem]];
     NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
