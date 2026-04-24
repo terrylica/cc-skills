@@ -84,6 +84,21 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     // local 12h preference). Hidden when ShowUTCReference pref is NO.
     BOOL showUTC = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
     NSString *localBase = [_dateFormatter stringFromDate:nowLocal];
+
+    // v4 iter-42: sun/moon glyph as a subtle day/night cue. Night defined
+    // as local hour outside [6, 18). No astronomical calculation (would
+    // need lat/lon + solar-position math); this simple heuristic matches
+    // civil-twilight expectations across the globe closely enough. Hidden
+    // when ShowSkyState pref is explicitly NO.
+    BOOL showSky = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
+    NSString *skyGlyph = @"";
+    if (showSky) {
+        NSCalendar *cal = [NSCalendar currentCalendar];
+        cal.timeZone = localTz;
+        NSInteger hour = [cal component:NSCalendarUnitHour fromDate:nowLocal];
+        skyGlyph = (hour >= 6 && hour < 18) ? @" ☀️" : @" \U0001F319";
+    }
+
     if (showUTC) {
         if (!_utcFormatter) {
             _utcFormatter = [[NSDateFormatter alloc] init];
@@ -91,11 +106,11 @@ static NSString *dateFormatPrefix(NSString *presetId) {
             _utcFormatter.dateFormat = @"HH:mm:ss";
         }
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC",
-            localBase, localLabel, utcStr];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@",
+            localBase, localLabel, utcStr, skyGlyph];
     } else {
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@",
-            localBase, localLabel];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@%@",
+            localBase, localLabel, skyGlyph];
     }
     _activeSeg.contentLabel.attributedStringValue = FCBuildActiveSegmentContent();
     _nextSeg.contentLabel.attributedStringValue = FCBuildNextSegmentContent();

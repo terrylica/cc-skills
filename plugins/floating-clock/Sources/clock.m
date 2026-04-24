@@ -100,6 +100,7 @@
         @"ShowFlags": @YES,
         @"Density": @"default",
         @"ShowUTCReference": @YES,
+        @"ShowSkyState": @YES,
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
