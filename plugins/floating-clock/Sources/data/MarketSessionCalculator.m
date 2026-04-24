@@ -47,7 +47,7 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     }
 
     double progress = 0.0;
-    if (state == kSessionOpen || state == kSessionLunch) {
+    if (FCStateIsTrading(state)) {  // iter-168
         double elapsed = (double)(nowMins - openMins);
         double total = (double)(closeMins - openMins);
         if (total > 0) progress = MIN(1.0, MAX(0.0, elapsed / total));
@@ -223,6 +223,20 @@ NSString *labelForState(SessionState s) {
         case kSessionAfterHours: return @"AFTER-HOURS";
     }
     return @"CLOSED";
+}
+
+// v4 iter-168: extracted predicate (see header comment for rationale).
+BOOL FCStateIsTrading(SessionState s) {
+    switch (s) {
+        case kSessionOpen:
+        case kSessionLunch:
+            return YES;
+        case kSessionClosed:
+        case kSessionPreMarket:
+        case kSessionAfterHours:
+            return NO;
+    }
+    return NO;
 }
 
 NSColor *colorForState(SessionState s, const ClockTheme *theme) {

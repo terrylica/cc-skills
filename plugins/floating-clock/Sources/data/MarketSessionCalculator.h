@@ -72,6 +72,15 @@ NSString *glyphForState(SessionState s);
 // needed. Parallel to glyphForState + colorForState.
 NSString *labelForState(SessionState s);
 
+// v4 iter-168: named predicate for "this market is currently
+// trading" — OPEN or LUNCH. PRE-MARKET / AFTER-HOURS / CLOSED all
+// return NO. Three callsites (Runtime.m, ActiveSegmentContentBuilder.m,
+// MarketSessionCalculator.m internal progress branch) used to inline
+// the equivalent disjunction. The extracted predicate both names the
+// concept and makes future additions of a new "is-trading" state a
+// compiler-enforced one-line edit.
+BOOL FCStateIsTrading(SessionState s);
+
 // Color bound to each SessionState. Theme parameter reserved for future
 // per-theme override; currently ignored (fixed palette).
 NSColor *colorForState(SessionState s, const ClockTheme * _Nullable theme);

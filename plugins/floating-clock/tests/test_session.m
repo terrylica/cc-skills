@@ -838,11 +838,12 @@ int main(void) {
         test_session_signal_window();
         test_session_state_label();
         test_session_state_color();
+        test_state_is_trading();
         test_clipboard_header_format();
         test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 62 tests passed.\n");
+            fprintf(stderr, "All 63 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
