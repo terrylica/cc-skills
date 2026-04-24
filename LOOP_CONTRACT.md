@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 111
+iteration: 112
 status: ACTIVE
-last_updated: 2026-04-24T10:20:00Z
+last_updated: 2026-04-24T10:30:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -545,3 +545,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 10:00 UTC — iter-109: **'Reset Visual Style' utility** (39ff3df8). New Window-category action clears 33 aesthetic pref keys so NSUserDefaults falls back to clock.m's registerDefaults. Leaves workflow-scoped state (SelectedMarket / DisplayMode / ActiveProfile / Profiles / FontName / window frame) intact. Lets users experiment with Quick Styles / levers then return to factory without losing profile catalog or window position. 33/33 still green.
 - 2026-04-24 10:10 UTC — iter-110: **About dialog + Info.plist version sync** (63266d7f). Info.plist's CFBundleShortVersionString had been stale at 1.0.0 since iter-0 despite plugin.json reaching 1.5.0 at iter-100. Synced to 1.5.0; CFBundleVersion set to iteration number (110). About dialog now pulls version + build via NSBundle and lists the major v1.5 surfaces: 25 themes, 8 Quick Styles by name, 12 exchanges, 6 profiles, typography trilogy, idle-CPU + binary-size metrics. 33/33 still green.
 - 2026-04-24 10:20 UTC — iter-111: **DateFormat 6 → 9 locale presets** (4c0a4aae). Three new patterns: `compact_iso` (`04-23`), `usa` (`4/23/2026`, month-first), `european` (`23.4.2026`, day-first). Land via existing dateFormatPrefix dispatch in Runtime.m plus both Date Format submenus (LOCAL scoped + Full Preferences → Market). 33/33 still green.
+- 2026-04-24 10:30 UTC — iter-112: **sky glyph binary → 5-phase** (aad48185). Upgraded LOCAL row's time-of-day cue from ☀️/🌙 binary to 5 buckets: 🌅 dawn [5,7) · ☀️ day [7,17) · 🌇 dusk [17,19) · 🌙 night [19,5). No new pref — ShowSkyState=YES users pick up extra nuance automatically. Still civil-twilight heuristic (no lat/lon solar math). 33/33 still green.
