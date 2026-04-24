@@ -149,11 +149,13 @@
     // if unset. Unlike Font Size, shares the same 5 presets as the global lever.
     [m addItem:[self submenuTitled:@"Font Weight"
                              action:@selector(setActiveWeight:)
-                              pairs:@[@[@"Regular",  @"regular"],
+                              pairs:@[@[@"Thin",     @"thin"],
+                                      @[@"Regular",  @"regular"],
                                       @[@"Medium",   @"medium"],
                                       @[@"Semibold", @"semibold"],
                                       @[@"Bold",     @"bold"],
-                                      @[@"Heavy",    @"heavy"]]
+                                      @[@"Heavy",    @"heavy"],
+                                      @[@"Black",    @"black"]]
                         defaultsKey:@"ActiveWeight"]];
 
     // Per-segment canvas opacity (v4 iter-90). Falls back to global
@@ -221,11 +223,13 @@
     // read lighter than ACTIVE's live markets.
     [m addItem:[self submenuTitled:@"Font Weight"
                              action:@selector(setNextWeight:)
-                              pairs:@[@[@"Regular",  @"regular"],
+                              pairs:@[@[@"Thin",     @"thin"],
+                                      @[@"Regular",  @"regular"],
                                       @[@"Medium",   @"medium"],
                                       @[@"Semibold", @"semibold"],
                                       @[@"Bold",     @"bold"],
-                                      @[@"Heavy",    @"heavy"]]
+                                      @[@"Heavy",    @"heavy"],
+                                      @[@"Black",    @"black"]]
                         defaultsKey:@"NextWeight"]];
 
     // Per-segment canvas opacity (v4 iter-90). Dim NEXT independently

@@ -101,11 +101,13 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     // so weight can't drive it via API — documented limitation.
     [displayItems addObject:[self submenuTitled:@"Font Weight"
                                           action:@selector(setFontWeight:)
-                                           pairs:@[@[@"Regular",  @"regular"],
+                                           pairs:@[@[@"Thin",     @"thin"],
+                                                   @[@"Regular",  @"regular"],
                                                    @[@"Medium",   @"medium"],
                                                    @[@"Semibold", @"semibold"],
                                                    @[@"Bold",     @"bold"],
-                                                   @[@"Heavy",    @"heavy"]]
+                                                   @[@"Heavy",    @"heavy"],
+                                                   @[@"Black",    @"black"]]
                                      defaultsKey:@"FontWeight"]];
 
     // v4 iter-94: typographic tracking (letter-spacing) lever.
