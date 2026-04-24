@@ -55,11 +55,18 @@ NSFontWeight FCParseFontWeight(NSString *weightId) {
     if (![weightId isKindOfClass:[NSString class]] || weightId.length == 0) {
         return NSFontWeightMedium;
     }
+    // v4 iter-129: expand catalog 5 → 7. `thin` and `black` bracket the
+    // existing range (parallels iter-99's Density ultracompact/cavernous
+    // extension). AppKit exposes 9 NSFontWeight constants — Ultralight
+    // and Light stay omitted as near-duplicates of Thin; Black is the
+    // heaviest stock system-font weight.
+    if ([weightId isEqualToString:@"thin"])     return NSFontWeightThin;
     if ([weightId isEqualToString:@"regular"])  return NSFontWeightRegular;
     if ([weightId isEqualToString:@"medium"])   return NSFontWeightMedium;
     if ([weightId isEqualToString:@"semibold"]) return NSFontWeightSemibold;
     if ([weightId isEqualToString:@"bold"])     return NSFontWeightBold;
     if ([weightId isEqualToString:@"heavy"])    return NSFontWeightHeavy;
+    if ([weightId isEqualToString:@"black"])    return NSFontWeightBlack;
     return NSFontWeightMedium;
 }
 
