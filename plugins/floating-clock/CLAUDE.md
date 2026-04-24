@@ -1,6 +1,6 @@
 # floating-clock
 
-Always-on-top floating desktop clock for macOS. Single-file Objective-C implementation (~80 KB binary, ~13 MB physical footprint) using NSPanel. Right-click for 10 color themes, 15 font sizes (10–64 pt), and live market-session state across 12 major global stock exchanges. Sub-0.1% idle CPU.
+Always-on-top floating desktop clock for macOS. Single-file Objective-C implementation (~80 KB binary, ~13 MB physical footprint) using NSPanel. Right-click for 25 color themes, 15 font sizes (10–64 pt), and live market-session state across 12 major global stock exchanges. Sub-0.1% idle CPU.
 
 **Hub:** [CLAUDE.md](../../CLAUDE.md) | **Sibling:** [plugins/CLAUDE.md](../CLAUDE.md)
 
@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` — 28 fixtures covering
+Tests live in `tests/test_session.m` — 29 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -69,7 +69,7 @@ local pragma delta from upstream (iter-81).
   2. iTerm2 default profile's `Normal Font` (extracted from `com.googlecode.iterm2.plist`)
   3. System monospaced fallback: SF Mono (macOS 10.15+) or Menlo (older)
   4. Size selectable from 15 options (10 / 12 / 14 / 16 / 18 / 20 / 22 / 24 / 28 / 32 / 36 / 42 / 48 / 56 / 64 pt) grouped as Small / Medium / Large / Huge in the context menu
-- **Color themes**: 10 preset bundles (each sets foreground, background, alpha atomically) — Terminal, Amber CRT, Green Phosphor, Solarized Dark, Dracula, Nord, Gruvbox, Rose Pine, High Contrast, Soft Glass. Menu items show 14×14 color swatches drawn inline via Core Graphics.
+- **Color themes**: 25 preset bundles (each sets foreground, background, alpha atomically). Originals (10): Terminal, Amber CRT, Green Phosphor, Solarized Dark, Dracula, Nord, Gruvbox, Rose Pine, High Contrast, Soft Glass. iter-32 (+10): Synthwave, Monokai, Gotham, Ayu Mirage, Catppuccin, Tokyo Night, Kanagawa, Paper White, Sepia, Midnight Blue. iter-92 (+5): Oceanic Deep, Cherry Blossom, Espresso, Lavender Dream, Mint Dark. Menu items show 14×14 color swatches drawn inline via Core Graphics.
 - **Market sessions** (when a non-local market is selected):
   - 12 major exchanges grouped by region (Americas / Europe / Asia / Oceania) — NYSE, TSX, LSE, Euronext, XETRA, SIX, TSE, HKEX, SSE, KRX, NSE, ASX
   - Time displayed in that exchange's local time via IANA `NSTimeZone` (DST-correct across hemispheres)
