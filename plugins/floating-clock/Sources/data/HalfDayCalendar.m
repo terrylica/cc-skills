@@ -19,6 +19,23 @@ static const FCHalfDayEntry kNYSE2026HalfDays[] = {
     { @"2026-12-24", 13, 0 },  // Christmas Eve
 };
 
+// v4 iter-190: LSE 2026 half-day sessions. Source: LSE published
+// calendar. Both dates close at 12:30 London time.
+static const FCHalfDayEntry kLSE2026HalfDays[] = {
+    { @"2026-12-24", 12, 30 },  // Christmas Eve
+    { @"2026-12-31", 12, 30 },  // New Year's Eve
+};
+
+// v4 iter-190: TARGET2-aligned exchanges (XETRA Frankfurt + Euronext
+// Paris/Amsterdam/Brussels/Lisbon/Dublin). Both share the same two
+// half-day closures identically in 2026: Dec 24 + Dec 31, both 14:00
+// local. One shared array, two registry entries below — mirrors
+// iter-179's full-holiday TARGET2 dedup pattern.
+static const FCHalfDayEntry kTARGET2_2026HalfDays[] = {
+    { @"2026-12-24", 14, 0 },  // Christmas Eve
+    { @"2026-12-31", 14, 0 },  // New Year's Eve
+};
+
 typedef struct {
     const char *market_id;
     const FCHalfDayEntry * _Nonnull entries;
@@ -26,7 +43,10 @@ typedef struct {
 } FCHalfDayTable;
 
 static const FCHalfDayTable kHalfDayTables[] = {
-    { "nyse", kNYSE2026HalfDays, sizeof(kNYSE2026HalfDays) / sizeof(kNYSE2026HalfDays[0]) },
+    { "nyse",     kNYSE2026HalfDays,     sizeof(kNYSE2026HalfDays)     / sizeof(kNYSE2026HalfDays[0])     },
+    { "lse",      kLSE2026HalfDays,      sizeof(kLSE2026HalfDays)      / sizeof(kLSE2026HalfDays[0])      },
+    { "xetra",    kTARGET2_2026HalfDays, sizeof(kTARGET2_2026HalfDays) / sizeof(kTARGET2_2026HalfDays[0]) },
+    { "euronext", kTARGET2_2026HalfDays, sizeof(kTARGET2_2026HalfDays) / sizeof(kTARGET2_2026HalfDays[0]) },
 };
 static const size_t kNumHalfDayTables = sizeof(kHalfDayTables) / sizeof(kHalfDayTables[0]);
 

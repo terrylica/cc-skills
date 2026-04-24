@@ -758,6 +758,60 @@ void test_halfday_calendar_nyse(void) {
     }
 }
 
+void test_halfday_calendar_lse_and_target2(void) {
+    // v4 iter-190: LSE + XETRA + Euronext half-days. LSE closes 12:30
+    // London on Dec 24 + Dec 31. XETRA and Euronext share a TARGET2
+    // half-day array (same iter-179-style dedup as full-holiday): both
+    // close 14:00 local on Dec 24 + Dec 31.
+    const ClockMarket *lse      = marketForId(@"lse");
+    const ClockMarket *xetra    = marketForId(@"xetra");
+    const ClockMarket *euronext = marketForId(@"euronext");
+
+    // LSE Dec 24 + Dec 31 at 12:30 London.
+    NSDate *lseXmasEve = holidayDateAt(@"Europe/London", 2026, 12, 24, 12, 0, 0);
+    NSDate *lseNYE     = holidayDateAt(@"Europe/London", 2026, 12, 31, 12, 0, 0);
+    int h = -1, m = -1;
+    if (!FCIsMarketHalfDay(lse, lseXmasEve, &h, &m) || h != 12 || m != 30) {
+        failures++; fprintf(stderr, "FAIL %s: LSE Xmas Eve expected 12:30 got %d:%02d\n", __func__, h, m);
+    }
+    h = -1; m = -1;
+    if (!FCIsMarketHalfDay(lse, lseNYE, &h, &m) || h != 12 || m != 30) {
+        failures++; fprintf(stderr, "FAIL %s: LSE NYE expected 12:30 got %d:%02d\n", __func__, h, m);
+    }
+
+    // XETRA + Euronext Dec 24 + Dec 31 at 14:00 local (shared TARGET2).
+    NSDate *xetraXmasEve    = holidayDateAt(@"Europe/Berlin", 2026, 12, 24, 12, 0, 0);
+    NSDate *euronextNYE     = holidayDateAt(@"Europe/Paris",  2026, 12, 31, 12, 0, 0);
+    h = -1; m = -1;
+    if (!FCIsMarketHalfDay(xetra, xetraXmasEve, &h, &m) || h != 14 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: XETRA Xmas Eve expected 14:00 got %d:%02d\n", __func__, h, m);
+    }
+    h = -1; m = -1;
+    if (!FCIsMarketHalfDay(euronext, euronextNYE, &h, &m) || h != 14 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: Euronext NYE expected 14:00 got %d:%02d\n", __func__, h, m);
+    }
+
+    // Both XETRA + Euronext flag both dates (dedup sanity — neither
+    // market silently "loses" one of the shared dates).
+    if (!FCIsMarketHalfDay(xetra,    euronextNYE,  NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: XETRA must flag Dec 31\n", __func__); }
+    if (!FCIsMarketHalfDay(euronext, xetraXmasEve, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: Euronext must flag Dec 24\n", __func__); }
+
+    // LSE Dec 24 is a half-day, NOT in kLSE2026Holidays (full-closure
+    // set): the lookup sets must be disjoint for the same market. SIX
+    // notwithstanding — SIX has Dec 24 as FULL closure per iter-182
+    // and has no half-day entry; this test confirms LSE goes the
+    // other way.
+    if (FCIsMarketHoliday(lse, lseXmasEve)) {
+        failures++; fprintf(stderr, "FAIL %s: LSE Dec 24 is half-day NOT full holiday\n", __func__);
+    }
+
+    // Regular Fri Jul 10 2026 should NOT be flagged half-day on any.
+    NSDate *regularFri = holidayDateAt(@"Europe/London", 2026, 7, 10, 12, 0, 0);
+    if (FCIsMarketHalfDay(lse,      regularFri, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: LSE regular Fri flagged\n", __func__); }
+    if (FCIsMarketHalfDay(xetra,    regularFri, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: XETRA regular Fri flagged\n", __func__); }
+    if (FCIsMarketHalfDay(euronext, regularFri, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: Euronext regular Fri flagged\n", __func__); }
+}
+
 void test_nyse_halfday_state_closed(void) {
     // v4 iter-189: integration lock for iter-188 data. Verifies that
     // computeSessionState actually consumes the half-day early-close
