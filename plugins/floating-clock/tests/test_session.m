@@ -22,6 +22,7 @@
 #import "../Sources/data/ThemeCatalog.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 #import "../Sources/core/DateFormatPrefix.h"
+#import "../Sources/core/SkyGlyph.h"
 
 static int failures = 0;
 
@@ -707,6 +708,39 @@ static void test_date_format_prefix(void) {
     }
 }
 
+static void test_sky_glyph_phases(void) {
+    // iter-114: 24-hour coverage of the 5-phase sky glyph buckets
+    // (iter-112). Expected mapping is a fixed schedule — if the hour
+    // boundaries drift this test catches it immediately.
+    NSString *dawn  = @"\U0001F305";  // 🌅
+    NSString *day   = @"☀️";
+    NSString *dusk  = @"\U0001F307";  // 🌇
+    NSString *night = @"\U0001F319";  // 🌙
+    NSString *expected[24] = {
+        night, night, night, night, night,  // 0..4
+        dawn, dawn,                          // 5..6
+        day, day, day, day, day, day, day, day, day, day,  // 7..16
+        dusk, dusk,                          // 17..18
+        night, night, night, night, night,   // 19..23
+    };
+    for (NSInteger hour = 0; hour < 24; hour++) {
+        NSString *got = FCSkyGlyphForHour(hour);
+        if (![got isEqualToString:expected[hour]]) {
+            fprintf(stderr, "FAIL %s: hour=%ld expected '%s' got '%s'\n",
+                    __func__, (long)hour,
+                    expected[hour].UTF8String, got.UTF8String);
+            failures++;
+        }
+    }
+    // Out-of-band hours fall back to night (non-fatal but locked).
+    if (![FCSkyGlyphForHour(-1) isEqualToString:night]) {
+        fprintf(stderr, "FAIL %s: hour=-1 should → night\n", __func__); failures++;
+    }
+    if (![FCSkyGlyphForHour(24) isEqualToString:night]) {
+        fprintf(stderr, "FAIL %s: hour=24 should → night\n", __func__); failures++;
+    }
+}
+
 static void test_current_time_format(void) {
     // iter-107: FCCurrentTimeFormat composes the NSDateFormatter pattern
     // from the user's "TimeSeparator" pref. Colon stays as a literal
@@ -860,11 +894,12 @@ int main(void) {
         test_letter_spacing_parser();
         test_line_spacing_parser();
         test_date_format_prefix();
+        test_sky_glyph_phases();
         test_current_time_format();
         test_quick_styles_invariants();
 
         if (failures == 0) {
-            fprintf(stderr, "All 34 tests passed.\n");
+            fprintf(stderr, "All 35 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
