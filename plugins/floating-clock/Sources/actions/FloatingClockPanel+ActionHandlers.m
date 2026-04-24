@@ -250,6 +250,18 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     [self applyDisplaySettings];
 }
 
+// v4 iter-199: UI-naming-campaign toggle. Shows / hides the tiny
+// corner-overlay [LOCAL] / [ACTIVE] / [NEXT] labels on each segment
+// view. Also makes NSToolTip easier to inspect by pairing the label
+// with the registered toolTip. Off by default — this is a debug /
+// conversation-with-the-developer affordance, not a permanent
+// decoration.
+- (void)toggleShowDebugLabels:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setBool:![d boolForKey:@"ShowDebugLabels"] forKey:@"ShowDebugLabels"];
+    [self applyDisplaySettings];
+}
+
 // v4 iter-85: dump a plain-text snapshot of the current clock to the
 // system clipboard. Useful for sharing state in chat/notes. Uses the
 // same attributed-string content that the UI renders so formatting

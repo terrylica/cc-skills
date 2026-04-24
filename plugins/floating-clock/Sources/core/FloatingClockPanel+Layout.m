@@ -30,6 +30,14 @@
     } else {
         [self applySingleMarketLayout];
     }
+
+    // v4 iter-199: refresh debug-label overlays on every display pass.
+    // Each segment view has a [LOCAL]/[ACTIVE]/[NEXT] corner label
+    // gated by the "ShowDebugLabels" NSUserDefaults key — cheap
+    // setHidden: call, safe to fire on every tick.
+    [(id<FCNamedSegment>)_localSeg  fcRefreshDebugLabel];
+    [(id<FCNamedSegment>)_activeSeg fcRefreshDebugLabel];
+    [(id<FCNamedSegment>)_nextSeg   fcRefreshDebugLabel];
 }
 
 - (void)applyThreeSegmentLayout {
