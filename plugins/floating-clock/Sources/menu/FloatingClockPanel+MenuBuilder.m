@@ -106,6 +106,19 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Wide    (+1.0)", @"wide"]]
                                      defaultsKey:@"LetterSpacing"]];
 
+    // v4 iter-95: leading (line spacing) lever — vertical rhythm
+    // control for multi-line ACTIVE + NEXT segments via
+    // NSParagraphStyle.lineSpacing. Values are additive points
+    // between line fragments. Default "normal" = 2.0pt.
+    [displayItems addObject:[self submenuTitled:@"Line Spacing"
+                                          action:@selector(setLineSpacing:)
+                                           pairs:@[@[@"Tight  (0pt)", @"tight"],
+                                                   @[@"Snug   (1pt)", @"snug"],
+                                                   @[@"Normal (2pt)", @"normal"],
+                                                   @[@"Loose  (4pt)", @"loose"],
+                                                   @[@"Airy   (7pt)", @"airy"]]
+                                     defaultsKey:@"LineSpacing"]];
+
     [displayItems addObject:[self submenuTitled:@"Transparency"
                                           action:@selector(setCanvasOpacity:)
                                            pairs:@[@[@"Opaque (100%)", @1.0],

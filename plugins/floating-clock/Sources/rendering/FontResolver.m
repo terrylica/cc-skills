@@ -101,3 +101,26 @@ void FCApplyLetterSpacing(NSMutableAttributedString *out) {
                 value:@(kern)
                 range:NSMakeRange(0, out.length)];
 }
+
+CGFloat FCParseLineSpacing(NSString *spacingId) {
+    if (![spacingId isKindOfClass:[NSString class]] || spacingId.length == 0) {
+        return 2.0;  // matches registered default "normal"
+    }
+    if ([spacingId isEqualToString:@"tight"])  return 0.0;
+    if ([spacingId isEqualToString:@"snug"])   return 1.0;
+    if ([spacingId isEqualToString:@"normal"]) return 2.0;
+    if ([spacingId isEqualToString:@"loose"])  return 4.0;
+    if ([spacingId isEqualToString:@"airy"])   return 7.0;
+    return 2.0;
+}
+
+void FCApplyLineSpacing(NSMutableAttributedString *out) {
+    if (!out || out.length == 0) return;
+    CGFloat leading = FCParseLineSpacing(
+        [[NSUserDefaults standardUserDefaults] stringForKey:@"LineSpacing"]);
+    NSMutableParagraphStyle *ps = [[NSMutableParagraphStyle alloc] init];
+    ps.lineSpacing = leading;
+    [out addAttribute:NSParagraphStyleAttributeName
+                value:ps
+                range:NSMakeRange(0, out.length)];
+}

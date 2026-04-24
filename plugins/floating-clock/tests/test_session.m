@@ -267,6 +267,7 @@ static void test_starter_profiles_cover_all_keys(void) {
                                           @"ActiveOpacity",
                                           @"NextOpacity",
                                           @"LetterSpacing",
+                                          @"LineSpacing",
                                           nil];
 
     for (NSString *profileName in profiles.allKeys) {
@@ -632,6 +633,36 @@ static void test_letter_spacing_parser(void) {
     }
 }
 
+static void test_line_spacing_parser(void) {
+    // iter-95: 5 presets map to fixed point values; unknown / nil /
+    // empty collapse to 2.0 (matches registered default "normal").
+    struct { NSString *id; CGFloat leading; } cases[] = {
+        {@"tight",  0.0},
+        {@"snug",   1.0},
+        {@"normal", 2.0},
+        {@"loose",  4.0},
+        {@"airy",   7.0},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        CGFloat got = FCParseLineSpacing(cases[i].id);
+        if (fabs(got - cases[i].leading) > 0.001) {
+            fprintf(stderr, "FAIL %s: '%s' expected %.2f got %.2f\n",
+                    __func__, cases[i].id.UTF8String,
+                    (double)cases[i].leading, (double)got);
+            failures++;
+        }
+    }
+    if (fabs(FCParseLineSpacing(nil) - 2.0) > 0.001) {
+        fprintf(stderr, "FAIL %s: nil → 2.0 (default)\n", __func__); failures++;
+    }
+    if (fabs(FCParseLineSpacing(@"") - 2.0) > 0.001) {
+        fprintf(stderr, "FAIL %s: empty → 2.0 (default)\n", __func__); failures++;
+    }
+    if (fabs(FCParseLineSpacing(@"double") - 2.0) > 0.001) {
+        fprintf(stderr, "FAIL %s: unknown → 2.0 (default)\n", __func__); failures++;
+    }
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -670,9 +701,10 @@ int main(void) {
         test_progress_bar_glyph_styles();
         test_theme_catalog_invariants();
         test_letter_spacing_parser();
+        test_line_spacing_parser();
 
         if (failures == 0) {
-            fprintf(stderr, "All 30 tests passed.\n");
+            fprintf(stderr, "All 31 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
