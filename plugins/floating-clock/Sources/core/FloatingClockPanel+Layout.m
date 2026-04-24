@@ -217,16 +217,23 @@
     applyShadow(_activeSeg.layer, tActive2);
     applyShadow(_nextSeg.layer,   tNext2);
 
-    // LOCAL label positioned at exact row midpoint with boundingRectForFont
-    // height (the TRUE glyph outline box) + a line of leading both above
-    // and below for ascent/descent safety. This bypasses VCenteredCell's
-    // drawingRectForBounds centering (which biased toward top for single-
-    // line content in a much taller frame) and positions the label frame
-    // directly. Text inside the frame fills it.
+    // Optical centering for LOCAL.
+    //
+    // Fonts are asymmetric around the baseline: ascender (~19pt at size 24)
+    // is bigger than |descender| (~5pt). The bounding-box geometric center
+    // places baseline ABOVE the middle of the box — so most ink (which
+    // lives between the baseline and cap-height, above the baseline) drifts
+    // upward. "Fri Apr 24 01:57:23" has only one descender (p in 'Apr'),
+    // so the visible mass is strongly top-biased.
+    //
+    // Compensate by shifting the frame DOWN (smaller y in unflipped
+    // view coords) by half the asymmetry. Result: visible ink lies on the
+    // row's midline to the eye, not just in its metric center.
     CGFloat boundingH2 = primaryFont.boundingRectForFont.size.height;
     CGFloat leading = primaryFont.leading > 0 ? primaryFont.leading : primaryFont.ascender * 0.2;
     CGFloat localLabelH = ceilf(boundingH2 + leading * 2);
-    CGFloat localLabelY = floorf((localH - localLabelH) / 2.0);
+    CGFloat asymmetry = primaryFont.ascender - fabs(primaryFont.descender);
+    CGFloat localLabelY = floorf((localH - localLabelH) / 2.0 - asymmetry / 2.0);
     _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, localW - 16, localLabelH);
     _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeW - 16, activeH);
     _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextW - 16, nextH);
