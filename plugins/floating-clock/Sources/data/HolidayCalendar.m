@@ -119,6 +119,27 @@ static NSString * const kASX2026Holidays[] = {
     @"2026-12-28",  // Boxing Day observed (Dec 26 Sat)
 };
 
+// v4 iter-181: TSX 2026 non-trading days. Source: TMX Group published
+// calendar. Notable differences from NYSE: (1) TSX observes Good
+// Friday but NOT Easter Monday (trades Easter Mon); (2) Family Day
+// (Ontario, 3rd Mon of Feb) aligns with US Presidents' Day same date
+// in 2026 but semantically different; (3) Canadian Thanksgiving is
+// 2nd Mon of Oct (Oct 12 2026), not 4th Thu of Nov; (4) Civic Holiday
+// (1st Mon of Aug = Aug 3) has no US parallel; (5) Victoria Day (Mon
+// on/before May 24 = May 18 2026) has no US parallel.
+static NSString * const kTSX2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    @"2026-02-16",  // Family Day (3rd Mon of Feb, Ontario)
+    @"2026-04-03",  // Good Friday
+    @"2026-05-18",  // Victoria Day (Mon on/before May 24)
+    @"2026-07-01",  // Canada Day
+    @"2026-08-03",  // Civic Holiday (1st Mon of Aug)
+    @"2026-09-07",  // Labour Day (1st Mon of Sep — coincides with US)
+    @"2026-10-12",  // Canadian Thanksgiving (2nd Mon of Oct)
+    @"2026-12-25",  // Christmas Day
+    @"2026-12-28",  // Boxing Day observed (Dec 26 Sat)
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -137,6 +158,7 @@ static const FCHolidayTable kHolidayTables[] = {
     { "xetra",    kTARGET2_2026Holidays, sizeof(kTARGET2_2026Holidays) / sizeof(kTARGET2_2026Holidays[0]) },
     { "euronext", kTARGET2_2026Holidays, sizeof(kTARGET2_2026Holidays) / sizeof(kTARGET2_2026Holidays[0]) },
     { "asx",      kASX2026Holidays,      sizeof(kASX2026Holidays)      / sizeof(kASX2026Holidays[0])      },
+    { "tsx",      kTSX2026Holidays,      sizeof(kTSX2026Holidays)      / sizeof(kTSX2026Holidays[0])      },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
