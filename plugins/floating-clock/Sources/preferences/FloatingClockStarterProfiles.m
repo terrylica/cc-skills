@@ -13,6 +13,7 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowDate": @YES,
             @"DateFormat": @"short",
             @"TimeFormat": @"24h",
+            @"CanvasOpacity": @0.75,
             @"ActiveBarCells": @40,
             @"NextItemCount": @3,
             @"SelectedMarket": @"local",
@@ -64,6 +65,6 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"FontName", @"FontSize", @"ShowSeconds", @"ShowDate", @"TimeFormat",
         @"DateFormat", @"CanvasOpacity", @"ProgressBarStyle", @"LayoutMode", @"SegmentGap", @"CornerStyle", @"ShadowStyle",
         @"ActiveBarCells", @"NextItemCount", @"SelectedMarket",
-        @"ActiveFontSize", @"NextFontSize", @"ShowFlags",
+        @"ActiveFontSize", @"NextFontSize", @"ShowFlags", @"Density",
     ];
 }

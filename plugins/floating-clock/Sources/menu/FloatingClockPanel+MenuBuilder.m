@@ -88,6 +88,15 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Triptych (single row)",     @"horizontal-triptych"]]
                                      defaultsKey:@"LayoutMode"]];
 
+    // v4 iter-35: density profile — bundles inner-row padding preset.
+    [displayItems addObject:[self submenuTitled:@"Density"
+                                          action:@selector(setDensity:)
+                                           pairs:@[@[@"Compact",     @"compact"],
+                                                   @[@"Default",     @"default"],
+                                                   @[@"Comfortable", @"comfortable"],
+                                                   @[@"Spacious",    @"spacious"]]
+                                     defaultsKey:@"Density"]];
+
     // v4 iter-29: inter-segment gap / density.
     [displayItems addObject:[self submenuTitled:@"Segment Gap"
                                           action:@selector(setSegmentGap:)
@@ -542,6 +551,10 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     }
 
     [sub addItem:[NSMenuItem separatorItem]];
+
+    NSMenuItem *defItem = [sub addItemWithTitle:@"Save as Default" action:@selector(saveAsDefaultProfile:) keyEquivalent:@"S"];
+    defItem.target = self;
+    defItem.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
 
     NSMenuItem *saveItem = [sub addItemWithTitle:@"Save Current As…" action:@selector(saveCurrentProfileAs:) keyEquivalent:@""];
     saveItem.target = self;

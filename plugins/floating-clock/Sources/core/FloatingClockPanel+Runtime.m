@@ -57,9 +57,9 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     // (per user spec). Retained only for menu-state backward compat.
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     if ([tf isEqualToString:@"12h"]) {
-        [fmt appendString:@"h:mm:ss a"];
+        [fmt appendString:@"h:mm:ss a z"];
     } else {
-        [fmt appendString:@"HH:mm:ss"];
+        [fmt appendString:@"HH:mm:ss z"];
     }
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
@@ -83,9 +83,9 @@ static NSString *dateFormatPrefix(NSString *presetId) {
 
     if (showDate) [fmt appendString:dateFormatPrefix([d stringForKey:@"DateFormat"])];
     if ([timeFormat isEqualToString:@"12h"]) {
-        [fmt appendString:@"h:mm:ss a"];
+        [fmt appendString:@"h:mm:ss a z"];
     } else {
-        [fmt appendString:@"HH:mm:ss"];
+        [fmt appendString:@"HH:mm:ss z"];
     }
 
     if (!_dateFormatter) _dateFormatter = [[NSDateFormatter alloc] init];
@@ -148,7 +148,7 @@ static NSString *dateFormatPrefix(NSString *presetId) {
         if (secsToNext > 99 * 3600) {
             NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:secsToNext];
             NSDateFormatter *openFmt = [[NSDateFormatter alloc] init];
-            openFmt.dateFormat = @"EEE HH:mm";
+            openFmt.dateFormat = @"EEE HH:mm z";
             openFmt.timeZone = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
             countdownText = [NSString stringWithFormat:@" CLOSED · opens %@", [openFmt stringFromDate:opensAt]];
         } else {
