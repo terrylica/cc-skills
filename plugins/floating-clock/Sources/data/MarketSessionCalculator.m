@@ -151,12 +151,20 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
 }
 
 NSString *formatCountdown(long secs) {
+    // v4 iter-211: seconds across the board per user directive
+    // "all time displays must include second granularity to show
+    // that it is actually counting down" (iter-208 turn-in).
+    // Sub-minute kept as just `Ns` (seconds already there). Sub-
+    // hour and sub-100h gain trailing seconds. ≥100h drops to
+    // hours-only since a 4+ day countdown ticking second-by-
+    // second is visual noise without precision value.
     if (secs < 60) return [NSString stringWithFormat:@"%lds", secs];
     long mins = secs / 60;
-    if (mins < 60) return [NSString stringWithFormat:@"%ldm", mins];
+    long rsecs = secs % 60;
+    if (mins < 60) return [NSString stringWithFormat:@"%ldm%02lds", mins, rsecs];
     long hours = mins / 60;
     long rmins = mins % 60;
-    if (hours < 100) return [NSString stringWithFormat:@"%ldh%02ldm", hours, rmins];
+    if (hours < 100) return [NSString stringWithFormat:@"%ldh%02ldm%02lds", hours, rmins, rsecs];
     return [NSString stringWithFormat:@"%ldh", hours];
 }
 
