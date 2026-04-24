@@ -146,8 +146,17 @@ static NSFont *resolveClockFont(CGFloat size) {
     _label.stringValue = [fmt stringFromDate:[NSDate date]];
 }
 
+// Primary display = the one at origin (0,0) with the menu bar.
+// [NSScreen mainScreen] returns the screen with keyboard focus — indeterminate
+// for accessory apps before any window is shown — so we explicitly pick screens[0].
+- (NSScreen *)primaryScreen {
+    NSArray<NSScreen *> *all = [NSScreen screens];
+    if (all.count > 0) return all.firstObject;
+    return [NSScreen mainScreen];  // absolute last resort
+}
+
 - (NSRect)defaultFrame {
-    NSScreen *s = [NSScreen mainScreen];
+    NSScreen *s = [self primaryScreen];
     NSRect vf = s.visibleFrame;  // excludes menu bar + dock
     NSRect f = self.frame;
     CGFloat x = vf.origin.x + (vf.size.width - f.size.width) / 2.0;
@@ -207,8 +216,8 @@ static NSFont *resolveClockFont(CGFloat size) {
     }
     if (!onLiveScreen) {
         [self setFrame:[self defaultFrame] display:YES animate:YES];
-        // Also update saved screen number to main screen's
-        NSNumber *sn = [NSScreen mainScreen].deviceDescription[@"NSScreenNumber"];
+        // Also update saved screen number to primary screen's
+        NSNumber *sn = [self primaryScreen].deviceDescription[@"NSScreenNumber"];
         if ([sn isKindOfClass:[NSNumber class]]) {
             [[NSUserDefaults standardUserDefaults] setObject:sn forKey:@"FloatingClockScreenNumber"];
         }
