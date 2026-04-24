@@ -24,6 +24,12 @@ const ClockTheme kThemes[] = {
     {"paper_white",   "Paper White",    0.18, 0.20, 0.25,  0.93, 0.94, 0.95, 0.85},
     {"sepia",         "Sepia",          0.40, 0.26, 0.13,  0.96, 0.93, 0.85, 0.85},
     {"midnight_blue", "Midnight Blue",  0.40, 0.85, 1.00,  0.00, 0.12, 0.25, 0.60},
+    // v4 iter-92: +5 mood palettes (25 themes total).
+    {"oceanic_deep",  "Oceanic Deep",   0.55, 0.85, 0.95,  0.05, 0.12, 0.25, 0.55},
+    {"cherry_blossom","Cherry Blossom", 0.98, 0.70, 0.80,  0.15, 0.08, 0.12, 0.50},
+    {"espresso",      "Espresso",       0.95, 0.85, 0.72,  0.15, 0.08, 0.05, 0.55},
+    {"lavender_dream","Lavender Dream", 0.82, 0.75, 0.96,  0.08, 0.06, 0.15, 0.50},
+    {"mint_dark",     "Mint Dark",      0.50, 0.98, 0.75,  0.04, 0.15, 0.10, 0.50},
 };
 const size_t kNumThemes = sizeof(kThemes) / sizeof(kThemes[0]);
 
