@@ -92,6 +92,7 @@
         @"CanvasOpacity": @1.0,
         @"ProgressBarStyle": @"blocks",
         @"LayoutMode": @"stacked-local-top",
+        @"SegmentGap": @"normal",
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
