@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v2-enhancements
 version: 2
-iteration: 5
-status: ACTIVE
-last_updated: 2026-04-24T01:30:00Z
+iteration: 10
+status: DONE
+last_updated: 2026-04-24T02:10:00Z
 exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 100
 trigger: "/loop — reads this file verbatim each firing"
