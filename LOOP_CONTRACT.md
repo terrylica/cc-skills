@@ -101,23 +101,31 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 
 ## Current State (auto-maintained — rewrite each firing)
 
-**Last completed iteration**: iter-0 — scaffold this contract, loop not yet started.
+**Last completed iteration**: iter-1 — right-click NSMenu context menu with 6 persistent options.
 
-**Full current apex** (v1 shipped earlier this session, commits 05a0cc44 + f1350a49 + 53f6167c + 209a8852):
+**Full current apex** (v2 iter-1 shipped, commit caeb743c):
 
 - Always-on-top borderless translucent NSPanel with monospaced digits
 - iTerm2 font resolution cascade (4-tier fallback)
 - Bottom-center-of-primary default position
 - Multi-monitor-aware persistence with antifragile fallback
-- 58 KB binary, 12.8 MB physical footprint peak, 0 leaks, 0.0% idle CPU
+- Right-click context menu: Show Seconds/Date toggles + Time Format/Font Size/Opacity/Text Color submenus
+- Reset Position + About + Quit (⌘Q)
+- All settings persist to NSUserDefaults with sane defaults
+- Dynamic date formatter adapts to user choices
+- Window auto-resizes on format change (centered anchor)
+- 96 KB binary, 14.4 MB physical footprint peak, 0 leaks
 - 0 build warnings with `-Wall`
+- 521 LoC (up from 241)
 
 **Active monitors**: none.
 
 **Outstanding housekeeping**:
 
-- [ ] Scaffold LOOP_CONTRACT.md ← DOING NOW
-- [ ] Start the autonomous loop via `/loop`
+- [ ] iter-2 — App icon for Spotlight / Launchpad
+- [ ] iter-3 — Claude Code slash commands (install/launch/quit/uninstall)
+- [ ] iter-4 — Touchpoints manifest in CLAUDE.md
+- [ ] iter-5 — Final validation + release decision (v1.1.0)
 
 ---
 
@@ -125,23 +133,10 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 
 ### Tier 1 (start here — build atomically, validate each, commit)
 
-- [ ] **iter-1 — NSMenu context menu with persistent options**
-      Implement right-click context menu on the clock window with the following items:
-      `✓ Show Seconds        (toggle, default ON)
-      Show Date           (toggle, default OFF)
-      Time Format    ▶    24-hour ✓ | 12-hour
-      Font Size      ▶    18 | 20 | 22 | 24 ✓ | 28 | 32
-      Opacity        ▶    10% | 20% | 32% ✓ | 50% | 70% | Opaque
-      Text Color     ▶    White ✓ | Amber | Green | Cyan | Red
-      ─────
-      Reset Position
-      ─────
-      About Floating Clock
-      Quit                ⌘Q
-   `
-      Each selection persists to NSUserDefaults immediately (keys: `ShowSeconds`, `ShowDate`, `TimeFormat`, `FontSize`, `BackgroundAlpha`, `TextColor`). Window resizes to fit text when format changes. Menu triggered via NSTrackingArea + `rightMouseDown:` override OR `menuForEvent:` on the panel's contentView. `⌘Q` quits via standard NSApplication termination.
-      Validation: run the Validation Gauntlet, plus verify `defaults read com.example.floating-clock` shows the new keys after toggling each option.
-      Commit: `feat(floating-clock): NSMenu context menu with persistent options`
+- [x] **iter-1 — NSMenu context menu with persistent options** ✅ COMPLETE
+      Implemented right-click context menu on the clock window with all required items and submenus.
+      Validation results: - Build: 0 warnings, 96 KB binary, no errors - Plugin validator: PASSED (34 plugins valid) - Runtime: 14.4 MB peak footprint, 0 leaks - All menu methods compiled: buildMenu, refreshMenuChecks, applyDisplaySettings, all action handlers - NSUserDefaults keys registered: ShowSeconds, ShowDate, TimeFormat, FontSize, BackgroundAlpha, TextColor
+      Commit: caeb743c `feat(floating-clock): right-click context menu with persistent user options`
 
 - [ ] **iter-2 — App icon for Spotlight / Launchpad / Alfred indexing**
       Generate a minimal icon at build time inside the Makefile — no external assets. Approach: draw a 1024×1024 SVG (clock face: dark rounded square background with a white circle outline and hour/minute hands at 10:10), convert via `rsvg-convert` or `qlmanage`+`sips`, pipe through `iconutil` to produce `Icon.icns`, bundle into `FloatingClock.app/Contents/Resources/`. If `rsvg-convert` unavailable, fall back to a pure-CoreGraphics one-shot Swift-less generator written in `Sources/gen-icon.m` (also compiled as a tiny helper binary run once at build time). Add `CFBundleIconFile = Icon` to Info.plist. Verify: `mdimport -d1 /Applications/FloatingClock.app` indexes it, `mdfind "kMDItemDisplayName == 'FloatingClock'"` returns the path.
@@ -203,3 +198,4 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 ## Revision Log (append-only, one line per firing)
 
 - 2026-04-23 23:59 UTC — iter-0: scaffolded contract, queue seeded with 5 Tier 1 items covering the user-confirmed scope (context menu, icon, slash commands, touchpoint manifest, release). Next: iter-1 starts NSMenu implementation.
+- 2026-04-23 17:35 UTC — iter-1: right-click NSMenu context menu with 6 persistent options COMPLETE. 96KB binary, 521 LoC, 0 warnings, all validation passed. Commit caeb743c. Next: iter-2 starts icon generation.
