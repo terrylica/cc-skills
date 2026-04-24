@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 106
+iteration: 107
 status: ACTIVE
-last_updated: 2026-04-24T09:30:00Z
+last_updated: 2026-04-24T09:40:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -540,3 +540,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 09:10 UTC — iter-104: **Quick Styles extracted + locked** (325c5a8d). The 4 style bundles (Brutalist / Zen / Retro CRT / Executive) moved from inline MenuBuilder.m into new `Sources/preferences/FloatingClockQuickStyles.{h,m}` (data module, parallels StarterProfiles). Tests +1 (32 total) validates: count > 0, 2-element entries, theme ids round-trip via themeForId, enum-valued keys (CornerStyle / ShadowStyle / Density / FontWeight / LetterSpacing / LineSpacing / TimeSeparator) within allowed sets. Typo-proof bundles. MenuBuilder.m 454 → 405 LoC.
 - 2026-04-24 09:20 UTC — iter-105: **Quick Styles 4 → 6** (c40f2d6b). Two new moods: `Neon` (synthwave palette, glow shadow, hairline corner, heavy/wide/dash — retrowave) and `Hacker` (green_phosphor, sharp corners, no shadow, bold/tight/colon — terminal-like). Pure data add in FloatingClockQuickStyles.m; iter-104's invariant test re-runs on all 6 bundles. 32/32 still green.
 - 2026-04-24 09:30 UTC — iter-106: **Quick Styles 6 → 8** (f81be094). Two cool-palette moods: `Glacier` (nord palette, squircle, subtle shadow, regular/normal/middot — calm / wintry) and `Midnight` (midnight_blue, soft corner, halo shadow, medium/normal/colon — observatory vibe). Pure data. 32/32 still green.
+- 2026-04-24 09:40 UTC — iter-107: **retroactive TimeSeparator tests** (89afc259). iter-98's helpers (`fcTimeSeparatorPattern`, `fcBuildTimeFormat`) were file-scoped statics in Runtime.m, untestable. Extracted to single public `FCCurrentTimeFormat(is12h, showSec)` in FontResolver.{h,m}. Runtime.m's 3 call sites route through the public API. Tests +1 (33 total) covers 5 separator ids × 2 time-format variants + unknown-id fallback. 33/33 green, 216 KB binary.
