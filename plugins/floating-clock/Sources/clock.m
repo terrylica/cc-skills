@@ -94,6 +94,7 @@
         @"LayoutMode": @"stacked-local-top",
         @"SegmentGap": @"normal",
         @"CornerStyle": @"rounded",
+        @"ShadowStyle": @"none",
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];

@@ -180,6 +180,43 @@
     _activeSeg.layer.cornerRadius = cornerRadiusFor(activeW, activeH);
     _nextSeg.layer.cornerRadius   = cornerRadiusFor(nextW, nextH);
 
+    // v4 iter-31: ShadowStyle — adds depth / glow around each segment.
+    //   none    (default) — flat, no shadow
+    //   subtle  — faint drop shadow beneath
+    //   lifted  — stronger drop shadow (card-like)
+    //   glow    — outer glow using the segment's foreground color
+    // Segments' own layers don't set masksToBounds so their shadows
+    // render outside their bounds; contentView's masksToBounds does
+    // clip at the window edge, but the 12pt margin gives headroom.
+    NSString *shadowId = [d stringForKey:@"ShadowStyle"];
+    const ClockTheme *tLocal2  = themeForId([d stringForKey:@"LocalTheme"]);
+    const ClockTheme *tActive2 = themeForId([d stringForKey:@"ActiveTheme"]);
+    const ClockTheme *tNext2   = themeForId([d stringForKey:@"NextTheme"]);
+    void (^applyShadow)(CALayer *, const ClockTheme *) = ^(CALayer *layer, const ClockTheme *t) {
+        if ([shadowId isEqualToString:@"subtle"]) {
+            layer.shadowColor = [NSColor blackColor].CGColor;
+            layer.shadowOpacity = 0.35;
+            layer.shadowOffset = CGSizeMake(0, -2);
+            layer.shadowRadius = 3;
+        } else if ([shadowId isEqualToString:@"lifted"]) {
+            layer.shadowColor = [NSColor blackColor].CGColor;
+            layer.shadowOpacity = 0.55;
+            layer.shadowOffset = CGSizeMake(0, -4);
+            layer.shadowRadius = 6;
+        } else if ([shadowId isEqualToString:@"glow"]) {
+            NSColor *fg = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
+            layer.shadowColor = fg.CGColor;
+            layer.shadowOpacity = 0.6;
+            layer.shadowOffset = CGSizeMake(0, 0);
+            layer.shadowRadius = 6;
+        } else {
+            layer.shadowOpacity = 0.0;
+        }
+    };
+    applyShadow(_localSeg.layer,  tLocal2);
+    applyShadow(_activeSeg.layer, tActive2);
+    applyShadow(_nextSeg.layer,   tNext2);
+
     // LOCAL label centered inside its row (ascender + |descender| + 25% slack).
     // LOCAL label frame = full segment height. NSTextFieldCell draws text
     // within with built-in vertical metrics; clipping only happens when

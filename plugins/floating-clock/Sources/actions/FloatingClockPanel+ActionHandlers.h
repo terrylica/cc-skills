@@ -28,6 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setLayoutMode:(NSMenuItem *)sender;
 - (void)setSegmentGap:(NSMenuItem *)sender;
 - (void)setCornerStyle:(NSMenuItem *)sender;
+- (void)setShadowStyle:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;
 - (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field;
 - (void)resetPosition:(id)sender;

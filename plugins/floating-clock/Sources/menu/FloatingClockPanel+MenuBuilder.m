@@ -103,6 +103,15 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Pill",     @"pill"]]
                                      defaultsKey:@"CornerStyle"]];
 
+    // v4 iter-31: shadow / glow presets.
+    [displayItems addObject:[self submenuTitled:@"Shadow"
+                                          action:@selector(setShadowStyle:)
+                                           pairs:@[@[@"None (flat)",       @"none"],
+                                                   @[@"Subtle",            @"subtle"],
+                                                   @[@"Lifted",            @"lifted"],
+                                                   @[@"Glow (theme color)", @"glow"]]
+                                     defaultsKey:@"ShadowStyle"]];
+
     [m addItem:fcTopCategory(@"Display", displayItems)];
 
     // === THEMES ===
