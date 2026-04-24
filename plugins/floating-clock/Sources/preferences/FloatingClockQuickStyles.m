@@ -65,17 +65,35 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"black", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
         @"TimeSeparator": @"dash",
     };
+    // v4 iter-144: two more moods. Trading Floor leans into the amber-CRT
+    // analog trading vibe with a new pipe separator (iter-139). Scholar
+    // exercises the upper-LineSpacing brackets from iter-138 for a
+    // deliberate, studious readout.
+    NSDictionary *tradingFloor = @{
+        @"LocalTheme": @"amber_crt", @"ActiveTheme": @"amber_crt", @"NextTheme": @"amber_crt",
+        @"CornerStyle": @"pill", @"ShadowStyle": @"glow", @"Density": @"compact",
+        @"FontWeight": @"bold", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
+        @"TimeSeparator": @"pipe",
+    };
+    NSDictionary *scholar = @{
+        @"LocalTheme": @"paper_white", @"ActiveTheme": @"paper_white", @"NextTheme": @"paper_white",
+        @"CornerStyle": @"rounded", @"ShadowStyle": @"subtle", @"Density": @"comfortable",
+        @"FontWeight": @"regular", @"LetterSpacing": @"extrawide", @"LineSpacing": @"cavernous",
+        @"TimeSeparator": @"middot",
+    };
 
     return @[
-        @[@"Brutalist",    brutalist],
-        @[@"Zen",          zen],
-        @[@"Retro CRT",    retro],
-        @[@"Executive",    executive],
-        @[@"Neon",         neon],
-        @[@"Hacker",       hacker],
-        @[@"Glacier",      glacier],
-        @[@"Midnight",     midnight],
-        @[@"Featherlight", featherlight],
-        @[@"Industrial",   industrial],
+        @[@"Brutalist",     brutalist],
+        @[@"Zen",           zen],
+        @[@"Retro CRT",     retro],
+        @[@"Executive",     executive],
+        @[@"Neon",          neon],
+        @[@"Hacker",        hacker],
+        @[@"Glacier",       glacier],
+        @[@"Midnight",      midnight],
+        @[@"Featherlight",  featherlight],
+        @[@"Industrial",    industrial],
+        @[@"Trading Floor", tradingFloor],
+        @[@"Scholar",       scholar],
     ];
 }
