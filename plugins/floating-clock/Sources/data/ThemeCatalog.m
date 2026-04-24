@@ -2,6 +2,7 @@
 #include <string.h>
 
 const ClockTheme kThemes[] = {
+    // Original 10.
     {"terminal",      "Terminal",       1.00, 1.00, 1.00,  0.00, 0.00, 0.00, 0.32},
     {"amber_crt",     "Amber CRT",      1.00, 0.75, 0.00,  0.00, 0.00, 0.00, 0.38},
     {"green_phosphor","Green Phosphor", 0.18, 0.98, 0.36,  0.00, 0.00, 0.00, 0.35},
@@ -12,6 +13,17 @@ const ClockTheme kThemes[] = {
     {"rose_pine",     "Rose Pine",      0.92, 0.74, 0.73,  0.10, 0.09, 0.15, 0.42},
     {"high_contrast", "High Contrast",  1.00, 1.00, 1.00,  0.00, 0.00, 0.00, 1.00},
     {"soft_glass",    "Soft Glass",     0.96, 0.96, 0.97,  0.00, 0.00, 0.00, 0.18},
+    // v4 iter-32: +10 editor / curated palettes (20 themes total).
+    {"synthwave",     "Synthwave",      1.00, 0.00, 0.63,  0.10, 0.00, 0.20, 0.55},
+    {"monokai",       "Monokai",        0.97, 0.97, 0.95,  0.15, 0.16, 0.13, 0.50},
+    {"gotham",        "Gotham",         0.83, 0.77, 0.63,  0.05, 0.06, 0.08, 0.55},
+    {"ayu_mirage",    "Ayu Mirage",     1.00, 0.80, 0.40,  0.12, 0.14, 0.19, 0.50},
+    {"catppuccin",    "Catppuccin",     0.80, 0.84, 0.96,  0.12, 0.12, 0.18, 0.50},
+    {"tokyo_night",   "Tokyo Night",    0.75, 0.79, 0.96,  0.10, 0.11, 0.15, 0.55},
+    {"kanagawa",      "Kanagawa",       0.86, 0.84, 0.73,  0.12, 0.12, 0.16, 0.50},
+    {"paper_white",   "Paper White",    0.18, 0.20, 0.25,  0.93, 0.94, 0.95, 0.85},
+    {"sepia",         "Sepia",          0.40, 0.26, 0.13,  0.96, 0.93, 0.85, 0.85},
+    {"midnight_blue", "Midnight Blue",  0.40, 0.85, 1.00,  0.00, 0.12, 0.25, 0.60},
 };
 const size_t kNumThemes = sizeof(kThemes) / sizeof(kThemes[0]);
 
