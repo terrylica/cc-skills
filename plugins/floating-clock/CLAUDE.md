@@ -19,17 +19,18 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` — 24 fixtures covering
+Tests live in `tests/test_session.m` — 25 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
 fullTzLabel composition), cityCode / flag emoji mapping coverage for
 all 12 exchanges, starter-profile key-coverage invariants (caught
 iter-55 drift in iter-56), progressive countdown format (sub-day
-`T-HH:MM:SS` vs ≥24h `T-Nd Hh MMm`), lunch-market identification, and
-`FCFormatLandingTime` cross-day/cross-weekday matrix. Added after
-iter-48 caught a "closed-before-open-today" off-by-7h bug that had
-shipped since iter-9.
+`T-HH:MM:SS` vs ≥24h `T-Nd Hh MMm`), lunch-market identification,
+`FCFormatLandingTime` cross-day/cross-weekday matrix, and
+`FCParseFontWeight` id→NSFontWeight mapping with fallback (iter-88).
+Added after iter-48 caught a "closed-before-open-today" off-by-7h
+bug that had shipped since iter-9.
 
 Binary at `build/floating-clock` (~184 KB signed), app bundle at
 `build/FloatingClock.app`. App bundle includes
@@ -113,41 +114,42 @@ defaults read com.example.floating-clock          # show all
 defaults delete com.example.floating-clock        # reset everything (next launch → defaults)
 ```
 
-| Key                         | Type         | Default               | Source                                                                                    |
-| --------------------------- | ------------ | --------------------- | ----------------------------------------------------------------------------------------- |
-| `DisplayMode`               | NSString     | `"three-segment"`     | Menu (three-segment / single-market / local-only)                                         |
-| `ShowSeconds`               | BOOL         | `YES`                 | Menu — strips `:ss` from all time displays when NO                                        |
-| `ShowDate`                  | BOOL         | `YES`                 | Menu                                                                                      |
-| `DateFormat`                | NSString     | `"short"`             | Menu (short / long / iso / numeric / weeknum / dayofyr)                                   |
-| `TimeFormat`                | NSString     | `"24h"`               | Menu (24h / 12h) — only affects LOCAL; UTC always 24h canonical                           |
-| `ShowFlags`                 | BOOL         | `YES`                 | Menu — country-flag emoji on ACTIVE/NEXT headers                                          |
-| `ShowUTCReference`          | BOOL         | `YES`                 | Menu — inline `· HH:mm:ss UTC` on LOCAL row                                               |
-| `ShowSkyState`              | BOOL         | `YES`                 | Menu — sun/moon glyph on LOCAL row (☀ hours 6–18, 🌙 otherwise)                           |
-| `ShowProgressPercent`       | BOOL         | `NO`                  | Menu — inline `N%` next to ACTIVE progress bar (added iter-57)                            |
-| `FontSize`                  | double       | `24.0`                | Menu (15 options, 10–64 pt)                                                               |
-| `ActiveFontSize`            | double       | `11.0`                | Per-segment font size for ACTIVE                                                          |
-| `NextFontSize`              | double       | `11.0`                | Per-segment font size for NEXT                                                            |
-| `ColorTheme`                | NSString     | `"terminal"`          | Legacy / fallback — superseded by per-segment themes                                      |
-| `LocalTheme`                | NSString     | `"terminal"`          | Per-segment theme for LOCAL                                                               |
-| `ActiveTheme`               | NSString     | `"green_phosphor"`    | Per-segment theme for ACTIVE                                                              |
-| `NextTheme`                 | NSString     | `"soft_glass"`        | Per-segment theme for NEXT                                                                |
-| `CanvasOpacity`             | double       | `0.75`                | Menu — segment backdrop alpha (Opaque 1.00 / Solid 0.90 / Glass 0.75 / …)                 |
-| `ActiveBarCells`            | int          | `40`                  | Menu — progress-bar cell count                                                            |
-| `ProgressBarStyle`          | NSString     | `"dots"`              | Menu (dots / blocks / dashes / arrows / binary / braille)                                 |
-| `NextItemCount`             | int          | `3`                   | Menu — max rows in NEXT TO OPEN                                                           |
-| `LayoutMode`                | NSString     | `"stacked-local-top"` | Menu (stacked-local-top / stacked-local-bottom / triptych)                                |
-| `SegmentGap`                | NSString     | `"normal"`            | Menu (tight / snug / normal / airy / spacious)                                            |
-| `CornerStyle`               | NSString     | `"rounded"`           | Menu (sharp / rounded / pill / squircle)                                                  |
-| `ShadowStyle`               | NSString     | `"none"`              | Menu (none / subtle / lifted / glow)                                                      |
-| `Density`                   | NSString     | `"default"`           | Menu (compact / default / comfortable / spacious)                                         |
-| `SelectedMarket`            | NSString     | `"local"`             | Menu — only used in single-market mode                                                    |
-| `ActiveProfile`             | NSString     | `"Default"`           | Menu → Profile (Default / Day Trader / Night Owl / Minimalist / Watch Party + user-saved) |
-| `Profiles`                  | NSDictionary | starter bundle        | User-saved profile bundles — `{name → prefs-dict}`                                        |
-| `FontName`                  | NSString     | unset                 | Power-user override (PostScript name)                                                     |
-| `FloatingClockWindowFrame`  | NSString     | unset                 | Auto-saved on window move. `capture-clock.sh` reads this.                                 |
-| `FloatingClockScreenNumber` | NSNumber     | unset                 | Auto-saved on window move                                                                 |
-| `TextColor`                 | NSString     | unset                 | Legacy (pre-1.2.0). Migrated to `ColorTheme` on upgrade                                   |
-| `BackgroundAlpha`           | double       | unset                 | Legacy (pre-1.2.0). Alpha now `CanvasOpacity` or theme                                    |
+| Key                         | Type         | Default               | Source                                                                                                                                 |
+| --------------------------- | ------------ | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `DisplayMode`               | NSString     | `"three-segment"`     | Menu (three-segment / single-market / local-only)                                                                                      |
+| `ShowSeconds`               | BOOL         | `YES`                 | Menu — strips `:ss` from all time displays when NO                                                                                     |
+| `ShowDate`                  | BOOL         | `YES`                 | Menu                                                                                                                                   |
+| `DateFormat`                | NSString     | `"short"`             | Menu (short / long / iso / numeric / weeknum / dayofyr)                                                                                |
+| `TimeFormat`                | NSString     | `"24h"`               | Menu (24h / 12h) — only affects LOCAL; UTC always 24h canonical                                                                        |
+| `ShowFlags`                 | BOOL         | `YES`                 | Menu — country-flag emoji on ACTIVE/NEXT headers                                                                                       |
+| `ShowUTCReference`          | BOOL         | `YES`                 | Menu — inline `· HH:mm:ss UTC` on LOCAL row                                                                                            |
+| `ShowSkyState`              | BOOL         | `YES`                 | Menu — sun/moon glyph on LOCAL row (☀ hours 6–18, 🌙 otherwise)                                                                        |
+| `ShowProgressPercent`       | BOOL         | `NO`                  | Menu — inline `N%` next to ACTIVE progress bar (added iter-57)                                                                         |
+| `FontSize`                  | double       | `24.0`                | Menu (15 options, 10–64 pt)                                                                                                            |
+| `ActiveFontSize`            | double       | `11.0`                | Per-segment font size for ACTIVE                                                                                                       |
+| `NextFontSize`              | double       | `11.0`                | Per-segment font size for NEXT                                                                                                         |
+| `FontWeight`                | NSString     | `"medium"`            | Menu (regular / medium / semibold / bold / heavy) — applies to ACTIVE + NEXT monospaced paths. LOCAL keeps iTerm2 / named-font weight. |
+| `ColorTheme`                | NSString     | `"terminal"`          | Legacy / fallback — superseded by per-segment themes                                                                                   |
+| `LocalTheme`                | NSString     | `"terminal"`          | Per-segment theme for LOCAL                                                                                                            |
+| `ActiveTheme`               | NSString     | `"green_phosphor"`    | Per-segment theme for ACTIVE                                                                                                           |
+| `NextTheme`                 | NSString     | `"soft_glass"`        | Per-segment theme for NEXT                                                                                                             |
+| `CanvasOpacity`             | double       | `0.75`                | Menu — segment backdrop alpha (Opaque 1.00 / Solid 0.90 / Glass 0.75 / …)                                                              |
+| `ActiveBarCells`            | int          | `40`                  | Menu — progress-bar cell count                                                                                                         |
+| `ProgressBarStyle`          | NSString     | `"dots"`              | Menu (dots / blocks / dashes / arrows / binary / braille)                                                                              |
+| `NextItemCount`             | int          | `3`                   | Menu — max rows in NEXT TO OPEN                                                                                                        |
+| `LayoutMode`                | NSString     | `"stacked-local-top"` | Menu (stacked-local-top / stacked-local-bottom / triptych)                                                                             |
+| `SegmentGap`                | NSString     | `"normal"`            | Menu (tight / snug / normal / airy / spacious)                                                                                         |
+| `CornerStyle`               | NSString     | `"rounded"`           | Menu (sharp / rounded / pill / squircle)                                                                                               |
+| `ShadowStyle`               | NSString     | `"none"`              | Menu (none / subtle / lifted / glow)                                                                                                   |
+| `Density`                   | NSString     | `"default"`           | Menu (compact / default / comfortable / spacious)                                                                                      |
+| `SelectedMarket`            | NSString     | `"local"`             | Menu — only used in single-market mode                                                                                                 |
+| `ActiveProfile`             | NSString     | `"Default"`           | Menu → Profile (Default / Day Trader / Night Owl / Minimalist / Watch Party + user-saved)                                              |
+| `Profiles`                  | NSDictionary | starter bundle        | User-saved profile bundles — `{name → prefs-dict}`                                                                                     |
+| `FontName`                  | NSString     | unset                 | Power-user override (PostScript name)                                                                                                  |
+| `FloatingClockWindowFrame`  | NSString     | unset                 | Auto-saved on window move. `capture-clock.sh` reads this.                                                                              |
+| `FloatingClockScreenNumber` | NSNumber     | unset                 | Auto-saved on window move                                                                                                              |
+| `TextColor`                 | NSString     | unset                 | Legacy (pre-1.2.0). Migrated to `ColorTheme` on upgrade                                                                                |
+| `BackgroundAlpha`           | double       | unset                 | Legacy (pre-1.2.0). Alpha now `CanvasOpacity` or theme                                                                                 |
 
 ## Implementation
 

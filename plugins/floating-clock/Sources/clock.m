@@ -97,6 +97,7 @@
         @"ShadowStyle": @"none",
         @"ActiveFontSize": @11.0,
         @"NextFontSize": @11.0,
+        @"FontWeight": @"medium",
         @"ShowFlags": @YES,
         @"Density": @"default",
         @"ShowUTCReference": @YES,
