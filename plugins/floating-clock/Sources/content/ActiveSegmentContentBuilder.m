@@ -5,6 +5,7 @@
 #import "../rendering/FontResolver.h"
 #import "SegmentHeaderRenderer.h"
 #import "UrgencyColors.h"
+#include <time.h>  // iter-212: epoch second for FCUrgencyAlertColor flash modulation
 
 NSAttributedString *FCBuildActiveSegmentContent(void) {
     NSDate *now = [NSDate date];
@@ -158,13 +159,13 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
                             range:NSMakeRange(splitIdx, bar.length - splitIdx)];
             [out appendAttributedString:barAttr];
 
-            // v4 iter-44: urgency color tiers on countdown.
-            // v4 iter-73: routed through FCUrgencyColorForSecs — single
-            // source of truth for thresholds and palette (shared with NEXT).
+            // v4 iter-44 → v4 iter-73 → v4 iter-212: countdown color now
+            // uses FCUrgencyAlertColor (continuous Weber-Fechner gradient
+            // green→red on log scale + 1Hz alpha pulse below 30s).
             // Lunch state keeps the neutral header color — lunch windows
             // are short and the urgency signal would be noise there.
             NSColor *countdownColor = (state == kSessionOpen)
-                ? FCUrgencyColorForSecs(secsToNext, headerColor)
+                ? FCUrgencyAlertColor(secsToNext, headerColor, (long)time(NULL))
                 : headerColor;
             // v4 iter-57: optional inline progress percent. Users who want
             // a precise read-out alongside the bar toggle ShowProgressPercent
