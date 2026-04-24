@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSMenu *)buildMenu;
 - (NSMenuItem *)buildProfileMenu;
+- (NSMenuItem *)buildQuickStylesMenu;
 
 @end
 

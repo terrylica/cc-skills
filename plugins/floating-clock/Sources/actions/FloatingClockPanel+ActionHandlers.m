@@ -178,6 +178,22 @@
     }
 }
 
+// v4 iter-102: Quick Style application. The menu item's representedObject
+// is a dictionary of pref-key → value pairs. Each k/v is written to
+// NSUserDefaults atomically (writes to standardUserDefaults are
+// implicitly ordered; applyDisplaySettings re-renders after all
+// writes). Scoped: only aesthetic levers are in these bundles — the
+// user's chosen FontSize / SelectedMarket / DisplayMode are untouched.
+- (void)applyQuickStyle:(NSMenuItem *)sender {
+    if (![sender.representedObject isKindOfClass:[NSDictionary class]]) return;
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSDictionary *bundle = sender.representedObject;
+    for (NSString *k in bundle) {
+        [d setObject:bundle[k] forKey:k];
+    }
+    [self applyDisplaySettings];
+}
+
 - (void)toggleShowFlags:(NSMenuItem *)sender {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"ShowFlags"] forKey:@"ShowFlags"];

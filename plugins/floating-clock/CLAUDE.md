@@ -157,6 +157,7 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 | `SelectedMarket`            | NSString     | `"local"`                | Menu — only used in single-market mode                                                                                                   |
 | `ActiveProfile`             | NSString     | `"Default"`              | Menu → Profile (Default / Day Trader / Night Owl / Minimalist / Watch Party + user-saved)                                                |
 | `Profiles`                  | NSDictionary | starter bundle           | User-saved profile bundles — `{name → prefs-dict}`                                                                                       |
+| _Quick Style_               | (action)     | n/a                      | Menu → Quick Style (Brutalist / Zen / Retro CRT / Executive, iter-102) — writes a curated 10-key aesthetic bundle atomically. No pref.   |
 | `FontName`                  | NSString     | unset                    | Power-user override (PostScript name)                                                                                                    |
 | `FloatingClockWindowFrame`  | NSString     | unset                    | Auto-saved on window move. `capture-clock.sh` reads this.                                                                                |
 | `FloatingClockScreenNumber` | NSNumber     | unset                    | Auto-saved on window move                                                                                                                |
