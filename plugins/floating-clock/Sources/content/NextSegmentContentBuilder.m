@@ -38,7 +38,10 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         long secsToNext;
         computeSessionState(m, now, &state, &progress, &secsToNext);
 
-        if (state == kSessionClosed) {
+        // v4 iter-123: PRE-MARKET goes in NEXT alongside CLOSED —
+        // they both await the opening bell, just PRE-MARKET is ≤15 min
+        // away and gets the amber state glyph.
+        if (state == kSessionClosed || state == kSessionPreMarket) {
             entries[entryCount++] = (NextEntry){m, secsToNext, NO};
         } else if (state == kSessionLunch) {
             entries[entryCount++] = (NextEntry){m, secsToNext, YES};

@@ -1,11 +1,11 @@
 // Session-state engine for an exchange. Given a market (from MarketCatalog)
 // and a moment in time, computes:
-//   - SessionState (OPEN / LUNCH / CLOSED)
+//   - SessionState (OPEN / LUNCH / CLOSED / PRE-MARKET)
 //   - progress 0.0–1.0 through the regular session (for progress bars)
 //   - seconds to next transition (for countdown UI)
 //
 // Also houses the visual-rendering helpers that are tightly coupled to
-// SessionState: glyph for state (●/◑/○), color for state, countdown
+// SessionState: glyph for state (●/◑/○/◐), color for state, countdown
 // formatting, and progress-bar string composition.
 #import <Cocoa/Cocoa.h>
 #import "MarketCatalog.h"
@@ -14,9 +14,10 @@
 NS_ASSUME_NONNULL_BEGIN
 
 typedef enum {
-    kSessionOpen = 0,     // regular session (incl. pre-open auctions)
-    kSessionLunch = 1,    // Asian-exchange midday break
-    kSessionClosed = 2,   // overnight, weekend
+    kSessionOpen = 0,       // regular session
+    kSessionLunch = 1,      // Asian-exchange midday break
+    kSessionClosed = 2,     // overnight, weekend
+    kSessionPreMarket = 3,  // iter-123: final 15 min before today's open (not weekend)
 } SessionState;
 
 // v4 iter-77: shared time-unit constants. Previously '86400' and
