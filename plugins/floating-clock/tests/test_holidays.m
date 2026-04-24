@@ -445,6 +445,58 @@ void test_holiday_calendar_six(void) {
     }
 }
 
+void test_holiday_calendar_sse(void) {
+    // v4 iter-183: SSE 2026 non-trading days. First calendar with two
+    // 7-day Golden Week clusters (Spring Festival + National Day).
+    // Interesting overlaps with HKEX: Dragon Boat (Jun 19) and
+    // Mid-Autumn (Sep 25) fall on exactly the same Gregorian dates
+    // — both markets correctly flag them.
+    const ClockMarket *sse  = marketForId(@"sse");
+    const ClockMarket *hkex = marketForId(@"hkex");
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    // Spring Festival Golden Week — verify all 5 weekday closures.
+    NSDate *sfDay1 = holidayDateAt(@"Asia/Shanghai", 2026, 2, 17, 12, 0, 0);
+    NSDate *sfDay5 = holidayDateAt(@"Asia/Shanghai", 2026, 2, 23, 12, 0, 0);
+    if (!FCIsMarketHoliday(sse, sfDay1)) { failures++; fprintf(stderr, "FAIL %s: Spring Festival Day 1 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(sse, sfDay5)) { failures++; fprintf(stderr, "FAIL %s: Spring Festival Day 5 (Feb 23 Mon) not flagged\n", __func__); }
+
+    // National Day Golden Week.
+    NSDate *ndDay1 = holidayDateAt(@"Asia/Shanghai", 2026, 10, 1, 12, 0, 0);
+    NSDate *ndDay5 = holidayDateAt(@"Asia/Shanghai", 2026, 10, 7, 12, 0, 0);
+    if (!FCIsMarketHoliday(sse, ndDay1)) { failures++; fprintf(stderr, "FAIL %s: National Day Day 1 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(sse, ndDay5)) { failures++; fprintf(stderr, "FAIL %s: National Day Day 5 (Oct 7 Wed) not flagged\n", __func__); }
+
+    // Qingming + Mid-Autumn + Dragon Boat + Labour Day.
+    NSDate *qingming   = holidayDateAt(@"Asia/Shanghai", 2026,  4,  6, 12, 0, 0);
+    NSDate *labour     = holidayDateAt(@"Asia/Shanghai", 2026,  5,  1, 12, 0, 0);
+    NSDate *dragonBoat = holidayDateAt(@"Asia/Shanghai", 2026,  6, 19, 12, 0, 0);
+    NSDate *midAutumn  = holidayDateAt(@"Asia/Shanghai", 2026,  9, 25, 12, 0, 0);
+    if (!FCIsMarketHoliday(sse, qingming))   { failures++; fprintf(stderr, "FAIL %s: Qingming not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(sse, labour))     { failures++; fprintf(stderr, "FAIL %s: Labour Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(sse, dragonBoat)) { failures++; fprintf(stderr, "FAIL %s: Dragon Boat not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(sse, midAutumn))  { failures++; fprintf(stderr, "FAIL %s: Mid-Autumn not flagged\n", __func__); }
+
+    // HKEX shares Dragon Boat + Mid-Autumn dates (same lunar calendar).
+    if (!FCIsMarketHoliday(hkex, dragonBoat)) { failures++; fprintf(stderr, "FAIL %s: HKEX should also flag Dragon Boat\n", __func__); }
+    if (!FCIsMarketHoliday(hkex, midAutumn))  { failures++; fprintf(stderr, "FAIL %s: HKEX should also flag Mid-Autumn\n", __func__); }
+
+    // Cross-market: SSE must NOT flag NYSE-only holidays.
+    NSDate *thanksgiving = holidayDateAt(@"Asia/Shanghai", 2026, 11, 26, 12, 0, 0);
+    if (FCIsMarketHoliday(sse, thanksgiving)) { failures++; fprintf(stderr, "FAIL %s: SSE wrongly flagged Thanksgiving\n", __func__); }
+
+    // NYSE must NOT flag SSE-only National Day Oct 5 (doesn't coincide
+    // w/ any US holiday after TZ adjustment — Oct 5 Shanghai noon =
+    // Oct 5 01:00 NY EDT, still a Mon non-holiday).
+    if (FCIsMarketHoliday(nyse, ndDay5)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged SSE Oct 7\n", __func__); }
+
+    // Regular SSE trading day should NOT be flagged.
+    NSDate *regularWed = holidayDateAt(@"Asia/Shanghai", 2026, 3, 11, 12, 0, 0);
+    if (FCIsMarketHoliday(sse, regularWed)) {
+        failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on SSE\n", __func__);
+    }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and
