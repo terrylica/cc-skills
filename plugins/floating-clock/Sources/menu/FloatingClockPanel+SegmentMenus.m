@@ -2,12 +2,13 @@
 // the 'Full Preferences…' item that pops the full menu from any segment.
 //
 // Extracted v4 iter-87 from FloatingClockPanel+MenuBuilder.m once it
-// crossed the 500-LoC hard cap. MenuBuilder retains the full-menu
-// builder, shared submenu helpers, refreshMenuChecks, and the Profile
-// submenu — those are called by the three segment builders here via
-// the MenuBuilder category header.
+// crossed the 500-LoC hard cap. MenuBuilder.m retains buildMenu +
+// buildProfileMenu; iter-96 further split the shared submenu helpers
+// (submenuTitled / groupedSubmenuTitled / setChecks / refreshMenuChecks)
+// into FloatingClockPanel+MenuHelpers.{h,m} — this file imports both.
 #import "FloatingClockPanel+SegmentMenus.h"
 #import "FloatingClockPanel+MenuBuilder.h"
+#import "FloatingClockPanel+MenuHelpers.h"
 #import "../data/ThemeCatalog.h"
 #import "../segments/FloatingClockSegmentViews.h"
 
