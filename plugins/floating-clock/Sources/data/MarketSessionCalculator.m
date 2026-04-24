@@ -1,6 +1,9 @@
 #import "MarketSessionCalculator.h"
 #include <string.h>
 
+const long kFCSecondsPerDay           = 24L * 3600L;
+const long kFCMaxBoundedCountdownSecs = 99L * 3600L;
+
 void computeSessionState(const ClockMarket *mkt, NSDate *now,
                          SessionState *outState, double *outProgress01,
                          long *outSecsToNext) {
@@ -107,10 +110,9 @@ NSString *formatCountdownFancy(long secs) {
     // TimeMath, etc.). Implemented inline rather than via
     // NSDateComponentsFormatter because we want fixed 'T-' prefix and
     // zero-padded hours/minutes for column alignment.
-    const long SECS_PER_DAY = 24L * 3600L;
-    if (secs >= SECS_PER_DAY) {
-        long days  = secs / SECS_PER_DAY;
-        long rem   = secs % SECS_PER_DAY;
+    if (secs >= kFCSecondsPerDay) {
+        long days  = secs / kFCSecondsPerDay;
+        long rem   = secs % kFCSecondsPerDay;
         long hours = rem / 3600;
         long mins  = (rem % 3600) / 60;
         return [NSString stringWithFormat:@"T-%ldd %ldh %02ldm", days, hours, mins];

@@ -193,7 +193,7 @@ static NSString *dateFormatPrefix(NSString *presetId) {
             initWithString:cd attributes:@{NSFontAttributeName: _sessionLabel.font, NSForegroundColorAttributeName: themeFg}]];
     } else {
         NSString *countdownText;
-        if (secsToNext > 99 * 3600) {
+        if (secsToNext > kFCMaxBoundedCountdownSecs) {
             NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:secsToNext];
             NSDateFormatter *openFmt = [[NSDateFormatter alloc] init];
             openFmt.dateFormat = @"EEE HH:mm";
