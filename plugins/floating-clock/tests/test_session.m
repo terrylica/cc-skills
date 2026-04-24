@@ -23,6 +23,7 @@
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 #import "../Sources/core/DateFormatPrefix.h"
 #import "../Sources/core/SkyGlyph.h"
+#import "../Sources/core/SegmentGap.h"
 
 static int failures = 0;
 
@@ -708,6 +709,40 @@ static void test_date_format_prefix(void) {
     }
 }
 
+static void test_segment_gap_points(void) {
+    // iter-115: lock iter-108's 7-preset SegmentGap catalog. Layout.m
+    // calls this at every relayout; any change to these values
+    // ripples through the ACTIVE+NEXT horizontal arithmetic.
+    struct { NSString *id; CGFloat pt; } cases[] = {
+        {@"flush",      0},
+        {@"tight",      2},
+        {@"snug",       3},
+        {@"normal",     4},
+        {@"airy",       8},
+        {@"spacious",  14},
+        {@"cavernous", 24},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        CGFloat got = FCSegmentGapPoints(cases[i].id);
+        if (fabs(got - cases[i].pt) > 0.001) {
+            fprintf(stderr, "FAIL %s: '%s' expected %.1fpt got %.1fpt\n",
+                    __func__, cases[i].id.UTF8String,
+                    (double)cases[i].pt, (double)got);
+            failures++;
+        }
+    }
+    // nil / empty / unknown → normal default (4pt).
+    if (fabs(FCSegmentGapPoints(nil) - 4) > 0.001) {
+        fprintf(stderr, "FAIL %s: nil should → 4pt\n", __func__); failures++;
+    }
+    if (fabs(FCSegmentGapPoints(@"") - 4) > 0.001) {
+        fprintf(stderr, "FAIL %s: empty should → 4pt\n", __func__); failures++;
+    }
+    if (fabs(FCSegmentGapPoints(@"infinite") - 4) > 0.001) {
+        fprintf(stderr, "FAIL %s: unknown should → 4pt\n", __func__); failures++;
+    }
+}
+
 static void test_sky_glyph_phases(void) {
     // iter-114: 24-hour coverage of the 5-phase sky glyph buckets
     // (iter-112). Expected mapping is a fixed schedule — if the hour
@@ -895,11 +930,12 @@ int main(void) {
         test_line_spacing_parser();
         test_date_format_prefix();
         test_sky_glyph_phases();
+        test_segment_gap_points();
         test_current_time_format();
         test_quick_styles_invariants();
 
         if (failures == 0) {
-            fprintf(stderr, "All 35 tests passed.\n");
+            fprintf(stderr, "All 36 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
