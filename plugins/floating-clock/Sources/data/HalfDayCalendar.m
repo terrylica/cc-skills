@@ -56,6 +56,21 @@ static const FCHalfDayEntry kTSX2026HalfDays[] = {
     { @"2026-12-24", 13, 0 },  // Christmas Eve
 };
 
+// v4 iter-192: JSE 2026 half-day session. Source: JSE published
+// calendar. Single half-day: Christmas Eve closes at 12:00 SAST.
+// JSE does NOT have a NYE half-day; Dec 31 trades full session.
+static const FCHalfDayEntry kJSE2026HalfDays[] = {
+    { @"2026-12-24", 12, 0 },  // Christmas Eve
+};
+
+// v4 iter-192: ASX 2026 half-day session. Source: ASX published
+// calendar. Single half-day: Christmas Eve closes at 14:10 AEDT
+// (the pre-close auction extends slightly further; modelled as
+// 14:10 which is the regular trading halt).
+static const FCHalfDayEntry kASX2026HalfDays[] = {
+    { @"2026-12-24", 14, 10 },  // Christmas Eve
+};
+
 typedef struct {
     const char *market_id;
     const FCHalfDayEntry * _Nonnull entries;
@@ -69,6 +84,8 @@ static const FCHalfDayTable kHalfDayTables[] = {
     { "euronext", kTARGET2_2026HalfDays, sizeof(kTARGET2_2026HalfDays) / sizeof(kTARGET2_2026HalfDays[0]) },
     { "hkex",     kHKEX2026HalfDays,     sizeof(kHKEX2026HalfDays)     / sizeof(kHKEX2026HalfDays[0])     },
     { "tsx",      kTSX2026HalfDays,      sizeof(kTSX2026HalfDays)      / sizeof(kTSX2026HalfDays[0])      },
+    { "jse",      kJSE2026HalfDays,      sizeof(kJSE2026HalfDays)      / sizeof(kJSE2026HalfDays[0])      },
+    { "asx",      kASX2026HalfDays,      sizeof(kASX2026HalfDays)      / sizeof(kASX2026HalfDays[0])      },
 };
 static const size_t kNumHalfDayTables = sizeof(kHalfDayTables) / sizeof(kHalfDayTables[0]);
 
