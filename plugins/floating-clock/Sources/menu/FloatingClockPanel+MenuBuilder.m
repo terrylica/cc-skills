@@ -247,19 +247,26 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     // === MARKET ===
     NSMutableArray *marketItems = [NSMutableArray array];
 
-    // Time Zone submenu (regional groups).
+    // Time Zone submenu (regional groups). v4 iter-155: switched from
+    // hardcoded index ranges to iana-prefix-based grouping so adding a
+    // new market auto-files it under the right region. Africa added for
+    // JSE (iter-155).
     NSMutableArray *americasItems = [NSMutableArray array];
     NSMutableArray *europeItems   = [NSMutableArray array];
     NSMutableArray *asiaItems     = [NSMutableArray array];
     NSMutableArray *oceaniaItems  = [NSMutableArray array];
+    NSMutableArray *africaItems   = [NSMutableArray array];
     for (size_t i = 1; i < kNumMarkets; i++) {
         NSString *display = [NSString stringWithUTF8String:kMarkets[i].display];
         NSString *idStr = [NSString stringWithUTF8String:kMarkets[i].id];
+        NSString *iana = [NSString stringWithUTF8String:kMarkets[i].iana];
         NSArray *pair = @[display, idStr];
-        if (i <= 2)        [americasItems addObject:pair];
-        else if (i <= 6)   [europeItems addObject:pair];
-        else if (i <= 11)  [asiaItems addObject:pair];
-        else               [oceaniaItems addObject:pair];
+        if ([iana hasPrefix:@"America/"])         [americasItems addObject:pair];
+        else if ([iana hasPrefix:@"Europe/"])     [europeItems addObject:pair];
+        else if ([iana hasPrefix:@"Asia/"])       [asiaItems addObject:pair];
+        else if ([iana hasPrefix:@"Australia/"] ||
+                 [iana hasPrefix:@"Pacific/"])    [oceaniaItems addObject:pair];
+        else if ([iana hasPrefix:@"Africa/"])     [africaItems addObject:pair];
     }
     NSMenuItem *tzRoot = [[NSMenuItem alloc] initWithTitle:@"Time Zone" action:nil keyEquivalent:@""];
     NSMenu *tzSub = [[NSMenu alloc] init];
@@ -268,6 +275,7 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     localItem.target = self;
     [tzSub addItem:[NSMenuItem separatorItem]];
     for (NSArray *region in @[@[@"Americas", americasItems], @[@"Europe", europeItems],
+                              @[@"Africa", africaItems],
                               @[@"Asia", asiaItems], @[@"Oceania", oceaniaItems]]) {
         NSMenuItem *regionItem = [[NSMenuItem alloc] initWithTitle:region[0] action:nil keyEquivalent:@""];
         NSMenu *regionSub = [[NSMenu alloc] init];

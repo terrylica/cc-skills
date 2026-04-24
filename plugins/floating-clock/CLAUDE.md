@@ -24,7 +24,7 @@ Tests live in `tests/test_session.m` + `tests/test_levers.m` — 56 fixtures cov
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
 fullTzLabel composition), cityCode / flag emoji mapping coverage for
-all 12 exchanges, starter-profile key-coverage invariants (caught
+all 13 exchanges, starter-profile key-coverage invariants (caught
 iter-55 drift in iter-56), progressive countdown format (sub-day
 `T-HH:MM:SS` vs ≥24h `T-Nd Hh MMm`), lunch-market identification,
 `FCFormatLandingTime` cross-day/cross-weekday matrix,
@@ -71,7 +71,7 @@ local pragma delta from upstream (iter-81).
   4. Size selectable from 15 options (10 / 12 / 14 / 16 / 18 / 20 / 22 / 24 / 28 / 32 / 36 / 42 / 48 / 56 / 64 pt) grouped as Small / Medium / Large / Huge in the context menu
 - **Color themes**: 27 preset bundles (each sets foreground, background, alpha atomically). Originals (10): Terminal, Amber CRT, Green Phosphor, Solarized Dark, Dracula, Nord, Gruvbox, Rose Pine, High Contrast, Soft Glass. iter-32 (+10): Synthwave, Monokai, Gotham, Ayu Mirage, Catppuccin, Tokyo Night, Kanagawa, Paper White, Sepia, Midnight Blue. iter-92 (+5): Oceanic Deep, Cherry Blossom, Espresso, Lavender Dream, Mint Dark. iter-132 (+2): Forest, Volcanic. Menu items show 14×14 color swatches drawn inline via Core Graphics.
 - **Market sessions** (when a non-local market is selected):
-  - 12 major exchanges grouped by region (Americas / Europe / Asia / Oceania) — NYSE, TSX, LSE, Euronext, XETRA, SIX, TSE, HKEX, SSE, KRX, NSE, ASX
+  - 13 major exchanges grouped by region (Americas / Europe / Africa / Asia / Oceania) — NYSE, TSX, LSE, Euronext, XETRA, SIX, TSE, HKEX, SSE, KRX, NSE, ASX, JSE (iter-155)
   - Time displayed in that exchange's local time via IANA `NSTimeZone` (DST-correct across hemispheres)
   - Second line shows state glyph + market code + progress bar + countdown:
     - `●` green: OPEN (regular session)
