@@ -32,6 +32,33 @@ static NSString * const kLSE2026Holidays[] = {
     @"2026-12-28",  // Boxing Day (observed; Dec 26 is Saturday)
 };
 
+// v4 iter-176: TSE 2026 non-trading days. Source: JPX (Japan Exchange
+// Group) official calendar. Excludes weekend-coincident holidays
+// (Jan 3 Sat Bank Holiday, May 3 Sun Constitution Memorial Day) — the
+// isWeekend branch in computeSessionState already handles those.
+// May 6 is a furikae-kyujitsu (substitute holiday) because May 3 fell
+// on Sunday. Half-days (大発会 / 大納会 shortened sessions) deferred.
+static NSString * const kTSE2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day (元日)
+    @"2026-01-02",  // Bank holiday (銀行休業日)
+    @"2026-01-12",  // Coming of Age Day (成人の日 — 2nd Mon of Jan)
+    @"2026-02-11",  // National Foundation Day (建国記念の日)
+    @"2026-02-23",  // Emperor's Birthday (天皇誕生日)
+    @"2026-03-20",  // Vernal Equinox Day (春分の日)
+    @"2026-04-29",  // Showa Day (昭和の日)
+    @"2026-05-04",  // Greenery Day (みどりの日)
+    @"2026-05-05",  // Children's Day (こどもの日)
+    @"2026-05-06",  // Substitute holiday for May 3 (振替休日)
+    @"2026-07-20",  // Marine Day (海の日 — 3rd Mon of Jul)
+    @"2026-08-11",  // Mountain Day (山の日)
+    @"2026-09-21",  // Respect for the Aged Day (敬老の日 — 3rd Mon of Sep)
+    @"2026-09-23",  // Autumnal Equinox Day (秋分の日)
+    @"2026-10-12",  // Sports Day (スポーツの日 — 2nd Mon of Oct)
+    @"2026-11-03",  // Culture Day (文化の日)
+    @"2026-11-23",  // Labor Thanksgiving Day (勤労感謝の日)
+    @"2026-12-31",  // Year-end non-trading day (大納会 was Dec 30)
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -44,6 +71,7 @@ typedef struct {
 static const FCHolidayTable kHolidayTables[] = {
     { "nyse", kNYSE2026Holidays, sizeof(kNYSE2026Holidays) / sizeof(kNYSE2026Holidays[0]) },
     { "lse",  kLSE2026Holidays,  sizeof(kLSE2026Holidays)  / sizeof(kLSE2026Holidays[0])  },
+    { "tse",  kTSE2026Holidays,  sizeof(kTSE2026Holidays)  / sizeof(kTSE2026Holidays[0])  },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
