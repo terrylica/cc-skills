@@ -122,6 +122,38 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowProgressPercent": @NO,
             @"SelectedMarket": @"local",
         },
+        @"Researcher": @{
+            // Clinical / academic aesthetic. ISO-8601 date, 24h, high
+            // contrast, no flags or sun/moon. UTC reference visible.
+            // Single-market not useful here — stays three-segment for
+            // cross-region awareness during paper-writing.
+            @"DisplayMode": @"three-segment",
+            @"LocalTheme": @"high_contrast",
+            @"ActiveTheme": @"high_contrast",
+            @"NextTheme": @"high_contrast",
+            @"ColorTheme": @"high_contrast",
+            @"FontSize": @20.0,
+            @"ActiveFontSize": @11.0,
+            @"NextFontSize": @11.0,
+            @"ShowSeconds": @YES,
+            @"ShowDate": @YES,
+            @"DateFormat": @"iso",
+            @"TimeFormat": @"24h",
+            @"CanvasOpacity": @1.00,
+            @"ActiveBarCells": @40,
+            @"NextItemCount": @3,
+            @"ProgressBarStyle": @"dots",
+            @"LayoutMode": @"stacked-local-top",
+            @"SegmentGap": @"normal",
+            @"CornerStyle": @"rounded",
+            @"ShadowStyle": @"none",
+            @"Density": @"default",
+            @"ShowFlags": @NO,
+            @"ShowUTCReference": @YES,
+            @"ShowSkyState": @NO,
+            @"ShowProgressPercent": @YES,
+            @"SelectedMarket": @"local",
+        },
         @"Watch Party": @{
             @"DisplayMode": @"single-market",
             @"LocalTheme": @"dracula",

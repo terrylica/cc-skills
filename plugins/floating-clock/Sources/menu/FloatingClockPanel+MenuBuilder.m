@@ -546,7 +546,7 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
 
     NSDictionary *profiles = [[NSUserDefaults standardUserDefaults] objectForKey:@"Profiles"];
     NSString *active = [[NSUserDefaults standardUserDefaults] stringForKey:@"ActiveProfile"];
-    NSArray *starters = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Watch Party"];
+    NSArray *starters = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Researcher", @"Watch Party"];
 
     for (NSString *name in starters) {
         if (profiles[name] == nil) continue;
