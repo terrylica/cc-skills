@@ -357,6 +357,22 @@
     [NSApp terminate:nil];
 }
 
+// v4 iter-152: shared helper for the Copy cluster. Prepends an ISO-8601
+// UTC timestamp header so snapshots are self-documenting when pasted
+// into chat/notes days later. Keeps the Copy actions lightweight.
+static void fcCopyWithHeader(NSString *label, NSString *body) {
+    if (body.length == 0) return;
+    NSDateFormatter *hdrFmt = [[NSDateFormatter alloc] init];
+    hdrFmt.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+    hdrFmt.dateFormat = @"yyyy-MM-dd HH:mm:ss 'UTC'";
+    NSString *stamp = [hdrFmt stringFromDate:[NSDate date]];
+    NSString *text = [NSString stringWithFormat:@"# Floating Clock · %@ · %@\n%@",
+                      label, stamp, body];
+    NSPasteboard *pb = [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:text forType:NSPasteboardTypeString];
+}
+
 // v4 iter-149: copy the LOCAL row's current display (time + TZ label,
 // and UTC reference if enabled) to the system clipboard.
 // v4 iter-150: fix — in three-segment mode (the default DisplayMode
@@ -367,31 +383,20 @@
     NSString *threeSeg = _localSeg.timeLabel.stringValue;
     NSString *legacy   = _label.stringValue;
     NSString *text = threeSeg.length > 0 ? threeSeg : legacy;
-    if (text.length == 0) return;
-    NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    [pb clearContents];
-    [pb setString:text forType:NSPasteboardTypeString];
+    fcCopyWithHeader(@"LOCAL", text);
 }
 
 // v4 iter-150: copy ACTIVE segment's multi-line content to clipboard —
 // the full list of currently-open markets with progress/countdown.
 // Useful for pasting a "market snapshot" into notes/chat.
 - (void)copyActiveMarkets:(id)sender {
-    NSString *text = _activeSeg.contentLabel.attributedStringValue.string;
-    if (text.length == 0) return;
-    NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    [pb clearContents];
-    [pb setString:text forType:NSPasteboardTypeString];
+    fcCopyWithHeader(@"ACTIVE MARKETS", _activeSeg.contentLabel.attributedStringValue.string);
 }
 
 // v4 iter-150: copy NEXT segment's multi-line content — upcoming opens
 // with countdowns. Mirror of copyActiveMarkets.
 - (void)copyNextOpens:(id)sender {
-    NSString *text = _nextSeg.contentLabel.attributedStringValue.string;
-    if (text.length == 0) return;
-    NSPasteboard *pb = [NSPasteboard generalPasteboard];
-    [pb clearContents];
-    [pb setString:text forType:NSPasteboardTypeString];
+    fcCopyWithHeader(@"NEXT TO OPEN", _nextSeg.contentLabel.attributedStringValue.string);
 }
 
 @end
