@@ -90,6 +90,7 @@
         @"NextItemCount": @3,
         @"DateFormat": @"short",
         @"CanvasOpacity": @1.0,
+        @"ProgressBarStyle": @"blocks",
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
