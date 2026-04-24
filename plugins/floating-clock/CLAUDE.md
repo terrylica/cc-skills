@@ -245,13 +245,14 @@ Design notes:
 
 Every user-visible UI element has a stable canonical short name so feedback can be precise (e.g. "the label in the bottom-right of ACTIVE called [COUNTDOWN] is 2pt too small"). Toggle `Show Debug Labels` in the context menu (or `defaults write com.example.floating-clock ShowDebugLabels -bool YES`) to render these as tiny corner overlays on the running app. Hovering any named NSView shows its full NSToolTip.
 
-| Nameidg    | Surface class       | Purpose / hover tooltip                                                    |
-| ---------- | ------------------- | -------------------------------------------------------------------------- |
-| `[LOCAL]`  | `LocalSegmentView`  | LOCAL — top segment, current user-local time                               |
-| `[ACTIVE]` | `ActiveSegmentView` | ACTIVE — bottom-left segment, currently-open markets with progress bars    |
-| `[NEXT]`   | `NextSegmentView`   | NEXT — bottom-right segment, upcoming-open markets with landing countdowns |
+| Nameidg    | Surface class                | Purpose / hover tooltip                                                                                          |
+| ---------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `[LOCAL]`  | `LocalSegmentView`           | LOCAL — top segment, current user-local time                                                                     |
+| `[ACTIVE]` | `ActiveSegmentView`          | ACTIVE — bottom-left segment, currently-open markets with progress bars                                          |
+| `[NEXT]`   | `NextSegmentView`            | NEXT — bottom-right segment, upcoming-open markets with landing countdowns                                       |
+| `[TIME]`   | `LocalSegmentView.timeLabel` | TIME — user-local time text inside [LOCAL] (NSToolTip only; no corner overlay since the label fills the segment) |
 
-(Sub-element names for `[TIME]`, `[DATE]`, `[SKYGLYPH]`, `[PROGRESSBAR]`, `[COUNTDOWN]`, etc. will be added in follow-up iters of the UI-naming campaign — see LOOP_CONTRACT Core Directive.)
+Sub-element names for elements that live inside attributed-string content (e.g. `[PROGRESSBAR]`, `[COUNTDOWN]`, `[HEADER-LEGEND]`, `[SKYGLYPH]`, `[DATE]`, `[MARKETCODE]`) can't use NSToolTip directly because `NSAttributedString` text runs aren't distinct `NSView`s. A future iter may add a custom NSView overlay that turns on text-run hit-testing when `ShowDebugLabels` is YES; for now the names stay as a paper reference so the user can call them out verbally ("the [COUNTDOWN] column right-aligns oddly when the market has lunch") and we find them in code by grep.
 
 ## Known limitations
 

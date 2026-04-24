@@ -97,6 +97,12 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     label.cell = cell;
     [self addSubview:label];
     _timeLabel = label;
+    // v4 iter-203: sub-element name surfaced via NSToolTip only — no
+    // corner overlay (too much visual noise for a label that already
+    // fills most of the segment). Named [TIME] so user feedback can
+    // target the time text distinctly from the surrounding LOCAL
+    // segment chrome (e.g. "[TIME]'s font size is too small").
+    label.toolTip = @"[TIME] — user-local time display inside [LOCAL] (updates every second; formatting controlled by TimeFormat / TimeSeparator / ShowSeconds prefs)";
 
     // v4 iter-199: canonical name overlay. Stable ID "LOCAL".
     _debugLabel = fcMakeDebugLabel([self fcNameID]);
