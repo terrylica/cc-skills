@@ -35,4 +35,15 @@ NSFont *FCResolveMonoFont(CGFloat size, NSFontWeight weight);
 //   3. NSFontWeightMedium
 NSFontWeight FCResolveSegmentWeight(NSString *segmentKey);
 
+// v4 iter-94. Maps the "LetterSpacing" pref id to a kern value
+// (NSKernAttributeName). Unknown/nil/empty → 0.0 (no kerning).
+// Accepted ids: "compact" (-1.0) / "tight" (-0.5) / "normal" (0.0) /
+// "airy" (+0.5) / "wide" (+1.0).
+CGFloat FCParseLetterSpacing(NSString * _Nullable spacingId);
+
+// v4 iter-94. Reads NSUserDefaults[@"LetterSpacing"] and applies the
+// resolved kern to the full range of `out`. No-op when the resolved
+// value is 0.0 (keeps attribute dictionaries minimal).
+void FCApplyLetterSpacing(NSMutableAttributedString *out);
+
 NS_ASSUME_NONNULL_END
