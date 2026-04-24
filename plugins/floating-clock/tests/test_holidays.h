@@ -25,6 +25,7 @@ void test_holiday_calendar_krx(void);
 void test_holiday_calendar_nse(void);
 void test_holiday_calendar_jse(void);
 void test_holiday_calendar_b3(void);
+void test_halfday_calendar_nyse(void);
 void test_nyse_holiday_state_closed(void);
 void test_holiday_chains_through_weekend(void);
 

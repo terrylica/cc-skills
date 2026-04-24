@@ -836,6 +836,7 @@ int main(void) {
         test_holiday_calendar_nse();
         test_holiday_calendar_jse();
         test_holiday_calendar_b3();
+        test_halfday_calendar_nyse();
         test_nyse_holiday_state_closed();
         test_holiday_chains_through_weekend();
         test_flag_empty_for_unknown_iana();
@@ -877,7 +878,7 @@ int main(void) {
         test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 79 tests passed.\n");
+            fprintf(stderr, "All 80 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

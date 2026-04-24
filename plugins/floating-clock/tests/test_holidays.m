@@ -11,6 +11,7 @@
 #import "../Sources/data/MarketCatalog.h"
 #import "../Sources/data/MarketSessionCalculator.h"
 #import "../Sources/data/HolidayCalendar.h"
+#import "../Sources/data/HalfDayCalendar.h"
 #import "test_levers.h"  // extern int failures
 
 static NSDate *holidayDateAt(NSString *iana, int y, int m, int d, int h, int mm, int ss) {
@@ -697,6 +698,63 @@ void test_holiday_calendar_b3(void) {
     NSDate *regularThu = holidayDateAt(@"America/Sao_Paulo", 2026, 7, 16, 12, 0, 0);
     if (FCIsMarketHoliday(b3, regularThu)) {
         failures++; fprintf(stderr, "FAIL %s: Thu 2026-07-16 wrongly flagged on B3\n", __func__);
+    }
+}
+
+void test_halfday_calendar_nyse(void) {
+    // v4 iter-188: NYSE 2026 half-day MVP (data-only). Tests the pure
+    // FCIsMarketHalfDay lookup — NOT integration with session state
+    // (wiring lands in follow-up iter). Both NYSE 2026 half-days
+    // close at 13:00 ET.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    const ClockMarket *tse  = marketForId(@"tse");
+
+    NSDate *blackFriday = holidayDateAt(@"America/New_York", 2026, 11, 27, 12, 0, 0);
+    NSDate *xmasEve     = holidayDateAt(@"America/New_York", 2026, 12, 24, 12, 0, 0);
+
+    // Positive: both dates flagged + close-time out-params populated.
+    int h = -1, m = -1;
+    if (!FCIsMarketHalfDay(nyse, blackFriday, &h, &m)) {
+        failures++; fprintf(stderr, "FAIL %s: Black Friday not flagged as half-day\n", __func__);
+    } else if (h != 13 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: Black Friday close expected 13:00 got %d:%02d\n", __func__, h, m);
+    }
+    h = -1; m = -1;
+    if (!FCIsMarketHalfDay(nyse, xmasEve, &h, &m)) {
+        failures++; fprintf(stderr, "FAIL %s: Xmas Eve not flagged as half-day\n", __func__);
+    } else if (h != 13 || m != 0) {
+        failures++; fprintf(stderr, "FAIL %s: Xmas Eve close expected 13:00 got %d:%02d\n", __func__, h, m);
+    }
+
+    // Out-params are optional — nil probe should still return YES.
+    if (!FCIsMarketHalfDay(nyse, blackFriday, NULL, NULL)) {
+        failures++; fprintf(stderr, "FAIL %s: nil-out-param probe returned NO\n", __func__);
+    }
+
+    // Regular NYSE trading day should NOT be flagged.
+    NSDate *regularFriday = holidayDateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
+    if (FCIsMarketHalfDay(nyse, regularFriday, NULL, NULL)) {
+        failures++; fprintf(stderr, "FAIL %s: Regular Fri Apr 24 wrongly flagged half-day\n", __func__);
+    }
+
+    // NYSE full-holiday (Thanksgiving Nov 26) should NOT be flagged
+    // half-day — full holidays and half-days are distinct sets.
+    NSDate *thanksgiving = holidayDateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
+    if (FCIsMarketHalfDay(nyse, thanksgiving, NULL, NULL)) {
+        failures++; fprintf(stderr, "FAIL %s: Thanksgiving wrongly flagged half-day (it's a full closure)\n", __func__);
+    }
+
+    // Other markets have no data yet — must return NO.
+    if (FCIsMarketHalfDay(tse, xmasEve, NULL, NULL)) {
+        failures++; fprintf(stderr, "FAIL %s: TSE wrongly flagged half-day (no data yet)\n", __func__);
+    }
+
+    // Defensive: nil mkt + nil date → NO.
+    if (FCIsMarketHalfDay(NULL, blackFriday, NULL, NULL)) {
+        failures++; fprintf(stderr, "FAIL %s: nil mkt should return NO\n", __func__);
+    }
+    if (FCIsMarketHalfDay(nyse, nil, NULL, NULL)) {
+        failures++; fprintf(stderr, "FAIL %s: nil date should return NO\n", __func__);
     }
 }
 
