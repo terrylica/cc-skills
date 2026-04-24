@@ -67,16 +67,29 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
             // produced a nonsensical secsToNext — e.g. NYSE showed "9h29m"
             // when actually opening in 2h37m. Correct delta is openMins - nowMins.
             // v4 iter-174: holidays also disqualify today's open — we
-            // advance to next-weekday logic below. (Caveat: that next
-            // day may itself be a holiday; a rigorous fix would loop
-            // the calendar, deferred to follow-up.)
+            // advance to the next-trading-day logic below.
             nextBoundaryMins = openMins - nowMins;
         } else {
+            // v4 iter-177: advance to the next actual trading day, skipping
+            // both weekends AND holidays. Previous impl only skipped
+            // weekends — back-to-back holidays (e.g. LSE Christmas Fri
+            // + weekend + Boxing Day observed Mon) produced a countdown
+            // pointing at the first closed day instead of the real open.
+            // Candidate day is constructed as an NSDate via NSCalendar
+            // so the weekday / holiday check reuses the same TZ as `now`
+            // and DST transitions are handled by the calendar rather
+            // than raw minute arithmetic.
             int addDays = 1;
-            NSInteger nextWeekday = ((comps.weekday) % 7) + 1;
-            while (nextWeekday == 1 || nextWeekday == 7) {
+            while (addDays <= 14) {  // 14-day safety cap — far beyond any realistic closure run
+                NSDate *candidate = [cal dateByAddingUnit:NSCalendarUnitDay
+                                                    value:addDays
+                                                   toDate:now
+                                                  options:0];
+                NSInteger candWeekday = [cal component:NSCalendarUnitWeekday fromDate:candidate];
+                BOOL candWeekend = (candWeekday == 1 || candWeekday == 7);
+                BOOL candHoliday = FCIsMarketHoliday(mkt, candidate);
+                if (!candWeekend && !candHoliday) break;
                 addDays++;
-                nextWeekday = (nextWeekday % 7) + 1;
             }
             nextBoundaryMins = (24 * 60 - nowMins) + (addDays - 1) * 24 * 60 + openMins;
         }
