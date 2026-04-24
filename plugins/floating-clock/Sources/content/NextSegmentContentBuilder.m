@@ -26,6 +26,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         const ClockMarket *mkt;
         long secs;
         BOOL isLunchResume;
+        SessionState state;  // v4 iter-141: preserve so render-loop picks the right glyph/color
     } NextEntry;
 
     NextEntry entries[kNumMarkets];
@@ -45,9 +46,9 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         // points at tomorrow's open; the ◒ glyph is what tells the reader
         // "this market just closed" versus overnight CLOSED.
         if (state == kSessionClosed || state == kSessionPreMarket || state == kSessionAfterHours) {
-            entries[entryCount++] = (NextEntry){m, secsToNext, NO};
+            entries[entryCount++] = (NextEntry){m, secsToNext, NO, state};
         } else if (state == kSessionLunch) {
-            entries[entryCount++] = (NextEntry){m, secsToNext, YES};
+            entries[entryCount++] = (NextEntry){m, secsToNext, YES, state};
         }
         // Skip kSessionOpen — already in ACTIVE
     }
@@ -85,10 +86,13 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     int maxItems = entryCount < maxN ? entryCount : (int)maxN;
     for (int i = 0; i < maxItems; i++) {
         NextEntry e = entries[i];
-        NSString *glyph = e.isLunchResume ? @"◑" : @"○";
-        NSColor *glyphColor = e.isLunchResume
-            ? [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0]
-            : [NSColor colorWithWhite:0.55 alpha:1.0];
+        // v4 iter-141: render the actual state's glyph/color instead of
+        // hardcoding ○ gray for non-lunch. PRE-MARKET (◐ amber) and
+        // AFTER-HOURS (◒ rose) were invisible in NEXT before this fix —
+        // iter-123/125 introduced the states and iter-125 added them to
+        // the filter, but the render loop was hardcoded to ○.
+        NSString *glyph = glyphForState(e.state);
+        NSColor *glyphColor = colorForState(e.state, NULL);
         NSString *code = [NSString stringWithUTF8String:e.mkt->code];
         NSString *countdown;
         if (e.secs > kFCMaxBoundedCountdownSecs) {
