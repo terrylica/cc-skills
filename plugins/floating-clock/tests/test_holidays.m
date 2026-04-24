@@ -616,6 +616,90 @@ void test_holiday_calendar_nse(void) {
     }
 }
 
+void test_holiday_calendar_jse(void) {
+    // v4 iter-186: JSE 2026. Covers SA substitute-holiday rule
+    // (Sun → Mon substitute; Sat has no sub) via Aug 10 Mon shift
+    // for Women's Day. Also locks "Family Day" (Easter Monday in SA)
+    // and Day of Reconciliation Dec 16.
+    const ClockMarket *jse  = marketForId(@"jse");
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    NSDate *familyDay       = holidayDateAt(@"Africa/Johannesburg", 2026,  4,  6, 12, 0, 0);
+    NSDate *freedomDay      = holidayDateAt(@"Africa/Johannesburg", 2026,  4, 27, 12, 0, 0);
+    NSDate *youthDay        = holidayDateAt(@"Africa/Johannesburg", 2026,  6, 16, 12, 0, 0);
+    NSDate *womensDaySub    = holidayDateAt(@"Africa/Johannesburg", 2026,  8, 10, 12, 0, 0);
+    NSDate *heritageDay     = holidayDateAt(@"Africa/Johannesburg", 2026,  9, 24, 12, 0, 0);
+    NSDate *reconciliation  = holidayDateAt(@"Africa/Johannesburg", 2026, 12, 16, 12, 0, 0);
+    if (!FCIsMarketHoliday(jse, familyDay))      { failures++; fprintf(stderr, "FAIL %s: Family Day (Easter Mon) not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(jse, freedomDay))     { failures++; fprintf(stderr, "FAIL %s: Freedom Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(jse, youthDay))       { failures++; fprintf(stderr, "FAIL %s: Youth Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(jse, womensDaySub))   { failures++; fprintf(stderr, "FAIL %s: Women's Day Mon substitute not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(jse, heritageDay))    { failures++; fprintf(stderr, "FAIL %s: Heritage Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(jse, reconciliation)) { failures++; fprintf(stderr, "FAIL %s: Day of Reconciliation not flagged\n", __func__); }
+
+    // Human Rights Day Mar 21 2026 Sat — no substitute. Mon Mar 23
+    // must NOT be flagged.
+    NSDate *hrdMondayAfter = holidayDateAt(@"Africa/Johannesburg", 2026, 3, 23, 12, 0, 0);
+    if (FCIsMarketHoliday(jse, hrdMondayAfter)) {
+        failures++; fprintf(stderr, "FAIL %s: JSE wrongly flagged Mar 23 (Human Rights Day Sat, no sub)\n", __func__);
+    }
+
+    // Cross-market: NYSE must NOT flag JSE-only holidays.
+    if (FCIsMarketHoliday(nyse, freedomDay)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Freedom Day\n", __func__); }
+    if (FCIsMarketHoliday(nyse, youthDay))   { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Youth Day\n", __func__); }
+
+    // Regular JSE trading day should NOT be flagged.
+    NSDate *regularWed = holidayDateAt(@"Africa/Johannesburg", 2026, 7, 15, 12, 0, 0);
+    if (FCIsMarketHoliday(jse, regularWed)) {
+        failures++; fprintf(stderr, "FAIL %s: Wed 2026-07-15 wrongly flagged on JSE\n", __func__);
+    }
+}
+
+void test_holiday_calendar_b3(void) {
+    // v4 iter-186: B3 2026. Covers Carnival 2-day cluster (Feb 16-17),
+    // Corpus Christi (moveable = Easter + 60d), and Brazilian civic
+    // dates. Ash Wed (Feb 18) half-day session not modelled.
+    const ClockMarket *b3   = marketForId(@"b3");
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    NSDate *carnivalMon   = holidayDateAt(@"America/Sao_Paulo", 2026,  2, 16, 12, 0, 0);
+    NSDate *carnivalTue   = holidayDateAt(@"America/Sao_Paulo", 2026,  2, 17, 12, 0, 0);
+    NSDate *tiradentes    = holidayDateAt(@"America/Sao_Paulo", 2026,  4, 21, 12, 0, 0);
+    NSDate *corpusChristi = holidayDateAt(@"America/Sao_Paulo", 2026,  6,  4, 12, 0, 0);
+    NSDate *independence  = holidayDateAt(@"America/Sao_Paulo", 2026,  9,  7, 12, 0, 0);
+    NSDate *aparecida     = holidayDateAt(@"America/Sao_Paulo", 2026, 10, 12, 12, 0, 0);
+    NSDate *allSouls      = holidayDateAt(@"America/Sao_Paulo", 2026, 11,  2, 12, 0, 0);
+    NSDate *blackAwarens  = holidayDateAt(@"America/Sao_Paulo", 2026, 11, 20, 12, 0, 0);
+    if (!FCIsMarketHoliday(b3, carnivalMon))   { failures++; fprintf(stderr, "FAIL %s: Carnival Monday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(b3, carnivalTue))   { failures++; fprintf(stderr, "FAIL %s: Carnival Tuesday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(b3, tiradentes))    { failures++; fprintf(stderr, "FAIL %s: Tiradentes not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(b3, corpusChristi)) { failures++; fprintf(stderr, "FAIL %s: Corpus Christi not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(b3, independence))  { failures++; fprintf(stderr, "FAIL %s: Independence Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(b3, aparecida))     { failures++; fprintf(stderr, "FAIL %s: Our Lady of Aparecida not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(b3, allSouls))      { failures++; fprintf(stderr, "FAIL %s: All Souls' not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(b3, blackAwarens))  { failures++; fprintf(stderr, "FAIL %s: Black Awareness Day not flagged\n", __func__); }
+
+    // Proclamation Day Nov 15 2026 Sun — no substitute. Mon Nov 16
+    // must NOT be flagged.
+    NSDate *nov16Mon = holidayDateAt(@"America/Sao_Paulo", 2026, 11, 16, 12, 0, 0);
+    if (FCIsMarketHoliday(b3, nov16Mon)) {
+        failures++; fprintf(stderr, "FAIL %s: B3 wrongly flagged Nov 16 (Proclamation Sun, no sub)\n", __func__);
+    }
+
+    // Cross-market: NYSE must NOT flag B3-only holidays.
+    // NOTE: Avoid Carnival Mon Feb 16 (= NYSE Presidents' Day) and
+    // Independence Day Sep 7 (= NYSE Labor Day) — use B3-only dates.
+    if (FCIsMarketHoliday(nyse, carnivalTue))   { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Carnival Tue\n", __func__); }
+    if (FCIsMarketHoliday(nyse, tiradentes))    { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Tiradentes\n", __func__); }
+    if (FCIsMarketHoliday(nyse, corpusChristi)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Corpus Christi\n", __func__); }
+
+    // Regular B3 trading day should NOT be flagged.
+    NSDate *regularThu = holidayDateAt(@"America/Sao_Paulo", 2026, 7, 16, 12, 0, 0);
+    if (FCIsMarketHoliday(b3, regularThu)) {
+        failures++; fprintf(stderr, "FAIL %s: Thu 2026-07-16 wrongly flagged on B3\n", __func__);
+    }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and

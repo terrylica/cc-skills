@@ -254,6 +254,50 @@ static NSString * const kNSE2026Holidays[] = {
     @"2026-12-25",  // Christmas Day
 };
 
+// v4 iter-186: JSE (Johannesburg Stock Exchange) 2026 non-trading
+// days. Source: JSE published calendar + South African Public
+// Holidays Act (substitute rule: if on Sunday, next Monday becomes
+// a public holiday; Saturday has no substitute). 2026 weekend-
+// shifted: Aug 10 Mon (Women's Day Aug 9 Sun). Human Rights Day
+// Mar 21 and Day of Goodwill Dec 26 fall Saturday — no substitute,
+// weekend branch handles. Notable: South Africa calls Easter Monday
+// "Family Day" (same date, different name).
+static NSString * const kJSE2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    @"2026-04-03",  // Good Friday
+    @"2026-04-06",  // Family Day (Easter Monday in SA)
+    @"2026-04-27",  // Freedom Day
+    @"2026-05-01",  // Workers' Day
+    @"2026-06-16",  // Youth Day
+    @"2026-08-10",  // National Women's Day substitute (Aug 9 Sun)
+    @"2026-09-24",  // Heritage Day
+    @"2026-12-16",  // Day of Reconciliation
+    @"2026-12-25",  // Christmas Day
+};
+
+// v4 iter-186: B3 (Brasil Bolsa Balcão) 2026 non-trading days.
+// Source: B3 published calendar. Distinctive: Carnival Monday +
+// Tuesday (Feb 16-17 2026) — Brazilian equity markets close for
+// the 2-day Carnival peak. Corpus Christi (60 days after Easter
+// Sunday = Jun 4 2026) — Christian moveable feast. National Black
+// Awareness Day (Nov 20) was legislated federal in 2024. Ash Wed
+// half-day session (Feb 18) not modelled — half-day caveat.
+// Proclamation Day (Nov 15 2026 Sun) has no substitute.
+static NSString * const kB3_2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    @"2026-02-16",  // Carnival Monday (Segunda-feira de Carnaval)
+    @"2026-02-17",  // Carnival Tuesday (Terça-feira de Carnaval)
+    @"2026-04-03",  // Good Friday
+    @"2026-04-21",  // Tiradentes Day
+    @"2026-05-01",  // Labour Day
+    @"2026-06-04",  // Corpus Christi (Easter + 60d)
+    @"2026-09-07",  // Independence Day (Dia da Independência)
+    @"2026-10-12",  // Our Lady of Aparecida / Children's Day
+    @"2026-11-02",  // All Souls' Day (Finados)
+    @"2026-11-20",  // National Black Awareness Day (Consciência Negra)
+    @"2026-12-25",  // Christmas Day
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -277,6 +321,8 @@ static const FCHolidayTable kHolidayTables[] = {
     { "sse",      kSSE2026Holidays,      sizeof(kSSE2026Holidays)      / sizeof(kSSE2026Holidays[0])      },
     { "krx",      kKRX2026Holidays,      sizeof(kKRX2026Holidays)      / sizeof(kKRX2026Holidays[0])      },
     { "nse",      kNSE2026Holidays,      sizeof(kNSE2026Holidays)      / sizeof(kNSE2026Holidays[0])      },
+    { "jse",      kJSE2026Holidays,      sizeof(kJSE2026Holidays)      / sizeof(kJSE2026Holidays[0])      },
+    { "b3",       kB3_2026Holidays,      sizeof(kB3_2026Holidays)      / sizeof(kB3_2026Holidays[0])      },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
