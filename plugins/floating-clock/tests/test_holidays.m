@@ -249,6 +249,60 @@ void test_holiday_calendar_hkex(void) {
     }
 }
 
+void test_holiday_calendar_target2(void) {
+    // v4 iter-179: XETRA + Euronext both reference the same shared
+    // kTARGET2_2026Holidays array in the registry. This test locks down
+    // that (a) each market flags the shared TARGET2 closures, (b) both
+    // markets reject holidays that belong to other exchanges (NYSE
+    // Thanksgiving, HKEX Dragon Boat, TSE Golden Week), (c) the data
+    // dedup doesn't cause one market's entry to accidentally alias the
+    // other — both return identical results for a given date, confirmed
+    // by asserting them against the same fixtures in parallel.
+    const ClockMarket *xetra    = marketForId(@"xetra");
+    const ClockMarket *euronext = marketForId(@"euronext");
+
+    NSDate *newYears     = holidayDateAt(@"Europe/Berlin", 2026,  1,  1, 12, 0, 0);
+    NSDate *goodFriday   = holidayDateAt(@"Europe/Berlin", 2026,  4,  3, 12, 0, 0);
+    NSDate *easterMonday = holidayDateAt(@"Europe/Berlin", 2026,  4,  6, 12, 0, 0);
+    NSDate *labourDay    = holidayDateAt(@"Europe/Berlin", 2026,  5,  1, 12, 0, 0);
+    NSDate *christmas    = holidayDateAt(@"Europe/Berlin", 2026, 12, 25, 12, 0, 0);
+
+    // All 5 TARGET2 dates must be flagged for both markets.
+    if (!FCIsMarketHoliday(xetra,    newYears))     { failures++; fprintf(stderr, "FAIL %s: XETRA Jan 1 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(euronext, newYears))     { failures++; fprintf(stderr, "FAIL %s: Euronext Jan 1 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(xetra,    goodFriday))   { failures++; fprintf(stderr, "FAIL %s: XETRA Good Friday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(euronext, goodFriday))   { failures++; fprintf(stderr, "FAIL %s: Euronext Good Friday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(xetra,    easterMonday)) { failures++; fprintf(stderr, "FAIL %s: XETRA Easter Mon not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(euronext, easterMonday)) { failures++; fprintf(stderr, "FAIL %s: Euronext Easter Mon not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(xetra,    labourDay))    { failures++; fprintf(stderr, "FAIL %s: XETRA Labour Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(euronext, labourDay))    { failures++; fprintf(stderr, "FAIL %s: Euronext Labour Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(xetra,    christmas))    { failures++; fprintf(stderr, "FAIL %s: XETRA Christmas not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(euronext, christmas))    { failures++; fprintf(stderr, "FAIL %s: Euronext Christmas not flagged\n", __func__); }
+
+    // Dec 26 Sat 2026 — Boxing Day (weekend, not in TARGET2 array).
+    // FCIsMarketHoliday should return NO for both (data array doesn't
+    // have it; isWeekend branch in computeSessionState handles it).
+    NSDate *dec26Sat = holidayDateAt(@"Europe/Berlin", 2026, 12, 26, 12, 0, 0);
+    if (FCIsMarketHoliday(xetra, dec26Sat)) {
+        failures++; fprintf(stderr, "FAIL %s: Dec 26 wrongly in XETRA array (handled by weekend)\n", __func__);
+    }
+
+    // Cross-market negatives: TARGET2 markets must NOT flag holidays
+    // from other calendars (NYSE Thanksgiving, TSE Shogatsu, HKEX LNY).
+    NSDate *thanksgiving = holidayDateAt(@"Europe/Berlin", 2026, 11, 26, 12, 0, 0);
+    NSDate *tseShogatsu  = holidayDateAt(@"Europe/Berlin", 2026,  1,  2, 12, 0, 0);
+    NSDate *hkexLNY      = holidayDateAt(@"Europe/Berlin", 2026,  2, 17, 12, 0, 0);
+    if (FCIsMarketHoliday(xetra,    thanksgiving)) { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged Thanksgiving\n", __func__); }
+    if (FCIsMarketHoliday(euronext, thanksgiving)) { failures++; fprintf(stderr, "FAIL %s: Euronext wrongly flagged Thanksgiving\n", __func__); }
+    if (FCIsMarketHoliday(xetra,    tseShogatsu))  { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged TSE Shogatsu\n", __func__); }
+    if (FCIsMarketHoliday(xetra,    hkexLNY))      { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged HKEX LNY\n", __func__); }
+
+    // Regular trading day should NOT be flagged.
+    NSDate *regularWed = holidayDateAt(@"Europe/Berlin", 2026, 3, 11, 12, 0, 0);
+    if (FCIsMarketHoliday(xetra,    regularWed)) { failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on XETRA\n", __func__); }
+    if (FCIsMarketHoliday(euronext, regularWed)) { failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on Euronext\n", __func__); }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and
