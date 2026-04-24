@@ -4,6 +4,7 @@
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../segments/FloatingClockSegmentViews.h"
+#import "../actions/FloatingClockPanel+ActionHandlers.h"  // applyTheme:
 
 @implementation FloatingClockPanel (Layout)
 
