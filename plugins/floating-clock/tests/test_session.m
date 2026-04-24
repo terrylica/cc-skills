@@ -17,6 +17,7 @@
 #import "../Sources/data/MarketSessionCalculator.h"
 #import "../Sources/preferences/FloatingClockStarterProfiles.h"
 #import "../Sources/content/LandingTimeFormatter.h"
+#import "../Sources/rendering/FontResolver.h"
 
 static int failures = 0;
 
@@ -397,6 +398,36 @@ static void test_full_tz_label_composition(void) {
     ASSERT_EQ_STR(fullTzLabelForIana("Europe/London", winter), @"UTC+0");
 }
 
+static void test_font_weight_parser(void) {
+    // Known ids map to their NSFontWeight constants.
+    struct { NSString *id; NSFontWeight w; } cases[] = {
+        {@"regular",  NSFontWeightRegular},
+        {@"medium",   NSFontWeightMedium},
+        {@"semibold", NSFontWeightSemibold},
+        {@"bold",     NSFontWeightBold},
+        {@"heavy",    NSFontWeightHeavy},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        NSFontWeight got = FCParseFontWeight(cases[i].id);
+        if (fabs(got - cases[i].w) > 0.001) {
+            fprintf(stderr, "FAIL %s: '%s' expected %.2f got %.2f\n",
+                    __func__, cases[i].id.UTF8String,
+                    (double)cases[i].w, (double)got);
+            failures++;
+        }
+    }
+    // Unknown / nil / empty fall back to Medium (matches registerDefaults).
+    if (fabs(FCParseFontWeight(nil) - NSFontWeightMedium) > 0.001) {
+        fprintf(stderr, "FAIL %s: nil → Medium\n", __func__); failures++;
+    }
+    if (fabs(FCParseFontWeight(@"") - NSFontWeightMedium) > 0.001) {
+        fprintf(stderr, "FAIL %s: empty → Medium\n", __func__); failures++;
+    }
+    if (fabs(FCParseFontWeight(@"ultrablack") - NSFontWeightMedium) > 0.001) {
+        fprintf(stderr, "FAIL %s: unknown → Medium\n", __func__); failures++;
+    }
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -429,8 +460,10 @@ int main(void) {
         test_landing_cross_day_same_weekday();
         test_landing_empty_iana();
 
+        test_font_weight_parser();
+
         if (failures == 0) {
-            fprintf(stderr, "All 24 tests passed.\n");
+            fprintf(stderr, "All 25 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

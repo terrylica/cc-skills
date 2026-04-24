@@ -50,3 +50,23 @@ NSFont *resolveClockFont(CGFloat size) {
     NSFont *menlo = [NSFont fontWithName:@"Menlo-Regular" size:size];
     return menlo ?: [NSFont systemFontOfSize:size weight:NSFontWeightMedium];
 }
+
+NSFontWeight FCParseFontWeight(NSString *weightId) {
+    if (![weightId isKindOfClass:[NSString class]] || weightId.length == 0) {
+        return NSFontWeightMedium;
+    }
+    if ([weightId isEqualToString:@"regular"])  return NSFontWeightRegular;
+    if ([weightId isEqualToString:@"medium"])   return NSFontWeightMedium;
+    if ([weightId isEqualToString:@"semibold"]) return NSFontWeightSemibold;
+    if ([weightId isEqualToString:@"bold"])     return NSFontWeightBold;
+    if ([weightId isEqualToString:@"heavy"])    return NSFontWeightHeavy;
+    return NSFontWeightMedium;
+}
+
+NSFont *FCResolveMonoFont(CGFloat size, NSFontWeight weight) {
+    if (@available(macOS 10.15, *)) {
+        return [NSFont monospacedSystemFontOfSize:size weight:weight];
+    }
+    NSFont *menlo = [NSFont fontWithName:@"Menlo-Regular" size:size];
+    return menlo ?: [NSFont systemFontOfSize:size weight:weight];
+}
