@@ -7,6 +7,7 @@
 #import "../content/NextSegmentContentBuilder.h"
 #import "../rendering/FontResolver.h"  // FCCurrentTimeFormat
 #import "DateFormatPrefix.h"              // FCDateFormatPrefix
+#import "SkyGlyph.h"                       // FCSkyGlyphForHour
 
 // Nanoseconds until next second boundary. Used by setupTimer's first fire.
 static uint64_t nsUntilNextSecond(void) {
@@ -97,10 +98,7 @@ static uint64_t nsUntilNextSecond(void) {
         NSCalendar *cal = [NSCalendar currentCalendar];
         cal.timeZone = localTz;
         NSInteger hour = [cal component:NSCalendarUnitHour fromDate:nowLocal];
-        if      (hour >= 5  && hour < 7)  skyGlyph = @" \U0001F305";  // 🌅 sunrise
-        else if (hour >= 7  && hour < 17) skyGlyph = @" ☀️";            // day
-        else if (hour >= 17 && hour < 19) skyGlyph = @" \U0001F307";  // 🌇 sunset
-        else                              skyGlyph = @" \U0001F319";  // 🌙 night
+        skyGlyph = [NSString stringWithFormat:@" %@", FCSkyGlyphForHour(hour)];
     }
 
     if (showUTC) {
