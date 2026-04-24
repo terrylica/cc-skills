@@ -1,5 +1,6 @@
 #import "MarketSessionCalculator.h"
 #import "../core/SessionSignalWindow.h"
+#import "HolidayCalendar.h"  // iter-174
 #include <string.h>
 
 const long kFCSecondsPerDay           = 24L * 3600L;
@@ -27,6 +28,7 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     NSDateComponents *comps = [cal components:units fromDate:now];
 
     BOOL isWeekend = (comps.weekday == 1 || comps.weekday == 7);
+    BOOL isHoliday = FCIsMarketHoliday(mkt, now);  // iter-174
 
     NSInteger nowMins = comps.hour * 60 + comps.minute;
     NSInteger openMins = mkt->open_h * 60 + mkt->open_m;
@@ -36,7 +38,7 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     NSInteger lunchEndMins   = hasLunch ? (mkt->lunch_end_h   * 60 + mkt->lunch_end_m)   : -1;
 
     SessionState state;
-    if (isWeekend) {
+    if (isWeekend || isHoliday) {
         state = kSessionClosed;
     } else if (nowMins < openMins || nowMins >= closeMins) {
         state = kSessionClosed;
@@ -60,10 +62,14 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     // secsToNext conversion below assumes delta form.
     NSInteger nextBoundaryMins;
     if (state == kSessionClosed) {
-        if (!isWeekend && nowMins < openMins) {
+        if (!isWeekend && !isHoliday && nowMins < openMins) {
             // v4 iter-48 fix: was `openMins` (absolute-min-of-day) which
             // produced a nonsensical secsToNext — e.g. NYSE showed "9h29m"
             // when actually opening in 2h37m. Correct delta is openMins - nowMins.
+            // v4 iter-174: holidays also disqualify today's open — we
+            // advance to next-weekday logic below. (Caveat: that next
+            // day may itself be a holiday; a rigorous fix would loop
+            // the calendar, deferred to follow-up.)
             nextBoundaryMins = openMins - nowMins;
         } else {
             int addDays = 1;
@@ -96,7 +102,7 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     NSString *sigId = [[NSUserDefaults standardUserDefaults] stringForKey:@"SessionSignalWindow"];
     NSInteger sigMins = FCSessionSignalWindowMinutes(sigId);
 
-    if (sigMins > 0 && state == kSessionClosed && !isWeekend && nowMins < openMins && secsToNext <= sigMins * 60) {
+    if (sigMins > 0 && state == kSessionClosed && !isWeekend && !isHoliday && nowMins < openMins && secsToNext <= sigMins * 60) {
         state = kSessionPreMarket;
     }
 
@@ -106,7 +112,7 @@ void computeSessionState(const ClockMarket *mkt, NSDate *now,
     // open; the distinct glyph is what signals "just closed" in the NEXT
     // segment. Uniform window shared with PRE-MARKET via
     // `SessionSignalWindow` (iter-126).
-    if (sigMins > 0 && state == kSessionClosed && !isWeekend && nowMins >= closeMins && (nowMins - closeMins) <= sigMins) {
+    if (sigMins > 0 && state == kSessionClosed && !isWeekend && !isHoliday && nowMins >= closeMins && (nowMins - closeMins) <= sigMins) {
         state = kSessionAfterHours;
     }
 
