@@ -246,6 +246,12 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
 
     // === WINDOW ===
     NSMutableArray *windowItems = [NSMutableArray array];
+    // v4 iter-85: clipboard snapshot — quick share of current state.
+    NSMenuItem *copyItem = [[NSMenuItem alloc] initWithTitle:@"Copy Clock State"
+                                                       action:@selector(copyStateToClipboard:) keyEquivalent:@"c"];
+    copyItem.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagShift;
+    [windowItems addObject:copyItem];
+    [windowItems addObject:[NSMenuItem separatorItem]];
     [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"Reset Position"
                                                        action:@selector(resetPosition:) keyEquivalent:@""]];
     [windowItems addObject:[NSMenuItem separatorItem]];
