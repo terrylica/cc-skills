@@ -49,6 +49,21 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
 
     NSMutableAttributedString *out = [[NSMutableAttributedString alloc] init];
 
+    // v4 iter-72: ACTIVE title + column legend, mirroring NEXT's iter-66
+    // layout. Both sections now open with 'SECTION_NAME\nlegend\n────'
+    // and render as sibling tables.
+    NSColor *ruleColor = [NSColor colorWithWhite:0.40 alpha:0.55];
+    NSString *hrule = @"────────────────────────────────────────────";
+    [out appendAttributedString:[[NSAttributedString alloc]
+        initWithString:@"ACTIVE MARKETS\n"
+        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
+    [out appendAttributedString:[[NSAttributedString alloc]
+        initWithString:@"city · market time · progress → time to close\n"
+        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
+    [out appendAttributedString:[[NSAttributedString alloc]
+        initWithString:[hrule stringByAppendingString:@"\n"]
+        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: ruleColor}]];
+
     if (groups.count == 0) {
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:@"— NO OPEN MARKETS —"
