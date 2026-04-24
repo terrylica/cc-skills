@@ -179,7 +179,7 @@ static uint64_t nsUntilNextSecond(void) {
         initWithString:[NSString stringWithFormat:@" %@ ", code]
         attributes:@{NSFontAttributeName: _sessionLabel.font, NSForegroundColorAttributeName: themeFg}]];
 
-    if (state == kSessionOpen || state == kSessionLunch) {
+    if (FCStateIsTrading(state)) {  // iter-168
         NSString *bar = buildProgressBar(progress01, 12);
         NSInteger splitIdx = fcProgressBarFullCells(progress01, 12);
         if (splitIdx > (NSInteger)bar.length) splitIdx = bar.length;
