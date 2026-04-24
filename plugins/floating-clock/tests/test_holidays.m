@@ -347,6 +347,56 @@ void test_holiday_calendar_asx(void) {
     }
 }
 
+void test_holiday_calendar_tsx(void) {
+    // v4 iter-181: TSX 2026 non-trading days. Tests Canadian-specific
+    // calendar: Family Day (Ontario), Victoria Day, Canada Day, Civic
+    // Holiday (Aug), Canadian Thanksgiving (Oct not Nov). Also locks
+    // that TSX does NOT close Easter Mon — a common mistake (TSX
+    // follows US-style for Easter; closes Good Fri only).
+    const ClockMarket *tsx  = marketForId(@"tsx");
+    const ClockMarket *nyse = marketForId(@"nyse");
+
+    NSDate *familyDay       = holidayDateAt(@"America/Toronto", 2026,  2, 16, 12, 0, 0);
+    NSDate *victoriaDay     = holidayDateAt(@"America/Toronto", 2026,  5, 18, 12, 0, 0);
+    NSDate *canadaDay       = holidayDateAt(@"America/Toronto", 2026,  7,  1, 12, 0, 0);
+    NSDate *civicHoliday    = holidayDateAt(@"America/Toronto", 2026,  8,  3, 12, 0, 0);
+    NSDate *canadaThanks    = holidayDateAt(@"America/Toronto", 2026, 10, 12, 12, 0, 0);
+    NSDate *boxingObs       = holidayDateAt(@"America/Toronto", 2026, 12, 28, 12, 0, 0);
+    if (!FCIsMarketHoliday(tsx, familyDay))    { failures++; fprintf(stderr, "FAIL %s: Family Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(tsx, victoriaDay))  { failures++; fprintf(stderr, "FAIL %s: Victoria Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(tsx, canadaDay))    { failures++; fprintf(stderr, "FAIL %s: Canada Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(tsx, civicHoliday)) { failures++; fprintf(stderr, "FAIL %s: Civic Holiday not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(tsx, canadaThanks)) { failures++; fprintf(stderr, "FAIL %s: Canadian Thanksgiving not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(tsx, boxingObs))    { failures++; fprintf(stderr, "FAIL %s: Boxing Day (observed) not flagged\n", __func__); }
+
+    // TSX does NOT close Easter Monday (trades).
+    NSDate *easterMonday = holidayDateAt(@"America/Toronto", 2026, 4, 6, 12, 0, 0);
+    if (FCIsMarketHoliday(tsx, easterMonday)) {
+        failures++; fprintf(stderr, "FAIL %s: TSX wrongly flagged Easter Monday (TSX trades Easter Mon)\n", __func__);
+    }
+
+    // Cross-market: NYSE must NOT flag TSX-only Canadian Thanksgiving
+    // (NYSE Thanksgiving is Nov, not Oct).
+    if (FCIsMarketHoliday(nyse, canadaThanks)) {
+        failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Canadian Thanksgiving\n", __func__);
+    }
+    // NYSE must NOT flag Canada Day or Civic Holiday.
+    if (FCIsMarketHoliday(nyse, canadaDay))    { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Canada Day\n", __func__); }
+    if (FCIsMarketHoliday(nyse, civicHoliday)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Civic Holiday\n", __func__); }
+
+    // TSX does NOT flag NYSE Thanksgiving (Nov 26).
+    NSDate *usThanks = holidayDateAt(@"America/Toronto", 2026, 11, 26, 12, 0, 0);
+    if (FCIsMarketHoliday(tsx, usThanks)) {
+        failures++; fprintf(stderr, "FAIL %s: TSX wrongly flagged US Thanksgiving (TSX trades Nov 26)\n", __func__);
+    }
+
+    // Regular TSX trading day should NOT be flagged.
+    NSDate *regularWed = holidayDateAt(@"America/Toronto", 2026, 3, 11, 12, 0, 0);
+    if (FCIsMarketHoliday(tsx, regularWed)) {
+        failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on TSX\n", __func__);
+    }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and
