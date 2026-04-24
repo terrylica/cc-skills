@@ -25,6 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setCanvasOpacity:(NSMenuItem *)sender;
 - (void)setActiveBarCells:(NSMenuItem *)sender;
 - (void)setProgressBarStyle:(NSMenuItem *)sender;
+- (void)setLayoutMode:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;
 - (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field;
 - (void)resetPosition:(id)sender;

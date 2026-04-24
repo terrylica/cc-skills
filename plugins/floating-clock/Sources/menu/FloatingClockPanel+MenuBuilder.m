@@ -76,6 +76,14 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Ghost (15%)",   @0.15]]
                                      defaultsKey:@"CanvasOpacity"]];
 
+    // v4 iter-28: segment arrangement presets.
+    [displayItems addObject:[self submenuTitled:@"Layout"
+                                          action:@selector(setLayoutMode:)
+                                           pairs:@[@[@"Local on top (stacked)",    @"stacked-local-top"],
+                                                   @[@"Local on bottom (stacked)", @"stacked-local-bottom"],
+                                                   @[@"Triptych (single row)",     @"horizontal-triptych"]]
+                                     defaultsKey:@"LayoutMode"]];
+
     [m addItem:fcTopCategory(@"Display", displayItems)];
 
     // === THEMES ===

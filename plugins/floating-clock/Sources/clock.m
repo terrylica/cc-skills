@@ -91,6 +91,7 @@
         @"DateFormat": @"short",
         @"CanvasOpacity": @1.0,
         @"ProgressBarStyle": @"blocks",
+        @"LayoutMode": @"stacked-local-top",
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
