@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 138
+iteration: 139
 status: ACTIVE
-last_updated: 2026-04-24T14:50:00Z
+last_updated: 2026-04-24T15:00:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -572,3 +572,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 14:30 UTC — iter-136: **Session Signals shortcut in NEXT segment menu** (4a702ff2). iter-126 exposed SessionSignalWindow only via Full Preferences → MARKET → Session Signals. But the pref's visible effect — PRE-MARKET ◐ and AFTER-HOURS ◒ glyphs — shows up specifically on NEXT entries. Added submenu shortcut in `buildNextSegmentMenu` so right-click on NEXT surfaces the lever directly. Same 5 presets, same action handler, same pref key — pure menu-surface addition, zero code or test churn. 49/49 still pass.
 - 2026-04-24 14:40 UTC — iter-137: **LetterSpacing catalog 5 → 7** (325afa6f). Parallel to iter-129's FontWeight and iter-99's Density bracket expansions. Added `condensed` (-1.5) and `extrawide` (+1.5) flanking existing compact/tight/normal/airy/wide. Span now ±1.5 vs prior ±1.0 — gives users with very narrow or very wide LOCAL font stacks more room. FCParseLetterSpacing extended; Letter Spacing submenu grows to 7 entries with inline numeric annotations; test_letter_spacing_parser (table-driven) gets 2 new rows; Quick Styles allowed-set widened. No test-count change (49/49). Warning-free, CLAUDE.md Runtime Preferences updated.
 - 2026-04-24 14:50 UTC — iter-138: **LineSpacing catalog 5 → 7** (27ec3d0e). Completes the typography-trilogy bracket-expansion pattern (FontWeight iter-129, LetterSpacing iter-137, LineSpacing now). Added `spacious` (10pt) and `cavernous` (14pt) on upper end — tight=0pt is the natural floor so expansion goes upward only. Naming matches Density / SegmentGap's cavernous convention. FCParseLineSpacing extended; Line Spacing submenu grows to 7 entries with inline pt annotations; test_line_spacing_parser (table-driven) gets 2 new rows; Quick Styles allowed-set widened. No test-count change (49/49). Warning-free, CLAUDE.md Runtime Preferences updated.
+- 2026-04-24 15:00 UTC — iter-139: **TimeSeparator catalog 5 → 7** (c618e4d4). TimeSeparator was the last 5-preset typographic axis untouched. Added `pipe` (|) and `plus` (+) — both distinct from existing colon/middot/space/slash/dash. FCCurrentTimeFormat extended with two UTS#35-quoted literals; Time Separator submenu grows to 7 entries with inline previews; test_current_time_format (table-driven) gets 2 new rows; Quick Styles allowed-set widened. Post-iter-139, all six 5-preset axes (FontWeight / LetterSpacing / LineSpacing / SegmentGap / CornerStyle / Density / TimeSeparator) are now at ≥6 presets. 49/49 still pass, warning-free.
