@@ -690,10 +690,12 @@ static void test_countdown_fancy_format(void) {
     ASSERT_EQ_STR(formatCountdownFancy(35940),  @"T-09:59:00");  // almost 10h
     ASSERT_EQ_STR(formatCountdownFancy(-5),     @"T-00:00:00");  // negative clamp
 
-    // v4 iter-75: progressive human-readable at >=1 day.
-    ASSERT_EQ_STR(formatCountdownFancy(86400),  @"T-1d 0h 00m");
-    ASSERT_EQ_STR(formatCountdownFancy(214020), @"T-2d 11h 27m");
-    ASSERT_EQ_STR(formatCountdownFancy(86400 + 5*60), @"T-1d 0h 05m");
+    // v4 iter-75 → v4 iter-208: progressive human-readable at >=1 day.
+    // iter-208 added seconds (T-Nd Hh MMm SSs) per user directive —
+    // all countdowns must tick visibly.
+    ASSERT_EQ_STR(formatCountdownFancy(86400),  @"T-1d 0h 00m 00s");
+    ASSERT_EQ_STR(formatCountdownFancy(214020), @"T-2d 11h 27m 00s");
+    ASSERT_EQ_STR(formatCountdownFancy(86400 + 5*60 + 33), @"T-1d 0h 05m 33s");
     ASSERT_EQ_STR(formatCountdownFancy(86399), @"T-23:59:59");
 }
 
