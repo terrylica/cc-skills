@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 171
+iteration: 172
 status: ACTIVE
-last_updated: 2026-04-24T20:20:00Z
+last_updated: 2026-04-24T20:30:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -605,3 +605,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 20:00 UTC — iter-169: **Carnival theme (27 → 28)** (ceea1a47). Pairs with iter-161's B3 addition. Brazilian-flag-inspired palette: warm yellow 0.98/0.90/0.20 on deep-green jungle 0.05/0.35/0.15, alpha 0.55. Distinctive from existing 27 themes (no prior yellow-on-green). iter-92's invariant test auto-validated round-trip + channel ranges; only count assertion bumped (27 → 28). 63/63 still pass.
 - 2026-04-24 20:10 UTC — iter-170: **Samba Quick Style (12 → 13)** (936e25cb). Pairs with iter-169's Carnival theme + iter-161's B3 market. Festive Brazilian-flag feel: carnival palette + bold weight + glow shadow + airy letter-spacing + middot separator. Iter-104's invariant test auto-covered. CLAUDE.md Quick Style row + architecture tree + About dialog all updated to 13 moods. 63/63 still pass.
 - 2026-04-24 20:20 UTC — iter-171: **24h sweep extended to B3** (2dfafce9). Completes sweep coverage across 6 TZ-cell structural variants: NYSE (NH-DST), TSE (no-DST+lunch), JSE (no-DST+Africa), ASX (SH-DST), LSE (EU-DST), B3 (no-DST+Americas-south). B3's distinctness vs JSE: same no-DST but negative UTC offset in a different region, exercises a different NSCalendar secondsFromGMTForDate branch. Tests +1 (64 total). 64/64 pass.
+- 2026-04-24 20:30 UTC — iter-172: **v1.10.0 release consolidation** (e3b928af). 12 iters since v1.9.0 (iter-159 → iter-172, matching cadence). plugin.json 1.9.0 → 1.10.0; Info.plist synced; CFBundleVersion 159 → 172. v1.10 scope: 14-exchange roster (B3 iter-161 fills Latin America), Brazilian trio (B3 market + Carnival theme iter-169 + Samba Quick Style iter-170), /floating-clock:diagnose health-report command (iter-165), Reveal App in Finder menu item (iter-167), ClipboardHeader extracted into testable module (iter-160), FCStateIsTrading predicate extracted (iter-168), 6-cell TZ-structural invariant sweep family (NYSE+TSE+JSE+ASX+LSE+B3), market roster lock upgraded to (id, iana, code) triples (iter-164). 58 → 64 test fixtures. 64/64 green, validator clean.
