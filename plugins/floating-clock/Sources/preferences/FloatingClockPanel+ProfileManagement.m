@@ -52,6 +52,7 @@
     profiles[name] = snapshot;
     [d setObject:profiles forKey:@"Profiles"];
     [d setObject:name forKey:@"ActiveProfile"];
+    [d synchronize];
 
     [self recordProfileActivationInCCMemory:name];
     self.contentView.menu = [self buildMenu];
@@ -70,7 +71,30 @@
     }
     profiles[active] = snapshot;
     [d setObject:profiles forKey:@"Profiles"];
+    // Without synchronize, a fast quit after Save can lose the write — the
+    // persistent domain only auto-flushes on ~5s tick or on terminate.
+    [d synchronize];
     [self recordProfileActivationInCCMemory:active];
+}
+
+// Always-targets-Default variant. Use this when the user's intent is "make
+// my current state the factory default" independent of which profile is
+// active. Matches the user's mental model of "Save as Default" more
+// reliably than quickSaveCurrentProfile, which ties to ActiveProfile.
+- (void)saveAsDefaultProfile:(id)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSMutableDictionary *profiles = [[d objectForKey:@"Profiles"] mutableCopy] ?: [NSMutableDictionary dictionary];
+    NSMutableDictionary *snapshot = [NSMutableDictionary dictionary];
+    for (NSString *key in profileManagedKeys()) {
+        id val = [d objectForKey:key];
+        if (val != nil) snapshot[key] = val;
+    }
+    profiles[@"Default"] = snapshot;
+    [d setObject:profiles forKey:@"Profiles"];
+    [d setObject:@"Default" forKey:@"ActiveProfile"];
+    [d synchronize];
+    [self recordProfileActivationInCCMemory:@"Default"];
+    self.contentView.menu = [self buildMenu];
 }
 
 - (void)deleteProfile:(NSMenuItem *)sender {

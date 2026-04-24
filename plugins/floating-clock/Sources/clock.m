@@ -89,8 +89,8 @@
         @"ActiveBarCells": @40,
         @"NextItemCount": @3,
         @"DateFormat": @"short",
-        @"CanvasOpacity": @1.0,
-        @"ProgressBarStyle": @"blocks",
+        @"CanvasOpacity": @0.75,
+        @"ProgressBarStyle": @"dots",
         @"LayoutMode": @"stacked-local-top",
         @"SegmentGap": @"normal",
         @"CornerStyle": @"rounded",
@@ -98,6 +98,7 @@
         @"ActiveFontSize": @11.0,
         @"NextFontSize": @11.0,
         @"ShowFlags": @YES,
+        @"Density": @"default",
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];

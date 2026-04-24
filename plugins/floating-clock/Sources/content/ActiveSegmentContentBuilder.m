@@ -64,7 +64,7 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
         // Header: "TOK Fri Apr 24 11:15:07" — city + local day/date + time with seconds.
         NSTimeZone *tz = [NSTimeZone timeZoneWithName:iana];
         NSDateFormatter *hf = [[NSDateFormatter alloc] init];
-        hf.dateFormat = @"EEE MMM d HH:mm:ss";
+        hf.dateFormat = @"EEE MMM d HH:mm:ss z";
         if (tz) hf.timeZone = tz;
         NSString *headerTime = [hf stringFromDate:now];
         const ClockMarket *firstM = &kMarkets[[(NSNumber *)group[0] intValue]];

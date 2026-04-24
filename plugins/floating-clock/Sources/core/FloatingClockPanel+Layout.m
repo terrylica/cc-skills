@@ -105,12 +105,23 @@
     CGFloat activeHeight = ceilf(activeSize.height);
     CGFloat nextHeight   = ceilf(nextSize.height);
 
-    CGFloat localRowHeight  = localHeight  + 24;
-    CGFloat marketRowHeight = MAX(activeHeight, nextHeight) + 24;
+    // v4 iter-35: Density profile — scales inner-row padding.
+    //   compact      12pt (half of default)
+    //   default      24pt (baseline, matches prior hardcoded padding)
+    //   comfortable  36pt
+    //   spacious     48pt
+    NSString *densityId = [d stringForKey:@"Density"];
+    CGFloat pad = 24;
+    if      ([densityId isEqualToString:@"compact"])     pad = 12;
+    else if ([densityId isEqualToString:@"comfortable"]) pad = 36;
+    else if ([densityId isEqualToString:@"spacious"])    pad = 48;
 
-    CGFloat localInnerWidth  = ceilf(localSize.width) + 32;
-    CGFloat activeSegWidth   = ceilf(activeSize.width) + 32;
-    CGFloat nextSegWidth     = ceilf(nextSize.width) + 32;
+    CGFloat localRowHeight  = localHeight  + pad;
+    CGFloat marketRowHeight = MAX(activeHeight, nextHeight) + pad;
+
+    CGFloat localInnerWidth  = ceilf(localSize.width) + pad + 8;
+    CGFloat activeSegWidth   = ceilf(activeSize.width) + pad + 8;
+    CGFloat nextSegWidth     = ceilf(nextSize.width) + pad + 8;
 
     // v4 iter-29: SegmentGap pref — controls inter-segment breathing room.
     NSString *gapId = [d stringForKey:@"SegmentGap"];
@@ -135,7 +146,7 @@
     CGFloat nextX = 0, nextY = 0, nextW = 0, nextH = 0;
 
     if ([layoutMode isEqualToString:@"horizontal-triptych"]) {
-        CGFloat rowHeight = MAX(MAX(localHeight, activeHeight), nextHeight) + 24;
+        CGFloat rowHeight = MAX(MAX(localHeight, activeHeight), nextHeight) + pad;
         windowWidth  = localInnerWidth + gap + activeSegWidth + gap + nextSegWidth + 24;
         windowHeight = rowHeight + 24;
         localX = 12;                     localY = 12; localW = localInnerWidth;  localH = rowHeight;

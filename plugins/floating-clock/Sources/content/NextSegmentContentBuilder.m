@@ -77,7 +77,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         if (e.secs > 99 * 3600) {
             NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
             NSDateFormatter *openFmt = [[NSDateFormatter alloc] init];
-            openFmt.dateFormat = @"EEE HH:mm";
+            openFmt.dateFormat = @"EEE HH:mm z";
             openFmt.timeZone = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:e.mkt->iana]];
             countdown = [NSString stringWithFormat:@"opens %@", [openFmt stringFromDate:opensAt]];
         } else {
